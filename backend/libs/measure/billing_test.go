@@ -459,6 +459,120 @@ func TestGetPlanRetentionDays(t *testing.T) {
 		}
 	})
 
+	t.Run("free plan alongside a bespoke plan → longest single grant, not the sum", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID: custID,
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {
+						FeatureID: autumn.FeatureRetentionDays,
+						Granted:   60,
+						Breakdown: []autumn.BalanceSource{
+							{PlanID: "acme_one_year", IncludedGrant: 30},
+							{PlanID: AutumnPlanFree, IncludedGrant: 30},
+						},
+					},
+				},
+			}, nil
+		})
+
+		got, err := GetPlanRetentionDays(ctx, deps.PgPool, deps.Config.IsBillingEnabled(), teamID)
+		if err != nil || got != 30 {
+			t.Errorf("want (30, nil), got (%d, %v)", got, err)
+		}
+	})
+
+	t.Run("plans granting different periods → the longest one", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID: custID,
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {
+						FeatureID: autumn.FeatureRetentionDays,
+						Granted:   395,
+						Breakdown: []autumn.BalanceSource{
+							{PlanID: AutumnPlanFree, IncludedGrant: 30},
+							{PlanID: "acme_one_year", IncludedGrant: 365},
+						},
+					},
+				},
+			}, nil
+		})
+
+		got, err := GetPlanRetentionDays(ctx, deps.PgPool, deps.Config.IsBillingEnabled(), teamID)
+		if err != nil || got != 365 {
+			t.Errorf("want (365, nil), got (%d, %v)", got, err)
+		}
+	})
+
+	t.Run("single plan in the breakdown → that plan's grant", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       custID,
+				Products: []autumn.CustomerProduct{{ID: AutumnPlanPro}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {
+						FeatureID: autumn.FeatureRetentionDays,
+						Granted:   90,
+						Breakdown: []autumn.BalanceSource{
+							{PlanID: AutumnPlanPro, IncludedGrant: 90},
+						},
+					},
+				},
+			}, nil
+		})
+
+		got, err := GetPlanRetentionDays(ctx, deps.PgPool, deps.Config.IsBillingEnabled(), teamID)
+		if err != nil || got != 90 {
+			t.Errorf("want (90, nil), got (%d, %v)", got, err)
+		}
+	})
+
+	t.Run("empty breakdown → falls back to the pooled grant", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:       custID,
+				Products: []autumn.CustomerProduct{{ID: AutumnPlanPro}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {
+						FeatureID: autumn.FeatureRetentionDays,
+						Granted:   90,
+						Breakdown: []autumn.BalanceSource{},
+					},
+				},
+			}, nil
+		})
+
+		got, err := GetPlanRetentionDays(ctx, deps.PgPool, deps.Config.IsBillingEnabled(), teamID)
+		if err != nil || got != 90 {
+			t.Errorf("want (90, nil), got (%d, %v)", got, err)
+		}
+	})
+
 	t.Run("autumn.GetCustomer fails → 0 + error (no silent default)", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		teamID := uuid.New()

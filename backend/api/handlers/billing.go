@@ -81,7 +81,7 @@ func (h Handlers) GetTeamBilling(c *gin.Context) {
 				result.TokenCreditsOverageAllowed = b.OverageAllowed
 			}
 			if b, ok := cust.Balances[autumn.FeatureRetentionDays]; ok && b.Granted > 0 {
-				result.RetentionDays = int(b.Granted)
+				result.RetentionDays = measure.RetentionDaysFromBalance(b)
 			}
 			// Pick the active subscription. During a scheduled cancel, the
 			// customer also has a Free sub with status="scheduled" — we want

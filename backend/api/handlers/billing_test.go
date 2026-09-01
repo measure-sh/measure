@@ -399,6 +399,48 @@ func TestGetTeamBilling(t *testing.T) {
 		}
 	})
 
+	t.Run("retention_days reports the longest single plan grant, not the pooled sum", func(t *testing.T) {
+		// A team can hold the free plan and a bespoke plan at once, and
+		// Autumn pools the two 30 day grants into Granted: 60. The usage
+		// page must show the 30 days the team was sold.
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanFree, Status: "active"}},
+				Purchases:     []autumn.Purchase{{PlanID: "acme_one_year"}},
+				Balances: map[string]autumn.Balance{
+					autumn.FeatureRetentionDays: {
+						FeatureID: autumn.FeatureRetentionDays,
+						Granted:   60,
+						Breakdown: []autumn.BalanceSource{
+							{PlanID: "acme_one_year", IncludedGrant: 30},
+							{PlanID: measure.AutumnPlanFree, IncludedGrant: 30},
+						},
+					},
+				},
+			}, nil
+		})
+
+		c, w := newTestGinContext("GET", "/teams/"+teamID.String()+"/billing/info", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		h.GetTeamBilling(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, body: %s", w.Code, w.Body.String())
+		}
+		var got map[string]any
+		_ = json.Unmarshal(w.Body.Bytes(), &got)
+		if got["retention_days"] != float64(30) {
+			t.Errorf("retention_days = %v, want 30 (max across plans, not the sum)", got["retention_days"])
+		}
+	})
+
 	t.Run("non-unlimited bytes balance leaves bytes_unlimited=false and populates retention_days + bytes_overage_allowed", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
