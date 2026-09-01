@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 )
@@ -273,6 +274,101 @@ func TestOpenCustomerPortal(t *testing.T) {
 	}
 	if !strings.HasPrefix(url, "https://billing.") {
 		t.Errorf("unexpected portal URL: %s", url)
+	}
+}
+
+// TestGetCustomerDecodesRealResponse guards the decode itself. The client
+// unmarshals without rejecting unknown keys, so an array Autumn renames
+// decodes to a zero value while the call still reports success. Every other
+// test here answers with one of our own structs, which round-trips our own
+// tags and cannot catch that. The fixture keeps keys we do not model so the
+// whole response is exercised.
+func TestGetCustomerDecodesRealResponse(t *testing.T) {
+	fixture, err := os.ReadFile("testdata/customer_get_response.json")
+	if err != nil {
+		t.Fatalf("read fixture: %v", err)
+	}
+
+	cleanup := setupTestServer(t, func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet || r.URL.Path != "/v1/customers/cus_acme" {
+			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write(fixture)
+	})
+	defer cleanup()
+
+	cust, err := getCustomer(context.Background(), "cus_acme")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cust.ID != "cus_acme" {
+		t.Errorf("id = %q, want cus_acme", cust.ID)
+	}
+
+	if len(cust.Subscriptions) != 1 {
+		t.Fatalf("subscriptions = %d, want 1", len(cust.Subscriptions))
+	}
+	sub := cust.Subscriptions[0]
+	if sub.PlanID != "measure_free" {
+		t.Errorf("subscription plan_id = %q, want measure_free", sub.PlanID)
+	}
+	if sub.Status != "active" {
+		t.Errorf("subscription status = %q, want active", sub.Status)
+	}
+
+	if len(cust.Purchases) != 1 {
+		t.Fatalf("purchases = %d, want 1", len(cust.Purchases))
+	}
+	purchase := cust.Purchases[0]
+	if purchase.PlanID != "acme_one_year" {
+		t.Errorf("purchase plan_id = %q, want acme_one_year", purchase.PlanID)
+	}
+	if purchase.StartedAt != 1780300365589 {
+		t.Errorf("purchase started_at = %d, want 1780300365589", purchase.StartedAt)
+	}
+	if purchase.ExpiresAt != 0 {
+		t.Errorf("purchase expires_at = %d, want 0", purchase.ExpiresAt)
+	}
+
+	bytesBalance, ok := cust.Balances[FeatureBytes]
+	if !ok {
+		t.Fatalf("no %s balance, got %v", FeatureBytes, cust.Balances)
+	}
+	if bytesBalance.Granted != 370000000000 {
+		t.Errorf("bytes granted = %v, want 370000000000", bytesBalance.Granted)
+	}
+	if bytesBalance.Remaining != 220741040581 {
+		t.Errorf("bytes remaining = %v, want 220741040581", bytesBalance.Remaining)
+	}
+	if bytesBalance.Usage != 149258959419 {
+		t.Errorf("bytes usage = %v, want 149258959419", bytesBalance.Usage)
+	}
+	if len(bytesBalance.Breakdown) != 2 {
+		t.Fatalf("bytes breakdown = %d sources, want 2", len(bytesBalance.Breakdown))
+	}
+	if got := bytesBalance.Breakdown[0]; got.PlanID != "measure_free" || got.Remaining != 0 {
+		t.Errorf("bytes breakdown[0] = %+v, want measure_free with 0 remaining", got)
+	}
+	if got := bytesBalance.Breakdown[1]; got.PlanID != "acme_one_year" || got.Remaining != 220741040581 {
+		t.Errorf("bytes breakdown[1] = %+v, want acme_one_year with 220741040581 remaining", got)
+	}
+
+	retention, ok := cust.Balances[FeatureRetentionDays]
+	if !ok {
+		t.Fatalf("no %s balance, got %v", FeatureRetentionDays, cust.Balances)
+	}
+	if retention.Granted != 60 {
+		t.Errorf("retention granted = %v, want 60", retention.Granted)
+	}
+	if len(retention.Breakdown) != 2 {
+		t.Fatalf("retention breakdown = %d sources, want 2", len(retention.Breakdown))
+	}
+	if got := retention.Breakdown[0]; got.PlanID != "acme_one_year" || got.IncludedGrant != 30 {
+		t.Errorf("retention breakdown[0] = %+v, want acme_one_year granting 30", got)
+	}
+	if got := retention.Breakdown[1]; got.PlanID != "measure_free" || got.IncludedGrant != 30 {
+		t.Errorf("retention breakdown[1] = %+v, want measure_free granting 30", got)
 	}
 }
 
