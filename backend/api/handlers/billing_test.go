@@ -622,6 +622,18 @@ func TestGetTeamBilling(t *testing.T) {
 	})
 }
 
+// enterpriseCustomer models the way the Autumn API reports a team on a bespoke
+// plan. Autumn auto-attaches the free plan as a recurring subscription when the
+// customer is created and leaves it in place, and the bespoke plan arrives
+// beside it as a one-off purchase under its own identifier.
+func enterpriseCustomer(custID string) *autumn.Customer {
+	return &autumn.Customer{
+		ID:            custID,
+		Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanFree, Status: "active"}},
+		Purchases:     []autumn.Purchase{{PlanID: "acme_one_year"}},
+	}
+}
+
 // --------------------------------------------------------------------------
 // CreateCheckoutSession
 // --------------------------------------------------------------------------
@@ -696,6 +708,30 @@ func TestCreateCheckoutSession(t *testing.T) {
 		_ = json.Unmarshal(w.Body.Bytes(), &got)
 		if got["already_upgraded"] != true {
 			t.Errorf("already_upgraded = %v, want true", got["already_upgraded"])
+		}
+	})
+
+	t.Run("on an enterprise plan → 403 (no attach attempted)", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return enterpriseCustomer(custID), nil
+		})
+		autumntest.MockAttach(t, func(_ context.Context, _ autumn.AttachRequest) (*autumn.AttachResponse, error) {
+			t.Errorf("autumn.Attach must not be called for an enterprise customer")
+			return nil, errors.New("unexpected")
+		})
+
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/checkout", body("https://s"))
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		h.CreateCheckoutSession(c)
+
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want 403, body: %s", w.Code, w.Body.String())
 		}
 	})
 
@@ -871,12 +907,24 @@ func TestCancelAndDowngradeToFreePlan(t *testing.T) {
 		}
 	})
 
+	// mockProCustomer returns a customer object that satisfies the cancel
+	// pre-check (an active Pro subscription).
+	mockProCustomer := func(custID string) *autumn.Customer {
+		return &autumn.Customer{
+			ID:            custID,
+			Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanPro, Status: "active"}},
+		}
+	}
+
 	t.Run("happy path schedules cancellation at end of cycle", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
 		custID := uuid.New().String()
 		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return mockProCustomer(custID), nil
+		})
 		var gotReq autumn.UpdateRequest
 		autumntest.MockUpdate(t, func(_ context.Context, req autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
 			gotReq = req
@@ -908,6 +956,9 @@ func TestCancelAndDowngradeToFreePlan(t *testing.T) {
 		custID := uuid.New().String()
 		seedTeamAutumnCustomer(ctx, t, teamID, custID)
 
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return mockProCustomer(custID), nil
+		})
 		autumntest.MockUpdate(t, func(_ context.Context, _ autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
 			return nil, errors.New("boom")
 		})
@@ -919,6 +970,105 @@ func TestCancelAndDowngradeToFreePlan(t *testing.T) {
 
 		if w.Code != http.StatusInternalServerError {
 			t.Fatalf("status = %d, want 500", w.Code)
+		}
+	})
+
+	t.Run("on an enterprise plan → 403 (no update attempted)", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return enterpriseCustomer(custID), nil
+		})
+		autumntest.MockUpdate(t, func(_ context.Context, _ autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
+			t.Errorf("autumn.Update must not be called for an enterprise customer")
+			return nil, errors.New("unexpected")
+		})
+
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/downgrade", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		h.CancelAndDowngradeToFreePlan(c)
+
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want 403, body: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("on the free plan → 403 (no update attempted)", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return &autumn.Customer{
+				ID:            custID,
+				Subscriptions: []autumn.Subscription{{PlanID: measure.AutumnPlanFree, Status: "active"}},
+			}, nil
+		})
+		autumntest.MockUpdate(t, func(_ context.Context, _ autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
+			t.Errorf("autumn.Update must not be called when there is no Pro plan to cancel")
+			return nil, errors.New("unexpected")
+		})
+
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/downgrade", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		h.CancelAndDowngradeToFreePlan(c)
+
+		if w.Code != http.StatusForbidden {
+			t.Fatalf("status = %d, want 403, body: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("autumn unreachable on pre-check → 503", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return nil, &autumn.APIError{StatusCode: 503, Body: "unavailable"}
+		})
+		autumntest.MockUpdate(t, func(_ context.Context, _ autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
+			t.Errorf("autumn.Update must not be called when GetCustomer pre-check returned 5xx")
+			return nil, errors.New("unexpected")
+		})
+
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/downgrade", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		h.CancelAndDowngradeToFreePlan(c)
+
+		if w.Code != http.StatusServiceUnavailable {
+			t.Fatalf("status = %d, want 503", w.Code)
+		}
+	})
+
+	t.Run("autumn 4xx on pre-check → 400 (no Update attempted)", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
+			return nil, &autumn.APIError{StatusCode: 404, Body: "customer not found"}
+		})
+		autumntest.MockUpdate(t, func(_ context.Context, _ autumn.UpdateRequest) (*autumn.UpdateResponse, error) {
+			t.Errorf("autumn.Update must not be called when GetCustomer pre-check returned 4xx")
+			return nil, errors.New("unexpected")
+		})
+
+		c, w := newTestGinContext("PATCH", "/teams/"+teamID.String()+"/billing/downgrade", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: teamID.String()}}
+		h.CancelAndDowngradeToFreePlan(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, want 400", w.Code)
 		}
 	})
 
