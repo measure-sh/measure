@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Write the sdk config cache after row is update (#4350) by @detj in #4350
 - (**backend**): Expire sdk config cache entries after ttl (#4345) by @detj in #4345
 - (**backend**): Bust stale sdk config cache entries on deploy (#4341) by @detj in #4341
 - (**backend**): Keep sdk config cache in sync with database (#4340) by @detj in #4340
