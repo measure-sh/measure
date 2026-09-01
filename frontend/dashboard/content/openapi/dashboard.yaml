@@ -4393,8 +4393,12 @@ paths:
                     type: integer
                   trace_sampling_rate:
                     type: number
+                    minimum: 0
+                    maximum: 100
                   journey_sampling_rate:
                     type: number
+                    minimum: 0
+                    maximum: 100
                   screenshot_mask_level:
                     type: string
                   log_autocollect_enabled:
@@ -4415,10 +4419,14 @@ paths:
                     type: boolean
                   launch_sampling_rate:
                     type: number
+                    minimum: 0
+                    maximum: 100
                   gesture_click_take_snapshot:
                     type: boolean
                   http_sampling_rate:
                     type: number
+                    minimum: 0
+                    maximum: 100
                   http_disable_event_for_urls:
                     type: array
                     items:
@@ -4437,6 +4445,8 @@ paths:
                       type: string
                   profile_sampling_rate:
                     type: number
+                    minimum: 0
+                    maximum: 100
               examples:
                 response:
                   value:

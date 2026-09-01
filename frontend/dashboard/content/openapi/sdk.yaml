@@ -2358,9 +2358,13 @@ paths:
                       The duration of session timeline collected with bug reports.
                   trace_sampling_rate:
                     type: number
+                    minimum: 0
+                    maximum: 100
                     description: Sampling rate for all traces.
                   journey_sampling_rate:
                     type: number
+                    minimum: 0
+                    maximum: 100
                     description: >
                       Sampling rate for sessions that should report journey events:
                       `lifecycle_activity`, `lifecycle_fragment`,
@@ -2405,6 +2409,8 @@ paths:
                     description: Whether to take screenshot on ANR.
                   launch_sampling_rate:
                     type: number
+                    minimum: 0
+                    maximum: 100
                     description: >
                       Sampling rate for launch events: cold_launch, warm_launch and
                       hot_launch.
@@ -2413,6 +2419,8 @@ paths:
                     description: Whether to take snapshot with gesture_click event.
                   http_sampling_rate:
                     type: number
+                    minimum: 0
+                    maximum: 100
                     description: Sampling rate for HTTP events.
                   http_disable_event_for_urls:
                     type: array
@@ -2438,6 +2446,8 @@ paths:
                     description: HTTP header names to never capture.
                   profile_sampling_rate:
                     type: number
+                    minimum: 0
+                    maximum: 100
                     description: Sampling rate for profile events.
               example:
                 max_events_in_batch: 1000
