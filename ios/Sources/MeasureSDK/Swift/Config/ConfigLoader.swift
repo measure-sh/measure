@@ -101,9 +101,10 @@ struct BaseConfigLoader: ConfigLoader {
         }
 
         if !shouldRefresh {
+            let remaining = cacheControl - (now - lastFetch)
             logger.internalLog(
                 level: .debug,
-                message: "ConfigLoader: CacheControl not expired, skipping refresh",
+                message: "ConfigLoader: CacheControl not expired, skipping refresh. now=\(now)ms, lastFetch=\(lastFetch)ms, cacheControl=\(cacheControl)ms, remaining=\(remaining)ms",
                 error: nil,
                 data: nil
             )
@@ -133,9 +134,12 @@ struct BaseConfigLoader: ConfigLoader {
                     data: nil
                 )
 
-            case .notModified:
-
+            case .notModified(let cacheControl):
                 userDefaultStorage.setConfigFetchTimestamp(now)
+
+                if cacheControl > 0 {
+                    userDefaultStorage.setConfigCacheControl(cacheControl)
+                }
 
                 logger.internalLog(
                     level: .debug,

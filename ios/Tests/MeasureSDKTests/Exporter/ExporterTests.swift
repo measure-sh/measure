@@ -131,7 +131,7 @@ final class BaseExporterTests: XCTestCase {
     }
 
     func testExportsExistingBatch() {
-        network.executeResponse = .success(body: nil, eTag: nil)
+        network.executeResponse = .success(body: nil, eTag: nil, cacheControl: nil)
 
         let event = makeEvent(id: "e1", sessionId: "s1")
         eventStore.insertEvent(event: event)
@@ -152,7 +152,7 @@ final class BaseExporterTests: XCTestCase {
     }
 
     func testDeletesBatchOnSuccess() {
-        network.executeResponse = .success(body: nil, eTag: nil)
+        network.executeResponse = .success(body: nil, eTag: nil, cacheControl: nil)
 
         let event = makeEvent(id: "e1", sessionId: "s1")
         eventStore.insertEvent(event: event)
@@ -202,8 +202,8 @@ final class BaseExporterTests: XCTestCase {
         {"attachments":[{"id":"a1","type":"screenshot","filename":"layout_snapshot.png","upload_url":"https://example.com/a1","expires_at":"x","headers":{}}]}
         """
 
-        network.executeResponse = .success(body: json, eTag: nil)
-        http.uploadResponse = .success(body: nil, eTag: nil)
+        network.executeResponse = .success(body: json, eTag: nil, cacheControl: nil)
+        http.uploadResponse = .success(body: nil, eTag: nil, cacheControl: nil)
 
         let event = makeEvent(id: "e1", sessionId: "s1")
         eventStore.insertEvent(event: event)
@@ -240,7 +240,7 @@ final class BaseExporterTests: XCTestCase {
     }
 
     func testExportsExistingBatchesInOrder() {
-        network.executeResponse = .success(body: nil, eTag: nil)
+        network.executeResponse = .success(body: nil, eTag: nil, cacheControl: nil)
         
         eventStore.insertEvent(event: makeEvent(id: "e1", sessionId: "s1"))
         _ = batchStore.insertBatch(.init(batchId: "b1", eventIds: ["e1"], spanIds: [], createdAt: 0))
@@ -261,7 +261,7 @@ final class BaseExporterTests: XCTestCase {
     }
     
     func testExportsBatchWithEventsAndSpans() {
-        network.executeResponse = .success(body: nil, eTag: nil)
+        network.executeResponse = .success(body: nil, eTag: nil, cacheControl: nil)
         
         eventStore.insertEvent(event: makeEvent(id: "e1", sessionId: "s1"))
         spanStore.insertSpan(span: makeSpan(id: "sp1", sessionId: "s1"))
@@ -312,7 +312,7 @@ final class BaseExporterTests: XCTestCase {
     }
     
     func testHandlesNilResponseBodyGracefully() {
-        network.executeResponse = .success(body: nil, eTag: nil)
+        network.executeResponse = .success(body: nil, eTag: nil, cacheControl: nil)
         
         eventStore.insertEvent(event: makeEvent(id: "e1", sessionId: "s1"))
         _ = batchStore.insertBatch(.init(batchId: "b1", eventIds: ["e1"], spanIds: [], createdAt: 0))
@@ -330,7 +330,7 @@ final class BaseExporterTests: XCTestCase {
     }
     
     func testHandlesMalformedResponseBody() {
-        network.executeResponse = .success(body: "nope", eTag: nil)
+        network.executeResponse = .success(body: "nope", eTag: nil, cacheControl: nil)
         
         eventStore.insertEvent(event: makeEvent(id: "e1", sessionId: "s1"))
         _ = batchStore.insertBatch(.init(batchId: "b1", eventIds: ["e1"], spanIds: [], createdAt: 0))
@@ -348,7 +348,7 @@ final class BaseExporterTests: XCTestCase {
     }
     
     func testDeletesBatchOnClientError() {
-        network.executeResponse = .error(.clientError(responseCode: 400, body: nil))
+        network.executeResponse = .error(.clientError(responseCode: 400, body: nil, cacheControl: nil))
         
         eventStore.insertEvent(event: makeEvent(id: "e1", sessionId: "s1"))
         _ = batchStore.insertBatch(.init(batchId: "b1", eventIds: ["e1"], spanIds: [], createdAt: 0))
@@ -385,7 +385,7 @@ final class BaseExporterTests: XCTestCase {
 
     func testCreatesMultipleBatchesWhenEventsExceedConfigLimit() {
         config.maxEventsInBatch = 5
-        network.executeResponse = .success(body: nil, eTag: nil)
+        network.executeResponse = .success(body: nil, eTag: nil, cacheControl: nil)
 
         for i in 0..<11 {
             eventStore.insertEvent(event: makeEvent(id: "e\(i)", sessionId: "s1"))
@@ -407,7 +407,7 @@ final class BaseExporterTests: XCTestCase {
 
     func testSpansAreSplitIntoMultipleBatches() {
         config.maxEventsInBatch = 3
-        network.executeResponse = .success(body: nil, eTag: nil)
+        network.executeResponse = .success(body: nil, eTag: nil, cacheControl: nil)
 
         for i in 0..<7 {
             spanStore.insertSpan(span: makeSpan(id: "sp\(i)", sessionId: "s1"))
@@ -430,7 +430,7 @@ final class BaseExporterTests: XCTestCase {
     func testPayloadLimitSplitsBatchWhenConfigLimitIsLarger() {
         // payload limit: 9 MB / 1 KB = 8_789 events per batch
         config.maxEventsInBatch = 20_000
-        network.executeResponse = .success(body: nil, eTag: nil)
+        network.executeResponse = .success(body: nil, eTag: nil, cacheControl: nil)
 
         for i in 0..<8_790 {
             eventStore.insertEvent(event: makeEvent(id: "e\(i)", sessionId: "s1"))
@@ -453,7 +453,7 @@ final class BaseExporterTests: XCTestCase {
     func testUsesConfigLimitWhenSmallerThanPayloadLimit() {
         // config limit (5) < payload limit (8_789), so config wins
         config.maxEventsInBatch = 5
-        network.executeResponse = .success(body: nil, eTag: nil)
+        network.executeResponse = .success(body: nil, eTag: nil, cacheControl: nil)
 
         for i in 0..<6 {
             eventStore.insertEvent(event: makeEvent(id: "e\(i)", sessionId: "s1"))
@@ -475,7 +475,7 @@ final class BaseExporterTests: XCTestCase {
 
     func testMixedEventsAndSpansRespectPayloadLimit() {
         config.maxEventsInBatch = 5
-        network.executeResponse = .success(body: nil, eTag: nil)
+        network.executeResponse = .success(body: nil, eTag: nil, cacheControl: nil)
 
         for i in 0..<4 {
             eventStore.insertEvent(event: makeEvent(id: "e\(i)", sessionId: "s1"))

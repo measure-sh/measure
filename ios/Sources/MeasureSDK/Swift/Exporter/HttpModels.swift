@@ -13,14 +13,14 @@ enum MultipartData {
 }
 
 enum HttpResponse {
-    case success(body: String?, eTag: String?)
+    case success(body: String?, eTag: String?, cacheControl: String?)
     case error(HttpError)
 }
 
 enum HttpError {
     case unknownError(String)
     case rateLimitError(body: String?)
-    case clientError(responseCode: Int, body: String?)
+    case clientError(responseCode: Int, body: String?, cacheControl: String?)
     case serverError(responseCode: Int, body: String?)
 }
 

@@ -12,8 +12,8 @@ final class MockHttpClient: HttpClient {
     private(set) var sentUrls: [URL] = []
     private(set) var uploadedUrls: [URL] = []
 
-    var sendResponse: HttpResponse = .success(body: nil, eTag: nil)
-    var uploadResponse: HttpResponse = .success(body: nil, eTag: nil)
+    var sendResponse: HttpResponse = .success(body: nil, eTag: nil, cacheControl: nil)
+    var uploadResponse: HttpResponse = .success(body: nil, eTag: nil, cacheControl: nil)
 
     func sendJsonRequest(
         url: URL,
