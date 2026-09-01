@@ -44,7 +44,10 @@ function bannerState(
 
   if (billingInfo.ingestion_blocked) {
     return {
-      message: `100% of ${planLabel} used — event ingestion blocked.`,
+      message:
+        billingInfo.plan === "enterprise"
+          ? "100% of plan data limit used — ingestion paused until the monthly free allowance resets."
+          : "100% of free plan used — ingestion paused until your allowance resets next month.",
       className: "bg-red-300 text-primary-foreground",
     };
   }

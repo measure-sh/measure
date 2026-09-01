@@ -196,12 +196,12 @@ describe("UsageThresholdBanner", () => {
 
       expect(
         screen.getByText(
-          "100% of plan data limit used — event ingestion blocked.",
+          "100% of plan data limit used — ingestion paused until the monthly free allowance resets.",
         ),
       ).toBeInTheDocument();
 
       const banner = screen.getByText(
-        "100% of plan data limit used — event ingestion blocked.",
+        "100% of plan data limit used — ingestion paused until the monthly free allowance resets.",
       ).parentElement!;
       expect(banner).toHaveClass("bg-red-300");
 
@@ -218,7 +218,7 @@ describe("UsageThresholdBanner", () => {
       render(<UsageThresholdBanner teamId="team-1" />);
 
       const message = screen.getByText(
-        "100% of plan data limit used — event ingestion blocked.",
+        "100% of plan data limit used — ingestion paused until the monthly free allowance resets.",
       );
       expect(message).toBeInTheDocument();
       expect(message.parentElement!).toHaveClass("bg-red-300");
@@ -335,11 +335,13 @@ describe("UsageThresholdBanner", () => {
       render(<UsageThresholdBanner teamId="team-1" />);
 
       expect(
-        screen.getByText("100% of free plan used — event ingestion blocked."),
+        screen.getByText(
+          "100% of free plan used — ingestion paused until your allowance resets next month.",
+        ),
       ).toBeInTheDocument();
 
       const banner = screen.getByText(
-        "100% of free plan used — event ingestion blocked.",
+        "100% of free plan used — ingestion paused until your allowance resets next month.",
       ).parentElement!;
       expect(banner).toHaveClass("bg-red-300");
       expect(banner).toHaveClass("text-primary-foreground");
