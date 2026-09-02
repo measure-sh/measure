@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Group journey aggregates by session to bound memory (#4372) by @detj in #4372
 - (**backend**): Return 404 for a missing app in get app filters (#4361) by @detj in #4361
 - (**backend**): Handle null app columns in app populate (#4360) by @detj in #4360
 - (**backend**): Drop the Products field Autumn doesn't send by @anupcowkur
