@@ -69,6 +69,7 @@ fun NativeAndroidScreen() {
     val mutex = Any()
 
     var shakeEnabled by remember { mutableStateOf(false) }
+    var heavyMediaEnabled by remember { mutableStateOf(AssetPrefetcher.enabled) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -322,9 +323,28 @@ fun NativeAndroidScreen() {
             items(categoryItems, key = { it.title }) { demo ->
                 DemoCard(demo)
             }
+            if (category == DemoCategory.CRASHES) {
+                item(key = "slow_memory_leak_toggle") {
+                    ToggleCard(
+                        title = "Slow Memory Leak",
+                        description = "Fills the heap as you navigate until an unrelated allocation fails",
+                        enabled = heavyMediaEnabled,
+                        onToggle = { enabled ->
+                            heavyMediaEnabled = enabled
+                            AssetPrefetcher.enabled = enabled
+                            ScreenMedia.enabled = enabled
+                            if (!enabled) {
+                                AssetPrefetcher.clear()
+                            }
+                        },
+                    )
+                }
+            }
             if (category == DemoCategory.BUG_REPORTS) {
                 item(key = "shake_toggle") {
-                    ShakeToggleCard(
+                    ToggleCard(
+                        title = "Shake to Report",
+                        description = "Shake device to open bug report",
                         enabled = shakeEnabled,
                         onToggle = { enabled ->
                             shakeEnabled = enabled
@@ -350,7 +370,12 @@ fun NativeAndroidScreen() {
 }
 
 @Composable
-private fun ShakeToggleCard(enabled: Boolean, onToggle: (Boolean) -> Unit) {
+private fun ToggleCard(
+    title: String,
+    description: String,
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit,
+) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.medium,
@@ -364,12 +389,12 @@ private fun ShakeToggleCard(enabled: Boolean, onToggle: (Boolean) -> Unit) {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Shake to Report",
+                    text = title,
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
                 )
                 Text(
-                    text = "Shake device to open bug report",
+                    text = description,
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
