@@ -612,7 +612,14 @@ func (h Handlers) GetAppFilters(c *gin.Context) {
 	if err != nil {
 		msg := "failed to select app"
 		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
+		status := http.StatusInternalServerError
+
+		if errors.Is(err, measure.ErrAppNotFound) {
+			status = http.StatusNotFound
+			msg = fmt.Sprintf(`app with id %q does not exist`, id)
+		}
+
+		c.JSON(status, gin.H{
 			"error":   msg,
 			"details": err.Error(),
 		})

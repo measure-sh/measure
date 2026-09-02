@@ -32,6 +32,25 @@ func newRenameAppContext(callerID string, appID uuid.UUID, body string) (*gin.Co
 	return c, w
 }
 
+func TestGetAppFiltersMissingApp(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	ownerID, _ := seedTeamAndMemberWithRole(t, ctx, "owner")
+	appID := uuid.New()
+
+	c, w := newTestGinContext("GET", "/apps/"+appID.String()+"/filters", nil)
+	c.Set("userId", ownerID)
+	c.Params = gin.Params{{Key: "id", Value: appID.String()}}
+
+	h.GetAppFilters(c)
+
+	if w.Code != http.StatusNotFound {
+		t.Fatalf("status = %d, want 404, body: %s", w.Code, w.Body.String())
+	}
+	wantJSONContains(t, w, "error", "does not exist")
+}
+
 func TestRenameApp(t *testing.T) {
 	ctx := context.Background()
 
