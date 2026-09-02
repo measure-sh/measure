@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.13.1] - 2026-09-02
+
+### :bug: Bug fixes
+
+
+- (**ios**): Clamp unsafe numeric narrowing conversions (#4337) by @adwinross in #4337
+- (**ios**): Parse cache control header for config refresh window (#4349) by @adwinross in #4349
+- (**ios**): Pause shake detector when app moves background (#4336) by @adwinross in #4336
+
 ## [ios-v0.13.0] - 2026-08-28
 
 ### :bug: Bug fixes
@@ -17,6 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
+- (**ios**): Prepare sdk release 0.13.0 (#4308) by @abhaysood in #4308
 - (**ios**): Stop dropping crash reports before export (#4298) by @adwinross in #4298
 - (**ios**): Raise minimum deployment target to ios 13 (#4295) by @adwinross in #4295
 - (**ios**): Update json serialisation logic (#4270) by @adwinross in #4270
@@ -472,6 +482,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677) by @adwinross in #1677
 - (**ios**): Initial project setup  (#1034) by @adwinross in #1034
 
+[ios-v0.13.1]: https://github.com/measure-sh/measure/compare/ios-v0.13.0..ios-v0.13.1
 [ios-v0.13.0]: https://github.com/measure-sh/measure/compare/ios-v0.12.1..ios-v0.13.0
 [ios-v0.12.1]: https://github.com/measure-sh/measure/compare/ios-v0.12.0..ios-v0.12.1
 [ios-v0.12.0]: https://github.com/measure-sh/measure/compare/ios-v0.11.0..ios-v0.12.0
