@@ -3804,6 +3804,9 @@ func NewApp(teamId uuid.UUID) *App {
 	}
 }
 
+// ErrAppNotFound is returned when no app exists for the given id.
+var ErrAppNotFound = errors.New("app not found")
+
 // SelectApp selects app by its id.
 func SelectApp(ctx context.Context, pg *pgxpool.Pool, id uuid.UUID) (app *App, err error) {
 	var onboarded pgtype.Bool
@@ -3828,7 +3831,7 @@ func SelectApp(ctx context.Context, pg *pgxpool.Pool, id uuid.UUID) (app *App, e
 
 	if err := pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&app.ID, &app.TeamId, &onboarded, &uniqueId, &app.OSNames, &firstVersion); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
+			return nil, ErrAppNotFound
 		} else {
 			return nil, err
 		}
