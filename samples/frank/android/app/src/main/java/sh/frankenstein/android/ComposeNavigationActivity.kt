@@ -58,6 +58,7 @@ private fun ComposeNavApp() {
 @Composable
 private fun ComposeNavHomeScreen(navController: NavController) {
     val activity = LocalContext.current as? android.app.Activity
+    ScreenMediaEffect("ComposeNavHome")
     Scaffold(
         topBar = {
             TopAppBar(
@@ -119,6 +120,7 @@ private fun ComposeNavItem(title: String, description: String, onClick: () -> Un
 
 @Composable
 private fun ComposeNavDetailScreen(navController: NavController, title: String) {
+    ScreenMediaEffect(title)
     Scaffold(
         topBar = {
             TopAppBar(

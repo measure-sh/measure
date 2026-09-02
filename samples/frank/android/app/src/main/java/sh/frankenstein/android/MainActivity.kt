@@ -108,6 +108,7 @@ fun AppNavigation() {
             }
         }
     ) { padding ->
+        ScreenMediaEffect(currentScreen.name)
         Column(modifier = Modifier.padding(padding)) {
             when (currentScreen) {
                 Screen.HOME -> HomeScreen(
