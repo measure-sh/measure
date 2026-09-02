@@ -5,6 +5,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.mockito.Mockito.inOrder
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.`when`
 import org.mockito.kotlin.any
@@ -458,8 +459,8 @@ internal class SignalStoreTest {
     @Test
     fun `marks timeline for reporting when crash event is stored`() {
         // given
-        val crashTimelineDuration = 30
-        configProvider.crashTimelineDurationSeconds = crashTimelineDuration
+        val errorReplayDuration = 30
+        configProvider.errorReplayDurationSeconds = errorReplayDuration
         val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Fatal)
         val event = exceptionData.toEvent(type = EventType.EXCEPTION)
         `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
@@ -471,7 +472,7 @@ internal class SignalStoreTest {
         // then
         verify(database).markTimelineForReporting(
             event.timestamp,
-            crashTimelineDuration,
+            errorReplayDuration,
             event.sessionId,
         )
     }
@@ -479,8 +480,9 @@ internal class SignalStoreTest {
     @Test
     fun `marks timeline for reporting when unhandled exception event is stored`() {
         // given
-        val crashTimelineDuration = 30
-        configProvider.crashTimelineDurationSeconds = crashTimelineDuration
+        val errorReplayDuration = 30
+        configProvider.errorReplayDurationSeconds = errorReplayDuration
+        configProvider.errorUnhandledReplayEnabled = true
         val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Unhandled)
         val event = exceptionData.toEvent(type = EventType.EXCEPTION)
         `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
@@ -492,7 +494,7 @@ internal class SignalStoreTest {
         // then
         verify(database).markTimelineForReporting(
             event.timestamp,
-            crashTimelineDuration,
+            errorReplayDuration,
             event.sessionId,
         )
     }
@@ -536,6 +538,79 @@ internal class SignalStoreTest {
             bugReportTimelineDuration,
             event.sessionId,
         )
+    }
+
+    @Test
+    fun `stores handled exception immediately when its replay is enabled`() {
+        // given
+        configProvider.errorHandledReplayEnabled = true
+        val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Handled)
+        val event = exceptionData.toEvent(type = EventType.EXCEPTION)
+        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
+        `when`(database.insertEvent(any())).thenReturn(true)
+
+        // when
+        signalStore.store(event)
+
+        // then, the event must be in the database before its own window is marked
+        val inOrder = inOrder(database)
+        inOrder.verify(database).insertEvent(any())
+        inOrder.verify(database).markTimelineForReporting(any(), any(), any())
+    }
+
+    @Test
+    fun `does not mark timeline for reporting when handled exception event is stored`() {
+        // given
+        val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Handled)
+        val event = exceptionData.toEvent(type = EventType.EXCEPTION)
+        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
+        `when`(database.insertEvent(any())).thenReturn(true)
+
+        // when
+        signalStore.store(event)
+        signalStore.flush()
+
+        // then
+        verify(database, never()).markTimelineForReporting(any(), any(), any())
+    }
+
+    @Test
+    fun `does not mark timeline for reporting when severity is disabled`() {
+        // given
+        configProvider.errorFatalReplayEnabled = false
+        configProvider.errorUnhandledReplayEnabled = false
+        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
+        `when`(database.insertEvent(any())).thenReturn(true)
+
+        // when
+        listOf(
+            ExceptionSeverity.Fatal,
+            ExceptionSeverity.Unhandled,
+        ).forEach { severity ->
+            signalStore.store(
+                TestData.getExceptionData(severity = severity).toEvent(type = EventType.EXCEPTION),
+            )
+        }
+        signalStore.flush()
+
+        // then
+        verify(database, never()).markTimelineForReporting(any(), any(), any())
+    }
+
+    @Test
+    fun `stores crash immediately even when its timeline is disabled`() {
+        // given
+        configProvider.errorFatalReplayEnabled = false
+        val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Fatal)
+        val event = exceptionData.toEvent(type = EventType.EXCEPTION)
+        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
+        `when`(database.insertEvent(any())).thenReturn(true)
+
+        // when
+        signalStore.store(event)
+
+        // then
+        verify(database).insertEvent(any())
     }
 
     @Test

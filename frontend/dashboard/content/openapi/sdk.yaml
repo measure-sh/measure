@@ -2345,10 +2345,10 @@ paths:
                   max_events_in_batch:
                     type: integer
                     description: Maximum number of events and spans in a batch.
-                  crash_timeline_duration:
+                  error_replay_duration:
                     type: integer
                     description: >
-                      The duration of session timeline collected with crashes.
+                      The duration of session timeline collected with errors.
                   anr_timeline_duration:
                     type: integer
                     description: The duration of session timeline collected with ANRs.
@@ -2401,9 +2401,51 @@ paths:
                   memory_usage_interval:
                     type: integer
                     description: Memory usage measurement interval.
+                  error_fatal_take_screenshot:
+                    type: boolean
+                    description: Whether to take screenshot on fatal error.
+                  error_fatal_replay_enabled:
+                    type: boolean
+                    description: >
+                      Whether to collect a session replay with fatal errors,
+                      the ones that terminated the app.
+                  error_unhandled_replay_enabled:
+                    type: boolean
+                    description: >
+                      Whether to collect a session replay with unhandled
+                      errors, the ones that were not caught but did not
+                      terminate the app.
+                  crash_timeline_duration:
+                    type: integer
+                    deprecated: true
+                    description: >
+                      Alias of `error_replay_duration`, served for SDKs
+                      released before the rename.
                   crash_take_screenshot:
                     type: boolean
-                    description: Whether to take screenshot on crash.
+                    deprecated: true
+                    description: >
+                      Alias of `error_fatal_take_screenshot`, served for SDKs released
+                      before the rename.
+                  error_handled_replay_enabled:
+                    type: boolean
+                    description: >
+                      Whether to collect a session replay with handled errors.
+                  error_fatal_sampling_rate:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+                    description: Sampling rate for fatal errors.
+                  error_unhandled_sampling_rate:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+                    description: Sampling rate for unhandled errors.
+                  error_handled_sampling_rate:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+                    description: Sampling rate for handled errors.
                   anr_take_screenshot:
                     type: boolean
                     description: Whether to take screenshot on ANR.
@@ -2451,7 +2493,7 @@ paths:
                     description: Sampling rate for profile events.
               example:
                 max_events_in_batch: 1000
-                crash_timeline_duration: 300
+                error_replay_duration: 300
                 anr_timeline_duration: 300
                 bug_report_timeline_duration: 300
                 trace_sampling_rate: 0.001
@@ -2462,6 +2504,14 @@ paths:
                 log_ignore_patterns: []
                 cpu_usage_interval: 5
                 memory_usage_interval: 5
+                error_fatal_take_screenshot: true
+                error_fatal_replay_enabled: true
+                error_unhandled_replay_enabled: false
+                error_handled_replay_enabled: false
+                error_fatal_sampling_rate: 100
+                error_unhandled_sampling_rate: 100
+                error_handled_sampling_rate: 0
+                crash_timeline_duration: 300
                 crash_take_screenshot: true
                 anr_take_screenshot: true
                 launch_sampling_rate: 1

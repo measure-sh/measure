@@ -55,7 +55,7 @@ export default function SdkConfigurator({
   const [sectionStatuses, setSectionStatuses] = useState<
     Record<string, SectionSaveStatus>
   >({
-    crashes: "idle",
+    errors: "idle",
     anrs: "idle",
     bugReports: "idle",
     traces: "idle",
@@ -72,7 +72,7 @@ export default function SdkConfigurator({
   const routeParams = useParams<{ teamId: string }>();
 
   // Confirmation dialog states
-  const [crashesConfirmOpen, setCrashesConfirmOpen] = useState(false);
+  const [errorsConfirmOpen, setErrorsConfirmOpen] = useState(false);
   const [anrsConfirmOpen, setAnrsConfirmOpen] = useState(false);
   const [bugReportsConfirmOpen, setBugReportsConfirmOpen] = useState(false);
   const [tracesConfirmOpen, setTracesConfirmOpen] = useState(false);
@@ -99,13 +99,25 @@ export default function SdkConfigurator({
   };
 
   // Track changes per section, derived from the current vs. original config.
-  const crashesChanged =
+  const errorsChanged =
     !!sdkConfig &&
     !!originalSdkConfig &&
-    (sdkConfig.crash_take_screenshot !==
-      originalSdkConfig.crash_take_screenshot ||
-      sdkConfig.crash_timeline_duration !==
-        originalSdkConfig.crash_timeline_duration);
+    (sdkConfig.error_fatal_take_screenshot !==
+      originalSdkConfig.error_fatal_take_screenshot ||
+      sdkConfig.error_replay_duration !==
+        originalSdkConfig.error_replay_duration ||
+      sdkConfig.error_fatal_replay_enabled !==
+        originalSdkConfig.error_fatal_replay_enabled ||
+      sdkConfig.error_unhandled_replay_enabled !==
+        originalSdkConfig.error_unhandled_replay_enabled ||
+      sdkConfig.error_handled_replay_enabled !==
+        originalSdkConfig.error_handled_replay_enabled ||
+      sdkConfig.error_fatal_sampling_rate !==
+        originalSdkConfig.error_fatal_sampling_rate ||
+      sdkConfig.error_unhandled_sampling_rate !==
+        originalSdkConfig.error_unhandled_sampling_rate ||
+      sdkConfig.error_handled_sampling_rate !==
+        originalSdkConfig.error_handled_sampling_rate);
   const anrsChanged =
     !!sdkConfig &&
     !!originalSdkConfig &&
@@ -197,10 +209,16 @@ export default function SdkConfigurator({
     );
   };
 
-  const handleSaveCrashes = () => {
-    saveSection("crashes", {
-      crash_take_screenshot: sdkConfig.crash_take_screenshot,
-      crash_timeline_duration: sdkConfig.crash_timeline_duration,
+  const handleSaveErrors = () => {
+    saveSection("errors", {
+      error_fatal_take_screenshot: sdkConfig.error_fatal_take_screenshot,
+      error_replay_duration: sdkConfig.error_replay_duration,
+      error_fatal_replay_enabled: sdkConfig.error_fatal_replay_enabled,
+      error_unhandled_replay_enabled: sdkConfig.error_unhandled_replay_enabled,
+      error_handled_replay_enabled: sdkConfig.error_handled_replay_enabled,
+      error_fatal_sampling_rate: sdkConfig.error_fatal_sampling_rate,
+      error_unhandled_sampling_rate: sdkConfig.error_unhandled_sampling_rate,
+      error_handled_sampling_rate: sdkConfig.error_handled_sampling_rate,
     });
   };
   const handleSaveAnrs = () => {
@@ -339,40 +357,110 @@ export default function SdkConfigurator({
     !osNames?.length || osNames.some((os) => os.toLowerCase() === "android");
 
   // Confirmation dialog body generators
-  const getCrashesConfirmBody = () => {
+  const getErrorsConfirmBody = () => {
     return (
       <div className="font-body">
         <p>
           Are you sure you want to update{" "}
-          <span className="font-display font-bold">Crash settings</span> for app{" "}
+          <span className="font-display font-bold">Error settings</span> for app{" "}
           <span className="font-display font-bold">{appName}</span>?
         </p>
         <p className="mt-4">The following changes will be applied:</p>
         <ul className="mt-2 space-y-1 list-disc list-inside">
-          {sdkConfig.crash_take_screenshot !==
-            originalSdkConfig.crash_take_screenshot && (
+          {sdkConfig.error_fatal_sampling_rate !==
+            originalSdkConfig.error_fatal_sampling_rate && (
             <li>
-              Screenshot with crash{" "}
+              Sampling rate for fatal errors:{" "}
               <span className="font-display font-bold">
-                {sdkConfig.crash_take_screenshot ? "Enabled" : "Disabled"}
-              </span>
-            </li>
-          )}
-          {sdkConfig.crash_timeline_duration !==
-            originalSdkConfig.crash_timeline_duration && (
-            <li>
-              Session replay duration:{" "}
-              <span className="font-display font-bold">
-                {originalSdkConfig.crash_timeline_duration} seconds
+                {originalSdkConfig.error_fatal_sampling_rate}%
               </span>{" "}
               →{" "}
               <span className="font-display font-bold">
-                {sdkConfig.crash_timeline_duration} seconds
+                {sdkConfig.error_fatal_sampling_rate}%
+              </span>
+            </li>
+          )}
+          {sdkConfig.error_unhandled_sampling_rate !==
+            originalSdkConfig.error_unhandled_sampling_rate && (
+            <li>
+              Sampling rate for unhandled errors:{" "}
+              <span className="font-display font-bold">
+                {originalSdkConfig.error_unhandled_sampling_rate}%
+              </span>{" "}
+              →{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.error_unhandled_sampling_rate}%
+              </span>
+            </li>
+          )}
+          {sdkConfig.error_handled_sampling_rate !==
+            originalSdkConfig.error_handled_sampling_rate && (
+            <li>
+              Sampling rate for handled errors:{" "}
+              <span className="font-display font-bold">
+                {originalSdkConfig.error_handled_sampling_rate}%
+              </span>{" "}
+              →{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.error_handled_sampling_rate}%
+              </span>
+            </li>
+          )}
+          {sdkConfig.error_fatal_take_screenshot !==
+            originalSdkConfig.error_fatal_take_screenshot && (
+            <li>
+              Screenshot with fatal errors{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.error_fatal_take_screenshot ? "Enabled" : "Disabled"}
+              </span>
+            </li>
+          )}
+          {sdkConfig.error_fatal_replay_enabled !==
+            originalSdkConfig.error_fatal_replay_enabled && (
+            <li>
+              Session replay with fatal errors{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.error_fatal_replay_enabled ? "Enabled" : "Disabled"}
+              </span>
+            </li>
+          )}
+          {sdkConfig.error_unhandled_replay_enabled !==
+            originalSdkConfig.error_unhandled_replay_enabled && (
+            <li>
+              Session replay with unhandled errors{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.error_unhandled_replay_enabled
+                  ? "Enabled"
+                  : "Disabled"}
+              </span>
+            </li>
+          )}
+          {sdkConfig.error_handled_replay_enabled !==
+            originalSdkConfig.error_handled_replay_enabled && (
+            <li>
+              Session replay with handled errors{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.error_handled_replay_enabled
+                  ? "Enabled"
+                  : "Disabled"}
+              </span>
+            </li>
+          )}
+          {sdkConfig.error_replay_duration !==
+            originalSdkConfig.error_replay_duration && (
+            <li>
+              Session replay duration:{" "}
+              <span className="font-display font-bold">
+                {originalSdkConfig.error_replay_duration} seconds
+              </span>{" "}
+              →{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.error_replay_duration} seconds
               </span>
             </li>
           )}
         </ul>
-        <p className="mt-4">These changes will apply to all new crashes.</p>
+        <p className="mt-4">These changes will apply to all new errors.</p>
       </div>
     );
   };
@@ -697,52 +785,189 @@ export default function SdkConfigurator({
 
       <div className="mt-6">
         <Accordion type="single" collapsible className="w-full">
-          {/* Crashes Accordion */}
-          <AccordionItem value="crashes" className="mt-2">
+          {/* Errors Accordion */}
+          <AccordionItem value="errors" className="mt-2">
             <AccordionTrigger className="font-body text-base">
-              Crashes
+              Errors
             </AccordionTrigger>
             <AccordionContent className={accordionContentStyle}>
               <div className="mt-2 space-y-4">
-                <div className="flex flex-col gap-2 min-h-10 sm:flex-row sm:items-center sm:gap-0">
-                  <p className="text-sm">Collect screenshot with crashes</p>
-                  <Switch
-                    data-testid="crash-screenshot-switch"
-                    className="sm:ml-4"
-                    checked={sdkConfig.crash_take_screenshot}
-                    onCheckedChange={(checked) =>
-                      updateSdkConfig({ crash_take_screenshot: checked })
-                    }
-                    disabled={!currentUserCanChangeAppSettings}
-                  />
+                <div className="py-2">
+                  <p className="font-display text-muted-foreground mb-4">
+                    Sampling rate
+                  </p>
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-body text-sm">
+                        Collect <span className="font-bold">fatal</span> errors
+                        at
+                      </span>
+                      <SdkConfigNumericInput
+                        testId="error-fatal-sampling-rate-input"
+                        value={sdkConfig.error_fatal_sampling_rate}
+                        minValue={0}
+                        maxValue={100}
+                        step={0.01}
+                        type="float"
+                        onChange={(value) =>
+                          updateSdkConfig({ error_fatal_sampling_rate: value })
+                        }
+                        disabled={!currentUserCanChangeAppSettings}
+                      />
+                      <span className="font-body text-sm">% sampling rate</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-body text-sm">
+                        Collect <span className="font-bold">unhandled</span>{" "}
+                        errors at
+                      </span>
+                      <SdkConfigNumericInput
+                        testId="error-unhandled-sampling-rate-input"
+                        value={sdkConfig.error_unhandled_sampling_rate}
+                        minValue={0}
+                        maxValue={100}
+                        step={0.01}
+                        type="float"
+                        onChange={(value) =>
+                          updateSdkConfig({
+                            error_unhandled_sampling_rate: value,
+                          })
+                        }
+                        disabled={!currentUserCanChangeAppSettings}
+                      />
+                      <span className="font-body text-sm">% sampling rate</span>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-body text-sm">
+                        Collect <span className="font-bold">handled</span>{" "}
+                        errors at
+                      </span>
+                      <SdkConfigNumericInput
+                        testId="error-handled-sampling-rate-input"
+                        value={sdkConfig.error_handled_sampling_rate}
+                        minValue={0}
+                        maxValue={100}
+                        step={0.01}
+                        type="float"
+                        onChange={(value) =>
+                          updateSdkConfig({
+                            error_handled_sampling_rate: value,
+                          })
+                        }
+                        disabled={!currentUserCanChangeAppSettings}
+                      />
+                      <span className="font-body text-sm">% sampling rate</span>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-body text-sm">
-                    Collect session replay of
-                  </span>
-                  <SdkConfigNumericInput
-                    testId="crash-timeline-duration-input"
-                    value={sdkConfig.crash_timeline_duration}
-                    minValue={0}
-                    maxValue={3600}
-                    onChange={(val) =>
-                      updateSdkConfig({ crash_timeline_duration: val })
-                    }
-                    disabled={!currentUserCanChangeAppSettings}
-                  />
-                  <span className="font-body text-sm">
-                    seconds with every crash
-                  </span>
+
+                <div className="py-2">
+                  <p className="font-display text-muted-foreground mb-4">
+                    Screenshots
+                  </p>
+                  <div className="flex flex-col gap-2 min-h-10 sm:flex-row sm:items-center sm:gap-0">
+                    <p className="text-sm">
+                      Collect screenshot with{" "}
+                      <span className="font-bold">fatal</span> errors
+                    </p>
+                    <Switch
+                      data-testid="error-fatal-screenshot-switch"
+                      className="sm:ml-4"
+                      checked={sdkConfig.error_fatal_take_screenshot}
+                      onCheckedChange={(checked) =>
+                        updateSdkConfig({
+                          error_fatal_take_screenshot: checked,
+                        })
+                      }
+                      disabled={!currentUserCanChangeAppSettings}
+                    />
+                  </div>
                 </div>
+
+                <div className="py-2">
+                  <p className="font-display text-muted-foreground mb-4">
+                    Session replay
+                  </p>
+                  <div className="space-y-4">
+                    <div className="flex flex-col gap-2 min-h-10 sm:flex-row sm:items-center sm:gap-0">
+                      <p className="text-sm">
+                        Collect session replay with{" "}
+                        <span className="font-bold">fatal</span> errors
+                      </p>
+                      <Switch
+                        data-testid="error-fatal-replay-switch"
+                        className="sm:ml-4"
+                        checked={sdkConfig.error_fatal_replay_enabled}
+                        onCheckedChange={(checked) =>
+                          updateSdkConfig({
+                            error_fatal_replay_enabled: checked,
+                          })
+                        }
+                        disabled={!currentUserCanChangeAppSettings}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2 min-h-10 sm:flex-row sm:items-center sm:gap-0">
+                      <p className="text-sm">
+                        Collect session replay with{" "}
+                        <span className="font-bold">unhandled</span> errors
+                      </p>
+                      <Switch
+                        data-testid="error-unhandled-replay-switch"
+                        className="sm:ml-4"
+                        checked={sdkConfig.error_unhandled_replay_enabled}
+                        onCheckedChange={(checked) =>
+                          updateSdkConfig({
+                            error_unhandled_replay_enabled: checked,
+                          })
+                        }
+                        disabled={!currentUserCanChangeAppSettings}
+                      />
+                    </div>
+                    <div className="flex flex-col gap-2 min-h-10 sm:flex-row sm:items-center sm:gap-0">
+                      <p className="text-sm">
+                        Collect session replay with{" "}
+                        <span className="font-bold">handled</span> errors
+                      </p>
+                      <Switch
+                        data-testid="error-handled-replay-switch"
+                        className="sm:ml-4"
+                        checked={sdkConfig.error_handled_replay_enabled}
+                        onCheckedChange={(checked) =>
+                          updateSdkConfig({
+                            error_handled_replay_enabled: checked,
+                          })
+                        }
+                        disabled={!currentUserCanChangeAppSettings}
+                      />
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="font-body text-sm">
+                        Each session replay covers the last
+                      </span>
+                      <SdkConfigNumericInput
+                        testId="error-replay-duration-input"
+                        value={sdkConfig.error_replay_duration}
+                        minValue={0}
+                        maxValue={3600}
+                        onChange={(val) =>
+                          updateSdkConfig({ error_replay_duration: val })
+                        }
+                        disabled={!currentUserCanChangeAppSettings}
+                      />
+                      <span className="font-body text-sm">seconds</span>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex justify-end mt-2">
                   <Button
-                    data-testid="crashes-save-button"
+                    data-testid="errors-save-button"
                     variant="outline"
                     disabled={
-                      !currentUserCanChangeAppSettings || !crashesChanged
+                      !currentUserCanChangeAppSettings || !errorsChanged
                     }
-                    loading={sectionStatuses.crashes === "saving"}
-                    onClick={() => setCrashesConfirmOpen(true)}
+                    loading={sectionStatuses.errors === "saving"}
+                    onClick={() => setErrorsConfirmOpen(true)}
                   >
                     Save
                   </Button>
@@ -1318,15 +1543,15 @@ export default function SdkConfigurator({
 
       {/* Confirmation Dialogs */}
       <DangerConfirmationDialog
-        body={getCrashesConfirmBody()}
-        open={crashesConfirmOpen}
+        body={getErrorsConfirmBody()}
+        open={errorsConfirmOpen}
         affirmativeText="Yes, I'm sure"
         cancelText="Cancel"
         onAffirmativeAction={() => {
-          setCrashesConfirmOpen(false);
-          handleSaveCrashes();
+          setErrorsConfirmOpen(false);
+          handleSaveErrors();
         }}
-        onCancelAction={() => setCrashesConfirmOpen(false)}
+        onCancelAction={() => setErrorsConfirmOpen(false)}
       />
 
       {shouldShowAnr && (

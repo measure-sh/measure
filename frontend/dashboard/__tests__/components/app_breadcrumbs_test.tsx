@@ -127,7 +127,7 @@ describe("AppBreadcrumbs", () => {
         return el as HTMLElement;
       });
       expect(content.textContent).toContain(
-        "Replays are captured for Crashes, ANRs, Bug Reports",
+        "Replays are captured for Errors, ANRs, Bug Reports",
       );
     });
 

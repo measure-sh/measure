@@ -46,12 +46,18 @@ internal class FakeConfigProvider : ConfigProvider {
     override val enableFullCollectionMode: Boolean = true
     override val enableDiagnosticMode: Boolean = false
 
-    override val crashTimelineDurationSeconds: Int = 300
+    override val errorReplayDurationSeconds: Int = 300
     override val anrTimelineDurationSeconds: Int = 300
     override val bugReportTimelineDurationSeconds: Int = 300
     override val cpuUsageInterval: Long = 3000
     override val memoryUsageInterval: Long = 3000
-    override val crashTakeScreenshot: Boolean = true
+    override val errorFatalScreenshotEnabled: Boolean = true
+    override val errorFatalReplayEnabled: Boolean = true
+    override val errorUnhandledReplayEnabled: Boolean = false
+    override val errorHandledReplayEnabled: Boolean = false
+    override val errorFatalSamplingRate: Float = 100f
+    override val errorUnhandledSamplingRate: Float = 100f
+    override val errorHandledSamplingRate: Float = 0f
     override val anrTakeScreenshot: Boolean = true
     override val launchSamplingRate: Float = 1f
     override val gestureClickTakeSnapshot: Boolean = true

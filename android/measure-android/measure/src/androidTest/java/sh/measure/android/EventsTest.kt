@@ -91,7 +91,7 @@ class EventsTest {
         robot.disableDefaultExceptionHandler()
         robot.initializeMeasure(
             MeasureConfig(enableLogging = true, enableFullCollectionMode = true),
-            dynamicConfig = DynamicConfig().copy(crashTakeScreenshot = true),
+            dynamicConfig = DynamicConfig().copy(errorFatalTakeScreenshot = true),
         )
         ActivityScenario.launch(TestActivity::class.java).use {
             it.moveToState(Lifecycle.State.RESUMED)
@@ -113,7 +113,7 @@ class EventsTest {
         robot.disableDefaultExceptionHandler()
         robot.initializeMeasure(
             MeasureConfig(enableLogging = true, enableFullCollectionMode = true),
-            dynamicConfig = DynamicConfig().copy(crashTakeScreenshot = false),
+            dynamicConfig = DynamicConfig().copy(errorFatalTakeScreenshot = false),
         )
         ActivityScenario.launch(TestActivity::class.java).use {
             it.moveToState(Lifecycle.State.RESUMED)

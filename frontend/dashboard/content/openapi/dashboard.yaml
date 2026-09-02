@@ -4385,7 +4385,7 @@ paths:
                 properties:
                   max_events_in_batch:
                     type: integer
-                  crash_timeline_duration:
+                  error_replay_duration:
                     type: integer
                   anr_timeline_duration:
                     type: integer
@@ -4413,8 +4413,26 @@ paths:
                     type: integer
                   memory_usage_interval:
                     type: integer
-                  crash_take_screenshot:
+                  error_fatal_take_screenshot:
                     type: boolean
+                  error_fatal_replay_enabled:
+                    type: boolean
+                  error_unhandled_replay_enabled:
+                    type: boolean
+                  error_handled_replay_enabled:
+                    type: boolean
+                  error_fatal_sampling_rate:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+                  error_unhandled_sampling_rate:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+                  error_handled_sampling_rate:
+                    type: number
+                    minimum: 0
+                    maximum: 100
                   anr_take_screenshot:
                     type: boolean
                   launch_sampling_rate:
@@ -4451,7 +4469,7 @@ paths:
                 response:
                   value:
                     max_events_in_batch: 1000
-                    crash_timeline_duration: 300
+                    error_replay_duration: 300
                     anr_timeline_duration: 300
                     bug_report_timeline_duration: 300
                     trace_sampling_rate: 0.001
@@ -4462,7 +4480,13 @@ paths:
                     log_ignore_patterns: []
                     cpu_usage_interval: 5
                     memory_usage_interval: 5
-                    crash_take_screenshot: true
+                    error_fatal_take_screenshot: true
+                    error_fatal_replay_enabled: true
+                    error_unhandled_replay_enabled: false
+                    error_handled_replay_enabled: false
+                    error_fatal_sampling_rate: 100
+                    error_unhandled_sampling_rate: 100
+                    error_handled_sampling_rate: 0
                     anr_take_screenshot: true
                     launch_sampling_rate: 1
                     gesture_click_take_snapshot: true

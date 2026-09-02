@@ -11,7 +11,6 @@ import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.DefaultConfig
 import sh.measure.android.exceptions.ExceptionData
-import sh.measure.android.exceptions.ExceptionFramework
 import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.exporter.Exporter
@@ -301,7 +300,7 @@ internal class SignalProcessorImpl(
             isSampled = true,
         ) ?: return
         if (event.type == EventType.EXCEPTION) {
-            if (configProvider.crashTakeScreenshot && takeScreenshot) {
+            if (configProvider.errorFatalScreenshotEnabled && takeScreenshot) {
                 addScreenshotAsAttachment(event)
             }
         }
@@ -389,7 +388,12 @@ internal class SignalProcessorImpl(
         }
         val id = idProvider.uuid()
         val resolvedSessionId = sessionId ?: sessionManager.getSessionId()
-        val resolvedIsSampled = if (isHandledJsException(type, data)) true else isSampled
+        val severity = (data as? ExceptionData)?.severity
+        val resolvedIsSampled = if (type == EventType.EXCEPTION && severity != null) {
+            sampler.shouldSampleError(severity)
+        } else {
+            isSampled
+        }
         return Event(
             id = id,
             sessionId = resolvedSessionId,
@@ -477,11 +481,6 @@ internal class SignalProcessorImpl(
         }
     }
 
-    private fun isHandledJsException(eventType: EventType, data: Any?): Boolean = eventType == EventType.EXCEPTION &&
-        data is ExceptionData &&
-        data.framework == ExceptionFramework.JS &&
-        data.severity == ExceptionSeverity.Handled
-
     private fun applyEventSampling(
         eventType: EventType,
         sessionId: String,
@@ -491,6 +490,7 @@ internal class SignalProcessorImpl(
         eventType == EventType.HTTP -> {
             sampler.shouldSampleHttpEvent()
         }
+
         eventType in DefaultConfig.JOURNEY_EVENTS -> {
             sampler.shouldTrackJourneyForSession(sessionId)
         }

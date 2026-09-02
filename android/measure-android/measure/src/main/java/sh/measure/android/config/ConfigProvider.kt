@@ -114,8 +114,8 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
     // Dynamic config properties - use getters so they reflect current dynamicConfig state
     override val maxEventsInBatch: Int
         get() = dynamicConfig.maxEventsInBatch
-    override val crashTimelineDurationSeconds: Int
-        get() = dynamicConfig.crashTimelineDurationSeconds
+    override val errorReplayDurationSeconds: Int
+        get() = dynamicConfig.errorReplayDurationSeconds
     override val anrTimelineDurationSeconds: Int
         get() = dynamicConfig.anrTimelineDurationSeconds
     override val bugReportTimelineDurationSeconds: Int
@@ -136,8 +136,20 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
         get() = dynamicConfig.cpuUsageInterval
     override val memoryUsageInterval: Long
         get() = dynamicConfig.memoryUsageInterval
-    override val crashTakeScreenshot: Boolean
-        get() = dynamicConfig.crashTakeScreenshot
+    override val errorFatalScreenshotEnabled: Boolean
+        get() = dynamicConfig.errorFatalScreenshotEnabled
+    override val errorFatalReplayEnabled: Boolean
+        get() = dynamicConfig.errorFatalReplayEnabled
+    override val errorUnhandledReplayEnabled: Boolean
+        get() = dynamicConfig.errorUnhandledReplayEnabled
+    override val errorHandledReplayEnabled: Boolean
+        get() = dynamicConfig.errorHandledReplayEnabled
+    override val errorFatalSamplingRate: Float
+        get() = dynamicConfig.errorFatalSamplingRate
+    override val errorUnhandledSamplingRate: Float
+        get() = dynamicConfig.errorUnhandledSamplingRate
+    override val errorHandledSamplingRate: Float
+        get() = dynamicConfig.errorHandledSamplingRate
     override val anrTakeScreenshot: Boolean
         get() = dynamicConfig.anrTakeScreenshot
     override val launchSamplingRate: Float

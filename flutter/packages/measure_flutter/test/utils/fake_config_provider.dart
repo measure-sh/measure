@@ -21,7 +21,6 @@ class FakeConfigProvider implements ConfigProvider {
   int _maxUserDefinedAttributesPerEvent = 256;
   int _maxLogBodyLength = 4000;
   double _traceSamplingRate = 100;
-  bool _crashTakeScreenshot = true;
   bool _gestureClickTakeSnapshot = true;
   ScreenshotMaskLevel _screenshotMaskLevel =
       ScreenshotMaskLevel.allTextAndMedia;
@@ -85,9 +84,6 @@ class FakeConfigProvider implements ConfigProvider {
 
   @override
   int get maxLogBodyLength => _maxLogBodyLength;
-
-  @override
-  bool get crashTakeScreenshot => _crashTakeScreenshot;
 
   @override
   bool get gestureClickTakeSnapshot => _gestureClickTakeSnapshot;
@@ -197,8 +193,6 @@ class FakeConfigProvider implements ConfigProvider {
   set maxUserDefinedAttributesPerEvent(int value) => _maxUserDefinedAttributesPerEvent = value;
 
   set maxLogBodyLength(int value) => _maxLogBodyLength = value;
-
-  set crashTakeScreenshot(bool value) => _crashTakeScreenshot = value;
 
   set gestureClickTakeSnapshot(bool value) => _gestureClickTakeSnapshot = value;
 
