@@ -723,7 +723,7 @@ export default function FilterBar({
           />
         ) : null)}
 
-      <div className="flex-1 min-w-64">
+      <div className="flex-auto min-w-64">
         <div
           data-testid="filter-bar"
           aria-disabled={keysUnavailable}
