@@ -19,6 +19,7 @@ import {
   makeBillingInfoFixture,
   makeBugReportDetailFixture,
   makeBugReportsFilterKeysFixture,
+  makeJourneysFilterKeysFixture,
   makeBugReportsOverviewFixture,
   makeBugReportsPlotFixture,
   makeBuildsFixture,
@@ -415,6 +416,9 @@ export const handlers = [
     const entity = new URL(request.url).searchParams.get("entity");
     if (entity === "bug_reports") {
       return HttpResponse.json(makeBugReportsFilterKeysFixture());
+    }
+    if (entity === "journeys") {
+      return HttpResponse.json(makeJourneysFilterKeysFixture());
     }
     return HttpResponse.json(makeFilterKeysFixture());
   }),

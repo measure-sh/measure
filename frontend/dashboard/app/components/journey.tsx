@@ -1,7 +1,6 @@
 "use client";
 
-import { useJourneyQuery } from "@/app/query/hooks";
-import { useFiltersStore } from "@/app/stores/provider";
+import { type useJourneyQuery } from "@/app/query/hooks";
 import { ResponsiveSankey } from "@nivo/sankey";
 import { X } from "lucide-react";
 import { useTheme } from "next-themes";
@@ -17,7 +16,7 @@ import TabSelect from "./tab_select";
 const CRASHES_TAB = "Crashes";
 const ANRS_TAB = "ANRs";
 
-const demoJourney: InputJourneyData = {
+export const demoJourney: InputJourneyData = {
   links: [
     // From MainActivity (home)
     {
@@ -365,14 +364,21 @@ const demoJourney: InputJourneyData = {
 };
 
 interface JourneyProps {
-  teamId: string;
-  bidirectional: boolean;
   journeyType: JourneyType;
   searchText?: string;
-  demo?: boolean;
+  query: Pick<ReturnType<typeof useJourneyQuery>, "status" | "data">;
+  errorDetailContext?: {
+    teamId: string;
+    appId: string;
+  };
 }
 
 export { JourneyType } from "../api/api_calls";
+
+export enum PlotType {
+  Paths = "Paths",
+  Exceptions = "Exceptions",
+}
 
 type Link = {
   source: string;
@@ -567,18 +573,15 @@ function transformData(
 }
 
 const Journey: React.FC<JourneyProps> = ({
-  teamId,
-  bidirectional: bidirectionalProp,
   journeyType: journeyTypeProp,
   searchText = "",
-  demo = false,
+  query: journeyQuery,
+  errorDetailContext,
 }) => {
   const { theme } = useTheme();
   const chartColor = useChartColor();
   const chartColors = useChartColors();
   const router = useRouter();
-  const filters = useFiltersStore((state) => state.filters);
-  const journeyQuery = useJourneyQuery(journeyTypeProp, bidirectionalProp);
 
   const [selectedNode, setSelectedNode] = useState<JourneyNode | undefined>(
     undefined,
@@ -598,18 +601,14 @@ const Journey: React.FC<JourneyProps> = ({
 
   const journeyType = journeyTypeProp;
   const rawJourney = journeyQuery.data ?? emptyJourney;
-  const transformedJourney = demo
-    ? transformData(journeyType, demoJourney, chartColor)
-    : journeyQuery.status === "success"
+  const transformedJourney =
+    journeyQuery.status === "success"
       ? transformData(journeyType, rawJourney, chartColor)
       : transformData(journeyType, emptyJourney, chartColor);
   const journey = transformedJourney;
 
   // Derive effective API status: if query says success but transformed data has no nodes, treat as no data
   const effectiveStatus = (() => {
-    if (demo) {
-      return "success" as const;
-    }
     if (journeyQuery.status === "success" && journeyQuery.data === null) {
       return "nodata" as const;
     }
@@ -813,14 +812,14 @@ const Journey: React.FC<JourneyProps> = ({
                               key={title}
                               type="button"
                               onClick={
-                                demo
+                                errorDetailContext === undefined
                                   ? undefined
                                   : () =>
                                       router.push(
-                                        `/${teamId}/errors/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`,
+                                        `/${errorDetailContext.teamId}/errors/${errorDetailContext.appId}/${id}/${title}`,
                                       )
                               }
-                              className={`block w-full text-left px-3 py-2 border-b border-border/40 last:border-b-0 text-xs wrap-break-word font-body transition-colors ${demo ? "cursor-default" : "hover:bg-accent cursor-pointer"}`}
+                              className={`block w-full text-left px-3 py-2 border-b border-border/40 last:border-b-0 text-xs wrap-break-word font-body transition-colors ${errorDetailContext === undefined ? "cursor-default" : "hover:bg-accent cursor-pointer"}`}
                             >
                               <span className="block">{title}</span>
                               <span className="block text-[10px] text-muted-foreground mt-0.5">
@@ -842,14 +841,14 @@ const Journey: React.FC<JourneyProps> = ({
                               key={title}
                               type="button"
                               onClick={
-                                demo
+                                errorDetailContext === undefined
                                   ? undefined
                                   : () =>
                                       router.push(
-                                        `/${teamId}/errors/${filters.app!.id}/${id}/${title}?start_date=${filters.startDate}&end_date=${filters.endDate}`,
+                                        `/${errorDetailContext.teamId}/errors/${errorDetailContext.appId}/${id}/${title}`,
                                       )
                               }
-                              className={`block w-full text-left px-3 py-2 border-b border-border/40 last:border-b-0 text-xs wrap-break-word font-body transition-colors ${demo ? "cursor-default" : "hover:bg-accent cursor-pointer"}`}
+                              className={`block w-full text-left px-3 py-2 border-b border-border/40 last:border-b-0 text-xs wrap-break-word font-body transition-colors ${errorDetailContext === undefined ? "cursor-default" : "hover:bg-accent cursor-pointer"}`}
                             >
                               <span className="block">{title}</span>
                               <span className="block text-[10px] text-muted-foreground mt-0.5">

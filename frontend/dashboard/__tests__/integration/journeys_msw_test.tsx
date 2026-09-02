@@ -1,11 +1,14 @@
 /**
  * Integration tests for the User Journeys page.
  *
- * These cover the wiring between the page, the filters store, and the
- * journey API: refetches on filter and tab changes, request parameters,
- * URL sync, demo mode, and caching. Chart rendering, the exceptions
- * panel, and node search are covered by component unit tests.
+ * These cover the wiring between the page, the FilterBar and the journey
+ * API: the request the page sends for what the bar settled on, the filter
+ * expression a link carries, the plot type in the URL, and the error and
+ * empty states. Chart rendering, the exceptions panel and node search are
+ * covered by the component unit tests.
  */
+import { mockRouter } from "@/__tests__/helpers/mock_router";
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
   afterEach,
@@ -31,13 +34,11 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
 }));
 
-const mockRouterReplace = jest.fn();
-const mockRouterPush = jest.fn();
-const mockSearchParams = new URLSearchParams();
+const mockRouterReplace = mockRouter.replaceMock;
+const mockRouterPush = mockRouter.pushMock;
+
 jest.mock("next/navigation", () => ({
-  __esModule: true,
-  useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
-  useSearchParams: () => mockSearchParams,
+  ...require("@/__tests__/helpers/mock_router").nextNavigationMock(),
   usePathname: () => "/test-team/journeys",
 }));
 
@@ -72,6 +73,18 @@ jest.mock("@nivo/sankey", () => ({
   ),
 }));
 
+// The filter pickers are Radix popovers, which need a resize observer and
+// pointer capture that jsdom does not have.
+(globalThis as any).ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+Element.prototype.scrollIntoView = jest.fn();
+Element.prototype.hasPointerCapture = jest.fn(() => false);
+Element.prototype.setPointerCapture = jest.fn();
+Element.prototype.releasePointerCapture = jest.fn();
+
 // --- MSW ---
 import { makeAppFixture, makeJourneyFixture } from "../msw/fixtures";
 import { server } from "../msw/server";
@@ -87,15 +100,15 @@ afterEach(() => {
 });
 afterAll(() => server.close());
 
-// --- Store imports ---
-import UserJourneys from "@/app/components/user_journeys";
+// --- Store/component imports ---
+import UserJourneysPage from "@/app/[teamId]/journeys/page";
+import { queryClient } from "@/app/query/query_client";
 import { createFiltersStore } from "@/app/stores/filters_store";
 import { createOnboardingStore } from "@/app/stores/onboarding_store";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 
 let filtersStore = createFiltersStore();
 let onboardingStore = createOnboardingStore();
-let testQueryClient: QueryClient;
 
 jest.mock("@/app/stores/provider", () => {
   const { useStore } = require("zustand");
@@ -109,379 +122,256 @@ jest.mock("@/app/stores/provider", () => {
   };
 });
 
+const appId = makeAppFixture().id;
+
 beforeEach(() => {
-  const { queryClient: singletonClient } = require("@/app/query/query_client");
-  singletonClient.clear();
   filtersStore = createFiltersStore();
   onboardingStore = createOnboardingStore();
-  testQueryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
-  filtersStore.getState().reset();
-  for (const key of [...mockSearchParams.keys()]) mockSearchParams.delete(key);
+  queryClient.clear();
+  mockRouter.searchParams = new URLSearchParams();
   const { apiClient } = require("@/app/api/api_client");
   apiClient.init({ replace: jest.fn(), push: jest.fn() });
 });
 
 function renderWithProviders(ui: React.ReactElement) {
   return render(
-    <QueryClientProvider client={testQueryClient}>{ui}</QueryClientProvider>,
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
   );
 }
 
-// ====================================================================
-// PAGE LOAD
-// ====================================================================
-describe("Journeys page — page load", () => {
-  it("shows error when journey API returns 500", async () => {
-    server.use(
-      http.get("*/api/apps/:appId/journey", () => {
-        return new HttpResponse(null, { status: 500 });
-      }),
+describe("Journeys page (MSW integration)", () => {
+  function renderPage() {
+    return renderWithProviders(
+      <UserJourneysPage params={promiseParams({ teamId: "test-team" })} />,
     );
+  }
 
-    renderWithProviders(<UserJourneys params={{ teamId: "test-team" }} />);
-    await waitFor(
-      () => {
-        expect(screen.getByText(/Error fetching journey/)).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-  });
-});
-
-// ====================================================================
-// FILTERS — app/version/date (same 3 as overview)
-// ====================================================================
-describe("Journeys page — filters", () => {
-  const { AppVersion } = require("@/app/api/api_calls");
-
-  let journeyRequests: { url: string }[];
-  let shortFilterBodies: any[];
-
-  beforeEach(() => {
-    journeyRequests = [];
-    shortFilterBodies = [];
+  function recordJourneyRequests() {
+    const sent: URL[] = [];
     server.use(
       http.get("*/api/apps/:appId/journey", ({ request }) => {
-        journeyRequests.push({ url: request.url });
+        sent.push(new URL(request.url));
         return HttpResponse.json(makeJourneyFixture());
       }),
-      http.post("*/api/apps/:appId/shortFilters", async ({ request }) => {
-        shortFilterBodies.push(await request.json());
-        return HttpResponse.json({
-          filter_short_code: `code-${shortFilterBodies.length}`,
-        });
+    );
+    return sent;
+  }
+
+  function recordKeysRequests() {
+    const sent: URL[] = [];
+    server.use(
+      http.get("*/api/apps/:appId/filters/keys", ({ request }) => {
+        sent.push(new URL(request.url));
+        return;
       }),
     );
-  });
+    return sent;
+  }
 
-  async function renderAndWaitForChart() {
-    renderWithProviders(<UserJourneys params={{ teamId: "test-team" }} />);
+  async function waitForChart() {
     await waitFor(
       () => expect(screen.getByTestId("nivo-sankey")).toBeTruthy(),
       { timeout: 5000 },
     );
   }
 
-  it("version change triggers journey refetch", async () => {
-    await renderAndWaitForChart();
-    journeyRequests.length = 0;
+  const lastWrittenUrl = () =>
+    new URLSearchParams(
+      mockRouterReplace.mock.calls[
+        mockRouterReplace.mock.calls.length - 1
+      ][0].slice(1),
+    );
 
-    await act(async () => {
-      filtersStore
-        .getState()
-        .setSelectedVersions([new AppVersion("3.0.2", "302")]);
+  describe("opening the page", () => {
+    it("draws the journey the server sent", async () => {
+      renderPage();
+      await waitForChart();
+
+      expect(screen.getByTestId("sankey-node-MainActivity")).toBeTruthy();
+      expect(screen.getByTestId("sankey-node-CartActivity")).toBeTruthy();
     });
 
-    await waitFor(() => expect(journeyRequests.length).toBeGreaterThan(0), {
-      timeout: 5000,
+    it("asks for the journey over the range it settled on", async () => {
+      const sent = recordJourneyRequests();
+      renderPage();
+      await waitForChart();
+
+      expect(sent).toHaveLength(1);
+      expect(sent[0].pathname).toBe(`/api/apps/${appId}/journey`);
+      expect(sent[0].searchParams.get("from")).toMatch(/Z$/);
+      expect(sent[0].searchParams.get("to")).toMatch(/Z$/);
+      expect(sent[0].searchParams.get("timezone")).toBeTruthy();
+      expect(sent[0].searchParams.has("filter_expr")).toBe(false);
+      expect(sent[0].searchParams.has("bigraph")).toBe(false);
+      expect(sent[0].searchParams.has("versions")).toBe(false);
+      expect(sent[0].searchParams.has("filter_short_code")).toBe(false);
+    });
+
+    it("asks the keys endpoint for the journeys entity", async () => {
+      const sent = recordKeysRequests();
+      renderPage();
+      await waitForChart();
+
+      await waitFor(() => expect(sent.length).toBeGreaterThan(0));
+      expect(sent[0].searchParams.get("entity")).toBe("journeys");
+    });
+
+    it("records the app and range it settled on in the URL, with no offset", async () => {
+      renderPage();
+      await waitForChart();
+
+      const written = new URLSearchParams(
+        mockRouterReplace.mock.calls[0][0].slice(1),
+      );
+      expect(written.get("a")).toBe(appId);
+      expect(written.get("d")).toBe("Last 6 Hours");
+      expect(written.get("sd")).toBeTruthy();
+      expect(written.get("ed")).toBeTruthy();
+      expect(written.has("po")).toBe(false);
+      expect(written.has("jt")).toBe(false);
+    });
+
+    it("shows the tabs and the search input with the chart", async () => {
+      renderPage();
+      await waitForChart();
+
+      expect(screen.getByRole("button", { name: "Paths" }).className).toContain(
+        "bg-accent",
+      );
+      expect(screen.getByRole("button", { name: "Exceptions" })).toBeTruthy();
+      expect(screen.getByPlaceholderText("Search nodes...")).toBeTruthy();
     });
   });
 
-  it("version change sends new version in shortFilters POST", async () => {
-    await renderAndWaitForChart();
-    shortFilterBodies.length = 0;
+  describe("a link carrying a filter", () => {
+    it("filters the journey by it", async () => {
+      mockRouter.searchParams = new URLSearchParams(
+        `filter_expr=${encodeURIComponent("version_name:in:3.1.0")}`,
+      );
+      const sent = recordJourneyRequests();
+      renderPage();
+      await waitForChart();
 
-    await act(async () => {
-      filtersStore
-        .getState()
-        .setSelectedVersions([new AppVersion("3.0.1", "301")]);
-    });
-
-    await waitFor(() => expect(shortFilterBodies.length).toBeGreaterThan(0), {
-      timeout: 5000,
-    });
-    expect(
-      shortFilterBodies[shortFilterBodies.length - 1].filters.versions,
-    ).toEqual(["3.0.1"]);
-  });
-
-  it("date change triggers journey refetch", async () => {
-    await renderAndWaitForChart();
-    journeyRequests.length = 0;
-
-    await act(async () => {
-      const now = new Date();
-      filtersStore.getState().setSelectedDateRange("Last Week");
-      filtersStore
-        .getState()
-        .setSelectedStartDate(
-          new Date(now.getTime() - 7 * 86400000).toISOString(),
-        );
-      filtersStore.getState().setSelectedEndDate(now.toISOString());
-    });
-
-    await waitFor(() => expect(journeyRequests.length).toBeGreaterThan(0), {
-      timeout: 5000,
+      expect(sent[0].searchParams.get("filter_expr")).toBe(
+        "version_name:in:3.1.0",
+      );
+      expect(lastWrittenUrl().get("filter_expr")).toBe("version_name:in:3.1.0");
     });
   });
 
-  it("filter_short_code appears in journey data-fetch URL", async () => {
-    server.use(
-      http.post("*/api/apps/:appId/shortFilters", () => {
-        return HttpResponse.json({ filter_short_code: "journey-code-xyz" });
-      }),
-    );
+  describe("the plot type", () => {
+    it("opens on the plot a link names and keeps it in the URL", async () => {
+      mockRouter.searchParams = new URLSearchParams("jt=Exceptions");
+      renderPage();
+      await waitForChart();
 
-    await renderAndWaitForChart();
-
-    await waitFor(
-      () => {
-        const urlWithCode = journeyRequests.find((r) =>
-          r.url.includes("filter_short_code="),
-        );
-        expect(urlWithCode?.url).toContain(
-          "filter_short_code=journey-code-xyz",
-        );
-      },
-      { timeout: 5000 },
-    );
-  });
-
-  it("journey URL includes from/to/timezone params", async () => {
-    await renderAndWaitForChart();
-
-    expect(journeyRequests.length).toBeGreaterThan(0);
-    const url = journeyRequests[0].url;
-    expect(url).toContain("from=");
-    expect(url).toContain("to=");
-    expect(url).toContain("timezone=");
-  });
-});
-
-// ====================================================================
-// URL SYNC
-// ====================================================================
-describe("Journeys page — URL sync", () => {
-  it("version change updates URL with version param", async () => {
-    const { AppVersion } = require("@/app/api/api_calls");
-    renderWithProviders(<UserJourneys params={{ teamId: "test-team" }} />);
-    await waitFor(
-      () => expect(screen.getByTestId("nivo-sankey")).toBeTruthy(),
-      { timeout: 5000 },
-    );
-    mockRouterReplace.mockClear();
-
-    await act(async () => {
-      filtersStore
-        .getState()
-        .setSelectedVersions([new AppVersion("3.0.1", "301")]);
+      expect(
+        screen.getByRole("button", { name: "Exceptions" }).className,
+      ).toContain("bg-accent");
+      expect(lastWrittenUrl().get("jt")).toBe("Exceptions");
+      expect(lastWrittenUrl().get("a")).toBe(appId);
     });
 
-    await waitFor(
-      () => {
-        expect(mockRouterReplace).toHaveBeenCalled();
-        const url =
-          mockRouterReplace.mock.calls[
-            mockRouterReplace.mock.calls.length - 1
-          ][0];
-        expect(url).toContain("v=");
-      },
-      { timeout: 5000 },
-    );
-  });
-});
+    it("a tab click writes the plot type into the URL without refetching", async () => {
+      const sent = recordJourneyRequests();
+      renderPage();
+      await waitForChart();
 
-// ====================================================================
-// DEMO MODE
-// ====================================================================
-describe("Journeys page — demo mode", () => {
-  it("renders without API calls", async () => {
-    const apiCalls: string[] = [];
-    server.use(
-      http.get("*", ({ request }) => {
-        apiCalls.push(request.url);
-        return HttpResponse.json({});
-      }),
-      http.post("*", ({ request }) => {
-        apiCalls.push(request.url);
-        return HttpResponse.json({});
-      }),
-    );
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Exceptions" }));
+      });
 
-    renderWithProviders(<UserJourneys demo={true} />);
-    expect(screen.getByText("User Journeys")).toBeTruthy();
+      expect(
+        screen.getByRole("button", { name: "Exceptions" }).className,
+      ).toContain("bg-accent");
+      const written = lastWrittenUrl();
+      expect(written.get("jt")).toBe("Exceptions");
+      expect(written.get("a")).toBe(appId);
+      expect(written.get("d")).toBe("Last 6 Hours");
+      expect(screen.getByTestId("sankey-node-MainActivity")).toBeTruthy();
 
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 200));
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 200));
+      });
+      expect(sent).toHaveLength(1);
     });
-    expect(apiCalls.length).toBe(0);
-  });
-});
-
-// ====================================================================
-// STORE CACHE
-// ====================================================================
-describe("Journeys page — caching", () => {
-  it("re-mount still shows data", async () => {
-    const { unmount } = renderWithProviders(
-      <UserJourneys params={{ teamId: "test-team" }} />,
-    );
-    await waitFor(
-      () => expect(screen.getByTestId("nivo-sankey")).toBeTruthy(),
-      { timeout: 5000 },
-    );
-
-    unmount();
-    renderWithProviders(<UserJourneys params={{ teamId: "test-team" }} />);
-    await waitFor(
-      () => expect(screen.getByTestId("nivo-sankey")).toBeTruthy(),
-      { timeout: 5000 },
-    );
   });
 
-  it("Paths→Exceptions→Paths: each switch refetches (single-value cache)", async () => {
-    // The journey store uses a single cachedFetchKey (not a map),
-    // so switching back to Paths after Exceptions is a cache MISS
-    // because the Exceptions fetch overwrote the cached key.
-    // This pins the current behavior.
-    let fetchCount = 0;
-    server.use(
-      http.get("*/api/apps/:appId/journey", () => {
-        fetchCount++;
-        return HttpResponse.json(makeJourneyFixture());
-      }),
-    );
+  describe("when the server answers with nothing", () => {
+    it("says there is no journey data", async () => {
+      server.use(
+        http.get("*/api/apps/:appId/journey", () => {
+          return HttpResponse.json({ nodes: [], links: [], totalIssues: 0 });
+        }),
+      );
+      renderPage();
 
-    renderWithProviders(<UserJourneys params={{ teamId: "test-team" }} />);
-    await waitFor(
-      () => expect(screen.getByTestId("nivo-sankey")).toBeTruthy(),
-      { timeout: 5000 },
-    );
-    expect(fetchCount).toBe(1); // Initial Paths
-
-    await act(async () => {
-      fireEvent.click(screen.getByText("Exceptions"));
+      expect(await screen.findByText("No journey data")).toBeTruthy();
+      expect(screen.queryByTestId("nivo-sankey")).toBeNull();
     });
-    await waitFor(() => expect(fetchCount).toBe(2), { timeout: 5000 }); // Exceptions
-
-    await act(async () => {
-      fireEvent.click(screen.getByText("Paths"));
-    });
-    await waitFor(() => expect(fetchCount).toBe(3), { timeout: 5000 }); // Paths again (cache miss)
   });
-});
 
-// ====================================================================
-// DIFFERENT DATA PER APP
-// ====================================================================
-describe("Journeys page — different journey data per app", () => {
-  it("switching app renders different nodes", async () => {
-    const app1 = makeAppFixture({ id: "app-1", name: "Alpha" });
-    const app2 = makeAppFixture({ id: "app-2", name: "Beta" });
+  describe("when the server fails", () => {
+    it("shows the error message", async () => {
+      server.use(
+        http.get("*/api/apps/:appId/journey", () => {
+          return new HttpResponse(null, { status: 500 });
+        }),
+      );
+      renderPage();
 
-    server.use(
-      http.get("*/api/teams/:teamId/apps", () => {
-        return HttpResponse.json([app1, app2]);
-      }),
-      http.get("*/api/apps/:appId/journey", ({ params }) => {
-        if (params.appId === "app-2") {
-          return HttpResponse.json({
-            nodes: [
-              { id: "com.beta.ScreenA", issues: { crashes: [], anrs: [] } },
-              { id: "com.beta.ScreenB", issues: { crashes: [], anrs: [] } },
-            ],
-            links: [
-              {
-                source: "com.beta.ScreenA",
-                target: "com.beta.ScreenB",
-                value: 100,
-              },
-            ],
-            totalIssues: 0,
-          });
-        }
-        return HttpResponse.json(makeJourneyFixture());
-      }),
-    );
-
-    renderWithProviders(<UserJourneys params={{ teamId: "test-team" }} />);
-    await waitFor(
-      () => expect(screen.getByTestId("nivo-sankey")).toBeTruthy(),
-      { timeout: 5000 },
-    );
-
-    // App 1 has 4 nodes
-    expect(screen.getByTestId("sankey-node-MainActivity")).toBeTruthy();
-
-    // Switch to app 2
-    await act(async () => {
-      filtersStore.getState().setSelectedApp(app2 as any);
+      expect(await screen.findByText(/Error fetching journey/)).toBeTruthy();
+      expect(screen.queryByTestId("nivo-sankey")).toBeNull();
     });
 
-    await waitFor(
-      () => {
-        // App 2 has different nodes
-        expect(screen.getByTestId("sankey-node-ScreenA")).toBeTruthy();
-        expect(screen.getByTestId("sankey-node-ScreenB")).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
+    it("shows a refused filter's issue in the bar, not the error message", async () => {
+      mockRouter.searchParams = new URLSearchParams(
+        `filter_expr=${encodeURIComponent("version_name:in:3.1.0")}`,
+      );
+      server.use(
+        http.get("*/api/apps/:appId/journey", () => {
+          return HttpResponse.json(
+            {
+              error: "invalid_filter_expr",
+              filter_expr_issues: [
+                {
+                  message: 'Key "version_name" has no value "3.1.0"',
+                  span: { start: 0, end: 21 },
+                },
+              ],
+            },
+            { status: 400 },
+          );
+        }),
+      );
+      renderPage();
 
-    // App 1 nodes should be gone
-    expect(screen.queryByTestId("sankey-node-MainActivity")).toBeNull();
+      expect((await screen.findByTestId("filter-issue")).textContent).toContain(
+        'Key "version_name" has no value "3.1.0"',
+      );
+      expect(screen.queryByText(/Error fetching journey/)).toBeNull();
+    });
+
+    it("says so when the team's apps cannot be fetched", async () => {
+      server.use(
+        http.get("*/api/teams/:teamId/apps", () => {
+          return new HttpResponse(null, { status: 500 });
+        }),
+      );
+      renderPage();
+
+      expect(await screen.findByText(/Error fetching apps/)).toBeTruthy();
+    });
   });
-});
 
-// ====================================================================
-// DATE CHANGE does NOT fire shortFilters POST
-// ====================================================================
-describe("Journeys page — date change and shortFilters", () => {
-  it("date change does NOT fire a new shortFilters POST", async () => {
-    const shortFilterBodies: any[] = [];
-    server.use(
-      http.post("*/api/apps/:appId/shortFilters", async ({ request }) => {
-        shortFilterBodies.push(await request.json());
-        return HttpResponse.json({
-          filter_short_code: `code-${shortFilterBodies.length}`,
-        });
-      }),
-    );
+  describe("re-render", () => {
+    it("re-render still shows data", async () => {
+      const { unmount } = renderPage();
+      await waitForChart();
 
-    renderWithProviders(<UserJourneys params={{ teamId: "test-team" }} />);
-    await waitFor(
-      () => expect(screen.getByTestId("nivo-sankey")).toBeTruthy(),
-      { timeout: 5000 },
-    );
-
-    const postsBefore = shortFilterBodies.length;
-
-    await act(async () => {
-      const now = new Date();
-      filtersStore.getState().setSelectedDateRange("Last Month");
-      filtersStore
-        .getState()
-        .setSelectedStartDate(
-          new Date(now.getTime() - 30 * 86400000).toISOString(),
-        );
-      filtersStore.getState().setSelectedEndDate(now.toISOString());
+      unmount();
+      renderPage();
+      await waitForChart();
     });
-
-    // Wait for journey refetch to settle
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 300));
-    });
-    expect(shortFilterBodies.length).toBe(postsBefore);
   });
 });

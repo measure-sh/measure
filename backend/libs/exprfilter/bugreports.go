@@ -1,9 +1,5 @@
 package exprfilter
 
-// BugReportsEntity is an app's bug reports. Filtering and value lists both
-// read the bug_reports table in ClickHouse, which stores every attribute as a
-// flat column, and its user-defined attributes are the user_def_attrs rows
-// flagged bug_report.
 var BugReportsEntity = Entity{
 	Name:                  "bug_reports",
 	Keys:                  bugReportsKeys,
@@ -32,9 +28,6 @@ var bugReportsKeys = []Key{
 	country,
 }
 
-// The column expression each bug report key compares against. The bug_reports
-// table stores every attribute as a flat column and holds the app and os
-// versions as (name, version) tuples.
 var bugReportsTableColumns = map[string]string{
 	versionName.Name:          "tupleElement(app_version, 1)",
 	versionCode.Name:          "tupleElement(app_version, 2)",
@@ -55,8 +48,6 @@ var bugReportsTableColumns = map[string]string{
 	country.Name:              "country_code",
 }
 
-// bugReportStatusCodes maps the status names a filter carries to the integer
-// codes the status column stores.
 var bugReportStatusCodes = map[string]uint8{
 	"open":   0,
 	"closed": 1,
@@ -67,17 +58,14 @@ var bugReportsKeyBindingOverrides = map[string]columnKeyBinding{
 	patchID.Name:         bindUUIDKey,
 }
 
-// Fixed-key value suggestions read the bug_reports table itself
 var bugReportFixedKeyValues = fixedKeyValueSource{
 	table:       "bug_reports",
 	columns:     bugReportsTableColumns,
 	recencyExpr: "max(timestamp)",
 }
 
-// The custom keys of bug reports are the user-defined attributes an app set
-// on the session a report was filed in. The user_def_attrs table holds
-// attribute rows for several event kinds, with bug report rows flagged
-// bug_report.
+// The custom keys are the user-defined attributes set on the session a
+// report was filed in.
 var bugReportCustomKeys = customKeyStore{
 	table:      "user_def_attrs",
 	idColumn:   "event_id",

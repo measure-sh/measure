@@ -45,13 +45,24 @@ type ExtraFilterField = Exclude<
  * ready report to the URL key that carries it. The hook then reads the
  * requested value, includes the field in the URL-vs-report equality gate, and
  * writes it into the URL with the rest of the filter.
+ *
+ * A page that queries without pagination leaves `paginationLimit` out: the
+ * URL then never carries the offset and `paginationOffset` stays zero.
+ *
+ * A page with URL state the bar knows nothing about, such as which plot is
+ * shown, lists those keys in `pageUrlKeys` and writes them through
+ * `setPageUrlKey`. When the bar's report is written into the URL, the values
+ * those keys currently hold are carried over, so a filter change does not
+ * reset them.
  */
 export function useExprFilterPage<Extra extends ExtraFilterField = never>({
   paginationLimit,
   extraUrlKeys,
+  pageUrlKeys = [],
 }: {
-  paginationLimit: number;
+  paginationLimit?: number;
   extraUrlKeys?: Record<Extra, string>;
+  pageUrlKeys?: string[];
 }) {
   const extras = Object.entries(extraUrlKeys ?? {}) as [Extra, string][];
 
@@ -59,7 +70,9 @@ export function useExprFilterPage<Extra extends ExtraFilterField = never>({
   const searchParams = useSearchParams();
 
   const paginationOffset =
-    Number(searchParams.get(paginationOffsetUrlKey)) || 0;
+    paginationLimit === undefined
+      ? 0
+      : Number(searchParams.get(paginationOffsetUrlKey)) || 0;
 
   const requestedFilters = {
     app: searchParams.get(appIdUrlKey),
@@ -97,7 +110,9 @@ export function useExprFilterPage<Extra extends ExtraFilterField = never>({
 
   const buildFilterUrl = (filter: ReadyFilterState, offset: number) => {
     const urlParams = new URLSearchParams();
-    urlParams.set(paginationOffsetUrlKey, String(offset));
+    if (paginationLimit !== undefined) {
+      urlParams.set(paginationOffsetUrlKey, String(offset));
+    }
     urlParams.set(appIdUrlKey, filter.app.id);
     urlParams.set(dateRangeUrlKey, filter.date.dateRange);
     urlParams.set(startDateUrlKey, filter.date.startDate);
@@ -110,6 +125,12 @@ export function useExprFilterPage<Extra extends ExtraFilterField = never>({
     }
     if (filter.filterExpr) {
       urlParams.set(filterExprUrlKey, filter.filterExpr);
+    }
+    for (const key of pageUrlKeys) {
+      const value = searchParams.get(key);
+      if (value !== null) {
+        urlParams.set(key, value);
+      }
     }
     return `?${urlParams.toString()}`;
   };
@@ -126,15 +147,29 @@ export function useExprFilterPage<Extra extends ExtraFilterField = never>({
     router.replace(buildFilterUrl(newFilterState, offset), { scroll: false });
   };
 
-  const navigateToOffset = (offset: number) => {
+  // Replaces one key in the URL and leaves everything else the URL carries
+  // as it is.
+  const setPageUrlKey = (key: string, value: string) => {
     const urlParams = new URLSearchParams(searchParams);
-    urlParams.set(paginationOffsetUrlKey, String(offset));
+    urlParams.set(key, value);
     router.replace(`?${urlParams.toString()}`, { scroll: false });
   };
 
-  const nextPage = () => navigateToOffset(paginationOffset + paginationLimit);
-  const prevPage = () =>
+  const navigateToOffset = (offset: number) =>
+    setPageUrlKey(paginationOffsetUrlKey, String(offset));
+
+  const nextPage = () => {
+    if (paginationLimit === undefined) {
+      return;
+    }
+    navigateToOffset(paginationOffset + paginationLimit);
+  };
+  const prevPage = () => {
+    if (paginationLimit === undefined) {
+      return;
+    }
     navigateToOffset(Math.max(0, paginationOffset - paginationLimit));
+  };
 
   return {
     requestedFilters,
@@ -143,6 +178,7 @@ export function useExprFilterPage<Extra extends ExtraFilterField = never>({
     filterState,
     filterParams,
     onFilterChange,
+    setPageUrlKey,
     nextPage,
     prevPage,
   };

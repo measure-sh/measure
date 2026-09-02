@@ -12,7 +12,7 @@ import (
 	"backend/libs/chrono"
 	"backend/libs/config"
 	"backend/libs/event"
-	"backend/libs/filter"
+	"backend/libs/exprfilter"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -326,9 +326,10 @@ func SortANRGroups(groups []ANRGroup) {
 	})
 }
 
-// GetExceptionGroupsFromFingerprints fetches exception groups
-// matched by app filter(s) & exception fingerprint.
-func GetExceptionGroupsFromFingerprints(ctx context.Context, conn driver.Conn, af *filter.AppFilter, input []string) (exceptionGroups []ExceptionGroup, err error) {
+// GetExceptionGroupsFromFingerprints fetches the exception groups with the
+// given fingerprints in the journey filter's app and time range, each with
+// its event count under the filter.
+func GetExceptionGroupsFromFingerprints(ctx context.Context, conn driver.Conn, ef *exprfilter.ExprFilter, input []string) (exceptionGroups []ExceptionGroup, err error) {
 	fingerprints := unique(input)
 
 	if len(fingerprints) == 0 {
@@ -350,9 +351,9 @@ func GetExceptionGroupsFromFingerprints(ctx context.Context, conn driver.Conn, a
 		Select("argMax(file_name, timestamp) as file_name").
 		Select("argMax(line_number, timestamp) as line_number").
 		Where("team_id = toUUID(?)", teamId).
-		Where("app_id = toUUID(?)", af.AppID).
-		Where("timestamp >= toDateTime64(?, 3, 'UTC')", af.From).
-		Where("timestamp <= toDateTime64(?, 3, 'UTC')", af.To).
+		Where("app_id = toUUID(?)", ef.AppID).
+		Where("timestamp >= toDateTime64(?, 3, 'UTC')", ef.From).
+		Where("timestamp <= toDateTime64(?, 3, 'UTC')", ef.To).
 		Where("id").In(fingerprints).
 		GroupBy("id")
 
@@ -361,18 +362,23 @@ func GetExceptionGroupsFromFingerprints(ctx context.Context, conn driver.Conn, a
 		Select("`exception.fingerprint` as id").
 		Select("count() as event_count").
 		Where("team_id = toUUID(?)", teamId).
-		Where("app_id = toUUID(?)", af.AppID).
-		Where("timestamp >= toDateTime(?, 3, 'UTC')", af.From).
-		Where("timestamp <= toDateTime(?, 3, 'UTC')", af.To).
+		Where("app_id = toUUID(?)", ef.AppID).
+		Where("timestamp >= toDateTime(?, 3, 'UTC')", ef.From).
+		Where("timestamp <= toDateTime(?, 3, 'UTC')", ef.To).
 		Where("type = ?", event.TypeException).
 		// fatal only: matches the fatal_exception_groups this joins against
 		Where(config.FatalExceptionExpr).
 		Where("exception.fingerprint").In(fingerprints).
 		GroupBy("`exception.fingerprint`")
 
-	if af.HasVersions() {
-		countsStmt.Where("attribute.app_version").In(af.Versions)
-		countsStmt.Where("attribute.app_build").In(af.VersionCodes)
+	if ef.HasFilterExpr() {
+		predicate, errPredicate := ef.Predicate(exprfilter.JourneyEventsKeyBindings)
+		if errPredicate != nil {
+			err = errPredicate
+			return
+		}
+		defer predicate.Close()
+		countsStmt.Where(predicate.String(), predicate.Args()...)
 	}
 
 	stmt := sqlf.
@@ -418,9 +424,10 @@ func GetExceptionGroupsFromFingerprints(ctx context.Context, conn driver.Conn, a
 	return
 }
 
-// GetANRGroupsFromFingerprints fetches ANR groups
-// matched by app filter(s) & ANR fingerprint.
-func GetANRGroupsFromFingerprints(ctx context.Context, conn driver.Conn, af *filter.AppFilter, input []string) (anrGroups []ANRGroup, err error) {
+// GetANRGroupsFromFingerprints fetches the ANR groups with the given
+// fingerprints in the journey filter's app and time range, each with its
+// event count under the filter.
+func GetANRGroupsFromFingerprints(ctx context.Context, conn driver.Conn, ef *exprfilter.ExprFilter, input []string) (anrGroups []ANRGroup, err error) {
 	fingerprints := unique(input)
 
 	if len(fingerprints) == 0 {
@@ -442,9 +449,9 @@ func GetANRGroupsFromFingerprints(ctx context.Context, conn driver.Conn, af *fil
 		Select("argMax(file_name, timestamp) as file_name").
 		Select("argMax(line_number, timestamp) as line_number").
 		Where("team_id = toUUID(?)", teamId).
-		Where("app_id = toUUID(?)", af.AppID).
-		Where("timestamp >= toDateTime64(?, 3, 'UTC')", af.From).
-		Where("timestamp <= toDateTime64(?, 3, 'UTC')", af.To).
+		Where("app_id = toUUID(?)", ef.AppID).
+		Where("timestamp >= toDateTime64(?, 3, 'UTC')", ef.From).
+		Where("timestamp <= toDateTime64(?, 3, 'UTC')", ef.To).
 		Where("id").In(fingerprints).
 		GroupBy("id")
 
@@ -453,16 +460,21 @@ func GetANRGroupsFromFingerprints(ctx context.Context, conn driver.Conn, af *fil
 		Select("`anr.fingerprint` as id").
 		Select("count() as event_count").
 		Where("team_id = toUUID(?)", teamId).
-		Where("app_id = toUUID(?)", af.AppID).
-		Where("timestamp >= toDateTime(?, 3, 'UTC')", af.From).
-		Where("timestamp <= toDateTime(?, 3, 'UTC')", af.To).
+		Where("app_id = toUUID(?)", ef.AppID).
+		Where("timestamp >= toDateTime(?, 3, 'UTC')", ef.From).
+		Where("timestamp <= toDateTime(?, 3, 'UTC')", ef.To).
 		Where("type = ?", event.TypeANR).
 		Where("anr.fingerprint").In(fingerprints).
 		GroupBy("`anr.fingerprint`")
 
-	if af.HasVersions() {
-		countsStmt.Where("attribute.app_version").In(af.Versions)
-		countsStmt.Where("attribute.app_build").In(af.VersionCodes)
+	if ef.HasFilterExpr() {
+		predicate, errPredicate := ef.Predicate(exprfilter.JourneyEventsKeyBindings)
+		if errPredicate != nil {
+			err = errPredicate
+			return
+		}
+		defer predicate.Close()
+		countsStmt.Where(predicate.String(), predicate.Args()...)
 	}
 
 	stmt := sqlf.

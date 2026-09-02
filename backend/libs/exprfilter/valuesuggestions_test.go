@@ -95,6 +95,30 @@ func TestSuggestionSQL(t *testing.T) {
 			wantArgs: []any{teamID, appID, uuid.Nil.String(), DefaultValueLimit + 1},
 		},
 		{
+			name: "journey fixed key values read the app_filters rollup by month",
+			run: func(recorder *sqlRecorder) {
+				byName := IndexKeysByName(JourneysEntity.Keys)
+				_, _ = JourneysEntity.SuggestKeyValues(ctx, nil, recorder, teamID, appID, byName["version_name"], ValueRequest{Search: "1.2"})
+			},
+			wantSQL: "SELECT tupleElement(app_version, 1) as suggested_value, max(end_of_month) as recency" +
+				" FROM app_filters" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND tupleElement(app_version, 1) <> '' AND tupleElement(app_version, 1) ilike ?" +
+				" GROUP BY suggested_value ORDER BY recency desc, suggested_value LIMIT ?",
+			wantArgs: []any{teamID, appID, "%1.2%", DefaultValueLimit + 1},
+		},
+		{
+			name: "journey version code values read the second tuple element",
+			run: func(recorder *sqlRecorder) {
+				byName := IndexKeysByName(JourneysEntity.Keys)
+				_, _ = JourneysEntity.SuggestKeyValues(ctx, nil, recorder, teamID, appID, byName["version_code"], ValueRequest{})
+			},
+			wantSQL: "SELECT tupleElement(app_version, 2) as suggested_value, max(end_of_month) as recency" +
+				" FROM app_filters" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND tupleElement(app_version, 2) <> ''" +
+				" GROUP BY suggested_value ORDER BY recency desc, suggested_value LIMIT ?",
+			wantArgs: []any{teamID, appID, DefaultValueLimit + 1},
+		},
+		{
 			name: "span custom key values read span_user_def_attrs by key and type",
 			run: func(recorder *sqlRecorder) {
 				_, _ = SpansEntity.SuggestKeyValues(ctx, nil, recorder, teamID, appID, CustomKey("plan", ValueTypeString), ValueRequest{})

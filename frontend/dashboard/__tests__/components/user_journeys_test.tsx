@@ -1,200 +1,133 @@
-import UserJourneys from "@/app/components/user_journeys";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 const mockRouterReplace = jest.fn();
-let mockSearchParams = new URLSearchParams();
+const mockRouterPush = jest.fn();
+const mockSetPageUrlKey = jest.fn();
 
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: mockRouterReplace }),
-  useSearchParams: () => mockSearchParams,
+  __esModule: true,
+  useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
-jest.mock("next/link", () => ({
+// The demo never renders the filter bar or fetches, but the component calls
+// the live page's hooks on every render, so they are stubbed to stay idle.
+jest.mock("@/app/components/filter_bar/filter_bar", () => ({
   __esModule: true,
-  default: ({ href, children, className }: any) => (
-    <a href={href} className={className}>
-      {children}
-    </a>
-  ),
+  default: () => <div data-testid="filter-bar" />,
 }));
 
-jest.mock("@/app/api/api_calls", () => ({
+jest.mock("@/app/components/filter_bar/use_expr_filter_page", () => ({
   __esModule: true,
-  FilterSource: { Events: 0 },
+  useExprFilterPage: () => ({
+    requestedFilters: {
+      app: null,
+      dateRange: { dateRange: null, startDate: null, endDate: null },
+      filterExpr: null,
+    },
+    filterState: { status: "pending" },
+    filterParams: null,
+    onFilterChange: jest.fn(),
+    setPageUrlKey: mockSetPageUrlKey,
+  }),
 }));
 
-jest.mock("@/app/stores/provider", () => {
-  const { create } = jest.requireActual("zustand");
-  const filtersStore = create(() => ({
-    filters: { ready: false, serialisedFilters: "" },
-  }));
-  const userJourneysStore = create((set: any) => ({
-    plotType: "Paths",
-    searchText: "",
-    setPlotType: (type: string) => set({ plotType: type }),
-    setSearchText: (text: string) => set({ searchText: text }),
-    reset: jest.fn(),
-  }));
-  return {
-    __esModule: true,
-    useFiltersStore: filtersStore,
-    useUserJourneysStore: userJourneysStore,
-  };
-});
-
-jest.mock("@/app/components/filters", () => ({
+jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
-  default: () => <div data-testid="filters-mock" />,
-  AppVersionsInitialSelectionType: { Latest: "latest", All: "all" },
+  useJourneyQuery: () => ({ status: "pending", data: undefined, error: null }),
 }));
 
-jest.mock("@/app/components/journey", () => ({
+jest.mock("next-themes", () => ({
   __esModule: true,
-  default: ({ journeyType, demo }: any) => (
-    <div data-testid={`journey-${journeyType}`} data-demo={demo} />
-  ),
-  JourneyType: { Paths: "Paths", Exceptions: "Exceptions" },
+  useTheme: () => ({ theme: "light" }),
 }));
 
-jest.mock("@/app/components/tab_select", () => ({
+// The real Sankey needs DOM layout that jsdom does not provide. The stub
+// renders each node as a clickable span so tests can see which data reached
+// the chart and open the issue panel.
+jest.mock("@nivo/sankey", () => ({
   __esModule: true,
-  default: ({ items, selected, onChangeSelected }: any) => (
-    <div data-testid="tab-select">
-      {items.map((item: string) => (
-        <button
-          key={item}
-          data-testid={`tab-${item}`}
-          onClick={() => onChangeSelected(item)}
-          className={selected === item ? "selected" : ""}
+  ResponsiveSankey: ({ data, onClick }: any) => (
+    <div data-testid="nivo-sankey">
+      {data?.nodes?.map((node: any) => (
+        <span
+          key={node.id}
+          data-testid={`sankey-node-${node.id.split(".").pop()}`}
+          onClick={() => onClick?.(node)}
         >
-          {item}
-        </button>
+          {node.id.split(".").pop()}
+        </span>
       ))}
     </div>
   ),
 }));
 
-jest.mock("@/app/components/debounce_text_input", () => ({
-  __esModule: true,
-  default: ({ id, placeholder, onChange }: any) => (
-    <input
-      data-testid={`debounce-input-${id}`}
-      placeholder={placeholder}
-      onChange={(e) => onChange(e.target.value)}
-    />
-  ),
-}));
-
-jest.mock("@/app/utils/shared_styles", () => ({
-  underlineLinkStyle: "underline",
-}));
-
-const { useFiltersStore } = require("@/app/stores/provider") as any;
+import UserJourneys from "@/app/components/user_journeys";
 
 describe("UserJourneys", () => {
   beforeEach(() => {
-    mockSearchParams = new URLSearchParams();
-    useFiltersStore.setState({
-      filters: { ready: false, serialisedFilters: "" },
-    });
+    mockRouterReplace.mockClear();
+    mockRouterPush.mockClear();
+    mockSetPageUrlKey.mockClear();
   });
 
-  describe("Rendering", () => {
-    it("renders title in demo mode", () => {
-      render(<UserJourneys demo={true} />);
-      expect(screen.getByText("User Journeys")).toBeInTheDocument();
-    });
-
-    it("hides title in demo mode when hideDemoTitle is true", () => {
-      render(<UserJourneys demo={true} hideDemoTitle={true} />);
-      expect(screen.queryByText("User Journeys")).not.toBeInTheDocument();
-    });
-
-    it("renders Filters when not in demo mode", () => {
-      render(<UserJourneys params={{ teamId: "team-1" }} />);
-      expect(screen.getByTestId("filters-mock")).toBeInTheDocument();
-    });
-
-    it("does not render Filters in demo mode", () => {
-      render(<UserJourneys demo={true} />);
-      expect(screen.queryByTestId("filters-mock")).not.toBeInTheDocument();
-    });
+  it("renders the title", () => {
+    render(<UserJourneys demo={true} />);
+    expect(screen.getByText("User Journeys")).toBeInTheDocument();
   });
 
-  describe("Demo mode", () => {
-    it("renders tab select and journey without waiting for filters", () => {
-      render(<UserJourneys demo={true} />);
-      expect(screen.getByTestId("tab-select")).toBeInTheDocument();
-      expect(screen.getByTestId("journey-Paths")).toBeInTheDocument();
-    });
-
-    it("does not render search input in demo mode", () => {
-      render(<UserJourneys demo={true} />);
-      expect(
-        screen.queryByTestId("debounce-input-free-text"),
-      ).not.toBeInTheDocument();
-    });
+  it("hides the title when asked", () => {
+    render(<UserJourneys demo={true} hideDemoTitle={true} />);
+    expect(screen.queryByText("User Journeys")).not.toBeInTheDocument();
   });
 
-  describe("Tab switching", () => {
-    it("defaults to Paths tab", () => {
-      render(<UserJourneys demo={true} />);
-      expect(screen.getByTestId("journey-Paths")).toBeInTheDocument();
-      expect(
-        screen.queryByTestId("journey-Exceptions"),
-      ).not.toBeInTheDocument();
-    });
-
-    it("switches to Exceptions journey when Exceptions tab is clicked", () => {
-      render(<UserJourneys demo={true} />);
-      fireEvent.click(screen.getByTestId("tab-Exceptions"));
-      expect(screen.getByTestId("journey-Exceptions")).toBeInTheDocument();
-      expect(screen.queryByTestId("journey-Paths")).not.toBeInTheDocument();
-    });
-
-    it("switches back to Paths journey", () => {
-      render(<UserJourneys demo={true} />);
-      fireEvent.click(screen.getByTestId("tab-Exceptions"));
-      fireEvent.click(screen.getByTestId("tab-Paths"));
-      expect(screen.getByTestId("journey-Paths")).toBeInTheDocument();
-    });
-
-    it("starts on Exceptions tab when the URL has jt=Exceptions", () => {
-      mockSearchParams = new URLSearchParams({ jt: "Exceptions" });
-      render(<UserJourneys demo={true} />);
-      expect(screen.getByTestId("journey-Exceptions")).toBeInTheDocument();
-      expect(screen.queryByTestId("journey-Paths")).not.toBeInTheDocument();
-    });
+  it("draws the demo journey without a search input", () => {
+    render(<UserJourneys demo={true} />);
+    expect(screen.getByTestId("sankey-node-MainActivity")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("sankey-node-CheckoutActivity"),
+    ).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Search nodes...")).toBeNull();
   });
 
-  describe("Non-demo mode", () => {
-    it("shows journey only after filters become ready", async () => {
-      render(<UserJourneys params={{ teamId: "team-1" }} />);
-      // Journey should not render before filters are ready
-      expect(screen.queryByTestId("tab-select")).not.toBeInTheDocument();
+  it("starts on the Paths tab", () => {
+    render(<UserJourneys demo={true} />);
+    expect(screen.getByRole("button", { name: "Paths" })).toHaveClass(
+      "bg-accent",
+    );
+    expect(screen.getByRole("button", { name: "Exceptions" })).not.toHaveClass(
+      "bg-accent",
+    );
+  });
 
-      // Simulate filters becoming ready
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: { ready: true, serialisedFilters: "a=app-1" },
-        });
-      });
-      expect(screen.getByTestId("tab-select")).toBeInTheDocument();
-      expect(screen.getByTestId("journey-Paths")).toBeInTheDocument();
-    });
+  it("switches tabs locally, writing nothing to the URL", () => {
+    render(<UserJourneys demo={true} />);
+    fireEvent.click(screen.getByRole("button", { name: "Exceptions" }));
 
-    it("renders search input after filters ready", async () => {
-      render(<UserJourneys params={{ teamId: "team-1" }} />);
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: { ready: true, serialisedFilters: "a=app-1" },
-        });
-      });
-      expect(
-        screen.getByTestId("debounce-input-free-text"),
-      ).toBeInTheDocument();
-    });
+    expect(screen.getByRole("button", { name: "Exceptions" })).toHaveClass(
+      "bg-accent",
+    );
+    expect(screen.getByTestId("sankey-node-MainActivity")).toBeInTheDocument();
+    expect(mockRouterReplace).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Paths" }));
+    expect(screen.getByRole("button", { name: "Paths" })).toHaveClass(
+      "bg-accent",
+    );
+    expect(mockRouterReplace).not.toHaveBeenCalled();
+  });
+
+  it("opens the issue panel on the Exceptions tab, with inert issue buttons", () => {
+    render(<UserJourneys demo={true} />);
+    fireEvent.click(screen.getByRole("button", { name: "Exceptions" }));
+    fireEvent.click(screen.getByTestId("sankey-node-CheckoutActivity"));
+
+    const crash = screen
+      .getByText(/retrofit2.HttpException@CheckoutService.kt/)
+      .closest("button")!;
+    fireEvent.click(crash);
+    expect(mockRouterPush).not.toHaveBeenCalled();
   });
 });

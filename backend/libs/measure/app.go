@@ -2396,7 +2396,7 @@ func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, rch driver
 	defer stmt.Close()
 
 	if ef.HasFilterExpr() {
-		predicate, errPredicate := ef.Predicate(exprfilter.SpanMetricsKeyBindings())
+		predicate, errPredicate := ef.Predicate(exprfilter.SpanMetricsKeyBindings)
 		if errPredicate != nil {
 			return nil, errPredicate
 		}

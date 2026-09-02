@@ -21,24 +21,12 @@ jest.mock("@/app/api/api_calls", () => ({
   emptyJourney: { links: [], nodes: [], totalIssues: 0 },
 }));
 
-// The component reads the selected app and date range to build the error
-// detail URLs pushed when a crash or ANR row is clicked.
-const mockFilters = {
-  app: { id: "app-1" },
-  startDate: "2026-01-01T00:00:00.000Z",
-  endDate: "2026-01-31T00:00:00.000Z",
+// The team and app the crash and ANR buttons build their error detail URLs
+// from.
+const errorDetailContext = {
+  teamId: "test-team",
+  appId: "app-1",
 };
-
-jest.mock("@/app/stores/provider", () => ({
-  __esModule: true,
-  useFiltersStore: (selector: any) => selector({ filters: mockFilters }),
-}));
-
-const mockUseJourneyQuery = jest.fn();
-jest.mock("@/app/query/hooks", () => ({
-  __esModule: true,
-  useJourneyQuery: (...args: any[]) => mockUseJourneyQuery(...args),
-}));
 
 // The real Sankey needs DOM layout that jsdom does not provide. The stub
 // renders each node and link as a clickable span so tests can assert what
@@ -76,6 +64,9 @@ jest.mock("@nivo/sankey", () => ({
 }));
 
 import Journey, { JourneyType } from "@/app/components/journey";
+
+// What the page's journey query reports, handed to the component as a prop.
+let journeyQuery: ComponentProps<typeof Journey>["query"];
 
 // Four screens where MainActivity links to ProductListActivity and
 // SearchActivity, and ProductListActivity links on to CartActivity.
@@ -207,9 +198,9 @@ function makeJourneyWithMixedIssues() {
 function renderJourney(props: Partial<ComponentProps<typeof Journey>> = {}) {
   return render(
     <Journey
-      teamId="test-team"
-      bidirectional={false}
       journeyType={JourneyType.Paths}
+      query={journeyQuery}
+      errorDetailContext={errorDetailContext}
       {...props}
     />,
   );
@@ -217,10 +208,10 @@ function renderJourney(props: Partial<ComponentProps<typeof Journey>> = {}) {
 
 beforeEach(() => {
   mockRouterPush.mockClear();
-  mockUseJourneyQuery.mockReturnValue({
+  journeyQuery = {
     status: "success",
     data: makeJourney(),
-  });
+  };
 });
 
 describe("Journey — chart rendering", () => {
@@ -244,20 +235,20 @@ describe("Journey — chart rendering", () => {
   });
 
   it('shows "No journey data" when the journey has no nodes', () => {
-    mockUseJourneyQuery.mockReturnValue({
+    journeyQuery = {
       status: "success",
       data: { nodes: [], links: [], totalIssues: 0 },
-    });
+    };
     renderJourney();
     expect(screen.getByText("No journey data")).toBeInTheDocument();
     expect(screen.queryByTestId("nivo-sankey")).not.toBeInTheDocument();
   });
 
   it("shows loading skeleton while the query is pending", () => {
-    mockUseJourneyQuery.mockReturnValue({
+    journeyQuery = {
       status: "pending",
       data: undefined,
-    });
+    };
     renderJourney();
     expect(document.querySelector('[data-slot="skeleton"]')).toBeTruthy();
     expect(screen.queryByTestId("nivo-sankey")).not.toBeInTheDocument();
@@ -266,10 +257,10 @@ describe("Journey — chart rendering", () => {
 
 describe("Journey — exceptions panel", () => {
   beforeEach(() => {
-    mockUseJourneyQuery.mockReturnValue({
+    journeyQuery = {
       status: "success",
       data: makeJourneyWithExceptions(),
-    });
+    };
   });
 
   function renderExceptions() {
@@ -376,7 +367,7 @@ describe("Journey — exceptions panel", () => {
     expect(target).toContain("/test-team/errors/app-1/anr-001/");
   });
 
-  it("crash link includes start_date and end_date query params", () => {
+  it("crash link carries no query string", () => {
     renderExceptions();
     fireEvent.click(screen.getByTestId("sankey-node-ProductListActivity"));
     fireEvent.click(
@@ -385,19 +376,22 @@ describe("Journey — exceptions panel", () => {
         .closest("button")!,
     );
 
-    const href = mockRouterPush.mock.calls[0][0];
-    expect(href).toContain(`start_date=${mockFilters.startDate}`);
-    expect(href).toContain(`end_date=${mockFilters.endDate}`);
+    expect(mockRouterPush.mock.calls[0][0]).not.toContain("?");
   });
 
-  it("ANR link includes start_date and end_date query params", () => {
-    renderExceptions();
-    fireEvent.click(screen.getByTestId("sankey-node-CartActivity"));
-    fireEvent.click(screen.getByText(/ANR in CartActivity/).closest("button")!);
+  it("without an error detail context, clicking a crash item navigates nowhere", () => {
+    renderJourney({
+      journeyType: JourneyType.Exceptions,
+      errorDetailContext: undefined,
+    });
+    fireEvent.click(screen.getByTestId("sankey-node-ProductListActivity"));
+    fireEvent.click(
+      screen
+        .getByText(/NullPointerException at ProductList/)
+        .closest("button")!,
+    );
 
-    const href = mockRouterPush.mock.calls[0][0];
-    expect(href).toContain(`start_date=${mockFilters.startDate}`);
-    expect(href).toContain(`end_date=${mockFilters.endDate}`);
+    expect(mockRouterPush).not.toHaveBeenCalled();
   });
 
   it("clicking a node in Paths mode does not open the panel", () => {
@@ -409,10 +403,10 @@ describe("Journey — exceptions panel", () => {
 
 describe("Journey — exceptions panel tabs", () => {
   beforeEach(() => {
-    mockUseJourneyQuery.mockReturnValue({
+    journeyQuery = {
       status: "success",
       data: makeJourneyWithMixedIssues(),
-    });
+    };
   });
 
   it("Crashes tab shows crashes and ANRs tab shows ANRs", () => {
@@ -468,9 +462,8 @@ describe("Journey — node search", () => {
   it("clearing searchText shows all nodes again", () => {
     const { rerender } = render(
       <Journey
-        teamId="test-team"
-        bidirectional={false}
         journeyType={JourneyType.Paths}
+        query={journeyQuery}
         searchText="Cart"
       />,
     );
@@ -478,9 +471,8 @@ describe("Journey — node search", () => {
 
     rerender(
       <Journey
-        teamId="test-team"
-        bidirectional={false}
         journeyType={JourneyType.Paths}
+        query={journeyQuery}
         searchText=""
       />,
     );
