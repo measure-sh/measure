@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [measure_flutter-v0.7.0] - 2026-09-02
+
+### :sparkles: New features
+
+- (**flutter**): Implement logging (#4021) by @abhaysood
+
+### :bug: Bug fixes
+
+- (**flutter**): Pass widgetFilter from MeasureConfig to config provider by @abhaysood in #4147
+
+### :hammer: Misc
+
+- (**flutter**): Add Swift Package Manager support to measure_flutter by @abhaysood in #4008
+- (**flutter**): Collect http body only for json content type (#3963) by @abhaysood in #3963
+- (**flutter**): Prepare next measure_flutter version 0.7.0 (#3890) by @abhaysood in #3890
+
 ## [measure_flutter-v0.6.0] - 2026-06-11
 
 ### :sparkles: New features
@@ -13,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**flutter**): Prepare measure_flutter release 0.6.0 (#3889) by @abhaysood in #3889
 - (**flutter**): Update exception schema (#3728) by @abhaysood in #3728
 - (**flutter**): Add diagnostic mode for SDK logging (#3593) by @abhaysood in #3593
 - (**flutter**): Fix screenshot rendering in bug reports (#3615) by @abhaysood in #3615

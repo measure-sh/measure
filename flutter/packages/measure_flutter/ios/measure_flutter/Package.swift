@@ -19,7 +19,7 @@ let package = Package(
         //
         // MeasureSDK must be linked statically; dynamic linking is not supported. SPM
         // links `measure-sh` statically by default (automatic library linkage).
-        .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.12.1")
+        .package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.13.1")
     ],
     targets: [
         .target(
