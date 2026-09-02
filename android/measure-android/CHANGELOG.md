@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [android-v0.20.0] - 2026-09-02
+
+### :bug: Bug fixes
+
+- (**android**): Update config cache state on 304 responses (#4334) by @abhaysood in #4334
+
+### :hammer: Misc
+
+- (**android**): Support AGP 9 and lower the androidx deps versions (#4236) by @abhaysood in #4236
+- (**android**): Prepare next development version 0.20.0-SNAPSHOT by @abhaysood in #4118
+
+### :zap: Performance
+
+- (**android**): Show bug report screen before encoding screenshot (#4332) by @abhaysood in #4332
+
 ## [android-v0.19.0] - 2026-07-22
 
 ### :sparkles: New features
@@ -19,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**android**): Prepare sdk release 0.19.0 by @abhaysood in #4116
 - (**android**): Limit batch size to 10MB (#3984) by @abhaysood in #3984
 - (**android**): Remove layout snapshot API (#3983) by @abhaysood in #3983
 - (**android**): Remove platform attribute from events and spans (#3981) by @abhaysood in #3981
@@ -928,6 +944,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Add missing links to readme by @abhaysood
 - (**android**): Create a template for Android SDK documentation by @abhaysood
 
+[android-v0.20.0]: https://github.com/measure-sh/measure/compare/android-v0.19.0..android-v0.20.0
 [android-v0.19.0]: https://github.com/measure-sh/measure/compare/android-v0.18.0..android-v0.19.0
 [android-v0.18.0]: https://github.com/measure-sh/measure/compare/android-v0.17.0..android-v0.18.0
 [android-v0.17.0]: https://github.com/measure-sh/measure/compare/android-v0.16.1..android-v0.17.0
