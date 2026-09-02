@@ -92,6 +92,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Upgrade fumadocs by @anupcowkur
 - (**frontend**): Gate marketing attribution capture on consent (#4227) by @detj in #4227
 - (**frontend**): Make filter component flags optional by @anupcowkur in #4209
+- Declare exempt encryption for TestFlight (#4356) by @abhaysood in #4356
+- Add slow memory leak demo to frank (#4353) by @abhaysood in #4353
 - Tighten comments across billing code by @anupcowkur in #4352
 - Replace pro upgrade CTAs with contact us for enterprise plans by @anupcowkur in #4344
 
