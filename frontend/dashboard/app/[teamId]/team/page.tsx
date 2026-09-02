@@ -419,8 +419,8 @@ export default function TeamOverview(props: {
           toastPositive(inviteMemberEmail + " has been invited");
           setInviteMemberEmail("");
         },
-        onError: () => {
-          toastNegative("Error inviting member");
+        onError: (error) => {
+          toastNegative(error.message);
         },
       },
     );
