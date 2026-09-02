@@ -1644,7 +1644,18 @@ export function tiltScaleFor(
 // multiplied by the --msr-depth CSS variable that the stage ramps from 0 to 1
 // as the view is turned. At 0 every node is flat against the others, and the
 // tree fans out into separate layers as an angle appears.
-function layoutNodeViews(root: LayoutElement, liftPerDepth: number) {
+//
+// The SDK records each node's box in device pixels, and the scale converts it
+// to the pixels the stage draws it at. The nodes are laid out at their drawn
+// size rather than drawn full size under a scale transform, because a scale
+// transform above the perspective makes Chrome's compositor leave the flat
+// layers painted after the tree unrasterised, and the controls and the event
+// list go blank whenever the tree mounts or repaints.
+function layoutNodeViews(
+  root: LayoutElement,
+  scale: number,
+  liftPerDepth: number,
+) {
   const nodes: React.ReactElement[] = [];
   const visit = (node: LayoutElement, depth: number, path: string) => {
     const lift = Math.min(depth, maxLayerDepth) * liftPerDepth;
@@ -1661,13 +1672,13 @@ function layoutNodeViews(root: LayoutElement, liftPerDepth: number) {
         )}
         data-label={node.label ? `${node.label} (${node.type})` : node.type}
         style={{
-          left: node.x,
-          top: node.y,
-          width: node.width,
-          height: node.height,
+          left: node.x * scale,
+          top: node.y * scale,
+          width: node.width * scale,
+          height: node.height * scale,
           borderWidth: isTarget
-            ? "calc(var(--msr-tree-outline-width, 1px) * 2)"
-            : "var(--msr-tree-outline-width, 1px)",
+            ? `calc(var(${replayOutlineWidthProperty}, 1px) * 2)`
+            : `var(${replayOutlineWidthProperty}, 1px)`,
           transform: `translateZ(calc(var(--msr-depth, 0) * ${lift}px))`,
         }}
       />,
@@ -1723,33 +1734,30 @@ export const StageAttachment = memo(function StageAttachment({
     );
   }
 
-  // The tree is laid out in the pixel coordinates the device recorded it in,
-  // then scaled as a whole to the box the attachment was fitted into.
+  // The tree fills the box the attachment was fitted into, and the lift
+  // between layers and the perspective are both a share of that box's width,
+  // so the fanned-out tree looks the same whatever size the stage is.
   const drawnWidthPx = (stageWidthPx * fit.widthPercent) / 100;
   const scale = drawnWidthPx / fit.sourceSize.width;
-  const liftPerDepth = fit.sourceSize.width * layerGapRatio;
-  const perspective = fit.sourceSize.width * perspectiveRatio;
+  const liftPerDepth = drawnWidthPx * layerGapRatio;
+  const perspective = drawnWidthPx * perspectiveRatio;
   return (
     <div className="absolute inset-0" hidden={hidden}>
       <div
-        className="absolute origin-top-left"
-        style={
-          {
-            left: `${fit.leftPercent}%`,
-            top: `${fit.topPercent}%`,
-            width: fit.sourceSize.width,
-            height: fit.sourceSize.height,
-            transform: `scale(${scale})`,
-            perspective: `${perspective}px`,
-            "--msr-tree-outline-width": `calc(var(${replayOutlineWidthProperty}, 1px) / ${scale})`,
-          } as React.CSSProperties
-        }
+        className="absolute"
+        style={{
+          left: `${fit.leftPercent}%`,
+          top: `${fit.topPercent}%`,
+          width: `${fit.widthPercent}%`,
+          height: `${fit.heightPercent}%`,
+          perspective: `${perspective}px`,
+        }}
       >
         <div
           ref={tiltLayer}
           className="absolute inset-0 transform-3d origin-center transition-transform duration-300 ease-out"
         >
-          {layoutNodeViews(attachment.content.root, liftPerDepth)}
+          {layoutNodeViews(attachment.content.root, scale, liftPerDepth)}
         </div>
       </div>
     </div>
