@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  JourneyType,
   SdkConfig,
   Team,
   changeAppApiKeyFromServer,
@@ -462,20 +461,24 @@ export function useAppThresholdPrefsQuery(appId: string | undefined) {
 
 // ─── Journey ─────────────────────────────────────────────────────────────
 
-export function useJourneyQuery(
-  journeyType: JourneyType,
-  bidirectional: boolean,
-) {
-  const filters = useFiltersStore((s) => s.filters);
+export function useJourneyQuery(params: FilterParams | null) {
   return useQuery({
     queryKey: [
       "journey",
-      journeyType,
-      bidirectional,
-      filters.serialisedFilters,
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
     ] as const,
-    queryFn: () => fetchJourneyFromServer(bidirectional, filters),
-    enabled: filters.ready,
+    queryFn: () =>
+      fetchJourneyFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+      ),
+    enabled: params !== null,
+    retry: false,
   });
 }
 

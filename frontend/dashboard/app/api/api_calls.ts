@@ -1171,19 +1171,23 @@ export const fetchAppHealthPlotFromServer = async (filters: Filters) => {
 };
 
 export const fetchJourneyFromServer = async (
-  bidirectional: boolean,
-  filters: Filters,
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
 ) => {
-  let url = `/api/apps/${filters.app!.id}/journey?`;
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
 
-  // Append bidirectional value
-  url = url + `bigraph=${bidirectional ? "1&" : "0&"}`;
-
-  url = await applyGenericFiltersToUrl(url, filters, null, null);
-
-  const data = await request(url, { failsWith: "Failed to fetch journey" });
-
-  return data;
+  return await request(`/api/apps/${appId}/journey?${params.toString()}`, {
+    failsWith: "Failed to fetch journey",
+  });
 };
 
 export const fetchMetricsFromServer = async (filters: Filters) => {

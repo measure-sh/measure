@@ -9,7 +9,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity}
+var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, JourneysEntity}
 
 func sampleValues(t *testing.T, key Key, operator Operator) []Value {
 	t.Helper()
@@ -363,6 +363,66 @@ func TestBugReportStatusBindsTheColumnCodes(t *testing.T) {
 		Values:   []Value{{Text: "resolved"}},
 	}); err == nil {
 		t.Error("want a status name the column does not store refused")
+	}
+}
+
+func TestJourneysEntityOffersEveryJourneyKey(t *testing.T) {
+	byName := IndexKeysByName(JourneysEntity.Keys)
+
+	wanted := []string{"version_name", "version_code", "patch_version", "patch_id"}
+	for _, name := range wanted {
+		if _, ok := byName[name]; !ok {
+			t.Errorf("want a %q key on the journeys entity", name)
+		}
+	}
+	if len(JourneysEntity.Keys) != len(wanted) {
+		t.Errorf("want %d journey keys, got %d", len(wanted), len(JourneysEntity.Keys))
+	}
+}
+
+func TestJourneysBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
+	_, err := JourneysEntity.BindKey(Condition{
+		KeyName:  "os_name",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "android"}},
+	})
+
+	if err == nil {
+		t.Fatal("want a key the journeys entity does not have refused")
+	}
+	if !strings.Contains(err.Error(), "os_name") {
+		t.Errorf("want the key named, got %q", err)
+	}
+}
+
+// Asserts the overrides compare the version keys against the
+// flat attribute columns of the events table, where the journey
+// table itself holds them as a tuple.
+func TestJourneyEventsKeyBindingsReadTheEventsColumns(t *testing.T) {
+	ef := &ExprFilter{Entity: JourneysEntity, FilterExpr: "version_name:in:1.2.0 AND version_code:in:120"}
+	if err := ef.BuildExprTree(); err != nil {
+		t.Fatalf("build: %v", err)
+	}
+
+	onJourney, err := ef.Predicate(nil)
+	if err != nil {
+		t.Fatalf("predicate on the journey table: %v", err)
+	}
+	defer onJourney.Close()
+	if got := onJourney.String(); got != "((tupleElement(app_version, 1) in ?) and (tupleElement(app_version, 2) in ?))" {
+		t.Errorf("want the tuple columns compared, got %q", got)
+	}
+
+	onEvents, err := ef.Predicate(JourneyEventsKeyBindings)
+	if err != nil {
+		t.Fatalf("predicate on the events table: %v", err)
+	}
+	defer onEvents.Close()
+	if got := onEvents.String(); got != "((attribute.app_version in ?) and (attribute.app_build in ?))" {
+		t.Errorf("want the attribute columns compared, got %q", got)
+	}
+	if args := onEvents.Args(); len(args) != 2 || !slices.Equal(args[0].([]string), []string{"1.2.0"}) || !slices.Equal(args[1].([]string), []string{"120"}) {
+		t.Errorf("want the version values bound, got %v", args)
 	}
 }
 

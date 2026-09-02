@@ -13,6 +13,16 @@ import (
 // overrides map can be rebound against any table that has the key.
 type columnKeyBinding func(column string, condition Condition) (*sqlf.Stmt, error)
 
+// bindingForEachKey lists one binding under every key in keys, the per-key
+// form a query's override map takes.
+func bindingForEachKey(keys []Key, binding KeyBinding) map[string]KeyBinding {
+	bindings := make(map[string]KeyBinding, len(keys))
+	for _, key := range keys {
+		bindings[key.Name] = binding
+	}
+	return bindings
+}
+
 // bindKeysToColumns builds a KeyBinding that compares each key against the
 // column expression the mapping names for it, answering the full set of text
 // operators. Which of them a key actually accepts is decided by the key's

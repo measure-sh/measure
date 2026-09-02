@@ -1474,6 +1474,56 @@ export function makeBugReportsFilterKeysFixture(
   };
 }
 
+// --- Filter keys for the journeys entity ---
+// The journey table carries only the app version, so these are its only keys.
+
+export function makeJourneysFilterKeysFixture(
+  overrides: Record<string, any> = {},
+) {
+  return {
+    keys: [
+      {
+        name: "version_name",
+        label: "App version",
+        description: "The app version the session ran on",
+        key_group: "Version",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "version_code",
+        label: "App build",
+        description: "The app build the session ran on",
+        key_group: "Version",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "patch_version",
+        label: "Patch version",
+        description: "The version of an Over-The-Air patch.",
+        key_group: "Version",
+        value_type: "string",
+        value_suggestion_mode: "sample",
+        operators: ["in", "not_in", "contains"],
+      },
+      {
+        name: "patch_id",
+        label: "Patch id",
+        description: "The id of an Over-The-Air patch.",
+        key_group: "Version",
+        value_type: "uuid",
+        value_suggestion_mode: "sample",
+        operators: ["in", "not_in", "is_set", "is_not_set"],
+      },
+    ],
+    key_groups: ["Version"],
+    ...overrides,
+  };
+}
+
 // --- Filter values (GET /apps/:appId/filters/values) ---
 
 export function makeFilterValuesFixture(overrides: Record<string, any> = {}) {

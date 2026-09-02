@@ -212,10 +212,6 @@ type AppFilter struct {
 	// be applied to events or sessions pertaining
 	// to user interactions, like gesture events.
 	UserInteraction bool `form:"user_interaction"`
-
-	// BiGraph represents if journey plot
-	// constructions should be bidirectional.
-	BiGraph bool `form:"bigraph"`
 }
 
 const (

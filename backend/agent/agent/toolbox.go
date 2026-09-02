@@ -420,7 +420,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_filter_keys
 		newTool(&mcpsdk.Tool{
 			Name:        "get_filter_keys",
-			Description: "List the filter keys of an entity (spans, bug_reports or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
+			Description: "List the filter keys of an entity (spans, bug_reports, journeys or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
 			InputSchema: mcpMustInferSchema[mcpGetFilterKeysInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFilterKeysInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetFilterKeys(ctx, in)
@@ -609,8 +609,8 @@ func commonTools(cfg *Config) []Tool {
 		// get_journey
 		newTool(&mcpsdk.Tool{
 			Name:        "get_journey",
-			Description: "Get an app's journey as a graph of screens. Each link is a transition between consecutive screens within a session, valued by the number of sessions that made that transition. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
-			InputSchema: mcpMustInferSchema[mcpGetJourneyInput](),
+			Description: "Get an app's journey as a graph of screens. Each link is a transition between consecutive screens within a session, valued by the number of sessions that made that transition. Covers every session unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.JourneysEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneyInput](mcpJourneysFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetJourney(ctx, in)
 		}),
@@ -682,9 +682,15 @@ func mcpFilterExprToolsHint(entity exprfilter.Entity) string {
 // backend/libs/exprfilter/parse.go, shared as the filter_expr property's
 // schema description by every tool that takes one. The prose names the
 // entity being narrowed and the example is written in that entity's keys.
+// Custom keys are mentioned only for an entity that stores user-defined
+// attributes, since any other entity rejects the custom. prefix as unknown.
 func mcpFilterExprGrammar(entity exprfilter.Entity, example string) string {
 	noun := strings.ReplaceAll(entity.Name, "_", " ")
-	return "Filter expression narrowing the " + noun + ". A condition is key:operator:value or key:operator:[v1,v2]; a no-value operator like is_set is written key:operator. Conditions join with AND / OR, parentheses group, and AND binds tighter than OR. A value holding a space, comma, bracket, colon or quote is written in double quotes. Example: " + example + ". User-defined attribute keys appear under the Custom key group and carry the custom. prefix, as in custom.is_premium:eq:true. " + mcpFilterExprToolsHint(entity)
+	grammar := "Filter expression narrowing the " + noun + ". A condition is key:operator:value or key:operator:[v1,v2]; a no-value operator like is_set is written key:operator. Conditions join with AND / OR, parentheses group, and AND binds tighter than OR. A value holding a space, comma, bracket, colon or quote is written in double quotes. Example: " + example + ". "
+	if entity.CustomKeys != nil {
+		grammar += "User-defined attribute keys appear under the Custom key group and carry the custom. prefix, as in custom.is_premium:eq:true. "
+	}
+	return grammar + mcpFilterExprToolsHint(entity)
 }
 
 // The grammar text each entity's tools advertise, built from the shared
@@ -692,6 +698,7 @@ func mcpFilterExprGrammar(entity exprfilter.Entity, example string) string {
 var (
 	mcpSpansFilterExprGrammar      = mcpFilterExprGrammar(exprfilter.SpansEntity, "version_name:in:[1.2.0,1.1.9] AND span_status:in:error")
 	mcpBugReportsFilterExprGrammar = mcpFilterExprGrammar(exprfilter.BugReportsEntity, "version_name:in:[1.2.0] AND bug_report_status:in:open")
+	mcpJourneysFilterExprGrammar   = mcpFilterExprGrammar(exprfilter.JourneysEntity, "version_name:in:[1.2.0] AND version_code:in:[120]")
 )
 
 // mcpMustInferFilterExprSchema infers a JSON schema from a Go type and sets
@@ -792,12 +799,12 @@ type mcpGetFiltersInput struct {
 }
 type mcpGetFilterKeysInput struct {
 	AppID  string   `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports or builds"`
+	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, journeys or builds"`
 	Keys   []string `json:"keys,omitempty" jsonschema:"Key names you already know, for example from the user's request, to include in the result even when the listing is truncated"`
 }
 type mcpGetFilterValuesInput struct {
 	AppID   string `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports or builds"`
+	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, journeys or builds"`
 	KeyName string `json:"key_name" jsonschema:"Name of the filter key to list values for, as get_filter_keys returns it"`
 	Search  string `json:"search,omitempty" jsonschema:"Return only values containing this text"`
 	Limit   int    `json:"limit,omitempty" jsonschema:"Maximum number of values to return (default: 50, max: 200)"`
@@ -911,11 +918,10 @@ type mcpGetAlertsInput struct {
 	Offset int    `json:"offset,omitempty" jsonschema:"Number of alerts to skip for pagination (default: 0)"`
 }
 type mcpGetJourneyInput struct {
-	AppID        string   `json:"app_id" jsonschema:"UUID of the app to query"`
-	From         string   `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
-	To           string   `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
-	Versions     []string `json:"versions,omitempty" jsonschema:"Filter by app version strings. Pass together with version_codes as same-length index-aligned pairs; get_filters lists both"`
-	VersionCodes []string `json:"version_codes,omitempty" jsonschema:"Filter by app version codes. Pass together with versions as same-length index-aligned pairs; get_filters lists both"`
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
 }
 type mcpGetErrorCommonPathInput struct {
 	AppID        string `json:"app_id" jsonschema:"UUID of the app to query"`
@@ -2025,23 +2031,10 @@ func (c *Config) mcpGetAlerts(ctx context.Context, in mcpGetAlertsInput) (*mcpsd
 
 func (c *Config) mcpGetJourney(ctx context.Context, in mcpGetJourneyInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.JourneysEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	cf := mcpCommonFilters{
-		AppID:        in.AppID,
-		From:         in.From,
-		To:           in.To,
-		Versions:     in.Versions,
-		VersionCodes: in.VersionCodes,
-	}
-	af, err := c.mcpBuildAppFilter(ctx, appID, cf)
-	if err != nil {
-		return nil, nil, err
-	}
-	af.Limit = filter.DefaultPaginationLimit
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	if err := app.Populate(ctx, deps.PgPool); err != nil {
@@ -2049,7 +2042,7 @@ func (c *Config) mcpGetJourney(ctx context.Context, in mcpGetJourneyInput) (*mcp
 	}
 	journeyCtx := ambient.WithTeamId(ctx, teamID)
 
-	g, journeyErr := app.GetJourneyGraph(journeyCtx, deps.RchPool, af)
+	g, journeyErr := app.GetJourneyGraph(journeyCtx, deps.RchPool, ef)
 	if journeyErr != nil {
 		return nil, nil, fmt.Errorf("failed to get journey: %v", journeyErr)
 	}

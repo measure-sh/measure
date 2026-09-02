@@ -7,7 +7,7 @@ import (
 	"backend/libs/chquery"
 	"backend/libs/config"
 	"backend/libs/event"
-	"backend/libs/filter"
+	"backend/libs/exprfilter"
 	"backend/libs/logcomment"
 	"backend/libs/opsys"
 
@@ -149,24 +149,32 @@ func journeyCtx(ctx context.Context, name string, bounded bool) context.Context 
 	return chquery.WithSettings(ctx, settings)
 }
 
-// journeyBounds applies the scope & window filters every graph query shares.
-func (a App) journeyBounds(stmt *sqlf.Stmt, af *filter.AppFilter) *sqlf.Stmt {
+// journeyBounds applies the scope & window filters every graph query shares,
+// plus the filter expression when the request carries one. A filter whose
+// keys cannot be bound is reported as an error rather than dropped, which
+// would widen the graph past what was asked for.
+func (a App) journeyBounds(stmt *sqlf.Stmt, ef *exprfilter.ExprFilter) error {
 	stmt.
 		Where("team_id = toUUID(?)", a.TeamId).
-		Where("app_id = toUUID(?)", a.ID)
+		Where("app_id = toUUID(?)", a.ID).
+		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To)
 
-	if af.HasVersions() {
-		stmt.Where("app_version.1 in ?", af.Versions)
-		stmt.Where("app_version.2 in ?", af.VersionCodes)
+	if ef.HasFilterExpr() {
+		predicate, err := ef.Predicate(nil)
+		if err != nil {
+			return err
+		}
+		defer predicate.Close()
+		stmt.Where(predicate.String(), predicate.Args()...)
 	}
 
-	return stmt.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+	return nil
 }
 
 // GetJourneyGraph aggregates the implicit navigational journey of an app into
 // nodes, edges & per node issues. All grouping happens in ClickHouse, only the
 // bounded result set crosses the wire.
-func (a App) GetJourneyGraph(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (g JourneyGraph, err error) {
+func (a App) GetJourneyGraph(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (g JourneyGraph, err error) {
 	je, ok := journeyExprFor(a.Family())
 	if !ok {
 		return
@@ -174,37 +182,43 @@ func (a App) GetJourneyGraph(ctx context.Context, rch driver.Conn, af *filter.Ap
 
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 
-	if g.Nodes, err = a.journeyNodes(ctx, rch, af, je); err != nil {
+	if g.Nodes, err = a.journeyNodes(ctx, rch, ef, je); err != nil {
 		return
 	}
 
-	if g.Edges, err = a.journeyEdges(ctx, rch, af, je); err != nil {
+	if g.Edges, err = a.journeyEdges(ctx, rch, ef, je); err != nil {
 		return
 	}
 
-	g.Issues, err = a.journeyIssues(ctx, rch, af, je)
+	g.Issues, err = a.journeyIssues(ctx, rch, ef, je)
 
 	return
 }
 
 // journeyNodesStmt builds the node name query, ordered by first appearance.
-func (a App) journeyNodesStmt(af *filter.AppFilter, je journeyExpr) *sqlf.Stmt {
+func (a App) journeyNodesStmt(ef *exprfilter.ExprFilter, je journeyExpr) (*sqlf.Stmt, error) {
 	stmt := sqlf.
 		From("journey").
 		Select(je.name.sql+" as name", je.name.args...)
 
-	a.journeyBounds(stmt, af)
+	if err := a.journeyBounds(stmt, ef); err != nil {
+		stmt.Close()
+		return nil, err
+	}
 	stmt.Where(je.nodeFilter.sql, je.nodeFilter.args...)
 
 	return stmt.
 		Where("name != ''").
 		GroupBy("name").
-		OrderBy("min(timestamp)")
+		OrderBy("min(timestamp)"), nil
 }
 
 // journeyNodes lists the node names in the window, first appearance first.
-func (a App) journeyNodes(ctx context.Context, rch driver.Conn, af *filter.AppFilter, je journeyExpr) (nodes []string, err error) {
-	stmt := a.journeyNodesStmt(af, je)
+func (a App) journeyNodes(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter, je journeyExpr) (nodes []string, err error) {
+	stmt, err := a.journeyNodesStmt(ef, je)
+	if err != nil {
+		return
+	}
 
 	defer stmt.Close()
 
@@ -239,14 +253,17 @@ const journeyEdgesPairs = "(select session_id, arrayJoin(arrayZip(" +
 // journeyEdgesStmt builds the edge query. Grouping by session id keeps
 // concurrent sessions from linking. Empty names are filtered after the zip,
 // so a nameless row breaks the chain rather than being skipped over.
-func (a App) journeyEdgesStmt(af *filter.AppFilter, je journeyExpr) *sqlf.Stmt {
+func (a App) journeyEdgesStmt(ef *exprfilter.ExprFilter, je journeyExpr) (*sqlf.Stmt, error) {
 	seqs := sqlf.
 		From("journey").
 		Select("session_id").
 		Select("arraySort(groupArray((timestamp, id, "+je.name.sql+"))) as seq", je.name.args...).
 		GroupBy("session_id")
 
-	a.journeyBounds(seqs, af)
+	if err := a.journeyBounds(seqs, ef); err != nil {
+		seqs.Close()
+		return nil, err
+	}
 	seqs.Where(je.nodeFilter.sql, je.nodeFilter.args...)
 
 	stmt := sqlf.
@@ -266,12 +283,15 @@ func (a App) journeyEdgesStmt(af *filter.AppFilter, je journeyExpr) *sqlf.Stmt {
 		OrderBy("first_seen", "source", "target")
 
 	// With closes seqs, so only stmt is ever closed by the caller.
-	return stmt.With("seqs", seqs)
+	return stmt.With("seqs", seqs), nil
 }
 
 // journeyEdges counts session transitions between consecutive nodes.
-func (a App) journeyEdges(ctx context.Context, rch driver.Conn, af *filter.AppFilter, je journeyExpr) (edges []JourneyEdge, err error) {
-	stmt := a.journeyEdgesStmt(af, je)
+func (a App) journeyEdges(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter, je journeyExpr) (edges []JourneyEdge, err error) {
+	stmt, err := a.journeyEdgesStmt(ef, je)
+	if err != nil {
+		return
+	}
 
 	defer stmt.Close()
 
@@ -311,13 +331,16 @@ const journeyIssuesAnchored = "(select arrayJoin(arrayZip(" +
 // journeyNodesStmt filters empty names, so that node never renders. The tuple
 // selects anr.fingerprint for every OS family even though only Android reads
 // it, keeping every x.N index the same across families.
-func (a App) journeyIssuesStmt(af *filter.AppFilter, je journeyExpr) *sqlf.Stmt {
+func (a App) journeyIssuesStmt(ef *exprfilter.ExprFilter, je journeyExpr) (*sqlf.Stmt, error) {
 	seqs := sqlf.
 		From("journey").
 		Select("arraySort(groupArray((timestamp, id, type, "+je.anchor.sql+", `exception.fingerprint`, `anr.fingerprint`))) as seq", je.anchor.args...).
 		GroupBy("session_id")
 
-	a.journeyBounds(seqs, af)
+	if err := a.journeyBounds(seqs, ef); err != nil {
+		seqs.Close()
+		return nil, err
+	}
 	seqs.Where(je.anchorFilter.sql, je.anchorFilter.args...)
 
 	fingerprint := journeyFrag{sql: "row.3"}
@@ -342,12 +365,15 @@ func (a App) journeyIssuesStmt(af *filter.AppFilter, je journeyExpr) *sqlf.Stmt 
 		GroupBy("is_anr")
 
 	// With closes seqs, so only stmt is ever closed by the caller.
-	return stmt.With("seqs", seqs)
+	return stmt.With("seqs", seqs), nil
 }
 
 // journeyIssues counts exceptions & ANRs per node.
-func (a App) journeyIssues(ctx context.Context, rch driver.Conn, af *filter.AppFilter, je journeyExpr) (issues []JourneyIssue, err error) {
-	stmt := a.journeyIssuesStmt(af, je)
+func (a App) journeyIssues(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter, je journeyExpr) (issues []JourneyIssue, err error) {
+	stmt, err := a.journeyIssuesStmt(ef, je)
+	if err != nil {
+		return
+	}
 
 	defer stmt.Close()
 

@@ -73,6 +73,18 @@ func (f plotFixture) spanExprFilter(from, to time.Time, timezone, plotTimeGroup 
 	}
 }
 
+func (f plotFixture) journeyExprFilter(from, to time.Time, exprTree *exprfilter.ExprTree) *exprfilter.ExprFilter {
+	return &exprfilter.ExprFilter{
+		AppID:    f.appID,
+		TeamID:   f.teamID,
+		Entity:   exprfilter.JourneysEntity,
+		From:     from,
+		To:       to,
+		Limit:    exprfilter.DefaultPaginationLimit,
+		ExprTree: exprTree,
+	}
+}
+
 func (f plotFixture) bugReportExprFilter(from, to time.Time, timezone, plotTimeGroup string) *exprfilter.ExprFilter {
 	return &exprfilter.ExprFilter{
 		AppID:         f.appID,

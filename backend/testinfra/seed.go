@@ -241,6 +241,11 @@ type EventRow struct {
 	ExceptionsJSON string
 	IsCustom       bool
 
+	// Payload of a Type "lifecycle_activity" event, written only when the
+	// class name is set.
+	LifecycleActivityType      string
+	LifecycleActivityClassName string
+
 	// Description is the bug report text, written only for Type "bug_report".
 	// For those events the seed also writes '[]' into the attachments column,
 	// the value real ingestion stores for a report without attachments.
@@ -355,6 +360,11 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 	if row.Type == "bug_report" {
 		cols = append(cols, "`bug_report.description`", "attachments")
 		vals = append(vals, quote(row.Description), "'[]'")
+	}
+
+	if row.LifecycleActivityClassName != "" {
+		cols = append(cols, "`lifecycle_activity.type`", "`lifecycle_activity.class_name`")
+		vals = append(vals, quote(row.LifecycleActivityType), quote(row.LifecycleActivityClassName))
 	}
 
 	if row.OSName != "" {

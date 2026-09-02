@@ -53,121 +53,41 @@ func presignConfig(deps *server.Deps) event.PreSignConfig {
 
 func (h Handlers) GetAppJourney(c *gin.Context) {
 	deps := h.Deps
-	ctx := c.Request.Context()
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `app id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": msg,
-		})
+	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:   exprfilter.JourneysEntity,
+		appScope: *measure.ScopeAppRead,
+		logRoot:  logcomment.Journeys,
+		logName:  "journey",
+	})
+	if !ok {
 		return
-	}
-
-	af := filter.AppFilter{
-		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
-	}
-
-	if err := c.ShouldBindQuery(&af); err != nil {
-		fmt.Println(err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	msg := "app journey request validation failed"
-
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
-	}
-
-	app := measure.App{
-		ID: &id,
 	}
 
 	if err := app.Populate(ctx, deps.PgPool); err != nil {
 		msg := `failed to fetch app details`
 		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-			msg = fmt.Sprintf(`app with id %q does not exist`, app.ID)
-		}
-
-		c.JSON(status, gin.H{
+		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
 		})
-
 		return
 	}
 
-	team := &measure.Team{
-		ID: &app.TeamId,
+	// bigraph keeps both directions of a transition; an absent value leaves
+	// the graph one-directional.
+	var graphOptions struct {
+		BiGraph bool `form:"bigraph"`
 	}
-
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+	if err := c.ShouldBindQuery(&graphOptions); err != nil {
+		fmt.Println(err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
+	ctx = ambient.WithTeamId(ctx, app.TeamId)
 
-	if !okTeam || !okApp {
-		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
-		return
-	}
+	msg := `failed to compute app's journey`
 
-	ctx = ambient.WithTeamId(ctx, *team.ID)
-
-	msg = `failed to compute app's journey`
-
-	g, err := app.GetJourneyGraph(ctx, deps.RchPool, &af)
+	g, err := app.GetJourneyGraph(ctx, deps.RchPool, &ef)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -187,7 +107,7 @@ func (h Handlers) GetAppJourney(c *gin.Context) {
 
 	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "fatal_exception_groups"))
 
-	exceptionGroups, err := group.GetExceptionGroupsFromFingerprints(ctx, deps.RchPool, &af, crashFingerprints)
+	exceptionGroups, err := group.GetExceptionGroupsFromFingerprints(ctx, deps.RchPool, &ef, crashFingerprints)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -207,7 +127,7 @@ func (h Handlers) GetAppJourney(c *gin.Context) {
 	if app.Family() == opsys.Android {
 		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "anr_groups"))
 
-		anrGroups, err := group.GetANRGroupsFromFingerprints(ctx, deps.RchPool, &af, anrFingerprints)
+		anrGroups, err := group.GetANRGroupsFromFingerprints(ctx, deps.RchPool, &ef, anrFingerprints)
 		if err != nil {
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -223,7 +143,7 @@ func (h Handlers) GetAppJourney(c *gin.Context) {
 	}
 
 	result := journey.Build(g, &journey.Options{
-		BiGraph: af.BiGraph,
+		BiGraph: graphOptions.BiGraph,
 	})
 
 	var nodes []journeyNode

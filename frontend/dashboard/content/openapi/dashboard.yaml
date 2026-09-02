@@ -371,9 +371,9 @@ paths:
         - Apps
       summary: Fetch an app's issue journey map
       description: |
-        Fetch an app's issue journey map. Filter time range using `from` & `to`
-        query string parameters. Filter versions using `versions` &
-        `version_codes` query string parameters.
+        Fetch an app's issue journey map, optionally narrowed by a filter
+        expression. Filter time range using `from` & `to` query string
+        parameters.
       parameters:
         - name: id
           in: path
@@ -384,22 +384,11 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings to return only matching issues.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version codes to return only matching issues.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/FilterExpr"
         - name: bigraph
           in: query
           required: false
-          description: Choose journey's directionality. `0` computes a unidirectional graph. Default is `1`.
+          description: Choose journey's directionality. `1` or `true` keeps both directions of a transition. Default is `0`, a unidirectional graph.
           schema:
             type: string
       responses:
@@ -1005,6 +994,7 @@ paths:
               - builds
               - spans
               - bug_reports
+              - journeys
         - name: key
           in: query
           required: false
@@ -1127,6 +1117,7 @@ paths:
               - builds
               - spans
               - bug_reports
+              - journeys
         - name: key_name
           in: query
           required: true

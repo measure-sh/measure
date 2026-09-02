@@ -3926,7 +3926,7 @@ func TestMCPGetAlerts(t *testing.T) {
 
 func TestMCPGetJourney(t *testing.T) {
 	ctx := context.Background()
-	setupToolTest := func(t *testing.T, email string) (uuid.UUID, string) {
+	setupToolTest := func(t *testing.T, email string) (uuid.UUID, uuid.UUID, string) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), email)
@@ -3937,8 +3937,11 @@ func TestMCPGetJourney(t *testing.T) {
 		seedApp(ctx, t, appID, teamID, 30)
 		rawToken := "msr_" + email
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
-		return appID, rawToken
+		return appID, teamID, rawToken
 	}
+	now := time.Now().UTC()
+	from := now.Add(-7 * 24 * time.Hour).Format(time.RFC3339)
+	to := now.Format(time.RFC3339)
 
 	t.Run("missing app_id", func(t *testing.T) {
 		cleanupAll(ctx, t)
@@ -3952,9 +3955,8 @@ func TestMCPGetJourney(t *testing.T) {
 		}
 	})
 	t.Run("valid call", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "journey2@mcp.test")
-		now := time.Now().UTC()
-		resp := callMCPTool(t, rawToken, "get_journey", map[string]any{"app_id": appID.String(), "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
+		appID, _, rawToken := setupToolTest(t, "journey2@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_journey", map[string]any{"app_id": appID.String(), "from": from, "to": to})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
@@ -3962,6 +3964,62 @@ func TestMCPGetJourney(t *testing.T) {
 		var result map[string]any
 		if err := json.Unmarshal([]byte(content), &result); err != nil {
 			t.Errorf("response is not JSON object: %v\ncontent: %s", err, content)
+		}
+	})
+	t.Run("filter_expr narrows results", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "journeyexpr@mcp.test")
+		// The seeded screens carry app version v1 with build 1.
+		sessionID := uuid.NewString()
+		th.SeedLifecycleActivityInSession(ctx, t, teamID.String(), appID.String(), sessionID, "resumed", "HomeActivity", now.Add(-time.Hour))
+		th.SeedLifecycleActivityInSession(ctx, t, teamID.String(), appID.String(), sessionID, "resumed", "CartActivity", now.Add(-time.Hour).Add(time.Second))
+
+		nodes := func(t *testing.T, filterExpr string) []any {
+			t.Helper()
+			args := map[string]any{"app_id": appID.String(), "from": from, "to": to}
+			if filterExpr != "" {
+				args["filter_expr"] = filterExpr
+			}
+			resp := callMCPTool(t, rawToken, "get_journey", args)
+			if isToolError(resp) {
+				t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+			}
+			var result struct {
+				Nodes []any `json:"nodes"`
+			}
+			if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &result); err != nil {
+				t.Fatalf("unmarshal journey: %v", err)
+			}
+			return result.Nodes
+		}
+
+		if got := nodes(t, ""); len(got) != 2 {
+			t.Fatalf("want 2 nodes with no filter, got %v", got)
+		}
+		if got := nodes(t, "version_name:in:v1 AND version_code:in:1"); len(got) != 2 {
+			t.Fatalf("want 2 nodes for the seeded version, got %v", got)
+		}
+		if got := nodes(t, "version_name:in:v9"); len(got) != 0 {
+			t.Fatalf("want no nodes for a version never seen, got %v", got)
+		}
+	})
+	t.Run("invalid filter_expr returns the issue", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "journeyexprbad@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_journey", map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": "os_name:in:android"})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for a key the journeys entity does not have")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "Unknown key") || !strings.Contains(text, "os_name") {
+			t.Errorf("error text %q should name the unknown key", text)
+		}
+	})
+	t.Run("unparseable filter_expr returns the parse error", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "journeyexprparse@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_journey", map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": "version_name:in:v1 AND"})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for unparseable filter")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "filter_expr could not be parsed") || !strings.Contains(text, "at position") {
+			t.Errorf("error text %q should report the parse failure and its position", text)
 		}
 	})
 }

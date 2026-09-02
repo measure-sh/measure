@@ -4,11 +4,6 @@ import (
 	"time"
 )
 
-// SpansEntity is an app's performance trace spans. Its filtering reads the
-// spans table in ClickHouse and its fixed-key value lists read the
-// span_filters rollup. The span_metrics rollup stores the same fields
-// as flat columns, which SpanMetricsKeyBindings maps for queries that
-// aggregate over it.
 var SpansEntity = Entity{
 	Name:                  "spans",
 	Keys:                  spansKeys,
@@ -89,8 +84,6 @@ var (
 	}
 )
 
-// spanStatusCodes maps the status names a filter carries to the integer codes
-// the status column stores.
 var spanStatusCodes = map[string]int8{
 	"unset": 0,
 	"ok":    1,
@@ -102,9 +95,8 @@ var spansKeyBindingOverrides = map[string]columnKeyBinding{
 	patchID.Name:    bindUUIDKey,
 }
 
-// Fixed-key value suggestions read the span_filters rollup, which stores the
-// distinct attribute combinations seen per month. Recency therefore carries
-// month granularity, so values seen in the same month order alphabetically.
+// span_filters keeps one row per attribute combination per month, so values
+// seen in the same month order alphabetically.
 var spanFixedKeyValues = fixedKeyValueSource{
 	table:       "span_filters",
 	columns:     spanFilterColumns,
@@ -116,14 +108,6 @@ var spanCustomKeys = customKeyStore{
 	idColumn: "span_id",
 }
 
-// SpanMetricsKeyBindings maps every fixed spans key onto the flat columns of
-// the span_metrics rollup, as Predicate overrides for queries that read that
-// table.
-func SpanMetricsKeyBindings() map[string]KeyBinding {
-	binding := bindKeysToColumns(spanMetricsTableColumns, spansKeyBindingOverrides)
-	overrides := make(map[string]KeyBinding, len(spansKeys))
-	for _, key := range spansKeys {
-		overrides[key.Name] = binding
-	}
-	return overrides
-}
+// SpanMetricsKeyBindings rebinds the fixed spans keys onto the span_metrics
+// rollup for the queries that aggregate over it.
+var SpanMetricsKeyBindings = bindingForEachKey(spansKeys, bindKeysToColumns(spanMetricsTableColumns, spansKeyBindingOverrides))

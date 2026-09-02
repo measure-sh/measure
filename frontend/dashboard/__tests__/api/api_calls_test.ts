@@ -547,41 +547,41 @@ describe("fetch functions that use applyGenericFiltersToUrl", () => {
 // fetchJourneyFromServer
 // ========================================================================
 describe("fetchJourneyFromServer", () => {
-  it("hits /journey for Paths", async () => {
+  const call = (filterExpr: string | null = null) =>
+    fetchJourneyFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      filterExpr,
+    );
+
+  it("sends the range and timezone in the URL", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
-    await fetchJourneyFromServer(false, makeFilters());
-    expect(lastFetchUrl()).toContain("/api/apps/app-a/journey");
+    await call();
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/journey");
+    expect(url.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    expect(url.searchParams.has("filter_expr")).toBe(false);
+    expect(url.searchParams.has("bigraph")).toBe(false);
   });
 
-  // NOTE: bidirectional (bigraph) is currently DROPPED by
-  // `applyGenericFiltersToUrl` — it overwrites `u.search` with a fresh
-  // URLSearchParams containing only the generic filter params. This pins
-  // the current buggy behaviour; fixing the underlying issue should flip
-  // these assertions to check for bigraph=1/0.
-  it("passes bidirectional=true path through (bigraph dropped by URL rebuild)", async () => {
+  it("sends the filter expression when one is given", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
-    await fetchJourneyFromServer(true, makeFilters());
-    expect(lastFetchUrl()).toContain("/api/apps/app-a/journey");
-  });
-
-  it("passes bidirectional=false path through", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
-    await fetchJourneyFromServer(false, makeFilters());
-    expect(lastFetchUrl()).toContain("/api/apps/app-a/journey");
+    await call("version_name:in:1.2.0");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("filter_expr")).toBe("version_name:in:1.2.0");
   });
 
   it("throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    await expect(fetchJourneyFromServer(false, makeFilters())).rejects.toThrow(
-      ApiError,
-    );
+    await expect(call()).rejects.toThrow(ApiError);
   });
 
   it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    await expect(fetchJourneyFromServer(false, makeFilters())).rejects.toThrow(
-      RequestError,
-    );
+    await expect(call()).rejects.toThrow(RequestError);
   });
 });
 
@@ -1513,7 +1513,13 @@ describe("fetch functions: failure paths", () => {
   const cases: Array<[string, () => Promise<unknown>]> = [
     [
       "fetchJourneyFromServer",
-      () => fetchJourneyFromServer(false, makeFilters()),
+      () =>
+        fetchJourneyFromServer(
+          "app-a",
+          "2026-04-01T00:00:00.000Z",
+          "2026-04-10T00:00:00.000Z",
+          null,
+        ),
     ],
     ["fetchMetricsFromServer", () => fetchMetricsFromServer(makeFilters())],
     [
