@@ -4,9 +4,6 @@ export interface IDynamicConfig {
   /** Maximum number of events and spans in a batch. Defaults to 10000. */
   maxEventsInBatch: number;
 
-  /** Duration of session timeline collected with a crash, in seconds. Defaults to 300. */
-  crashTimelineDurationSeconds: number;
-
   /** Duration of session timeline collected with an ANR, in seconds. Defaults to 300. */
   anrTimelineDurationSeconds: number;
 
@@ -37,9 +34,6 @@ export interface IDynamicConfig {
   /** Interval in seconds to collect memory usage. Defaults to 5. */
   memoryUsageInterval: number;
 
-  /** Whether to take a screenshot on crash. Defaults to true. */
-  crashTakeScreenshot: boolean;
-
   /** Whether to take a screenshot on ANR. Defaults to true. */
   anrTakeScreenshot: boolean;
 
@@ -64,7 +58,6 @@ export interface IDynamicConfig {
 
 export class DynamicConfig implements IDynamicConfig {
   maxEventsInBatch: number;
-  crashTimelineDurationSeconds: number;
   anrTimelineDurationSeconds: number;
   bugReportTimelineDurationSeconds: number;
   traceSamplingRate: number;
@@ -75,7 +68,6 @@ export class DynamicConfig implements IDynamicConfig {
   logIgnorePatterns: string[];
   cpuUsageInterval: number;
   memoryUsageInterval: number;
-  crashTakeScreenshot: boolean;
   anrTakeScreenshot: boolean;
   launchSamplingRate: number;
   gestureClickTakeSnapshot: boolean;
@@ -86,7 +78,6 @@ export class DynamicConfig implements IDynamicConfig {
 
   constructor(values: IDynamicConfig) {
     this.maxEventsInBatch = values.maxEventsInBatch;
-    this.crashTimelineDurationSeconds = values.crashTimelineDurationSeconds;
     this.anrTimelineDurationSeconds = values.anrTimelineDurationSeconds;
     this.bugReportTimelineDurationSeconds =
       values.bugReportTimelineDurationSeconds;
@@ -98,7 +89,6 @@ export class DynamicConfig implements IDynamicConfig {
     this.logIgnorePatterns = values.logIgnorePatterns;
     this.cpuUsageInterval = values.cpuUsageInterval;
     this.memoryUsageInterval = values.memoryUsageInterval;
-    this.crashTakeScreenshot = values.crashTakeScreenshot;
     this.anrTakeScreenshot = values.anrTakeScreenshot;
     this.launchSamplingRate = values.launchSamplingRate;
     this.gestureClickTakeSnapshot = values.gestureClickTakeSnapshot;
@@ -111,7 +101,6 @@ export class DynamicConfig implements IDynamicConfig {
   static default(): DynamicConfig {
     return new DynamicConfig({
       maxEventsInBatch: 10_000,
-      crashTimelineDurationSeconds: 300,
       anrTimelineDurationSeconds: 300,
       bugReportTimelineDurationSeconds: 300,
       traceSamplingRate: 100,
@@ -122,7 +111,6 @@ export class DynamicConfig implements IDynamicConfig {
       logIgnorePatterns: [],
       cpuUsageInterval: 5,
       memoryUsageInterval: 5,
-      crashTakeScreenshot: true,
       anrTakeScreenshot: true,
       launchSamplingRate: 100,
       gestureClickTakeSnapshot: true,
@@ -150,7 +138,6 @@ export class DynamicConfig implements IDynamicConfig {
 
     return new DynamicConfig({
       maxEventsInBatch: obj['max_events_in_batch'],
-      crashTimelineDurationSeconds: obj['crash_timeline_duration'],
       anrTimelineDurationSeconds: obj['anr_timeline_duration'],
       bugReportTimelineDurationSeconds: obj['bug_report_timeline_duration'],
       traceSamplingRate: obj['trace_sampling_rate'],
@@ -161,7 +148,6 @@ export class DynamicConfig implements IDynamicConfig {
       logIgnorePatterns: obj['log_ignore_patterns'] || [],
       cpuUsageInterval: obj['cpu_usage_interval'],
       memoryUsageInterval: obj['memory_usage_interval'],
-      crashTakeScreenshot: obj['crash_take_screenshot'],
       anrTakeScreenshot: obj['anr_take_screenshot'],
       launchSamplingRate: obj['launch_sampling_rate'],
       gestureClickTakeSnapshot: obj['gesture_click_take_snapshot'],

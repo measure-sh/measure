@@ -81,13 +81,23 @@ internal class SignalStoreImpl(
                 ?.severity
             val isFatalError = severity == ExceptionSeverity.Fatal
             val isUnhandledError = severity == ExceptionSeverity.Unhandled
+            val isHandledError = severity == ExceptionSeverity.Handled
             val isAnrEvent = eventEntity.type == EventType.ANR
             val isBugReportEvent = eventEntity.type == EventType.BUG_REPORT
-            val collectTimeline =
-                isFatalError || isUnhandledError || isAnrEvent || isBugReportEvent
+            val collectTimeline = when {
+                isAnrEvent || isBugReportEvent -> true
+                isFatalError -> configProvider.errorFatalReplayEnabled
+                isUnhandledError -> configProvider.errorUnhandledReplayEnabled
+                isHandledError -> configProvider.errorHandledReplayEnabled
+                else -> false
+            }
+            // Stored right away so the event survives a process death, and so it is in the
+            // database before the timeline window that covers it is marked.
+            val storeImmediately =
+                isFatalError || isUnhandledError || isAnrEvent || isBugReportEvent || collectTimeline
 
             when {
-                collectTimeline -> {
+                storeImmediately -> {
                     val success = database.insertEvent(eventEntity)
                     flush()
                     if (!success) {
@@ -111,7 +121,7 @@ internal class SignalStoreImpl(
                 val timelineDuration = when {
                     isAnrEvent -> configProvider.anrTimelineDurationSeconds
                     isBugReportEvent -> configProvider.bugReportTimelineDurationSeconds
-                    else -> configProvider.crashTimelineDurationSeconds
+                    else -> configProvider.errorReplayDurationSeconds
                 }
 
                 database.markTimelineForReporting(

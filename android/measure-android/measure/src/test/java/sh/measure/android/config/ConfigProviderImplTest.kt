@@ -205,14 +205,40 @@ class ConfigProviderImplTest {
     fun `setDynamicConfig updates config values`() {
         val newConfig = DynamicConfig().copy(
             traceSamplingRate = 0.5f,
-            crashTakeScreenshot = false,
+            errorFatalTakeScreenshot = false,
             cpuUsageInterval = 5000L,
         )
         configProvider.setDynamicConfig(newConfig)
 
         assertEquals(0.5f, configProvider.traceSamplingRate)
-        assertFalse(configProvider.crashTakeScreenshot)
+        assertFalse(configProvider.errorFatalScreenshotEnabled)
         assertEquals(5000L, configProvider.cpuUsageInterval)
+    }
+
+    @Test
+    fun `error settings prefer the newer keys`() {
+        val newConfig = DynamicConfig().copy(
+            errorReplayDuration = 60,
+            crashTimelineDuration = 120,
+            errorFatalTakeScreenshot = true,
+            crashTakeScreenshot = false,
+        )
+        configProvider.setDynamicConfig(newConfig)
+
+        assertEquals(60, configProvider.errorReplayDurationSeconds)
+        assertTrue(configProvider.errorFatalScreenshotEnabled)
+    }
+
+    @Test
+    fun `error settings fall back to the older keys`() {
+        val newConfig = DynamicConfig().copy(
+            crashTimelineDuration = 120,
+            crashTakeScreenshot = false,
+        )
+        configProvider.setDynamicConfig(newConfig)
+
+        assertEquals(120, configProvider.errorReplayDurationSeconds)
+        assertFalse(configProvider.errorFatalScreenshotEnabled)
     }
 
     @Test

@@ -32,7 +32,7 @@ final class ConfigProviderTests: XCTestCase {
         var config = BaseDynamicConfig()
         config = BaseDynamicConfig(
             maxEventsInBatch: config.maxEventsInBatch,
-            crashTimelineDurationSeconds: config.crashTimelineDurationSeconds,
+            errorReplayDurationSeconds: config.errorReplayDurationSeconds,
             anrTimelineDurationSeconds: config.anrTimelineDurationSeconds,
             bugReportTimelineDurationSeconds: config.bugReportTimelineDurationSeconds,
             traceSamplingRate: config.traceSamplingRate,
@@ -40,7 +40,7 @@ final class ConfigProviderTests: XCTestCase {
             screenshotMaskLevel: config.screenshotMaskLevel,
             cpuUsageInterval: config.cpuUsageInterval,
             memoryUsageInterval: config.memoryUsageInterval,
-            crashTakeScreenshot: config.crashTakeScreenshot,
+            errorFatalTakeScreenshot: config.errorFatalTakeScreenshot,
             anrTakeScreenshot: config.anrTakeScreenshot,
             launchSamplingRate: config.launchSamplingRate,
             gestureClickTakeSnapshot: config.gestureClickTakeSnapshot,
@@ -157,11 +157,11 @@ final class ConfigProviderTests: XCTestCase {
     func testSetDynamicConfigUpdatesValues() {
         provider.setDynamicConfig(copy(BaseDynamicConfig(),
                                        traceSamplingRate: 0.5,
-                                       crashTakeScreenshot: false,
+                                       errorFatalTakeScreenshot: false,
                                        cpuUsageInterval: 5000))
 
         XCTAssertEqual(provider.traceSamplingRate, 0.5)
-        XCTAssertFalse(provider.crashTakeScreenshot)
+        XCTAssertFalse(provider.errorFatalTakeScreenshot)
         XCTAssertEqual(provider.cpuUsageInterval, 5000)
     }
 
@@ -247,12 +247,12 @@ final class ConfigProviderTests: XCTestCase {
         response: [String] = [],
         blockedHeaders: [String]? = nil,
         traceSamplingRate: Float? = nil,
-        crashTakeScreenshot: Bool? = nil,
+        errorFatalTakeScreenshot: Bool? = nil,
         cpuUsageInterval: Number? = nil
     ) -> BaseDynamicConfig {
         BaseDynamicConfig(
             maxEventsInBatch: base.maxEventsInBatch,
-            crashTimelineDurationSeconds: base.crashTimelineDurationSeconds,
+            errorReplayDurationSeconds: base.errorReplayDurationSeconds,
             anrTimelineDurationSeconds: base.anrTimelineDurationSeconds,
             bugReportTimelineDurationSeconds: base.bugReportTimelineDurationSeconds,
             traceSamplingRate: traceSamplingRate ?? base.traceSamplingRate,
@@ -260,7 +260,7 @@ final class ConfigProviderTests: XCTestCase {
             screenshotMaskLevel: base.screenshotMaskLevel,
             cpuUsageInterval: cpuUsageInterval ?? base.cpuUsageInterval,
             memoryUsageInterval: base.memoryUsageInterval,
-            crashTakeScreenshot: crashTakeScreenshot ?? base.crashTakeScreenshot,
+            errorFatalTakeScreenshot: errorFatalTakeScreenshot ?? base.errorFatalTakeScreenshot,
             anrTakeScreenshot: base.anrTakeScreenshot,
             launchSamplingRate: base.launchSamplingRate,
             gestureClickTakeSnapshot: base.gestureClickTakeSnapshot,

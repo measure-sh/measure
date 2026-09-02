@@ -144,11 +144,7 @@ final class MeasureInitializer {
     _exceptionCollector = ExceptionCollector(
       logger: logger,
       signalProcessor: signalProcessor,
-      configProvider: configProvider,
-      fileStorage: _fileStorage,
-      screenshotCollector: _screenshotCollector,
       timeProvider: timeProvider,
-      methodChannel: _methodChannel,
     );
     _navigationCollector = NavigationCollector(
       signalProcessor: signalProcessor,

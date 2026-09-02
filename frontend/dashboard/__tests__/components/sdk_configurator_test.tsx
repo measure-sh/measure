@@ -104,8 +104,14 @@ jest.mock("@/app/components/danger_confirmation_dialog", () => ({
 }));
 
 const mockInitialConfig = {
-  crash_take_screenshot: true,
-  crash_timeline_duration: 5,
+  error_fatal_take_screenshot: true,
+  error_replay_duration: 5,
+  error_fatal_replay_enabled: true,
+  error_unhandled_replay_enabled: true,
+  error_handled_replay_enabled: false,
+  error_fatal_sampling_rate: 100,
+  error_unhandled_sampling_rate: 100,
+  error_handled_sampling_rate: 0,
   anr_take_screenshot: true,
   anr_timeline_duration: 5,
   bug_report_timeline_duration: 5,
@@ -162,7 +168,7 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByText("Configure Data Collection")).toBeInTheDocument();
 
     // Check all accordion sections are rendered
-    expect(screen.getByText("Crashes")).toBeInTheDocument();
+    expect(screen.getByText("Errors")).toBeInTheDocument();
     expect(screen.getByText("ANRs")).toBeInTheDocument();
     expect(screen.getByText("Bug Reports")).toBeInTheDocument();
     expect(screen.getByText("Traces")).toBeInTheDocument();
@@ -229,7 +235,7 @@ describe("SdkConfigurator Component", () => {
     );
 
     // Check that all save buttons are initially disabled
-    expect(screen.getByTestId("crashes-save-button")).toBeDisabled();
+    expect(screen.getByTestId("errors-save-button")).toBeDisabled();
     expect(screen.getByTestId("anrs-save-button")).toBeDisabled();
     expect(screen.getByTestId("bug-reports-save-button")).toBeDisabled();
     expect(screen.getByTestId("traces-save-button")).toBeDisabled();
@@ -251,14 +257,24 @@ describe("SdkConfigurator Component", () => {
     );
 
     // Check that switches are disabled
-    expect(screen.getByTestId("crash-screenshot-switch")).toBeDisabled();
+    expect(screen.getByTestId("error-fatal-screenshot-switch")).toBeDisabled();
     expect(screen.getByTestId("anr-screenshot-switch")).toBeDisabled();
 
     // Check that inputs are disabled
-    expect(screen.getByTestId("crash-timeline-duration-input")).toBeDisabled();
+    expect(screen.getByTestId("error-replay-duration-input")).toBeDisabled();
     expect(screen.getByTestId("anr-timeline-duration-input")).toBeDisabled();
     expect(
       screen.getByTestId("bug-report-timeline-duration-input"),
+    ).toBeDisabled();
+    expect(screen.getByTestId("error-handled-replay-switch")).toBeDisabled();
+    expect(
+      screen.getByTestId("error-fatal-sampling-rate-input"),
+    ).toBeDisabled();
+    expect(
+      screen.getByTestId("error-unhandled-sampling-rate-input"),
+    ).toBeDisabled();
+    expect(
+      screen.getByTestId("error-handled-sampling-rate-input"),
     ).toBeDisabled();
     expect(screen.getByTestId("trace-sampling-rate-input")).toBeDisabled();
     expect(screen.getByTestId("launch-sampling-rate-input")).toBeDisabled();
@@ -276,7 +292,7 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByTestId("http-blocked-headers-textarea")).toBeDisabled();
   });
 
-  it("saves crashes config with correct payload, shows loading state, and displays success toast", async () => {
+  it("saves errors config with correct payload, shows loading state, and displays success toast", async () => {
     const { toastPositive } = require("@/app/components/toast");
     simulateMutateSuccess();
 
@@ -290,22 +306,22 @@ describe("SdkConfigurator Component", () => {
       />,
     );
 
-    // Make changes to crashes config
-    const crashSwitch = screen.getByTestId("crash-screenshot-switch");
+    // Make changes to errors config
+    const errorSwitch = screen.getByTestId("error-fatal-screenshot-switch");
     await act(async () => {
-      fireEvent.click(crashSwitch);
+      fireEvent.click(errorSwitch);
     });
 
-    const crashTimelineInput = screen.getByTestId(
-      "crash-timeline-duration-input",
+    const errorTimelineInput = screen.getByTestId(
+      "error-replay-duration-input",
     );
     await act(async () => {
-      fireEvent.change(crashTimelineInput, { target: { value: "50" } });
-      fireEvent.blur(crashTimelineInput);
+      fireEvent.change(errorTimelineInput, { target: { value: "50" } });
+      fireEvent.blur(errorTimelineInput);
     });
 
     // Click save button
-    const saveButton = screen.getByTestId("crashes-save-button");
+    const saveButton = screen.getByTestId("errors-save-button");
     await act(async () => {
       fireEvent.click(saveButton);
     });
@@ -328,8 +344,8 @@ describe("SdkConfigurator Component", () => {
         {
           appId: "test-app-id",
           config: expect.objectContaining({
-            crash_take_screenshot: false,
-            crash_timeline_duration: 50,
+            error_fatal_take_screenshot: false,
+            error_replay_duration: 50,
           }),
         },
         expect.any(Object),
@@ -338,6 +354,141 @@ describe("SdkConfigurator Component", () => {
 
     // Verify success toast was shown
     expect(toastPositive).toHaveBeenCalled();
+  });
+
+  it("saves per severity session replay toggles", async () => {
+    simulateMutateSuccess();
+
+    render(
+      <SdkConfigurator
+        appId="test-app-id"
+        appName="Test App"
+        initialConfig={mockInitialConfig}
+        currentUserCanChangeAppSettings={true}
+        osNames={null}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("error-unhandled-replay-switch"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("error-handled-replay-switch"));
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("errors-save-button"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("danger-confirmation-dialog"),
+      ).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("dialog-affirmative-button"));
+    });
+
+    await waitFor(() => {
+      expect(mockMutate).toHaveBeenCalledWith(
+        {
+          appId: "test-app-id",
+          config: expect.objectContaining({
+            error_fatal_replay_enabled: true,
+            error_unhandled_replay_enabled: false,
+            error_handled_replay_enabled: true,
+          }),
+        },
+        expect.any(Object),
+      );
+    });
+  });
+
+  it("saves a sampling rate per error severity", async () => {
+    simulateMutateSuccess();
+
+    render(
+      <SdkConfigurator
+        appId="test-app-id"
+        appName="Test App"
+        initialConfig={mockInitialConfig}
+        currentUserCanChangeAppSettings={true}
+        osNames={null}
+      />,
+    );
+
+    const rates: [string, string][] = [
+      ["error-fatal-sampling-rate-input", "50"],
+      ["error-unhandled-sampling-rate-input", "25"],
+      ["error-handled-sampling-rate-input", "10"],
+    ];
+
+    for (const [testId, value] of rates) {
+      const input = screen.getByTestId(testId);
+      await act(async () => {
+        fireEvent.change(input, { target: { value } });
+        fireEvent.blur(input);
+      });
+    }
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("errors-save-button"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("danger-confirmation-dialog"),
+      ).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("dialog-affirmative-button"));
+    });
+
+    await waitFor(() => {
+      expect(mockMutate).toHaveBeenCalledWith(
+        {
+          appId: "test-app-id",
+          config: expect.objectContaining({
+            error_fatal_sampling_rate: 50,
+            error_unhandled_sampling_rate: 25,
+            error_handled_sampling_rate: 10,
+          }),
+        },
+        expect.any(Object),
+      );
+    });
+  });
+
+  it("limits each error sampling rate to max value of 100", async () => {
+    render(
+      <SdkConfigurator
+        appId="test-app-id"
+        appName="Test App"
+        initialConfig={mockInitialConfig}
+        currentUserCanChangeAppSettings={true}
+        osNames={null}
+      />,
+    );
+
+    const testIds = [
+      "error-fatal-sampling-rate-input",
+      "error-unhandled-sampling-rate-input",
+      "error-handled-sampling-rate-input",
+    ];
+
+    for (const testId of testIds) {
+      const input = screen.getByTestId(testId) as HTMLInputElement;
+      expect(input).toHaveAttribute("max", "100");
+
+      await act(async () => {
+        fireEvent.change(input, { target: { value: "150" } });
+        fireEvent.blur(input);
+      });
+
+      expect(input.value).toBe("100");
+    }
   });
 
   it("saves ANR config with correct payload on successful save", async () => {
@@ -790,13 +941,13 @@ describe("SdkConfigurator Component", () => {
     );
 
     // Make a change to enable the save button
-    const crashSwitch = screen.getByTestId("crash-screenshot-switch");
+    const errorSwitch = screen.getByTestId("error-fatal-screenshot-switch");
     await act(async () => {
-      fireEvent.click(crashSwitch);
+      fireEvent.click(errorSwitch);
     });
 
     // Click save button
-    const saveButton = screen.getByTestId("crashes-save-button");
+    const saveButton = screen.getByTestId("errors-save-button");
     await act(async () => {
       fireEvent.click(saveButton);
     });
@@ -819,7 +970,7 @@ describe("SdkConfigurator Component", () => {
     });
 
     // Verify save button is still enabled
-    expect(screen.getByTestId("crashes-save-button")).not.toBeDisabled();
+    expect(screen.getByTestId("errors-save-button")).not.toBeDisabled();
   });
 
   it("disables save button on successful save", async () => {
@@ -836,14 +987,14 @@ describe("SdkConfigurator Component", () => {
       />,
     );
 
-    // Make a change to crashes config
-    const crashSwitch = screen.getByTestId("crash-screenshot-switch");
+    // Make a change to errors config
+    const errorSwitch = screen.getByTestId("error-fatal-screenshot-switch");
     await act(async () => {
-      fireEvent.click(crashSwitch);
+      fireEvent.click(errorSwitch);
     });
 
     // Verify save button is enabled after change
-    const saveButton = screen.getByTestId("crashes-save-button");
+    const saveButton = screen.getByTestId("errors-save-button");
     expect(saveButton).not.toBeDisabled();
 
     // Click save button
@@ -875,7 +1026,7 @@ describe("SdkConfigurator Component", () => {
 
     // Make another change to verify the button can be enabled again
     await act(async () => {
-      fireEvent.click(crashSwitch);
+      fireEvent.click(errorSwitch);
     });
 
     // Verify save button is enabled again after new change
@@ -974,7 +1125,7 @@ describe("SdkConfigurator Component", () => {
     expect(maskingDropdown).toHaveValue("Sensitive fields only");
   });
 
-  it("saves crash config on confirmation", async () => {
+  it("saves error config on confirmation", async () => {
     simulateMutateSuccess();
 
     render(
@@ -987,22 +1138,22 @@ describe("SdkConfigurator Component", () => {
       />,
     );
 
-    // Make changes to crash config
-    const crashSwitch = screen.getByTestId("crash-screenshot-switch");
+    // Make changes to error config
+    const errorSwitch = screen.getByTestId("error-fatal-screenshot-switch");
     await act(async () => {
-      fireEvent.click(crashSwitch);
+      fireEvent.click(errorSwitch);
     });
 
-    const crashTimelineInput = screen.getByTestId(
-      "crash-timeline-duration-input",
+    const errorTimelineInput = screen.getByTestId(
+      "error-replay-duration-input",
     );
     await act(async () => {
-      fireEvent.change(crashTimelineInput, { target: { value: "75" } });
-      fireEvent.blur(crashTimelineInput);
+      fireEvent.change(errorTimelineInput, { target: { value: "75" } });
+      fireEvent.blur(errorTimelineInput);
     });
 
     // Click save and confirm
-    const saveButton = screen.getByTestId("crashes-save-button");
+    const saveButton = screen.getByTestId("errors-save-button");
     await act(async () => {
       fireEvent.click(saveButton);
     });
@@ -1023,8 +1174,14 @@ describe("SdkConfigurator Component", () => {
         {
           appId: "test-app-id",
           config: {
-            crash_take_screenshot: false,
-            crash_timeline_duration: 75,
+            error_fatal_take_screenshot: false,
+            error_replay_duration: 75,
+            error_fatal_replay_enabled: true,
+            error_unhandled_replay_enabled: true,
+            error_handled_replay_enabled: false,
+            error_fatal_sampling_rate: 100,
+            error_unhandled_sampling_rate: 100,
+            error_handled_sampling_rate: 0,
           },
         },
         expect.any(Object),
@@ -1448,11 +1605,11 @@ describe("SdkConfigurator Component", () => {
     );
 
     // Check that switches are disabled
-    expect(screen.getByTestId("crash-screenshot-switch")).toBeDisabled();
+    expect(screen.getByTestId("error-fatal-screenshot-switch")).toBeDisabled();
     expect(screen.getByTestId("anr-screenshot-switch")).toBeDisabled();
 
     // Check that inputs are disabled
-    expect(screen.getByTestId("crash-timeline-duration-input")).toBeDisabled();
+    expect(screen.getByTestId("error-replay-duration-input")).toBeDisabled();
     expect(screen.getByTestId("anr-timeline-duration-input")).toBeDisabled();
     expect(
       screen.getByTestId("bug-report-timeline-duration-input"),
@@ -1472,7 +1629,7 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByTestId("http-blocked-headers-textarea")).toBeDisabled();
 
     // Check that all save buttons are disabled
-    expect(screen.getByTestId("crashes-save-button")).toBeDisabled();
+    expect(screen.getByTestId("errors-save-button")).toBeDisabled();
     expect(screen.getByTestId("anrs-save-button")).toBeDisabled();
     expect(screen.getByTestId("bug-reports-save-button")).toBeDisabled();
     expect(screen.getByTestId("traces-save-button")).toBeDisabled();
@@ -1577,14 +1734,14 @@ describe("SdkConfigurator Component", () => {
       />,
     );
 
-    // Make changes to crash config
-    const crashSwitch = screen.getByTestId("crash-screenshot-switch");
+    // Make changes to error config
+    const errorSwitch = screen.getByTestId("error-fatal-screenshot-switch");
     await act(async () => {
-      fireEvent.click(crashSwitch);
+      fireEvent.click(errorSwitch);
     });
 
     // Click save button
-    const saveButton = screen.getByTestId("crashes-save-button");
+    const saveButton = screen.getByTestId("errors-save-button");
     await act(async () => {
       fireEvent.click(saveButton);
     });
@@ -1614,7 +1771,7 @@ describe("SdkConfigurator Component", () => {
     expect(saveButton).not.toBeDisabled();
   });
 
-  it("limits crash timeline duration to max value of 3600", async () => {
+  it("limits error timeline duration to max value of 3600", async () => {
     render(
       <SdkConfigurator
         appId="test-app-id"
@@ -1625,21 +1782,21 @@ describe("SdkConfigurator Component", () => {
       />,
     );
 
-    const crashTimelineInput = screen.getByTestId(
-      "crash-timeline-duration-input",
+    const errorTimelineInput = screen.getByTestId(
+      "error-replay-duration-input",
     ) as HTMLInputElement;
 
     // Verify max attribute is set to 3600
-    expect(crashTimelineInput).toHaveAttribute("max", "3600");
+    expect(errorTimelineInput).toHaveAttribute("max", "3600");
 
     // Try to set value above 3600
     await act(async () => {
-      fireEvent.change(crashTimelineInput, { target: { value: "5000" } });
-      fireEvent.blur(crashTimelineInput);
+      fireEvent.change(errorTimelineInput, { target: { value: "5000" } });
+      fireEvent.blur(errorTimelineInput);
     });
 
     // Value should be clamped to 3600
-    expect(crashTimelineInput.value).toBe("3600");
+    expect(errorTimelineInput.value).toBe("3600");
   });
 
   it("limits anr timeline duration to max value of 3600", async () => {

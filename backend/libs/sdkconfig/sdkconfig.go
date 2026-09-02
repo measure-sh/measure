@@ -3,6 +3,7 @@ package sdkconfig
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"hash/fnv"
@@ -59,56 +60,89 @@ type ScreenshotMaskLevel string
 
 // SdkConfig is an app's SDK configuration as served to SDKs.
 type SdkConfig struct {
-	MaxEventsInBatch          int                 `json:"max_events_in_batch"`
-	CrashTimelineDuration     int                 `json:"crash_timeline_duration"`
-	ANRTimelineDuration       int                 `json:"anr_timeline_duration"`
-	BugReportTimelineDuration int                 `json:"bug_report_timeline_duration"`
-	TraceSamplingRate         float64             `json:"trace_sampling_rate"`
-	JourneySamplingRate       float64             `json:"journey_sampling_rate"`
-	ScreenshotMaskLevel       ScreenshotMaskLevel `json:"screenshot_mask_level"`
-	LogAutocollectEnabled     bool                `json:"log_autocollect_enabled"`
-	LogMinSeverity            int                 `json:"log_min_severity"`
-	LogIgnorePatterns         []string            `json:"log_ignore_patterns"`
-	CPUUsageInterval          int                 `json:"cpu_usage_interval"`
-	MemoryUsageInterval       int                 `json:"memory_usage_interval"`
-	CrashTakeScreenshot       bool                `json:"crash_take_screenshot"`
-	ANRTakeScreenshot         bool                `json:"anr_take_screenshot"`
-	LaunchSamplingRate        float64             `json:"launch_sampling_rate"`
-	GestureClickTakeSnapshot  bool                `json:"gesture_click_take_snapshot"`
-	HTTPSamplingRate          float64             `json:"http_sampling_rate"`
-	HTTPDisableEventForURLs   []string            `json:"http_disable_event_for_urls"`
-	HTTPTrackRequestForURLs   []string            `json:"http_track_request_for_urls"`
-	HTTPTrackResponseForURLs  []string            `json:"http_track_response_for_urls"`
-	HTTPBlockedHeaders        []string            `json:"http_blocked_headers"`
-	ProfileSamplingRate       float64             `json:"profile_sampling_rate"`
-	UpdatedAt                 *time.Time          `json:"-"`
-	UpdatedBy                 *uuid.UUID          `json:"-"`
+	MaxEventsInBatch            int                 `json:"max_events_in_batch"`
+	ErrorReplayDuration         int                 `json:"error_replay_duration"`
+	ANRTimelineDuration         int                 `json:"anr_timeline_duration"`
+	BugReportTimelineDuration   int                 `json:"bug_report_timeline_duration"`
+	TraceSamplingRate           float64             `json:"trace_sampling_rate"`
+	JourneySamplingRate         float64             `json:"journey_sampling_rate"`
+	ScreenshotMaskLevel         ScreenshotMaskLevel `json:"screenshot_mask_level"`
+	LogAutocollectEnabled       bool                `json:"log_autocollect_enabled"`
+	LogMinSeverity              int                 `json:"log_min_severity"`
+	LogIgnorePatterns           []string            `json:"log_ignore_patterns"`
+	CPUUsageInterval            int                 `json:"cpu_usage_interval"`
+	MemoryUsageInterval         int                 `json:"memory_usage_interval"`
+	ErrorFatalTakeScreenshot    bool                `json:"error_fatal_take_screenshot"`
+	ErrorFatalReplayEnabled     bool                `json:"error_fatal_replay_enabled"`
+	ErrorUnhandledReplayEnabled bool                `json:"error_unhandled_replay_enabled"`
+	ErrorHandledReplayEnabled   bool                `json:"error_handled_replay_enabled"`
+	ErrorFatalSamplingRate      float64             `json:"error_fatal_sampling_rate"`
+	ErrorUnhandledSamplingRate  float64             `json:"error_unhandled_sampling_rate"`
+	ErrorHandledSamplingRate    float64             `json:"error_handled_sampling_rate"`
+	ANRTakeScreenshot           bool                `json:"anr_take_screenshot"`
+	LaunchSamplingRate          float64             `json:"launch_sampling_rate"`
+	GestureClickTakeSnapshot    bool                `json:"gesture_click_take_snapshot"`
+	HTTPSamplingRate            float64             `json:"http_sampling_rate"`
+	HTTPDisableEventForURLs     []string            `json:"http_disable_event_for_urls"`
+	HTTPTrackRequestForURLs     []string            `json:"http_track_request_for_urls"`
+	HTTPTrackResponseForURLs    []string            `json:"http_track_response_for_urls"`
+	HTTPBlockedHeaders          []string            `json:"http_blocked_headers"`
+	ProfileSamplingRate         float64             `json:"profile_sampling_rate"`
+	UpdatedAt                   *time.Time          `json:"-"`
+	UpdatedBy                   *uuid.UUID          `json:"-"`
+}
+
+// MarshalJSON emits the older crash_* keys alongside the error_* ones. They are derived
+// here rather than stored, so no caller can serve a config without them.
+//
+// SDKs released before the rename only know the old names and will never learn the new ones.
+// Dropping these keys does not fail loudly for those SDKs, it silently reverts them to their
+// compiled defaults while the dashboard keeps showing the configured value. Remove only once
+// traffic from those versions has stopped, which attribute.measure_sdk_version can confirm.
+func (s SdkConfig) MarshalJSON() ([]byte, error) {
+	type config SdkConfig
+
+	return json.Marshal(struct {
+		config
+		CrashTimelineDuration int  `json:"crash_timeline_duration"`
+		CrashTakeScreenshot   bool `json:"crash_take_screenshot"`
+	}{
+		config:                config(s),
+		CrashTimelineDuration: s.ErrorReplayDuration,
+		CrashTakeScreenshot:   s.ErrorFatalTakeScreenshot,
+	})
 }
 
 // ConfigPatch is a partial SdkConfig update, nil fields are left unchanged.
 type ConfigPatch struct {
-	MaxEventsInBatch          *int                 `json:"max_events_in_batch,omitempty"`
-	CrashTimelineDuration     *int                 `json:"crash_timeline_duration,omitempty"`
-	ANRTimelineDuration       *int                 `json:"anr_timeline_duration,omitempty"`
-	BugReportTimelineDuration *int                 `json:"bug_report_timeline_duration,omitempty"`
-	TraceSamplingRate         *float64             `json:"trace_sampling_rate,omitempty"`
-	JourneySamplingRate       *float64             `json:"journey_sampling_rate,omitempty"`
-	ScreenshotMaskLevel       *ScreenshotMaskLevel `json:"screenshot_mask_level,omitempty"`
-	LogAutocollectEnabled     *bool                `json:"log_autocollect_enabled,omitempty"`
-	LogMinSeverity            *int                 `json:"log_min_severity,omitempty"`
-	LogIgnorePatterns         *[]string            `json:"log_ignore_patterns,omitempty"`
-	CPUUsageInterval          *int                 `json:"cpu_usage_interval,omitempty"`
-	MemoryUsageInterval       *int                 `json:"memory_usage_interval,omitempty"`
-	CrashTakeScreenshot       *bool                `json:"crash_take_screenshot,omitempty"`
-	ANRTakeScreenshot         *bool                `json:"anr_take_screenshot,omitempty"`
-	LaunchSamplingRate        *float64             `json:"launch_sampling_rate,omitempty"`
-	GestureClickSnapshot      *bool                `json:"gesture_click_take_snapshot,omitempty"`
-	HTTPSamplingRate          *float64             `json:"http_sampling_rate,omitempty"`
-	HTTPDisableEventForURLs   *[]string            `json:"http_disable_event_for_urls,omitempty"`
-	HTTPTrackRequestForURLs   *[]string            `json:"http_track_request_for_urls,omitempty"`
-	HTTPTrackResponseForURLs  *[]string            `json:"http_track_response_for_urls,omitempty"`
-	HTTPBlockedHeaders        *[]string            `json:"http_blocked_headers,omitempty"`
-	ProfileSamplingRate       *float64             `json:"profile_sampling_rate,omitempty"`
+	MaxEventsInBatch            *int                 `json:"max_events_in_batch,omitempty"`
+	ErrorReplayDuration         *int                 `json:"error_replay_duration,omitempty"`
+	ANRTimelineDuration         *int                 `json:"anr_timeline_duration,omitempty"`
+	BugReportTimelineDuration   *int                 `json:"bug_report_timeline_duration,omitempty"`
+	TraceSamplingRate           *float64             `json:"trace_sampling_rate,omitempty"`
+	JourneySamplingRate         *float64             `json:"journey_sampling_rate,omitempty"`
+	ScreenshotMaskLevel         *ScreenshotMaskLevel `json:"screenshot_mask_level,omitempty"`
+	LogAutocollectEnabled       *bool                `json:"log_autocollect_enabled,omitempty"`
+	LogMinSeverity              *int                 `json:"log_min_severity,omitempty"`
+	LogIgnorePatterns           *[]string            `json:"log_ignore_patterns,omitempty"`
+	CPUUsageInterval            *int                 `json:"cpu_usage_interval,omitempty"`
+	MemoryUsageInterval         *int                 `json:"memory_usage_interval,omitempty"`
+	ErrorFatalTakeScreenshot    *bool                `json:"error_fatal_take_screenshot,omitempty"`
+	ErrorFatalReplayEnabled     *bool                `json:"error_fatal_replay_enabled,omitempty"`
+	ErrorUnhandledReplayEnabled *bool                `json:"error_unhandled_replay_enabled,omitempty"`
+	ErrorHandledReplayEnabled   *bool                `json:"error_handled_replay_enabled,omitempty"`
+	ErrorFatalSamplingRate      *float64             `json:"error_fatal_sampling_rate,omitempty"`
+	ErrorUnhandledSamplingRate  *float64             `json:"error_unhandled_sampling_rate,omitempty"`
+	ErrorHandledSamplingRate    *float64             `json:"error_handled_sampling_rate,omitempty"`
+	ANRTakeScreenshot           *bool                `json:"anr_take_screenshot,omitempty"`
+	LaunchSamplingRate          *float64             `json:"launch_sampling_rate,omitempty"`
+	GestureClickSnapshot        *bool                `json:"gesture_click_take_snapshot,omitempty"`
+	HTTPSamplingRate            *float64             `json:"http_sampling_rate,omitempty"`
+	HTTPDisableEventForURLs     *[]string            `json:"http_disable_event_for_urls,omitempty"`
+	HTTPTrackRequestForURLs     *[]string            `json:"http_track_request_for_urls,omitempty"`
+	HTTPTrackResponseForURLs    *[]string            `json:"http_track_response_for_urls,omitempty"`
+	HTTPBlockedHeaders          *[]string            `json:"http_blocked_headers,omitempty"`
+	ProfileSamplingRate         *float64             `json:"profile_sampling_rate,omitempty"`
 }
 
 // IsValid reports whether s is a known screenshot mask level.
@@ -126,28 +160,34 @@ func (s ScreenshotMaskLevel) IsValid() bool {
 // createDefaultConfig returns the SDK config new apps start with.
 func createDefaultConfig() SdkConfig {
 	return SdkConfig{
-		MaxEventsInBatch:          10000,
-		CrashTimelineDuration:     300,
-		ANRTimelineDuration:       300,
-		BugReportTimelineDuration: 300,
-		TraceSamplingRate:         100,
-		JourneySamplingRate:       100,
-		ScreenshotMaskLevel:       ScreenshotMaskLevelAllTextAndMedia,
-		LogAutocollectEnabled:     false,
-		LogMinSeverity:            16,
-		LogIgnorePatterns:         []string{},
-		CPUUsageInterval:          5,
-		MemoryUsageInterval:       5,
-		CrashTakeScreenshot:       true,
-		ANRTakeScreenshot:         true,
-		LaunchSamplingRate:        100,
-		GestureClickTakeSnapshot:  true,
-		HTTPSamplingRate:          100,
-		HTTPDisableEventForURLs:   []string{},
-		HTTPTrackRequestForURLs:   []string{},
-		HTTPTrackResponseForURLs:  []string{},
-		HTTPBlockedHeaders:        []string{},
-		ProfileSamplingRate:       100,
+		MaxEventsInBatch:            10000,
+		ErrorReplayDuration:         300,
+		ANRTimelineDuration:         300,
+		BugReportTimelineDuration:   300,
+		TraceSamplingRate:           100,
+		JourneySamplingRate:         100,
+		ScreenshotMaskLevel:         ScreenshotMaskLevelAllTextAndMedia,
+		LogAutocollectEnabled:       false,
+		LogMinSeverity:              16,
+		LogIgnorePatterns:           []string{},
+		CPUUsageInterval:            5,
+		MemoryUsageInterval:         5,
+		ErrorFatalTakeScreenshot:    true,
+		ErrorFatalReplayEnabled:     true,
+		ErrorUnhandledReplayEnabled: false,
+		ErrorHandledReplayEnabled:   false,
+		ErrorFatalSamplingRate:      100,
+		ErrorUnhandledSamplingRate:  100,
+		ErrorHandledSamplingRate:    0,
+		ANRTakeScreenshot:           true,
+		LaunchSamplingRate:          100,
+		GestureClickTakeSnapshot:    true,
+		HTTPSamplingRate:            100,
+		HTTPDisableEventForURLs:     []string{},
+		HTTPTrackRequestForURLs:     []string{},
+		HTTPTrackResponseForURLs:    []string{},
+		HTTPBlockedHeaders:          []string{},
+		ProfileSamplingRate:         100,
 	}
 }
 
@@ -254,7 +294,7 @@ func SetCacheIfAbsent(ctx context.Context, vk valkey.Client, appID uuid.UUID, js
 func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*SdkConfig, error) {
 	q := sqlf.PostgreSQL.
 		Select("max_events_in_batch").
-		Select("crash_timeline_duration").
+		Select("error_replay_duration").
 		Select("anr_timeline_duration").
 		Select("bug_report_timeline_duration").
 		Select("trace_sampling_rate").
@@ -265,7 +305,13 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 		Select("log_ignore_patterns").
 		Select("cpu_usage_interval").
 		Select("memory_usage_interval").
-		Select("crash_take_screenshot").
+		Select("error_fatal_take_screenshot").
+		Select("error_fatal_replay_enabled").
+		Select("error_unhandled_replay_enabled").
+		Select("error_handled_replay_enabled").
+		Select("error_fatal_sampling_rate").
+		Select("error_unhandled_sampling_rate").
+		Select("error_handled_sampling_rate").
 		Select("anr_take_screenshot").
 		Select("launch_sampling_rate").
 		Select("gesture_click_take_snapshot").
@@ -286,7 +332,7 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 
 	err := pg.QueryRow(ctx, q.String(), q.Args()...).Scan(
 		&sdkConfig.MaxEventsInBatch,
-		&sdkConfig.CrashTimelineDuration,
+		&sdkConfig.ErrorReplayDuration,
 		&sdkConfig.ANRTimelineDuration,
 		&sdkConfig.BugReportTimelineDuration,
 		&sdkConfig.TraceSamplingRate,
@@ -297,7 +343,13 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 		&sdkConfig.LogIgnorePatterns,
 		&sdkConfig.CPUUsageInterval,
 		&sdkConfig.MemoryUsageInterval,
-		&sdkConfig.CrashTakeScreenshot,
+		&sdkConfig.ErrorFatalTakeScreenshot,
+		&sdkConfig.ErrorFatalReplayEnabled,
+		&sdkConfig.ErrorUnhandledReplayEnabled,
+		&sdkConfig.ErrorHandledReplayEnabled,
+		&sdkConfig.ErrorFatalSamplingRate,
+		&sdkConfig.ErrorUnhandledSamplingRate,
+		&sdkConfig.ErrorHandledSamplingRate,
 		&sdkConfig.ANRTakeScreenshot,
 		&sdkConfig.LaunchSamplingRate,
 		&sdkConfig.GestureClickTakeSnapshot,
@@ -340,7 +392,7 @@ func CreateConfig(ctx context.Context, tx pgx.Tx, teamID, appID uuid.UUID, creat
 		Set("team_id", teamID).
 		Set("app_id", appID).
 		Set("max_events_in_batch", config.MaxEventsInBatch).
-		Set("crash_timeline_duration", config.CrashTimelineDuration).
+		Set("error_replay_duration", config.ErrorReplayDuration).
 		Set("anr_timeline_duration", config.ANRTimelineDuration).
 		Set("bug_report_timeline_duration", config.BugReportTimelineDuration).
 		Set("trace_sampling_rate", config.TraceSamplingRate).
@@ -351,7 +403,13 @@ func CreateConfig(ctx context.Context, tx pgx.Tx, teamID, appID uuid.UUID, creat
 		Set("log_ignore_patterns", config.LogIgnorePatterns).
 		Set("cpu_usage_interval", config.CPUUsageInterval).
 		Set("memory_usage_interval", config.MemoryUsageInterval).
-		Set("crash_take_screenshot", config.CrashTakeScreenshot).
+		Set("error_fatal_take_screenshot", config.ErrorFatalTakeScreenshot).
+		Set("error_fatal_replay_enabled", config.ErrorFatalReplayEnabled).
+		Set("error_unhandled_replay_enabled", config.ErrorUnhandledReplayEnabled).
+		Set("error_handled_replay_enabled", config.ErrorHandledReplayEnabled).
+		Set("error_fatal_sampling_rate", config.ErrorFatalSamplingRate).
+		Set("error_unhandled_sampling_rate", config.ErrorUnhandledSamplingRate).
+		Set("error_handled_sampling_rate", config.ErrorHandledSamplingRate).
 		Set("anr_take_screenshot", config.ANRTakeScreenshot).
 		Set("launch_sampling_rate", config.LaunchSamplingRate).
 		Set("gesture_click_take_snapshot", config.GestureClickTakeSnapshot).

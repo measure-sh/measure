@@ -27,7 +27,7 @@ final class BaseSignalStoreTests: XCTestCase {
         logger = MockLogger()
         config = MockConfigProvider()
 
-        config.crashTimelineDurationSeconds = 30
+        config.errorReplayDurationSeconds = 30
         config.bugReportTimelineDurationSeconds = 20
 
         signalStore = BaseSignalStore(
@@ -102,6 +102,7 @@ final class BaseSignalStoreTests: XCTestCase {
     }
 
     func testMarksTimelineForUnhandledExceptionEvent() {
+        config.errorUnhandledReplayEnabled = true
         let exception = Exception(exceptions: [ExceptionDetail(type: nil, message: nil, frames: nil, signal: nil, threadName: nil, threadSequence: 0, osBuildNumber: nil)], threads: nil, binaryImages: nil, framework: nil, severity: .unhandled, isCustom: nil, numCode: nil, code: nil, meta: nil)
 
         let event = makeBaseEvent(type: .exception, data: exception)
@@ -114,13 +115,14 @@ final class BaseSignalStoreTests: XCTestCase {
     }
 
     func testUnhandledExceptionUsesCrashTimelineDuration() {
+        config.errorUnhandledReplayEnabled = true
         let exception = Exception(exceptions: [ExceptionDetail(type: nil, message: nil, frames: nil, signal: nil, threadName: nil, threadSequence: 0, osBuildNumber: nil)], threads: nil, binaryImages: nil, framework: nil, severity: .unhandled, isCustom: nil, numCode: nil, code: nil, meta: nil)
 
         let event = makeBaseEvent(type: .exception, data: exception)
 
         signalStore.store(event, needsReporting: false)
 
-        XCTAssertEqual(eventStore.lastMarkTimelineDurationSeconds, config.crashTimelineDurationSeconds)
+        XCTAssertEqual(eventStore.lastMarkTimelineDurationSeconds, config.errorReplayDurationSeconds)
     }
 
     func testDoesNotMarkTimelineForHandledException() {
@@ -133,6 +135,19 @@ final class BaseSignalStoreTests: XCTestCase {
         let events = eventStore.getAllEvents()
         XCTAssertEqual(events.count, 1)
         XCTAssertFalse(events.first!.needsReporting)
+    }
+
+    func testDoesNotMarkTimelineWhenSeverityIsDisabled() {
+        config.errorFatalReplayEnabled = false
+        config.errorUnhandledReplayEnabled = false
+
+        for severity in [ExceptionSeverity.fatal, .unhandled] {
+            let exception = Exception(exceptions: [ExceptionDetail(type: nil, message: nil, frames: nil, signal: nil, threadName: nil, threadSequence: 0, osBuildNumber: nil)], threads: nil, binaryImages: nil, framework: nil, severity: severity, isCustom: nil, numCode: nil, code: nil, meta: nil)
+
+            signalStore.store(makeBaseEvent(type: .exception, data: exception), needsReporting: true)
+        }
+
+        XCTAssertNil(eventStore.lastMarkTimelineDurationSeconds)
     }
 
     func testStoresSampledSpan() {

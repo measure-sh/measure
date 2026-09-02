@@ -95,6 +95,45 @@ final class ConfigLoaderTests: XCTestCase {
         wait(for: [exp], timeout: 1)
     }
 
+    // A config file written by an SDK released before the crash to error rename holds only
+    // the crash_* keys. Their values must carry over instead of reverting to defaults.
+    func testLoadDynamicConfig_readsLegacyCrashKeys_whenErrorKeysAbsent() throws {
+        let legacyOnly = """
+        { "crash_timeline_duration": 111, "crash_take_screenshot": false }
+        """
+
+        let config = try loadConfig(fromJson: legacyOnly)
+
+        XCTAssertEqual(config?.errorReplayDurationSeconds, 111)
+        XCTAssertEqual(config?.errorFatalTakeScreenshot, false)
+    }
+
+    func testLoadDynamicConfig_prefersErrorKeys_whenBothPresent() throws {
+        let bothFamilies = """
+        {
+            "error_replay_duration": 222, "error_fatal_take_screenshot": true,
+            "crash_timeline_duration": 111, "crash_take_screenshot": false
+        }
+        """
+
+        let config = try loadConfig(fromJson: bothFamilies)
+
+        XCTAssertEqual(config?.errorReplayDurationSeconds, 222)
+        XCTAssertEqual(config?.errorFatalTakeScreenshot, true)
+    }
+
+    func testEncode_writesLegacyCrashKeys_alongsideErrorKeys() throws {
+        let config = BaseDynamicConfig(errorReplayDurationSeconds: 111, errorFatalTakeScreenshot: false)
+
+        let data = try JSONEncoder().encode(config)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        XCTAssertEqual(json["error_replay_duration"] as? Int, 111)
+        XCTAssertEqual(json["crash_timeline_duration"] as? Int, 111)
+        XCTAssertEqual(json["error_fatal_take_screenshot"] as? Bool, false)
+        XCTAssertEqual(json["crash_take_screenshot"] as? Bool, false)
+    }
+
     // MARK: - Cache + network
 
     func testLoadConfig_fetchesConfig_whenCacheExpired() {
@@ -251,7 +290,7 @@ final class ConfigLoaderTests: XCTestCase {
         }
 
         XCTAssertEqual(actual.maxEventsInBatch, expected.maxEventsInBatch, file: file, line: line)
-        XCTAssertEqual(actual.crashTimelineDurationSeconds, expected.crashTimelineDurationSeconds, file: file, line: line)
+        XCTAssertEqual(actual.errorReplayDurationSeconds, expected.errorReplayDurationSeconds, file: file, line: line)
         XCTAssertEqual(actual.anrTimelineDurationSeconds, expected.anrTimelineDurationSeconds, file: file, line: line)
         XCTAssertEqual(actual.bugReportTimelineDurationSeconds, expected.bugReportTimelineDurationSeconds, file: file, line: line)
         XCTAssertEqual(actual.traceSamplingRate, expected.traceSamplingRate, file: file, line: line)
@@ -259,7 +298,7 @@ final class ConfigLoaderTests: XCTestCase {
         XCTAssertEqual(actual.screenshotMaskLevel, expected.screenshotMaskLevel, file: file, line: line)
         XCTAssertEqual(actual.cpuUsageInterval, expected.cpuUsageInterval, file: file, line: line)
         XCTAssertEqual(actual.memoryUsageInterval, expected.memoryUsageInterval, file: file, line: line)
-        XCTAssertEqual(actual.crashTakeScreenshot, expected.crashTakeScreenshot, file: file, line: line)
+        XCTAssertEqual(actual.errorFatalTakeScreenshot, expected.errorFatalTakeScreenshot, file: file, line: line)
         XCTAssertEqual(actual.anrTakeScreenshot, expected.anrTakeScreenshot, file: file, line: line)
         XCTAssertEqual(actual.launchSamplingRate, expected.launchSamplingRate, file: file, line: line)
         XCTAssertEqual(actual.gestureClickTakeSnapshot, expected.gestureClickTakeSnapshot, file: file, line: line)
@@ -267,5 +306,25 @@ final class ConfigLoaderTests: XCTestCase {
         XCTAssertEqual(actual.httpTrackRequestForUrls, expected.httpTrackRequestForUrls, file: file, line: line)
         XCTAssertEqual(actual.httpTrackResponseForUrls, expected.httpTrackResponseForUrls, file: file, line: line)
         XCTAssertEqual(actual.httpBlockedHeaders, expected.httpBlockedHeaders, file: file, line: line)
+    }
+
+    /// Loads `json` as the config already on disk, with the cache still valid so no fetch happens.
+    private func loadConfig(fromJson json: String) throws -> BaseDynamicConfig? {
+        let configKey = "\(ConfigFileConstants.folderName)/\(ConfigFileConstants.dynamicConfigFolderName)/\(ConfigFileConstants.fileName)"
+        mockFileManager.savedFiles[configKey] = Data(json.utf8)
+
+        mockUserDefaults.configFetchTimestamp = 1000
+        mockUserDefaults.configCacheControl = 10_000
+        mockTimeProvider.current = 2000
+
+        var loaded: BaseDynamicConfig?
+        let exp = expectation(description: "loaded")
+        configLoader.loadDynamicConfig { config in
+            loaded = config as? BaseDynamicConfig
+            exp.fulfill()
+        }
+        wait(for: [exp], timeout: 1)
+
+        return loaded
     }
 }

@@ -160,9 +160,6 @@ class ConfigProviderImpl implements ConfigProvider {
   List<String> get logIgnorePatterns => _dynamicConfig.logIgnorePatterns;
 
   @override
-  bool get crashTakeScreenshot => _dynamicConfig.crashTakeScreenshot;
-
-  @override
   bool get gestureClickTakeSnapshot => _dynamicConfig.gestureClickTakeSnapshot;
 
   @override

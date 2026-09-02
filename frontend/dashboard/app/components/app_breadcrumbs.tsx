@@ -46,7 +46,7 @@ const subrouteTitles: Record<string, string> = {
 const sectionInfo: Record<string, ReactNode> = {
   session_replays: (
     <>
-      Replays are captured for Crashes, ANRs, Bug Reports & sampled sessions.{" "}
+      Replays are captured for Errors, ANRs, Bug Reports & sampled sessions.{" "}
       <Link href="/docs/session-replay" className={underlineLinkStyle}>
         Learn more
       </Link>

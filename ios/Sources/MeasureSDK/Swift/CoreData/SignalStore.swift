@@ -34,19 +34,27 @@ final class BaseSignalStore: SignalStore {
     func store<T: Codable>(_ event: Event<T>, needsReporting: Bool) {
         let eventEntity = EventEntity(event, needsReporting: needsReporting)
 
-        var isCrashEvent = false
-        if let exception = event.exception,
-           exception.severity == .fatal || exception.severity == .unhandled {
-            isCrashEvent = true
+        var isErrorEvent = false
+        var collectErrorTimeline = false
+        if let severity = event.exception?.severity {
+            isErrorEvent = true
+            switch severity {
+            case .fatal:
+                collectErrorTimeline = config.errorFatalReplayEnabled
+            case .unhandled:
+                collectErrorTimeline = config.errorUnhandledReplayEnabled
+            case .handled:
+                collectErrorTimeline = config.errorHandledReplayEnabled
+            }
         }
         let isBugReportEvent = event.type == .bugReport
-        let isHighPriority = isCrashEvent || isBugReportEvent
+        let collectTimeline = collectErrorTimeline || isBugReportEvent
 
         eventStore.insertEvent(event: eventEntity)
-        if isHighPriority {
+        if collectTimeline {
             let timelineDuration: Number
-            if isCrashEvent {
-                timelineDuration = config.crashTimelineDurationSeconds
+            if isErrorEvent {
+                timelineDuration = config.errorReplayDurationSeconds
             } else {
                 timelineDuration = config.bugReportTimelineDurationSeconds
             }

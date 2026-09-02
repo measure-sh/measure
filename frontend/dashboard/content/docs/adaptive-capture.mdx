@@ -18,8 +18,14 @@ Every app starts with these defaults:
 
 | Configuration                        | Default value                                                                       |
 |--------------------------------------|-------------------------------------------------------------------------------------|
-| Take screenshot on crash             | true                                                                                |
-| Crash session replay duration        | 300 seconds (5 minutes)                                                             |
+| Take screenshot on fatal error       | true                                                                                |
+| Session replay for fatal errors      | true                                                                                |
+| Session replay for unhandled errors  | false                                                                               |
+| Session replay for handled errors    | false                                                                               |
+| Error session replay duration        | 300 seconds (5 minutes)                                                             |
+| Fatal error sampling rate            | 100%                                                                                |
+| Unhandled error sampling rate        | 100%                                                                                |
+| Handled error sampling rate          | 0%                                                                                  |
 | Take screenshot on ANR               | true                                                                                |
 | ANR session replay duration          | 300 seconds (5 minutes)                                                             |
 | Bug report session replay duration   | 300                                                                                 |
@@ -37,18 +43,58 @@ Every app starts with these defaults:
 
 ## Errors
 
-These settings apply to crashes and ANRs, the fatal errors.
+Fatal, unhandled, and handled errors each get their own session replay switch and sampling
+rate. See [error severity](/docs/error-monitoring#error-severity) for what the three mean. ANRs
+have their own settings, below.
 
 ### Screenshots
 
-Each crash and ANR report includes a screenshot of the screen at the moment it happened. Turn
-this off if screenshots aren't something you want to capture.
+Every fatal error report includes a screenshot of the screen at the moment it happened. Turn
+this off if you'd rather not capture screenshots.
+
+Errors thrown in Dart never include a screenshot, since an uncaught Flutter error can fire on
+every frame. In a Flutter app this setting only applies to native crashes.
+
+### Session replay
+
+Choose which severities come with a replay of the events before the error. Only fatal errors
+do by default.
+
+<Callout type="info">
+
+SDKs released before these switches existed always collect a replay for fatal and unhandled
+errors.
+
+</Callout>
 
 ### Session replay duration
 
-Every crash and ANR arrives with a replay of the events in the minutes before it. Adjust how
-far back that window reaches to trade off detail against data volume. By default it captures the
-5 minutes before the error.
+One duration applies to every severity that collects a replay. By default it covers the
+5 minutes before the error. A longer window shows more of what led up to the error and sends
+more data.
+
+### Sampling
+
+Set a rate per severity to control how many of its errors are reported. All fatal and unhandled
+errors are reported by default. Handled errors aren't, since apps tend to produce a lot of them,
+so raise that rate when you want them.
+
+An error dropped by sampling can still reach the dashboard if it falls inside a replay window
+collected for another error.
+
+## ANRs
+
+ANRs are collected on Android only.
+
+### Screenshots
+
+Each ANR report includes a screenshot of the screen at the moment it happened. Turn this off if
+you'd rather not capture screenshots.
+
+### Session replay duration
+
+Every ANR arrives with a replay of the events in the minutes before it. By default it captures
+the 5 minutes before the ANR.
 
 ## Bug reports
 
@@ -131,7 +177,7 @@ These headers are never collected, whether or not you list them:
 
 ## Screenshot mask level
 
-Mask screenshots collected with crashes and ANRs to keep sensitive information from leaking.
+Mask screenshots collected with errors and ANRs to keep sensitive information from leaking.
 Pick how much to hide.
 
 <Callout type="info">
