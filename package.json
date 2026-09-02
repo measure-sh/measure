@@ -2,18 +2,15 @@
   "name": "measure.sh",
   "type": "module",
   "devDependencies": {
-    "@commitlint/cli": "^19.3.0",
-    "@commitlint/config-conventional": "^19.2.2",
-    "husky": "^9.0.11",
-    "lint-staged": "^17.0.7"
+    "@commitlint/cli": "^21.2.2",
+    "@commitlint/config-conventional": "^21.2.2",
+    "husky": "^9.1.7",
+    "lint-staged": "^17.4.1"
   },
   "scripts": {
     "prepare": "husky"
   },
   "lint-staged": {
     "frontend/dashboard/**/*.{ts,tsx,js,jsx,mjs,cjs}": "frontend/dashboard/node_modules/.bin/prettier --write"
-  },
-  "dependencies": {
-    "@radix-ui/react-accordion": "^1.2.11"
   }
 }
