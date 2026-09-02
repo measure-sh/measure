@@ -251,23 +251,25 @@ func (u *User) GetUserDetails(ctx context.Context, pg *pgxpool.Pool) (err error)
 func GetExistingAndNewInvitees(pg *pgxpool.Pool, invitees []Invitee) ([]Invitee, []Invitee, error) {
 	var existingInvitees []Invitee
 	var newInvitees []Invitee
-	var emailList string
 
-	var emails []string
+	emails := make([]string, 0, len(invitees))
 	for _, invitee := range invitees {
-		emails = append(emails, fmt.Sprintf("'%s'", invitee.Email))
+		emails = append(emails, invitee.Email)
 	}
-	emailList = strings.Join(emails, ", ")
 
 	stmt := sqlf.PostgreSQL.
 		Select("id, email").
 		From("users").
-		Where(fmt.Sprintf("email in (%s)", emailList)).
+		Where("email = any(?)", emails).
 		Where("confirmed_at is not null")
 
 	defer stmt.Close()
 
-	rows, _ := pg.Query(context.Background(), stmt.String())
+	rows, err := pg.Query(context.Background(), stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	users, err := pgx.CollectRows(rows, func(row pgx.CollectableRow) (User, error) {
 		var user User
 		err := row.Scan(&user.ID, &user.Email)

@@ -25,7 +25,7 @@ type Team struct {
 
 type Invitee struct {
 	ID    uuid.UUID `json:"id"`
-	Email string    `json:"email"`
+	Email string    `json:"email" binding:"required,email"`
 	Role  Rank      `json:"role"`
 }
 
