@@ -5,7 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [android-gradle-plugin-v0.13.0] - 2026-06-15
+## [android-gradle-plugin-v0.14.0] - 2026-09-02
+
+### :sparkles: New features
+
+- (**gradle**): Implement logging (#4021) by @abhaysood
+
+### :bug: Bug fixes
+
+- (**gradle**): Stop hashing the entire sdk in AabSizeTask (#4171) by @ForceGT in #4171
+
+### :hammer: Misc
+
+- (**gradle**): Support navigation-compose 2.9.8 by @abhaysood in #4150
+- (**gradle**): Prepare next development version of plugin (#3913) by @abhaysood in #3913
+
+## [android-gradle-plugin-v0.13.0] - 2026-06-16
 
 ### :bug: Bug fixes
 
@@ -13,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**gradle**): Prepare plugin release 0.13.0 by @abhaysood in #3911
 - (**gradle**): Upload RN and Flutter mappings when R8 is disabled by @abhaysood
 - (**gradle**): Prepare next development version of plugin (#3887) by @abhaysood in #3887
 
@@ -59,6 +75,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [android-gradle-plugin-v0.4.0] - 2024-08-06
 
+[android-gradle-plugin-v0.14.0]: https://github.com/measure-sh/measure/compare/android-gradle-plugin-v0.13.0..android-gradle-plugin-v0.14.0
 [android-gradle-plugin-v0.13.0]: https://github.com/measure-sh/measure/compare/android-gradle-plugin-v0.12.0..android-gradle-plugin-v0.13.0
 [android-gradle-plugin-v0.12.0]: https://github.com/measure-sh/measure/compare/android-gradle-plugin-v0.11.0..android-gradle-plugin-v0.12.0
 [android-gradle-plugin-v0.11.0]: https://github.com/measure-sh/measure/compare/android-gradle-plugin-v0.10.0..android-gradle-plugin-v0.11.0
