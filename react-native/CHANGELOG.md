@@ -5,11 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [rn-v0.3.0] - 2026-09-02
+
+### :books: Documentation
+
+
+- (**rn**): Update link in upload build script (#4258) by @detj in #4258
+
+### :sparkles: New features
+
+
+- (**rn**): Collect expo update attributes for events and spans (#4197) by @adwinross in #4197
+
 ## [rn-v0.2.0] - 2026-07-24
 
 ### :hammer: Misc
 
 
+- (**rn**): Prepare release 0.2.0 (#4140) by @abhaysood in #4140
 - (**rn**): Add patch version parameter to upload patch script (#4135) by @adwinross in #4135
 - (**rn**): Add spm support for measure dependencies (#4029) by @adwinross in #4029
 - (**rn**): Add github workflow to prepare release (#3927) by @adwinross in #3927
@@ -86,6 +99,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**rn**): Add exception tracking (#2628) by @adwinross in #2628
 - (**rn**): Add sdk initialization api (#2505) by @adwinross in #2505
 
+[rn-v0.3.0]: https://github.com/measure-sh/measure/compare/rn-v0.2.0..rn-v0.3.0
 [rn-v0.2.0]: https://github.com/measure-sh/measure/compare/rn-v0.1.1..rn-v0.2.0
 [rn-v0.1.1]: https://github.com/measure-sh/measure/compare/rn-v0.1.0..rn-v0.1.1
 
