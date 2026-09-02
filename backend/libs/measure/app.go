@@ -3012,6 +3012,10 @@ func (a *App) GetTeam(ctx context.Context, pg *pgxpool.Pool) (*Team, error) {
 // Populate fills in all app values
 // for the app.
 func (a *App) Populate(ctx context.Context, pg *pgxpool.Pool) (err error) {
+	var uniqueId pgtype.Text
+	var firstVersion pgtype.Text
+	var onboardedAt pgtype.Timestamptz
+
 	stmt := sqlf.PostgreSQL.From("apps").
 		Select("team_id::UUID").
 		Select("unique_identifier").
@@ -3026,7 +3030,23 @@ func (a *App) Populate(ctx context.Context, pg *pgxpool.Pool) (err error) {
 
 	defer stmt.Close()
 
-	return pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&a.TeamId, &a.UniqueId, &a.AppName, &a.OSNames, &a.FirstVersion, &a.Onboarded, &a.OnboardedAt, &a.CreatedAt, &a.UpdatedAt)
+	if err = pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&a.TeamId, &uniqueId, &a.AppName, &a.OSNames, &firstVersion, &a.Onboarded, &onboardedAt, &a.CreatedAt, &a.UpdatedAt); err != nil {
+		return
+	}
+
+	if uniqueId.Valid {
+		a.UniqueId = uniqueId.String
+	}
+
+	if firstVersion.Valid {
+		a.FirstVersion = firstVersion.String
+	}
+
+	if onboardedAt.Valid {
+		a.OnboardedAt = onboardedAt.Time
+	}
+
+	return
 }
 
 // GetSessionEvents fetches all the events of an app's session.
