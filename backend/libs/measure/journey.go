@@ -18,9 +18,12 @@ import (
 
 const (
 	// journeyMaxSeconds bounds how long one journey aggregate may run.
-	journeyMaxSeconds = 30
+	journeyMaxSeconds = 60
 	// journeyMaxMemoryBytes bounds server memory for one journey aggregate.
 	journeyMaxMemoryBytes = 500 << 20
+	// journeyExternalGroupByBytes spills session aggregation to disk past this
+	// point, keeping a long range within the memory cap.
+	journeyExternalGroupByBytes = 200 << 20
 )
 
 // JourneyEdge is a directed transition between two journey nodes.
@@ -140,6 +143,7 @@ func journeyCtx(ctx context.Context, name string, bounded bool) context.Context 
 	if bounded {
 		settings["max_execution_time"] = journeyMaxSeconds
 		settings["max_memory_usage"] = journeyMaxMemoryBytes
+		settings["max_bytes_before_external_group_by"] = journeyExternalGroupByBytes
 	}
 
 	return chquery.WithSettings(ctx, settings)
@@ -223,34 +227,46 @@ func (a App) journeyNodes(ctx context.Context, rch driver.Conn, af *filter.AppFi
 	return
 }
 
-// journeyEdgesStmt builds the edge query. The partition by session id is what
-// keeps concurrent sessions from linking.
+// journeyEdgesPairs explodes each session sequence into consecutive node
+// pairs, carrying the source row's timestamp. It holds no placeholders, so
+// every edge arg stays inside the seqs CTE. An arrayJoin cannot sit in the
+// same select as the groupArray feeding it, hence the extra nesting.
+const journeyEdgesPairs = "(select session_id, arrayJoin(arrayZip(" +
+	"arrayMap(x -> x.3, arrayPopBack(seq)), " +
+	"arrayMap(x -> x.3, arrayPopFront(seq)), " +
+	"arrayMap(x -> x.1, arrayPopBack(seq)))) as step from seqs) as pairs"
+
+// journeyEdgesStmt builds the edge query. Grouping by session id keeps
+// concurrent sessions from linking. Empty names are filtered after the zip,
+// so a nameless row breaks the chain rather than being skipped over.
 func (a App) journeyEdgesStmt(af *filter.AppFilter, je journeyExpr) *sqlf.Stmt {
-	steps := sqlf.
+	seqs := sqlf.
 		From("journey").
 		Select("session_id").
-		Select("timestamp").
-		Select(je.name.sql+" as name", je.name.args...).
-		Select("any(name) over (partition by session_id order by timestamp rows between 1 following and 1 following) as next_name")
+		Select("arraySort(groupArray((timestamp, id, "+je.name.sql+"))) as seq", je.name.args...).
+		GroupBy("session_id")
 
-	a.journeyBounds(steps, af)
-	steps.Where(je.nodeFilter.sql, je.nodeFilter.args...)
+	a.journeyBounds(seqs, af)
+	seqs.Where(je.nodeFilter.sql, je.nodeFilter.args...)
 
 	stmt := sqlf.
-		From("steps").
-		Select("name as source").
-		Select("next_name as target").
+		From(journeyEdgesPairs).
+		Select("step.1 as source").
+		Select("step.2 as target").
 		Select("uniqExact(session_id) as sessions").
-		Select("min(timestamp) as first_seen").
-		Where("next_name != ''").
-		Where("name != ''").
-		Where("next_name != name").
+		Select("min(step.3) as first_seen").
+		Where("source != ''").
+		Where("target != ''").
+		Where("target != source").
 		GroupBy("source").
 		GroupBy("target").
-		OrderBy("first_seen")
+		// first_seen order is load bearing, journey.buildEdges picks the
+		// surviving direction of a transition by arrival. Source & target
+		// break ties so that choice stays deterministic.
+		OrderBy("first_seen", "source", "target")
 
-	// With closes steps, so only stmt is ever closed by the caller.
-	return stmt.With("steps", steps)
+	// With closes seqs, so only stmt is ever closed by the caller.
+	return stmt.With("seqs", seqs)
 }
 
 // journeyEdges counts session transitions between consecutive nodes.
@@ -278,39 +294,45 @@ func (a App) journeyEdges(ctx context.Context, rch driver.Conn, af *filter.AppFi
 	return
 }
 
+// journeyIssuesAnchored carries the last non NULL anchor forward over each
+// session sequence & explodes it alongside the issue columns. The arrayFill
+// predicate tests null-ness only, so a row with an empty anchor name resets
+// the anchor & never inherits the previous one. It holds no placeholders, so
+// every CTE arg stays inside the seqs CTE.
+const journeyIssuesAnchored = "(select arrayJoin(arrayZip(" +
+	"arrayFill(x -> isNotNull(x), arrayMap(x -> x.4, seq)), " +
+	"arrayMap(x -> x.3, seq), " +
+	"arrayMap(x -> x.5, seq), " +
+	"arrayMap(x -> x.6, seq))) as row from seqs) as anchored"
+
 // journeyIssuesStmt builds the per node issue query. Each issue rides the last
-// anchor node seen in its session, anyLast skips the NULL non anchor rows. An
-// issue with no anchor yet in its session gets an empty node name, it stays
-// counted but attaches to no node. journeyNodesStmt filters empty names, so
-// that node never renders.
+// anchor node seen in its session. An issue with no anchor yet in its session
+// gets an empty node name, it stays counted but attaches to no node.
+// journeyNodesStmt filters empty names, so that node never renders. The tuple
+// selects anr.fingerprint for every OS family even though only Android reads
+// it, keeping every x.N index the same across families.
 func (a App) journeyIssuesStmt(af *filter.AppFilter, je journeyExpr) *sqlf.Stmt {
-	anchored := sqlf.
+	seqs := sqlf.
 		From("journey").
-		Select("type").
-		Select("`exception.fingerprint` as ex_fp")
+		Select("arraySort(groupArray((timestamp, id, type, "+je.anchor.sql+", `exception.fingerprint`, `anr.fingerprint`))) as seq", je.anchor.args...).
+		GroupBy("session_id")
 
-	if je.withANR {
-		anchored.Select("`anr.fingerprint` as anr_fp")
-	}
+	a.journeyBounds(seqs, af)
+	seqs.Where(je.anchorFilter.sql, je.anchorFilter.args...)
 
-	anchored.Select("anyLast("+je.anchor.sql+") over (partition by session_id order by timestamp rows between unbounded preceding and current row) as node", je.anchor.args...)
-
-	a.journeyBounds(anchored, af)
-	anchored.Where(je.anchorFilter.sql, je.anchorFilter.args...)
-
-	fingerprint := journeyFrag{sql: "ex_fp"}
+	fingerprint := journeyFrag{sql: "row.3"}
 	isANR := journeyFrag{sql: "false"}
-	issueTypes := journeyFrag{sql: "(type = ?)", args: []any{event.TypeException}}
+	issueTypes := journeyFrag{sql: "(row.2 = ?)", args: []any{event.TypeException}}
 
 	if je.withANR {
-		fingerprint = journeyFrag{sql: "if(type = ?, anr_fp, ex_fp)", args: []any{event.TypeANR}}
-		isANR = journeyFrag{sql: "toBool(type = ?)", args: []any{event.TypeANR}}
-		issueTypes = journeyFrag{sql: "(type = ? or type = ?)", args: []any{event.TypeException, event.TypeANR}}
+		fingerprint = journeyFrag{sql: "if(row.2 = ?, row.4, row.3)", args: []any{event.TypeANR}}
+		isANR = journeyFrag{sql: "toBool(row.2 = ?)", args: []any{event.TypeANR}}
+		issueTypes = journeyFrag{sql: "(row.2 = ? or row.2 = ?)", args: []any{event.TypeException, event.TypeANR}}
 	}
 
 	stmt := sqlf.
-		From("anchored").
-		Select("ifNull(node, '') as node_name").
+		From(journeyIssuesAnchored).
+		Select("ifNull(row.1, '') as node_name").
 		Select(fingerprint.sql+" as fingerprint", fingerprint.args...).
 		Select(isANR.sql+" as is_anr", isANR.args...).
 		Select("count() as issue_count").
@@ -319,8 +341,8 @@ func (a App) journeyIssuesStmt(af *filter.AppFilter, je journeyExpr) *sqlf.Stmt 
 		GroupBy("fingerprint").
 		GroupBy("is_anr")
 
-	// With closes anchored, so only stmt is ever closed by the caller.
-	return stmt.With("anchored", anchored)
+	// With closes seqs, so only stmt is ever closed by the caller.
+	return stmt.With("seqs", seqs)
 }
 
 // journeyIssues counts exceptions & ANRs per node.

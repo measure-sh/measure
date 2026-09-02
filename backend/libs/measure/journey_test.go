@@ -21,6 +21,7 @@ const (
 	fpJourneyUnanchored = "000000000000000000000000000000f8"
 	fpJourneyAndroid    = "000000000000000000000000000000a1"
 	fpJourneyApple      = "000000000000000000000000000000b1"
+	fpJourneyEmptyName  = "000000000000000000000000000000c1"
 )
 
 // TestGetJourneyGraph drives journey_mv from raw events of two concurrent
@@ -36,20 +37,15 @@ func TestGetJourneyGraph(t *testing.T) {
 
 	at := func(offset int) time.Time { return ts.Add(time.Duration(offset) * time.Second) }
 
-	// A crash from a previous run lands first in its own session, so it has no
-	// anchor. It stays counted, attached to no node.
 	seedIssueEventInSession(f.ctx, t, team, app, sessionA, "exception", fpJourneyUnanchored, false, at(-1))
 
-	// Sessions interleave: A, B, A, B. No edge may cross the two.
 	seedLifecycleActivityInSession(f.ctx, t, team, app, sessionA, "resumed", "HomeActivity", at(0))
 	seedLifecycleActivityInSession(f.ctx, t, team, app, sessionB, "resumed", "CartActivity", at(1))
 	seedLifecycleActivityInSession(f.ctx, t, team, app, sessionA, "resumed", "DetailActivity", at(2))
 	seedLifecycleActivityInSession(f.ctx, t, team, app, sessionB, "resumed", "CheckoutActivity", at(3))
 
-	// Fatal crash on DetailActivity, handled one must not surface at all.
 	seedIssueEventInSession(f.ctx, t, team, app, sessionA, "exception", fpJourneyFatal, false, at(4))
 	seedIssueEventInSession(f.ctx, t, team, app, sessionA, "exception", fpJourneyHandled, true, at(5))
-	// ANR on CheckoutActivity.
 	seedIssueEventInSession(f.ctx, t, team, app, sessionB, "anr", fpJourneyANR, false, at(6))
 
 	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", "")
@@ -70,8 +66,6 @@ func TestGetJourneyGraph(t *testing.T) {
 		}
 	}
 
-	// Concurrent sessions must not link, so HomeActivity -> CartActivity or
-	// DetailActivity -> CheckoutActivity would be wrong.
 	wantEdges := map[string]uint64{
 		"HomeActivity->DetailActivity":   1,
 		"CartActivity->CheckoutActivity": 1,
@@ -92,9 +86,8 @@ func TestGetJourneyGraph(t *testing.T) {
 	}
 
 	wantIssues := map[string]JourneyIssue{
-		fpJourneyFatal: {Node: "DetailActivity", Fingerprint: fpJourneyFatal, Count: 1},
-		fpJourneyANR:   {Node: "CheckoutActivity", Fingerprint: fpJourneyANR, IsANR: true, Count: 1},
-		// Empty node keeps it counted while attaching it nowhere.
+		fpJourneyFatal:      {Node: "DetailActivity", Fingerprint: fpJourneyFatal, Count: 1},
+		fpJourneyANR:        {Node: "CheckoutActivity", Fingerprint: fpJourneyANR, IsANR: true, Count: 1},
 		fpJourneyUnanchored: {Node: "", Fingerprint: fpJourneyUnanchored, Count: 1},
 	}
 	if len(g.Issues) != len(wantIssues) {
@@ -126,15 +119,11 @@ func TestGetJourneyGraphAndroidNodeTypes(t *testing.T) {
 
 	seedLifecycleActivityInSession(f.ctx, t, team, app, sessionA, event.LifecycleActivityTypeResumed, "HomeActivity", at(0))
 	seedLifecycleFragmentInSession(f.ctx, t, team, app, sessionA, event.LifecycleFragmentTypeAttached, "CartFragment", at(10))
-	// Crash lands while the fragment is on screen, it must still anchor to the
-	// last activity.
 	seedIssueEventInSession(f.ctx, t, team, app, sessionA, "exception", fpJourneyAndroid, false, at(15))
-	// Same screen twice in a row, the collapse must drop the self edge.
 	seedScreenViewInSession(f.ctx, t, team, app, sessionA, "CheckoutScreen", at(20))
 	seedScreenViewInSession(f.ctx, t, team, app, sessionA, "CheckoutScreen", at(30))
 	seedLifecycleActivityInSession(f.ctx, t, team, app, sessionA, event.LifecycleActivityTypeResumed, "PayActivity", at(40))
 
-	// Session B repeats the first transition so its session count reaches 2.
 	seedLifecycleActivityInSession(f.ctx, t, team, app, sessionB, event.LifecycleActivityTypeResumed, "HomeActivity", at(1))
 	seedLifecycleFragmentInSession(f.ctx, t, team, app, sessionB, event.LifecycleFragmentTypeAttached, "CartFragment", at(11))
 
@@ -231,6 +220,74 @@ func TestGetJourneyGraphApple(t *testing.T) {
 	}
 	if g.Issues[0] != wantIssue {
 		t.Errorf("issue = %+v, want %+v", g.Issues[0], wantIssue)
+	}
+}
+
+// TestGetJourneyGraphEmptyAnchorResets asserts a screen view with an empty
+// name resets the anchor. The anchor fill tests null-ness, so an empty name
+// stays empty & the issue after it attaches to no node.
+func TestGetJourneyGraphEmptyAnchorResets(t *testing.T) {
+	f := newPlotFixture(t)
+	ts := time.Date(2026, 4, 10, 10, 0, 0, 0, time.UTC)
+	team, app := f.teamIDStr(), f.appIDStr()
+	sessionID := uuid.NewString()
+
+	at := func(offset int) time.Time { return ts.Add(time.Duration(offset) * time.Second) }
+
+	seedLifecycleActivityInSession(f.ctx, t, team, app, sessionID, event.LifecycleActivityTypeResumed, "HomeActivity", at(0))
+	seedScreenViewInSession(f.ctx, t, team, app, sessionID, "", at(1))
+	seedIssueEventInSession(f.ctx, t, team, app, sessionID, event.TypeException, fpJourneyEmptyName, false, at(2))
+
+	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", "")
+	a := App{ID: f.app.ID, TeamId: f.teamID, OSNames: []string{"Android"}}
+
+	g, err := a.GetJourneyGraph(f.ctx, deps.RchPool, af)
+	if err != nil {
+		t.Fatalf("GetJourneyGraph: %v", err)
+	}
+
+	wantIssue := JourneyIssue{Node: "", Fingerprint: fpJourneyEmptyName, Count: 1}
+	if len(g.Issues) != 1 {
+		t.Fatalf("issues = %+v, want %+v", g.Issues, wantIssue)
+	}
+	if g.Issues[0] != wantIssue {
+		t.Errorf("issue = %+v, want %+v (empty anchor resets)", g.Issues[0], wantIssue)
+	}
+}
+
+// TestGetJourneyGraphTieOrderIsStable asserts two edges sharing one first_seen
+// come back in source & target order. journey.buildEdges picks the surviving
+// direction of a transition by arrival, so without the tiebreak the graph
+// changes between refreshes of identical data.
+func TestGetJourneyGraphTieOrderIsStable(t *testing.T) {
+	f := newPlotFixture(t)
+	ts := time.Date(2026, 5, 10, 10, 0, 0, 0, time.UTC)
+	team, app := f.teamIDStr(), f.appIDStr()
+	sessionA, sessionB := uuid.NewString(), uuid.NewString()
+
+	at := func(offset int) time.Time { return ts.Add(time.Duration(offset) * time.Second) }
+
+	seedLifecycleActivityInSession(f.ctx, t, team, app, sessionA, event.LifecycleActivityTypeResumed, "HomeActivity", at(0))
+	seedLifecycleActivityInSession(f.ctx, t, team, app, sessionA, event.LifecycleActivityTypeResumed, "CartActivity", at(1))
+	seedLifecycleActivityInSession(f.ctx, t, team, app, sessionB, event.LifecycleActivityTypeResumed, "PayActivity", at(0))
+	seedLifecycleActivityInSession(f.ctx, t, team, app, sessionB, event.LifecycleActivityTypeResumed, "SettingsActivity", at(1))
+
+	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", "")
+	a := App{ID: f.app.ID, TeamId: f.teamID, OSNames: []string{"Android"}}
+
+	g, err := a.GetJourneyGraph(f.ctx, deps.RchPool, af)
+	if err != nil {
+		t.Fatalf("GetJourneyGraph: %v", err)
+	}
+
+	wantEdges := []string{"HomeActivity->CartActivity", "PayActivity->SettingsActivity"}
+	if len(g.Edges) != len(wantEdges) {
+		t.Fatalf("edges = %+v, want %v", g.Edges, wantEdges)
+	}
+	for i, want := range wantEdges {
+		if got := g.Edges[i].Source + "->" + g.Edges[i].Target; got != want {
+			t.Errorf("edge %d = %s, want %s (tie broken by source & target)", i, got, want)
+		}
 	}
 }
 
