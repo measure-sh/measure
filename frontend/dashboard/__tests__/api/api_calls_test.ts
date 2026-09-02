@@ -1032,6 +1032,13 @@ describe("team management mutations", () => {
     expect(body[0].role).toBe("admin"); // lowercased
   });
 
+  it("inviteMemberFromServer trims the email", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
+    await inviteMemberFromServer("t1", "  bob@example.com  ", "Admin");
+    const body = JSON.parse(lastFetchOpts().body);
+    expect(body[0].email).toBe("bob@example.com");
+  });
+
   it("inviteMemberFromServer throws the server error message", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       mockResponse(false, 400, { error: "bad" }),

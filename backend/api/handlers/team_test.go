@@ -835,6 +835,24 @@ func TestInviteMembers(t *testing.T) {
 			t.Fatalf("status = %d, want 400, body: %s", w.Code, w.Body.String())
 		}
 	})
+
+	t.Run("sql injection in email gets 400", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		ownerID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+
+		body := `[{"email":"z') UNION SELECT id::text, email FROM users-- ","role":"viewer"}]`
+
+		c, w := newInviteContext(ownerID, teamID, body)
+		h.InviteMembers(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, want 400, body: %s", w.Code, w.Body.String())
+		}
+		if n := countInvitesForTeam(ctx, t, teamID); n != 0 {
+			t.Errorf("invites = %d, want 0", n)
+		}
+	})
 }
 
 // --------------------------------------------------------------------------

@@ -1446,12 +1446,13 @@ export const inviteMemberFromServer = async (
   role: string,
 ) => {
   const lowerCaseRole = role.toLocaleLowerCase();
+  const trimmedEmail = email.trim();
   await request(`/api/teams/${teamId}/invite`, {
     method: "POST",
     headers: {
       "Content-Type": `application/json`,
     },
-    body: JSON.stringify([{ email: email, role: lowerCaseRole }]),
+    body: JSON.stringify([{ email: trimmedEmail, role: lowerCaseRole }]),
     failsWith: "Failed to invite member",
   });
 };

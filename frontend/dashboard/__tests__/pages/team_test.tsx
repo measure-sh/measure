@@ -261,7 +261,7 @@ jest.mock("@/app/query/hooks", () => ({
         if (result) {
           opts?.onSuccess?.();
         } else {
-          opts?.onError?.();
+          opts?.onError?.(new Error("Failed to invite member"));
         }
       },
       isPending: s.inviteMemberState === "loading",
@@ -944,7 +944,7 @@ describe("Team Page", () => {
     fireEvent.click(screen.getByRole("button", { name: "Invite" }));
 
     await waitFor(() => {
-      expect(mockToastNegative).toHaveBeenCalledWith("Error inviting member");
+      expect(mockToastNegative).toHaveBeenCalledWith("Failed to invite member");
     });
   });
 
