@@ -29,5 +29,11 @@ export default {
      * reduce header max length violation to a warning
      */
     "header-max-length": [1, "always", 72],
+    /**
+     * allow any casing in the subject
+     *
+     * type stays lower-case so git-cliff commit parsers keep matching
+     */
+    "subject-case": [0],
   },
 };
