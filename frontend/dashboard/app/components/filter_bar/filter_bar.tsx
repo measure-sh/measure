@@ -577,11 +577,15 @@ export default function FilterBar({
     addToGroup(groupId, (id) => ({ id, logicalOperator: "and", children: [] }));
   }
 
+  // The text editor applies its text when it loses focus, so while it is
+  // open the focus is left with it, or the text just cleared would be applied.
   function clearFilter() {
     onRequestChange({ filterExpr: null });
     setTypedText(null);
     setFocusedId(null);
-    addConditionButtonRef.current?.focus();
+    if (!editingAsText) {
+      addConditionButtonRef.current?.focus();
+    }
   }
 
   function toggleLogicalOperator(groupId: string) {
@@ -804,6 +808,7 @@ export default function FilterBar({
                 type="button"
                 aria-label="Clear filter"
                 data-testid="filter-clear"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={clearFilter}
                 className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
               >

@@ -1365,7 +1365,7 @@ describe("FilterBar", () => {
     });
 
     it("empties the editor when the filter is cleared", async () => {
-      await renderBar();
+      const { onFilterChange } = await renderBar();
 
       await addCondition();
       await startTyping();
@@ -1373,6 +1373,7 @@ describe("FilterBar", () => {
       await click(screen.getByTestId("filter-clear"));
 
       expect(textBox()).toHaveValue("");
+      expect(lastState(onFilterChange)).toMatchObject({ filterExpr: null });
     });
 
     it("empties the editor when another app is picked", async () => {
