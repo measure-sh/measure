@@ -271,11 +271,15 @@ describe("DateRangeSelect", () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
-  it("keeps the timestamps when Custom Range is picked", () => {
+  it("keeps the timestamps, cut to the minute, when Custom Range is picked", () => {
     const onChange = jest.fn();
     render(
       <DateRangeSelect
-        selection={storedRange(DateRange.LastWeek)}
+        selection={storedRange(
+          DateRange.LastWeek,
+          "2026-01-01T10:42:17.123Z",
+          "2026-01-02T10:42:17.123Z",
+        )}
         onChange={onChange}
       />,
     );
@@ -284,8 +288,8 @@ describe("DateRangeSelect", () => {
 
     expect(onChange).toHaveBeenCalledWith({
       dateRange: DateRange.Custom,
-      startDate: "2026-01-01T00:00:00.000Z",
-      endDate: "2026-01-02T00:00:00.000Z",
+      startDate: DateTime.fromISO("2026-01-01T10:42:00.000Z").toISO(),
+      endDate: DateTime.fromISO("2026-01-02T10:42:00.000Z").toISO(),
     });
   });
 
