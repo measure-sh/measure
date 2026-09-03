@@ -6,7 +6,10 @@ import {
   type ReadyFilterState,
   filterExprUrlKey,
 } from "@/app/components/filter_bar/filter_bar";
-import { DateRange } from "@/app/components/filter_bar/date_range_select";
+import {
+  DateRange,
+  type UncheckedDateRange,
+} from "@/app/components/filter_bar/date_range_select";
 import { type FilterParams, paginationOffsetUrlKey } from "@/app/query/hooks";
 import { urlFiltersKeyMap } from "@/app/stores/filters_store";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -18,6 +21,16 @@ const {
   startDate: startDateUrlKey,
   endDate: endDateUrlKey,
 } = urlFiltersKeyMap;
+
+// A relative label is counted back from now, so its timestamps are not part
+// of a request.
+function withoutRelativeTimestamps(
+  range: UncheckedDateRange,
+): UncheckedDateRange {
+  return range.dateRange === DateRange.Custom
+    ? range
+    : { dateRange: range.dateRange, startDate: null, endDate: null };
+}
 
 function sameRequest(a: FilterRequest, b: FilterRequest): boolean {
   return (
@@ -116,7 +129,7 @@ export function useExprFilterPage({
 
   const fromReadyState = (state: ReadyFilterState): FilterRequest => ({
     appId: state.app.id,
-    dateRange: state.date,
+    dateRange: withoutRelativeTimestamps(state.date),
     filterExpr: state.filterExpr,
     rootSpanName: state.rootSpanName,
   });

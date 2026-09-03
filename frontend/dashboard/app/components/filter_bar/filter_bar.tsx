@@ -658,7 +658,14 @@ export default function FilterBar({
       <AppSelect apps={apps} selected={selectedApp} onChange={setApp} />
       <DateRangeSelect
         selection={date}
-        onChange={(selection) => onRequestChange({ dateRange: selection })}
+        onChange={(selection) =>
+          onRequestChange({
+            dateRange:
+              selection.dateRange === DateRange.Custom
+                ? selection
+                : { ...selection, startDate: null, endDate: null },
+          })
+        }
       />
       {showRootSpanSelector &&
         (rootSpanNamesQuery.isPending ? (
