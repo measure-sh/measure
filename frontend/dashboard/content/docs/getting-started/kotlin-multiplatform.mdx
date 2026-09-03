@@ -12,8 +12,8 @@ wrapper over the native Android and iOS SDKs, so their minimum requirements appl
 | Name            | Version  |
 | --------------- | -------- |
 | Kotlin          | `2.x`    |
-| Measure Android | `0.18.0` |
-| Measure iOS     | `0.11.0` |
+| Measure Android | `0.20.0` |
+| Measure iOS     | `0.13.1` |
 
 ## 1. Get the credentials
 
@@ -33,7 +33,7 @@ create a new app on Measure with a different API key.
 kotlin {
     sourceSets {
         commonMain.dependencies {
-            implementation("sh.measure:measure-kmp:0.1.0")
+            implementation("sh.measure:measure-kmp:0.2.0")
         }
     }
 }
@@ -71,7 +71,7 @@ Add the native Measure iOS SDK to your iOS app using Swift Package Manager. See 
 
 ```swift
 // In Package.swift, or via Xcode's package manager
-.package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.11.0")
+.package(url: "https://github.com/measure-sh/measure.git", branch: "ios-v0.13.1")
 ```
 
 Initialize the SDK in your `AppDelegate`'s `application(_:didFinishLaunchingWithOptions:)`:
