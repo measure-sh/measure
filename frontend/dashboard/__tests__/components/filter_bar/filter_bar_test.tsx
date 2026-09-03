@@ -635,6 +635,21 @@ describe("FilterBar", () => {
       expect(lastState(onFilterChange).status).toBe("pending");
     });
 
+    it("does not judge a request by another app's keys", async () => {
+      mockUseFilterKeysQuery.mockReturnValue({
+        data: { keys: [versionKey], key_groups: ["Version"] },
+        isPending: false,
+        isPlaceholderData: true,
+        isError: false,
+      } as any);
+      const { onFilterChange } = await renderBar({
+        requestedFilterExpr: "mapping_type:in:dsym",
+      });
+
+      expect(lastState(onFilterChange).status).toBe("pending");
+      expect(mockToastNegative).not.toHaveBeenCalled();
+    });
+
     it("filters nothing when it is empty", async () => {
       const { onFilterChange } = await renderBar({ requestedFilterExpr: "" });
 
