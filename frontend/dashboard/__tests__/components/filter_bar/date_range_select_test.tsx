@@ -331,6 +331,23 @@ describe("DateRangeSelect", () => {
     expect(end).toHaveValue(formatIsoDateForDateTimeInputField(custom.endDate));
   });
 
+  it("shows the range it is re-rendered with", () => {
+    const { rerender } = render(
+      <DateRangeSelect selection={custom} onChange={jest.fn()} />,
+    );
+    rerender(
+      <DateRangeSelect
+        selection={{ ...custom, endDate: "2026-01-05T00:00:00.000Z" }}
+        onChange={jest.fn()}
+      />,
+    );
+
+    const [, end] = timestampInputs();
+    expect(end).toHaveValue(
+      formatIsoDateForDateTimeInputField("2026-01-05T00:00:00.000Z"),
+    );
+  });
+
   it("refuses an end in the future", () => {
     const onChange = jest.fn();
     render(<DateRangeSelect selection={custom} onChange={onChange} />);

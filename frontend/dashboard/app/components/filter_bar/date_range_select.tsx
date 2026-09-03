@@ -1,12 +1,8 @@
 "use client";
 
 import { DateTime } from "luxon";
-import {
-  formatIsoDateForDateTimeInputField,
-  isValidTimestamp,
-} from "../../utils/time_utils";
 import DropdownSelect, { DropdownSelectType } from "../dropdown_select";
-import { Input } from "../input";
+import CustomDateTimeInput from "./custom_date_input";
 
 export enum DateRange {
   Last15Mins = "Last 15 Minutes",
@@ -173,48 +169,17 @@ export default function DateRangeSelect({
       {dateRange === DateRange.Custom && (
         <>
           <p className="font-display px-2">:</p>
-          <Input
-            type="datetime-local"
-            defaultValue={formatIsoDateForDateTimeInputField(startDate)}
-            max={formatIsoDateForDateTimeInputField(endDate)}
-            onChange={(e) => {
-              if (!isValidTimestamp(e.target.value)) {
-                return;
-              }
-              // A refused value is put back, since one left on screen could
-              // not be entered again.
-              if (
-                DateTime.fromISO(e.target.value) <= DateTime.fromISO(endDate)
-              ) {
-                onChange({
-                  ...selection,
-                  startDate: DateTime.fromISO(e.target.value).toISO()!,
-                });
-              } else {
-                e.target.value = formatIsoDateForDateTimeInputField(startDate);
-              }
-            }}
+          <CustomDateTimeInput
+            timestamp={startDate}
+            max={endDate}
+            onChange={(start) => onChange({ ...selection, startDate: start })}
           />
           <p className="font-display px-2">to</p>
-          <Input
-            type="datetime-local"
-            defaultValue={formatIsoDateForDateTimeInputField(endDate)}
-            min={formatIsoDateForDateTimeInputField(startDate)}
-            max={formatIsoDateForDateTimeInputField(DateTime.now().toISO())}
-            onChange={(e) => {
-              if (!isValidTimestamp(e.target.value)) {
-                return;
-              }
-              const end = DateTime.fromISO(e.target.value);
-              if (end >= DateTime.fromISO(startDate) && end <= DateTime.now()) {
-                onChange({
-                  ...selection,
-                  endDate: end.toISO()!,
-                });
-              } else {
-                e.target.value = formatIsoDateForDateTimeInputField(endDate);
-              }
-            }}
+          <CustomDateTimeInput
+            timestamp={endDate}
+            min={startDate}
+            max={DateTime.now().toISO()!}
+            onChange={(end) => onChange({ ...selection, endDate: end })}
           />
         </>
       )}
