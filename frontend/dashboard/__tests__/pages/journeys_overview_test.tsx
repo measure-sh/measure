@@ -50,11 +50,10 @@ const mockReportedDate = {
 // a filter it cannot read.
 let mockMountDiscardsFilter = false;
 
-// Like the real bar, this stub reports an app, a range and a filter as it
-// mounts, and offers buttons that report a changed filter, a cleared filter,
-// another app, or a failure. Only the mount report carries appliedAsRequested
-// true, and only when the URL's filter was not discarded; a report from a
-// button models a user edit. The issues the page hands back are rendered so
+// Like the real bar, this stub reports the request it is handed, on mount
+// and whenever it changes; its buttons hand the page a request the way a
+// pick does, or report a failure. Only a discarded mount report carries
+// appliedAsRequested false. The issues the page hands back are rendered so
 // tests can see them reach the bar.
 jest.mock("@/app/components/filter_bar/filter_bar", () => {
   const { useEffect } = require("react");
@@ -71,14 +70,25 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => {
       filterExpr,
       appliedAsRequested,
     });
+    const requestedApp =
+      props.requestedAppId === mockOtherApp.id ? mockOtherApp : mockReportedApp;
+    const request = (filterExpr: string | null, appId = mockReportedApp.id) =>
+      props.onRequestChange({
+        appId,
+        dateRange: mockReportedDate,
+        filterExpr,
+        rootSpanName: null,
+      });
 
     useEffect(() => {
       if (mockMountDiscardsFilter) {
         props.onFilterChange(ready(null, false));
       } else {
-        props.onFilterChange(ready(props.requestedFilterExpr, true));
+        props.onFilterChange(
+          ready(props.requestedFilterExpr, true, requestedApp),
+        );
       }
-    }, []);
+    }, [props.requestedAppId, props.requestedFilterExpr]);
 
     return (
       <div data-testid="filter-bar-mock">
@@ -95,23 +105,16 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => {
         </span>
         <button
           data-testid="filter-bar-apply"
-          onClick={() => props.onFilterChange(ready("version_name:in:1.2.0"))}
+          onClick={() => request("version_name:in:1.2.0")}
         >
           apply
         </button>
-        <button
-          data-testid="filter-bar-clear"
-          onClick={() => props.onFilterChange(ready(null))}
-        >
+        <button data-testid="filter-bar-clear" onClick={() => request(null)}>
           clear
         </button>
         <button
           data-testid="filter-bar-switch-app"
-          onClick={() =>
-            props.onFilterChange(
-              ready(props.requestedFilterExpr, false, mockOtherApp),
-            )
-          }
+          onClick={() => request(props.requestedFilterExpr, mockOtherApp.id)}
         >
           switch app
         </button>
@@ -215,8 +218,7 @@ function journeyFailed(error: Error) {
 }
 
 // What the stub bar reports, as the page writes it into the URL.
-const selectionParams =
-  "a=app-1&d=Last+6+Hours&sd=2026-01-01T00%3A00%3A00.000Z&ed=2026-01-01T06%3A00%3A00.000Z";
+const selectionParams = "a=app-1&d=Last+6+Hours";
 
 const selectionUrl = (...trailingParams: string[]) =>
   `?${[selectionParams, ...trailingParams].join("&")}`;

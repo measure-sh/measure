@@ -42,6 +42,7 @@ export default function BugReportsOverview(props: {
     paginationOffset,
     filterState,
     filterParams,
+    onRequestChange,
     onFilterChange,
     nextPage,
     prevPage,
@@ -72,10 +73,11 @@ export default function BugReportsOverview(props: {
         teamId={params.teamId}
         entity="bug_reports"
         placeholder="Filter bug reports…"
-        requestedAppId={requestedFilters.app}
+        requestedAppId={requestedFilters.appId}
         requestedDateRange={requestedFilters.dateRange}
         requestedFilterExpr={requestedFilters.filterExpr}
         filterExprIssues={filterExprIssues}
+        onRequestChange={onRequestChange}
         onFilterChange={onFilterChange}
       />
       <div className="py-4" />

@@ -57,8 +57,10 @@ const mockReportedDate = {
 // a filter it cannot read.
 let mockMountDiscardsFilter = false;
 
-// Only an undiscarded mount report carries appliedAsRequested true; a
-// report from a button models a user edit.
+// Like the real bar, this stub reports the request it is handed, on mount
+// and whenever it changes; its buttons hand the page a request the way a
+// pick does, or report a failure. Only a discarded mount report carries
+// appliedAsRequested false.
 jest.mock("@/app/components/filter_bar/filter_bar", () => {
   const { useEffect } = require("react");
 
@@ -73,6 +75,13 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => {
       filterExpr,
       appliedAsRequested,
     });
+    const request = (filterExpr: string | null) =>
+      props.onRequestChange({
+        appId: mockReportedApp.id,
+        dateRange: mockReportedDate,
+        filterExpr,
+        rootSpanName: null,
+      });
 
     useEffect(() => {
       if (mockMountDiscardsFilter) {
@@ -80,7 +89,7 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => {
       } else {
         props.onFilterChange(ready(props.requestedFilterExpr, true));
       }
-    }, []);
+    }, [props.requestedFilterExpr]);
 
     return (
       <div data-testid="filter-bar-mock">
@@ -89,14 +98,11 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => {
         </span>
         <button
           data-testid="filter-bar-apply"
-          onClick={() => props.onFilterChange(ready("mapping_type:in:dsym"))}
+          onClick={() => request("mapping_type:in:dsym")}
         >
           apply
         </button>
-        <button
-          data-testid="filter-bar-clear"
-          onClick={() => props.onFilterChange(ready(null))}
-        >
+        <button data-testid="filter-bar-clear" onClick={() => request(null)}>
           clear
         </button>
         <button
@@ -182,8 +188,7 @@ function loaded(data: any = mockBuildsData) {
 }
 
 // What the stub bar reports, as the page writes it into the URL.
-const selectionParams =
-  "a=app-1&d=Last+6+Hours&sd=2026-01-01T00%3A00%3A00.000Z&ed=2026-01-01T06%3A00%3A00.000Z";
+const selectionParams = "a=app-1&d=Last+6+Hours";
 
 const selectionUrl = (offset: number, filterParam?: string) =>
   `?po=${offset}&${selectionParams}${filterParam ? `&${filterParam}` : ""}`;
@@ -261,8 +266,8 @@ describe("Builds page", () => {
     renderPage();
 
     // The write has not landed, so the URL still holds the discarded
-    // filter and the query stays disabled.
-    expect(mockUseBuildsQuery).toHaveBeenLastCalledWith(null, 30);
+    // filter and the query stays disabled, at the offset the page wrote.
+    expect(mockUseBuildsQuery).toHaveBeenLastCalledWith(null, 0);
 
     await act(async () => {
       applyReplaceUrl(mockRouter.deferredReplaceUrl!);

@@ -27,10 +27,12 @@ import { Skeleton } from "../skeleton";
 import DropdownSelect, { DropdownSelectType } from "../dropdown_select";
 import AppSelect from "./app_select";
 import DateRangeSelect, {
+  DateRange,
   type DateSelection,
   isValidDateRange,
   type UncheckedDateRange,
-  pickInitialDateSelection,
+  pickDateRange,
+  toDateSelection,
 } from "./date_range_select";
 import {
   buildConditionGroup,
@@ -72,20 +74,6 @@ function writeFilterExpr(conditions: ConditionGroup): string | null {
   return tree ? formatFilterExpr(tree) : null;
 }
 
-function normalizeFilterExpr(
-  text: string | null,
-  keys: FilterKey[],
-): string | null {
-  if (!text) {
-    return null;
-  }
-  const parsed = parseFilterExpr(text, { draft: true });
-  if (!parsed.ok) {
-    return null;
-  }
-  return writeFilterExpr(buildConditionGroup(parsed.tree, keys));
-}
-
 export type ReadyFilterState = Extract<FilterState, { status: "ready" }>;
 
 export type FilterState =
@@ -97,11 +85,17 @@ export type FilterState =
       date: DateSelection;
       filterExpr: string | null;
       rootSpanName: string | null;
-      // True when the caller's request was applied unchanged: the user made no
-      // edits and nothing requested was discarded. Unrequested fields count as
-      // honored.
+      // True when nothing requested was discarded.
       appliedAsRequested: boolean;
     };
+
+export type FilterRequest = {
+  appId: string | null;
+  dateRange: UncheckedDateRange;
+  // The filter as drawn, which can hold a condition with no value yet.
+  filterExpr: string | null;
+  rootSpanName: string | null;
+};
 
 interface FilterBarProps {
   teamId: string;
@@ -113,6 +107,7 @@ interface FilterBarProps {
   filterExprIssues?: FilterExprIssue[] | null;
   showRootSpanSelector?: boolean;
   requestedRootSpanName?: string | null;
+  onRequestChange: (change: Partial<FilterRequest>) => void;
   onFilterChange: (state: FilterState) => void;
 }
 
@@ -126,6 +121,7 @@ export default function FilterBar({
   filterExprIssues,
   showRootSpanSelector = false,
   requestedRootSpanName = null,
+  onRequestChange,
   onFilterChange,
 }: FilterBarProps) {
   const store = useFiltersStore();
@@ -135,17 +131,7 @@ export default function FilterBar({
   const [editingAsText, setEditingAsText] = useState(false);
   const [focusedId, setFocusedId] = useState<string | null>(null);
 
-  // The filter the bar holds after the user changes it, and null until then.
-  // Both parts initially come from the expression the page was asked for.
-  //
-  // `draftExpr` is everything on screen, including conditions still being
-  // built, while `appliedExpr` is the subset complete enough to filter by.
-  const [editedFilter, setEditedFilter] = useState<{
-    draftExpr: string;
-    appliedExpr: string | null;
-  } | null>(null);
-
-  const [editedDate, setEditedDate] = useState<DateSelection | null>(null);
+  const [typedText, setTypedText] = useState<string | null>(null);
 
   // Focus follows a condition as it is added, and moves to the preceding
   // condition when it is removed.
@@ -155,11 +141,7 @@ export default function FilterBar({
   const appsQuery = useAppsQuery(teamId);
   const apps = useMemo(() => appsQuery.data ?? [], [appsQuery.data]);
 
-  const [editedApp, setEditedApp] = useState<App | null>(null);
-  // The user's pick wins, then the app requested, then the app
-  // from store, then the first app as fallback
   const selectedApp =
-    apps.find((app) => app.id === editedApp?.id) ??
     apps.find((app) => app.id === requestedAppId) ??
     apps.find((app) => app.id === rememberedAppId) ??
     apps[0] ??
@@ -172,7 +154,10 @@ export default function FilterBar({
   }, [selectedApp?.id]);
 
   const parsedRequestedFilter = useMemo(
-    () => (requestedFilterExpr ? parseFilterExpr(requestedFilterExpr) : null),
+    () =>
+      requestedFilterExpr
+        ? parseFilterExpr(requestedFilterExpr, { draft: true })
+        : null,
     [requestedFilterExpr],
   );
 
@@ -194,9 +179,8 @@ export default function FilterBar({
   // sent once its condition has an operator, which keeps the query key
   // stable while the user is still typing the key name itself.
   const queriedCustomKeyNames = useMemo(() => {
-    const parsedDraft = editedFilter
-      ? parseFilterExpr(editedFilter.draftExpr, { draft: true })
-      : null;
+    const parsedDraft =
+      typedText !== null ? parseFilterExpr(typedText, { draft: true }) : null;
     const draftNames = (parsedDraft?.tokens ?? [])
       .filter(
         (token, index, tokens) =>
@@ -206,7 +190,7 @@ export default function FilterBar({
       )
       .map((token) => token.text);
     return [...new Set([...requestedCustomKeyNames, ...draftNames])].sort();
-  }, [editedFilter, requestedCustomKeyNames]);
+  }, [typedText, requestedCustomKeyNames]);
 
   const keysQuery = useFilterKeysQuery(
     selectedApp?.id,
@@ -224,16 +208,9 @@ export default function FilterBar({
     [rootSpanNamesQuery.data],
   );
 
-  const [selectedRootSpanName, setSelectedRootSpanName] = useState<
-    string | null
-  >(null);
   const resolvedRootSpanName = useMemo(() => {
     if (!showRootSpanSelector || rootSpanNames.length === 0) {
       return null;
-    }
-    // An app switch replaces the list
-    if (selectedRootSpanName && rootSpanNames.includes(selectedRootSpanName)) {
-      return selectedRootSpanName;
     }
     if (
       requestedAppId === selectedApp?.id &&
@@ -246,24 +223,28 @@ export default function FilterBar({
   }, [
     showRootSpanSelector,
     rootSpanNames,
-    selectedRootSpanName,
     requestedAppId,
     requestedRootSpanName,
     selectedApp?.id,
   ]);
 
   // The requested date range takes precedence over the persisted store range.
-  const initialDate = useMemo(
-    () =>
-      pickInitialDateSelection(requestedDateRange, {
-        dateRange: store.selectedDateRange,
-        startDate: store.selectedStartDate,
-        endDate: store.selectedEndDate,
-      }),
-    [],
+  const pickedDateRange = pickDateRange(requestedDateRange, {
+    dateRange: store.selectedDateRange,
+    startDate: store.selectedStartDate,
+    endDate: store.selectedEndDate,
+  });
+  // A relative range is counted back from now, so the window is computed
+  // once per label and does not move between renders.
+  const customDateRange = pickedDateRange.dateRange === DateRange.Custom;
+  const date = useMemo(
+    () => toDateSelection(pickedDateRange)!,
+    [
+      pickedDateRange.dateRange,
+      customDateRange ? pickedDateRange.startDate : null,
+      customDateRange ? pickedDateRange.endDate : null,
+    ],
   );
-
-  const date = editedDate ?? initialDate;
 
   useEffect(() => {
     store.setSelectedDateRange(date.dateRange);
@@ -289,23 +270,30 @@ export default function FilterBar({
   const keyGroups = keysQuery.data?.key_groups ?? [];
 
   const checkingRequestedFilter =
-    editedFilter === null &&
-    parsedRequestedFilter !== null &&
-    keysQuery.isPending;
+    parsedRequestedFilter !== null && keysQuery.isPending;
 
-  const requestedFilterDiscarded =
-    editedFilter === null &&
-    parsedRequestedFilter !== null &&
-    !keysQuery.isPending &&
-    (!parsedRequestedFilter.ok ||
-      findUnusableConditions(parsedRequestedFilter.tokens, keys).length > 0 ||
-      validateLimits(
-        buildConditionGroup(parsedRequestedFilter.tree ?? null, keys),
-      ) !== null);
+  // A condition with no value yet is drawn but not filtered by.
+  const requestConditions = useMemo(
+    () =>
+      buildConditionGroup(
+        parsedRequestedFilter?.ok ? parsedRequestedFilter.tree : null,
+        keys,
+      ),
+    [parsedRequestedFilter, keys],
+  );
+
+  const requestedFilterDiscarded = useMemo(
+    () =>
+      parsedRequestedFilter !== null &&
+      !keysQuery.isPending &&
+      (!parsedRequestedFilter.ok ||
+        findUnusableConditions(parsedRequestedFilter.tokens, keys).length > 0 ||
+        validateLimits(requestConditions) !== null),
+    [parsedRequestedFilter, keys, keysQuery.isPending, requestConditions],
+  );
 
   const draftFilterExpr =
-    editedFilter?.draftExpr ??
-    (requestedFilterDiscarded ? "" : (requestedFilterExpr ?? ""));
+    typedText ?? (requestedFilterDiscarded ? "" : (requestedFilterExpr ?? ""));
 
   const parsedDraftFilter = useMemo(
     () => parseFilterExpr(draftFilterExpr, { draft: true }),
@@ -321,21 +309,17 @@ export default function FilterBar({
     [parsedDraftFilter, keys],
   );
 
-  const currentFilterExpr = editedFilter
-    ? editedFilter.appliedExpr
-    : requestedFilterDiscarded
-      ? null
-      : requestedFilterExpr || null;
+  const currentFilterExpr = useMemo(
+    () =>
+      requestedFilterDiscarded ? null : writeFilterExpr(requestConditions),
+    [requestedFilterDiscarded, requestConditions],
+  );
 
-  // The canonical form of the draft and applied filters. This makes filters that
-  // differ only in spacing or in brackets around a single value compare equal.
+  // The canonical form of the draft. This makes filters that differ only in
+  // spacing or in brackets around a single value compare equal.
   const draftAppliedExpr = useMemo(
     () => writeFilterExpr(draftConditions),
     [draftConditions],
-  );
-  const appliedExprAsWritten = useMemo(
-    () => normalizeFilterExpr(currentFilterExpr, keys),
-    [currentFilterExpr, keys],
   );
 
   // Case                           |  Bar                 |  Page
@@ -359,10 +343,7 @@ export default function FilterBar({
   // Server issues belong to the submitted expression. Clear them when the draft
   // changes semantically, and keep their spans only while the submitted text is unchanged.
   const serverIssues = useMemo<FilterExprIssue[]>(() => {
-    if (
-      !filterExprIssues?.length ||
-      draftAppliedExpr !== appliedExprAsWritten
-    ) {
+    if (!filterExprIssues?.length || draftAppliedExpr !== currentFilterExpr) {
       return [];
     }
 
@@ -370,13 +351,7 @@ export default function FilterBar({
       ...issue,
       span: draftFilterExpr === currentFilterExpr ? issue.span : undefined,
     }));
-  }, [
-    filterExprIssues,
-    draftFilterExpr,
-    draftAppliedExpr,
-    appliedExprAsWritten,
-    currentFilterExpr,
-  ]);
+  }, [filterExprIssues, draftFilterExpr, draftAppliedExpr, currentFilterExpr]);
 
   // Prefer local validation; server issues apply only when local validation pass.
   const draftFilterIssues =
@@ -419,19 +394,7 @@ export default function FilterBar({
     rootSpanNameDiscarded ||
     requestedFilterDiscarded;
 
-  // The ready state is the caller's unchanged request, as long as the
-  // user has made no edits and nothing was discarded. The app is checked
-  // by ID because a requested app may no longer be available, in which
-  // case it is replaced with a fallback.
-  const appliedAsRequested =
-    editedApp === null &&
-    editedDate === null &&
-    editedFilter === null &&
-    selectedRootSpanName === null &&
-    !dateDiscarded &&
-    !requestedFilterDiscarded &&
-    !rootSpanNameDiscarded &&
-    (requestedAppId === null || selectedApp?.id === requestedAppId);
+  const appliedAsRequested = !anythingDiscarded;
 
   // The readiness of the app, date and filter expression, before the root
   // span selector is considered. The bar's own controls render once this is
@@ -554,13 +517,12 @@ export default function FilterBar({
   }, [focusedId]);
 
   function setApp(app: App) {
-    setEditedApp(app);
     // Clear filters on app change
-    setEditedFilter({ draftExpr: "", appliedExpr: null });
-    setSelectedRootSpanName(null);
+    onRequestChange({ appId: app.id, filterExpr: null, rootSpanName: null });
+    setTypedText(null);
   }
 
-  // Turns an edit to the conditions back into the text the bar holds.
+  // Turns an edit to the conditions back into request text.
   function setConditions(next: ConditionGroup) {
     const limit = validateLimits(next);
     if (limit) {
@@ -568,10 +530,7 @@ export default function FilterBar({
       return;
     }
 
-    setEditedFilter({
-      draftExpr: formatFilterExpr(buildDraftTree(next)),
-      appliedExpr: writeFilterExpr(next),
-    });
+    onRequestChange({ filterExpr: formatFilterExpr(buildDraftTree(next)) });
   }
 
   function setRow(rowId: string, patch: Partial<ConditionRow>) {
@@ -615,7 +574,8 @@ export default function FilterBar({
   }
 
   function clearFilter() {
-    setEditedFilter({ draftExpr: "", appliedExpr: null });
+    onRequestChange({ filterExpr: null });
+    setTypedText(null);
     setFocusedId(null);
     addConditionButtonRef.current?.focus();
   }
@@ -632,26 +592,19 @@ export default function FilterBar({
   // Typing redraws the bar at once, while what the page is filtered by stays
   // as it is until the text is applied.
   function changeFilterText(text: string) {
-    setEditedFilter({ draftExpr: text, appliedExpr: currentFilterExpr });
+    setTypedText(text);
   }
 
   function applyFilterText() {
-    if (draftIssueMessage) {
+    if (draftIssueMessage || typedText === null) {
       return;
     }
-    setEditedFilter({
-      draftExpr: draftFilterExpr,
-      appliedExpr: draftAppliedExpr,
-    });
+    onRequestChange({ filterExpr: typedText });
+    setTypedText(null);
   }
 
-  // Leaving the editor restores the filter currently applied to the page, so
-  // unapplied text is not left behind for the conditions to render.
   function cancelTextEditing() {
-    setEditedFilter({
-      draftExpr: currentFilterExpr ?? "",
-      appliedExpr: currentFilterExpr,
-    });
+    setTypedText(null);
     setEditingAsText(false);
   }
 
@@ -704,7 +657,10 @@ export default function FilterBar({
   return (
     <div className="flex flex-wrap gap-4 items-start w-full">
       <AppSelect apps={apps} selected={selectedApp} onChange={setApp} />
-      <DateRangeSelect selection={date} onChange={setEditedDate} />
+      <DateRangeSelect
+        selection={date}
+        onChange={(selection) => onRequestChange({ dateRange: selection })}
+      />
       {showRootSpanSelector &&
         (rootSpanNamesQuery.isPending ? (
           <Skeleton className="h-9 w-37.5" />
@@ -717,7 +673,7 @@ export default function FilterBar({
             onChangeSelected={(item) => {
               const name = item as string;
               if (name !== resolvedRootSpanName) {
-                setSelectedRootSpanName(name);
+                onRequestChange({ rootSpanName: name });
               }
             }}
           />

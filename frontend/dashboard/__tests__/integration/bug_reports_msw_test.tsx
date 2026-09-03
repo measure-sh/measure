@@ -254,8 +254,8 @@ describe("Bug Reports Overview (MSW integration)", () => {
       );
       expect(written.get("a")).toBe(appId);
       expect(written.get("d")).toBe("Last 6 Hours");
-      expect(written.get("sd")).toBeTruthy();
-      expect(written.get("ed")).toBeTruthy();
+      expect(written.get("sd")).toBeNull();
+      expect(written.get("ed")).toBeNull();
       expect(written.get("po")).toBe("0");
     });
 
