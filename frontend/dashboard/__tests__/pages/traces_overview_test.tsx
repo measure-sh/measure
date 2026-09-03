@@ -67,6 +67,7 @@ const mockReportedDate = {
 // place of the URL's, the way the real bar substitutes a default when the
 // app no longer has the requested name.
 let mockMountSubstitutesName = false;
+let mockAppHasNoTraces = false;
 
 // Like the real bar, this stub reports a resolved trace name for the request
 // it is handed, on mount and whenever it changes; its buttons hand the page a
@@ -80,7 +81,7 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => {
       filterExpr: string | null,
       // The real bar restores the URL's name when it can, so the stub
       // reports it back too and falls back to a first name of its own.
-      rootSpanName: string = props.requestedRootSpanName ?? "span.first",
+      rootSpanName: string | null = props.requestedRootSpanName ?? "span.first",
       appliedAsRequested: boolean = false,
     ) => ({
       status: "ready",
@@ -103,6 +104,8 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => {
         props.onFilterChange(
           ready(props.requestedFilterExpr, "span.substitute", false),
         );
+      } else if (mockAppHasNoTraces) {
+        props.onFilterChange(ready(props.requestedFilterExpr, null, true));
       } else {
         props.onFilterChange(ready(props.requestedFilterExpr, undefined, true));
       }
@@ -261,6 +264,7 @@ describe("TracesOverview page", () => {
   beforeEach(() => {
     mockRouter.reset();
     mockMountSubstitutesName = false;
+    mockAppHasNoTraces = false;
     mockUseSpansQuery.mockReset();
     mockUseSpansQuery.mockReturnValue(pendingQueryState());
     mockUseSpanMetricsPlotQuery.mockReset();
@@ -478,6 +482,28 @@ describe("TracesOverview page", () => {
     beforeEach(() => {
       mockRouter.searchParams = new URLSearchParams(`po=10&${selectionParams}`);
       spansLoaded();
+    });
+
+    it("says there is no data for an app that never reported a trace, and still writes the URL", async () => {
+      mockAppHasNoTraces = true;
+      mockRouter.searchParams = new URLSearchParams(
+        `po=10&r=span.first&${selectionParams}`,
+      );
+      renderPage();
+
+      expect(
+        screen.getByText("No traces received for this app yet"),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Trace")).toBeNull();
+      expect(replaceMock).toHaveBeenLastCalledWith(
+        `?po=10&${selectionParams}`,
+        { scroll: false },
+      );
+      expect(mockUseSpansQuery).toHaveBeenLastCalledWith(
+        expect.anything(),
+        null,
+        10,
+      );
     });
 
     it("is said by the page, in place of the list", async () => {

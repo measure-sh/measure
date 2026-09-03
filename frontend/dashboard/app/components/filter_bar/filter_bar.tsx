@@ -471,11 +471,10 @@ export default function FilterBar({
           "Error fetching traces list, please refresh page or select a different app to try again",
       };
     }
+    // An app that has never reported a trace has nothing to select, and the
+    // app and date it resolved with are still written.
     if (rootSpanNamesQuery.isSuccess && rootSpanNames.length === 0) {
-      return {
-        status: "error",
-        message: "No traces received for this app yet",
-      };
+      return { ...baseFilterState, rootSpanName: null };
     }
     if (resolvedRootSpanName === null) {
       return { status: "pending" };

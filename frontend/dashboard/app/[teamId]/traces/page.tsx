@@ -93,6 +93,12 @@ export default function TracesOverview(props: {
 
       {filterState.status === "pending" && <SkeletonListPage />}
 
+      {readyFilter !== null && readyFilter.rootSpanName === null && (
+        <p className="text-lg font-display">
+          No traces received for this app yet
+        </p>
+      )}
+
       {readyFilter !== null &&
         status === "error" &&
         filterExprIssues === null && (
@@ -103,6 +109,7 @@ export default function TracesOverview(props: {
         )}
 
       {readyFilter !== null &&
+        readyFilter.rootSpanName !== null &&
         (status === "success" || status === "pending") && (
           <div className="flex flex-col items-center w-full">
             <SpanMetricsPlot

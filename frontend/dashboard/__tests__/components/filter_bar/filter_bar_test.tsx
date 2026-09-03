@@ -416,6 +416,27 @@ describe("FilterBar", () => {
       });
     });
 
+    it("resolves with no name when the app has never reported a trace", async () => {
+      mockUseRootSpanNamesQuery.mockReturnValue({
+        data: [],
+        isPending: false,
+        isError: false,
+        isSuccess: true,
+      });
+      const { onFilterChange } = await renderBar({
+        requestedAppId: "app-1",
+        showRootSpanSelector: true,
+      });
+
+      expect(lastState(onFilterChange)).toMatchObject({
+        status: "ready",
+        app: apps[0],
+        rootSpanName: null,
+        appliedAsRequested: true,
+      });
+      expect(mockToastNegative).not.toHaveBeenCalled();
+    });
+
     it("does not toast for a root span name with no requested app", async () => {
       mockUseRootSpanNamesQuery.mockReturnValue({
         data: ["checkout", "startup"],
