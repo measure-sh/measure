@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### :bug: Bug fixes
+
+- (**frontend**): Cut Custom Range timestamps to the minute by @anupcowkur in #4389
+- (**frontend**): Keep a date being edited until the input loses focus by @anupcowkur
+- (**frontend**): Keep focus in the text editor when the filter is cleared by @anupcowkur
+- (**frontend**): Do not judge a filter by the previous app's keys by @anupcowkur
+- (**frontend**): Keep timestamps out of a relative date request by @anupcowkur
+- (**frontend**): Ignore a pick that leaves the request unchanged by @anupcowkur
+- (**frontend**): Keep a pick made while a URL write is in flight by @anupcowkur
+- (**frontend**): Show the custom range the URL carries after Back by @anupcowkur
+- (**frontend**): Write the URL for an app that has no traces by @anupcowkur
+- (**frontend**): Make the URL the source of truth for the filter bar by @anupcowkur
+
 ## [0.13.0] - 2026-09-03
 
 ### :sparkles: New features
@@ -3043,6 +3058,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Replace team/:id/invite docs with /auth/invite docs by @anupcowkur in #367
 - (**webapp**): Add API docs for crash & ANR groups APIs by @anupcowkur in #350
 
+[unreleased]: https://github.com/measure-sh/measure/compare/v0.13.0..HEAD
 [0.13.0]: https://github.com/measure-sh/measure/compare/v0.12.1..v0.13.0
 [0.12.1]: https://github.com/measure-sh/measure/compare/v0.12.0..v0.12.1
 [0.12.0]: https://github.com/measure-sh/measure/compare/v0.11.0..v0.12.0
