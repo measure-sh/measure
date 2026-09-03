@@ -65,11 +65,10 @@ const mockReportedDate = {
 // a filter it cannot read.
 let mockMountDiscardsFilter = false;
 
-// Like the real bar, this stub reports an app, a range and a filter as it
-// mounts, and offers buttons that report a changed filter, a cleared filter,
-// or a failure. Only the mount report carries appliedAsRequested true, and
-// only when the URL's filter was not discarded; a report from a button
-// models a user edit.
+// Like the real bar, this stub reports the request it is handed, on mount
+// and whenever it changes; its buttons hand the page a request the way a
+// pick does, or report a failure. Only a discarded mount report carries
+// appliedAsRequested false.
 jest.mock("@/app/components/filter_bar/filter_bar", () => {
   const { useEffect } = require("react");
 
@@ -84,6 +83,13 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => {
       filterExpr,
       appliedAsRequested,
     });
+    const request = (filterExpr: string | null) =>
+      props.onRequestChange({
+        appId: mockReportedApp.id,
+        dateRange: mockReportedDate,
+        filterExpr,
+        rootSpanName: null,
+      });
 
     useEffect(() => {
       if (mockMountDiscardsFilter) {
@@ -91,7 +97,7 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => {
       } else {
         props.onFilterChange(ready(props.requestedFilterExpr, true));
       }
-    }, []);
+    }, [props.requestedFilterExpr]);
 
     return (
       <div data-testid="filter-bar-mock">
@@ -100,16 +106,11 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => {
         </span>
         <button
           data-testid="filter-bar-apply"
-          onClick={() =>
-            props.onFilterChange(ready("bug_report_status:in:open"))
-          }
+          onClick={() => request("bug_report_status:in:open")}
         >
           apply
         </button>
-        <button
-          data-testid="filter-bar-clear"
-          onClick={() => props.onFilterChange(ready(null))}
-        >
+        <button data-testid="filter-bar-clear" onClick={() => request(null)}>
           clear
         </button>
         <button
@@ -220,8 +221,7 @@ function bugReportsLoaded(data: any = mockBugReportsData) {
 }
 
 // What the stub bar reports, as the page writes it into the URL.
-const selectionParams =
-  "a=app-1&d=Last+6+Hours&sd=2026-01-01T00%3A00%3A00.000Z&ed=2026-01-01T06%3A00%3A00.000Z";
+const selectionParams = "a=app-1&d=Last+6+Hours";
 
 const selectionUrl = (offset: number, filterParam?: string) =>
   `?po=${offset}&${selectionParams}${filterParam ? `&${filterParam}` : ""}`;
@@ -304,8 +304,8 @@ describe("BugReportsOverview page", () => {
     renderPage();
 
     // The write has not landed, so the URL still holds the discarded
-    // filter and the queries stay disabled.
-    expect(mockUseBugReportsOverviewQuery).toHaveBeenLastCalledWith(null, 30);
+    // filter and the queries stay disabled, at the offset the page wrote.
+    expect(mockUseBugReportsOverviewQuery).toHaveBeenLastCalledWith(null, 0);
 
     await act(async () => {
       applyReplaceUrl(mockRouter.deferredReplaceUrl!);

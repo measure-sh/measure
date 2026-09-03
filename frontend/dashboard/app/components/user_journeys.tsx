@@ -39,6 +39,7 @@ export default function UserJourneys({
     requestedFilters,
     filterState,
     filterParams,
+    onRequestChange,
     onFilterChange,
     setPageUrlKey,
   } = useExprFilterPage({ pageUrlKeys: [journeyTypeUrlKey] });
@@ -78,10 +79,11 @@ export default function UserJourneys({
             teamId={params.teamId}
             entity="journeys"
             placeholder="Filter journeys…"
-            requestedAppId={requestedFilters.app}
+            requestedAppId={requestedFilters.appId}
             requestedDateRange={requestedFilters.dateRange}
             requestedFilterExpr={requestedFilters.filterExpr}
             filterExprIssues={filterExprIssues}
+            onRequestChange={onRequestChange}
             onFilterChange={onFilterChange}
           />
           <div className="py-4" />

@@ -17,6 +17,7 @@ export default function Builds(props: { params: Promise<{ teamId: string }> }) {
     paginationOffset,
     filterState,
     filterParams,
+    onRequestChange,
     onFilterChange,
     nextPage,
     prevPage,
@@ -34,10 +35,11 @@ export default function Builds(props: { params: Promise<{ teamId: string }> }) {
         teamId={params.teamId}
         entity="builds"
         placeholder="Filter builds…"
-        requestedAppId={requestedFilters.app}
+        requestedAppId={requestedFilters.appId}
         requestedDateRange={requestedFilters.dateRange}
         requestedFilterExpr={requestedFilters.filterExpr}
         filterExprIssues={filterExprIssues}
+        onRequestChange={onRequestChange}
         onFilterChange={onFilterChange}
       />
       <div className="py-4" />

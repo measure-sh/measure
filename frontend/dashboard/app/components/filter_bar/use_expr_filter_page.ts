@@ -1,10 +1,12 @@
 "use client";
 
 import {
+  type FilterRequest,
   type FilterState,
   type ReadyFilterState,
   filterExprUrlKey,
 } from "@/app/components/filter_bar/filter_bar";
+import { DateRange } from "@/app/components/filter_bar/date_range_select";
 import { type FilterParams, paginationOffsetUrlKey } from "@/app/query/hooks";
 import { urlFiltersKeyMap } from "@/app/stores/filters_store";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -18,93 +20,132 @@ const {
 } = urlFiltersKeyMap;
 
 /**
- * Fields of the bar's ready report that a page may carry in the URL beyond
- * the app, date range and filter expression: the nullable string fields,
- * minus the filter expression the hook already owns.
- */
-type ExtraFilterField = Exclude<
-  {
-    [P in keyof ReadyFilterState]: ReadyFilterState[P] extends string | null
-      ? null extends ReadyFilterState[P]
-        ? P
-        : never
-      : never;
-  }[keyof ReadyFilterState],
-  "filterExpr"
->;
-
-/**
  * The URL-driven filter mechanics shared by the pages that pair a FilterBar
- * with paginated queries. The URL is the single source of truth: the bar's
- * report is written into the URL, and the queries read the filter and the
- * pagination offset back from it, so each fetch uses one searchParams
- * snapshot.
+ * with paginated queries. The URL is the source of truth: the bar shows what
+ * it is handed, its resolved report is written into the URL, and the queries
+ * read the filter and the pagination offset back from it.
  *
- * A page with a selection of its own carried in the URL, such as a root span
- * name, declares it in `extraUrlKeys` as a map from the field of the bar's
- * ready report to the URL key that carries it. The hook then reads the
- * requested value, includes the field in the URL-vs-report equality gate, and
- * writes it into the URL with the rest of the filter.
+ * A user's pick is held here as the request the bar shows until the URL
+ * carries it. The page tells its own write from a navigation by the search
+ * string it was on when the request was stored and the one it wrote; any
+ * other search string is a navigation and the URL wins. The request is kept
+ * after the write, because a condition with no value yet is not written into
+ * the URL.
  *
- * A page that queries without pagination leaves `paginationLimit` out: the
- * URL then never carries the offset and `paginationOffset` stays zero.
- *
- * A page with URL state the bar knows nothing about, such as which plot is
- * shown, lists those keys in `pageUrlKeys` and writes them through
- * `setPageUrlKey`. When the bar's report is written into the URL, the values
- * those keys currently hold are carried over, so a filter change does not
- * reset them.
+ * A page with a root span selection in the URL declares its key in
+ * `extraUrlKeys`. A page without pagination leaves `paginationLimit` out.
+ * URL state the bar knows nothing about, such as which plot is shown, is
+ * listed in `pageUrlKeys` and written through `setPageUrlKey`; a filter
+ * write carries those values over.
  */
-export function useExprFilterPage<Extra extends ExtraFilterField = never>({
+export function useExprFilterPage({
   paginationLimit,
   extraUrlKeys,
   pageUrlKeys = [],
 }: {
   paginationLimit?: number;
-  extraUrlKeys?: Record<Extra, string>;
+  extraUrlKeys?: { rootSpanName: string };
   pageUrlKeys?: string[];
 }) {
-  const extras = Object.entries(extraUrlKeys ?? {}) as [Extra, string][];
-
   const router = useRouter();
   const searchParams = useSearchParams();
+  const search = searchParams.toString();
+
+  const [request, setRequest] = useState<{
+    filters: FilterRequest;
+    urlBefore: string | null;
+    urlWritten: string | null;
+  } | null>(null);
+  const [filterState, setFilterState] = useState<FilterState>({
+    status: "pending",
+  });
+
+  // The search string from before the write is only the page's own until
+  // the written one is seen. After that it can only come from a navigation,
+  // such as the same sidebar link clicked again, so it is forgotten.
+  if (
+    request !== null &&
+    request.urlBefore !== null &&
+    search === request.urlWritten
+  ) {
+    setRequest({ ...request, urlBefore: null });
+  }
+
+  const writeInFlight =
+    request !== null &&
+    request.urlBefore !== null &&
+    search === request.urlBefore;
+
+  // Until the router reports the written search string, the page reads back
+  // the one it wrote, not the one from before.
+  const knownParams =
+    writeInFlight && request.urlWritten !== null
+      ? new URLSearchParams(request.urlWritten)
+      : searchParams;
 
   const paginationOffset =
     paginationLimit === undefined
       ? 0
-      : Number(searchParams.get(paginationOffsetUrlKey)) || 0;
+      : Number(knownParams.get(paginationOffsetUrlKey)) || 0;
 
-  const requestedFilters = {
-    app: searchParams.get(appIdUrlKey),
+  const fromUrl: FilterRequest = {
+    appId: searchParams.get(appIdUrlKey),
     dateRange: {
       dateRange: searchParams.get(dateRangeUrlKey),
       startDate: searchParams.get(startDateUrlKey),
       endDate: searchParams.get(endDateUrlKey),
     },
     filterExpr: searchParams.get(filterExprUrlKey),
+    rootSpanName:
+      extraUrlKeys === undefined
+        ? null
+        : searchParams.get(extraUrlKeys.rootSpanName),
   };
-  const requestedExtras = Object.fromEntries(
-    extras.map(([field, urlKey]) => [field, searchParams.get(urlKey)]),
-  ) as Record<Extra, string | null>;
 
-  const [filterState, setFilterState] = useState<FilterState>({
-    status: "pending",
+  const fromReadyState = (state: ReadyFilterState): FilterRequest => ({
+    appId: state.app.id,
+    dateRange: state.date,
+    filterExpr: state.filterExpr,
+    rootSpanName: state.rootSpanName,
   });
 
-  // The filter is null until the URL matches the bar's report, extras
+  const requestedFilters =
+    request !== null && (writeInFlight || search === request.urlWritten)
+      ? request.filters
+      : fromUrl;
+
+  // A relative label is counted back from now, so its timestamps are not
+  // written and any the URL holds are ignored.
+  const filterUrlEntries = (filter: ReadyFilterState) => {
+    const entries: [string, string | null][] = [
+      [appIdUrlKey, filter.app.id],
+      [dateRangeUrlKey, filter.date.dateRange],
+    ];
+    if (filter.date.dateRange === DateRange.Custom) {
+      entries.push(
+        [startDateUrlKey, filter.date.startDate],
+        [endDateUrlKey, filter.date.endDate],
+      );
+    }
+    if (extraUrlKeys !== undefined) {
+      entries.push([extraUrlKeys.rootSpanName, filter.rootSpanName]);
+    }
+    entries.push([filterExprUrlKey, filter.filterExpr]);
+    return entries;
+  };
+
+  // The filter is null until the URL matches the bar's report, root span
   // included, so a value the bar discarded is never fetched.
   const filterParams: FilterParams | null =
     filterState.status === "ready" &&
-    requestedFilters.app === filterState.app.id &&
-    requestedFilters.dateRange.startDate === filterState.date.startDate &&
-    requestedFilters.dateRange.endDate === filterState.date.endDate &&
-    requestedFilters.filterExpr === filterState.filterExpr &&
-    extras.every(([field]) => requestedExtras[field] === filterState[field])
+    filterUrlEntries(filterState).every(
+      ([key, value]) => searchParams.get(key) === value,
+    )
       ? {
-          appId: requestedFilters.app,
-          startDate: requestedFilters.dateRange.startDate,
-          endDate: requestedFilters.dateRange.endDate,
-          filterExpr: requestedFilters.filterExpr,
+          appId: filterState.app.id,
+          startDate: filterState.date.startDate,
+          endDate: filterState.date.endDate,
+          filterExpr: filterState.filterExpr,
         }
       : null;
 
@@ -113,26 +154,26 @@ export function useExprFilterPage<Extra extends ExtraFilterField = never>({
     if (paginationLimit !== undefined) {
       urlParams.set(paginationOffsetUrlKey, String(offset));
     }
-    urlParams.set(appIdUrlKey, filter.app.id);
-    urlParams.set(dateRangeUrlKey, filter.date.dateRange);
-    urlParams.set(startDateUrlKey, filter.date.startDate);
-    urlParams.set(endDateUrlKey, filter.date.endDate);
-    for (const [field, urlKey] of extras) {
-      const value: string | null = filter[field];
-      if (value !== null) {
-        urlParams.set(urlKey, value);
-      }
-    }
-    if (filter.filterExpr) {
-      urlParams.set(filterExprUrlKey, filter.filterExpr);
-    }
-    for (const key of pageUrlKeys) {
-      const value = searchParams.get(key);
+    for (const [key, value] of filterUrlEntries(filter)) {
       if (value !== null) {
         urlParams.set(key, value);
       }
     }
-    return `?${urlParams.toString()}`;
+    for (const key of pageUrlKeys) {
+      const value = knownParams.get(key);
+      if (value !== null) {
+        urlParams.set(key, value);
+      }
+    }
+    return urlParams.toString();
+  };
+
+  const onRequestChange = (change: Partial<FilterRequest>) => {
+    setRequest({
+      filters: { ...requestedFilters, ...change },
+      urlBefore: search,
+      urlWritten: null,
+    });
   };
 
   const onFilterChange = (newFilterState: FilterState) => {
@@ -141,18 +182,50 @@ export function useExprFilterPage<Extra extends ExtraFilterField = never>({
     if (newFilterState.status !== "ready") {
       return;
     }
-    // The URL's pagination offset is kept only when the bar applied the URL's
-    // request unchanged. Any edit or substitution starts back at page one.
-    const offset = newFilterState.appliedAsRequested ? paginationOffset : 0;
-    router.replace(buildFilterUrl(newFilterState, offset), { scroll: false });
+    // The URL's pagination offset is kept only when the bar applied the
+    // request unchanged and that request is already in the URL. A new pick,
+    // or a substitution, starts back at page one.
+    const pickAwaitingWrite = request !== null && request.urlWritten === null;
+    const offset =
+      newFilterState.appliedAsRequested && !pickAwaitingWrite
+        ? paginationOffset
+        : 0;
+    const params = buildFilterUrl(newFilterState, offset);
+    // Stored as resolved, so a navigation back to the search string it came
+    // from changes the bar's props and the bar reports again. The filter text
+    // is kept as asked, since a condition with no value yet is not resolved.
+    setRequest({
+      filters: {
+        ...fromReadyState(newFilterState),
+        filterExpr: newFilterState.appliedAsRequested
+          ? requestedFilters.filterExpr
+          : newFilterState.filterExpr,
+      },
+      urlBefore: search,
+      urlWritten: params,
+    });
+    // The bar reports again before the router applies a write; the same
+    // write is not issued twice.
+    if (
+      params !== search &&
+      !(writeInFlight && params === request.urlWritten)
+    ) {
+      router.replace(`?${params}`, { scroll: false });
+    }
   };
 
   // Replaces one key in the URL and leaves everything else the URL carries
-  // as it is.
+  // as it is. The write is recorded so the bar keeps showing the request.
   const setPageUrlKey = (key: string, value: string) => {
-    const urlParams = new URLSearchParams(searchParams);
+    const urlParams = new URLSearchParams(knownParams);
     urlParams.set(key, value);
-    router.replace(`?${urlParams.toString()}`, { scroll: false });
+    const params = urlParams.toString();
+    setRequest({
+      filters: requestedFilters,
+      urlBefore: search,
+      urlWritten: params,
+    });
+    router.replace(`?${params}`, { scroll: false });
   };
 
   const navigateToOffset = (offset: number) =>
@@ -173,10 +246,10 @@ export function useExprFilterPage<Extra extends ExtraFilterField = never>({
 
   return {
     requestedFilters,
-    requestedExtras,
     paginationOffset,
     filterState,
     filterParams,
+    onRequestChange,
     onFilterChange,
     setPageUrlKey,
     nextPage,

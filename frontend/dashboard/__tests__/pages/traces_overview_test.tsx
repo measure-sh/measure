@@ -68,11 +68,10 @@ const mockReportedDate = {
 // app no longer has the requested name.
 let mockMountSubstitutesName = false;
 
-// Like the real bar, this stub reports an app, a range and a resolved trace
-// name as it mounts, and offers buttons that report a changed filter, a
-// changed trace name, or a failure. Only the mount report carries
-// appliedAsRequested true, and only when nothing was substituted; a report
-// from a button models a user edit.
+// Like the real bar, this stub reports a resolved trace name for the request
+// it is handed, on mount and whenever it changes; its buttons hand the page a
+// request the way a pick does, or report a failure. Only a substituted report
+// carries appliedAsRequested false.
 jest.mock("@/app/components/filter_bar/filter_bar", () => {
   const { useEffect } = require("react");
 
@@ -91,6 +90,13 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => {
       rootSpanName,
       appliedAsRequested,
     });
+    const request = (filterExpr: string | null, rootSpanName: string) =>
+      props.onRequestChange({
+        appId: mockReportedApp.id,
+        dateRange: mockReportedDate,
+        filterExpr,
+        rootSpanName,
+      });
 
     useEffect(() => {
       if (mockMountSubstitutesName) {
@@ -100,7 +106,7 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => {
       } else {
         props.onFilterChange(ready(props.requestedFilterExpr, undefined, true));
       }
-    }, []);
+    }, [props.requestedFilterExpr, props.requestedRootSpanName]);
 
     return (
       <div data-testid="filter-bar-mock">
@@ -115,17 +121,18 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => {
         </span>
         <button
           data-testid="filter-bar-apply"
-          onClick={() => props.onFilterChange(ready("span_status:in:error"))}
+          onClick={() =>
+            request(
+              "span_status:in:error",
+              props.requestedRootSpanName ?? "span.first",
+            )
+          }
         >
           apply
         </button>
         <button
           data-testid="filter-bar-pick-name"
-          onClick={() =>
-            props.onFilterChange(
-              ready(props.requestedFilterExpr, "span.second"),
-            )
-          }
+          onClick={() => request(props.requestedFilterExpr, "span.second")}
         >
           pick name
         </button>
@@ -236,8 +243,7 @@ function spansLoaded(data: any = mockSpanData) {
 }
 
 // What the stub bar reports, as the page writes it into the URL.
-const selectionParams =
-  "a=app-1&d=Last+6+Hours&sd=2026-01-01T00%3A00%3A00.000Z&ed=2026-01-01T06%3A00%3A00.000Z";
+const selectionParams = "a=app-1&d=Last+6+Hours";
 
 // The names in these tests are URL-safe, so they appear in the URL as-is.
 const selectionUrl = (
@@ -350,7 +356,7 @@ describe("TracesOverview page", () => {
 
     // The URL write has not landed, so the bar's report does not match the
     // URL yet and the queries stay disabled with a null filter.
-    expect(mockUseSpansQuery).toHaveBeenLastCalledWith(null, null, 0);
+    expect(mockUseSpansQuery).toHaveBeenLastCalledWith(null, "span.first", 0);
     expect(screen.getByTestId("span-metrics-plot-mock")).toBeInTheDocument();
     expect(screen.getByTestId("skeleton-plot-mock")).toBeInTheDocument();
   });
@@ -495,13 +501,9 @@ describe("TracesOverview page", () => {
         fireEvent.click(screen.getByTestId("filter-bar-fail"));
       });
 
-      // The name stays readable from the URL, but the null filter keeps the
-      // query disabled.
-      expect(mockUseSpansQuery).toHaveBeenLastCalledWith(
-        null,
-        "span.first",
-        10,
-      );
+      // Without a ready report there is no resolved name, and the null
+      // filter keeps the query disabled.
+      expect(mockUseSpansQuery).toHaveBeenLastCalledWith(null, null, 10);
     });
 
     it("leaves the URL where the link had it", async () => {
@@ -615,8 +617,12 @@ describe("TracesOverview page", () => {
       renderPage();
 
       // The write has not landed, so the URL still holds the dead name
-      // and the queries stay disabled.
-      expect(mockUseSpansQuery).toHaveBeenLastCalledWith(null, "span.gone", 30);
+      // and the queries stay disabled, at the offset the page wrote.
+      expect(mockUseSpansQuery).toHaveBeenLastCalledWith(
+        null,
+        "span.substitute",
+        0,
+      );
 
       await act(async () => {
         applyReplaceUrl(mockRouter.deferredReplaceUrl!);
@@ -634,7 +640,7 @@ describe("TracesOverview page", () => {
         0,
       );
       for (const [filter, spanName, offset] of mockUseSpansQuery.mock.calls) {
-        if (spanName === "span.substitute") {
+        if (spanName === "span.substitute" && filter !== null) {
           expect(offset).toBe(0);
         }
         if (spanName === "span.gone") {

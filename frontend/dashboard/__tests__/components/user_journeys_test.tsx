@@ -23,7 +23,7 @@ jest.mock("@/app/components/filter_bar/use_expr_filter_page", () => ({
   __esModule: true,
   useExprFilterPage: () => ({
     requestedFilters: {
-      app: null,
+      appId: null,
       dateRange: { dateRange: null, startDate: null, endDate: null },
       filterExpr: null,
     },

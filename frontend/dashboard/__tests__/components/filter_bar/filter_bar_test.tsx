@@ -1,6 +1,7 @@
 import { describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { useState } from "react";
 
 const mockUseAppsQuery = jest.fn();
 const mockUseFilterKeysQuery = jest.fn();
@@ -149,6 +150,7 @@ import type { App } from "@/app/api/api_calls";
 import type { FilterKey } from "@/app/api/filter_types";
 import { MAX_CONDITIONS } from "@/app/components/filter_bar/limits";
 import FilterBar, {
+  type FilterRequest,
   type FilterState,
 } from "@/app/components/filter_bar/filter_bar";
 
@@ -221,15 +223,54 @@ const nothingRequested = {
   requestedFilterExpr: null,
 };
 
-async function renderBar(props: any = {}) {
-  const onFilterChange = jest.fn();
-  const bar = (asked: any) => (
+const propOfField = {
+  appId: "requestedAppId",
+  dateRange: "requestedDateRange",
+  filterExpr: "requestedFilterExpr",
+  rootSpanName: "requestedRootSpanName",
+} as const;
+
+// Stands in for the page. A pick is merged into the requested props, and a
+// new request from outside replaces it.
+function Host({
+  asked,
+  onFilterChange,
+}: {
+  asked: any;
+  onFilterChange: (state: FilterState) => void;
+}) {
+  const [pick, setPick] = useState<{ on: any; request: any } | null>(null);
+  const request = pick !== null && pick.on === asked ? pick.request : asked;
+
+  return (
     <FilterBar
       teamId="team-1"
       entity="builds"
-      {...nothingRequested}
-      {...props}
-      {...asked}
+      {...request}
+      onRequestChange={(change: Partial<FilterRequest>) =>
+        setPick({
+          on: asked,
+          request: {
+            ...request,
+            ...Object.fromEntries(
+              Object.entries(change).map(([field, value]) => [
+                propOfField[field as keyof FilterRequest],
+                value,
+              ]),
+            ),
+          },
+        })
+      }
+      onFilterChange={onFilterChange}
+    />
+  );
+}
+
+async function renderBar(props: any = {}) {
+  const onFilterChange = jest.fn();
+  const bar = (asked: any) => (
+    <Host
+      asked={{ ...nothingRequested, ...props, ...asked }}
       onFilterChange={onFilterChange}
     />
   );
@@ -631,6 +672,60 @@ describe("FilterBar", () => {
         filterExpr: null,
       });
     });
+
+    it("draws a condition with no value yet, and reports without it", async () => {
+      const { onFilterChange } = await renderBar({
+        requestedFilterExpr: "mapping_type:in:dsym AND version_name:in:",
+      });
+
+      expect(screen.getAllByLabelText("Remove condition")).toHaveLength(2);
+      expect(screen.getByText("<values>")).toBeInTheDocument();
+      expect(lastState(onFilterChange)).toMatchObject({
+        status: "ready",
+        filterExpr: "mapping_type:in:dsym",
+        appliedAsRequested: true,
+      });
+      expect(mockToastNegative).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("a request from outside", () => {
+    it("replaces a pick", async () => {
+      const { onFilterChange, askAgain } = await renderBar();
+
+      await click(screen.getByTestId("pick-app-app-2"));
+      await addCondition();
+      expect(lastState(onFilterChange)).toMatchObject({
+        app: apps[1],
+        filterExpr: "mapping_type:in:dsym",
+      });
+
+      await askAgain({
+        requestedAppId: "app-1",
+        requestedFilterExpr: "version_name:in:1.0",
+      });
+
+      expect(lastState(onFilterChange)).toMatchObject({
+        app: apps[0],
+        filterExpr: "version_name:in:1.0",
+      });
+      expect(screen.getByTestId("app-select")).toHaveAttribute(
+        "data-selected",
+        "Checkout",
+      );
+    });
+
+    it("drops a condition with no value yet", async () => {
+      const { onFilterChange, askAgain } = await renderBar();
+
+      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      expect(screen.getByLabelText("Remove condition")).toBeInTheDocument();
+
+      await askAgain({});
+
+      expect(screen.queryByLabelText("Remove condition")).toBeNull();
+      expect(lastState(onFilterChange)).toMatchObject({ filterExpr: null });
+    });
   });
 
   describe("opening the key list from the bar", () => {
@@ -697,17 +792,13 @@ describe("FilterBar", () => {
       });
     });
 
-    it("no longer reports the request as applied once the filter is edited", async () => {
+    it("reports a pick the page handed back as applied", async () => {
       const { onFilterChange } = await renderBar();
-
-      expect(lastState(onFilterChange)).toMatchObject({
-        appliedAsRequested: true,
-      });
 
       await addCondition();
 
       expect(lastState(onFilterChange)).toMatchObject({
-        appliedAsRequested: false,
+        appliedAsRequested: true,
       });
     });
 
@@ -1237,6 +1328,27 @@ describe("FilterBar", () => {
       ).toBeInTheDocument();
     });
 
+    it("empties the editor when the filter is cleared", async () => {
+      await renderBar();
+
+      await addCondition();
+      await startTyping();
+      await type("version_name:in:1.0");
+      await click(screen.getByTestId("filter-clear"));
+
+      expect(textBox()).toHaveValue("");
+    });
+
+    it("empties the editor when another app is picked", async () => {
+      await renderBar();
+
+      await startTyping();
+      await type("version_name:in:1.0");
+      await click(screen.getByTestId("pick-app-app-2"));
+
+      expect(textBox()).toHaveValue("");
+    });
+
     it("puts back the filter the page is on when it is left without applying", async () => {
       const { onFilterChange } = await renderBar();
 
@@ -1497,7 +1609,7 @@ describe("FilterBar", () => {
 
     it("says so for an expression that cannot be read", async () => {
       const { onFilterChange } = await renderBar({
-        requestedFilterExpr: "mapping_type:in:",
+        requestedFilterExpr: "mapping_type:in:dsym AND",
       });
 
       expect(mockToastNegative).toHaveBeenCalledWith(
@@ -1517,7 +1629,7 @@ describe("FilterBar", () => {
           startDate: null,
           endDate: null,
         },
-        requestedFilterExpr: "mapping_type:in:",
+        requestedFilterExpr: "mapping_type:in:dsym AND",
       });
 
       expect(mockToastNegative).toHaveBeenCalledTimes(1);

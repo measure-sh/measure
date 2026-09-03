@@ -95,7 +95,9 @@ function countBackFromNow(dateRange: DateRange): DateSelection {
   };
 }
 
-function toDateSelection(range: UncheckedDateRange): DateSelection | null {
+export function toDateSelection(
+  range: UncheckedDateRange,
+): DateSelection | null {
   if (!isKnownDateRange(range.dateRange)) {
     return null;
   }
@@ -118,15 +120,17 @@ export function isValidDateRange(range: UncheckedDateRange): boolean {
   return toDateSelection(range) !== null;
 }
 
-export function pickInitialDateSelection(
+export function pickDateRange(
   requestedDateRange: UncheckedDateRange,
   storedDateRange: UncheckedDateRange,
-): DateSelection {
-  return (
-    toDateSelection(requestedDateRange) ??
-    toDateSelection(storedDateRange) ??
-    countBackFromNow(DateRange.Last6Hours)
-  );
+): UncheckedDateRange {
+  if (isValidDateRange(requestedDateRange)) {
+    return requestedDateRange;
+  }
+  if (isValidDateRange(storedDateRange)) {
+    return storedDateRange;
+  }
+  return { dateRange: DateRange.Last6Hours, startDate: null, endDate: null };
 }
 
 export default function DateRangeSelect({
@@ -174,11 +178,20 @@ export default function DateRangeSelect({
             defaultValue={formatIsoDateForDateTimeInputField(startDate)}
             max={formatIsoDateForDateTimeInputField(endDate)}
             onChange={(e) => {
-              if (isValidTimestamp(e.target.value)) {
+              if (!isValidTimestamp(e.target.value)) {
+                return;
+              }
+              // A refused value is put back, since one left on screen could
+              // not be entered again.
+              if (
+                DateTime.fromISO(e.target.value) <= DateTime.fromISO(endDate)
+              ) {
                 onChange({
                   ...selection,
                   startDate: DateTime.fromISO(e.target.value).toISO()!,
                 });
+              } else {
+                e.target.value = formatIsoDateForDateTimeInputField(startDate);
               }
             }}
           />
@@ -189,15 +202,17 @@ export default function DateRangeSelect({
             min={formatIsoDateForDateTimeInputField(startDate)}
             max={formatIsoDateForDateTimeInputField(DateTime.now().toISO())}
             onChange={(e) => {
-              if (isValidTimestamp(e.target.value)) {
-                if (DateTime.fromISO(e.target.value) <= DateTime.now()) {
-                  onChange({
-                    ...selection,
-                    endDate: DateTime.fromISO(e.target.value).toISO()!,
-                  });
-                } else {
-                  e.target.value = formatIsoDateForDateTimeInputField(endDate);
-                }
+              if (!isValidTimestamp(e.target.value)) {
+                return;
+              }
+              const end = DateTime.fromISO(e.target.value);
+              if (end >= DateTime.fromISO(startDate) && end <= DateTime.now()) {
+                onChange({
+                  ...selection,
+                  endDate: end.toISO()!,
+                });
+              } else {
+                e.target.value = formatIsoDateForDateTimeInputField(endDate);
               }
             }}
           />

@@ -38,10 +38,10 @@ export default function TracesOverview(props: {
 
   const {
     requestedFilters,
-    requestedExtras,
     paginationOffset,
     filterState,
     filterParams,
+    onRequestChange,
     onFilterChange,
     nextPage,
     prevPage,
@@ -50,7 +50,7 @@ export default function TracesOverview(props: {
     extraUrlKeys: { rootSpanName: urlFiltersKeyMap.rootSpanName },
   });
   const readyFilter = filterState.status === "ready" ? filterState : null;
-  const rootSpanName = requestedExtras.rootSpanName;
+  const rootSpanName = readyFilter?.rootSpanName ?? null;
 
   const spansQuery = useSpansQuery(
     filterParams,
@@ -76,12 +76,13 @@ export default function TracesOverview(props: {
         teamId={params.teamId}
         entity="spans"
         placeholder="Filter traces…"
-        requestedAppId={requestedFilters.app}
+        requestedAppId={requestedFilters.appId}
         requestedDateRange={requestedFilters.dateRange}
         requestedFilterExpr={requestedFilters.filterExpr}
         filterExprIssues={filterExprIssues}
         showRootSpanSelector
-        requestedRootSpanName={requestedExtras.rootSpanName}
+        requestedRootSpanName={requestedFilters.rootSpanName}
+        onRequestChange={onRequestChange}
         onFilterChange={onFilterChange}
       />
       <div className="py-4" />
