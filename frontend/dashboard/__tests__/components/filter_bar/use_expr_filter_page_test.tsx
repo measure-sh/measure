@@ -389,6 +389,22 @@ describe("useExprFilterPage", () => {
     unmount();
   });
 
+  it("ignores a change that leaves the request as it is", async () => {
+    mockRouter.searchParams = new URLSearchParams(`po=20&${settledParams}`);
+    renderPage(10);
+    await act(async () => {
+      bar.onFilterChange(ready());
+    });
+    await act(async () => {
+      bar.onRequestChange({ filterExpr: null });
+    });
+    await act(async () => {
+      bar.onFilterChange(ready());
+    });
+
+    expect(page.paginationOffset).toBe(20);
+  });
+
   it("reads the offset it wrote while that write is still in flight", async () => {
     mockRouter.deferReplace = true;
     mockRouter.searchParams = new URLSearchParams(

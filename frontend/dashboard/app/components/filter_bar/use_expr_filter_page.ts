@@ -19,6 +19,17 @@ const {
   endDate: endDateUrlKey,
 } = urlFiltersKeyMap;
 
+function sameRequest(a: FilterRequest, b: FilterRequest): boolean {
+  return (
+    a.appId === b.appId &&
+    a.filterExpr === b.filterExpr &&
+    a.rootSpanName === b.rootSpanName &&
+    a.dateRange.dateRange === b.dateRange.dateRange &&
+    a.dateRange.startDate === b.dateRange.startDate &&
+    a.dateRange.endDate === b.dateRange.endDate
+  );
+}
+
 /**
  * The URL-driven filter mechanics shared by the pages that pair a FilterBar
  * with paginated queries. The URL is the source of truth: the bar shows what
@@ -172,8 +183,12 @@ export function useExprFilterPage({
   // A pick keeps the last written URL, since a write of it can still be on
   // its way and must be read as the page's own when it is applied.
   const onRequestChange = (change: Partial<FilterRequest>) => {
+    const filters = { ...requestedFilters, ...change };
+    if (sameRequest(filters, requestedFilters)) {
+      return;
+    }
     setRequest({
-      filters: { ...requestedFilters, ...change },
+      filters,
       urlBefore: search,
       urlWritten: request?.urlWritten ?? null,
       awaitingWrite: true,
