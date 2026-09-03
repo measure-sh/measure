@@ -5,10 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [measure_dio-v0.7.0] - 2026-09-03
+
+### :sparkles: New features
+
+- (**flutter**): Implement logging (#4021) by @abhaysood
+
+### :hammer: Misc
+
+- (**flutter**): Prepare next measure_dio version 0.7.0 (#3892) by @abhaysood in #3892
+
 ## [measure_dio-v0.6.0] - 2026-06-11
 
 ### :hammer: Misc
 
+- (**flutter**): Prepare measure_dio release 0.6.0 (#3891) by @abhaysood in #3891
 - (**flutter**): Prepare next measure_dio version 0.6.0 (#3452) by @abhaysood in #3452
 
 ## [measure_dio-v0.5.0] - 2026-04-08
