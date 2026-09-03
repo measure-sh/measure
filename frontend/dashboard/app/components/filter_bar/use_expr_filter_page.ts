@@ -55,6 +55,7 @@ export function useExprFilterPage({
     filters: FilterRequest;
     urlBefore: string | null;
     urlWritten: string | null;
+    awaitingWrite: boolean;
   } | null>(null);
   const [filterState, setFilterState] = useState<FilterState>({
     status: "pending",
@@ -168,11 +169,14 @@ export function useExprFilterPage({
     return urlParams.toString();
   };
 
+  // A pick keeps the last written URL, since a write of it can still be on
+  // its way and must be read as the page's own when it is applied.
   const onRequestChange = (change: Partial<FilterRequest>) => {
     setRequest({
       filters: { ...requestedFilters, ...change },
       urlBefore: search,
-      urlWritten: null,
+      urlWritten: request?.urlWritten ?? null,
+      awaitingWrite: true,
     });
   };
 
@@ -185,7 +189,7 @@ export function useExprFilterPage({
     // The URL's pagination offset is kept only when the bar applied the
     // request unchanged and that request is already in the URL. A new pick,
     // or a substitution, starts back at page one.
-    const pickAwaitingWrite = request !== null && request.urlWritten === null;
+    const pickAwaitingWrite = request !== null && request.awaitingWrite;
     const offset =
       newFilterState.appliedAsRequested && !pickAwaitingWrite
         ? paginationOffset
@@ -203,6 +207,7 @@ export function useExprFilterPage({
       },
       urlBefore: search,
       urlWritten: params,
+      awaitingWrite: false,
     });
     // The bar reports again before the router applies a write; the same
     // write is not issued twice.
@@ -224,6 +229,7 @@ export function useExprFilterPage({
       filters: requestedFilters,
       urlBefore: search,
       urlWritten: params,
+      awaitingWrite: request !== null && request.awaitingWrite,
     });
     router.replace(`?${params}`, { scroll: false });
   };
