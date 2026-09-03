@@ -69,7 +69,7 @@ jobs:
 
       - name: Update android/build.gradle.kts
         run: |
-          sed -i "s|compileOnly(\"sh\.measure:measure-android:[^\"]*\")|compileOnly(\"sh.measure:measure-android:${{ inputs.android_sdk_version }}\")| " react-native/android/build.gradle.kts
+          sed -i "s|api(\"sh\.measure:measure-android:[^\"]*\")|api(\"sh.measure:measure-android:${{ inputs.android_sdk_version }}\")| " react-native/android/build.gradle.kts
 
       - name: Update plugin/index.js
         run: |
