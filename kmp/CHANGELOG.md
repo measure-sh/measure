@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [kmp-v0.2.0] - 2026-09-03
+
+### :sparkles: New features
+
+- (**kmp**): Implement logging (#4021) by @abhaysood
+
+### :hammer: Misc
+
+- (**kmp**): Make log severity shorthands members of Measure by @abhaysood in #4151
+
+## [kmp-v0.1.0] - 2026-06-22
+
+### :hammer: Misc
+
+- (**kmp**): Prepare sdk release 0.1.0 (#3959) by @abhaysood in #3959
+
 ## [kmp-v0.1.0-alpha.1] - 2026-06-19
 
 ### :sparkles: New features
@@ -18,4 +34,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**kmp**): Prepare sdk release 0.1.0-alpha.1 (#3932) by @abhaysood in #3932
 - (**kmp**): Update documentation and improve release workflow (#3930) by @abhaysood in #3930
 
+[kmp-v0.2.0]: https://github.com/measure-sh/measure/compare/kmp-v0.1.0..kmp-v0.2.0
+[kmp-v0.1.0]: https://github.com/measure-sh/measure/compare/kmp-v0.1.0-alpha.1..kmp-v0.1.0
 
