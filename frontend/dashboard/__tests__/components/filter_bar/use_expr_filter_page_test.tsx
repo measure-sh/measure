@@ -61,6 +61,25 @@ let bar: {
 };
 let page: Page;
 
+function HostWithPageKey() {
+  const rendered = useExprFilterPage({
+    extraUrlKeys: { rootSpanName: "r" },
+    pageUrlKeys: ["jt"],
+  });
+  useEffect(() => {
+    page = rendered;
+    bar = {
+      requestedAppId: rendered.requestedFilters.appId,
+      requestedDateRange: rendered.requestedFilters.dateRange,
+      requestedFilterExpr: rendered.requestedFilters.filterExpr,
+      requestedRootSpanName: rendered.requestedFilters.rootSpanName,
+      onRequestChange: rendered.onRequestChange,
+      onFilterChange: rendered.onFilterChange,
+    };
+  });
+  return null;
+}
+
 function Host({ paginationLimit }: { paginationLimit?: number }) {
   const rendered = useExprFilterPage({
     paginationLimit,
@@ -324,6 +343,50 @@ describe("useExprFilterPage", () => {
       { scroll: false },
     );
     expect(page.paginationOffset).toBe(0);
+  });
+
+  it("keeps a pick made while an earlier write is still in flight", async () => {
+    mockRouter.deferReplace = true;
+    mockRouter.searchParams = new URLSearchParams("a=app-1&d=Last+6+Hours");
+    renderPage();
+    await act(async () => {
+      bar.onFilterChange(ready());
+    });
+    const firstWrite = mockRouter.deferredReplaceUrl!;
+
+    await act(async () => {
+      bar.onRequestChange({ rootSpanName: "span.second" });
+    });
+    expect(bar.requestedRootSpanName).toBe("span.second");
+
+    await act(async () => {
+      mockRouter.applyReplaceUrl(firstWrite);
+    });
+    expect(bar.requestedRootSpanName).toBe("span.second");
+  });
+
+  it("keeps a page key written just before a pick", async () => {
+    mockRouter.deferReplace = true;
+    mockRouter.searchParams = new URLSearchParams(`${settledParams}&jt=Paths`);
+    const { unmount } = render(<HostWithPageKey />);
+    await act(async () => {
+      bar.onFilterChange(ready());
+    });
+    await act(async () => {
+      page.setPageUrlKey("jt", "Exceptions");
+    });
+    await act(async () => {
+      bar.onRequestChange({ dateRange: last6Hours });
+      bar.onRequestChange({ rootSpanName: "span.second" });
+    });
+    await act(async () => {
+      bar.onFilterChange(ready({ rootSpanName: "span.second" }));
+    });
+
+    expect(mockRouter.deferredReplaceUrl).toBe(
+      "?a=app-1&d=Last+6+Hours&r=span.second&jt=Exceptions",
+    );
+    unmount();
   });
 
   it("reads the offset it wrote while that write is still in flight", async () => {
