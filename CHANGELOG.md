@@ -42,6 +42,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Pin ingest-worker pubsub ack lease (#4240) by @detj in #4240
 - (**backend**): Double close panic in cleanup service (#4219) by @detj in #4219
 - (**backend**): Set correct content type & encoding for multipart uploads (#4211) by @detj in #4211
+- (**frontend**): Wrap the filter bar to its own line before growing down by @anupcowkur in #4373
 - (**frontend**): Stop replay controls blanking when a layout capture draws by @anupcowkur in #4357
 - (**frontend**): Say ingestion resumes when the allowance resets by @anupcowkur
 - (**frontend**): Show traces plot loading state immediately on filter change by @anupcowkur in #4317
@@ -51,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Migrate app_filters to add patch_id by @anupcowkur
 - (**backend**): Add ota patch filters to bug reports by @anupcowkur in #4343
 - (**backend**): Add ota patch filters to traces by @anupcowkur
 - (**backend**): Update billing info comment by @anupcowkur
@@ -96,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Upgrade fumadocs by @anupcowkur
 - (**frontend**): Gate marketing attribution capture on consent (#4227) by @detj in #4227
 - (**frontend**): Make filter component flags optional by @anupcowkur in #4209
+- Migrate journeys to use expression filters by @anupcowkur
 - Upgrade commitlint & relax commit message rules (#4370) by @detj in #4370
 - Declare exempt encryption for TestFlight (#4356) by @abhaysood in #4356
 - Add slow memory leak demo to frank (#4353) by @abhaysood in #4353
