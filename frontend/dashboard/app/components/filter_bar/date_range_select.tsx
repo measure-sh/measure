@@ -152,9 +152,14 @@ export default function DateRangeSelect({
             return;
           }
 
-          // Custom Range keeps its timestamps until they are edited.
+          // Custom Range keeps its timestamps until they are edited, cut to
+          // the minute the inputs work in.
           if (range === DateRange.Custom) {
-            onChange({ ...selection, dateRange: range });
+            onChange({
+              dateRange: range,
+              startDate: DateTime.fromISO(startDate).startOf("minute").toISO()!,
+              endDate: DateTime.fromISO(endDate).startOf("minute").toISO()!,
+            });
             return;
           }
 
