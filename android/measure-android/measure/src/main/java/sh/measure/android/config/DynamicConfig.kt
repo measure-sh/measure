@@ -10,9 +10,9 @@ internal interface IDynamicConfig {
     val maxEventsInBatch: Int
 
     /**
-     * Duration of session timeline collected with a crash, in seconds. Defaults to 300 seconds.
+     * Duration of session timeline collected with an error, in seconds. Defaults to 300 seconds.
      */
-    val crashTimelineDurationSeconds: Int
+    val errorReplayDurationSeconds: Int
 
     /**
      * Duration of session timeline collected with an ANR, in seconds. Defaults to 300 seconds.
@@ -70,9 +70,42 @@ internal interface IDynamicConfig {
     val memoryUsageInterval: Long
 
     /**
-     * Whether to take a screenshot when a crash occurs. Defaults to true.
+     * Whether to take a screenshot when a fatal error occurs. Defaults to true.
      */
-    val crashTakeScreenshot: Boolean
+    val errorFatalScreenshotEnabled: Boolean
+
+    /**
+     * Whether to collect a session replay with fatal errors, the ones that terminated
+     * the app. Defaults to true.
+     */
+    val errorFatalReplayEnabled: Boolean
+
+    /**
+     * Whether to collect a session replay with unhandled errors, the ones that were not
+     * caught but did not terminate the app. Defaults to false.
+     */
+    val errorUnhandledReplayEnabled: Boolean
+
+    /**
+     * Whether to collect a session replay with handled errors, the ones reported by the
+     * app. Defaults to false.
+     */
+    val errorHandledReplayEnabled: Boolean
+
+    /**
+     * Sampling rate for fatal errors. Defaults to 100.
+     */
+    val errorFatalSamplingRate: Float
+
+    /**
+     * Sampling rate for unhandled errors. Defaults to 100.
+     */
+    val errorUnhandledSamplingRate: Float
+
+    /**
+     * Sampling rate for handled errors. Defaults to 0.
+     */
+    val errorHandledSamplingRate: Float
 
     /**
      * Whether to take a screenshot when an ANR occurs. Defaults to true.
@@ -142,8 +175,16 @@ internal data class DynamicConfig(
     @SerialName("max_events_in_batch")
     override val maxEventsInBatch: Int = 10000,
 
+    @SerialName("error_replay_duration")
+    val errorReplayDuration: Int? = null,
+
+    /**
+     * Renamed to `error_replay_duration`. Only
+     * read when the the new key is absent.
+     */
+    @Deprecated("Use errorReplayDurationSeconds instead.")
     @SerialName("crash_timeline_duration")
-    override val crashTimelineDurationSeconds: Int = 300,
+    val crashTimelineDuration: Int? = null,
 
     @SerialName("anr_timeline_duration")
     override val anrTimelineDurationSeconds: Int = 300,
@@ -176,8 +217,34 @@ internal data class DynamicConfig(
     @SerialName("memory_usage_interval")
     override val memoryUsageInterval: Long = 5,
 
+    @SerialName("error_fatal_take_screenshot")
+    val errorFatalTakeScreenshot: Boolean? = null,
+
+    /**
+     * Renamed to `error_fatal_take_screenshot`. Only
+     * read when the the new key is absent.
+     */
+    @Deprecated("Use errorFatalScreenshotEnabled instead.")
     @SerialName("crash_take_screenshot")
-    override val crashTakeScreenshot: Boolean = true,
+    val crashTakeScreenshot: Boolean? = null,
+
+    @SerialName("error_fatal_replay_enabled")
+    override val errorFatalReplayEnabled: Boolean = true,
+
+    @SerialName("error_unhandled_replay_enabled")
+    override val errorUnhandledReplayEnabled: Boolean = false,
+
+    @SerialName("error_handled_replay_enabled")
+    override val errorHandledReplayEnabled: Boolean = false,
+
+    @SerialName("error_fatal_sampling_rate")
+    override val errorFatalSamplingRate: Float = 100f,
+
+    @SerialName("error_unhandled_sampling_rate")
+    override val errorUnhandledSamplingRate: Float = 100f,
+
+    @SerialName("error_handled_sampling_rate")
+    override val errorHandledSamplingRate: Float = 0f,
 
     @SerialName("anr_take_screenshot")
     override val anrTakeScreenshot: Boolean = true,
@@ -212,4 +279,12 @@ internal data class DynamicConfig(
 
     @SerialName("profile_sampling_rate")
     override val profileSamplingRate: Float = 100f,
-) : IDynamicConfig
+) : IDynamicConfig {
+    @Suppress("DEPRECATION")
+    override val errorReplayDurationSeconds: Int
+        get() = errorReplayDuration ?: crashTimelineDuration ?: 300
+
+    @Suppress("DEPRECATION")
+    override val errorFatalScreenshotEnabled: Boolean
+        get() = errorFatalTakeScreenshot ?: crashTakeScreenshot ?: true
+}

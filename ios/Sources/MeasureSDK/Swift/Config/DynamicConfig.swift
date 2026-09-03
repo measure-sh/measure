@@ -12,9 +12,9 @@ protocol DynamicConfig {
     /// Defaults to 1000.
     var maxEventsInBatch: Number { get }
 
-    /// Duration of session timeline collected with a crash, in seconds.
+    /// Duration of session timeline collected with an error, in seconds.
     /// Defaults to 300 seconds.
-    var crashTimelineDurationSeconds: Number { get }
+    var errorReplayDurationSeconds: Number { get }
 
     /// Duration of session timeline collected with an ANR, in seconds.
     /// Defaults to 300 seconds.
@@ -55,9 +55,30 @@ protocol DynamicConfig {
     /// Defaults to 5 seconds.
     var memoryUsageInterval: Number { get }
 
-    /// Whether to take a screenshot on crash.
+    /// Whether to take a screenshot on a fatal error.
     /// Defaults to true.
-    var crashTakeScreenshot: Bool { get }
+    var errorFatalTakeScreenshot: Bool { get }
+
+    /// Whether to collect a session replay with fatal errors, the ones that
+    /// terminated the app. Defaults to true.
+    var errorFatalReplayEnabled: Bool { get }
+
+    /// Whether to collect a session replay with unhandled, the ones that
+    /// were not caught but did not terminate the app. Defaults to false.
+    var errorUnhandledReplayEnabled: Bool { get }
+
+    /// Whether to collect a session replay with handled errors, the ones reported
+    /// by the app. Defaults to false.
+    var errorHandledReplayEnabled: Bool { get }
+
+    /// Sampling rate for fatal errors. Defaults to 100.
+    var errorFatalSamplingRate: Float { get }
+
+    /// Sampling rate for unhandled errors. Defaults to 100.
+    var errorUnhandledSamplingRate: Float { get }
+
+    /// Sampling rate for handled errors. Defaults to 0.
+    var errorHandledSamplingRate: Float { get }
 
     /// Whether to take a screenshot on ANR.
     /// Defaults to true.
@@ -90,7 +111,7 @@ protocol DynamicConfig {
 
 struct BaseDynamicConfig: DynamicConfig, Codable {
     let maxEventsInBatch: Number
-    let crashTimelineDurationSeconds: Number
+    let errorReplayDurationSeconds: Number
     let anrTimelineDurationSeconds: Number
     let bugReportTimelineDurationSeconds: Number
     let traceSamplingRate: Float
@@ -101,7 +122,13 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
     let logIgnorePatterns: [String]
     let cpuUsageInterval: Number
     let memoryUsageInterval: Number
-    let crashTakeScreenshot: Bool
+    let errorFatalTakeScreenshot: Bool
+    let errorFatalReplayEnabled: Bool
+    let errorUnhandledReplayEnabled: Bool
+    let errorHandledReplayEnabled: Bool
+    let errorFatalSamplingRate: Float
+    let errorUnhandledSamplingRate: Float
+    let errorHandledSamplingRate: Float
     let anrTakeScreenshot: Bool
     let launchSamplingRate: Float
     let gestureClickTakeSnapshot: Bool
@@ -112,7 +139,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
     let httpBlockedHeaders: [String]
 
     init(maxEventsInBatch: Number = DefaultConfig.maxEventsInBatch,
-         crashTimelineDurationSeconds: Number = DefaultConfig.crashTimelineDurationSeconds,
+         errorReplayDurationSeconds: Number = DefaultConfig.errorReplayDurationSeconds,
          anrTimelineDurationSeconds: Number = DefaultConfig.anrTimelineDurationSeconds,
          bugReportTimelineDurationSeconds: Number = DefaultConfig.bugReportTimelineDurationSeconds,
          traceSamplingRate: Float = DefaultConfig.traceSamplingRate,
@@ -123,7 +150,13 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
          logIgnorePatterns: [String] = DefaultConfig.logIgnorePatterns,
          cpuUsageInterval: Number = DefaultConfig.cpuUsageInterval,
          memoryUsageInterval: Number = DefaultConfig.memoryUsageInterval,
-         crashTakeScreenshot: Bool = DefaultConfig.crashTakeScreenshot,
+         errorFatalTakeScreenshot: Bool = DefaultConfig.errorFatalTakeScreenshot,
+         errorFatalReplayEnabled: Bool = DefaultConfig.errorFatalReplayEnabled,
+         errorUnhandledReplayEnabled: Bool = DefaultConfig.errorUnhandledReplayEnabled,
+         errorHandledReplayEnabled: Bool = DefaultConfig.errorHandledReplayEnabled,
+         errorFatalSamplingRate: Float = DefaultConfig.errorFatalSamplingRate,
+         errorUnhandledSamplingRate: Float = DefaultConfig.errorUnhandledSamplingRate,
+         errorHandledSamplingRate: Float = DefaultConfig.errorHandledSamplingRate,
          anrTakeScreenshot: Bool = DefaultConfig.anrTakeScreenshot,
          launchSamplingRate: Float = DefaultConfig.launchSamplingRate,
          gestureClickTakeSnapshot: Bool = DefaultConfig.gestureClickTakeSnapshot,
@@ -134,7 +167,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
          httpBlockedHeaders: [String] = DefaultConfig.httpBlockedHeaders
     ) {
         self.maxEventsInBatch = maxEventsInBatch
-        self.crashTimelineDurationSeconds = crashTimelineDurationSeconds
+        self.errorReplayDurationSeconds = errorReplayDurationSeconds
         self.anrTimelineDurationSeconds = anrTimelineDurationSeconds
         self.bugReportTimelineDurationSeconds = bugReportTimelineDurationSeconds
         self.traceSamplingRate = traceSamplingRate
@@ -145,7 +178,13 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         self.logIgnorePatterns = logIgnorePatterns
         self.cpuUsageInterval = cpuUsageInterval
         self.memoryUsageInterval = memoryUsageInterval
-        self.crashTakeScreenshot = crashTakeScreenshot
+        self.errorFatalTakeScreenshot = errorFatalTakeScreenshot
+        self.errorFatalReplayEnabled = errorFatalReplayEnabled
+        self.errorUnhandledReplayEnabled = errorUnhandledReplayEnabled
+        self.errorHandledReplayEnabled = errorHandledReplayEnabled
+        self.errorFatalSamplingRate = errorFatalSamplingRate
+        self.errorUnhandledSamplingRate = errorUnhandledSamplingRate
+        self.errorHandledSamplingRate = errorHandledSamplingRate
         self.anrTakeScreenshot = anrTakeScreenshot
         self.launchSamplingRate = launchSamplingRate
         self.gestureClickTakeSnapshot = gestureClickTakeSnapshot
@@ -160,7 +199,9 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         let c = try decoder.container(keyedBy: CodingKeys.self) // swiftlint:disable:this identifier_name
 
         maxEventsInBatch = try c.decodeIfPresent(Number.self, forKey: .maxEventsInBatch) ?? DefaultConfig.maxEventsInBatch
-        crashTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .crashTimelineDurationSeconds) ?? DefaultConfig.crashTimelineDurationSeconds
+        errorReplayDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .errorReplayDurationSeconds)
+            ?? c.decodeIfPresent(Number.self, forKey: .crashTimelineDuration)
+            ?? DefaultConfig.errorReplayDurationSeconds
         anrTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .anrTimelineDurationSeconds) ?? DefaultConfig.anrTimelineDurationSeconds
         bugReportTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .bugReportTimelineDurationSeconds) ?? DefaultConfig.bugReportTimelineDurationSeconds
         traceSamplingRate = try c.decodeIfPresent(Float.self, forKey: .traceSamplingRate) ?? DefaultConfig.traceSamplingRate
@@ -171,7 +212,15 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         logIgnorePatterns = try c.decodeIfPresent([String].self, forKey: .logIgnorePatterns) ?? DefaultConfig.logIgnorePatterns
         cpuUsageInterval = try c.decodeIfPresent(Number.self, forKey: .cpuUsageInterval) ?? DefaultConfig.cpuUsageInterval
         memoryUsageInterval = try c.decodeIfPresent(Number.self, forKey: .memoryUsageInterval) ?? DefaultConfig.memoryUsageInterval
-        crashTakeScreenshot = try c.decodeIfPresent(Bool.self, forKey: .crashTakeScreenshot) ?? DefaultConfig.crashTakeScreenshot
+        errorFatalTakeScreenshot = try c.decodeIfPresent(Bool.self, forKey: .errorFatalTakeScreenshot)
+            ?? c.decodeIfPresent(Bool.self, forKey: .crashTakeScreenshot)
+            ?? DefaultConfig.errorFatalTakeScreenshot
+        errorFatalReplayEnabled = try c.decodeIfPresent(Bool.self, forKey: .errorFatalReplayEnabled) ?? DefaultConfig.errorFatalReplayEnabled
+        errorUnhandledReplayEnabled = try c.decodeIfPresent(Bool.self, forKey: .errorUnhandledReplayEnabled) ?? DefaultConfig.errorUnhandledReplayEnabled
+        errorHandledReplayEnabled = try c.decodeIfPresent(Bool.self, forKey: .errorHandledReplayEnabled) ?? DefaultConfig.errorHandledReplayEnabled
+        errorFatalSamplingRate = try c.decodeIfPresent(Float.self, forKey: .errorFatalSamplingRate) ?? DefaultConfig.errorFatalSamplingRate
+        errorUnhandledSamplingRate = try c.decodeIfPresent(Float.self, forKey: .errorUnhandledSamplingRate) ?? DefaultConfig.errorUnhandledSamplingRate
+        errorHandledSamplingRate = try c.decodeIfPresent(Float.self, forKey: .errorHandledSamplingRate) ?? DefaultConfig.errorHandledSamplingRate
         anrTakeScreenshot = try c.decodeIfPresent(Bool.self, forKey: .anrTakeScreenshot) ?? DefaultConfig.anrTakeScreenshot
         launchSamplingRate = try c.decodeIfPresent(Float.self, forKey: .launchSamplingRate) ?? DefaultConfig.launchSamplingRate
         gestureClickTakeSnapshot = try c.decodeIfPresent(Bool.self, forKey: .gestureClickTakeSnapshot) ?? DefaultConfig.gestureClickTakeSnapshot
@@ -182,9 +231,48 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         httpBlockedHeaders = try c.decodeIfPresent([String].self, forKey: .httpBlockedHeaders) ?? DefaultConfig.httpBlockedHeaders
     }
 
+    // Flutter and React Native read this file, and Flutter SDKs released before the rename
+    // only know the older keys, so both key families are written.
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self) // swiftlint:disable:this identifier_name
+
+        try c.encode(maxEventsInBatch, forKey: .maxEventsInBatch)
+        try c.encode(errorReplayDurationSeconds, forKey: .errorReplayDurationSeconds)
+        try c.encode(errorReplayDurationSeconds, forKey: .crashTimelineDuration)
+        try c.encode(anrTimelineDurationSeconds, forKey: .anrTimelineDurationSeconds)
+        try c.encode(bugReportTimelineDurationSeconds, forKey: .bugReportTimelineDurationSeconds)
+        try c.encode(traceSamplingRate, forKey: .traceSamplingRate)
+        try c.encode(journeySamplingRate, forKey: .journeySamplingRate)
+        try c.encode(screenshotMaskLevel, forKey: .screenshotMaskLevel)
+        try c.encode(logAutocollectEnabled, forKey: .logAutocollectEnabled)
+        try c.encode(logMinSeverity, forKey: .logMinSeverity)
+        try c.encode(logIgnorePatterns, forKey: .logIgnorePatterns)
+        try c.encode(cpuUsageInterval, forKey: .cpuUsageInterval)
+        try c.encode(memoryUsageInterval, forKey: .memoryUsageInterval)
+        try c.encode(errorFatalTakeScreenshot, forKey: .errorFatalTakeScreenshot)
+        try c.encode(errorFatalTakeScreenshot, forKey: .crashTakeScreenshot)
+        try c.encode(errorFatalReplayEnabled, forKey: .errorFatalReplayEnabled)
+        try c.encode(errorUnhandledReplayEnabled, forKey: .errorUnhandledReplayEnabled)
+        try c.encode(errorHandledReplayEnabled, forKey: .errorHandledReplayEnabled)
+        try c.encode(errorFatalSamplingRate, forKey: .errorFatalSamplingRate)
+        try c.encode(errorUnhandledSamplingRate, forKey: .errorUnhandledSamplingRate)
+        try c.encode(errorHandledSamplingRate, forKey: .errorHandledSamplingRate)
+        try c.encode(anrTakeScreenshot, forKey: .anrTakeScreenshot)
+        try c.encode(launchSamplingRate, forKey: .launchSamplingRate)
+        try c.encode(gestureClickTakeSnapshot, forKey: .gestureClickTakeSnapshot)
+        try c.encode(httpSamplingRate, forKey: .httpSamplingRate)
+        try c.encode(httpDisableEventForUrls, forKey: .httpDisableEventForUrls)
+        try c.encode(httpTrackRequestForUrls, forKey: .httpTrackRequestForUrls)
+        try c.encode(httpTrackResponseForUrls, forKey: .httpTrackResponseForUrls)
+        try c.encode(httpBlockedHeaders, forKey: .httpBlockedHeaders)
+    }
+
     private enum CodingKeys: String, CodingKey {
         case maxEventsInBatch = "max_events_in_batch"
-        case crashTimelineDurationSeconds = "crash_timeline_duration"
+        case errorReplayDurationSeconds = "error_replay_duration"
+        // The key this setting used before it was renamed to error_replay_duration. Remove
+        // once every supported backend and Flutter SDK use the newer key.
+        case crashTimelineDuration = "crash_timeline_duration"
         case anrTimelineDurationSeconds = "anr_timeline_duration"
         case bugReportTimelineDurationSeconds = "bug_report_timeline_duration"
         case traceSamplingRate = "trace_sampling_rate"
@@ -195,7 +283,16 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         case logIgnorePatterns = "log_ignore_patterns"
         case cpuUsageInterval = "cpu_usage_interval"
         case memoryUsageInterval = "memory_usage_interval"
+        case errorFatalTakeScreenshot = "error_fatal_take_screenshot"
+        // The key this setting used before it was renamed to error_fatal_take_screenshot.
+        // Remove once every supported backend and Flutter SDK use the newer key.
         case crashTakeScreenshot = "crash_take_screenshot"
+        case errorFatalReplayEnabled = "error_fatal_replay_enabled"
+        case errorUnhandledReplayEnabled = "error_unhandled_replay_enabled"
+        case errorHandledReplayEnabled = "error_handled_replay_enabled"
+        case errorFatalSamplingRate = "error_fatal_sampling_rate"
+        case errorUnhandledSamplingRate = "error_unhandled_sampling_rate"
+        case errorHandledSamplingRate = "error_handled_sampling_rate"
         case anrTakeScreenshot = "anr_take_screenshot"
         case launchSamplingRate = "launch_sampling_rate"
         case gestureClickTakeSnapshot = "gesture_click_take_snapshot"

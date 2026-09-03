@@ -84,7 +84,10 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
         guard attributeValueValidator.validateAttributes(name: "trackError", attributes: attributes) else { return }
 
         if let exception = exceptionGenerator.generate(error as NSError, framesToStrip: framesToStrip) {
-            track(exception, type: .exception, userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes), needsReporting: false)
+            track(exception,
+                  type: .exception,
+                  userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes),
+                  needsReporting: signalSampler.shouldSampleError(exception.severity ?? .handled))
         }
     }
 
@@ -93,7 +96,10 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
         guard attributeValueValidator.validateAttributes(name: "trackError", attributes: attributes) else { return }
 
         if let exception = exceptionGenerator.generate(error, framesToStrip: framesToStrip) {
-            track(exception, type: .exception, userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes), needsReporting: false)
+            track(exception,
+                  type: .exception,
+                  userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes),
+                  needsReporting: signalSampler.shouldSampleError(exception.severity ?? .handled))
         }
     }
 
@@ -102,7 +108,10 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
         guard attributeValueValidator.validateAttributes(name: "trackError", attributes: attributes) else { return }
 
         if let exception = exceptionGenerator.generate(exception, framesToStrip: framesToStrip) {
-            track(exception, type: .exception, userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes), needsReporting: false)
+            track(exception,
+                  type: .exception,
+                  userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes),
+                  needsReporting: signalSampler.shouldSampleError(exception.severity ?? .handled))
         }
     }
 

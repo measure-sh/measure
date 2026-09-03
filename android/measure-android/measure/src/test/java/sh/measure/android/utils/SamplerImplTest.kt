@@ -4,6 +4,7 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
+import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeRandomizer
 import java.util.UUID
@@ -96,6 +97,49 @@ internal class SamplerImplTest {
         val secondResult = sampler.shouldTrackJourneyForSession(sessionId)
 
         assertTrue(firstResult == secondResult)
+    }
+
+    @Test
+    fun `error - each severity reads its own rate`() {
+        configProvider.errorFatalSamplingRate = 100f
+        configProvider.errorUnhandledSamplingRate = 0f
+        configProvider.errorHandledSamplingRate = 100f
+
+        assertTrue(sampler.shouldSampleError(ExceptionSeverity.Fatal))
+        assertFalse(sampler.shouldSampleError(ExceptionSeverity.Unhandled))
+        assertTrue(sampler.shouldSampleError(ExceptionSeverity.Handled))
+    }
+
+    @Test
+    fun `error - 0 percent rate never samples`() {
+        configProvider.errorHandledSamplingRate = 0f
+        randomizer.randomDouble = 0.0
+
+        assertFalse(sampler.shouldSampleError(ExceptionSeverity.Handled))
+    }
+
+    @Test
+    fun `error - 100 percent rate always samples`() {
+        configProvider.errorFatalSamplingRate = 100f
+        randomizer.randomDouble = 1.0
+
+        assertTrue(sampler.shouldSampleError(ExceptionSeverity.Fatal))
+    }
+
+    @Test
+    fun `error - samples when random is below threshold`() {
+        configProvider.errorUnhandledSamplingRate = 50f
+        randomizer.randomDouble = 0.49
+
+        assertTrue(sampler.shouldSampleError(ExceptionSeverity.Unhandled))
+    }
+
+    @Test
+    fun `error - does not sample when random is at or above threshold`() {
+        configProvider.errorUnhandledSamplingRate = 50f
+        randomizer.randomDouble = 0.50
+
+        assertFalse(sampler.shouldSampleError(ExceptionSeverity.Unhandled))
     }
 
     @Test

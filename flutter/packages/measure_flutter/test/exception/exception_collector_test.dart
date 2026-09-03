@@ -8,10 +8,6 @@ import 'package:measure_flutter/src/exception/exception_framework.dart';
 import 'package:measure_flutter/src/exception/exception_severity.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 
-import '../utils/fake_config_provider.dart';
-import '../utils/fake_file_storage.dart';
-import '../utils/fake_msr_method_channel.dart';
-import '../utils/fake_screenshot_collector.dart';
 import '../utils/fake_signal_processor.dart';
 import '../utils/noop_logger.dart';
 import '../utils/test_clock.dart';
@@ -21,24 +17,14 @@ void main() {
     late ExceptionCollector collector;
     late NoopLogger logger;
     late FakeSignalProcessor signalProcessor;
-    late FakeConfigProvider configProvider;
-    late FakeFileStorage fileStorage;
-    late FakeScreenshotCollector screenshotCollector;
 
     setUp(() {
       logger = NoopLogger();
       signalProcessor = FakeSignalProcessor();
-      configProvider = FakeConfigProvider();
-      fileStorage = FakeFileStorage();
-      screenshotCollector = FakeScreenshotCollector();
       collector = ExceptionCollector(
         logger: logger,
         signalProcessor: signalProcessor,
-        configProvider: configProvider,
-        fileStorage: fileStorage,
-        screenshotCollector: screenshotCollector,
         timeProvider: FlutterTimeProvider(TestClock.create()),
-        methodChannel: FakeMethodChannel()..encodedWebPResult = Uint8List.fromList([1, 2, 3, 4]),
       );
     });
 
@@ -181,9 +167,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
       );
     });
 
-    test('tracks exception with screenshot if enabled', () async {
-      configProvider.crashTakeScreenshot = true;
-
+    test('tracks an unhandled exception with no attachments', () async {
       final error = Object();
       final stackTrace = StackTrace.fromString([
         '#0      _MyAppState._throwException (package:measure_flutter_example/main.dart:84:5)',
@@ -242,7 +226,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
 
       expect(signalProcessor.trackedEvents.length, 1);
       expect(signalProcessor.trackedEvents.first.type, EventType.exception);
-      expect(signalProcessor.trackedEvents.first.attachments?.length, 1);
+      expect(signalProcessor.trackedEvents.first.attachments?.length, 0);
       expect(
         signalProcessor.trackedExceptions[0].toJson(),
         exceptionData.toJson(),
@@ -250,9 +234,7 @@ isolate_instructions: 7af70ecb40, vm_instructions: 7af70d6000
       );
     });
 
-    test('does not take screenshot for handled severity', () async {
-      configProvider.crashTakeScreenshot = true;
-
+    test('tracks a handled exception with no attachments', () async {
       final error = Object();
       final stackTrace = StackTrace.fromString([
         '#0      _MyAppState._throwException (package:measure_flutter_example/main.dart:84:5)',

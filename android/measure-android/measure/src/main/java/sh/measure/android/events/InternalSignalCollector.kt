@@ -96,8 +96,8 @@ internal class InternalSignalCollector(
                             userDefinedAttributes = userDefinedAttrs,
                             attachments = eventAttachments,
                             threadName = threadName,
-                            // Take screenshot for JS fatal errors. For Flutter, the Flutter SDK
-                            // adds the screenshot itself, so it is disabled there.
+                            // Only JS fatal errors take a screenshot here. Flutter never reports
+                            // a fatal error from Dart.
                             takeScreenshot = extractedData.framework == ExceptionFramework.JS,
                         )
                     } else {

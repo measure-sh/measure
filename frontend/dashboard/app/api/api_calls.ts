@@ -566,8 +566,14 @@ export const emptyAlertsOverviewResponse = {
 
 export type SdkConfig = {
   trace_sampling_rate: number;
-  crash_timeline_duration: number;
-  crash_take_screenshot: boolean;
+  error_replay_duration: number;
+  error_fatal_take_screenshot: boolean;
+  error_fatal_replay_enabled: boolean;
+  error_unhandled_replay_enabled: boolean;
+  error_handled_replay_enabled: boolean;
+  error_fatal_sampling_rate: number;
+  error_unhandled_sampling_rate: number;
+  error_handled_sampling_rate: number;
   anr_timeline_duration: number;
   anr_take_screenshot: boolean;
   bug_report_timeline_duration: number;

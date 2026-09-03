@@ -2,6 +2,7 @@ package sh.measure.android.events
 
 import androidx.concurrent.futures.ResolvableFuture
 import junit.framework.TestCase.assertEquals
+import junit.framework.TestCase.assertFalse
 import junit.framework.TestCase.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -11,6 +12,7 @@ import org.mockito.kotlin.verify
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.StringAttr
+import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.exporter.Exporter
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
@@ -52,7 +54,7 @@ internal class SignalProcessorTest {
     @Before
     fun setUp() {
         configProvider.enableFullCollectionMode = false
-        configProvider.crashTakeScreenshot = false
+        configProvider.errorFatalScreenshotEnabled = false
         configProvider.anrTakeScreenshot = false
     }
 
@@ -79,6 +81,29 @@ internal class SignalProcessorTest {
 
         assertEquals(1, signalStore.trackedEvents.size)
         assertEquals(expectedEvent, signalStore.trackedEvents.first())
+    }
+
+    @Test
+    fun `track reports fatal and unhandled exceptions, but not handled ones`() {
+        val severities = mapOf(
+            ExceptionSeverity.Fatal to true,
+            ExceptionSeverity.Unhandled to true,
+            ExceptionSeverity.Handled to false,
+        )
+
+        severities.forEach { (severity, expectedIsSampled) ->
+            signalStore.trackedEvents.clear()
+            signalProcessor.track(
+                data = TestData.getExceptionData(severity = severity),
+                timestamp = 1710746412L,
+                type = EventType.EXCEPTION,
+            )
+
+            assertEquals(
+                expectedIsSampled,
+                signalStore.trackedEvents.first().isSampled,
+            )
+        }
     }
 
     @Test
@@ -324,7 +349,7 @@ internal class SignalProcessorTest {
         val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
-        configProvider.crashTakeScreenshot = true
+        configProvider.errorFatalScreenshotEnabled = true
         val screenshot = Screenshot(data = byteArrayOf(1, 2, 3, 4), extension = "png")
         `when`(screenshotCollector.takeScreenshot()).thenReturn(screenshot)
 
@@ -346,7 +371,7 @@ internal class SignalProcessorTest {
         val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
-        configProvider.crashTakeScreenshot = false
+        configProvider.errorFatalScreenshotEnabled = false
 
         signalProcessor.trackCrash(
             data = exceptionData,
@@ -402,7 +427,7 @@ internal class SignalProcessorTest {
         val exceptionData = TestData.getExceptionData()
         val timestamp = 9856564654L
         val type = EventType.EXCEPTION
-        configProvider.crashTakeScreenshot = true
+        configProvider.errorFatalScreenshotEnabled = true
 
         signalProcessor.trackCrash(
             data = exceptionData,

@@ -164,7 +164,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector { // swiftlint:
                     sessionManager.markCurrentSessionAsCrashed()
                 }
                 var exceptionAttachments: [MsrAttachment]?
-                if isFatal && isJsFramework && configProvider.crashTakeScreenshot {
+                if isFatal && isJsFramework && configProvider.errorFatalTakeScreenshot {
                     let captureScreenshot = {
                         if let window = UIWindow.keyWindow() {
                             self.screenshotGenerator.generate(window: window,
@@ -200,7 +200,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector { // swiftlint:
                     attachments: exceptionAttachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
-                    needsReporting: true,
+                    needsReporting: signalSampler.shouldSampleError(exceptionData.severity ?? .handled),
                     synchronous: isFatal
                 )
 

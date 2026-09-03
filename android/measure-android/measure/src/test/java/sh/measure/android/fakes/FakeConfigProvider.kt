@@ -40,7 +40,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var enableFullCollectionMode: Boolean = true
     override var enableDiagnosticMode: Boolean = false
     override var maxEventsInBatch: Int = 1000
-    override var crashTimelineDurationSeconds: Int = 300
+    override var errorReplayDurationSeconds: Int = 300
     override var anrTimelineDurationSeconds: Int = 300
     override var bugReportTimelineDurationSeconds: Int = 300
     override var traceSamplingRate: Float = 1f
@@ -51,7 +51,13 @@ internal class FakeConfigProvider : ConfigProvider {
     override var logIgnorePatterns: List<String> = emptyList()
     override var cpuUsageInterval: Long = 3
     override var memoryUsageInterval: Long = 3
-    override var crashTakeScreenshot: Boolean = true
+    override var errorFatalScreenshotEnabled: Boolean = true
+    override var errorFatalReplayEnabled: Boolean = true
+    override var errorUnhandledReplayEnabled: Boolean = false
+    override var errorHandledReplayEnabled: Boolean = false
+    override var errorFatalSamplingRate: Float = 100f
+    override var errorUnhandledSamplingRate: Float = 100f
+    override var errorHandledSamplingRate: Float = 0f
     override var anrTakeScreenshot: Boolean = true
     override var launchSamplingRate: Float = 1f
     override var gestureClickTakeSnapshot: Boolean = true

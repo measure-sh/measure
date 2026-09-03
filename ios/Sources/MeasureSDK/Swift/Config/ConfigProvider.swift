@@ -129,7 +129,7 @@ final class BaseConfigProvider: ConfigProvider {
     // DynamicConfig
 
     var maxEventsInBatch: Number { dynamicConfig.maxEventsInBatch }
-    var crashTimelineDurationSeconds: Number { dynamicConfig.crashTimelineDurationSeconds }
+    var errorReplayDurationSeconds: Number { dynamicConfig.errorReplayDurationSeconds }
     var anrTimelineDurationSeconds: Number { dynamicConfig.anrTimelineDurationSeconds }
     var bugReportTimelineDurationSeconds: Number { dynamicConfig.bugReportTimelineDurationSeconds }
     var traceSamplingRate: Float { dynamicConfig.traceSamplingRate }
@@ -140,7 +140,13 @@ final class BaseConfigProvider: ConfigProvider {
     var logIgnorePatterns: [String] { dynamicConfig.logIgnorePatterns }
     var cpuUsageInterval: Number { dynamicConfig.cpuUsageInterval }
     var memoryUsageInterval: Number { dynamicConfig.memoryUsageInterval }
-    var crashTakeScreenshot: Bool { dynamicConfig.crashTakeScreenshot }
+    var errorFatalTakeScreenshot: Bool { dynamicConfig.errorFatalTakeScreenshot }
+    var errorFatalReplayEnabled: Bool { dynamicConfig.errorFatalReplayEnabled }
+    var errorUnhandledReplayEnabled: Bool { dynamicConfig.errorUnhandledReplayEnabled }
+    var errorHandledReplayEnabled: Bool { dynamicConfig.errorHandledReplayEnabled }
+    var errorFatalSamplingRate: Float { dynamicConfig.errorFatalSamplingRate }
+    var errorUnhandledSamplingRate: Float { dynamicConfig.errorUnhandledSamplingRate }
+    var errorHandledSamplingRate: Float { dynamicConfig.errorHandledSamplingRate }
     var anrTakeScreenshot: Bool { dynamicConfig.anrTakeScreenshot }
     var launchSamplingRate: Float { dynamicConfig.launchSamplingRate }
     var gestureClickTakeSnapshot: Bool { dynamicConfig.gestureClickTakeSnapshot }

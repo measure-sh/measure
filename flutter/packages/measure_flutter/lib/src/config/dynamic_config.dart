@@ -21,9 +21,6 @@ abstract interface class IDynamicConfig {
   /// of the patterns is dropped. Defaults to empty list.
   List<String> get logIgnorePatterns;
 
-  /// Whether to take a screenshot when a crash occurs. Defaults to true.
-  bool get crashTakeScreenshot;
-
   /// Whether to take a layout snapshot when a gesture click occurs. Defaults to true.
   bool get gestureClickTakeSnapshot;
 
@@ -70,10 +67,6 @@ class DynamicConfig implements IDynamicConfig {
   final List<String> logIgnorePatterns;
 
   @override
-  @JsonKey(name: 'crash_take_screenshot')
-  final bool crashTakeScreenshot;
-
-  @override
   @JsonKey(name: 'gesture_click_take_snapshot')
   final bool gestureClickTakeSnapshot;
 
@@ -98,7 +91,6 @@ class DynamicConfig implements IDynamicConfig {
     required this.screenshotMaskLevel,
     required this.logMinSeverity,
     required this.logIgnorePatterns,
-    required this.crashTakeScreenshot,
     required this.gestureClickTakeSnapshot,
     required this.httpDisableEventForUrls,
     required this.httpTrackRequestForUrls,
@@ -112,7 +104,6 @@ class DynamicConfig implements IDynamicConfig {
     screenshotMaskLevel: ScreenshotMaskLevel.allTextAndMedia,
     logMinSeverity: 16,
     logIgnorePatterns: [],
-    crashTakeScreenshot: true,
     gestureClickTakeSnapshot: true,
     httpDisableEventForUrls: [],
     httpTrackRequestForUrls: [],
@@ -133,7 +124,6 @@ class DynamicConfig implements IDynamicConfig {
     ScreenshotMaskLevel? screenshotMaskLevel,
     int? logMinSeverity,
     List<String>? logIgnorePatterns,
-    bool? crashTakeScreenshot,
     bool? gestureClickTakeSnapshot,
     List<String>? httpDisableEventForUrls,
     List<String>? httpTrackRequestForUrls,
@@ -145,7 +135,6 @@ class DynamicConfig implements IDynamicConfig {
       screenshotMaskLevel: screenshotMaskLevel ?? this.screenshotMaskLevel,
       logMinSeverity: logMinSeverity ?? this.logMinSeverity,
       logIgnorePatterns: logIgnorePatterns ?? this.logIgnorePatterns,
-      crashTakeScreenshot: crashTakeScreenshot ?? this.crashTakeScreenshot,
       gestureClickTakeSnapshot: gestureClickTakeSnapshot ?? this.gestureClickTakeSnapshot,
       httpDisableEventForUrls: httpDisableEventForUrls ?? this.httpDisableEventForUrls,
       httpTrackRequestForUrls: httpTrackRequestForUrls ?? this.httpTrackRequestForUrls,

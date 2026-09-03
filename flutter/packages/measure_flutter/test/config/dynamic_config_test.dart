@@ -7,7 +7,6 @@ void main() {
         'trace_sampling_rate': 0.01,
         'screenshot_mask_level': maskLevel,
         'log_min_severity': 20,
-        'crash_take_screenshot': true,
         'gesture_click_take_snapshot': true,
         'http_disable_event_for_urls': <String>[],
         'http_track_request_for_urls': <String>[],

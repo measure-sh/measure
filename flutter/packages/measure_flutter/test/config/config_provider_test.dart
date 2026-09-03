@@ -264,12 +264,10 @@ void main() {
     test('updates config values', () {
       final newConfig = DynamicConfig.defaults().copyWith(
         traceSamplingRate: 0.5,
-        crashTakeScreenshot: false,
       );
       provider.setDynamicConfig(newConfig);
 
       expect(provider.traceSamplingRate, equals(0.5));
-      expect(provider.crashTakeScreenshot, isFalse);
     });
 
     test('updates HTTP tracking patterns', () {
@@ -301,7 +299,6 @@ void main() {
     test('returns default dynamic config values initially', () {
       expect(provider.traceSamplingRate, equals(DynamicConfig.defaults().traceSamplingRate));
       expect(provider.screenshotMaskLevel, equals(DynamicConfig.defaults().screenshotMaskLevel));
-      expect(provider.crashTakeScreenshot, equals(DynamicConfig.defaults().crashTakeScreenshot));
       expect(provider.gestureClickTakeSnapshot, equals(DynamicConfig.defaults().gestureClickTakeSnapshot));
     });
 
