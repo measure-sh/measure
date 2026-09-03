@@ -69,6 +69,8 @@ export const filterExprUrlKey = "filter_expr";
 
 const SHOWN_VALUE_COUNT = 2;
 
+const noKeys: FilterKey[] = [];
+
 function writeFilterExpr(conditions: ConditionGroup): string | null {
   const tree = buildExprTree(conditions);
   return tree ? formatFilterExpr(tree) : null;
@@ -266,11 +268,14 @@ export default function FilterBar({
     store.setApps(loaded, loaded.length === 0 ? "no-apps" : "loaded");
   }, [appsQuery.status, appsQuery.data]);
 
-  const keys = keysQuery.data?.keys ?? [];
+  const keys = keysQuery.data?.keys ?? noKeys;
   const keyGroups = keysQuery.data?.key_groups ?? [];
 
+  // Keys of the previous app are shown while the requested app's load, and
+  // a request must not be judged by them.
+  const keysSettled = !keysQuery.isPending && !keysQuery.isPlaceholderData;
   const checkingRequestedFilter =
-    parsedRequestedFilter !== null && keysQuery.isPending;
+    parsedRequestedFilter !== null && !keysSettled;
 
   // A condition with no value yet is drawn but not filtered by.
   const requestConditions = useMemo(
@@ -285,11 +290,11 @@ export default function FilterBar({
   const requestedFilterDiscarded = useMemo(
     () =>
       parsedRequestedFilter !== null &&
-      !keysQuery.isPending &&
+      keysSettled &&
       (!parsedRequestedFilter.ok ||
         findUnusableConditions(parsedRequestedFilter.tokens, keys).length > 0 ||
         validateLimits(requestConditions) !== null),
-    [parsedRequestedFilter, keys, keysQuery.isPending, requestConditions],
+    [parsedRequestedFilter, keys, keysSettled, requestConditions],
   );
 
   const draftFilterExpr =
