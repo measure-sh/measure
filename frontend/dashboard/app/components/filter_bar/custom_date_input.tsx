@@ -48,11 +48,15 @@ export default function CustomDateTimeInput({
         const inRange =
           (min === undefined || time >= DateTime.fromISO(min)) &&
           (max === undefined || time <= DateTime.fromISO(max));
-        setLabel(inRange ? typed : formatIsoDateForDateTimeInputField(value));
+        setLabel(typed);
         if (inRange) {
           onChange(time.toISO()!);
         }
       }}
+      // A value outside the range stays while the user edits the other
+      // segments, and is put back on blur, so the input shows the range in
+      // force and typing the same value again counts as a change.
+      onBlur={() => setLabel(formatIsoDateForDateTimeInputField(value))}
     />
   );
 }

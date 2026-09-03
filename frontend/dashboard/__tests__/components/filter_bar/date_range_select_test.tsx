@@ -315,6 +315,10 @@ describe("DateRangeSelect", () => {
     fireEvent.change(start, { target: { value: "2026-01-03T00:00" } });
 
     expect(onChange).not.toHaveBeenCalled();
+    // The value stays while the other segments may still be edited, and is
+    // put back on blur.
+    expect(start).toHaveValue("2026-01-03T00:00");
+    fireEvent.blur(start);
     expect(start).toHaveValue(
       formatIsoDateForDateTimeInputField(custom.startDate),
     );
@@ -328,6 +332,7 @@ describe("DateRangeSelect", () => {
     fireEvent.change(end, { target: { value: "2025-12-31T00:00" } });
 
     expect(onChange).not.toHaveBeenCalled();
+    fireEvent.blur(end);
     expect(end).toHaveValue(formatIsoDateForDateTimeInputField(custom.endDate));
   });
 
