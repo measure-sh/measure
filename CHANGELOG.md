@@ -98,6 +98,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Upgrade fumadocs by @anupcowkur
 - (**frontend**): Gate marketing attribution capture on consent (#4227) by @detj in #4227
 - (**frontend**): Make filter component flags optional by @anupcowkur in #4209
+- (**kmp**): Prepare sdk release 0.2.0 (#4376) by @abhaysood in #4376
 - Migrate journeys to use expression filters by @anupcowkur
 - Upgrade commitlint & relax commit message rules (#4370) by @detj in #4370
 - Declare exempt encryption for TestFlight (#4356) by @abhaysood in #4356
