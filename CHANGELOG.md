@@ -71,6 +71,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Drop unused postgres tables (#4232) by @detj in #4232
 - (**backend**): Merge build & test jobs across service workflows (#4221) by @detj in #4221
 - (**backend**): Fold public oci workflow (#4220) by @detj in #4220
+- (**deps**): Bump google.golang.org/grpc in /backend/libs (#4386) by @dependabot[bot] in #4386
 - (**deps**): Bump google.golang.org/grpc in /backend/cleanup (#4385) by @dependabot[bot] in #4385
 - (**deps**): Bump google.golang.org/grpc in /backend/alerts (#4384) by @dependabot[bot] in #4384
 - (**deps**): Bump google.golang.org/grpc in /backend/agent (#4383) by @dependabot[bot] in #4383
