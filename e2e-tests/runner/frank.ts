@@ -57,6 +57,7 @@ export async function buildAndInstallIOS(repoRoot: string): Promise<void> {
   const label = "build: ios";
   const logger = log.scope(label);
   const iosDir = `${repoRoot}/samples/frank/ios`;
+  const flutterDir = `${repoRoot}/samples/frank/flutter`;
   const hostArch = process.arch === "arm64" ? "arm64" : "x86_64";
   // Rebuild the xcframework to ensure latest configuration is used for builds
   logger.info("clearing stale KMP xcframework build");
@@ -68,8 +69,19 @@ export async function buildAndInstallIOS(repoRoot: string): Promise<void> {
     "ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModel.xcdatamodeld/.xccurrentversion";
   logger.info("restoring CoreData model version");
   await runOrThrow(repoRoot, { label })`git checkout -- ${xccurrentversion}`;
+  // The generated Swift package holds a copy of each plugin's iOS package, so
+  // it goes stale when the measure_flutter plugin source changes.
+  logger.info("regenerating Flutter Swift package");
+  await runOrThrow(flutterDir, { label })`flutter pub get`;
+  // Without the Podfile, Flutter skips its CocoaPods fallback for plugins.
+  rmSync(`${flutterDir}/.ios/Podfile`, { force: true });
+  await runOrThrow(flutterDir, { label })`
+    flutter build swift-package --platform ios --no-codesign
+  `;
   logger.info("installing CocoaPods for Frankenstein iOS");
   await runOrThrow(iosDir, { label })`pod install`;
+  // The Debug configuration builds with DEBUG_INFORMATION_FORMAT=dwarf, which
+  // yields no dSYMs, so the upload phase would ship only the RN sourcemap.
   logger.info("building Frankenstein iOS (debug)");
   await runOrThrow(iosDir, { label })`
     xcodebuild
@@ -81,6 +93,7 @@ export async function buildAndInstallIOS(repoRoot: string): Promise<void> {
     CODE_SIGNING_ALLOWED=NO
     ARCHS=${hostArch}
     ONLY_ACTIVE_ARCH=YES
+    DEBUG_INFORMATION_FORMAT=dwarf-with-dsym
     clean build
   `;
   const appPath = `${iosDir}/build/Build/Products/Debug-iphonesimulator/FrankensteinApp.app`;

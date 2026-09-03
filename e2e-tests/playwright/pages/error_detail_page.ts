@@ -13,7 +13,7 @@ export class ErrorDetailPage {
   readonly appVersionPill: Locator;
   readonly networkTypePill: Locator;
   readonly sessionReplayLink: Locator;
-  readonly copyAiContextButton: Locator;
+  readonly copyAgentPromptButton: Locator;
   readonly userDefinedAttribute: Locator;
   readonly screenshot: Locator;
 
@@ -36,8 +36,8 @@ export class ErrorDetailPage {
     this.sessionReplayLink = page.getByRole("link", {
       name: "View Session Replay",
     });
-    this.copyAiContextButton = page.getByRole("button", {
-      name: "Copy AI Context",
+    this.copyAgentPromptButton = page.getByRole("button", {
+      name: "Copy Agent Prompt",
     });
     this.userDefinedAttribute = page
       .getByTestId("exception-detail-attribute")

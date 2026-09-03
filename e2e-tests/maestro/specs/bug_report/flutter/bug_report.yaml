@@ -38,6 +38,14 @@ appId: ${APP_ID}
           optional: true
 - tapOn: "Send"
 
+# Gives the Flutter SDK time to encode the screenshot and hand the report to
+# the native SDK; iOS drops it if the app backgrounds first.
+- extendedWaitUntil:
+    visible:
+      text: "__upload_settle__"
+    timeout: 5000
+    optional: true
+
 - pressKey: "Home"
 - launchApp:
     stopApp: false

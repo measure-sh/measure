@@ -47,7 +47,7 @@ test.describe("errors", () => {
         await expect(detail.devicePill).toHaveText(/Device:\s+\S/);
         await expect(detail.appVersionPill).toHaveText(/App version:\s+\d/);
         await expect(detail.networkTypePill).toHaveText(/Network type:\s+\S/);
-        await expect(detail.copyAiContextButton).toBeVisible();
+        await expect(detail.copyAgentPromptButton).toBeVisible();
 
         await expect(detail.selectErrorPill(errorPill)).toBeVisible();
         await expect(detail.selectErrorPill(fatalPill)).toBeVisible();
@@ -128,7 +128,7 @@ test.describe("errors", () => {
         await expect(detail.devicePill).toHaveText(/Device:\s+\S/);
         await expect(detail.appVersionPill).toHaveText(/App version:\s+\d/);
         await expect(detail.networkTypePill).toHaveText(/Network type:\s+\S/);
-        await expect(detail.copyAiContextButton).toBeVisible();
+        await expect(detail.copyAgentPromptButton).toBeVisible();
 
         await expect(detail.selectErrorPill(errorPill)).toBeVisible();
         await expect(detail.selectErrorPill(fatalPill)).toBeVisible();
@@ -210,7 +210,7 @@ test.describe("errors", () => {
         await expect(detail.devicePill).toHaveText(/Device:\s+\S/);
         await expect(detail.appVersionPill).toHaveText(/App version:\s+\d/);
         await expect(detail.networkTypePill).toHaveText(/Network type:\s+\S/);
-        await expect(detail.copyAiContextButton).toBeVisible();
+        await expect(detail.copyAgentPromptButton).toBeVisible();
 
         await expect(detail.selectErrorPill(errorPill)).toBeVisible();
         await expect(detail.selectErrorPill(fatalPill)).toBeVisible();
@@ -287,7 +287,7 @@ test.describe("errors", () => {
         await expect(detail.devicePill).toHaveText(/Device:\s+\S/);
         await expect(detail.appVersionPill).toHaveText(/App version:\s+\d/);
         await expect(detail.networkTypePill).toHaveText(/Network type:\s+\S/);
-        await expect(detail.copyAiContextButton).toBeVisible();
+        await expect(detail.copyAgentPromptButton).toBeVisible();
 
         await expect(detail.selectErrorPill(errorPill)).toBeVisible();
         await expect(detail.selectErrorPill(fatalPill)).toBeVisible();
@@ -366,7 +366,7 @@ test.describe("errors", () => {
         await expect(detail.devicePill).toHaveText(/Device:\s+\S/);
         await expect(detail.appVersionPill).toHaveText(/App version:\s+\d/);
         await expect(detail.networkTypePill).toHaveText(/Network type:\s+\S/);
-        await expect(detail.copyAiContextButton).toBeVisible();
+        await expect(detail.copyAgentPromptButton).toBeVisible();
 
         await expect(detail.selectErrorPill(errorPill)).toBeVisible();
         await expect(detail.selectErrorPill(fatalPill)).toBeVisible();
@@ -442,7 +442,7 @@ test.describe("errors", () => {
         await expect(detail.devicePill).toHaveText(/Device:\s+\S/);
         await expect(detail.appVersionPill).toHaveText(/App version:\s+\d/);
         await expect(detail.networkTypePill).toHaveText(/Network type:\s+\S/);
-        await expect(detail.copyAiContextButton).toBeVisible();
+        await expect(detail.copyAgentPromptButton).toBeVisible();
 
         await expect(detail.selectErrorPill(anrPill)).toBeVisible();
         await expect(detail.selectErrorPill(fatalPill)).toBeVisible();
@@ -531,7 +531,7 @@ test.describe("errors", () => {
         await expect(detail.devicePill).toHaveText(/Device:\s+\S/);
         await expect(detail.appVersionPill).toHaveText(/App version:\s+\d/);
         await expect(detail.networkTypePill).toHaveText(/Network type:\s+\S/);
-        await expect(detail.copyAiContextButton).toBeVisible();
+        await expect(detail.copyAgentPromptButton).toBeVisible();
 
         await expect(detail.selectErrorPill(errorPill)).toBeVisible();
         await expect(detail.selectErrorPill(unhandledPill)).toBeVisible();
@@ -612,7 +612,7 @@ test.describe("errors", () => {
         await expect(detail.devicePill).toHaveText(/Device:\s+\S/);
         await expect(detail.appVersionPill).toHaveText(/App version:\s+\d/);
         await expect(detail.networkTypePill).toHaveText(/Network type:\s+\S/);
-        await expect(detail.copyAiContextButton).toBeVisible();
+        await expect(detail.copyAgentPromptButton).toBeVisible();
 
         await expect(detail.selectErrorPill(errorPill)).toBeVisible();
         await expect(detail.selectErrorPill(unhandledPill)).toBeVisible();
@@ -704,7 +704,7 @@ test.describe("errors", () => {
         await expect(detail.devicePill).toHaveText(/Device:\s+\S/);
         await expect(detail.appVersionPill).toHaveText(/App version:\s+\d/);
         await expect(detail.networkTypePill).toHaveText(/Network type:\s+\S/);
-        await expect(detail.copyAiContextButton).toBeVisible();
+        await expect(detail.copyAgentPromptButton).toBeVisible();
 
         await expect(detail.selectErrorPill(errorPill)).toBeVisible();
         await expect(detail.selectErrorPill(handledPill)).toBeVisible();
@@ -790,7 +790,7 @@ test.describe("errors", () => {
         await expect(detail.devicePill).toHaveText(/Device:\s+\S/);
         await expect(detail.appVersionPill).toHaveText(/App version:\s+\d/);
         await expect(detail.networkTypePill).toHaveText(/Network type:\s+\S/);
-        await expect(detail.copyAiContextButton).toBeVisible();
+        await expect(detail.copyAgentPromptButton).toBeVisible();
 
         await expect(detail.selectErrorPill(errorPill)).toBeVisible();
         await expect(detail.selectErrorPill(handledPill)).toBeVisible();
@@ -878,7 +878,7 @@ test.describe("errors", () => {
         await expect(detail.devicePill).toHaveText(/Device:\s+\S/);
         await expect(detail.appVersionPill).toHaveText(/App version:\s+\d/);
         await expect(detail.networkTypePill).toHaveText(/Network type:\s+\S/);
-        await expect(detail.copyAiContextButton).toBeVisible();
+        await expect(detail.copyAgentPromptButton).toBeVisible();
 
         await expect(detail.selectErrorPill(errorPill)).toBeVisible();
         await expect(detail.selectErrorPill(handledPill)).toBeVisible();
@@ -961,7 +961,7 @@ test.describe("errors", () => {
         await expect(detail.devicePill).toHaveText(/Device:\s+\S/);
         await expect(detail.appVersionPill).toHaveText(/App version:\s+\d/);
         await expect(detail.networkTypePill).toHaveText(/Network type:\s+\S/);
-        await expect(detail.copyAiContextButton).toBeVisible();
+        await expect(detail.copyAgentPromptButton).toBeVisible();
 
         await expect(detail.selectErrorPill(errorPill)).toBeVisible();
         await expect(detail.selectErrorPill(handledPill)).toBeVisible();
@@ -1040,7 +1040,7 @@ test.describe("errors", () => {
         await expect(detail.devicePill).toHaveText(/Device:\s+\S/);
         await expect(detail.appVersionPill).toHaveText(/App version:\s+\d/);
         await expect(detail.networkTypePill).toHaveText(/Network type:\s+\S/);
-        await expect(detail.copyAiContextButton).toBeVisible();
+        await expect(detail.copyAgentPromptButton).toBeVisible();
 
         await expect(detail.selectErrorPill(errorPill)).toBeVisible();
         await expect(detail.selectErrorPill(handledPill)).toBeVisible();
@@ -1121,7 +1121,7 @@ test.describe("errors", () => {
         await expect(detail.devicePill).toHaveText(/Device:\s+\S/);
         await expect(detail.appVersionPill).toHaveText(/App version:\s+\d/);
         await expect(detail.networkTypePill).toHaveText(/Network type:\s+\S/);
-        await expect(detail.copyAiContextButton).toBeVisible();
+        await expect(detail.copyAgentPromptButton).toBeVisible();
 
         await expect(detail.selectErrorPill(errorPill)).toBeVisible();
         await expect(detail.selectErrorPill(handledPill)).toBeVisible();
