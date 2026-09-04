@@ -20,6 +20,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Write the URL for an app that has no traces by @anupcowkur
 - (**frontend**): Make the URL the source of truth for the filter bar by @anupcowkur
 
+### :hammer: Misc
+
+- (**deps**): Bump lodash from 4.17.21 to 4.18.1 in /frontend/dashboard (#4394) by @dependabot[bot] in #4394
+
 ## [0.13.0] - 2026-09-03
 
 ### :sparkles: New features
