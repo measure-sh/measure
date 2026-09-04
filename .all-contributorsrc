@@ -338,6 +338,15 @@
       "contributions": [
         "security"
       ]
+    },
+    {
+      "login": "quxaa",
+      "name": "quxaa",
+      "avatar_url": "https://avatars.githubusercontent.com/u/71214341?v=4",
+      "profile": "https://github.com/quxaa",
+      "contributions": [
+        "security"
+      ]
     }
   ],
   "commitType": "docs"
