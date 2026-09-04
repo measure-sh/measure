@@ -7,6 +7,7 @@ import curtains.OnRootViewsChangedListener
 import curtains.OnTouchEventListener
 import curtains.phoneWindow
 import curtains.touchEventInterceptors
+import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
@@ -27,6 +28,7 @@ internal class GestureCollector(
     private val timeProvider: TimeProvider,
     private val defaultExecutor: MeasureExecutorService,
     private val layoutSnapshotThrottler: LayoutSnapshotThrottler,
+    private val configProvider: ConfigProvider,
 ) {
     private val touchListeners = mutableMapOf<Window, OnTouchEventListener>()
     private var rootViewsChangedListener: OnRootViewsChangedListener? = null
@@ -118,7 +120,7 @@ internal class GestureCollector(
         layoutSnapshot: LayoutSnapshot,
     ) {
         val data = ClickData.fromTargetNode(gesture, element)
-        if (layoutSnapshotThrottler.shouldTakeSnapshot()) {
+        if (configProvider.gestureClickTakeSnapshot && layoutSnapshotThrottler.shouldTakeSnapshot()) {
             trackClickWithSnapshotAsync(gesture, data, layoutSnapshot)
         } else {
             trackClick(gesture, data)

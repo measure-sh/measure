@@ -8,6 +8,7 @@ import curtains.onNextDraw
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.layoutinspector.LayoutSnapshotCollector
 import sh.measure.android.mainHandler
 import sh.measure.android.postAtFrontOfQueueAsync
 import sh.measure.android.tracing.AttributeName
@@ -31,6 +32,7 @@ internal class DefaultActivityLifecycleCollector(
     private val timeProvider: TimeProvider,
     private val configProvider: ConfigProvider,
     private val tracer: Tracer,
+    private val layoutSnapshotCollector: LayoutSnapshotCollector,
 ) : ActivityLifecycleCollector,
     ActivityLifecycleListener {
     private val createdActivities = mutableMapOf<String, Span>()
@@ -38,7 +40,7 @@ internal class DefaultActivityLifecycleCollector(
         FragmentLifecycleCollector(signalProcessor, timeProvider, configProvider, tracer)
     }
     private val androidXFragmentNavigationCollector by lazy {
-        AndroidXFragmentNavigationCollector(signalProcessor, timeProvider)
+        AndroidXFragmentNavigationCollector(signalProcessor, timeProvider, layoutSnapshotCollector)
     }
 
     private var isRegistered = AtomicBoolean(false)
@@ -85,14 +87,18 @@ internal class DefaultActivityLifecycleCollector(
     }
 
     override fun onActivityResumed(activity: Activity) {
-        signalProcessor.track(
-            timestamp = timeProvider.now(),
-            type = EventType.LIFECYCLE_ACTIVITY,
-            data = ActivityLifecycleData(
-                type = ActivityLifecycleType.RESUMED,
-                class_name = activity.javaClass.name,
-            ),
-        )
+        val timestamp = timeProvider.now()
+        layoutSnapshotCollector.captureAttachmentAfterNextDraw(activity.window) { attachment ->
+            signalProcessor.track(
+                timestamp = timestamp,
+                type = EventType.LIFECYCLE_ACTIVITY,
+                data = ActivityLifecycleData(
+                    type = ActivityLifecycleType.RESUMED,
+                    class_name = activity.javaClass.name,
+                ),
+                attachments = listOfNotNull(attachment).toMutableList(),
+            )
+        }
 
         activity.window.onNextDraw {
             mainHandler.postAtFrontOfQueueAsync {

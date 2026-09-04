@@ -25,6 +25,7 @@ import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.fakes.FakeConfigProvider
+import sh.measure.android.fakes.FakeLayoutSnapshotCollector
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.NoopLogger
@@ -41,6 +42,7 @@ class InternalSignalCollectorTest {
     private val configProvider = FakeConfigProvider()
     private val processInfoProvider = FakeProcessInfoProvider()
     private val sessionManager = FakeSessionManager()
+    private val layoutSnapshotCollector = FakeLayoutSnapshotCollector()
     private val attributeProcessor = object : AttributeProcessor {
         override fun appendAttributes(attributes: MutableMap<String, Any?>) {
             attributes.put("key-processor", "value-processor")
@@ -53,6 +55,7 @@ class InternalSignalCollectorTest {
         processInfoProvider = processInfoProvider,
         sessionManager = sessionManager,
         spanAttributeProcessors = listOf(attributeProcessor),
+        layoutSnapshotCollector = layoutSnapshotCollector,
     )
 
     @Test
@@ -169,7 +172,7 @@ class InternalSignalCollectorTest {
             attributes = attributes,
             userDefinedAttributes = userDefinedAttrs,
             attachments = mutableListOf(),
-            threadName = null,
+            threadName = Thread.currentThread().name,
             sessionId = null,
             userTriggered = userTriggered,
         )

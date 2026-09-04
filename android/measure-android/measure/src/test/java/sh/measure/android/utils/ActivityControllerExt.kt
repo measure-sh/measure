@@ -13,3 +13,12 @@ fun <T : Activity> ActivityController<T>.forceDrawFrame() {
     decorView.viewTreeObserver.dispatchOnDraw()
     Shadows.shadowOf(Looper.getMainLooper()).idle()
 }
+
+/**
+ * Forces a layout pass on the decor view.
+ */
+fun <T : Activity> ActivityController<T>.forceLayoutPass() {
+    val decorView = get().window.decorView
+    decorView.viewTreeObserver.dispatchOnGlobalLayout()
+    Shadows.shadowOf(Looper.getMainLooper()).idle()
+}
