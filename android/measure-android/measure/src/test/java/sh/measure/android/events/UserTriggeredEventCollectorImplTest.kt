@@ -10,8 +10,10 @@ import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import sh.measure.android.attributes.StringAttr
+import sh.measure.android.events.AttachmentType
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.fakes.FakeConfigProvider
+import sh.measure.android.fakes.FakeLayoutSnapshotCollector
 import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
@@ -27,6 +29,7 @@ class UserTriggeredEventCollectorImplTest {
     private val timeProvider = AndroidTimeProvider(TestClock.create())
     private val processInfoProvider: ProcessInfoProvider = FakeProcessInfoProvider()
     private val configProvider = FakeConfigProvider()
+    private val layoutSnapshotCollector = FakeLayoutSnapshotCollector()
 
     private val userTriggeredEventCollector = UserTriggeredEventCollectorImpl(
         logger,
@@ -34,6 +37,7 @@ class UserTriggeredEventCollectorImplTest {
         timeProvider,
         processInfoProvider,
         configProvider,
+        layoutSnapshotCollector,
     )
 
     @Test
@@ -45,6 +49,24 @@ class UserTriggeredEventCollectorImplTest {
             data = ScreenViewData(name = screenName),
             type = EventType.SCREEN_VIEW,
             timestamp = timeProvider.now(),
+        )
+    }
+
+    @Test
+    fun `attaches layout snapshot to screen view event`() {
+        val snapshot = Attachment(
+            name = "snapshot.json.gz",
+            type = AttachmentType.LAYOUT_SNAPSHOT_JSON,
+            bytes = byteArrayOf(1),
+        )
+        layoutSnapshotCollector.attachment = snapshot
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackScreenView("screen-name", emptyMap())
+        verify(signalProcessor).trackUserTriggered(
+            data = ScreenViewData(name = "screen-name"),
+            type = EventType.SCREEN_VIEW,
+            timestamp = timeProvider.now(),
+            attachments = mutableListOf(snapshot),
         )
     }
 
@@ -472,6 +494,7 @@ class UserTriggeredEventCollectorImplTest {
             timeProvider,
             processInfoProvider,
             configProvider,
+            layoutSnapshotCollector,
         )
 
         collector.register()
@@ -516,6 +539,7 @@ class UserTriggeredEventCollectorImplTest {
             timeProvider,
             processInfoProvider,
             configProvider,
+            layoutSnapshotCollector,
         )
 
         collector.register()
@@ -560,6 +584,7 @@ class UserTriggeredEventCollectorImplTest {
             timeProvider,
             processInfoProvider,
             configProvider,
+            layoutSnapshotCollector,
         )
 
         val requestBody = "{\"name\":\"test\"}"
@@ -605,6 +630,7 @@ class UserTriggeredEventCollectorImplTest {
             timeProvider,
             processInfoProvider,
             configProvider,
+            layoutSnapshotCollector,
         )
 
         val responseBody = "{\"id\":1,\"name\":\"test\"}"

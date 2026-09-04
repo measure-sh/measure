@@ -1374,8 +1374,9 @@ function fillIdleSkipTargets(
     // ahead of where this slice began. It can still land past slices in
     // between, since slices are cut at every event while only gestures, errors
     // and bug reports count as activity, and a log or an http call inside the
-    // gap starts a slice the skip carries straight over. Those slices hold no
-    // attachment of their own, so nothing that would be drawn is missed.
+    // gap starts a slice the skip carries straight over. A lifecycle or screen
+    // view event inside the gap can carry a layout snapshot; that frame is the
+    // one on show where the skip lands, so the screen still ends up current.
     slice.skipToOffsetMs = targetOffsetMs;
   });
 }

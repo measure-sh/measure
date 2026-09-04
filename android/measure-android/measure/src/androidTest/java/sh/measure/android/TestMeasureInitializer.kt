@@ -40,6 +40,8 @@ import sh.measure.android.exporter.NetworkClientImpl
 import sh.measure.android.gestures.GestureCollector
 import sh.measure.android.httpurl.HttpUrlConnectionEventCollector
 import sh.measure.android.httpurl.HttpUrlConnectionEventCollectorImpl
+import sh.measure.android.layoutinspector.LayoutSnapshotCollector
+import sh.measure.android.layoutinspector.LayoutSnapshotCollectorImpl
 import sh.measure.android.layoutinspector.LayoutSnapshotThrottler
 import sh.measure.android.lifecycle.AppLifecycleCollector
 import sh.measure.android.lifecycle.AppLifecycleManager
@@ -266,12 +268,19 @@ internal class TestMeasureInitializer(
         exporter = exporter,
         sampler = sampler,
     ),
+    override val layoutSnapshotCollector: LayoutSnapshotCollector = LayoutSnapshotCollectorImpl(
+        logger = logger,
+        resumedActivityProvider = resumedActivityProvider,
+        defaultExecutor = executorServiceRegistry.defaultExecutor(),
+        layoutSnapshotThrottler = LayoutSnapshotThrottler(timeProvider),
+    ),
     override val userTriggeredEventCollector: UserTriggeredEventCollector = UserTriggeredEventCollectorImpl(
         logger = logger,
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         processInfoProvider = processInfoProvider,
         configProvider = configProvider,
+        layoutSnapshotCollector = layoutSnapshotCollector,
     ),
     override val unhandledExceptionCollector: UnhandledExceptionCollector = UnhandledExceptionCollector(
         logger = logger,
@@ -343,18 +352,21 @@ internal class TestMeasureInitializer(
         appLifecycleManager = appLifecycleManager,
         configProvider = configProvider,
         tracer = tracer,
+        layoutSnapshotCollector = layoutSnapshotCollector,
     ),
     override val appLifecycleCollector: AppLifecycleCollector = AppLifecycleCollector(
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         appLifecycleManager = appLifecycleManager,
+        layoutSnapshotCollector = layoutSnapshotCollector,
     ),
     override val gestureCollector: GestureCollector = GestureCollector(
         logger = logger,
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         defaultExecutor = executorServiceRegistry.defaultExecutor(),
-        layoutSnapshotThrottler = LayoutSnapshotThrottler(configProvider, timeProvider),
+        layoutSnapshotThrottler = LayoutSnapshotThrottler(timeProvider),
+        configProvider = configProvider,
     ),
     private val launchTracker: LaunchTracker = LaunchTracker(
         logger,
@@ -446,5 +458,6 @@ internal class TestMeasureInitializer(
         processInfoProvider = processInfoProvider,
         sessionManager = sessionManager,
         spanAttributeProcessors = spanAttributeProcessors,
+        layoutSnapshotCollector = layoutSnapshotCollector,
     ),
 ) : MeasureInitializer

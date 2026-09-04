@@ -14,7 +14,8 @@ type LifecycleActivity struct {
 	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
 	ThreadName  string              `json:"thread_name"`
 	*event.LifecycleActivity
-	Timestamp time.Time `json:"timestamp"`
+	Timestamp   time.Time          `json:"timestamp"`
+	Attachments []event.Attachment `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread
@@ -102,7 +103,8 @@ type LifecycleApp struct {
 	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
 	ThreadName  string              `json:"thread_name"`
 	*event.LifecycleApp
-	Timestamp time.Time `json:"timestamp"`
+	Timestamp   time.Time          `json:"timestamp"`
+	Attachments []event.Attachment `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread
@@ -127,6 +129,7 @@ func ComputeLifecycleActivities(events []event.EventField) (result []ThreadGroup
 			event.Attribute.ThreadName,
 			event.LifecycleActivity,
 			event.Timestamp,
+			event.Attachments,
 		}
 		result = append(result, activities)
 	}
@@ -195,6 +198,7 @@ func ComputeLifecycleApps(events []event.EventField) (result []ThreadGrouper) {
 			event.Attribute.ThreadName,
 			event.LifecycleApp,
 			event.Timestamp,
+			event.Attachments,
 		}
 		result = append(result, apps)
 	}

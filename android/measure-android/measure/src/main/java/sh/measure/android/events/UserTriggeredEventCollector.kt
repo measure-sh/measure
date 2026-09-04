@@ -6,6 +6,7 @@ import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.exceptions.ExceptionFactory
 import sh.measure.android.exceptions.ExceptionSeverity
+import sh.measure.android.layoutinspector.LayoutSnapshotCollector
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.navigation.ScreenViewData
@@ -48,6 +49,7 @@ internal class UserTriggeredEventCollectorImpl(
     private val timeProvider: TimeProvider,
     private val processInfoProvider: ProcessInfoProvider,
     private val configProvider: ConfigProvider,
+    private val layoutSnapshotCollector: LayoutSnapshotCollector,
 ) : UserTriggeredEventCollector {
     private var enabled = AtomicBoolean(false)
 
@@ -194,12 +196,16 @@ internal class UserTriggeredEventCollectorImpl(
         if (!enabled.get()) {
             return
         }
-        signalProcessor.trackUserTriggered(
-            data = ScreenViewData(name = screenName),
-            timestamp = timeProvider.now(),
-            type = EventType.SCREEN_VIEW,
-            userDefinedAttributes = attributes,
-        )
+        val timestamp = timeProvider.now()
+        layoutSnapshotCollector.captureAttachmentAfterNextDraw { attachment ->
+            signalProcessor.trackUserTriggered(
+                data = ScreenViewData(name = screenName),
+                timestamp = timestamp,
+                type = EventType.SCREEN_VIEW,
+                attachments = listOfNotNull(attachment).toMutableList(),
+                userDefinedAttributes = attributes,
+            )
+        }
         logger.log(LogLevel.Debug, "Screen view event received")
     }
 }

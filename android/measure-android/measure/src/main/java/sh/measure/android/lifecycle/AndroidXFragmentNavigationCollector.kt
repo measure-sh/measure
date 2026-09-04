@@ -12,6 +12,7 @@ import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.layoutinspector.LayoutSnapshotCollector
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.utils.TimeProvider
 import sh.measure.android.utils.isClassAvailable
@@ -19,6 +20,7 @@ import sh.measure.android.utils.isClassAvailable
 internal class AndroidXFragmentNavigationCollector(
     private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
+    private val layoutSnapshotCollector: LayoutSnapshotCollector,
 ) : FragmentLifecycleAdapter(),
     NavController.OnDestinationChangedListener {
 
@@ -41,11 +43,15 @@ internal class AndroidXFragmentNavigationCollector(
         arguments: Bundle?,
     ) {
         val displayName = getDisplayName(controller.context, destination.id)
-        signalProcessor.track(
-            type = EventType.SCREEN_VIEW,
-            timestamp = timeProvider.now(),
-            data = ScreenViewData(name = displayName),
-        )
+        val timestamp = timeProvider.now()
+        layoutSnapshotCollector.captureAttachmentAfterNextDraw { attachment ->
+            signalProcessor.track(
+                type = EventType.SCREEN_VIEW,
+                timestamp = timestamp,
+                data = ScreenViewData(name = displayName),
+                attachments = listOfNotNull(attachment).toMutableList(),
+            )
+        }
     }
 
     private fun safelyTrackAndroidxNavChanges(f: Fragment) {

@@ -20,6 +20,15 @@ Snapshots are throttled to at most one every 750 ms, so bursts of taps don't add
 
 Snapshots cover the whole screen with no setup, whether it's built with Views, Jetpack Compose, or a mix of both.
 
+A snapshot is captured at each of these moments, so a session replay has a frame for every screen the user saw and not only the ones they tapped:
+
+- A click, with the tapped element marked.
+- An activity resuming.
+- A screen view, whether tracked automatically or with `Measure.trackScreenView`.
+- The app going to the background.
+
+The resume and screen view snapshots wait for the new screen to draw, so they show what the user saw rather than an empty layout. Clicks are throttled to one snapshot every 750 ms, and the other three moments share a separate 750 ms limit. A throttled event is still tracked, only without its snapshot.
+
 ## iOS
 
 Snapshots capture the full view hierarchy of the screen with no setup. SwiftUI content appears with its underlying system view names rather than your SwiftUI view names.

@@ -12,6 +12,7 @@ import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.gestures.ClickData
 import sh.measure.android.gestures.LongClickData
 import sh.measure.android.gestures.ScrollData
+import sh.measure.android.layoutinspector.LayoutSnapshotCollector
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.logs.LogData
@@ -35,6 +36,7 @@ internal class InternalSignalCollector(
     private val processInfoProvider: ProcessInfoProvider,
     private val sessionManager: SessionManager,
     private val spanAttributeProcessors: List<AttributeProcessor>,
+    private val layoutSnapshotCollector: LayoutSnapshotCollector,
 ) {
     fun trackEvent(
         data: MutableMap<String, Any?>,
@@ -117,15 +119,22 @@ internal class InternalSignalCollector(
 
                 EventType.SCREEN_VIEW -> {
                     val extractedData = extractScreenViewData(data)
-                    signalProcessor.track(
-                        data = extractedData,
-                        timestamp = timestamp,
-                        type = eventType,
-                        attributes = attributes,
-                        userDefinedAttributes = userDefinedAttrs,
-                        attachments = eventAttachments,
-                        userTriggered = userTriggered,
-                    )
+                    val callerThreadName = threadName ?: Thread.currentThread().name
+                    layoutSnapshotCollector.captureAttachmentAfterNextDraw { attachment ->
+                        if (attachment != null) {
+                            eventAttachments.add(attachment)
+                        }
+                        signalProcessor.track(
+                            data = extractedData,
+                            timestamp = timestamp,
+                            type = eventType,
+                            attributes = attributes,
+                            userDefinedAttributes = userDefinedAttrs,
+                            attachments = eventAttachments,
+                            threadName = callerThreadName,
+                            userTriggered = userTriggered,
+                        )
+                    }
                 }
 
                 EventType.HTTP -> {
