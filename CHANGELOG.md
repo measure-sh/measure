@@ -22,6 +22,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**deps**): Bump dompurify from 3.4.6 to 3.4.14 in /frontend/dashboard (#4399) by @dependabot[bot] in #4399
+- (**deps**): Bump fflate from 0.4.8 to 0.4.9 in /frontend/dashboard (#4398) by @dependabot[bot] in #4398
+- (**deps**): Bump valibot and @c15t/nextjs in /frontend/dashboard (#4397) by @dependabot[bot] in #4397
+- (**deps**): Bump fast-uri from 3.1.5 to 3.1.7 in /frontend/dashboard (#4396) by @dependabot[bot] in #4396
 - (**deps**): Bump browserslist in /frontend/dashboard (#4395) by @dependabot[bot] in #4395
 - (**deps**): Bump lodash from 4.17.21 to 4.18.1 in /frontend/dashboard (#4394) by @dependabot[bot] in #4394
 
