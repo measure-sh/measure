@@ -49,3 +49,37 @@ func TestFormatKMB(t *testing.T) {
 		})
 	}
 }
+
+// crashFreeRate runs the same division GetIssueFreeMetrics does, so the cases
+// below round a real float64 result rather than a folded constant.
+func crashFreeRate(issues, sessions uint64) float64 {
+	return (1 - (float64(issues) / float64(sessions))) * 100
+}
+
+func TestRoundTwoDecimalsFloat64(t *testing.T) {
+	cases := []struct {
+		name string
+		in   float64
+		want float64
+	}{
+		{"zero", 0, 0},
+		{"already at two decimals", 88.89, 88.89},
+		{"third decimal rounds down", 1.234, 1.23},
+		{"third decimal rounds up", 99.996, 100},
+		{"scaling by 100 overshoots", 0.07, 0.07},
+		{"negative", -1.236, -1.24},
+
+		{"41 crashes in 100 sessions", crashFreeRate(41, 100), 59},
+		{"23 crashes in 10000 sessions", crashFreeRate(23, 10000), 99.77},
+		{"3 crashes in 50000 sessions", crashFreeRate(3, 50000), 99.99},
+		{"1 crash in 10001 sessions", crashFreeRate(1, 10001), 99.99},
+	}
+
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := RoundTwoDecimalsFloat64(c.in); got != c.want {
+				t.Errorf("RoundTwoDecimalsFloat64(%v) = %v, want %v", c.in, got, c.want)
+			}
+		})
+	}
+}
