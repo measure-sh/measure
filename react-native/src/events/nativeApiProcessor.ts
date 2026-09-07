@@ -1,9 +1,14 @@
-import { clearUserId, setUserId } from '../native/measureBridge';
+import {
+  clearUserId,
+  internalSetPatch,
+  setUserId,
+} from '../native/measureBridge';
 import type { Logger } from '../utils/logger';
 
 export interface INativeApiProcessor {
   setUserId(userId: string): void;
   clearUserId(): void;
+  internalSetPatch(patchId: string, patchVersion?: string): void;
 }
 
 export class NativeApiProcessor implements INativeApiProcessor {
@@ -49,6 +54,30 @@ export class NativeApiProcessor implements INativeApiProcessor {
       this.logger.log(
         'error',
         `[NativeApiProcessor] clearUserId threw synchronously: ${err}`
+      );
+    }
+  }
+
+  internalSetPatch(patchId: string, patchVersion?: string): void {
+    if (typeof patchId !== 'string' || patchId.trim().length === 0) {
+      this.logger.log(
+        'warning',
+        '[NativeApiProcessor] internalSetPatch called with invalid patchId.'
+      );
+      return;
+    }
+
+    try {
+      internalSetPatch(patchId, patchVersion).catch((err: any) => {
+        this.logger.log(
+          'error',
+          `[NativeApiProcessor] Failed to set patch in native SDK: ${err}`
+        );
+      });
+    } catch (err) {
+      this.logger.log(
+        'error',
+        `[NativeApiProcessor] internalSetPatch threw synchronously: ${err}`
       );
     }
   }

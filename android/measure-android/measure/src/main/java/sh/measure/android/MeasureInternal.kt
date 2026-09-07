@@ -166,6 +166,10 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.userAttributeProcessor.clearUserId()
     }
 
+    fun internalSetPatch(patchId: String, patchVersion: String?) {
+        measure.patchAttributeProcessor.setPatch(patchId, patchVersion)
+    }
+
     fun trackScreenView(screenName: String, attributes: Map<String, AttributeValue>) {
         measure.userTriggeredEventCollector.trackScreenView(screenName, attributes)
     }

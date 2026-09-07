@@ -136,6 +136,18 @@ export function clearUserId(): Promise<any> {
   return MeasureModule.clearUserId();
 }
 
+export function internalSetPatch(
+  patchId: string,
+  patchVersion?: string
+): Promise<any> {
+  if (!MeasureModule.internalSetPatch || isDisabled()) {
+    return Promise.reject(
+      new Error('internalSetPatch native method not available.')
+    );
+  }
+  return MeasureModule.internalSetPatch(patchId, patchVersion ?? null);
+}
+
 export function trackHttpEvent(
   url: string,
   method: string,

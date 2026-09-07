@@ -25,6 +25,7 @@
 		526D182D2D5A1913009A2E90 /* InstallationIdAttributeProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17A12D5A1913009A2E90 /* InstallationIdAttributeProcessor.swift */; };
 		526D182E2D5A1913009A2E90 /* NetworkStateAttributeProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17A22D5A1913009A2E90 /* NetworkStateAttributeProcessor.swift */; };
 		526D182F2D5A1913009A2E90 /* UserAttributeProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17A32D5A1913009A2E90 /* UserAttributeProcessor.swift */; };
+		BA50390E3E74F7E03BAFC26D /* PatchAttributeProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB572ECF81AD8F28A0EA9BE /* PatchAttributeProcessor.swift */; };
 		526D18302D5A1913009A2E90 /* ConfigProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17A52D5A1913009A2E90 /* ConfigProvider.swift */; };
 		526D18312D5A1913009A2E90 /* ClientInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17A62D5A1913009A2E90 /* ClientInfo.swift */; };
 		526D18322D5A1913009A2E90 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17A72D5A1913009A2E90 /* Config.swift */; };
@@ -120,6 +121,7 @@
 		52B7F1352D757F81001498BC /* ComputeOnceAttributeProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0DF2D757F81001498BC /* ComputeOnceAttributeProcessorTests.swift */; };
 		52B7F1362D757F81001498BC /* InstallationIdAttributeProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0E02D757F81001498BC /* InstallationIdAttributeProcessorTests.swift */; };
 		52B7F1372D757F81001498BC /* UserAttributeProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0E12D757F81001498BC /* UserAttributeProcessorTests.swift */; };
+		63EF5C2569D5F15F12CD4582 /* PatchAttributeProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3F0D5BA19C6004B5314C8314 /* PatchAttributeProcessorTests.swift */; };
 		52B7F1382D757F81001498BC /* BaseConfigProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0E32D757F81001498BC /* BaseConfigProviderTests.swift */; };
 		52B7F1392D757F81001498BC /* BatchStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0E52D757F81001498BC /* BatchStoreTests.swift */; };
 		52B7F13A2D757F81001498BC /* DataCleanupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0E62D757F81001498BC /* DataCleanupServiceTests.swift */; };
@@ -435,6 +437,7 @@
 		526D17A12D5A1913009A2E90 /* InstallationIdAttributeProcessor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = InstallationIdAttributeProcessor.swift; sourceTree = "<group>"; };
 		526D17A22D5A1913009A2E90 /* NetworkStateAttributeProcessor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = NetworkStateAttributeProcessor.swift; sourceTree = "<group>"; };
 		526D17A32D5A1913009A2E90 /* UserAttributeProcessor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UserAttributeProcessor.swift; sourceTree = "<group>"; };
+		4CB572ECF81AD8F28A0EA9BE /* PatchAttributeProcessor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PatchAttributeProcessor.swift; sourceTree = "<group>"; };
 		526D17A52D5A1913009A2E90 /* ConfigProvider.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ConfigProvider.swift; sourceTree = "<group>"; };
 		526D17A62D5A1913009A2E90 /* ClientInfo.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ClientInfo.swift; sourceTree = "<group>"; };
 		526D17A72D5A1913009A2E90 /* Config.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
@@ -530,6 +533,7 @@
 		52B7F0DF2D757F81001498BC /* ComputeOnceAttributeProcessorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ComputeOnceAttributeProcessorTests.swift; sourceTree = "<group>"; };
 		52B7F0E02D757F81001498BC /* InstallationIdAttributeProcessorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = InstallationIdAttributeProcessorTests.swift; sourceTree = "<group>"; };
 		52B7F0E12D757F81001498BC /* UserAttributeProcessorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UserAttributeProcessorTests.swift; sourceTree = "<group>"; };
+		3F0D5BA19C6004B5314C8314 /* PatchAttributeProcessorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PatchAttributeProcessorTests.swift; sourceTree = "<group>"; };
 		52B7F0E32D757F81001498BC /* BaseConfigProviderTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BaseConfigProviderTests.swift; sourceTree = "<group>"; };
 		52B7F0E52D757F81001498BC /* BatchStoreTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BatchStoreTests.swift; sourceTree = "<group>"; };
 		52B7F0E62D757F81001498BC /* DataCleanupServiceTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataCleanupServiceTests.swift; sourceTree = "<group>"; };
@@ -850,6 +854,7 @@
 				526D17A02D5A1913009A2E90 /* DeviceAttributeProcessor.swift */,
 				526D17A12D5A1913009A2E90 /* InstallationIdAttributeProcessor.swift */,
 				526D17A22D5A1913009A2E90 /* NetworkStateAttributeProcessor.swift */,
+				4CB572ECF81AD8F28A0EA9BE /* PatchAttributeProcessor.swift */,
 				CF35CE082F559E4D006D7A0D /* SessionAttributeProcessor.swift */,
 				526D17A32D5A1913009A2E90 /* UserAttributeProcessor.swift */,
 			);
@@ -1167,6 +1172,7 @@
 				52B7F0DF2D757F81001498BC /* ComputeOnceAttributeProcessorTests.swift */,
 				CFE1A0012FD000010000AA01 /* ExpoAttributeTests.swift */,
 				52B7F0E02D757F81001498BC /* InstallationIdAttributeProcessorTests.swift */,
+				3F0D5BA19C6004B5314C8314 /* PatchAttributeProcessorTests.swift */,
 				52B7F0E12D757F81001498BC /* UserAttributeProcessorTests.swift */,
 			);
 			path = Attribute;
@@ -2023,6 +2029,7 @@
 				526D183C2D5A1913009A2E90 /* DataCleanupService.swift in Sources */,
 				CF893DD52E950BF000D99D45 /* EventToAttachmentMigrationPolicy.swift in Sources */,
 				526D182F2D5A1913009A2E90 /* UserAttributeProcessor.swift in Sources */,
+				BA50390E3E74F7E03BAFC26D /* PatchAttributeProcessor.swift in Sources */,
 				526D18482D5A1913009A2E90 /* CustomEventCollector.swift in Sources */,
 				AB10C0022F62000000000002 /* LogData.swift in Sources */,
 				AB10C0042F62000000000004 /* LogSeverity.swift in Sources */,
@@ -2062,6 +2069,7 @@
 				CF1BB4F52DDEFCCB00588506 /* ShakeBugReportCollectorTests.swift in Sources */,
 				CFD88D792DAFDA530095115E /* MockSpanStore.swift in Sources */,
 				52B7F1372D757F81001498BC /* UserAttributeProcessorTests.swift in Sources */,
+				63EF5C2569D5F15F12CD4582 /* PatchAttributeProcessorTests.swift in Sources */,
 				CFF77E672FB6CEE600564FDA /* AttachmentProcessorTests.swift in Sources */,
 				CF123F8B2FAA121C0053856F /* MsrObjCSpanBuilderTests.swift in Sources */,
 				CF123F8C2FAA121C0053856F /* MsrObjCSpanTests.swift in Sources */,

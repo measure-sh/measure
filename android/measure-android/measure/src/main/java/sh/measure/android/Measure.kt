@@ -154,6 +154,22 @@ object Measure {
     }
 
     /**
+     * An internal method that sets the patch ID and, optionally, the patch version for the
+     * current app instance. These are attached as attributes to every event and span generated
+     * after this point. This method is not intended for public usage.
+     *
+     * This is used internally by the React Native SDK to propagate the patch identifiers of an
+     * OTA update to the native SDK. The value is held in memory only and is not persisted across
+     * app launches.
+     */
+    @JvmStatic
+    fun internalSetPatch(patchId: String, patchVersion: String? = null) {
+        if (isInitialized) {
+            measure.internalSetPatch(patchId, patchVersion)
+        }
+    }
+
+    /**
      * Call when a screen is viewed by the user.
      *
      * Measure SDK automatically collects screen view events from the Jetpack Navigation library

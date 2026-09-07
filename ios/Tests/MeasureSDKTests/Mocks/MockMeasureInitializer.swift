@@ -24,6 +24,7 @@ final class MockMeasureInitializer: MeasureInitializer {
     let installationIdAttributeProcessor: InstallationIdAttributeProcessor
     let networkStateAttributeProcessor: NetworkStateAttributeProcessor
     let userAttributeProcessor: UserAttributeProcessor
+    let patchAttributeProcessor: PatchAttributeProcessor
     let sessionAttributeProcessor: SessionAttributeProcessor
     let attributeProcessors: [AttributeProcessor]
     let signalProcessor: SignalProcessor
@@ -126,6 +127,7 @@ final class MockMeasureInitializer: MeasureInitializer {
          networkStateAttributeProcessor: NetworkStateAttributeProcessor? = nil,
          sessionAttributeProcessor: SessionAttributeProcessor? = nil,
          userAttributeProcessor: UserAttributeProcessor? = nil,
+         patchAttributeProcessor: PatchAttributeProcessor? = nil,
          randomizer: Randomizer? = nil,
          spanProcessor: SpanProcessor? = nil,
          spanCollector: SpanCollector? = nil,
@@ -194,6 +196,7 @@ final class MockMeasureInitializer: MeasureInitializer {
         self.networkStateAttributeProcessor = networkStateAttributeProcessor ?? NetworkStateAttributeProcessor(measureDispatchQueue: self.measureDispatchQueue)
         self.userAttributeProcessor = userAttributeProcessor ?? UserAttributeProcessor(userDefaultStorage: self.userDefaultStorage,
                                                              measureDispatchQueue: self.measureDispatchQueue)
+        self.patchAttributeProcessor = patchAttributeProcessor ?? PatchAttributeProcessor()
         self.sessionAttributeProcessor = sessionAttributeProcessor ?? SessionAttributeProcessor(sessionManager: self.sessionManager, timeProvider: self.timeProvider)
         self.attributeProcessors = [
             self.appAttributeProcessor,
@@ -201,6 +204,7 @@ final class MockMeasureInitializer: MeasureInitializer {
             self.installationIdAttributeProcessor,
             self.networkStateAttributeProcessor,
             self.userAttributeProcessor,
+            self.patchAttributeProcessor,
             self.sessionAttributeProcessor
         ]
         self.crashDataPersistence = crashDataPersistence ?? BaseCrashDataPersistence(logger: logger ?? MockLogger(),

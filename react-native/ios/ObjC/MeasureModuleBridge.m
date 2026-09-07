@@ -38,6 +38,10 @@ RCT_EXTERN_METHOD(setUserId:(NSString *)userId
                   rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(clearUserId:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
+RCT_EXTERN_METHOD(internalSetPatch:(NSString *)patchId
+                  patchVersion:(NSString * _Nullable)patchVersion
+                  resolver:(RCTPromiseResolveBlock)resolve
+                  rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(trackHttpEvent:
                   (NSString *)url
                   method:(NSString *)method
