@@ -163,6 +163,9 @@ Measure would not be possible without our amazing contributors! ❤️
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/senti-man"><img src="https://avatars.githubusercontent.com/u/312449751?v=4?s=100" width="100px;" alt="sungju Kim"/><br /><sub><b>sungju Kim</b></sub></a><br /><a href="#security-senti-man" title="Security">🛡️</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/quxaa"><img src="https://avatars.githubusercontent.com/u/71214341?v=4?s=100" width="100px;" alt="quxaa"/><br /><sub><b>quxaa</b></sub></a><br /><a href="#security-quxaa" title="Security">🛡️</a></td>
     </tr>
+    <tr>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/timhaines"><img src="https://avatars.githubusercontent.com/u/19700?v=4?s=100" width="100px;" alt="Tim Haines"/><br /><sub><b>Tim Haines</b></sub></a><br /><a href="#security-timhaines" title="Security">🛡️</a></td>
+    </tr>
   </tbody>
 </table>
 
