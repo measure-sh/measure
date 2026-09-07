@@ -54,25 +54,32 @@ jobs:
           git config user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Validate version format
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          if ! [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "Error: Version must match pattern x.y.z (e.g. 1.2.3)"
-            echo "Got: ${{ inputs.version }}"
+            echo "Got: $VERSION"
             exit 1
           fi
 
       - name: Validate measure_flutter inputs
         if: inputs.package == 'measure_flutter'
+        env:
+          ANDROID_SDK_VERSION: ${{ inputs.android_sdk_version }}
+          IOS_SDK_VERSION: ${{ inputs.ios_sdk_version }}
         run: |
-          if [ -z "${{ inputs.android_sdk_version }}" ] || [ -z "${{ inputs.ios_sdk_version }}" ]; then
+          if [ -z "$ANDROID_SDK_VERSION" ] || [ -z "$IOS_SDK_VERSION" ]; then
             echo "Error: android_sdk_version and ios_sdk_version are required for measure_flutter"
             exit 1
           fi
 
       - name: Validate measure_dio inputs
         if: inputs.package == 'measure_dio'
+        env:
+          MEASURE_FLUTTER_VERSION: ${{ inputs.measure_flutter_version }}
         run: |
-          if [ -z "${{ inputs.measure_flutter_version }}" ]; then
+          if [ -z "$MEASURE_FLUTTER_VERSION" ]; then
             echo "Error: measure_flutter_version is required for measure_dio"
             exit 1
           fi
@@ -80,32 +87,41 @@ jobs:
       # measure_flutter steps
       - name: Update measure_flutter versions
         if: inputs.package == 'measure_flutter'
+        env:
+          VERSION: ${{ inputs.version }}
+          ANDROID_SDK_VERSION: ${{ inputs.android_sdk_version }}
+          IOS_SDK_VERSION: ${{ inputs.ios_sdk_version }}
         run: |
-          sed -i "s/^version: .*/version: ${{ inputs.version }}/" flutter/packages/measure_flutter/pubspec.yaml
-          sed -i "s/\(s.version *= *\).*/\1'${{ inputs.version }}'/" flutter/packages/measure_flutter/ios/measure_flutter.podspec
-          sed -i 's/api("sh.measure:measure-android:.*")/api("sh.measure:measure-android:${{ inputs.android_sdk_version }}")/' flutter/packages/measure_flutter/android/build.gradle
-          sed -i "s|branch: \"ios-v[0-9.]*\"|branch: \"ios-v${{ inputs.ios_sdk_version }}\"|" flutter/packages/measure_flutter/ios/measure_flutter/Package.swift
-          sed -i "s/s.dependency 'measure-sh', '~> [0-9.]*'/s.dependency 'measure-sh', '~> ${{ inputs.ios_sdk_version }}'/" flutter/packages/measure_flutter/ios/measure_flutter.podspec
-          sed -i "s/measure_flutter: ^.*/measure_flutter: ^${{ inputs.version }}/" flutter/packages/measure_flutter/README.md
-          sed -i "s/measure_flutter: ^.*/measure_flutter: ^${{ inputs.version }}/" frontend/dashboard/content/docs/getting-started/flutter.mdx
-          sed -i "/^| Measure Android/ s/[0-9]*\.[0-9]*\.[0-9]*/${{ inputs.android_sdk_version }}/" frontend/dashboard/content/docs/getting-started/flutter.mdx
-          sed -i "/^| Measure iOS/ s/[0-9]*\.[0-9]*\.[0-9]*/${{ inputs.ios_sdk_version }}/" frontend/dashboard/content/docs/getting-started/flutter.mdx
+          sed -i "s/^version: .*/version: $VERSION/" flutter/packages/measure_flutter/pubspec.yaml
+          sed -i "s/\(s.version *= *\).*/\1'$VERSION'/" flutter/packages/measure_flutter/ios/measure_flutter.podspec
+          sed -i "s/api(\"sh.measure:measure-android:.*\")/api(\"sh.measure:measure-android:$ANDROID_SDK_VERSION\")/" flutter/packages/measure_flutter/android/build.gradle
+          sed -i "s|branch: \"ios-v[0-9.]*\"|branch: \"ios-v$IOS_SDK_VERSION\"|" flutter/packages/measure_flutter/ios/measure_flutter/Package.swift
+          sed -i "s/s.dependency 'measure-sh', '~> [0-9.]*'/s.dependency 'measure-sh', '~> $IOS_SDK_VERSION'/" flutter/packages/measure_flutter/ios/measure_flutter.podspec
+          sed -i "s/measure_flutter: ^.*/measure_flutter: ^$VERSION/" flutter/packages/measure_flutter/README.md
+          sed -i "s/measure_flutter: ^.*/measure_flutter: ^$VERSION/" frontend/dashboard/content/docs/getting-started/flutter.mdx
+          sed -i "/^| Measure Android/ s/[0-9]*\.[0-9]*\.[0-9]*/$ANDROID_SDK_VERSION/" frontend/dashboard/content/docs/getting-started/flutter.mdx
+          sed -i "/^| Measure iOS/ s/[0-9]*\.[0-9]*\.[0-9]*/$IOS_SDK_VERSION/" frontend/dashboard/content/docs/getting-started/flutter.mdx
 
       # measure_dio steps
       - name: Update measure_dio versions
         if: inputs.package == 'measure_dio'
+        env:
+          VERSION: ${{ inputs.version }}
+          MEASURE_FLUTTER_VERSION: ${{ inputs.measure_flutter_version }}
         run: |
           cd flutter/packages/measure_dio
-          sed -i "s/^version: .*/version: ${{ inputs.version }}/" pubspec.yaml
-          sed -i "s/measure_flutter: ^.*/measure_flutter: ^${{ inputs.measure_flutter_version }}/" pubspec.yaml
+          sed -i "s/^version: .*/version: $VERSION/" pubspec.yaml
+          sed -i "s/measure_flutter: ^.*/measure_flutter: ^$MEASURE_FLUTTER_VERSION/" pubspec.yaml
           sed -i '/^dependency_overrides:/,/^[^ ]/{ /^[^ ]/!d; /^dependency_overrides:/d }' pubspec.yaml
 
       # measure_build steps
       - name: Update measure_build versions
         if: inputs.package == 'measure_build'
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          sed -i "s/^version: .*/version: ${{ inputs.version }}/" flutter/packages/measure_build/pubspec.yaml
-          sed -i "s/measure_build: ^.*/measure_build: ^${{ inputs.version }}/" flutter/packages/measure_build/README.md
+          sed -i "s/^version: .*/version: $VERSION/" flutter/packages/measure_build/pubspec.yaml
+          sed -i "s/measure_build: ^.*/measure_build: ^$VERSION/" flutter/packages/measure_build/README.md
 
       # Shared steps
       - name: Generate changelog

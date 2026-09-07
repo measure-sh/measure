@@ -37,31 +37,41 @@ jobs:
           git config user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Validate input version format
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          if ! [[ ${{ inputs.version }} =~ ^[0-9]+\.[0-9]+\.[0-9]+-SNAPSHOT$ ]]; then
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+-SNAPSHOT$ ]]; then
             echo "Error: Version must match pattern x.y.z-SNAPSHOT (e.g. 1.2.3-SNAPSHOT)"
-            echo "Got: ${{ inputs.version }}"
+            echo "Got: $VERSION"
             exit 1
           fi
 
       - name: Update version in gradle.properties
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          sed -i "s/MEASURE_VERSION_NAME=.*/MEASURE_VERSION_NAME=${{ inputs.version }}/" gradle.properties
+          sed -i "s/MEASURE_VERSION_NAME=.*/MEASURE_VERSION_NAME=$VERSION/" gradle.properties
 
       - name: Update version in plugin libs.versions.toml
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
           PATTERN="measure-android = \".*\""
-          REPLACEMENT="measure-android = \"${{ inputs.version }}\""
+          REPLACEMENT="measure-android = \"$VERSION\""
           sed -i "s/$PATTERN/$REPLACEMENT/" ../measure-gradle-plugin/gradle/libs.versions.toml
 
       - name: Update measure-android version in React Native SDK
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          sed -i "s|compileOnly(\"sh.measure:measure-android:[^\"]*\")|compileOnly(\"sh.measure:measure-android:${{ inputs.version }}\")|" ../../react-native/android/build.gradle.kts
-          sed -i "s|implementation(\"sh.measure:measure-android:[^\"]*\")|implementation(\"sh.measure:measure-android:${{ inputs.version }}\")|" ../../react-native/example/rnExample/android/app/build.gradle
+          sed -i "s|compileOnly(\"sh.measure:measure-android:[^\"]*\")|compileOnly(\"sh.measure:measure-android:$VERSION\")|" ../../react-native/android/build.gradle.kts
+          sed -i "s|implementation(\"sh.measure:measure-android:[^\"]*\")|implementation(\"sh.measure:measure-android:$VERSION\")|" ../../react-native/example/rnExample/android/app/build.gradle
 
       - name: Update measure-android version in Flutter SDK
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          sed -i "s|api(\"sh.measure:measure-android:[^\"]*\")|api(\"sh.measure:measure-android:${{ inputs.version }}\")|" ../../flutter/packages/measure_flutter/android/build.gradle
+          sed -i "s|api(\"sh.measure:measure-android:[^\"]*\")|api(\"sh.measure:measure-android:$VERSION\")|" ../../flutter/packages/measure_flutter/android/build.gradle
 
       - name: Verify changes
         run: |
