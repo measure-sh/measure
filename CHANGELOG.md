@@ -30,6 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump lodash from 4.17.21 to 4.18.1 in /frontend/dashboard (#4394) by @dependabot[bot] in #4394
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
 
+### :books: Documentation
+
+- Add quxaa as a contributor for security (#4401) by @allcontributors[bot] in #4401
+
 ## [0.13.0] - 2026-09-03
 
 ### :sparkles: New features
