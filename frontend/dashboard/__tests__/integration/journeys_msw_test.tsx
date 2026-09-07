@@ -34,7 +34,6 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
 }));
 
-const mockRouterReplace = mockRouter.replaceMock;
 const mockRouterPush = mockRouter.pushMock;
 
 jest.mock("next/navigation", () => ({
@@ -95,7 +94,6 @@ jest.spyOn(console, "error").mockImplementation(() => {});
 beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
 afterEach(() => {
   server.resetHandlers();
-  mockRouterReplace.mockClear();
   mockRouterPush.mockClear();
 });
 afterAll(() => server.close());
@@ -128,7 +126,7 @@ beforeEach(() => {
   filtersStore = createFiltersStore();
   onboardingStore = createOnboardingStore();
   queryClient.clear();
-  mockRouter.searchParams = new URLSearchParams();
+  mockRouter.reset();
   const { apiClient } = require("@/app/api/api_client");
   apiClient.init({ replace: jest.fn(), push: jest.fn() });
 });
@@ -175,12 +173,7 @@ describe("Journeys page (MSW integration)", () => {
     );
   }
 
-  const lastWrittenUrl = () =>
-    new URLSearchParams(
-      mockRouterReplace.mock.calls[
-        mockRouterReplace.mock.calls.length - 1
-      ][0].slice(1),
-    );
+  const lastWrittenUrl = () => new URLSearchParams(window.location.search);
 
   describe("opening the page", () => {
     it("draws the journey the server sent", async () => {
@@ -220,9 +213,7 @@ describe("Journeys page (MSW integration)", () => {
       renderPage();
       await waitForChart();
 
-      const written = new URLSearchParams(
-        mockRouterReplace.mock.calls[0][0].slice(1),
-      );
+      const written = new URLSearchParams(window.location.search);
       expect(written.get("a")).toBe(appId);
       expect(written.get("d")).toBe("Last 6 Hours");
       expect(written.get("sd")).toBeNull();
@@ -245,7 +236,7 @@ describe("Journeys page (MSW integration)", () => {
 
   describe("a link carrying a filter", () => {
     it("filters the journey by it", async () => {
-      mockRouter.searchParams = new URLSearchParams(
+      mockRouter.setUrl(
         `filter_expr=${encodeURIComponent("version_name:in:3.1.0")}`,
       );
       const sent = recordJourneyRequests();
@@ -261,7 +252,7 @@ describe("Journeys page (MSW integration)", () => {
 
   describe("the plot type", () => {
     it("opens on the plot a link names and keeps it in the URL", async () => {
-      mockRouter.searchParams = new URLSearchParams("jt=Exceptions");
+      mockRouter.setUrl("jt=Exceptions");
       renderPage();
       await waitForChart();
 
@@ -325,7 +316,7 @@ describe("Journeys page (MSW integration)", () => {
     });
 
     it("shows a refused filter's issue in the bar, not the error message", async () => {
-      mockRouter.searchParams = new URLSearchParams(
+      mockRouter.setUrl(
         `filter_expr=${encodeURIComponent("version_name:in:3.1.0")}`,
       );
       server.use(

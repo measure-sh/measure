@@ -4,6 +4,7 @@ import path from "node:path";
 
 import type { ExprTree } from "@/app/api/filter_types";
 import {
+  customKeyNamesIn,
   type ExprToken,
   formatFilterExpr,
   parseFilterExpr,
@@ -284,5 +285,24 @@ describe("the tokens a filter reads as", () => {
       ["key", "b"],
       ["punctuation", ":"],
     ]);
+  });
+});
+
+describe("the custom keys a filter names", () => {
+  const namesIn = (text: string) =>
+    customKeyNamesIn(parseFilterExpr(text, { draft: true }).tokens);
+
+  it("lists each once, sorted, leaving the built-in keys out", () => {
+    expect(
+      namesIn(
+        "custom.plan:in:pro AND version_name:in:1.0 AND (custom.age:gt:3 OR custom.plan:in:free)",
+      ),
+    ).toEqual(["custom.age", "custom.plan"]);
+  });
+
+  it("waits for a key's operator before counting it", () => {
+    expect(namesIn("custom.pl")).toEqual([]);
+    expect(namesIn("custom.plan:")).toEqual([]);
+    expect(namesIn("custom.plan:in")).toEqual(["custom.plan"]);
   });
 });

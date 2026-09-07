@@ -13,15 +13,22 @@ export default function Builds(props: { params: Promise<{ teamId: string }> }) {
   const params = use(props.params);
 
   const {
-    requestedFilters,
-    paginationOffset,
-    filterState,
+    value,
+    apps,
+    keys,
+    keyGroups,
+    keysUnavailable,
+    status,
     filterParams,
-    onRequestChange,
-    onFilterChange,
+    paginationOffset,
+    onChange,
     nextPage,
     prevPage,
-  } = useExprFilterPage({ paginationLimit: PAGINATION_LIMIT });
+  } = useExprFilterPage({
+    teamId: params.teamId,
+    entity: "builds",
+    paginationLimit: PAGINATION_LIMIT,
+  });
 
   const buildsQuery = useBuildsQuery(filterParams, paginationOffset);
 
@@ -32,20 +39,20 @@ export default function Builds(props: { params: Promise<{ teamId: string }> }) {
       <div className="py-4" />
 
       <FilterBar
-        teamId={params.teamId}
         entity="builds"
         placeholder="Filter builds…"
-        requestedAppId={requestedFilters.appId}
-        requestedDateRange={requestedFilters.dateRange}
-        requestedFilterExpr={requestedFilters.filterExpr}
+        value={value}
+        apps={apps}
+        keys={keys}
+        keyGroups={keyGroups}
+        keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
-        onRequestChange={onRequestChange}
-        onFilterChange={onFilterChange}
+        onChange={onChange}
       />
       <div className="py-4" />
 
       <BuildsResults
-        filterState={filterState}
+        status={status}
         query={buildsQuery}
         filterExprHasIssues={filterExprIssues !== null}
         onNextPage={nextPage}

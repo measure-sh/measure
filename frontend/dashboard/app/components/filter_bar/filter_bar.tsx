@@ -11,32 +11,19 @@ import {
 } from "react";
 import { type App } from "../../api/api_calls";
 import type { FilterExprIssue } from "../../api/api_error";
-import {
-  type FilterKey,
-  type FilterOperator,
-  type FilterValue,
-} from "../../api/filter_types";
-import {
-  useAppsQuery,
-  useFilterKeysQuery,
-  useRootSpanNamesQuery,
-} from "../../query/hooks";
+import { type FilterKey, type FilterOperator } from "../../api/filter_types";
+import { useFilterKeysQuery } from "../../query/hooks";
 import { toastNegative } from "../toast";
-import { useFiltersStore } from "../../stores/provider";
 import { Skeleton } from "../skeleton";
 import DropdownSelect, { DropdownSelectType } from "../dropdown_select";
 import AppSelect from "./app_select";
 import DateRangeSelect, {
   DateRange,
   type DateSelection,
-  isValidDateRange,
   type UncheckedDateRange,
-  pickDateRange,
-  toDateSelection,
 } from "./date_range_select";
 import {
   buildConditionGroup,
-  buildDraftTree,
   buildExprTree,
   childId,
   type ConditionGroup,
@@ -44,6 +31,7 @@ import {
   type ConditionRow,
   dropById,
   isConditionGroup,
+  isRowComplete,
   rowBefore,
   updateGroup,
   updateRow,
@@ -55,314 +43,250 @@ import {
   operatorTakesValues,
   valuesAfterOperatorChange,
 } from "./operators";
-import {
-  findFilterIssues,
-  findUnusableConditions,
-  validateLimits,
-} from "./validate";
+import { findFilterIssues, validateLimits } from "./validate";
 import KeyPicker, { OperatorPicker } from "./key_picker";
-import { formatFilterExpr, parseFilterExpr } from "./parse";
+import { customKeyNamesIn, formatFilterExpr, parseFilterExpr } from "./parse";
 import FilterTextEditor from "./filter_text_editor";
 import ValuePicker from "./value_picker";
 
-export const filterExprUrlKey = "filter_expr";
-
 const SHOWN_VALUE_COUNT = 2;
 
-const noKeys: FilterKey[] = [];
+export type FilterSelection = {
+  app: App;
+  date: DateSelection;
+  filterExpr: string | null;
+  rootSpanName: string | null;
+  discarded: boolean;
+};
+
+export type FilterChange = Partial<{
+  appId: string;
+  dateRange: UncheckedDateRange;
+  filterExpr: string | null;
+  rootSpanName: string | null;
+}>;
+
+interface FilterBarProps {
+  entity: string;
+  placeholder?: string;
+  value: FilterSelection | null;
+  apps: App[];
+  keys: FilterKey[] | null;
+  keyGroups: string[];
+  keysUnavailable: boolean;
+  spanNames?: string[] | null;
+  filterExprIssues?: FilterExprIssue[] | null;
+  onChange: (change: FilterChange) => void;
+}
+
+type OpenPicker =
+  | { kind: "keys"; groupId: string }
+  | { kind: "values"; rowId: string };
+
+type PendingEdit = {
+  appId: string;
+  date: DateSelection;
+  rootSpanName: string | null;
+  tree: ConditionGroup;
+  from: string | null;
+  to: string | null;
+  picker: OpenPicker | null;
+  // Changing the key or operator of a complete condition empties its values
+  // and opens the value picker. Dismissing that picker without a value puts
+  // the filter back to this text, so the condition is not lost.
+  revert?: string | null;
+};
 
 function writeFilterExpr(conditions: ConditionGroup): string | null {
   const tree = buildExprTree(conditions);
   return tree ? formatFilterExpr(tree) : null;
 }
 
-export type ReadyFilterState = Extract<FilterState, { status: "ready" }>;
+function sameDate(a: DateSelection, b: DateSelection): boolean {
+  if (a.dateRange !== b.dateRange) {
+    return false;
+  }
+  return (
+    a.dateRange !== DateRange.Custom ||
+    (a.startDate === b.startDate && a.endDate === b.endDate)
+  );
+}
 
-export type FilterState =
-  | { status: "pending" }
-  | { status: "error"; message: string }
-  | {
-      status: "ready";
-      app: App;
-      date: DateSelection;
-      filterExpr: string | null;
-      rootSpanName: string | null;
-      // True when nothing requested was discarded.
-      appliedAsRequested: boolean;
-    };
+function settle(edit: PendingEdit, value: FilterSelection): PendingEdit | null {
+  const filterExpr = value.filterExpr;
+  if (
+    value.discarded ||
+    edit.appId !== value.app.id ||
+    !sameDate(edit.date, value.date) ||
+    (edit.rootSpanName !== null && edit.rootSpanName !== value.rootSpanName)
+  ) {
+    return null;
+  }
+  if (edit.from !== filterExpr && edit.to !== filterExpr) {
+    return null;
+  }
+  if (edit.to === filterExpr && edit.picker === null) {
+    return null;
+  }
+  if (edit.from === filterExpr) {
+    return edit;
+  }
+  return { ...edit, from: edit.to };
+}
 
-export type FilterRequest = {
-  appId: string | null;
-  dateRange: UncheckedDateRange;
-  // The filter as drawn, which can hold a condition with no value yet.
-  filterExpr: string | null;
-  rootSpanName: string | null;
-};
+function rowIn(tree: ConditionGroup, rowId: string): ConditionRow | null {
+  for (const child of tree.children) {
+    if (child.id === rowId && !isConditionGroup(child)) {
+      return child;
+    }
+    if (isConditionGroup(child)) {
+      const found = rowIn(child, rowId);
+      if (found) {
+        return found;
+      }
+    }
+  }
+  return null;
+}
 
-interface FilterBarProps {
-  teamId: string;
-  entity: string;
-  placeholder?: string;
-  requestedAppId: string | null;
-  requestedDateRange: UncheckedDateRange;
-  requestedFilterExpr: string | null;
-  filterExprIssues?: FilterExprIssue[] | null;
-  showRootSpanSelector?: boolean;
-  requestedRootSpanName?: string | null;
-  onRequestChange: (change: Partial<FilterRequest>) => void;
-  onFilterChange: (state: FilterState) => void;
+function withPickerClosed(
+  tree: ConditionGroup,
+  picker: OpenPicker | null,
+): ConditionGroup {
+  if (picker === null) {
+    return tree;
+  }
+  if (picker.kind === "keys") {
+    return dropById(tree, picker.groupId);
+  }
+  const row = rowIn(tree, picker.rowId);
+  return row !== null && !isRowComplete(row)
+    ? dropById(tree, picker.rowId)
+    : tree;
+}
+
+function appendTo(
+  tree: ConditionGroup,
+  groupId: string,
+  make: (id: string) => ConditionOrGroup,
+): { tree: ConditionGroup; id: string } {
+  let id = groupId;
+  const next = updateGroup(tree, groupId, (group) => {
+    id = childId(group.id, group.children.length);
+    return { ...group, children: [...group.children, make(id)] };
+  });
+  return { tree: next, id };
 }
 
 export default function FilterBar({
-  teamId,
   entity,
   placeholder = "Filter…",
-  requestedAppId,
-  requestedDateRange,
-  requestedFilterExpr,
+  value,
+  apps,
+  keys,
+  keyGroups,
+  keysUnavailable,
+  spanNames,
   filterExprIssues,
-  showRootSpanSelector = false,
-  requestedRootSpanName = null,
-  onRequestChange,
-  onFilterChange,
+  onChange,
 }: FilterBarProps) {
-  const store = useFiltersStore();
-  const rememberedAppId = useFiltersStore((s) => s.selectedApp?.id);
-
   const [keyListOpen, setKeyListOpen] = useState(false);
+  const [edit, setEdit] = useState<PendingEdit | null>(null);
   const [editingAsText, setEditingAsText] = useState(false);
   const [focusedId, setFocusedId] = useState<string | null>(null);
-
   const [typedText, setTypedText] = useState<string | null>(null);
 
-  // Focus follows a condition as it is added, and moves to the preceding
-  // condition when it is removed.
   const focusedControlRef = useRef<HTMLButtonElement>(null);
   const addConditionButtonRef = useRef<HTMLButtonElement>(null);
 
-  const appsQuery = useAppsQuery(teamId);
-  const apps = useMemo(() => appsQuery.data ?? [], [appsQuery.data]);
+  const filterExpr = value?.filterExpr ?? null;
 
-  const selectedApp =
-    apps.find((app) => app.id === requestedAppId) ??
-    apps.find((app) => app.id === rememberedAppId) ??
-    apps[0] ??
-    null;
-
-  useEffect(() => {
-    if (selectedApp && selectedApp.id !== rememberedAppId) {
-      store.setSelectedApp(selectedApp);
-    }
-  }, [selectedApp?.id]);
-
-  const parsedRequestedFilter = useMemo(
-    () =>
-      requestedFilterExpr
-        ? parseFilterExpr(requestedFilterExpr, { draft: true })
-        : null,
-    [requestedFilterExpr],
+  const parsedFilter = useMemo(
+    () => (filterExpr ? parseFilterExpr(filterExpr, { draft: true }) : null),
+    [filterExpr],
   );
 
-  // The keys listing caps how many custom keys it returns, so a custom key
-  // the requested expression specifies can be missing from it. Asking the query
-  // for those names resolves them, and the discard check below then keeps
-  // the expression.
-  const requestedCustomKeyNames = useMemo(() => {
-    const names = (parsedRequestedFilter?.tokens ?? [])
-      .filter(
-        (token) => token.kind === "key" && token.text.startsWith("custom."),
-      )
-      .map((token) => token.text);
-    return [...new Set(names)].sort();
-  }, [parsedRequestedFilter]);
-
-  // A custom key typed into the text editor can be beyond the listing cap
-  // as well, so names in the draft join the request. A draft name is only
-  // sent once its condition has an operator, which keeps the query key
-  // stable while the user is still typing the key name itself.
-  const queriedCustomKeyNames = useMemo(() => {
-    const parsedDraft =
-      typedText !== null ? parseFilterExpr(typedText, { draft: true }) : null;
-    const draftNames = (parsedDraft?.tokens ?? [])
-      .filter(
-        (token, index, tokens) =>
-          token.kind === "key" &&
-          token.text.startsWith("custom.") &&
-          tokens[index + 2]?.kind === "operator",
-      )
-      .map((token) => token.text);
-    return [...new Set([...requestedCustomKeyNames, ...draftNames])].sort();
-  }, [typedText, requestedCustomKeyNames]);
-
-  const keysQuery = useFilterKeysQuery(
-    selectedApp?.id,
-    entity,
-    queriedCustomKeyNames,
-  );
-
-  const rootSpanNamesQuery = useRootSpanNamesQuery(
-    showRootSpanSelector ? selectedApp : null,
-  );
-  // The server answers null when the app has never
-  // reported a trace; both mean there is nothing to select.
-  const rootSpanNames = useMemo(
-    () => rootSpanNamesQuery.data ?? [],
-    [rootSpanNamesQuery.data],
-  );
-
-  const resolvedRootSpanName = useMemo(() => {
-    if (!showRootSpanSelector || rootSpanNames.length === 0) {
-      return null;
-    }
-    if (
-      requestedAppId === selectedApp?.id &&
-      requestedRootSpanName &&
-      rootSpanNames.includes(requestedRootSpanName)
-    ) {
-      return requestedRootSpanName;
-    }
-    return rootSpanNames[0];
-  }, [
-    showRootSpanSelector,
-    rootSpanNames,
-    requestedAppId,
-    requestedRootSpanName,
-    selectedApp?.id,
-  ]);
-
-  // The requested date range takes precedence over the persisted store range.
-  const pickedDateRange = pickDateRange(requestedDateRange, {
-    dateRange: store.selectedDateRange,
-    startDate: store.selectedStartDate,
-    endDate: store.selectedEndDate,
-  });
-  // A relative range is counted back from now, so the window is computed
-  // once per label and does not move between renders.
-  const customDateRange = pickedDateRange.dateRange === DateRange.Custom;
-  const date = useMemo(
-    () => toDateSelection(pickedDateRange)!,
-    [
-      pickedDateRange.dateRange,
-      customDateRange ? pickedDateRange.startDate : null,
-      customDateRange ? pickedDateRange.endDate : null,
-    ],
-  );
-
-  useEffect(() => {
-    store.setSelectedDateRange(date.dateRange);
-    store.setSelectedStartDate(date.startDate);
-    store.setSelectedEndDate(date.endDate);
-  }, [date]);
-
-  useEffect(() => {
-    if (appsQuery.status === "pending") {
-      store.setApps([], "pending");
-      return;
-    }
-    if (appsQuery.status === "error") {
-      store.setApps([], "error");
-      return;
-    }
-
-    const loaded = appsQuery.data;
-    store.setApps(loaded, loaded.length === 0 ? "no-apps" : "loaded");
-  }, [appsQuery.status, appsQuery.data]);
-
-  const keys = keysQuery.data?.keys ?? noKeys;
-  const keyGroups = keysQuery.data?.key_groups ?? [];
-
-  // Keys of the previous app are shown while the requested app's load, and
-  // a request must not be judged by them.
-  const keysSettled = !keysQuery.isPending && !keysQuery.isPlaceholderData;
-  const checkingRequestedFilter =
-    parsedRequestedFilter !== null && !keysSettled;
-
-  // A condition with no value yet is drawn but not filtered by.
-  const requestConditions = useMemo(
+  const conditions = useMemo(
     () =>
       buildConditionGroup(
-        parsedRequestedFilter?.ok ? parsedRequestedFilter.tree : null,
-        keys,
+        parsedFilter?.ok ? parsedFilter.tree : null,
+        keys ?? [],
       ),
-    [parsedRequestedFilter, keys],
+    [parsedFilter, keys],
   );
 
-  const requestedFilterDiscarded = useMemo(
+  const pending = edit === null || value === null ? edit : settle(edit, value);
+  if (pending !== edit) {
+    setEdit(pending);
+  }
+
+  const drawn = pending?.tree ?? conditions;
+  const drawnText = pending !== null ? pending.to : filterExpr;
+  const draftText = typedText ?? drawnText ?? "";
+
+  const parsedDraft = useMemo(
+    () => parseFilterExpr(draftText, { draft: true }),
+    [draftText],
+  );
+
+  const urlCustomKeyNames = useMemo(
+    () => customKeyNamesIn(parsedFilter?.tokens ?? []),
+    [parsedFilter],
+  );
+
+  const typedCustomKeyNames = useMemo(
     () =>
-      parsedRequestedFilter !== null &&
-      keysSettled &&
-      (!parsedRequestedFilter.ok ||
-        findUnusableConditions(parsedRequestedFilter.tokens, keys).length > 0 ||
-        validateLimits(requestConditions) !== null),
-    [parsedRequestedFilter, keys, keysSettled, requestConditions],
+      typedText === null
+        ? urlCustomKeyNames
+        : [
+            ...new Set([
+              ...urlCustomKeyNames,
+              ...customKeyNamesIn(parsedDraft.tokens),
+            ]),
+          ].sort(),
+    [typedText, urlCustomKeyNames, parsedDraft],
   );
 
-  const draftFilterExpr =
-    typedText ?? (requestedFilterDiscarded ? "" : (requestedFilterExpr ?? ""));
-
-  const parsedDraftFilter = useMemo(
-    () => parseFilterExpr(draftFilterExpr, { draft: true }),
-    [draftFilterExpr],
+  const draftKeysQuery = useFilterKeysQuery(
+    typedCustomKeyNames.length > 0 ? value?.app.id : undefined,
+    entity,
+    typedCustomKeyNames,
   );
+  const draftKeys = draftKeysQuery.data?.keys ?? keys ?? [];
 
   const draftConditions = useMemo(
     () =>
-      buildConditionGroup(
-        parsedDraftFilter.ok ? parsedDraftFilter.tree : null,
-        keys,
-      ),
-    [parsedDraftFilter, keys],
+      buildConditionGroup(parsedDraft.ok ? parsedDraft.tree : null, draftKeys),
+    [parsedDraft, draftKeys],
   );
 
-  const currentFilterExpr = useMemo(
-    () =>
-      requestedFilterDiscarded ? null : writeFilterExpr(requestConditions),
-    [requestedFilterDiscarded, requestConditions],
-  );
-
-  // The canonical form of the draft. This makes filters that differ only in
-  // spacing or in brackets around a single value compare equal.
-  const draftAppliedExpr = useMemo(
+  const draftFilterExpr = useMemo(
     () => writeFilterExpr(draftConditions),
     [draftConditions],
   );
 
-  // Case                           |  Bar                 |  Page
-  // -----------------------------------------------------------------------------
-  // draft fault the bar catches    |  message, marks       | keeps its rows
-  // server refuses the filter      |  message              | blank
-  // builds request fails otherwise |  nothing              | fetch error
-  // apps or keys cannot be fetched |  skeleton or disabled | fetch error
-  // the team has no apps           |  skeleton             | a prompt to add one
-  // request names one it can't use |  falls back to default| rows as normal, toast
-  //
-  // The filter is cleared only in the last case.
   const ownFilterIssues = useMemo(
     () =>
-      draftFilterExpr.trim() === ""
+      draftText.trim() === ""
         ? []
-        : findFilterIssues(parsedDraftFilter, keys, draftConditions),
-    [draftFilterExpr, parsedDraftFilter, keys, draftConditions],
+        : findFilterIssues(parsedDraft, draftKeys, draftConditions),
+    [draftText, parsedDraft, draftKeys, draftConditions],
   );
 
-  // Server issues belong to the submitted expression. Clear them when the draft
-  // changes semantically, and keep their spans only while the submitted text is unchanged.
   const serverIssues = useMemo<FilterExprIssue[]>(() => {
-    if (!filterExprIssues?.length || draftAppliedExpr !== currentFilterExpr) {
+    if (!filterExprIssues?.length || draftFilterExpr !== filterExpr) {
       return [];
     }
-
     return filterExprIssues.map((issue) => ({
       ...issue,
-      span: draftFilterExpr === currentFilterExpr ? issue.span : undefined,
+      span: draftText === filterExpr ? issue.span : undefined,
     }));
-  }, [filterExprIssues, draftFilterExpr, draftAppliedExpr, currentFilterExpr]);
+  }, [filterExprIssues, draftText, draftFilterExpr, filterExpr]);
 
-  // Prefer local validation; server issues apply only when local validation pass.
   const draftFilterIssues =
     ownFilterIssues.length > 0 ? ownFilterIssues : serverIssues;
 
-  const parserStopped = ownFilterIssues.length > 0 && !parsedDraftFilter.ok;
+  const parserStopped = ownFilterIssues.length > 0 && !parsedDraft.ok;
 
   const draftIssueMessage = useMemo(() => {
     const [first, ...rest] = draftFilterIssues;
@@ -374,213 +298,178 @@ export default function FilterBar({
       : `${first.message} (+${rest.length} more)`;
   }, [draftFilterIssues]);
 
-  // The requested app, date, filter expression and root span name can each
-  // be invalid for this app. We discard those, use defaults instead and we
-  // inform the user via a toast.
-  const appDiscarded =
-    requestedAppId !== null &&
-    appsQuery.status === "success" &&
-    !appsQuery.data.some((app: App) => app.id === requestedAppId);
-
-  const dateDiscarded =
-    requestedDateRange.dateRange !== null &&
-    !isValidDateRange(requestedDateRange);
-
-  const rootSpanNameDiscarded =
-    showRootSpanSelector &&
-    requestedRootSpanName !== null &&
-    requestedAppId === selectedApp?.id &&
-    rootSpanNamesQuery.isSuccess &&
-    !rootSpanNames.includes(requestedRootSpanName);
-
-  const anythingDiscarded =
-    appDiscarded ||
-    dateDiscarded ||
-    rootSpanNameDiscarded ||
-    requestedFilterDiscarded;
-
-  const appliedAsRequested = !anythingDiscarded;
-
-  // The readiness of the app, date and filter expression, before the root
-  // span selector is considered. The bar's own controls render once this is
-  // ready, so a slow or failed root span names fetch leaves the app select
-  // usable.
-  const baseFilterState = useMemo<
-    | { status: "pending" }
-    | { status: "error"; message: string }
-    | {
-        status: "ready";
-        app: App;
-        date: DateSelection;
-        filterExpr: string | null;
-        appliedAsRequested: boolean;
-      }
-  >(() => {
-    if (appsQuery.status === "error") {
-      return {
-        status: "error",
-        message: "Error fetching apps, please refresh page to try again",
-      };
-    }
-    if (appsQuery.status === "success" && appsQuery.data.length === 0) {
-      return {
-        status: "error",
-        message:
-          "Looks like you don't have any apps yet. Get started by creating your first app!",
-      };
-    }
-    if (keysQuery.isError) {
-      return {
-        status: "error",
-        message: "Error fetching filters, please refresh page to try again",
-      };
-    }
-
-    // A requested expression can only be checked once the keys have loaded.
-    // Applying an expression the server would reject would waste a request and
-    // replace the page content with an error.
-    if (!selectedApp || checkingRequestedFilter) {
-      return { status: "pending" };
-    }
-    return {
-      status: "ready",
-      app: selectedApp,
-      date,
-      filterExpr: currentFilterExpr,
-      appliedAsRequested,
-    };
-  }, [
-    appsQuery.status,
-    appsQuery.data,
-    keysQuery.isError,
-    selectedApp,
-    date,
-    checkingRequestedFilter,
-    currentFilterExpr,
-    appliedAsRequested,
-  ]);
-
-  // With the selector shown, the ready state is held back until a name has
-  // resolved, because the page's span queries cannot run without one.
-  const filterState: FilterState = useMemo(() => {
-    if (baseFilterState.status !== "ready") {
-      return baseFilterState;
-    }
-    if (!showRootSpanSelector) {
-      return { ...baseFilterState, rootSpanName: null };
-    }
-    if (rootSpanNamesQuery.isError) {
-      return {
-        status: "error",
-        message:
-          "Error fetching traces list, please refresh page or select a different app to try again",
-      };
-    }
-    // An app that has never reported a trace has nothing to select, and the
-    // app and date it resolved with are still written.
-    if (rootSpanNamesQuery.isSuccess && rootSpanNames.length === 0) {
-      return { ...baseFilterState, rootSpanName: null };
-    }
-    if (resolvedRootSpanName === null) {
-      return { status: "pending" };
-    }
-    return { ...baseFilterState, rootSpanName: resolvedRootSpanName };
-  }, [
-    baseFilterState,
-    showRootSpanSelector,
-    rootSpanNamesQuery.isError,
-    rootSpanNamesQuery.isSuccess,
-    rootSpanNames,
-    resolvedRootSpanName,
-  ]);
-
-  // Every request gets a report, even when it resolves to the same
-  // values as the previous request. For example, after a request for
-  // app 1, a request with no app also resolves to app 1. Reporting
-  // only changed resolutions would leave that second request with no report.
-  useEffect(() => {
-    onFilterChange(filterState);
-  }, [
-    filterState,
-    requestedAppId,
-    requestedDateRange.dateRange,
-    requestedDateRange.startDate,
-    requestedDateRange.endDate,
-    requestedFilterExpr,
-    requestedRootSpanName,
-  ]);
-
-  useEffect(() => {
-    if (anythingDiscarded) {
-      toastNegative("Some filters were invalid, page reset to defaults");
-    }
-  }, [anythingDiscarded]);
-
   useEffect(() => {
     focusedControlRef.current?.focus();
   }, [focusedId]);
 
-  function setApp(app: App) {
-    // Clear filters on app change
-    onRequestChange({ appId: app.id, filterExpr: null, rootSpanName: null });
-    setTypedText(null);
+  if (value === null || keys === null) {
+    return (
+      <div className="flex flex-wrap gap-4 items-center w-full">
+        <Skeleton className="h-9 w-37.5" />
+        <Skeleton className="h-9 w-37.5" />
+        <Skeleton className="h-9 flex-1 min-w-64" />
+      </div>
+    );
+  }
+  const { app, date, rootSpanName } = value;
+
+  function baseFor(id: string | null): ConditionGroup {
+    const picker = pending?.picker ?? null;
+    if (picker === null) {
+      return drawn;
+    }
+    const own =
+      picker.kind === "keys" ? picker.groupId === id : picker.rowId === id;
+    return own ? drawn : withPickerClosed(drawn, picker);
   }
 
-  // Turns an edit to the conditions back into request text.
-  function setConditions(next: ConditionGroup) {
-    const limit = validateLimits(next);
+  function send(
+    tree: ConditionGroup,
+    picker: OpenPicker | null,
+    revert?: string | null,
+  ) {
+    const limit = validateLimits(tree);
     if (limit) {
       toastNegative(limit);
       return;
     }
-
-    onRequestChange({ filterExpr: formatFilterExpr(buildDraftTree(next)) });
+    const text = writeFilterExpr(tree);
+    if (text !== drawnText) {
+      onChange({ filterExpr: text });
+    }
+    setEdit({
+      appId: app.id,
+      date,
+      rootSpanName,
+      tree,
+      from: pending !== null ? pending.from : filterExpr,
+      to: text,
+      picker,
+      revert,
+    });
   }
 
-  function setRow(rowId: string, patch: Partial<ConditionRow>) {
-    setConditions(updateRow(draftConditions, rowId, patch));
+  function setApp(app: App) {
+    onChange({ appId: app.id, filterExpr: null, rootSpanName: null });
+    setEdit(null);
+    setTypedText(null);
   }
 
-  function removeById(id: string) {
-    const previous = rowBefore(draftConditions, id);
-    setConditions(dropById(draftConditions, id));
+  function focusBefore(id: string) {
+    const previous = rowBefore(drawn, id);
     setFocusedId(previous?.id ?? null);
     if (!previous) {
       addConditionButtonRef.current?.focus();
     }
   }
 
-  // A condition or group is added at the end of the group it goes in, so its
-  // id is that group's id and an index equal to the number of children
-  // already there.
-  function addToGroup(groupId: string, make: (id: string) => ConditionOrGroup) {
-    let addedId = groupId;
-    const next = updateGroup(draftConditions, groupId, (group) => {
-      addedId = childId(group.id, group.children.length);
-      return { ...group, children: [...group.children, make(addedId)] };
-    });
-
-    setConditions(next);
-    setFocusedId(addedId);
+  function removeById(id: string) {
+    send(dropById(baseFor(id), id), null);
+    focusBefore(id);
   }
 
-  function addRow(groupId: string, key: FilterKey) {
-    addToGroup(groupId, (id) => ({
-      id,
+  function startRow(groupId: string, key: FilterKey) {
+    const operator = key.operators[0];
+    const { tree, id } = appendTo(baseFor(groupId), groupId, (rowId) => ({
+      id: rowId,
       key,
-      operator: key.operators[0],
+      operator,
       values: [],
     }));
+    send(
+      tree,
+      operatorTakesValues(operator) ? { kind: "values", rowId: id } : null,
+    );
+    setFocusedId(id);
   }
 
-  function addGroup(groupId: string) {
-    addToGroup(groupId, (id) => ({ id, logicalOperator: "and", children: [] }));
+  function startGroup(parentId: string) {
+    const { tree, id } = appendTo(baseFor(null), parentId, (groupId) => ({
+      id: groupId,
+      logicalOperator: "and",
+      children: [],
+    }));
+    send(tree, { kind: "keys", groupId: id });
   }
 
-  // The text editor applies its text when it loses focus, so while it is
-  // open the focus is left with it, or the text just cleared would be applied.
+  function closeKeys(groupId: string) {
+    setEdit((current) =>
+      current?.picker?.kind === "keys" && current.picker.groupId === groupId
+        ? {
+            ...current,
+            tree: withPickerClosed(current.tree, current.picker),
+            picker: null,
+          }
+        : current,
+    );
+  }
+
+  function changeKey(row: ConditionRow, key: FilterKey) {
+    const operator = key.operators[0];
+    const opensPicker = operatorTakesValues(operator);
+    send(
+      updateRow(baseFor(row.id), row.id, { key, operator, values: [] }),
+      opensPicker ? { kind: "values", rowId: row.id } : null,
+      opensPicker && isRowComplete(row) ? drawnText : undefined,
+    );
+  }
+
+  function changeOperator(row: ConditionRow, operator: FilterOperator) {
+    const values = valuesAfterOperatorChange(
+      row.operator,
+      operator,
+      row.values,
+    );
+    const opensPicker = operatorTakesValues(operator) && values.length === 0;
+    send(
+      updateRow(baseFor(row.id), row.id, { operator, values }),
+      opensPicker ? { kind: "values", rowId: row.id } : null,
+      opensPicker && isRowComplete(row) ? drawnText : undefined,
+    );
+  }
+
+  function changeValues(
+    row: ConditionRow,
+    values: ConditionRow["values"],
+    done: boolean,
+  ) {
+    send(
+      updateRow(baseFor(row.id), row.id, { values }),
+      done ? null : { kind: "values", rowId: row.id },
+    );
+  }
+
+  function openValues(row: ConditionRow) {
+    send(baseFor(row.id), { kind: "values", rowId: row.id });
+  }
+
+  function closeValues(row: ConditionRow) {
+    if (pending?.picker?.kind !== "values" || pending.picker.rowId !== row.id) {
+      return;
+    }
+    if (!isRowComplete(row) && pending.revert !== undefined) {
+      const parsed = pending.revert
+        ? parseFilterExpr(pending.revert, { draft: true })
+        : null;
+      send(
+        buildConditionGroup(parsed?.ok ? parsed.tree : null, keys ?? []),
+        null,
+      );
+      setFocusedId(row.id);
+      return;
+    }
+    setEdit({
+      ...pending,
+      tree: withPickerClosed(pending.tree, pending.picker),
+      picker: null,
+    });
+    if (!isRowComplete(row)) {
+      focusBefore(row.id);
+    }
+  }
+
   function clearFilter() {
-    onRequestChange({ filterExpr: null });
+    send({ ...drawn, children: [] }, null);
     setTypedText(null);
     setFocusedId(null);
     if (!editingAsText) {
@@ -589,25 +478,20 @@ export default function FilterBar({
   }
 
   function toggleLogicalOperator(groupId: string) {
-    setConditions(
-      updateGroup(draftConditions, groupId, (group) => ({
+    send(
+      updateGroup(baseFor(null), groupId, (group) => ({
         ...group,
         logicalOperator: group.logicalOperator === "and" ? "or" : "and",
       })),
+      null,
     );
   }
 
-  // Typing redraws the bar at once, while what the page is filtered by stays
-  // as it is until the text is applied.
-  function changeFilterText(text: string) {
-    setTypedText(text);
-  }
-
   function applyFilterText() {
-    if (draftIssueMessage || typedText === null) {
+    if (typedText === null || draftIssueMessage) {
       return;
     }
-    onRequestChange({ filterExpr: typedText });
+    send(draftConditions, null);
     setTypedText(null);
   }
 
@@ -621,9 +505,6 @@ export default function FilterBar({
       setEditingAsText(true);
       return;
     }
-    // Server-rejected values still retain a valid key/operator, so conditions can
-    // be rendered while the value picker lets the user fix the invalid value.
-    // applyFilterText prevents applying the draft while any issue remains.
     if (draftIssueMessage && ownFilterIssues.length > 0) {
       toastNegative(draftIssueMessage);
       return;
@@ -632,43 +513,36 @@ export default function FilterBar({
     setEditingAsText(false);
   }
 
-  const keysUnavailable = keysQuery.isError;
-
-  if (
-    !selectedApp ||
-    (!keysUnavailable &&
-      (baseFilterState.status !== "ready" || keysQuery.isPending))
-  ) {
-    return (
-      <div className="flex flex-wrap gap-4 items-center w-full">
-        <Skeleton className="h-9 w-37.5" />
-        <Skeleton className="h-9 w-37.5" />
-        <Skeleton className="h-9 flex-1 min-w-64" />
-      </div>
-    );
-  }
-
   const editor: FilterEditor = {
     keys,
     keyGroups,
-    selectedAppId: selectedApp.id,
+    appId: app.id,
     entity,
     focusedId,
     focusedControlRef,
-    onChangeRow: setRow,
+    openKeysGroupId:
+      pending?.picker?.kind === "keys" ? pending.picker.groupId : null,
+    openValuesRowId:
+      pending?.picker?.kind === "values" ? pending.picker.rowId : null,
+    onChangeKey: changeKey,
+    onChangeOperator: changeOperator,
+    onChangeValues: changeValues,
+    onOpenValues: openValues,
+    onCloseValues: closeValues,
+    onCloseKeys: closeKeys,
     onRemove: removeById,
-    onAddRow: addRow,
-    onAddGroup: addGroup,
+    onStartRow: startRow,
+    onStartGroup: startGroup,
     onToggleLogicalOperator: toggleLogicalOperator,
   };
 
   return (
     <div className="flex flex-wrap gap-4 items-start w-full">
-      <AppSelect apps={apps} selected={selectedApp} onChange={setApp} />
+      <AppSelect apps={apps} selected={app} onChange={setApp} />
       <DateRangeSelect
-        selection={date}
+        selection={value.date}
         onChange={(selection) =>
-          onRequestChange({
+          onChange({
             dateRange:
               selection.dateRange === DateRange.Custom
                 ? selection
@@ -676,19 +550,19 @@ export default function FilterBar({
           })
         }
       />
-      {showRootSpanSelector &&
-        (rootSpanNamesQuery.isPending ? (
+      {spanNames !== undefined &&
+        (spanNames === null ? (
           <Skeleton className="h-9 w-37.5" />
-        ) : resolvedRootSpanName !== null ? (
+        ) : spanNames.length > 0 ? (
           <DropdownSelect
             title="Trace Name"
             type={DropdownSelectType.SingleString}
-            items={rootSpanNames}
-            initialSelected={resolvedRootSpanName}
+            items={spanNames}
+            initialSelected={value.rootSpanName ?? spanNames[0]}
             onChangeSelected={(item) => {
               const name = item as string;
-              if (name !== resolvedRootSpanName) {
-                onRequestChange({ rootSpanName: name });
+              if (name !== value.rootSpanName) {
+                onChange({ rootSpanName: name });
               }
             }}
           />
@@ -724,18 +598,17 @@ export default function FilterBar({
           <div className="pl-8 pr-16">
             {editingAsText ? (
               <FilterTextEditor
-                value={draftFilterExpr}
-                tokens={parsedDraftFilter.tokens}
+                value={draftText}
+                tokens={parsedDraft.tokens}
                 issues={draftFilterIssues}
                 parserStopped={parserStopped}
                 placeholder={placeholder}
-                onChange={changeFilterText}
+                onChange={setTypedText}
                 onApply={applyFilterText}
                 onCancel={cancelTextEditing}
               />
             ) : (
               <div className="flex flex-wrap items-center gap-1.5 py-1.5 min-h-9 max-h-32 overflow-y-auto">
-                {/* Without keys the bar is rendered as a placeholder with no interaction */}
                 {keysUnavailable && (
                   <span className="flex-1 min-w-24 h-6 font-body text-sm text-muted-foreground select-none">
                     {placeholder}
@@ -743,7 +616,7 @@ export default function FilterBar({
                 )}
 
                 {!keysUnavailable && (
-                  <GroupChildren group={draftConditions} editor={editor} />
+                  <GroupChildren group={drawn} editor={editor} />
                 )}
 
                 {!keysUnavailable && (
@@ -754,8 +627,8 @@ export default function FilterBar({
                     open={keyListOpen}
                     onOpenChange={setKeyListOpen}
                     focusOnClose={focusedControlRef}
-                    onSelect={(key) => addRow(draftConditions.id, key)}
-                    onAddGroup={() => addGroup(draftConditions.id)}
+                    onSelect={(key) => startRow(drawn.id, key)}
+                    onAddGroup={() => startGroup(drawn.id)}
                     trigger={
                       <button
                         type="button"
@@ -766,14 +639,12 @@ export default function FilterBar({
                         // Without conditions, fill the bar to center the placeholder.
                         // With conditions, stay compact and anchor the key list.
                         className={`self-stretch min-h-2 text-left outline-none font-body text-sm text-muted-foreground ${
-                          draftConditions.children.length === 0
+                          drawn.children.length === 0
                             ? "flex-1"
                             : "flex-none w-4"
                         }`}
                       >
-                        {draftConditions.children.length === 0
-                          ? placeholder
-                          : ""}
+                        {drawn.children.length === 0 ? placeholder : ""}
                       </button>
                     }
                   />
@@ -803,7 +674,7 @@ export default function FilterBar({
               </button>
             )}
 
-            {draftFilterExpr !== "" && (
+            {draftText !== "" && (
               <button
                 type="button"
                 aria-label="Clear filter"
@@ -835,14 +706,25 @@ export default function FilterBar({
 interface FilterEditor {
   keys: FilterKey[];
   keyGroups: string[];
-  selectedAppId: string;
+  appId: string;
   entity: string;
   focusedId: string | null;
   focusedControlRef: RefObject<HTMLButtonElement | null>;
-  onChangeRow: (rowId: string, patch: Partial<ConditionRow>) => void;
+  openKeysGroupId: string | null;
+  openValuesRowId: string | null;
+  onChangeKey: (row: ConditionRow, key: FilterKey) => void;
+  onChangeOperator: (row: ConditionRow, operator: FilterOperator) => void;
+  onChangeValues: (
+    row: ConditionRow,
+    values: ConditionRow["values"],
+    done: boolean,
+  ) => void;
+  onOpenValues: (row: ConditionRow) => void;
+  onCloseValues: (row: ConditionRow) => void;
+  onCloseKeys: (groupId: string) => void;
   onRemove: (id: string) => void;
-  onAddRow: (groupId: string, key: FilterKey) => void;
-  onAddGroup: (groupId: string) => void;
+  onStartRow: (groupId: string, key: FilterKey) => void;
+  onStartGroup: (groupId: string) => void;
   onToggleLogicalOperator: (groupId: string) => void;
 }
 
@@ -883,6 +765,8 @@ function FilterGroup({
   group: ConditionGroup;
   editor: FilterEditor;
 }) {
+  const pickingFirstKey = group.id === editor.openKeysGroupId;
+
   return (
     <span
       role="group"
@@ -896,14 +780,24 @@ function FilterGroup({
         keys={editor.keys}
         keyGroups={editor.keyGroups}
         selected={null}
+        open={pickingFirstKey ? true : undefined}
+        onOpenChange={
+          pickingFirstKey
+            ? (open) => {
+                if (!open) {
+                  editor.onCloseKeys(group.id);
+                }
+              }
+            : undefined
+        }
         focusOnClose={editor.focusedControlRef}
-        onSelect={(key) => editor.onAddRow(group.id, key)}
-        onAddGroup={() => editor.onAddGroup(group.id)}
+        onSelect={(key) => editor.onStartRow(group.id, key)}
+        onAddGroup={
+          pickingFirstKey ? undefined : () => editor.onStartGroup(group.id)
+        }
         trigger={
           <button
             type="button"
-            // A group starts empty, so after it is added, this button receives focus
-            // and is where its first condition is selected.
             ref={
               group.id === editor.focusedId
                 ? editor.focusedControlRef
@@ -936,16 +830,8 @@ function FilterRow({
   row: ConditionRow;
   editor: FilterEditor;
 }) {
-  const {
-    keys,
-    keyGroups,
-    selectedAppId,
-    entity,
-    focusedId,
-    focusedControlRef,
-    onChangeRow,
-    onRemove,
-  } = editor;
+  const { keys, keyGroups, appId, entity, focusedId, focusedControlRef } =
+    editor;
 
   return (
     <span className="inline-flex items-stretch h-6 max-w-full min-w-0 overflow-hidden rounded-sm border border-input bg-accent/80 font-display text-xs">
@@ -953,13 +839,7 @@ function FilterRow({
         keys={keys}
         keyGroups={keyGroups}
         selected={row.key}
-        onSelect={(key) =>
-          onChangeRow(row.id, {
-            key,
-            operator: key.operators[0],
-            values: [],
-          })
-        }
+        onSelect={(key) => editor.onChangeKey(row, key)}
         trigger={
           <button
             type="button"
@@ -976,14 +856,7 @@ function FilterRow({
         selected={row.operator}
         operatorLabels={operatorLabels}
         onSelect={(operator) =>
-          onChangeRow(row.id, {
-            operator: operator as FilterOperator,
-            values: valuesAfterOperatorChange(
-              row.operator,
-              operator as FilterOperator,
-              row.values,
-            ),
-          })
+          editor.onChangeOperator(row, operator as FilterOperator)
         }
         trigger={
           <button
@@ -997,7 +870,7 @@ function FilterRow({
 
       {operatorTakesValues(row.operator) && (
         <ValuePicker
-          appId={selectedAppId}
+          appId={appId}
           entity={entity}
           keyName={row.key.name}
           valueType={row.key.value_type}
@@ -1005,7 +878,15 @@ function FilterRow({
           takesTypedText={operatorTakesTypedText(row.operator)}
           takesOneValue={operatorTakesOneValue(row.operator)}
           selected={row.values}
-          onChange={(values) => onChangeRow(row.id, { values })}
+          onChange={(values, done) => editor.onChangeValues(row, values, done)}
+          open={row.id === editor.openValuesRowId}
+          onOpenChange={(open) => {
+            if (open) {
+              editor.onOpenValues(row);
+            } else {
+              editor.onCloseValues(row);
+            }
+          }}
           trigger={
             <button
               type="button"
@@ -1020,7 +901,7 @@ function FilterRow({
       <button
         type="button"
         aria-label="Remove condition"
-        onClick={() => onRemove(row.id)}
+        onClick={() => editor.onRemove(row.id)}
         className="px-1 rounded-r-sm border-l border-input text-muted-foreground hover:bg-accent hover:text-foreground shrink-0"
       >
         <X className="h-3 w-3" />
@@ -1033,7 +914,7 @@ function SelectedValues({
   values,
   operator,
 }: {
-  values: FilterValue[];
+  values: ConditionRow["values"];
   operator: FilterOperator | null;
 }) {
   if (values.length === 0) {

@@ -25,8 +25,6 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
 }));
 
-const mockRouterReplace = mockRouter.replaceMock;
-
 jest.mock("next/navigation", () => ({
   ...require("@/__tests__/helpers/mock_router").nextNavigationMock(),
   usePathname: () => "/test-team/builds",
@@ -63,7 +61,6 @@ jest.spyOn(console, "error").mockImplementation(() => {});
 beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
 afterEach(() => {
   server.resetHandlers();
-  mockRouterReplace.mockClear();
 });
 afterAll(() => server.close());
 
@@ -95,7 +92,7 @@ beforeEach(() => {
   filtersStore = createFiltersStore();
   onboardingStore = createOnboardingStore();
   queryClient.clear();
-  mockRouter.searchParams = new URLSearchParams();
+  mockRouter.reset();
   const { apiClient } = require("@/app/api/api_client");
   apiClient.init({ replace: jest.fn(), push: jest.fn() });
 });
@@ -158,14 +155,12 @@ describe("Builds page (MSW integration)", () => {
       renderPage();
       await waitForBuilds();
 
-      const written = new URLSearchParams(
-        mockRouterReplace.mock.calls[0][0].slice(1),
-      );
+      const written = new URLSearchParams(window.location.search);
       expect(written.get("a")).toBe(appId);
       expect(written.get("d")).toBe("Last 6 Hours");
       expect(written.get("sd")).toBeNull();
       expect(written.get("ed")).toBeNull();
-      expect(written.get("po")).toBe("0");
+      expect(written.get("po")).toBeNull();
     });
 
     it("offers the keys the entity has, in the groups the server named", async () => {
@@ -188,7 +183,7 @@ describe("Builds page (MSW integration)", () => {
 
   describe("a link carrying a filter", () => {
     beforeEach(() => {
-      mockRouter.searchParams = new URLSearchParams(
+      mockRouter.setUrl(
         `po=0&filter_expr=${encodeURIComponent("mapping_type:in:proguard")}`,
       );
     });
@@ -216,7 +211,7 @@ describe("Builds page (MSW integration)", () => {
     });
 
     it("filters by nothing when it cannot be read", async () => {
-      mockRouter.searchParams = new URLSearchParams(
+      mockRouter.setUrl(
         `po=0&filter_expr=${encodeURIComponent("mapping_type:in:")}`,
       );
       const sent = recordBuildsRequests();
@@ -245,7 +240,6 @@ describe("Builds page (MSW integration)", () => {
         target: { value: "File type" },
       });
       fireEvent.click(await screen.findByTestId("filter-key-mapping_type"));
-      fireEvent.click(await screen.findByText("<values>"));
       fireEvent.click(await screen.findByTestId("filter-value-dsym"));
 
       await waitFor(() => expect(sent).toHaveLength(2));

@@ -39,7 +39,6 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
 }));
 
-const mockRouterReplace = mockRouter.replaceMock;
 const mockRouterPush = mockRouter.pushMock;
 
 jest.mock("next/navigation", () => ({
@@ -111,7 +110,6 @@ jest.spyOn(console, "error").mockImplementation(() => {});
 beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
 afterEach(() => {
   server.resetHandlers();
-  mockRouterReplace.mockClear();
   mockRouterPush.mockClear();
 });
 afterAll(() => server.close());
@@ -145,7 +143,7 @@ beforeEach(() => {
   filtersStore = createFiltersStore();
   onboardingStore = createOnboardingStore();
   queryClient.clear();
-  mockRouter.searchParams = new URLSearchParams();
+  mockRouter.reset();
   const { apiClient } = require("@/app/api/api_client");
   apiClient.init({ replace: jest.fn(), push: jest.fn() });
 });
@@ -249,14 +247,12 @@ describe("Bug Reports Overview (MSW integration)", () => {
       renderPage();
       await waitForBugReports();
 
-      const written = new URLSearchParams(
-        mockRouterReplace.mock.calls[0][0].slice(1),
-      );
+      const written = new URLSearchParams(window.location.search);
       expect(written.get("a")).toBe(appId);
       expect(written.get("d")).toBe("Last 6 Hours");
       expect(written.get("sd")).toBeNull();
       expect(written.get("ed")).toBeNull();
-      expect(written.get("po")).toBe("0");
+      expect(written.get("po")).toBeNull();
     });
 
     it("offers the keys the entity has, in the groups the server named", async () => {
@@ -291,7 +287,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
   // ================================================================
   describe("a link carrying a filter", () => {
     it("filters the bug reports and the plot by it", async () => {
-      mockRouter.searchParams = new URLSearchParams(
+      mockRouter.setUrl(
         `po=0&filter_expr=${encodeURIComponent("bug_report_status:in:open")}`,
       );
       const sent = recordBugReportsRequests();
@@ -318,7 +314,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
     });
 
     it("draws it as a condition a person can edit", async () => {
-      mockRouter.searchParams = new URLSearchParams(
+      mockRouter.setUrl(
         `po=0&filter_expr=${encodeURIComponent("bug_report_status:in:open")}`,
       );
       renderPage();
@@ -331,7 +327,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
     });
 
     it("filters by nothing when it cannot be read", async () => {
-      mockRouter.searchParams = new URLSearchParams(
+      mockRouter.setUrl(
         `po=0&filter_expr=${encodeURIComponent("bug_report_status:in:")}`,
       );
       const sent = recordBugReportsRequests();
@@ -365,7 +361,6 @@ describe("Bug Reports Overview (MSW integration)", () => {
       fireEvent.click(
         await screen.findByTestId("filter-key-bug_report_status"),
       );
-      fireEvent.click(await screen.findByText("<values>"));
       fireEvent.click(await screen.findByTestId("filter-value-open"));
 
       await waitFor(() => expect(sent).toHaveLength(2));
@@ -430,11 +425,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
       expect(screen.queryByText("Page 2 bug report")).toBeNull();
 
       // URL reflects page 1
-      const url =
-        mockRouterReplace.mock.calls[
-          mockRouterReplace.mock.calls.length - 1
-        ][0];
-      expect(url).toContain("po=0");
+      expect(window.location.search).toContain("po=0");
     });
 
     it("deep-link with po=5 renders page 2 data", async () => {
@@ -460,7 +451,7 @@ describe("Bug Reports Overview (MSW integration)", () => {
         }),
       );
 
-      mockRouter.searchParams = new URLSearchParams("po=5");
+      mockRouter.setUrl("po=5");
       renderPage();
       await waitFor(
         () => {

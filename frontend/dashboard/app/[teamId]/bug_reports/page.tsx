@@ -38,16 +38,23 @@ export default function BugReportsOverview(props: {
   const router = useRouter();
 
   const {
-    requestedFilters,
-    paginationOffset,
-    filterState,
+    value,
+    apps,
+    keys,
+    keyGroups,
+    keysUnavailable,
+    status: filterStatus,
     filterParams,
-    onRequestChange,
-    onFilterChange,
+    paginationOffset,
+    onChange,
     nextPage,
     prevPage,
-  } = useExprFilterPage({ paginationLimit: PAGINATION_LIMIT });
-  const readyFilter = filterState.status === "ready" ? filterState : null;
+  } = useExprFilterPage({
+    teamId: params.teamId,
+    entity: "bug_reports",
+    paginationLimit: PAGINATION_LIMIT,
+  });
+  const readyValue = filterStatus.kind === "ready" ? value : null;
 
   const bugReportsQuery = useBugReportsOverviewQuery(
     filterParams,
@@ -70,25 +77,25 @@ export default function BugReportsOverview(props: {
       <div className="py-4" />
 
       <FilterBar
-        teamId={params.teamId}
         entity="bug_reports"
         placeholder="Filter bug reports…"
-        requestedAppId={requestedFilters.appId}
-        requestedDateRange={requestedFilters.dateRange}
-        requestedFilterExpr={requestedFilters.filterExpr}
+        value={value}
+        apps={apps}
+        keys={keys}
+        keyGroups={keyGroups}
+        keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
-        onRequestChange={onRequestChange}
-        onFilterChange={onFilterChange}
+        onChange={onChange}
       />
       <div className="py-4" />
 
-      {filterState.status === "error" && (
-        <p className="text-lg font-display">{filterState.message}</p>
+      {filterStatus.kind === "error" && (
+        <p className="text-lg font-display">{filterStatus.message}</p>
       )}
 
-      {filterState.status === "pending" && <SkeletonListPage />}
+      {filterStatus.kind === "loading" && <SkeletonListPage />}
 
-      {readyFilter !== null &&
+      {readyValue !== null &&
         status === "error" &&
         filterExprIssues === null && (
           <p className="text-lg font-display">
@@ -97,12 +104,12 @@ export default function BugReportsOverview(props: {
           </p>
         )}
 
-      {readyFilter !== null &&
+      {readyValue !== null &&
         (status === "success" || status === "pending") && (
           <div className="flex flex-col items-center w-full">
             <BugReportsOverviewPlot
-              startDate={readyFilter.date.startDate}
-              endDate={readyFilter.date.endDate}
+              startDate={readyValue.date.startDate}
+              endDate={readyValue.date.endDate}
               query={bugReportsPlotQuery}
             />
             <div className="self-end">

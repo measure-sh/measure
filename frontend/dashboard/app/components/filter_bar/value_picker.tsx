@@ -25,7 +25,8 @@ interface ValuePickerProps {
   // A one-value operator replaces its selection instead of adding to it.
   takesOneValue: boolean;
   selected: FilterValue[];
-  onChange: (values: FilterValue[]) => void;
+  // `done` marks a pick that ends the selection; the owner of `open` closes.
+  onChange: (values: FilterValue[], done: boolean) => void;
   trigger: React.ReactNode;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -62,15 +63,18 @@ export default function ValuePicker({
 
   const toggle = (value: FilterValue) => {
     if (takesOneValue) {
-      onChange([value]);
-      setOpen(false);
+      onChange([value], true);
+      setInternalOpen(false);
       return;
     }
     if (isSelected(value)) {
-      onChange(selected.filter((chosen) => chosen.text !== value.text));
+      onChange(
+        selected.filter((chosen) => chosen.text !== value.text),
+        false,
+      );
       return;
     }
-    onChange([...selected, value]);
+    onChange([...selected, value], false);
   };
 
   return (
@@ -96,8 +100,8 @@ export default function ValuePicker({
             initial={selected[0]?.text ?? ""}
             valueType={valueType}
             onApply={(text) => {
-              onChange([{ text }]);
-              setOpen(false);
+              onChange([{ text }], true);
+              setInternalOpen(false);
             }}
           />
         )}

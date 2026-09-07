@@ -1,11 +1,9 @@
 import { describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
-import { useState } from "react";
+import type { ComponentProps } from "react";
 
-const mockUseAppsQuery = jest.fn();
 const mockUseFilterKeysQuery = jest.fn();
-const mockUseRootSpanNamesQuery = jest.fn();
 const mockToastNegative = jest.fn();
 
 jest.mock("@/app/components/toast", () => ({
@@ -15,26 +13,34 @@ jest.mock("@/app/components/toast", () => ({
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
-  useAppsQuery: (teamId: string) => mockUseAppsQuery(teamId),
   useFilterKeysQuery: (
     appId: string | undefined,
     entity: string,
     keyNames: string[],
   ) => mockUseFilterKeysQuery(appId, entity, keyNames),
-  useRootSpanNamesQuery: (app: unknown) => mockUseRootSpanNamesQuery(app),
 }));
 
-const { useStore } = jest.requireActual("zustand") as any;
-const { createFiltersStore } = jest.requireActual(
-  "@/app/stores/filters_store",
-) as any;
-
-let storeInstance: any;
-
-jest.mock("@/app/stores/provider", () => ({
+jest.mock("@/app/components/skeleton", () => ({
   __esModule: true,
-  useFiltersStore: (selector?: any) =>
-    useStore(storeInstance, selector ?? ((s: any) => s)),
+  Skeleton: () => <div data-testid="skeleton" />,
+}));
+
+jest.mock("@/app/components/dropdown_select", () => ({
+  __esModule: true,
+  DropdownSelectType: { SingleString: "SingleString" },
+  default: ({ items, initialSelected, onChangeSelected }: any) => (
+    <div data-testid="span-select" data-selected={initialSelected}>
+      {items.map((item: string) => (
+        <button
+          key={item}
+          data-testid={`pick-span-${item}`}
+          onClick={() => onChangeSelected(item)}
+        >
+          {item}
+        </button>
+      ))}
+    </div>
+  ),
 }));
 
 jest.mock("@/app/components/filter_bar/app_select", () => ({
@@ -75,6 +81,18 @@ jest.mock("@/app/components/filter_bar/date_range_select", () => {
         >
           last week
         </button>
+        <button
+          data-testid="pick-custom-range"
+          onClick={() =>
+            onChange({
+              dateRange: "Custom Range",
+              startDate: "2026-02-01T00:00:00.000Z",
+              endDate: "2026-02-08T00:00:00.000Z",
+            })
+          }
+        >
+          custom
+        </button>
       </div>
     ),
   };
@@ -88,14 +106,13 @@ jest.mock("@/app/components/filter_bar/key_picker", () => ({
     selected,
     onSelect,
     onAddGroup,
+    onOpenChange,
     trigger,
     open,
   }: any) => (
     <div
       data-testid="key-picker"
       data-groups={keyGroups.join(",")}
-      // Only the picker for the whole filter is told when to open, so the
-      // attribute is absent on the pickers that open themselves.
       data-open={open === undefined ? undefined : String(open)}
     >
       {trigger}
@@ -103,14 +120,22 @@ jest.mock("@/app/components/filter_bar/key_picker", () => ({
         <button
           key={key.name}
           data-testid={`pick-key-${key.name}${selected ? "-in-row" : ""}`}
-          onClick={() => onSelect(key)}
+          onClick={() => {
+            onSelect(key);
+            onOpenChange?.(false);
+          }}
         >
-          {key.label}
+          pick {key.label}
         </button>
       ))}
       {onAddGroup && (
         <button data-testid="add-group" onClick={() => onAddGroup()}>
           group
+        </button>
+      )}
+      {onOpenChange && (
+        <button data-testid="close-keys" onClick={() => onOpenChange(false)}>
+          close
         </button>
       )}
     </div>
@@ -133,14 +158,29 @@ jest.mock("@/app/components/filter_bar/key_picker", () => ({
 
 jest.mock("@/app/components/filter_bar/value_picker", () => ({
   __esModule: true,
-  default: ({ onChange, trigger }: any) => (
-    <div data-testid="value-picker">
+  default: ({ selected, onChange, open, onOpenChange, trigger }: any) => (
+    <div data-testid="value-picker" data-open={String(open)}>
       {trigger}
       <button
         data-testid="pick-value"
-        onClick={() => onChange([{ text: "dsym" }])}
+        onClick={() => onChange([{ text: "dsym" }], false)}
       >
-        dsym
+        choose dsym
+      </button>
+      <button
+        data-testid="pick-another-value"
+        onClick={() => onChange([...selected, { text: "proguard" }], false)}
+      >
+        choose proguard
+      </button>
+      <button
+        data-testid="pick-one-value"
+        onClick={() => onChange([{ text: "dsym" }], true)}
+      >
+        choose dsym and finish
+      </button>
+      <button data-testid="close-values" onClick={() => onOpenChange(false)}>
+        close
       </button>
     </div>
   ),
@@ -148,11 +188,12 @@ jest.mock("@/app/components/filter_bar/value_picker", () => ({
 
 import type { App } from "@/app/api/api_calls";
 import type { FilterKey } from "@/app/api/filter_types";
-import { MAX_CONDITIONS } from "@/app/components/filter_bar/limits";
+import { toDateSelection } from "@/app/components/filter_bar/date_range_select";
 import FilterBar, {
-  type FilterRequest,
-  type FilterState,
+  type FilterChange,
+  type FilterSelection,
 } from "@/app/components/filter_bar/filter_bar";
+import { MAX_CONDITIONS } from "@/app/components/filter_bar/limits";
 
 const app = (id: string, name: string) => ({ id, name }) as App;
 const apps = [app("app-1", "Checkout"), app("app-2", "Wallet")];
@@ -164,7 +205,7 @@ const mappingTypeKey = {
   description: "The kind of mapping file",
   value_type: "string",
   value_suggestion_mode: "full_list",
-  operators: ["in", "not_in"],
+  operators: ["in", "not_in", "contains"],
 } as unknown as FilterKey;
 
 const versionKey = {
@@ -175,6 +216,16 @@ const versionKey = {
   value_type: "string",
   value_suggestion_mode: "full_list",
   operators: ["in", "not_in"],
+} as unknown as FilterKey;
+
+const patchKey = {
+  name: "patch_id",
+  label: "Patch",
+  key_group: "Build",
+  description: "Whether the build is a patch",
+  value_type: "string",
+  value_suggestion_mode: "none",
+  operators: ["is_set", "is_not_set"],
 } as unknown as FilterKey;
 
 // The server serves a user-defined attribute key with a `custom.` prefix on
@@ -199,98 +250,113 @@ const customPlanKey = {
   operators: ["in", "not_in", "contains"],
 } as unknown as FilterKey;
 
-function appsLoaded(loaded: App[] = apps) {
-  mockUseAppsQuery.mockReturnValue({
-    status: "success",
-    data: loaded,
-  } as any);
-}
+const keys = [mappingTypeKey, versionKey, patchKey];
+const keyGroups = ["Build", "Version"];
 
-function keysLoaded(
-  keys: FilterKey[] = [mappingTypeKey, versionKey],
-  keyGroups: string[] = ["Build", "Version"],
-) {
+function keysServed(served: FilterKey[] = keys) {
   mockUseFilterKeysQuery.mockReturnValue({
-    data: { keys, key_groups: keyGroups },
+    data: { keys: served, key_groups: keyGroups },
     isPending: false,
     isError: false,
-  } as any);
+  });
 }
 
-const nothingRequested = {
-  requestedAppId: null,
-  requestedDateRange: { dateRange: null, startDate: null, endDate: null },
-  requestedFilterExpr: null,
+const last6Hours = toDateSelection({
+  dateRange: "Last 6 Hours",
+  startDate: null,
+  endDate: null,
+})!;
+
+const settled: FilterSelection = {
+  app: apps[0],
+  date: last6Hours,
+  filterExpr: null,
+  rootSpanName: null,
+  discarded: false,
 };
 
-const propOfField = {
-  appId: "requestedAppId",
-  dateRange: "requestedDateRange",
-  filterExpr: "requestedFilterExpr",
-  rootSpanName: "requestedRootSpanName",
-} as const;
-
-// Stands in for the page. A pick is merged into the requested props, and a
-// new request from outside replaces it.
-function Host({
-  asked,
-  onFilterChange,
-}: {
-  asked: any;
-  onFilterChange: (state: FilterState) => void;
-}) {
-  const [pick, setPick] = useState<{ on: any; request: any } | null>(null);
-  const request = pick !== null && pick.on === asked ? pick.request : asked;
-
-  return (
-    <FilterBar
-      teamId="team-1"
-      entity="builds"
-      {...request}
-      onRequestChange={(change: Partial<FilterRequest>) =>
-        setPick({
-          on: asked,
-          request: {
-            ...request,
-            ...Object.fromEntries(
-              Object.entries(change).map(([field, value]) => [
-                propOfField[field as keyof FilterRequest],
-                value,
-              ]),
-            ),
-          },
-        })
-      }
-      onFilterChange={onFilterChange}
-    />
-  );
+function applyChange(
+  value: FilterSelection,
+  change: FilterChange,
+): FilterSelection {
+  return {
+    app:
+      change.appId === undefined
+        ? value.app
+        : apps.find((candidate) => candidate.id === change.appId)!,
+    date:
+      change.dateRange === undefined
+        ? value.date
+        : toDateSelection(change.dateRange)!,
+    filterExpr:
+      change.filterExpr === undefined ? value.filterExpr : change.filterExpr,
+    rootSpanName:
+      change.rootSpanName === undefined
+        ? value.rootSpanName
+        : change.rootSpanName,
+    discarded: false,
+  };
 }
 
-async function renderBar(props: any = {}) {
-  const onFilterChange = jest.fn();
-  const bar = (asked: any) => (
-    <Host
-      asked={{ ...nothingRequested, ...props, ...asked }}
-      onFilterChange={onFilterChange}
+type BarProps = Partial<ComponentProps<typeof FilterBar>>;
+
+async function renderBar(
+  initial: Partial<FilterSelection> | null = {},
+  props: BarProps = {},
+) {
+  let drawnValue: FilterSelection | null =
+    initial === null ? null : { ...settled, ...initial };
+  let liveValue = drawnValue;
+  let held = false;
+  let result!: ReturnType<typeof render>;
+  const onChange = jest.fn((change: FilterChange) => {
+    liveValue = applyChange(liveValue ?? settled, change);
+    if (!held) {
+      drawnValue = liveValue;
+      result.rerender(bar());
+    }
+  });
+  const bar = () => (
+    <FilterBar
+      entity="builds"
+      value={drawnValue}
+      apps={apps}
+      keys={keys}
+      keyGroups={keyGroups}
+      keysUnavailable={false}
+      onChange={onChange}
+      {...props}
     />
   );
 
-  let result: any;
   await act(async () => {
-    result = render(bar({}));
+    result = render(bar());
   });
 
-  const askAgain = async (asked: any) => {
+  const setValue = async (next: Partial<FilterSelection> | null) => {
+    drawnValue = next === null ? null : { ...(drawnValue ?? settled), ...next };
+    liveValue = drawnValue;
     await act(async () => {
-      result.rerender(bar(asked));
+      result.rerender(bar());
     });
   };
 
-  return { onFilterChange, ...result, askAgain };
+  const holdChanges = () => {
+    held = true;
+  };
+
+  const land = async () => {
+    drawnValue = liveValue;
+    await act(async () => {
+      result.rerender(bar());
+    });
+  };
+
+  return { onChange, setValue, holdChanges, land };
 }
 
-function lastState(onFilterChange: jest.Mock): FilterState {
-  const calls = onFilterChange.mock.calls as any[][];
+function lastChange(onChange: jest.Mock): FilterChange {
+  const calls = onChange.mock.calls as FilterChange[][];
   return calls[calls.length - 1][0];
 }
 
@@ -310,6 +376,10 @@ function wholeFilterPicker() {
 
 function groupPicker(group: HTMLElement) {
   return pickerOf(within(group).getByLabelText("Add a filter to this group"));
+}
+
+function valuePickers() {
+  return screen.queryAllByTestId("value-picker");
 }
 
 function marksInBar() {
@@ -332,266 +402,61 @@ async function addCondition(
 
 describe("FilterBar", () => {
   beforeEach(() => {
-    storeInstance = createFiltersStore();
-    appsLoaded();
-    keysLoaded();
-    // Most tests leave the root span selector off, so the bar passes null
-    // and the query stays in its disabled pending state.
-    mockUseRootSpanNamesQuery.mockReturnValue({
-      data: undefined,
-      isPending: true,
-      isError: false,
-      isSuccess: false,
-    });
+    keysServed();
+    mockUseFilterKeysQuery.mockClear();
     mockToastNegative.mockClear();
   });
 
-  describe("what it opens on", () => {
-    it("waits for the apps before reporting anything to filter by", async () => {
-      mockUseAppsQuery.mockReturnValue({ status: "pending", data: undefined });
-      const { onFilterChange } = await renderBar();
+  describe("what it draws", () => {
+    it("draws a skeleton until it has a value", async () => {
+      await renderBar(null);
 
-      expect(lastState(onFilterChange).status).toBe("pending");
+      expect(screen.queryByTestId("filter-bar")).toBeNull();
+      expect(screen.getAllByTestId("skeleton")).toHaveLength(3);
     });
 
-    it("reports the app and range it settled on", async () => {
-      const { onFilterChange } = await renderBar();
+    it("draws a skeleton while the keys load", async () => {
+      await renderBar({}, { keys: null });
 
-      const state = lastState(onFilterChange);
-      expect(state).toMatchObject({ status: "ready", app: apps[0] });
-      expect(state.status === "ready" && state.date.dateRange).toBe(
-        "Last 6 Hours",
-      );
+      expect(screen.queryByTestId("filter-bar")).toBeNull();
+      expect(screen.getAllByTestId("skeleton")).toHaveLength(3);
     });
 
-    it("takes the requested app", async () => {
-      const { onFilterChange } = await renderBar({ requestedAppId: "app-2" });
-
-      expect(lastState(onFilterChange)).toMatchObject({ app: apps[1] });
-    });
-
-    it("reports the request as applied when everything asked for is honoured", async () => {
-      const { onFilterChange } = await renderBar({
-        requestedAppId: "app-2",
-        requestedDateRange: {
-          dateRange: "Last Week",
-          startDate: null,
-          endDate: null,
-        },
-      });
-
-      expect(lastState(onFilterChange)).toMatchObject({
-        status: "ready",
-        appliedAsRequested: true,
-      });
-    });
-
-    it("keeps the app another page left on the store", async () => {
-      storeInstance.getState().setSelectedApp(apps[1]);
-      const { onFilterChange } = await renderBar();
-
-      expect(lastState(onFilterChange)).toMatchObject({ app: apps[1] });
-    });
-
-    it("toasts when the requested root span name is unknown to the app", async () => {
-      mockUseRootSpanNamesQuery.mockReturnValue({
-        data: ["checkout", "startup"],
-        isPending: false,
-        isError: false,
-        isSuccess: true,
-      });
-      const { onFilterChange } = await renderBar({
-        requestedAppId: "app-1",
-        showRootSpanSelector: true,
-        requestedRootSpanName: "gone",
-      });
-
-      expect(mockToastNegative).toHaveBeenCalledWith(
-        "Some filters were invalid, page reset to defaults",
-      );
-      expect(lastState(onFilterChange)).toMatchObject({
-        status: "ready",
-        rootSpanName: "checkout",
-        appliedAsRequested: false,
-      });
-    });
-
-    it("resolves with no name when the app has never reported a trace", async () => {
-      mockUseRootSpanNamesQuery.mockReturnValue({
-        data: [],
-        isPending: false,
-        isError: false,
-        isSuccess: true,
-      });
-      const { onFilterChange } = await renderBar({
-        requestedAppId: "app-1",
-        showRootSpanSelector: true,
-      });
-
-      expect(lastState(onFilterChange)).toMatchObject({
-        status: "ready",
-        app: apps[0],
-        rootSpanName: null,
-        appliedAsRequested: true,
-      });
-      expect(mockToastNegative).not.toHaveBeenCalled();
-    });
-
-    it("does not toast for a root span name with no requested app", async () => {
-      mockUseRootSpanNamesQuery.mockReturnValue({
-        data: ["checkout", "startup"],
-        isPending: false,
-        isError: false,
-        isSuccess: true,
-      });
-      // The link's name belongs to the app the link asked for; without a
-      // requested app the name is not judged against the selected app's list.
+    it("draws the app and range it is given", async () => {
       await renderBar({
-        showRootSpanSelector: true,
-        requestedRootSpanName: "gone",
-      });
-
-      expect(mockToastNegative).not.toHaveBeenCalled();
-    });
-
-    it("ranks the requested app above the one another page left on the store", async () => {
-      storeInstance.getState().setSelectedApp(apps[1]);
-      const { onFilterChange } = await renderBar({ requestedAppId: "app-1" });
-
-      // Every ready state carries the requested app; a first report built
-      // from the remembered app would overwrite the link's app in the URL.
-      for (const [state] of onFilterChange.mock.calls) {
-        if (state.status === "ready") {
-          expect(state.app).toEqual(apps[0]);
-        }
-      }
-      expect(lastState(onFilterChange)).toMatchObject({ app: apps[0] });
-      expect(storeInstance.getState().selectedApp).toEqual(apps[0]);
-    });
-
-    it("falls back to the team's first app when the requested one is gone", async () => {
-      const { onFilterChange } = await renderBar({
-        requestedAppId: "app-gone",
-      });
-
-      expect(lastState(onFilterChange)).toMatchObject({ app: apps[0] });
-    });
-
-    it("takes the requested range", async () => {
-      const { onFilterChange } = await renderBar({
-        requestedDateRange: {
+        app: apps[1],
+        date: toDateSelection({
           dateRange: "Last Week",
           startDate: null,
           endDate: null,
-        },
+        })!,
       });
 
-      const state = lastState(onFilterChange);
-      expect(state.status === "ready" && state.date.dateRange).toBe(
+      expect(screen.getByTestId("app-select")).toHaveAttribute(
+        "data-selected",
+        "Wallet",
+      );
+      expect(screen.getByTestId("date-select")).toHaveAttribute(
+        "data-range",
         "Last Week",
       );
     });
 
-    it("keeps the stored range when the requested one cannot be read", async () => {
-      storeInstance.getState().setSelectedDateRange("Last 24 Hours");
-      const { onFilterChange } = await renderBar({
-        requestedDateRange: {
-          dateRange: "Last Fortnight",
-          startDate: null,
-          endDate: null,
-        },
-      });
-
-      const state = lastState(onFilterChange);
-      expect(state.status === "ready" && state.date.dateRange).toBe(
-        "Last 24 Hours",
-      );
-    });
-
-    it("does not report the stored range before the requested one", async () => {
-      storeInstance.getState().setSelectedApp(apps[0]);
-      storeInstance.getState().setSelectedDateRange("Last 24 Hours");
-      const { onFilterChange } = await renderBar({
-        requestedDateRange: {
-          dateRange: "Last Week",
-          startDate: null,
-          endDate: null,
-        },
-      });
-
-      const ranges = onFilterChange.mock.calls
-        .map(([state]: [FilterState]) => state)
-        .filter((state: FilterState) => state.status === "ready")
-        .map(
-          (state: FilterState & { status: "ready" }) => state.date.dateRange,
-        );
-      expect(ranges).toEqual(["Last Week"]);
-    });
-
-    it("puts the app and the range on the store for other pages", async () => {
-      await renderBar({ requestedAppId: "app-2" });
-
-      expect(storeInstance.getState().selectedApp).toEqual(apps[1]);
-      expect(storeInstance.getState().selectedDateRange).toBe("Last 6 Hours");
-    });
-  });
-
-  describe("when there is nothing to filter by", () => {
-    it("reports a team with no apps as an error", async () => {
-      appsLoaded([]);
-      const { onFilterChange } = await renderBar();
-
-      expect(lastState(onFilterChange)).toEqual({
-        status: "error",
-        message: expect.stringContaining("don't have any apps yet"),
-      });
-    });
-
-    it("reports an apps request that failed as an error", async () => {
-      mockUseAppsQuery.mockReturnValue({ status: "error", data: undefined });
-      const { onFilterChange } = await renderBar();
-
-      expect(lastState(onFilterChange)).toEqual({
-        status: "error",
-        message: expect.stringContaining("Error fetching apps"),
-      });
-    });
-
-    it("draws no message of its own", async () => {
-      appsLoaded([]);
-      await renderBar();
-
-      expect(screen.queryByText(/don't have any apps yet/)).toBeNull();
-      expect(screen.queryByTestId("filter-bar")).toBeNull();
-    });
-  });
-
-  describe("the requested expression", () => {
-    it("is drawn as conditions", async () => {
-      await renderBar({ requestedFilterExpr: "mapping_type:in:dsym" });
+    it("draws the filter as conditions", async () => {
+      await renderBar({ filterExpr: "mapping_type:in:dsym" });
 
       expect(screen.getByTestId("operator-picker")).toBeInTheDocument();
-      expect(screen.getByTestId("value-picker")).toBeInTheDocument();
+      expect(screen.getByTestId("value-picker")).toHaveAttribute(
+        "data-open",
+        "false",
+      );
       expect(screen.getByLabelText("Remove condition")).toBeInTheDocument();
+      expect(screen.getByText("dsym")).toBeInTheDocument();
     });
 
-    it("stands in for the values an operator takes, one or many", async () => {
-      keysLoaded([
-        mappingTypeKey,
-        { ...versionKey, operators: ["contains"] } as FilterKey,
-      ]);
-      await renderBar();
-
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
-      expect(screen.getByText("<values>")).toBeInTheDocument();
-
-      await click(wholeFilterPicker().getByTestId("pick-key-version_name"));
-      expect(screen.getByText("<value>")).toBeInTheDocument();
-    });
-
-    it("draws the groups it was written with", async () => {
+    it("draws the groups the filter was written with", async () => {
       await renderBar({
-        requestedFilterExpr:
+        filterExpr:
           "mapping_type:in:dsym AND (version_name:in:1.0 OR version_name:in:1.1)",
       });
 
@@ -601,166 +466,815 @@ describe("FilterBar", () => {
       );
     });
 
-    it("reports again when the request changes, even to the same resolution", async () => {
-      const { onFilterChange, askAgain } = await renderBar({
-        requestedAppId: "app-1",
+    it("redraws when the value changes from outside", async () => {
+      const { setValue } = await renderBar({
+        filterExpr: "mapping_type:in:dsym",
       });
-      expect(lastState(onFilterChange)).toMatchObject({
-        status: "ready",
-        app: { id: "app-1" },
-      });
-      const settledCalls = onFilterChange.mock.calls.length;
 
-      // Dropping the app from the request resolves to the same app, date
-      // and filter as before.
-      await askAgain({ requestedAppId: null });
+      await setValue({ app: apps[1], filterExpr: "version_name:in:1.0" });
 
-      expect(onFilterChange.mock.calls.length).toBeGreaterThan(settledCalls);
-      expect(lastState(onFilterChange)).toMatchObject({
-        status: "ready",
-        app: { id: "app-1" },
-      });
+      expect(screen.getByTestId("app-select")).toHaveAttribute(
+        "data-selected",
+        "Wallet",
+      );
+      expect(screen.getByText("App version")).toBeInTheDocument();
+      expect(screen.queryByText("File type")).toBeNull();
     });
 
-    it("holds the page back until the keys can vouch for it", async () => {
-      mockUseFilterKeysQuery.mockReturnValue({
-        data: undefined,
-        isPending: true,
-        isError: false,
-      } as any);
-      const { onFilterChange } = await renderBar({
-        requestedFilterExpr: "mapping_type:in:dsym",
-      });
+    it("stands in for the values an operator takes, one or many", async () => {
+      await renderBar({ filterExpr: "mapping_type:in:dsym" });
 
-      expect(lastState(onFilterChange).status).toBe("pending");
+      await click(wholeFilterPicker().getByTestId("pick-key-version_name"));
+      expect(screen.getByText("<values>")).toBeInTheDocument();
+
+      await click(screen.getAllByTestId("pick-op-contains")[0]);
+      expect(screen.getByText("<value>")).toBeInTheDocument();
+      expect(screen.queryByText("<values>")).toBeNull();
     });
 
-    it("does not judge a request by another app's keys", async () => {
-      mockUseFilterKeysQuery.mockReturnValue({
-        data: { keys: [versionKey], key_groups: ["Version"] },
-        isPending: false,
-        isPlaceholderData: true,
-        isError: false,
-      } as any);
-      const { onFilterChange } = await renderBar({
-        requestedFilterExpr: "mapping_type:in:dsym",
-      });
+    it("shows the placeholder until there is a condition", async () => {
+      await renderBar({}, { placeholder: "Filter builds…" });
 
-      expect(lastState(onFilterChange).status).toBe("pending");
-      expect(mockToastNegative).not.toHaveBeenCalled();
-    });
-
-    it("filters nothing when it is empty", async () => {
-      const { onFilterChange } = await renderBar({ requestedFilterExpr: "" });
-
-      expect(lastState(onFilterChange)).toMatchObject({
-        status: "ready",
-        filterExpr: null,
-      });
-      expect(mockToastNegative).not.toHaveBeenCalled();
-    });
-
-    it("filters nothing when it cannot be read", async () => {
-      const { onFilterChange } = await renderBar({
-        requestedFilterExpr: "nonsense:",
-      });
-
-      expect(lastState(onFilterChange)).toMatchObject({
-        status: "ready",
-        filterExpr: null,
-      });
-    });
-
-    it("keeps a custom key the keys listing left out", async () => {
-      // The app has more custom keys than the listing returns, so the
-      // server serves custom.plan only when the request specifies it.
-      mockUseFilterKeysQuery.mockImplementation(
-        (_appId: string | undefined, _entity: string, keyNames: string[]) => ({
-          data: {
-            keys: keyNames.includes("custom.plan")
-              ? [mappingTypeKey, versionKey, customPlanKey]
-              : [mappingTypeKey, versionKey],
-            key_groups: ["Build", "Version", "Custom"],
-          },
-          isPending: false,
-          isError: false,
-        }),
+      expect(screen.getByTestId("filter-input")).toHaveTextContent(
+        "Filter builds…",
       );
 
-      const { onFilterChange } = await renderBar({
-        requestedFilterExpr: "custom.plan:in:pro",
-      });
+      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
 
-      expect(lastState(onFilterChange)).toMatchObject({
-        status: "ready",
-        filterExpr: "custom.plan:in:pro",
-      });
-      expect(mockToastNegative).not.toHaveBeenCalled();
+      expect(screen.getByTestId("filter-input")).toHaveTextContent("");
     });
 
-    it("filters nothing when it names a key this app does not have", async () => {
-      const { onFilterChange } = await renderBar({
-        requestedFilterExpr: "device_cohort:in:new",
-      });
+    it("draws no span selector unless asked", async () => {
+      await renderBar();
 
-      expect(lastState(onFilterChange)).toMatchObject({
-        status: "ready",
-        filterExpr: null,
-      });
+      expect(screen.queryByTestId("span-select")).toBeNull();
+      expect(screen.queryByTestId("skeleton")).toBeNull();
     });
 
-    it("draws a condition with no value yet, and reports without it", async () => {
-      const { onFilterChange } = await renderBar({
-        requestedFilterExpr: "mapping_type:in:dsym AND version_name:in:",
-      });
+    it("draws a skeleton in place of the span selector while the names load", async () => {
+      await renderBar({}, { spanNames: null });
 
-      expect(screen.getAllByLabelText("Remove condition")).toHaveLength(2);
-      expect(screen.getByText("<values>")).toBeInTheDocument();
-      expect(lastState(onFilterChange)).toMatchObject({
-        status: "ready",
-        filterExpr: "mapping_type:in:dsym",
-        appliedAsRequested: true,
-      });
-      expect(mockToastNegative).not.toHaveBeenCalled();
+      expect(screen.getByTestId("skeleton")).toBeInTheDocument();
+      expect(screen.queryByTestId("span-select")).toBeNull();
+    });
+
+    it("draws nothing for the span selector when the app has no traces", async () => {
+      await renderBar({}, { spanNames: [] });
+
+      expect(screen.queryByTestId("span-select")).toBeNull();
+      expect(screen.queryByTestId("skeleton")).toBeNull();
+    });
+
+    it("draws the span selector on the value's name", async () => {
+      await renderBar(
+        { rootSpanName: "startup" },
+        { spanNames: ["checkout", "startup"] },
+      );
+
+      expect(screen.getByTestId("span-select")).toHaveAttribute(
+        "data-selected",
+        "startup",
+      );
     });
   });
 
-  describe("a request from outside", () => {
-    it("replaces a pick", async () => {
-      const { onFilterChange, askAgain } = await renderBar();
+  describe("when the keys cannot be fetched", () => {
+    it("keeps the bar drawn but refuses input", async () => {
+      await renderBar({}, { keysUnavailable: true });
 
-      await click(screen.getByTestId("pick-app-app-2"));
-      await addCondition();
-      expect(lastState(onFilterChange)).toMatchObject({
-        app: apps[1],
+      const bar = screen.getByTestId("filter-bar");
+      expect(bar).toHaveAttribute("aria-disabled", "true");
+      expect(bar.querySelectorAll("button")).toHaveLength(0);
+      expect(bar).toHaveTextContent("Filter…");
+      expect(screen.getByTestId("app-select")).toBeInTheDocument();
+    });
+  });
+
+  describe("what it sends", () => {
+    it("sends another app with the filter and span cleared, and empties the editor", async () => {
+      const { onChange } = await renderBar({
         filterExpr: "mapping_type:in:dsym",
       });
 
-      await askAgain({
-        requestedAppId: "app-1",
-        requestedFilterExpr: "version_name:in:1.0",
+      await click(screen.getByLabelText("Edit as text"));
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("filter-text"), {
+          target: { value: "version_name:in:1.0" },
+        });
+      });
+      await click(screen.getByTestId("pick-app-app-2"));
+
+      expect(lastChange(onChange)).toEqual({
+        appId: "app-2",
+        filterExpr: null,
+        rootSpanName: null,
+      });
+      expect(screen.getByTestId("filter-text")).toHaveValue("");
+    });
+
+    it("sends a relative range as its label alone", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym",
       });
 
-      expect(lastState(onFilterChange)).toMatchObject({
-        app: apps[0],
-        filterExpr: "version_name:in:1.0",
+      await click(screen.getByTestId("pick-range"));
+
+      expect(lastChange(onChange)).toEqual({
+        dateRange: { dateRange: "Last Week", startDate: null, endDate: null },
       });
-      expect(screen.getByTestId("app-select")).toHaveAttribute(
-        "data-selected",
-        "Checkout",
+      expect(screen.getByTestId("date-select")).toHaveAttribute(
+        "data-range",
+        "Last Week",
+      );
+      expect(screen.getByText("dsym")).toBeInTheDocument();
+    });
+
+    it("sends a custom range with its timestamps", async () => {
+      const { onChange } = await renderBar();
+
+      await click(screen.getByTestId("pick-custom-range"));
+
+      expect(lastChange(onChange)).toEqual({
+        dateRange: {
+          dateRange: "Custom Range",
+          startDate: "2026-02-01T00:00:00.000Z",
+          endDate: "2026-02-08T00:00:00.000Z",
+        },
+      });
+    });
+
+    it("sends a span name only when it differs from the value's", async () => {
+      const { onChange } = await renderBar(
+        { rootSpanName: "checkout" },
+        { spanNames: ["checkout", "startup"] },
+      );
+
+      await click(screen.getByTestId("pick-span-checkout"));
+      expect(onChange).not.toHaveBeenCalled();
+
+      await click(screen.getByTestId("pick-span-startup"));
+      expect(lastChange(onChange)).toEqual({ rootSpanName: "startup" });
+    });
+
+    it("sends the filter without a removed condition, and null for the last", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym AND version_name:in:1.0",
+      });
+
+      await click(screen.getAllByLabelText("Remove condition")[1]);
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym",
+      });
+
+      await click(screen.getByLabelText("Remove condition"));
+      expect(lastChange(onChange)).toEqual({ filterExpr: null });
+    });
+
+    it("switches the whole filter between and and or", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym AND version_name:in:1.0",
+      });
+
+      await click(screen.getByTestId("filter-logical-operator"));
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym OR version_name:in:1.0",
+      });
+    });
+
+    it("keeps the values when the operator wants the same kind", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym",
+      });
+
+      await click(screen.getByTestId("pick-op-not_in"));
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:not_in:dsym",
+      });
+      expect(valuePickers()[0]).toHaveAttribute("data-open", "false");
+    });
+
+    it("applies a key whose operator takes no value at once", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym",
+      });
+
+      await click(screen.getByTestId("pick-key-patch_id-in-row"));
+
+      expect(lastChange(onChange)).toEqual({ filterExpr: "patch_id:is_set" });
+      expect(valuePickers()).toHaveLength(0);
+    });
+
+    it("clears every condition at once", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym AND version_name:in:1.0",
+      });
+
+      await click(screen.getByTestId("filter-clear"));
+
+      expect(lastChange(onChange)).toEqual({ filterExpr: null });
+      expect(screen.queryByTestId("filter-clear")).toBeNull();
+      expect(screen.queryByLabelText("Remove condition")).toBeNull();
+    });
+
+    it("applies every toggle of a many-valued condition at once", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym",
+      });
+
+      await click(screen.getByTestId("pick-another-value"));
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:[dsym,proguard]",
+      });
+    });
+
+    it("draws what it sent before the value follows", async () => {
+      const { onChange, holdChanges, land } = await renderBar({
+        filterExpr: "mapping_type:in:dsym AND version_name:in:1.0",
+      });
+
+      holdChanges();
+      await click(screen.getAllByLabelText("Remove condition")[1]);
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym",
+      });
+      expect(screen.getAllByLabelText("Remove condition")).toHaveLength(1);
+      expect(screen.queryByText("App version")).toBeNull();
+
+      await land();
+
+      expect(screen.getAllByLabelText("Remove condition")).toHaveLength(1);
+      expect(screen.queryByText("App version")).toBeNull();
+    });
+
+    it("draws the value instead once it moves elsewhere before what it sent lands", async () => {
+      const { holdChanges, setValue } = await renderBar({
+        filterExpr: "mapping_type:in:dsym AND version_name:in:1.0",
+      });
+
+      holdChanges();
+      await click(screen.getAllByLabelText("Remove condition")[1]);
+      await setValue({ filterExpr: "patch_id:is_set" });
+
+      expect(screen.getAllByLabelText("Remove condition")).toHaveLength(1);
+      expect(screen.getByText("Patch")).toBeInTheDocument();
+      expect(screen.queryByText("File type")).toBeNull();
+    });
+
+    it("builds a second quick edit on the first while it is on its way", async () => {
+      const { onChange, holdChanges } = await renderBar({
+        filterExpr: "mapping_type:in:dsym AND version_name:in:1.0",
+      });
+
+      holdChanges();
+      await click(screen.getAllByLabelText("Remove condition")[1]);
+      await click(screen.getByTestId("pick-op-not_in"));
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:not_in:dsym",
+      });
+    });
+  });
+
+  describe("a condition being built", () => {
+    it("starts with its key picked and its value picker open, sending nothing", async () => {
+      const { onChange } = await renderBar();
+
+      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getByText("<values>")).toBeInTheDocument();
+      expect(screen.getByTestId("value-picker")).toHaveAttribute(
+        "data-open",
+        "true",
+      );
+      expect(screen.getByLabelText("Remove condition")).toBeInTheDocument();
+    });
+
+    it("is sent once it has a value, and keeps its picker open for more", async () => {
+      const { onChange } = await renderBar();
+
+      await addCondition();
+
+      expect(onChange).toHaveBeenCalledTimes(1);
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym",
+      });
+      expect(screen.getByText("dsym")).toBeInTheDocument();
+      expect(screen.getByTestId("value-picker")).toHaveAttribute(
+        "data-open",
+        "true",
+      );
+
+      await click(screen.getByTestId("pick-another-value"));
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:[dsym,proguard]",
+      });
+    });
+
+    it("keeps its picker open while the value it sent is on its way", async () => {
+      const { onChange, holdChanges, land } = await renderBar();
+
+      holdChanges();
+      await addCondition();
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym",
+      });
+      expect(screen.getByText("dsym")).toBeInTheDocument();
+      expect(screen.getByTestId("value-picker")).toHaveAttribute(
+        "data-open",
+        "true",
+      );
+
+      await land();
+
+      expect(screen.getByTestId("value-picker")).toHaveAttribute(
+        "data-open",
+        "true",
+      );
+
+      await click(screen.getByTestId("pick-another-value"));
+      await land();
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:[dsym,proguard]",
+      });
+      expect(screen.getByTestId("value-picker")).toHaveAttribute(
+        "data-open",
+        "true",
       );
     });
 
-    it("drops a condition with no value yet", async () => {
-      const { onFilterChange, askAgain } = await renderBar();
+    it("closes its picker after a value that ends the selection", async () => {
+      const { onChange } = await renderBar();
 
       await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
-      expect(screen.getByLabelText("Remove condition")).toBeInTheDocument();
+      await click(screen.getByTestId("pick-one-value"));
 
-      await askAgain({});
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym",
+      });
+      expect(screen.getByTestId("value-picker")).toHaveAttribute(
+        "data-open",
+        "false",
+      );
+    });
 
+    it("is dropped, picker and all, when the value moves elsewhere while what it sent is on its way", async () => {
+      const { holdChanges, setValue } = await renderBar();
+
+      holdChanges();
+      await addCondition();
+      await setValue({ filterExpr: "version_name:in:1.0" });
+
+      expect(screen.getAllByLabelText("Remove condition")).toHaveLength(1);
+      expect(screen.getByText("App version")).toBeInTheDocument();
+      expect(screen.getByTestId("value-picker")).toHaveAttribute(
+        "data-open",
+        "false",
+      );
+    });
+
+    it("leaves the picker of a condition drawn in its place closed once the value moves on", async () => {
+      const { setValue } = await renderBar({
+        filterExpr: "mapping_type:in:dsym",
+      });
+
+      await click(wholeFilterPicker().getByTestId("pick-key-version_name"));
+      expect(valuePickers()[1]).toHaveAttribute("data-open", "true");
+
+      await setValue({
+        filterExpr: "mapping_type:in:dsym AND version_name:in:1.0",
+      });
+
+      expect(valuePickers()).toHaveLength(2);
+      expect(valuePickers()[1]).toHaveAttribute("data-open", "false");
+    });
+
+    it("goes at the end of the filter it was added to", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "version_name:in:1.0",
+      });
+
+      await addCondition();
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "version_name:in:1.0 AND mapping_type:in:dsym",
+      });
+    });
+
+    it("is dropped when its value picker closes without a value", async () => {
+      const { onChange } = await renderBar();
+
+      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await click(screen.getByTestId("close-values"));
+
+      expect(onChange).not.toHaveBeenCalled();
       expect(screen.queryByLabelText("Remove condition")).toBeNull();
-      expect(lastState(onFilterChange)).toMatchObject({ filterExpr: null });
+      expect(document.activeElement).toBe(screen.getByTestId("filter-input"));
+    });
+
+    it("is dropped when the filter changes from outside", async () => {
+      const { onChange, setValue } = await renderBar();
+
+      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await setValue({ filterExpr: "version_name:in:1.0" });
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getAllByLabelText("Remove condition")).toHaveLength(1);
+      expect(screen.getByText("App version")).toBeInTheDocument();
+      expect(screen.queryByText("<values>")).toBeNull();
+    });
+
+    it("is dropped when the range changes from outside", async () => {
+      const { onChange, setValue } = await renderBar();
+
+      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await setValue({
+        date: toDateSelection({
+          dateRange: "Last Week",
+          startDate: null,
+          endDate: null,
+        })!,
+      });
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.queryByLabelText("Remove condition")).toBeNull();
+      expect(valuePickers()).toHaveLength(0);
+    });
+
+    it("is dropped when the span changes from outside", async () => {
+      const { onChange, setValue } = await renderBar(
+        { rootSpanName: "span.first" },
+        { spanNames: ["span.first", "span.second"] },
+      );
+
+      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await setValue({ rootSpanName: "span.second" });
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.queryByLabelText("Remove condition")).toBeNull();
+      expect(valuePickers()).toHaveLength(0);
+    });
+
+    it("is dropped by an edit elsewhere in the filter", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym AND version_name:in:1.0",
+      });
+
+      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await click(screen.getAllByTestId("filter-logical-operator")[0]);
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym OR version_name:in:1.0",
+      });
+      expect(screen.getAllByLabelText("Remove condition")).toHaveLength(2);
+      expect(screen.queryByText("<values>")).toBeNull();
+    });
+
+    it("is dropped when another app is picked", async () => {
+      const { onChange } = await renderBar();
+
+      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await click(screen.getByTestId("pick-app-app-2"));
+
+      expect(lastChange(onChange)).toEqual({
+        appId: "app-2",
+        filterExpr: null,
+        rootSpanName: null,
+      });
+      expect(screen.queryByLabelText("Remove condition")).toBeNull();
+    });
+
+    it("is dropped when another condition is removed", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "version_name:in:1.0",
+      });
+
+      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await click(screen.getAllByLabelText("Remove condition")[0]);
+
+      expect(lastChange(onChange)).toEqual({ filterExpr: null });
+      expect(screen.queryByLabelText("Remove condition")).toBeNull();
+    });
+
+    it("is replaced by the next one started", async () => {
+      const { onChange } = await renderBar();
+
+      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await click(wholeFilterPicker().getByTestId("pick-key-version_name"));
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getAllByLabelText("Remove condition")).toHaveLength(1);
+      expect(screen.getByText("App version")).toBeInTheDocument();
+      expect(screen.queryByText("File type")).toBeNull();
+    });
+
+    it("starts again in its place when its key is changed", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym AND version_name:in:1.0",
+      });
+
+      await click(screen.getAllByTestId("pick-key-version_name-in-row")[0]);
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "version_name:in:1.0",
+      });
+      const rows = screen.getAllByLabelText("Remove condition");
+      expect(rows).toHaveLength(2);
+      expect(screen.getByText("<values>")).toBeInTheDocument();
+      expect(valuePickers()[0]).toHaveAttribute("data-open", "true");
+      expect(valuePickers()[1]).toHaveAttribute("data-open", "false");
+
+      await pickValue();
+    });
+
+    it("keeps its place once the changed key has a value", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym AND version_name:in:1.0",
+      });
+
+      await click(screen.getAllByTestId("pick-key-version_name-in-row")[0]);
+      await click(screen.getAllByTestId("pick-value")[0]);
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "version_name:in:dsym AND version_name:in:1.0",
+      });
+    });
+
+    it("starts again when the operator cannot keep the values", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym",
+      });
+
+      await click(screen.getByTestId("pick-op-contains"));
+
+      expect(lastChange(onChange)).toEqual({ filterExpr: null });
+      expect(screen.getByText("<value>")).toBeInTheDocument();
+      expect(screen.getByTestId("value-picker")).toHaveAttribute(
+        "data-open",
+        "true",
+      );
+
+      await pickValue();
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:contains:dsym",
+      });
+    });
+
+    it("puts the condition back when the restarted picker is dismissed", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym AND version_name:in:1.0",
+      });
+
+      await click(screen.getByTestId("pick-op-contains"));
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "version_name:in:1.0",
+      });
+
+      await click(screen.getAllByTestId("close-values")[0]);
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym AND version_name:in:1.0",
+      });
+      expect(screen.queryByText("<value>")).toBeNull();
+    });
+
+    it("drops the edit when the filter it sent was discarded", async () => {
+      const { setValue } = await renderBar();
+
+      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await setValue({ discarded: true });
+
+      expect(screen.queryByText("<values>")).toBeNull();
+      expect(screen.queryByLabelText("Remove condition")).toBeNull();
+    });
+
+    it("keeps a pending row while the span names arrive", async () => {
+      const { setValue } = await renderBar(
+        { rootSpanName: null },
+        { spanNames: null },
+      );
+
+      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await setValue({ rootSpanName: "span.first" });
+
+      expect(screen.getByText("<values>")).toBeInTheDocument();
+    });
+
+    it("keeps the group it is the only condition of", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym AND (version_name:in:1.0)",
+      });
+
+      const group = () => screen.getByRole("group", { name: "Filter group" });
+      await click(within(group()).getByTestId("pick-key-mapping_type-in-row"));
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym",
+      });
+      expect(within(group()).getByText("<values>")).toBeInTheDocument();
+
+      await pickValue();
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym AND (mapping_type:in:dsym)",
+      });
+    });
+
+    it("keeps the groups around it, however deep", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym AND ((version_name:in:1.0))",
+      });
+
+      const innermost = () => screen.getAllByRole("group").at(-1)!;
+      await click(
+        within(innermost()).getByTestId("pick-key-mapping_type-in-row"),
+      );
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym",
+      });
+      expect(screen.getAllByRole("group")).toHaveLength(2);
+      expect(within(innermost()).getByText("<values>")).toBeInTheDocument();
+
+      await pickValue();
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym AND ((mapping_type:in:dsym))",
+      });
+      expect(screen.getAllByRole("group")).toHaveLength(2);
+    });
+
+    it("is dropped from the group it started in when the value picker closes", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym AND (version_name:in:1.0)",
+      });
+
+      const group = () => screen.getByRole("group", { name: "Filter group" });
+      await click(groupPicker(group()).getByTestId("pick-key-mapping_type"));
+      expect(
+        within(group()).getAllByLabelText("Remove condition"),
+      ).toHaveLength(2);
+
+      await click(screen.getAllByTestId("close-values").at(-1)!);
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(
+        within(group()).getAllByLabelText("Remove condition"),
+      ).toHaveLength(1);
+    });
+  });
+
+  describe("grouping", () => {
+    const onlyGroup = () => screen.getByRole("group", { name: "Filter group" });
+
+    async function addGroup(picker = wholeFilterPicker()) {
+      await click(picker.getByTestId("add-group"));
+    }
+
+    it("opens the key list for the first condition of a group, sending nothing", async () => {
+      const { onChange } = await renderBar();
+
+      await addGroup();
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(
+        within(onlyGroup())
+          .getByLabelText("Add a filter to this group")
+          .closest("[data-testid='key-picker']"),
+      ).toHaveAttribute("data-open", "true");
+      expect(groupPicker(onlyGroup()).queryByTestId("add-group")).toBeNull();
+    });
+
+    it("drops the group when its key list closes without a pick", async () => {
+      await renderBar();
+
+      await addGroup();
+      await click(groupPicker(onlyGroup()).getByTestId("close-keys"));
+
+      expect(screen.queryByRole("group")).toBeNull();
+    });
+
+    it("sends the group once its first condition has a value", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym",
+      });
+
+      await addGroup();
+      await click(
+        groupPicker(onlyGroup()).getByTestId("pick-key-version_name"),
+      );
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(within(onlyGroup()).getByText("<values>")).toBeInTheDocument();
+
+      await pickValue();
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym AND (version_name:in:dsym)",
+      });
+    });
+
+    it("switches a group between and and or without touching the filter", async () => {
+      const { onChange } = await renderBar({
+        filterExpr:
+          "mapping_type:in:dsym AND (mapping_type:in:dsym AND version_name:in:1.0)",
+      });
+
+      await click(within(onlyGroup()).getByTestId("filter-logical-operator"));
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr:
+          "mapping_type:in:dsym AND (mapping_type:in:dsym OR version_name:in:1.0)",
+      });
+    });
+
+    it("drops a group and everything in it", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym AND (version_name:in:1.0)",
+      });
+
+      await click(screen.getByLabelText("Remove group"));
+
+      expect(screen.queryByRole("group")).toBeNull();
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym",
+      });
+    });
+
+    it("drops a group along with the last condition in it", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym AND (version_name:in:1.0)",
+      });
+
+      await click(within(onlyGroup()).getByLabelText("Remove condition"));
+
+      expect(screen.queryByRole("group")).toBeNull();
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym",
+      });
+    });
+
+    it("declines a group nested deeper than the server allows", async () => {
+      await renderBar({ filterExpr: "((mapping_type:in:dsym))" });
+
+      const innermost = () => screen.getAllByRole("group").at(-1)!;
+      await addGroup(groupPicker(innermost()));
+
+      expect(mockToastNegative).toHaveBeenCalledWith(
+        "Filter groups cannot be nested deeper",
+      );
+      expect(screen.getAllByRole("group")).toHaveLength(2);
+    });
+  });
+
+  describe("where focus goes", () => {
+    it("moves to the condition before the one removed", async () => {
+      await renderBar({
+        filterExpr: "mapping_type:in:dsym AND version_name:in:1.0",
+      });
+
+      await click(screen.getAllByLabelText("Remove condition").at(-1)!);
+
+      expect(document.activeElement).toHaveTextContent("File type");
+    });
+
+    it("moves to the condition before the one removed inside a group", async () => {
+      await renderBar({
+        filterExpr:
+          "version_name:in:1.0 AND (mapping_type:in:dsym AND mapping_type:in:dsym)",
+      });
+      const group = screen.getByRole("group", { name: "Filter group" });
+
+      await click(within(group).getAllByLabelText("Remove condition").at(-1)!);
+
+      expect(document.activeElement).toHaveTextContent("File type");
+    });
+
+    it("leaves a group for the condition before it", async () => {
+      await renderBar({
+        filterExpr: "version_name:in:1.0 AND (mapping_type:in:dsym)",
+      });
+      const group = screen.getByRole("group", { name: "Filter group" });
+
+      await click(within(group).getByLabelText("Remove condition"));
+
+      expect(document.activeElement).toHaveTextContent("App version");
+    });
+
+    it("goes to the add control when nothing is drawn before", async () => {
+      await renderBar({ filterExpr: "mapping_type:in:dsym" });
+
+      await click(screen.getByLabelText("Remove condition"));
+
+      expect(document.activeElement).toBe(screen.getByTestId("filter-input"));
     });
   });
 
@@ -780,23 +1294,15 @@ describe("FilterBar", () => {
       expect(wholePicker()).toHaveAttribute("data-open", "true");
     });
 
-    it("opens it from the space left once conditions are on screen", async () => {
-      await renderBar();
-
-      await addCondition();
-      await click(screen.getByTestId("filter-bar"));
-
-      expect(wholePicker()).toHaveAttribute("data-open", "true");
-    });
-
     it("leaves a click on a control to that control", async () => {
-      const { onFilterChange } = await renderBar();
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym",
+      });
 
-      await addCondition();
       await click(screen.getByLabelText("Remove condition"));
 
       expect(wholePicker()).toHaveAttribute("data-open", "false");
-      expect(lastState(onFilterChange)).toMatchObject({ filterExpr: null });
+      expect(lastChange(onChange)).toEqual({ filterExpr: null });
     });
 
     it("leaves the bar alone while the filter is edited as text", async () => {
@@ -806,297 +1312,6 @@ describe("FilterBar", () => {
       await click(screen.getByTestId("filter-bar"));
 
       expect(screen.getByTestId("filter-text")).toBeInTheDocument();
-    });
-  });
-
-  describe("editing", () => {
-    it("reports nothing for a condition that is still half built", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
-
-      expect(lastState(onFilterChange)).toMatchObject({ filterExpr: null });
-    });
-
-    it("reports the expression once a condition has a value", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await addCondition();
-
-      expect(lastState(onFilterChange)).toMatchObject({
-        filterExpr: "mapping_type:in:dsym",
-      });
-    });
-
-    it("reports a pick the page handed back as applied", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await addCondition();
-
-      expect(lastState(onFilterChange)).toMatchObject({
-        appliedAsRequested: true,
-      });
-    });
-
-    it("still filters by a condition changed while the server is refusing one", async () => {
-      const { onFilterChange } = await renderBar({
-        requestedFilterExpr: "mapping_type:in:dsym",
-        filterExprIssues: [
-          { message: 'Key "mapping_type" has no value "dsym"' },
-        ],
-      });
-
-      expect(screen.getByTestId("filter-issue")).toBeInTheDocument();
-
-      await click(screen.getByTestId("pick-op-not_in"));
-
-      expect(lastState(onFilterChange)).toMatchObject({
-        filterExpr: "mapping_type:not_in:dsym",
-      });
-    });
-
-    it("clears the conditions when another app is picked", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await addCondition();
-      await click(screen.getByTestId("pick-app-app-2"));
-
-      expect(lastState(onFilterChange)).toMatchObject({
-        app: apps[1],
-        filterExpr: null,
-      });
-    });
-
-    it("reports the new range, and keeps the expression", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await addCondition();
-      await click(screen.getByTestId("pick-range"));
-
-      const state = lastState(onFilterChange);
-      expect(state).toMatchObject({ filterExpr: "mapping_type:in:dsym" });
-      expect(state.status === "ready" && state.date.dateRange).toBe(
-        "Last Week",
-      );
-      expect(storeInstance.getState().selectedDateRange).toBe("Last Week");
-    });
-
-    it("switches the whole filter between and and or", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await addCondition();
-      await addCondition();
-
-      expect(lastState(onFilterChange)).toMatchObject({
-        filterExpr: "mapping_type:in:dsym AND mapping_type:in:dsym",
-      });
-
-      await click(screen.getByTestId("filter-logical-operator"));
-
-      expect(lastState(onFilterChange)).toMatchObject({
-        filterExpr: "mapping_type:in:dsym OR mapping_type:in:dsym",
-      });
-    });
-
-    it("starts a condition again when its key is changed", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await addCondition();
-      await click(screen.getByTestId("pick-key-version_name-in-row"));
-
-      expect(lastState(onFilterChange)).toMatchObject({ filterExpr: null });
-    });
-
-    it("keeps the values when the operator wants the same kind", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await addCondition();
-      await click(screen.getByTestId("pick-op-not_in"));
-
-      expect(lastState(onFilterChange)).toMatchObject({
-        filterExpr: "mapping_type:not_in:dsym",
-      });
-    });
-
-    it("drops a condition that is removed", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await addCondition();
-      await act(async () => {
-        fireEvent.click(screen.getByLabelText("Remove condition"));
-      });
-
-      expect(lastState(onFilterChange)).toMatchObject({ filterExpr: null });
-    });
-
-    it("clears every condition at once", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await addCondition();
-      await click(screen.getByTestId("filter-clear"));
-
-      expect(lastState(onFilterChange)).toMatchObject({ filterExpr: null });
-      expect(screen.queryByTestId("filter-clear")).toBeNull();
-    });
-  });
-
-  describe("where focus goes", () => {
-    it("moves to the condition before the one removed", async () => {
-      await renderBar();
-
-      await addCondition();
-      await addCondition(wholeFilterPicker(), "version_name");
-
-      await click(screen.getAllByLabelText("Remove condition").at(-1)!);
-
-      expect(document.activeElement).toHaveTextContent("File type");
-    });
-
-    it("moves to the condition before the one removed inside a group", async () => {
-      await renderBar();
-
-      await addCondition(wholeFilterPicker(), "version_name");
-      await click(wholeFilterPicker().getByTestId("add-group"));
-      const group = () => screen.getByRole("group", { name: "Filter group" });
-      await addCondition(groupPicker(group()));
-      await addCondition(groupPicker(group()));
-
-      await click(
-        within(group()).getAllByLabelText("Remove condition").at(-1)!,
-      );
-
-      expect(document.activeElement).toHaveTextContent("File type");
-    });
-
-    it("leaves a group for the condition before it", async () => {
-      await renderBar();
-
-      await addCondition(wholeFilterPicker(), "version_name");
-      await click(wholeFilterPicker().getByTestId("add-group"));
-      const group = screen.getByRole("group", {
-        name: "Filter group",
-      });
-      await addCondition(groupPicker(group));
-
-      await click(within(group).getByLabelText("Remove condition"));
-
-      expect(document.activeElement).toHaveTextContent("App version");
-    });
-
-    it("goes to the add control when nothing is drawn before", async () => {
-      await renderBar();
-
-      await addCondition();
-      await click(screen.getByLabelText("Remove condition"));
-
-      expect(document.activeElement).toBe(screen.getByTestId("filter-input"));
-    });
-  });
-
-  describe("grouping", () => {
-    const onlyGroup = () => screen.getByRole("group", { name: "Filter group" });
-
-    async function addGroup(picker = wholeFilterPicker()) {
-      await click(picker.getByTestId("add-group"));
-    }
-
-    it("opens a group with nothing in it yet", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await addGroup();
-
-      expect(
-        within(onlyGroup()).getByLabelText("Add a filter to this group"),
-      ).toBeInTheDocument();
-      expect(
-        within(onlyGroup()).queryByLabelText("Remove condition"),
-      ).toBeNull();
-      expect(lastState(onFilterChange)).toMatchObject({ filterExpr: null });
-    });
-
-    it("reports a group as its own part of the filter", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await addCondition();
-      await addGroup();
-      await addCondition(groupPicker(onlyGroup()));
-      await addCondition(groupPicker(onlyGroup()));
-      await click(within(onlyGroup()).getByTestId("filter-logical-operator"));
-
-      expect(lastState(onFilterChange)).toMatchObject({
-        filterExpr:
-          "mapping_type:in:dsym AND (mapping_type:in:dsym OR mapping_type:in:dsym)",
-      });
-    });
-
-    it("switches a group between and and or without touching the filter", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await addCondition();
-      await addCondition();
-      await addGroup();
-      await addCondition(groupPicker(onlyGroup()));
-      await addCondition(groupPicker(onlyGroup()));
-      await click(within(onlyGroup()).getByTestId("filter-logical-operator"));
-
-      const state = lastState(onFilterChange);
-      expect(state).toMatchObject({
-        filterExpr:
-          "mapping_type:in:dsym AND mapping_type:in:dsym AND (mapping_type:in:dsym OR mapping_type:in:dsym)",
-      });
-    });
-
-    it("keeps a group of one condition in what it reports", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await addCondition();
-      await addGroup();
-      await addCondition(groupPicker(onlyGroup()));
-
-      expect(lastState(onFilterChange)).toMatchObject({
-        filterExpr: "mapping_type:in:dsym AND (mapping_type:in:dsym)",
-      });
-    });
-
-    it("drops a group and everything in it", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await addCondition();
-      await addGroup();
-      await addCondition(groupPicker(onlyGroup()));
-      await click(screen.getByLabelText("Remove group"));
-
-      expect(screen.queryByRole("group")).toBeNull();
-      expect(lastState(onFilterChange)).toMatchObject({
-        filterExpr: "mapping_type:in:dsym",
-      });
-    });
-
-    it("drops a group along with the last condition in it", async () => {
-      await renderBar();
-
-      await addGroup();
-      await addCondition(groupPicker(onlyGroup()));
-      await click(within(onlyGroup()).getByLabelText("Remove condition"));
-
-      expect(screen.queryByRole("group")).toBeNull();
-    });
-
-    it("declines a group nested deeper than the server allows", async () => {
-      await renderBar();
-
-      const innermost = () => screen.getAllByRole("group").at(-1)!;
-
-      await addGroup();
-      await addGroup(groupPicker(innermost()));
-      expect(mockToastNegative).not.toHaveBeenCalled();
-
-      await addGroup(groupPicker(innermost()));
-
-      expect(mockToastNegative).toHaveBeenCalledWith(
-        "Filter groups cannot be nested deeper",
-      );
-      expect(screen.getAllByRole("group")).toHaveLength(2);
     });
   });
 
@@ -1119,40 +1334,80 @@ describe("FilterBar", () => {
       });
     }
 
-    it("opens on the expression the conditions say", async () => {
-      await renderBar();
+    it("opens on the filter the value holds", async () => {
+      await renderBar({ filterExpr: "mapping_type:in:dsym" });
 
-      await addCondition();
       await startTyping();
 
       expect(textBox()).toHaveValue("mapping_type:in:dsym");
     });
 
-    it("shows a condition still waiting for its values", async () => {
-      await renderBar();
-
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
-      await startTyping();
-
-      expect(textBox()).toHaveValue("mapping_type:in:");
-    });
-
-    it("filters by what was typed once it is applied", async () => {
-      const { onFilterChange } = await renderBar();
+    it("sends what was typed, in canonical form, once it is applied", async () => {
+      const { onChange } = await renderBar();
 
       await startTyping();
-      await type("version_name:in:1.0");
-      expect(lastState(onFilterChange)).toMatchObject({ filterExpr: null });
+      await type("version_name:in:[1.0]");
+      expect(onChange).not.toHaveBeenCalled();
 
       await pressEnter();
 
-      expect(lastState(onFilterChange)).toMatchObject({
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "version_name:in:1.0",
+      });
+      expect(textBox()).toHaveValue("version_name:in:1.0");
+    });
+
+    it("keeps showing what it applied while the value follows", async () => {
+      const { onChange, holdChanges, land } = await renderBar();
+
+      holdChanges();
+      await startTyping();
+      await type("version_name:in:[1.0]");
+      await pressEnter();
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "version_name:in:1.0",
+      });
+      expect(textBox()).toHaveValue("version_name:in:1.0");
+
+      await click(screen.getByLabelText("Edit as conditions"));
+
+      expect(screen.getByText("App version")).toBeInTheDocument();
+
+      await land();
+
+      expect(screen.getByText("App version")).toBeInTheDocument();
+    });
+
+    it("applies on blur too", async () => {
+      const { onChange } = await renderBar();
+
+      await startTyping();
+      await type("version_name:in:1.0");
+      await act(async () => {
+        fireEvent.blur(textBox());
+      });
+
+      expect(lastChange(onChange)).toEqual({
         filterExpr: "version_name:in:1.0",
       });
     });
 
-    it("says what is wrong and filters nothing while it is", async () => {
-      const { onFilterChange } = await renderBar();
+    it("sends nothing for text that only differs in form", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym",
+      });
+
+      await startTyping();
+      await type("mapping_type:in:[dsym]");
+      await pressEnter();
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(textBox()).toHaveValue("mapping_type:in:dsym");
+    });
+
+    it("says what is wrong and keeps the text instead of applying it", async () => {
+      const { onChange } = await renderBar();
 
       await startTyping();
       await type("version_name:in:1.0 AND");
@@ -1161,7 +1416,22 @@ describe("FilterBar", () => {
       expect(screen.getByTestId("filter-issue")).toHaveTextContent(
         "Filter ends where a condition was expected",
       );
-      expect(lastState(onFilterChange)).toMatchObject({ filterExpr: null });
+      expect(onChange).not.toHaveBeenCalled();
+      expect(textBox()).toHaveValue("version_name:in:1.0 AND");
+    });
+
+    it("refuses a condition still waiting for its value", async () => {
+      const { onChange } = await renderBar();
+
+      await startTyping();
+      await type("version_name:in:");
+      await pressEnter();
+
+      expect(screen.getByTestId("filter-issue")).toHaveTextContent(
+        "App version needs a value",
+      );
+      expect(marksInBar()).toEqual(["version_name", ":", "in"]);
+      expect(onChange).not.toHaveBeenCalled();
     });
 
     it("says so for a key this app does not have", async () => {
@@ -1179,32 +1449,10 @@ describe("FilterBar", () => {
       await renderBar();
 
       await startTyping();
-      await type("device_cohort:in:new AND another_missing:in:x");
-
-      expect(screen.getByTestId("filter-issue")).toHaveTextContent(
-        "There is no filter named device_cohort (+1 more)",
-      );
-    });
-
-    it("counts the keys it cannot use alongside text it cannot read", async () => {
-      await renderBar();
-
-      await startTyping();
       await type("device_cohort:in:new AND another_missing:in:x)");
 
       expect(screen.getByTestId("filter-issue")).toHaveTextContent(
         "There is no filter named device_cohort (+2 more)",
-      );
-    });
-
-    it("names the issue that comes first in the text", async () => {
-      await renderBar();
-
-      await startTyping();
-      await type("mapping_type:in:proguard AND device_cohort:in:new)");
-
-      expect(screen.getByTestId("filter-issue")).toHaveTextContent(
-        "There is no filter named device_cohort (+1 more)",
       );
     });
 
@@ -1217,97 +1465,6 @@ describe("FilterBar", () => {
       expect(screen.getByTestId("filter-issue")).toHaveTextContent(
         "File type cannot be compared with gt",
       );
-    });
-
-    it("discards a requested expression holding more conditions than the limit", async () => {
-      const tooMany = Array.from(
-        { length: MAX_CONDITIONS + 1 },
-        () => "mapping_type:in:dsym",
-      ).join(" AND ");
-      const { onFilterChange } = await renderBar({
-        requestedFilterExpr: tooMany,
-      });
-
-      const state = lastState(onFilterChange);
-      expect(state.status === "ready" && state.filterExpr).toBeNull();
-      expect(mockToastNegative).toHaveBeenCalledWith(
-        "Some filters were invalid, page reset to defaults",
-      );
-    });
-
-    it("marks the span the server refused", async () => {
-      await renderBar({
-        requestedFilterExpr: "mapping_type:in:dsym",
-        filterExprIssues: [
-          {
-            message: 'Key "mapping_type" has no value "dsym"',
-            span: { start: 0, end: 20 },
-          },
-        ],
-      });
-
-      await click(screen.getByTestId("filter-toggle-text"));
-
-      expect(screen.getByTestId("filter-issue")).toHaveTextContent(
-        'Key "mapping_type" has no value "dsym"',
-      );
-      expect(marksInBar()).toEqual(["mapping_type", ":", "in", ":", "dsym"]);
-    });
-
-    it("says what the server refused for text holding brackets and extra spaces", async () => {
-      await renderBar({
-        requestedFilterExpr: "mapping_type:in:[dsym]  AND version_name:in:1.0",
-        filterExprIssues: [
-          { message: 'Key "mapping_type" has no value "dsym"' },
-        ],
-      });
-
-      expect(screen.getByTestId("filter-issue")).toHaveTextContent(
-        'Key "mapping_type" has no value "dsym"',
-      );
-    });
-
-    it("drops the message once the text would filter by something else", async () => {
-      const { onFilterChange } = await renderBar({
-        requestedFilterExpr: "mapping_type:in:dsym",
-        filterExprIssues: [
-          {
-            message: 'Key "mapping_type" has no value "dsym"',
-            span: { start: 0, end: 20 },
-          },
-        ],
-      });
-
-      await click(screen.getByTestId("filter-toggle-text"));
-      await type("mapping_type:in:proguard");
-
-      expect(screen.queryByTestId("filter-issue")).not.toBeInTheDocument();
-
-      await pressEnter();
-
-      expect(lastState(onFilterChange)).toMatchObject({
-        filterExpr: "mapping_type:in:proguard",
-      });
-    });
-
-    it("keeps the message but drops the marks when only the spacing changed", async () => {
-      await renderBar({
-        requestedFilterExpr: "mapping_type:in:dsym",
-        filterExprIssues: [
-          {
-            message: 'Key "mapping_type" has no value "dsym"',
-            span: { start: 0, end: 20 },
-          },
-        ],
-      });
-
-      await click(screen.getByTestId("filter-toggle-text"));
-      await type("  mapping_type:in:dsym");
-
-      expect(screen.getByTestId("filter-issue")).toHaveTextContent(
-        'Key "mapping_type" has no value "dsym"',
-      );
-      expect(marksInBar()).toEqual([]);
     });
 
     it("refuses to go back to conditions while the text is wrong", async () => {
@@ -1323,40 +1480,16 @@ describe("FilterBar", () => {
       );
     });
 
-    it("goes back to conditions while the server is refusing a value", async () => {
-      const { onFilterChange } = await renderBar({
-        requestedFilterExpr: "mapping_type:in:dsym",
-        filterExprIssues: [
-          { message: 'Key "mapping_type" has no value "dsym"' },
-        ],
-      });
-
-      await click(screen.getByLabelText("Edit as text"));
-      const before = onFilterChange.mock.calls.length;
-      await click(screen.getByLabelText("Edit as conditions"));
-
-      expect(screen.queryByTestId("filter-text")).not.toBeInTheDocument();
-      expect(mockToastNegative).not.toHaveBeenCalled();
-      expect(onFilterChange.mock.calls.length).toBe(before);
-
-      expect(screen.getByTestId("filter-issue")).toHaveTextContent(
-        'Key "mapping_type" has no value "dsym"',
-      );
-
-      await click(screen.getByTestId("pick-op-not_in"));
-
-      expect(lastState(onFilterChange)).toMatchObject({
-        filterExpr: "mapping_type:not_in:dsym",
-      });
-    });
-
     it("draws what was typed as conditions on the way back", async () => {
-      await renderBar();
+      const { onChange } = await renderBar();
 
       await startTyping();
       await type("version_name:in:1.0 AND (mapping_type:in:dsym)");
       await click(screen.getByLabelText("Edit as conditions"));
 
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "version_name:in:1.0 AND (mapping_type:in:dsym)",
+      });
       expect(screen.queryByTestId("filter-text")).toBeNull();
       expect(screen.getAllByLabelText("Remove condition")).toHaveLength(2);
       expect(
@@ -1365,31 +1498,23 @@ describe("FilterBar", () => {
     });
 
     it("empties the editor when the filter is cleared", async () => {
-      const { onFilterChange } = await renderBar();
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym",
+      });
 
-      await addCondition();
       await startTyping();
       await type("version_name:in:1.0");
       await click(screen.getByTestId("filter-clear"));
 
       expect(textBox()).toHaveValue("");
-      expect(lastState(onFilterChange)).toMatchObject({ filterExpr: null });
+      expect(lastChange(onChange)).toEqual({ filterExpr: null });
     });
 
-    it("empties the editor when another app is picked", async () => {
-      await renderBar();
+    it("drops the text and closes on Escape", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym",
+      });
 
-      await startTyping();
-      await type("version_name:in:1.0");
-      await click(screen.getByTestId("pick-app-app-2"));
-
-      expect(textBox()).toHaveValue("");
-    });
-
-    it("puts back the filter the page is on when it is left without applying", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await addCondition();
       await startTyping();
       await type("version_name:in:1.0");
       await act(async () => {
@@ -1397,71 +1522,143 @@ describe("FilterBar", () => {
       });
 
       expect(screen.queryByTestId("filter-text")).toBeNull();
-      expect(lastState(onFilterChange)).toMatchObject({
-        filterExpr: "mapping_type:in:dsym",
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getByText("dsym")).toBeInTheDocument();
+    });
+  });
+
+  describe("issues the server sent back", () => {
+    const refused = [
+      {
+        message: 'Key "mapping_type" has no value "dsym"',
+        span: { start: 0, end: 20 },
+      },
+    ];
+
+    it("marks the span the server refused", async () => {
+      await renderBar(
+        { filterExpr: "mapping_type:in:dsym" },
+        { filterExprIssues: refused },
+      );
+
+      expect(screen.getByTestId("filter-issue")).toHaveTextContent(
+        'Key "mapping_type" has no value "dsym"',
+      );
+
+      await click(screen.getByTestId("filter-toggle-text"));
+
+      expect(marksInBar()).toEqual(["mapping_type", ":", "in", ":", "dsym"]);
+    });
+
+    it("keeps the message but drops the marks when only the spacing changed", async () => {
+      await renderBar(
+        { filterExpr: "mapping_type:in:dsym" },
+        { filterExprIssues: refused },
+      );
+
+      await click(screen.getByTestId("filter-toggle-text"));
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("filter-text"), {
+          target: { value: "  mapping_type:in:[dsym]" },
+        });
+      });
+
+      expect(screen.getByTestId("filter-issue")).toHaveTextContent(
+        'Key "mapping_type" has no value "dsym"',
+      );
+      expect(marksInBar()).toEqual([]);
+    });
+
+    it("drops the message once the text would filter by something else", async () => {
+      const { onChange } = await renderBar(
+        { filterExpr: "mapping_type:in:dsym" },
+        { filterExprIssues: refused },
+      );
+
+      await click(screen.getByTestId("filter-toggle-text"));
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("filter-text"), {
+          target: { value: "mapping_type:in:proguard" },
+        });
+      });
+
+      expect(screen.queryByTestId("filter-issue")).toBeNull();
+
+      await act(async () => {
+        fireEvent.keyDown(screen.getByTestId("filter-text"), { key: "Enter" });
+      });
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:proguard",
+      });
+    });
+
+    it("still applies a condition changed while the server is refusing one", async () => {
+      const { onChange } = await renderBar(
+        { filterExpr: "mapping_type:in:dsym" },
+        { filterExprIssues: refused },
+      );
+
+      await click(screen.getByLabelText("Edit as text"));
+      await click(screen.getByLabelText("Edit as conditions"));
+
+      expect(screen.queryByTestId("filter-text")).toBeNull();
+      expect(mockToastNegative).not.toHaveBeenCalled();
+      expect(onChange).not.toHaveBeenCalled();
+
+      await click(screen.getByTestId("pick-op-not_in"));
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:not_in:dsym",
       });
     });
   });
 
   describe("a user-defined key", () => {
     beforeEach(() => {
-      keysLoaded(
-        [mappingTypeKey, versionKey, customPremiumKey, customPlanKey],
-        ["Build", "Version", "Custom"],
-      );
+      keysServed([...keys, customPremiumKey, customPlanKey]);
     });
 
-    it("draws a requested custom condition and filters by it", async () => {
-      const { onFilterChange } = await renderBar({
-        requestedFilterExpr: "custom.is_premium:eq:true",
-      });
+    const allKeys = { keys: [...keys, customPremiumKey, customPlanKey] };
 
-      expect(screen.getByTestId("operator-picker")).toBeInTheDocument();
-      expect(lastState(onFilterChange)).toMatchObject({
-        status: "ready",
-        filterExpr: "custom.is_premium:eq:true",
-      });
+    it("draws a custom condition by the raw attribute name", async () => {
+      await renderBar({ filterExpr: "custom.is_premium:eq:true" }, allKeys);
+
+      expect(screen.getByText("is_premium")).toBeInTheDocument();
     });
 
-    it("names the condition by the raw attribute name", async () => {
-      await renderBar();
-
-      await click(
-        wholeFilterPicker().getByTestId("pick-key-custom.is_premium"),
-      );
-
-      // The key control of the new condition takes focus, so the text on it is
-      // what the chip shows for this key.
-      expect(document.activeElement?.textContent).toBe("is_premium");
-    });
-
-    it("serializes a picked custom key under its full dotted name", async () => {
-      const { onFilterChange } = await renderBar();
+    it("sends a picked custom key under its full dotted name", async () => {
+      const { onChange } = await renderBar({}, allKeys);
 
       await addCondition(wholeFilterPicker(), "custom.plan");
 
-      expect(lastState(onFilterChange)).toMatchObject({
+      expect(lastChange(onChange)).toEqual({
         filterExpr: "custom.plan:in:dsym",
       });
     });
 
-    it("asks the keys query for a custom key typed by hand", async () => {
-      // The app has more custom keys than the listing returns, so the
-      // server serves custom.plan only when the request specifies it.
+    it("asks the keys query for the custom keys in the filter and the ones typed", async () => {
       mockUseFilterKeysQuery.mockImplementation(
         (_appId: string | undefined, _entity: string, keyNames: string[]) => ({
           data: {
             keys: keyNames.includes("custom.plan")
-              ? [mappingTypeKey, versionKey, customPlanKey]
-              : [mappingTypeKey, versionKey],
-            key_groups: ["Build", "Version", "Custom"],
+              ? [...keys, customPlanKey]
+              : keys,
+            key_groups: keyGroups,
           },
           isPending: false,
           isError: false,
         }),
       );
+      const { onChange } = await renderBar({
+        filterExpr: "custom.is_premium:eq:true",
+      });
 
-      const { onFilterChange } = await renderBar();
+      expect(mockUseFilterKeysQuery).toHaveBeenLastCalledWith(
+        "app-1",
+        "builds",
+        ["custom.is_premium"],
+      );
 
       await click(screen.getByLabelText("Edit as text"));
       await act(async () => {
@@ -1473,15 +1670,15 @@ describe("FilterBar", () => {
       expect(mockUseFilterKeysQuery).toHaveBeenLastCalledWith(
         "app-1",
         "builds",
-        ["custom.plan"],
+        ["custom.is_premium", "custom.plan"],
       );
-      expect(screen.queryByTestId("filter-issue")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("filter-issue")).toBeNull();
 
       await act(async () => {
         fireEvent.keyDown(screen.getByTestId("filter-text"), { key: "Enter" });
       });
 
-      expect(lastState(onFilterChange)).toMatchObject({
+      expect(lastChange(onChange)).toEqual({
         filterExpr: "custom.plan:in:pro",
       });
     });
@@ -1497,233 +1694,40 @@ describe("FilterBar", () => {
       });
 
       expect(mockUseFilterKeysQuery).toHaveBeenLastCalledWith(
-        "app-1",
+        undefined,
         "builds",
         [],
       );
     });
-
-    it("round-trips a typed custom condition through the text editor", async () => {
-      const { onFilterChange } = await renderBar();
-
-      await click(screen.getByLabelText("Edit as text"));
-      await act(async () => {
-        fireEvent.change(screen.getByTestId("filter-text"), {
-          target: {
-            value: "custom.plan:in:pro AND custom.is_premium:eq:true",
-          },
-        });
-      });
-      await click(screen.getByLabelText("Edit as conditions"));
-
-      expect(screen.queryByTestId("filter-issue")).not.toBeInTheDocument();
-      expect(screen.getAllByLabelText("Remove condition")).toHaveLength(2);
-      expect(lastState(onFilterChange)).toMatchObject({
-        filterExpr: "custom.plan:in:pro AND custom.is_premium:eq:true",
-      });
-    });
-  });
-
-  describe("while the keys are on their way", () => {
-    it("shows no bar to filter with", async () => {
-      mockUseFilterKeysQuery.mockReturnValue({
-        data: undefined,
-        isPending: true,
-        isError: false,
-      } as any);
-      await renderBar();
-
-      expect(screen.queryByTestId("filter-bar")).toBeNull();
-    });
-
-    it("still reports what it is filtering by, so the page can fetch", async () => {
-      mockUseFilterKeysQuery.mockReturnValue({
-        data: undefined,
-        isPending: true,
-        isError: false,
-      } as any);
-      const { onFilterChange } = await renderBar();
-
-      expect(lastState(onFilterChange).status).toBe("ready");
-    });
-  });
-
-  describe("when the keys cannot be fetched", () => {
-    it("keeps the bar drawn but refuses input", async () => {
-      mockUseFilterKeysQuery.mockReturnValue({
-        data: undefined,
-        isPending: false,
-        isError: true,
-      } as any);
-      await renderBar();
-
-      expect(screen.getByTestId("filter-bar")).toHaveAttribute(
-        "aria-disabled",
-        "true",
-      );
-    });
-
-    it("leaves nothing a keyboard can reach", async () => {
-      mockUseFilterKeysQuery.mockReturnValue({
-        data: undefined,
-        isPending: false,
-        isError: true,
-      } as any);
-      await renderBar();
-
-      const bar = screen.getByTestId("filter-bar");
-      expect(bar.querySelectorAll("button")).toHaveLength(0);
-      expect(bar).toHaveTextContent("Filter…");
-    });
-
-    it("draws no message of its own, and reports one for the page", async () => {
-      mockUseFilterKeysQuery.mockReturnValue({
-        data: undefined,
-        isPending: false,
-        isError: true,
-      } as any);
-      const { onFilterChange } = await renderBar();
-
-      expect(screen.queryByText(/Error fetching filters/)).toBeNull();
-      expect(lastState(onFilterChange)).toEqual({
-        status: "error",
-        message: expect.stringContaining("Error fetching filters"),
-      });
-    });
   });
 
   describe("when an edit would cross a limit", () => {
-    it("declines the edit and names the limit that stopped it", async () => {
-      const { onFilterChange } = await renderBar();
+    const full = Array.from(
+      { length: MAX_CONDITIONS },
+      () => "mapping_type:in:dsym",
+    ).join(" AND ");
 
-      for (let i = 0; i < MAX_CONDITIONS; i++) {
-        await addCondition();
-      }
-      const filled = lastState(onFilterChange);
+    it("declines the edit and names the limit that stopped it", async () => {
+      const { onChange } = await renderBar({ filterExpr: full });
+
       await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
 
       expect(mockToastNegative).toHaveBeenCalledWith(
         `A filter can hold at most ${MAX_CONDITIONS} conditions`,
       );
-      expect(lastState(onFilterChange)).toMatchObject({
-        filterExpr: (filled as any).filterExpr,
-      });
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.queryByText("<values>")).toBeNull();
     });
 
     it("says nothing while the filter is still inside every limit", async () => {
-      await renderBar();
+      const { onChange } = await renderBar();
 
       for (let i = 0; i < MAX_CONDITIONS; i++) {
         await addCondition();
       }
 
       expect(mockToastNegative).not.toHaveBeenCalled();
+      expect(lastChange(onChange)).toEqual({ filterExpr: full });
     });
-  });
-
-  describe("when something requested cannot be honoured", () => {
-    it("says so for an app the team no longer has", async () => {
-      await renderBar({ requestedAppId: "app-gone" });
-
-      expect(mockToastNegative).toHaveBeenCalledWith(
-        "Some filters were invalid, page reset to defaults",
-      );
-    });
-
-    it("says so for a range that does not read back", async () => {
-      await renderBar({
-        requestedDateRange: {
-          dateRange: "Last Fortnight",
-          startDate: null,
-          endDate: null,
-        },
-      });
-
-      expect(mockToastNegative).toHaveBeenCalledWith(
-        "Some filters were invalid, page reset to defaults",
-      );
-    });
-
-    it("says so for an expression that cannot be read", async () => {
-      const { onFilterChange } = await renderBar({
-        requestedFilterExpr: "mapping_type:in:dsym AND",
-      });
-
-      expect(mockToastNegative).toHaveBeenCalledWith(
-        "Some filters were invalid, page reset to defaults",
-      );
-      expect(lastState(onFilterChange)).toMatchObject({
-        status: "ready",
-        appliedAsRequested: false,
-      });
-    });
-
-    it("says so once, however much was refused", async () => {
-      await renderBar({
-        requestedAppId: "app-gone",
-        requestedDateRange: {
-          dateRange: "Last Fortnight",
-          startDate: null,
-          endDate: null,
-        },
-        requestedFilterExpr: "mapping_type:in:dsym AND",
-      });
-
-      expect(mockToastNegative).toHaveBeenCalledTimes(1);
-    });
-
-    it("stays quiet when everything requested is honoured", async () => {
-      await renderBar({
-        requestedAppId: "app-2",
-        requestedDateRange: {
-          dateRange: "Last Week",
-          startDate: null,
-          endDate: null,
-        },
-      });
-
-      expect(mockToastNegative).not.toHaveBeenCalled();
-    });
-
-    it("stays quiet when nothing was requested", async () => {
-      await renderBar();
-
-      expect(mockToastNegative).not.toHaveBeenCalled();
-    });
-
-    it("stays quiet when the range asked for is the one it just reported", async () => {
-      const { askAgain } = await renderBar({
-        requestedDateRange: {
-          dateRange: "Last 6 Hours",
-          startDate: null,
-          endDate: null,
-        },
-      });
-
-      await click(screen.getByTestId("pick-range"));
-      await askAgain({
-        requestedDateRange: {
-          dateRange: "Last Week",
-          startDate: "2026-02-01T00:00:00.000Z",
-          endDate: "2026-02-08T00:00:00.000Z",
-        },
-      });
-
-      expect(mockToastNegative).not.toHaveBeenCalled();
-    });
-  });
-
-  it("shows the placeholder until there is a condition", async () => {
-    await renderBar({ placeholder: "Filter builds…" });
-
-    expect(screen.getByTestId("filter-input")).toHaveTextContent(
-      "Filter builds…",
-    );
-
-    await act(async () => {
-      fireEvent.click(screen.getByTestId("pick-key-mapping_type"));
-    });
-
-    expect(screen.getByTestId("filter-input")).toHaveTextContent("");
   });
 });

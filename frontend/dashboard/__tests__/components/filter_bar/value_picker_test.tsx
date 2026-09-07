@@ -136,10 +136,10 @@ describe("ValuePicker", () => {
 
     fireEvent.click(screen.getByTestId("filter-value-1.0.1"));
 
-    expect(onChange).toHaveBeenCalledWith([
-      { text: "1.0.0" },
-      { text: "1.0.1" },
-    ]);
+    expect(onChange).toHaveBeenCalledWith(
+      [{ text: "1.0.0" }, { text: "1.0.1" }],
+      false,
+    );
   });
 
   it("takes a picked value back off the list", () => {
@@ -149,7 +149,7 @@ describe("ValuePicker", () => {
 
     fireEvent.click(screen.getByTestId("filter-value-1.0.0"));
 
-    expect(onChange).toHaveBeenCalledWith([{ text: "1.0.1" }]);
+    expect(onChange).toHaveBeenCalledWith([{ text: "1.0.1" }], false);
   });
 
   it("marks the values that are picked", () => {
@@ -165,7 +165,7 @@ describe("ValuePicker", () => {
     );
   });
 
-  it("replaces the selection and closes for a one-value operator", () => {
+  it("replaces the selection and reports it done for a one-value operator", () => {
     const { onChange, onOpenChange } = renderPicker({
       takesOneValue: true,
       selected: [{ text: "1.0.0" }],
@@ -173,8 +173,8 @@ describe("ValuePicker", () => {
 
     fireEvent.click(screen.getByTestId("filter-value-1.0.1"));
 
-    expect(onChange).toHaveBeenCalledWith([{ text: "1.0.1" }]);
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onChange).toHaveBeenCalledWith([{ text: "1.0.1" }], true);
+    expect(onOpenChange).not.toHaveBeenCalled();
   });
 
   it("offers what was typed when the list is only a sample", () => {
@@ -200,7 +200,7 @@ describe("ValuePicker", () => {
 
     fireEvent.click(screen.getByTestId("filter-value-9.9.9"));
 
-    expect(onChange).toHaveBeenCalledWith([{ text: "1.0.0" }]);
+    expect(onChange).toHaveBeenCalledWith([{ text: "1.0.0" }], false);
   });
 
   it("shows a chosen value the sample left out, whatever its source", () => {
@@ -355,7 +355,7 @@ describe("ValuePicker", () => {
       );
     });
 
-    it("applies what was typed, trimmed, and closes", () => {
+    it("applies what was typed, trimmed, and reports it done", () => {
       const { onChange, onOpenChange } = renderPicker({
         valueSuggestionMode: "none",
       });
@@ -367,8 +367,8 @@ describe("ValuePicker", () => {
         screen.getByTestId("filter-value-input").closest("form")!,
       );
 
-      expect(onChange).toHaveBeenCalledWith([{ text: "1.0.2" }]);
-      expect(onOpenChange).toHaveBeenCalledWith(false);
+      expect(onChange).toHaveBeenCalledWith([{ text: "1.0.2" }], true);
+      expect(onOpenChange).not.toHaveBeenCalled();
     });
 
     it("applies nothing when the box is empty", () => {
@@ -409,8 +409,8 @@ describe("ValuePicker", () => {
 
       fireEvent.click(screen.getByTestId("filter-value-true"));
 
-      expect(onChange).toHaveBeenCalledWith([{ text: "true" }]);
-      expect(onOpenChange).toHaveBeenCalledWith(false);
+      expect(onChange).toHaveBeenCalledWith([{ text: "true" }], true);
+      expect(onOpenChange).not.toHaveBeenCalled();
     });
 
     it("asks for a string key's suggestions under its full dotted name", () => {

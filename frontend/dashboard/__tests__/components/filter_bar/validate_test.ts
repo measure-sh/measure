@@ -14,7 +14,7 @@ import {
 } from "@/app/components/filter_bar/limits";
 import {
   buildConditionGroup,
-  buildDraftTree,
+  buildExprTree,
 } from "@/app/components/filter_bar/conditions";
 import {
   formatFilterExpr,
@@ -185,6 +185,7 @@ describe("findFilterIssues", () => {
   const keys = [
     key("version_name", ["in", "not_in", "contains"]),
     key("mapping_type", ["in", "not_in"]),
+    key("patch_id", ["is_set", "is_not_set"]),
   ];
 
   function issuesIn(text: string) {
@@ -228,6 +229,46 @@ describe("findFilterIssues", () => {
     expect([issue.span?.start, issue.span?.end]).toEqual([13, 21]);
   });
 
+  it("reports a condition whose operator is still waiting for its value", () => {
+    for (const text of [
+      "version_name:in",
+      "version_name:in:",
+      "version_name:in: AND mapping_type:in:dsym",
+    ]) {
+      const [issue] = issuesIn(text);
+
+      expect(issue.message).toBe("version_name needs a value");
+      expect([issue.span?.start, issue.span?.end]).toEqual([0, 15]);
+    }
+    expect(issuesIn("version_name:in:[1.0.0,1.0.1]")).toEqual([]);
+    expect(issuesIn('version_name:in:"1.0.0 (beta)"')).toEqual([]);
+  });
+
+  it("reports several values given to an operator that takes one", () => {
+    const [issue] = issuesIn("version_name:contains:[1.0,1.1]");
+
+    expect(issue.message).toBe("version_name takes one value");
+    expect([issue.span?.start, issue.span?.end]).toEqual([22, 31]);
+    expect(issuesIn("version_name:contains:[1.0]")).toEqual([]);
+  });
+
+  it("reports a value given to an operator that takes none", () => {
+    const [issue] = issuesIn("patch_id:is_set:1.0");
+
+    expect(issue.message).toBe("patch_id takes no value");
+    expect([issue.span?.start, issue.span?.end]).toEqual([9, 19]);
+    expect(issuesIn("patch_id:is_set")).toEqual([]);
+  });
+
+  it("reports an unfinished value once", () => {
+    expect(issuesIn('version_name:in:"abc').map((it) => it.message)).toEqual([
+      "Quoted value is not closed",
+    ]);
+    expect(
+      issuesIn("version_name:contains:[1.0,1.1").map((it) => it.message),
+    ).toEqual(["List of values is not closed"]);
+  });
+
   it("keeps the keys it found alongside text it could not read", () => {
     const issues = issuesIn("device_cohort:in:new AND other:in:x)");
 
@@ -254,7 +295,7 @@ describe("findFilterIssues", () => {
         row("version_name", "in", "1"),
       ),
     );
-    const parsed = parseFilterExpr(formatFilterExpr(buildDraftTree(tooMany)), {
+    const parsed = parseFilterExpr(formatFilterExpr(buildExprTree(tooMany)), {
       draft: true,
     });
     const issues = findFilterIssues(parsed, keys, tooMany);
