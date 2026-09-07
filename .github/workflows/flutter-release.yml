@@ -25,8 +25,9 @@ jobs:
 
       - name: Determine package from tag
         id: package
+        env:
+          TAG: ${{ github.ref_name }}
         run: |
-          TAG="${{ github.ref_name }}"
           if [[ "$TAG" == measure_flutter-v* ]]; then
             echo "name=measure_flutter" >> $GITHUB_OUTPUT
             echo "path=flutter/packages/measure_flutter" >> $GITHUB_OUTPUT
@@ -47,13 +48,17 @@ jobs:
           channel: stable
 
       - name: Setup pub.dev credentials
+        env:
+          PUB_CREDENTIALS: ${{ secrets.PUB_DEV_CREDENTIALS }}
         run: |
           mkdir -p "$HOME/.config/dart"
-          echo '${{ secrets.PUB_DEV_CREDENTIALS }}' > "$HOME/.config/dart/pub-credentials.json"
+          printf '%s' "$PUB_CREDENTIALS" > "$HOME/.config/dart/pub-credentials.json"
 
       - name: Publish to pub.dev
+        env:
+          PACKAGE_PATH: ${{ steps.package.outputs.path }}
         run: |
-          cd ${{ steps.package.outputs.path }}
+          cd "$PACKAGE_PATH"
           dart pub publish --force
 
       - name: Generate release notes
@@ -68,20 +73,22 @@ jobs:
       - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          NOTES: ${{ steps.release-notes.outputs.content }}
         run: |
-          gh release create ${{ github.ref_name }} \
-            --title "${{ github.ref_name }}" \
+          gh release create "$TAG" \
+            --title "$TAG" \
             --draft \
             ${{ contains(github.ref_name, '-') && '--prerelease' || '' }} \
-            --notes "${{ steps.release-notes.outputs.content }}" \
+            --notes "$NOTES" \
             --verify-tag
 
       - name: Extract release metadata from PR
         id: meta
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
         run: |
-          TAG="${{ github.ref_name }}"
           BODY=$(gh pr list --state merged --head "$TAG" --json body --jq '.[0].body' || true)
           NEXT_VERSION=$(echo "$BODY" | grep -oP '(?<=NEXT_VERSION=)\S+' || true)
           ANDROID_SNAPSHOT=$(echo "$BODY" | grep -oP '(?<=ANDROID_SNAPSHOT_VERSION=)\S+' || true)
@@ -92,11 +99,10 @@ jobs:
         if: steps.meta.outputs.next_version != ''
         env:
           GH_TOKEN: ${{ secrets.SDK_RELEASE }}
+          PACKAGE: ${{ steps.package.outputs.name }}
+          NEXT: ${{ steps.meta.outputs.next_version }}
+          ANDROID_SNAPSHOT: ${{ steps.meta.outputs.android_snapshot }}
         run: |
-          PACKAGE="${{ steps.package.outputs.name }}"
-          NEXT="${{ steps.meta.outputs.next_version }}"
-          ANDROID_SNAPSHOT="${{ steps.meta.outputs.android_snapshot }}"
-
           if [ "$PACKAGE" = "measure_flutter" ] && [ -n "$ANDROID_SNAPSHOT" ]; then
             gh workflow run "Prepare Next Flutter Version" \
               -f package="$PACKAGE" \

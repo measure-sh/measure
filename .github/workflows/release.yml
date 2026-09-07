@@ -50,9 +50,11 @@ jobs:
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          NOTES: ${{ steps.git-cliff.outputs.content }}
         run: |
-          gh release create ${{ github.ref_name }} \
-            --title "${{ github.ref_name }}" \
+          gh release create "$TAG" \
+            --title "$TAG" \
             ${{ contains(github.ref_name, '-') && '--prerelease' || ''}} \
-            --notes "${{ steps.git-cliff.outputs.content }}" \
+            --notes "$NOTES" \
             --verify-tag

@@ -43,20 +43,25 @@ jobs:
 
       - name: Update measure_flutter
         if: inputs.package == 'measure_flutter'
+        env:
+          VERSION: ${{ inputs.version }}
+          ANDROID_SNAPSHOT_VERSION: ${{ inputs.android_snapshot_version }}
         run: |
           # Bump pubspec version
-          sed -i "s/^version: .*/version: ${{ inputs.version }}/" flutter/packages/measure_flutter/pubspec.yaml
+          sed -i "s/^version: .*/version: $VERSION/" flutter/packages/measure_flutter/pubspec.yaml
 
           # Revert Android SDK to snapshot
-          if [ -n "${{ inputs.android_snapshot_version }}" ]; then
-            sed -i 's/api("sh.measure:measure-android:.*")/api("sh.measure:measure-android:${{ inputs.android_snapshot_version }}")/' flutter/packages/measure_flutter/android/build.gradle
+          if [ -n "$ANDROID_SNAPSHOT_VERSION" ]; then
+            sed -i "s/api(\"sh.measure:measure-android:.*\")/api(\"sh.measure:measure-android:$ANDROID_SNAPSHOT_VERSION\")/" flutter/packages/measure_flutter/android/build.gradle
           fi
 
       - name: Update measure_dio
         if: inputs.package == 'measure_dio'
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
           # Bump pubspec version
-          sed -i "s/^version: .*/version: ${{ inputs.version }}/" flutter/packages/measure_dio/pubspec.yaml
+          sed -i "s/^version: .*/version: $VERSION/" flutter/packages/measure_dio/pubspec.yaml
 
           # Restore dependency_overrides section
           if ! grep -q "dependency_overrides:" flutter/packages/measure_dio/pubspec.yaml; then
@@ -65,8 +70,10 @@ jobs:
 
       - name: Update measure_build
         if: inputs.package == 'measure_build'
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          sed -i "s/^version: .*/version: ${{ inputs.version }}/" flutter/packages/measure_build/pubspec.yaml
+          sed -i "s/^version: .*/version: $VERSION/" flutter/packages/measure_build/pubspec.yaml
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7

@@ -40,12 +40,14 @@ jobs:
         run: sudo xcode-select -switch /Applications/Xcode_${{ env.XCODE_VERSION }}.app
 
       - name: Validate input version format
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          if ! [[ "${{ inputs.version }}" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-((alpha|beta)\.[0-9]+))?$ ]]; then
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-((alpha|beta)\.[0-9]+))?$ ]]; then
             echo "Error: Version must match semantic versioning pattern:"
             echo "  - x.y.z (e.g. 1.2.3)"
             echo "  - x.y.z-alpha.N or x.y.z-beta.N"
-            echo "Got: ${{ inputs.version }}"
+            echo "Got: $VERSION"
             exit 1
           fi
 
@@ -70,18 +72,24 @@ jobs:
             -parallel-testing-enabled NO
 
       - name: Update version in FrameworkInfo.swift
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          sed -i '' 's/static let version = ".*"/static let version = "${{ inputs.version }}"/' \
+          sed -i '' "s/static let version = \".*\"/static let version = \"$VERSION\"/" \
             ios/Sources/MeasureSDK/Swift/FrameworkInfo.swift
 
       - name: Update version in measure-sh.podspec
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          sed -E -i '' 's/(spec\.version[[:space:]]*=[[:space:]]*")[^"]*/\1${{ inputs.version }}/' \
+          sed -E -i '' "s/(spec\.version[[:space:]]*=[[:space:]]*\")[^\"]*/\1$VERSION/" \
             measure-sh.podspec
 
       - name: Update version in docs
+        env:
+          VERSION: ${{ inputs.version }}
         run: |
-          sed -E -i '' 's|(\.package\(url: "https://github\.com/measure-sh/measure\.git", branch: "ios-v)[^"]*|\1${{ inputs.version }}|g' \
+          sed -E -i '' "s|(\.package\(url: \"https://github\.com/measure-sh/measure\.git\", branch: \"ios-v)[^\"]*|\1$VERSION|g" \
             frontend/dashboard/content/docs/getting-started/ios.mdx
 
       - name: Generate changelog

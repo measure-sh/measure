@@ -42,21 +42,25 @@ jobs:
           git config user.email 'github-actions[bot]@users.noreply.github.com'
 
       - name: Validate inputs
+        env:
+          VERSION: ${{ inputs.version }}
+          ANDROID_VERSION: ${{ inputs.android_version }}
+          IOS_VERSION: ${{ inputs.ios_version }}
         run: |
-          if ! [[ ${{ inputs.version }} =~ ^[0-9]+\.[0-9]+\.[0-9]+(-((alpha|beta)\.[0-9]+))?$ ]]; then
-            echo "Error: version must match x.y.z or x.y.z-(alpha|beta).n. Got: ${{ inputs.version }}"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-((alpha|beta)\.[0-9]+))?$ ]]; then
+            echo "Error: version must match x.y.z or x.y.z-(alpha|beta).n. Got: $VERSION"
             exit 1
           fi
-          if ! [[ ${{ inputs.android_version }} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Error: android_version must match x.y.z. Got: ${{ inputs.android_version }}"
+          if ! [[ "$ANDROID_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: android_version must match x.y.z. Got: $ANDROID_VERSION"
             exit 1
           fi
-          if ! [[ ${{ inputs.ios_version }} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "Error: ios_version must match x.y.z. Got: ${{ inputs.ios_version }}"
+          if ! [[ "$IOS_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "Error: ios_version must match x.y.z. Got: $IOS_VERSION"
             exit 1
           fi
           # The KMP release must pin published native versions to build against.
-          for tag in "android-v${{ inputs.android_version }}" "ios-v${{ inputs.ios_version }}"; do
+          for tag in "android-v$ANDROID_VERSION" "ios-v$IOS_VERSION"; do
             if ! git rev-parse -q --verify "refs/tags/$tag" >/dev/null; then
               echo "Error: tag $tag does not exist."
               exit 1
@@ -64,22 +68,30 @@ jobs:
           done
 
       - name: Update version in gradle.properties
+        env:
+          VERSION: ${{ inputs.version }}
+          ANDROID_VERSION: ${{ inputs.android_version }}
+          IOS_VERSION: ${{ inputs.ios_version }}
         run: |
-          sed -i "s/MEASURE_KMP_VERSION_NAME=.*/MEASURE_KMP_VERSION_NAME=${{ inputs.version }}/" kmp/measure-kmp/gradle.properties
-          sed -i "s/MEASURE_ANDROID_VERSION=.*/MEASURE_ANDROID_VERSION=${{ inputs.android_version }}/" kmp/measure-kmp/gradle.properties
-          sed -i "s/MEASURE_IOS_VERSION=.*/MEASURE_IOS_VERSION=${{ inputs.ios_version }}/" kmp/measure-kmp/gradle.properties
+          sed -i "s/MEASURE_KMP_VERSION_NAME=.*/MEASURE_KMP_VERSION_NAME=$VERSION/" kmp/measure-kmp/gradle.properties
+          sed -i "s/MEASURE_ANDROID_VERSION=.*/MEASURE_ANDROID_VERSION=$ANDROID_VERSION/" kmp/measure-kmp/gradle.properties
+          sed -i "s/MEASURE_IOS_VERSION=.*/MEASURE_IOS_VERSION=$IOS_VERSION/" kmp/measure-kmp/gradle.properties
 
       - name: Update version in getting started docs
+        env:
+          VERSION: ${{ inputs.version }}
+          ANDROID_VERSION: ${{ inputs.android_version }}
+          IOS_VERSION: ${{ inputs.ios_version }}
         run: |
           # The onboarding snippet in the dashboard reads this version at build
           # time (scripts/extract_sdk_versions.js), so keep it in sync here.
           GUIDE=frontend/dashboard/content/docs/getting-started/kotlin-multiplatform.mdx
           KOTLIN_PATTERN='implementation("sh.measure:measure-kmp:.*")'
-          KOTLIN_REPLACEMENT='implementation("sh.measure:measure-kmp:${{ inputs.version }}")'
+          KOTLIN_REPLACEMENT="implementation(\"sh.measure:measure-kmp:$VERSION\")"
           sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" "$GUIDE"
-          sed -i "/^| Measure Android/ s/[0-9]*\.[0-9]*\.[0-9]*/${{ inputs.android_version }}/" "$GUIDE"
-          sed -i "/^| Measure iOS/ s/[0-9]*\.[0-9]*\.[0-9]*/${{ inputs.ios_version }}/" "$GUIDE"
-          sed -i -E 's|(\.package\(url: "https://github\.com/measure-sh/measure\.git", branch: "ios-v)[^"]*|\1${{ inputs.ios_version }}|' "$GUIDE"
+          sed -i "/^| Measure Android/ s/[0-9]*\.[0-9]*\.[0-9]*/$ANDROID_VERSION/" "$GUIDE"
+          sed -i "/^| Measure iOS/ s/[0-9]*\.[0-9]*\.[0-9]*/$IOS_VERSION/" "$GUIDE"
+          sed -i -E "s|(\.package\(url: \"https://github\.com/measure-sh/measure\.git\", branch: \"ios-v)[^\"]*|\1$IOS_VERSION|" "$GUIDE"
 
       - name: Generate changelog
         uses: orhun/git-cliff-action@v4

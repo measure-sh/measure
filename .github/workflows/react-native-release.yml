@@ -66,10 +66,12 @@ jobs:
         if: ${{ inputs.dry_run != true }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          NOTES: ${{ steps.release-notes.outputs.content }}
         run: |
-          gh release create ${{ github.ref_name }} \
-            --title "${{ github.ref_name }}" \
+          gh release create "$TAG" \
+            --title "$TAG" \
             --draft \
             ${{ contains(github.ref_name, '-') && '--prerelease' || ''}} \
-            --notes "${{ steps.release-notes.outputs.content }}" \
+            --notes "$NOTES" \
             --verify-tag

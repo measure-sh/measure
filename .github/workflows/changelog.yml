@@ -29,7 +29,9 @@ jobs:
           GITHUB_REPO: ${{ github.repository }}
 
       - name: Print the changelog
-        run: cat "${{ steps.git-cliff.outputs.changelog }}"
+        env:
+          CHANGELOG_FILE: ${{ steps.git-cliff.outputs.changelog }}
+        run: cat "$CHANGELOG_FILE"
 
       - name: Commit the changelog
         run: |
