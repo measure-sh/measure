@@ -2,18 +2,15 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 
-const mockRouterReplace = jest.fn();
 const mockRouterPush = jest.fn();
-const mockSetPageUrlKey = jest.fn();
+const mockUseExprFilterPage = jest.fn();
 
 jest.mock("next/navigation", () => ({
   __esModule: true,
-  useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
+  useRouter: () => ({ push: mockRouterPush }),
   useSearchParams: () => new URLSearchParams(),
 }));
 
-// The demo never renders the filter bar or fetches, but the component calls
-// the live page's hooks on every render, so they are stubbed to stay idle.
 jest.mock("@/app/components/filter_bar/filter_bar", () => ({
   __esModule: true,
   default: () => <div data-testid="filter-bar" />,
@@ -21,17 +18,7 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => ({
 
 jest.mock("@/app/components/filter_bar/use_expr_filter_page", () => ({
   __esModule: true,
-  useExprFilterPage: () => ({
-    requestedFilters: {
-      appId: null,
-      dateRange: { dateRange: null, startDate: null, endDate: null },
-      filterExpr: null,
-    },
-    filterState: { status: "pending" },
-    filterParams: null,
-    onFilterChange: jest.fn(),
-    setPageUrlKey: mockSetPageUrlKey,
-  }),
+  useExprFilterPage: () => mockUseExprFilterPage(),
 }));
 
 jest.mock("@/app/query/hooks", () => ({
@@ -68,9 +55,8 @@ import UserJourneys from "@/app/components/user_journeys";
 
 describe("UserJourneys", () => {
   beforeEach(() => {
-    mockRouterReplace.mockClear();
     mockRouterPush.mockClear();
-    mockSetPageUrlKey.mockClear();
+    mockUseExprFilterPage.mockClear();
   });
 
   it("renders the title", () => {
@@ -83,13 +69,15 @@ describe("UserJourneys", () => {
     expect(screen.queryByText("User Journeys")).not.toBeInTheDocument();
   });
 
-  it("draws the demo journey without a search input", () => {
+  it("draws the demo journey without a search input, a filter bar or the page's hook", () => {
     render(<UserJourneys demo={true} />);
     expect(screen.getByTestId("sankey-node-MainActivity")).toBeInTheDocument();
     expect(
       screen.getByTestId("sankey-node-CheckoutActivity"),
     ).toBeInTheDocument();
     expect(screen.queryByPlaceholderText("Search nodes...")).toBeNull();
+    expect(screen.queryByTestId("filter-bar")).toBeNull();
+    expect(mockUseExprFilterPage).not.toHaveBeenCalled();
   });
 
   it("starts on the Paths tab", () => {
@@ -110,13 +98,13 @@ describe("UserJourneys", () => {
       "bg-accent",
     );
     expect(screen.getByTestId("sankey-node-MainActivity")).toBeInTheDocument();
-    expect(mockRouterReplace).not.toHaveBeenCalled();
+    expect(window.location.search).toBe("");
 
     fireEvent.click(screen.getByRole("button", { name: "Paths" }));
     expect(screen.getByRole("button", { name: "Paths" })).toHaveClass(
       "bg-accent",
     );
-    expect(mockRouterReplace).not.toHaveBeenCalled();
+    expect(window.location.search).toBe("");
   });
 
   it("opens the issue panel on the Exceptions tab, with inert issue buttons", () => {

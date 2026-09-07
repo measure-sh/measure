@@ -38,7 +38,6 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
 }));
 
-const mockRouterReplace = mockRouter.replaceMock;
 const mockRouterPush = mockRouter.pushMock;
 
 jest.mock("next/navigation", () => ({
@@ -104,7 +103,6 @@ jest.spyOn(console, "error").mockImplementation(() => {});
 beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
 afterEach(() => {
   server.resetHandlers();
-  mockRouterReplace.mockClear();
   mockRouterPush.mockClear();
 });
 afterAll(() => server.close());
@@ -141,7 +139,7 @@ beforeEach(() => {
   filtersStore = createFiltersStore();
   onboardingStore = createOnboardingStore();
   queryClient.clear();
-  mockRouter.searchParams = new URLSearchParams();
+  mockRouter.reset();
   const { apiClient } = require("@/app/api/api_client");
   apiClient.init({ replace: jest.fn(), push: jest.fn() });
 });
@@ -237,23 +235,19 @@ describe("Traces Overview (MSW integration)", () => {
       renderPage();
       await waitForSpans();
 
-      const written = new URLSearchParams(
-        mockRouterReplace.mock.calls[0][0].slice(1),
-      );
+      const written = new URLSearchParams(window.location.search);
       expect(written.get("a")).toBe(appId);
       expect(written.get("d")).toBe("Last 6 Hours");
       expect(written.get("sd")).toBeNull();
       expect(written.get("ed")).toBeNull();
-      expect(written.get("po")).toBe("0");
+      expect(written.get("po")).toBeNull();
       expect(written.get("r")).toBe(firstRootSpanName);
     });
   });
 
   describe("root span selection", () => {
     it("restores the name a link asked for when its app matches", async () => {
-      mockRouter.searchParams = new URLSearchParams(
-        `po=0&a=${appId}&r=api_fetch_payments`,
-      );
+      mockRouter.setUrl(`po=0&a=${appId}&r=api_fetch_payments`);
       const sent = recordSpansRequests();
       renderPage();
       await waitForSpans();
@@ -277,19 +271,13 @@ describe("Traces Overview (MSW integration)", () => {
       expect(last.searchParams.get("span_name")).toBe("api_fetch_payments");
       expect(last.searchParams.get("offset")).toBe("0");
 
-      const written = new URLSearchParams(
-        mockRouterReplace.mock.calls[
-          mockRouterReplace.mock.calls.length - 1
-        ][0].slice(1),
-      );
+      const written = new URLSearchParams(window.location.search);
       expect(written.get("r")).toBe("api_fetch_payments");
       expect(written.get("po")).toBe("0");
     });
 
     it("falls back to the first name when the link's app is not the selected one", async () => {
-      mockRouter.searchParams = new URLSearchParams(
-        `po=0&a=some-other-app&r=api_fetch_payments`,
-      );
+      mockRouter.setUrl(`po=0&a=some-other-app&r=api_fetch_payments`);
       const sent = recordSpansRequests();
       renderPage();
       await waitForSpans();
@@ -298,9 +286,7 @@ describe("Traces Overview (MSW integration)", () => {
     });
 
     it("falls back to the first name when the link names an unknown span", async () => {
-      mockRouter.searchParams = new URLSearchParams(
-        `po=0&a=${appId}&r=span.gone`,
-      );
+      mockRouter.setUrl(`po=0&a=${appId}&r=span.gone`);
       const sent = recordSpansRequests();
       renderPage();
       await waitForSpans();
@@ -325,7 +311,7 @@ describe("Traces Overview (MSW integration)", () => {
 
   describe("a link carrying a filter", () => {
     it("filters the spans and the plot by it", async () => {
-      mockRouter.searchParams = new URLSearchParams(
+      mockRouter.setUrl(
         `po=0&filter_expr=${encodeURIComponent("version_name:in:3.1.0")}`,
       );
       const sent = recordSpansRequests();
@@ -378,7 +364,7 @@ describe("Traces Overview (MSW integration)", () => {
         }),
       );
 
-      mockRouter.searchParams = new URLSearchParams("po=5");
+      mockRouter.setUrl("po=5");
       renderPage();
       await waitFor(
         () => {

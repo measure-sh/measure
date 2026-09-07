@@ -1,5 +1,9 @@
 import type { FilterKey, FilterOperator } from "../../api/filter_types";
-import { operatorLabels } from "./operators";
+import {
+  operatorLabels,
+  operatorTakesOneValue,
+  operatorTakesValues,
+} from "./operators";
 import {
   buildExprTree,
   type ConditionGroup,
@@ -78,6 +82,7 @@ export type KeyIssue = {
 export function findUnusableConditions(
   tokens: ExprToken[],
   keys: FilterKey[],
+  valuesReadable = true,
 ): KeyIssue[] {
   const byName = new Map(keys.map((key) => [key.name, key]));
   const issues: KeyIssue[] = [];
@@ -121,10 +126,70 @@ export function findUnusableConditions(
         start: operator.start,
         end: operator.end,
       });
+      return;
+    }
+
+    if (!valuesReadable) {
+      return;
+    }
+
+    const colon = tokens[index + 3];
+    const first = tokens[index + 4];
+    const listed = first?.kind === "punctuation" && first.text === "[";
+
+    if (!operatorTakesValues(operatorName)) {
+      if (colon?.text === ":" && first !== undefined) {
+        issues.push({
+          message: `${key.label} takes no value`,
+          start: operator.start,
+          end: listed ? listEnd(tokens, index + 5) : first.end,
+        });
+      }
+      return;
+    }
+
+    if (colon?.text !== ":" || !(first?.kind === "value" || listed)) {
+      issues.push({
+        message: `${key.label} needs a value`,
+        start: token.start,
+        end: operator.end,
+      });
+      return;
+    }
+
+    if (!listed || !operatorTakesOneValue(operatorName)) {
+      return;
+    }
+    let count = 0;
+    for (const listToken of tokens.slice(index + 5)) {
+      if (listToken.kind === "value") {
+        count++;
+      }
+      if (listToken.kind === "punctuation" && listToken.text === "]") {
+        break;
+      }
+    }
+    if (count > 1) {
+      issues.push({
+        message: `${key.label} takes one value`,
+        start: first.start,
+        end: listEnd(tokens, index + 5),
+      });
     }
   });
 
   return issues;
+}
+
+function listEnd(tokens: ExprToken[], from: number): number {
+  let end = tokens[from - 1].end;
+  for (const token of tokens.slice(from)) {
+    end = token.end;
+    if (token.kind === "punctuation" && token.text === "]") {
+      break;
+    }
+  }
+  return end;
 }
 
 /**
@@ -150,7 +215,11 @@ export function findFilterIssues(
     });
   }
 
-  for (const keyIssue of findUnusableConditions(parsed.tokens, keys)) {
+  for (const keyIssue of findUnusableConditions(
+    parsed.tokens,
+    keys,
+    parsed.ok,
+  )) {
     inOrder.push({
       at: keyIssue.start,
       issue: {

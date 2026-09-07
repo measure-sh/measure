@@ -1,433 +1,655 @@
+import { mockFiltersStore } from "@/__tests__/helpers/mock_filters_store";
 import { mockRouter } from "@/__tests__/helpers/mock_router";
 import type { App } from "@/app/api/api_calls";
-import type {
-  FilterRequest,
-  FilterState,
-} from "@/app/components/filter_bar/filter_bar";
-import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
+import type { FilterKey } from "@/app/api/filter_types";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import { act, render } from "@testing-library/react";
+import { DateTime } from "luxon";
 import { useEffect } from "react";
 
-const replaceMock = mockRouter.replaceMock;
+const mockUseAppsQuery = jest.fn();
+const mockUseFilterKeysQuery = jest.fn();
+const mockUseRootSpanNamesQuery = jest.fn();
+const mockToastNegative = jest.fn();
 
 jest.mock("next/navigation", () =>
   require("@/__tests__/helpers/mock_router").nextNavigationMock(),
 );
 
-jest.mock("@/app/components/filter_bar/filter_bar", () => ({
-  __esModule: true,
-  filterExprUrlKey: "filter_expr",
-}));
+jest.mock("@/app/stores/provider", () =>
+  require("@/__tests__/helpers/mock_filters_store").filtersProviderMock(),
+);
 
-jest.mock("@/app/stores/filters_store", () => ({
+jest.mock("@/app/components/toast", () => ({
   __esModule: true,
-  urlFiltersKeyMap: {
-    appId: "a",
-    dateRange: "d",
-    startDate: "sd",
-    endDate: "ed",
-  },
+  toastNegative: (text: string) => mockToastNegative(text),
 }));
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
   paginationOffsetUrlKey: "po",
+  useAppsQuery: (teamId: string) => mockUseAppsQuery(teamId),
+  useFilterKeysQuery: (
+    appId: string | undefined,
+    entity: string,
+    keyNames: string[],
+  ) => mockUseFilterKeysQuery(appId, entity, keyNames),
+  useRootSpanNamesQuery: (app: unknown) => mockUseRootSpanNamesQuery(app),
 }));
 
-const app = { id: "app-1", name: "Sample" } as App;
-const last6Hours = {
-  dateRange: "Last 6 Hours",
-  startDate: "2026-01-01T00:00:00.000Z",
-  endDate: "2026-01-01T06:00:00.000Z",
-};
-const custom = {
-  dateRange: "Custom Range",
-  startDate: "2026-02-01T00:00:00.000Z",
-  endDate: "2026-02-02T00:00:00.000Z",
-};
+import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
 
-type Page = ReturnType<typeof useExprFilterPage>;
+const app = (id: string, name: string) => ({ id, name }) as App;
+const apps = [app("app-1", "Checkout"), app("app-2", "Wallet")];
 
-// The stub bar keeps the props of its latest render so a test can read what
-// the page handed it.
-let bar: {
-  requestedAppId: string | null;
-  requestedDateRange: { dateRange: string | null };
-  requestedFilterExpr: string | null;
-  requestedRootSpanName: string | null;
-  onRequestChange: (change: Partial<FilterRequest>) => void;
-  onFilterChange: (state: FilterState) => void;
-};
-let page: Page;
+const mappingTypeKey = {
+  name: "mapping_type",
+  label: "File type",
+  key_group: "Build",
+  description: "The kind of mapping file",
+  value_type: "string",
+  value_suggestion_mode: "full_list",
+  operators: ["in", "not_in"],
+} as unknown as FilterKey;
 
-function HostWithPageKey() {
-  const rendered = useExprFilterPage({
-    extraUrlKeys: { rootSpanName: "r" },
-    pageUrlKeys: ["jt"],
+function appsLoaded(loaded: App[] = apps) {
+  mockUseAppsQuery.mockReturnValue({ status: "success", data: loaded });
+}
+
+function keysPending() {
+  mockUseFilterKeysQuery.mockReturnValue({
+    data: undefined,
+    isPending: true,
+    isError: false,
+    isPlaceholderData: false,
   });
+}
+
+function keysLoaded(keys: FilterKey[] = [mappingTypeKey]) {
+  mockUseFilterKeysQuery.mockReturnValue({
+    data: { keys, key_groups: ["Build"] },
+    isPending: false,
+    isError: false,
+    isPlaceholderData: false,
+  });
+}
+
+function namesLoaded(names: string[] | null) {
+  mockUseRootSpanNamesQuery.mockReturnValue({
+    data: names,
+    isSuccess: true,
+    isError: false,
+  });
+}
+
+type Options = Parameters<typeof useExprFilterPage>[0];
+
+let page: ReturnType<typeof useExprFilterPage>;
+
+function Host(options: Options) {
+  const rendered = useExprFilterPage(options);
   useEffect(() => {
     page = rendered;
-    bar = {
-      requestedAppId: rendered.requestedFilters.appId,
-      requestedDateRange: rendered.requestedFilters.dateRange,
-      requestedFilterExpr: rendered.requestedFilters.filterExpr,
-      requestedRootSpanName: rendered.requestedFilters.rootSpanName,
-      onRequestChange: rendered.onRequestChange,
-      onFilterChange: rendered.onFilterChange,
-    };
   });
   return null;
 }
 
-function Host({ paginationLimit }: { paginationLimit?: number }) {
-  const rendered = useExprFilterPage({
-    paginationLimit,
-    extraUrlKeys: { rootSpanName: "r" },
+const paginated: Options = {
+  teamId: "team-1",
+  entity: "builds",
+  paginationLimit: 10,
+};
+
+async function renderPage(options: Options = paginated) {
+  let result!: ReturnType<typeof render>;
+  await act(async () => {
+    result = render(<Host {...options} />);
   });
-  useEffect(() => {
-    page = rendered;
-    bar = {
-      requestedAppId: rendered.requestedFilters.appId,
-      requestedDateRange: rendered.requestedFilters.dateRange,
-      requestedFilterExpr: rendered.requestedFilters.filterExpr,
-      requestedRootSpanName: rendered.requestedFilters.rootSpanName,
-      onRequestChange: rendered.onRequestChange,
-      onFilterChange: rendered.onFilterChange,
-    };
-  });
-  return null;
+  return result;
 }
 
-const ready = (
-  overrides: Partial<Extract<FilterState, { status: "ready" }>> = {},
-): FilterState => ({
-  status: "ready",
-  app,
-  date: last6Hours,
-  filterExpr: null,
-  rootSpanName: "span.first",
-  appliedAsRequested: true,
-  ...overrides,
-});
-
-const request = (overrides: Partial<FilterRequest> = {}): FilterRequest => ({
-  appId: app.id,
-  dateRange: last6Hours,
-  filterExpr: null,
-  rootSpanName: "span.first",
-  ...overrides,
-});
-
-const settledParams = "a=app-1&d=Last+6+Hours&r=span.first";
-
-function renderPage(paginationLimit?: number) {
-  return render(<Host paginationLimit={paginationLimit} />);
-}
+const settled = { a: "app-1", d: "Last 6 Hours" };
 
 describe("useExprFilterPage", () => {
   beforeEach(() => {
     mockRouter.reset();
-  });
-
-  it("hands the bar its request before and after the write lands", async () => {
-    mockRouter.searchParams = new URLSearchParams(`po=20&${settledParams}`);
-    renderPage(10);
-    await act(async () => {
-      bar.onFilterChange(ready());
-    });
-
-    mockRouter.deferReplace = true;
-    await act(async () => {
-      bar.onRequestChange(request({ filterExpr: "patch_id:" }));
-    });
-    expect(bar.requestedFilterExpr).toBe("patch_id:");
-    expect(replaceMock).not.toHaveBeenCalled();
-
-    await act(async () => {
-      bar.onFilterChange(ready({ filterExpr: null }));
-    });
-    expect(replaceMock).toHaveBeenLastCalledWith(`?po=0&${settledParams}`, {
-      scroll: false,
-    });
-    expect(bar.requestedFilterExpr).toBe("patch_id:");
-
-    await act(async () => {
-      mockRouter.applyReplaceUrl(mockRouter.deferredReplaceUrl!);
-    });
-    expect(bar.requestedFilterExpr).toBe("patch_id:");
-  });
-
-  it("hands the bar the URL after a search string the page did not write", async () => {
-    mockRouter.searchParams = new URLSearchParams(settledParams);
-    renderPage();
-    await act(async () => {
-      bar.onRequestChange(request({ filterExpr: "patch_id:" }));
-    });
-    await act(async () => {
-      bar.onFilterChange(ready());
-    });
-    expect(bar.requestedFilterExpr).toBe("patch_id:");
-
-    await act(async () => {
-      mockRouter.applyReplaceUrl("?a=app-2&d=Last+Week&r=span.second");
-    });
-    expect(bar.requestedAppId).toBe("app-2");
-    expect(bar.requestedDateRange.dateRange).toBe("Last Week");
-    expect(bar.requestedFilterExpr).toBeNull();
-    expect(bar.requestedRootSpanName).toBe("span.second");
-  });
-
-  it("writes again after a navigation back to the search string a request was stored on", async () => {
-    renderPage();
-    await act(async () => {
-      bar.onFilterChange(ready());
-    });
-    expect(replaceMock).toHaveBeenLastCalledWith(`?${settledParams}`, {
-      scroll: false,
-    });
-    expect(bar.requestedAppId).toBe("app-1");
-    expect(bar.requestedRootSpanName).toBe("span.first");
-
-    await act(async () => {
-      mockRouter.applyReplaceUrl("?");
-    });
-    expect(bar.requestedAppId).toBeNull();
-
-    await act(async () => {
-      bar.onFilterChange(ready());
-    });
-    expect(replaceMock).toHaveBeenCalledTimes(2);
-    expect(replaceMock).toHaveBeenLastCalledWith(`?${settledParams}`, {
-      scroll: false,
+    mockFiltersStore.reset();
+    mockToastNegative.mockClear();
+    mockUseFilterKeysQuery.mockClear();
+    appsLoaded();
+    keysLoaded();
+    mockUseRootSpanNamesQuery.mockReturnValue({
+      data: undefined,
+      isSuccess: false,
+      isError: false,
     });
   });
 
-  it("writes a navigation whose resolution equals the last written URL", async () => {
-    mockRouter.searchParams = new URLSearchParams(settledParams);
-    renderPage();
-    await act(async () => {
-      bar.onFilterChange(ready());
-    });
-    await act(async () => {
-      bar.onRequestChange({ filterExpr: "patch_id:1" });
-    });
-    await act(async () => {
-      bar.onFilterChange(ready({ filterExpr: "patch_id:1" }));
-    });
-    await act(async () => {
-      bar.onRequestChange({ filterExpr: null });
-    });
-    await act(async () => {
-      bar.onFilterChange(ready());
-    });
-    expect(replaceMock).toHaveBeenLastCalledWith(`?${settledParams}`, {
-      scroll: false,
+  describe("a bare URL", () => {
+    it("is filled in with what the page settled on, and fetched", async () => {
+      await renderPage();
+
+      expect(mockRouter.urlParams()).toEqual(settled);
+      expect(page.status).toEqual({ kind: "ready" });
+      expect(page.value).toMatchObject({
+        app: apps[0],
+        filterExpr: null,
+        rootSpanName: null,
+      });
+      expect(page.filterParams).toEqual({
+        appId: "app-1",
+        startDate: page.value!.date.startDate,
+        endDate: page.value!.date.endDate,
+        filterExpr: null,
+      });
+      expect(page.paginationOffset).toBe(0);
+      expect(mockToastNegative).not.toHaveBeenCalled();
     });
 
-    await act(async () => {
-      mockRouter.applyReplaceUrl("?");
+    it("keeps the app and range another page left on the store", async () => {
+      mockFiltersStore.store.getState().setSelectedApp(apps[1]);
+      mockFiltersStore.store.getState().setSelectedDateRange("Last Week");
+      await renderPage();
+
+      expect(mockRouter.urlParams()).toEqual({ a: "app-2", d: "Last Week" });
     });
-    await act(async () => {
-      bar.onFilterChange(ready());
+
+    it("puts the app, the range and the apps on the store for other pages", async () => {
+      await renderPage();
+
+      const state = mockFiltersStore.store.getState();
+      expect(state.selectedApp).toEqual(apps[0]);
+      expect(state.selectedDateRange).toBe("Last 6 Hours");
+      expect(state.selectedStartDate).toBe(page.value!.date.startDate);
+      expect(state.apps).toEqual(apps);
+      expect(state.appsState).toBe("loaded");
     });
-    expect(replaceMock).toHaveBeenCalledTimes(3);
-    expect(replaceMock).toHaveBeenLastCalledWith(`?${settledParams}`, {
-      scroll: false,
+
+    it("fetches nothing until the apps have loaded", async () => {
+      mockUseAppsQuery.mockReturnValue({ status: "pending", data: undefined });
+      await renderPage();
+
+      expect(page.status).toEqual({ kind: "loading" });
+      expect(page.value).toBeNull();
+      expect(page.filterParams).toBeNull();
+      expect(mockRouter.urlParams()).toEqual({});
+      expect(mockFiltersStore.store.getState().appsState).toBe("pending");
+    });
+
+    it("fetches before the keys load when there is no filter to judge, with no keys for the bar yet", async () => {
+      keysPending();
+      await renderPage();
+
+      expect(page.status).toEqual({ kind: "ready" });
+      expect(page.value).toMatchObject({ app: apps[0], filterExpr: null });
+      expect(page.keys).toBeNull();
+      expect(mockRouter.urlParams()).toEqual(settled);
+      expect(page.filterParams).toMatchObject({
+        appId: "app-1",
+        filterExpr: null,
+      });
+
+      keysLoaded();
+      await renderPage();
+
+      expect(page.keys).toEqual([mappingTypeKey]);
+      expect(page.filterParams).toMatchObject({
+        appId: "app-1",
+        filterExpr: null,
+      });
+    });
+
+    it("waits for the keys before fetching a URL that carries a filter", async () => {
+      mockRouter.setUrl("?filter_expr=mapping_type%3Ain%3Adsym");
+      keysPending();
+      await renderPage();
+
+      expect(page.status).toEqual({ kind: "loading" });
+      expect(page.value).toBeNull();
+      expect(page.filterParams).toBeNull();
+      expect(mockRouter.urlParams()).toEqual({
+        filter_expr: "mapping_type:in:dsym",
+      });
     });
   });
 
-  it("merges a change into the request it hands the bar", async () => {
-    mockRouter.searchParams = new URLSearchParams("r=span.checkout");
-    renderPage();
-    await act(async () => {
-      bar.onRequestChange({ dateRange: custom });
-    });
-    expect(bar.requestedDateRange.dateRange).toBe(custom.dateRange);
-    expect(bar.requestedRootSpanName).toBe("span.checkout");
-  });
+  describe("a URL it cannot honour", () => {
+    it("is rewritten from page one, with a toast", async () => {
+      mockRouter.setUrl(
+        "?a=app-gone&d=Last+Week&po=20&filter_expr=mapping_type%3Ain%3Adsym",
+      );
+      await renderPage();
 
-  it("keeps the request across a pagination write", async () => {
-    mockRouter.searchParams = new URLSearchParams(`po=0&${settledParams}`);
-    renderPage(10);
-    await act(async () => {
-      bar.onRequestChange(request({ filterExpr: "patch_id:" }));
-    });
-    await act(async () => {
-      bar.onFilterChange(ready());
-    });
-
-    await act(async () => {
-      page.nextPage();
-    });
-    expect(replaceMock).toHaveBeenLastCalledWith(`?po=10&${settledParams}`, {
-      scroll: false,
-    });
-    expect(bar.requestedFilterExpr).toBe("patch_id:");
-  });
-
-  it("writes a relative label without timestamps and a custom range with them", async () => {
-    renderPage();
-    await act(async () => {
-      bar.onFilterChange(ready({ date: last6Hours }));
-    });
-    expect(replaceMock).toHaveBeenLastCalledWith(`?${settledParams}`, {
-      scroll: false,
+      expect(mockRouter.urlParams()).toEqual({
+        a: "app-1",
+        d: "Last Week",
+        po: "0",
+        filter_expr: "mapping_type:in:dsym",
+      });
+      expect(mockToastNegative).toHaveBeenCalledTimes(1);
+      expect(mockToastNegative).toHaveBeenCalledWith(
+        "Some filters were invalid, page reset to defaults",
+      );
+      expect(page.filterParams).toMatchObject({
+        appId: "app-1",
+        filterExpr: "mapping_type:in:dsym",
+      });
     });
 
-    await act(async () => {
-      bar.onFilterChange(ready({ date: custom, appliedAsRequested: false }));
-    });
-    expect(replaceMock).toHaveBeenLastCalledWith(
-      "?a=app-1&d=Custom+Range&sd=2026-02-01T00%3A00%3A00.000Z&ed=2026-02-02T00%3A00%3A00.000Z&r=span.first",
-      { scroll: false },
-    );
-  });
+    it("drops a filter the keys cannot vouch for", async () => {
+      mockRouter.setUrl("?po=20&filter_expr=device_cohort%3Ain%3Anew");
+      await renderPage();
 
-  it("gates a relative range on its label alone, with the state's timestamps", async () => {
-    mockRouter.deferReplace = true;
-    mockRouter.searchParams = new URLSearchParams(
-      `${settledParams}&sd=2020-01-01T00%3A00%3A00.000Z&ed=2020-01-02T00%3A00%3A00.000Z`,
-    );
-    renderPage();
-    await act(async () => {
-      bar.onFilterChange(ready());
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
+      expect(mockToastNegative).toHaveBeenCalledTimes(1);
     });
 
-    expect(page.filterParams).toEqual({
-      appId: app.id,
-      startDate: last6Hours.startDate,
-      endDate: last6Hours.endDate,
-      filterExpr: null,
+    it("keeps the page for a filter that only needed its canonical form", async () => {
+      mockRouter.setUrl("?po=20&filter_expr=mapping_type%3Ain%3A%5Bdsym%5D");
+      await renderPage();
+
+      expect(mockRouter.urlParams()).toEqual({
+        ...settled,
+        po: "20",
+        filter_expr: "mapping_type:in:dsym",
+      });
+      expect(mockToastNegative).not.toHaveBeenCalled();
+      expect(page.paginationOffset).toBe(20);
+    });
+
+    it("says so once, however much was refused", async () => {
+      mockRouter.setUrl("?a=app-gone&d=Last+Fortnight&filter_expr=nonsense%3A");
+      await renderPage();
+
+      expect(mockToastNegative).toHaveBeenCalledTimes(1);
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
     });
   });
 
-  it("gates a custom range on its timestamps", async () => {
-    mockRouter.deferReplace = true;
-    mockRouter.searchParams = new URLSearchParams(
-      "a=app-1&d=Custom+Range&sd=2020-01-01T00%3A00%3A00.000Z&ed=2020-01-02T00%3A00%3A00.000Z&r=span.first",
-    );
-    renderPage();
-    await act(async () => {
-      bar.onFilterChange(ready({ date: custom, appliedAsRequested: false }));
-    });
-    expect(page.filterParams).toBeNull();
+  describe("a change from the bar", () => {
+    it("writes the filter from page one and carries the page's own keys", async () => {
+      mockRouter.setUrl("?a=app-1&d=Last+6+Hours&po=20&jt=Exceptions");
+      await renderPage();
 
-    await act(async () => {
-      mockRouter.applyReplaceUrl(mockRouter.deferredReplaceUrl!);
+      await act(async () => {
+        page.onChange({ filterExpr: "mapping_type:in:dsym" });
+      });
+
+      expect(mockRouter.urlParams()).toEqual({
+        ...settled,
+        po: "0",
+        jt: "Exceptions",
+        filter_expr: "mapping_type:in:dsym",
+      });
+      expect(page.paginationOffset).toBe(0);
+      expect(page.filterParams).toMatchObject({
+        filterExpr: "mapping_type:in:dsym",
+      });
     });
-    expect(page.filterParams).toEqual({
-      appId: app.id,
-      startDate: custom.startDate,
-      endDate: custom.endDate,
-      filterExpr: null,
+
+    it("removes the keys a null value stands for", async () => {
+      mockRouter.setUrl(
+        "?a=app-1&d=Last+6+Hours&r=span.first&filter_expr=mapping_type%3Ain%3Adsym",
+      );
+      mockUseRootSpanNamesQuery.mockImplementation((app: App) =>
+        app.id === "app-1"
+          ? { data: ["span.first"], isSuccess: true, isError: false }
+          : { data: undefined, isSuccess: false, isError: false },
+      );
+      await renderPage({ ...paginated, entity: "spans", rootSpan: true });
+
+      await act(async () => {
+        page.onChange({ appId: "app-2", filterExpr: null, rootSpanName: null });
+      });
+
+      expect(mockRouter.urlParams()).toEqual({
+        a: "app-2",
+        d: "Last 6 Hours",
+        po: "0",
+      });
+      expect(page.status).toEqual({ kind: "loading" });
+    });
+
+    it("writes a relative range as its label alone, and a custom range with its timestamps", async () => {
+      mockRouter.setUrl(
+        "?a=app-1&d=Custom+Range&sd=2026-02-01T00%3A00%3A00.000Z&ed=2026-02-02T00%3A00%3A00.000Z",
+      );
+      await renderPage({ teamId: "team-1", entity: "journeys" });
+
+      await act(async () => {
+        page.onChange({
+          dateRange: { dateRange: "Last Week", startDate: null, endDate: null },
+        });
+      });
+      expect(mockRouter.urlParams()).toEqual({ a: "app-1", d: "Last Week" });
+
+      const custom = {
+        dateRange: "Custom Range",
+        startDate: DateTime.fromISO("2026-02-01T00:00:00.000Z").toISO()!,
+        endDate: DateTime.fromISO("2026-02-02T00:00:00.000Z").toISO()!,
+      };
+      await act(async () => {
+        page.onChange({ dateRange: custom });
+      });
+      expect(mockRouter.urlParams()).toEqual({
+        a: "app-1",
+        d: "Custom Range",
+        sd: custom.startDate,
+        ed: custom.endDate,
+      });
+      expect(page.filterParams).toMatchObject({
+        startDate: custom.startDate,
+        endDate: custom.endDate,
+      });
+    });
+
+    it("keeps a write still in flight when the page writes one of its keys", async () => {
+      mockRouter.setUrl("?a=app-1&d=Last+6+Hours&jt=Paths");
+      await renderPage({ teamId: "team-1", entity: "journeys" });
+
+      mockRouter.deferReplace = true;
+      await act(async () => {
+        page.onChange({
+          dateRange: { dateRange: "Last Week", startDate: null, endDate: null },
+        });
+      });
+      await act(async () => {
+        page.setPageUrlKey("jt", "Exceptions");
+      });
+
+      expect(mockRouter.urlParams()).toEqual({
+        a: "app-1",
+        d: "Last Week",
+        jt: "Exceptions",
+      });
+      expect(page.filterParams).toMatchObject({
+        startDate: page.value!.date.startDate,
+      });
+      expect(page.value!.date.dateRange).toBe("Last 6 Hours");
+
+      await act(async () => {
+        mockRouter.applyDeferredReplace();
+      });
+      expect(page.value!.date.dateRange).toBe("Last Week");
+      expect(page.filterParams).toMatchObject({
+        startDate: page.value!.date.startDate,
+      });
     });
   });
 
-  it("resets the offset after a pick and keeps it after an unchanged request", async () => {
-    mockRouter.searchParams = new URLSearchParams(`po=20&${settledParams}`);
-    renderPage(10);
-    await act(async () => {
-      bar.onFilterChange(ready());
-    });
-    expect(page.paginationOffset).toBe(20);
+  describe("the fetch", () => {
+    it("waits while the URL still says something else", async () => {
+      mockRouter.setUrl("?a=app-1&d=Last+6+Hours");
+      await renderPage();
+      expect(page.filterParams).not.toBeNull();
 
-    await act(async () => {
-      bar.onRequestChange(request({ rootSpanName: "span.second" }));
+      await act(async () => {
+        mockRouter.setUrl("?a=app-gone&d=Last+6+Hours&po=10");
+        mockRouter.deferReplace = true;
+      });
+
+      expect(page.filterParams).toBeNull();
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
+
+      await act(async () => {
+        mockRouter.applyDeferredReplace();
+      });
+      expect(page.filterParams).toMatchObject({ appId: "app-1" });
+      expect(page.paginationOffset).toBe(0);
     });
-    await act(async () => {
-      bar.onFilterChange(ready({ rootSpanName: "span.second" }));
+
+    it("does not write over a URL the router has not rendered yet", async () => {
+      mockRouter.setUrl("?a=app-1&d=Last+6+Hours");
+      const rendered = await renderPage();
+
+      mockRouter.deferReplace = true;
+      mockRouter.setUrl("?a=app-2");
+      await act(async () => {
+        rendered.rerender(<Host {...paginated} />);
+      });
+
+      expect(mockRouter.urlParams()).toEqual({ a: "app-2" });
+      expect(page.filterParams).toMatchObject({ appId: "app-1" });
+
+      await act(async () => {
+        mockRouter.applyDeferredReplace();
+      });
+
+      expect(mockRouter.urlParams()).toEqual({ a: "app-2", d: "Last 6 Hours" });
+      expect(page.filterParams).toBeNull();
+
+      await act(async () => {
+        mockRouter.applyDeferredReplace();
+      });
+
+      expect(page.filterParams).toMatchObject({ appId: "app-2" });
     });
-    expect(replaceMock).toHaveBeenLastCalledWith(
-      "?po=0&a=app-1&d=Last+6+Hours&r=span.second",
-      { scroll: false },
-    );
-    expect(page.paginationOffset).toBe(0);
+
+    it("ignores timestamps the URL carries with a relative label", async () => {
+      mockRouter.setUrl(
+        "?a=app-1&d=Last+6+Hours&sd=2020-01-01T00%3A00%3A00.000Z&ed=2020-01-02T00%3A00%3A00.000Z",
+      );
+      await renderPage();
+
+      expect(page.filterParams).toMatchObject({
+        startDate: page.value!.date.startDate,
+        endDate: page.value!.date.endDate,
+      });
+      expect(page.filterParams!.startDate).not.toBe("2020-01-01T00:00:00.000Z");
+    });
+
+    it("asks the keys query for the custom keys the URL's filter names", async () => {
+      const customPlanKey = {
+        ...mappingTypeKey,
+        name: "custom.plan",
+        label: "plan",
+        key_group: "Custom",
+      };
+      mockUseFilterKeysQuery.mockImplementation(
+        (_appId: string | undefined, _entity: string, keyNames: string[]) => ({
+          data: {
+            keys: keyNames.includes("custom.plan")
+              ? [mappingTypeKey, customPlanKey]
+              : [mappingTypeKey],
+            key_groups: ["Build", "Custom"],
+          },
+          isPending: false,
+          isError: false,
+          isPlaceholderData: false,
+        }),
+      );
+      mockRouter.setUrl("?filter_expr=custom.plan%3Ain%3Apro");
+      await renderPage();
+
+      expect(mockUseFilterKeysQuery).toHaveBeenLastCalledWith(
+        "app-1",
+        "builds",
+        ["custom.plan"],
+      );
+      expect(mockRouter.urlParams()).toEqual({
+        ...settled,
+        filter_expr: "custom.plan:in:pro",
+      });
+      expect(mockToastNegative).not.toHaveBeenCalled();
+    });
   });
 
-  it("keeps a pick made while an earlier write is still in flight", async () => {
-    mockRouter.deferReplace = true;
-    mockRouter.searchParams = new URLSearchParams("a=app-1&d=Last+6+Hours");
-    renderPage();
-    await act(async () => {
-      bar.onFilterChange(ready());
-    });
-    const firstWrite = mockRouter.deferredReplaceUrl!;
+  describe("when the keys cannot be fetched", () => {
+    it("reports the error, keeps the bar drawn, and leaves the URL alone", async () => {
+      mockRouter.setUrl("?po=10");
+      mockUseFilterKeysQuery.mockReturnValue({
+        data: undefined,
+        isPending: false,
+        isError: true,
+        isPlaceholderData: false,
+      });
+      await renderPage();
 
-    await act(async () => {
-      bar.onRequestChange({ rootSpanName: "span.second" });
+      expect(page.status).toEqual({
+        kind: "error",
+        message: expect.stringContaining("Error fetching filters"),
+      });
+      expect(page.value).toMatchObject({ app: apps[0] });
+      expect(page.keysUnavailable).toBe(true);
+      expect(page.keys).toEqual([]);
+      expect(page.filterParams).toBeNull();
+      expect(mockRouter.urlParams()).toEqual({ po: "10" });
     });
-    expect(bar.requestedRootSpanName).toBe("span.second");
 
-    await act(async () => {
-      mockRouter.applyReplaceUrl(firstWrite);
+    it("does not toast for a filter it could not judge", async () => {
+      mockRouter.setUrl("?filter_expr=mapping_type%3Ain%3Adsym");
+      mockUseFilterKeysQuery.mockReturnValue({
+        data: undefined,
+        isPending: false,
+        isError: true,
+        isPlaceholderData: false,
+      });
+      await renderPage();
+
+      expect(page.status).toEqual({
+        kind: "error",
+        message: expect.stringContaining("Error fetching filters"),
+      });
+      expect(mockToastNegative).not.toHaveBeenCalled();
+      expect(mockRouter.urlParams()).toEqual({
+        filter_expr: "mapping_type:in:dsym",
+      });
     });
-    expect(bar.requestedRootSpanName).toBe("span.second");
   });
 
-  it("keeps a page key written just before a pick", async () => {
-    mockRouter.deferReplace = true;
-    mockRouter.searchParams = new URLSearchParams(`${settledParams}&jt=Paths`);
-    const { unmount } = render(<HostWithPageKey />);
-    await act(async () => {
-      bar.onFilterChange(ready());
-    });
-    await act(async () => {
-      page.setPageUrlKey("jt", "Exceptions");
-    });
-    await act(async () => {
-      bar.onRequestChange({ dateRange: last6Hours });
-      bar.onRequestChange({ rootSpanName: "span.second" });
-    });
-    await act(async () => {
-      bar.onFilterChange(ready({ rootSpanName: "span.second" }));
+  describe("the root span", () => {
+    const traces: Options = {
+      teamId: "team-1",
+      entity: "spans",
+      paginationLimit: 5,
+      rootSpan: true,
+    };
+
+    it("settles on the first name and writes it", async () => {
+      namesLoaded(["span.first", "span.second"]);
+      await renderPage(traces);
+
+      expect(mockRouter.urlParams()).toEqual({ ...settled, r: "span.first" });
+      expect(page.value?.rootSpanName).toBe("span.first");
+      expect(page.spanNames).toEqual(["span.first", "span.second"]);
     });
 
-    expect(mockRouter.deferredReplaceUrl).toBe(
-      "?a=app-1&d=Last+6+Hours&r=span.second&jt=Exceptions",
-    );
-    unmount();
+    it("discards a name the app does not have", async () => {
+      mockRouter.setUrl("?a=app-1&r=span.gone&po=10");
+      namesLoaded(["span.first", "span.second"]);
+      await renderPage(traces);
+
+      expect(mockRouter.urlParams()).toEqual({
+        ...settled,
+        r: "span.first",
+        po: "0",
+      });
+      expect(mockToastNegative).toHaveBeenCalledTimes(1);
+    });
+
+    it("is ready with no name when the app never reported a trace", async () => {
+      mockRouter.setUrl("?a=app-1&po=10");
+      namesLoaded(null);
+      await renderPage(traces);
+
+      expect(page.status).toEqual({ kind: "ready" });
+      expect(page.value?.rootSpanName).toBeNull();
+      expect(page.spanNames).toEqual([]);
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "10" });
+      expect(mockToastNegative).not.toHaveBeenCalled();
+    });
+
+    it("discards a name the URL carries for an app that never reported a trace", async () => {
+      mockRouter.setUrl("?a=app-1&r=span.first&po=10");
+      namesLoaded(null);
+      await renderPage(traces);
+
+      expect(page.status).toEqual({ kind: "ready" });
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
+      expect(mockToastNegative).toHaveBeenCalledTimes(1);
+    });
+
+    it("keeps the app usable while the names load, without fetching", async () => {
+      await renderPage(traces);
+
+      expect(page.status).toEqual({ kind: "loading" });
+      expect(page.value).toMatchObject({ app: apps[0], rootSpanName: null });
+      expect(page.spanNames).toBeNull();
+      expect(page.filterParams).toBeNull();
+      expect(mockRouter.urlParams()).toEqual({});
+    });
+
+    it("reports names that could not be fetched", async () => {
+      mockUseRootSpanNamesQuery.mockReturnValue({
+        data: undefined,
+        isSuccess: false,
+        isError: true,
+      });
+      await renderPage(traces);
+
+      expect(page.status).toEqual({
+        kind: "error",
+        message: expect.stringContaining("Error fetching traces list"),
+      });
+      expect(page.spanNames).toEqual([]);
+      expect(page.filterParams).toBeNull();
+    });
+
+    it("stays null on a page without a span selector", async () => {
+      namesLoaded(["span.first"]);
+      await renderPage();
+
+      expect(mockUseRootSpanNamesQuery).toHaveBeenLastCalledWith(null);
+      expect(page.spanNames).toBeNull();
+      expect(page.value?.rootSpanName).toBeNull();
+    });
   });
 
-  it("ignores a change that leaves the request as it is", async () => {
-    mockRouter.searchParams = new URLSearchParams(`po=20&${settledParams}`);
-    renderPage(10);
-    await act(async () => {
-      bar.onFilterChange(ready());
-    });
-    await act(async () => {
-      bar.onRequestChange({ filterExpr: null });
-    });
-    await act(async () => {
-      bar.onFilterChange(ready());
+  describe("pagination", () => {
+    it("reads a negative or unreadable offset as zero", async () => {
+      mockRouter.setUrl("?a=app-1&d=Last+6+Hours&po=-5");
+      await renderPage();
+      expect(page.paginationOffset).toBe(0);
+
+      mockRouter.setUrl("?a=app-1&d=Last+6+Hours&po=abc");
+      await renderPage();
+      expect(page.paginationOffset).toBe(0);
     });
 
-    expect(page.paginationOffset).toBe(20);
-  });
+    it("moves the offset by the page size, never below zero", async () => {
+      mockRouter.setUrl("?a=app-1&d=Last+6+Hours&po=10");
+      await renderPage();
+      expect(page.paginationOffset).toBe(10);
 
-  it("reads the offset it wrote while that write is still in flight", async () => {
-    mockRouter.deferReplace = true;
-    mockRouter.searchParams = new URLSearchParams(
-      "po=10&a=not-an-app&d=Last+6+Hours&r=span.first",
-    );
-    renderPage(10);
-    await act(async () => {
-      bar.onFilterChange(ready({ appliedAsRequested: false }));
-    });
-    expect(replaceMock).toHaveBeenLastCalledWith(`?po=0&${settledParams}`, {
-      scroll: false,
-    });
-    expect(page.paginationOffset).toBe(0);
+      await act(async () => {
+        page.nextPage();
+      });
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "20" });
+      expect(page.paginationOffset).toBe(20);
 
-    await act(async () => {
-      bar.onFilterChange(ready());
+      await act(async () => {
+        page.prevPage();
+      });
+      await act(async () => {
+        page.prevPage();
+      });
+      await act(async () => {
+        page.prevPage();
+      });
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
+      expect(page.paginationOffset).toBe(0);
     });
-    expect(replaceMock).toHaveBeenCalledTimes(1);
 
-    await act(async () => {
-      mockRouter.applyReplaceUrl(mockRouter.deferredReplaceUrl!);
+    it("has no offset on a page without pagination", async () => {
+      mockRouter.setUrl("?po=10");
+      await renderPage({ teamId: "team-1", entity: "journeys" });
+
+      await act(async () => {
+        page.nextPage();
+      });
+
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "10" });
+      expect(page.paginationOffset).toBe(0);
     });
-    expect(page.paginationOffset).toBe(0);
-    expect(page.filterParams).not.toBeNull();
   });
 });

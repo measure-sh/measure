@@ -14,7 +14,7 @@ import TabSelect from "@/app/components/tab_select";
 import { useJourneyQuery } from "@/app/query/hooks";
 import { Search } from "lucide-react";
 import { useSearchParams } from "next/navigation";
-import { useState } from "react";
+import { type ComponentProps, type ReactNode, useState } from "react";
 
 const journeyTypeUrlKey = "jt";
 
@@ -33,26 +33,49 @@ export default function UserJourneys({
   demo = false,
   hideDemoTitle = false,
 }: UserJourneysProps) {
+  if (demo) {
+    return <DemoUserJourneys hideTitle={hideDemoTitle} />;
+  }
+  return <TeamUserJourneys teamId={params.teamId} />;
+}
+
+function DemoUserJourneys({ hideTitle }: { hideTitle: boolean }) {
+  const [plotType, setPlotType] = useState(PlotType.Paths);
+
+  return (
+    <div className="flex flex-col items-start">
+      <p className="font-display text-4xl max-w-6xl text-center">
+        {hideTitle ? "" : "User Journeys"}
+      </p>
+      <div className="py-4" />
+
+      <JourneyPlot
+        plotType={plotType}
+        onChangePlotType={setPlotType}
+        query={demoJourneyQuery}
+      />
+    </div>
+  );
+}
+
+function TeamUserJourneys({ teamId }: { teamId: string }) {
   const searchParams = useSearchParams();
 
   const {
-    requestedFilters,
-    filterState,
+    value,
+    apps,
+    keys,
+    keyGroups,
+    keysUnavailable,
+    status: filterStatus,
     filterParams,
-    onRequestChange,
-    onFilterChange,
+    onChange,
     setPageUrlKey,
-  } = useExprFilterPage({ pageUrlKeys: [journeyTypeUrlKey] });
-  const readyFilter = filterState.status === "ready" ? filterState : null;
+  } = useExprFilterPage({ teamId, entity: "journeys" });
+  const readyValue = filterStatus.kind === "ready" ? value : null;
 
-  // The demo keeps its plot type in local state, so tab clicks on the
-  // marketing page don't change its URL. The live page reads the plot
-  // type from the URL on each render, so links open the specified plot and
-  // tab clicks update the URL.
-  const [demoPlotType, setDemoPlotType] = useState(PlotType.Paths);
-  const plotType = demo
-    ? demoPlotType
-    : searchParams.get(journeyTypeUrlKey) === PlotType.Exceptions
+  const plotType =
+    searchParams.get(journeyTypeUrlKey) === PlotType.Exceptions
       ? PlotType.Exceptions
       : PlotType.Paths;
   const [searchText, setSearchText] = useState("");
@@ -63,41 +86,30 @@ export default function UserJourneys({
 
   const { status } = journeyQuery;
 
-  const journeyType =
-    plotType === PlotType.Paths ? JourneyType.Paths : JourneyType.Exceptions;
-
   return (
     <div className="flex flex-col items-start">
-      <p className="font-display text-4xl max-w-6xl text-center">
-        {demo ? (hideDemoTitle ? "" : "User Journeys") : ""}
-      </p>
       <div className="py-4" />
 
-      {!demo && (
-        <>
-          <FilterBar
-            teamId={params.teamId}
-            entity="journeys"
-            placeholder="Filter journeys…"
-            requestedAppId={requestedFilters.appId}
-            requestedDateRange={requestedFilters.dateRange}
-            requestedFilterExpr={requestedFilters.filterExpr}
-            filterExprIssues={filterExprIssues}
-            onRequestChange={onRequestChange}
-            onFilterChange={onFilterChange}
-          />
-          <div className="py-4" />
-        </>
+      <FilterBar
+        entity="journeys"
+        placeholder="Filter journeys…"
+        value={value}
+        apps={apps}
+        keys={keys}
+        keyGroups={keyGroups}
+        keysUnavailable={keysUnavailable}
+        filterExprIssues={filterExprIssues}
+        onChange={onChange}
+      />
+      <div className="py-4" />
+
+      {filterStatus.kind === "error" && (
+        <p className="text-lg font-display">{filterStatus.message}</p>
       )}
 
-      {!demo && filterState.status === "error" && (
-        <p className="text-lg font-display">{filterState.message}</p>
-      )}
+      {filterStatus.kind === "loading" && <SkeletonListPage />}
 
-      {!demo && filterState.status === "pending" && <SkeletonListPage />}
-
-      {!demo &&
-        readyFilter !== null &&
+      {readyValue !== null &&
         status === "error" &&
         filterExprIssues === null && (
           <p className="text-lg font-display">
@@ -106,14 +118,12 @@ export default function UserJourneys({
           </p>
         )}
 
-      {(demo ||
-        (readyFilter !== null &&
-          (status === "success" || status === "pending"))) && (
-        <>
-          <div className="w-full flex items-center justify-between pb-2 pr-2">
-            {demo ? (
-              <div />
-            ) : (
+      {readyValue !== null &&
+        (status === "success" || status === "pending") && (
+          <JourneyPlot
+            plotType={plotType}
+            onChangePlotType={(type) => setPageUrlKey(journeyTypeUrlKey, type)}
+            search={
               <div className="relative w-64">
                 <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <DebounceTextInput
@@ -124,40 +134,59 @@ export default function UserJourneys({
                   onChange={(it) => setSearchText(it)}
                 />
               </div>
-            )}
-            <TabSelect
-              items={Object.values(PlotType)}
-              selected={plotType}
-              onChangeSelected={(item) => {
-                if (demo) {
-                  setDemoPlotType(item as PlotType);
-                } else {
-                  setPageUrlKey(journeyTypeUrlKey, item);
-                }
-              }}
-            />
-          </div>
-
-          <div className="w-full h-200">
-            <div className="py-4" />
-
-            {/* Keyed on the plot type so switching tabs mounts a fresh
-                chart, which closes any issue panel the previous one had
-                open. */}
-            <Journey
-              key={plotType}
-              journeyType={journeyType}
-              searchText={searchText}
-              query={demo ? demoJourneyQuery : journeyQuery}
-              errorDetailContext={
-                demo || readyFilter === null
-                  ? undefined
-                  : { teamId: params.teamId, appId: readyFilter.app.id }
-              }
-            />
-          </div>
-        </>
-      )}
+            }
+            searchText={searchText}
+            query={journeyQuery}
+            errorDetailContext={{ teamId, appId: readyValue.app.id }}
+          />
+        )}
     </div>
+  );
+}
+
+function JourneyPlot({
+  plotType,
+  onChangePlotType,
+  search,
+  searchText,
+  query,
+  errorDetailContext,
+}: {
+  plotType: PlotType;
+  onChangePlotType: (plotType: PlotType) => void;
+  search?: ReactNode;
+  searchText?: string;
+  query: ComponentProps<typeof Journey>["query"];
+  errorDetailContext?: ComponentProps<typeof Journey>["errorDetailContext"];
+}) {
+  const journeyType =
+    plotType === PlotType.Paths ? JourneyType.Paths : JourneyType.Exceptions;
+
+  return (
+    <>
+      <div className="w-full flex items-center justify-between pb-2 pr-2">
+        {search ?? <div />}
+        <TabSelect
+          items={Object.values(PlotType)}
+          selected={plotType}
+          onChangeSelected={(item) => onChangePlotType(item as PlotType)}
+        />
+      </div>
+
+      <div className="w-full h-200">
+        <div className="py-4" />
+
+        {/* Keyed on the plot type so switching tabs mounts a fresh
+            chart, which closes any issue panel the previous one had
+            open. */}
+        <Journey
+          key={plotType}
+          journeyType={journeyType}
+          searchText={searchText}
+          query={query}
+          errorDetailContext={errorDetailContext}
+        />
+      </div>
+    </>
   );
 }

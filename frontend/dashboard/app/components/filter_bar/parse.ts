@@ -105,6 +105,20 @@ export function parseFilterExpr(
   }
 }
 
+// A key counts once its condition has an operator, so a name still being
+// typed is left out.
+export function customKeyNamesIn(tokens: ExprToken[]): string[] {
+  const names = tokens
+    .filter(
+      (token, index) =>
+        token.kind === "key" &&
+        token.text.startsWith("custom.") &&
+        tokens[index + 2]?.kind === "operator",
+    )
+    .map((token) => token.text);
+  return [...new Set(names)].sort();
+}
+
 // Quotes text for an error message the way Go's %q does, so both parsers
 // report the same message for the same input.
 function quote(text: string): string {

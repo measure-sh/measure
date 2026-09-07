@@ -1,26 +1,22 @@
+import { mockFiltersStore } from "@/__tests__/helpers/mock_filters_store";
 import { mockRouter } from "@/__tests__/helpers/mock_router";
 import { promiseParams } from "@/__tests__/helpers/promise_params";
-import UserJourneysPage from "@/app/[teamId]/journeys/page";
-import { ApiError, invalidFilterExpr } from "@/app/api/api_error";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
-
-const replaceMock = mockRouter.replaceMock;
-const applyReplaceUrl = mockRouter.applyReplaceUrl;
 
 jest.mock("next/navigation", () =>
   require("@/__tests__/helpers/mock_router").nextNavigationMock(),
 );
 
-jest.mock("@/app/stores/filters_store", () => ({
+jest.mock("@/app/stores/provider", () =>
+  require("@/__tests__/helpers/mock_filters_store").filtersProviderMock(),
+);
+
+const mockToastNegative = jest.fn();
+jest.mock("@/app/components/toast", () => ({
   __esModule: true,
-  urlFiltersKeyMap: {
-    appId: "a",
-    dateRange: "d",
-    startDate: "sd",
-    endDate: "ed",
-  },
+  toastNegative: (text: string) => mockToastNegative(text),
 }));
 
 const pendingQueryState = () => ({
@@ -30,123 +26,78 @@ const pendingQueryState = () => ({
   error: null as Error | null,
 });
 
+const mockUseAppsQuery = jest.fn();
+const mockUseFilterKeysQuery = jest.fn();
 const mockUseJourneyQuery = jest.fn((_filter: any) => pendingQueryState());
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
-  useJourneyQuery: (filter: any) => mockUseJourneyQuery(filter),
   paginationOffsetUrlKey: "po",
+  useAppsQuery: (teamId: string) => mockUseAppsQuery(teamId),
+  useFilterKeysQuery: (
+    appId: string | undefined,
+    entity: string,
+    keyNames: string[],
+  ) => mockUseFilterKeysQuery(appId, entity, keyNames),
+  useRootSpanNamesQuery: () => ({
+    data: undefined,
+    isSuccess: false,
+    isError: false,
+  }),
+  useJourneyQuery: (filter: any) => mockUseJourneyQuery(filter),
 }));
 
-const mockReportedApp = { id: "app-1", name: "Sample" };
-const mockOtherApp = { id: "app-2", name: "Other" };
-const mockReportedDate = {
-  dateRange: "Last 6 Hours",
-  startDate: "2026-01-01T00:00:00.000Z",
-  endDate: "2026-01-01T06:00:00.000Z",
-};
-
-// Makes the stub drop the URL's filter on mount, like the bar discarding
-// a filter it cannot read.
-let mockMountDiscardsFilter = false;
-
-// Like the real bar, this stub reports the request it is handed, on mount
-// and whenever it changes; its buttons hand the page a request the way a
-// pick does, or report a failure. Only a discarded mount report carries
-// appliedAsRequested false. The issues the page hands back are rendered so
-// tests can see them reach the bar.
-jest.mock("@/app/components/filter_bar/filter_bar", () => {
-  const { useEffect } = require("react");
-
-  function FilterBarMock(props: any) {
-    const ready = (
-      filterExpr: string | null,
-      appliedAsRequested: boolean = false,
-      app: { id: string; name: string } = mockReportedApp,
-    ) => ({
-      status: "ready",
-      app,
-      date: mockReportedDate,
-      filterExpr,
-      appliedAsRequested,
-    });
-    const requestedApp =
-      props.requestedAppId === mockOtherApp.id ? mockOtherApp : mockReportedApp;
-    const request = (filterExpr: string | null, appId = mockReportedApp.id) =>
-      props.onRequestChange({
-        appId,
-        dateRange: mockReportedDate,
-        filterExpr,
-        rootSpanName: null,
-      });
-
-    useEffect(() => {
-      if (mockMountDiscardsFilter) {
-        props.onFilterChange(ready(null, false));
-      } else {
-        props.onFilterChange(
-          ready(props.requestedFilterExpr, true, requestedApp),
-        );
-      }
-    }, [props.requestedAppId, props.requestedFilterExpr]);
-
-    return (
-      <div data-testid="filter-bar-mock">
-        <span data-testid="filter-bar-entity">{props.entity}</span>
-        <span data-testid="filter-bar-expr">
-          {props.requestedFilterExpr ?? "none"}
-        </span>
-        <span data-testid="filter-bar-issues">
-          {props.filterExprIssues
-            ? props.filterExprIssues
-                .map((issue: { message: string }) => issue.message)
-                .join(", ")
-            : "none"}
-        </span>
-        <button
-          data-testid="filter-bar-apply"
-          onClick={() => request("version_name:in:1.2.0")}
-        >
-          apply
-        </button>
-        <button data-testid="filter-bar-clear" onClick={() => request(null)}>
-          clear
-        </button>
-        <button
-          data-testid="filter-bar-switch-app"
-          onClick={() => request(props.requestedFilterExpr, mockOtherApp.id)}
-        >
-          switch app
-        </button>
-        <button
-          data-testid="filter-bar-fail"
-          onClick={() =>
-            props.onFilterChange({
-              status: "error",
-              message: "Error fetching apps, please refresh page to try again",
-            })
-          }
-        >
-          fail
-        </button>
-      </div>
-    );
-  }
-
-  return {
-    __esModule: true,
-    default: FilterBarMock,
-    filterExprUrlKey: "filter_expr",
-  };
-});
+jest.mock("@/app/components/filter_bar/filter_bar", () => ({
+  __esModule: true,
+  default: (props: any) => (
+    <div data-testid="filter-bar-mock">
+      <span data-testid="filter-bar-entity">{props.entity}</span>
+      <span data-testid="filter-bar-app">
+        {props.value?.app.name ?? "none"}
+      </span>
+      <span data-testid="filter-bar-expr">
+        {props.value?.filterExpr ?? "none"}
+      </span>
+      <span data-testid="filter-bar-issues">
+        {props.filterExprIssues
+          ? props.filterExprIssues
+              .map((issue: { message: string }) => issue.message)
+              .join(", ")
+          : "none"}
+      </span>
+      <button
+        data-testid="filter-bar-apply"
+        onClick={() => props.onChange({ filterExpr: "version_name:in:1.2.0" })}
+      >
+        apply
+      </button>
+      <button
+        data-testid="filter-bar-clear"
+        onClick={() => props.onChange({ filterExpr: null })}
+      >
+        clear
+      </button>
+      <button
+        data-testid="filter-bar-switch-app"
+        onClick={() =>
+          props.onChange({
+            appId: "app-2",
+            filterExpr: null,
+            rootSpanName: null,
+          })
+        }
+      >
+        switch app
+      </button>
+    </div>
+  ),
+}));
 
 jest.mock("@/app/components/skeleton", () => ({
   __esModule: true,
   SkeletonListPage: () => <div data-testid="skeleton-list-page-mock" />,
 }));
 
-// The stub records the plot it was asked for, the search text, the query
-// status and the app the issue buttons would link to.
 jest.mock("@/app/components/journey", () => ({
   __esModule: true,
   JourneyType: { Paths: "Paths", Exceptions: "Exceptions" },
@@ -191,6 +142,22 @@ jest.mock("@/app/components/debounce_text_input", () => ({
   ),
 }));
 
+import UserJourneysPage from "@/app/[teamId]/journeys/page";
+import { ApiError, invalidFilterExpr } from "@/app/api/api_error";
+
+const mockApp = { id: "app-1", name: "Sample" };
+const mockOtherApp = { id: "app-2", name: "Other" };
+
+const versionKey = {
+  name: "version_name",
+  label: "App version",
+  key_group: "Version",
+  description: "The app version",
+  value_type: "string",
+  value_suggestion_mode: "full_list",
+  operators: ["in", "not_in"],
+};
+
 const mockJourneyData = {
   nodes: [
     { id: "sh.measure.demo.MainActivity", issues: { crashes: [], anrs: [] } },
@@ -217,18 +184,7 @@ function journeyFailed(error: Error) {
   });
 }
 
-// What the stub bar reports, as the page writes it into the URL.
-const selectionParams = "a=app-1&d=Last+6+Hours";
-
-const selectionUrl = (...trailingParams: string[]) =>
-  `?${[selectionParams, ...trailingParams].join("&")}`;
-
-const reportedFilterParams = (filterExpr: string | null) => ({
-  appId: mockReportedApp.id,
-  startDate: mockReportedDate.startDate,
-  endDate: mockReportedDate.endDate,
-  filterExpr,
-});
+const settled = { a: "app-1", d: "Last 6 Hours" };
 
 function renderPage() {
   return render(<UserJourneysPage params={promiseParams({ teamId: "123" })} />);
@@ -237,7 +193,18 @@ function renderPage() {
 describe("UserJourneys page", () => {
   beforeEach(() => {
     mockRouter.reset();
-    mockMountDiscardsFilter = false;
+    mockFiltersStore.reset();
+    mockToastNegative.mockClear();
+    mockUseAppsQuery.mockReturnValue({
+      status: "success",
+      data: [mockApp, mockOtherApp],
+    });
+    mockUseFilterKeysQuery.mockReturnValue({
+      data: { keys: [versionKey], key_groups: ["Version"] },
+      isPending: false,
+      isError: false,
+      isPlaceholderData: false,
+    });
     mockUseJourneyQuery.mockReset();
     mockUseJourneyQuery.mockReturnValue(pendingQueryState());
   });
@@ -250,81 +217,72 @@ describe("UserJourneys page", () => {
     );
   });
 
-  it("hands the bar the filter the URL opened on", () => {
-    mockRouter.searchParams = new URLSearchParams(
-      "filter_expr=version_name%3Ain%3A1.2.0",
-    );
+  it("hands the bar the app and filter it settled on", () => {
+    mockRouter.setUrl("?filter_expr=version_name%3Ain%3A1.2.0");
     journeyLoaded();
     renderPage();
 
+    expect(screen.getByTestId("filter-bar-app")).toHaveTextContent("Sample");
     expect(screen.getByTestId("filter-bar-expr")).toHaveTextContent(
       "version_name:in:1.2.0",
     );
   });
 
-  it("fetches nothing until the bar settles on an app and a range", () => {
-    mockRouter.searchParams = new URLSearchParams(
-      "filter_expr=version_name%3Ain%3A1.2.0",
-    );
+  it("fetches nothing until it settles on an app and a range", () => {
+    mockRouter.setUrl("?filter_expr=version_name%3Ain%3A1.2.0");
+    mockUseAppsQuery.mockReturnValue({ status: "pending", data: undefined });
     journeyLoaded();
     renderPage();
 
-    expect(mockUseJourneyQuery).toHaveBeenNthCalledWith(1, null);
+    expect(mockUseJourneyQuery).toHaveBeenLastCalledWith(null);
+    expect(screen.getByTestId("skeleton-list-page-mock")).toBeInTheDocument();
   });
 
-  it("fetches the journey filtered by what the bar reported", () => {
-    mockRouter.searchParams = new URLSearchParams(
-      "filter_expr=version_name%3Ain%3A1.2.0",
-    );
+  it("fetches the journey filtered by what it settled on", () => {
+    mockRouter.setUrl("?filter_expr=version_name%3Ain%3A1.2.0");
     journeyLoaded();
     renderPage();
 
     expect(mockUseJourneyQuery).toHaveBeenLastCalledWith(
-      reportedFilterParams("version_name:in:1.2.0"),
+      expect.objectContaining({
+        appId: "app-1",
+        filterExpr: "version_name:in:1.2.0",
+      }),
     );
   });
 
-  it("never fetches a filter the bar discarded on mount", async () => {
-    mockMountDiscardsFilter = true;
-    mockRouter.deferReplace = true;
-    mockRouter.searchParams = new URLSearchParams(
-      `filter_expr=version_name%3Ain%3A1.2.0&${selectionParams}`,
+  it("never fetches a filter it discarded on mount", async () => {
+    mockRouter.setUrl(
+      "?filter_expr=device_cohort%3Ain%3Anew&a=app-1&d=Last+6+Hours",
     );
+    mockRouter.deferReplace = true;
     journeyLoaded();
     renderPage();
 
-    // The write has not landed, so the URL still holds the discarded
-    // filter and the query stays disabled.
     expect(mockUseJourneyQuery).toHaveBeenLastCalledWith(null);
+    expect(mockRouter.urlParams()).toEqual(settled);
 
     await act(async () => {
-      applyReplaceUrl(mockRouter.deferredReplaceUrl!);
+      mockRouter.applyDeferredReplace();
     });
 
-    expect(replaceMock).toHaveBeenLastCalledWith(selectionUrl(), {
-      scroll: false,
-    });
     expect(mockUseJourneyQuery).toHaveBeenLastCalledWith(
-      reportedFilterParams(null),
+      expect.objectContaining({ appId: "app-1", filterExpr: null }),
     );
     for (const [params] of mockUseJourneyQuery.mock.calls) {
-      expect(params?.filterExpr ?? null).not.toBe("version_name:in:1.2.0");
+      expect(params?.filterExpr ?? null).not.toBe("device_cohort:in:new");
     }
   });
 
-  it("records what the bar settled on without a pagination offset", () => {
-    mockRouter.searchParams = new URLSearchParams(
-      "filter_expr=version_name%3Ain%3A1.2.0",
-    );
+  it("records what it settled on without a pagination offset", () => {
+    mockRouter.setUrl("?filter_expr=version_name%3Ain%3A1.2.0");
     journeyLoaded();
     renderPage();
 
-    expect(replaceMock).toHaveBeenCalledTimes(1);
-    expect(replaceMock).toHaveBeenCalledWith(
-      selectionUrl("filter_expr=version_name%3Ain%3A1.2.0"),
-      { scroll: false },
-    );
-    expect(mockRouter.searchParams.has("po")).toBe(false);
+    expect(mockRouter.urlParams()).toEqual({
+      ...settled,
+      filter_expr: "version_name:in:1.2.0",
+    });
   });
 
   it("renders the tabs, the search input and the journey once ready", () => {
@@ -350,13 +308,13 @@ describe("UserJourneys page", () => {
     );
   });
 
-  it("links the issue buttons to the team and app the bar settled on", () => {
+  it("links the issue buttons to the team and app it settled on", () => {
     journeyLoaded();
     renderPage();
 
     const journey = screen.getByTestId("journey-mock-Paths");
     expect(journey).toHaveAttribute("data-team", "123");
-    expect(journey).toHaveAttribute("data-app", mockReportedApp.id);
+    expect(journey).toHaveAttribute("data-app", mockApp.id);
   });
 
   it("passes the typed search text to the journey", async () => {
@@ -377,7 +335,7 @@ describe("UserJourneys page", () => {
 
   describe("the plot type", () => {
     it("opens on the plot the URL names", () => {
-      mockRouter.searchParams = new URLSearchParams("jt=Exceptions");
+      mockRouter.setUrl("?jt=Exceptions");
       journeyLoaded();
       renderPage();
 
@@ -389,22 +347,17 @@ describe("UserJourneys page", () => {
       expect(screen.queryByTestId("journey-mock-Paths")).toBeNull();
     });
 
-    it("survives the bar's report being written into the URL", () => {
-      mockRouter.searchParams = new URLSearchParams("jt=Exceptions");
+    it("survives what the page settled on being written into the URL", () => {
+      mockRouter.setUrl("?jt=Exceptions");
       journeyLoaded();
       renderPage();
 
-      expect(replaceMock).toHaveBeenLastCalledWith(
-        selectionUrl("jt=Exceptions"),
-        { scroll: false },
-      );
+      expect(mockRouter.urlParams()).toEqual({ ...settled, jt: "Exceptions" });
       expect(screen.getByTestId("journey-mock-Exceptions")).toBeInTheDocument();
     });
 
     it("is written into the URL when a tab is clicked, keeping the filter", async () => {
-      mockRouter.searchParams = new URLSearchParams(
-        "filter_expr=version_name%3Ain%3A1.2.0",
-      );
+      mockRouter.setUrl("?filter_expr=version_name%3Ain%3A1.2.0");
       journeyLoaded();
       renderPage();
 
@@ -412,10 +365,11 @@ describe("UserJourneys page", () => {
         fireEvent.click(screen.getByTestId("tab-Exceptions"));
       });
 
-      expect(replaceMock).toHaveBeenLastCalledWith(
-        selectionUrl("filter_expr=version_name%3Ain%3A1.2.0", "jt=Exceptions"),
-        { scroll: false },
-      );
+      expect(mockRouter.urlParams()).toEqual({
+        ...settled,
+        filter_expr: "version_name:in:1.2.0",
+        jt: "Exceptions",
+      });
       expect(screen.getByTestId("journey-mock-Exceptions")).toBeInTheDocument();
       expect(screen.queryByTestId("journey-mock-Paths")).toBeNull();
 
@@ -423,10 +377,11 @@ describe("UserJourneys page", () => {
         fireEvent.click(screen.getByTestId("tab-Paths"));
       });
 
-      expect(replaceMock).toHaveBeenLastCalledWith(
-        selectionUrl("filter_expr=version_name%3Ain%3A1.2.0", "jt=Paths"),
-        { scroll: false },
-      );
+      expect(mockRouter.urlParams()).toEqual({
+        ...settled,
+        filter_expr: "version_name:in:1.2.0",
+        jt: "Paths",
+      });
       expect(screen.getByTestId("journey-mock-Paths")).toBeInTheDocument();
     });
 
@@ -442,12 +397,14 @@ describe("UserJourneys page", () => {
       for (const [params] of mockUseJourneyQuery.mock.calls.slice(
         callsBefore,
       )) {
-        expect(params).toEqual(reportedFilterParams(null));
+        expect(params).toEqual(
+          expect.objectContaining({ appId: "app-1", filterExpr: null }),
+        );
       }
     });
 
     it("is kept when the filter changes", async () => {
-      mockRouter.searchParams = new URLSearchParams("jt=Exceptions");
+      mockRouter.setUrl("?jt=Exceptions");
       journeyLoaded();
       renderPage();
 
@@ -455,20 +412,19 @@ describe("UserJourneys page", () => {
         fireEvent.click(screen.getByTestId("filter-bar-apply"));
       });
 
-      expect(replaceMock).toHaveBeenLastCalledWith(
-        selectionUrl("filter_expr=version_name%3Ain%3A1.2.0", "jt=Exceptions"),
-        { scroll: false },
-      );
+      expect(mockRouter.urlParams()).toEqual({
+        ...settled,
+        filter_expr: "version_name:in:1.2.0",
+        jt: "Exceptions",
+      });
       expect(mockUseJourneyQuery).toHaveBeenLastCalledWith(
-        reportedFilterParams("version_name:in:1.2.0"),
+        expect.objectContaining({ filterExpr: "version_name:in:1.2.0" }),
       );
       expect(screen.getByTestId("journey-mock-Exceptions")).toBeInTheDocument();
     });
 
     it("is kept when the filter is cleared", async () => {
-      mockRouter.searchParams = new URLSearchParams(
-        "jt=Exceptions&filter_expr=version_name%3Ain%3A1.2.0",
-      );
+      mockRouter.setUrl("?jt=Exceptions&filter_expr=version_name%3Ain%3A1.2.0");
       journeyLoaded();
       renderPage();
 
@@ -476,10 +432,7 @@ describe("UserJourneys page", () => {
         fireEvent.click(screen.getByTestId("filter-bar-clear"));
       });
 
-      expect(replaceMock).toHaveBeenLastCalledWith(
-        selectionUrl("jt=Exceptions"),
-        { scroll: false },
-      );
+      expect(mockRouter.urlParams()).toEqual({ ...settled, jt: "Exceptions" });
       expect(screen.getByTestId("journey-mock-Exceptions")).toBeInTheDocument();
     });
   });
@@ -492,14 +445,10 @@ describe("UserJourneys page", () => {
       fireEvent.click(screen.getByTestId("filter-bar-switch-app"));
     });
 
-    expect(replaceMock).toHaveBeenLastCalledWith(
-      `?${selectionParams.replace("a=app-1", "a=app-2")}`,
-      { scroll: false },
+    expect(mockRouter.urlParams()).toEqual({ a: "app-2", d: "Last 6 Hours" });
+    expect(mockUseJourneyQuery).toHaveBeenLastCalledWith(
+      expect.objectContaining({ appId: mockOtherApp.id, filterExpr: null }),
     );
-    expect(mockUseJourneyQuery).toHaveBeenLastCalledWith({
-      ...reportedFilterParams(null),
-      appId: mockOtherApp.id,
-    });
     expect(screen.getByTestId("journey-mock-Paths")).toHaveAttribute(
       "data-app",
       mockOtherApp.id,
@@ -517,9 +466,7 @@ describe("UserJourneys page", () => {
     });
 
     it("hands a refused filter's issues to the bar in place of the message", () => {
-      mockRouter.searchParams = new URLSearchParams(
-        "filter_expr=version_name%3Ain%3A1.2.0",
-      );
+      mockRouter.setUrl("?filter_expr=version_name%3Ain%3A1.2.0");
       journeyFailed(
         new ApiError(400, invalidFilterExpr, [
           { message: 'Unknown key "os_name"', span: { start: 0, end: 7 } },
@@ -535,18 +482,15 @@ describe("UserJourneys page", () => {
     });
   });
 
-  describe("a filter the bar could not settle", () => {
+  describe("a filter it could not settle", () => {
     beforeEach(() => {
-      mockRouter.searchParams = new URLSearchParams(selectionParams);
+      mockRouter.setUrl("?a=app-1&d=Last+6+Hours");
+      mockUseAppsQuery.mockReturnValue({ status: "error", data: undefined });
       journeyLoaded();
     });
 
-    it("is said by the page, in place of the journey", async () => {
+    it("is said by the page, in place of the journey", () => {
       renderPage();
-
-      await act(async () => {
-        fireEvent.click(screen.getByTestId("filter-bar-fail"));
-      });
 
       expect(
         screen.getByText(
@@ -556,25 +500,16 @@ describe("UserJourneys page", () => {
       expect(screen.queryByTestId("journey-mock-Paths")).toBeNull();
     });
 
-    it("stops the page fetching anything", async () => {
+    it("stops the page fetching anything", () => {
       renderPage();
-
-      await act(async () => {
-        fireEvent.click(screen.getByTestId("filter-bar-fail"));
-      });
 
       expect(mockUseJourneyQuery).toHaveBeenLastCalledWith(null);
     });
 
-    it("leaves the URL where the link had it", async () => {
+    it("leaves the URL where the link had it", () => {
       renderPage();
-      replaceMock.mockClear();
 
-      await act(async () => {
-        fireEvent.click(screen.getByTestId("filter-bar-fail"));
-      });
-
-      expect(replaceMock).not.toHaveBeenCalled();
+      expect(mockRouter.urlParams()).toEqual(settled);
     });
   });
 });

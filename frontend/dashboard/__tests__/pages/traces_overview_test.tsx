@@ -1,35 +1,24 @@
+import { mockFiltersStore } from "@/__tests__/helpers/mock_filters_store";
 import { mockRouter } from "@/__tests__/helpers/mock_router";
 import { promiseParams } from "@/__tests__/helpers/promise_params";
-import TracesOverview from "@/app/[teamId]/traces/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
-const replaceMock = mockRouter.replaceMock;
 const pushMock = mockRouter.pushMock;
-const applyReplaceUrl = mockRouter.applyReplaceUrl;
 
 jest.mock("next/navigation", () =>
   require("@/__tests__/helpers/mock_router").nextNavigationMock(),
 );
 
-jest.mock("@/app/api/api_calls", () => ({
-  __esModule: true,
-  emptySpansResponse: {
-    meta: { next: false, previous: false },
-    results: [],
-  },
-}));
+jest.mock("@/app/stores/provider", () =>
+  require("@/__tests__/helpers/mock_filters_store").filtersProviderMock(),
+);
 
-jest.mock("@/app/stores/filters_store", () => ({
+const mockToastNegative = jest.fn();
+jest.mock("@/app/components/toast", () => ({
   __esModule: true,
-  urlFiltersKeyMap: {
-    appId: "a",
-    dateRange: "d",
-    startDate: "sd",
-    endDate: "ed",
-    rootSpanName: "r",
-  },
+  toastNegative: (text: string) => mockToastNegative(text),
 }));
 
 const pendingQueryState = () => ({
@@ -39,6 +28,9 @@ const pendingQueryState = () => ({
   error: null as Error | null,
 });
 
+const mockUseAppsQuery = jest.fn();
+const mockUseFilterKeysQuery = jest.fn();
+const mockUseRootSpanNamesQuery = jest.fn();
 const mockUseSpansQuery = jest.fn(
   (_filter: any, _spanName: string | null, _offset: number) =>
     pendingQueryState(),
@@ -49,125 +41,61 @@ const mockUseSpanMetricsPlotQuery = jest.fn(
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
+  paginationOffsetUrlKey: "po",
+  useAppsQuery: (teamId: string) => mockUseAppsQuery(teamId),
+  useFilterKeysQuery: (
+    appId: string | undefined,
+    entity: string,
+    keyNames: string[],
+  ) => mockUseFilterKeysQuery(appId, entity, keyNames),
+  useRootSpanNamesQuery: (app: unknown) => mockUseRootSpanNamesQuery(app),
   useSpansQuery: (filter: any, spanName: string | null, offset: number) =>
     mockUseSpansQuery(filter, spanName, offset),
   useSpanMetricsPlotQuery: (filter: any, spanName: string | null) =>
     mockUseSpanMetricsPlotQuery(filter, spanName),
-  paginationOffsetUrlKey: "po",
 }));
 
-const mockReportedApp = { id: "app-1", name: "Sample" };
-const mockReportedDate = {
-  dateRange: "Last 6 Hours",
-  startDate: "2026-01-01T00:00:00.000Z",
-  endDate: "2026-01-01T06:00:00.000Z",
-};
-
-// Set before render to make the stub open with a trace name of its own in
-// place of the URL's, the way the real bar substitutes a default when the
-// app no longer has the requested name.
-let mockMountSubstitutesName = false;
-let mockAppHasNoTraces = false;
-
-// Like the real bar, this stub reports a resolved trace name for the request
-// it is handed, on mount and whenever it changes; its buttons hand the page a
-// request the way a pick does, or report a failure. Only a substituted report
-// carries appliedAsRequested false.
-jest.mock("@/app/components/filter_bar/filter_bar", () => {
-  const { useEffect } = require("react");
-
-  function FilterBarMock(props: any) {
-    const ready = (
-      filterExpr: string | null,
-      // The real bar restores the URL's name when it can, so the stub
-      // reports it back too and falls back to a first name of its own.
-      rootSpanName: string | null = props.requestedRootSpanName ?? "span.first",
-      appliedAsRequested: boolean = false,
-    ) => ({
-      status: "ready",
-      app: mockReportedApp,
-      date: mockReportedDate,
-      filterExpr,
-      rootSpanName,
-      appliedAsRequested,
-    });
-    const request = (filterExpr: string | null, rootSpanName: string) =>
-      props.onRequestChange({
-        appId: mockReportedApp.id,
-        dateRange: mockReportedDate,
-        filterExpr,
-        rootSpanName,
-      });
-
-    useEffect(() => {
-      if (mockMountSubstitutesName) {
-        props.onFilterChange(
-          ready(props.requestedFilterExpr, "span.substitute", false),
-        );
-      } else if (mockAppHasNoTraces) {
-        props.onFilterChange(ready(props.requestedFilterExpr, null, true));
-      } else {
-        props.onFilterChange(ready(props.requestedFilterExpr, undefined, true));
-      }
-    }, [props.requestedFilterExpr, props.requestedRootSpanName]);
-
-    return (
-      <div data-testid="filter-bar-mock">
-        <span data-testid="filter-bar-expr">
-          {props.requestedFilterExpr ?? "none"}
-        </span>
-        <span data-testid="filter-bar-requested-name">
-          {props.requestedRootSpanName ?? "none"}
-        </span>
-        <span data-testid="filter-bar-selector-shown">
-          {String(props.showRootSpanSelector ?? false)}
-        </span>
-        <button
-          data-testid="filter-bar-apply"
-          onClick={() =>
-            request(
-              "span_status:in:error",
-              props.requestedRootSpanName ?? "span.first",
-            )
-          }
-        >
-          apply
-        </button>
-        <button
-          data-testid="filter-bar-pick-name"
-          onClick={() => request(props.requestedFilterExpr, "span.second")}
-        >
-          pick name
-        </button>
-        <button
-          data-testid="filter-bar-fail"
-          onClick={() =>
-            props.onFilterChange({
-              status: "error",
-              message: "Error fetching apps, please refresh page to try again",
-            })
-          }
-        >
-          fail
-        </button>
-      </div>
-    );
-  }
-
-  return {
-    __esModule: true,
-    default: FilterBarMock,
-    filterExprUrlKey: "filter_expr",
-  };
-});
+jest.mock("@/app/components/filter_bar/filter_bar", () => ({
+  __esModule: true,
+  default: (props: any) => (
+    <div data-testid="filter-bar-mock">
+      <span data-testid="filter-bar-app">
+        {props.value?.app.name ?? "none"}
+      </span>
+      <span data-testid="filter-bar-expr">
+        {props.value?.filterExpr ?? "none"}
+      </span>
+      <span data-testid="filter-bar-name">
+        {props.value?.rootSpanName ?? "none"}
+      </span>
+      <span data-testid="filter-bar-span-names">
+        {props.spanNames === undefined
+          ? "hidden"
+          : props.spanNames === null
+            ? "loading"
+            : props.spanNames.join(",")}
+      </span>
+      <button
+        data-testid="filter-bar-apply"
+        onClick={() => props.onChange({ filterExpr: "span_status:in:error" })}
+      >
+        apply
+      </button>
+      <button
+        data-testid="filter-bar-pick-name"
+        onClick={() => props.onChange({ rootSpanName: "span.second" })}
+      >
+        pick name
+      </button>
+    </div>
+  ),
+}));
 
 jest.mock("@/app/components/skeleton", () => ({
   __esModule: true,
   SkeletonListPage: () => <div data-testid="skeleton-list-page-mock" />,
 }));
 
-// The real plot shows a skeleton while its query is pending, so the stub
-// distinguishes that case for tests that check what fills the plot area.
 jest.mock("@/app/components/span_metrics_plot", () => ({
   __esModule: true,
   default: (props: any) => (
@@ -214,6 +142,20 @@ jest.mock("@/app/utils/time_utils", () => ({
   formatMillisToHumanReadable: jest.fn(() => "5s"),
 }));
 
+import TracesOverview from "@/app/[teamId]/traces/page";
+
+const mockApp = { id: "app-1", name: "Sample" };
+
+const spanStatusKey = {
+  name: "span_status",
+  label: "Status",
+  key_group: "Span",
+  description: "The status of the span",
+  value_type: "string",
+  value_suggestion_mode: "full_list",
+  operators: ["in", "not_in"],
+};
+
 const mockSpanData = {
   results: [
     {
@@ -245,16 +187,15 @@ function spansLoaded(data: any = mockSpanData) {
   });
 }
 
-// What the stub bar reports, as the page writes it into the URL.
-const selectionParams = "a=app-1&d=Last+6+Hours";
+function namesLoaded(names: string[] | null) {
+  mockUseRootSpanNamesQuery.mockReturnValue({
+    data: names,
+    isSuccess: true,
+    isError: false,
+  });
+}
 
-// The names in these tests are URL-safe, so they appear in the URL as-is.
-const selectionUrl = (
-  offset: number,
-  spanName = "span.first",
-  filterParam?: string,
-) =>
-  `?po=${offset}&${selectionParams}&r=${spanName}${filterParam ? `&${filterParam}` : ""}`;
+const settled = { a: "app-1", d: "Last 6 Hours", r: "span.first" };
 
 function renderPage() {
   return render(<TracesOverview params={promiseParams({ teamId: "123" })} />);
@@ -263,86 +204,90 @@ function renderPage() {
 describe("TracesOverview page", () => {
   beforeEach(() => {
     mockRouter.reset();
-    mockMountSubstitutesName = false;
-    mockAppHasNoTraces = false;
+    mockFiltersStore.reset();
+    mockToastNegative.mockClear();
+    mockUseAppsQuery.mockReturnValue({ status: "success", data: [mockApp] });
+    mockUseFilterKeysQuery.mockReturnValue({
+      data: { keys: [spanStatusKey], key_groups: ["Span"] },
+      isPending: false,
+      isError: false,
+      isPlaceholderData: false,
+    });
+    namesLoaded(["span.first", "span.second"]);
     mockUseSpansQuery.mockReset();
     mockUseSpansQuery.mockReturnValue(pendingQueryState());
     mockUseSpanMetricsPlotQuery.mockReset();
     mockUseSpanMetricsPlotQuery.mockReturnValue(pendingQueryState());
   });
 
-  it("renders the filter bar", () => {
-    renderPage();
-    expect(screen.getByTestId("filter-bar-mock")).toBeInTheDocument();
-  });
-
-  it("asks the bar to show the trace name selector", () => {
-    renderPage();
-    expect(screen.getByTestId("filter-bar-selector-shown")).toHaveTextContent(
-      "true",
-    );
-  });
-
-  it("hands the bar the filter the URL opened on", () => {
-    mockRouter.searchParams = new URLSearchParams(
-      "po=0&filter_expr=span_status%3Ain%3Aerror",
-    );
+  it("renders the filter bar with the span names and what it settled on", () => {
+    mockRouter.setUrl("?po=0&filter_expr=span_status%3Ain%3Aerror");
     spansLoaded();
     renderPage();
 
+    expect(screen.getByTestId("filter-bar-mock")).toBeInTheDocument();
+    expect(screen.getByTestId("filter-bar-app")).toHaveTextContent("Sample");
     expect(screen.getByTestId("filter-bar-expr")).toHaveTextContent(
       "span_status:in:error",
+    );
+    expect(screen.getByTestId("filter-bar-name")).toHaveTextContent(
+      "span.first",
+    );
+    expect(screen.getByTestId("filter-bar-span-names")).toHaveTextContent(
+      "span.first,span.second",
     );
   });
 
   it("hands the bar the trace name the URL opened on", () => {
-    mockRouter.searchParams = new URLSearchParams("po=0&a=app-1&r=span.second");
+    mockRouter.setUrl("?po=0&a=app-1&r=span.second");
     spansLoaded();
     renderPage();
 
-    expect(screen.getByTestId("filter-bar-requested-name")).toHaveTextContent(
+    expect(screen.getByTestId("filter-bar-name")).toHaveTextContent(
       "span.second",
     );
   });
 
-  it("fetches nothing until the bar settles on an app, a range and a name", () => {
+  it("fetches nothing until it settles on an app, a range and a name", () => {
+    mockUseAppsQuery.mockReturnValue({ status: "pending", data: undefined });
     spansLoaded();
     renderPage();
 
-    expect(mockUseSpansQuery).toHaveBeenNthCalledWith(1, null, null, 0);
+    expect(mockUseSpansQuery).toHaveBeenLastCalledWith(null, null, 0);
+    expect(mockUseSpanMetricsPlotQuery).toHaveBeenLastCalledWith(null, null);
+    expect(screen.getByTestId("skeleton-list-page-mock")).toBeInTheDocument();
+    expect(mockRouter.urlParams()).toEqual({});
   });
 
-  it("fetches spans and the plot for the name the bar reported", () => {
+  it("fetches spans and the plot for the name it settled on", () => {
     spansLoaded();
     renderPage();
 
     expect(mockUseSpansQuery).toHaveBeenLastCalledWith(
-      {
-        appId: mockReportedApp.id,
-        startDate: mockReportedDate.startDate,
-        endDate: mockReportedDate.endDate,
-        filterExpr: null,
-      },
+      expect.objectContaining({ appId: "app-1", filterExpr: null }),
       "span.first",
       0,
     );
     expect(mockUseSpanMetricsPlotQuery).toHaveBeenLastCalledWith(
-      expect.objectContaining({ appId: mockReportedApp.id }),
+      expect.objectContaining({ appId: "app-1" }),
       "span.first",
     );
   });
 
-  it("records what the bar settled on, keeping the page the link asked for", () => {
-    mockRouter.searchParams = new URLSearchParams(
-      "po=20&filter_expr=span_status%3Ain%3Aerror",
-    );
+  it("records what it settled on, keeping the page the link asked for", () => {
+    mockRouter.setUrl("?po=20&filter_expr=span_status%3Ain%3Aerror");
     spansLoaded();
     renderPage();
 
-    expect(replaceMock).toHaveBeenCalledTimes(1);
-    expect(replaceMock).toHaveBeenCalledWith(
-      selectionUrl(20, "span.first", "filter_expr=span_status%3Ain%3Aerror"),
-      { scroll: false },
+    expect(mockRouter.urlParams()).toEqual({
+      ...settled,
+      po: "20",
+      filter_expr: "span_status:in:error",
+    });
+    expect(mockUseSpansQuery).toHaveBeenLastCalledWith(
+      expect.objectContaining({ filterExpr: "span_status:in:error" }),
+      "span.first",
+      20,
     );
   });
 
@@ -353,13 +298,11 @@ describe("TracesOverview page", () => {
     expect(screen.getByTestId("prev-button")).toBeDisabled();
   });
 
-  it("shows the plot skeleton while the bar's report waits to reach the URL", () => {
+  it("shows the plot skeleton while what it settled on waits to reach the URL", () => {
     mockRouter.deferReplace = true;
     spansLoaded();
     renderPage();
 
-    // The URL write has not landed, so the bar's report does not match the
-    // URL yet and the queries stay disabled with a null filter.
     expect(mockUseSpansQuery).toHaveBeenLastCalledWith(null, "span.first", 0);
     expect(screen.getByTestId("span-metrics-plot-mock")).toBeInTheDocument();
     expect(screen.getByTestId("skeleton-plot-mock")).toBeInTheDocument();
@@ -478,77 +421,68 @@ describe("TracesOverview page", () => {
     expect(pushMock).toHaveBeenCalledWith("/123/traces/app1/trace1");
   });
 
-  describe("a filter the bar could not settle", () => {
-    beforeEach(() => {
-      mockRouter.searchParams = new URLSearchParams(`po=10&${selectionParams}`);
+  describe("a filter it could not settle", () => {
+    it("says there is no data for an app that never reported a trace, and still writes the URL", () => {
+      namesLoaded(null);
+      mockRouter.setUrl("?po=10&a=app-1");
       spansLoaded();
-    });
-
-    it("says there is no data for an app that never reported a trace, and still writes the URL", async () => {
-      mockAppHasNoTraces = true;
-      mockRouter.searchParams = new URLSearchParams(
-        `po=10&r=span.first&${selectionParams}`,
-      );
       renderPage();
 
       expect(
         screen.getByText("No traces received for this app yet"),
       ).toBeInTheDocument();
       expect(screen.queryByText("Trace")).toBeNull();
-      expect(replaceMock).toHaveBeenLastCalledWith(
-        `?po=10&${selectionParams}`,
-        { scroll: false },
-      );
+      expect(mockRouter.urlParams()).toEqual({
+        a: "app-1",
+        d: "Last 6 Hours",
+        po: "10",
+      });
       expect(mockUseSpansQuery).toHaveBeenLastCalledWith(
         expect.anything(),
         null,
         10,
       );
+      expect(screen.getByTestId("filter-bar-span-names")).toHaveTextContent("");
     });
 
-    it("is said by the page, in place of the list", async () => {
+    it("says so in place of the list, fetches nothing and leaves the URL alone", () => {
+      mockRouter.setUrl("?po=10&a=app-1&d=Last+6+Hours");
+      mockUseAppsQuery.mockReturnValue({ status: "error", data: undefined });
+      spansLoaded();
       renderPage();
-
-      await act(async () => {
-        fireEvent.click(screen.getByTestId("filter-bar-fail"));
-      });
 
       expect(
         screen.getByText(
           "Error fetching apps, please refresh page to try again",
         ),
       ).toBeInTheDocument();
-    });
-
-    it("stops the page fetching anything", async () => {
-      renderPage();
-
-      await act(async () => {
-        fireEvent.click(screen.getByTestId("filter-bar-fail"));
-      });
-
-      // Without a ready report there is no resolved name, and the null
-      // filter keeps the query disabled.
       expect(mockUseSpansQuery).toHaveBeenLastCalledWith(null, null, 10);
+      expect(mockRouter.urlParams()).toEqual({
+        a: "app-1",
+        d: "Last 6 Hours",
+        po: "10",
+      });
     });
 
-    it("leaves the URL where the link had it", async () => {
-      renderPage();
-      replaceMock.mockClear();
-
-      await act(async () => {
-        fireEvent.click(screen.getByTestId("filter-bar-fail"));
+    it("says so when the trace names cannot be fetched", () => {
+      mockUseRootSpanNamesQuery.mockReturnValue({
+        data: undefined,
+        isSuccess: false,
+        isError: true,
       });
+      spansLoaded();
+      renderPage();
 
-      expect(replaceMock).not.toHaveBeenCalled();
+      expect(
+        screen.getByText(/Error fetching traces list/),
+      ).toBeInTheDocument();
+      expect(mockUseSpansQuery).toHaveBeenLastCalledWith(null, null, 0);
     });
   });
 
   describe("pagination", () => {
     it("moves the offset on by the page size when Next is clicked", async () => {
-      mockRouter.searchParams = new URLSearchParams(
-        `po=0&r=span.first&${selectionParams}`,
-      );
+      mockRouter.setUrl("?po=0&r=span.first&a=app-1&d=Last+6+Hours");
       spansLoaded();
       renderPage();
 
@@ -556,42 +490,32 @@ describe("TracesOverview page", () => {
         fireEvent.click(screen.getByTestId("next-button"));
       });
 
-      // Paging keeps everything else the URL was carrying.
-      expect(replaceMock).toHaveBeenLastCalledWith(selectionUrl(5), {
-        scroll: false,
-      });
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "5" });
+      expect(mockUseSpansQuery).toHaveBeenLastCalledWith(
+        expect.objectContaining({ appId: "app-1" }),
+        "span.first",
+        5,
+      );
     });
 
     it("moves the offset back when Prev is clicked, and never below zero", async () => {
-      mockRouter.searchParams = new URLSearchParams(
-        "po=5&r=span.first&a=app-1",
-      );
+      mockRouter.setUrl("?po=5&r=span.first&a=app-1");
       spansLoaded();
       renderPage();
 
       await act(async () => {
         fireEvent.click(screen.getByTestId("prev-button"));
       });
-      expect(replaceMock).toHaveBeenLastCalledWith(selectionUrl(0), {
-        scroll: false,
-      });
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
 
-      mockRouter.searchParams = new URLSearchParams(
-        "po=0&r=span.first&a=app-1",
-      );
-      renderPage();
       await act(async () => {
-        fireEvent.click(screen.getAllByTestId("prev-button")[1]);
+        fireEvent.click(screen.getByTestId("prev-button"));
       });
-      expect(replaceMock).toHaveBeenLastCalledWith(selectionUrl(0), {
-        scroll: false,
-      });
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
     });
 
     it("goes back to the first page when the filter changes", async () => {
-      mockRouter.searchParams = new URLSearchParams(
-        "po=30&a=app-1&r=span.first",
-      );
+      mockRouter.setUrl("?po=30&a=app-1&r=span.first");
       spansLoaded();
       renderPage();
 
@@ -599,14 +523,25 @@ describe("TracesOverview page", () => {
         fireEvent.click(screen.getByTestId("filter-bar-apply"));
       });
 
-      expect(replaceMock).toHaveBeenLastCalledWith(
-        selectionUrl(0, "span.first", "filter_expr=span_status%3Ain%3Aerror"),
-        { scroll: false },
+      expect(mockRouter.urlParams()).toEqual({
+        ...settled,
+        po: "0",
+        filter_expr: "span_status:in:error",
+      });
+      expect(mockUseSpansQuery).toHaveBeenLastCalledWith(
+        expect.objectContaining({ filterExpr: "span_status:in:error" }),
+        "span.first",
+        0,
       );
+      for (const [filter, , offset] of mockUseSpansQuery.mock.calls) {
+        if (filter?.filterExpr === "span_status:in:error") {
+          expect(offset).toBe(0);
+        }
+      }
     });
 
-    it("goes back to the first page when the bar reports another name", async () => {
-      mockRouter.searchParams = new URLSearchParams(`po=30&${selectionParams}`);
+    it("goes back to the first page when another name is picked", async () => {
+      mockRouter.setUrl("?po=30&a=app-1&d=Last+6+Hours");
       spansLoaded();
       renderPage();
 
@@ -614,13 +549,11 @@ describe("TracesOverview page", () => {
         fireEvent.click(screen.getByTestId("filter-bar-pick-name"));
       });
 
-      expect(replaceMock).toHaveBeenLastCalledWith(
-        selectionUrl(0, "span.second"),
-        { scroll: false },
-      );
-      // The changed name and the reset offset reach the queries together,
-      // through the URL, so the new name is never fetched at the page the
-      // old name was on.
+      expect(mockRouter.urlParams()).toEqual({
+        ...settled,
+        r: "span.second",
+        po: "0",
+      });
       expect(mockUseSpansQuery).toHaveBeenLastCalledWith(
         expect.anything(),
         "span.second",
@@ -633,44 +566,35 @@ describe("TracesOverview page", () => {
       }
     });
 
-    it("goes back to the first page when the bar opens on a substituted name", async () => {
-      mockMountSubstitutesName = true;
+    it("goes back to the first page when the URL names a span the app does not have", async () => {
+      mockRouter.setUrl("?po=30&r=span.gone&a=app-1&d=Last+6+Hours");
       mockRouter.deferReplace = true;
-      mockRouter.searchParams = new URLSearchParams(
-        `po=30&r=span.gone&${selectionParams}`,
-      );
       spansLoaded();
       renderPage();
 
-      // The write has not landed, so the URL still holds the dead name
-      // and the queries stay disabled, at the offset the page wrote.
       expect(mockUseSpansQuery).toHaveBeenLastCalledWith(
         null,
-        "span.substitute",
-        0,
+        "span.first",
+        30,
+      );
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
+      expect(mockToastNegative).toHaveBeenCalledWith(
+        "Some filters were invalid, page reset to defaults",
       );
 
       await act(async () => {
-        applyReplaceUrl(mockRouter.deferredReplaceUrl!);
+        mockRouter.applyDeferredReplace();
       });
 
-      expect(replaceMock).toHaveBeenLastCalledWith(
-        selectionUrl(0, "span.substitute"),
-        { scroll: false },
-      );
-      // The substituted name is never fetched at the page the URL's name
-      // was on.
       expect(mockUseSpansQuery).toHaveBeenLastCalledWith(
-        expect.anything(),
-        "span.substitute",
+        expect.objectContaining({ appId: "app-1" }),
+        "span.first",
         0,
       );
       for (const [filter, spanName, offset] of mockUseSpansQuery.mock.calls) {
-        if (spanName === "span.substitute" && filter !== null) {
+        if (filter !== null) {
+          expect(spanName).toBe("span.first");
           expect(offset).toBe(0);
-        }
-        if (spanName === "span.gone") {
-          expect(filter).toBeNull();
         }
       }
     });

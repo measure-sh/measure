@@ -18,7 +18,6 @@ import {
   TableRow,
 } from "@/app/components/table";
 import { useSpanMetricsPlotQuery, useSpansQuery } from "@/app/query/hooks";
-import { urlFiltersKeyMap } from "@/app/stores/filters_store";
 import {
   formatDateToHumanReadableDate,
   formatDateToHumanReadableTime,
@@ -37,20 +36,26 @@ export default function TracesOverview(props: {
   const router = useRouter();
 
   const {
-    requestedFilters,
-    paginationOffset,
-    filterState,
+    value,
+    apps,
+    keys,
+    keyGroups,
+    keysUnavailable,
+    spanNames,
+    status: filterStatus,
     filterParams,
-    onRequestChange,
-    onFilterChange,
+    paginationOffset,
+    onChange,
     nextPage,
     prevPage,
   } = useExprFilterPage({
+    teamId: params.teamId,
+    entity: "spans",
     paginationLimit: PAGINATION_LIMIT,
-    extraUrlKeys: { rootSpanName: urlFiltersKeyMap.rootSpanName },
+    rootSpan: true,
   });
-  const readyFilter = filterState.status === "ready" ? filterState : null;
-  const rootSpanName = readyFilter?.rootSpanName ?? null;
+  const readyValue = filterStatus.kind === "ready" ? value : null;
+  const rootSpanName = value?.rootSpanName ?? null;
 
   const spansQuery = useSpansQuery(
     filterParams,
@@ -73,33 +78,32 @@ export default function TracesOverview(props: {
       <div className="py-4" />
 
       <FilterBar
-        teamId={params.teamId}
         entity="spans"
         placeholder="Filter traces…"
-        requestedAppId={requestedFilters.appId}
-        requestedDateRange={requestedFilters.dateRange}
-        requestedFilterExpr={requestedFilters.filterExpr}
+        value={value}
+        apps={apps}
+        keys={keys}
+        keyGroups={keyGroups}
+        keysUnavailable={keysUnavailable}
+        spanNames={spanNames}
         filterExprIssues={filterExprIssues}
-        showRootSpanSelector
-        requestedRootSpanName={requestedFilters.rootSpanName}
-        onRequestChange={onRequestChange}
-        onFilterChange={onFilterChange}
+        onChange={onChange}
       />
       <div className="py-4" />
 
-      {filterState.status === "error" && (
-        <p className="text-lg font-display">{filterState.message}</p>
+      {filterStatus.kind === "error" && (
+        <p className="text-lg font-display">{filterStatus.message}</p>
       )}
 
-      {filterState.status === "pending" && <SkeletonListPage />}
+      {filterStatus.kind === "loading" && <SkeletonListPage />}
 
-      {readyFilter !== null && readyFilter.rootSpanName === null && (
+      {readyValue !== null && readyValue.rootSpanName === null && (
         <p className="text-lg font-display">
           No traces received for this app yet
         </p>
       )}
 
-      {readyFilter !== null &&
+      {readyValue !== null &&
         status === "error" &&
         filterExprIssues === null && (
           <p className="text-lg font-display">
@@ -108,13 +112,13 @@ export default function TracesOverview(props: {
           </p>
         )}
 
-      {readyFilter !== null &&
-        readyFilter.rootSpanName !== null &&
+      {readyValue !== null &&
+        readyValue.rootSpanName !== null &&
         (status === "success" || status === "pending") && (
           <div className="flex flex-col items-center w-full">
             <SpanMetricsPlot
-              startDate={readyFilter.date.startDate}
-              endDate={readyFilter.date.endDate}
+              startDate={readyValue.date.startDate}
+              endDate={readyValue.date.endDate}
               query={spanMetricsPlotQuery}
             />
             <div className="self-end">

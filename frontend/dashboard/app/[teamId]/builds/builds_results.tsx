@@ -7,7 +7,7 @@ import {
   emptyBuildsResponse,
 } from "@/app/api/api_calls";
 import { Button } from "@/app/components/button";
-import type { FilterState } from "@/app/components/filter_bar/filter_bar";
+import type { FilterStatus } from "@/app/components/filter_bar/use_expr_filter_page";
 import LoadingBar from "@/app/components/loading_bar";
 import Paginator from "@/app/components/paginator";
 import { SkeletonListPage } from "@/app/components/skeleton";
@@ -23,13 +23,13 @@ import type { useBuildsQuery } from "@/app/query/hooks";
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
 
 export default function BuildsResults({
-  filterState,
+  status,
   query,
   filterExprHasIssues,
   onNextPage,
   onPrevPage,
 }: {
-  filterState: FilterState;
+  status: FilterStatus;
   query: ReturnType<typeof useBuildsQuery>;
   filterExprHasIssues: boolean;
   onNextPage: () => void;
@@ -39,11 +39,11 @@ export default function BuildsResults({
 
   return (
     <>
-      {filterState.status === "error" && (
-        <p className="text-lg font-display">{filterState.message}</p>
+      {status.kind === "error" && (
+        <p className="text-lg font-display">{status.message}</p>
       )}
 
-      {filterState.status !== "error" && query.status === "pending" && (
+      {status.kind !== "error" && query.status === "pending" && (
         <SkeletonListPage />
       )}
 

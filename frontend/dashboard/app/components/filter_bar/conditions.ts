@@ -6,12 +6,8 @@ import type {
 } from "../../api/filter_types";
 import { operatorTakesOneValue, operatorTakesValues } from "./operators";
 
-// The conditions and groups the filter bar draws. They are derived rather than
-// saved: the bar keeps the filter as text and rebuilds these rows from it after
-// every change.
-//
 // A row is only drawn after its key is selected, so `key` and `operator` are
-// always set. The operator starts as the first one offered for that key.
+// always set.
 export type ConditionRow = {
   id: string;
   key: FilterKey;
@@ -63,44 +59,36 @@ export function isRowComplete(row: ConditionRow): boolean {
   return !operatorTakesOneValue(row.operator) || row.values.length === 1;
 }
 
-/**
- * The tree a request carries. Conditions that are not complete are left out,
- * so that a filter the user is midway through building is not considered.
- */
+// Incomplete conditions and empty groups are left out.
 export function buildExprTree(filter: ConditionGroup): ExprTree | null {
-  const children = buildChildren(filter, false);
+  const children = buildChildren(filter);
   if (children.length === 0) {
     return null;
   }
   return { logical_operator: filter.logicalOperator, children };
 }
 
-/**
- * The tree behind the text the bar holds, covering everything on screen,
- * including the unfinished conditions and empty groups buildExprTree leaves
- * out.
- */
-export function buildDraftTree(filter: ConditionGroup): ExprTree {
-  return {
-    logical_operator: filter.logicalOperator,
-    children: buildChildren(filter, true),
-  };
-}
-
-function buildChildren(group: ConditionGroup, draft: boolean): ExprTree[] {
+function buildChildren(group: ConditionGroup): ExprTree[] {
   const children: ExprTree[] = [];
 
   for (const child of group.children) {
     if (!isConditionGroup(child)) {
-      const condition = buildCondition(child, draft);
-      if (condition) {
-        children.push(condition);
+      if (isRowComplete(child)) {
+        children.push({
+          condition: {
+            key_name: child.key.name,
+            operator: child.operator,
+            values: operatorTakesValues(child.operator)
+              ? child.values
+              : undefined,
+          },
+        });
       }
       continue;
     }
 
-    const inner = buildChildren(child, draft);
-    if (draft || inner.length > 0) {
+    const inner = buildChildren(child);
+    if (inner.length > 0) {
       children.push({
         logical_operator: child.logicalOperator,
         children: inner,
@@ -109,19 +97,6 @@ function buildChildren(group: ConditionGroup, draft: boolean): ExprTree[] {
   }
 
   return children;
-}
-
-function buildCondition(row: ConditionRow, draft: boolean): ExprTree | null {
-  if (!draft && !isRowComplete(row)) {
-    return null;
-  }
-  return {
-    condition: {
-      key_name: row.key.name,
-      operator: row.operator,
-      values: operatorTakesValues(row.operator) ? row.values : undefined,
-    },
-  };
 }
 
 // ─── Expression tree to conditions ───────────────────────────────────────
