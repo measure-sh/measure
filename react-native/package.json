@@ -48,8 +48,6 @@
     "!**/.*"
   ],
   "scripts": {
-    "exampleExpo": "yarn workspace @measuresh/react-native-example",
-    "exampleRn": "yarn workspace @measuresh/rnExample",
     "test": "jest",
     "typecheck": "tsc",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
@@ -116,9 +114,7 @@
     "react-native": ">=0.73.0"
   },
   "workspaces": [
-    "example/expo",
-    "react-native",
-    "example/rnExample"
+    "react-native"
   ],
   "packageManager": "yarn@3.6.1",
   "jest": {
@@ -129,7 +125,6 @@
       "^react-native$": "<rootDir>/src/__mock__/react-native.ts"
     },
     "modulePathIgnorePatterns": [
-      "<rootDir>/example/node_modules",
       "<rootDir>/lib/"
     ]
   },
