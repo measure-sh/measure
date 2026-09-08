@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :bug: Bug fixes
 
 - (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
+- (**frontend**): Correct social share images & apple touch icon (#4424) by @detj in #4424
 - (**frontend**): Cut Custom Range timestamps to the minute by @anupcowkur in #4389
 - (**frontend**): Keep a date being edited until the input loses focus by @anupcowkur
 - (**frontend**): Keep focus in the text editor when the filter is cleared by @anupcowkur
