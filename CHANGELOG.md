@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :recycle: Refactor
 
+- (**frontend**): Export the journeys demo as its own component by @anupcowkur in #4425
 - (**frontend**): Keep expr filter state in the URL only by @anupcowkur in #4407
 
 ### :books: Documentation
