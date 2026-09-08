@@ -24,7 +24,7 @@ func AbsInt(n int) int {
 // RoundTwoDecimalsFloat64 rounds the precision
 // part of a float64 value to 2 decimals.
 func RoundTwoDecimalsFloat64(x float64) float64 {
-	return math.Ceil(x*100) / 100
+	return math.Round(x*100) / 100
 }
 
 func FormatKMB(n int64) string {
