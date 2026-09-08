@@ -1524,6 +1524,56 @@ export function makeJourneysFilterKeysFixture(
   };
 }
 
+// --- Filter keys for the network entity ---
+
+export function makeNetworkFilterKeysFixture(
+  overrides: Record<string, any> = {},
+) {
+  return {
+    keys: [
+      {
+        name: "http_method",
+        label: "HTTP method",
+        description: "The HTTP method of the request.",
+        key_group: "Request",
+        value_type: "enum",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+        enum_values: ["get", "post", "put", "patch", "delete"],
+      },
+      {
+        name: "version_name",
+        label: "App version",
+        description: "The app version the request was made on",
+        key_group: "Version",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "os_name",
+        label: "OS name",
+        description: "The operating system's name",
+        key_group: "OS",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "network_type",
+        label: "Network type",
+        description: "The kind of network the request went over",
+        key_group: "Network",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+    ],
+    key_groups: ["Request", "Version", "OS", "Device", "Network", "Location"],
+    ...overrides,
+  };
+}
+
 // --- Filter values (GET /apps/:appId/filters/values) ---
 
 export function makeFilterValuesFixture(overrides: Record<string, any> = {}) {

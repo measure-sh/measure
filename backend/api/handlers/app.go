@@ -3222,109 +3222,17 @@ func (h Handlers) PatchConfig(c *gin.Context) {
 // GetNetworkRequestsEndpoints serves the dashboard's endpoint search.
 func (h Handlers) GetNetworkRequestsEndpoints(c *gin.Context) {
 	deps := h.Deps
-	ctx := c.Request.Context()
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:   exprfilter.NetworkEntity,
+		appScope: *measure.ScopeAppRead,
+		logRoot:  logcomment.Network,
+		logName:  "endpoints",
+	})
+	if !ok {
 		return
 	}
 
-	af := filter.AppFilter{
-		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
-	}
-
-	if err := c.ShouldBindQuery(&af); err != nil {
-		msg := `failed to parse query parameters`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	msg := "network endpoint search request validation failed"
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
-	}
-
-	app := measure.App{
-		ID: &id,
-	}
-	team, err := app.GetTeam(ctx, deps.PgPool)
-	if err != nil {
-		msg := "failed to get team from app id"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	if !okTeam || !okApp {
-		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
-		return
-	}
-
-	endpoints, err := network.FetchEndpoints(ctx, deps.RchPool, *app.ID, *team.ID, c.Query("query"), &af)
+	endpoints, err := network.FetchEndpoints(ctx, deps.RchPool, *app.ID, app.TeamId, c.Query("query"), &ef)
 	if err != nil {
 		msg := "failed to get network endpoints"
 		fmt.Println(msg, err)
@@ -3337,84 +3245,19 @@ func (h Handlers) GetNetworkRequestsEndpoints(c *gin.Context) {
 
 func (h Handlers) GetNetworkEndpointLatencyPlot(c *gin.Context) {
 	deps := h.Deps
-	ctx := c.Request.Context()
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:          exprfilter.NetworkEntity,
+		appScope:        *measure.ScopeAppRead,
+		logRoot:         logcomment.Network,
+		logName:         "latency",
+		requireTimezone: true,
+	})
+	if !ok {
 		return
 	}
 
-	domain := c.Query("domain")
-	path := c.Query("path")
-
-	af := filter.AppFilter{
-		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
-	}
-
-	if err := c.ShouldBindQuery(&af); err != nil {
-		msg := `failed to parse query parameters`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	msg := "network metrics request validation failed"
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if !af.HasTimezone() {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "missing required field `timezone`",
-		})
-		return
-	}
-
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
-	}
-
-	if !af.HasPlotTimeGroup() {
-		af.SetDefaultPlotTimeGroup()
-	}
-
-	groupExpr, err := measure.GetPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	ef.SetDefaultPlotTimeGroupIfUnset()
+	groupExpr, err := measure.GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
 	if err != nil {
 		msg := "failed to compute time group expression"
 		fmt.Println(msg, err)
@@ -3422,46 +3265,7 @@ func (h Handlers) GetNetworkEndpointLatencyPlot(c *gin.Context) {
 		return
 	}
 
-	app := measure.App{
-		ID: &id,
-	}
-	team, err := app.GetTeam(ctx, deps.PgPool)
-	if err != nil {
-		msg := "failed to get team from app id"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	if !okTeam || !okApp {
-		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
-		return
-	}
-
-	result, err := network.GetLatencyPlot(ctx, deps.RchPool, *app.ID, *team.ID, domain, path, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetLatencyPlot(ctx, deps.RchPool, *app.ID, app.TeamId, c.Query("domain"), c.Query("path"), &ef, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		msg := "failed to get network latency metrics"
 		fmt.Println(msg, err)
@@ -3474,105 +3278,13 @@ func (h Handlers) GetNetworkEndpointLatencyPlot(c *gin.Context) {
 
 func (h Handlers) GetNetworkRequestsTrends(c *gin.Context) {
 	deps := h.Deps
-	ctx := c.Request.Context()
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
-	af := filter.AppFilter{
-		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
-	}
-
-	if err := c.ShouldBindQuery(&af); err != nil {
-		msg := `failed to parse query parameters`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	msg := "network overview request validation failed"
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
-	}
-
-	app := measure.App{
-		ID: &id,
-	}
-	team, err := app.GetTeam(ctx, deps.PgPool)
-	if err != nil {
-		msg := "failed to get team from app id"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	if !okTeam || !okApp {
-		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
+	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:   exprfilter.NetworkEntity,
+		appScope: *measure.ScopeAppRead,
+		logRoot:  logcomment.Network,
+		logName:  "trends",
+	})
+	if !ok {
 		return
 	}
 
@@ -3584,7 +3296,7 @@ func (h Handlers) GetNetworkRequestsTrends(c *gin.Context) {
 		trendsLimit = 50
 	}
 
-	result, err := network.FetchTrends(ctx, deps.RchPool, *app.ID, *team.ID, &af, trendsLimit)
+	result, err := network.FetchTrends(ctx, deps.RchPool, *app.ID, app.TeamId, &ef, trendsLimit)
 	if err != nil {
 		msg := "failed to get network overview"
 		fmt.Println(msg, err)
@@ -3597,112 +3309,17 @@ func (h Handlers) GetNetworkRequestsTrends(c *gin.Context) {
 
 func (h Handlers) GetNetworkEndpointTimelinePlot(c *gin.Context) {
 	deps := h.Deps
-	ctx := c.Request.Context()
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:   exprfilter.NetworkEntity,
+		appScope: *measure.ScopeAppRead,
+		logRoot:  logcomment.Network,
+		logName:  "timeline",
+	})
+	if !ok {
 		return
 	}
 
-	af := filter.AppFilter{
-		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
-	}
-
-	if err := c.ShouldBindQuery(&af); err != nil {
-		msg := `failed to parse query parameters`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	msg := "endpoint timeline request validation failed"
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
-	}
-
-	domain := c.Query("domain")
-	path := c.Query("path")
-
-	app := measure.App{
-		ID: &id,
-	}
-	team, err := app.GetTeam(ctx, deps.PgPool)
-	if err != nil {
-		msg := "failed to get team from app id"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	if !okTeam || !okApp {
-		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
-		return
-	}
-
-	result, err := network.FetchTimelinePlot(ctx, deps.RchPool, *app.ID, *team.ID, domain, path, &af)
+	result, err := network.FetchTimelinePlot(ctx, deps.RchPool, *app.ID, app.TeamId, c.Query("domain"), c.Query("path"), &ef)
 	if err != nil {
 		msg := "failed to get endpoint timeline data"
 		fmt.Println(msg, err)
@@ -3723,15 +3340,6 @@ func (h Handlers) GetNetworkEndpointStatusCodesPlot(c *gin.Context) {
 
 func (h Handlers) getNetworkStatusCodesPlot(c *gin.Context, exactCodes bool) {
 	deps := h.Deps
-	ctx := c.Request.Context()
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
 	domain := c.Query("domain")
 	path := c.Query("path")
 	if exactCodes && domain == "" && path == "" {
@@ -3739,72 +3347,24 @@ func (h Handlers) getNetworkStatusCodesPlot(c *gin.Context, exactCodes bool) {
 		return
 	}
 
-	af := filter.AppFilter{
-		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
+	logName := "status_codes"
+	if exactCodes {
+		logName = "endpoint_status_codes"
 	}
 
-	if err := c.ShouldBindQuery(&af); err != nil {
-		msg := `failed to parse query parameters`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
+	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:          exprfilter.NetworkEntity,
+		appScope:        *measure.ScopeAppRead,
+		logRoot:         logcomment.Network,
+		logName:         logName,
+		requireTimezone: true,
+	})
+	if !ok {
 		return
 	}
 
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	msg := "network status codes plot request validation failed"
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if !af.HasTimezone() {
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "missing required field `timezone`",
-		})
-		return
-	}
-
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
-	}
-
-	if !af.HasPlotTimeGroup() {
-		af.SetDefaultPlotTimeGroup()
-	}
-
-	groupExpr, err := measure.GetPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	ef.SetDefaultPlotTimeGroupIfUnset()
+	groupExpr, err := measure.GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
 	if err != nil {
 		msg := "failed to compute time group expression"
 		fmt.Println(msg, err)
@@ -3812,47 +3372,8 @@ func (h Handlers) getNetworkStatusCodesPlot(c *gin.Context, exactCodes bool) {
 		return
 	}
 
-	app := measure.App{
-		ID: &id,
-	}
-	team, err := app.GetTeam(ctx, deps.PgPool)
-	if err != nil {
-		msg := "failed to get team from app id"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	if !okTeam || !okApp {
-		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
-		return
-	}
-
 	if exactCodes {
-		result, err := network.GetEndpointStatusCodesPlot(ctx, deps.RchPool, *app.ID, *team.ID, domain, path, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+		result, err := network.GetEndpointStatusCodesPlot(ctx, deps.RchPool, *app.ID, app.TeamId, domain, path, &ef, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 		if err != nil {
 			msg := "failed to get network endpoint status codes plot"
 			fmt.Println(msg, err)
@@ -3864,7 +3385,7 @@ func (h Handlers) getNetworkStatusCodesPlot(c *gin.Context, exactCodes bool) {
 		return
 	}
 
-	result, err := network.GetStatusCodesPlot(ctx, deps.RchPool, *app.ID, *team.ID, domain, path, &af, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetStatusCodesPlot(ctx, deps.RchPool, *app.ID, app.TeamId, domain, path, &ef, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		msg := "failed to get network status codes plot"
 		fmt.Println(msg, err)

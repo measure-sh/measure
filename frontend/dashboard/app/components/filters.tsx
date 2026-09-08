@@ -17,13 +17,7 @@ import React, {
   useRef,
   useState,
 } from "react";
-import {
-  App,
-  AppVersion,
-  FilterSource,
-  HttpMethod,
-  SessionType,
-} from "../api/api_calls";
+import { App, AppVersion, FilterSource, SessionType } from "../api/api_calls";
 import { useAppsQuery, useFilterOptionsQuery } from "../query/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -93,7 +87,6 @@ interface FiltersProps {
   showLocales?: boolean;
   showDeviceManufacturers?: boolean;
   showDeviceNames?: boolean;
-  showHttpMethods?: boolean;
   showUdAttrs?: boolean;
   showFreeText?: boolean;
   showErrorType?: boolean;
@@ -216,14 +209,6 @@ export function deserializeUrlFilters(queryString: string): URLFilters {
               return { key, type, op, value: val } as UdAttrMatcher;
             })
             .filter((m) => m.key && m.type && m.op && m.value);
-          break;
-
-        case "httpMethods":
-          result[originalKey] = value
-            .split(",")
-            .filter((s): s is HttpMethod =>
-              Object.values(HttpMethod).includes(s as HttpMethod),
-            );
           break;
 
         case "sessionTypes":
@@ -493,7 +478,6 @@ const FiltersComponent = forwardRef<
       showLocales = false,
       showDeviceManufacturers = false,
       showDeviceNames = false,
-      showHttpMethods = false,
       showUdAttrs = false,
       showFreeText = false,
       showErrorType = false,
@@ -547,7 +531,6 @@ const FiltersComponent = forwardRef<
         showLocales,
         showDeviceManufacturers,
         showDeviceNames,
-        showHttpMethods,
         showUdAttrs,
         showFreeText,
       });
@@ -568,7 +551,6 @@ const FiltersComponent = forwardRef<
       showLocales,
       showDeviceManufacturers,
       showDeviceNames,
-      showHttpMethods,
       showUdAttrs,
       showFreeText,
     ]);
@@ -734,7 +716,6 @@ const FiltersComponent = forwardRef<
     // confirms.
     type PendingModalFilters = {
       selectedSessionTypes: SessionType[];
-      selectedHttpMethods: HttpMethod[];
       selectedOsVersions: typeof store.selectedOsVersions;
       selectedCountries: string[];
       selectedNetworkProviders: string[];
@@ -748,7 +729,6 @@ const FiltersComponent = forwardRef<
     const [pendingModalFilters, setPendingModalFilters] =
       useState<PendingModalFilters>(() => ({
         selectedSessionTypes: store.selectedSessionTypes,
-        selectedHttpMethods: store.selectedHttpMethods,
         selectedOsVersions: store.selectedOsVersions,
         selectedCountries: store.selectedCountries,
         selectedNetworkProviders: store.selectedNetworkProviders,
@@ -770,7 +750,6 @@ const FiltersComponent = forwardRef<
       if (moreFiltersOpen) {
         setPendingModalFilters({
           selectedSessionTypes: store.selectedSessionTypes,
-          selectedHttpMethods: store.selectedHttpMethods,
           selectedOsVersions: store.selectedOsVersions,
           selectedCountries: store.selectedCountries,
           selectedNetworkProviders: store.selectedNetworkProviders,
@@ -787,7 +766,6 @@ const FiltersComponent = forwardRef<
     // Commit the pending snapshot to the store and close the modal.
     const saveMoreFilters = () => {
       store.setSelectedSessionTypes(pendingModalFilters.selectedSessionTypes);
-      store.setSelectedHttpMethods(pendingModalFilters.selectedHttpMethods);
       store.setSelectedOsVersions(pendingModalFilters.selectedOsVersions);
       store.setSelectedCountries(pendingModalFilters.selectedCountries);
       store.setSelectedNetworkProviders(
@@ -831,7 +809,6 @@ const FiltersComponent = forwardRef<
     // (no loaded data) so the skeleton can reserve the trigger's slot.
     const hasMoreFiltersConfig =
       showSessionTypes ||
-      showHttpMethods ||
       showOsVersions ||
       showCountries ||
       showNetworkProviders ||
@@ -868,7 +845,6 @@ const FiltersComponent = forwardRef<
     // trigger so it never opens an empty modal.
     const hasMoreFilters =
       showSessionTypes ||
-      showHttpMethods ||
       (showOsVersions && store.osVersions.length > 0) ||
       (showCountries && store.countries.length > 0) ||
       (showNetworkProviders && store.networkProviders.length > 0) ||
@@ -898,23 +874,6 @@ const FiltersComponent = forwardRef<
           : resetAction(() =>
               store.setSelectedSessionTypes(defaultSessionTypes),
             ),
-      });
-    }
-    if (showHttpMethods && store.selectedHttpMethods.length > 0) {
-      filterChips.push({
-        key: "httpMethods",
-        ...chipLabels(
-          "HTTP Method",
-          store.selectedHttpMethods.map((m) => m.toUpperCase()),
-        ),
-        action:
-          store.selectedHttpMethods.length === Object.values(HttpMethod).length
-            ? undefined
-            : resetAction(() =>
-                store.setSelectedHttpMethods(
-                  Object.values(HttpMethod) as HttpMethod[],
-                ),
-              ),
       });
     }
     if (showOsVersions && store.selectedOsVersions.length > 0) {
@@ -1087,21 +1046,6 @@ const FiltersComponent = forwardRef<
               setPendingModalFilters((p) => ({
                 ...p,
                 selectedSessionTypes: items as SessionType[],
-              }))
-            }
-          />
-        )}
-        {showHttpMethods && (
-          <StringMultiRow
-            rowKey="httpMethods"
-            title="HTTP Method"
-            items={Object.values(HttpMethod)}
-            selected={pendingModalFilters.selectedHttpMethods}
-            getLabel={(item) => item.toUpperCase()}
-            onChange={(items) =>
-              setPendingModalFilters((p) => ({
-                ...p,
-                selectedHttpMethods: items as HttpMethod[],
               }))
             }
           />

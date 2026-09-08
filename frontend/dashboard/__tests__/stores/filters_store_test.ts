@@ -4,7 +4,6 @@ import {
   App,
   AppVersion,
   FilterSource,
-  HttpMethod,
   OsVersion,
   SessionType,
 } from "@/app/api/api_calls";
@@ -63,7 +62,6 @@ const baseConfig = {
   showLocales: true,
   showDeviceManufacturers: true,
   showDeviceNames: true,
-  showHttpMethods: true,
   showUdAttrs: true,
   showFreeText: true,
 };
@@ -327,16 +325,6 @@ describe("applyFilterOptions", () => {
       SessionType.FatalErrors,
       SessionType.ANRs,
     ]);
-  });
-
-  it("honors URL http methods when valid", () => {
-    const patch = applyFilterOptions(
-      emptyOptions(),
-      app,
-      initConfig({ httpMethods: [HttpMethod.GET] }),
-      state(),
-    );
-    expect(patch.selectedHttpMethods).toEqual([HttpMethod.GET]);
   });
 
   it("honors URL freeText", () => {

@@ -72,6 +72,8 @@ func FindByName(name string) (Entity, error) {
 		return JourneysEntity, nil
 	case AlertsEntity.Name:
 		return AlertsEntity, nil
+	case NetworkEntity.Name:
+		return NetworkEntity, nil
 	}
 
 	return Entity{}, fmt.Errorf("Unknown filter entity %q", name)
@@ -82,6 +84,7 @@ const (
 	KeyGroupVersion   KeyGroup = "Version"
 	KeyGroupBuild     KeyGroup = "Build"
 	KeyGroupSpan      KeyGroup = "Span"
+	KeyGroupRequest   KeyGroup = "Request"
 	KeyGroupBugReport KeyGroup = "Bug Report"
 	KeyGroupSession   KeyGroup = "Session"
 	KeyGroupUser      KeyGroup = "User"
@@ -95,7 +98,7 @@ const (
 // keyGroupOrder is the order the filter bar shows groups in.
 var keyGroupOrder = []KeyGroup{
 	KeyGroupBugReport, KeyGroupVersion, KeyGroupBuild, KeyGroupSpan,
-	KeyGroupOS, KeyGroupDevice, KeyGroupNetwork, KeyGroupLocation,
+	KeyGroupRequest, KeyGroupOS, KeyGroupDevice, KeyGroupNetwork, KeyGroupLocation,
 	KeyGroupUser, KeyGroupSession, KeyGroupCustom,
 }
 
@@ -189,6 +192,17 @@ var (
 		Operators:           []Operator{OperatorIn, OperatorNotIn},
 		ValueSuggestionMode: ValueSuggestionModeFullList,
 		EnumValues:          []string{"unset", "ok", "error"},
+	}
+
+	httpMethod = Key{
+		Name:                "http_method",
+		Label:               "HTTP method",
+		Description:         "The HTTP method of the request.",
+		KeyGroup:            KeyGroupRequest,
+		ValueType:           ValueTypeEnum,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeFullList,
+		EnumValues:          []string{"get", "post", "put", "patch", "delete"},
 	}
 
 	bugReportStatus = Key{

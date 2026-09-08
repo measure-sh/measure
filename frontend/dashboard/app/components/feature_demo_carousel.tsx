@@ -23,9 +23,10 @@ const ErrorsDetails = dynamic(
     ),
   { ssr: false },
 );
-const NetworkOverview = dynamic(() => import("./network_overview"), {
-  ssr: false,
-});
+const NetworkOverviewDemo = dynamic(
+  () => import("./network_overview").then((m) => m.NetworkOverviewDemo),
+  { ssr: false },
+);
 
 // Each demo renders at its own natural height; sizing the frame per feature
 // keeps short demos from ending in dead space while the tall dashboards stay
@@ -177,7 +178,7 @@ export default function FeatureDemoCarousel() {
     <TraceDetails demo={true} hideDemoTitle={false} key="demo-trace" />,
     <BugReport demo={true} hideDemoTitle={false} key="demo-bugreport" />,
     <UserJourneysDemo key="demo-journeys" />,
-    <NetworkOverview demo={true} hideDemoTitle={false} key="demo-network" />,
+    <NetworkOverviewDemo key="demo-network" />,
   ];
 
   return (

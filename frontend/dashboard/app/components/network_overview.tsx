@@ -1,10 +1,8 @@
 "use client";
 
-import { FilterSource } from "@/app/api/api_calls";
-
-import Filters, {
-  AppVersionsInitialSelectionType,
-} from "@/app/components/filters";
+import { filterExprIssuesIn } from "@/app/api/api_error";
+import FilterBar from "@/app/components/filter_bar/filter_bar";
+import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
 import InfoTooltip from "@/app/components/info_tooltip";
 import NetworkEndpointSearch from "@/app/components/network_endpoint_search";
 import NetworkStatusDistributionPlot from "@/app/components/network_status_distribution_plot";
@@ -13,28 +11,16 @@ import NetworkTimelinePlot, {
   NetworkTimelineDataPoint,
 } from "@/app/components/network_timeline_plot";
 import NetworkTrends from "@/app/components/network_trends";
-import {
-  Skeleton,
-  SkeletonPlot,
-  SkeletonTable,
-} from "@/app/components/skeleton";
+import { SkeletonListPage, SkeletonPlot } from "@/app/components/skeleton";
 import {
   useNetworkStatusCodesQuery,
   useNetworkTimelineQuery,
 } from "@/app/query/hooks";
-import { useFiltersStore } from "@/app/stores/provider";
 import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import { getPlotTimeGroupForRange } from "@/app/utils/time_utils";
 import { DateTime } from "luxon";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
-
-interface NetworkOverviewProps {
-  params?: { teamId: string };
-  demo?: boolean;
-  hideDemoTitle?: boolean;
-}
+import type { ComponentProps, ReactNode } from "react";
 
 function generateDemoStatusData() {
   const now = DateTime.now().toUTC();
@@ -182,218 +168,259 @@ function generateDemoTimelineData(): NetworkTimelineData {
   return { interval: 5, points };
 }
 
+type PlotStatus = "pending" | "success" | "error" | "nodata";
+
 const demoStatusData = generateDemoStatusData();
 const demoTimelineData = generateDemoTimelineData();
 
-export default function NetworkOverview({
-  params,
-  demo = false,
-  hideDemoTitle = false,
-}: NetworkOverviewProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-  const filters = useFiltersStore((state) => state.filters);
-
-  const statusCodesQuery = useNetworkStatusCodesQuery("", "");
-  const timelineQuery = useNetworkTimelineQuery("", "");
-
-  // In demo mode, use static data instead of store data
-  const statusPlotStatus = demo
-    ? ("success" as const)
-    : statusCodesQuery.status === "success" && statusCodesQuery.data === null
-      ? ("nodata" as const)
-      : statusCodesQuery.status;
-  const statusPlotData = demo ? demoStatusData : (statusCodesQuery.data ?? []);
-  const timelinePlotStatus = demo
-    ? ("success" as const)
-    : timelineQuery.status === "success" && timelineQuery.data === null
-      ? ("nodata" as const)
-      : timelineQuery.status;
-  const timelinePlotData = demo
-    ? demoTimelineData
-    : (timelineQuery.data ?? null);
-
-  const plotTimeGroup = demo
-    ? "days"
-    : getPlotTimeGroupForRange(filters.startDate, filters.endDate);
-  const shouldRenderStatusPlot = demo
-    ? true
-    : statusPlotStatus === "success" && statusPlotData.length > 0;
-  const shouldRenderTimeline = demo
-    ? true
-    : timelinePlotStatus === "success" &&
-      timelinePlotData !== null &&
-      timelinePlotData.points.length > 0;
-
-  // Sync filters to URL
-  useEffect(() => {
-    if (demo) return;
-    if (!filters.ready) return;
-    router.replace(`${pathname}?${filters.serialisedFilters!}`, {
-      scroll: false,
-    });
-  }, [filters.ready, filters.serialisedFilters, pathname]);
-
+export function NetworkOverviewDemo({
+  hideTitle = false,
+}: {
+  hideTitle?: boolean;
+}) {
   return (
     <div className="flex flex-col items-start">
       <p className="font-display text-4xl max-w-6xl text-center">
-        {demo ? (hideDemoTitle ? "" : "Network Performance") : ""}
+        {hideTitle ? "" : "Network Performance"}
       </p>
-      {!hideDemoTitle && <div className="py-4" />}
+      {!hideTitle && <div className="py-4" />}
+      <div className="py-8" />
 
-      {!demo && params && (
-        <Filters
-          teamId={params.teamId}
-          filterSource={FilterSource.Events}
-          appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-          showOsVersions={true}
-          showCountries={true}
-          showNetworkTypes={true}
-          showNetworkProviders={true}
-          showNetworkGenerations={true}
-          showLocales={true}
-          showDeviceManufacturers={true}
-          showDeviceNames={true}
-          showHttpMethods={true}
-        />
-      )}
+      <NetworkOverviewSections
+        statusPlotStatus="success"
+        statusPlotData={demoStatusData}
+        plotTimeGroup="days"
+        trends={<NetworkTrends demo />}
+        timelinePlotStatus="success"
+        timelinePlotData={demoTimelineData}
+        timelineTooltip="Distribution of when endpoint patterns are typically called in a session."
+      />
+    </div>
+  );
+}
 
-      {!demo && filters.loading && (
-        <div className="flex flex-col w-full">
-          <div className="py-4" />
-          <Skeleton className="h-9 w-full" />
-          <div className="py-6" />
-          <div className="flex font-body items-center justify-center w-full h-144">
-            <SkeletonPlot />
-          </div>
-          <div className="py-6" />
-          <div className="flex font-body items-center justify-center w-full h-144">
-            <SkeletonPlot />
-          </div>
-          <div className="py-8" />
-          <Skeleton className="h-6 w-36" />
-          <SkeletonTable rows={5} columns={4} />
-        </div>
-      )}
+export default function NetworkOverview({
+  params,
+}: {
+  params: { teamId: string };
+}) {
+  const { teamId } = params;
+  const {
+    value,
+    apps,
+    keys,
+    keyGroups,
+    keysUnavailable,
+    status: filterStatus,
+    filterParams,
+    onChange,
+  } = useExprFilterPage({ teamId, entity: "network" });
+  const readyValue = filterStatus.kind === "ready" ? value : null;
 
-      {(demo || filters.ready) && (
+  const statusCodesQuery = useNetworkStatusCodesQuery(filterParams, "", "");
+  const timelineQuery = useNetworkTimelineQuery(filterParams, "", "");
+
+  const filterExprIssues =
+    filterExprIssuesIn(statusCodesQuery.error) ??
+    filterExprIssuesIn(timelineQuery.error);
+
+  const statusPlotStatus =
+    statusCodesQuery.status === "success" && statusCodesQuery.data === null
+      ? ("nodata" as const)
+      : statusCodesQuery.status;
+  const statusPlotData = statusCodesQuery.data ?? [];
+  const timelinePlotStatus =
+    timelineQuery.status === "success" && timelineQuery.data === null
+      ? ("nodata" as const)
+      : timelineQuery.status;
+  const timelinePlotData = timelineQuery.data ?? null;
+
+  const plotTimeGroup = getPlotTimeGroupForRange(
+    readyValue?.date.startDate ?? "",
+    readyValue?.date.endDate ?? "",
+  );
+
+  return (
+    <div className="flex flex-col items-start">
+      <div className="py-4" />
+
+      <FilterBar
+        entity="network"
+        placeholder="Filter network requests…"
+        value={value}
+        apps={apps}
+        keys={keys}
+        keyGroups={keyGroups}
+        keysUnavailable={keysUnavailable}
+        filterExprIssues={filterExprIssues}
+        onChange={onChange}
+      />
+
+      {filterStatus.kind === "error" && (
         <>
-          {!demo && params && (
-            <>
-              <div className="py-8" />
-              <div className="flex items-center gap-2">
-                <p className="font-display text-xl">Explore Endpoints</p>
-                <InfoTooltip
-                  content={
-                    <>
-                      <Link
-                        href="/docs/network-monitoring/endpoint-patterns#searching-for-endpoints"
-                        className={underlineLinkStyle}
-                      >
-                        Learn more
-                      </Link>{" "}
-                      about endpoint search and using wildcards.
-                    </>
-                  }
-                />
-              </div>
-              <div className="py-4" />
-              <NetworkEndpointSearch
-                key={params.teamId}
-                teamId={params.teamId}
-              />
-            </>
-          )}
+          <div className="py-4" />
+          <p className="text-lg font-display">{filterStatus.message}</p>
+        </>
+      )}
+
+      {filterStatus.kind === "loading" && (
+        <>
+          <div className="py-4" />
+          <SkeletonListPage />
+        </>
+      )}
+
+      {readyValue !== null && (
+        <>
+          <div className="py-8" />
+          <div className="flex items-center gap-2">
+            <p className="font-display text-xl">Explore Endpoints</p>
+            <InfoTooltip
+              content={
+                <>
+                  <Link
+                    href="/docs/network-monitoring/endpoint-patterns#searching-for-endpoints"
+                    className={underlineLinkStyle}
+                  >
+                    Learn more
+                  </Link>{" "}
+                  about endpoint search and using wildcards.
+                </>
+              }
+            />
+          </div>
+          <div className="py-4" />
+          <NetworkEndpointSearch
+            key={teamId}
+            teamId={teamId}
+            filterParams={filterParams}
+          />
 
           <div className="py-8" />
 
-          {/* Status Distribution Section */}
-          <div className="w-full">
-            <p className="font-display text-xl">Status Distribution</p>
-            <div className="py-2" />
-            <div className="flex font-body items-center justify-center w-full h-144">
-              {(statusPlotStatus === "pending" ||
-                (statusPlotStatus === "success" &&
-                  !shouldRenderStatusPlot)) && <SkeletonPlot />}
-              {shouldRenderStatusPlot && (
-                <NetworkStatusDistributionPlot
-                  data={statusPlotData}
-                  plotTimeGroup={plotTimeGroup}
-                />
-              )}
-              {statusPlotStatus === "nodata" && (
-                <p className="font-body text-sm">
-                  No data available for the selected filters
-                </p>
-              )}
-              {statusPlotStatus === "error" && (
-                <p className="font-body text-sm">
-                  Error fetching status distribution, please change filters &
-                  try again
-                </p>
-              )}
-            </div>
-          </div>
-
-          <div className="py-8" />
-
-          {/* Top Endpoints Section */}
-          <div className="w-full">
-            <NetworkTrends teamId={params?.teamId} active demo={demo} />
-          </div>
-
-          <div className="py-10" />
-
-          {/* Request Timeline Section */}
-          <div className="w-full">
-            <div className="flex items-center gap-2">
-              <p className="font-display text-xl">Timeline</p>
-              <InfoTooltip
-                content={
-                  <>
-                    Distribution of when endpoint patterns are typically called
-                    in a session.
-                    {!demo && (
-                      <>
-                        {" "}
-                        <Link
-                          href="/docs/network-monitoring/endpoint-patterns#request-timeline"
-                          className={underlineLinkStyle}
-                        >
-                          Learn more
-                        </Link>{" "}
-                        about how the timeline is generated
-                      </>
-                    )}
-                  </>
-                }
+          <NetworkOverviewSections
+            statusPlotStatus={statusPlotStatus}
+            statusPlotData={statusPlotData}
+            plotTimeGroup={plotTimeGroup}
+            trends={
+              <NetworkTrends
+                teamId={teamId}
+                filterParams={filterParams}
+                active
               />
-            </div>
-            {shouldRenderTimeline && (
-              <div className="py-8">
-                <NetworkTimelinePlot data={timelinePlotData!} />
-              </div>
-            )}
-            {!shouldRenderTimeline && (
-              <div className="flex font-body items-center justify-center w-full h-144">
-                {timelinePlotStatus === "pending" && <SkeletonPlot />}
-                {(timelinePlotStatus === "nodata" ||
-                  timelinePlotStatus === "success") && (
-                  <p className="font-body text-sm">
-                    No data available for the selected filters
-                  </p>
-                )}
-                {timelinePlotStatus === "error" && (
-                  <p className="font-body text-sm">
-                    Error fetching requests timeline, please change filters &
-                    try again
-                  </p>
-                )}
-              </div>
-            )}
-          </div>
+            }
+            timelinePlotStatus={timelinePlotStatus}
+            timelinePlotData={timelinePlotData}
+            timelineTooltip={
+              <>
+                Distribution of when endpoint patterns are typically called in a
+                session.{" "}
+                <Link
+                  href="/docs/network-monitoring/endpoint-patterns#request-timeline"
+                  className={underlineLinkStyle}
+                >
+                  Learn more
+                </Link>{" "}
+                about how the timeline is generated
+              </>
+            }
+          />
         </>
       )}
     </div>
+  );
+}
+
+function NetworkOverviewSections({
+  statusPlotStatus,
+  statusPlotData,
+  plotTimeGroup,
+  trends,
+  timelinePlotStatus,
+  timelinePlotData,
+  timelineTooltip,
+}: {
+  statusPlotStatus: PlotStatus;
+  statusPlotData: ComponentProps<typeof NetworkStatusDistributionPlot>["data"];
+  plotTimeGroup: ComponentProps<
+    typeof NetworkStatusDistributionPlot
+  >["plotTimeGroup"];
+  trends: ReactNode;
+  timelinePlotStatus: PlotStatus;
+  timelinePlotData: NetworkTimelineData | null;
+  timelineTooltip: ReactNode;
+}) {
+  const shouldRenderStatusPlot =
+    statusPlotStatus === "success" && statusPlotData.length > 0;
+  const shouldRenderTimeline =
+    timelinePlotStatus === "success" &&
+    timelinePlotData !== null &&
+    timelinePlotData.points.length > 0;
+
+  return (
+    <>
+      <div className="w-full">
+        <p className="font-display text-xl">Status Distribution</p>
+        <div className="py-2" />
+        <div className="flex font-body items-center justify-center w-full h-144">
+          {(statusPlotStatus === "pending" ||
+            (statusPlotStatus === "success" && !shouldRenderStatusPlot)) && (
+            <SkeletonPlot />
+          )}
+          {shouldRenderStatusPlot && (
+            <NetworkStatusDistributionPlot
+              data={statusPlotData}
+              plotTimeGroup={plotTimeGroup}
+            />
+          )}
+          {statusPlotStatus === "nodata" && (
+            <p className="font-body text-sm">
+              No data available for the selected filters
+            </p>
+          )}
+          {statusPlotStatus === "error" && (
+            <p className="font-body text-sm">
+              Error fetching status distribution, please change filters & try
+              again
+            </p>
+          )}
+        </div>
+      </div>
+
+      <div className="py-8" />
+
+      <div className="w-full">{trends}</div>
+
+      <div className="py-10" />
+
+      <div className="w-full">
+        <div className="flex items-center gap-2">
+          <p className="font-display text-xl">Timeline</p>
+          <InfoTooltip content={timelineTooltip} />
+        </div>
+        {shouldRenderTimeline && (
+          <div className="py-8">
+            <NetworkTimelinePlot data={timelinePlotData!} />
+          </div>
+        )}
+        {!shouldRenderTimeline && (
+          <div className="flex font-body items-center justify-center w-full h-144">
+            {timelinePlotStatus === "pending" && <SkeletonPlot />}
+            {(timelinePlotStatus === "nodata" ||
+              timelinePlotStatus === "success") && (
+              <p className="font-body text-sm">
+                No data available for the selected filters
+              </p>
+            )}
+            {timelinePlotStatus === "error" && (
+              <p className="font-body text-sm">
+                Error fetching requests timeline, please change filters & try
+                again
+              </p>
+            )}
+          </div>
+        )}
+      </div>
+    </>
   );
 }

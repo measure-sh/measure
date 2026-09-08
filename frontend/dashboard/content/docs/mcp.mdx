@@ -47,7 +47,7 @@ Get available filter options (versions, OS, countries, devices, etc.) for an app
 
 ### `get_filter_keys`
 
-List the filter keys of an entity (spans, bug_reports, journeys or builds): the vocabulary a filter expression is written with.
+List the filter keys of an entity (spans, bug_reports, journeys, network or builds): the vocabulary a filter expression is written with.
 
 ### `get_filter_values`
 
@@ -136,3 +136,23 @@ Get alerts for an app, ordered by most recent first.
 ### `get_journey`
 
 Get user journeys for an app as a graph of screens.
+
+### `get_network_metrics_trends`
+
+Get top network endpoints for an app by latency, error rate and frequency.
+
+### `get_network_status_codes_over_time`
+
+Get time-series of HTTP status class counts (2xx, 3xx, 4xx, 5xx) for an app or a specific endpoint.
+
+### `get_network_endpoint_status_codes_over_time`
+
+Get time-series of exact HTTP status code counts for a specific endpoint.
+
+### `get_network_latency_over_time`
+
+Get time-series of p50/p90/p95/p99 latency for an app or a specific endpoint.
+
+### `get_network_timeline`
+
+Get time-series of network requests per session, bucketed by time since session start, for an app or a specific endpoint.

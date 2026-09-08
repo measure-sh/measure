@@ -29,6 +29,7 @@ import {
   makeExceptionInstanceFixture,
   makeExceptionsOverviewFixture,
   makeFilterKeysFixture,
+  makeNetworkFilterKeysFixture,
   makeFilterValuesFixture,
   makeFiltersFixture,
   makeHealthPlotFixture,
@@ -419,6 +420,9 @@ export const handlers = [
     }
     if (entity === "journeys") {
       return HttpResponse.json(makeJourneysFilterKeysFixture());
+    }
+    if (entity === "network") {
+      return HttpResponse.json(makeNetworkFilterKeysFixture());
     }
     if (entity === "alerts") {
       return HttpResponse.json({

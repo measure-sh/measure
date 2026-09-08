@@ -10,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, JourneysEntity, AlertsEntity}
+var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, JourneysEntity, AlertsEntity, NetworkEntity}
 
 func sampleValues(t *testing.T, key Key, operator Operator) []Value {
 	t.Helper()
@@ -421,6 +421,123 @@ func TestJourneyEventsKeyBindingsReadTheEventsColumns(t *testing.T) {
 	}
 	if args := onEvents.Args(); len(args) != 2 || !slices.Equal(args[0].([]string), []string{"1.2.0"}) || !slices.Equal(args[1].([]string), []string{"120"}) {
 		t.Errorf("want the version values bound, got %v", args)
+	}
+}
+
+func TestNetworkEntityOffersEveryNetworkKey(t *testing.T) {
+	byName := IndexKeysByName(NetworkEntity.Keys)
+
+	wanted := []string{
+		"version_name", "version_code", "patch_version", "patch_id",
+		"http_method",
+		"os_name", "os_version",
+		"device_name", "device_manufacturer", "locale",
+		"network_type", "network_generation", "network_provider",
+		"country",
+	}
+	for _, name := range wanted {
+		if _, ok := byName[name]; !ok {
+			t.Errorf("want a %q key on the network entity", name)
+		}
+	}
+	if len(NetworkEntity.Keys) != len(wanted) {
+		t.Errorf("want %d network keys, got %d", len(wanted), len(NetworkEntity.Keys))
+	}
+}
+
+func TestNetworkBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
+	_, err := NetworkEntity.BindKey(Condition{
+		KeyName:  "span_status",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "error"}},
+	})
+
+	if err == nil {
+		t.Fatal("want a key the network entity does not have refused")
+	}
+	if !strings.Contains(err.Error(), "span_status") {
+		t.Errorf("want the key named, got %q", err)
+	}
+}
+
+func TestNetworkHttpMethodComparesLowercased(t *testing.T) {
+	condition := Condition{
+		KeyName:  "http_method",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "get"}},
+	}
+
+	onEvents, err := NetworkEntity.BindKey(condition)
+	if err != nil {
+		t.Fatalf("bind http_method: %v", err)
+	}
+	defer onEvents.Close()
+	if got := onEvents.String(); got != "lower(method) in ?" {
+		t.Errorf("want the method column lowercased, got %q", got)
+	}
+
+	onMetrics, err := NetworkMetricsKeyBindings["http_method"](condition)
+	if err != nil {
+		t.Fatalf("bind http_method on the rollup: %v", err)
+	}
+	defer onMetrics.Close()
+	if got := onMetrics.String(); got != "hasAny(arrayMap(method -> lower(method), methods), ?)" {
+		t.Errorf("want the method array lowercased, got %q", got)
+	}
+}
+
+func TestNetworkMetricsKeyBindingsReadTheRollupArrays(t *testing.T) {
+	ef := &ExprFilter{Entity: NetworkEntity, FilterExpr: "version_name:in:1.2.0 AND country:in:US"}
+	if err := ef.BuildExprTree(); err != nil {
+		t.Fatalf("build: %v", err)
+	}
+
+	onEvents, err := ef.Predicate(nil)
+	if err != nil {
+		t.Fatalf("predicate on the events table: %v", err)
+	}
+	defer onEvents.Close()
+	if got := onEvents.String(); got != "((tupleElement(`attribute.app_version`, 1) in ?) and (`inet.country_code` in ?))" {
+		t.Errorf("want the event columns compared, got %q", got)
+	}
+
+	onMetrics, err := ef.Predicate(NetworkMetricsKeyBindings)
+	if err != nil {
+		t.Fatalf("predicate on the rollup: %v", err)
+	}
+	defer onMetrics.Close()
+	want := "((hasAny(arrayMap(version -> tupleElement(version, 1), app_versions), ?)) and (hasAny(`inet.country_code`, ?)))"
+	if got := onMetrics.String(); got != want {
+		t.Errorf("\n got %s\nwant %s", got, want)
+	}
+	if args := onMetrics.Args(); len(args) != 2 || !slices.Equal(args[0].([]string), []string{"1.2.0"}) || !slices.Equal(args[1].([]string), []string{"US"}) {
+		t.Errorf("want the condition values bound, got %v", args)
+	}
+}
+
+func TestNetworkMetricsBindEveryOperatorTheKeysOffer(t *testing.T) {
+	for _, key := range NetworkEntity.Keys {
+		t.Run(key.Name, func(t *testing.T) {
+			binding, bound := NetworkMetricsKeyBindings[key.Name]
+			if !bound {
+				t.Fatalf("key %q has no rollup binding", key.Name)
+			}
+			for _, operator := range key.Operators {
+				stmt, err := binding(Condition{
+					KeyName:  key.Name,
+					Operator: operator,
+					Values:   sampleValues(t, key, operator),
+				})
+				if err != nil {
+					t.Errorf("Operator %q: %v", operator, err)
+					continue
+				}
+				if stmt.String() == "" {
+					t.Errorf("Operator %q wrote no SQL", operator)
+				}
+				stmt.Close()
+			}
+		})
 	}
 }
 

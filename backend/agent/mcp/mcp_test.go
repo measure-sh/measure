@@ -4141,6 +4141,111 @@ func TestMCPNetworkSelectionScopes(t *testing.T) {
 	}
 }
 
+func TestMCPNetworkFilterExpr(t *testing.T) {
+	ctx := context.Background()
+	cleanupAll(ctx, t)
+
+	userID := uuid.New()
+	teamID := uuid.New()
+	appID := uuid.New()
+	rawToken := "msr_networkexpr"
+	seedUser(ctx, t, userID.String(), "networkexpr@mcp.test")
+	seedTeam(ctx, t, teamID, "network expr team")
+	seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+	seedApp(ctx, t, appID, teamID, 30)
+	seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+
+	now := time.Now().UTC().Truncate(15 * time.Minute)
+	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://a.example.com/one", "GET", 200, 5, now)
+	seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "a.example.com", "/one", 5, 5, 0, 0, now)
+
+	from := now.Add(-time.Hour).Format(time.RFC3339)
+	to := now.Add(time.Hour).Format(time.RFC3339)
+
+	latencyCount := func(t *testing.T, filterExpr string) float64 {
+		t.Helper()
+		args := map[string]any{"app_id": appID.String(), "from": from, "to": to, "timezone": "UTC"}
+		if filterExpr != "" {
+			args["filter_expr"] = filterExpr
+		}
+		resp := callMCPTool(t, rawToken, "get_network_latency_over_time", args)
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		var points []map[string]any
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &points); err != nil {
+			t.Fatalf("response is not a data-point array: %v", err)
+		}
+		var total float64
+		for _, point := range points {
+			total += point["count"].(float64)
+		}
+		return total
+	}
+
+	t.Run("filter_expr narrows the events queries", func(t *testing.T) {
+		if got := latencyCount(t, ""); got != 5 {
+			t.Fatalf("unfiltered count = %v, want 5", got)
+		}
+		if got := latencyCount(t, "version_name:in:v1 AND http_method:in:get"); got != 5 {
+			t.Errorf("matching filter count = %v, want 5", got)
+		}
+		if got := latencyCount(t, "version_name:in:v9"); got != 0 {
+			t.Errorf("count for a version never seen = %v, want 0", got)
+		}
+	})
+
+	t.Run("filter_expr narrows the rollup queries", func(t *testing.T) {
+		points := func(t *testing.T, filterExpr string) int {
+			t.Helper()
+			resp := callMCPTool(t, rawToken, "get_network_timeline", map[string]any{
+				"app_id": appID.String(), "from": from, "to": to, "filter_expr": filterExpr,
+			})
+			if isToolError(resp) {
+				t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+			}
+			var result struct {
+				Points []any `json:"points"`
+			}
+			if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &result); err != nil {
+				t.Fatalf("timeline response is not JSON: %v", err)
+			}
+			return len(result.Points)
+		}
+
+		if got := points(t, "http_method:in:get"); got == 0 {
+			t.Error("want the seeded bucket kept by a matching filter")
+		}
+		if got := points(t, "http_method:in:post"); got != 0 {
+			t.Errorf("timeline points for a method never seen = %d, want 0", got)
+		}
+	})
+
+	t.Run("invalid filter_expr returns the issue", func(t *testing.T) {
+		resp := callMCPTool(t, rawToken, "get_network_metrics_trends", map[string]any{
+			"app_id": appID.String(), "from": from, "to": to, "filter_expr": "span_status:in:error",
+		})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for a key the network entity does not have")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "Unknown key") || !strings.Contains(text, "span_status") {
+			t.Errorf("error text %q should name the unknown key", text)
+		}
+	})
+
+	t.Run("unparseable filter_expr returns the parse error", func(t *testing.T) {
+		resp := callMCPTool(t, rawToken, "get_network_metrics_trends", map[string]any{
+			"app_id": appID.String(), "from": from, "to": to, "filter_expr": "version_name:in:v1 AND",
+		})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for unparseable filter")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "filter_expr could not be parsed") || !strings.Contains(text, "at position") {
+			t.Errorf("error text %q should report the parse failure and its position", text)
+		}
+	})
+}
+
 func TestMCPGetNetworkTrends(t *testing.T) {
 	ctx := context.Background()
 	setupToolTest := func(t *testing.T, email string) (uuid.UUID, string) {
