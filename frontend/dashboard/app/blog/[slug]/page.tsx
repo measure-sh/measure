@@ -112,9 +112,17 @@ export async function generateMetadata(props: PageParams): Promise<Metadata> {
     {
       addMeasureSuffixToTitle: false,
       // The post's own card image when it declares one; leaving this out
-      // falls back to the site-wide preview.
+      // falls back to the site-wide preview. Size is hardcoded, so a post's
+      // image must be exactly 1200x630 or these tags misreport it.
       images: page.data.image
-        ? [{ url: page.data.image, alt: page.data.title }]
+        ? [
+            {
+              url: page.data.image,
+              alt: page.data.title,
+              width: 1200,
+              height: 630,
+            },
+          ]
         : undefined,
       article: {
         publishedTime: postDate(page).toISOString(),
