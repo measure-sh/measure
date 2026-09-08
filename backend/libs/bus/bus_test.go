@@ -31,10 +31,20 @@ type sentMessage struct {
 type mockIggyClient struct {
 	mu sync.Mutex
 
-	pollFn           func(iggcon.Identifier, iggcon.Identifier, iggcon.Consumer, iggcon.PollingStrategy, uint32, bool, *uint32) (*iggcon.PolledMessage, error)
+	pollFn func(
+		iggcon.Identifier,
+		iggcon.Identifier,
+		iggcon.Consumer,
+		iggcon.PollingStrategy,
+		uint32,
+		bool,
+		*uint32,
+	) (*iggcon.PolledMessage, error)
+
 	offsets          []storedOffset
 	sentMessages     []sentMessage
 	sendErr          error
+	storeOffsetErrAt *uint64
 	leaveGroupCalled bool
 	closeCalled      bool
 }
@@ -46,17 +56,35 @@ func (m *mockIggyClient) PollMessages(streamId, topicId iggcon.Identifier, consu
 	return nil, nil
 }
 
-func (m *mockIggyClient) StoreConsumerOffset(_ iggcon.Consumer, _ iggcon.Identifier, _ iggcon.Identifier, offset uint64, partitionId *uint32) error {
+func (m *mockIggyClient) StoreConsumerOffset(
+	_ iggcon.Consumer,
+	_ iggcon.Identifier,
+	_ iggcon.Identifier,
+	offset uint64,
+	partitionId *uint32,
+) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	if m.storeOffsetErrAt != nil && offset == *m.storeOffsetErrAt {
+		return errors.New("offset store failed")
+	}
+
 	var pid uint32
 	if partitionId != nil {
 		pid = *partitionId
 	}
-	m.offsets = append(m.offsets, storedOffset{Offset: offset, PartitionID: pid})
+
+	m.offsets = append(
+		m.offsets,
+		storedOffset{
+			Offset:      offset,
+			PartitionID: pid,
+		},
+	)
+
 	return nil
 }
-
 func (m *mockIggyClient) SendMessages(streamId, topicId iggcon.Identifier, partitioning iggcon.Partitioning, messages []iggcon.IggyMessage) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -191,14 +219,100 @@ func newTestConsumer(client iggcon.Client, kind iggcon.ConsumerKind) *iggyConsum
 	}
 
 	return &iggyConsumer{
-		client:          client,
-		streamID:        streamID,
-		topicID:         topicID,
-		consumer:        consumer,
-		partID:          nil,
-		batchSize:       10,
-		pollInterval:    1 * time.Millisecond,
-		pollingStrategy: iggcon.NextPollingStrategy(),
+		client:                client,
+		streamID:              streamID,
+		topicID:               topicID,
+		consumer:              consumer,
+		partID:                nil,
+		batchSize:             10,
+		pollInterval:          1 * time.Millisecond,
+		pollingStrategy:       iggcon.NextPollingStrategy(),
+		processingConcurrency: 1,
+	}
+}
+
+func TestIggyConsumerProcessesWindowConcurrently(t *testing.T) {
+	var pollCalls atomic.Int32
+	cancelListen := context.CancelFunc(nil)
+
+	mock := &mockIggyClient{}
+	mock.pollFn = func(
+		_ iggcon.Identifier,
+		_ iggcon.Identifier,
+		_ iggcon.Consumer,
+		_ iggcon.PollingStrategy,
+		_ uint32,
+		_ bool,
+		_ *uint32,
+	) (*iggcon.PolledMessage, error) {
+		if pollCalls.Add(1) == 1 {
+			return &iggcon.PolledMessage{
+				PartitionId: 7,
+				Messages: []iggcon.IggyMessage{
+					{
+						Header:  iggcon.MessageHeader{Offset: 10},
+						Payload: []byte("msg-a"),
+					},
+					{
+						Header:  iggcon.MessageHeader{Offset: 11},
+						Payload: []byte("msg-b"),
+					},
+				},
+			}, nil
+		}
+
+		cancelListen()
+		return nil, nil
+	}
+
+	c := newTestConsumer(mock, iggcon.ConsumerKindSingle)
+	c.processingConcurrency = 2
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancelListen = cancel
+
+	started := make(chan struct{}, 2)
+	release := make(chan struct{})
+	listenResult := make(chan error, 1)
+
+	go func() {
+		listenResult <- c.Listen(
+			ctx,
+			func(_ context.Context, _ []byte) error {
+				started <- struct{}{}
+				<-release
+				return nil
+			},
+		)
+	}()
+
+	for i := 0; i < 2; i++ {
+		select {
+		case <-started:
+		case <-time.After(time.Second):
+			t.Fatal("handlers did not start concurrently")
+		}
+	}
+
+	close(release)
+
+	select {
+	case err := <-listenResult:
+		if !errors.Is(err, context.Canceled) {
+			t.Errorf("err = %v, want context.Canceled", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("Listen did not exit")
+	}
+
+	mock.mu.Lock()
+	defer mock.mu.Unlock()
+
+	if len(mock.offsets) != 2 {
+		t.Fatalf(
+			"offsets committed = %d, want 2",
+			len(mock.offsets),
+		)
 	}
 }
 
@@ -233,7 +347,18 @@ func TestWithIggyPartitionID(t *testing.T) {
 		t.Errorf("partitioningKind = %d, want PartitionIdKind (%d)", cfg.partitioningKind, iggcon.PartitionIdKind)
 	}
 }
+func TestWithIggyProcessingConcurrency(t *testing.T) {
+	cfg := &iggyConfig{}
 
+	WithIggyProcessingConcurrency(3)(cfg)
+
+	if cfg.processingConcurrency != 3 {
+		t.Errorf(
+			"processingConcurrency = %d, want 3",
+			cfg.processingConcurrency,
+		)
+	}
+}
 func TestWithIggyMessageKey(t *testing.T) {
 	cfg := &iggyConfig{}
 	key := []byte("routing-key")
@@ -516,6 +641,247 @@ func TestIggyConsumerListen(t *testing.T) {
 			t.Errorf("offset[0] = %d, want 10", mock.offsets[0].Offset)
 		}
 	})
+}
+
+func TestIggyConsumerConcurrentHandlerErrorCommitsSuccessfulPrefix(
+	t *testing.T,
+) {
+	var pollCalls atomic.Int32
+	cancelListen := context.CancelFunc(nil)
+
+	mock := &mockIggyClient{}
+	mock.pollFn = func(
+		_ iggcon.Identifier,
+		_ iggcon.Identifier,
+		_ iggcon.Consumer,
+		_ iggcon.PollingStrategy,
+		_ uint32,
+		_ bool,
+		_ *uint32,
+	) (*iggcon.PolledMessage, error) {
+		if pollCalls.Add(1) == 1 {
+			return &iggcon.PolledMessage{
+				PartitionId: 3,
+				Messages: []iggcon.IggyMessage{
+					{
+						Header:  iggcon.MessageHeader{Offset: 10},
+						Payload: []byte("msg-a"),
+					},
+					{
+						Header:  iggcon.MessageHeader{Offset: 11},
+						Payload: []byte("msg-b"),
+					},
+					{
+						Header:  iggcon.MessageHeader{Offset: 12},
+						Payload: []byte("msg-c"),
+					},
+				},
+			}, nil
+		}
+
+		cancelListen()
+		return nil, nil
+	}
+
+	c := newTestConsumer(mock, iggcon.ConsumerKindSingle)
+	c.processingConcurrency = 2
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancelListen = cancel
+
+	var handlerCalls atomic.Int32
+
+	err := c.Listen(ctx, func(
+		_ context.Context,
+		data []byte,
+	) error {
+		handlerCalls.Add(1)
+
+		if string(data) == "msg-b" {
+			return errors.New("processing failed")
+		}
+
+		return nil
+	})
+
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("err = %v, want context.Canceled", err)
+	}
+
+	if calls := handlerCalls.Load(); calls != 2 {
+		t.Errorf("handler called %d times, want 2", calls)
+	}
+
+	mock.mu.Lock()
+	defer mock.mu.Unlock()
+
+	if len(mock.offsets) != 1 {
+		t.Fatalf(
+			"offsets committed = %d, want 1",
+			len(mock.offsets),
+		)
+	}
+
+	if mock.offsets[0].Offset != 10 {
+		t.Errorf(
+			"committed offset = %d, want 10",
+			mock.offsets[0].Offset,
+		)
+	}
+}
+
+func TestIggyConsumerConcurrentFirstFailureCommitsNothing(
+	t *testing.T,
+) {
+	var pollCalls atomic.Int32
+	cancelListen := context.CancelFunc(nil)
+
+	mock := &mockIggyClient{}
+	mock.pollFn = func(
+		_ iggcon.Identifier,
+		_ iggcon.Identifier,
+		_ iggcon.Consumer,
+		_ iggcon.PollingStrategy,
+		_ uint32,
+		_ bool,
+		_ *uint32,
+	) (*iggcon.PolledMessage, error) {
+		if pollCalls.Add(1) == 1 {
+			return &iggcon.PolledMessage{
+				PartitionId: 5,
+				Messages: []iggcon.IggyMessage{
+					{
+						Header:  iggcon.MessageHeader{Offset: 20},
+						Payload: []byte("msg-a"),
+					},
+					{
+						Header:  iggcon.MessageHeader{Offset: 21},
+						Payload: []byte("msg-b"),
+					},
+				},
+			}, nil
+		}
+
+		cancelListen()
+		return nil, nil
+	}
+
+	c := newTestConsumer(mock, iggcon.ConsumerKindSingle)
+	c.processingConcurrency = 2
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancelListen = cancel
+
+	err := c.Listen(ctx, func(
+		_ context.Context,
+		data []byte,
+	) error {
+		if string(data) == "msg-a" {
+			return errors.New("processing failed")
+		}
+
+		return nil
+	})
+
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("err = %v, want context.Canceled", err)
+	}
+
+	mock.mu.Lock()
+	defer mock.mu.Unlock()
+
+	if len(mock.offsets) != 0 {
+		t.Fatalf(
+			"offsets committed = %d, want 0",
+			len(mock.offsets),
+		)
+	}
+}
+
+func TestIggyConsumerConcurrentOffsetCommitErrorCommitsSuccessfulPrefix(
+	t *testing.T,
+) {
+	var pollCalls atomic.Int32
+	cancelListen := context.CancelFunc(nil)
+
+	failOffset := uint64(11)
+	mock := &mockIggyClient{
+		storeOffsetErrAt: &failOffset,
+	}
+
+	mock.pollFn = func(
+		_ iggcon.Identifier,
+		_ iggcon.Identifier,
+		_ iggcon.Consumer,
+		_ iggcon.PollingStrategy,
+		_ uint32,
+		_ bool,
+		_ *uint32,
+	) (*iggcon.PolledMessage, error) {
+		if pollCalls.Add(1) == 1 {
+			return &iggcon.PolledMessage{
+				PartitionId: 3,
+				Messages: []iggcon.IggyMessage{
+					{
+						Header:  iggcon.MessageHeader{Offset: 10},
+						Payload: []byte("msg-a"),
+					},
+					{
+						Header:  iggcon.MessageHeader{Offset: 11},
+						Payload: []byte("msg-b"),
+					},
+					{
+						Header:  iggcon.MessageHeader{Offset: 12},
+						Payload: []byte("msg-c"),
+					},
+				},
+			}, nil
+		}
+
+		cancelListen()
+		return nil, nil
+	}
+
+	c := newTestConsumer(mock, iggcon.ConsumerKindSingle)
+	c.processingConcurrency = 2
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancelListen = cancel
+
+	var handlerCalls atomic.Int32
+
+	err := c.Listen(ctx, func(
+		_ context.Context,
+		_ []byte,
+	) error {
+		handlerCalls.Add(1)
+		return nil
+	})
+
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("err = %v, want context.Canceled", err)
+	}
+
+	if calls := handlerCalls.Load(); calls != 2 {
+		t.Errorf("handler called %d times, want 2", calls)
+	}
+
+	mock.mu.Lock()
+	defer mock.mu.Unlock()
+
+	if len(mock.offsets) != 1 {
+		t.Fatalf(
+			"offsets committed = %d, want 1",
+			len(mock.offsets),
+		)
+	}
+
+	if mock.offsets[0].Offset != 10 {
+		t.Errorf(
+			"committed offset = %d, want 10",
+			mock.offsets[0].Offset,
+		)
+	}
 }
 
 // --- Iggy consumer Close tests ---

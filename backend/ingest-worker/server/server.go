@@ -459,7 +459,31 @@ func Init(config *ServerConfig) {
 			}
 		}
 		log.Printf("iggy poll interval: %v\n", pollInterval)
+		processingConcurrency := 1
 
+		ingestProcessingConcurrency := os.Getenv(
+			"INGEST_PROCESSING_CONCURRENCY",
+		)
+
+		if ingestProcessingConcurrency != "" {
+			parsedConcurrency, parseErr := strconv.Atoi(
+				ingestProcessingConcurrency,
+			)
+
+			if parseErr != nil || parsedConcurrency < 1 {
+				log.Printf(
+					"invalid INGEST_PROCESSING_CONCURRENCY %q; using default 1",
+					ingestProcessingConcurrency,
+				)
+			} else {
+				processingConcurrency = parsedConcurrency
+			}
+		}
+
+		log.Printf(
+			"iggy processing concurrency: %d\n",
+			processingConcurrency,
+		)
 		consumer, err := bus.NewIggyGroupConsumer(
 			config.IG.Addr,
 			config.IG.Username,
@@ -469,6 +493,7 @@ func Init(config *ServerConfig) {
 			ingest.IngestBatchTopic,
 			bus.WithIggyBatchSize(batchSize),
 			bus.WithIggyPollInterval(pollInterval),
+			bus.WithIggyProcessingConcurrency(processingConcurrency),
 		)
 		if err != nil {
 			log.Printf("failed to create Iggy consumer: %v\n", err)

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"sync"
 	"time"
 
 	iggclient "github.com/apache/iggy/foreign/go/client"
@@ -29,6 +30,9 @@ type iggyConsumer struct {
 	pollInterval time.Duration
 	// pollingStrategy selects how the server determines the next batch of messages.
 	pollingStrategy iggcon.PollingStrategy
+	// processingConcurrency limits the number of message handlers running
+	// concurrently inside this consumer.
+	processingConcurrency int
 }
 
 // newIggyConsumer is the shared builder for both NewIggyConsumer and
@@ -106,7 +110,10 @@ func newIggyConsumer(address, username, password, consumerName, streamName, topi
 	if cfg.pollInterval > 0 {
 		pollInterval = cfg.pollInterval
 	}
-
+	processingConcurrency := 1
+	if cfg.processingConcurrency > 0 {
+		processingConcurrency = cfg.processingConcurrency
+	}
 	pollingStrategy := iggcon.NextPollingStrategy()
 	if cfg.pollingStrategy != nil {
 		pollingStrategy = *cfg.pollingStrategy
@@ -114,14 +121,15 @@ func newIggyConsumer(address, username, password, consumerName, streamName, topi
 
 	ok = true
 	return &iggyConsumer{
-		client:          client,
-		consumer:        consumer,
-		streamID:        streamID,
-		topicID:         topicID,
-		partID:          partID,
-		batchSize:       batchSize,
-		pollInterval:    pollInterval,
-		pollingStrategy: pollingStrategy,
+		client:                client,
+		consumer:              consumer,
+		streamID:              streamID,
+		topicID:               topicID,
+		partID:                partID,
+		batchSize:             batchSize,
+		pollInterval:          pollInterval,
+		pollingStrategy:       pollingStrategy,
+		processingConcurrency: processingConcurrency,
 	}, nil
 }
 
@@ -138,6 +146,79 @@ func NewIggyConsumer(address, username, password, consumerName, streamName, topi
 // group name; streamName and topicName identify the source stream/topic.
 func NewIggyGroupConsumer(address, username, password, consumerName, streamName, topicName string, opts ...IggyOption) (Consumer, error) {
 	return newIggyConsumer(address, username, password, consumerName, streamName, topicName, iggcon.ConsumerKindGroup, opts...)
+}
+
+// processMessages handles messages in bounded concurrent windows.
+//
+// Handlers run concurrently inside each window, but offsets are committed
+// sequentially in the original message order. Only the successful prefix is
+// committed. Processing stops at the first handler or offset-commit failure.
+func (c *iggyConsumer) processMessages(
+	ctx context.Context,
+	partitionID uint32,
+	messages []iggcon.IggyMessage,
+	handler func(context.Context, []byte) error,
+) bool {
+	concurrency := c.processingConcurrency
+	if concurrency < 1 {
+		concurrency = 1
+	}
+
+	for start := 0; start < len(messages); start += concurrency {
+		end := start + concurrency
+		if end > len(messages) {
+			end = len(messages)
+		}
+
+		results := make([]error, end-start)
+
+		var wg sync.WaitGroup
+		wg.Add(end - start)
+
+		for messageIndex := start; messageIndex < end; messageIndex++ {
+			resultIndex := messageIndex - start
+			payload := messages[messageIndex].Payload
+
+			go func(resultIndex int, payload []byte) {
+				defer wg.Done()
+				results[resultIndex] = handler(ctx, payload)
+			}(resultIndex, payload)
+		}
+		wg.Wait()
+
+		// Commit only the successful prefix and preserve the original
+		// offset order.
+		for resultIndex, handlerErr := range results {
+			msg := messages[start+resultIndex]
+
+			if handlerErr != nil {
+				log.Printf(
+					"bus: iggy handler error (offset %d will be retried): %v",
+					msg.Header.Offset,
+					handlerErr,
+				)
+				return false
+			}
+
+			err := c.client.StoreConsumerOffset(
+				c.consumer,
+				c.streamID,
+				c.topicID,
+				msg.Header.Offset,
+				&partitionID,
+			)
+			if err != nil {
+				log.Printf(
+					"bus: iggy offset commit failed (offset %d will be retried): %v",
+					msg.Header.Offset,
+					err,
+				)
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 func (c *iggyConsumer) Listen(ctx context.Context, handler func(ctx context.Context, data []byte) error) error {
@@ -190,15 +271,16 @@ func (c *iggyConsumer) Listen(ctx context.Context, handler func(ctx context.Cont
 		}
 
 		partitionID := polled.PartitionId
-		for _, msg := range polled.Messages {
-			if err := handler(ctx, msg.Payload); err != nil {
-				log.Printf("bus: iggy handler error (offset %d will be retried): %v", msg.Header.Offset, err)
-				break
-			}
 
-			if err := c.client.StoreConsumerOffset(c.consumer, c.streamID, c.topicID, msg.Header.Offset, &partitionID); err != nil {
-				log.Printf("bus: iggy offset commit failed (offset %d): %v", msg.Header.Offset, err)
-			}
+		if !c.processMessages(
+			ctx,
+			partitionID,
+			polled.Messages,
+			handler,
+		) {
+			// A failed handler or offset commit leaves the failed message and
+			// any later message uncommitted. The next poll retries them.
+			continue
 		}
 	}
 }
