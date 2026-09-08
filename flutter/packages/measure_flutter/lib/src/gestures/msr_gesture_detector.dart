@@ -13,13 +13,23 @@ import 'long_click_data.dart';
 
 const _tapDeltaArea = 20 * 20;
 const _longClickDuration = Duration(milliseconds: 500);
-Element? _clickTrackerElement;
+
+Element? _layoutSnapshotRootElement;
+
+/// The element layout snapshots of a whole screen are captured from, which is
+/// the mounted [MsrGestureDetector] and so requires the app to be wrapped in a
+/// [MeasureWidget]. Null while no detector is mounted, in which case no snapshot
+/// of the screen can be taken.
+///
+/// Gesture snapshots do not read this: a detector captures from its own element,
+/// so that it never depends on which detector registered last.
+Element? get layoutSnapshotRootElement => _layoutSnapshotRootElement;
 
 class MsrGestureDetector extends StatefulWidget {
   final Widget child;
   final Map<Type, String> layoutSnapshotWidgetFilter;
-  final Future<void> Function(ClickData, SnapshotNode?) onClick;
-  final Future<void> Function(LongClickData, SnapshotNode?) onLongClick;
+  final Future<void> Function(ClickData, SnapshotNode?, int) onClick;
+  final Future<void> Function(LongClickData, SnapshotNode?, int) onLongClick;
   final Future<void> Function(ScrollData) onScroll;
 
   const MsrGestureDetector({
@@ -32,21 +42,31 @@ class MsrGestureDetector extends StatefulWidget {
   });
 
   @override
-  StatefulElement createElement() {
-    final element = super.createElement();
-    _clickTrackerElement = element;
-    return element;
-  }
-
-  @override
   MsrGestureDetectorState createState() => MsrGestureDetectorState();
 }
 
 class MsrGestureDetectorState extends State<MsrGestureDetector> {
+  Element? _element;
   int? _lastPointerId;
   Offset? _lastPointerDownLocation;
   Duration? _pointerDownTime;
   bool _isScrolling = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _element = context as Element;
+    _layoutSnapshotRootElement = _element;
+  }
+
+  @override
+  void dispose() {
+    // Another detector may have registered since, and it keeps the slot.
+    if (identical(_layoutSnapshotRootElement, _element)) {
+      _layoutSnapshotRootElement = null;
+    }
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +103,9 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
   void _onPointerUp(
       PointerUpEvent event, double devicePixelRatio, Size screenSize) {
     try {
+      // Taken here so that the event carries the time of the gesture rather
+      // than the time the layout snapshot finished being captured.
+      final timestamp = Measure.instance.getCurrentTime();
       final location = _lastPointerDownLocation;
       final downTime = _pointerDownTime;
       if (location == null ||
@@ -97,9 +120,9 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
       if (delta.distanceSquared < _tapDeltaArea) {
         if (duration >= _longClickDuration) {
           _handleLongClick(event.position, downTime, event.timeStamp,
-              devicePixelRatio, screenSize);
+              devicePixelRatio, screenSize, timestamp);
         } else {
-          _handleClick(event.position, devicePixelRatio, screenSize);
+          _handleClick(event.position, devicePixelRatio, screenSize, timestamp);
         }
       }
 
@@ -140,12 +163,13 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
     _isScrolling = false;
   }
 
-  void _handleClick(Offset position, double devicePixelRatio, Size screenSize) {
+  void _handleClick(Offset position, double devicePixelRatio, Size screenSize,
+      int timestamp) {
     final screenBounds =
         Rect.fromLTWH(0, 0, screenSize.width, screenSize.height);
 
     final result = LayoutSnapshotCapture.capture(
-      _clickTrackerElement,
+      _element,
       screenBounds: screenBounds,
       detectionPosition: position,
       detectionMode: GestureDetectionMode.click,
@@ -177,6 +201,7 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
           height: result.gestureElement?.size?.height.toInt(),
         ),
         result.snapshot,
+        timestamp,
       )
           .catchError((error, stackTrace) {
         _logError('onClick', error, stackTrace);
@@ -190,11 +215,12 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
     Duration upTime,
     double devicePixelRatio,
     Size screenSize,
+    int timestamp,
   ) {
     final screenBounds =
         Rect.fromLTWH(0, 0, screenSize.width, screenSize.height);
     final result = LayoutSnapshotCapture.capture(
-      _clickTrackerElement,
+      _element,
       detectionPosition: position,
       detectionMode: GestureDetectionMode.click,
       widgetFilter: Measure.instance.getLayoutSnapshotWidgetFilter(),
@@ -226,6 +252,7 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
         height: result.gestureElement?.size?.height.toInt(),
       ),
       result.snapshot,
+      timestamp,
     )
         .catchError((error, stackTrace) {
       _logError('onLongClick', error, stackTrace);
@@ -300,7 +327,8 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
 
   /// Finds a scrollable element at the given position.
   (Element?, String?) _findScrollableElement(Offset position) {
-    if (_clickTrackerElement == null) {
+    final rootElement = _element;
+    if (rootElement == null) {
       return (null, null);
     }
 
@@ -317,7 +345,7 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
       }
       final scrollableType = getScrollableWidgetName(element.widget);
       if (scrollableType != null) {
-        if (_hitTest(element, position, _clickTrackerElement!)) {
+        if (_hitTest(element, position, rootElement)) {
           foundElement = element;
           foundType = scrollableType;
         }
@@ -325,7 +353,7 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
       element.visitChildElements(traverse);
     }
 
-    traverse(_clickTrackerElement!);
+    traverse(rootElement);
     return (foundElement, foundType);
   }
 

@@ -85,6 +85,8 @@ class FakeMeasure implements MeasureApi {
   void trackScreenViewEvent({
     required String name,
     bool userTriggered = true,
+    int? timestamp,
+    bool captureLayoutSnapshot = true,
   }) {}
 
   @override
@@ -230,13 +232,20 @@ class FakeMeasure implements MeasureApi {
   }
 
   @override
-  Future<void> trackClick(ClickData clickData, SnapshotNode? snapshot) async {
+  Future<void> trackClick(
+    ClickData clickData,
+    SnapshotNode? snapshot, {
+    int? timestamp,
+  }) async {
     throw UnimplementedError();
   }
 
   @override
   Future<void> trackLongClick(
-      LongClickData longClickData, SnapshotNode? snapshot) async {
+    LongClickData longClickData,
+    SnapshotNode? snapshot, {
+    int? timestamp,
+  }) async {
     throw UnimplementedError();
   }
 

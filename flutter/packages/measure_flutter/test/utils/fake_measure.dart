@@ -9,6 +9,7 @@ import 'package:measure_flutter/src/gestures/scroll_data.dart';
 class FakeMeasure implements MeasureApi {
   final List<ScreenViewCall> trackedScreenViews = [];
   final List<BugReportCall> trackedBugReports = [];
+  int currentTime = 0;
 
   @override
   Future<void> init(
@@ -81,8 +82,13 @@ class FakeMeasure implements MeasureApi {
   }
 
   @override
-  void trackScreenViewEvent({required String name, bool userTriggered = true}) {
-    trackedScreenViews.add(ScreenViewCall(name, userTriggered));
+  void trackScreenViewEvent({
+    required String name,
+    bool userTriggered = true,
+    int? timestamp,
+    bool captureLayoutSnapshot = true,
+  }) {
+    trackedScreenViews.add(ScreenViewCall(name, userTriggered, timestamp));
   }
 
   void clear() {
@@ -145,7 +151,7 @@ class FakeMeasure implements MeasureApi {
 
   @override
   int getCurrentTime() {
-    throw UnimplementedError();
+    return currentTime;
   }
 
   @override
@@ -193,12 +199,20 @@ class FakeMeasure implements MeasureApi {
   }
 
   @override
-  Future<void> trackClick(ClickData clickData, SnapshotNode? snapshot) async {
+  Future<void> trackClick(
+    ClickData clickData,
+    SnapshotNode? snapshot, {
+    int? timestamp,
+  }) async {
     throw UnimplementedError();
   }
 
   @override
-  Future<void> trackLongClick(LongClickData longClickData, SnapshotNode? snapshot) async {
+  Future<void> trackLongClick(
+    LongClickData longClickData,
+    SnapshotNode? snapshot, {
+    int? timestamp,
+  }) async {
     throw UnimplementedError();
   }
 
@@ -231,8 +245,9 @@ class FakeMeasure implements MeasureApi {
 class ScreenViewCall {
   final String name;
   final bool userTriggered;
+  final int? timestamp;
 
-  ScreenViewCall(this.name, this.userTriggered);
+  ScreenViewCall(this.name, this.userTriggered, this.timestamp);
 }
 
 class BugReportCall {

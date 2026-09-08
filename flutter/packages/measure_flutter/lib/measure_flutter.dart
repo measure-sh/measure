@@ -435,6 +435,14 @@ class Measure implements MeasureApi {
   ///
   /// **Parameters:**
   /// - [name]: A unique identifier for the screen (e.g., 'HomeScreen', 'ProfilePage')
+  /// - [timestamp]: When the screen was viewed, in milliseconds since epoch.
+  ///   Defaults to the time this method is called.
+  /// - [captureLayoutSnapshot]: Whether to attach a layout snapshot of the
+  ///   screen to the event. The snapshot is taken on the frame after this call,
+  ///   so call this once the screen is on display. Pass false when the screen is
+  ///   still animating into place, such as a tab change part way through its
+  ///   transition, to leave out a snapshot that would show the animation rather
+  ///   than the screen.
   ///
   /// **Example:**
   /// ```dart
@@ -447,12 +455,16 @@ class Measure implements MeasureApi {
     required String name,
     Map<String, AttributeValue> attributes = const {},
     bool userTriggered = true,
+    int? timestamp,
+    bool captureLayoutSnapshot = true,
   }) {
     if (_isInitialized) {
       _measure.trackScreenViewEvent(
         name: name,
         userTriggered: userTriggered,
         attributes: attributes,
+        timestamp: timestamp,
+        captureLayoutSnapshot: captureLayoutSnapshot,
       );
     }
   }
@@ -997,9 +1009,13 @@ class Measure implements MeasureApi {
   /// **Note:** Consider using [MeasureWidget] wrapper for automatic
   /// gesture tracking instead of manual tracking.
   @override
-  Future<void> trackClick(ClickData clickData, SnapshotNode? snapshot) async {
+  Future<void> trackClick(
+    ClickData clickData,
+    SnapshotNode? snapshot, {
+    int? timestamp,
+  }) async {
     if (isInitialized) {
-      return _measure.trackClick(clickData, snapshot);
+      return _measure.trackClick(clickData, snapshot, timestamp: timestamp);
     }
   }
 
@@ -1028,9 +1044,17 @@ class Measure implements MeasureApi {
   /// **Note:** Consider using [MeasureWidget] wrapper for automatic
   /// gesture tracking instead of manual tracking.
   @override
-  Future<void> trackLongClick(LongClickData longClickData, SnapshotNode? snapshot) async {
+  Future<void> trackLongClick(
+    LongClickData longClickData,
+    SnapshotNode? snapshot, {
+    int? timestamp,
+  }) async {
     if (isInitialized) {
-      return _measure.trackLongClick(longClickData, snapshot);
+      return _measure.trackLongClick(
+        longClickData,
+        snapshot,
+        timestamp: timestamp,
+      );
     }
   }
 

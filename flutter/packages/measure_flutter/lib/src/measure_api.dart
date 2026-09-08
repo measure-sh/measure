@@ -58,6 +58,8 @@ abstract class MeasureApi {
   void trackScreenViewEvent({
     required String name,
     bool userTriggered = true,
+    int? timestamp,
+    bool captureLayoutSnapshot = true,
   });
 
   bool shouldTrackHttpRequestBody(String url);
@@ -119,9 +121,17 @@ abstract class MeasureApi {
 
   void setShakeListener(Function? onShake);
 
-  Future<void> trackClick(ClickData clickData, SnapshotNode? snapshot);
+  Future<void> trackClick(
+    ClickData clickData,
+    SnapshotNode? snapshot, {
+    int? timestamp,
+  });
 
-  Future<void> trackLongClick(LongClickData longClickData, SnapshotNode? snapshot);
+  Future<void> trackLongClick(
+    LongClickData longClickData,
+    SnapshotNode? snapshot, {
+    int? timestamp,
+  });
 
   Future<void> trackScroll(ScrollData scrollData);
 

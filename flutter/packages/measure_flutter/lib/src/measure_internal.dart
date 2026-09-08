@@ -128,11 +128,15 @@ final class MeasureInternal {
     required String name,
     required Map<String, AttributeValue> attributes,
     bool userTriggered = true,
+    int? timestamp,
+    bool captureLayoutSnapshot = true,
   }) {
     _navigationCollector.trackScreenViewEvent(
       name: name,
       userTriggered: userTriggered,
       attributes: attributes,
+      timestamp: timestamp,
+      captureLayoutSnapshot: captureLayoutSnapshot,
     );
   }
 
@@ -231,17 +235,27 @@ final class MeasureInternal {
     _shakeDetector.setShakeListener(onShake);
   }
 
-  Future<void> trackClick(ClickData clickData, SnapshotNode? snapshot) async {
+  Future<void> trackClick(
+    ClickData clickData,
+    SnapshotNode? snapshot, {
+    int? timestamp,
+  }) async {
     _gestureCollector.trackGestureClick(
       clickData,
       snapshot: snapshot,
+      timestamp: timestamp,
     );
   }
 
-  Future<void> trackLongClick(LongClickData longClickData, SnapshotNode? snapshot) async {
+  Future<void> trackLongClick(
+    LongClickData longClickData,
+    SnapshotNode? snapshot, {
+    int? timestamp,
+  }) async {
     _gestureCollector.trackGestureLongClick(
       longClickData,
       snapshot: snapshot,
+      timestamp: timestamp,
     );
   }
 

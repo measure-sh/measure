@@ -1,183 +1,121 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:measure_flutter/measure_flutter.dart';
-import 'package:measure_flutter/src/gestures/gesture_collector.dart';
+import 'package:measure_flutter/src/gestures/layout_snapshot_collector.dart';
 import 'package:measure_flutter/src/isolate/file_processor.dart';
-import 'package:measure_flutter/src/method_channel/signal_processor.dart';
-import 'package:measure_flutter/src/time/time_provider.dart';
 
+import '../utils/fake_config_provider.dart';
 import '../utils/fake_file_processing_isolate.dart';
 import '../utils/fake_file_storage.dart';
 import '../utils/fake_id_provider.dart';
-import '../utils/fake_signal_processor.dart';
+import '../utils/measure_test_app.dart';
 import '../utils/noop_logger.dart';
 
 void main() {
-  group('GestureCollector createAttachment', () {
-    late GestureCollector collector;
-    late FakeIdProvider idProvider;
-    late FakeFileStorage fileStorage;
-    late NoopLogger logger;
-    late FakeFileProcessingIsolate fakeWorker;
-    late SignalProcessor signalProcessor;
-    late TimeProvider timeProvider;
+  late LayoutSnapshotCollector collector;
+  late FakeIdProvider idProvider;
+  late FakeFileStorage fileStorage;
+  late NoopLogger logger;
+  late FakeFileProcessingIsolate worker;
 
-    setUp(() {
-      idProvider = FakeIdProvider();
-      fileStorage = FakeFileStorage();
-      logger = NoopLogger();
-      fakeWorker = FakeFileProcessingIsolate();
-      signalProcessor = FakeSignalProcessor();
-      timeProvider = FakeTimeProvider();
+  final snapshot = SnapshotNode(
+    label: 'Parent',
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 200,
+    children: [
+      SnapshotNode(
+        label: 'Child',
+        x: 10,
+        y: 10,
+        width: 50,
+        height: 50,
+        highlighted: true,
+        children: [],
+      ),
+    ],
+  );
 
-      // Initialize the shared worker used by writeJsonToFileInIsolate
-      initializeFileProcessingIsolate(fakeWorker);
+  setUp(() {
+    idProvider = FakeIdProvider();
+    fileStorage = FakeFileStorage();
+    logger = NoopLogger();
+    worker = FakeFileProcessingIsolate();
+    initializeFileProcessingIsolate(worker);
+    collector = LayoutSnapshotCollector(
+      FakeConfigProvider(),
+      fileStorage,
+      logger,
+      idProvider,
+    );
+  });
 
-      collector = GestureCollector(
-        signalProcessor,
-        timeProvider,
+  group('createAttachment', () {
+    test('names the compressed snapshot after its id', () async {
+      final result = await collector.createAttachment(snapshot);
+
+      expect(result, isNotNull);
+      expect(result!.type, equals(AttachmentType.layoutSnapshotJson));
+      expect(result.name, equals('${result.id}.json.gz'));
+      expect(result.path, contains(result.id));
+      expect(result.size, greaterThan(0));
+    });
+
+    test('gives every attachment its own id', () async {
+      final first = await collector.createAttachment(snapshot);
+      final second = await collector.createAttachment(snapshot);
+
+      expect(first!.id, isNot(equals(second!.id)));
+    });
+
+    // Storing a snapshot reaches the file system through an isolate, and no
+    // failure along the way may reach the app.
+    final failures = <String, void Function()>{
+      'the storage root is unavailable': () =>
+          fileStorage.shouldReturnNullPath = true,
+      'the write reports an error': () => worker.shouldReturnError = true,
+      'the write throws': () => worker.shouldThrowException = true,
+    };
+    failures.forEach((cause, arrange) {
+      test('returns null when $cause', () async {
+        arrange();
+
+        expect(await collector.createAttachment(snapshot), isNull);
+      });
+    });
+  });
+
+  group('captureAttachmentAfterNextFrame', () {
+    testWidgets('captures the screen once a frame has been rendered',
+        (tester) async {
+      final future = collector.captureAttachmentAfterNextFrame();
+      await tester.pumpWidget(measureApp(child: const Text('Home')));
+
+      final result = await future;
+
+      expect(result, isNotNull);
+      expect(result!.type, equals(AttachmentType.layoutSnapshotJson));
+    });
+
+    testWidgets('returns null when reading the widget tree throws',
+        (tester) async {
+      final failing = LayoutSnapshotCollector(
+        _ThrowingConfigProvider(),
         fileStorage,
         logger,
         idProvider,
       );
-    });
 
-    test('creates attachment successfully with valid snapshot', () async {
-      final snapshot = SnapshotNode(
-        label: 'TestWidget',
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 100,
-        children: [],
-      );
+      final future = failing.captureAttachmentAfterNextFrame();
+      await tester.pumpWidget(measureApp(child: const Text('Home')));
 
-      final result = await collector.createAttachment(snapshot);
-
-      expect(result, isNotNull);
-      expect(result!.type, equals(AttachmentType.layoutSnapshotJson));
-      expect(result.id, equals('uuid-1'));
-      expect(result.name, equals('uuid-1.json.gz'));
-      expect(result.path, contains('uuid-1'));
-      expect(result.size, greaterThan(0));
-    });
-
-    test('creates attachment with nested children', () async {
-      final snapshot = SnapshotNode(
-        label: 'Parent',
-        x: 0,
-        y: 0,
-        width: 200,
-        height: 200,
-        children: [
-          SnapshotNode(
-            label: 'Child1',
-            x: 10,
-            y: 10,
-            width: 50,
-            height: 50,
-            children: [],
-          ),
-          SnapshotNode(
-            label: 'Child2',
-            x: 70,
-            y: 70,
-            width: 50,
-            height: 50,
-            highlighted: true,
-            children: [],
-          ),
-        ],
-      );
-
-      final result = await collector.createAttachment(snapshot);
-
-      expect(result, isNotNull);
-      expect(result!.type, equals(AttachmentType.layoutSnapshotJson));
-      expect(result.size, greaterThan(0));
-    });
-
-    test('returns null when root path is null', () async {
-      fileStorage.shouldReturnNullPath = true;
-      final snapshot = SnapshotNode(
-        label: 'TestWidget',
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 100,
-        children: [],
-      );
-
-      final result = await collector.createAttachment(snapshot);
-
-      expect(result, isNull);
-    });
-
-    test('returns null when file writing fails', () async {
-      fakeWorker.shouldReturnError = true;
-      final snapshot = SnapshotNode(
-        label: 'TestWidget',
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 100,
-        children: [],
-      );
-
-      final result = await collector.createAttachment(snapshot);
-
-      expect(result, isNull);
-    });
-
-    test('handles exceptions gracefully', () async {
-      fakeWorker.shouldThrowException = true;
-      final snapshot = SnapshotNode(
-        label: 'TestWidget',
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 100,
-        children: [],
-      );
-
-      final result = await collector.createAttachment(snapshot);
-
-      expect(result, isNull);
-    });
-
-    test('generates unique IDs for multiple attachments', () async {
-      final snapshot1 = SnapshotNode(
-        label: 'Widget1',
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 100,
-        children: [],
-      );
-      final snapshot2 = SnapshotNode(
-        label: 'Widget2',
-        x: 0,
-        y: 0,
-        width: 100,
-        height: 100,
-        children: [],
-      );
-
-      final result1 = await collector.createAttachment(snapshot1);
-      final result2 = await collector.createAttachment(snapshot2);
-
-      expect(result1, isNotNull);
-      expect(result2, isNotNull);
-      expect(result1!.id, equals('uuid-1'));
-      expect(result2!.id, equals('uuid-2'));
-      expect(result1.id, isNot(equals(result2.id)));
+      expect(await future, isNull);
     });
   });
 }
 
-class FakeTimeProvider implements TimeProvider {
+class _ThrowingConfigProvider extends FakeConfigProvider {
   @override
-  int now() => 0;
-
-  @override
-  int get elapsedRealtime => 0;
+  Map<Type, String> get widgetFilter => throw StateError('capture failed');
 }

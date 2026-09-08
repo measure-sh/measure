@@ -5,6 +5,7 @@ import 'package:measure_flutter/src/config/measure_config.dart';
 import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/gestures/gesture_collector.dart';
+import 'package:measure_flutter/src/gestures/layout_snapshot_collector.dart';
 import 'package:measure_flutter/src/http/http_collector.dart';
 import 'package:measure_flutter/src/isolate/file_processing_isolate.dart';
 import 'package:measure_flutter/src/isolate/file_processor.dart';
@@ -42,6 +43,7 @@ final class MeasureInitializer {
   late final BugReportCollector _bugReportCollector;
   late final HttpCollector _httpCollector;
   late final GestureCollector _gestureCollector;
+  late final LayoutSnapshotCollector _layoutSnapshotCollector;
   late final ScreenshotCollector _screenshotCollector;
   late final SignalProcessor _signalProcessor;
   late final SpanProcessor _spanProcessor;
@@ -73,6 +75,8 @@ final class MeasureInitializer {
   HttpCollector get httpCollector => _httpCollector;
 
   GestureCollector get gestureCollector => _gestureCollector;
+
+  LayoutSnapshotCollector get layoutSnapshotCollector => _layoutSnapshotCollector;
 
   ScreenshotCollector get screenshotCollector => _screenshotCollector;
 
@@ -150,15 +154,22 @@ final class MeasureInitializer {
       timeProvider: timeProvider,
       methodChannel: _methodChannel,
     );
+    _layoutSnapshotCollector = LayoutSnapshotCollector(
+      _configProvider,
+      _fileStorage,
+      logger,
+      _idProvider,
+    );
     _navigationCollector = NavigationCollector(
       signalProcessor: signalProcessor,
       timeProvider: timeProvider,
+      layoutSnapshotCollector: _layoutSnapshotCollector,
     );
     _httpCollector = HttpCollector(
       signalProcessor: signalProcessor,
       configProvider: configProvider,
     );
-    _gestureCollector = GestureCollector(signalProcessor, timeProvider, _fileStorage, logger, _idProvider);
+    _gestureCollector = GestureCollector(signalProcessor, timeProvider, _layoutSnapshotCollector);
     _shakeDetector = ShakeDetectorImpl(
       methodChannel: _methodChannel,
       methodChannelCallbacks: methodChannelCallbacks,

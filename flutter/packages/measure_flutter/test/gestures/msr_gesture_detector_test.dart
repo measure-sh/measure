@@ -11,15 +11,15 @@ void main() {
   group('MsrGestureDetector', () {
     Widget createTestWidget({
       Widget? child,
-      Future<void> Function(ClickData, SnapshotNode?)? onClick,
-      Future<void> Function(LongClickData, SnapshotNode?)? onLongClick,
+      Future<void> Function(ClickData, SnapshotNode?, int)? onClick,
+      Future<void> Function(LongClickData, SnapshotNode?, int)? onLongClick,
       Future<void> Function(ScrollData)? onScroll,
     }) {
       return MaterialApp(
         home: Scaffold(
           body: MsrGestureDetector(
-            onClick: onClick ?? (data, snapshot) async {},
-            onLongClick: onLongClick ?? (data, snapshot) async {},
+            onClick: onClick ?? (data, snapshot, timestamp) async {},
+            onLongClick: onLongClick ?? (data, snapshot, timestamp) async {},
             onScroll: onScroll ?? (data) async {},
             layoutSnapshotWidgetFilter: {},
             child: child ??
@@ -54,7 +54,7 @@ void main() {
         final clickEvents = <ClickData>[];
 
         await tester.pumpWidget(createTestWidget(
-          onClick: (data, snapshot) async => clickEvents.add(data),
+          onClick: (data, snapshot, timestamp) async => clickEvents.add(data),
         ));
 
         // Tap the button
@@ -73,7 +73,7 @@ void main() {
         final clickEvents = <ClickData>[];
 
         await tester.pumpWidget(createTestWidget(
-          onClick: (data, snapshot) async => clickEvents.add(data),
+          onClick: (data, snapshot, timestamp) async => clickEvents.add(data),
           child: SizedBox(
             width: 200,
             height: 200,
@@ -97,8 +97,8 @@ void main() {
 
         await tester.pumpWidget(
           createTestWidget(
-            onClick: (data, snapshot) async => clickEvents.add(data),
-            onLongClick: (data, snapshot) async => longClickEvents.add(data),
+            onClick: (data, snapshot, timestamp) async => clickEvents.add(data),
+            onLongClick: (data, snapshot, timestamp) async => longClickEvents.add(data),
           ),
         );
 
@@ -141,8 +141,8 @@ void main() {
         await tester.pumpWidget(MaterialApp(
           home: Scaffold(
             body: MsrGestureDetector(
-              onClick: (data, snapshot) async {},
-              onLongClick: (data, snapshot) async {},
+              onClick: (data, snapshot, timestamp) async {},
+              onLongClick: (data, snapshot, timestamp) async {},
               onScroll: (data) async => scrollEvents.add(data),
               layoutSnapshotWidgetFilter: {},
               child: SizedBox(
@@ -175,8 +175,8 @@ void main() {
         await tester.pumpWidget(MaterialApp(
           home: Scaffold(
             body: MsrGestureDetector(
-              onClick: (data, snapshot) async {},
-              onLongClick: (data, snapshot) async {},
+              onClick: (data, snapshot, timestamp) async {},
+              onLongClick: (data, snapshot, timestamp) async {},
               onScroll: (data) async {
                 scrollEvents.add(data);
               },
@@ -233,8 +233,8 @@ void main() {
         await tester.pumpWidget(MaterialApp(
           home: Scaffold(
             body: MsrGestureDetector(
-              onClick: (data, snapshot) async {},
-              onLongClick: (data, snapshot) async {},
+              onClick: (data, snapshot, timestamp) async {},
+              onLongClick: (data, snapshot, timestamp) async {},
               onScroll: (data) async {
                 scrollEvents.add(data);
               },
@@ -272,8 +272,8 @@ void main() {
         final scrollEvents = <ScrollData>[];
 
         await tester.pumpWidget(createTestWidget(
-          onClick: (data, snapshot) async => clickEvents.add(data),
-          onLongClick: (data, snapshot) async => longClickEvents.add(data),
+          onClick: (data, snapshot, timestamp) async => clickEvents.add(data),
+          onLongClick: (data, snapshot, timestamp) async => longClickEvents.add(data),
           onScroll: (data) async => scrollEvents.add(data),
         ));
 
@@ -295,7 +295,7 @@ void main() {
         final clickEvents = <ClickData>[];
 
         await tester.pumpWidget(createTestWidget(
-          onClick: (data, snapshot) async => clickEvents.add(data),
+          onClick: (data, snapshot, timestamp) async => clickEvents.add(data),
         ));
 
         // Start first gesture
@@ -326,10 +326,10 @@ void main() {
         await tester.pumpWidget(MaterialApp(
           home: Scaffold(
             body: MsrGestureDetector(
-              onClick: (data, snapshot) async {
+              onClick: (data, snapshot, timestamp) async {
                 throw Exception('Test exception');
               },
-              onLongClick: (data, snapshot) async {},
+              onLongClick: (data, snapshot, timestamp) async {},
               onScroll: (data) async {},
               layoutSnapshotWidgetFilter: {},
               child: ElevatedButton(
@@ -365,8 +365,8 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: MsrGestureDetector(
-                onClick: (data, snapshot) async {},
-                onLongClick: (data, snapshot) async {},
+                onClick: (data, snapshot, timestamp) async {},
+                onLongClick: (data, snapshot, timestamp) async {},
                 onScroll: (data) async {
                   scrollEvents.add(data);
                 },
@@ -440,8 +440,8 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: MsrGestureDetector(
-                onClick: (data, snapshot) async {},
-                onLongClick: (data, snapshot) async {},
+                onClick: (data, snapshot, timestamp) async {},
+                onLongClick: (data, snapshot, timestamp) async {},
                 onScroll: (data) async {
                   scrollEvents.add(data);
                 },
@@ -516,8 +516,8 @@ void main() {
           MaterialApp(
             home: Scaffold(
               body: MsrGestureDetector(
-                onClick: (data, snapshot) async {},
-                onLongClick: (data, snapshot) async {},
+                onClick: (data, snapshot, timestamp) async {},
+                onLongClick: (data, snapshot, timestamp) async {},
                 onScroll: (data) async {
                   scrollEvents.add(data);
                 },
