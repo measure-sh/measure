@@ -366,6 +366,16 @@
         "code",
         "test"
       ]
+    },
+    {
+      "login": "chaoliextern",
+      "name": "chaoliextern",
+      "avatar_url": "https://avatars.githubusercontent.com/u/307033199?v=4",
+      "profile": "https://github.com/chaoliextern",
+      "contributions": [
+        "code",
+        "test"
+      ]
     }
   ],
   "commitType": "docs"
