@@ -25,21 +25,6 @@ final class SystemFileManagerTests: XCTestCase {
         super.tearDown()
     }
 
-    func test_getCrashFilePath_returnsPathUnderMeasureCrashDataFolder() {
-        let expected = measureURL
-            .appendingPathComponent(ConfigFileConstants.crashDataFolderName)
-            .appendingPathComponent(crashDataFileName)
-
-        XCTAssertEqual(sut.getCrashFilePath(), expected)
-    }
-
-    func test_getCrashFilePath_createsCrashDataDirectory() {
-        _ = sut.getCrashFilePath()
-
-        let crashDir = measureURL.appendingPathComponent(ConfigFileConstants.crashDataFolderName)
-        XCTAssertTrue(FileManager.default.fileExists(atPath: crashDir.path))
-    }
-
     func test_getDynamicConfigPath_returnsPathUnderMeasureDynamicConfigFolder() {
         let expected = measureURL
             .appendingPathComponent(ConfigFileConstants.dynamicConfigFolderName)
@@ -90,7 +75,6 @@ final class SystemFileManagerTests: XCTestCase {
     func test_allPaths_areRootedUnderApplicationSupportMeasure() {
         let expectedRoot = measureURL.path
 
-        XCTAssertTrue(sut.getCrashFilePath()!.path.hasPrefix(expectedRoot))
         XCTAssertTrue(sut.getDynamicConfigPath()!.hasPrefix(expectedRoot))
         XCTAssertTrue(sut.getAttachmentDirectoryPath()!.hasPrefix(expectedRoot))
         XCTAssertTrue(sut.getSdkDebugLogsDirectory()!.path.hasPrefix(expectedRoot))

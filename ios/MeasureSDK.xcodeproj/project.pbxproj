@@ -43,6 +43,7 @@
 		526D183F2D5A1913009A2E90 /* CrashDataFormatter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17B72D5A1913009A2E90 /* CrashDataFormatter.swift */; };
 		526D18402D5A1913009A2E90 /* CrashDataPersistence.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17B82D5A1913009A2E90 /* CrashDataPersistence.swift */; };
 		526D18412D5A1913009A2E90 /* CrashDataWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17B92D5A1913009A2E90 /* CrashDataWriter.swift */; };
+		19B2D1AA396746A8BB1A5C06 /* CrashDataBuffer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 47407D60AAF344A080F15EF0 /* CrashDataBuffer.swift */; };
 		526D18432D5A1913009A2E90 /* CrashReportingManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17BB2D5A1913009A2E90 /* CrashReportingManager.swift */; };
 		526D18442D5A1913009A2E90 /* SystemCrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17BC2D5A1913009A2E90 /* SystemCrashReporter.swift */; };
 		526D18452D5A1913009A2E90 /* Attachment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17BE2D5A1913009A2E90 /* Attachment.swift */; };
@@ -453,6 +454,7 @@
 		526D17B72D5A1913009A2E90 /* CrashDataFormatter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CrashDataFormatter.swift; sourceTree = "<group>"; };
 		526D17B82D5A1913009A2E90 /* CrashDataPersistence.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CrashDataPersistence.swift; sourceTree = "<group>"; };
 		526D17B92D5A1913009A2E90 /* CrashDataWriter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CrashDataWriter.swift; sourceTree = "<group>"; };
+		47407D60AAF344A080F15EF0 /* CrashDataBuffer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CrashDataBuffer.swift; sourceTree = "<group>"; };
 		526D17BB2D5A1913009A2E90 /* CrashReportingManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CrashReportingManager.swift; sourceTree = "<group>"; };
 		526D17BC2D5A1913009A2E90 /* SystemCrashReporter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SystemCrashReporter.swift; sourceTree = "<group>"; };
 		526D17BE2D5A1913009A2E90 /* Attachment.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Attachment.swift; sourceTree = "<group>"; };
@@ -908,6 +910,7 @@
 				526D17B72D5A1913009A2E90 /* CrashDataFormatter.swift */,
 				526D17B82D5A1913009A2E90 /* CrashDataPersistence.swift */,
 				526D17B92D5A1913009A2E90 /* CrashDataWriter.swift */,
+				47407D60AAF344A080F15EF0 /* CrashDataBuffer.swift */,
 				526D17BB2D5A1913009A2E90 /* CrashReportingManager.swift */,
 				526D17BC2D5A1913009A2E90 /* SystemCrashReporter.swift */,
 			);
@@ -1939,6 +1942,7 @@
 				CFF2E6982F69246A003B5A66 /* Data+Extension.swift in Sources */,
 				CF1BB49E2DCDF99A00588506 /* ShakeBugReportCollector.swift in Sources */,
 				526D18402D5A1913009A2E90 /* CrashDataPersistence.swift in Sources */,
+				19B2D1AA396746A8BB1A5C06 /* CrashDataBuffer.swift in Sources */,
 				526D18862D5A1913009A2E90 /* MeasureQueue.swift in Sources */,
 				526D187F2D5A1913009A2E90 /* UIViewController+Extension.swift in Sources */,
 				526D185D2D5A1913009A2E90 /* GestureEvents.swift in Sources */,
@@ -2875,7 +2879,7 @@
 			repositoryURL = "https://github.com/kstenerud/KSCrash.git";
 			requirement = {
 				kind = exactVersion;
-				version = 2.5.1;
+				version = 2.6.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */

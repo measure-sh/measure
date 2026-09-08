@@ -7,6 +7,7 @@
 
 import UIKit
 import SwiftUI
+import ObjectiveC
 import Measure
 
 @objc final class ViewController: MsrViewController, UITableViewDelegate, UITableViewDataSource {
@@ -41,7 +42,8 @@ import Measure
                       "Track Handled NSException",
                       "Track Handled NSError",
                       "Track Swift Error (main thread)",
-                      "Track NSException (main thread)"]
+                      "Track NSException (main thread)",
+                      "ObjC Runtime Lock Deadlock"]
 
     let httpEventTypes = ["GET – 200 OK (JSON)",
                           "POST – 201 Created (JSON body)",
@@ -364,8 +366,31 @@ import Measure
                                         reason: "Something happened on main thread",
                                         userInfo: ["key": "value"])
             Measure.trackException(exception, attributes: ["source": .string("swift-main-thread")])
+        case "ObjC Runtime Lock Deadlock":
+            replicateObjCRuntimeLockDeadlock()
         default:
             fatalError("Triggered crash: \(type)")
+        }
+    }
+
+    private func replicateObjCRuntimeLockDeadlock() {
+        let registrarThreadCount = 16
+
+        for threadIndex in 0..<registrarThreadCount {
+            Thread.detachNewThread {
+                var counter = 0
+                while true {
+                    let className = "MSRDeadlockRepro_\(threadIndex)_\(counter)"
+                    if let newClass = objc_allocateClassPair(NSObject.self, className, 0) {
+                        objc_registerClassPair(newClass)
+                    }
+                    counter += 1
+                }
+            }
+        }
+
+        DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.3) {
+            abort()
         }
     }
 }

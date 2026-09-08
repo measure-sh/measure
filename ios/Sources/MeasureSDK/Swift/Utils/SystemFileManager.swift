@@ -12,7 +12,6 @@ enum ConfigFileConstants {
     static let folderName = "measure"
     static let directory: FileManager.SearchPathDirectory = .applicationSupportDirectory
     static let sdkDebugLogsFolderName = "sdk_debug_logs"
-    static let crashDataFolderName = "crash_data"
     static let dynamicConfigFolderName = "dynamic_config"
     static let attachmentsFolderName = "attachments"
 }
@@ -21,7 +20,6 @@ enum ConfigFileConstants {
 protocol SystemFileManager {
     func getDirectoryPath(directory: FileManager.SearchPathDirectory) -> String?
     func getAttachmentDirectoryPath() -> String?
-    func getCrashFilePath() -> URL?
     func saveFile(data: Data, name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> URL?
     func retrieveFile(name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> Data?
     func getDynamicConfigPath() -> String?
@@ -45,20 +43,6 @@ final class BaseSystemFileManager: SystemFileManager {
     init(logger: Logger) {
         self.logger = logger
         self.fileManager = FileManager.default
-    }
-
-    func getCrashFilePath() -> URL? {
-        guard let measureDir = measureDirectory else { return nil }
-        let crashDir = measureDir.appendingPathComponent(ConfigFileConstants.crashDataFolderName)
-        do {
-            if !fileManager.fileExists(atPath: crashDir.path) {
-                try fileManager.createDirectory(at: crashDir, withIntermediateDirectories: true, attributes: nil)
-            }
-        } catch {
-            logger.internalLog(level: .error, message: "SystemFileManager: Failed to create crash report directory.", error: error, data: nil)
-            return nil
-        }
-        return crashDir.appendingPathComponent(crashDataFileName)
     }
 
     func saveFile(data: Data, name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> URL? {

@@ -287,8 +287,7 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                     networkStateAttributeProcessor,
                                     userAttributeProcessor,
                                     sessionAttributeProcessor]
-        self.crashDataPersistence = BaseCrashDataPersistence(logger: logger,
-                                                             systemFileManager: systemFileManager)
+        self.crashDataPersistence = BaseCrashDataPersistence()
         CrashDataWriter.shared.setCrashDataPersistence(crashDataPersistence)
         self.attachmentProcessor = BaseAttachmentProcessor(logger: logger,
                                                            fileManager: systemFileManager,
@@ -323,14 +322,12 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                    measureDispatchQueue: measureDispatchQueue,
                                                    signalSampler: signalSampler,
                                                    exporter: exporter)
-        self.systemCrashReporter = BaseSystemCrashReporter(logger: logger,
-                                                           crashDataPersistence: crashDataPersistence)
+        self.systemCrashReporter = BaseSystemCrashReporter(logger: logger)
         self.sysCtl = BaseSysCtl()
         self.crashReportManager = BaseCrashReportingManager(logger: logger,
                                                             signalProcessor: signalProcessor,
                                                             crashDataPersistence: crashDataPersistence,
                                                             crashReporter: systemCrashReporter,
-                                                            systemFileManager: systemFileManager,
                                                             idProvider: idProvider,
                                                             sysCtl: sysCtl,
                                                             configProvider: configProvider)

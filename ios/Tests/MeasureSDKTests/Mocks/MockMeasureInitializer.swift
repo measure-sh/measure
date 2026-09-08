@@ -203,8 +203,7 @@ final class MockMeasureInitializer: MeasureInitializer {
             self.userAttributeProcessor,
             self.sessionAttributeProcessor
         ]
-        self.crashDataPersistence = crashDataPersistence ?? BaseCrashDataPersistence(logger: logger ?? MockLogger(),
-                                                             systemFileManager: self.systemFileManager)
+        self.crashDataPersistence = crashDataPersistence ?? BaseCrashDataPersistence()
         CrashDataWriter.shared.setCrashDataPersistence(self.crashDataPersistence)
         self.attachmentProcessor = attachmentProcessor ?? BaseAttachmentProcessor(logger: self.logger,
                                                            fileManager: self.systemFileManager,
@@ -228,14 +227,12 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                    measureDispatchQueue: self.measureDispatchQueue,
                                                    signalSampler: self.signalSampler,
                                                    exporter: self.exporter)
-        self.systemCrashReporter = systemCrashReporter ?? BaseSystemCrashReporter(logger: self.logger,
-                                                                                  crashDataPersistence: self.crashDataPersistence)
+        self.systemCrashReporter = systemCrashReporter ?? BaseSystemCrashReporter(logger: self.logger)
         self.sysCtl = sysCtl ?? BaseSysCtl()
         self.crashReportManager = crashReportManager ?? BaseCrashReportingManager(logger: self.logger,
                                                                                   signalProcessor: self.signalProcessor,
                                                                                   crashDataPersistence: self.crashDataPersistence,
                                                                                   crashReporter: self.systemCrashReporter,
-                                                                                  systemFileManager: self.systemFileManager,
                                                                                   idProvider: self.idProvider,
                                                                                   sysCtl: self.sysCtl,
                                                                                   configProvider: self.configProvider)

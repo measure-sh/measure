@@ -26,15 +26,13 @@ final class BaseSystemCrashReporter: SystemCrashReporter {
     private static var isKSCrashInstalled = false
 
     private let logger: Logger
-    private let crashDataPersistence: CrashDataPersistence
 
     var hasPendingCrashReport: Bool {
         return KSCrash.shared.reportStore?.reportCount ?? 0 > 0
     }
 
-    init(logger: Logger, crashDataPersistence: CrashDataPersistence) {
+    init(logger: Logger) {
         self.logger = logger
-        self.crashDataPersistence = crashDataPersistence
         do {
             try enable()
         } catch {
@@ -43,8 +41,6 @@ final class BaseSystemCrashReporter: SystemCrashReporter {
     }
 
     func enable() throws {
-        crashDataPersistence.prepareCrashFile()
-
         if Self.isKSCrashInstalled {
             return
         }
@@ -58,8 +54,9 @@ final class BaseSystemCrashReporter: SystemCrashReporter {
             .mainThreadDeadlock,
             .memoryTermination
         ]
-        config.crashNotifyCallback = { _ in
-            CrashDataWriter.shared.writeCrashData()
+
+        config.isWritingReportCallback = { plan, writer in
+            CrashDataWriter.shared.writeCrashData(plan: plan, writer: writer)
         }
 
         do {

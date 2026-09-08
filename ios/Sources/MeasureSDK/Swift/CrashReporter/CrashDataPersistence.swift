@@ -5,147 +5,139 @@
 //  Created by Adwin Ross on 19/09/24.
 //
 
+#if canImport(KSCrashRecording)
+import KSCrashRecording
+#elseif canImport(KSCrash)
+import KSCrash
+#endif
 import Foundation
 
 typealias CrashDataAttributes = (attribute: Attributes?, sessionId: String?, isForeground: Bool?)
 
-/// A protocol that defines the interface for managing crash data persistence.
-///
-/// Implementers of this protocol are responsible for managing the lifecycle of crash data, including
-/// preparing crash files, writing crash data, reading it, and clearing the persisted data.
+private let crashReportUserSectionKey = "user"
+
 protocol CrashDataPersistence {
     var attribute: Attributes? { get set }
     var sessionId: String? { get set }
     var isForeground: Bool { get set }
-    func prepareCrashFile()
-    func writeCrashData()
-    func readCrashData() -> CrashDataAttributes
-    func clearCrashData()
+
+    func writeCrashData(plan: UnsafePointer<ExceptionHandlingPlan>, writer: UnsafePointer<ReportWriter>)
+    func readCrashData(from reportDict: [String: Any]) -> CrashDataAttributes
 }
 
-/// A concrete implementation of the `CrashDataPersistence` protocol.
-///
-/// `BaseCrashDataPersistence` manages the persistence of crash-related data by saving it into the app's cache.
 final class BaseCrashDataPersistence: CrashDataPersistence {
-    var attribute: Attributes?
-    var sessionId: String?
+    var attribute: Attributes? {
+        didSet { updateBuffers(with: attribute) }
+    }
+    var sessionId: String? {
+        didSet { sessionIdBuffer.update(sessionId) }
+    }
     var isForeground: Bool
-    private let logger: Logger
-    private var crashFileDescriptor: Int32 = -1
-    private let systemFileManager: SystemFileManager
 
-    init(attribute: Attributes? = nil, sessionId: String? = nil, isForeground: Bool = true, logger: Logger, systemFileManager: SystemFileManager) {
+    private var threadNameBuffer = CrashDataBuffer()
+    private var deviceNameBuffer = CrashDataBuffer()
+    private var deviceModelBuffer = CrashDataBuffer()
+    private var deviceManufacturerBuffer = CrashDataBuffer()
+    private var deviceTypeBuffer = CrashDataBuffer()
+    private var deviceLocaleBuffer = CrashDataBuffer()
+    private var osNameBuffer = CrashDataBuffer()
+    private var osVersionBuffer = CrashDataBuffer()
+    private var networkTypeBuffer = CrashDataBuffer()
+    private var networkGenerationBuffer = CrashDataBuffer()
+    private var networkProviderBuffer = CrashDataBuffer()
+    private var installationIdBuffer = CrashDataBuffer()
+    private var userIdBuffer = CrashDataBuffer()
+    private var deviceCpuArchBuffer = CrashDataBuffer()
+    private var appVersionBuffer = CrashDataBuffer()
+    private var appBuildBuffer = CrashDataBuffer()
+    private var measureSdkVersionBuffer = CrashDataBuffer()
+    private var appUniqueIdBuffer = CrashDataBuffer()
+    private var sessionIdBuffer = CrashDataBuffer()
+
+    init(attribute: Attributes? = nil, sessionId: String? = nil, isForeground: Bool = true) {
         self.attribute = attribute
         self.sessionId = sessionId
         self.isForeground = isForeground
-        self.logger = logger
-        self.systemFileManager = systemFileManager
+        updateBuffers(with: attribute)
+        sessionIdBuffer.update(sessionId)
     }
 
-    func prepareCrashFile() {
-        if let crashFilePath = systemFileManager.getCrashFilePath() {
-            if crashFileDescriptor != -1 {
-                close(crashFileDescriptor)
-                crashFileDescriptor = -1
-            }
-
-            crashFileDescriptor = open(crashFilePath.path, O_WRONLY | O_CREAT | O_APPEND, S_IRUSR | S_IWUSR)
-            if crashFileDescriptor == -1 {
-                logger.internalLog(level: .error, message: "CrashDataPersistence: Failed to open crash log file at \(crashFilePath.path)", error: nil, data: nil)
-            }
-        }
+    private func updateBuffers(with attribute: Attributes?) {
+        threadNameBuffer.update(attribute?.threadName)
+        deviceNameBuffer.update(attribute?.deviceName)
+        deviceModelBuffer.update(attribute?.deviceModel)
+        deviceManufacturerBuffer.update(attribute?.deviceManufacturer)
+        deviceTypeBuffer.update(attribute?.deviceType?.rawValue)
+        deviceLocaleBuffer.update(attribute?.deviceLocale)
+        osNameBuffer.update(attribute?.osName)
+        osVersionBuffer.update(attribute?.osVersion)
+        networkTypeBuffer.update(attribute?.networkType?.rawValue)
+        networkGenerationBuffer.update(attribute?.networkGeneration?.rawValue)
+        networkProviderBuffer.update(attribute?.networkProvider)
+        installationIdBuffer.update(attribute?.installationId)
+        userIdBuffer.update(attribute?.userId)
+        deviceCpuArchBuffer.update(attribute?.deviceCpuArch)
+        appVersionBuffer.update(attribute?.appVersion)
+        appBuildBuffer.update(attribute?.appBuild)
+        measureSdkVersionBuffer.update(attribute?.measureSdkVersion)
+        appUniqueIdBuffer.update(attribute?.appUniqueId)
     }
 
-    func writeCrashData() {
-        if crashFileDescriptor != -1, attribute != nil {
-            let bytes = getAttributesData().cString(using: .utf8)
-            if let bytes = bytes {
-                write(crashFileDescriptor, bytes, strlen(bytes))
-            }
+    func writeCrashData(plan: UnsafePointer<ExceptionHandlingPlan>, writer: UnsafePointer<ReportWriter>) {
+        // Per KSCrash's contract for `crashedDuringExceptionHandling`: record nothing extra
+        // when a crash occurs while already handling another crash.
+        guard !plan.pointee.crashedDuringExceptionHandling, attribute != nil else { return }
+
+        threadNameBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.threadName, $0) }
+        deviceNameBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.deviceName, $0) }
+        deviceModelBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.deviceModel, $0) }
+        deviceManufacturerBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.deviceManufacturer, $0) }
+        deviceTypeBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.deviceType, $0) }
+        deviceLocaleBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.deviceLocale, $0) }
+        osNameBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.osName, $0) }
+        osVersionBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.osVersion, $0) }
+        networkTypeBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.networkType, $0) }
+        networkGenerationBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.networkGeneration, $0) }
+        networkProviderBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.networkProvider, $0) }
+        installationIdBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.installationId, $0) }
+        userIdBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.userId, $0) }
+        deviceCpuArchBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.deviceCpuArch, $0) }
+        appVersionBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.appVersion, $0) }
+        appBuildBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.appBuild, $0) }
+        measureSdkVersionBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.measureSdkVersion, $0) }
+        appUniqueIdBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.appUniqueId, $0) }
+        sessionIdBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.sessionId, $0) }
+
+        if let deviceIsFoldable = attribute?.deviceIsFoldable {
+            writer.pointee.addBooleanElement(writer, CrashDataKeys.deviceIsFoldable, deviceIsFoldable)
         }
+        if let deviceIsPhysical = attribute?.deviceIsPhysical {
+            writer.pointee.addBooleanElement(writer, CrashDataKeys.deviceIsPhysical, deviceIsPhysical)
+        }
+        if let deviceDensityDpi = attribute?.deviceDensityDpi {
+            writer.pointee.addIntegerElement(writer, CrashDataKeys.deviceDensityDpi, deviceDensityDpi)
+        }
+        if let deviceWidthPx = attribute?.deviceWidthPx {
+            writer.pointee.addIntegerElement(writer, CrashDataKeys.deviceWidthPx, deviceWidthPx)
+        }
+        if let deviceHeightPx = attribute?.deviceHeightPx {
+            writer.pointee.addIntegerElement(writer, CrashDataKeys.deviceHeightPx, deviceHeightPx)
+        }
+        if let deviceDensity = attribute?.deviceDensity {
+            writer.pointee.addIntegerElement(writer, CrashDataKeys.deviceDensity, deviceDensity)
+        }
+        writer.pointee.addBooleanElement(writer, CrashDataKeys.isForeground, isForeground)
     }
 
-    func clearCrashData() {
-        if crashFileDescriptor != -1 {
-            close(crashFileDescriptor)
-            crashFileDescriptor = -1
-        }
-
-        if let crashFilePath = systemFileManager.getCrashFilePath() {
-            let fileManager = FileManager.default
-            if fileManager.fileExists(atPath: crashFilePath.path) {
-                let fileDescriptor = open(crashFilePath.path, O_WRONLY | O_TRUNC)
-                if fileDescriptor != -1 {
-                    close(fileDescriptor)
-                    prepareCrashFile()
-                    logger.internalLog(level: .info, message: "CrashDataPersistence: Crash data file cleared at \(crashFilePath.path)", error: nil, data: nil)
-                } else {
-                    logger.internalLog(level: .error, message: "CrashDataPersistence: Failed to open crash log file for truncation at \(crashFilePath.path)", error: nil, data: nil)
-                }
-            } else {
-                logger.internalLog(level: .error, message: "CrashDataPersistence: No crash data file found to clear at \(crashFilePath.path)", error: nil, data: nil)
-            }
-        }
-    }
-
-    func readCrashData() -> CrashDataAttributes {
-        guard let crashFilePath = systemFileManager.getCrashFilePath() else {
-            logger.internalLog(level: .error, message: "CrashDataPersistence: No crash data file found to read.", error: nil, data: nil)
+    func readCrashData(from reportDict: [String: Any]) -> CrashDataAttributes {
+        guard let crashData = reportDict[crashReportUserSectionKey] as? [String: Any] else {
             return (attribute: nil, sessionId: nil, isForeground: nil)
         }
 
-        do {
-            let crashDataString = try String(contentsOf: crashFilePath, encoding: .utf8)
-
-            guard let data = crashDataString.data(using: .utf8) else {
-                logger.internalLog(level: .error, message: "CrashDataPersistence: Failed to convert crash data string to Data", error: nil, data: nil)
-                return (attribute: nil, sessionId: nil, isForeground: nil)
-            }
-
-            if let crashData = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-                let sessionId = crashData[CrashDataKeys.sessionId] as? String ?? ""
-                let isForeground = crashData[CrashDataKeys.isForeground] as? Bool
-                let attributes = getAttributes(crashData: crashData)
-                return (attribute: attributes, sessionId: sessionId, isForeground: isForeground)
-            }
-            return (attribute: nil, sessionId: nil, isForeground: nil)
-        } catch {
-            logger.internalLog(level: .error, message: "CrashDataPersistence: Failed to read or parse crash data file at \(crashFilePath.path)", error: error, data: nil)
-            return (attribute: nil, sessionId: nil, isForeground: nil)
-        }
-    }
-
-    private func getAttributesData() -> String {
-        return """
-        {
-            "\(CrashDataKeys.threadName)": "\(attribute?.threadName ?? "")",
-            "\(CrashDataKeys.deviceName)": "\(attribute?.deviceName ?? "")",
-            "\(CrashDataKeys.deviceModel)": "\(attribute?.deviceModel ?? "")",
-            "\(CrashDataKeys.deviceManufacturer)": "\(attribute?.deviceManufacturer ?? "")",
-            "\(CrashDataKeys.deviceType)": "\(attribute?.deviceType?.rawValue ?? "")",
-            "\(CrashDataKeys.deviceIsFoldable)": \(attribute?.deviceIsFoldable ?? false),
-            "\(CrashDataKeys.deviceIsPhysical)": \(attribute?.deviceIsPhysical ?? true),
-            "\(CrashDataKeys.deviceDensityDpi)": \(attribute?.deviceDensityDpi ?? 0),
-            "\(CrashDataKeys.deviceWidthPx)": \(attribute?.deviceWidthPx ?? 0),
-            "\(CrashDataKeys.deviceHeightPx)": \(attribute?.deviceHeightPx ?? 0),
-            "\(CrashDataKeys.deviceDensity)": \(attribute?.deviceDensity ?? 0),
-            "\(CrashDataKeys.deviceLocale)": "\(attribute?.deviceLocale ?? "")",
-            "\(CrashDataKeys.osName)": "\(attribute?.osName ?? "")",
-            "\(CrashDataKeys.osVersion)": "\(attribute?.osVersion ?? "")",
-            "\(CrashDataKeys.networkType)": "\(attribute?.networkType?.rawValue ?? "")",
-            "\(CrashDataKeys.networkGeneration)": "\(attribute?.networkGeneration?.rawValue ?? "")",
-            "\(CrashDataKeys.networkProvider)": "\(attribute?.networkProvider ?? "")",
-            "\(CrashDataKeys.installationId)": "\(attribute?.installationId ?? "")",
-            "\(CrashDataKeys.userId)": "\(attribute?.userId ?? "")",
-            "\(CrashDataKeys.deviceCpuArch)": "\(attribute?.deviceCpuArch ?? "")",
-            "\(CrashDataKeys.appVersion)": "\(attribute?.appVersion ?? "")",
-            "\(CrashDataKeys.appBuild)": "\(attribute?.appBuild ?? "")",
-            "\(CrashDataKeys.measureSdkVersion)": "\(attribute?.measureSdkVersion ?? "")",
-            "\(CrashDataKeys.appUniqueId)": "\(attribute?.appUniqueId ?? "")",
-            "\(CrashDataKeys.isForeground)": \(isForeground),
-            "\(CrashDataKeys.sessionId)": "\(sessionId ?? "")"
-        }
-        """
+        let sessionId = crashData[CrashDataKeys.sessionId] as? String ?? ""
+        let isForeground = crashData[CrashDataKeys.isForeground] as? Bool
+        let attributes = getAttributes(crashData: crashData)
+        return (attribute: attributes, sessionId: sessionId, isForeground: isForeground)
     }
 
     private func getAttributes(crashData: [String: Any]) -> Attributes {

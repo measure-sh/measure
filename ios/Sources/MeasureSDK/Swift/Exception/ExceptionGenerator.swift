@@ -86,7 +86,6 @@ final class BaseExceptionGenerator: ExceptionGenerator {
         var result = formatter.getException(severity: .handled, numCode: numCode, code: code, meta: meta, framesToStrip: framesToStrip)
         result.foreground = crashDataPersistence.isForeground
         store.deleteReport(with: Int64(truncating: reportID))
-        crashDataPersistence.clearCrashData()
 
         return result
     }
