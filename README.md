@@ -165,6 +165,7 @@ Measure would not be possible without our amazing contributors! ❤️
     </tr>
     <tr>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/timhaines"><img src="https://avatars.githubusercontent.com/u/19700?v=4?s=100" width="100px;" alt="Tim Haines"/><br /><sub><b>Tim Haines</b></sub></a><br /><a href="#security-timhaines" title="Security">🛡️</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="http://peng.ly"><img src="https://avatars.githubusercontent.com/u/23277273?v=4?s=100" width="100px;" alt="Iain"/><br /><sub><b>Iain</b></sub></a><br /><a href="https://github.com/measure-sh/measure/commits?author=NotAFlightRisk" title="Code">💻</a> <a href="https://github.com/measure-sh/measure/commits?author=NotAFlightRisk" title="Tests">⚠️</a></td>
     </tr>
   </tbody>
 </table>
