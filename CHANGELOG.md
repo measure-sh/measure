@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
 - (**frontend**): Cut Custom Range timestamps to the minute by @anupcowkur in #4389
 - (**frontend**): Keep a date being edited until the input loses focus by @anupcowkur
 - (**frontend**): Keep focus in the text editor when the filter is cleared by @anupcowkur
@@ -22,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
 - (**deps**): Bump dompurify from 3.4.6 to 3.4.14 in /frontend/dashboard (#4399) by @dependabot[bot] in #4399
 - (**deps**): Bump fflate from 0.4.8 to 0.4.9 in /frontend/dashboard (#4398) by @dependabot[bot] in #4398
 - (**deps**): Bump valibot and @c15t/nextjs in /frontend/dashboard (#4397) by @dependabot[bot] in #4397
@@ -30,8 +32,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump lodash from 4.17.21 to 4.18.1 in /frontend/dashboard (#4394) by @dependabot[bot] in #4394
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
 
+### :recycle: Refactor
+
+- (**frontend**): Keep expr filter state in the URL only by @anupcowkur in #4407
+
 ### :books: Documentation
 
+- Add chaoliextern as a contributor for code, and test (#4412) by @allcontributors[bot] in #4412
+- Add NotAFlightRisk as a contributor for code, and test (#4410) by @allcontributors[bot] in #4410
+- Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #4408
+- Update README.md [skip ci] by @allcontributors[bot]
 - Add quxaa as a contributor for security (#4401) by @allcontributors[bot] in #4401
 
 ## [0.13.0] - 2026-09-03
