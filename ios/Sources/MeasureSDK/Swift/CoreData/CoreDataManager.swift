@@ -16,13 +16,14 @@ final class BaseCoreDataManager: CoreDataManager {
     private let logger: Logger
     private var persistentContainer: NSPersistentContainer?
     private var _backgroundContext: NSManagedObjectContext?
-    private let readySemaphore = DispatchSemaphore(value: 0)
+    private let readyGroup = DispatchGroup()
     private var initializationFailed = false
     private var didSignalReady = false
     private let readyLock = NSLock()
 
     init(logger: Logger) {
         self.logger = logger
+        readyGroup.enter()
 
         let model: NSManagedObjectModel
 
@@ -86,7 +87,7 @@ final class BaseCoreDataManager: CoreDataManager {
             return _backgroundContext
         }
 
-        readySemaphore.wait()
+        readyGroup.wait()
 
         if initializationFailed {
             logger.log(
@@ -107,6 +108,6 @@ final class BaseCoreDataManager: CoreDataManager {
 
         guard !didSignalReady else { return }
         didSignalReady = true
-        readySemaphore.signal()
+        readyGroup.leave()
     }
 }
