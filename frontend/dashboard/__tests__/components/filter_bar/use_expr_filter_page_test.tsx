@@ -611,7 +611,9 @@ describe("useExprFilterPage", () => {
       await renderPage();
       expect(page.paginationOffset).toBe(0);
 
-      mockRouter.setUrl("?a=app-1&d=Last+6+Hours&po=abc");
+      await act(async () => {
+        mockRouter.setUrl("?a=app-1&d=Last+6+Hours&po=abc");
+      });
       await renderPage();
       expect(page.paginationOffset).toBe(0);
     });
