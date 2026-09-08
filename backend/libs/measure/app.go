@@ -3049,6 +3049,15 @@ func (a *App) Populate(ctx context.Context, pg *pgxpool.Pool) (err error) {
 	return
 }
 
+// unmarshalAttachments parses the
+// attachments JSON array.
+func unmarshalAttachments(attachments string, dest *[]event.Attachment) error {
+	if len(attachments) <= 8 {
+		return nil
+	}
+	return json.Unmarshal([]byte(attachments), dest)
+}
+
 // GetSessionEvents fetches all the events of an app's session.
 func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId uuid.UUID) (*Session, error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
@@ -3664,43 +3673,26 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			ev.Log = &logData
 			session.Events = append(session.Events, ev)
 		case event.TypeGestureLongClick:
-			// only unmarshal attachments if more than
-			// 8 characters
-			if len(attachments) > 8 {
-				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
-					return nil, err
-				}
+			if err := unmarshalAttachments(attachments, &ev.Attachments); err != nil {
+				return nil, err
 			}
 			ev.GestureLongClick = &gestureLongClick
 			session.Events = append(session.Events, ev)
 		case event.TypeGestureClick:
-			// only unmarshal attachments if more than
-			// 8 characters
-			if len(attachments) > 8 {
-				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
-					return nil, err
-				}
-			}
-			if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
+			if err := unmarshalAttachments(attachments, &ev.Attachments); err != nil {
 				return nil, err
 			}
 			ev.GestureClick = &gestureClick
 			session.Events = append(session.Events, ev)
 		case event.TypeGestureScroll:
-			// only unmarshal attachments if more than
-			// 8 characters
-			if len(attachments) > 8 {
-				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
-					return nil, err
-				}
+			if err := unmarshalAttachments(attachments, &ev.Attachments); err != nil {
+				return nil, err
 			}
 			ev.GestureScroll = &gestureScroll
 			session.Events = append(session.Events, ev)
 		case event.TypeLifecycleActivity:
-			if len(attachments) > 8 {
-				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
-					return nil, err
-				}
+			if err := unmarshalAttachments(attachments, &ev.Attachments); err != nil {
+				return nil, err
 			}
 			ev.LifecycleActivity = &lifecycleActivity
 			session.Events = append(session.Events, ev)
@@ -3708,10 +3700,8 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			ev.LifecycleFragment = &lifecycleFragment
 			session.Events = append(session.Events, ev)
 		case event.TypeLifecycleApp:
-			if len(attachments) > 8 {
-				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
-					return nil, err
-				}
+			if err := unmarshalAttachments(attachments, &ev.Attachments); err != nil {
+				return nil, err
 			}
 			ev.LifecycleApp = &lifecycleApp
 			session.Events = append(session.Events, ev)
@@ -3749,10 +3739,8 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			ev.Navigation = &navigation
 			session.Events = append(session.Events, ev)
 		case event.TypeScreenView:
-			if len(attachments) > 8 {
-				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
-					return nil, err
-				}
+			if err := unmarshalAttachments(attachments, &ev.Attachments); err != nil {
+				return nil, err
 			}
 			ev.ScreenView = &screenView
 			session.Events = append(session.Events, ev)
@@ -3775,11 +3763,8 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			ev.MemoryUsageAbs = &memoryUsageAbs
 			session.Events = append(session.Events, ev)
 		case event.TypeProfile:
-			// only unmarshal attachments if more than 8 characters
-			if len(attachments) > 8 {
-				if err := json.Unmarshal([]byte(attachments), &ev.Attachments); err != nil {
-					return nil, err
-				}
+			if err := unmarshalAttachments(attachments, &ev.Attachments); err != nil {
+				return nil, err
 			}
 			ev.Profile = &profile
 			session.Events = append(session.Events, ev)
