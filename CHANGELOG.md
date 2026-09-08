@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- Add new badges on readme (#4411) by @detj in #4411
 - Add chaoliextern as a contributor for code, and test (#4412) by @allcontributors[bot] in #4412
 - Add NotAFlightRisk as a contributor for code, and test (#4410) by @allcontributors[bot] in #4410
 - Update .all-contributorsrc [skip ci] by @allcontributors[bot] in #4408
