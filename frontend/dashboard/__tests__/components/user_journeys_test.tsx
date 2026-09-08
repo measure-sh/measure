@@ -51,7 +51,7 @@ jest.mock("@nivo/sankey", () => ({
   ),
 }));
 
-import UserJourneys from "@/app/components/user_journeys";
+import UserJourneys, { UserJourneysDemo } from "@/app/components/user_journeys";
 
 describe("UserJourneys", () => {
   beforeEach(() => {
@@ -60,17 +60,17 @@ describe("UserJourneys", () => {
   });
 
   it("renders the title", () => {
-    render(<UserJourneys demo={true} />);
+    render(<UserJourneysDemo />);
     expect(screen.getByText("User Journeys")).toBeInTheDocument();
   });
 
   it("hides the title when asked", () => {
-    render(<UserJourneys demo={true} hideDemoTitle={true} />);
+    render(<UserJourneysDemo hideTitle />);
     expect(screen.queryByText("User Journeys")).not.toBeInTheDocument();
   });
 
   it("draws the demo journey without a search input, a filter bar or the page's hook", () => {
-    render(<UserJourneys demo={true} />);
+    render(<UserJourneysDemo />);
     expect(screen.getByTestId("sankey-node-MainActivity")).toBeInTheDocument();
     expect(
       screen.getByTestId("sankey-node-CheckoutActivity"),
@@ -81,7 +81,7 @@ describe("UserJourneys", () => {
   });
 
   it("starts on the Paths tab", () => {
-    render(<UserJourneys demo={true} />);
+    render(<UserJourneysDemo />);
     expect(screen.getByRole("button", { name: "Paths" })).toHaveClass(
       "bg-accent",
     );
@@ -91,7 +91,7 @@ describe("UserJourneys", () => {
   });
 
   it("switches tabs locally, writing nothing to the URL", () => {
-    render(<UserJourneys demo={true} />);
+    render(<UserJourneysDemo />);
     fireEvent.click(screen.getByRole("button", { name: "Exceptions" }));
 
     expect(screen.getByRole("button", { name: "Exceptions" })).toHaveClass(
@@ -108,7 +108,7 @@ describe("UserJourneys", () => {
   });
 
   it("opens the issue panel on the Exceptions tab, with inert issue buttons", () => {
-    render(<UserJourneys demo={true} />);
+    render(<UserJourneysDemo />);
     fireEvent.click(screen.getByRole("button", { name: "Exceptions" }));
     fireEvent.click(screen.getByTestId("sankey-node-CheckoutActivity"));
 
