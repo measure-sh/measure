@@ -120,10 +120,7 @@ internal class InternalSignalCollector(
                 EventType.SCREEN_VIEW -> {
                     val extractedData = extractScreenViewData(data)
                     val callerThreadName = threadName ?: Thread.currentThread().name
-                    layoutSnapshotCollector.captureAttachmentAfterNextDraw { attachment ->
-                        if (attachment != null) {
-                            eventAttachments.add(attachment)
-                        }
+                    fun trackScreenView() {
                         signalProcessor.track(
                             data = extractedData,
                             timestamp = timestamp,
@@ -134,6 +131,20 @@ internal class InternalSignalCollector(
                             threadName = callerThreadName,
                             userTriggered = userTriggered,
                         )
+                    }
+
+                    val hasLayoutSnapshot = eventAttachments.any {
+                        it.type == AttachmentType.LAYOUT_SNAPSHOT_JSON
+                    }
+                    if (hasLayoutSnapshot) {
+                        trackScreenView()
+                    } else {
+                        layoutSnapshotCollector.captureAttachmentAfterNextDraw { attachment ->
+                            if (attachment != null) {
+                                eventAttachments.add(attachment)
+                            }
+                            trackScreenView()
+                        }
                     }
                 }
 

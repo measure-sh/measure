@@ -145,6 +145,11 @@ class InternalSignalCollectorTest {
 
     @Test
     fun `trackEvent tracks screen view event`() {
+        val nativeSnapshot = TestData.getAttachment(
+            type = AttachmentType.LAYOUT_SNAPSHOT_JSON,
+            name = "native.json.gz",
+        )
+        layoutSnapshotCollector.attachment = nativeSnapshot
         val data = mutableMapOf<String, Any?>("name" to "screen_name")
         val type = EventType.SCREEN_VIEW
         val timestamp = 1234567890L
@@ -171,7 +176,53 @@ class InternalSignalCollectorTest {
             type = type,
             attributes = attributes,
             userDefinedAttributes = userDefinedAttrs,
-            attachments = mutableListOf(),
+            attachments = mutableListOf(nativeSnapshot),
+            threadName = Thread.currentThread().name,
+            sessionId = null,
+            userTriggered = userTriggered,
+        )
+    }
+
+    @Test
+    fun `trackEvent skips native layout snapshot when screen view already has one`() {
+        layoutSnapshotCollector.attachment = TestData.getAttachment(
+            type = AttachmentType.LAYOUT_SNAPSHOT_JSON,
+            name = "native.json.gz",
+        )
+        val data = mutableMapOf<String, Any?>("name" to "screen_name")
+        val type = EventType.SCREEN_VIEW
+        val timestamp = 1234567890L
+        val attributes = mutableMapOf<String, Any?>()
+        val userDefinedAttrs = mutableMapOf<String, AttributeValue>()
+        val crossPlatformSnapshot = MsrAttachment(
+            name = "flutter.json.gz",
+            path = "flutter-path",
+            type = AttachmentType.LAYOUT_SNAPSHOT_JSON,
+        )
+        val attachments = mutableListOf(crossPlatformSnapshot)
+        val userTriggered = false
+
+        internalSignalCollector.trackEvent(
+            data = data,
+            type = type.value,
+            timestamp = timestamp,
+            attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
+            attachments = attachments,
+            userTriggered = userTriggered,
+            sessionId = null,
+            threadName = null,
+        )
+
+        verify(signalProcessor).track(
+            data = ScreenViewData("screen_name"),
+            timestamp = timestamp,
+            type = type,
+            attributes = attributes,
+            userDefinedAttributes = userDefinedAttrs,
+            attachments = mutableListOf(
+                crossPlatformSnapshot.toEventAttachment(AttachmentType.LAYOUT_SNAPSHOT_JSON),
+            ),
             threadName = Thread.currentThread().name,
             sessionId = null,
             userTriggered = userTriggered,
