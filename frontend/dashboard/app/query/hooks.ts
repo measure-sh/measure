@@ -649,18 +649,29 @@ export function useSpanMetricsPlotQuery(
 
 const ALERTS_LIMIT = 5;
 
-export function useAlertsOverviewQuery(paginationOffset: number) {
-  const filters = useFiltersStore((s) => s.filters);
+export function useAlertsOverviewQuery(
+  params: FilterParams | null,
+  paginationOffset: number,
+) {
   return useQuery({
     queryKey: [
       "alertsOverview",
-      filters.serialisedFilters,
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
     queryFn: () =>
-      fetchAlertsOverviewFromServer(filters, ALERTS_LIMIT, paginationOffset),
-    enabled: filters.ready,
+      fetchAlertsOverviewFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        ALERTS_LIMIT,
+        paginationOffset,
+      ),
+    enabled: params !== null,
+    retry: false,
   });
 }
 

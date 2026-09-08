@@ -442,6 +442,20 @@ describe("FilterBar", () => {
       );
     });
 
+    it("draws the app and range alone when the filter is not offered", async () => {
+      await renderBar({}, { showFilterExpr: false });
+
+      expect(screen.getByTestId("app-select")).toBeInTheDocument();
+      expect(screen.getByTestId("date-select")).toBeInTheDocument();
+      expect(screen.queryByTestId("filter-bar")).toBeNull();
+    });
+
+    it("draws the filter editor when nothing says otherwise", async () => {
+      await renderBar();
+
+      expect(screen.getByTestId("filter-bar")).toBeInTheDocument();
+    });
+
     it("draws the filter as conditions", async () => {
       await renderBar({ filterExpr: "mapping_type:in:dsym" });
 

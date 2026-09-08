@@ -70,6 +70,8 @@ func FindByName(name string) (Entity, error) {
 		return BugReportsEntity, nil
 	case JourneysEntity.Name:
 		return JourneysEntity, nil
+	case AlertsEntity.Name:
+		return AlertsEntity, nil
 	}
 
 	return Entity{}, fmt.Errorf("Unknown filter entity %q", name)

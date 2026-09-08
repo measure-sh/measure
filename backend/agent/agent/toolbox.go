@@ -914,7 +914,7 @@ type mcpGetAlertsInput struct {
 	AppID  string `json:"app_id" jsonschema:"UUID of the app to query"`
 	From   string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
 	To     string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
-	Limit  int    `json:"limit,omitempty" jsonschema:"Maximum number of alerts to return (default: 25)"`
+	Limit  int    `json:"limit,omitempty" jsonschema:"Maximum number of alerts to return (default: 10)"`
 	Offset int    `json:"offset,omitempty" jsonschema:"Number of alerts to skip for pagination (default: 0)"`
 }
 type mcpGetJourneyInput struct {
@@ -1998,30 +1998,22 @@ func (c *Config) mcpGetTrace(ctx context.Context, in mcpGetTraceInput) (*mcpsdk.
 
 func (c *Config) mcpGetAlerts(ctx context.Context, in mcpGetAlertsInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
-	appID, _, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	_, _, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.AlertsEntity, in.AppID, in.From, in.To, "", func(ef *exprfilter.ExprFilter) {
+		limit := in.Limit
+		if limit <= 0 {
+			limit = 10
+		}
+		if limit > 30 {
+			limit = 30
+		}
+		ef.Limit = limit
+		ef.Offset = in.Offset
+	})
 	if err != nil {
 		return nil, nil, err
 	}
 
-	af := &filter.AppFilter{AppID: appID}
-
-	from, to, parseErr := mcpParseTimeRangeStrings(in.From, in.To)
-	if parseErr != nil {
-		return nil, nil, parseErr
-	}
-	af.From, af.To = from, to
-
-	limit := in.Limit
-	if limit <= 0 {
-		limit = 10
-	}
-	if limit > 30 {
-		limit = 30
-	}
-	af.Limit = limit
-	af.Offset = in.Offset
-
-	alerts, _, _, alertErr := measure.GetAlertsWithFilter(ctx, deps.PgPool, af)
+	alerts, _, _, alertErr := measure.GetAlertsWithFilter(ctx, deps.PgPool, ef)
 	if alertErr != nil {
 		return nil, nil, fmt.Errorf("failed to get alerts: %v", alertErr)
 	}

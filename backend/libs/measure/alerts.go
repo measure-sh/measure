@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leporo/sqlf"
 
-	"backend/libs/filter"
+	"backend/libs/exprfilter"
 )
 
 type Alert struct {
@@ -23,7 +23,7 @@ type Alert struct {
 	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
 }
 
-func GetAlertsWithFilter(ctx context.Context, pg *pgxpool.Pool, af *filter.AppFilter) (alerts []Alert, next, previous bool, err error) {
+func GetAlertsWithFilter(ctx context.Context, pg *pgxpool.Pool, ef *exprfilter.ExprFilter) (alerts []Alert, next, previous bool, err error) {
 	stmt := sqlf.PostgreSQL.From("alerts").
 		Select("id").
 		Select("team_id").
@@ -34,16 +34,16 @@ func GetAlertsWithFilter(ctx context.Context, pg *pgxpool.Pool, af *filter.AppFi
 		Select("url").
 		Select("created_at").
 		Select("updated_at").
-		Where("app_id = ?", af.AppID).
-		Where("created_at >= ?", af.From).
-		Where("created_at <= ?", af.To)
+		Where("app_id = ?", ef.AppID).
+		Where("created_at >= ?", ef.From).
+		Where("created_at <= ?", ef.To)
 
-	if af.Limit > 0 {
-		stmt.Limit(uint64(af.Limit) + 1)
+	if ef.Limit > 0 {
+		stmt.Limit(uint64(ef.Limit) + 1)
 	}
 
-	if af.Offset >= 0 {
-		stmt.Offset(uint64(af.Offset))
+	if ef.Offset >= 0 {
+		stmt.Offset(uint64(ef.Offset))
 	}
 
 	stmt.OrderBy("created_at DESC")
@@ -77,11 +77,11 @@ func GetAlertsWithFilter(ctx context.Context, pg *pgxpool.Pool, af *filter.AppFi
 	resultLen := len(alerts)
 
 	// Set pagination next & previous flags
-	if resultLen > af.Limit {
+	if resultLen > ef.Limit {
 		alerts = alerts[:resultLen-1]
 		next = true
 	}
-	if af.Offset > 0 {
+	if ef.Offset > 0 {
 		previous = true
 	}
 

@@ -51,3 +51,7 @@ const BugReports = "bug_reports"
 // Network is the root key for the `network`
 // logcomment.
 const Network = "network"
+
+// Alerts is the root key for the `alerts`
+// logcomment.
+const Alerts = "alerts"

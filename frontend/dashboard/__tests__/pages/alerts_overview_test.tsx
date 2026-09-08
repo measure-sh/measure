@@ -1,62 +1,99 @@
+import { mockFiltersStore } from "@/__tests__/helpers/mock_filters_store";
+import { mockRouter } from "@/__tests__/helpers/mock_router";
 import { promiseParams } from "@/__tests__/helpers/promise_params";
-import AlertsOverview from "@/app/[teamId]/alerts/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
-// Global replace mock for router.replace
-const replaceMock = jest.fn();
-const pushMock = jest.fn();
+const pushMock = mockRouter.pushMock;
 
-// Mock next/navigation hooks
-let mockSearchParams = new URLSearchParams();
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({
-    replace: replaceMock,
-    push: pushMock,
-  }),
-  // By default, return empty search params.
-  useSearchParams: () => mockSearchParams,
-}));
+jest.mock("next/navigation", () =>
+  require("@/__tests__/helpers/mock_router").nextNavigationMock(),
+);
 
-// Mock API calls and constants
-jest.mock("@/app/api/api_calls", () => ({
+jest.mock("@/app/stores/provider", () =>
+  require("@/__tests__/helpers/mock_filters_store").filtersProviderMock(),
+);
+
+const mockToastNegative = jest.fn();
+jest.mock("@/app/components/toast", () => ({
   __esModule: true,
-  emptyAlertsOverviewResponse: {
-    meta: { next: false, previous: false },
-    results: [],
-  },
-  FilterSource: { Events: "events" },
+  toastNegative: (text: string) => mockToastNegative(text),
 }));
 
-jest.mock("@/app/stores/provider", () => {
-  const { create } = jest.requireActual("zustand");
-  const filtersStore = create(() => ({
-    filters: { ready: false, serialisedFilters: "" },
-  }));
-  return { __esModule: true, useFiltersStore: filtersStore };
-});
-
-const mockUseAlertsOverviewQuery = jest.fn(() => ({
+const pendingQueryState = () => ({
   data: undefined as any,
   status: "pending" as string,
   isFetching: true,
   error: null as Error | null,
-}));
+});
+
+const mockUseAppsQuery = jest.fn();
+const mockUseFilterKeysQuery = jest.fn();
+const mockUseAlertsOverviewQuery = jest.fn((_filter: any, _offset: number) =>
+  pendingQueryState(),
+);
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
-  useAlertsOverviewQuery: () => mockUseAlertsOverviewQuery(),
   paginationOffsetUrlKey: "po",
+  useAppsQuery: (teamId: string) => mockUseAppsQuery(teamId),
+  useFilterKeysQuery: (
+    appId: string | undefined,
+    entity: string,
+    keyNames: string[],
+  ) => mockUseFilterKeysQuery(appId, entity, keyNames),
+  useRootSpanNamesQuery: () => ({
+    data: undefined,
+    isSuccess: false,
+    isError: false,
+  }),
+  useAlertsOverviewQuery: (filter: any, offset: number) =>
+    mockUseAlertsOverviewQuery(filter, offset),
 }));
 
-jest.mock("@/app/components/filters", () => ({
+jest.mock("@/app/components/filter_bar/filter_bar", () => ({
   __esModule: true,
-  default: () => <div data-testid="filters-mock" />,
-  AppVersionsInitialSelectionType: { All: "all" },
+  default: (props: any) => (
+    <div data-testid="filter-bar-mock">
+      <span data-testid="filter-bar-app">
+        {props.value?.app.name ?? "none"}
+      </span>
+      <span data-testid="filter-bar-date">
+        {props.value?.date.dateRange ?? "none"}
+      </span>
+      <span data-testid="filter-bar-show-expr">
+        {String(props.showFilterExpr)}
+      </span>
+      <button
+        data-testid="filter-bar-other-app"
+        onClick={() => props.onChange({ appId: props.apps[1].id })}
+      >
+        pick the other app
+      </button>
+      <button
+        data-testid="filter-bar-last-week"
+        onClick={() =>
+          props.onChange({
+            dateRange: {
+              dateRange: "Last Week",
+              startDate: null,
+              endDate: null,
+            },
+          })
+        }
+      >
+        last week
+      </button>
+    </div>
+  ),
 }));
 
-// Updated Paginator mock renders Next and Prev buttons.
+jest.mock("@/app/components/skeleton", () => ({
+  __esModule: true,
+  SkeletonListPage: () => <div data-testid="skeleton-list-page-mock" />,
+}));
+
 jest.mock("@/app/components/paginator", () => ({
   __esModule: true,
   default: (props: any) => (
@@ -80,398 +117,315 @@ jest.mock("@/app/components/paginator", () => ({
   ),
 }));
 
-// Mock LoadingBar component.
 jest.mock("@/app/components/loading_bar", () => () => (
   <div data-testid="loading-bar-mock">LoadingBar Rendered</div>
 ));
 
-// Mock time utils
 jest.mock("@/app/utils/time_utils", () => ({
   formatDateToHumanReadableDate: jest.fn(() => "Jan 1, 2020"),
   formatDateToHumanReadableTime: jest.fn(() => "12:00 AM"),
 }));
 
-const { useFiltersStore } = require("@/app/stores/provider") as any;
+import AlertsOverview from "@/app/[teamId]/alerts/page";
 
-const mockAlertData = {
-  results: [
-    {
-      id: "alert1",
-      team_id: "team1",
-      app_id: "app1",
-      entity_id: "crash1",
-      type: "crash_spike",
-      message: "message1",
-      url: "http://example.com/alert1",
-      created_at: "2020-01-01T00:00:00Z",
-      updated_at: "2020-01-01T00:00:00Z",
-    },
-  ],
+const mockApps = [
+  { id: "app-1", name: "Sample" },
+  { id: "app-2", name: "Second" },
+];
+
+const mockAlertResult = {
+  id: "alert1",
+  team_id: "team1",
+  app_id: "app1",
+  entity_id: "crash1",
+  type: "crash_spike",
+  message: "message1",
+  url: "http://example.com/alert1",
+  created_at: "2020-01-01T00:00:00Z",
+  updated_at: "2020-01-01T00:00:00Z",
+};
+
+const mockAlertsData = {
+  results: [mockAlertResult],
   meta: { previous: true, next: true },
 };
 
-describe("AlertsOverview Component", () => {
+function alertsLoaded(data: any = mockAlertsData) {
+  mockUseAlertsOverviewQuery.mockReturnValue({
+    data,
+    status: "success",
+    isFetching: false,
+    error: null,
+  });
+}
+
+const settled = { a: "app-1", d: "Last 6 Hours" };
+
+function renderPage() {
+  return render(<AlertsOverview params={promiseParams({ teamId: "123" })} />);
+}
+
+describe("AlertsOverview page", () => {
   beforeEach(() => {
-    replaceMock.mockClear();
-    pushMock.mockClear();
-    mockSearchParams = new URLSearchParams();
+    mockRouter.reset();
+    mockFiltersStore.reset();
+    mockToastNegative.mockClear();
+    mockUseAppsQuery.mockReturnValue({ status: "success", data: mockApps });
+    mockUseFilterKeysQuery.mockReturnValue({
+      data: { keys: [], key_groups: [] },
+      isPending: false,
+      isError: false,
+      isPlaceholderData: false,
+    });
     mockUseAlertsOverviewQuery.mockReset();
-    mockUseAlertsOverviewQuery.mockReturnValue({
+    mockUseAlertsOverviewQuery.mockReturnValue(pendingQueryState());
+  });
+
+  it("fetches nothing until it settles on an app and a range", () => {
+    mockUseAppsQuery.mockReturnValue({ status: "pending", data: undefined });
+    renderPage();
+
+    expect(screen.getByTestId("filter-bar-app")).toHaveTextContent("none");
+    expect(screen.getByTestId("skeleton-list-page-mock")).toBeInTheDocument();
+    expect(mockUseAlertsOverviewQuery).toHaveBeenLastCalledWith(null, 0);
+  });
+
+  it("hands the bar the app and range it settled on", () => {
+    alertsLoaded();
+    renderPage();
+
+    expect(screen.getByTestId("filter-bar-app")).toHaveTextContent("Sample");
+    expect(screen.getByTestId("filter-bar-date")).toHaveTextContent(
+      "Last 6 Hours",
+    );
+  });
+
+  it("asks the bar for the app and range alone", () => {
+    alertsLoaded();
+    renderPage();
+
+    expect(screen.getByTestId("filter-bar-show-expr")).toHaveTextContent(
+      "false",
+    );
+  });
+
+  it("asks for the alerts entity's keys, and says so when they cannot be fetched", () => {
+    mockUseFilterKeysQuery.mockReturnValue({
       data: undefined,
-      status: "pending" as string,
-      isFetching: true,
-      error: null,
+      isPending: false,
+      isError: true,
+      isPlaceholderData: false,
     });
-    useFiltersStore.setState({
-      filters: { ready: false, serialisedFilters: "" },
-    });
+    renderPage();
+
+    expect(mockUseFilterKeysQuery).toHaveBeenCalledWith("app-1", "alerts", []);
+    expect(
+      screen.getByText(
+        "Error fetching filters, please refresh page to try again",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Alert")).not.toBeInTheDocument();
   });
 
-  it("renders the Filters component", () => {
-    render(<AlertsOverview params={promiseParams({ teamId: "123" })} />);
-    expect(screen.getByTestId("filters-mock")).toBeInTheDocument();
+  it("fetches the alerts of the app and range it settled on", () => {
+    alertsLoaded();
+    renderPage();
+
+    expect(mockUseAlertsOverviewQuery).toHaveBeenLastCalledWith(
+      {
+        appId: "app-1",
+        startDate: expect.any(String),
+        endDate: expect.any(String),
+        filterExpr: null,
+      },
+      0,
+    );
   });
 
-  it("does not render main alerts UI when filters are not ready", () => {
-    render(<AlertsOverview params={promiseParams({ teamId: "123" })} />);
-    expect(screen.queryByTestId("paginator-mock")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("loading-bar-mock")).not.toBeInTheDocument();
-    expect(screen.queryByText("Alert Id")).not.toBeInTheDocument();
+  it("records the app and range it settled on in the URL", () => {
+    alertsLoaded();
+    renderPage();
+
+    expect(mockRouter.urlParams()).toEqual(settled);
   });
 
-  it("renders main bug reports UI, updates URL when filters become ready, and renders table headers", async () => {
-    mockUseAlertsOverviewQuery.mockReturnValue({
-      data: mockAlertData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<AlertsOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+  it("fetches the page the URL names", () => {
+    mockRouter.setUrl("?po=5&a=app-1&d=Last+6+Hours");
+    alertsLoaded();
+    renderPage();
 
-    // Check URL update.
-    expect(replaceMock).toHaveBeenCalledWith("?po=0&updated", {
-      scroll: false,
-    });
-
-    // Verify main UI components are rendered.
-    expect(await screen.findByTestId("paginator-mock")).toBeInTheDocument();
-    // Check that the table header cells are rendered.
-    expect(screen.getByText("Alert")).toBeInTheDocument();
-    expect(screen.getByText("Time")).toBeInTheDocument();
+    expect(mockUseAlertsOverviewQuery).toHaveBeenLastCalledWith(
+      expect.objectContaining({ appId: "app-1" }),
+      5,
+    );
   });
 
-  it("displays alert data correctly when API returns results", async () => {
-    mockUseAlertsOverviewQuery.mockReturnValue({
-      data: mockAlertData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<AlertsOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+  it("discards a filter expression a link carried, and starts from page one", () => {
+    mockRouter.setUrl(
+      "?po=30&a=app-1&d=Last+6+Hours&filter_expr=version_name%3Ain%3A1.0",
+    );
+    alertsLoaded();
+    renderPage();
 
-    // Verify the alert data is displayed
-    expect(screen.getByText("message1")).toBeInTheDocument();
-    expect(screen.getByText("Jan 1, 2020")).toBeInTheDocument();
-    expect(screen.getByText("12:00 AM")).toBeInTheDocument();
-    expect(screen.getByText("ID: alert1")).toBeInTheDocument();
+    expect(mockToastNegative).toHaveBeenCalledWith(
+      "Some filters were invalid, page reset to defaults",
+    );
+    expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
+    for (const [params] of mockUseAlertsOverviewQuery.mock.calls) {
+      expect(params?.filterExpr ?? null).toBeNull();
+    }
   });
 
-  it("shows error message when API returns error status", async () => {
+  it("shows an error message when the alerts request fails", () => {
     mockUseAlertsOverviewQuery.mockReturnValue({
       data: undefined,
       status: "error",
       isFetching: false,
       error: new Error("fail"),
     });
-    render(<AlertsOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+    renderPage();
 
-    // Check that error message is displayed
     expect(
       screen.getByText(/Error fetching list of alerts/),
     ).toBeInTheDocument();
   });
 
-  it("renders appropriate link for each alert ", async () => {
-    mockUseAlertsOverviewQuery.mockReturnValue({
-      data: mockAlertData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<AlertsOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+  it("renders the table headers and the alerts the server sent", () => {
+    alertsLoaded();
+    renderPage();
 
-    // Check that the alert link is rendered with the correct href and accessible name
+    expect(screen.getByText("Alert")).toBeInTheDocument();
+    expect(screen.getByText("Time")).toBeInTheDocument();
+    expect(screen.getByText("ID: alert1")).toBeInTheDocument();
+    expect(screen.getByText("message1")).toBeInTheDocument();
+    expect(screen.getByText("Jan 1, 2020")).toBeInTheDocument();
+    expect(screen.getByText("12:00 AM")).toBeInTheDocument();
+  });
+
+  it("links each alert to where it happened, by click and by keyboard", async () => {
+    alertsLoaded();
+    renderPage();
+
     const link = screen.getByRole("link", { name: /ID: alert1/i });
-    expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "http://example.com/alert1");
 
-    // Find the table row that contains this link
     const row = link.closest("tr");
-    expect(row).toBeInTheDocument();
-
-    // Simulate keyboard navigation (Enter) on the row
     await act(async () => {
       fireEvent.keyDown(row!, { key: "Enter" });
     });
     expect(pushMock).toHaveBeenCalledWith("http://example.com/alert1");
 
-    // Simulate keyboard navigation (Space) on the row
     await act(async () => {
       fireEvent.keyDown(row!, { key: " " });
     });
     expect(pushMock).toHaveBeenCalledWith("http://example.com/alert1");
   });
 
-  it("renders the table shell with both paginator buttons disabled when results are empty", async () => {
-    mockUseAlertsOverviewQuery.mockReturnValue({
-      data: { results: [], meta: { previous: false, next: false } },
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<AlertsOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+  it("renders the table shell with paging off when there are no alerts", () => {
+    alertsLoaded({ results: [], meta: { previous: false, next: false } });
+    renderPage();
 
     expect(screen.getByText("Alert")).toBeInTheDocument();
-    expect(screen.getByText("Time")).toBeInTheDocument();
     expect(screen.queryByText(/ID:/)).not.toBeInTheDocument();
     expect(screen.getByTestId("prev-button")).toBeDisabled();
     expect(screen.getByTestId("next-button")).toBeDisabled();
   });
 
-  describe("Pagination offset handling", () => {
-    it("initializes pagination offset to 0 when no offset is provided", async () => {
-      mockUseAlertsOverviewQuery.mockReturnValue({
-        data: mockAlertData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      render(<AlertsOverview params={promiseParams({ teamId: "123" })} />);
+  describe("pagination", () => {
+    it("moves the offset on by the page size when Next is clicked", async () => {
+      mockRouter.setUrl("?po=0&a=app-1&d=Last+6+Hours");
+      alertsLoaded();
+      renderPage();
+
       await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app-1" },
-          },
-        });
+        fireEvent.click(screen.getByTestId("next-button"));
       });
-      expect(replaceMock).toHaveBeenCalledWith("?po=0&updated", {
-        scroll: false,
+
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "5" });
+    });
+
+    it("moves the offset back when Prev is clicked, and never below zero", async () => {
+      mockRouter.setUrl("?po=5&a=app-1&d=Last+6+Hours");
+      alertsLoaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("prev-button"));
+      });
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("prev-button"));
+      });
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
+    });
+
+    it("goes back to the first page when another app is picked", async () => {
+      mockRouter.setUrl("?po=30&a=app-1&d=Last+6+Hours");
+      alertsLoaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("filter-bar-other-app"));
+      });
+
+      expect(mockRouter.urlParams()).toEqual({
+        a: "app-2",
+        d: "Last 6 Hours",
+        po: "0",
       });
     });
 
-    it("increments pagination offset when Next is clicked", async () => {
-      mockUseAlertsOverviewQuery.mockReturnValue({
-        data: mockAlertData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      render(<AlertsOverview params={promiseParams({ teamId: "123" })} />);
+    it("goes back to the first page when another range is picked", async () => {
+      mockRouter.setUrl("?po=30&a=app-1&d=Last+6+Hours");
+      alertsLoaded();
+      renderPage();
+
       await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app-1" },
-          },
-        });
+        fireEvent.click(screen.getByTestId("filter-bar-last-week"));
       });
-      const nextButton = await screen.findByTestId("next-button");
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      // The pagination limit is 5 so offset should be 5.
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=5&updated", {
-        scroll: false,
+
+      expect(mockRouter.urlParams()).toEqual({
+        a: "app-1",
+        d: "Last Week",
+        po: "0",
       });
     });
 
-    it("decrements pagination offset when Prev is clicked, but not below 0", async () => {
+    it("cannot be used while a refetch is in flight", () => {
       mockUseAlertsOverviewQuery.mockReturnValue({
-        data: mockAlertData,
+        data: mockAlertsData,
         status: "success",
-        isFetching: false,
+        isFetching: true,
         error: null,
       });
-      render(<AlertsOverview params={promiseParams({ teamId: "123" })} />);
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app-1" },
-          },
-        });
-      });
-      const nextButton = await screen.findByTestId("next-button");
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=5&updated", {
-        scroll: false,
-      });
-      const prevButton = await screen.findByTestId("prev-button");
-      await act(async () => {
-        fireEvent.click(prevButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated", {
-        scroll: false,
-      });
-      await act(async () => {
-        fireEvent.click(prevButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated", {
-        scroll: false,
-      });
-    });
+      renderPage();
 
-    it("resets pagination offset to 0 when filters change (if previous filters were non-default)", async () => {
-      mockUseAlertsOverviewQuery.mockReturnValue({
-        data: mockAlertData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-
-      render(<AlertsOverview params={promiseParams({ teamId: "123" })} />);
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app-1" },
-          },
-        });
-      });
-      expect(replaceMock).toHaveBeenCalledWith("?po=0&updated", {
-        scroll: false,
-      });
-
-      // Click Next twice to get to offset 10.
-      const nextButton = await screen.findByTestId("next-button");
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=5&updated", {
-        scroll: false,
-      });
-
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=10&updated", {
-        scroll: false,
-      });
-
-      // Now simulate a filter change with a different value.
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated2",
-            app: { id: "app-1" },
-          },
-        });
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated2", {
-        scroll: false,
-      });
+      expect(screen.getByTestId("next-button")).toBeDisabled();
+      expect(screen.getByTestId("prev-button")).toBeDisabled();
     });
   });
 
-  it("correctly toggles loading bar visibility based on API status", async () => {
-    // Start with pending status
+  it("shows the loading bar only while a refetch is in flight", async () => {
     mockUseAlertsOverviewQuery.mockReturnValue({
-      data: undefined,
-      status: "pending" as string,
+      data: mockAlertsData,
+      status: "success",
       isFetching: true,
       error: null,
     });
-    render(<AlertsOverview params={promiseParams({ teamId: "123" })} />);
+    const { rerender } = renderPage();
 
-    // Set loading state
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
-
-    // Test the loading state - loading bar should be visible
     const loadingBarContainer =
       screen.getByTestId("loading-bar-mock").parentElement;
     expect(loadingBarContainer).toHaveClass("visible");
     expect(loadingBarContainer).not.toHaveClass("invisible");
 
-    // Set success state
     await act(async () => {
-      mockUseAlertsOverviewQuery.mockReturnValue({
-        data: mockAlertData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
+      alertsLoaded();
+      rerender(<AlertsOverview params={promiseParams({ teamId: "123" })} />);
     });
 
-    // After loading, the loading bar should be invisible
+    await screen.findByText("message1");
     expect(loadingBarContainer).not.toHaveClass("visible");
     expect(loadingBarContainer).toHaveClass("invisible");
   });

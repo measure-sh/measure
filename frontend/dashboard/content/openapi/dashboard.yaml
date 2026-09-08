@@ -995,6 +995,7 @@ paths:
               - spans
               - bug_reports
               - journeys
+              - alerts
         - name: key
           in: query
           required: false
@@ -1118,6 +1119,7 @@ paths:
               - spans
               - bug_reports
               - journeys
+              - alerts
         - name: key_name
           in: query
           required: true
@@ -3988,7 +3990,7 @@ paths:
         - Alerts
       summary: Fetch an app's alerts
       description: |
-        Fetch an app's alerts by applying various optional filters.
+        Fetch an app's alerts. Alerts are scoped by app and time range.
 
         Pass `limit` and `offset` values to paginate results.
       parameters:
@@ -4013,12 +4015,6 @@ paths:
           description: Number of items to return. Used for pagination. Should be used along with `offset`.
           schema:
             type: integer
-        - name: filter_short_code
-          in: query
-          required: false
-          description: Code representing combination of filters.
-          schema:
-            type: string
       responses:
         "200":
           description: Successful response, no errors.

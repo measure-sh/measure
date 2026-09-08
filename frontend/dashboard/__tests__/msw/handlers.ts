@@ -420,6 +420,13 @@ export const handlers = [
     if (entity === "journeys") {
       return HttpResponse.json(makeJourneysFilterKeysFixture());
     }
+    if (entity === "alerts") {
+      return HttpResponse.json({
+        keys: [],
+        key_groups: [],
+        keys_truncated: false,
+      });
+    }
     return HttpResponse.json(makeFilterKeysFixture());
   }),
 
