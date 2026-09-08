@@ -1,12 +1,17 @@
 <p align="center">
-  <a href='https://measure.sh'>
+  <a href="https://measure.sh">
       <img width="1400" height="460" alt="Measure Github Logo" src="./frontend/dashboard/public/images/measure_logo.svg" />
   </a>
 </p>
 <p align="center">
-  <a href='http://makeapullrequest.com'><img alt='PRs Welcome' src='https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=shields'/></a>
-  <img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/measure-sh/measure"/>
-  <img alt="GitHub closed issues" src="https://img.shields.io/github/issues-closed/measure-sh/measure"/>
+  <a href="https://makeapullrequest.com"><img alt="PRs Welcome" src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=shields"/></a>
+  <a href="https://github.com/measure-sh/measure/commits"><img alt="GitHub commit activity" src="https://img.shields.io/github/commit-activity/m/measure-sh/measure"/></a>
+  <a href="https://github.com/measure-sh/measure/issues?q=is%3Aclosed"><img alt="GitHub closed issues" src="https://img.shields.io/github/issues-closed/measure-sh/measure"/></a>
+  <a href="https://swiftpackageindex.com/measure-sh/measure"><img alt="Swift Version Compatibility Badge" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fmeasure-sh%2Fmeasure%2Fbadge%3Ftype%3Dswift-versions"/></a>
+  <a href="https://swiftpackageindex.com/measure-sh/measure"><img alt="Platform Compatibility Badge" src="https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fmeasure-sh%2Fmeasure%2Fbadge%3Ftype%3Dplatforms"/></a>
+  <a href="https://central.sonatype.com/artifact/sh.measure/measure-android"><img alt="Measure Android on Maven Central" src="https://img.shields.io/maven-metadata/v.svg?metadataUrl=https%3A%2F%2Frepo1.maven.org%2Fmaven2%2Fsh%2Fmeasure%2Fmeasure-android%2Fmaven-metadata.xml&label=maven"/></a>
+  <a href="https://pub.dev/packages/measure_flutter"><img alt="Measure Flutter on pub.dev" src="https://img.shields.io/pub/v/measure_flutter"/><a>
+  <a href="https://www.npmjs.com/package/@measuresh/react-native"><img alt="Measure React Native on npm" src="https://img.shields.io/npm/v/@measuresh/react-native"/></a>
 </p>
 
 ## Mobile apps break, get to the root cause faster
