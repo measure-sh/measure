@@ -1,31 +1,31 @@
 PODS:
-  - KSCrash (2.5.1):
-    - KSCrash/Installations (= 2.5.1)
-  - KSCrash/Core (2.5.1)
-  - KSCrash/DemangleFilter (2.5.1):
+  - KSCrash (2.6.0):
+    - KSCrash/Installations (= 2.6.0)
+  - KSCrash/Core (2.6.0)
+  - KSCrash/DemangleFilter (2.6.0):
     - KSCrash/Recording
-  - KSCrash/Filters (2.5.1):
+  - KSCrash/Filters (2.6.0):
     - KSCrash/Recording
     - KSCrash/RecordingCore
     - KSCrash/ReportingCore
-  - KSCrash/Installations (2.5.1):
+  - KSCrash/Installations (2.6.0):
     - KSCrash/DemangleFilter
     - KSCrash/Filters
     - KSCrash/Recording
     - KSCrash/Sinks
-  - KSCrash/Recording (2.5.1):
+  - KSCrash/Recording (2.6.0):
     - KSCrash/RecordingCore
-  - KSCrash/RecordingCore (2.5.1):
+  - KSCrash/RecordingCore (2.6.0):
     - KSCrash/Core
-  - KSCrash/ReportingCore (2.5.1):
+  - KSCrash/ReportingCore (2.6.0):
     - KSCrash/Core
-  - KSCrash/Sinks (2.5.1):
+  - KSCrash/Sinks (2.6.0):
     - KSCrash/Filters
     - KSCrash/Recording
-  - measure-sh (0.12.1):
+  - measure-sh (0.13.1):
     - KSCrash (~> 2.5)
-    - measure-sh/WebP (= 0.12.1)
-  - measure-sh/WebP (0.12.1):
+    - measure-sh/WebP (= 0.13.1)
+  - measure-sh/WebP (0.13.1):
     - KSCrash (~> 2.5)
 
 DEPENDENCIES:
@@ -40,8 +40,8 @@ EXTERNAL SOURCES:
     :path: "../../"
 
 SPEC CHECKSUMS:
-  KSCrash: 8c4464fd5da7de520f2ce4a00fdf63f169a80f18
-  measure-sh: 9a9366e427296f6c1577b62fb29aee38dc11cd09
+  KSCrash: 8515730b020ffc714bb10406a3bd289b28a81c6f
+  measure-sh: 70f3604dadfbcd4930c09dc3fa49f81275f8940b
 
 PODFILE CHECKSUM: 828d9701ce9dd588cdabe7bc1a8cb829d2a17f97
 

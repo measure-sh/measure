@@ -24,7 +24,6 @@ final class BaseCrashReportingManager: CrashReportManager {
     private let logger: Logger
     private let signalProcessor: SignalProcessor
     private let crashDataPersistence: CrashDataPersistence
-    private let systemFileManager: SystemFileManager
     private let idProvider: IdProvider
     private let sysCtl: SysCtl
     private let configProvider: ConfigProvider
@@ -34,7 +33,6 @@ final class BaseCrashReportingManager: CrashReportManager {
          signalProcessor: SignalProcessor,
          crashDataPersistence: CrashDataPersistence,
          crashReporter: SystemCrashReporter,
-         systemFileManager: SystemFileManager,
          idProvider: IdProvider,
          sysCtl: SysCtl,
          configProvider: ConfigProvider) {
@@ -43,7 +41,6 @@ final class BaseCrashReportingManager: CrashReportManager {
         self.crashDataPersistence = crashDataPersistence
         self.crashReporter = crashReporter
         self.hasPendingCrashReport = crashReporter.hasPendingCrashReport
-        self.systemFileManager = systemFileManager
         self.idProvider = idProvider
         self.sysCtl = sysCtl
         self.configProvider = configProvider
@@ -62,12 +59,11 @@ final class BaseCrashReportingManager: CrashReportManager {
         let exceptionData = processKotlinCrashReport() ?? processCrashReport()
         guard var exception = exceptionData.exception, let date = exceptionData.date else {
             crashReporter.clearCrashData()
-            crashDataPersistence.clearCrashData()
             completion?()
             return
         }
 
-        let crashDataAttributes = crashDataPersistence.readCrashData()
+        let crashDataAttributes = exceptionData.crashDataAttributes
         if let attributes = crashDataAttributes.attribute, let sessionId = crashDataAttributes.sessionId {
             exception.foreground = crashDataAttributes.isForeground
             signalProcessor.track(data: exception,
@@ -83,7 +79,6 @@ final class BaseCrashReportingManager: CrashReportManager {
         }
 
         crashReporter.clearCrashData()
-        crashDataPersistence.clearCrashData()
         completion?()
     }
 
@@ -91,7 +86,7 @@ final class BaseCrashReportingManager: CrashReportManager {
     /// "msr_kmp_kotlin_crash" in the NSException's userInfo. KSCrash stores this as
     /// a string in the report, so a substring check is sufficient.
     /// Returns nil if no Kotlin crash report is found.
-    private func processKotlinCrashReport() -> (exception: Exception?, date: Date?)? {
+    private func processKotlinCrashReport() -> (exception: Exception?, date: Date?, crashDataAttributes: CrashDataAttributes)? {
         for reportDict in crashReporter.loadAllCrashReports() {
             let crashDict = reportDict["crash"] as? [String: Any] ?? [:]
             let errorDict = crashDict["error"] as? [String: Any] ?? [:]
@@ -106,13 +101,14 @@ final class BaseCrashReportingManager: CrashReportManager {
             let exception = formatter.getException()
             let timestamp = (reportDict["report"] as? [String: Any])?["timestamp"] as? TimeInterval
             let date = timestamp.map { Date(timeIntervalSince1970: $0) } ?? Date()
-            return (exception, date)
+            let crashDataAttributes = crashDataPersistence.readCrashData(from: reportDict)
+            return (exception, date, crashDataAttributes)
         }
 
         return nil
     }
 
-    private func processCrashReport() -> (exception: Exception?, date: Date?) {
+    private func processCrashReport() -> (exception: Exception?, date: Date?, crashDataAttributes: CrashDataAttributes) {
         do {
             let reportDict = try crashReporter.loadCrashReport()
             let formatter  = CrashDataFormatter(reportDict, sysCtl: sysCtl)
@@ -120,11 +116,12 @@ final class BaseCrashReportingManager: CrashReportManager {
 
             let timestamp = (reportDict["report"] as? [String: Any])?["timestamp"] as? TimeInterval
             let date = timestamp.map { Date(timeIntervalSince1970: $0) } ?? Date()
+            let crashDataAttributes = crashDataPersistence.readCrashData(from: reportDict)
 
-            return (exception, date)
+            return (exception, date, crashDataAttributes)
         } catch {
             logger.internalLog(level: .error, message: "CrashReportManager: Error parsing crash report.", error: error, data: nil)
-            return (nil, nil)
+            return (nil, nil, (attribute: nil, sessionId: nil, isForeground: nil))
         }
     }
 }

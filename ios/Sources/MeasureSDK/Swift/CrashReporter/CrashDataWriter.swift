@@ -5,6 +5,11 @@
 //  Created by Adwin Ross on 19/09/24.
 //
 
+#if canImport(KSCrashRecording)
+import KSCrashRecording
+#elseif canImport(KSCrash)
+import KSCrash
+#endif
 import Foundation
 
 /// A singleton class responsible for writing crash data to a persistent store.
@@ -18,9 +23,7 @@ final class CrashDataWriter {
         self.crashDataPersistence = crashDataPersistence
     }
 
-    func writeCrashData() {
-        if let crashDataPersistence = self.crashDataPersistence {
-            crashDataPersistence.writeCrashData()
-        }
+    func writeCrashData(plan: UnsafePointer<ExceptionHandlingPlan>, writer: UnsafePointer<ReportWriter>) {
+        crashDataPersistence?.writeCrashData(plan: plan, writer: writer)
     }
 }

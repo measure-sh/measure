@@ -13,7 +13,6 @@ final class CrashReportingManagerTests: XCTestCase {
     var signalProcessor: MockSignalProcessor!
     var persistence: MockCrashDataPersistence!
     var logger: MockLogger!
-    var systemFileManager: MockSystemFileManager!
     var idProvider: MockIdProvider!
     var configProvider: MockConfigProvider!
     var crashReportingManager: BaseCrashReportingManager!
@@ -29,7 +28,6 @@ final class CrashReportingManagerTests: XCTestCase {
             isForeground: false
         )
         logger = MockLogger()
-        systemFileManager = MockSystemFileManager()
         idProvider = MockIdProvider()
         configProvider = MockConfigProvider()
         sysCtl = MockSysCtl()
@@ -41,7 +39,6 @@ final class CrashReportingManagerTests: XCTestCase {
         signalProcessor = nil
         persistence = nil
         logger = nil
-        systemFileManager = nil
         idProvider = nil
         configProvider = nil
         sysCtl = nil
@@ -177,12 +174,13 @@ final class CrashReportingManagerTests: XCTestCase {
         XCTAssertTrue(reporter.clearCrashDataCalled)
     }
 
-    func test_trackException_clearsPersistenceDataAfterTracking() {
+    func test_trackException_readsAttributesFromTheLoadedReportDict() {
         reporter.hasPendingCrashReport = true
-        reporter.reportToReturn = makeReportDict()
+        let report = makeReportDict()
+        reporter.reportToReturn = report
         trackException()
-        XCTAssertNil(persistence.attribute)
-        XCTAssertNil(persistence.sessionId)
+        XCTAssertTrue(persistence.readCrashDataCalled)
+        XCTAssertEqual(persistence.lastReadReportDict?.keys.sorted(), report.keys.sorted())
     }
 
     func test_trackException_ClearReporterWhenLoadThrows() {
@@ -192,11 +190,11 @@ final class CrashReportingManagerTests: XCTestCase {
         XCTAssertTrue(reporter.clearCrashDataCalled)
     }
 
-    func test_trackException_ClearPersistenceWhenLoadThrows() {
+    func test_trackException_doesNotReadCrashDataWhenLoadThrows() {
         reporter.hasPendingCrashReport = true
         reporter.reportToReturn = nil
         trackException()
-        XCTAssertNil(persistence.attribute)
+        XCTAssertFalse(persistence.readCrashDataCalled)
     }
 
     func test_trackException_ClearReporterWhenAttributesNil() {
@@ -205,14 +203,6 @@ final class CrashReportingManagerTests: XCTestCase {
         persistence.attribute = nil
         trackException()
         XCTAssertTrue(reporter.clearCrashDataCalled)
-    }
-
-    func test_trackException_ClearPersistenceWhenSessionIdNil() {
-        reporter.hasPendingCrashReport = true
-        reporter.reportToReturn = makeReportDict()
-        persistence.sessionId = nil
-        trackException()
-        XCTAssertNil(persistence.attribute)
     }
 
     func test_trackException_detectsKotlinCrashFromUserInfo() {
@@ -301,7 +291,6 @@ final class CrashReportingManagerTests: XCTestCase {
                                                           signalProcessor: signalProcessor,
                                                           crashDataPersistence: persistence,
                                                           crashReporter: reporter,
-                                                          systemFileManager: systemFileManager,
                                                           idProvider: idProvider,
                                                           sysCtl: sysCtl,
                                                           configProvider: configProvider)

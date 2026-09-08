@@ -9,7 +9,6 @@ import Foundation
 @testable import Measure
 
 final class MockSystemFileManager: SystemFileManager {
-    var crashFilePath: URL?
     var directoryPath: String?
     var attachmentDirectoryPath: String?
     var dynamicConfigPath: String?
@@ -18,10 +17,6 @@ final class MockSystemFileManager: SystemFileManager {
     var logFile: URL?
     var sdkDebugLogFiles: [URL] = []
     var deletedPaths: [String] = []
-
-    func getCrashFilePath() -> URL? {
-        return crashFilePath
-    }
 
     func saveFile(data: Data, name: String, folderName: String?, directory: FileManager.SearchPathDirectory) -> URL? {
         let fileKey = folderName != nil ? "\(folderName!)/\(name)" : name

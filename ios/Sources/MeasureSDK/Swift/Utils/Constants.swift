@@ -14,7 +14,6 @@ typealias FloatNumber64 = Float64
 
 let logTag = "com.measure.sh"
 let cacheDirectoryName = "com.measure.sh"
-let crashDataFileName = "crash_data.txt"
 let backgroundQueueLabel = "com.measure.background"
 let periodicEventExporterLabel = "com.measure.periodicEventExporter"
 let userInitiatedQueueLabel = "com.measure.userInitiated"
