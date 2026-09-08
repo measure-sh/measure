@@ -76,6 +76,9 @@ interface FilterBarProps {
   keysUnavailable: boolean;
   spanNames?: string[] | null;
   filterExprIssues?: FilterExprIssue[] | null;
+  // False hides the filter expression editor and keeps the app and date
+  // range controls.
+  showFilterExpr?: boolean;
   onChange: (change: FilterChange) => void;
 }
 
@@ -188,6 +191,7 @@ export default function FilterBar({
   keysUnavailable,
   spanNames,
   filterExprIssues,
+  showFilterExpr = true,
   onChange,
 }: FilterBarProps) {
   const [keyListOpen, setKeyListOpen] = useState(false);
@@ -307,7 +311,7 @@ export default function FilterBar({
       <div className="flex flex-wrap gap-4 items-center w-full">
         <Skeleton className="h-9 w-37.5" />
         <Skeleton className="h-9 w-37.5" />
-        <Skeleton className="h-9 flex-1 min-w-64" />
+        {showFilterExpr && <Skeleton className="h-9 flex-1 min-w-64" />}
       </div>
     );
   }
@@ -568,137 +572,134 @@ export default function FilterBar({
           />
         ) : null)}
 
-      <div className="flex-auto min-w-64">
-        <div
-          data-testid="filter-bar"
-          aria-disabled={keysUnavailable}
-          // Ring on keyboard focus only: focus returns here after every pick.
-          className={`relative rounded-md border border-input bg-transparent dark:bg-input/30 shadow-xs has-focus-visible:border-ring has-focus-visible:ring-ring/50 has-focus-visible:ring-[3px] ${
-            keysUnavailable ? "opacity-50 select-none" : ""
-          } ${!editingAsText && !keysUnavailable ? "cursor-pointer" : ""}`}
-          // The conditions never cover the whole bar: the padding around them,
-          // the room left at the end of a line a condition was too wide to join,
-          // and the space after the last one are all empty. A click on any of it
-          // opens the key list, so every empty part of the bar adds a condition
-          // rather than only the part the button behind them happens to cover.
-          // Each control in the bar is a button, so a click that reaches one is
-          // left for it to handle.
-          onClick={(e) => {
-            if (editingAsText || keysUnavailable) {
-              return;
-            }
-            if ((e.target as HTMLElement).closest("button")) {
-              return;
-            }
-            setKeyListOpen(true);
-          }}
-        >
-          <SlidersHorizontal className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
-
-          <div className="pl-8 pr-16">
-            {editingAsText ? (
-              <FilterTextEditor
-                value={draftText}
-                tokens={parsedDraft.tokens}
-                issues={draftFilterIssues}
-                parserStopped={parserStopped}
-                placeholder={placeholder}
-                onChange={setTypedText}
-                onApply={applyFilterText}
-                onCancel={cancelTextEditing}
-              />
-            ) : (
-              <div className="flex flex-wrap items-center gap-1.5 py-1.5 min-h-9 max-h-32 overflow-y-auto">
-                {keysUnavailable && (
-                  <span className="flex-1 min-w-24 h-6 font-body text-sm text-muted-foreground select-none">
-                    {placeholder}
-                  </span>
-                )}
-
-                {!keysUnavailable && (
-                  <GroupChildren group={drawn} editor={editor} />
-                )}
-
-                {!keysUnavailable && (
-                  <KeyPicker
-                    keys={keys}
-                    keyGroups={keyGroups}
-                    selected={null}
-                    open={keyListOpen}
-                    onOpenChange={setKeyListOpen}
-                    focusOnClose={focusedControlRef}
-                    onSelect={(key) => startRow(drawn.id, key)}
-                    onAddGroup={() => startGroup(drawn.id)}
-                    trigger={
-                      <button
-                        type="button"
-                        ref={addConditionButtonRef}
-                        data-testid="filter-input"
-                        aria-label="Add a filter"
-                        // Match the height of adjacent conditions.
-                        // Without conditions, fill the bar to center the placeholder.
-                        // With conditions, stay compact and anchor the key list.
-                        className={`self-stretch min-h-2 text-left outline-none font-body text-sm text-muted-foreground ${
-                          drawn.children.length === 0
-                            ? "flex-1"
-                            : "flex-none w-4"
-                        }`}
-                      >
-                        {drawn.children.length === 0 ? placeholder : ""}
-                      </button>
-                    }
-                  />
-                )}
-              </div>
-            )}
-          </div>
-
-          <div className="absolute right-2 top-1.5 flex items-center gap-0.5">
-            {!keysUnavailable && (
-              <button
-                type="button"
-                aria-label={
-                  editingAsText ? "Edit as conditions" : "Edit as text"
-                }
-                aria-pressed={editingAsText}
-                data-testid="filter-toggle-text"
-                title={editingAsText ? "Edit as conditions" : "Edit as text"}
-                onClick={toggleTextEditing}
-                className={`h-6 w-6 inline-flex items-center justify-center rounded hover:bg-accent hover:text-foreground ${
-                  editingAsText
-                    ? "bg-accent text-foreground"
-                    : "text-muted-foreground"
-                }`}
-              >
-                <Type className="h-3 w-3" />
-              </button>
-            )}
-
-            {draftText !== "" && (
-              <button
-                type="button"
-                aria-label="Clear filter"
-                data-testid="filter-clear"
-                onMouseDown={(e) => e.preventDefault()}
-                onClick={clearFilter}
-                className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            )}
-          </div>
-        </div>
-
-        {draftIssueMessage && (
-          <p
-            role="alert"
-            data-testid="filter-issue"
-            className="mt-2 font-body text-xs text-muted-foreground"
+      {showFilterExpr && (
+        <div className="flex-auto min-w-64">
+          <div
+            data-testid="filter-bar"
+            aria-disabled={keysUnavailable}
+            // The focus ring shows on keyboard focus only, since focus returns
+            // here after every pick.
+            className={`relative rounded-md border border-input bg-transparent dark:bg-input/30 shadow-xs has-focus-visible:border-ring has-focus-visible:ring-ring/50 has-focus-visible:ring-[3px] ${
+              keysUnavailable ? "opacity-50 select-none" : ""
+            } ${!editingAsText && !keysUnavailable ? "cursor-pointer" : ""}`}
+            // A click on empty space anywhere in the bar opens the key list.
+            // A click that reaches a button is left to that button.
+            onClick={(e) => {
+              if (editingAsText || keysUnavailable) {
+                return;
+              }
+              if ((e.target as HTMLElement).closest("button")) {
+                return;
+              }
+              setKeyListOpen(true);
+            }}
           >
-            {draftIssueMessage}
-          </p>
-        )}
-      </div>
+            <SlidersHorizontal className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none z-10" />
+
+            <div className="pl-8 pr-16">
+              {editingAsText ? (
+                <FilterTextEditor
+                  value={draftText}
+                  tokens={parsedDraft.tokens}
+                  issues={draftFilterIssues}
+                  parserStopped={parserStopped}
+                  placeholder={placeholder}
+                  onChange={setTypedText}
+                  onApply={applyFilterText}
+                  onCancel={cancelTextEditing}
+                />
+              ) : (
+                <div className="flex flex-wrap items-center gap-1.5 py-1.5 min-h-9 max-h-32 overflow-y-auto">
+                  {keysUnavailable && (
+                    <span className="flex-1 min-w-24 h-6 font-body text-sm text-muted-foreground select-none">
+                      {placeholder}
+                    </span>
+                  )}
+
+                  {!keysUnavailable && (
+                    <GroupChildren group={drawn} editor={editor} />
+                  )}
+
+                  {!keysUnavailable && (
+                    <KeyPicker
+                      keys={keys}
+                      keyGroups={keyGroups}
+                      selected={null}
+                      open={keyListOpen}
+                      onOpenChange={setKeyListOpen}
+                      focusOnClose={focusedControlRef}
+                      onSelect={(key) => startRow(drawn.id, key)}
+                      onAddGroup={() => startGroup(drawn.id)}
+                      trigger={
+                        <button
+                          type="button"
+                          ref={addConditionButtonRef}
+                          data-testid="filter-input"
+                          aria-label="Add a filter"
+                          // Fills the bar when it holds no conditions so the
+                          // placeholder is centred, otherwise stays narrow.
+                          className={`self-stretch min-h-2 text-left outline-none font-body text-sm text-muted-foreground ${
+                            drawn.children.length === 0
+                              ? "flex-1"
+                              : "flex-none w-4"
+                          }`}
+                        >
+                          {drawn.children.length === 0 ? placeholder : ""}
+                        </button>
+                      }
+                    />
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="absolute right-2 top-1.5 flex items-center gap-0.5">
+              {!keysUnavailable && (
+                <button
+                  type="button"
+                  aria-label={
+                    editingAsText ? "Edit as conditions" : "Edit as text"
+                  }
+                  aria-pressed={editingAsText}
+                  data-testid="filter-toggle-text"
+                  title={editingAsText ? "Edit as conditions" : "Edit as text"}
+                  onClick={toggleTextEditing}
+                  className={`h-6 w-6 inline-flex items-center justify-center rounded hover:bg-accent hover:text-foreground ${
+                    editingAsText
+                      ? "bg-accent text-foreground"
+                      : "text-muted-foreground"
+                  }`}
+                >
+                  <Type className="h-3 w-3" />
+                </button>
+              )}
+
+              {draftText !== "" && (
+                <button
+                  type="button"
+                  aria-label="Clear filter"
+                  data-testid="filter-clear"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={clearFilter}
+                  className="h-6 w-6 inline-flex items-center justify-center rounded text-muted-foreground hover:bg-accent hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          {draftIssueMessage && (
+            <p
+              role="alert"
+              data-testid="filter-issue"
+              className="mt-2 font-body text-xs text-muted-foreground"
+            >
+              {draftIssueMessage}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

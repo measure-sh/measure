@@ -1,15 +1,9 @@
 /**
- * Integration tests for Alerts Overview page.
- *
- * The alerts page is a list-only page (no detail page, no plot) with
- * minimal filters (app selector + date range only). Each alert row
- * links to an external URL (crash/ANR detail page) via the `url` field
- * from the API.
- *
- * Tests cover the page/API wiring: error propagation, the real Filters
- * configuration, pagination round-trips and deep-links, URL
- * serialisation, and the request URL parameters sent to the alerts API.
+ * Wiring between the Alerts page and the server: request parameters, the
+ * app and date controls, pagination and error responses. Row rendering is
+ * covered by the unit tests.
  */
+import { mockRouter } from "@/__tests__/helpers/mock_router";
 import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
@@ -20,7 +14,6 @@ import {
   expect,
   it,
 } from "@jest/globals";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
   act,
   fireEvent,
@@ -37,13 +30,10 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
 }));
 
-const mockRouterReplace = jest.fn();
-const mockRouterPush = jest.fn();
-const mockSearchParams = new URLSearchParams();
+const mockRouterPush = mockRouter.pushMock;
+
 jest.mock("next/navigation", () => ({
-  __esModule: true,
-  useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
-  useSearchParams: () => mockSearchParams,
+  ...require("@/__tests__/helpers/mock_router").nextNavigationMock(),
   usePathname: () => "/test-team/alerts",
 }));
 
@@ -61,6 +51,17 @@ jest.mock("next-themes", () => ({
   useTheme: () => ({ theme: "light" }),
 }));
 
+// Radix popovers need a resize observer and pointer capture jsdom lacks.
+(globalThis as any).ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+Element.prototype.scrollIntoView = jest.fn();
+Element.prototype.hasPointerCapture = jest.fn(() => false);
+Element.prototype.setPointerCapture = jest.fn();
+Element.prototype.releasePointerCapture = jest.fn();
+
 // --- MSW ---
 import { makeAlertsOverviewFixture, makeAppFixture } from "../msw/fixtures";
 import { server } from "../msw/server";
@@ -71,19 +72,19 @@ jest.spyOn(console, "error").mockImplementation(() => {});
 beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
 afterEach(() => {
   server.resetHandlers();
-  mockRouterReplace.mockClear();
   mockRouterPush.mockClear();
 });
 afterAll(() => server.close());
 
 // --- Store/component imports ---
 import AlertsOverview from "@/app/[teamId]/alerts/page";
+import { queryClient } from "@/app/query/query_client";
 import { createFiltersStore } from "@/app/stores/filters_store";
 import { createOnboardingStore } from "@/app/stores/onboarding_store";
+import { QueryClientProvider } from "@tanstack/react-query";
 
 let filtersStore = createFiltersStore();
 let onboardingStore = createOnboardingStore();
-let testQueryClient: QueryClient;
 
 jest.mock("@/app/stores/provider", () => {
   const { useStore } = require("zustand");
@@ -97,315 +98,225 @@ jest.mock("@/app/stores/provider", () => {
   };
 });
 
+const appId = makeAppFixture().id;
+const secondApp = makeAppFixture({
+  id: "c6a4f9b2-7d3e-4a0b-9f8c-2b3c4d5e6f70",
+  name: "measure spare",
+});
+
 beforeEach(() => {
   filtersStore = createFiltersStore();
   onboardingStore = createOnboardingStore();
-  testQueryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
-  filtersStore.getState().reset();
-  for (const key of [...mockSearchParams.keys()]) mockSearchParams.delete(key);
+  queryClient.clear();
+  mockRouter.reset();
   const { apiClient } = require("@/app/api/api_client");
   apiClient.init({ replace: jest.fn(), push: jest.fn() });
 });
 
 function renderWithProviders(ui: React.ReactElement) {
   return render(
-    <QueryClientProvider client={testQueryClient}>{ui}</QueryClientProvider>,
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
   );
 }
 
-// ====================================================================
-// ALERTS OVERVIEW
-// ====================================================================
 describe("Alerts Overview (MSW integration)", () => {
-  async function renderAndWaitForData() {
-    renderWithProviders(
+  const firstAlert =
+    "Crash rate spiked to 5.2% for NullPointerException in CheckoutActivity";
+
+  function renderPage() {
+    return renderWithProviders(
       <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
-    );
-    await waitFor(
-      () => {
-        expect(
-          screen.getByText(
-            "Crash rate spiked to 5.2% for NullPointerException in CheckoutActivity",
-          ),
-        ).toBeTruthy();
-      },
-      { timeout: 5000 },
     );
   }
 
-  // ================================================================
-  // PAGE LOAD
-  // ================================================================
-  describe("page load", () => {
-    it("shows error when API returns 500", async () => {
+  function recordAlertsRequests(page2?: any) {
+    const sent: URL[] = [];
+    server.use(
+      http.get("*/api/apps/:appId/alerts", ({ request }) => {
+        const url = new URL(request.url);
+        sent.push(url);
+        if (page2 && url.searchParams.get("offset") === "5") {
+          return HttpResponse.json(page2);
+        }
+        return HttpResponse.json(makeAlertsOverviewFixture());
+      }),
+    );
+    return sent;
+  }
+
+  async function waitForAlerts() {
+    await waitFor(() => expect(screen.getByText(firstAlert)).toBeTruthy(), {
+      timeout: 5000,
+    });
+  }
+
+  describe("opening the page", () => {
+    it("lists the alerts the server sent", async () => {
+      renderPage();
+      await waitForAlerts();
+
+      expect(screen.getByText("ID: alert-001")).toBeTruthy();
+    });
+
+    it("asks for the app's alerts over the range it settled on", async () => {
+      const sent = recordAlertsRequests();
+      renderPage();
+      await waitForAlerts();
+
+      expect(sent).toHaveLength(1);
+      expect(sent[0].pathname).toBe(`/api/apps/${appId}/alerts`);
+      expect(sent[0].searchParams.get("from")).toMatch(/Z$/);
+      expect(sent[0].searchParams.get("to")).toMatch(/Z$/);
+      expect(sent[0].searchParams.get("timezone")).toBeTruthy();
+      expect(sent[0].searchParams.get("limit")).toBe("5");
+      expect(sent[0].searchParams.get("offset")).toBe("0");
+      expect(sent[0].searchParams.has("filter_short_code")).toBe(false);
+      expect(sent[0].searchParams.has("filter_expr")).toBe(false);
+    });
+
+    it("offers the app and the date range, and nothing else to filter by", async () => {
+      renderPage();
+      await waitForAlerts();
+
+      expect(screen.getByText("measure demo")).toBeTruthy();
+      expect(screen.getByText("Last 6 Hours")).toBeTruthy();
+      expect(screen.queryByTestId("filter-bar")).toBeNull();
+      expect(screen.queryByText("App versions")).toBeNull();
+      expect(screen.queryByText("OS versions")).toBeNull();
+      expect(screen.queryByText("Countries")).toBeNull();
+    });
+
+    it("records the app and range it settled on in the URL", async () => {
+      renderPage();
+      await waitForAlerts();
+
+      const written = new URLSearchParams(window.location.search);
+      expect(written.get("a")).toBe(appId);
+      expect(written.get("d")).toBe("Last 6 Hours");
+      expect(written.get("sd")).toBeNull();
+      expect(written.get("ed")).toBeNull();
+    });
+  });
+
+  describe("pagination", () => {
+    const page2Fixture = makeAlertsOverviewFixture({
+      meta: { next: false, previous: true },
+      results: [
+        {
+          id: "alert-page2",
+          team_id: "a1b2c3d4-5e6f-7a8b-9c0d-e1f2a3b4c5d6",
+          app_id: "b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f",
+          entity_id: "crash-group-page2",
+          type: "crash_spike",
+          message: "Page 2 alert: OutOfMemoryError spike",
+          url: "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-page2",
+          created_at: "2026-04-08T12:00:00Z",
+          updated_at: "2026-04-08T12:00:00Z",
+        },
+      ],
+    });
+
+    it("clicking Next renders page 2 data, Previous returns to page 1", async () => {
+      recordAlertsRequests(page2Fixture);
+      renderPage();
+      await waitForAlerts();
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Next").closest("button")!);
+      });
+      await waitFor(
+        () =>
+          expect(
+            screen.getByText("Page 2 alert: OutOfMemoryError spike"),
+          ).toBeTruthy(),
+        { timeout: 5000 },
+      );
+      expect(screen.queryByText(firstAlert)).toBeNull();
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Previous").closest("button")!);
+      });
+      await waitForAlerts();
+      expect(
+        screen.queryByText("Page 2 alert: OutOfMemoryError spike"),
+      ).toBeNull();
+      expect(window.location.search).toContain("po=0");
+    });
+
+    it("deep-link with po=5 renders page 2 data", async () => {
+      recordAlertsRequests(page2Fixture);
+      mockRouter.setUrl("po=5");
+      renderPage();
+
+      await waitFor(
+        () =>
+          expect(
+            screen.getByText("Page 2 alert: OutOfMemoryError spike"),
+          ).toBeTruthy(),
+        { timeout: 8000 },
+      );
+      expect(screen.queryByText(firstAlert)).toBeNull();
+    });
+
+    it("goes back to the first page when another app is picked", async () => {
+      server.use(
+        http.get("*/api/teams/:teamId/apps", () =>
+          HttpResponse.json([makeAppFixture(), secondApp]),
+        ),
+      );
+      const sent = recordAlertsRequests(page2Fixture);
+      mockRouter.setUrl("po=5");
+      renderPage();
+      await waitFor(
+        () =>
+          expect(
+            screen.getByText("Page 2 alert: OutOfMemoryError spike"),
+          ).toBeTruthy(),
+        { timeout: 8000 },
+      );
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("measure demo").closest("button")!);
+      });
+      await act(async () => {
+        fireEvent.click(await screen.findByText(secondApp.name));
+      });
+
+      await waitFor(
+        () =>
+          expect(sent[sent.length - 1].pathname).toBe(
+            `/api/apps/${secondApp.id}/alerts`,
+          ),
+        { timeout: 5000 },
+      );
+      expect(sent[sent.length - 1].searchParams.get("offset")).toBe("0");
+      expect(new URLSearchParams(window.location.search).get("po")).toBe("0");
+    });
+  });
+
+  describe("when the server fails", () => {
+    it("shows error when the alerts API returns 500", async () => {
       server.use(
         http.get("*/api/apps/:appId/alerts", () => {
           return new HttpResponse(null, { status: 500 });
         }),
       );
 
-      renderWithProviders(
-        <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(/Error fetching list of alerts/),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-
-    it("only shows app selector and date range filters", async () => {
-      await renderAndWaitForData();
-      // App selector and date range are shown
-      expect(screen.getByText("measure demo")).toBeTruthy();
-      expect(screen.getByText("Last 6 Hours")).toBeTruthy();
-      // Other filters should NOT be present
-      expect(screen.queryByText("App versions")).toBeNull();
-      expect(screen.queryByText("OS versions")).toBeNull();
-      expect(screen.queryByText("Countries")).toBeNull();
-    });
-  });
-
-  // ================================================================
-  // PAGINATION
-  // ================================================================
-  describe("pagination", () => {
-    it("clicking Next renders page 2 data, Previous returns to page 1", async () => {
-      const page2Fixture = makeAlertsOverviewFixture({
-        meta: { next: false, previous: true },
-        results: [
-          {
-            id: "alert-page2",
-            team_id: "a1b2c3d4-5e6f-7a8b-9c0d-e1f2a3b4c5d6",
-            app_id: "b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f",
-            entity_id: "crash-group-page2",
-            type: "crash_spike",
-            message: "Page 2 alert: OutOfMemoryError spike",
-            url: "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-page2",
-            created_at: "2026-04-08T12:00:00Z",
-            updated_at: "2026-04-08T12:00:00Z",
-          },
-        ],
-      });
-
-      server.use(
-        http.get("*/api/apps/:appId/alerts", ({ request }) => {
-          const url = new URL(request.url);
-          const offset = url.searchParams.get("offset");
-          if (offset === "5") return HttpResponse.json(page2Fixture);
-          return HttpResponse.json(makeAlertsOverviewFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
+      renderPage();
       expect(
-        screen.getByText(
-          "Crash rate spiked to 5.2% for NullPointerException in CheckoutActivity",
-        ),
+        await screen.findByText(/Error fetching list of alerts/),
       ).toBeTruthy();
-
-      // Navigate to page 2
-      const nextBtn = screen.getByText("Next").closest("button")!;
-      await act(async () => {
-        fireEvent.click(nextBtn);
-      });
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText("Page 2 alert: OutOfMemoryError spike"),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      expect(
-        screen.queryByText(
-          "Crash rate spiked to 5.2% for NullPointerException in CheckoutActivity",
-        ),
-      ).toBeNull();
-
-      // Navigate back to page 1
-      const prevBtn = screen.getByText("Previous").closest("button")!;
-      await act(async () => {
-        fireEvent.click(prevBtn);
-      });
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(
-              "Crash rate spiked to 5.2% for NullPointerException in CheckoutActivity",
-            ),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      expect(
-        screen.queryByText("Page 2 alert: OutOfMemoryError spike"),
-      ).toBeNull();
-
-      // URL reflects page 1
-      const url =
-        mockRouterReplace.mock.calls[
-          mockRouterReplace.mock.calls.length - 1
-        ][0];
-      expect(url).toContain("po=0");
     });
 
-    it("deep-link with po=5 renders page 2 data", async () => {
-      const page2Fixture = makeAlertsOverviewFixture({
-        meta: { next: false, previous: true },
-        results: [
-          {
-            id: "alert-page2",
-            team_id: "a1b2c3d4-5e6f-7a8b-9c0d-e1f2a3b4c5d6",
-            app_id: "b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f",
-            entity_id: "crash-group-page2",
-            type: "crash_spike",
-            message: "Deep-linked page 2 alert",
-            url: "/test-team/errors/b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f/crash-group-page2",
-            created_at: "2026-04-08T12:00:00Z",
-            updated_at: "2026-04-08T12:00:00Z",
-          },
-        ],
-      });
-
+    it("says so when the team's apps cannot be fetched", async () => {
       server.use(
-        http.get("*/api/apps/:appId/alerts", ({ request }) => {
-          const url = new URL(request.url);
-          const offset = url.searchParams.get("offset");
-          if (offset === "5") return HttpResponse.json(page2Fixture);
-          return HttpResponse.json(makeAlertsOverviewFixture());
+        http.get("*/api/teams/:teamId/apps", () => {
+          return new HttpResponse(null, { status: 500 });
         }),
       );
 
-      mockSearchParams.set("po", "5");
-      renderWithProviders(
-        <AlertsOverview params={promiseParams({ teamId: "test-team" })} />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Deep-linked page 2 alert")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      expect(
-        screen.queryByText(
-          "Crash rate spiked to 5.2% for NullPointerException in CheckoutActivity",
-        ),
-      ).toBeNull();
-    });
-  });
-
-  // ================================================================
-  // URL SYNC
-  // ================================================================
-  describe("URL sync", () => {
-    it("serialises app and date filters into URL", async () => {
-      await renderAndWaitForData();
-      expect(mockRouterReplace).toHaveBeenCalled();
-      const url =
-        mockRouterReplace.mock.calls[
-          mockRouterReplace.mock.calls.length - 1
-        ][0];
-      expect(url).toContain("a=");
-      expect(url).toContain("sd=");
-      expect(url).toContain("ed=");
-    });
-  });
-
-  // ================================================================
-  // REQUEST URL PARAMS
-  // ================================================================
-  describe("request URL params", () => {
-    it("sends limit=5 and offset in request URL", async () => {
-      const requestUrls: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/alerts", ({ request }) => {
-          requestUrls.push(new URL(request.url).toString());
-          return HttpResponse.json(makeAlertsOverviewFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
-      const lastUrl = requestUrls[requestUrls.length - 1];
-      expect(lastUrl).toContain("limit=5");
-      expect(lastUrl).toContain("offset=0");
-    });
-
-    it("sends from and to date params", async () => {
-      const requestUrls: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/alerts", ({ request }) => {
-          requestUrls.push(new URL(request.url).toString());
-          return HttpResponse.json(makeAlertsOverviewFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
-      const lastUrl = requestUrls[requestUrls.length - 1];
-      expect(lastUrl).toContain("from=");
-      expect(lastUrl).toContain("to=");
-      expect(lastUrl).toContain("timezone=");
-    });
-
-    it("request URL contains correct app ID from filters", async () => {
-      const requestPaths: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/alerts", ({ request }) => {
-          requestPaths.push(new URL(request.url).pathname);
-          return HttpResponse.json(makeAlertsOverviewFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
-      expect(requestPaths[requestPaths.length - 1]).toContain(
-        `/apps/${makeAppFixture().id}/alerts`,
-      );
-    });
-
-    it("offset updates in request URL after nextPage", async () => {
-      const requestUrls: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/alerts", ({ request }) => {
-          requestUrls.push(new URL(request.url).toString());
-          return HttpResponse.json(makeAlertsOverviewFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
-      requestUrls.length = 0;
-
-      const nextBtn = screen.getByText("Next").closest("button")!;
-      await act(async () => {
-        fireEvent.click(nextBtn);
-      });
-      await waitFor(() => expect(requestUrls.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      expect(requestUrls[requestUrls.length - 1]).toContain("offset=5");
-    });
-  });
-
-  // ================================================================
-  // API PATH VERIFICATION
-  // ================================================================
-  describe("API paths", () => {
-    it("fetches from /alerts path", async () => {
-      const requestPaths: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/alerts", ({ request }) => {
-          requestPaths.push(new URL(request.url).pathname);
-          return HttpResponse.json(makeAlertsOverviewFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
-      expect(requestPaths.some((p) => p.includes("/alerts"))).toBe(true);
+      renderPage();
+      expect(await screen.findByText(/Error fetching apps/)).toBeTruthy();
     });
   });
 });

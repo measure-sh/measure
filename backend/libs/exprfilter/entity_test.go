@@ -1,6 +1,7 @@
 package exprfilter
 
 import (
+	"errors"
 	"slices"
 	"strings"
 	"testing"
@@ -9,7 +10,7 @@ import (
 	"github.com/google/uuid"
 )
 
-var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, JourneysEntity}
+var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, JourneysEntity, AlertsEntity}
 
 func sampleValues(t *testing.T, key Key, operator Operator) []Value {
 	t.Helper()
@@ -50,13 +51,10 @@ func TestEntitiesFillEveryField(t *testing.T) {
 			if entity.Name == "" {
 				t.Error("an entity with no name cannot be asked for by a request")
 			}
-			if len(entity.Keys) == 0 {
-				t.Error("an entity with no keys can be filtered by nothing")
-			}
 			if entity.BindKey == nil {
 				t.Error("an entity with no BindKey cannot write a filter")
 			}
-			if entity.SuggestFixedKeyValues == nil {
+			if len(entity.Keys) > 0 && entity.SuggestFixedKeyValues == nil {
 				t.Error("an entity with no SuggestFixedKeyValues cannot list what a fixed key can be set to")
 			}
 		})
@@ -423,6 +421,39 @@ func TestJourneyEventsKeyBindingsReadTheEventsColumns(t *testing.T) {
 	}
 	if args := onEvents.Args(); len(args) != 2 || !slices.Equal(args[0].([]string), []string{"1.2.0"}) || !slices.Equal(args[1].([]string), []string{"120"}) {
 		t.Errorf("want the version values bound, got %v", args)
+	}
+}
+
+func TestAlertsEntityCannotBeFiltered(t *testing.T) {
+	if len(AlertsEntity.Keys) != 0 {
+		t.Errorf("want no keys on the alerts entity, got %d", len(AlertsEntity.Keys))
+	}
+
+	ef := &ExprFilter{
+		AppID:      uuid.New(),
+		Entity:     AlertsEntity,
+		Limit:      10,
+		FilterExpr: "version_name:in:1.2.0",
+	}
+	if err := ef.BuildExprTree(); err != nil {
+		t.Fatalf("build: %v", err)
+	}
+
+	err := ef.Validate()
+	var invalid *ValidationError
+	if !errors.As(err, &invalid) {
+		t.Fatalf("want a filter on the alerts entity refused, got %v", err)
+	}
+	if len(invalid.Issues) != 1 || !strings.Contains(invalid.Issues[0].Message, "version_name") {
+		t.Errorf("want the unknown key named, got %v", invalid.Issues)
+	}
+
+	if _, err := AlertsEntity.BindKey(Condition{
+		KeyName:  "version_name",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "1.2.0"}},
+	}); !errors.Is(err, ErrKeyNotSupported) {
+		t.Errorf("want ErrKeyNotSupported, got %v", err)
 	}
 }
 

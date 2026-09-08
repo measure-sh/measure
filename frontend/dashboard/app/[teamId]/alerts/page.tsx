@@ -1,10 +1,8 @@
 "use client";
-import { useFiltersStore } from "@/app/stores/provider";
 
-import { FilterSource, emptyAlertsOverviewResponse } from "@/app/api/api_calls";
-import Filters, {
-  AppVersionsInitialSelectionType,
-} from "@/app/components/filters";
+import { emptyAlertsOverviewResponse } from "@/app/api/api_calls";
+import FilterBar from "@/app/components/filter_bar/filter_bar";
+import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
 import LoadingBar from "@/app/components/loading_bar";
 import Paginator from "@/app/components/paginator";
 import { SkeletonListPage } from "@/app/components/skeleton";
@@ -16,17 +14,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/app/components/table";
-import {
-  paginationOffsetUrlKey,
-  useAlertsOverviewQuery,
-} from "@/app/query/hooks";
+import { useAlertsOverviewQuery } from "@/app/query/hooks";
 import {
   formatDateToHumanReadableDate,
   formatDateToHumanReadableTime,
 } from "@/app/utils/time_utils";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
-import { use, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { use } from "react";
 
 const PAGINATION_LIMIT = 5;
 
@@ -35,76 +30,64 @@ export default function AlertsOverview(props: {
 }) {
   const params = use(props.params);
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  const filters = useFiltersStore((state) => state.filters);
-
-  // Pagination is component-local state, initialized from URL
-  const [paginationOffset, setPaginationOffset] = useState(() => {
-    const po = searchParams.get(paginationOffsetUrlKey);
-    return po ? parseInt(po) : 0;
+  const {
+    value,
+    apps,
+    keys,
+    keyGroups,
+    keysUnavailable,
+    status: filterStatus,
+    filterParams,
+    paginationOffset,
+    onChange,
+    nextPage,
+    prevPage,
+  } = useExprFilterPage({
+    teamId: params.teamId,
+    entity: "alerts",
+    paginationLimit: PAGINATION_LIMIT,
   });
-
-  // Reset pagination when filters change (skip pre-ready transitions)
-  const prevFiltersRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!filters.ready) return;
-    if (
-      prevFiltersRef.current !== null &&
-      prevFiltersRef.current !== filters.serialisedFilters
-    ) {
-      setPaginationOffset(0);
-    }
-    prevFiltersRef.current = filters.serialisedFilters;
-  }, [filters.ready, filters.serialisedFilters]);
-
-  // URL sync
-  useEffect(() => {
-    if (!filters.ready) {
-      return;
-    }
-    router.replace(
-      `?${paginationOffsetUrlKey}=${encodeURIComponent(paginationOffset)}&${filters.serialisedFilters!}`,
-      { scroll: false },
-    );
-  }, [paginationOffset, filters.ready, filters.serialisedFilters]);
+  const readyValue = filterStatus.kind === "ready" ? value : null;
 
   const {
     data: alertsOverview = emptyAlertsOverviewResponse,
     status,
     isFetching,
-  } = useAlertsOverviewQuery(paginationOffset);
-
-  const nextPage = () => setPaginationOffset((o) => o + PAGINATION_LIMIT);
-  const prevPage = () =>
-    setPaginationOffset((o) => Math.max(0, o - PAGINATION_LIMIT));
+  } = useAlertsOverviewQuery(filterParams, paginationOffset);
 
   return (
     <div className="flex flex-col items-start">
       <div className="py-4" />
 
-      <Filters
-        teamId={params.teamId}
-        filterSource={FilterSource.Events}
-        appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-        showAppVersions={false}
+      <FilterBar
+        entity="alerts"
+        value={value}
+        apps={apps}
+        keys={keys}
+        keyGroups={keyGroups}
+        keysUnavailable={keysUnavailable}
+        showFilterExpr={false}
+        onChange={onChange}
       />
       <div className="py-4" />
 
-      {filters.loading && (
+      {filterStatus.kind === "error" && (
+        <p className="text-lg font-display">{filterStatus.message}</p>
+      )}
+
+      {filterStatus.kind === "loading" && (
         <SkeletonListPage showPlot={false} tableColumns={2} />
       )}
 
-      {/* Error state for alerts fetch */}
-      {filters.ready && status === "error" && (
+      {readyValue !== null && status === "error" && (
         <p className="text-lg font-display">
           Error fetching list of alerts, please change filters, refresh page or
           select a different app to try again
         </p>
       )}
 
-      {/* Main alerts list UI */}
-      {filters.ready && (status === "success" || status === "pending") && (
+      {readyValue !== null && status !== "error" && (
         <div className="flex flex-col items-center w-full">
           <div className="self-end">
             <Paginator

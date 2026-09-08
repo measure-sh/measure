@@ -1888,19 +1888,23 @@ export const fetchSpanMetricsPlotFromServer = async (
 };
 
 export const fetchAlertsOverviewFromServer = async (
-  filters: Filters,
+  appId: string,
+  startDate: string,
+  endDate: string,
   limit: number,
   offset: number,
 ) => {
-  var url = `/api/apps/${filters.app!.id}/alerts?`;
-
-  url = await applyGenericFiltersToUrl(url, filters, limit, offset);
-
-  const data = await request(url, {
-    failsWith: "Failed to fetch alerts overview",
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    limit: String(limit),
+    offset: String(offset),
   });
 
-  return data;
+  return await request(`/api/apps/${appId}/alerts?${params.toString()}`, {
+    failsWith: "Failed to fetch alerts overview",
+  });
 };
 
 export const fetchSdkConfigFromServer = async (appId: String) => {

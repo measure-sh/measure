@@ -864,10 +864,22 @@ describe("sessions, bug reports, alerts", () => {
     expect(lastFetchOpts().method).toBe("PATCH");
   });
 
-  it("fetchAlertsOverviewFromServer hits /alerts with filters", async () => {
+  it("fetchAlertsOverviewFromServer hits /alerts with the range and pagination", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
-    await fetchAlertsOverviewFromServer(makeFilters(), 20, 0);
-    expect(lastFetchUrl()).toContain("/api/apps/app-a/alerts");
+    await fetchAlertsOverviewFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      20,
+      0,
+    );
+    const url = lastFetchUrl();
+    expect(url).toContain("/api/apps/app-a/alerts");
+    expect(url).toContain("from=");
+    expect(url).toContain("to=");
+    expect(url).toContain("limit=20");
+    expect(url).toContain("offset=0");
+    expect(url).not.toContain("filter_short_code=");
   });
 
   it("fetchBuildsFromServer hits /builds with the range, expression and pagination", async () => {
@@ -1559,7 +1571,14 @@ describe("fetch functions: failure paths", () => {
     ["fetchBugReportFromServer", () => fetchBugReportFromServer("a", "b")],
     [
       "fetchAlertsOverviewFromServer",
-      () => fetchAlertsOverviewFromServer(makeFilters(), 20, 0),
+      () =>
+        fetchAlertsOverviewFromServer(
+          "app-a",
+          "2026-04-01T00:00:00.000Z",
+          "2026-04-10T00:00:00.000Z",
+          20,
+          0,
+        ),
     ],
     [
       "fetchPendingInvitesFromServer",

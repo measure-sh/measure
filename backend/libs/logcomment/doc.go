@@ -32,6 +32,7 @@
 //   - `Filters = "filters"`
 //   - `Metrics = "metrics"`
 //   - `Journeys = "journeys"`
+//   - `Alerts = "alerts"`
 //
 // ## ClickHouse Integration
 //
