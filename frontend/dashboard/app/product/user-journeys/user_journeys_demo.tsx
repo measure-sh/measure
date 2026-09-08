@@ -2,10 +2,12 @@
 
 import dynamic from "next/dynamic";
 
-const UserJourneys = dynamic(() => import("../../components/user_journeys"), {
-  ssr: false,
-});
+const Demo = dynamic(
+  () =>
+    import("../../components/user_journeys").then((m) => m.UserJourneysDemo),
+  { ssr: false },
+);
 
 export default function UserJourneysDemo() {
-  return <UserJourneys demo={true} hideDemoTitle={true} />;
+  return <Demo hideTitle />;
 }

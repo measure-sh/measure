@@ -7,7 +7,10 @@ import ScaledPreview from "./scaled_preview";
 import TabSelect, { TabSize } from "./tab_select";
 
 const BugReport = dynamic(() => import("./bug_report"), { ssr: false });
-const UserJourneys = dynamic(() => import("./user_journeys"), { ssr: false });
+const UserJourneysDemo = dynamic(
+  () => import("./user_journeys").then((m) => m.UserJourneysDemo),
+  { ssr: false },
+);
 const Overview = dynamic(() => import("./overview"), { ssr: false });
 const TraceDetails = dynamic(() => import("./trace/details"), { ssr: false });
 const SessionReplay = dynamic(() => import("./session_replay"), {
@@ -173,7 +176,7 @@ export default function FeatureDemoCarousel() {
     <ErrorsDetails demo={true} hideDemoTitle={false} key="demo-errors" />,
     <TraceDetails demo={true} hideDemoTitle={false} key="demo-trace" />,
     <BugReport demo={true} hideDemoTitle={false} key="demo-bugreport" />,
-    <UserJourneys demo={true} hideDemoTitle={false} key="demo-journeys" />,
+    <UserJourneysDemo key="demo-journeys" />,
     <NetworkOverview demo={true} hideDemoTitle={false} key="demo-network" />,
   ];
 

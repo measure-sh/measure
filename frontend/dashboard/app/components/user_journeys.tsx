@@ -18,28 +18,13 @@ import { type ComponentProps, type ReactNode, useState } from "react";
 
 const journeyTypeUrlKey = "jt";
 
-// Stands in for the journey query on the marketing pages, where nothing is
-// fetched and the chart draws the demo data as a completed query.
 const demoJourneyQuery = { status: "success" as const, data: demoJourney };
 
-interface UserJourneysProps {
-  params?: { teamId: string };
-  demo?: boolean;
-  hideDemoTitle?: boolean;
-}
-
-export default function UserJourneys({
-  params = { teamId: "demo-team-id" },
-  demo = false,
-  hideDemoTitle = false,
-}: UserJourneysProps) {
-  if (demo) {
-    return <DemoUserJourneys hideTitle={hideDemoTitle} />;
-  }
-  return <TeamUserJourneys teamId={params.teamId} />;
-}
-
-function DemoUserJourneys({ hideTitle }: { hideTitle: boolean }) {
+export function UserJourneysDemo({
+  hideTitle = false,
+}: {
+  hideTitle?: boolean;
+}) {
   const [plotType, setPlotType] = useState(PlotType.Paths);
 
   return (
@@ -49,7 +34,7 @@ function DemoUserJourneys({ hideTitle }: { hideTitle: boolean }) {
       </p>
       <div className="py-4" />
 
-      <JourneyPlot
+      <JourneyWithControls
         plotType={plotType}
         onChangePlotType={setPlotType}
         query={demoJourneyQuery}
@@ -58,7 +43,12 @@ function DemoUserJourneys({ hideTitle }: { hideTitle: boolean }) {
   );
 }
 
-function TeamUserJourneys({ teamId }: { teamId: string }) {
+export default function UserJourneys({
+  params,
+}: {
+  params: { teamId: string };
+}) {
+  const { teamId } = params;
   const searchParams = useSearchParams();
 
   const {
@@ -120,7 +110,7 @@ function TeamUserJourneys({ teamId }: { teamId: string }) {
 
       {readyValue !== null &&
         (status === "success" || status === "pending") && (
-          <JourneyPlot
+          <JourneyWithControls
             plotType={plotType}
             onChangePlotType={(type) => setPageUrlKey(journeyTypeUrlKey, type)}
             search={
@@ -144,7 +134,7 @@ function TeamUserJourneys({ teamId }: { teamId: string }) {
   );
 }
 
-function JourneyPlot({
+function JourneyWithControls({
   plotType,
   onChangePlotType,
   search,
