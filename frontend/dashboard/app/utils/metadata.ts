@@ -4,9 +4,9 @@ export const siteOrigin = "https://measure.sh";
 
 const siteName = "measure.sh";
 
-const siteTitle = "Measure";
+export const siteTitle = "Measure";
 
-const siteDescription =
+export const siteDescription =
   "Measure helps mobile teams monitor and fix crashes, ANRs, bugs, and performance issues. The open source alternative to Firebase Crashlytics.";
 
 export const previewImage = "/images/social_preview.png";

@@ -18,7 +18,8 @@ export const blogPosts = defineCollections({
     // Social share card image (a path under public/, e.g.
     // /blog/assets/foo.webp); sharing falls back to the site-wide
     // preview image when absent. Must be site-relative: JSON-LD builds
-    // the absolute URL by prefixing the origin.
+    // the absolute URL by prefixing the origin. Must be exactly 1200x630:
+    // the OG width/height tags hardcode that size.
     image: z.string().startsWith("/").optional(),
     // Kebab-case only: tag slugs appear verbatim in /blog/tags/<tag> URLs,
     // so URL-unsafe characters are rejected at build time instead of being
