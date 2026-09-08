@@ -996,6 +996,7 @@ paths:
               - bug_reports
               - journeys
               - alerts
+              - network
         - name: key
           in: query
           required: false
@@ -1120,6 +1121,7 @@ paths:
               - bug_reports
               - journeys
               - alerts
+              - network
         - name: key_name
           in: query
           required: true
@@ -4547,6 +4549,7 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
         - name: query
           in: query
           required: false
@@ -4613,6 +4616,7 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
         - name: trends_limit
           in: query
           required: false
@@ -4713,9 +4717,8 @@ paths:
         Fetch HTTP status-class counts over time for the app, or an optional
         endpoint selection.
 
-        Both `versions` & `version_codes` should be present if any one of them
-        is present. `from` & `to` will default to a last seven days time range if
-        not supplied.
+        `from` & `to` will default to a last seven days time range if not
+        supplied.
       parameters:
         - name: id
           in: path
@@ -4738,62 +4741,9 @@ paths:
             type: string
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
         - $ref: "#/components/parameters/Timezone"
         - $ref: "#/components/parameters/PlotTimeGroup"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version code identifier strings.
-          schema:
-            type: string
-        - name: os_versions
-          in: query
-          required: false
-          description: List of comma separated OS version identifier strings.
-          schema:
-            type: string
-        - name: device_manufacturers
-          in: query
-          required: false
-          description: List of comma separated device manufacturer identifier strings.
-          schema:
-            type: string
-        - name: network_providers
-          in: query
-          required: false
-          description: List of comma separated network provider identifier strings.
-          schema:
-            type: string
-        - name: network_types
-          in: query
-          required: false
-          description: List of comma separated network type identifier strings.
-          schema:
-            type: string
-        - name: network_generations
-          in: query
-          required: false
-          description: List of comma separated network generation identifier strings.
-          schema:
-            type: string
-        - name: locales
-          in: query
-          required: false
-          description: List of comma separated locale identifier strings.
-          schema:
-            type: string
-        - name: http_methods
-          in: query
-          required: false
-          description: List of comma separated HTTP method strings.
-          schema:
-            type: string
       responses:
         "200":
           description: Successful response, no errors.
@@ -4850,9 +4800,8 @@ paths:
       description: |
         Fetch latency percentiles for the app, or an optional endpoint selection.
 
-        Both `versions` & `version_codes` should be present if any one of them
-        is present. `from` & `to` will default to a last seven days time range if
-        not supplied. Latency values (`p50`, `p90`, `p95`, `p99`) are in
+        `from` & `to` will default to a last seven days time range if not
+        supplied. Latency values (`p50`, `p90`, `p95`, `p99`) are in
         milliseconds and may be null.
       parameters:
         - name: id
@@ -4876,62 +4825,9 @@ paths:
             type: string
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
         - $ref: "#/components/parameters/Timezone"
         - $ref: "#/components/parameters/PlotTimeGroup"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version code identifier strings.
-          schema:
-            type: string
-        - name: os_versions
-          in: query
-          required: false
-          description: List of comma separated OS version identifier strings.
-          schema:
-            type: string
-        - name: device_manufacturers
-          in: query
-          required: false
-          description: List of comma separated device manufacturer identifier strings.
-          schema:
-            type: string
-        - name: network_providers
-          in: query
-          required: false
-          description: List of comma separated network provider identifier strings.
-          schema:
-            type: string
-        - name: network_types
-          in: query
-          required: false
-          description: List of comma separated network type identifier strings.
-          schema:
-            type: string
-        - name: network_generations
-          in: query
-          required: false
-          description: List of comma separated network generation identifier strings.
-          schema:
-            type: string
-        - name: locales
-          in: query
-          required: false
-          description: List of comma separated locale identifier strings.
-          schema:
-            type: string
-        - name: http_methods
-          in: query
-          required: false
-          description: List of comma separated HTTP method strings.
-          schema:
-            type: string
       responses:
         "200":
           description: Successful response, no errors.
@@ -4998,9 +4894,8 @@ paths:
         endpoint selection. At least one of `domain` or `path` is required.
         When `domain` is omitted, `path` matches across all domains.
 
-        Both `versions` & `version_codes` should be present if any one of them
-        is present. `from` & `to` will default to a last seven days time range if
-        not supplied. `status_codes` lists all distinct HTTP status codes
+        `from` & `to` will default to a last seven days time range if not
+        supplied. `status_codes` lists all distinct HTTP status codes
         observed. `data_points` contains per-bucket counts keyed by exact
         status code (e.g., `count_200`, `count_404`), not by status class.
       parameters:
@@ -5025,62 +4920,9 @@ paths:
             type: string
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
         - $ref: "#/components/parameters/Timezone"
         - $ref: "#/components/parameters/PlotTimeGroup"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version code identifier strings.
-          schema:
-            type: string
-        - name: os_versions
-          in: query
-          required: false
-          description: List of comma separated OS version identifier strings.
-          schema:
-            type: string
-        - name: device_manufacturers
-          in: query
-          required: false
-          description: List of comma separated device manufacturer identifier strings.
-          schema:
-            type: string
-        - name: network_providers
-          in: query
-          required: false
-          description: List of comma separated network provider identifier strings.
-          schema:
-            type: string
-        - name: network_types
-          in: query
-          required: false
-          description: List of comma separated network type identifier strings.
-          schema:
-            type: string
-        - name: network_generations
-          in: query
-          required: false
-          description: List of comma separated network generation identifier strings.
-          schema:
-            type: string
-        - name: locales
-          in: query
-          required: false
-          description: List of comma separated locale identifier strings.
-          schema:
-            type: string
-        - name: http_methods
-          in: query
-          required: false
-          description: List of comma separated HTTP method strings.
-          schema:
-            type: string
       responses:
         "200":
           description: Successful response, no errors.
@@ -5144,9 +4986,8 @@ paths:
       description: |
         Fetch the request timeline for the app or an optional endpoint selection.
 
-        Both `versions` & `version_codes` should be present if any one of them
-        is present. `from` & `to` will default to a last seven days time range if
-        not supplied. Results include up to 10 endpoint patterns. `interval` is the time
+        `from` & `to` will default to a last seven days time range if not
+        supplied. Results include up to 10 endpoint patterns. `interval` is the time
         bucket size in seconds. `elapsed` represents seconds of elapsed time
         within sessions. `count` is the average request count per session for
         that endpoint in that bucket.
@@ -5160,6 +5001,7 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
         - name: domain
           in: query
           required: false
@@ -5170,72 +5012,6 @@ paths:
           in: query
           required: false
           description: Exact path or a `*` or trailing `**` pattern. Without a domain, searches every domain.
-          schema:
-            type: string
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version code identifier strings.
-          schema:
-            type: string
-        - name: os_versions
-          in: query
-          required: false
-          description: List of comma separated OS version identifier strings.
-          schema:
-            type: string
-        - name: device_manufacturers
-          in: query
-          required: false
-          description: List of comma separated device manufacturer identifier strings.
-          schema:
-            type: string
-        - name: device_names
-          in: query
-          required: false
-          description: List of comma separated device name identifier strings.
-          schema:
-            type: string
-        - name: network_providers
-          in: query
-          required: false
-          description: List of comma separated network provider identifier strings.
-          schema:
-            type: string
-        - name: network_types
-          in: query
-          required: false
-          description: List of comma separated network type identifier strings.
-          schema:
-            type: string
-        - name: network_generations
-          in: query
-          required: false
-          description: List of comma separated network generation identifier strings.
-          schema:
-            type: string
-        - name: locales
-          in: query
-          required: false
-          description: List of comma separated locale identifier strings.
-          schema:
-            type: string
-        - name: http_methods
-          in: query
-          required: false
-          description: List of comma separated HTTP method strings.
-          schema:
-            type: string
-        - name: countries
-          in: query
-          required: false
-          description: List of comma separated country code identifier strings.
           schema:
             type: string
       responses:

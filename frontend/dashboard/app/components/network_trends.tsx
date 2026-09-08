@@ -11,7 +11,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/app/components/table";
-import { TrendsTab, useNetworkTrendsQuery } from "@/app/query/hooks";
+import {
+  type FilterParams,
+  TrendsTab,
+  useNetworkTrendsQuery,
+} from "@/app/query/hooks";
 import { numberToKMB } from "@/app/utils/number_utils";
 import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import { formatMillisToHumanReadable } from "@/app/utils/time_utils";
@@ -146,18 +150,20 @@ const demoTrends = generateDemoTrends();
 
 interface NetworkTrendsProps {
   teamId?: string;
+  filterParams?: FilterParams | null;
   demo?: boolean;
   active?: boolean;
 }
 
 export default function NetworkTrends({
   teamId,
+  filterParams = null,
   demo = false,
   active = true,
 }: NetworkTrendsProps) {
   const router = useRouter();
   const currentSearchParams = useSearchParams();
-  const trendsQuery = useNetworkTrendsQuery(active);
+  const trendsQuery = useNetworkTrendsQuery(filterParams, active);
 
   const [selectedTab, setSelectedTab] = useState<TrendsTab>(TrendsTab.Latency);
 

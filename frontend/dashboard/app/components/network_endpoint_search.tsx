@@ -8,7 +8,7 @@ import {
   CommandList,
 } from "@/app/components/command";
 import { Input } from "@/app/components/input";
-import { useNetworkEndpointsQuery } from "@/app/query/hooks";
+import { type FilterParams, useNetworkEndpointsQuery } from "@/app/query/hooks";
 import {
   addRecentSearch,
   getRecentSearches,
@@ -48,10 +48,12 @@ function normalizeEndpointSearch(endpoint: string): string {
 
 interface NetworkEndpointSearchProps {
   teamId: string;
+  filterParams: FilterParams | null;
 }
 
 export default function NetworkEndpointSearch({
   teamId,
+  filterParams,
 }: NetworkEndpointSearchProps) {
   const router = useRouter();
   const currentSearchParams = useSearchParams();
@@ -69,6 +71,7 @@ export default function NetworkEndpointSearch({
 
   const normalizedDebouncedQuery = normalizeEndpointSearch(debouncedQuery);
   const endpointsQuery = useNetworkEndpointsQuery(
+    filterParams,
     normalizedDebouncedQuery,
     open,
   );

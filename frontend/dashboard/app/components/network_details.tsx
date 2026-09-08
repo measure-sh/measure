@@ -1,41 +1,56 @@
 "use client";
 
-import { FilterSource } from "@/app/api/api_calls";
-import Filters, {
-  AppVersionsInitialSelectionType,
-} from "@/app/components/filters";
+import { filterExprIssuesIn } from "@/app/api/api_error";
+import FilterBar from "@/app/components/filter_bar/filter_bar";
+import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
 import InfoTooltip from "@/app/components/info_tooltip";
 import NetworkEndpointStatusCodesPlot from "@/app/components/network_endpoint_status_codes_plot";
 import NetworkLatencyPlot from "@/app/components/network_latency_plot";
 import NetworkTimelinePlot from "@/app/components/network_timeline_plot";
-import { Skeleton, SkeletonPlot } from "@/app/components/skeleton";
+import { SkeletonListPage, SkeletonPlot } from "@/app/components/skeleton";
 import {
-  useNetworkLatencyQuery,
   useNetworkEndpointStatusCodesQuery,
+  useNetworkLatencyQuery,
   useNetworkTimelineQuery,
 } from "@/app/query/hooks";
-import { useFiltersStore } from "@/app/stores/provider";
 import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import { getPlotTimeGroupForRange } from "@/app/utils/time_utils";
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 
 interface NetworkDetailsProps {
   params: { teamId: string };
 }
 
 export default function NetworkDetails({ params }: NetworkDetailsProps) {
-  const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
-  const filters = useFiltersStore((state) => state.filters);
   const domain = searchParams.get("domain") ?? "";
   const path = searchParams.get("path") ?? "";
 
-  const latencyQuery = useNetworkLatencyQuery(domain, path);
-  const statusCodesQuery = useNetworkEndpointStatusCodesQuery(domain, path);
-  const timelineQuery = useNetworkTimelineQuery(domain, path);
+  const {
+    value,
+    apps,
+    keys,
+    keyGroups,
+    keysUnavailable,
+    status: filterStatus,
+    filterParams,
+    onChange,
+  } = useExprFilterPage({ teamId: params.teamId, entity: "network" });
+  const readyValue = filterStatus.kind === "ready" ? value : null;
+
+  const latencyQuery = useNetworkLatencyQuery(filterParams, domain, path);
+  const statusCodesQuery = useNetworkEndpointStatusCodesQuery(
+    filterParams,
+    domain,
+    path,
+  );
+  const timelineQuery = useNetworkTimelineQuery(filterParams, domain, path);
+
+  const filterExprIssues =
+    filterExprIssuesIn(latencyQuery.error) ??
+    filterExprIssuesIn(statusCodesQuery.error) ??
+    filterExprIssuesIn(timelineQuery.error);
 
   const latencyStatus =
     latencyQuery.status === "success" &&
@@ -52,8 +67,8 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
       : timelineQuery.status;
 
   const plotTimeGroup = getPlotTimeGroupForRange(
-    filters.startDate,
-    filters.endDate,
+    readyValue?.date.startDate ?? "",
+    readyValue?.date.endDate ?? "",
   );
   const shouldRenderLatencyPlot = latencyStatus === "success";
   const shouldRenderStatusCodesPlot = statusCodesStatus === "success";
@@ -63,47 +78,37 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
     statusCodesStatus === "nodata" &&
     timelineStatus === "nodata";
 
-  useEffect(() => {
-    if (!filters.ready) {
-      return;
-    }
-
-    const query = new URLSearchParams(filters.serialisedFilters!);
-    query.set("domain", domain);
-    query.set("path", path);
-    router.replace(`${pathname}?${query.toString()}`, { scroll: false });
-  }, [domain, filters.ready, filters.serialisedFilters, path, pathname]);
-
   return (
     <div className="flex flex-col items-start w-full">
       <div className="py-4" />
-      <Filters
-        teamId={params.teamId}
-        filterSource={FilterSource.Events}
-        appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-        showAppSelector={false}
-        showOsVersions={true}
-        showCountries={true}
-        showNetworkTypes={true}
-        showNetworkProviders={true}
-        showNetworkGenerations={true}
-        showLocales={true}
-        showDeviceManufacturers={true}
-        showDeviceNames={true}
-        showHttpMethods={true}
+      <FilterBar
+        entity="network"
+        placeholder="Filter network requests…"
+        value={value}
+        apps={apps}
+        keys={keys}
+        keyGroups={keyGroups}
+        keysUnavailable={keysUnavailable}
+        filterExprIssues={filterExprIssues}
+        showAppSelect={false}
+        onChange={onChange}
       />
 
-      {filters.loading && (
-        <div className="mt-6 flex flex-col w-full">
-          <Skeleton className="h-9 w-full" />
-          <div className="py-6" />
-          <SkeletonPlot />
-          <div className="py-6" />
-          <SkeletonPlot />
-        </div>
+      {filterStatus.kind === "error" && (
+        <>
+          <div className="py-4" />
+          <p className="text-lg font-display">{filterStatus.message}</p>
+        </>
       )}
 
-      {filters.ready && (
+      {filterStatus.kind === "loading" && (
+        <>
+          <div className="py-4" />
+          <SkeletonListPage />
+        </>
+      )}
+
+      {readyValue !== null && (
         <>
           <div className="py-4" />
           {hasNoData ? (

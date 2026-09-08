@@ -147,7 +147,6 @@ function defaultProps(overrides: Record<string, any> = {}) {
     showLocales: true,
     showDeviceManufacturers: true,
     showDeviceNames: true,
-    showHttpMethods: false,
     showUdAttrs: false,
     showFreeText: false,
     ...overrides,

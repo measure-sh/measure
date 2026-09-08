@@ -137,6 +137,8 @@ func seedHttpMetrics(
 			[toUInt16(200)] AS status_codes,
 			[('1.0','1')] AS app_versions,
 			[('android','14')] AS os_versions,
+			[''] AS patch_versions,
+			[toUUID('00000000-0000-0000-0000-000000000000')] AS patch_ids,
 			['samsung'] AS device_manufacturers,
 			['galaxy'] AS device_names,
 			['provider'] AS network_providers,

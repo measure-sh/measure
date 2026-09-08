@@ -76,6 +76,7 @@ interface FilterBarProps {
   keysUnavailable: boolean;
   spanNames?: string[] | null;
   filterExprIssues?: FilterExprIssue[] | null;
+  showAppSelect?: boolean;
   // False hides the filter expression editor and keeps the app and date
   // range controls.
   showFilterExpr?: boolean;
@@ -191,6 +192,7 @@ export default function FilterBar({
   keysUnavailable,
   spanNames,
   filterExprIssues,
+  showAppSelect = true,
   showFilterExpr = true,
   onChange,
 }: FilterBarProps) {
@@ -309,7 +311,7 @@ export default function FilterBar({
   if (value === null || keys === null) {
     return (
       <div className="flex flex-wrap gap-4 items-center w-full">
-        <Skeleton className="h-9 w-37.5" />
+        {showAppSelect && <Skeleton className="h-9 w-37.5" />}
         <Skeleton className="h-9 w-37.5" />
         {showFilterExpr && <Skeleton className="h-9 flex-1 min-w-64" />}
       </div>
@@ -542,7 +544,9 @@ export default function FilterBar({
 
   return (
     <div className="flex flex-wrap gap-4 items-start w-full">
-      <AppSelect apps={apps} selected={app} onChange={setApp} />
+      {showAppSelect && (
+        <AppSelect apps={apps} selected={app} onChange={setApp} />
+      )}
       <DateRangeSelect
         selection={value.date}
         onChange={(selection) =>

@@ -2,11 +2,14 @@
 
 import dynamic from "next/dynamic";
 
-const NetworkOverview = dynamic(
-  () => import("../../components/network_overview"),
+const Demo = dynamic(
+  () =>
+    import("../../components/network_overview").then(
+      (m) => m.NetworkOverviewDemo,
+    ),
   { ssr: false },
 );
 
 export default function NetworkDemo() {
-  return <NetworkOverview demo={true} hideDemoTitle={true} />;
+  return <Demo hideTitle />;
 }

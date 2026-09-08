@@ -12,8 +12,8 @@ import (
 	"backend/testinfra"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/leporo/sqlf"
 	valkey "github.com/valkey-io/valkey-go"
 )
 
@@ -49,8 +49,6 @@ func TestMain(m *testing.M) {
 	vk, vkCleanup := testinfra.SetupValkey(ctx)
 
 	th = testinfra.NewTestHelper(pgPool, chConn, vk)
-
-	sqlf.SetDialect(sqlf.PostgreSQL)
 
 	deps = &testDeps{
 		PgPool:  pgPool,
@@ -95,7 +93,8 @@ func seedUrlPattern(ctx context.Context, t *testing.T, teamID, appID, domain, pa
 func seedHttpMetrics(
 	ctx context.Context,
 	t *testing.T,
-	teamID, appID, domain, path string,
+	teamID, appID, domain, path, patchVersion string,
+	patchID uuid.UUID,
 	requestCount, count2xx, count4xx, count5xx uint64,
 	ts time.Time,
 ) {
@@ -115,6 +114,8 @@ func seedHttpMetrics(
 			[toUInt16(200)] AS status_codes,
 			[('1.0','1')] AS app_versions,
 			[('android','14')] AS os_versions,
+			['%s'] AS patch_versions,
+			[toUUID('%s')] AS patch_ids,
 			['samsung'] AS device_manufacturers,
 			['galaxy'] AS device_names,
 			['provider'] AS network_providers,
@@ -132,6 +133,7 @@ func seedHttpMetrics(
 			(SELECT uniqCombined64State(generateUUIDv4()) FROM numbers(%d))`,
 		teamID, appID, tsStr,
 		domain, path,
+		patchVersion, patchID.String(),
 		requestCount,
 		count2xx,
 		count4xx,

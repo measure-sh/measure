@@ -8,6 +8,8 @@ import (
 	"testing"
 	"time"
 
+	"backend/testinfra"
+
 	"github.com/google/uuid"
 )
 
@@ -218,13 +220,41 @@ func TestGenerateMetrics_InsertsAggregatedMetrics(t *testing.T) {
 
 	now := time.Now().UTC()
 
+	patchID := uuid.New()
 	th.SeedUrlPattern(ctx, t, teamID, appID, "api.example.com", "/api/v1/users")
-	th.SeedHttpEvent(ctx, t, teamID, appID, "https://api.example.com/api/v1/users", "GET", 200, 10, now.Add(-30*time.Minute))
+	th.SeedEventRows(ctx, t, teamID, appID, 10, testinfra.EventRow{
+		Type:           "http",
+		Timestamp:      now.Add(-30 * time.Minute),
+		InsertedAt:     now.Add(-30 * time.Minute),
+		HttpURL:        "https://api.example.com/api/v1/users",
+		HttpMethod:     "GET",
+		HttpStatusCode: 200,
+		HttpStartTime:  1000,
+		HttpEndTime:    1100,
+		PatchID:        patchID,
+		PatchVersion:   "1.0-patch.2",
+	})
 
 	GenerateMetrics(ctx)
 
 	if got := countHttpMetrics(ctx, t, teamID, appID); got == 0 {
 		t.Error("expected http_metrics rows after GenerateMetrics, got 0")
+	}
+
+	var patchVersions []string
+	var patchIDs []uuid.UUID
+	err := th.ChConn.QueryRow(ctx,
+		"SELECT groupUniqArrayArray(patch_versions), groupUniqArrayArray(patch_ids) FROM http_metrics WHERE team_id = ? AND app_id = ?",
+		teamID, appID,
+	).Scan(&patchVersions, &patchIDs)
+	if err != nil {
+		t.Fatalf("query aggregated patches: %v", err)
+	}
+	if len(patchVersions) != 1 || patchVersions[0] != "1.0-patch.2" {
+		t.Errorf("patch versions = %v, want [1.0-patch.2]", patchVersions)
+	}
+	if len(patchIDs) != 1 || patchIDs[0] != patchID {
+		t.Errorf("patch ids = %v, want [%s]", patchIDs, patchID)
 	}
 }
 

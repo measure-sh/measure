@@ -52,14 +52,6 @@ export enum SessionType {
   Background = "Background Sessions",
 }
 
-export enum HttpMethod {
-  GET = "get",
-  POST = "post",
-  PUT = "put",
-  PATCH = "patch",
-  DELETE = "delete",
-}
-
 export type Team = {
   id: string;
   name: string;
@@ -637,7 +629,6 @@ export type Filters = {
   endDate: string;
   versions: { selected: AppVersion[]; all: boolean };
   sessionTypes: { selected: SessionType[]; all: boolean };
-  httpMethods: { selected: HttpMethod[]; all: boolean };
   osVersions: { selected: OsVersion[]; all: boolean };
   countries: { selected: string[]; all: boolean };
   networkProviders: { selected: string[]; all: boolean };
@@ -667,7 +658,6 @@ export const defaultFilters: Filters = {
   endDate: "",
   versions: { selected: [], all: false },
   sessionTypes: { selected: [], all: false },
-  httpMethods: { selected: [], all: false },
   osVersions: { selected: [], all: false },
   countries: { selected: [], all: false },
   networkProviders: { selected: [], all: false },
@@ -898,29 +888,6 @@ function appendSessionTypesToUrl(url: string, filters: Filters): string {
     if (severities.size > 0) {
       u.searchParams.append("severity", Array.from(severities).join(","));
     }
-  }
-  return u.toString();
-}
-
-// Adds the network page's endpoint selection to a plot request. Empty values are sent as
-// empty, which the server reads as "every domain" or "every path".
-function appendEndpointSelectionToUrl(
-  url: string,
-  domain: string,
-  path: string,
-): string {
-  const u = new URL(url, window.location.origin);
-  u.searchParams.set("domain", domain);
-  u.searchParams.set("path", path);
-  return u.toString();
-}
-
-function appendHttpMethodsToUrl(url: string, filters: Filters): string {
-  const u = new URL(url, window.location.origin);
-  if (!filters.httpMethods.all && filters.httpMethods.selected.length > 0) {
-    filters.httpMethods.selected.forEach((v) => {
-      u.searchParams.append("http_methods", v);
-    });
   }
   return u.toString();
 }
@@ -1932,46 +1899,78 @@ export const updateSdkConfigFromServer = async (
 
 export type NetworkEndpoint = { domain: string; path_pattern: string };
 
+function networkRequestParams(
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+): URLSearchParams {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+  return params;
+}
+
+// An empty domain or path is sent as is and means every domain or path.
+function networkPlotParams(
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  domain: string,
+  path: string,
+): URLSearchParams {
+  const params = networkRequestParams(startDate, endDate, filterExpr);
+  params.set("domain", domain);
+  params.set("path", path);
+  return params;
+}
+
 export const fetchNetworkEndpointsFromServer = async (
-  filters: Filters,
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
   query: string,
   signal?: AbortSignal,
 ): Promise<NetworkEndpoint[]> => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/endpoints?`;
-
-  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
-  apiUrl = appendHttpMethodsToUrl(apiUrl, filters);
-
-  const u = new URL(apiUrl, window.location.origin);
+  const params = networkRequestParams(startDate, endDate, filterExpr);
   if (query !== "") {
-    u.searchParams.append("query", query);
+    params.set("query", query);
   }
 
-  const data = await request(u.toString(), {
-    failsWith: "Failed to fetch network endpoints",
-    signal,
-  });
+  const data = await request(
+    `/api/apps/${appId}/networkRequests/endpoints?${params.toString()}`,
+    { failsWith: "Failed to fetch network endpoints", signal },
+  );
 
   return (data?.results as NetworkEndpoint[] | null) ?? [];
 };
 
-// The three plots below take the page's endpoint selection. An empty domain covers every
-// domain, and an empty path every path within one.
 export const fetchNetworkLatencyPlotFromServer = async (
-  filters: Filters,
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
   domain: string,
   path: string,
 ) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/latency?`;
+  const params = networkPlotParams(
+    startDate,
+    endDate,
+    filterExpr,
+    domain,
+    path,
+  );
+  params.set("plot_time_group", getPlotTimeGroupForRange(startDate, endDate));
 
-  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
-  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters);
-  apiUrl = appendHttpMethodsToUrl(apiUrl, filters);
-  apiUrl = appendEndpointSelectionToUrl(apiUrl, domain, path);
-
-  const data = await request(apiUrl, {
-    failsWith: "Failed to fetch network latency plot",
-  });
+  const data = await request(
+    `/api/apps/${appId}/networkRequests/plots/latency?${params.toString()}`,
+    { failsWith: "Failed to fetch network latency plot" },
+  );
 
   return data === null || (Array.isArray(data) && data.length === 0)
     ? null
@@ -1979,20 +1978,26 @@ export const fetchNetworkLatencyPlotFromServer = async (
 };
 
 export const fetchNetworkStatusCodesPlotFromServer = async (
-  filters: Filters,
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
   domain: string,
   path: string,
 ) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/statusCodes?`;
+  const params = networkPlotParams(
+    startDate,
+    endDate,
+    filterExpr,
+    domain,
+    path,
+  );
+  params.set("plot_time_group", getPlotTimeGroupForRange(startDate, endDate));
 
-  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
-  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters);
-  apiUrl = appendHttpMethodsToUrl(apiUrl, filters);
-  apiUrl = appendEndpointSelectionToUrl(apiUrl, domain, path);
-
-  const data = await request(apiUrl, {
-    failsWith: "Failed to fetch network status codes plot",
-  });
+  const data = await request(
+    `/api/apps/${appId}/networkRequests/plots/statusCodes?${params.toString()}`,
+    { failsWith: "Failed to fetch network status codes plot" },
+  );
 
   if (data === null || (Array.isArray(data) && data.length === 0)) {
     return null;
@@ -2002,20 +2007,26 @@ export const fetchNetworkStatusCodesPlotFromServer = async (
 };
 
 export const fetchNetworkEndpointStatusCodesPlotFromServer = async (
-  filters: Filters,
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
   domain: string,
   path: string,
 ) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/endpointStatusCodes?`;
+  const params = networkPlotParams(
+    startDate,
+    endDate,
+    filterExpr,
+    domain,
+    path,
+  );
+  params.set("plot_time_group", getPlotTimeGroupForRange(startDate, endDate));
 
-  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
-  apiUrl = appendPlotTimeGroupToUrl(apiUrl, filters);
-  apiUrl = appendHttpMethodsToUrl(apiUrl, filters);
-  apiUrl = appendEndpointSelectionToUrl(apiUrl, domain, path);
-
-  const data = await request(apiUrl, {
-    failsWith: "Failed to fetch network endpoint status codes plot",
-  });
+  const data = await request(
+    `/api/apps/${appId}/networkRequests/plots/endpointStatusCodes?${params.toString()}`,
+    { failsWith: "Failed to fetch network endpoint status codes plot" },
+  );
 
   if (data === null || !data.data_points || data.data_points.length === 0) {
     return null;
@@ -2025,19 +2036,25 @@ export const fetchNetworkEndpointStatusCodesPlotFromServer = async (
 };
 
 export const fetchNetworkTimelinePlotFromServer = async (
-  filters: Filters,
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
   domain: string,
   path: string,
 ) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/plots/timeline?`;
+  const params = networkPlotParams(
+    startDate,
+    endDate,
+    filterExpr,
+    domain,
+    path,
+  );
 
-  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
-  apiUrl = appendHttpMethodsToUrl(apiUrl, filters);
-  apiUrl = appendEndpointSelectionToUrl(apiUrl, domain, path);
-
-  const data = await request(apiUrl, {
-    failsWith: "Failed to fetch network timeline plot",
-  });
+  const data = await request(
+    `/api/apps/${appId}/networkRequests/plots/timeline?${params.toString()}`,
+    { failsWith: "Failed to fetch network timeline plot" },
+  );
 
   if (data === null || !data.points || data.points.length === 0) {
     return null;
@@ -2047,17 +2064,17 @@ export const fetchNetworkTimelinePlotFromServer = async (
 };
 
 export const fetchNetworkTrendsFromServer = async (
-  filters: Filters,
-  trendsLimit: number = 10,
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  trendsLimit: number,
 ) => {
-  var apiUrl = `/api/apps/${filters.app!.id}/networkRequests/trends?`;
+  const params = networkRequestParams(startDate, endDate, filterExpr);
+  params.set("trends_limit", String(trendsLimit));
 
-  apiUrl = await applyGenericFiltersToUrl(apiUrl, filters, null, null);
-  apiUrl += `&trends_limit=${trendsLimit}`;
-
-  const data = await request(apiUrl, {
-    failsWith: "Failed to fetch network trends",
-  });
-
-  return data;
+  return await request(
+    `/api/apps/${appId}/networkRequests/trends?${params.toString()}`,
+    { failsWith: "Failed to fetch network trends" },
+  );
 };

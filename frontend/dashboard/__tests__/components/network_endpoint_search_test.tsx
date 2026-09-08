@@ -22,14 +22,26 @@ jest.mock("next/navigation", () => ({
 }));
 
 const mockUseNetworkEndpointsQuery = jest.fn(
-  (_query: string, _enabled: boolean) => ({ data: [] as any }),
+  (_params: unknown, _query: string, _enabled: boolean) => ({
+    data: [] as any,
+  }),
 );
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
-  useNetworkEndpointsQuery: (query: string, enabled: boolean) =>
-    mockUseNetworkEndpointsQuery(query, enabled),
+  useNetworkEndpointsQuery: (
+    params: unknown,
+    query: string,
+    enabled: boolean,
+  ) => mockUseNetworkEndpointsQuery(params, query, enabled),
 }));
+
+const filterParams = {
+  appId: "app-1",
+  startDate: "2026-04-01T00:00:00.000Z",
+  endDate: "2026-04-10T00:00:00.000Z",
+  filterExpr: "http_method:in:get",
+};
 
 const initialSuggestions = [
   { domain: "api.example.com", path_pattern: "/v1/users/*" },
@@ -43,7 +55,10 @@ const searchResults = [
 ];
 
 const box = () => screen.getByTestId("network-endpoint-search");
-const renderSearch = () => render(<NetworkEndpointSearch teamId="test-team" />);
+const renderSearch = () =>
+  render(
+    <NetworkEndpointSearch teamId="test-team" filterParams={filterParams} />,
+  );
 
 async function settleSearch(value: string) {
   fireEvent.change(box(), { target: { value } });
@@ -56,9 +71,11 @@ describe("NetworkEndpointSearch", () => {
   beforeEach(() => {
     mockRouterPush.mockReset();
     mockUseNetworkEndpointsQuery.mockReset();
-    mockUseNetworkEndpointsQuery.mockImplementation((query: string) => ({
-      data: query === "" ? initialSuggestions : searchResults,
-    }));
+    mockUseNetworkEndpointsQuery.mockImplementation(
+      (_params: unknown, query: string) => ({
+        data: query === "" ? initialSuggestions : searchResults,
+      }),
+    );
     localStorage.clear();
   });
 
@@ -70,7 +87,11 @@ describe("NetworkEndpointSearch", () => {
       "placeholder",
       "Search endpoints, e.g. /v1/products/*, /v1/**, api.example.com/v1/orders/**",
     );
-    expect(mockUseNetworkEndpointsQuery).toHaveBeenLastCalledWith("", true);
+    expect(mockUseNetworkEndpointsQuery).toHaveBeenLastCalledWith(
+      filterParams,
+      "",
+      true,
+    );
     expect(screen.getAllByTestId("network-endpoint-suggestion")).toHaveLength(
       2,
     );
@@ -93,9 +114,11 @@ describe("NetworkEndpointSearch", () => {
     fireEvent.keyDown(box(), { key: "Enter" });
     expect(mockRouterPush).not.toHaveBeenCalled();
 
-    mockUseNetworkEndpointsQuery.mockImplementation((query: string) => ({
-      data: query === "" ? initialSuggestions : searchResults,
-    }));
+    mockUseNetworkEndpointsQuery.mockImplementation(
+      (_params: unknown, query: string) => ({
+        data: query === "" ? initialSuggestions : searchResults,
+      }),
+    );
     await settleSearch("users");
     fireEvent.keyDown(box(), { key: "Enter" });
 
@@ -127,6 +150,7 @@ describe("NetworkEndpointSearch", () => {
 
     await settleSearch("reviews/*");
     expect(mockUseNetworkEndpointsQuery).toHaveBeenLastCalledWith(
+      filterParams,
       "/reviews/*",
       true,
     );

@@ -1,59 +1,108 @@
-import NetworkDetails from "@/app/components/network_details";
+import { mockFiltersStore } from "@/__tests__/helpers/mock_filters_store";
+import { mockRouter } from "@/__tests__/helpers/mock_router";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 
-const replace = jest.fn();
-const latencyQuery = jest.fn();
-const statusCodesQuery = jest.fn();
-const timelineQuery = jest.fn();
-const mockFilters = jest.fn((_props: unknown) => <div data-testid="filters" />);
-const mockEndpointStatusCodesPlot = jest.fn((_props: unknown) => (
-  <div data-testid="status-codes-plot" />
-));
+jest.mock("next/navigation", () =>
+  require("@/__tests__/helpers/mock_router").nextNavigationMock(),
+);
 
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({ replace }),
-  usePathname: () => "/team-1/network/details",
-  useSearchParams: () =>
-    new URLSearchParams("domain=api.example.com&path=/v1/users"),
-}));
+jest.mock("@/app/stores/provider", () =>
+  require("@/__tests__/helpers/mock_filters_store").filtersProviderMock(),
+);
 
-jest.mock("@/app/api/api_calls", () => ({
+jest.mock("@/app/components/toast", () => ({
   __esModule: true,
-  FilterSource: { Events: "events" },
+  toastNegative: jest.fn(),
 }));
 
-jest.mock("@/app/stores/provider", () => {
-  const { create } = jest.requireActual("zustand");
-  const filtersStore = create(() => ({
-    filters: { ready: false, loading: true, serialisedFilters: "" },
-  }));
-  return { __esModule: true, useFiltersStore: filtersStore };
+const pendingQueryState = () => ({
+  data: null as any,
+  status: "pending" as string,
+  error: null as Error | null,
 });
+
+const mockUseAppsQuery = jest.fn();
+const mockUseFilterKeysQuery = jest.fn();
+const mockUseNetworkLatencyQuery = jest.fn((..._args: unknown[]) =>
+  pendingQueryState(),
+);
+const mockUseNetworkEndpointStatusCodesQuery = jest.fn((..._args: unknown[]) =>
+  pendingQueryState(),
+);
+const mockUseNetworkTimelineQuery = jest.fn((..._args: unknown[]) =>
+  pendingQueryState(),
+);
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
-  useNetworkLatencyQuery: (...args: unknown[]) => latencyQuery(...args),
+  paginationOffsetUrlKey: "po",
+  useAppsQuery: (teamId: string) => mockUseAppsQuery(teamId),
+  useFilterKeysQuery: (
+    appId: string | undefined,
+    entity: string,
+    keyNames: string[],
+  ) => mockUseFilterKeysQuery(appId, entity, keyNames),
+  useRootSpanNamesQuery: () => ({
+    data: undefined,
+    isSuccess: false,
+    isError: false,
+  }),
+  useNetworkLatencyQuery: (...args: unknown[]) =>
+    mockUseNetworkLatencyQuery(...args),
   useNetworkEndpointStatusCodesQuery: (...args: unknown[]) =>
-    statusCodesQuery(...args),
-  useNetworkTimelineQuery: (...args: unknown[]) => timelineQuery(...args),
+    mockUseNetworkEndpointStatusCodesQuery(...args),
+  useNetworkTimelineQuery: (...args: unknown[]) =>
+    mockUseNetworkTimelineQuery(...args),
 }));
 
-jest.mock("@/app/components/filters", () => ({
+const mockFilterBar = jest.fn();
+jest.mock("@/app/components/filter_bar/filter_bar", () => ({
   __esModule: true,
-  default: (props: unknown) => mockFilters(props),
-  AppVersionsInitialSelectionType: { All: "all" },
+  default: (props: any) => {
+    mockFilterBar(props);
+    return (
+      <div data-testid="filter-bar-mock">
+        <span data-testid="filter-bar-entity">{props.entity}</span>
+        <span data-testid="filter-bar-issues">
+          {props.filterExprIssues
+            ? props.filterExprIssues
+                .map((issue: { message: string }) => issue.message)
+                .join(", ")
+            : "none"}
+        </span>
+        <button
+          data-testid="filter-bar-apply"
+          onClick={() => props.onChange({ filterExpr: "http_method:in:get" })}
+        >
+          apply
+        </button>
+      </div>
+    );
+  },
+}));
+
+jest.mock("@/app/components/skeleton", () => ({
+  __esModule: true,
+  SkeletonListPage: () => <div data-testid="skeleton-list-page-mock" />,
+  SkeletonPlot: () => <div data-testid="skeleton-plot-mock" />,
 }));
 
 jest.mock("@/app/components/network_latency_plot", () => ({
   __esModule: true,
-  default: () => <div data-testid="latency-plot" />,
+  default: (props: any) => (
+    <div data-testid="latency-plot" data-time-group={props.plotTimeGroup} />
+  ),
 }));
 
+const mockEndpointStatusCodesPlot = jest.fn();
 jest.mock("@/app/components/network_endpoint_status_codes_plot", () => ({
   __esModule: true,
-  default: (props: unknown) => mockEndpointStatusCodesPlot(props),
+  default: (props: any) => {
+    mockEndpointStatusCodesPlot(props);
+    return <div data-testid="status-codes-plot" />;
+  },
 }));
 
 jest.mock("@/app/components/network_timeline_plot", () => ({
@@ -61,128 +110,212 @@ jest.mock("@/app/components/network_timeline_plot", () => ({
   default: () => <div data-testid="timeline-plot" />,
 }));
 
-jest.mock("@/app/components/skeleton", () => ({
-  Skeleton: () => <div data-testid="skeleton" />,
-  SkeletonPlot: () => <div data-testid="skeleton-plot" />,
-}));
+import NetworkDetails from "@/app/components/network_details";
+import { ApiError, invalidFilterExpr } from "@/app/api/api_error";
 
-jest.mock("@/app/components/info_tooltip", () => ({
-  __esModule: true,
-  default: () => <div data-testid="info-tooltip" />,
-}));
+const mockApp = { id: "app-1", name: "Sample" };
 
-jest.mock("@/app/utils/time_utils", () => ({
-  getPlotTimeGroupForRange: () => "days",
-}));
+const httpMethodKey = {
+  name: "http_method",
+  label: "HTTP method",
+  key_group: "Request",
+  description: "The HTTP method of the request",
+  value_type: "enum",
+  value_suggestion_mode: "full_list",
+  operators: ["in", "not_in"],
+};
 
-jest.mock("@/app/utils/shared_styles", () => ({
-  underlineLinkStyle: "underline",
-}));
-
-const { useFiltersStore } = require("@/app/stores/provider") as any;
+const endpoint = "domain=api.example.com&path=%2Fv1%2Fusers";
+const selection = { domain: "api.example.com", path: "/v1/users" };
+const settled = {
+  a: "app-1",
+  d: "Last 6 Hours",
+  ...selection,
+};
 
 const noData = { data: null, status: "success", error: null };
 
-function setReadyFilters() {
-  useFiltersStore.setState({
-    filters: {
-      ready: true,
-      loading: false,
-      app: { id: "app-1" },
-      serialisedFilters: "a=app-1",
-      startDate: "2024-01-01",
-      endDate: "2024-01-14",
+function renderDetails() {
+  return render(<NetworkDetails params={{ teamId: "team-1" }} />);
+}
+
+function plotsLoaded() {
+  mockUseNetworkLatencyQuery.mockReturnValue({
+    data: [{ datetime: "2026-04-01", p50: 1, p90: 2, p95: 3, p99: 4 }],
+    status: "success",
+    error: null,
+  });
+  mockUseNetworkEndpointStatusCodesQuery.mockReturnValue({
+    data: {
+      status_codes: [200, 404],
+      data_points: [
+        { datetime: "2026-04-01", total_count: 4, count_200: 3, count_404: 1 },
+      ],
     },
+    status: "success",
+    error: null,
+  });
+  mockUseNetworkTimelineQuery.mockReturnValue({
+    data: { interval: 5, points: [{ elapsed: 1, count: 2 }] },
+    status: "success",
+    error: null,
   });
 }
 
 describe("NetworkDetails", () => {
   beforeEach(() => {
-    replace.mockReset();
-    latencyQuery.mockReset();
-    statusCodesQuery.mockReset();
-    timelineQuery.mockReset();
-    mockFilters.mockClear();
+    mockRouter.reset();
+    mockRouter.setUrl(`?${endpoint}`);
+    mockFiltersStore.reset();
+    mockFilterBar.mockClear();
     mockEndpointStatusCodesPlot.mockClear();
-    latencyQuery.mockReturnValue(noData);
-    statusCodesQuery.mockReturnValue(noData);
-    timelineQuery.mockReturnValue(noData);
-    setReadyFilters();
+    mockUseAppsQuery.mockReturnValue({ status: "success", data: [mockApp] });
+    mockUseFilterKeysQuery.mockReturnValue({
+      data: { keys: [httpMethodKey], key_groups: ["Request"] },
+      isPending: false,
+      isError: false,
+      isPlaceholderData: false,
+    });
+    mockUseNetworkLatencyQuery.mockReset();
+    mockUseNetworkLatencyQuery.mockReturnValue(noData);
+    mockUseNetworkEndpointStatusCodesQuery.mockReset();
+    mockUseNetworkEndpointStatusCodesQuery.mockReturnValue(noData);
+    mockUseNetworkTimelineQuery.mockReset();
+    mockUseNetworkTimelineQuery.mockReturnValue(noData);
+  });
+
+  it("renders the filter bar for the network entity, without the app control", () => {
+    renderDetails();
+
+    expect(screen.getByTestId("filter-bar-entity")).toHaveTextContent(
+      "network",
+    );
+    expect(mockFilterBar.mock.calls.at(-1)?.[0]).toMatchObject({
+      showAppSelect: false,
+    });
+  });
+
+  it("scopes every plot to the endpoint the URL names", () => {
+    mockRouter.setUrl(`?${endpoint}&filter_expr=http_method%3Ain%3Aget`);
+    plotsLoaded();
+    renderDetails();
+
+    const params = expect.objectContaining({
+      appId: "app-1",
+      filterExpr: "http_method:in:get",
+    });
+    expect(mockUseNetworkLatencyQuery).toHaveBeenLastCalledWith(
+      params,
+      "api.example.com",
+      "/v1/users",
+    );
+    expect(mockUseNetworkEndpointStatusCodesQuery).toHaveBeenLastCalledWith(
+      params,
+      "api.example.com",
+      "/v1/users",
+    );
+    expect(mockUseNetworkTimelineQuery).toHaveBeenLastCalledWith(
+      params,
+      "api.example.com",
+      "/v1/users",
+    );
+  });
+
+  it("keeps the endpoint in the URL beside what it settled on", () => {
+    plotsLoaded();
+    renderDetails();
+
+    expect(mockRouter.urlParams()).toEqual(settled);
+  });
+
+  it("keeps the endpoint when the filter changes", async () => {
+    plotsLoaded();
+    renderDetails();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("filter-bar-apply"));
+    });
+
+    expect(mockRouter.urlParams()).toEqual({
+      ...settled,
+      filter_expr: "http_method:in:get",
+    });
+  });
+
+  it("fetches nothing until it settles on an app and a range", () => {
+    mockUseAppsQuery.mockReturnValue({ status: "pending", data: undefined });
+    renderDetails();
+
+    expect(mockUseNetworkLatencyQuery).toHaveBeenLastCalledWith(
+      null,
+      "api.example.com",
+      "/v1/users",
+    );
+    expect(screen.getByTestId("skeleton-list-page-mock")).toBeInTheDocument();
+  });
+
+  it("draws every plot, bucketed for the settled range", () => {
+    plotsLoaded();
+    renderDetails();
+
+    expect(screen.getByTestId("latency-plot")).toHaveAttribute(
+      "data-time-group",
+      "minutes",
+    );
+    expect(screen.getByTestId("status-codes-plot")).toBeInTheDocument();
+    expect(screen.getByTestId("timeline-plot")).toBeInTheDocument();
+    expect(mockEndpointStatusCodesPlot.mock.calls.at(-1)?.[0]).toMatchObject({
+      statusCodes: [200, 404],
+      data: [
+        { datetime: "2026-04-01", total_count: 4, count_200: 3, count_404: 1 },
+      ],
+    });
   });
 
   it("shows one empty state when the endpoint has no data", () => {
-    latencyQuery.mockReturnValue({ data: [], status: "success", error: null });
-    render(<NetworkDetails params={{ teamId: "team-1" }} />);
+    mockUseNetworkLatencyQuery.mockReturnValue({
+      data: [],
+      status: "success",
+      error: null,
+    });
+    renderDetails();
 
     expect(
       screen.getAllByText("No data available for the selected filters"),
     ).toHaveLength(1);
     expect(screen.queryByText("Latency")).not.toBeInTheDocument();
-    expect(screen.queryByText("Status Distribution")).not.toBeInTheDocument();
+    expect(screen.queryByText("Status Codes")).not.toBeInTheDocument();
     expect(screen.queryByText("Timeline")).not.toBeInTheDocument();
   });
 
-  it("scopes all plots to the endpoint and synchronizes its URL", async () => {
-    latencyQuery.mockReturnValue({
-      data: [{}],
-      status: "success",
-      error: null,
+  it("hands a refused filter's issues to the bar", () => {
+    mockRouter.setUrl(`?${endpoint}&filter_expr=http_method%3Ain%3Aget`);
+    mockUseNetworkLatencyQuery.mockReturnValue({
+      data: null,
+      status: "error",
+      error: new ApiError(400, invalidFilterExpr, [
+        { message: 'Unknown key "os_name"', span: { start: 0, end: 7 } },
+      ]),
     });
-    statusCodesQuery.mockReturnValue({
-      data: {
-        status_codes: [200, 404],
-        data_points: [
-          {
-            datetime: "2024-01-01",
-            total_count: 4,
-            count_200: 3,
-            count_404: 1,
-          },
-        ],
-      },
-      status: "success",
-      error: null,
-    });
-    timelineQuery.mockReturnValue({
-      data: { points: [{}] },
-      status: "success",
-      error: null,
-    });
+    renderDetails();
 
-    render(<NetworkDetails params={{ teamId: "team-1" }} />);
-
-    expect(latencyQuery).toHaveBeenCalledWith("api.example.com", "/v1/users");
-    expect(statusCodesQuery).toHaveBeenCalledWith(
-      "api.example.com",
-      "/v1/users",
+    expect(screen.getByTestId("filter-bar-issues")).toHaveTextContent(
+      'Unknown key "os_name"',
     );
-    expect(timelineQuery).toHaveBeenCalledWith("api.example.com", "/v1/users");
-    expect(mockFilters.mock.calls.at(-1)?.[0]).toMatchObject({
-      showAppSelector: false,
-      showHttpMethods: true,
-    });
-    expect(
-      screen.queryByTestId("network-endpoint-search"),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId("network-endpoint-results-label"),
-    ).not.toBeInTheDocument();
-    expect(screen.getByTestId("latency-plot")).toBeInTheDocument();
-    expect(screen.getByTestId("status-codes-plot")).toBeInTheDocument();
-    expect(screen.getByTestId("timeline-plot")).toBeInTheDocument();
-    expect(screen.getByText("Status Codes")).toBeInTheDocument();
-    expect(mockEndpointStatusCodesPlot.mock.calls.at(-1)?.[0]).toMatchObject({
-      statusCodes: [200, 404],
-      data: [
-        { datetime: "2024-01-01", total_count: 4, count_200: 3, count_404: 1 },
-      ],
-    });
+  });
 
-    await waitFor(() => {
-      expect(replace).toHaveBeenCalledWith(
-        "/team-1/network/details?a=app-1&domain=api.example.com&path=%2Fv1%2Fusers",
-        { scroll: false },
-      );
+  it("says so when a plot request fails", () => {
+    mockUseNetworkLatencyQuery.mockReturnValue({
+      data: null,
+      status: "error",
+      error: new Error("fail"),
     });
+    renderDetails();
+
+    expect(
+      screen.getByText(
+        "Error fetching latency, please change filters & try again",
+      ),
+    ).toBeInTheDocument();
   });
 });

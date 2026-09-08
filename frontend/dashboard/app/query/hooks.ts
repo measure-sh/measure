@@ -490,84 +490,174 @@ export function useJourneyQuery(params: FilterParams | null) {
 
 const NETWORK_TRENDS_LIMIT = 10;
 
-export function useNetworkEndpointsQuery(query: string, enabled: boolean) {
-  const filters = useFiltersStore((s) => s.filters);
+export function useNetworkEndpointsQuery(
+  params: FilterParams | null,
+  query: string,
+  enabled: boolean,
+) {
   return useQuery({
-    queryKey: ["networkEndpoints", filters.serialisedFilters, query] as const,
+    queryKey: [
+      "networkEndpoints",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+      query,
+    ] as const,
     queryFn: ({ signal }) =>
-      fetchNetworkEndpointsFromServer(filters, query, signal),
-    enabled: enabled && filters.ready && !!filters.app,
+      fetchNetworkEndpointsFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+        query,
+        signal,
+      ),
+    enabled: enabled && params !== null,
+    retry: false,
   });
 }
 
-export function useNetworkLatencyQuery(domain: string, path: string) {
-  const filters = useFiltersStore((s) => s.filters);
-  return useQuery({
-    queryKey: [
-      "networkLatency",
-      filters.serialisedFilters,
-      domain,
-      path,
-    ] as const,
-    queryFn: () => fetchNetworkLatencyPlotFromServer(filters, domain, path),
-    // Latency only renders once a domain or path scope is picked, so a page
-    // without either has nothing to fetch.
-    enabled: filters.ready && !!filters.app && (domain !== "" || path !== ""),
-  });
-}
-
-export function useNetworkStatusCodesQuery(domain: string, path: string) {
-  const filters = useFiltersStore((s) => s.filters);
-  return useQuery({
-    queryKey: [
-      "networkStatusCodes",
-      filters.serialisedFilters,
-      domain,
-      path,
-    ] as const,
-    queryFn: () => fetchNetworkStatusCodesPlotFromServer(filters, domain, path),
-    enabled: filters.ready && !!filters.app,
-  });
-}
-
-export function useNetworkEndpointStatusCodesQuery(
+export function useNetworkLatencyQuery(
+  params: FilterParams | null,
   domain: string,
   path: string,
 ) {
-  const filters = useFiltersStore((s) => s.filters);
   return useQuery({
     queryKey: [
-      "networkEndpointStatusCodes",
-      filters.serialisedFilters,
+      "networkLatency",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
       domain,
       path,
     ] as const,
     queryFn: () =>
-      fetchNetworkEndpointStatusCodesPlotFromServer(filters, domain, path),
-    enabled: filters.ready && !!filters.app && (domain !== "" || path !== ""),
+      fetchNetworkLatencyPlotFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+        domain,
+        path,
+      ),
+    // Latency only renders once a domain or path scope is picked, so a page
+    // without either has nothing to fetch.
+    enabled: params !== null && (domain !== "" || path !== ""),
+    retry: false,
   });
 }
 
-export function useNetworkTimelineQuery(domain: string, path: string) {
-  const filters = useFiltersStore((s) => s.filters);
+export function useNetworkStatusCodesQuery(
+  params: FilterParams | null,
+  domain: string,
+  path: string,
+) {
   return useQuery({
     queryKey: [
-      "networkTimeline",
-      filters.serialisedFilters,
+      "networkStatusCodes",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
       domain,
       path,
     ] as const,
-    queryFn: () => fetchNetworkTimelinePlotFromServer(filters, domain, path),
-    enabled: filters.ready && !!filters.app,
+    queryFn: () =>
+      fetchNetworkStatusCodesPlotFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+        domain,
+        path,
+      ),
+    enabled: params !== null,
+    retry: false,
   });
 }
 
-export function useNetworkTrendsQuery(active: boolean) {
-  const filters = useFiltersStore((s) => s.filters);
+export function useNetworkEndpointStatusCodesQuery(
+  params: FilterParams | null,
+  domain: string,
+  path: string,
+) {
   return useQuery({
-    queryKey: ["networkTrends", filters.serialisedFilters] as const,
-    queryFn: () => fetchNetworkTrendsFromServer(filters, NETWORK_TRENDS_LIMIT),
-    enabled: filters.ready && active,
+    queryKey: [
+      "networkEndpointStatusCodes",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+      domain,
+      path,
+    ] as const,
+    queryFn: () =>
+      fetchNetworkEndpointStatusCodesPlotFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+        domain,
+        path,
+      ),
+    enabled: params !== null && (domain !== "" || path !== ""),
+    retry: false,
+  });
+}
+
+export function useNetworkTimelineQuery(
+  params: FilterParams | null,
+  domain: string,
+  path: string,
+) {
+  return useQuery({
+    queryKey: [
+      "networkTimeline",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+      domain,
+      path,
+    ] as const,
+    queryFn: () =>
+      fetchNetworkTimelinePlotFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+        domain,
+        path,
+      ),
+    enabled: params !== null,
+    retry: false,
+  });
+}
+
+export function useNetworkTrendsQuery(
+  params: FilterParams | null,
+  active: boolean,
+) {
+  return useQuery({
+    queryKey: [
+      "networkTrends",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+    ] as const,
+    queryFn: () =>
+      fetchNetworkTrendsFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+        NETWORK_TRENDS_LIMIT,
+      ),
+    enabled: active && params !== null,
+    retry: false,
   });
 }
 

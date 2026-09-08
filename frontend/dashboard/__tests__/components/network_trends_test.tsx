@@ -24,11 +24,6 @@ jest.mock("next/link", () => ({
   ),
 }));
 
-jest.mock("@/app/components/filters", () => ({
-  __esModule: true,
-  defaultFilters: { ready: false, serialisedFilters: null },
-}));
-
 jest.mock("@/app/components/loading_bar", () => ({
   __esModule: true,
   default: () => <div data-testid="loading-bar">Loading...</div>,
@@ -59,23 +54,18 @@ jest.mock("@/app/utils/shared_styles", () => ({
   underlineLinkStyle: "underline",
 }));
 
-jest.mock("@/app/stores/provider", () => {
-  const { create } = jest.requireActual("zustand");
-  const filtersStore = create(() => ({
-    filters: { ready: false, serialisedFilters: null },
-  }));
-  return { __esModule: true, useFiltersStore: filtersStore };
-});
-
-const mockUseNetworkTrendsQuery = jest.fn(() => ({
-  data: null as any,
-  status: "pending" as string,
-  error: null as Error | null,
-}));
+const mockUseNetworkTrendsQuery = jest.fn(
+  (_params: unknown, _active: boolean) => ({
+    data: null as any,
+    status: "pending" as string,
+    error: null as Error | null,
+  }),
+);
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
-  useNetworkTrendsQuery: () => mockUseNetworkTrendsQuery(),
+  useNetworkTrendsQuery: (params: unknown, active: boolean) =>
+    mockUseNetworkTrendsQuery(params, active),
   TrendsTab: {
     Latency: "Latency",
     ErrorRate: "Error Rate",
@@ -84,7 +74,13 @@ jest.mock("@/app/query/hooks", () => ({
 }));
 
 import NetworkTrends from "@/app/components/network_trends";
-const { useFiltersStore } = require("@/app/stores/provider") as any;
+
+const filterParams = {
+  appId: "app-1",
+  startDate: "2026-04-01T00:00:00.000Z",
+  endDate: "2026-04-10T00:00:00.000Z",
+  filterExpr: null,
+};
 
 function mockTrendsData() {
   return {
@@ -125,10 +121,6 @@ function mockTrendsData() {
   };
 }
 
-function readyFilters() {
-  return { ready: true, app: { id: "app-1" }, serialisedFilters: "a=app-1" };
-}
-
 describe("NetworkTrends", () => {
   beforeEach(() => {
     mockRouterPush.mockReset();
@@ -138,21 +130,17 @@ describe("NetworkTrends", () => {
       status: "pending" as string,
       error: null,
     });
-    useFiltersStore.setState({
-      filters: { ready: false, serialisedFilters: null },
-    });
   });
 
   describe("Loading state", () => {
     it("shows loading bar while fetching", async () => {
-      useFiltersStore.setState({ filters: readyFilters() });
       mockUseNetworkTrendsQuery.mockReturnValue({
         data: null,
         status: "pending" as string,
         error: null,
       });
       await act(async () => {
-        render(<NetworkTrends />);
+        render(<NetworkTrends filterParams={filterParams} />);
       });
       expect(screen.getByTestId("loading-bar")).toBeInTheDocument();
     });
@@ -160,14 +148,13 @@ describe("NetworkTrends", () => {
 
   describe("Error state", () => {
     it("shows error message", async () => {
-      useFiltersStore.setState({ filters: readyFilters() });
       mockUseNetworkTrendsQuery.mockReturnValue({
         data: null,
         status: "error",
         error: new Error("fail"),
       });
       await act(async () => {
-        render(<NetworkTrends />);
+        render(<NetworkTrends filterParams={filterParams} />);
       });
       await waitFor(() => {
         expect(screen.getByText(/Error fetching overview/)).toBeInTheDocument();
@@ -177,14 +164,13 @@ describe("NetworkTrends", () => {
 
   describe("NoData state", () => {
     it("shows no data message", async () => {
-      useFiltersStore.setState({ filters: readyFilters() });
       mockUseNetworkTrendsQuery.mockReturnValue({
         data: null,
         status: "success",
         error: null,
       });
       await act(async () => {
-        render(<NetworkTrends />);
+        render(<NetworkTrends filterParams={filterParams} />);
       });
       await waitFor(() => {
         expect(screen.getByText(/No data available/)).toBeInTheDocument();
@@ -194,7 +180,6 @@ describe("NetworkTrends", () => {
 
   describe("Success state", () => {
     beforeEach(() => {
-      useFiltersStore.setState({ filters: readyFilters() });
       mockUseNetworkTrendsQuery.mockReturnValue({
         data: mockTrendsData(),
         status: "success",
@@ -204,7 +189,7 @@ describe("NetworkTrends", () => {
 
     it("renders table with endpoint data", async () => {
       await act(async () => {
-        render(<NetworkTrends />);
+        render(<NetworkTrends filterParams={filterParams} />);
       });
       await waitFor(() => {
         expect(
@@ -218,7 +203,7 @@ describe("NetworkTrends", () => {
 
     it("shows latency, error rate and frequency columns", async () => {
       await act(async () => {
-        render(<NetworkTrends />);
+        render(<NetworkTrends filterParams={filterParams} />);
       });
       await waitFor(() => {
         expect(screen.getByText("Latency (p95)")).toBeInTheDocument();
@@ -232,7 +217,7 @@ describe("NetworkTrends", () => {
 
     it("renders tab buttons (Latency, Error Rate, Frequency)", async () => {
       await act(async () => {
-        render(<NetworkTrends />);
+        render(<NetworkTrends filterParams={filterParams} />);
       });
       await waitFor(() => {
         // Use getAllByText for 'Frequency' since the table header also says 'Frequency'
@@ -246,7 +231,7 @@ describe("NetworkTrends", () => {
 
     it("switches data when tab is clicked", async () => {
       await act(async () => {
-        render(<NetworkTrends />);
+        render(<NetworkTrends filterParams={filterParams} />);
       });
       await waitFor(() => {
         expect(
@@ -272,7 +257,7 @@ describe("NetworkTrends", () => {
 
     it("opens endpoint details when its row is clicked", async () => {
       await act(async () => {
-        render(<NetworkTrends teamId="team-1" />);
+        render(<NetworkTrends teamId="team-1" filterParams={filterParams} />);
       });
       await waitFor(() => {
         expect(
@@ -290,7 +275,7 @@ describe("NetworkTrends", () => {
 
     it("links the endpoint text to its details page", async () => {
       await act(async () => {
-        render(<NetworkTrends teamId="team-1" />);
+        render(<NetworkTrends teamId="team-1" filterParams={filterParams} />);
       });
       await waitFor(() => {
         expect(
@@ -306,7 +291,7 @@ describe("NetworkTrends", () => {
 
     it("leaves a modified endpoint click to the browser", async () => {
       await act(async () => {
-        render(<NetworkTrends teamId="team-1" />);
+        render(<NetworkTrends teamId="team-1" filterParams={filterParams} />);
       });
       await waitFor(() => {
         expect(
@@ -325,7 +310,7 @@ describe("NetworkTrends", () => {
 
     it("opens endpoint details on Enter", async () => {
       await act(async () => {
-        render(<NetworkTrends teamId="team-1" />);
+        render(<NetworkTrends teamId="team-1" filterParams={filterParams} />);
       });
       await waitFor(() => {
         expect(
@@ -345,14 +330,13 @@ describe("NetworkTrends", () => {
 
   describe("Docs link", () => {
     it("offers the endpoint patterns tooltip beside the title", async () => {
-      useFiltersStore.setState({ filters: readyFilters() });
       mockUseNetworkTrendsQuery.mockReturnValue({
         data: mockTrendsData(),
         status: "success",
         error: null as Error | null,
       });
       await act(async () => {
-        render(<NetworkTrends />);
+        render(<NetworkTrends filterParams={filterParams} />);
       });
       expect(
         screen
@@ -381,6 +365,7 @@ describe("NetworkTrends", () => {
       expect(screen.getByText("Top Endpoints")).toBeInTheDocument();
       // Demo data should render some endpoints
       expect(screen.getAllByRole("row").length).toBeGreaterThan(1);
+      expect(mockUseNetworkTrendsQuery).toHaveBeenLastCalledWith(null, true);
     });
 
     it("does not navigate from a demo row click", async () => {

@@ -86,6 +86,60 @@ func bindUUIDKey(column string, condition Condition) (*sqlf.Stmt, error) {
 	return nil, fmt.Errorf("Key %q cannot be filtered with %q", condition.KeyName, condition.Operator)
 }
 
+func bindArrayKey(column string, condition Condition) (*sqlf.Stmt, error) {
+	switch condition.Operator {
+	case OperatorIn:
+		return sqlf.New("hasAny("+column+", ?)", condition.TextValues()), nil
+	case OperatorNotIn:
+		return sqlf.New("not hasAny("+column+", ?)", condition.TextValues()), nil
+	}
+
+	text := EscapeLikeWildcards(condition.TextValue())
+	var pattern string
+	switch condition.Operator {
+	case OperatorContains, OperatorNotContains:
+		pattern = "%" + text + "%"
+	case OperatorStartsWith:
+		pattern = text + "%"
+	case OperatorEndsWith:
+		pattern = "%" + text
+	default:
+		return nil, fmt.Errorf("Key %q cannot be filtered with %q", condition.KeyName, condition.Operator)
+	}
+
+	anyMatch := "arrayExists(value -> value ilike ?, " + column + ")"
+	if condition.Operator == OperatorNotContains {
+		return sqlf.New("not "+anyMatch, pattern), nil
+	}
+	return sqlf.New(anyMatch, pattern), nil
+}
+
+// Bound uuids arrive as text, so they are cast before the array functions
+// compare them.
+func bindUUIDArrayKey(column string, condition Condition) (*sqlf.Stmt, error) {
+	switch condition.Operator {
+	case OperatorIn, OperatorNotIn:
+		bound := make([]uuid.UUID, 0, len(condition.Values))
+		for _, text := range condition.TextValues() {
+			id, err := uuid.Parse(text)
+			if err != nil {
+				return nil, fmt.Errorf("Key %q takes uuid values, got %q", condition.KeyName, text)
+			}
+			bound = append(bound, id)
+		}
+		if condition.Operator == OperatorNotIn {
+			return sqlf.New("not hasAny("+column+", cast(?, 'Array(UUID)'))", bound), nil
+		}
+		return sqlf.New("hasAny("+column+", cast(?, 'Array(UUID)'))", bound), nil
+	case OperatorIsSet:
+		return sqlf.New("arrayExists(value -> value <> toUUID(?), "+column+")", uuid.Nil), nil
+	case OperatorIsNotSet:
+		return sqlf.New("has("+column+", toUUID(?))", uuid.Nil), nil
+	}
+
+	return nil, fmt.Errorf("Key %q cannot be filtered with %q", condition.KeyName, condition.Operator)
+}
+
 // bindEnumKeyToCodes builds the columnKeyBinding for an enum key whose column
 // stores integer codes: each value name a condition carries is translated
 // through the mapping before comparison, and a name outside it is refused.

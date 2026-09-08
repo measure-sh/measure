@@ -1,15 +1,4 @@
-/**
- * Integration tests for Network Overview and Details pages.
- *
- * Covers page/api wiring only: endpoint suggestions, HTTP failure handling
- * for every network endpoint, request paths and query params,
- * URL serialisation, cache behaviour, and re-fetching when filters change.
- * Rendering behaviour is covered by focused page/component tests.
- *
- * Network pages use FilterSource.Events with showNoData=true and
- * showNotOnboarded=true, so filters.ready requires apps+filters and has a
- * dedicated empty state for NoData/NotOnboarded.
- */
+import { mockRouter } from "@/__tests__/helpers/mock_router";
 import {
   afterAll,
   afterEach,
@@ -19,23 +8,8 @@ import {
   expect,
   it,
 } from "@jest/globals";
-import {
-  act,
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
-
-// --- jsdom polyfills ---
-if (typeof globalThis.ResizeObserver === "undefined") {
-  globalThis.ResizeObserver = class ResizeObserver {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  } as any;
-}
 
 // --- External dependency mocks ---
 
@@ -44,14 +18,10 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
 }));
 
-const mockRouterReplace = jest.fn();
-const mockRouterPush = jest.fn();
-const mockSearchParams = new URLSearchParams();
-const appFixtureId = "b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f";
+const mockRouterPush = mockRouter.pushMock;
+
 jest.mock("next/navigation", () => ({
-  __esModule: true,
-  useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
-  useSearchParams: () => mockSearchParams,
+  ...require("@/__tests__/helpers/mock_router").nextNavigationMock(),
   usePathname: () => "/test-team/network",
 }));
 
@@ -93,13 +63,25 @@ jest.mock("@nivo/heatmap", () => ({
   ),
 }));
 
+// Radix popovers and cmdk need browser APIs jsdom lacks.
+(globalThis as any).ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+Element.prototype.scrollIntoView = jest.fn();
+Element.prototype.hasPointerCapture = jest.fn(() => false);
+Element.prototype.setPointerCapture = jest.fn();
+Element.prototype.releasePointerCapture = jest.fn();
+
 // --- MSW ---
 import {
-  makeNetworkStatusCodesFixture,
+  makeAppFixture,
+  makeNetworkEndpointLatencyFixture,
   makeNetworkEndpointsFixture,
+  makeNetworkStatusCodesFixture,
   makeNetworkTimelineFixture,
   makeNetworkTrendsFixture,
-  makeFiltersFixture,
 } from "../msw/fixtures";
 import { server } from "../msw/server";
 
@@ -109,20 +91,20 @@ jest.spyOn(console, "error").mockImplementation(() => {});
 beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
 afterEach(() => {
   server.resetHandlers();
-  mockRouterReplace.mockClear();
   mockRouterPush.mockClear();
 });
 afterAll(() => server.close());
 
 // --- Store/component imports ---
+import NetworkDetails from "@/app/components/network_details";
 import NetworkOverview from "@/app/components/network_overview";
+import { queryClient } from "@/app/query/query_client";
 import { createFiltersStore } from "@/app/stores/filters_store";
 import { createOnboardingStore } from "@/app/stores/onboarding_store";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClientProvider } from "@tanstack/react-query";
 
 let filtersStore = createFiltersStore();
 let onboardingStore = createOnboardingStore();
-let testQueryClient: QueryClient;
 
 jest.mock("@/app/stores/provider", () => {
   const { useStore } = require("zustand");
@@ -136,293 +118,322 @@ jest.mock("@/app/stores/provider", () => {
   };
 });
 
+const appId = makeAppFixture().id;
+
 beforeEach(() => {
   filtersStore = createFiltersStore();
   onboardingStore = createOnboardingStore();
-  testQueryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false, gcTime: 0 } },
-  });
-  filtersStore.getState().reset();
-  for (const key of [...mockSearchParams.keys()]) mockSearchParams.delete(key);
+  queryClient.clear();
+  mockRouter.reset();
   const { apiClient } = require("@/app/api/api_client");
   apiClient.init({ replace: jest.fn(), push: jest.fn() });
-  // Clear localStorage for recent searches
-  try {
-    localStorage.clear();
-  } catch {}
+  localStorage.clear();
 });
 
 function renderWithProviders(ui: React.ReactElement) {
   return render(
-    <QueryClientProvider client={testQueryClient}>{ui}</QueryClientProvider>,
+    <QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>,
   );
 }
 
-// ====================================================================
-// NETWORK OVERVIEW
-// ====================================================================
-describe("Network Overview (MSW integration)", () => {
-  async function renderAndWaitForData() {
-    renderWithProviders(<NetworkOverview params={{ teamId: "test-team" }} />);
+function record(path: string, respond?: () => any) {
+  const sent: URL[] = [];
+  server.use(
+    http.get(`*/api/apps/:appId/${path}`, ({ request }) => {
+      sent.push(new URL(request.url));
+      return respond === undefined ? undefined : HttpResponse.json(respond());
+    }),
+  );
+  return sent;
+}
+
+const lastWrittenUrl = () => new URLSearchParams(window.location.search);
+
+describe("Network overview (MSW integration)", () => {
+  function renderPage() {
+    return renderWithProviders(<NetworkOverview params={{ teamId: "123" }} />);
+  }
+
+  async function waitForPlots() {
     await waitFor(
-      () => {
-        // Wait for the endpoint ranking to appear
-        expect(screen.getByText("Top Endpoints")).toBeTruthy();
+      () => expect(screen.getByTestId("nivo-heatmap")).toBeTruthy(),
+      {
+        timeout: 5000,
       },
-      { timeout: 5000 },
     );
   }
 
-  // ================================================================
-  // PAGE LOAD
-  // ================================================================
-  describe("page load", () => {
-    it("lists the app's endpoints from the API", async () => {
-      await renderAndWaitForData();
-      await waitFor(() => {
-        expect(screen.getByText("api.example.com/v1/checkout")).toBeTruthy();
-      });
+  describe("opening the page", () => {
+    it("draws the plots and the ranking the server sent", async () => {
+      renderPage();
+      await waitForPlots();
+
+      expect(screen.getByTestId("nivo-line-chart")).toBeTruthy();
+      expect(screen.getByText("Top Endpoints")).toBeTruthy();
+      expect(screen.getByText("api.example.com/v1/checkout")).toBeTruthy();
     });
 
-    it("shows the shared empty state when the app has no data", async () => {
-      server.use(
-        http.get("*/api/apps/:appId/filters", () =>
-          HttpResponse.json(makeFiltersFixture({ versions: null })),
-        ),
+    it("asks for every endpoint over the range it settled on", async () => {
+      const sent = record("networkRequests/plots/statusCodes", () =>
+        makeNetworkStatusCodesFixture(),
       );
+      renderPage();
+      await waitForPlots();
 
-      renderWithProviders(<NetworkOverview params={{ teamId: "test-team" }} />);
+      expect(sent).toHaveLength(1);
+      expect(sent[0].pathname).toBe(
+        `/api/apps/${appId}/networkRequests/plots/statusCodes`,
+      );
+      expect(sent[0].searchParams.get("from")).toMatch(/Z$/);
+      expect(sent[0].searchParams.get("to")).toMatch(/Z$/);
+      expect(sent[0].searchParams.get("timezone")).toBeTruthy();
+      expect(sent[0].searchParams.get("plot_time_group")).toBe("minutes");
+      expect(sent[0].searchParams.get("domain")).toBe("");
+      expect(sent[0].searchParams.get("path")).toBe("");
+      expect(sent[0].searchParams.has("filter_expr")).toBe(false);
+      expect(sent[0].searchParams.has("http_methods")).toBe(false);
+      expect(sent[0].searchParams.has("filter_short_code")).toBe(false);
+    });
 
-      await waitFor(() => {
-        expect(
-          screen.getByText("No data received for this app yet"),
-        ).toBeTruthy();
-      });
-      expect(screen.queryByText("Status Distribution")).toBeNull();
+    it("asks for the ranking with a limit and no time group", async () => {
+      const sent = record("networkRequests/trends", () =>
+        makeNetworkTrendsFixture(),
+      );
+      renderPage();
+      await waitForPlots();
+
+      expect(sent[0].searchParams.get("trends_limit")).toBe("10");
+      expect(sent[0].searchParams.has("plot_time_group")).toBe(false);
+    });
+
+    it("asks the keys endpoint for the network entity", async () => {
+      const sent = record("filters/keys");
+      renderPage();
+      await waitForPlots();
+
+      await waitFor(() => expect(sent.length).toBeGreaterThan(0));
+      expect(sent[0].searchParams.get("entity")).toBe("network");
+    });
+
+    it("records the app and range it settled on in the URL, with no offset", async () => {
+      renderPage();
+      await waitForPlots();
+
+      const written = lastWrittenUrl();
+      expect(written.get("a")).toBe(appId);
+      expect(written.get("d")).toBe("Last 6 Hours");
+      expect(written.has("po")).toBe(false);
+      expect(written.has("hm")).toBe(false);
     });
   });
 
-  // ================================================================
-  // TRENDS TABLE
-  // ================================================================
-  describe("trends table", () => {
-    it("shows error when trends API returns 500", async () => {
+  describe("a link carrying a filter", () => {
+    it("filters every request by it", async () => {
+      mockRouter.setUrl(
+        `filter_expr=${encodeURIComponent("http_method:in:get")}`,
+      );
+      const statusCodes = record("networkRequests/plots/statusCodes", () =>
+        makeNetworkStatusCodesFixture(),
+      );
+      const timeline = record("networkRequests/plots/timeline", () =>
+        makeNetworkTimelineFixture(),
+      );
+      const trends = record("networkRequests/trends", () =>
+        makeNetworkTrendsFixture(),
+      );
+      renderPage();
+      await waitForPlots();
+
+      for (const sent of [statusCodes, timeline, trends]) {
+        expect(sent[0].searchParams.get("filter_expr")).toBe(
+          "http_method:in:get",
+        );
+      }
+      expect(lastWrittenUrl().get("filter_expr")).toBe("http_method:in:get");
+    });
+  });
+
+  describe("the endpoint search", () => {
+    it("opens the endpoint it is given, keeping the filter in the URL", async () => {
+      mockRouter.setUrl(
+        `filter_expr=${encodeURIComponent("http_method:in:get")}`,
+      );
+      const sent = record("networkRequests/endpoints", () =>
+        makeNetworkEndpointsFixture(),
+      );
+      renderPage();
+      await waitForPlots();
+
+      fireEvent.focus(screen.getByTestId("network-endpoint-search"));
+      await waitFor(() =>
+        expect(
+          screen.getAllByTestId("network-endpoint-suggestion"),
+        ).toHaveLength(3),
+      );
+      expect(sent[0].searchParams.get("filter_expr")).toBe(
+        "http_method:in:get",
+      );
+
+      fireEvent.click(screen.getAllByTestId("network-endpoint-suggestion")[0]);
+      const opened = new URL(
+        mockRouterPush.mock.calls.at(-1)![0] as string,
+        "http://localhost",
+      );
+      expect(opened.pathname).toBe("/123/network/details");
+      expect(Object.fromEntries(opened.searchParams)).toEqual({
+        a: appId,
+        d: "Last 6 Hours",
+        filter_expr: "http_method:in:get",
+        domain: "api.example.com",
+        path: "/v1/users/*/profile",
+        from: "search",
+      });
+    });
+  });
+
+  describe("when the server fails", () => {
+    it("says so for each plot", async () => {
       server.use(
+        http.get("*/api/apps/:appId/networkRequests/plots/statusCodes", () => {
+          return new HttpResponse(null, { status: 500 });
+        }),
+        http.get("*/api/apps/:appId/networkRequests/plots/timeline", () => {
+          return new HttpResponse(null, { status: 500 });
+        }),
         http.get("*/api/apps/:appId/networkRequests/trends", () => {
           return new HttpResponse(null, { status: 500 });
         }),
       );
-      renderWithProviders(<NetworkOverview params={{ teamId: "test-team" }} />);
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Error fetching overview/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-  });
+      renderPage();
 
-  // ================================================================
-  // STATUS DISTRIBUTION PLOT
-  // ================================================================
-  describe("status distribution plot", () => {
-    it("shows error when status plot API returns 500", async () => {
+      expect(
+        await screen.findByText(/Error fetching status distribution/),
+      ).toBeTruthy();
+      expect(screen.getByText(/Error fetching requests timeline/)).toBeTruthy();
+      expect(screen.getByText(/Error fetching overview/)).toBeTruthy();
+    });
+
+    it("shows a refused filter's issue in the bar, not the error message", async () => {
+      mockRouter.setUrl(
+        `filter_expr=${encodeURIComponent("http_method:in:get")}`,
+      );
       server.use(
         http.get("*/api/apps/:appId/networkRequests/plots/statusCodes", () => {
+          return HttpResponse.json(
+            {
+              error: "invalid_filter_expr",
+              filter_expr_issues: [
+                {
+                  message: 'Key "http_method" has no value "get"',
+                  span: { start: 0, end: 18 },
+                },
+              ],
+            },
+            { status: 400 },
+          );
+        }),
+      );
+      renderPage();
+
+      expect((await screen.findByTestId("filter-issue")).textContent).toContain(
+        'Key "http_method" has no value "get"',
+      );
+    });
+
+    it("says so when the team's apps cannot be fetched", async () => {
+      server.use(
+        http.get("*/api/teams/:teamId/apps", () => {
           return new HttpResponse(null, { status: 500 });
         }),
       );
-      renderWithProviders(<NetworkOverview params={{ teamId: "test-team" }} />);
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(/Error fetching status distribution/),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
+      renderPage();
+
+      expect(await screen.findByText(/Error fetching apps/)).toBeTruthy();
     });
   });
 
-  // ================================================================
-  // TIMELINE PLOT
-  // ================================================================
-  describe("timeline plot", () => {
-    it("shows error when timeline API returns 500", async () => {
+  describe("when the server answers with nothing", () => {
+    it("says there is no data for the filter", async () => {
       server.use(
-        http.get("*/api/apps/:appId/networkRequests/plots/timeline", () => {
-          return new HttpResponse(null, { status: 500 });
-        }),
-      );
-      renderWithProviders(<NetworkOverview params={{ teamId: "test-team" }} />);
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(/Error fetching requests timeline/),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-    });
-  });
-
-  // ================================================================
-  // URL SYNC
-  // ================================================================
-  describe("URL sync", () => {
-    it("serialises filters into URL", async () => {
-      await renderAndWaitForData();
-      expect(mockRouterReplace).toHaveBeenCalled();
-      const url =
-        mockRouterReplace.mock.calls[
-          mockRouterReplace.mock.calls.length - 1
-        ][0];
-      expect(url).toContain("a=");
-      expect(url).toContain("sd=");
-    });
-  });
-
-  // ================================================================
-  // API PATHS
-  // ================================================================
-  describe("API paths", () => {
-    it("fetches the endpoint list from /networkRequests/endpoints", async () => {
-      const paths: string[] = [];
-      server.use(
-        http.get(
-          "*/api/apps/:appId/networkRequests/endpoints",
-          ({ request }) => {
-            paths.push(new URL(request.url).pathname);
-            return HttpResponse.json(makeNetworkEndpointsFixture());
-          },
+        http.get("*/api/apps/:appId/networkRequests/plots/statusCodes", () =>
+          HttpResponse.json([]),
+        ),
+        http.get("*/api/apps/:appId/networkRequests/plots/timeline", () =>
+          HttpResponse.json({ interval: 5, points: [] }),
         ),
       );
-      await renderAndWaitForData();
-      fireEvent.focus(screen.getByTestId("network-endpoint-search"));
-      await waitFor(() => {
+      renderPage();
+
+      await waitFor(() =>
         expect(
-          paths.some((p) => p.includes("/networkRequests/endpoints")),
-        ).toBe(true);
-      });
-    });
-
-    it("fetches trends from /networkRequests/trends", async () => {
-      const paths: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/networkRequests/trends", ({ request }) => {
-          paths.push(new URL(request.url).pathname);
-          return HttpResponse.json(makeNetworkTrendsFixture());
-        }),
+          screen.getAllByText("No data available for the selected filters")
+            .length,
+        ).toBeGreaterThan(0),
       );
-      await renderAndWaitForData();
-      expect(paths.some((p) => p.includes("/networkRequests/trends"))).toBe(
-        true,
-      );
-    });
-  });
-
-  describe("endpoint selection", () => {
-    it("opens the selected endpoint's detail route", async () => {
-      await renderAndWaitForData();
-      fireEvent.focus(screen.getByTestId("network-endpoint-search"));
-      await waitFor(() => {
-        expect(
-          screen.getAllByTestId("network-endpoint-suggestion"),
-        ).toHaveLength(3);
-      });
-      fireEvent.click(screen.getAllByTestId("network-endpoint-suggestion")[0]);
-      expect(mockRouterPush).toHaveBeenCalledWith(
-        "/test-team/network/details?domain=api.example.com&path=%2Fv1%2Fusers%2F*%2Fprofile&from=search",
-      );
-    });
-  });
-
-  // ================================================================
-  // CACHING
-  // ================================================================
-  describe("caching", () => {
-    it("re-render with same filters re-fetches the status plot (gcTime: 0 evicts on unmount)", async () => {
-      let fetchCount = 0;
-      server.use(
-        http.get("*/api/apps/:appId/networkRequests/plots/statusCodes", () => {
-          fetchCount++;
-          return HttpResponse.json(makeNetworkStatusCodesFixture());
-        }),
-      );
-      const { unmount } = render(
-        <QueryClientProvider client={testQueryClient}>
-          <NetworkOverview params={{ teamId: "test-team" }} />
-        </QueryClientProvider>,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Top Endpoints")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      const initial = fetchCount;
-
-      unmount();
-      render(
-        <QueryClientProvider client={testQueryClient}>
-          <NetworkOverview params={{ teamId: "test-team" }} />
-        </QueryClientProvider>,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText("Top Endpoints")).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-      expect(fetchCount).toBeGreaterThan(initial);
-    });
-  });
-
-  // ================================================================
-  // FILTER CHANGE RE-FETCH
-  // ================================================================
-  describe("filter change re-fetch", () => {
-    it("date range change re-fetches the status plot and timeline", async () => {
-      let statusPlotFetches = 0;
-      let timelineFetches = 0;
-      server.use(
-        http.get("*/api/apps/:appId/networkRequests/plots/statusCodes", () => {
-          statusPlotFetches++;
-          return HttpResponse.json(makeNetworkStatusCodesFixture());
-        }),
-        http.get("*/api/apps/:appId/networkRequests/plots/timeline", () => {
-          timelineFetches++;
-          return HttpResponse.json(makeNetworkTimelineFixture());
-        }),
-      );
-
-      await renderAndWaitForData();
-      const initialStatus = statusPlotFetches;
-      const initialTimeline = timelineFetches;
-
-      // Change date range to trigger re-fetch
-      const now = new Date();
-      await act(async () => {
-        filtersStore.getState().setSelectedDateRange("Last Week");
-        filtersStore
-          .getState()
-          .setSelectedStartDate(
-            new Date(now.getTime() - 7 * 86400000).toISOString(),
-          );
-        filtersStore.getState().setSelectedEndDate(now.toISOString());
-      });
-
-      await waitFor(
-        () => {
-          expect(statusPlotFetches).toBeGreaterThan(initialStatus);
-        },
-        { timeout: 5000 },
-      );
-      expect(timelineFetches).toBeGreaterThan(initialTimeline);
+      expect(screen.queryByTestId("nivo-heatmap")).toBeNull();
     });
   });
 });
 
-// ====================================================================
-// NETWORK DETAILS
-// ====================================================================
+describe("Network details (MSW integration)", () => {
+  const endpoint = "domain=api.example.com&path=%2Fv1%2Fusers";
+
+  function renderPage() {
+    return renderWithProviders(<NetworkDetails params={{ teamId: "123" }} />);
+  }
+
+  async function waitForPlots() {
+    await waitFor(
+      () => expect(screen.getByTestId("nivo-heatmap")).toBeTruthy(),
+      { timeout: 5000 },
+    );
+  }
+
+  beforeEach(() => {
+    mockRouter.setUrl(`?${endpoint}`);
+  });
+
+  it("asks every plot for the endpoint the URL names", async () => {
+    mockRouter.setUrl(
+      `?${endpoint}&filter_expr=${encodeURIComponent("http_method:in:get")}`,
+    );
+    const latency = record("networkRequests/plots/latency", () =>
+      makeNetworkEndpointLatencyFixture(),
+    );
+    const timeline = record("networkRequests/plots/timeline", () =>
+      makeNetworkTimelineFixture(),
+    );
+    renderPage();
+    await waitForPlots();
+
+    for (const sent of [latency, timeline]) {
+      expect(sent[0].searchParams.get("domain")).toBe("api.example.com");
+      expect(sent[0].searchParams.get("path")).toBe("/v1/users");
+      expect(sent[0].searchParams.get("filter_expr")).toBe(
+        "http_method:in:get",
+      );
+    }
+    expect(latency[0].searchParams.get("plot_time_group")).toBe("minutes");
+    expect(timeline[0].searchParams.has("plot_time_group")).toBe(false);
+  });
+
+  it("keeps the endpoint in the URL beside what it settled on", async () => {
+    renderPage();
+    await waitForPlots();
+
+    const written = lastWrittenUrl();
+    expect(written.get("domain")).toBe("api.example.com");
+    expect(written.get("path")).toBe("/v1/users");
+    expect(written.get("a")).toBe(appId);
+    expect(written.get("d")).toBe("Last 6 Hours");
+  });
+
+  it("draws the latency, status code and timeline plots", async () => {
+    renderPage();
+    await waitForPlots();
+
+    expect(screen.getByText("Latency")).toBeTruthy();
+    expect(screen.getByText("Status Codes")).toBeTruthy();
+    expect(screen.getAllByTestId("nivo-line-chart")).toHaveLength(2);
+  });
+});

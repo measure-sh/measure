@@ -2369,12 +2369,8 @@ func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, rch driver
 		return
 	}
 
-	plotTimeGroup := ef.PlotTimeGroup
-	if plotTimeGroup == "" {
-		plotTimeGroup = exprfilter.PlotTimeGroupDays
-	}
-
-	groupExpr, err := GetPlotTimeGroupExpr("timestamp", plotTimeGroup)
+	ef.SetDefaultPlotTimeGroupIfUnset()
+	groupExpr, err := GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -2671,12 +2667,8 @@ func (a App) GetBugReportInstancesPlot(ctx context.Context, rch driver.Conn, ef 
 		return
 	}
 
-	plotTimeGroup := ef.PlotTimeGroup
-	if plotTimeGroup == "" {
-		plotTimeGroup = exprfilter.PlotTimeGroupDays
-	}
-
-	groupExpr, err := GetPlotTimeGroupExpr("timestamp", plotTimeGroup)
+	ef.SetDefaultPlotTimeGroupIfUnset()
+	groupExpr, err := GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
 	if err != nil {
 		return nil, err
 	}

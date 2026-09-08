@@ -7,7 +7,6 @@ import {
   defaultFilters,
   Filters,
   FilterSource,
-  HttpMethod,
   OsVersion,
   saveListFiltersToServer,
   SessionType,
@@ -40,7 +39,6 @@ export type FilterConfig = {
   showLocales: boolean;
   showDeviceManufacturers: boolean;
   showDeviceNames: boolean;
-  showHttpMethods: boolean;
   showUdAttrs: boolean;
   showFreeText: boolean;
 };
@@ -52,7 +50,6 @@ export type URLFilters = {
   dateRange?: string;
   versions?: number[];
   sessionTypes?: SessionType[];
-  httpMethods?: HttpMethod[];
   osVersions?: number[];
   countries?: number[];
   networkProviders?: number[];
@@ -89,13 +86,6 @@ export type FilterOptionsData = {
   userDefAttrOps: Map<string, string[]>;
 };
 
-const allHttpMethods = [
-  HttpMethod.GET,
-  HttpMethod.POST,
-  HttpMethod.PUT,
-  HttpMethod.PATCH,
-  HttpMethod.DELETE,
-];
 const allSessionTypes = [
   SessionType.FatalErrors,
   SessionType.UnhandledErrors,
@@ -121,7 +111,6 @@ const urlFiltersKeyMap = {
   endDate: "ed",
   versions: "v",
   sessionTypes: "st",
-  httpMethods: "hm",
   osVersions: "os",
   countries: "c",
   networkProviders: "np",
@@ -219,9 +208,6 @@ function serializeUrlFilters(
       case "deviceNames":
         if (!config.showDeviceNames) return;
         break;
-      case "httpMethods":
-        if (!config.showHttpMethods) return;
-        break;
       case "udAttrMatchers":
         if (!config.showUdAttrs) return;
         break;
@@ -270,10 +256,6 @@ function serializeUrlFilters(
               `${encodeURIComponent(m.key)}~${encodeURIComponent(m.type)}~${encodeURIComponent(m.op)}~${encodeURIComponent(m.value)}`,
           )
           .join("|");
-        break;
-      case "httpMethods":
-        if ((value as string[]).length === 0) return;
-        serializedValue = (value as string[]).join(",");
         break;
       case "sessionTypes":
         if ((value as SessionType[]).length === 0) return;
@@ -355,7 +337,6 @@ interface FiltersStoreState {
   // every Filters mount via applyFilterOptions.
   selectedVersions: AppVersion[];
   selectedSessionTypes: SessionType[];
-  selectedHttpMethods: HttpMethod[];
   selectedOsVersions: OsVersion[];
   selectedCountries: string[];
   selectedNetworkProviders: string[];
@@ -389,7 +370,6 @@ interface FiltersStoreActions {
   setSelectedEndDate: (date: string) => void;
   setSelectedVersions: (versions: AppVersion[]) => void;
   setSelectedSessionTypes: (types: SessionType[]) => void;
-  setSelectedHttpMethods: (methods: HttpMethod[]) => void;
   setSelectedOsVersions: (versions: OsVersion[]) => void;
   setSelectedCountries: (countries: string[]) => void;
   setSelectedNetworkProviders: (providers: string[]) => void;
@@ -442,7 +422,6 @@ const initialState: FiltersStoreState = {
   selectedEndDate: "",
   selectedVersions: [],
   selectedSessionTypes: defaultSessionTypes,
-  selectedHttpMethods: allHttpMethods,
   selectedOsVersions: [],
   selectedCountries: [],
   selectedNetworkProviders: [],
@@ -493,7 +472,6 @@ function computeFilters(state: FiltersStoreState): Filters {
       ),
     ),
     sessionTypes: state.selectedSessionTypes,
-    httpMethods: state.selectedHttpMethods,
     osVersions: state.selectedOsVersions.map((os) =>
       state.osVersions.findIndex(
         (o) => o.name === os.name && o.version === os.version,
@@ -540,10 +518,6 @@ function computeFilters(state: FiltersStoreState): Filters {
     sessionTypes: {
       selected: state.selectedSessionTypes,
       all: state.selectedSessionTypes.length === allSessionTypes.length,
-    },
-    httpMethods: {
-      selected: state.selectedHttpMethods,
-      all: state.selectedHttpMethods.length === allHttpMethods.length,
     },
     osVersions: {
       selected: state.selectedOsVersions,
@@ -693,17 +667,6 @@ export function applyFilterOptions(
     selectedUdAttrMatchers = [];
   }
 
-  let selectedHttpMethods: HttpMethod[];
-  if (isUrlMatch && urlFilters.httpMethods) {
-    selectedHttpMethods = urlFilters.httpMethods
-      .filter((s: string) =>
-        Object.values(HttpMethod).includes(s as HttpMethod),
-      )
-      .map((s: string) => s as HttpMethod);
-  } else {
-    selectedHttpMethods = allHttpMethods;
-  }
-
   let selectedSessionTypes: SessionType[];
   if (isUrlMatch && urlFilters.sessionTypes) {
     selectedSessionTypes = urlFilters.sessionTypes
@@ -765,7 +728,6 @@ export function applyFilterOptions(
     selectedDeviceManufacturers,
     selectedDeviceNames,
     selectedUdAttrMatchers,
-    selectedHttpMethods,
     selectedSessionTypes,
     selectedFreeText,
     selectedErrorTypes,
@@ -879,7 +841,6 @@ export function createFiltersStore() {
           selectedDeviceManufacturers: [],
           selectedDeviceNames: [],
           selectedSessionTypes: [],
-          selectedHttpMethods: [],
           selectedUdAttrMatchers: [],
           selectedFreeText: "",
           selectedErrorTypes: ["error", "anr"],
@@ -934,8 +895,6 @@ export function createFiltersStore() {
       setSelectedEndDate: (date) => set({ selectedEndDate: date }),
       setSelectedVersions: (versions) => set({ selectedVersions: versions }),
       setSelectedSessionTypes: (types) => set({ selectedSessionTypes: types }),
-      setSelectedHttpMethods: (methods) =>
-        set({ selectedHttpMethods: methods }),
       setSelectedOsVersions: (versions) =>
         set({ selectedOsVersions: versions }),
       setSelectedCountries: (countries) =>

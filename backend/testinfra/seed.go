@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -232,6 +233,8 @@ type EventRow struct {
 	AppVersion string
 	AppBuild   string
 
+	InsertedAt time.Time
+
 	// Exception/ANR payload, written only for issue events (Type "exception"
 	// or "anr"). Severity, ExceptionsJSON and IsCustom are written only when
 	// set, leaving ClickHouse column defaults otherwise.
@@ -245,6 +248,12 @@ type EventRow struct {
 	// class name is set.
 	LifecycleActivityType      string
 	LifecycleActivityClassName string
+
+	HttpURL        string
+	HttpMethod     string
+	HttpStatusCode int
+	HttpStartTime  uint64
+	HttpEndTime    uint64
 
 	// Description is the bug report text, written only for Type "bug_report".
 	// For those events the seed also writes '[]' into the attachments column,
@@ -362,9 +371,23 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 		vals = append(vals, quote(row.Description), "'[]'")
 	}
 
+	if row.HttpURL != "" {
+		cols = append(cols,
+			"`http.url`", "`http.method`", "`http.status_code`",
+			"`http.start_time`", "`http.end_time`")
+		vals = append(vals,
+			quote(row.HttpURL), quote(row.HttpMethod), strconv.Itoa(row.HttpStatusCode),
+			strconv.FormatUint(row.HttpStartTime, 10), strconv.FormatUint(row.HttpEndTime, 10))
+	}
+
 	if row.LifecycleActivityClassName != "" {
 		cols = append(cols, "`lifecycle_activity.type`", "`lifecycle_activity.class_name`")
 		vals = append(vals, quote(row.LifecycleActivityType), quote(row.LifecycleActivityClassName))
+	}
+
+	if !row.InsertedAt.IsZero() {
+		cols = append(cols, "inserted_at")
+		vals = append(vals, quote(row.InsertedAt.UTC().Format("2006-01-02 15:04:05")))
 	}
 
 	if row.OSName != "" {

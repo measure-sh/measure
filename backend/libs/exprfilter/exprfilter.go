@@ -86,6 +86,12 @@ func (ef *ExprFilter) SetDefaultTimeRangeIfUnset() {
 	ef.To = to
 }
 
+func (ef *ExprFilter) SetDefaultPlotTimeGroupIfUnset() {
+	if ef.PlotTimeGroup == "" {
+		ef.PlotTimeGroup = PlotTimeGroupDays
+	}
+}
+
 func (ef *ExprFilter) BuildExprTree() error {
 	if ef.FilterExpr == "" {
 		ef.ExprTree = nil
