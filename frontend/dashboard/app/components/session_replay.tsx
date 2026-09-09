@@ -592,13 +592,17 @@ type AttachmentRef = {
   atOffsetMs: number;
   url: string;
   format: "layout" | "svg" | "raster";
+  type: "layout_snapshot_json" | "layout_snapshot" | "screenshot";
 };
 
 // Attachments are returned in the order the stage offers them, so the order
 // they are pushed in below is the order the switcher lists them in.
-function replayableAttachmentsOf(
-  details: any,
-): { id: string; location: string; format: AttachmentRef["format"] }[] {
+function replayableAttachmentsOf(details: any): {
+  id: string;
+  location: string;
+  format: AttachmentRef["format"];
+  type: AttachmentRef["type"];
+}[] {
   const attachments = details?.attachments;
   if (!Array.isArray(attachments) || attachments.length === 0) {
     return [];
@@ -619,6 +623,7 @@ function replayableAttachmentsOf(
     id: string;
     location: string;
     format: AttachmentRef["format"];
+    type: AttachmentRef["type"];
   }[] = [];
 
   attachmentsOfType("layout_snapshot_json").forEach((attachment: any) =>
@@ -626,6 +631,7 @@ function replayableAttachmentsOf(
       id: attachment.id,
       location: attachment.location,
       format: "layout",
+      type: "layout_snapshot_json",
     }),
   );
 
@@ -641,6 +647,7 @@ function replayableAttachmentsOf(
       id: attachment.id,
       location: attachment.location,
       format: isSvg ? "svg" : "raster",
+      type: "layout_snapshot",
     });
   });
 
@@ -651,6 +658,7 @@ function replayableAttachmentsOf(
       id: attachment.id,
       location: attachment.location,
       format: "raster",
+      type: "screenshot",
     }),
   );
 
@@ -1097,6 +1105,7 @@ type Size = { width: number; height: number };
 type DevicePoint = { x: number; y: number };
 
 type ReplayTouch = {
+  eventIndex: number;
   pressOffsetMs: number;
   releaseOffsetMs: number;
   from: DevicePoint;
@@ -1248,6 +1257,7 @@ export function replayFrom(session: any): Replay {
       const releaseOffsetMs = gesture.releaseAbsMs - startAbsMs;
       const touchIndex = touches.length;
       touches.push({
+        eventIndex,
         pressOffsetMs: atOffsetMs,
         releaseOffsetMs,
         from: { x: gesture.pressX, y: gesture.pressY },
@@ -1272,6 +1282,7 @@ export function replayFrom(session: any): Replay {
         atOffsetMs,
         url: attachment.location,
         format: attachment.format,
+        type: attachment.type,
       });
     });
   });
@@ -1333,6 +1344,30 @@ export function replayFrom(session: any): Replay {
     }
   });
 
+  const shownAttachmentRefGroupIndexByEventIndex = carriedForward(
+    attachmentRefGroupIndexByEventIndex,
+    events.length,
+  );
+
+  // Scrolls, long presses, and throttled taps may have no snapshot of their own.
+  // Use the snapshot displayed at the gesture's timestamp, and clear the touch
+  // indicator when the displayed capture changes.
+  slices.forEach((slice) => {
+    if (slice.touchIndex === null) {
+      return;
+    }
+    const gestureGroupIndex =
+      shownAttachmentRefGroupIndexByEventIndex[
+        touches[slice.touchIndex].eventIndex
+      ];
+    if (
+      shownAttachmentRefGroupIndexByEventIndex[slice.eventIndex] !==
+      gestureGroupIndex
+    ) {
+      slice.touchIndex = null;
+    }
+  });
+
   return {
     startAbsMs,
     durationMs,
@@ -1342,10 +1377,7 @@ export function replayFrom(session: any): Replay {
     touches,
     attachmentRefs,
     attachmentRefGroups,
-    shownAttachmentRefGroupIndexByEventIndex: carriedForward(
-      attachmentRefGroupIndexByEventIndex,
-      events.length,
-    ),
+    shownAttachmentRefGroupIndexByEventIndex,
   };
 }
 
@@ -3955,10 +3987,12 @@ export default function SessionReplay({
         currentAttachmentRefGroup.attachmentRefs.length - 1,
       )
     : 0;
-  const currentTouch =
-    slice?.touchIndex != null ? replay!.touches[slice.touchIndex] : null;
   const shownAttachmentRef =
     currentAttachmentRefGroup?.attachmentRefs[shownIndex] ?? null;
+  const currentTouch =
+    slice?.touchIndex != null && shownAttachmentRef?.type !== "screenshot"
+      ? replay!.touches[slice.touchIndex]
+      : null;
   const {
     data: shownAttachment = null,
     status: shownAttachmentStatus,
