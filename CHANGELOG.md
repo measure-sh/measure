@@ -45,6 +45,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Migrate network to expression filters by @anupcowkur in #4427
 - Migrate alerts to expression filters by @anupcowkur in #4417
 
+### :zap: Performance
+
+- (**backend**): Read value suggestions from raw tables for 30 days only by @anupcowkur in #4446
+
 ### :recycle: Refactor
 
 - (**frontend**): Export the journeys demo as its own component by @anupcowkur in #4425
