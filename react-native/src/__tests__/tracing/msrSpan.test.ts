@@ -89,10 +89,10 @@ describe('MsrSpan', () => {
     it('sets and removes user-defined attributes', () => {
       span.setAttribute('key1', 'value1');
       expect(span.getUserDefinedAttrs()).toBeDefined();
-      expect(span.getUserDefinedAttrs()?.['key1']).toBe('value1');
+      expect(span.getUserDefinedAttrs()?.key1).toBe('value1');
 
       span.removeAttribute('key1');
-      expect(span.getUserDefinedAttrs()['key1']).toBeUndefined();
+      expect(span.getUserDefinedAttrs().key1).toBeUndefined();
     });
 
     it('sets multiple attributes', () => {
@@ -108,7 +108,7 @@ describe('MsrSpan', () => {
       span.end(2000);
       span.setAttribute('x', 'y');
       span.setStatus(SpanStatus.Ok);
-      expect(span.getUserDefinedAttrs()['x']).toBeUndefined();
+      expect(span.getUserDefinedAttrs().x).toBeUndefined();
       expect(span.getStatus()).toBe(SpanStatus.Unset);
     });
   });
@@ -208,7 +208,7 @@ describe('MsrSpan', () => {
       expect(data.duration).toBe(1000);
       expect(data.hasEnded).toBe(true);
       expect(data.userDefinedAttrs).toBeDefined();
-      expect(data.userDefinedAttrs?.['k']).toBe('v');
+      expect(data.userDefinedAttrs?.k).toBe('v');
       expect(data.checkpoints.length).toBe(1);
     });
   });

@@ -52,7 +52,9 @@ class ClientInfo implements Client {
    */
   constructor(apiKeyIos: string, apiKeyAndroid: string, apiUrl: string) {
     if (!apiKeyIos || !apiKeyAndroid) {
-      internalConsole.debug('Measure apiKey is missing, skipping initialization.');
+      internalConsole.debug(
+        'Measure apiKey is missing, skipping initialization.'
+      );
     }
 
     try {

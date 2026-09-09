@@ -28,8 +28,18 @@ function makeArtifactsConfig(mapSource: string) {
     serializer: {
       customSerializer: jest.fn().mockResolvedValue({
         artifacts: [
-          { filename: 'bundle.hbc', source: Buffer.from('hbc'), type: 'js', metadata: {} },
-          { filename: 'bundle.hbc.map', source: mapSource, type: 'map', metadata: {} },
+          {
+            filename: 'bundle.hbc',
+            source: Buffer.from('hbc'),
+            type: 'js',
+            metadata: {},
+          },
+          {
+            filename: 'bundle.hbc.map',
+            source: mapSource,
+            type: 'map',
+            metadata: {},
+          },
         ],
       }),
     },
@@ -64,12 +74,18 @@ describe('withMeasureConfig', () => {
       const config = {
         serializer: {
           polyfillModuleNames: ['existing-polyfill.js'],
-          customSerializer: jest.fn().mockResolvedValue({ code: '', map: '{"version":3}' }),
+          customSerializer: jest
+            .fn()
+            .mockResolvedValue({ code: '', map: '{"version":3}' }),
         },
       };
       const wrapped = withMeasureConfig(config);
-      expect(wrapped.serializer!.polyfillModuleNames![0]).toBe('existing-polyfill.js');
-      expect(wrapped.serializer!.polyfillModuleNames![1]).toMatch(/patch-id\.js$/);
+      expect(wrapped.serializer!.polyfillModuleNames![0]).toBe(
+        'existing-polyfill.js'
+      );
+      expect(wrapped.serializer!.polyfillModuleNames![1]).toMatch(
+        /patch-id\.js$/
+      );
     });
   });
 
@@ -77,7 +93,9 @@ describe('withMeasureConfig', () => {
     it('writes global.__measurePatchId assignment inside node_modules/.cache/measure/', () => {
       withMeasureConfig(makeConfig('var x = 1;'));
       expect(writeFileSync).toHaveBeenCalledWith(
-        expect.stringMatching(/node_modules[/\\]\.cache[/\\]measure[/\\]patch-/),
+        expect.stringMatching(
+          /node_modules[/\\]\.cache[/\\]measure[/\\]patch-/
+        ),
         expect.stringContaining('global.__measurePatchId=')
       );
     });
@@ -92,18 +110,27 @@ describe('withMeasureConfig', () => {
     it('passes result through unchanged', async () => {
       const config = makeConfig('var x = 1;');
       const wrapped = withMeasureConfig(config);
-      const result = await wrapped.serializer!.customSerializer!(
-        'index.js', [], makeGraph(true), {}
-      ) as { code: string; map: string };
-      expect(result).toEqual({ code: 'var x = 1;', map: '{"version":3,"mappings":""}' });
+      const result = (await wrapped.serializer!.customSerializer!(
+        'index.js',
+        [],
+        makeGraph(true),
+        {}
+      )) as { code: string; map: string };
+      expect(result).toEqual({
+        code: 'var x = 1;',
+        map: '{"version":3,"mappings":""}',
+      });
     });
 
     it('does not inject x-measure-patch-id into sourcemap', async () => {
       const config = makeConfig('var x = 1;');
       const wrapped = withMeasureConfig(config);
-      const result = await wrapped.serializer!.customSerializer!(
-        'index.js', [], makeGraph(true), {}
-      ) as { code: string; map: string };
+      const result = (await wrapped.serializer!.customSerializer!(
+        'index.js',
+        [],
+        makeGraph(true),
+        {}
+      )) as { code: string; map: string };
       expect(JSON.parse(result.map)['x-measure-patch-id']).toBeUndefined();
     });
   });
@@ -112,37 +139,57 @@ describe('withMeasureConfig', () => {
     it('injects a valid UUID v4 as x-measure-patch-id in sourcemap', async () => {
       const config = makeConfig('var x = 1;');
       const wrapped = withMeasureConfig(config);
-      const result = await wrapped.serializer!.customSerializer!(
-        'index.js', [], makeGraph(false), {}
-      ) as { code: string; map: string };
-      expect(JSON.parse(result.map)['x-measure-patch-id']).toMatch(UUID_PATTERN);
+      const result = (await wrapped.serializer!.customSerializer!(
+        'index.js',
+        [],
+        makeGraph(false),
+        {}
+      )) as { code: string; map: string };
+      expect(JSON.parse(result.map)['x-measure-patch-id']).toMatch(
+        UUID_PATTERN
+      );
     });
 
     it('x-measure-patch-id matches the UUID written to the prelude file', async () => {
       const config = makeConfig('var x = 1;');
       const wrapped = withMeasureConfig(config);
-      const result = await wrapped.serializer!.customSerializer!(
-        'index.js', [], makeGraph(false), {}
-      ) as { code: string; map: string };
-      expect(JSON.parse(result.map)['x-measure-patch-id']).toBe(capturedPatchId());
+      const result = (await wrapped.serializer!.customSerializer!(
+        'index.js',
+        [],
+        makeGraph(false),
+        {}
+      )) as { code: string; map: string };
+      expect(JSON.parse(result.map)['x-measure-patch-id']).toBe(
+        capturedPatchId()
+      );
     });
 
     it('does not modify the bundle code', async () => {
       const config = makeConfig('var x = 1;');
       const wrapped = withMeasureConfig(config);
-      const result = await wrapped.serializer!.customSerializer!(
-        'index.js', [], makeGraph(false), {}
-      ) as { code: string; map: string };
+      const result = (await wrapped.serializer!.customSerializer!(
+        'index.js',
+        [],
+        makeGraph(false),
+        {}
+      )) as { code: string; map: string };
       expect(result.code).toBe('var x = 1;');
     });
 
     it('preserves existing sourcemap fields', async () => {
-      const map = JSON.stringify({ version: 3, mappings: 'abc', sources: ['App.ts'] });
+      const map = JSON.stringify({
+        version: 3,
+        mappings: 'abc',
+        sources: ['App.ts'],
+      });
       const config = makeConfig('bundle', map);
       const wrapped = withMeasureConfig(config);
-      const result = await wrapped.serializer!.customSerializer!(
-        'index.js', [], makeGraph(false), {}
-      ) as { code: string; map: string };
+      const result = (await wrapped.serializer!.customSerializer!(
+        'index.js',
+        [],
+        makeGraph(false),
+        {}
+      )) as { code: string; map: string };
       const sm = JSON.parse(result.map);
       expect(sm.version).toBe(3);
       expect(sm.mappings).toBe('abc');
@@ -154,21 +201,31 @@ describe('withMeasureConfig', () => {
     it('injects x-measure-patch-id into the map artifact source', async () => {
       const config = makeArtifactsConfig('{"version":3,"mappings":""}');
       const wrapped = withMeasureConfig(config);
-      const result = await wrapped.serializer!.customSerializer!(
-        'index.js', [], makeGraph(false), {}
-      ) as { artifacts: Array<{ type: string; source: string }> };
+      const result = (await wrapped.serializer!.customSerializer!(
+        'index.js',
+        [],
+        makeGraph(false),
+        {}
+      )) as { artifacts: Array<{ type: string; source: string }> };
       const mapArtifact = result.artifacts.find((a) => a.type === 'map')!;
-      expect(JSON.parse(mapArtifact.source)['x-measure-patch-id']).toMatch(UUID_PATTERN);
+      expect(JSON.parse(mapArtifact.source)['x-measure-patch-id']).toMatch(
+        UUID_PATTERN
+      );
     });
 
     it('x-measure-patch-id in map artifact matches the UUID written to the prelude file', async () => {
       const config = makeArtifactsConfig('{"version":3,"mappings":""}');
       const wrapped = withMeasureConfig(config);
-      const result = await wrapped.serializer!.customSerializer!(
-        'index.js', [], makeGraph(false), {}
-      ) as { artifacts: Array<{ type: string; source: string }> };
+      const result = (await wrapped.serializer!.customSerializer!(
+        'index.js',
+        [],
+        makeGraph(false),
+        {}
+      )) as { artifacts: Array<{ type: string; source: string }> };
       const mapArtifact = result.artifacts.find((a) => a.type === 'map')!;
-      expect(JSON.parse(mapArtifact.source)['x-measure-patch-id']).toBe(capturedPatchId());
+      expect(JSON.parse(mapArtifact.source)['x-measure-patch-id']).toBe(
+        capturedPatchId()
+      );
     });
 
     it('does not modify the JS artifact source', async () => {
@@ -178,24 +235,36 @@ describe('withMeasureConfig', () => {
       (config.serializer.customSerializer as jest.Mock).mockResolvedValue({
         artifacts: [
           { filename: 'bundle.hbc', source: hbc, type: 'js', metadata: {} },
-          { filename: 'bundle.hbc.map', source: '{"version":3,"mappings":""}', type: 'map', metadata: {} },
+          {
+            filename: 'bundle.hbc.map',
+            source: '{"version":3,"mappings":""}',
+            type: 'map',
+            metadata: {},
+          },
         ],
       });
       const wrapped = withMeasureConfig(config);
-      const result = await wrapped.serializer!.customSerializer!(
-        'index.js', [], makeGraph(false), {}
-      ) as { artifacts: Array<{ type: string; source: unknown }> };
+      const result = (await wrapped.serializer!.customSerializer!(
+        'index.js',
+        [],
+        makeGraph(false),
+        {}
+      )) as { artifacts: Array<{ type: string; source: unknown }> };
       const jsArtifact = result.artifacts.find((a) => a.type === 'js')!;
       expect(jsArtifact.source).toBe(hbc);
     });
 
     it('preserves existing debugId and sets x-measure-patch-id in the map artifact', async () => {
-      const mapWithExistingDebugId = '{"version":3,"mappings":"","debugId":"old-uuid"}';
+      const mapWithExistingDebugId =
+        '{"version":3,"mappings":"","debugId":"old-uuid"}';
       const config = makeArtifactsConfig(mapWithExistingDebugId);
       const wrapped = withMeasureConfig(config);
-      const result = await wrapped.serializer!.customSerializer!(
-        'index.js', [], makeGraph(false), {}
-      ) as { artifacts: Array<{ type: string; source: string }> };
+      const result = (await wrapped.serializer!.customSerializer!(
+        'index.js',
+        [],
+        makeGraph(false),
+        {}
+      )) as { artifacts: Array<{ type: string; source: string }> };
       const mapArtifact = result.artifacts.find((a) => a.type === 'map')!;
       const sm = JSON.parse(mapArtifact.source);
       expect(sm.debugId).toBe('old-uuid');

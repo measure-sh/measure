@@ -22,7 +22,9 @@ describe('ConfigProvider.shouldDiscardLog', () => {
   it('returns true when the body matches a configured pattern', () => {
     provider.setDynamicConfig(withIgnorePatterns(['secret']));
 
-    expect(provider.shouldDiscardLog('this contains a secret value')).toBe(true);
+    expect(provider.shouldDiscardLog('this contains a secret value')).toBe(
+      true
+    );
     expect(provider.shouldDiscardLog('nothing sensitive here')).toBe(false);
   });
 

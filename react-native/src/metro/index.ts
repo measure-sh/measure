@@ -89,7 +89,10 @@ export function withMeasureConfig(config: MetroConfig): MetroConfig {
   const cacheDir = join(projectRoot, 'node_modules', '.cache', 'measure');
   mkdirSync(cacheDir, { recursive: true });
   const preludePath = join(cacheDir, 'patch-id.js');
-  writeFileSync(preludePath, `global.__measurePatchId=${JSON.stringify(patchId)};`);
+  writeFileSync(
+    preludePath,
+    `global.__measurePatchId=${JSON.stringify(patchId)};`
+  );
 
   console.log('[Measure] patchId =', patchId);
 
@@ -126,15 +129,26 @@ export function withMeasureConfig(config: MetroConfig): MetroConfig {
               'artifacts' in (result as object)
             ) {
               const assets = result as SerialAssets;
-              const mapArtifact = assets.artifacts.find((a) => a.type === 'map');
+              const mapArtifact = assets.artifacts.find(
+                (a) => a.type === 'map'
+              );
               if (mapArtifact?.source) {
                 mapArtifact.source = injectPatchId(mapArtifact.source, patchId);
-                console.log('[Measure] patch-id injected into', mapArtifact.filename, '=', patchId);
+                console.log(
+                  '[Measure] patch-id injected into',
+                  mapArtifact.filename,
+                  '=',
+                  patchId
+                );
               }
               return result;
             }
 
-            if (typeof result === 'string' || result === null || result === undefined) {
+            if (
+              typeof result === 'string' ||
+              result === null ||
+              result === undefined
+            ) {
               return result;
             }
 

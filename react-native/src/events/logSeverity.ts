@@ -26,5 +26,7 @@ const severityNumber: Record<LogSeverity, number> = {
  * number for `info`.
  */
 export function severityNumberOf(value: string): number {
-  return severityNumber[value as LogSeverity] ?? severityNumber[LogSeverity.Info];
+  return (
+    severityNumber[value as LogSeverity] ?? severityNumber[LogSeverity.Info]
+  );
 }

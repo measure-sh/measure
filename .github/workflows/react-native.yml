@@ -39,5 +39,13 @@ jobs:
       - name: Install Dependencies
         run: yarn install
 
+      - name: Run Lint
+        if: github.event_name == 'pull_request'
+        run: yarn lint
+
+      - name: Run Typecheck
+        if: github.event_name == 'pull_request'
+        run: yarn typecheck
+
       - name: Run Tests
         run: yarn test
