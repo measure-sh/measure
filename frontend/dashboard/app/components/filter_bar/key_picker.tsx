@@ -52,27 +52,7 @@ export default function KeyPicker({
         // a box built for many.
         className="p-0 w-auto min-w-96 max-w-[min(32rem,calc(100vw-2rem))]"
         align={align}
-        onCloseAutoFocus={
-          focusOnClose &&
-          ((e) => {
-            e.preventDefault();
-            // Radix calls this when the list has finished closing. If the user
-            // picked a key, the bar has by then opened the value picker for the
-            // new condition and its input holds focus, so moving focus to the
-            // caller's control would take it away from that input. Focus is
-            // moved only when nothing outside this list has it, as after the
-            // user pressed Escape.
-            const active = document.activeElement;
-            const content = e.currentTarget as HTMLElement | null;
-            if (
-              active === null ||
-              active === document.body ||
-              content?.contains(active)
-            ) {
-              focusOnClose.current?.focus();
-            }
-          })
-        }
+        onCloseAutoFocus={(e) => settleFocusOnClose(e, focusOnClose)}
       >
         <KeyList
           keys={keys}
@@ -220,6 +200,31 @@ function KeyList({
   );
 }
 
+// Radix runs this when a picker has finished closing, and by default then
+// focuses the picker's trigger. When the user picked a key or an operator,
+// the bar has already opened the value picker for that condition and its
+// input holds focus, and focusing the trigger would take the user's typing
+// away from it. So when focus is already somewhere outside the closed picker,
+// it stays there. Otherwise, as after Escape, focus goes to the control the
+// caller named, or to the trigger when the caller named none.
+function settleFocusOnClose(
+  e: Event,
+  focusOnClose?: React.RefObject<HTMLElement | null>,
+) {
+  const active = document.activeElement;
+  const content = e.currentTarget as HTMLElement | null;
+  const elsewhere =
+    active !== null && active !== document.body && !content?.contains(active);
+  if (elsewhere) {
+    e.preventDefault();
+    return;
+  }
+  if (focusOnClose?.current) {
+    e.preventDefault();
+    focusOnClose.current.focus();
+  }
+}
+
 export function OperatorPicker({
   operators,
   selected,
@@ -247,7 +252,11 @@ export function OperatorPicker({
   return (
     <Popover open={open} onOpenChange={setOpen} modal>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent className="p-1 w-48" align="start">
+      <PopoverContent
+        className="p-1 w-48"
+        align="start"
+        onCloseAutoFocus={(e) => settleFocusOnClose(e)}
+      >
         <div className="flex flex-col">
           {operators.map((operator) => (
             <Button
