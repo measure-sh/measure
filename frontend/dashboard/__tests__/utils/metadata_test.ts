@@ -2,8 +2,10 @@ import { describe, expect, it } from "@jest/globals";
 import {
   pageMetadata,
   previewImage,
+  resolveSiteOrigin,
   siteHandle,
   siteMetadata,
+  siteOrigin,
   siteXUrl,
 } from "@/app/utils/metadata";
 
@@ -152,7 +154,25 @@ describe("siteMetadata", () => {
   });
 
   it("resolves relative paths against the site origin", () => {
-    expect(siteMetadata.metadataBase?.toString()).toBe("https://measure.sh/");
+    expect(siteMetadata.metadataBase?.toString()).toBe(`${siteOrigin}/`);
+  });
+});
+
+describe("resolveSiteOrigin", () => {
+  it("falls back to the canonical site when the deploy declares none", () => {
+    expect(resolveSiteOrigin(undefined)).toBe("https://measure.sh");
+  });
+
+  it("uses the declared origin as given", () => {
+    expect(resolveSiteOrigin("https://staging.measure.sh")).toBe(
+      "https://staging.measure.sh",
+    );
+  });
+
+  it("strips a trailing slash, which callers would double up on", () => {
+    expect(resolveSiteOrigin("https://staging.measure.sh/")).toBe(
+      "https://staging.measure.sh",
+    );
   });
 });
 

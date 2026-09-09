@@ -1,6 +1,18 @@
 import type { Metadata } from "next";
 
-export const siteOrigin = "https://measure.sh";
+const canonicalOrigin = "https://measure.sh";
+
+/**
+ * resolveSiteOrigin picks the origin absolute URLs are built from, the
+ * canonical site when the deploy declares none. Trailing slashes are
+ * stripped: callers concatenate paths straight onto this.
+ */
+export function resolveSiteOrigin(siteUrl: string | undefined): string {
+  if (!siteUrl) return canonicalOrigin;
+  return siteUrl.replace(/\/+$/, "");
+}
+
+export const siteOrigin = resolveSiteOrigin(process.env.NEXT_PUBLIC_SITE_URL);
 
 const siteName = "measure.sh";
 
