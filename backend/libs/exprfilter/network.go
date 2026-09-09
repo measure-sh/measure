@@ -42,7 +42,7 @@ var (
 		country.Name:            "`inet.country_code`",
 	}
 
-	networkFilterColumns = map[string]string{
+	appFiltersColumns = map[string]string{
 		versionName.Name:        "tupleElement(app_version, 1)",
 		versionCode.Name:        "tupleElement(app_version, 2)",
 		patchVersion.Name:       "patch_version",
@@ -84,7 +84,7 @@ var networkKeyBindingOverrides = map[string]columnKeyBinding{
 // seen in the same month order alphabetically.
 var networkFixedKeyValues = fixedKeyValueSource{
 	table:       "app_filters",
-	columns:     networkFilterColumns,
+	columns:     appFiltersColumns,
 	recencyExpr: "max(end_of_month)",
 }
 

@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -102,6 +103,55 @@ func TestGetSessionsOverview(t *testing.T) {
 	if !foundNormal {
 		t.Errorf("results = %v, want to contain normal session %q", gotIDs, normalSessionID.String())
 	}
+
+	t.Run("a filter expression narrows the results", func(t *testing.T) {
+		crashSessionID := uuid.New()
+		seedIssueEventInSession(ctx, t, teamID.String(), appID.String(), crashSessionID.String(), "exception", "sessions-overview-fp", false, now)
+
+		c, w := newSessionsOverviewContext(ownerID, appID, sessionsOverviewTimeRangeQuery()+"&filter_expr=session_events:in:[fatal_error]")
+		h.GetSessionsOverview(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+		}
+
+		var body struct {
+			Results []struct {
+				SessionID string `json:"session_id"`
+			} `json:"results"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+			t.Fatalf("unmarshal response: %v", err)
+		}
+		if len(body.Results) != 1 || body.Results[0].SessionID != crashSessionID.String() {
+			t.Errorf("results = %v, want only the crash session %q", body.Results, crashSessionID.String())
+		}
+	})
+
+	t.Run("a filter expression on a key the entity does not have is refused", func(t *testing.T) {
+		c, w := newSessionsOverviewContext(ownerID, appID, sessionsOverviewTimeRangeQuery()+"&filter_expr=span_status:in:error")
+		h.GetSessionsOverview(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, want 400, body: %s", w.Code, w.Body.String())
+		}
+
+		var body struct {
+			Error  string `json:"error"`
+			Issues []struct {
+				Message string `json:"message"`
+			} `json:"filter_expr_issues"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+			t.Fatalf("unmarshal response: %v", err)
+		}
+		if body.Error != "invalid_filter_expr" || len(body.Issues) != 1 {
+			t.Fatalf("want one filter expression issue, got %s", w.Body.String())
+		}
+		if !strings.Contains(body.Issues[0].Message, "span_status") {
+			t.Errorf("want the unknown key named, got %q", body.Issues[0].Message)
+		}
+	})
 }
 
 func TestGetSessionsOverviewPlotInstances(t *testing.T) {

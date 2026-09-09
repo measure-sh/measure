@@ -71,6 +71,34 @@ func (ef *ExprFilter) HasFilterExpr() bool {
 	return ef.ExprTree != nil
 }
 
+// NeedsWholeGroup reports whether the filter carries a predicate that cannot be
+// decided from a single row of a group: a negation, or a conjunction whose
+// parts can be true on different rows.
+func (ef *ExprFilter) NeedsWholeGroup() bool {
+	if ef.ExprTree == nil {
+		return false
+	}
+
+	needsWholeGroup, err := WalkExprTree(ef.ExprTree,
+		func(condition Condition) (bool, error) {
+			switch condition.Operator {
+			case OperatorNotIn, OperatorNotContains, OperatorIsNotSet:
+				return true, nil
+			}
+			return false, nil
+		},
+		func(operator LogicalOperator, children []bool) (bool, error) {
+			if operator == LogicalAnd && len(children) > 1 {
+				return true, nil
+			}
+			return slices.Contains(children, true), nil
+		})
+	if err != nil {
+		return true
+	}
+	return needsWholeGroup
+}
+
 func (ef *ExprFilter) HasTimeRange() bool {
 	return !ef.From.IsZero() && !ef.To.IsZero()
 }

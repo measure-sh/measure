@@ -280,3 +280,34 @@ func TestIndexKeysByName(t *testing.T) {
 		t.Error("want to find a key by its name")
 	}
 }
+
+func TestNeedsWholeGroup(t *testing.T) {
+	tests := []struct {
+		filterExpr string
+		want       bool
+	}{
+		{filterExpr: ""},
+		{filterExpr: "session_events:in:fatal_error"},
+		{filterExpr: "session_log:contains:boom"},
+		{filterExpr: "session_events:in:[fatal_error,anr]"},
+		{filterExpr: "session_events:in:fatal_error OR session_log:contains:boom"},
+		{filterExpr: "session_events:not_in:fatal_error", want: true},
+		{filterExpr: "session_log:not_contains:boom", want: true},
+		{filterExpr: "patch_id:is_not_set", want: true},
+		{filterExpr: "session_log:contains:boom AND session_events:in:fatal_error", want: true},
+		{filterExpr: "session_log:contains:boom OR (user_id:in:alice AND country:in:US)", want: true},
+		{filterExpr: "session_events:in:fatal_error OR session_events:not_in:anr", want: true},
+	}
+
+	for _, test := range tests {
+		t.Run(test.filterExpr, func(t *testing.T) {
+			ef := &ExprFilter{Entity: SessionsEntity, FilterExpr: test.filterExpr}
+			if err := ef.BuildExprTree(); err != nil {
+				t.Fatalf("build: %v", err)
+			}
+			if got := ef.NeedsWholeGroup(); got != test.want {
+				t.Errorf("want %v, got %v", test.want, got)
+			}
+		})
+	}
+}

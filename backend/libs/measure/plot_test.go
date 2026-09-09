@@ -85,6 +85,19 @@ func (f plotFixture) journeyExprFilter(from, to time.Time, exprTree *exprfilter.
 	}
 }
 
+func (f plotFixture) sessionExprFilter(from, to time.Time, timezone, plotTimeGroup string) *exprfilter.ExprFilter {
+	return &exprfilter.ExprFilter{
+		AppID:         f.appID,
+		TeamID:        f.teamID,
+		Entity:        exprfilter.SessionsEntity,
+		From:          from,
+		To:            to,
+		Timezone:      timezone,
+		Limit:         exprfilter.DefaultPaginationLimit,
+		PlotTimeGroup: plotTimeGroup,
+	}
+}
+
 func (f plotFixture) bugReportExprFilter(from, to time.Time, timezone, plotTimeGroup string) *exprfilter.ExprFilter {
 	return &exprfilter.ExprFilter{
 		AppID:         f.appID,
@@ -163,14 +176,12 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 
 			from := tc.timestamps[0].Add(-time.Hour)
 			to := tc.timestamps[len(tc.timestamps)-1].Add(time.Hour)
-			af := f.appFilter(from, to, "UTC", tc.group)
-
 			t.Run("sessions_plot", func(t *testing.T) {
 				cleanupAll(f.ctx, t)
 				seedGenericEvents(f.ctx, t, f.teamIDStr(), f.appIDStr(), 2, tc.timestamps[0])
 				seedGenericEvents(f.ctx, t, f.teamIDStr(), f.appIDStr(), 1, tc.timestamps[2])
 
-				items, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, af)
+				items, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, f.sessionExprFilter(from, to, "UTC", tc.group))
 				if err != nil {
 					t.Fatalf("GetSessionsInstancesPlot: %v", err)
 				}
@@ -226,9 +237,7 @@ func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 	now := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
 
 	t.Run("missing timezone returns error", func(t *testing.T) {
-		af := f.appFilter(now.Add(-time.Hour), now.Add(time.Hour), "", filter.PlotTimeGroupDays)
-
-		if _, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, af); err == nil {
+		if _, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, f.sessionExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "", exprfilter.PlotTimeGroupDays)); err == nil {
 			t.Fatalf("expected error for missing timezone in sessions plot")
 		}
 		if _, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, f.bugReportExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "", exprfilter.PlotTimeGroupDays)); err == nil {
@@ -237,8 +246,7 @@ func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 	})
 
 	t.Run("unsupported plot_time_group returns error", func(t *testing.T) {
-		af := f.appFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", "weeks")
-		if _, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, af); err == nil {
+		if _, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, f.sessionExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", "weeks")); err == nil {
 			t.Fatalf("expected error for unsupported plot_time_group in sessions plot")
 		}
 		if _, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, f.bugReportExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", "weeks")); err == nil {
@@ -247,9 +255,7 @@ func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 	})
 
 	t.Run("returns empty results when no matching data", func(t *testing.T) {
-		af := f.appFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
-
-		sessions, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, af)
+		sessions, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, f.sessionExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays))
 		if err != nil {
 			t.Fatalf("GetSessionsInstancesPlot: %v", err)
 		}
@@ -288,8 +294,8 @@ func TestNonExceptionPlotsRespectTimezoneBucketing(t *testing.T) {
 	t.Run("sessions", func(t *testing.T) {
 		cleanupAll(f.ctx, t)
 		seedGenericEvents(f.ctx, t, f.teamIDStr(), f.appIDStr(), 1, ts)
-		af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "Asia/Kolkata", filter.PlotTimeGroupDays)
-		items, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, af)
+		ef := f.sessionExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "Asia/Kolkata", exprfilter.PlotTimeGroupDays)
+		items, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, ef)
 		if err != nil {
 			t.Fatalf("GetSessionsInstancesPlot: %v", err)
 		}
@@ -328,8 +334,8 @@ func TestPlotMethodsDefaultToDaysWhenPlotTimeGroupMissing(t *testing.T) {
 		cleanupAll(f.ctx, t)
 		seedGenericEvents(f.ctx, t, f.teamIDStr(), f.appIDStr(), 1, t1)
 		seedGenericEvents(f.ctx, t, f.teamIDStr(), f.appIDStr(), 1, t2)
-		af := f.appFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
-		items, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, af)
+		ef := f.sessionExprFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
+		items, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, ef)
 		if err != nil {
 			t.Fatalf("GetSessionsInstancesPlot: %v", err)
 		}

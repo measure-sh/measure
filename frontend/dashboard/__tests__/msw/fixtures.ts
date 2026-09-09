@@ -310,7 +310,6 @@ export function makeSessionReplayOverviewFixture(
         first_event_time: "2026-04-10T10:00:00Z",
         last_event_time: "2026-04-10T10:05:30Z",
         duration: "330000",
-        matched_free_text: "",
         attribute: {
           app_version: "3.1.0",
           app_build: "310",
@@ -328,7 +327,6 @@ export function makeSessionReplayOverviewFixture(
         first_event_time: "2026-04-10T09:00:00Z",
         last_event_time: "2026-04-10T09:02:15Z",
         duration: "135000",
-        matched_free_text: "",
         attribute: {
           app_version: "3.0.2",
           app_build: "302",
@@ -355,7 +353,6 @@ export function makeSessionReplayOverviewPage2Fixture() {
         first_event_time: "2026-04-09T15:00:00Z",
         last_event_time: "2026-04-09T15:01:00Z",
         duration: "60000",
-        matched_free_text: "",
         attribute: {
           app_version: "3.0.1",
           app_build: "301",
@@ -1476,6 +1473,127 @@ export function makeBugReportsFilterKeysFixture(
       "Session",
       "Custom",
     ],
+    ...overrides,
+  };
+}
+
+// --- Filter keys for the sessions entity ---
+
+export function makeSessionsFilterKeysFixture(
+  overrides: Record<string, any> = {},
+) {
+  return {
+    keys: [
+      {
+        name: "session_events",
+        label: "Events",
+        description: "What the session contains",
+        key_group: "Session",
+        value_type: "enum",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+        enum_values: [
+          "fatal_error",
+          "unhandled_error",
+          "handled_error",
+          "anr",
+          "bug_report",
+          "user_interaction",
+        ],
+      },
+      {
+        name: "session_foreground_background",
+        label: "Foreground/Background",
+        description: "Whether the session ran in the foreground or background",
+        key_group: "Session",
+        value_type: "enum",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+        enum_values: ["foreground", "background"],
+      },
+      {
+        name: "session_custom_event",
+        label: "Custom event name",
+        description: "The name of a custom event recorded in the session",
+        key_group: "Session",
+        value_type: "string",
+        value_suggestion_mode: "sample",
+        operators: ["in", "not_in", "contains", "starts_with"],
+      },
+      {
+        name: "session_log",
+        label: "Log",
+        description: "The text of a log line recorded in the session",
+        key_group: "Session",
+        value_type: "string",
+        value_suggestion_mode: "none",
+        operators: ["contains", "not_contains", "starts_with", "ends_with"],
+      },
+      {
+        name: "session_error_text",
+        label: "Error text",
+        description: "The text of an error recorded in the session",
+        key_group: "Session",
+        value_type: "string",
+        value_suggestion_mode: "none",
+        operators: ["contains", "not_contains", "starts_with", "ends_with"],
+      },
+      {
+        name: "session_screen",
+        label: "Screen",
+        description: "The name of a screen the session visited",
+        key_group: "Session",
+        value_type: "string",
+        value_suggestion_mode: "sample",
+        operators: ["in", "not_in", "contains", "starts_with"],
+      },
+      {
+        name: "version_name",
+        label: "App version",
+        description: "The app version the session ran on",
+        key_group: "Version",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "patch_version",
+        label: "Patch version",
+        description: "The version of an Over-The-Air patch.",
+        key_group: "Version",
+        value_type: "string",
+        value_suggestion_mode: "sample",
+        operators: ["in", "not_in", "contains"],
+      },
+      {
+        name: "patch_id",
+        label: "Patch id",
+        description: "The id of an Over-The-Air patch.",
+        key_group: "Version",
+        value_type: "uuid",
+        value_suggestion_mode: "sample",
+        operators: ["in", "not_in", "is_set", "is_not_set"],
+      },
+      {
+        name: "user_id",
+        label: "User ID",
+        description: "The user the session belonged to",
+        key_group: "User",
+        value_type: "string",
+        value_suggestion_mode: "sample",
+        operators: ["in", "not_in", "contains"],
+      },
+      {
+        name: "os_name",
+        label: "OS name",
+        description: "The operating system's name",
+        key_group: "OS",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+    ],
+    key_groups: ["Session", "Version", "OS", "User"],
     ...overrides,
   };
 }

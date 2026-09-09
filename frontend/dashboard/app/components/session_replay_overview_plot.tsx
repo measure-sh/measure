@@ -1,7 +1,6 @@
 "use client";
 
-import { useSessionReplayOverviewPlotQuery } from "@/app/query/hooks";
-import { useFiltersStore } from "@/app/stores/provider";
+import { type useSessionReplayOverviewPlotQuery } from "@/app/query/hooks";
 import { ResponsiveLineCanvas } from "@nivo/line";
 import { useTheme } from "next-themes";
 import React, { useMemo } from "react";
@@ -19,16 +18,16 @@ import {
 } from "./plot_tooltip";
 import { SkeletonPlot } from "./skeleton";
 
-const SessionReplayOverviewPlot: React.FC = () => {
-  const filters = useFiltersStore((state) => state.filters);
-  const { data: rawPlot, status } = useSessionReplayOverviewPlotQuery();
+const SessionReplayOverviewPlot: React.FC<{
+  startDate: string;
+  endDate: string;
+  query: ReturnType<typeof useSessionReplayOverviewPlotQuery>;
+}> = ({ startDate, endDate, query }) => {
+  const { data: rawPlot, status } = query;
   const { theme } = useTheme();
   const chartColors = useChartColors();
   const canvasTheme = useChartCanvasTheme();
-  const plotTimeGroup = getPlotTimeGroupForRange(
-    filters.startDate,
-    filters.endDate,
-  );
+  const plotTimeGroup = getPlotTimeGroupForRange(startDate, endDate);
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
 
   const plot = useMemo(() => {
@@ -42,7 +41,10 @@ const SessionReplayOverviewPlot: React.FC = () => {
   }, [rawPlot, chartColors]);
 
   return (
-    <div className="flex font-body items-center justify-center w-full h-144">
+    <div
+      data-testid="sessions-plot"
+      className="flex font-body items-center justify-center w-full h-144"
+    >
       {status === "pending" && <SkeletonPlot />}
       {status === "error" && (
         <p className="text-lg font-display text-center p-4">
@@ -51,10 +53,15 @@ const SessionReplayOverviewPlot: React.FC = () => {
         </p>
       )}
       {status === "success" && plot === null && (
-        <p className="text-lg font-display text-center p-4">No Data</p>
+        <p
+          data-testid="sessions-plot-no-data"
+          className="text-lg font-display text-center p-4"
+        >
+          No Data
+        </p>
       )}
       {status === "success" && plot !== null && plot !== undefined && (
-        <div className="size-full">
+        <div data-testid="sessions-plot-data" className="size-full">
           <ResponsiveLineCanvas
             data={plot}
             curve="monotoneX"

@@ -74,6 +74,8 @@ func FindByName(name string) (Entity, error) {
 		return AlertsEntity, nil
 	case NetworkEntity.Name:
 		return NetworkEntity, nil
+	case SessionsEntity.Name:
+		return SessionsEntity, nil
 	}
 
 	return Entity{}, fmt.Errorf("Unknown filter entity %q", name)
@@ -97,9 +99,9 @@ const (
 
 // keyGroupOrder is the order the filter bar shows groups in.
 var keyGroupOrder = []KeyGroup{
-	KeyGroupBugReport, KeyGroupVersion, KeyGroupBuild, KeyGroupSpan,
+	KeyGroupBugReport, KeyGroupSession, KeyGroupVersion, KeyGroupBuild, KeyGroupSpan,
 	KeyGroupRequest, KeyGroupOS, KeyGroupDevice, KeyGroupNetwork, KeyGroupLocation,
-	KeyGroupUser, KeyGroupSession, KeyGroupCustom,
+	KeyGroupUser, KeyGroupCustom,
 }
 
 // ListKeyGroups lists the groups a set of keys falls into, in the order the
@@ -214,6 +216,83 @@ var (
 		Operators:           []Operator{OperatorIn, OperatorNotIn},
 		ValueSuggestionMode: ValueSuggestionModeFullList,
 		EnumValues:          []string{"open", "closed"},
+	}
+
+	sessionEvents = Key{
+		Name:                "session_events",
+		Label:               "Events",
+		Description:         "The kinds of events contained in the session.",
+		KeyGroup:            KeyGroupSession,
+		ValueType:           ValueTypeEnum,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeFullList,
+		EnumValues: []string{
+			"fatal_error", "unhandled_error", "handled_error",
+			"anr", "bug_report", "user_interaction",
+		},
+	}
+
+	sessionCustomEvent = Key{
+		Name:        "session_custom_event",
+		Label:       "Custom event name",
+		Description: "The name of a custom event tracked in the session.",
+		KeyGroup:    KeyGroupSession,
+		ValueType:   ValueTypeString,
+		Operators: []Operator{
+			OperatorIn, OperatorNotIn,
+			OperatorContains, OperatorStartsWith,
+		},
+		ValueSuggestionMode: ValueSuggestionModeSample,
+	}
+
+	sessionLog = Key{
+		Name:        "session_log",
+		Label:       "Log",
+		Description: "Text of a log message.",
+		KeyGroup:    KeyGroupSession,
+		ValueType:   ValueTypeString,
+		Operators: []Operator{
+			OperatorContains, OperatorNotContains,
+			OperatorStartsWith, OperatorEndsWith,
+		},
+		ValueSuggestionMode: ValueSuggestionModeNone,
+	}
+
+	sessionErrorText = Key{
+		Name:        "session_error_text",
+		Label:       "Error text",
+		Description: "Text from a crash, ANR or error - name, message, error code, location (source file, class or method)",
+		KeyGroup:    KeyGroupSession,
+		ValueType:   ValueTypeString,
+		Operators: []Operator{
+			OperatorContains, OperatorNotContains,
+			OperatorStartsWith, OperatorEndsWith,
+		},
+		ValueSuggestionMode: ValueSuggestionModeNone,
+	}
+
+	sessionScreen = Key{
+		Name:        "session_screen",
+		Label:       "Screen",
+		Description: "A screen shown in the session: a screen view name, or an activity, fragment or view controller class name.",
+		KeyGroup:    KeyGroupSession,
+		ValueType:   ValueTypeString,
+		Operators: []Operator{
+			OperatorIn, OperatorNotIn,
+			OperatorContains, OperatorStartsWith,
+		},
+		ValueSuggestionMode: ValueSuggestionModeSample,
+	}
+
+	sessionForegroundBackground = Key{
+		Name:                "session_foreground_background",
+		Label:               "Foreground/Background",
+		Description:         "Whether the session ran in the foreground, background, or both.",
+		KeyGroup:            KeyGroupSession,
+		ValueType:           ValueTypeEnum,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeFullList,
+		EnumValues:          []string{"foreground", "background"},
 	}
 
 	userID = Key{

@@ -9,7 +9,6 @@ import {
   FilterSource,
   OsVersion,
   saveListFiltersToServer,
-  SessionType,
   UdAttrMatcher,
   UserDefAttr,
 } from "../api/api_calls";
@@ -31,7 +30,6 @@ export type FilterConfig = {
   showDates: boolean;
   showAppVersions: boolean;
   showOsVersions: boolean;
-  showSessionTypes: boolean;
   showCountries: boolean;
   showNetworkProviders: boolean;
   showNetworkTypes: boolean;
@@ -49,7 +47,6 @@ export type URLFilters = {
   endDate?: string;
   dateRange?: string;
   versions?: number[];
-  sessionTypes?: SessionType[];
   osVersions?: number[];
   countries?: number[];
   networkProviders?: number[];
@@ -86,23 +83,6 @@ export type FilterOptionsData = {
   userDefAttrOps: Map<string, string[]>;
 };
 
-const allSessionTypes = [
-  SessionType.FatalErrors,
-  SessionType.UnhandledErrors,
-  SessionType.HandledErrors,
-  SessionType.ANRs,
-  SessionType.BugReports,
-  SessionType.Foreground,
-  SessionType.Background,
-  SessionType.UserInteraction,
-];
-export const defaultSessionTypes = [
-  SessionType.FatalErrors,
-  SessionType.ANRs,
-  SessionType.BugReports,
-  SessionType.Foreground,
-  SessionType.UserInteraction,
-];
 const urlFiltersKeyMap = {
   appId: "a",
   rootSpanName: "r",
@@ -110,7 +90,6 @@ const urlFiltersKeyMap = {
   startDate: "sd",
   endDate: "ed",
   versions: "v",
-  sessionTypes: "st",
   osVersions: "os",
   countries: "c",
   networkProviders: "np",
@@ -184,9 +163,6 @@ function serializeUrlFilters(
       case "osVersions":
         if (!config.showOsVersions) return;
         break;
-      case "sessionTypes":
-        if (!config.showSessionTypes) return;
-        break;
       case "countries":
         if (!config.showCountries) return;
         break;
@@ -256,10 +232,6 @@ function serializeUrlFilters(
               `${encodeURIComponent(m.key)}~${encodeURIComponent(m.type)}~${encodeURIComponent(m.op)}~${encodeURIComponent(m.value)}`,
           )
           .join("|");
-        break;
-      case "sessionTypes":
-        if ((value as SessionType[]).length === 0) return;
-        serializedValue = (value as SessionType[]).join(",");
         break;
       case "errorTypes":
       case "severities":
@@ -336,7 +308,6 @@ interface FiltersStoreState {
   // Per-page selections — reset to URL filter (if present) or default on
   // every Filters mount via applyFilterOptions.
   selectedVersions: AppVersion[];
-  selectedSessionTypes: SessionType[];
   selectedOsVersions: OsVersion[];
   selectedCountries: string[];
   selectedNetworkProviders: string[];
@@ -369,7 +340,6 @@ interface FiltersStoreActions {
   setSelectedStartDate: (date: string) => void;
   setSelectedEndDate: (date: string) => void;
   setSelectedVersions: (versions: AppVersion[]) => void;
-  setSelectedSessionTypes: (types: SessionType[]) => void;
   setSelectedOsVersions: (versions: OsVersion[]) => void;
   setSelectedCountries: (countries: string[]) => void;
   setSelectedNetworkProviders: (providers: string[]) => void;
@@ -421,7 +391,6 @@ const initialState: FiltersStoreState = {
   selectedStartDate: "",
   selectedEndDate: "",
   selectedVersions: [],
-  selectedSessionTypes: defaultSessionTypes,
   selectedOsVersions: [],
   selectedCountries: [],
   selectedNetworkProviders: [],
@@ -471,7 +440,6 @@ function computeFilters(state: FiltersStoreState): Filters {
         (ver) => ver.name === v.name && ver.code === v.code,
       ),
     ),
-    sessionTypes: state.selectedSessionTypes,
     osVersions: state.selectedOsVersions.map((os) =>
       state.osVersions.findIndex(
         (o) => o.name === os.name && o.version === os.version,
@@ -514,10 +482,6 @@ function computeFilters(state: FiltersStoreState): Filters {
     versions: {
       selected: state.selectedVersions,
       all: state.versions.length === state.selectedVersions.length,
-    },
-    sessionTypes: {
-      selected: state.selectedSessionTypes,
-      all: state.selectedSessionTypes.length === allSessionTypes.length,
     },
     osVersions: {
       selected: state.selectedOsVersions,
@@ -667,17 +631,6 @@ export function applyFilterOptions(
     selectedUdAttrMatchers = [];
   }
 
-  let selectedSessionTypes: SessionType[];
-  if (isUrlMatch && urlFilters.sessionTypes) {
-    selectedSessionTypes = urlFilters.sessionTypes
-      .filter((s: string) =>
-        Object.values(SessionType).includes(s as SessionType),
-      )
-      .map((s: string) => s as SessionType);
-  } else {
-    selectedSessionTypes = defaultSessionTypes;
-  }
-
   let selectedFreeText: string;
   if (isUrlMatch && urlFilters.freeText) {
     selectedFreeText = urlFilters.freeText;
@@ -728,7 +681,6 @@ export function applyFilterOptions(
     selectedDeviceManufacturers,
     selectedDeviceNames,
     selectedUdAttrMatchers,
-    selectedSessionTypes,
     selectedFreeText,
     selectedErrorTypes,
     selectedSeverities,
@@ -840,7 +792,6 @@ export function createFiltersStore() {
           selectedLocales: [],
           selectedDeviceManufacturers: [],
           selectedDeviceNames: [],
-          selectedSessionTypes: [],
           selectedUdAttrMatchers: [],
           selectedFreeText: "",
           selectedErrorTypes: ["error", "anr"],
@@ -894,7 +845,6 @@ export function createFiltersStore() {
       setSelectedStartDate: (date) => set({ selectedStartDate: date }),
       setSelectedEndDate: (date) => set({ selectedEndDate: date }),
       setSelectedVersions: (versions) => set({ selectedVersions: versions }),
-      setSelectedSessionTypes: (types) => set({ selectedSessionTypes: types }),
       setSelectedOsVersions: (versions) =>
         set({ selectedOsVersions: versions }),
       setSelectedCountries: (countries) =>

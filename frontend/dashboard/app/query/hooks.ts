@@ -686,15 +686,26 @@ export function useBugReportsOverviewPlotQuery(params: FilterParams | null) {
   });
 }
 
-export function useSessionReplayOverviewPlotQuery() {
-  const filters = useFiltersStore((s) => s.filters);
+export function useSessionReplayOverviewPlotQuery(params: FilterParams | null) {
   return useQuery({
-    queryKey: ["sessionReplayOverviewPlot", filters.serialisedFilters] as const,
+    queryKey: [
+      "sessionReplayOverviewPlot",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+    ] as const,
     queryFn: async () => {
-      const result = await fetchSessionReplayOverviewPlotFromServer(filters);
+      const result = await fetchSessionReplayOverviewPlotFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+      );
       return mapPlotData(result);
     },
-    enabled: filters.ready,
+    enabled: params !== null,
+    retry: false,
   });
 }
 
@@ -868,22 +879,31 @@ export function useSpansQuery(
 
 const SESSION_REPLAY_LIMIT = 5;
 
-export function useSessionReplayOverviewQuery(paginationOffset: number) {
-  const filters = useFiltersStore((s) => s.filters);
+export function useSessionReplayOverviewQuery(
+  params: FilterParams | null,
+  paginationOffset: number,
+) {
   return useQuery({
     queryKey: [
       "sessionReplayOverview",
-      filters.serialisedFilters,
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
     queryFn: () =>
       fetchSessionReplayOverviewFromServer(
-        filters,
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
         SESSION_REPLAY_LIMIT,
         paginationOffset,
       ),
-    enabled: filters.ready,
+    enabled: params !== null,
+    retry: false,
   });
 }
 

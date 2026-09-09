@@ -17,14 +17,13 @@ import React, {
   useRef,
   useState,
 } from "react";
-import { App, AppVersion, FilterSource, SessionType } from "../api/api_calls";
+import { App, AppVersion, FilterSource } from "../api/api_calls";
 import { useAppsQuery, useFilterOptionsQuery } from "../query/hooks";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   applyFilterOptions,
   appsEqual,
   AppVersionsInitialSelectionType,
-  defaultSessionTypes,
   expandRangesToArray,
   type Filters,
   type InitConfig,
@@ -79,7 +78,6 @@ interface FiltersProps {
   showDates?: boolean;
   showAppVersions?: boolean;
   showOsVersions?: boolean;
-  showSessionTypes?: boolean;
   showCountries?: boolean;
   showNetworkProviders?: boolean;
   showNetworkTypes?: boolean;
@@ -209,14 +207,6 @@ export function deserializeUrlFilters(queryString: string): URLFilters {
               return { key, type, op, value: val } as UdAttrMatcher;
             })
             .filter((m) => m.key && m.type && m.op && m.value);
-          break;
-
-        case "sessionTypes":
-          result[originalKey] = value
-            .split(",")
-            .filter((s): s is SessionType =>
-              Object.values(SessionType).includes(s as SessionType),
-            );
           break;
 
         case "errorTypes":
@@ -470,7 +460,6 @@ const FiltersComponent = forwardRef<
       showDates = true,
       showAppVersions = true,
       showOsVersions = false,
-      showSessionTypes = false,
       showCountries = false,
       showNetworkTypes = false,
       showNetworkProviders = false,
@@ -523,7 +512,6 @@ const FiltersComponent = forwardRef<
         showDates,
         showAppVersions,
         showOsVersions,
-        showSessionTypes,
         showCountries,
         showNetworkProviders,
         showNetworkTypes,
@@ -543,7 +531,6 @@ const FiltersComponent = forwardRef<
       showDates,
       showAppVersions,
       showOsVersions,
-      showSessionTypes,
       showCountries,
       showNetworkProviders,
       showNetworkTypes,
@@ -715,7 +702,6 @@ const FiltersComponent = forwardRef<
     // store, the chips, the data tables, or other consumers until the user
     // confirms.
     type PendingModalFilters = {
-      selectedSessionTypes: SessionType[];
       selectedOsVersions: typeof store.selectedOsVersions;
       selectedCountries: string[];
       selectedNetworkProviders: string[];
@@ -728,7 +714,6 @@ const FiltersComponent = forwardRef<
     };
     const [pendingModalFilters, setPendingModalFilters] =
       useState<PendingModalFilters>(() => ({
-        selectedSessionTypes: store.selectedSessionTypes,
         selectedOsVersions: store.selectedOsVersions,
         selectedCountries: store.selectedCountries,
         selectedNetworkProviders: store.selectedNetworkProviders,
@@ -749,7 +734,6 @@ const FiltersComponent = forwardRef<
       setPrevMoreFiltersOpen(moreFiltersOpen);
       if (moreFiltersOpen) {
         setPendingModalFilters({
-          selectedSessionTypes: store.selectedSessionTypes,
           selectedOsVersions: store.selectedOsVersions,
           selectedCountries: store.selectedCountries,
           selectedNetworkProviders: store.selectedNetworkProviders,
@@ -765,7 +749,6 @@ const FiltersComponent = forwardRef<
 
     // Commit the pending snapshot to the store and close the modal.
     const saveMoreFilters = () => {
-      store.setSelectedSessionTypes(pendingModalFilters.selectedSessionTypes);
       store.setSelectedOsVersions(pendingModalFilters.selectedOsVersions);
       store.setSelectedCountries(pendingModalFilters.selectedCountries);
       store.setSelectedNetworkProviders(
@@ -808,7 +791,6 @@ const FiltersComponent = forwardRef<
     // Filters that live behind the "More filters" modal. Config-only check
     // (no loaded data) so the skeleton can reserve the trigger's slot.
     const hasMoreFiltersConfig =
-      showSessionTypes ||
       showOsVersions ||
       showCountries ||
       showNetworkProviders ||
@@ -844,7 +826,6 @@ const FiltersComponent = forwardRef<
     // Same as hasMoreFiltersConfig but gated on loaded data — drives the real
     // trigger so it never opens an empty modal.
     const hasMoreFilters =
-      showSessionTypes ||
       (showOsVersions && store.osVersions.length > 0) ||
       (showCountries && store.countries.length > 0) ||
       (showNetworkProviders && store.networkProviders.length > 0) ||
@@ -865,17 +846,6 @@ const FiltersComponent = forwardRef<
       action?: PillAction;
     }[] = [];
 
-    if (showSessionTypes && store.selectedSessionTypes.length > 0) {
-      filterChips.push({
-        key: "sessionTypes",
-        ...chipLabels("Session Types", store.selectedSessionTypes),
-        action: sameItems(store.selectedSessionTypes, defaultSessionTypes)
-          ? undefined
-          : resetAction(() =>
-              store.setSelectedSessionTypes(defaultSessionTypes),
-            ),
-      });
-    }
     if (showOsVersions && store.selectedOsVersions.length > 0) {
       filterChips.push({
         key: "osVersions",
@@ -1036,20 +1006,6 @@ const FiltersComponent = forwardRef<
 
     const moreFiltersContent = (
       <div className="max-h-[60vh] overflow-y-auto px-1">
-        {showSessionTypes && (
-          <StringMultiRow
-            rowKey="sessionTypes"
-            title="Session Types"
-            items={Object.values(SessionType)}
-            selected={pendingModalFilters.selectedSessionTypes}
-            onChange={(items) =>
-              setPendingModalFilters((p) => ({
-                ...p,
-                selectedSessionTypes: items as SessionType[],
-              }))
-            }
-          />
-        )}
         {showOsVersions && store.osVersions.length > 0 && (
           <FilterRow rowKey="osVersions" title="OS Versions">
             <CheckChipGroup

@@ -139,7 +139,6 @@ function defaultProps(overrides: Record<string, any> = {}) {
     showDates: true,
     showAppVersions: true,
     showOsVersions: true,
-    showSessionTypes: false,
     showCountries: true,
     showNetworkProviders: true,
     showNetworkTypes: true,
@@ -1009,19 +1008,6 @@ describe("Filters — filter chips", () => {
     await waitFor(() => {
       expect(storeInstance.getState().selectedCountries).toEqual([]);
       expect(screen.queryByText("Country: US, IN")).not.toBeInTheDocument();
-    });
-  });
-
-  it("resets a changed filter to its default via the chip", async () => {
-    await renderFilters({ showSessionTypes: true });
-    const defaults = storeInstance.getState().selectedSessionTypes;
-    expect(defaults.length).toBeGreaterThan(1);
-    await act(async () => {
-      storeInstance.getState().setSelectedSessionTypes([defaults[0]]);
-    });
-    fireEvent.click(await screen.findByLabelText("Reset Session Types"));
-    await waitFor(() => {
-      expect(storeInstance.getState().selectedSessionTypes).toEqual(defaults);
     });
   });
 

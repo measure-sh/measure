@@ -2,11 +2,9 @@ package filter
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"slices"
-	"strings"
 	"time"
 
 	"backend/libs/ambient"
@@ -146,22 +144,10 @@ type AppFilter struct {
 	// consider only custom errors.
 	CustomError bool `form:"custom"`
 
-	// BugReport indicates the filtering should
-	// only consider bug report events.
-	BugReport bool `form:"bug_report"`
-
 	// UDAttrKeys indicates a request to receive
 	// list of user defined attribute key &
 	// types.
 	UDAttrKeys bool `form:"ud_attr_keys"`
-
-	// UDExpressionRaw contains the raw user defined
-	// attribute expression as string.
-	UDExpressionRaw string `form:"ud_expression"`
-
-	// UDExpression contains the parsed user defined
-	// attribute expression.
-	UDExpression *udattr.UDExpression
 
 	// Span indicates the filtering should only
 	// consider spans.
@@ -176,10 +162,6 @@ type AppFilter struct {
 	// a bug report to be filtered on.
 	BugReportStatuses []int8 `form:"bug_report_statuses"`
 
-	// FreeText is a free form text string that can be used
-	// to filter over logs, exceptions, events etc
-	FreeText string `form:"free_text"`
-
 	// Limit is the count of matching rows to
 	// return.
 	Limit int `form:"limit"`
@@ -187,27 +169,6 @@ type AppFilter struct {
 	// Offset if the count of matching rows to
 	// skip.
 	Offset int `form:"offset"`
-
-	// Background represents if matching should
-	// be applied to background events or sessions.
-	//
-	// A background session is defined as any session
-	// that has at least 1 `lifecycle_app` event with
-	// type as `background`.
-	Background bool `form:"background"`
-
-	// Foreground represents if matching should
-	// be applied to foreground events or sessions.
-	//
-	// A foreground session is defined as any session
-	// that has at least 1 `lifecycle_app` event with
-	// type as `foreground`.
-	Foreground bool `form:"foreground"`
-
-	// UserInteraction represents if matching should
-	// be applied to events or sessions pertaining
-	// to user interactions, like gesture events.
-	UserInteraction bool `form:"user_interaction"`
 }
 
 const (
@@ -323,10 +284,6 @@ func (af *AppFilter) Expand(ctx context.Context, pg *pgxpool.Pool) (err error) {
 			af.NetworkGenerations = filters.NetworkGenerations
 		}
 
-		if filters.UDExpressionRaw != "" {
-			af.UDExpressionRaw = filters.UDExpressionRaw
-		}
-
 		if af.Severity != "" {
 			for _, s := range text.SplitTrimEmpty(af.Severity, ",") {
 				af.Severities = append(af.Severities, event.Severity(s))
@@ -399,18 +356,7 @@ func (af *AppFilter) Expand(ctx context.Context, pg *pgxpool.Pool) (err error) {
 		}
 	}
 
-	if len(af.UDExpressionRaw) > 0 {
-		af.UDExpressionRaw = strings.TrimSpace(af.UDExpressionRaw)
-	}
-
 	return
-}
-
-// parseUDExpression parses the raw user defined
-// attribute expression value.
-func (af *AppFilter) parseUDExpression() (err error) {
-	af.UDExpression = &udattr.UDExpression{}
-	return json.Unmarshal([]byte(af.UDExpressionRaw), af.UDExpression)
 }
 
 // Validate validates each app filtering parameter and sets
@@ -451,16 +397,6 @@ func (af *AppFilter) Validate() error {
 		return fmt.Errorf("`limit` cannot be more than %d", MaxPaginationLimit)
 	}
 
-	if af.UDExpressionRaw != "" {
-		if err := af.parseUDExpression(); err != nil {
-			return fmt.Errorf("failed to parse %q: %v", `ud_expression`, err.Error())
-		}
-
-		if err := af.UDExpression.Validate(); err != nil {
-			return fmt.Errorf("failed to validate %q: %v", `ud_expression`, err.Error())
-		}
-	}
-
 	if af.HasPlotTimeGroup() {
 		if _, ok := validPlotTimeGroups[af.PlotTimeGroup]; !ok {
 			return fmt.Errorf("`plot_time_group` must be one of: %s, %s, %s, %s", PlotTimeGroupMinutes, PlotTimeGroupHours, PlotTimeGroupDays, PlotTimeGroupMonths)
@@ -480,12 +416,6 @@ func (af *AppFilter) Validate() error {
 	}
 
 	return nil
-}
-
-// HasUDExpression returns true if a user
-// defined expression was requested.
-func (af *AppFilter) HasUDExpression() bool {
-	return af.UDExpressionRaw != "" && af.UDExpression != nil
 }
 
 // ValidateVersions validates presence of valid
@@ -616,12 +546,6 @@ func (af AppFilter) HasPlotTimeGroup() bool {
 // grouping granularity.
 func (af *AppFilter) SetDefaultPlotTimeGroup() {
 	af.PlotTimeGroup = PlotTimeGroupDays
-}
-
-// HasFreeText returns true if a free text
-// keyword was supplied.
-func (af AppFilter) HasFreeText() bool {
-	return af.FreeText != ""
 }
 
 // HasBugReportStatuses returns true if at least

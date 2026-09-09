@@ -41,17 +41,6 @@ export enum FilterSource {
   Builds,
 }
 
-export enum SessionType {
-  FatalErrors = "Fatal Error Sessions",
-  UnhandledErrors = "Unhandled Error Sessions",
-  HandledErrors = "Handled Error Sessions",
-  ANRs = "ANR Sessions",
-  BugReports = "Bug Report Sessions",
-  UserInteraction = "User Interaction Sessions",
-  Foreground = "Foreground Sessions",
-  Background = "Background Sessions",
-}
-
 export type Team = {
   id: string;
   name: string;
@@ -187,7 +176,6 @@ export const emptySessionReplayOverviewResponse = {
     first_event_time: string;
     last_event_time: string;
     duration: string;
-    matched_free_text: string;
     attribute: {
       app_version: string;
       app_build: string;
@@ -634,7 +622,6 @@ export type Filters = {
   startDate: string;
   endDate: string;
   versions: { selected: AppVersion[]; all: boolean };
-  sessionTypes: { selected: SessionType[]; all: boolean };
   osVersions: { selected: OsVersion[]; all: boolean };
   countries: { selected: string[]; all: boolean };
   networkProviders: { selected: string[]; all: boolean };
@@ -663,7 +650,6 @@ export const defaultFilters: Filters = {
   startDate: "",
   endDate: "",
   versions: { selected: [], all: false },
-  sessionTypes: { selected: [], all: false },
   osVersions: { selected: [], all: false },
   countries: { selected: [], all: false },
   networkProviders: { selected: [], all: false },
@@ -814,12 +800,6 @@ async function applyGenericFiltersToUrl(
     searchParams.append("filter_short_code", filterShortCode);
   }
 
-  // Session-type filtering is intentionally NOT applied here. Callers that
-  // want it must invoke appendSessionTypesToUrl() explicitly after this fn.
-  // This keeps the URL builders composable and prevents session-type params
-  // leaking onto endpoints that don't filter by session content (e.g.
-  // /errorGroups, which uses its own `type` param for selectedErrorTypes).
-
   // Append free text if present
   if (filters.freeText !== "") {
     searchParams.append("free_text", filters.freeText);
@@ -846,55 +826,6 @@ function appendPlotTimeGroupToUrl(url: string, filters: Filters): string {
     "plot_time_group",
     getPlotTimeGroupForRange(filters.startDate, filters.endDate),
   );
-  return u.toString();
-}
-
-function appendSessionTypesToUrl(url: string, filters: Filters): string {
-  const u = new URL(url, window.location.origin);
-  if (!filters.sessionTypes.all && filters.sessionTypes.selected.length > 0) {
-    // The three error severities all imply type=error; we collect the
-    // severities separately so the URL emits e.g. type=error,anr and
-    // severity=fatal,handled — matching the errors-endpoint contract.
-    const types = new Set<string>();
-    const severities = new Set<string>();
-    filters.sessionTypes.selected.forEach((v) => {
-      switch (v) {
-        case SessionType.FatalErrors:
-          types.add("error");
-          severities.add("fatal");
-          break;
-        case SessionType.UnhandledErrors:
-          types.add("error");
-          severities.add("unhandled");
-          break;
-        case SessionType.HandledErrors:
-          types.add("error");
-          severities.add("handled");
-          break;
-        case SessionType.ANRs:
-          types.add("anr");
-          break;
-        case SessionType.BugReports:
-          u.searchParams.append("bug_report", "1");
-          break;
-        case SessionType.UserInteraction:
-          u.searchParams.append("user_interaction", "1");
-          break;
-        case SessionType.Foreground:
-          u.searchParams.append("foreground", "1");
-          break;
-        case SessionType.Background:
-          u.searchParams.append("background", "1");
-          break;
-      }
-    });
-    if (types.size > 0) {
-      u.searchParams.append("type", Array.from(types).join(","));
-    }
-    if (severities.size > 0) {
-      u.searchParams.append("severity", Array.from(severities).join(","));
-    }
-  }
   return u.toString();
 }
 
@@ -1174,36 +1105,49 @@ export const fetchMetricsFromServer = async (filters: Filters) => {
 };
 
 export const fetchSessionReplayOverviewFromServer = async (
-  filters: Filters,
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
   limit: number,
   offset: number,
 ) => {
-  var url = `/api/apps/${filters.app!.id}/sessions?`;
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    limit: String(limit),
+    offset: String(offset),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
 
-  url = await applyGenericFiltersToUrl(url, filters, limit, offset);
-  url = appendSessionTypesToUrl(url, filters);
-
-  const data = await request(url, {
+  return await request(`/api/apps/${appId}/sessions?${params.toString()}`, {
     failsWith: "Failed to fetch session replay overview",
   });
-
-  return data;
 };
 
 export const fetchSessionReplayOverviewPlotFromServer = async (
-  filters: Filters,
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
 ) => {
-  var url = `/api/apps/${filters.app!.id}/sessions/plots/instances?`;
-
-  url = await applyGenericFiltersToUrl(url, filters, null, null);
-  url = appendSessionTypesToUrl(url, filters);
-  url = appendPlotTimeGroupToUrl(url, filters);
-
-  const data = await request(url, {
-    failsWith: "Failed to fetch session replay overview plot",
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    plot_time_group: getPlotTimeGroupForRange(startDate, endDate),
   });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
 
-  return data;
+  return await request(
+    `/api/apps/${appId}/sessions/plots/instances?${params.toString()}`,
+    { failsWith: "Failed to fetch session replay overview plot" },
+  );
 };
 
 function appendErrorFiltersToUrl(url: string, filters: Filters): string {

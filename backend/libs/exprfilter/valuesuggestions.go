@@ -44,15 +44,24 @@ func (e Entity) SuggestKeyValues(ctx context.Context, pgPool *pgxpool.Pool, chPo
 }
 
 // suggestFixedKeyValuesFromClickHouse builds an entity's fixed-key value
-// suggester over a ClickHouse value source: each key reads its column, most
-// recently seen first, and a key that takes typed-in values only is refused.
-func suggestFixedKeyValuesFromClickHouse(fixedValues fixedKeyValueSource) func(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
+// suggester. An entity may pass several sources because a rollup table
+// answers most of its keys while a few keys only exist on the entity's own
+// table; the first source that has a key answers it.
+func suggestFixedKeyValuesFromClickHouse(sources ...fixedKeyValueSource) func(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
 	return func(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
 		if key.ValueSuggestionMode == ValueSuggestionModeNone {
 			return ValueList{}, fmt.Errorf("Key %q takes typed-in values only", key.Name)
 		}
 
-		column, ok := fixedValues.columns[key.Name]
+		var fixedValues fixedKeyValueSource
+		var column string
+		var ok bool
+		for _, source := range sources {
+			if column, ok = source.columns[key.Name]; ok {
+				fixedValues = source
+				break
+			}
+		}
 		if !ok {
 			return ValueList{}, fmt.Errorf("%w: %q", ErrKeyNotSupported, key.Name)
 		}

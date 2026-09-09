@@ -13,7 +13,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -3119,7 +3118,7 @@ func TestMCPGetErrorDistribution(t *testing.T) {
 
 func TestMCPGetSessions(t *testing.T) {
 	ctx := context.Background()
-	setupToolTest := func(t *testing.T, email string) (uuid.UUID, string) {
+	setupToolTestWithTeam := func(t *testing.T, email string) (uuid.UUID, uuid.UUID, string) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), email)
@@ -3130,6 +3129,10 @@ func TestMCPGetSessions(t *testing.T) {
 		seedApp(ctx, t, appID, teamID, 30)
 		rawToken := "msr_" + email
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		return appID, teamID, rawToken
+	}
+	setupToolTest := func(t *testing.T, email string) (uuid.UUID, string) {
+		appID, _, rawToken := setupToolTestWithTeam(t, email)
 		return appID, rawToken
 	}
 	now := time.Now().UTC()
@@ -3154,48 +3157,50 @@ func TestMCPGetSessions(t *testing.T) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
 	})
-	errorFilterCases := []struct {
-		name string
-		args map[string]any
-	}{
-		{"crash", map[string]any{"error_types": []string{"error"}, "severities": []string{"fatal"}}},
-		{"anr", map[string]any{"error_types": []string{"anr"}}},
-		{"all errors", map[string]any{"error_types": []string{"error", "anr"}}},
-		{"handled", map[string]any{"severities": []string{"handled"}}},
-		{"custom only", map[string]any{"custom_errors_only": true}},
-	}
-	for _, ec := range errorFilterCases {
-		t.Run("with error filter "+ec.name, func(t *testing.T) {
-			appID, rawToken := setupToolTest(t, "sess"+strings.ReplaceAll(ec.name, " ", "")+"@mcp.test")
-			args := map[string]any{"app_id": appID.String(), "from": from, "to": to}
-			maps.Copy(args, ec.args)
+	t.Run("filter_expr narrows results", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTestWithTeam(t, "sessexpr@mcp.test")
+		crashSession := uuid.New().String()
+		th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+			Type: "exception", SessionID: crashSession, Fingerprint: "sess-fp",
+			Severity: "fatal", Timestamp: now.Add(-time.Hour),
+		})
+		seedEventWithSession(ctx, t, teamID.String(), appID.String(), uuid.New().String(), now.Add(-time.Hour))
+
+		sessions := func(t *testing.T, args map[string]any) []map[string]any {
+			t.Helper()
 			resp := callMCPTool(t, rawToken, "get_sessions", args)
 			if isToolError(resp) {
 				t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 			}
-		})
-	}
-	t.Run("invalid severities", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "sessbadsev@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_sessions", map[string]any{"app_id": appID.String(), "severities": []string{"nope"}, "from": from, "to": to})
-		if !isToolError(resp) {
-			t.Error("want tool error for invalid severities")
+			var sessions []map[string]any
+			if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &sessions); err != nil {
+				t.Fatalf("unmarshal sessions: %v", err)
+			}
+			return sessions
+		}
+
+		args := map[string]any{"app_id": appID.String(), "from": from, "to": to}
+		if got := sessions(t, args); len(got) != 2 {
+			t.Fatalf("want 2 sessions with no filter, got %d", len(got))
+		}
+
+		args["filter_expr"] = "session_events:in:fatal_error"
+		got := sessions(t, args)
+		if len(got) != 1 {
+			t.Fatalf("want 1 session with the session type filter, got %d", len(got))
+		}
+		if got[0]["session_id"] != crashSession {
+			t.Errorf("filtered session_id = %v, want %s", got[0]["session_id"], crashSession)
 		}
 	})
-	for _, filter := range []string{"foreground", "background", "user_interaction"} {
-		t.Run("with "+filter+" filter", func(t *testing.T) {
-			appID, rawToken := setupToolTest(t, "sess"+filter+"@mcp.test")
-			resp := callMCPTool(t, rawToken, "get_sessions", map[string]any{"app_id": appID.String(), filter: true, "from": from, "to": to})
-			if isToolError(resp) {
-				t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
-			}
-		})
-	}
-	t.Run("with free_text filter", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "sessfree@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_sessions", map[string]any{"app_id": appID.String(), "free_text": "some search term", "from": from, "to": to})
-		if isToolError(resp) {
-			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+	t.Run("invalid filter_expr returns the issue", func(t *testing.T) {
+		appID, rawToken := setupToolTest(t, "sessexprbad@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_sessions", map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": "bogus_key:in:x"})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for unknown filter key")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "filter_expr is invalid") || !strings.Contains(text, "bogus_key") {
+			t.Errorf("error text %q should name the unknown key", text)
 		}
 	})
 }
@@ -3231,12 +3236,23 @@ func TestMCPGetSessionsOverTime(t *testing.T) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
 	})
-	t.Run("valid call with error filter", func(t *testing.T) {
+	t.Run("valid call with filter_expr", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "sploterr@mcp.test")
 		now := time.Now().UTC()
-		resp := callMCPTool(t, rawToken, "get_sessions_over_time", map[string]any{"app_id": appID.String(), "error_types": []string{"error"}, "severities": []string{"fatal"}, "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
+		resp := callMCPTool(t, rawToken, "get_sessions_over_time", map[string]any{"app_id": appID.String(), "filter_expr": "session_events:in:fatal_error", "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+	})
+	t.Run("invalid filter_expr returns the issue", func(t *testing.T) {
+		appID, rawToken := setupToolTest(t, "splotbadexpr@mcp.test")
+		now := time.Now().UTC()
+		resp := callMCPTool(t, rawToken, "get_sessions_over_time", map[string]any{"app_id": appID.String(), "filter_expr": "bogus_key:in:x", "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for unknown filter key")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "filter_expr is invalid") || !strings.Contains(text, "bogus_key") {
+			t.Errorf("error text %q should name the unknown key", text)
 		}
 	})
 }

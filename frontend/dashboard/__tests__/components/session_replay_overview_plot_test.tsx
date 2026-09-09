@@ -19,109 +19,73 @@ jest.mock("@/app/components/skeleton", () => ({
   SkeletonPlot: () => <div data-testid="skeleton-mock" />,
 }));
 
-const mockUseSessionReplayOverviewPlotQuery = jest.fn(
-  (): { data: any; status: string; error: Error | null } => ({
+const plotDates = {
+  startDate: "2026-02-23T00:00:00Z",
+  endDate: "2026-02-23T06:00:00Z",
+};
+
+function queryWith(overrides: any) {
+  return {
     data: undefined,
     status: "pending",
     error: null,
-  }),
-);
-
-jest.mock("@/app/query/hooks", () => ({
-  __esModule: true,
-  useSessionReplayOverviewPlotQuery: () =>
-    mockUseSessionReplayOverviewPlotQuery(),
-}));
-
-jest.mock("@/app/stores/provider", () => {
-  const { create } = jest.requireActual("zustand");
-  const filtersStore = create(() => ({
-    filters: { ready: false, serialisedFilters: "" },
-  }));
-  return { __esModule: true, useFiltersStore: filtersStore };
-});
-
-const { useFiltersStore } = require("@/app/stores/provider") as any;
-
-const filters = {
-  ready: true,
-  startDate: "2026-02-23T00:00:00Z",
-  endDate: "2026-02-23T06:00:00Z",
-} as any;
+    ...overrides,
+  } as any;
+}
 
 describe("SessionReplayOverviewPlot", () => {
   beforeEach(() => {
     lastLineProps = null;
-    useFiltersStore.setState({
-      filters: { ready: false, serialisedFilters: "" },
-    });
-    mockUseSessionReplayOverviewPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "pending",
-      error: null,
-    });
   });
 
   it("renders no data state", async () => {
-    useFiltersStore.setState({ filters });
-    mockUseSessionReplayOverviewPlotQuery.mockReturnValue({
-      data: null,
-      status: "success",
-      error: null,
-    });
-    render(<SessionReplayOverviewPlot />);
+    render(
+      <SessionReplayOverviewPlot
+        {...plotDates}
+        query={queryWith({ data: null, status: "success" })}
+      />,
+    );
 
     expect(await screen.findByText("No Data")).toBeInTheDocument();
-  });
-
-  it("does not fetch when filters are not ready", async () => {
-    useFiltersStore.setState({ filters: { ...filters, ready: false } });
-    render(<SessionReplayOverviewPlot />);
-    expect(mockUseSessionReplayOverviewPlotQuery).toHaveBeenCalled();
+    expect(screen.getByTestId("sessions-plot-no-data")).toBeInTheDocument();
   });
 
   it("renders error state", async () => {
-    useFiltersStore.setState({ filters });
-    mockUseSessionReplayOverviewPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "error",
-      error: new Error("test"),
-    });
-    render(<SessionReplayOverviewPlot />);
+    render(
+      <SessionReplayOverviewPlot
+        {...plotDates}
+        query={queryWith({ status: "error", error: new Error("test") })}
+      />,
+    );
 
     expect(await screen.findByText(/Error fetching plot/)).toBeInTheDocument();
   });
 
   it("renders loading spinner before data is available", async () => {
-    useFiltersStore.setState({ filters });
-    mockUseSessionReplayOverviewPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "pending",
-      error: null,
-    });
-
-    render(<SessionReplayOverviewPlot />);
+    render(<SessionReplayOverviewPlot {...plotDates} query={queryWith({})} />);
     expect(screen.getByTestId("skeleton-mock")).toBeInTheDocument();
   });
 
   it("maps data and uses minute x-axis for short ranges", async () => {
-    useFiltersStore.setState({ filters });
-    mockUseSessionReplayOverviewPlotQuery.mockReturnValue({
-      data: [
-        {
-          id: "1.0.0",
-          data: [{ id: "1.0.0.0", x: "2026-02-23T01:00:00", y: 2 }],
-        },
-      ],
-      status: "success",
-      error: null,
-    });
-
-    render(<SessionReplayOverviewPlot />);
+    render(
+      <SessionReplayOverviewPlot
+        {...plotDates}
+        query={queryWith({
+          data: [
+            {
+              id: "1.0.0",
+              data: [{ id: "1.0.0.0", x: "2026-02-23T01:00:00", y: 2 }],
+            },
+          ],
+          status: "success",
+        })}
+      />,
+    );
 
     await waitFor(() =>
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
+    expect(screen.getByTestId("sessions-plot-data")).toBeInTheDocument();
     expect(lastLineProps.xScale.precision).toBe("minute");
     expect(lastLineProps.axisBottom.format).toBe("%b %d, %H:%M");
     expect(lastLineProps.axisLeft.legend).toBe("Session Replay");
@@ -129,23 +93,22 @@ describe("SessionReplayOverviewPlot", () => {
   });
 
   it("uses hour precision for medium range", async () => {
-    const mediumFilters = {
-      ...filters,
-      startDate: "2026-02-01T00:00:00Z",
-      endDate: "2026-02-06T00:00:00Z",
-    };
-    useFiltersStore.setState({ filters: mediumFilters });
-    mockUseSessionReplayOverviewPlotQuery.mockReturnValue({
-      data: [
-        {
-          id: "1.0.0",
-          data: [{ id: "1.0.0.0", x: "2026-02-10T01:00:00", y: 2 }],
-        },
-      ],
-      status: "success",
-      error: null,
-    });
-    render(<SessionReplayOverviewPlot />);
+    render(
+      <SessionReplayOverviewPlot
+        startDate="2026-02-01T00:00:00Z"
+        endDate="2026-02-06T00:00:00Z"
+        query={queryWith({
+          data: [
+            {
+              id: "1.0.0",
+              data: [{ id: "1.0.0.0", x: "2026-02-10T01:00:00", y: 2 }],
+            },
+          ],
+          status: "success",
+        })}
+      />,
+    );
+
     await waitFor(() =>
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
@@ -153,18 +116,19 @@ describe("SessionReplayOverviewPlot", () => {
   });
 
   it("uses day precision for multi-month range", async () => {
-    const longFilters = {
-      ...filters,
-      startDate: "2026-01-01T00:00:00Z",
-      endDate: "2026-03-15T00:00:00Z",
-    };
-    useFiltersStore.setState({ filters: longFilters });
-    mockUseSessionReplayOverviewPlotQuery.mockReturnValue({
-      data: [{ id: "1.0.0", data: [{ id: "1.0.0.0", x: "2026-03-01", y: 2 }] }],
-      status: "success",
-      error: null,
-    });
-    render(<SessionReplayOverviewPlot />);
+    render(
+      <SessionReplayOverviewPlot
+        startDate="2026-01-01T00:00:00Z"
+        endDate="2026-03-15T00:00:00Z"
+        query={queryWith({
+          data: [
+            { id: "1.0.0", data: [{ id: "1.0.0.0", x: "2026-03-01", y: 2 }] },
+          ],
+          status: "success",
+        })}
+      />,
+    );
+
     await waitFor(() =>
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
@@ -173,18 +137,19 @@ describe("SessionReplayOverviewPlot", () => {
   });
 
   it("uses month formatting for long range", async () => {
-    const yearFilters = {
-      ...filters,
-      startDate: "2025-01-01T00:00:00Z",
-      endDate: "2026-01-01T00:00:00Z",
-    };
-    useFiltersStore.setState({ filters: yearFilters });
-    mockUseSessionReplayOverviewPlotQuery.mockReturnValue({
-      data: [{ id: "1.0.0", data: [{ id: "1.0.0.0", x: "2026-01-01", y: 2 }] }],
-      status: "success",
-      error: null,
-    });
-    render(<SessionReplayOverviewPlot />);
+    render(
+      <SessionReplayOverviewPlot
+        startDate="2025-01-01T00:00:00Z"
+        endDate="2026-01-01T00:00:00Z"
+        query={queryWith({
+          data: [
+            { id: "1.0.0", data: [{ id: "1.0.0.0", x: "2026-01-01", y: 2 }] },
+          ],
+          status: "success",
+        })}
+      />,
+    );
+
     await waitFor(() =>
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
@@ -192,18 +157,21 @@ describe("SessionReplayOverviewPlot", () => {
   });
 
   it("renders tooltip with expected labels", async () => {
-    useFiltersStore.setState({ filters });
-    mockUseSessionReplayOverviewPlotQuery.mockReturnValue({
-      data: [
-        {
-          id: "1.0.0",
-          data: [{ id: "1.0.0.0", x: "2026-02-23T01:00:00", y: 2 }],
-        },
-      ],
-      status: "success",
-      error: null,
-    });
-    render(<SessionReplayOverviewPlot />);
+    render(
+      <SessionReplayOverviewPlot
+        {...plotDates}
+        query={queryWith({
+          data: [
+            {
+              id: "1.0.0",
+              data: [{ id: "1.0.0.0", x: "2026-02-23T01:00:00", y: 2 }],
+            },
+          ],
+          status: "success",
+        })}
+      />,
+    );
+
     await waitFor(() =>
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
@@ -222,37 +190,25 @@ describe("SessionReplayOverviewPlot", () => {
   });
 
   it("hides stale chart while new range data is loading", async () => {
-    const longFilters = {
-      ...filters,
-      startDate: "2026-01-01T00:00:00Z",
-      endDate: "2026-03-15T00:00:00Z",
-    };
-    useFiltersStore.setState({ filters: longFilters });
-    mockUseSessionReplayOverviewPlotQuery.mockReturnValue({
-      data: [{ id: "1.0.0", data: [{ id: "1.0.0.0", x: "2026-03-01", y: 2 }] }],
-      status: "success",
-      error: null,
-    });
-    const { unmount } = render(<SessionReplayOverviewPlot />);
+    const { rerender } = render(
+      <SessionReplayOverviewPlot
+        startDate="2026-01-01T00:00:00Z"
+        endDate="2026-03-15T00:00:00Z"
+        query={queryWith({
+          data: [
+            { id: "1.0.0", data: [{ id: "1.0.0.0", x: "2026-03-01", y: 2 }] },
+          ],
+          status: "success",
+        })}
+      />,
+    );
     await waitFor(() =>
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
 
-    unmount();
-
-    const newFilters = {
-      ...filters,
-      startDate: "2026-02-23T00:00:00Z",
-      endDate: "2026-02-23T06:00:00Z",
-    };
-    useFiltersStore.setState({ filters: newFilters });
-    mockUseSessionReplayOverviewPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "pending",
-      error: null,
-    });
-
-    render(<SessionReplayOverviewPlot />);
+    rerender(
+      <SessionReplayOverviewPlot {...plotDates} query={queryWith({})} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByTestId("skeleton-mock")).toBeInTheDocument();
