@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :sparkles: New features
+
+- (**frontend**): Add error session replay and sampling adaptive config (#4355) by @abhaysood in #4355
+
 ### :bug: Bug fixes
 
 - (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
