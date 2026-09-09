@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :bug: Bug fixes
 
 - (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
+- (**frontend**): Keep a filter chip when its operator or key is changed first by @anupcowkur in #4445
 - (**frontend**): Keep focus in the value input after changing an operator by @anupcowkur in #4442
 - (**frontend**): Keep focus in the value input after picking a filter key by @anupcowkur in #4440
 - (**frontend**): Build absolute URLs from the deploy's own origin (#4435) by @detj in #4435
