@@ -53,6 +53,9 @@ func seedSessionEvents(ctx context.Context, t *testing.T) (teamID, appID, patchI
 		Type: "custom", CustomName: "checkout_completed", Timestamp: base.Add(20 * time.Minute),
 	})
 	th.SeedScreenViewInSession(ctx, t, teamID.String(), appID.String(), uuid.NewString(), "CheckoutScreen", base.Add(30*time.Minute))
+	th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, attributed(testinfra.EventRow{
+		AppVersion: "1.0.0", AppBuild: "100", UserID: "ana-of-old", Timestamp: base.Add(-40 * 24 * time.Hour),
+	}))
 	th.SeedEventRows(ctx, t, teamID.String(), otherAppID.String(), 1, attributed(testinfra.EventRow{
 		AppVersion: "9.0.0", AppBuild: "900", UserID: "other", Timestamp: base,
 	}))
@@ -80,8 +83,8 @@ func TestSessionValues(t *testing.T) {
 	}
 
 	t.Run("version names come from the rollup, once each", func(t *testing.T) {
-		if got := list(t, "version_name", ValueRequest{}); !slices.Equal(got, []string{"1.1.0", "1.2.0"}) {
-			t.Errorf("want [1.1.0 1.2.0], got %v", got)
+		if got := list(t, "version_name", ValueRequest{}); !slices.Equal(got, []string{"1.1.0", "1.2.0", "1.0.0"}) {
+			t.Errorf("want [1.1.0 1.2.0 1.0.0], got %v", got)
 		}
 	})
 
@@ -106,6 +109,15 @@ func TestSessionValues(t *testing.T) {
 	t.Run("user ids come from the sessions table, most recent first", func(t *testing.T) {
 		if got := list(t, "user_id", ValueRequest{}); !slices.Equal(got, []string{"zoe", "ana"}) {
 			t.Errorf("want [zoe ana], got %v", got)
+		}
+	})
+
+	t.Run("a user id last seen more than 30 days ago is not suggested, though its version still is", func(t *testing.T) {
+		if got := list(t, "user_id", ValueRequest{Search: "old"}); len(got) != 0 {
+			t.Errorf("want no user ids, got %v", got)
+		}
+		if got := list(t, "version_name", ValueRequest{Search: "1.0.0"}); !slices.Equal(got, []string{"1.0.0"}) {
+			t.Errorf("want [1.0.0] from the rollup, got %v", got)
 		}
 	})
 

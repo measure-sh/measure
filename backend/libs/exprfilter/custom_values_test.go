@@ -28,6 +28,7 @@ func seedSpanUDAttrs(ctx context.Context, t *testing.T) (teamID, appID, otherApp
 	th.SeedSpanUDAttrRow(ctx, t, teamID.String(), appID.String(), testinfra.SpanUDAttrRow{Key: "plan", Value: "free", Timestamp: base})
 	th.SeedSpanUDAttrRow(ctx, t, teamID.String(), appID.String(), testinfra.SpanUDAttrRow{Key: "plan", Value: "pro", Timestamp: base.Add(10 * time.Minute)})
 	th.SeedSpanUDAttrRow(ctx, t, teamID.String(), appID.String(), testinfra.SpanUDAttrRow{Key: "plan", Value: "", Timestamp: base.Add(20 * time.Minute)})
+	th.SeedSpanUDAttrRow(ctx, t, teamID.String(), appID.String(), testinfra.SpanUDAttrRow{Key: "plan", Value: "legacy", Timestamp: base.Add(-40 * 24 * time.Hour)})
 	th.SeedSpanUDAttrRow(ctx, t, teamID.String(), appID.String(), testinfra.SpanUDAttrRow{Key: "is_premium", Type: "bool", Value: "true", Timestamp: base})
 	th.SeedSpanUDAttrRow(ctx, t, teamID.String(), appID.String(), testinfra.SpanUDAttrRow{Key: "retries", Type: "int64", Value: "3", Timestamp: base})
 	th.SeedSpanUDAttrRow(ctx, t, teamID.String(), appID.String(), testinfra.SpanUDAttrRow{Key: "ratio", Type: "float64", Value: "0.5", Timestamp: base})
@@ -247,6 +248,13 @@ func TestCustomSpanKeyValues(t *testing.T) {
 		}
 		if len(got) != 2 || got[0] != "pro" || got[1] != "free" {
 			t.Errorf("want [pro free], got %v", got)
+		}
+	})
+
+	t.Run("a value last written more than 30 days ago stays out", func(t *testing.T) {
+		got, _ := list(t, plan, ValueRequest{Search: "legacy"})
+		if len(got) != 0 {
+			t.Errorf("want no values, got %v", got)
 		}
 	})
 

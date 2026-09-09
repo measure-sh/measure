@@ -17,12 +17,19 @@ import (
 // fixedKeyValueSource says where an entity's fixed-key value suggestions are
 // read from: a ClickHouse table, the column expression each key's values are
 // read from, and the aggregate expression that dates a value for
-// most-recently-seen-first ordering.
+// most-recently-seen-first ordering. timeColumn names the row timestamp of a
+// raw table so the read stays within the suggestion window; a rollup that is
+// small enough to read whole leaves it empty.
 type fixedKeyValueSource struct {
 	table       string
 	columns     map[string]string
 	recencyExpr string
+	timeColumn  string
 }
+
+// A suggestion is only a shortcut for typing a value, so a raw table is read
+// for the last 30 days only; older values can still be typed in.
+const suggestionWindow = "now() - interval 30 day"
 
 // SuggestKeyValues lists what one key can be set to, narrowed by what has
 // been typed. An enum key answers from its own value list without a read, a
@@ -88,7 +95,13 @@ func suggestFixedKeyValuesFromClickHouse(sources ...fixedKeyValueSource) func(ct
 			Select(valueExpr+" as suggested_value").
 			Select(fixedValues.recencyExpr+" as recency").
 			Where("team_id = toUUID(?)", teamID).
-			Where("app_id = toUUID(?)", appID).
+			Where("app_id = toUUID(?)", appID)
+
+		if fixedValues.timeColumn != "" {
+			stmt.Where(fixedValues.timeColumn + " >= " + suggestionWindow)
+		}
+
+		stmt.
 			Where(unsetTest, unsetArgs...).
 			GroupBy("suggested_value").
 			OrderBy("recency desc, suggested_value").

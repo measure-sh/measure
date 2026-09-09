@@ -78,7 +78,7 @@ func TestSuggestionSQL(t *testing.T) {
 			},
 			wantSQL: "SELECT device_name as suggested_value, max(timestamp) as recency" +
 				" FROM bug_reports" +
-				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND device_name <> ''" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND timestamp >= now() - interval 30 day AND device_name <> ''" +
 				" GROUP BY suggested_value ORDER BY recency desc, suggested_value LIMIT ?",
 			wantArgs: []any{teamID, appID, DefaultValueLimit + 1},
 		},
@@ -90,7 +90,7 @@ func TestSuggestionSQL(t *testing.T) {
 			},
 			wantSQL: "SELECT toString(patch_id) as suggested_value, max(timestamp) as recency" +
 				" FROM bug_reports" +
-				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND toString(patch_id) <> ?" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND timestamp >= now() - interval 30 day AND toString(patch_id) <> ?" +
 				" GROUP BY suggested_value ORDER BY recency desc, suggested_value LIMIT ?",
 			wantArgs: []any{teamID, appID, uuid.Nil.String(), DefaultValueLimit + 1},
 		},
@@ -138,7 +138,7 @@ func TestSuggestionSQL(t *testing.T) {
 			},
 			wantSQL: "SELECT arrayJoin(user_ids) as suggested_value, max(first_event_timestamp) as recency" +
 				" FROM sessions" +
-				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND arrayJoin(user_ids) <> '' AND arrayJoin(user_ids) ilike ?" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND first_event_timestamp >= now() - interval 30 day AND arrayJoin(user_ids) <> '' AND arrayJoin(user_ids) ilike ?" +
 				" GROUP BY suggested_value ORDER BY recency desc, suggested_value LIMIT ?",
 			wantArgs: []any{teamID, appID, "%ana%", DefaultValueLimit + 1},
 		},
@@ -149,7 +149,7 @@ func TestSuggestionSQL(t *testing.T) {
 			},
 			wantSQL: "SELECT value, max(timestamp) as recency" +
 				" FROM span_user_def_attrs" +
-				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND key = ? AND type = ? AND value <> ''" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND timestamp >= now() - interval 30 day AND key = ? AND type = ? AND value <> ''" +
 				" GROUP BY value ORDER BY recency desc, value LIMIT ?",
 			wantArgs: []any{teamID, appID, "plan", "string", DefaultValueLimit + 1},
 		},
@@ -160,7 +160,7 @@ func TestSuggestionSQL(t *testing.T) {
 			},
 			wantSQL: "SELECT value, max(timestamp) as recency" +
 				" FROM user_def_attrs" +
-				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND bug_report = true AND key = ? AND type = ? AND value <> '' AND value ilike ?" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND timestamp >= now() - interval 30 day AND bug_report = true AND key = ? AND type = ? AND value <> '' AND value ilike ?" +
 				" GROUP BY value ORDER BY recency desc, value LIMIT ?",
 			wantArgs: []any{teamID, appID, "plan", "string", "%fr%", 4},
 		},

@@ -112,7 +112,8 @@ func (s customKeyStore) suggestValues(ctx context.Context, chPool driver.Conn, t
 		Select("value").
 		Select("max(timestamp) as recency").
 		Where("team_id = toUUID(?)", teamID).
-		Where("app_id = toUUID(?)", appID)
+		Where("app_id = toUUID(?)", appID).
+		Where("timestamp >= " + suggestionWindow)
 
 	if s.extraScope != "" {
 		stmt.Where(s.extraScope)
