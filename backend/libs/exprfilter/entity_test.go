@@ -8,9 +8,10 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/leporo/sqlf"
 )
 
-var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, JourneysEntity, AlertsEntity, NetworkEntity}
+var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, SessionsEntity, JourneysEntity, AlertsEntity, NetworkEntity}
 
 func sampleValues(t *testing.T, key Key, operator Operator) []Value {
 	t.Helper()
@@ -536,6 +537,348 @@ func TestNetworkMetricsBindEveryOperatorTheKeysOffer(t *testing.T) {
 					t.Errorf("Operator %q wrote no SQL", operator)
 				}
 				stmt.Close()
+			}
+		})
+	}
+}
+
+func TestSessionsEntityOffersEverySessionKey(t *testing.T) {
+	byName := IndexKeysByName(SessionsEntity.Keys)
+
+	wanted := []string{
+		"version_name", "version_code", "patch_version", "patch_id",
+		"session_events", "session_foreground_background", "session_custom_event", "session_log", "session_screen", "session_error_text",
+		"session_id", "user_id",
+		"os_name", "os_version",
+		"device_name", "device_manufacturer", "locale",
+		"network_type", "network_generation", "network_provider",
+		"country",
+	}
+	for _, name := range wanted {
+		if _, ok := byName[name]; !ok {
+			t.Errorf("want a %q key on the sessions entity", name)
+		}
+	}
+	if len(SessionsEntity.Keys) != len(wanted) {
+		t.Errorf("want %d sessions keys, got %d", len(wanted), len(SessionsEntity.Keys))
+	}
+}
+
+func TestSessionsBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
+	_, err := SessionsEntity.BindKey(Condition{
+		KeyName:  "span_status",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "error"}},
+	})
+
+	if err == nil {
+		t.Fatal("want a key the sessions entity does not have refused")
+	}
+	if !strings.Contains(err.Error(), "span_status") {
+		t.Errorf("want the key named, got %q", err)
+	}
+}
+
+func TestSessionEventsBindPredicates(t *testing.T) {
+	bind := func(t *testing.T, operator Operator, names ...string) *sqlf.Stmt {
+		t.Helper()
+		values := make([]Value, len(names))
+		for i, name := range names {
+			values[i] = Value{Text: name}
+		}
+		stmt, err := SessionsEntity.BindKey(Condition{
+			KeyName:  "session_events",
+			Operator: operator,
+			Values:   values,
+		})
+		if err != nil {
+			t.Fatalf("bind events: %v", err)
+		}
+		return stmt
+	}
+
+	t.Run("one value", func(t *testing.T) {
+		stmt := bind(t, OperatorIn, "anr")
+		defer stmt.Close()
+
+		if got, want := stmt.String(), "(anr_count >= 1)"; got != want {
+			t.Errorf("\n got %s\nwant %s", got, want)
+		}
+		if args := stmt.Args(); len(args) != 0 {
+			t.Errorf("want no bound arguments, got %v", args)
+		}
+	})
+
+	t.Run("many values", func(t *testing.T) {
+		stmt := bind(t, OperatorIn, "fatal_error", "anr")
+		defer stmt.Close()
+
+		if got, want := stmt.String(), "(fatal_exception_count >= 1 or anr_count >= 1)"; got != want {
+			t.Errorf("\n got %s\nwant %s", got, want)
+		}
+	})
+
+	t.Run("not in", func(t *testing.T) {
+		stmt := bind(t, OperatorNotIn, "bug_report")
+		defer stmt.Close()
+
+		if got, want := stmt.String(), "not (bug_report_count >= 1)"; got != want {
+			t.Errorf("\n got %s\nwant %s", got, want)
+		}
+	})
+
+	t.Run("user interaction is any gesture", func(t *testing.T) {
+		stmt := bind(t, OperatorIn, "user_interaction")
+		defer stmt.Close()
+
+		want := "((event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1))"
+		if got := stmt.String(); got != want {
+			t.Errorf("\n got %s\nwant %s", got, want)
+		}
+	})
+
+	t.Run("unknown value", func(t *testing.T) {
+		_, err := SessionsEntity.BindKey(Condition{
+			KeyName:  "session_events",
+			Operator: OperatorIn,
+			Values:   []Value{{Text: "screen_view"}},
+		})
+		if err == nil {
+			t.Fatal("want an event kind the entity does not know refused")
+		}
+		if !strings.Contains(err.Error(), "screen_view") {
+			t.Errorf("want the value named, got %q", err)
+		}
+	})
+
+	t.Run("operator it does not offer", func(t *testing.T) {
+		_, err := SessionsEntity.BindKey(Condition{
+			KeyName:  "session_events",
+			Operator: OperatorContains,
+			Values:   []Value{{Text: "anr"}},
+		})
+		if err == nil {
+			t.Fatal("want contains on events refused")
+		}
+	})
+}
+
+func TestSessionLifecycleBindsPredicates(t *testing.T) {
+	bind := func(t *testing.T, operator Operator, names ...string) (*sqlf.Stmt, error) {
+		t.Helper()
+		values := make([]Value, len(names))
+		for i, name := range names {
+			values[i] = Value{Text: name}
+		}
+		return SessionsEntity.BindKey(Condition{
+			KeyName:  "session_foreground_background",
+			Operator: operator,
+			Values:   values,
+		})
+	}
+
+	foregroundSQL := "(foreground_count >= 1" +
+		" or event_type_counts['gesture_click'] >= 1" +
+		" or event_type_counts['gesture_long_click'] >= 1" +
+		" or event_type_counts['gesture_scroll'] >= 1" +
+		" or event_type_counts['lifecycle_activity'] >= 1" +
+		" or event_type_counts['lifecycle_view_controller'] >= 1" +
+		" or event_type_counts['screen_view'] >= 1)"
+
+	t.Run("foreground is any indicator", func(t *testing.T) {
+		stmt, err := bind(t, OperatorIn, "foreground")
+		if err != nil {
+			t.Fatalf("bind lifecycle: %v", err)
+		}
+		defer stmt.Close()
+
+		if got, want := stmt.String(), "("+foregroundSQL+")"; got != want {
+			t.Errorf("\n got %s\nwant %s", got, want)
+		}
+		if args := stmt.Args(); len(args) != 0 {
+			t.Errorf("want no bound arguments, got %v", args)
+		}
+	})
+
+	t.Run("background is the background lifecycle count", func(t *testing.T) {
+		stmt, err := bind(t, OperatorIn, "background")
+		if err != nil {
+			t.Fatalf("bind lifecycle: %v", err)
+		}
+		defer stmt.Close()
+
+		if got, want := stmt.String(), "(background_count >= 1)"; got != want {
+			t.Errorf("\n got %s\nwant %s", got, want)
+		}
+	})
+
+	t.Run("both values match either", func(t *testing.T) {
+		stmt, err := bind(t, OperatorIn, "foreground", "background")
+		if err != nil {
+			t.Fatalf("bind lifecycle: %v", err)
+		}
+		defer stmt.Close()
+
+		if got, want := stmt.String(), "("+foregroundSQL+" or background_count >= 1)"; got != want {
+			t.Errorf("\n got %s\nwant %s", got, want)
+		}
+	})
+
+	t.Run("not in", func(t *testing.T) {
+		stmt, err := bind(t, OperatorNotIn, "foreground")
+		if err != nil {
+			t.Fatalf("bind lifecycle: %v", err)
+		}
+		defer stmt.Close()
+
+		if got, want := stmt.String(), "not ("+foregroundSQL+")"; got != want {
+			t.Errorf("\n got %s\nwant %s", got, want)
+		}
+	})
+
+	t.Run("unknown value", func(t *testing.T) {
+		_, err := bind(t, OperatorIn, "hibernating")
+		if err == nil {
+			t.Fatal("want a lifecycle the entity does not know refused")
+		}
+		if !strings.Contains(err.Error(), "hibernating") {
+			t.Errorf("want the value named, got %q", err)
+		}
+	})
+
+	t.Run("operator it does not offer", func(t *testing.T) {
+		if _, err := bind(t, OperatorContains, "foreground"); err == nil {
+			t.Fatal("want contains on lifecycle refused")
+		}
+	})
+}
+
+func TestSessionTextKeysReadTheSessionArrays(t *testing.T) {
+	bind := func(t *testing.T, keyName string, operator Operator, text string) (*sqlf.Stmt, error) {
+		t.Helper()
+		return SessionsEntity.BindKey(Condition{
+			KeyName:  keyName,
+			Operator: operator,
+			Values:   []Value{{Text: text}},
+		})
+	}
+
+	screenArrays := "arrayConcat(unique_screen_view_names, unique_view_classnames," +
+		" unique_subview_classnames, unique_view_controller_classnames)"
+
+	errorTextArrays := "arrayConcat(" +
+		"arrayFlatten(arrayMap(e -> [e.type, e.message, e.file_name, e.class_name, e.method_name], unique_fatal_exceptions)), " +
+		"arrayFlatten(arrayMap(e -> [e.type, e.message, e.file_name, e.class_name, e.method_name], unique_unhandled_exceptions)), " +
+		"arrayFlatten(arrayMap(e -> [e.type, e.message, e.file_name, e.class_name, e.method_name], unique_handled_exceptions)), " +
+		"arrayFlatten(arrayMap(e -> [e.type, e.message, e.file_name, e.class_name, e.method_name], unique_anrs)), " +
+		"arrayFlatten(arrayMap(error -> [JSONExtractString(error, 'code'), if(JSONType(error, 'num_code') = 'Null', '', JSONExtractRaw(error, 'num_code')), JSONExtractRaw(error, 'meta')], unique_errors)))"
+
+	tests := []struct {
+		keyName  string
+		operator Operator
+		want     string
+	}{
+		{"session_custom_event", OperatorIn, "hasAny(unique_custom_type_names, ?)"},
+		{"session_custom_event", OperatorContains, "arrayExists(value -> value ilike ?, unique_custom_type_names)"},
+		{"session_log", OperatorContains, "arrayExists(value -> value ilike ?, arrayConcat(unique_logs, unique_strings))"},
+		{"session_log", OperatorNotContains, "not arrayExists(value -> value ilike ?, arrayConcat(unique_logs, unique_strings))"},
+		{"session_error_text", OperatorContains, "arrayExists(value -> value ilike ?, " + errorTextArrays + ")"},
+		{"session_error_text", OperatorEndsWith, "arrayExists(value -> value ilike ?, " + errorTextArrays + ")"},
+		{"session_screen", OperatorIn, "hasAny(" + screenArrays + ", ?)"},
+		{"session_screen", OperatorStartsWith, "arrayExists(value -> value ilike ?, " + screenArrays + ")"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.keyName+" "+string(test.operator), func(t *testing.T) {
+			stmt, err := bind(t, test.keyName, test.operator, "checkout")
+			if err != nil {
+				t.Fatalf("bind %s: %v", test.keyName, err)
+			}
+			defer stmt.Close()
+
+			if got := stmt.String(); got != test.want {
+				t.Errorf("\n got %s\nwant %s", got, test.want)
+			}
+		})
+	}
+
+	// The bindings answer every text operator, so an operator a key does not
+	// offer is turned away when the filter is validated.
+	for _, refused := range []string{
+		"session_custom_event:ends_with:checkout",
+		"session_log:in:checkout",
+		"session_error_text:in:checkout",
+		"screen:ends_with:checkout",
+	} {
+		t.Run("refuses "+refused, func(t *testing.T) {
+			ef := &ExprFilter{AppID: uuid.New(), Entity: SessionsEntity, Limit: 10, FilterExpr: refused}
+			if err := ef.BuildExprTree(); err != nil {
+				t.Fatalf("build: %v", err)
+			}
+			var invalid *ValidationError
+			if err := ef.Validate(); !errors.As(err, &invalid) {
+				t.Errorf("want %q refused, got %v", refused, err)
+			}
+		})
+	}
+}
+
+func TestSessionsAggregatedKeyBindingsReadThePerSessionTotals(t *testing.T) {
+	gestureCounts := "sumMap(event_type_counts)['gesture_click'] >= 1" +
+		" or sumMap(event_type_counts)['gesture_long_click'] >= 1" +
+		" or sumMap(event_type_counts)['gesture_scroll'] >= 1"
+
+	screenArrays := "arrayConcat(groupUniqArrayArray(unique_screen_view_names), groupUniqArrayArray(unique_view_classnames)," +
+		" groupUniqArrayArray(unique_subview_classnames), groupUniqArrayArray(unique_view_controller_classnames))"
+
+	errorTextArrays := "arrayConcat(" +
+		"arrayFlatten(arrayMap(e -> [e.type, e.message, e.file_name, e.class_name, e.method_name], groupUniqArrayArray(unique_fatal_exceptions))), " +
+		"arrayFlatten(arrayMap(e -> [e.type, e.message, e.file_name, e.class_name, e.method_name], groupUniqArrayArray(unique_unhandled_exceptions))), " +
+		"arrayFlatten(arrayMap(e -> [e.type, e.message, e.file_name, e.class_name, e.method_name], groupUniqArrayArray(unique_handled_exceptions))), " +
+		"arrayFlatten(arrayMap(e -> [e.type, e.message, e.file_name, e.class_name, e.method_name], groupUniqArrayArray(unique_anrs))), " +
+		"arrayFlatten(arrayMap(error -> [JSONExtractString(error, 'code'), if(JSONType(error, 'num_code') = 'Null', '', JSONExtractRaw(error, 'num_code')), JSONExtractRaw(error, 'meta')], groupUniqArrayArray(unique_errors))))"
+
+	tests := []struct {
+		keyName  string
+		operator Operator
+		values   []string
+		want     string
+	}{
+		{"session_events", OperatorIn, []string{"fatal_error"}, "(sum(fatal_exception_count) >= 1)"},
+		{"session_events", OperatorNotIn, []string{"anr"}, "not (sum(anr_count) >= 1)"},
+		{"session_events", OperatorIn, []string{"user_interaction"}, "((" + gestureCounts + "))"},
+		{"session_foreground_background", OperatorIn, []string{"foreground"}, "((sum(foreground_count) >= 1 or " + gestureCounts +
+			" or sumMap(event_type_counts)['lifecycle_activity'] >= 1" +
+			" or sumMap(event_type_counts)['lifecycle_view_controller'] >= 1" +
+			" or sumMap(event_type_counts)['screen_view'] >= 1))"},
+		{"session_foreground_background", OperatorIn, []string{"background"}, "(sum(background_count) >= 1)"},
+		{"user_id", OperatorIn, []string{"alice"}, "hasAny(groupUniqArrayArray(user_ids), ?)"},
+		{"patch_id", OperatorIsNotSet, nil, "max(patch_id) = ?"},
+		{"patch_version", OperatorIn, []string{"1.2.0-patch.3"}, "max(patch_version) in ?"},
+		{"session_log", OperatorContains, []string{"boom"}, "arrayExists(value -> value ilike ?, arrayConcat(groupUniqArrayArray(unique_logs), groupUniqArrayArray(unique_strings)))"},
+		{"session_screen", OperatorIn, []string{"Checkout"}, "hasAny(" + screenArrays + ", ?)"},
+		{"session_error_text", OperatorContains, []string{"boom"}, "arrayExists(value -> value ilike ?, " + errorTextArrays + ")"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.keyName+" "+string(test.operator), func(t *testing.T) {
+			values := make([]Value, len(test.values))
+			for i, text := range test.values {
+				values[i] = Value{Text: text}
+			}
+
+			binding, bound := SessionsAggregatedKeyBindings[test.keyName]
+			if !bound {
+				t.Fatalf("key %q has no aggregated binding", test.keyName)
+			}
+			stmt, err := binding(Condition{KeyName: test.keyName, Operator: test.operator, Values: values})
+			if err != nil {
+				t.Fatalf("bind %s: %v", test.keyName, err)
+			}
+			defer stmt.Close()
+
+			if got := stmt.String(); got != test.want {
+				t.Errorf("\n got %s\nwant %s", got, test.want)
 			}
 		})
 	}

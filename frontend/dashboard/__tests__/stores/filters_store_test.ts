@@ -1,12 +1,6 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 
-import {
-  App,
-  AppVersion,
-  FilterSource,
-  OsVersion,
-  SessionType,
-} from "@/app/api/api_calls";
+import { App, AppVersion, FilterSource, OsVersion } from "@/app/api/api_calls";
 
 const mockFetchQuery = jest.fn((..._args: any[]) => Promise.resolve(null));
 jest.mock("@/app/query/query_client", () => ({
@@ -54,7 +48,6 @@ const baseConfig = {
   showDates: true,
   showAppVersions: true,
   showOsVersions: true,
-  showSessionTypes: true,
   showCountries: true,
   showNetworkProviders: true,
   showNetworkTypes: true,
@@ -312,21 +305,6 @@ describe("applyFilterOptions", () => {
     ]);
   });
 
-  it("honors URL session types when valid", () => {
-    const patch = applyFilterOptions(
-      emptyOptions(),
-      app,
-      initConfig({
-        sessionTypes: [SessionType.FatalErrors, SessionType.ANRs],
-      }),
-      state(),
-    );
-    expect(patch.selectedSessionTypes).toEqual([
-      SessionType.FatalErrors,
-      SessionType.ANRs,
-    ]);
-  });
-
   it("honors URL freeText", () => {
     const patch = applyFilterOptions(
       emptyOptions(),
@@ -470,7 +448,6 @@ describe("filtersStore actions", () => {
       .getState()
       .setConfig({ ...baseConfig, filterSource: FilterSource.Errors });
     store.getState().setSelectedCountries(["US"]);
-    store.getState().setSelectedSessionTypes([SessionType.FatalErrors]);
     store.getState().setSelectedFreeText("oom");
 
     store
@@ -478,7 +455,6 @@ describe("filtersStore actions", () => {
       .setConfig({ ...baseConfig, filterSource: FilterSource.Events });
 
     expect(store.getState().selectedCountries).toEqual([]);
-    expect(store.getState().selectedSessionTypes).toEqual([]);
     expect(store.getState().selectedFreeText).toBe("");
   });
 

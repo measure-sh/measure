@@ -1,62 +1,110 @@
+import { mockFiltersStore } from "@/__tests__/helpers/mock_filters_store";
+import { mockRouter } from "@/__tests__/helpers/mock_router";
 import { promiseParams } from "@/__tests__/helpers/promise_params";
-import SessionReplayOverview from "@/app/[teamId]/session_replays/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
-const replaceMock = jest.fn();
-const pushMock = jest.fn();
+const pushMock = mockRouter.pushMock;
 
-let mockSearchParams = new URLSearchParams();
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({
-    replace: replaceMock,
-    push: pushMock,
-  }),
-  useSearchParams: () => mockSearchParams,
-}));
+jest.mock("next/navigation", () =>
+  require("@/__tests__/helpers/mock_router").nextNavigationMock(),
+);
 
-jest.mock("@/app/api/api_calls", () => ({
+jest.mock("@/app/stores/provider", () =>
+  require("@/__tests__/helpers/mock_filters_store").filtersProviderMock(),
+);
+
+const mockToastNegative = jest.fn();
+jest.mock("@/app/components/toast", () => ({
   __esModule: true,
-  emptySessionReplayOverviewResponse: {
-    meta: { next: false, previous: false },
-    results: [],
-  },
-  FilterSource: { Events: "events" },
+  toastNegative: (text: string) => mockToastNegative(text),
 }));
 
-jest.mock("@/app/stores/provider", () => {
-  const { create } = jest.requireActual("zustand");
-  const filtersStore = create(() => ({
-    filters: { ready: false, serialisedFilters: "" },
-  }));
-  return { __esModule: true, useFiltersStore: filtersStore };
-});
-
-const mockUseSessionReplayOverviewQuery = jest.fn(() => ({
+const pendingQueryState = () => ({
   data: undefined as any,
   status: "pending" as string,
   isFetching: true,
   error: null as Error | null,
-}));
+});
+
+const mockUseAppsQuery = jest.fn();
+const mockUseFilterKeysQuery = jest.fn();
+const mockUseSessionReplayOverviewQuery = jest.fn(
+  (_filter: any, _offset: number) => pendingQueryState(),
+);
+const mockUseSessionReplayOverviewPlotQuery = jest.fn((_filter: any) =>
+  pendingQueryState(),
+);
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
-  useSessionReplayOverviewQuery: () => mockUseSessionReplayOverviewQuery(),
   paginationOffsetUrlKey: "po",
+  useAppsQuery: (teamId: string) => mockUseAppsQuery(teamId),
+  useFilterKeysQuery: (
+    appId: string | undefined,
+    entity: string,
+    keyNames: string[],
+  ) => mockUseFilterKeysQuery(appId, entity, keyNames),
+  useRootSpanNamesQuery: () => ({
+    data: undefined,
+    isSuccess: false,
+    isError: false,
+  }),
+  useSessionReplayOverviewQuery: (filter: any, offset: number) =>
+    mockUseSessionReplayOverviewQuery(filter, offset),
+  useSessionReplayOverviewPlotQuery: (filter: any) =>
+    mockUseSessionReplayOverviewPlotQuery(filter),
 }));
 
-jest.mock("@/app/components/filters", () => ({
+jest.mock("@/app/components/filter_bar/filter_bar", () => ({
   __esModule: true,
-  default: () => <div data-testid="filters-mock" />,
-  AppVersionsInitialSelectionType: { All: "all" },
+  default: (props: any) => (
+    <div data-testid="filter-bar-mock">
+      <span data-testid="filter-bar-entity">{props.entity}</span>
+      <span data-testid="filter-bar-app">
+        {props.value?.app.name ?? "none"}
+      </span>
+      <span data-testid="filter-bar-expr">
+        {props.value?.filterExpr ?? "none"}
+      </span>
+      <button
+        data-testid="filter-bar-apply"
+        onClick={() =>
+          props.onChange({ filterExpr: "session_events:in:fatal_error" })
+        }
+      >
+        apply
+      </button>
+      <button
+        data-testid="filter-bar-clear"
+        onClick={() => props.onChange({ filterExpr: null })}
+      >
+        clear
+      </button>
+    </div>
+  ),
 }));
 
-jest.mock("@/app/components/session_replay_overview_plot", () => () => (
-  <div data-testid="session-replay-overview-plot-mock">
-    SessionReplayOverviewPlot Rendered
-  </div>
-));
+jest.mock("@/app/components/skeleton", () => ({
+  __esModule: true,
+  SkeletonListPage: () => <div data-testid="skeleton-list-page-mock" />,
+}));
+
+// The real plot shows a skeleton while its query is pending, so the stub
+// distinguishes that case for tests that check what fills the plot area.
+jest.mock("@/app/components/session_replay_overview_plot", () => ({
+  __esModule: true,
+  default: (props: any) => (
+    <div data-testid="session-replay-overview-plot-mock">
+      {props.query.status === "pending" ? (
+        <div data-testid="skeleton-plot-mock" />
+      ) : (
+        "SessionReplayOverviewPlot Rendered"
+      )}
+    </div>
+  ),
+}));
 
 jest.mock("@/app/components/paginator", () => ({
   __esModule: true,
@@ -88,200 +136,306 @@ jest.mock("@/app/components/loading_bar", () => () => (
 jest.mock("@/app/utils/time_utils", () => ({
   formatDateToHumanReadableDate: jest.fn(() => "Jan 1, 2020"),
   formatDateToHumanReadableTime: jest.fn(() => "12:00 AM"),
-  formatMillisToHumanReadable: jest.fn(() => "1s"),
+  formatMillisToHumanReadable: jest.fn(() => "5m 30s"),
 }));
 
-jest.mock("@/app/utils/shared_styles", () => ({
-  underlineLinkStyle: "underline-link",
-}));
+import SessionReplayOverview from "@/app/[teamId]/session_replays/page";
 
-const { useFiltersStore } = require("@/app/stores/provider") as any;
+const mockApp = { id: "app-1", name: "Sample" };
 
-const mockSessionTimelineData = {
-  results: [
-    {
-      session_id: "session1",
-      app_id: "app1",
-      first_event_time: "2020-01-01T00:00:00Z",
-      last_event_time: "2020-01-01T00:05:00Z",
-      duration: "1000",
-      matched_free_text: "dummyMatch",
-      attribute: {
-        app_version: "1.0",
-        app_build: "1",
-        user_id: "user1",
-        device_name: "iPhone",
-        device_model: "iPhone 12",
-        device_manufacturer: "Apple",
-        os_name: "ios",
-        os_version: "15",
-      },
-    },
-  ],
+const eventsKey = {
+  name: "session_events",
+  label: "Events",
+  key_group: "Session",
+  description: "What the session contains",
+  value_type: "enum",
+  value_suggestion_mode: "full_list",
+  operators: ["in", "not_in"],
+  enum_values: ["fatal_error", "anr"],
+};
+
+const mockSessionResult = {
+  session_id: "session1",
+  app_id: "app1",
+  first_event_time: "2020-01-01T00:00:00Z",
+  last_event_time: "2020-01-01T00:05:30Z",
+  duration: 330000,
+  attribute: {
+    app_version: "1.0",
+    app_build: "1",
+    os_name: "ios",
+    os_version: "15.0",
+    device_manufacturer: "Apple",
+    device_model: "iPhone 12",
+  },
+};
+
+const mockSessionsData = {
+  results: [mockSessionResult],
   meta: { previous: true, next: true },
 };
 
-describe("SessionReplayOverview Component", () => {
+function sessionsLoaded(data: any = mockSessionsData) {
+  mockUseSessionReplayOverviewQuery.mockReturnValue({
+    data,
+    status: "success",
+    isFetching: false,
+    error: null,
+  });
+}
+
+const settled = { a: "app-1", d: "Last 6 Hours" };
+
+function renderPage() {
+  return render(
+    <SessionReplayOverview params={promiseParams({ teamId: "123" })} />,
+  );
+}
+
+describe("SessionReplayOverview page", () => {
   beforeEach(() => {
-    replaceMock.mockClear();
-    pushMock.mockClear();
-    mockSearchParams = new URLSearchParams();
+    mockRouter.reset();
+    mockFiltersStore.reset();
+    mockToastNegative.mockClear();
+    mockUseAppsQuery.mockReturnValue({ status: "success", data: [mockApp] });
+    mockUseFilterKeysQuery.mockReturnValue({
+      data: { keys: [eventsKey], key_groups: ["Session"] },
+      isPending: false,
+      isError: false,
+      isPlaceholderData: false,
+    });
     mockUseSessionReplayOverviewQuery.mockReset();
-    mockUseSessionReplayOverviewQuery.mockReturnValue({
-      data: undefined,
-      status: "pending" as string,
-      isFetching: true,
-      error: null,
-    });
-    useFiltersStore.setState({
-      filters: { ready: false, serialisedFilters: "" },
-    });
+    mockUseSessionReplayOverviewQuery.mockReturnValue(pendingQueryState());
+    mockUseSessionReplayOverviewPlotQuery.mockReset();
+    mockUseSessionReplayOverviewPlotQuery.mockReturnValue(pendingQueryState());
   });
 
-  // Renders the page with the given query data and marks filters ready so the
-  // sessions table and paginator mount.
-  async function renderWithData(data: any) {
-    mockUseSessionReplayOverviewQuery.mockReturnValue({
-      data,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<SessionReplayOverview params={promiseParams({ teamId: "123" })} />);
+  it("renders the filter bar for the sessions entity", () => {
+    renderPage();
+    expect(screen.getByTestId("filter-bar-mock")).toBeInTheDocument();
+    expect(screen.getByTestId("filter-bar-entity")).toHaveTextContent(
+      "sessions",
+    );
+  });
+
+  it("hands the bar the app and filter it settled on", () => {
+    mockRouter.setUrl("?po=0&filter_expr=session_events%3Ain%3Afatal_error");
+    sessionsLoaded();
+    renderPage();
+
+    expect(screen.getByTestId("filter-bar-app")).toHaveTextContent("Sample");
+    expect(screen.getByTestId("filter-bar-expr")).toHaveTextContent(
+      "session_events:in:fatal_error",
+    );
+  });
+
+  it("fetches nothing until it settles on an app and a range", () => {
+    mockRouter.setUrl("?po=20&filter_expr=session_events%3Ain%3Afatal_error");
+    mockUseAppsQuery.mockReturnValue({ status: "pending", data: undefined });
+    sessionsLoaded();
+    renderPage();
+
+    expect(mockUseSessionReplayOverviewQuery).toHaveBeenLastCalledWith(
+      null,
+      20,
+    );
+    expect(mockUseSessionReplayOverviewPlotQuery).toHaveBeenLastCalledWith(
+      null,
+    );
+    expect(screen.getByTestId("skeleton-list-page-mock")).toBeInTheDocument();
+  });
+
+  it("fetches the page the URL names, filtered by what it settled on", () => {
+    mockRouter.setUrl("?po=20&filter_expr=session_events%3Ain%3Afatal_error");
+    sessionsLoaded();
+    renderPage();
+
+    expect(mockUseSessionReplayOverviewQuery).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        appId: "app-1",
+        filterExpr: "session_events:in:fatal_error",
+      }),
+      20,
+    );
+    expect(mockUseSessionReplayOverviewPlotQuery).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        appId: "app-1",
+        filterExpr: "session_events:in:fatal_error",
+      }),
+    );
+  });
+
+  it("never fetches a filter it discarded on mount", async () => {
+    mockRouter.setUrl(
+      "?po=30&filter_expr=device_cohort%3Ain%3Anew&a=app-1&d=Last+6+Hours",
+    );
+    mockRouter.deferReplace = true;
+    sessionsLoaded();
+    renderPage();
+
+    expect(mockUseSessionReplayOverviewQuery).toHaveBeenLastCalledWith(
+      null,
+      30,
+    );
+    expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
+
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
+      mockRouter.applyDeferredReplace();
     });
-  }
 
-  it("renders the Filters component", () => {
-    render(<SessionReplayOverview params={promiseParams({ teamId: "123" })} />);
-    expect(screen.getByTestId("filters-mock")).toBeInTheDocument();
+    expect(mockUseSessionReplayOverviewQuery).toHaveBeenLastCalledWith(
+      expect.objectContaining({ appId: "app-1", filterExpr: null }),
+      0,
+    );
+    for (const [params] of mockUseSessionReplayOverviewQuery.mock.calls) {
+      expect(params?.filterExpr ?? null).not.toBe("device_cohort:in:new");
+    }
   });
 
-  it("does not render main sessions UI when filters are not ready", () => {
-    render(<SessionReplayOverview params={promiseParams({ teamId: "123" })} />);
+  it("records what it settled on, keeping the page the link asked for", () => {
+    mockRouter.setUrl("?po=20&filter_expr=session_events%3Ain%3Afatal_error");
+    sessionsLoaded();
+    renderPage();
+
+    expect(mockRouter.urlParams()).toEqual({
+      ...settled,
+      po: "20",
+      filter_expr: "session_events:in:fatal_error",
+    });
+  });
+
+  it("keeps the plot area up with paging disabled while the sessions load", () => {
+    renderPage();
     expect(
-      screen.queryByTestId("session-replay-overview-plot-mock"),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByTestId("paginator-mock")).not.toBeInTheDocument();
-    expect(screen.queryByTestId("loading-bar-mock")).not.toBeInTheDocument();
-    expect(screen.queryByText("Session")).not.toBeInTheDocument();
+      screen.getByTestId("session-replay-overview-plot-mock"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("next-button")).toBeDisabled();
+    expect(screen.getByTestId("prev-button")).toBeDisabled();
   });
 
-  it("renders main sessions UI, updates URL when filters become ready, and renders table headers", async () => {
-    mockUseSessionReplayOverviewQuery.mockReturnValue({
-      data: mockSessionTimelineData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<SessionReplayOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+  it("shows the plot skeleton while what it settled on waits to reach the URL", () => {
+    mockRouter.deferReplace = true;
+    sessionsLoaded();
+    renderPage();
 
-    expect(replaceMock).toHaveBeenCalledWith("?po=0&updated", {
-      scroll: false,
-    });
+    expect(mockUseSessionReplayOverviewQuery).toHaveBeenLastCalledWith(null, 0);
+    expect(
+      screen.getByTestId("session-replay-overview-plot-mock"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("skeleton-plot-mock")).toBeInTheDocument();
+  });
+
+  it("renders the plot, paginator and table headers once ready", async () => {
+    sessionsLoaded();
+    renderPage();
 
     expect(
       await screen.findByTestId("session-replay-overview-plot-mock"),
     ).toBeInTheDocument();
     expect(await screen.findByTestId("paginator-mock")).toBeInTheDocument();
-
     expect(screen.getByText("Session Replay")).toBeInTheDocument();
     expect(screen.getByText("Start Time")).toBeInTheDocument();
     expect(screen.getByText("Duration")).toBeInTheDocument();
   });
 
-  it("displays session data correctly when API returns results", async () => {
-    mockUseSessionReplayOverviewQuery.mockReturnValue({
-      data: mockSessionTimelineData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<SessionReplayOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+  it("displays session data correctly", () => {
+    sessionsLoaded();
+    renderPage();
 
     expect(screen.getByText("Session ID: session1")).toBeInTheDocument();
     expect(screen.getByText("Jan 1, 2020")).toBeInTheDocument();
     expect(screen.getByText("12:00 AM")).toBeInTheDocument();
-    expect(screen.getByText("1s")).toBeInTheDocument();
-    expect(screen.getByText("Matched dummyMatch")).toBeInTheDocument();
+    expect(screen.getByText("5m 30s")).toBeInTheDocument();
     expect(
-      screen.getByText("1.0(1), iOS 15, Apple iPhone 12"),
+      screen.getByText("1.0(1), iOS 15.0, Apple iPhone 12"),
     ).toBeInTheDocument();
   });
 
-  it("shows error message when API returns error status", async () => {
+  // The device info line maps os_name to a display label: android becomes
+  // "Android API Level", ios "iOS", ipados "iPadOS", and any other value is
+  // shown as-is.
+  it.each([
+    {
+      osName: "ipados",
+      osVersion: "17",
+      expected: "1.0(1), iPadOS 17, Apple iPhone 12",
+    },
+    {
+      osName: "android",
+      osVersion: "14",
+      expected: "1.0(1), Android API Level 14, Apple iPhone 12",
+    },
+    {
+      osName: "harmonyos",
+      osVersion: "4",
+      expected: "1.0(1), harmonyos 4, Apple iPhone 12",
+    },
+  ])(
+    "formats device info line for os_name $osName",
+    ({ osName, osVersion, expected }) => {
+      sessionsLoaded({
+        results: [
+          {
+            ...mockSessionResult,
+            attribute: {
+              ...mockSessionResult.attribute,
+              os_name: osName,
+              os_version: osVersion,
+            },
+          },
+        ],
+        meta: { previous: false, next: false },
+      });
+      renderPage();
+
+      expect(screen.getByText(expected)).toBeInTheDocument();
+    },
+  );
+
+  it("shows N/A for a session with no duration", () => {
+    sessionsLoaded({
+      results: [{ ...mockSessionResult, duration: 0 }],
+      meta: { previous: false, next: false },
+    });
+    renderPage();
+
+    expect(screen.getByText("N/A")).toBeInTheDocument();
+  });
+
+  it("renders table headers but no rows when results are empty", () => {
+    sessionsLoaded({
+      results: [],
+      meta: { previous: false, next: false },
+    });
+    renderPage();
+
+    expect(screen.getByText("Session Replay")).toBeInTheDocument();
+    expect(screen.queryByText("Session ID: session1")).not.toBeInTheDocument();
+  });
+
+  it("shows an error message when the sessions request fails", () => {
     mockUseSessionReplayOverviewQuery.mockReturnValue({
       data: undefined,
       status: "error",
       isFetching: false,
       error: new Error("fail"),
     });
-    render(<SessionReplayOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+    renderPage();
 
     expect(
       screen.getByText(/Error fetching list of sessions/),
     ).toBeInTheDocument();
   });
 
-  it("renders appropriate link for each session that includes teamId, app_id and session_id", async () => {
-    mockUseSessionReplayOverviewQuery.mockReturnValue({
-      data: mockSessionTimelineData,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(<SessionReplayOverview params={promiseParams({ teamId: "123" })} />);
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+  it("renders appropriate link for each session", async () => {
+    sessionsLoaded();
+    renderPage();
 
     const link = screen.getByRole("link", { name: /Session ID: session1/i });
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "/123/session_replays/app1/session1");
 
     const row = link.closest("tr");
-    expect(row).toBeInTheDocument();
-
     await act(async () => {
       fireEvent.keyDown(row!, { key: "Enter" });
     });
@@ -293,247 +447,131 @@ describe("SessionReplayOverview Component", () => {
     expect(pushMock).toHaveBeenCalledWith("/123/session_replays/app1/session1");
   });
 
-  it("shows N/A instead of a formatted duration for zero-duration sessions", async () => {
-    // The backend sends duration as the number 0 for sessions with no
-    // measurable span, and the page renders N/A instead of formatting it.
-    await renderWithData({
-      ...mockSessionTimelineData,
-      results: [{ ...mockSessionTimelineData.results[0], duration: 0 }],
+  describe("a filter it could not settle", () => {
+    beforeEach(() => {
+      mockRouter.setUrl("?po=10&a=app-1&d=Last+6+Hours");
+      mockUseAppsQuery.mockReturnValue({ status: "error", data: undefined });
+      sessionsLoaded();
     });
 
-    expect(screen.getByText("N/A")).toBeInTheDocument();
-    expect(screen.queryByText("1s")).not.toBeInTheDocument();
+    it("is said by the page, in place of the list", () => {
+      renderPage();
+
+      expect(
+        screen.getByText(
+          "Error fetching apps, please refresh page to try again",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.queryByText("Start Time")).toBeNull();
+    });
+
+    it("stops the page fetching anything", () => {
+      renderPage();
+
+      expect(mockUseSessionReplayOverviewQuery).toHaveBeenLastCalledWith(
+        null,
+        10,
+      );
+    });
+
+    it("leaves the URL where the link had it", () => {
+      renderPage();
+
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "10" });
+    });
   });
 
-  it.each([
-    ["ipados", "17", "1.0(1), iPadOS 17, Apple iPhone 12"],
-    ["android", "14", "1.0(1), Android API Level 14, Apple iPhone 12"],
-    ["harmony", "4", "1.0(1), harmony 4, Apple iPhone 12"],
-  ])(
-    "formats the OS name for os_name=%s in the device info line",
-    async (osName, osVersion, expected) => {
-      await renderWithData({
-        ...mockSessionTimelineData,
-        results: [
-          {
-            ...mockSessionTimelineData.results[0],
-            attribute: {
-              ...mockSessionTimelineData.results[0].attribute,
-              os_name: osName,
-              os_version: osVersion,
-            },
-          },
-        ],
+  describe("pagination", () => {
+    it("moves the offset on by the page size when Next is clicked", async () => {
+      mockRouter.setUrl("?po=0&a=app-1&d=Last+6+Hours");
+      sessionsLoaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("next-button"));
       });
 
-      expect(screen.getByText(expected)).toBeInTheDocument();
-    },
-  );
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "5" });
+    });
 
-  describe("paginator state derived from meta", () => {
-    it("enables Next and disables Previous on the first page", async () => {
-      await renderWithData({
-        ...mockSessionTimelineData,
-        meta: { previous: false, next: true },
+    it("moves the offset back when Prev is clicked, and never below zero", async () => {
+      mockRouter.setUrl("?po=5&a=app-1");
+      sessionsLoaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("prev-button"));
+      });
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("prev-button"));
+      });
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
+    });
+
+    it("goes back to the first page when the filter changes", async () => {
+      mockRouter.setUrl("?po=30&a=app-1");
+      sessionsLoaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("filter-bar-apply"));
       });
 
-      expect(screen.getByTestId("next-button")).not.toBeDisabled();
+      expect(mockRouter.urlParams()).toEqual({
+        ...settled,
+        po: "0",
+        filter_expr: "session_events:in:fatal_error",
+      });
+      expect(mockUseSessionReplayOverviewQuery).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          filterExpr: "session_events:in:fatal_error",
+        }),
+        0,
+      );
+      for (const [params, offset] of mockUseSessionReplayOverviewQuery.mock
+        .calls) {
+        if (params?.filterExpr === "session_events:in:fatal_error") {
+          expect(offset).toBe(0);
+        }
+      }
+    });
+
+    it("goes back to the first page when the filter is cleared", async () => {
+      mockRouter.setUrl("?po=30&filter_expr=session_events%3Ain%3Afatal_error");
+      sessionsLoaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("filter-bar-clear"));
+      });
+
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
+    });
+
+    it("cannot be used while a refetch is in flight", () => {
+      mockUseSessionReplayOverviewQuery.mockReturnValue({
+        data: mockSessionsData,
+        status: "success",
+        isFetching: true,
+        error: null,
+      });
+      renderPage();
+
+      expect(screen.getByTestId("next-button")).toBeDisabled();
       expect(screen.getByTestId("prev-button")).toBeDisabled();
     });
-
-    it("enables Previous and disables Next on the last page", async () => {
-      await renderWithData({
-        ...mockSessionTimelineData,
-        meta: { previous: true, next: false },
-      });
-
-      expect(screen.getByTestId("prev-button")).not.toBeDisabled();
-      expect(screen.getByTestId("next-button")).toBeDisabled();
-    });
-
-    it("renders the table shell with both buttons disabled when results are empty", async () => {
-      await renderWithData({
-        results: [],
-        meta: { previous: false, next: false },
-      });
-
-      expect(screen.getByText("Session Replay")).toBeInTheDocument();
-      expect(screen.getByText("Start Time")).toBeInTheDocument();
-      expect(screen.queryByText(/Session ID:/)).not.toBeInTheDocument();
-      expect(screen.getByTestId("prev-button")).toBeDisabled();
-      expect(screen.getByTestId("next-button")).toBeDisabled();
-    });
   });
 
-  describe("Pagination offset handling", () => {
-    it("initializes pagination offset to 0 when no offset is provided", async () => {
-      mockUseSessionReplayOverviewQuery.mockReturnValue({
-        data: mockSessionTimelineData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      render(
-        <SessionReplayOverview params={promiseParams({ teamId: "123" })} />,
-      );
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app-1" },
-          },
-        });
-      });
-      expect(replaceMock).toHaveBeenCalledWith("?po=0&updated", {
-        scroll: false,
-      });
-    });
-
-    it("increments pagination offset when Next is clicked", async () => {
-      mockUseSessionReplayOverviewQuery.mockReturnValue({
-        data: mockSessionTimelineData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      render(
-        <SessionReplayOverview params={promiseParams({ teamId: "123" })} />,
-      );
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app-1" },
-          },
-        });
-      });
-      const nextButton = await screen.findByTestId("next-button");
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      // The pagination limit is 5 so offset should be 5.
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=5&updated", {
-        scroll: false,
-      });
-    });
-
-    it("decrements pagination offset when Prev is clicked, but not below 0", async () => {
-      mockUseSessionReplayOverviewQuery.mockReturnValue({
-        data: mockSessionTimelineData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      render(
-        <SessionReplayOverview params={promiseParams({ teamId: "123" })} />,
-      );
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app-1" },
-          },
-        });
-      });
-      const nextButton = await screen.findByTestId("next-button");
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=5&updated", {
-        scroll: false,
-      });
-      const prevButton = await screen.findByTestId("prev-button");
-      await act(async () => {
-        fireEvent.click(prevButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated", {
-        scroll: false,
-      });
-      await act(async () => {
-        fireEvent.click(prevButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated", {
-        scroll: false,
-      });
-    });
-
-    it("resets pagination offset to 0 when filters change (if previous filters were non-default)", async () => {
-      mockUseSessionReplayOverviewQuery.mockReturnValue({
-        data: mockSessionTimelineData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-
-      render(
-        <SessionReplayOverview params={promiseParams({ teamId: "123" })} />,
-      );
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated",
-            app: { id: "app-1" },
-          },
-        });
-      });
-      expect(replaceMock).toHaveBeenCalledWith("?po=0&updated", {
-        scroll: false,
-      });
-
-      // Click Next twice to get to offset 10.
-      const nextButton = await screen.findByTestId("next-button");
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=5&updated", {
-        scroll: false,
-      });
-
-      await act(async () => {
-        fireEvent.click(nextButton);
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=10&updated", {
-        scroll: false,
-      });
-
-      await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            serialisedFilters: "updated2",
-            app: { id: "app-1" },
-          },
-        });
-        await new Promise((resolve) => setTimeout(resolve, 0));
-      });
-      expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated2", {
-        scroll: false,
-      });
-    });
-  });
-
-  it("correctly toggles loading bar visibility based on API status", async () => {
+  it("shows the loading bar only while a refetch is in flight", async () => {
     mockUseSessionReplayOverviewQuery.mockReturnValue({
-      data: undefined,
-      status: "pending" as string,
+      data: mockSessionsData,
+      status: "success",
       isFetching: true,
       error: null,
     });
-    render(<SessionReplayOverview params={promiseParams({ teamId: "123" })} />);
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
-    });
+    const { rerender } = renderPage();
 
     const loadingBarContainer =
       screen.getByTestId("loading-bar-mock").parentElement;
@@ -541,21 +579,13 @@ describe("SessionReplayOverview Component", () => {
     expect(loadingBarContainer).not.toHaveClass("invisible");
 
     await act(async () => {
-      mockUseSessionReplayOverviewQuery.mockReturnValue({
-        data: mockSessionTimelineData,
-        status: "success",
-        isFetching: false,
-        error: null,
-      });
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1" },
-        },
-      });
+      sessionsLoaded();
+      rerender(
+        <SessionReplayOverview params={promiseParams({ teamId: "123" })} />,
+      );
     });
 
+    await screen.findByText("Session ID: session1");
     expect(loadingBarContainer).not.toHaveClass("visible");
     expect(loadingBarContainer).toHaveClass("invisible");
   });

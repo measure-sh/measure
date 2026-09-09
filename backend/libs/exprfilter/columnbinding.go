@@ -2,6 +2,7 @@ package exprfilter
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/leporo/sqlf"
@@ -138,6 +139,32 @@ func bindUUIDArrayKey(column string, condition Condition) (*sqlf.Stmt, error) {
 	}
 
 	return nil, fmt.Errorf("Key %q cannot be filtered with %q", condition.KeyName, condition.Operator)
+}
+
+// bindEnumKeyToPredicates binds an enum key that has no column of its own:
+// each value name stands for a boolean SQL expression.
+func bindEnumKeyToPredicates(predicates map[string]string) columnKeyBinding {
+	return func(column string, condition Condition) (*sqlf.Stmt, error) {
+		names := condition.TextValues()
+		exprs := make([]string, 0, len(names))
+		for _, name := range names {
+			predicate, ok := predicates[name]
+			if !ok {
+				return nil, fmt.Errorf("Key %q has no value %q", condition.KeyName, name)
+			}
+			exprs = append(exprs, predicate)
+		}
+
+		anyMatch := "(" + strings.Join(exprs, " or ") + ")"
+		switch condition.Operator {
+		case OperatorIn:
+			return sqlf.New(anyMatch), nil
+		case OperatorNotIn:
+			return sqlf.New("not " + anyMatch), nil
+		}
+
+		return nil, fmt.Errorf("Key %q cannot be filtered with %q", condition.KeyName, condition.Operator)
+	}
 }
 
 // bindEnumKeyToCodes builds the columnKeyBinding for an enum key whose column

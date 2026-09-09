@@ -119,6 +119,30 @@ func TestSuggestionSQL(t *testing.T) {
 			wantArgs: []any{teamID, appID, DefaultValueLimit + 1},
 		},
 		{
+			name: "session fixed key values read the app_filters rollup by month",
+			run: func(recorder *sqlRecorder) {
+				byName := IndexKeysByName(SessionsEntity.Keys)
+				_, _ = SessionsEntity.SuggestKeyValues(ctx, nil, recorder, teamID, appID, byName["device_name"], ValueRequest{})
+			},
+			wantSQL: "SELECT device_name as suggested_value, max(end_of_month) as recency" +
+				" FROM app_filters" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND device_name <> ''" +
+				" GROUP BY suggested_value ORDER BY recency desc, suggested_value LIMIT ?",
+			wantArgs: []any{teamID, appID, DefaultValueLimit + 1},
+		},
+		{
+			name: "session user id values read the sessions table, one row per id",
+			run: func(recorder *sqlRecorder) {
+				byName := IndexKeysByName(SessionsEntity.Keys)
+				_, _ = SessionsEntity.SuggestKeyValues(ctx, nil, recorder, teamID, appID, byName["user_id"], ValueRequest{Search: "ana"})
+			},
+			wantSQL: "SELECT arrayJoin(user_ids) as suggested_value, max(first_event_timestamp) as recency" +
+				" FROM sessions" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND arrayJoin(user_ids) <> '' AND arrayJoin(user_ids) ilike ?" +
+				" GROUP BY suggested_value ORDER BY recency desc, suggested_value LIMIT ?",
+			wantArgs: []any{teamID, appID, "%ana%", DefaultValueLimit + 1},
+		},
+		{
 			name: "span custom key values read span_user_def_attrs by key and type",
 			run: func(recorder *sqlRecorder) {
 				_, _ = SpansEntity.SuggestKeyValues(ctx, nil, recorder, teamID, appID, CustomKey("plan", ValueTypeString), ValueRequest{})

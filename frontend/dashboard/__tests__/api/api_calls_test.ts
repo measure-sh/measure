@@ -515,34 +515,101 @@ describe("fetch functions that use applyGenericFiltersToUrl", () => {
       await expect((fn as any)(makeFilters())).rejects.toThrow(RequestError);
     },
   );
+});
 
-  it("fetchSessionReplayOverviewFromServer includes limit/offset", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    await fetchSessionReplayOverviewFromServer(makeFilters(), 10, 20);
-    expect(lastFetchUrl()).toContain("/api/apps/app-a/sessions");
-    expect(lastFetchUrl()).toContain("limit=10");
-    expect(lastFetchUrl()).toContain("offset=20");
+describe("fetchSessionReplayOverviewFromServer", () => {
+  const call = (filterExpr: string | null = null) =>
+    fetchSessionReplayOverviewFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      filterExpr,
+      5,
+      10,
+    );
+
+  it("sends the range, timezone and page in the URL", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await call();
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/sessions");
+    expect(url.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    expect(url.searchParams.get("limit")).toBe("5");
+    expect(url.searchParams.get("offset")).toBe("10");
+    expect(url.searchParams.has("filter_expr")).toBe(false);
+    expect(url.searchParams.has("filter_short_code")).toBe(false);
+    expect(url.searchParams.has("type")).toBe(false);
+    expect(url.searchParams.has("free_text")).toBe(false);
   });
 
-  it("fetchSessionReplayOverviewPlotFromServer returns null when the body is null", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    const result =
-      await fetchSessionReplayOverviewPlotFromServer(makeFilters());
-    expect(result).toBeNull();
+  it("sends the filter expression when one is given", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await call("session_events:in:fatal_error");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("filter_expr")).toBe(
+      "session_events:in:fatal_error",
+    );
   });
 
-  it("fetchSessionReplayOverviewPlotFromServer throws on non-ok", async () => {
+  it("returns data, throws on failure", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ a: 1 }));
+    expect(await call()).toEqual({ a: 1 });
+
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    await expect(
-      fetchSessionReplayOverviewPlotFromServer(makeFilters()),
-    ).rejects.toThrow(ApiError);
+    await expect(call()).rejects.toThrow(ApiError);
+
+    mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
+    await expect(call()).rejects.toThrow(RequestError);
+  });
+});
+
+describe("fetchSessionReplayOverviewPlotFromServer", () => {
+  const call = (filterExpr: string | null = null) =>
+    fetchSessionReplayOverviewPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      filterExpr,
+    );
+
+  it("sends the range, timezone and time group in the URL", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
+    await call();
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/sessions/plots/instances");
+    expect(url.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    // A nine day range buckets by day.
+    expect(url.searchParams.get("plot_time_group")).toBe("days");
+    expect(url.searchParams.has("filter_expr")).toBe(false);
   });
 
-  it("fetchSessionReplayOverviewPlotFromServer throws on exception", async () => {
+  it("sends the filter expression when one is given", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
+    await call("session_events:in:fatal_error");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("filter_expr")).toBe(
+      "session_events:in:fatal_error",
+    );
+  });
+
+  it("returns null when response data is null", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
+    expect(await call()).toBeNull();
+  });
+
+  it("returns data, throws on failure", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse([{ id: "v1" }]));
+    expect(await call()).toEqual([{ id: "v1" }]);
+
+    mockApiClientFetch.mockResolvedValueOnce(errorResponse());
+    await expect(call()).rejects.toThrow(ApiError);
+
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    await expect(
-      fetchSessionReplayOverviewPlotFromServer(makeFilters()),
-    ).rejects.toThrow(RequestError);
+    await expect(call()).rejects.toThrow(RequestError);
   });
 });
 
@@ -1309,38 +1376,11 @@ describe("billing endpoints", () => {
 
 // ========================================================================
 // applyGenericFiltersToUrl — exercised via any function that uses it.
-// These tests cover the per-field append branches (session types, span
-// statuses, bug report statuses, free text, span filters,
-// http methods) by passing filters with non-default values.
+// These tests cover the per-field append branches (span statuses, bug report
+// statuses, free text, span filters, http methods) by passing filters with
+// non-default values.
 // ========================================================================
 describe("applyGenericFiltersToUrl filter branches", () => {
-  it("does NOT append session-type flags (only endpoints that opt-in via appendSessionTypesToUrl do)", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
-    const filters = makeFilters({
-      sessionTypes: {
-        all: false,
-        selected: [
-          "Fatal Error Sessions",
-          "Unhandled Error Sessions",
-          "Handled Error Sessions",
-          "ANR Sessions",
-          "Bug Report Sessions",
-          "User Interaction Sessions",
-          "Foreground Sessions",
-          "Background Sessions",
-        ] as any,
-      },
-    });
-    await fetchMetricsFromServer(filters);
-    const url = lastFetchUrl();
-    expect(url).not.toContain("type=");
-    expect(url).not.toContain("severity=");
-    expect(url).not.toContain("bug_report=");
-    expect(url).not.toContain("user_interaction=");
-    expect(url).not.toContain("foreground=");
-    expect(url).not.toContain("background=");
-  });
-
   it("appends free_text when non-empty", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
     await fetchMetricsFromServer(makeFilters({ freeText: "search me" }));
@@ -1572,7 +1612,15 @@ describe("fetch functions: failure paths", () => {
     ["fetchMetricsFromServer", () => fetchMetricsFromServer(makeFilters())],
     [
       "fetchSessionReplayOverviewFromServer",
-      () => fetchSessionReplayOverviewFromServer(makeFilters(), 10, 0),
+      () =>
+        fetchSessionReplayOverviewFromServer(
+          "app-a",
+          "2026-04-01T00:00:00.000Z",
+          "2026-04-10T00:00:00.000Z",
+          null,
+          10,
+          0,
+        ),
     ],
     [
       "fetchAuthzAndMembersFromServer",
@@ -1755,8 +1803,8 @@ describe("mutation functions: failure paths", () => {
 });
 
 // ========================================================================
-// Additional branch coverage — NoData paths, all SessionType values via
-// session replay fetches, etc.
+// Additional branch coverage — NoData paths and the remaining failure
+// branches.
 // ========================================================================
 describe("additional branch coverage", () => {
   it("fetchAppHealthPlotFromServer throws when the fetch throws", async () => {
@@ -1764,61 +1812,6 @@ describe("additional branch coverage", () => {
     await expect(fetchAppHealthPlotFromServer(makeFilters())).rejects.toThrow(
       RequestError,
     );
-  });
-
-  it("appends all session types via fetchSessionReplayOverviewFromServer", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    await fetchSessionReplayOverviewFromServer(
-      makeFilters({
-        sessionTypes: {
-          all: false,
-          selected: [
-            "Fatal Error Sessions",
-            "Unhandled Error Sessions",
-            "Handled Error Sessions",
-            "ANR Sessions",
-            "Bug Report Sessions",
-            "User Interaction Sessions",
-            "Foreground Sessions",
-            "Background Sessions",
-          ] as any,
-        },
-      }),
-      10,
-      0,
-    );
-    const url = lastFetchUrl();
-    // appendSessionTypesToUrl path — error severities flatten into type=error
-    // + severity=fatal,unhandled,handled, anr stays as a separate type entry.
-    expect(url).toContain("type=error%2Canr");
-    expect(url).toContain("severity=fatal%2Cunhandled%2Chandled");
-    expect(url).toContain("bug_report=1");
-    expect(url).toContain("user_interaction=1");
-    expect(url).toContain("foreground=1");
-    expect(url).toContain("background=1");
-  });
-
-  it("emits no session-type params when sessionTypes.all is true", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    await fetchSessionReplayOverviewFromServer(
-      makeFilters({
-        sessionTypes: {
-          all: true,
-          selected: ["Fatal Error Sessions", "ANR Sessions"] as any,
-        },
-      }),
-      10,
-      0,
-    );
-    // With every session type selected the server-side filter is a no-op,
-    // so appendSessionTypesToUrl adds nothing to the URL.
-    const url = lastFetchUrl();
-    expect(url).not.toContain("type=");
-    expect(url).not.toContain("severity=");
-    expect(url).not.toContain("bug_report=");
-    expect(url).not.toContain("user_interaction=");
-    expect(url).not.toContain("foreground=");
-    expect(url).not.toContain("background=");
   });
 
   it("fetchUsageFromServer returns null on 404", async () => {

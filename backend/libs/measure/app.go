@@ -23,7 +23,6 @@ import (
 	"backend/libs/session"
 	"backend/libs/span"
 
-	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -204,39 +203,6 @@ func anrAllowed(af *filter.AppFilter, requested bool) bool {
 		return false
 	}
 	return requested
-}
-
-// sessionErrorOrExprs returns the OR-clauses for exception/ANR filtering on
-// the sessions table. Returns nil when both type and severity are absent
-// (show-all behaviour). When type is absent, both error and ANR sources are
-// in scope (same as type=error,anr). ANRs are unaffected by severity.
-func sessionErrorOrExprs(af *filter.AppFilter) []string {
-	if len(af.ErrorTypes) == 0 && len(af.Severities) == 0 {
-		return nil
-	}
-
-	includeError := len(af.ErrorTypes) == 0 || slices.Contains(af.ErrorTypes, event.ErrorTypeError)
-	includeANR := len(af.ErrorTypes) == 0 || slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
-
-	var orExprs []string
-	if includeError {
-		hasFatal := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityFatal)
-		hasUnhandled := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityUnhandled)
-		hasHandled := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityHandled)
-		if hasFatal {
-			orExprs = append(orExprs, "fatal_exception_count >= 1")
-		}
-		if hasUnhandled {
-			orExprs = append(orExprs, "unhandled_exception_count >= 1")
-		}
-		if hasHandled {
-			orExprs = append(orExprs, "handled_exception_count >= 1")
-		}
-	}
-	if includeANR {
-		orExprs = append(orExprs, "anr_count >= 1")
-	}
-	return orExprs
 }
 
 // resolveErrorSources maps an AppFilter's severity flags onto the underlying
@@ -1510,19 +1476,55 @@ func (a App) GetLaunchMetrics(ctx context.Context, rch driver.Conn, af *filter.A
 	return
 }
 
+// applySessionsPredicate adds the filter to a sessions query, choosing where
+// it runs. The sessions table keeps one row per ingest batch until ClickHouse
+// merges them in the background, so a recent session is often several rows.
+// Take a session whose first batch carried the session start and a log line
+// and whose second batch carried a crash: until the merge it is two rows, one
+// with fatal_exception_count 0 and one with fatal_exception_count 1.
+//
+// A condition that a single row can satisfy is decided correctly before the
+// GROUP BY, since the crash row alone answers "contains a crash", and
+// filtering there lets ClickHouse skip granules through the count indexes.
+// A negation or a conjunction is not: "contains no crash" is true on the
+// first row and would return the crashed session, and "has a log and a
+// crash" is true on neither row, since the log and the crash never meet, and
+// would miss it. Those conditions run in HAVING over the per-session totals,
+// where both rows have been added up. The price is that a HAVING cannot use
+// the count indexes, so ClickHouse reads every session row of the app in the
+// time range before discarding, where a WHERE skips the granules whose counts
+// rule them out.
+func applySessionsPredicate(base *sqlf.Stmt, ef *exprfilter.ExprFilter) error {
+	if ef.NeedsWholeGroup() {
+		predicate, err := ef.Predicate(exprfilter.SessionsAggregatedKeyBindings)
+		if err != nil {
+			return err
+		}
+		defer predicate.Close()
+		base.Having(predicate.String(), predicate.Args()...)
+	} else {
+		predicate, err := ef.Predicate(nil)
+		if err != nil {
+			return err
+		}
+		defer predicate.Close()
+		base.Where(predicate.String(), predicate.Args()...)
+	}
+
+	return nil
+}
+
 // GetSessionsInstancesPlot provides aggregated session instances
-// matching various filters.
-func (a App) GetSessionsInstancesPlot(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (sessionInstances []session.SessionInstance, err error) {
+// matching the filter expression.
+func (a App) GetSessionsInstancesPlot(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (sessionInstances []session.SessionInstance, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	if af.Timezone == "" {
+	if ef.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
 	}
 
-	if !af.HasPlotTimeGroup() {
-		af.SetDefaultPlotTimeGroup()
-	}
+	ef.SetDefaultPlotTimeGroupIfUnset()
 
-	groupExpr, err := GetPlotTimeGroupExpr("start_time", af.PlotTimeGroup)
+	groupExpr, err := GetPlotTimeGroupExpr("start_time", ef.PlotTimeGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -1533,159 +1535,21 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, rch driver.Conn, af *
 		Select("app_version").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
-		Where("first_event_timestamp >= ? and last_event_timestamp <= ?", af.From, af.To)
+		Where("first_event_timestamp >= ? and last_event_timestamp <= ?", ef.From, ef.To)
 
-	if af.HasFreeText() {
-		base.
-			Select("groupUniqArrayArray(user_ids) as user_ids").
-			Select("groupUniqArrayArray(unique_types) as unique_types").
-			Select("groupUniqArrayArray(unique_custom_type_names) as unique_custom_type_names").
-			Select("groupUniqArrayArray(unique_strings) as unique_strings").
-			Select("groupUniqArrayArray(unique_logs) as unique_logs").
-			Select("groupUniqArrayArray(unique_view_classnames) as unique_view_classnames").
-			Select("groupUniqArrayArray(unique_subview_classnames) as unique_subview_classnames").
-			Select("groupUniqArrayArray(unique_fatal_exceptions) as unique_fatal_exceptions").
-			Select("groupUniqArrayArray(unique_unhandled_exceptions) as unique_unhandled_exceptions").
-			Select("groupUniqArrayArray(unique_handled_exceptions) as unique_handled_exceptions").
-			Select("groupUniqArrayArray(unique_errors) as unique_errors").
-			Select("groupUniqArrayArray(unique_anrs) as unique_anrs").
-			Select("groupUniqArrayArray(unique_click_targets) as unique_click_targets").
-			Select("groupUniqArrayArray(unique_longclick_targets) as unique_longclick_targets").
-			Select("groupUniqArrayArray(unique_scroll_targets) as unique_scroll_targets")
-	}
-
-	if af.HasVersions() {
-		// critical to filter on individual columns to hit
-		// binary search using primary key(s)
-		base.Where("app_version.1 in ?", af.Versions)
-		base.Where("app_version.2 in ?", af.VersionCodes)
-	}
-
-	// Timeline selection parameters
-	//
-	// Allow the user to mix & match fine-grained
-	// timeline selection parameters.
-	{
-		orExprs := []string{}
-		andExprs := []string{}
-
-		orExprs = append(orExprs, sessionErrorOrExprs(af)...)
-
-		if af.BugReport {
-			orExprs = append(orExprs, "bug_report_count >= 1")
-		}
-
-		// wrap the entire condition in parenthesis as
-		// to evaluate as a whole
-		if af.UserInteraction {
-			orExprs = append(orExprs, "(event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1)")
-		}
-
-		// background/foreground filter is applied as an AND expression
-		// that gets ORed with the other session type filters (crash, anr,
-		// bug_report, user_interaction). this ensures foreground/background
-		// sessions are included alongside sessions matching other filters.
-		//
-		// if both background and foreground are true, then
-		// we don't need to filter, include everything.
-		//
-		// a session is considered foreground if it has any of the following:
-		// - lifecycle_app foreground event (foreground_count >= 1)
-		// - gesture events (gesture_click, gesture_long_click, gesture_scroll)
-		// - lifecycle_activity event
-		// - lifecycle_view_controller event
-		// - screen_view event
-		//
-		// a session is considered background if none of the above
-		// foreground-indicating events are present.
-		if af.Background != af.Foreground {
-			if af.Foreground {
-				andExprs = append(andExprs, "foreground_count >= 1 or (event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1) or event_type_counts['lifecycle_activity'] >= 1 or event_type_counts['lifecycle_view_controller'] >= 1 or event_type_counts['screen_view'] >= 1")
-			}
-			if af.Background {
-				andExprs = append(andExprs, "(foreground_count < 1 and event_type_counts['gesture_click'] < 1 and event_type_counts['gesture_long_click'] < 1 and event_type_counts['gesture_scroll'] < 1 and event_type_counts['lifecycle_activity'] < 1 and event_type_counts['lifecycle_view_controller'] < 1 and event_type_counts['screen_view'] < 1)")
-			}
-		}
-
-		if len(orExprs) > 0 || len(andExprs) > 0 {
-			var parts []string
-			if len(orExprs) > 0 {
-				parts = append(parts, "("+strings.Join(orExprs, " or ")+")")
-			}
-			if len(andExprs) > 0 {
-				parts = append(parts, "("+strings.Join(andExprs, " and ")+")")
-			}
-			base.Where("(" + strings.Join(parts, " or ") + ")")
-		}
-	}
-
-	if af.HasOSVersions() {
-		selectedOSVersions, err := af.OSVersionPairs()
-		if err != nil {
+	if ef.HasFilterExpr() {
+		if err = applySessionsPredicate(base, ef); err != nil {
 			return nil, err
 		}
-
-		base.Where("os_version in (?)", selectedOSVersions.Parameterize())
-	}
-
-	if af.HasCountries() {
-		base.Where("hasAll(country_codes, ?)", af.Countries)
-	}
-
-	if af.HasNetworkProviders() {
-		base.Where("hasAll(network_providers, ?)", af.NetworkProviders)
-	}
-
-	if af.HasNetworkTypes() {
-		base.Where("hasAll(network_types, ?)", af.NetworkTypes)
-	}
-
-	if af.HasNetworkGenerations() {
-		base.Where("hasAll(network_generations, ?)", af.NetworkGenerations)
-	}
-
-	if af.HasDeviceLocales() {
-		base.Where("hasAll(device_locales, ?)", af.Locales)
-	}
-
-	if af.HasDeviceManufacturers() {
-		base.Where("device_manufacturer").In(af.DeviceManufacturers)
-	}
-
-	if af.HasDeviceNames() {
-		base.Where("device_name").In(af.DeviceNames)
-	}
-
-	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.
-			From("user_def_attrs").
-			Select("session_id").
-			Where("team_id = toUUID(?)", a.TeamId).
-			Where("app_id = toUUID(?)", a.ID).
-			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-
-		if af.HasVersions() {
-			base.Where("app_version.1 in ?", af.Versions)
-			base.Where("app_version.2 in ?", af.VersionCodes)
-		}
-
-		if af.HasOSVersions() {
-			selectedOSVersions, err := af.OSVersionPairs()
-			if err != nil {
-				return nil, err
-			}
-
-			base.Where("os_version in (?)", selectedOSVersions.Parameterize())
-		}
-
-		af.UDExpression.Augment(subQuery)
-		subQuery.GroupBy("session_id")
-		base.SubQuery("session_id in (", ")", subQuery)
 	}
 
 	base.
 		GroupBy("session_id").
-		GroupBy("app_version")
+		GroupBy("app_version").
+		GroupBy("os_version").
+		GroupBy("device_name").
+		GroupBy("device_model").
+		GroupBy("device_manufacturer")
 
 	// exclude sessions whose only events are session_start,
 	// they carry no real content & are pointless to return
@@ -1695,60 +1559,13 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, rch driver.Conn, af *
 		With("base", base).
 		From("base").
 		Select("count() as instances").
-		Select(groupExpr.BucketExpr+" as datetime_bucket", af.Timezone).
+		Select(groupExpr.BucketExpr+" as datetime_bucket", ef.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 		Select("concat(app_version.1, ' ', '(', app_version.2, ')') as app_version_fmt").
 		GroupBy("app_version, datetime_bucket").
 		OrderBy("datetime_bucket, app_version.2 desc")
 
 	defer stmt.Close()
-
-	// filter sessions that partially match the user
-	// supplied keyword inside various session events.
-	//
-	// matches user id & session id exactly, not partially.
-	if af.HasFreeText() {
-		partial := fmt.Sprintf("%%%s%%", af.FreeText)
-
-		stmtMatch := sqlf.
-			New("").
-			SubQuery("(", ")", sqlf.
-				New("").
-				Clause("arrayExists(x -> x ilike ?, user_ids)", af.FreeText).
-				Clause("or").
-				Clause("toString(session_id) ilike ?", af.FreeText).
-				Clause("or").
-				Clause("arrayExists(x -> x ilike ?, unique_types)", partial).
-				Clause("or").
-				Clause("arrayExists(x -> x ilike ?, unique_custom_type_names)", partial).
-				Clause("or").
-				Clause("arrayExists(x -> x ilike ?, unique_strings)", partial).
-				Clause("or").
-				Clause("arrayExists(x -> x ilike ?, unique_logs)", partial).
-				Clause("or").
-				Clause("arrayExists(x -> x ilike ?, unique_view_classnames)", partial).
-				Clause("or").
-				Clause("arrayExists(x -> x ilike ?, unique_subview_classnames)", partial).
-				Clause("or").
-				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_fatal_exceptions)", slices.Repeat([]any{partial}, 5)...).
-				Clause("or").
-				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_handled_exceptions)", slices.Repeat([]any{partial}, 5)...).
-				Clause("or").
-				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_unhandled_exceptions)", slices.Repeat([]any{partial}, 5)...).
-				Clause("or").
-				Clause("arrayExists(x -> x ilike ?, unique_errors)", partial).
-				Clause("or").
-				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_anrs)", slices.Repeat([]any{partial}, 5)...).
-				Clause("or").
-				Clause("arrayExists(x -> (x.1 ilike ? or x.2 ilike ?), unique_click_targets)", partial, partial).
-				Clause("or").
-				Clause("arrayExists(x -> (x.1 ilike ? or x.2 ilike ?), unique_longclick_targets)", partial, partial).
-				Clause("or").
-				Clause("arrayExists(x -> (x.1 ilike ? or x.2 ilike ?), unique_scroll_targets)", partial, partial),
-			)
-
-		stmt.Where(stmtMatch.String(), stmtMatch.Args()...)
-	}
 
 	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -1770,9 +1587,9 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, rch driver.Conn, af *
 	return
 }
 
-// GetSessionsWithFilter provides sessions that matches various
-// filter criteria in a paginated fashion.
-func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (sessions []SessionDisplay, next, previous bool, err error) {
+// GetSessionsWithFilter provides sessions that match the filter
+// expression in a paginated fashion.
+func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (sessions []SessionDisplay, next, previous bool, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	base := sqlf.
 		From("sessions").
@@ -1788,154 +1605,12 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, af *fil
 		Select("max(last_event_timestamp) as end_time").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
-		Where("first_event_timestamp >= ? and last_event_timestamp <= ?", af.From, af.To)
+		Where("first_event_timestamp >= ? and last_event_timestamp <= ?", ef.From, ef.To)
 
-	if af.HasFreeText() {
-		base.
-			Select("groupUniqArrayArray(user_ids) as user_ids").
-			Select("groupUniqArrayArray(unique_types) as unique_types").
-			Select("groupUniqArrayArray(unique_custom_type_names) as unique_custom_type_names").
-			Select("groupUniqArrayArray(unique_strings) as unique_strings").
-			Select("groupUniqArrayArray(unique_logs) as unique_logs").
-			Select("groupUniqArrayArray(unique_view_classnames) as unique_view_classnames").
-			Select("groupUniqArrayArray(unique_subview_classnames) as unique_subview_classnames").
-			Select("groupUniqArrayArray(unique_fatal_exceptions) as unique_fatal_exceptions").
-			Select("groupUniqArrayArray(unique_unhandled_exceptions) as unique_unhandled_exceptions").
-			Select("groupUniqArrayArray(unique_handled_exceptions) as unique_handled_exceptions").
-			Select("groupUniqArrayArray(unique_errors) as unique_errors").
-			Select("groupUniqArrayArray(unique_anrs) as unique_anrs").
-			Select("groupUniqArrayArray(unique_click_targets) as unique_click_targets").
-			Select("groupUniqArrayArray(unique_longclick_targets) as unique_longclick_targets").
-			Select("groupUniqArrayArray(unique_scroll_targets) as unique_scroll_targets")
-	}
-
-	if af.HasVersions() {
-		// critical to filter on individual columns to hit
-		// binary search using primary key(s)
-		base.Where("app_version.1 in ?", af.Versions)
-		base.Where("app_version.2 in ?", af.VersionCodes)
-	}
-
-	// Timeline selection parameters
-	//
-	// Allow the user to mix & match fine-grained
-	// timeline selection parameters.
-	{
-		orExprs := []string{}
-		andExprs := []string{}
-
-		orExprs = append(orExprs, sessionErrorOrExprs(af)...)
-
-		if af.BugReport {
-			orExprs = append(orExprs, "bug_report_count >= 1")
+	if ef.HasFilterExpr() {
+		if err = applySessionsPredicate(base, ef); err != nil {
+			return
 		}
-
-		// wrap the entire condition in parenthesis as
-		// to evaluate as a whole
-		if af.UserInteraction {
-			orExprs = append(orExprs, "(event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1)")
-		}
-
-		// background/foreground filter is applied as an AND expression
-		// that gets ORed with the other session type filters (crash, anr,
-		// bug_report, user_interaction). this ensures foreground/background
-		// sessions are included alongside sessions matching other filters.
-		//
-		// if both background and foreground are true, then
-		// we don't need to filter, include everything.
-		//
-		// a session is considered foreground if it has any of the following:
-		// - lifecycle_app foreground event (foreground_count >= 1)
-		// - gesture events (gesture_click, gesture_long_click, gesture_scroll)
-		// - lifecycle_activity event
-		// - lifecycle_view_controller event
-		// - screen_view event
-		//
-		// a session is considered background if none of the above
-		// foreground-indicating events are present.
-		if af.Background != af.Foreground {
-			if af.Foreground {
-				andExprs = append(andExprs, "foreground_count >= 1 or (event_type_counts['gesture_click'] >= 1 or event_type_counts['gesture_long_click'] >= 1 or event_type_counts['gesture_scroll'] >= 1) or event_type_counts['lifecycle_activity'] >= 1 or event_type_counts['lifecycle_view_controller'] >= 1 or event_type_counts['screen_view'] >= 1")
-			}
-			if af.Background {
-				andExprs = append(andExprs, "(foreground_count < 1 and event_type_counts['gesture_click'] < 1 and event_type_counts['gesture_long_click'] < 1 and event_type_counts['gesture_scroll'] < 1 and event_type_counts['lifecycle_activity'] < 1 and event_type_counts['lifecycle_view_controller'] < 1 and event_type_counts['screen_view'] < 1)")
-			}
-		}
-
-		if len(orExprs) > 0 || len(andExprs) > 0 {
-			var parts []string
-			if len(orExprs) > 0 {
-				parts = append(parts, "("+strings.Join(orExprs, " or ")+")")
-			}
-			if len(andExprs) > 0 {
-				parts = append(parts, "("+strings.Join(andExprs, " and ")+")")
-			}
-			base.Where("(" + strings.Join(parts, " or ") + ")")
-		}
-	}
-
-	if af.HasOSVersions() {
-		selectedOSVersions, err := af.OSVersionPairs()
-		if err != nil {
-			return sessions, next, previous, err
-		}
-
-		base.Where("os_version in (?)", selectedOSVersions.Parameterize())
-	}
-
-	if af.HasCountries() {
-		base.Where("hasAll(country_codes, ?)", af.Countries)
-	}
-
-	if af.HasNetworkProviders() {
-		base.Where("hasAll(network_providers, ?)", af.NetworkProviders)
-	}
-
-	if af.HasNetworkTypes() {
-		base.Where("hasAll(network_types, ?)", af.NetworkTypes)
-	}
-
-	if af.HasNetworkGenerations() {
-		base.Where("hasAll(network_generations, ?)", af.NetworkGenerations)
-	}
-
-	if af.HasDeviceLocales() {
-		base.Where("hasAll(device_locales, ?)", af.Locales)
-	}
-
-	if af.HasDeviceManufacturers() {
-		base.Where("device_manufacturer").In(af.DeviceManufacturers)
-	}
-
-	if af.HasDeviceNames() {
-		base.Where("device_name").In(af.DeviceNames)
-	}
-
-	if af.HasUDExpression() && !af.UDExpression.Empty() {
-		subQuery := sqlf.
-			From("user_def_attrs").
-			Select("session_id").
-			Where("team_id = toUUID(?)", a.TeamId).
-			Where("app_id = toUUID(?)", a.ID).
-			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-
-		if af.HasVersions() {
-			base.Where("app_version.1 in ?", af.Versions)
-			base.Where("app_version.2 in ?", af.VersionCodes)
-		}
-
-		if af.HasOSVersions() {
-			selectedOSVersions, err := af.OSVersionPairs()
-			if err != nil {
-				return sessions, next, previous, err
-			}
-
-			base.Where("os_version in (?)", selectedOSVersions.Parameterize())
-		}
-
-		af.UDExpression.Augment(subQuery)
-		subQuery.GroupBy("session_id")
-		base.SubQuery("session_id in (", ")", subQuery)
 	}
 
 	base.
@@ -1979,76 +1654,13 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, af *fil
 
 	// paginate
 	{
-		if af.Limit > 0 {
-			stmt.Limit(uint64(af.Limit) + 1)
+		if ef.Limit > 0 {
+			stmt.Limit(uint64(ef.Limit) + 1)
 		}
 
-		if af.Offset >= 0 {
-			stmt.Offset(uint64(af.Offset))
+		if ef.Offset >= 0 {
+			stmt.Offset(uint64(ef.Offset))
 		}
-	}
-
-	// filter sessions that partially match the user
-	// supplied keyword inside various session events.
-	//
-	// matches user id & session id exactly, not partially.
-	if af.HasFreeText() {
-		partial := fmt.Sprintf("%%%s%%", af.FreeText)
-
-		stmtMatch := sqlf.
-			New("").
-			SubQuery("(", ")", sqlf.
-				New("").
-				Clause("arrayExists(x -> x like ?, user_ids)", af.FreeText).
-				Clause("or").
-				Clause("toString(session_id) like ?", af.FreeText).
-				Clause("or").
-				Clause("arrayExists(x -> x like ?, unique_types)", partial).
-				Clause("or").
-				Clause("arrayExists(x -> x like ?, unique_custom_type_names)", partial).
-				Clause("or").
-				Clause("arrayExists(x -> x ilike ?, unique_strings)", partial).
-				Clause("or").
-				Clause("arrayExists(x -> x ilike ?, unique_logs)", partial).
-				Clause("or").
-				Clause("arrayExists(x -> x ilike ?, unique_view_classnames)", partial).
-				Clause("or").
-				Clause("arrayExists(x -> x ilike ?, unique_subview_classnames)", partial).
-				Clause("or").
-				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_fatal_exceptions)", slices.Repeat([]any{partial}, 5)...).
-				Clause("or").
-				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_handled_exceptions)", slices.Repeat([]any{partial}, 5)...).
-				Clause("or").
-				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_unhandled_exceptions)", slices.Repeat([]any{partial}, 5)...).
-				Clause("or").
-				Clause("arrayExists(x -> x ilike ?, unique_errors)", partial).
-				Clause("or").
-				Clause("arrayExists(x -> (x.type ilike ? or x.message ilike ? or x.file_name ilike ? or x.class_name ilike ? or x.method_name ilike ?), unique_anrs)", slices.Repeat([]any{partial}, 5)...).
-				Clause("or").
-				Clause("arrayExists(x -> (x.1 ilike ? or x.2 ilike ?), unique_click_targets)", partial, partial).
-				Clause("or").
-				Clause("arrayExists(x -> (x.1 ilike ? or x.2 ilike ?), unique_longclick_targets)", partial, partial).
-				Clause("or").
-				Clause("arrayExists(x -> (x.1 ilike ? or x.2 ilike ?), unique_scroll_targets)", partial, partial),
-			)
-
-		stmt.Select("user_ids").
-			Select("unique_types").
-			Select("unique_custom_type_names").
-			Select("unique_strings").
-			Select("unique_logs").
-			Select("unique_view_classnames").
-			Select("unique_subview_classnames").
-			Select("unique_fatal_exceptions").
-			Select("unique_unhandled_exceptions").
-			Select("unique_handled_exceptions").
-			Select("unique_errors").
-			Select("unique_anrs").
-			Select("unique_click_targets").
-			Select("unique_longclick_targets").
-			Select("unique_scroll_targets")
-
-		stmt.Where(stmtMatch.String(), stmtMatch.Args()...)
 	}
 
 	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
@@ -2057,20 +1669,10 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, af *fil
 	}
 
 	for rows.Next() {
-		var uniqueUserIds, uniqueTypes, uniqueCustomTypeNames,
-			uniqueStrings, uniqueLogs, uniqueViewClassnames, uniqueSubviewClassnames, uniqueErrors []string
-		uniqueFatalExceptions := []map[string]string{}
-		uniqueUnhandledExceptions := []map[string]string{}
-		uniqueHandledExceptions := []map[string]string{}
-		uniqueANRs := []map[string]string{}
-		rawClickTargets := []clickhouse.ArraySet{}
-		rawLongclickTargets := []clickhouse.ArraySet{}
-		rawScrollTargets := []clickhouse.ArraySet{}
-
 		var sess SessionDisplay
 		sess.Session = new(Session)
 		sess.Attribute = new(event.Attribute)
-		sess.AppID = af.AppID
+		sess.AppID = ef.AppID
 
 		dest := []any{
 			&sess.SessionID,
@@ -2085,27 +1687,6 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, af *fil
 			&sess.LastEventTime,
 		}
 
-		if af.HasFreeText() {
-			dest = append(
-				dest,
-				&uniqueUserIds,
-				&uniqueTypes,
-				&uniqueCustomTypeNames,
-				&uniqueStrings,
-				&uniqueLogs,
-				&uniqueViewClassnames,
-				&uniqueSubviewClassnames,
-				&uniqueFatalExceptions,
-				&uniqueUnhandledExceptions,
-				&uniqueHandledExceptions,
-				&uniqueErrors,
-				&uniqueANRs,
-				&rawClickTargets,
-				&rawLongclickTargets,
-				&rawScrollTargets,
-			)
-		}
-
 		if err = rows.Scan(dest...); err != nil {
 			fmt.Println(err)
 			return
@@ -2115,49 +1696,8 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, af *fil
 			return
 		}
 
-		// convert array of tuple types
-		uniqueClickTargets := make([][]string, len(rawClickTargets))
-		for i, tuple := range rawClickTargets {
-			uniqueClickTargets[i] = []string{tuple[0].(string), tuple[1].(string)}
-		}
-
-		uniqueLongclickTargets := make([][]string, len(rawLongclickTargets))
-		for i, tuple := range rawLongclickTargets {
-			uniqueLongclickTargets[i] = []string{tuple[0].(string), tuple[1].(string)}
-		}
-
-		uniqueScrollTargets := make([][]string, len(rawScrollTargets))
-		for i, tuple := range rawScrollTargets {
-			uniqueScrollTargets[i] = []string{tuple[0].(string), tuple[1].(string)}
-		}
-
-		if len(uniqueUserIds) > 0 {
-			sess.Attribute.UserID = uniqueUserIds[0]
-		}
-
 		// set duration
 		sess.Duration = time.Duration(sess.LastEventTime.Sub(*sess.FirstEventTime).Milliseconds())
-
-		// set matched free text results
-		sess.MatchedFreeText = session.ExtractMatches(
-			af.FreeText,
-			sess.Attribute.UserID,
-			sess.SessionID.String(),
-			uniqueTypes,
-			uniqueCustomTypeNames,
-			uniqueStrings,
-			uniqueLogs,
-			uniqueViewClassnames,
-			uniqueSubviewClassnames,
-			uniqueErrors,
-			uniqueFatalExceptions,
-			uniqueUnhandledExceptions,
-			uniqueHandledExceptions,
-			uniqueANRs,
-			uniqueClickTargets,
-			uniqueLongclickTargets,
-			uniqueScrollTargets,
-		)
 
 		sessions = append(sessions, sess)
 	}
@@ -2167,12 +1707,12 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, af *fil
 	resultLen := len(sessions)
 
 	// set pagination next & previous flags
-	if resultLen > af.Limit {
+	if resultLen > ef.Limit {
 		sessions = sessions[:resultLen-1]
 		next = true
 	}
 
-	if af.Offset > 0 {
+	if ef.Offset > 0 {
 		previous = true
 	}
 

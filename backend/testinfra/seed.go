@@ -249,6 +249,17 @@ type EventRow struct {
 	LifecycleActivityType      string
 	LifecycleActivityClassName string
 
+	// Payload of a Type "lifecycle_app" event, written only when set:
+	// "foreground" or "background".
+	LifecycleAppType string
+
+	// CustomName is the name of a Type "custom" event, LogBody the text of a
+	// Type "log" event and LogString the text of a Type "string" event. Each
+	// is written only when set.
+	CustomName string
+	LogBody    string
+	LogString  string
+
 	HttpURL        string
 	HttpMethod     string
 	HttpStatusCode int
@@ -383,6 +394,24 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 	if row.LifecycleActivityClassName != "" {
 		cols = append(cols, "`lifecycle_activity.type`", "`lifecycle_activity.class_name`")
 		vals = append(vals, quote(row.LifecycleActivityType), quote(row.LifecycleActivityClassName))
+	}
+
+	if row.LifecycleAppType != "" {
+		cols = append(cols, "`lifecycle_app.type`")
+		vals = append(vals, quote(row.LifecycleAppType))
+	}
+
+	if row.CustomName != "" {
+		cols = append(cols, "`custom.name`")
+		vals = append(vals, quote(row.CustomName))
+	}
+	if row.LogBody != "" {
+		cols = append(cols, "`log.body`")
+		vals = append(vals, quote(row.LogBody))
+	}
+	if row.LogString != "" {
+		cols = append(cols, "`string.string`")
+		vals = append(vals, quote(row.LogString))
 	}
 
 	if !row.InsertedAt.IsZero() {

@@ -420,7 +420,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_filter_keys
 		newTool(&mcpsdk.Tool{
 			Name:        "get_filter_keys",
-			Description: "List the filter keys of an entity (spans, bug_reports, journeys, network or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
+			Description: "List the filter keys of an entity (spans, bug_reports, sessions, journeys, network or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
 			InputSchema: mcpMustInferSchema[mcpGetFilterKeysInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFilterKeysInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetFilterKeys(ctx, in)
@@ -510,8 +510,8 @@ func commonTools(cfg *Config) []Tool {
 		// get_sessions
 		newTool(&mcpsdk.Tool{
 			Name:        "get_sessions",
-			Description: "Get sessions for an app, ordered by most recent first. Filter to sessions containing errors via error_types and severities. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
-			InputSchema: mcpMustInferErrorFilterSchema[mcpGetSessionsInput](),
+			Description: "Get sessions for an app, ordered by most recent first. Covers every session unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.SessionsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetSessionsInput](mcpSessionsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSessionsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSessions(ctx, in)
 		}),
@@ -519,8 +519,8 @@ func commonTools(cfg *Config) []Tool {
 		// get_sessions_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_sessions_over_time",
-			Description: "Get time-series of session counts. Filter to sessions containing errors via error_types and severities. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
-			InputSchema: mcpMustInferErrorFilterSchema[mcpGetSessionsOverTimeInput](),
+			Description: "Get time-series of session counts. Covers every session unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.SessionsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetSessionsOverTimeInput](mcpSessionsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSessionsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSessionsOverTime(ctx, in)
 		}),
@@ -700,6 +700,7 @@ var (
 	mcpBugReportsFilterExprGrammar = mcpFilterExprGrammar(exprfilter.BugReportsEntity, "version_name:in:[1.2.0] AND bug_report_status:in:open")
 	mcpJourneysFilterExprGrammar   = mcpFilterExprGrammar(exprfilter.JourneysEntity, "version_name:in:[1.2.0] AND version_code:in:[120]")
 	mcpNetworkFilterExprGrammar    = mcpFilterExprGrammar(exprfilter.NetworkEntity, "version_name:in:[1.2.0] AND http_method:in:get")
+	mcpSessionsFilterExprGrammar   = mcpFilterExprGrammar(exprfilter.SessionsEntity, "session_events:in:[fatal_error, anr] AND session_foreground_background:in:[foreground]")
 )
 
 // mcpMustInferFilterExprSchema infers a JSON schema from a Go type and sets
@@ -800,12 +801,12 @@ type mcpGetFiltersInput struct {
 }
 type mcpGetFilterKeysInput struct {
 	AppID  string   `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, journeys, network or builds"`
+	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, journeys, network or builds"`
 	Keys   []string `json:"keys,omitempty" jsonschema:"Key names you already know, for example from the user's request, to include in the result even when the listing is truncated"`
 }
 type mcpGetFilterValuesInput struct {
 	AppID   string `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, journeys, network or builds"`
+	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, journeys, network or builds"`
 	KeyName string `json:"key_name" jsonschema:"Name of the filter key to list values for, as get_filter_keys returns it"`
 	Search  string `json:"search,omitempty" jsonschema:"Return only values containing this text"`
 	Limit   int    `json:"limit,omitempty" jsonschema:"Maximum number of values to return (default: 50, max: 200)"`
@@ -846,23 +847,19 @@ type mcpGetErrorDistributionInput struct {
 	ErrorGroupID string `json:"error_group_id" jsonschema:"Fingerprint/ID of the error group"`
 }
 type mcpGetSessionsInput struct {
-	mcpCommonFilters
-	mcpErrorFilters
-	FreeText        string `json:"free_text,omitempty" jsonschema:"Free text search filter"`
-	Foreground      *bool  `json:"foreground,omitempty" jsonschema:"Filter for foreground sessions"`
-	Background      *bool  `json:"background,omitempty" jsonschema:"Filter for background sessions"`
-	UserInteraction *bool  `json:"user_interaction,omitempty" jsonschema:"Filter for sessions with user interaction"`
-	Limit           int    `json:"limit,omitempty" jsonschema:"Maximum number of sessions to return (default: 10)"`
-	Offset          int    `json:"offset,omitempty" jsonschema:"Number of sessions to skip for pagination (default: 0)"`
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of sessions to return (default: 10)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of sessions to skip for pagination (default: 0)"`
 }
 type mcpGetSessionsOverTimeInput struct {
-	mcpCommonFilters
-	mcpErrorFilters
-	FreeText        string `json:"free_text,omitempty" jsonschema:"Free text search filter"`
-	Foreground      *bool  `json:"foreground,omitempty" jsonschema:"Filter for foreground sessions"`
-	Background      *bool  `json:"background,omitempty" jsonschema:"Filter for background sessions"`
-	UserInteraction *bool  `json:"user_interaction,omitempty" jsonschema:"Filter for sessions with user interaction"`
-	Timezone        string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Timezone   string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
 }
 type mcpGetSessionInput struct {
 	AppID     string `json:"app_id" jsonschema:"UUID of the app"`
@@ -1225,22 +1222,6 @@ func mcpApplyErrorFilters(af *filter.AppFilter, ef mcpErrorFilters) error {
 	}
 	af.CustomError = ef.CustomErrorsOnly
 	return nil
-}
-
-// mcpApplySessionFilters sets session-specific filter fields on an AppFilter.
-func mcpApplySessionFilters(af *filter.AppFilter, freeText string, foreground, background, userInteraction *bool) {
-	if freeText != "" {
-		af.FreeText = freeText
-	}
-	if foreground != nil && *foreground {
-		af.Foreground = true
-	}
-	if background != nil && *background {
-		af.Background = true
-	}
-	if userInteraction != nil && *userInteraction {
-		af.UserInteraction = true
-	}
 }
 
 // mcpParseTimeRangeStrings parses optional RFC3339 from/to strings.
@@ -1750,34 +1731,24 @@ func (c *Config) mcpGetErrorDistribution(ctx context.Context, in mcpGetErrorDist
 
 func (c *Config) mcpGetSessions(ctx context.Context, in mcpGetSessionsInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.SessionsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
+		limit := in.Limit
+		if limit <= 0 {
+			limit = 10
+		}
+		if limit > 30 {
+			limit = 30
+		}
+		ef.Limit = limit
+		ef.Offset = in.Offset
+	})
 	if err != nil {
 		return nil, nil, err
 	}
-
-	af, err := c.mcpBuildAppFilter(ctx, appID, in.mcpCommonFilters)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	limit := in.Limit
-	if limit <= 0 {
-		limit = 10
-	}
-	if limit > 30 {
-		limit = 30
-	}
-	af.Limit = limit
-	af.Offset = in.Offset
-
-	if err := mcpApplyErrorFilters(af, in.mcpErrorFilters); err != nil {
-		return nil, nil, err
-	}
-	mcpApplySessionFilters(af, in.FreeText, in.Foreground, in.Background, in.UserInteraction)
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	sessCtx := ambient.WithTeamId(ctx, teamID)
-	sessions, _, _, sessErr := app.GetSessionsWithFilter(sessCtx, deps.RchPool, af)
+	sessions, _, _, sessErr := app.GetSessionsWithFilter(sessCtx, deps.RchPool, ef)
 	if sessErr != nil {
 		return nil, nil, fmt.Errorf("failed to get session timelines: %v", sessErr)
 	}
@@ -1791,26 +1762,16 @@ func (c *Config) mcpGetSessionsOverTime(ctx context.Context, in mcpGetSessionsOv
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
 
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.SessionsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
+		ef.Timezone = in.Timezone
+	})
 	if err != nil {
 		return nil, nil, err
 	}
-
-	af, err := c.mcpBuildAppFilter(ctx, appID, in.mcpCommonFilters)
-	if err != nil {
-		return nil, nil, err
-	}
-	af.Timezone = in.Timezone
-	af.Limit = filter.DefaultPaginationLimit
-
-	if err := mcpApplyErrorFilters(af, in.mcpErrorFilters); err != nil {
-		return nil, nil, err
-	}
-	mcpApplySessionFilters(af, in.FreeText, in.Foreground, in.Background, in.UserInteraction)
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	plotCtx := ambient.WithTeamId(ctx, teamID)
-	instances, plotErr := app.GetSessionsInstancesPlot(plotCtx, deps.RchPool, af)
+	instances, plotErr := app.GetSessionsInstancesPlot(plotCtx, deps.RchPool, ef)
 	if plotErr != nil {
 		return nil, nil, fmt.Errorf("failed to get session timelines plot: %v", plotErr)
 	}

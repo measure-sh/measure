@@ -21,10 +21,9 @@ type Session struct {
 // wrapper over Session for display purposes.
 type SessionDisplay struct {
 	*Session
-	FirstEventTime  *time.Time    `json:"first_event_time" binding:"required"`
-	LastEventTime   *time.Time    `json:"last_event_time" binding:"required"`
-	Duration        time.Duration `json:"duration"`
-	MatchedFreeText string        `json:"matched_free_text"`
+	FirstEventTime *time.Time    `json:"first_event_time" binding:"required"`
+	LastEventTime  *time.Time    `json:"last_event_time" binding:"required"`
+	Duration       time.Duration `json:"duration"`
 }
 
 const (

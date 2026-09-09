@@ -1,12 +1,15 @@
 /**
- * Integration tests for the Session Replay overview page.
+ * Integration tests for the wiring between the Session Replay overview page
+ * and the server: request paths and parameters, the filter expression carried
+ * by the URL, pagination round-trips, and error responses. Rendering details
+ * of the rows are covered by the unit tests in
+ * __tests__/pages/session_replay_overview_test.tsx. The detail page a session
+ * opens into has its own suite.
  *
- * It is the most filter-rich page in the app: 13 filter types (app, versions,
- * dates, session types, OS, countries, network types/providers/generations,
- * locales, device manufacturers/names, udAttrs, freeText) plus pagination.
- * This suite exercises every filter, pagination and URL sync. The detail page
- * a session opens into has its own suite.
+ * Unique to sessions:
+ *   - the sessions filter entity (events, lifecycle, version_name, ...)
  */
+import { mockRouter } from "@/__tests__/helpers/mock_router";
 import { promiseParams } from "@/__tests__/helpers/promise_params";
 import {
   afterAll,
@@ -19,11 +22,11 @@ import {
 } from "@jest/globals";
 import {
   act,
-  cleanup,
   fireEvent,
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
@@ -34,13 +37,10 @@ jest.mock("posthog-js", () => ({
   default: { reset: jest.fn(), capture: jest.fn(), init: jest.fn() },
 }));
 
-const mockRouterReplace = jest.fn();
-const mockRouterPush = jest.fn();
-const mockSearchParams = new URLSearchParams();
+const mockRouterPush = mockRouter.pushMock;
+
 jest.mock("next/navigation", () => ({
-  __esModule: true,
-  useRouter: () => ({ replace: mockRouterReplace, push: mockRouterPush }),
-  useSearchParams: () => mockSearchParams,
+  ...require("@/__tests__/helpers/mock_router").nextNavigationMock(),
   usePathname: () => "/test-team/session_replays",
 }));
 
@@ -56,6 +56,11 @@ jest.mock("next/link", () => ({
 jest.mock("next-themes", () => ({
   __esModule: true,
   useTheme: () => ({ theme: "light" }),
+}));
+
+jest.mock("next/image", () => ({
+  __esModule: true,
+  default: (props: any) => <img {...props} />,
 }));
 
 jest.mock("@nivo/line", () => {
@@ -75,11 +80,25 @@ jest.mock("@nivo/line", () => {
   };
 });
 
+// The filter pickers are Radix popovers, which need a resize observer and
+// pointer capture that jsdom does not have.
+(globalThis as any).ResizeObserver = class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+Element.prototype.scrollIntoView = jest.fn();
+Element.prototype.hasPointerCapture = jest.fn(() => false);
+Element.prototype.setPointerCapture = jest.fn();
+Element.prototype.releasePointerCapture = jest.fn();
+
 // --- MSW ---
 import {
+  makeAppFixture,
   makeSessionPlotFixture,
   makeSessionReplayOverviewFixture,
   makeSessionReplayOverviewPage2Fixture,
+  makeSessionsFilterKeysFixture,
 } from "../msw/fixtures";
 import { server } from "../msw/server";
 
@@ -89,12 +108,11 @@ jest.spyOn(console, "error").mockImplementation(() => {});
 beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
 afterEach(() => {
   server.resetHandlers();
-  mockRouterReplace.mockClear();
   mockRouterPush.mockClear();
 });
 afterAll(() => server.close());
 
-// --- Store imports ---
+// --- Store/component imports ---
 import SessionReplayOverview from "@/app/[teamId]/session_replays/page";
 import { queryClient } from "@/app/query/query_client";
 import { createFiltersStore } from "@/app/stores/filters_store";
@@ -116,12 +134,13 @@ jest.mock("@/app/stores/provider", () => {
   };
 });
 
+const appId = makeAppFixture().id;
+
 beforeEach(() => {
   filtersStore = createFiltersStore();
   onboardingStore = createOnboardingStore();
   queryClient.clear();
-  filtersStore.getState().reset();
-  for (const key of [...mockSearchParams.keys()]) mockSearchParams.delete(key);
+  mockRouter.reset();
   const { apiClient } = require("@/app/api/api_client");
   apiClient.init({ replace: jest.fn(), push: jest.fn() });
 });
@@ -133,620 +152,420 @@ function renderWithProviders(ui: React.ReactElement) {
 }
 
 describe("Session Replay Overview (MSW integration)", () => {
-  const { AppVersion, OsVersion } = require("@/app/api/api_calls");
-
-  async function renderAndWaitForData() {
-    renderWithProviders(
+  function renderPage() {
+    return renderWithProviders(
       <SessionReplayOverview params={promiseParams({ teamId: "test-team" })} />,
     );
+  }
+
+  // The list endpoint shares its path prefix with /sessions/:sessionId and
+  // /sessions/plots/*, so anything deeper than four segments is left to the
+  // default handlers.
+  function recordSessionsRequests() {
+    const sent: URL[] = [];
+    server.use(
+      http.get("*/api/apps/:appId/sessions", ({ request }) => {
+        const url = new URL(request.url);
+        const pathParts = url.pathname.split("/").filter(Boolean);
+        if (pathParts.length > 4) {
+          return;
+        }
+        sent.push(url);
+        return HttpResponse.json(makeSessionReplayOverviewFixture());
+      }),
+    );
+    return sent;
+  }
+
+  async function waitForSessions() {
     await waitFor(
-      () => {
-        expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy();
-      },
+      () => expect(screen.getByText("Session ID: sess-001")).toBeTruthy(),
       { timeout: 5000 },
     );
   }
 
-  // ================================================================
-  // PAGE LOAD
-  // ================================================================
-  describe("page load", () => {
-    it("shows error state when sessions API returns 500", async () => {
+  describe("opening the page", () => {
+    it("lists the sessions the server sent under the plot", async () => {
+      renderPage();
+      await waitForSessions();
+
+      expect(screen.getByText("Session ID: sess-002")).toBeTruthy();
+      expect(screen.getByTestId("nivo-line-chart")).toBeTruthy();
+    });
+
+    it("asks for the app's sessions over the range it settled on", async () => {
+      const sent = recordSessionsRequests();
+      renderPage();
+      await waitForSessions();
+
+      expect(sent).toHaveLength(1);
+      expect(sent[0].pathname).toBe(`/api/apps/${appId}/sessions`);
+      expect(sent[0].searchParams.get("from")).toMatch(/Z$/);
+      expect(sent[0].searchParams.get("to")).toMatch(/Z$/);
+      expect(sent[0].searchParams.get("timezone")).toBeTruthy();
+      expect(sent[0].searchParams.get("limit")).toBe("5");
+      expect(sent[0].searchParams.get("offset")).toBe("0");
+      expect(sent[0].searchParams.has("filter_expr")).toBe(false);
+      expect(sent[0].searchParams.has("filter_short_code")).toBe(false);
+      expect(sent[0].searchParams.has("free_text")).toBe(false);
+      expect(sent[0].searchParams.has("type")).toBe(false);
+    });
+
+    it("sends the time group in the plot request", async () => {
+      const plotUrls: URL[] = [];
       server.use(
-        http.get("*/api/apps/:appId/sessions", () => {
-          return new HttpResponse(null, { status: 500 });
+        http.get(
+          "*/api/apps/:appId/sessions/plots/instances",
+          ({ request }) => {
+            plotUrls.push(new URL(request.url));
+            return HttpResponse.json(makeSessionPlotFixture());
+          },
+        ),
+      );
+      renderPage();
+      await waitForSessions();
+
+      await waitFor(() => expect(plotUrls.length).toBeGreaterThan(0));
+      expect(plotUrls[0].pathname).toBe(
+        `/api/apps/${appId}/sessions/plots/instances`,
+      );
+      expect(plotUrls[0].searchParams.get("plot_time_group")).toBeTruthy();
+      expect(plotUrls[0].searchParams.has("filter_expr")).toBe(false);
+    });
+
+    it("records the app and range it settled on in the URL", async () => {
+      renderPage();
+      await waitForSessions();
+
+      const written = new URLSearchParams(window.location.search);
+      expect(written.get("a")).toBe(appId);
+      expect(written.get("d")).toBe("Last 6 Hours");
+      expect(written.get("sd")).toBeNull();
+      expect(written.get("ed")).toBeNull();
+      expect(written.get("po")).toBeNull();
+    });
+
+    it("offers the keys the entity has, in the groups the server named", async () => {
+      const keysUrls: URL[] = [];
+      server.use(
+        http.get("*/api/apps/:appId/filters/keys", ({ request }) => {
+          keysUrls.push(new URL(request.url));
+          return HttpResponse.json(makeSessionsFilterKeysFixture());
         }),
       );
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
+      renderPage();
+      await waitForSessions();
+
+      fireEvent.click(screen.getByTestId("filter-input"));
+
+      // The list opens on the first group's keys, with the other groups as
+      // tabs; a search reaches keys in every group.
+      const list = within(await screen.findByRole("dialog"));
+      expect(list.getByText("Events")).toBeTruthy();
+      expect(list.getByText("Session")).toBeTruthy();
+      expect(list.getByText("Version")).toBeTruthy();
+      fireEvent.change(list.getByTestId("filter-key-search"), {
+        target: { value: "App version" },
+      });
+      expect(await screen.findByTestId("filter-key-version_name")).toBeTruthy();
+      expect(keysUrls[0].searchParams.get("entity")).toBe("sessions");
+    });
+  });
+
+  describe("a link carrying a filter", () => {
+    it("filters the sessions and the plot by it", async () => {
+      mockRouter.setUrl(
+        `po=0&filter_expr=${encodeURIComponent("session_events:in:fatal_error")}`,
       );
-      await waitFor(
-        () => {
-          expect(
-            screen.getByText(/Error fetching list of sessions/),
-          ).toBeTruthy();
-        },
-        { timeout: 5000 },
+      const sent = recordSessionsRequests();
+      const plotUrls: URL[] = [];
+      server.use(
+        http.get(
+          "*/api/apps/:appId/sessions/plots/instances",
+          ({ request }) => {
+            plotUrls.push(new URL(request.url));
+            return HttpResponse.json(makeSessionPlotFixture());
+          },
+        ),
+      );
+      renderPage();
+      await waitForSessions();
+
+      expect(sent[0].searchParams.get("filter_expr")).toBe(
+        "session_events:in:fatal_error",
+      );
+      await waitFor(() => expect(plotUrls.length).toBeGreaterThan(0));
+      expect(plotUrls[0].searchParams.get("filter_expr")).toBe(
+        "session_events:in:fatal_error",
       );
     });
 
-    it("shows plot error when plot API fails", async () => {
+    it("draws the lifecycle key as a condition a person can edit", async () => {
+      mockRouter.setUrl(
+        `po=0&filter_expr=${encodeURIComponent("session_foreground_background:in:foreground")}`,
+      );
+      const sent = recordSessionsRequests();
+      renderPage();
+      await waitForSessions();
+
+      expect(sent[0].searchParams.get("filter_expr")).toBe(
+        "session_foreground_background:in:foreground",
+      );
+      const bar = within(screen.getByTestId("filter-bar"));
+      expect(await screen.findByText("Foreground/Background")).toBeTruthy();
+      expect(bar.getByText("is")).toBeTruthy();
+      expect(bar.getByText("foreground")).toBeTruthy();
+    });
+
+    it("draws it as a condition a person can edit", async () => {
+      mockRouter.setUrl(
+        `po=0&filter_expr=${encodeURIComponent("session_events:in:fatal_error")}`,
+      );
+      renderPage();
+      await waitForSessions();
+
+      const bar = within(screen.getByTestId("filter-bar"));
+      expect(await screen.findByText("Events")).toBeTruthy();
+      expect(bar.getByText("is")).toBeTruthy();
+      expect(bar.getByText("fatal_error")).toBeTruthy();
+    });
+
+    it("draws a text-only key as a condition a person can edit", async () => {
+      mockRouter.setUrl(
+        `po=0&filter_expr=${encodeURIComponent("session_log:contains:timeout")}`,
+      );
+      const sent = recordSessionsRequests();
+      renderPage();
+      await waitForSessions();
+
+      expect(sent[0].searchParams.get("filter_expr")).toBe(
+        "session_log:contains:timeout",
+      );
+      const bar = within(screen.getByTestId("filter-bar"));
+      expect(await screen.findByText("Log")).toBeTruthy();
+      expect(bar.getByText("contains")).toBeTruthy();
+      expect(bar.getByText("timeout")).toBeTruthy();
+    });
+
+    it("filters by nothing when it cannot be read", async () => {
+      mockRouter.setUrl(
+        `po=0&filter_expr=${encodeURIComponent("session_events:in:")}`,
+      );
+      const sent = recordSessionsRequests();
+      renderPage();
+      await waitForSessions();
+
+      expect(sent[0].searchParams.has("filter_expr")).toBe(false);
+    });
+  });
+
+  describe("filtering by a value", () => {
+    it("lists the event kinds the server names, then filters by the one picked", async () => {
+      const values: URL[] = [];
       server.use(
-        http.get("*/api/apps/:appId/sessions/plots/instances", () => {
-          return new HttpResponse(null, { status: 500 });
+        http.get("*/api/apps/:appId/filters/values", ({ request }) => {
+          values.push(new URL(request.url));
+          return HttpResponse.json({
+            values: [{ text: "fatal_error" }, { text: "anr" }],
+            truncated: false,
+          });
         }),
       );
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
+      const sent = recordSessionsRequests();
+      renderPage();
+      await waitForSessions();
+
+      fireEvent.click(screen.getByTestId("filter-input"));
+      fireEvent.change(await screen.findByTestId("filter-key-search"), {
+        target: { value: "Events" },
+      });
+      fireEvent.click(await screen.findByTestId("filter-key-session_events"));
+      fireEvent.click(await screen.findByTestId("filter-value-anr"));
+
+      await waitFor(() => expect(sent).toHaveLength(2));
+      expect(values[0].searchParams.get("entity")).toBe("sessions");
+      expect(values[0].searchParams.get("key_name")).toBe("session_events");
+      expect(sent[1].searchParams.get("filter_expr")).toBe(
+        "session_events:in:anr",
       );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Error fetching plot/)).toBeTruthy();
-        },
-        { timeout: 5000 },
+    });
+
+    it("lists the lifecycle values the server names, then filters by the one picked", async () => {
+      server.use(
+        http.get("*/api/apps/:appId/filters/values", () => {
+          return HttpResponse.json({
+            values: [{ text: "foreground" }, { text: "background" }],
+            truncated: false,
+          });
+        }),
+      );
+      const sent = recordSessionsRequests();
+      renderPage();
+      await waitForSessions();
+
+      fireEvent.click(screen.getByTestId("filter-input"));
+      fireEvent.change(await screen.findByTestId("filter-key-search"), {
+        target: { value: "Foreground/Background" },
+      });
+      fireEvent.click(
+        await screen.findByTestId("filter-key-session_foreground_background"),
+      );
+      fireEvent.click(await screen.findByTestId("filter-value-background"));
+
+      await waitFor(() => expect(sent).toHaveLength(2));
+      expect(sent[1].searchParams.get("filter_expr")).toBe(
+        "session_foreground_background:in:background",
+      );
+    });
+
+    it("asks the server for a sampled key's values, then filters by the one picked", async () => {
+      const values: URL[] = [];
+      server.use(
+        http.get("*/api/apps/:appId/filters/values", ({ request }) => {
+          values.push(new URL(request.url));
+          return HttpResponse.json({
+            values: [{ text: "user-123" }, { text: "user-456" }],
+            truncated: false,
+          });
+        }),
+      );
+      const sent = recordSessionsRequests();
+      renderPage();
+      await waitForSessions();
+
+      fireEvent.click(screen.getByTestId("filter-input"));
+      fireEvent.change(await screen.findByTestId("filter-key-search"), {
+        target: { value: "User ID" },
+      });
+      fireEvent.click(await screen.findByTestId("filter-key-user_id"));
+      fireEvent.click(await screen.findByTestId("filter-value-user-123"));
+
+      await waitFor(() => expect(sent).toHaveLength(2));
+      expect(values[0].searchParams.get("entity")).toBe("sessions");
+      expect(values[0].searchParams.get("key_name")).toBe("user_id");
+      expect(sent[1].searchParams.get("filter_expr")).toBe(
+        "user_id:in:user-123",
       );
     });
   });
 
-  // ================================================================
-  // PAGINATION
-  // ================================================================
   describe("pagination", () => {
-    it("clicking Next fetches page 2 with offset in URL", async () => {
-      const sessionRequests: string[] = [];
+    it("clicking Next renders page 2 data, Previous returns to page 1", async () => {
       server.use(
         http.get("*/api/apps/:appId/sessions", ({ request }) => {
           const url = new URL(request.url);
-          if (url.pathname.split("/").filter(Boolean).length > 4) return;
-          sessionRequests.push(request.url);
-          const offset = url.searchParams.get("offset");
-          if (offset === "5") {
+          const pathParts = url.pathname.split("/").filter(Boolean);
+          if (pathParts.length > 4) {
+            return;
+          }
+          if (url.searchParams.get("offset") === "5") {
             return HttpResponse.json(makeSessionReplayOverviewPage2Fixture());
           }
           return HttpResponse.json(makeSessionReplayOverviewFixture());
         }),
       );
 
-      await renderAndWaitForData();
-      sessionRequests.length = 0;
-
-      await act(async () => {
-        fireEvent.click(screen.getByText("Next").closest("button")!);
-      });
-
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Session ID: sess-006/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
-
-      expect(mockRouterReplace).toHaveBeenCalled();
-      const url =
-        mockRouterReplace.mock.calls[
-          mockRouterReplace.mock.calls.length - 1
-        ][0];
-      expect(url).toContain("po=5");
-    });
-
-    it("clicking Previous from page 2 goes back to page 1 data", async () => {
-      server.use(
-        http.get("*/api/apps/:appId/sessions", ({ request }) => {
-          const url = new URL(request.url);
-          if (url.pathname.split("/").filter(Boolean).length > 4) return;
-          const offset = url.searchParams.get("offset");
-          if (offset === "5") {
-            return HttpResponse.json(makeSessionReplayOverviewPage2Fixture());
-          }
-          return HttpResponse.json(makeSessionReplayOverviewFixture());
-        }),
-      );
-
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
+      renderPage();
+      await waitForSessions();
 
       await act(async () => {
         fireEvent.click(screen.getByText("Next").closest("button")!);
       });
       await waitFor(
         () => {
-          expect(screen.getByText(/Session ID: sess-006/)).toBeTruthy();
+          expect(screen.getByText("Session ID: sess-006")).toBeTruthy();
         },
         { timeout: 5000 },
       );
+      expect(screen.queryByText("Session ID: sess-001")).toBeNull();
 
       await act(async () => {
         fireEvent.click(screen.getByText("Previous").closest("button")!);
       });
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
+      await waitForSessions();
+      expect(screen.queryByText("Session ID: sess-006")).toBeNull();
 
-      expect(screen.queryByText(/Session ID: sess-006/)).toBeNull();
-
-      const url =
-        mockRouterReplace.mock.calls[
-          mockRouterReplace.mock.calls.length - 1
-        ][0];
-      expect(url).toContain("po=0");
+      expect(window.location.search).toContain("po=0");
     });
 
     it("deep-link with po=5 renders page 2 data", async () => {
       server.use(
         http.get("*/api/apps/:appId/sessions", ({ request }) => {
           const url = new URL(request.url);
-          if (url.pathname.split("/").filter(Boolean).length > 4) return;
-          const offset = url.searchParams.get("offset");
-          if (offset === "5") {
+          const pathParts = url.pathname.split("/").filter(Boolean);
+          if (pathParts.length > 4) {
+            return;
+          }
+          if (url.searchParams.get("offset") === "5") {
             return HttpResponse.json(makeSessionReplayOverviewPage2Fixture());
           }
           return HttpResponse.json(makeSessionReplayOverviewFixture());
         }),
       );
 
-      mockSearchParams.set("po", "5");
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
+      mockRouter.setUrl("po=5");
+      renderPage();
       await waitFor(
         () => {
-          expect(screen.getByText(/Session ID: sess-006/)).toBeTruthy();
+          expect(screen.getByText("Session ID: sess-006")).toBeTruthy();
         },
-        { timeout: 5000 },
+        { timeout: 8000 },
       );
 
-      expect(screen.queryByText(/Session ID: sess-001/)).toBeNull();
+      expect(screen.queryByText("Session ID: sess-001")).toBeNull();
     });
   });
 
-  // ================================================================
-  // ALL FILTERS — the session replay page enables 13 filter types
-  // ================================================================
-  describe("filters", () => {
-    let shortFilterBodies: any[];
-    let sessionRequests: { url: string }[];
-
-    beforeEach(() => {
-      shortFilterBodies = [];
-      sessionRequests = [];
+  describe("when the server fails", () => {
+    it("shows error when the sessions API returns 500", async () => {
       server.use(
-        http.post("*/api/apps/:appId/shortFilters", async ({ request }) => {
-          shortFilterBodies.push(await request.json());
-          return HttpResponse.json({
-            filter_short_code: `code-${shortFilterBodies.length}`,
-          });
-        }),
         http.get("*/api/apps/:appId/sessions", ({ request }) => {
           const url = new URL(request.url);
-          if (url.pathname.split("/").filter(Boolean).length > 4) return;
-          sessionRequests.push({ url: request.url });
-          return HttpResponse.json(makeSessionReplayOverviewFixture());
+          const pathParts = url.pathname.split("/").filter(Boolean);
+          if (pathParts.length > 4) {
+            return;
+          }
+          return new HttpResponse(null, { status: 500 });
         }),
       );
+
+      renderPage();
+      expect(
+        await screen.findByText(/Error fetching list of sessions/),
+      ).toBeTruthy();
     });
 
-    // --- Store-driven filters that travel in the shortFilters POST body ---
-    // One store setter per field, each expected to land in the POST body
-    // under its own key. The OS row carries two keys because os_names and
-    // os_versions are an index-aligned pair.
-    it.each([
-      [
-        "versions",
-        () =>
-          filtersStore
-            .getState()
-            .setSelectedVersions([new AppVersion("3.0.1", "301")]),
-        { versions: ["3.0.1"] },
-      ],
-      [
-        "os_names/os_versions",
-        () =>
-          filtersStore
-            .getState()
-            .setSelectedOsVersions([new OsVersion("android", "14")]),
-        { os_names: ["android"], os_versions: ["14"] },
-      ],
-      [
-        "countries",
-        () => filtersStore.getState().setSelectedCountries(["US"]),
-        { countries: ["US"] },
-      ],
-      [
-        "network_providers",
-        () => filtersStore.getState().setSelectedNetworkProviders(["Jio"]),
-        { network_providers: ["Jio"] },
-      ],
-      [
-        "network_types",
-        () => filtersStore.getState().setSelectedNetworkTypes(["wifi"]),
-        { network_types: ["wifi"] },
-      ],
-      [
-        "network_generations",
-        () => filtersStore.getState().setSelectedNetworkGenerations(["5g"]),
-        { network_generations: ["5g"] },
-      ],
-      [
-        "locales",
-        () => filtersStore.getState().setSelectedLocales(["en-US"]),
-        { locales: ["en-US"] },
-      ],
-      [
-        "device_manufacturers",
-        () =>
-          filtersStore.getState().setSelectedDeviceManufacturers(["Samsung"]),
-        { device_manufacturers: ["Samsung"] },
-      ],
-      [
-        "device_names",
-        () => filtersStore.getState().setSelectedDeviceNames(["Galaxy S24"]),
-        { device_names: ["Galaxy S24"] },
-      ],
-    ] as [string, () => void, Record<string, string[]>][])(
-      "%s change is sent in the shortFilters POST body",
-      async (_field, applyFilter, expected) => {
-        await renderAndWaitForData();
-        shortFilterBodies.length = 0;
-        await act(async () => {
-          applyFilter();
-        });
-        await waitFor(
-          () => expect(shortFilterBodies.length).toBeGreaterThan(0),
-          { timeout: 5000 },
-        );
-        expect(
-          shortFilterBodies[shortFilterBodies.length - 1].filters,
-        ).toMatchObject(expected);
-      },
-    );
-
-    // --- Session type filter (URL param, not shortFilters body) ---
-    it("session type change adds type=error,anr + severity to data-fetch URL", async () => {
-      await renderAndWaitForData();
-      sessionRequests.length = 0;
-      await act(async () => {
-        filtersStore
-          .getState()
-          .setSelectedSessionTypes([
-            "Fatal Error Sessions" as any,
-            "ANR Sessions" as any,
-          ]);
-      });
-      await waitFor(() => expect(sessionRequests.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      const url = sessionRequests[sessionRequests.length - 1].url;
-      expect(url).toContain("type=error%2Canr");
-      expect(url).toContain("severity=fatal");
-    });
-
-    // --- Date range (URL param) ---
-    it("date change refetches sessions with new from/to", async () => {
-      await renderAndWaitForData();
-      sessionRequests.length = 0;
-      const now = new Date();
-      const weekAgo = new Date(now.getTime() - 7 * 86400000);
-      await act(async () => {
-        filtersStore.getState().setSelectedDateRange("Last Week");
-        filtersStore.getState().setSelectedStartDate(weekAgo.toISOString());
-        filtersStore.getState().setSelectedEndDate(now.toISOString());
-      });
-      await waitFor(() => expect(sessionRequests.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-      expect(sessionRequests[sessionRequests.length - 1].url).toContain(
-        "from=",
-      );
-    });
-
-    // --- Date range does NOT trigger shortFilters POST ---
-    it("date change does NOT fire shortFilters POST", async () => {
-      await renderAndWaitForData();
-      const postsBefore = shortFilterBodies.length;
-      const now = new Date();
-      await act(async () => {
-        filtersStore.getState().setSelectedDateRange("Last 24 Hours");
-        filtersStore
-          .getState()
-          .setSelectedStartDate(
-            new Date(now.getTime() - 86400000).toISOString(),
-          );
-        filtersStore.getState().setSelectedEndDate(now.toISOString());
-      });
-      await waitFor(() => expect(sessionRequests.length).toBeGreaterThan(1), {
-        timeout: 5000,
-      });
-      expect(shortFilterBodies.length).toBe(postsBefore);
-    });
-
-    // --- Filter change refetches both sessions AND plot ---
-    it("filter change refetches both the session list and the plot", async () => {
-      let plotFetches = 0;
+    it("shows plot error when the plot API returns 500", async () => {
       server.use(
         http.get("*/api/apps/:appId/sessions/plots/instances", () => {
-          plotFetches++;
-          return HttpResponse.json(makeSessionPlotFixture());
+          return new HttpResponse(null, { status: 500 });
         }),
       );
 
-      await renderAndWaitForData();
-      sessionRequests.length = 0;
-      const plotBefore = plotFetches;
-
-      await act(async () => {
-        filtersStore.getState().setSelectedCountries(["DE"]);
-      });
-
-      await waitFor(
-        () => {
-          expect(sessionRequests.length).toBeGreaterThan(0);
-          expect(plotFetches).toBeGreaterThan(plotBefore);
-        },
-        { timeout: 5000 },
-      );
-    });
-  });
-
-  // ================================================================
-  // URL SERIALIZATION
-  // ================================================================
-  describe("URL sync", () => {
-    it("URL includes all enabled filter params after load", async () => {
-      await renderAndWaitForData();
-      expect(mockRouterReplace).toHaveBeenCalled();
-      const url =
-        mockRouterReplace.mock.calls[
-          mockRouterReplace.mock.calls.length - 1
-        ][0];
-      expect(url).toContain("po="); // pagination offset
-      expect(url).toContain("a="); // appId
-      expect(url).toContain("v="); // versions
-      expect(url).toContain("d="); // dateRange
+      renderPage();
+      expect(await screen.findByText(/Error fetching plot/)).toBeTruthy();
     });
 
-    it("deep-link with pagination offset initializes store offset", async () => {
-      // Extra reset to ensure clean state after prior tests in full suite
-      queryClient.clear();
-      filtersStore.getState().reset();
-      mockSearchParams.set("po", "10");
-
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-
-      // The useEffect reads po from URL and calls setPaginationOffset
-      await waitFor(
-        () => {
-          const urlCheck =
-            mockRouterReplace.mock.calls[
-              mockRouterReplace.mock.calls.length - 1
-            ][0];
-          expect(urlCheck).toContain("po=10");
-        },
-        { timeout: 5000 },
-      );
-    });
-  });
-});
-
-// ====================================================================
-// ADDITIONAL OVERVIEW COVERAGE
-// ====================================================================
-describe("Session Replay Overview — additional coverage", () => {
-  const { AppVersion, OsVersion } = require("@/app/api/api_calls");
-
-  let shortFilterBodies: any[];
-
-  beforeEach(() => {
-    shortFilterBodies = [];
-    server.use(
-      http.post("*/api/apps/:appId/shortFilters", async ({ request }) => {
-        shortFilterBodies.push(await request.json());
-        return HttpResponse.json({
-          filter_short_code: `code-${shortFilterBodies.length}`,
-        });
-      }),
-    );
-  });
-
-  async function renderAndWaitForData() {
-    renderWithProviders(
-      <SessionReplayOverview params={promiseParams({ teamId: "test-team" })} />,
-    );
-    await waitFor(
-      () => {
-        expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy();
-      },
-      { timeout: 5000 },
-    );
-  }
-
-  // ================================================================
-  // MULTIPLE FILTERS IN ONE POST
-  // ================================================================
-  describe("multiple filters combined", () => {
-    it("setting OS + country + locale produces a single POST with all three", async () => {
-      await renderAndWaitForData();
-      shortFilterBodies.length = 0;
-
-      await act(async () => {
-        filtersStore
-          .getState()
-          .setSelectedOsVersions([new OsVersion("android", "14")]);
-        filtersStore.getState().setSelectedCountries(["US"]);
-        filtersStore.getState().setSelectedLocales(["en-US"]);
-      });
-
-      await waitFor(() => expect(shortFilterBodies.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-
-      const body = shortFilterBodies[shortFilterBodies.length - 1];
-      expect(body.filters.os_names).toEqual(["android"]);
-      expect(body.filters.countries).toEqual(["US"]);
-      expect(body.filters.locales).toEqual(["en-US"]);
-    });
-  });
-
-  // ================================================================
-  // URL ROUND-TRIP
-  // ================================================================
-  describe("URL round-trip", () => {
-    it("version + date range survive URL round-trip", async () => {
-      await renderAndWaitForData();
-
-      // Clear replace calls from the initial render so the capture below reflects
-      // the version change (React 19 defers the effect that writes the URL).
-      mockRouterReplace.mockClear();
-
-      await act(async () => {
-        filtersStore
-          .getState()
-          .setSelectedVersions([new AppVersion("3.0.2", "302")]);
-        const now = new Date();
-        filtersStore.getState().setSelectedDateRange("Last Week");
-        filtersStore
-          .getState()
-          .setSelectedStartDate(
-            new Date(now.getTime() - 7 * 86400000).toISOString(),
-          );
-        filtersStore.getState().setSelectedEndDate(now.toISOString());
-      });
-
-      await waitFor(() => expect(mockRouterReplace).toHaveBeenCalled());
-      const serializedUrl = mockRouterReplace.mock.calls[
-        mockRouterReplace.mock.calls.length - 1
-      ][0] as string;
-      const params = new URLSearchParams(serializedUrl.replace(/^\?/, ""));
-
-      filtersStore.getState().reset();
-      queryClient.clear();
-      for (const key of [...mockSearchParams.keys()])
-        mockSearchParams.delete(key);
-      for (const [key, value] of params.entries())
-        mockSearchParams.set(key, value);
-
-      // Unmount the first tree before re-rendering: this round-trip simulates a
-      // fresh navigation to the captured URL. Leaving it mounted lets its stale
-      // Filters effect race with the new mount over the shared store (React 19's
-      // effect ordering surfaces this; React 18 happened to let the new tree win).
-      cleanup();
-
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => {
-          expect(
-            screen.getAllByText(/Session ID:/).length,
-          ).toBeGreaterThanOrEqual(1);
-        },
-        { timeout: 5000 },
-      );
-
-      expect(filtersStore.getState().selectedVersions[0]?.name).toBe("3.0.2");
-      expect(filtersStore.getState().selectedDateRange).toBe("Last Week");
-    });
-  });
-
-  // ================================================================
-  // PAGINATION OFFSET URL ROUND-TRIP
-  // ================================================================
-  describe("pagination URL round-trip", () => {
-    it("paginating to page 2 then capturing URL preserves offset on reload", async () => {
+    it("says so when the team's apps cannot be fetched", async () => {
       server.use(
-        http.get("*/api/apps/:appId/sessions", ({ request }) => {
-          const url = new URL(request.url);
-          if (url.pathname.split("/").filter(Boolean).length > 4) return;
-          const offset = url.searchParams.get("offset");
-          if (offset === "5") {
-            return HttpResponse.json(makeSessionReplayOverviewPage2Fixture());
-          }
-          return HttpResponse.json(makeSessionReplayOverviewFixture());
+        http.get("*/api/teams/:teamId/apps", () => {
+          return new HttpResponse(null, { status: 500 });
         }),
       );
+      renderPage();
 
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-      await waitFor(
-        () => {
-          expect(screen.getByText(/Session ID: sess-001/)).toBeTruthy();
-        },
-        { timeout: 5000 },
-      );
+      expect(await screen.findByText(/Error fetching apps/)).toBeTruthy();
+    });
+  });
 
-      await act(async () => {
-        fireEvent.click(screen.getByText("Next").closest("button")!);
-      });
+  describe("re-render", () => {
+    it("re-render still shows data", async () => {
+      const { unmount } = renderPage();
+      await waitForSessions();
 
-      await waitFor(() => {
-        expect(mockRouterReplace).toHaveBeenCalled();
-        const url =
-          mockRouterReplace.mock.calls[
-            mockRouterReplace.mock.calls.length - 1
-          ][0];
-        expect(url).toContain("po=5");
-      });
-
-      const serializedUrl = mockRouterReplace.mock.calls[
-        mockRouterReplace.mock.calls.length - 1
-      ][0] as string;
-      const params = new URLSearchParams(serializedUrl.replace(/^\?/, ""));
-
-      filtersStore.getState().reset();
-      queryClient.clear();
-      for (const key of [...mockSearchParams.keys()])
-        mockSearchParams.delete(key);
-      for (const [key, value] of params.entries())
-        mockSearchParams.set(key, value);
-
-      // Unmount the first tree before re-rendering: this round-trip simulates a
-      // fresh navigation to the captured URL. Leaving it mounted lets its stale
-      // Filters effect race with the new mount over the shared store (React 19's
-      // effect ordering surfaces this; React 18 happened to let the new tree win).
-      cleanup();
-
-      renderWithProviders(
-        <SessionReplayOverview
-          params={promiseParams({ teamId: "test-team" })}
-        />,
-      );
-
-      await waitFor(
-        () => {
-          const url =
-            mockRouterReplace.mock.calls[
-              mockRouterReplace.mock.calls.length - 1
-            ][0];
-          expect(url).toContain("po=5");
-        },
-        { timeout: 5000 },
-      );
+      unmount();
+      renderPage();
+      await waitForSessions();
     });
   });
 });

@@ -994,6 +994,7 @@ paths:
               - builds
               - spans
               - bug_reports
+              - sessions
               - journeys
               - alerts
               - network
@@ -1119,6 +1120,7 @@ paths:
               - builds
               - spans
               - bug_reports
+              - sessions
               - journeys
               - alerts
               - network
@@ -2209,14 +2211,9 @@ paths:
         - Sessions
       summary: Fetch an app's sessions
       description: |
-        Fetch an app's sessions by applying various optional filters.
+        Fetch an app's sessions, optionally narrowed by a filter expression.
 
-        For multiple comma separated fields, make sure no whitespace characters
-        exist before or after commas. Pass `limit` and `offset` values to
-        paginate results. When `free_text` is set, each result's
-        `matched_free_text` field contains a space-separated string of match
-        labels, e.g. `"CrashType: NullPointerException CrashMessage: something
-        went wrong"`.
+        Pass `limit` and `offset` values to paginate results.
 
         In the response, `meta.next` / `meta.previous` are booleans indicating
         whether more pages exist in the respective direction. `events` is
@@ -2236,102 +2233,7 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated app version identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated app version codes to return only matching sessions.
-          schema:
-            type: string
-        - name: type
-          in: query
-          required: false
-          description: "Comma-separated list of event source types to filter sessions. Accepted values: any combination of `error`, `anr`. `error` matches sessions with at least one exception event (fatal, unhandled, or handled); `anr` matches sessions with at least one ANR. When both `type` and `severity` are absent, all sessions are returned. When `type` is absent but `severity` is set, behaves as `type=error,anr`."
-          schema:
-            type: string
-        - name: severity
-          in: query
-          required: false
-          description: "Comma-separated list of exception severities to further narrow results. Accepted values: any combination of `fatal`, `unhandled`, `handled`. Severity filters only exceptions; ANR sessions are never filtered by severity."
-          schema:
-            type: string
-        - name: bug_report
-          in: query
-          required: false
-          description: Boolean true/false to control if only sessions containing at least 1 bug report should be fetched.
-          schema:
-            type: string
-        - name: background
-          in: query
-          required: false
-          description: Boolean true/false to control if only background sessions should be fetched.
-          schema:
-            type: string
-        - name: foreground
-          in: query
-          required: false
-          description: Boolean true/false to control if only foreground sessions should be fetched.
-          schema:
-            type: string
-        - name: user_interaction
-          in: query
-          required: false
-          description: Boolean true/false to control if only sessions that contain user interactions should be fetched.
-          schema:
-            type: string
-        - name: countries
-          in: query
-          required: false
-          description: List of comma separated country identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: device_names
-          in: query
-          required: false
-          description: List of comma separated device name identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: device_manufacturers
-          in: query
-          required: false
-          description: List of comma separated device manufacturer identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: locales
-          in: query
-          required: false
-          description: List of comma separated device locale identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_providers
-          in: query
-          required: false
-          description: List of comma separated network provider identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_types
-          in: query
-          required: false
-          description: List of comma separated network type identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_generations
-          in: query
-          required: false
-          description: List of comma separated network generation identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: free_text
-          in: query
-          required: false
-          description: A keyword to search across session data. Matched against user ID, session ID, event types, custom type names, log strings, view and subview classnames, exception details (type, message, file, class, method) for fatal, unhandled, and handled exceptions, error codes, ANR details, and gesture target names.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/FilterExpr"
         - name: offset
           in: query
           required: false
@@ -2344,18 +2246,6 @@ paths:
           description: Number of items to return. Used for pagination. Should be used along with `offset`.
           schema:
             type: integer
-        - name: filter_short_code
-          in: query
-          required: false
-          description: Code representing combination of filters.
-          schema:
-            type: string
-        - name: ud_expression
-          in: query
-          required: false
-          description: JSON string expression to filter using user defined attributes.
-          schema:
-            type: string
       responses:
         "200":
           description: Successful response, no errors.
@@ -2395,9 +2285,6 @@ paths:
                         duration:
                           type: number
                           description: Session duration in milliseconds.
-                        matched_free_text:
-                          type: string
-                          description: Present only when `free_text` is supplied; space-separated string of match labels. Empty string when no `free_text` filter is applied.
               examples:
                 response:
                   value:
@@ -2420,7 +2307,6 @@ paths:
                         first_event_time: "2024-10-26T05:52:43.104Z"
                         last_event_time: "2024-10-26T05:53:58.596Z"
                         duration: 75492
-                        matched_free_text: "CrashType: NullPointerException CrashMessage: something went wrong"
                       - session_id: 2cc9ffd2-9f9d-40a7-9f55-d802a460507a
                         app_id: 36e1b948-3a0a-4e71-80f3-625e61d6c832
                         attribute:
@@ -2436,7 +2322,6 @@ paths:
                         first_event_time: "2024-10-02T18:26:58.226Z"
                         last_event_time: "2024-10-02T18:27:09.151Z"
                         duration: 10925
-                        matched_free_text: ""
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
@@ -2454,11 +2339,8 @@ paths:
         - Sessions
       summary: Fetch an app's sessions instances plot
       description: |
-        Fetch an app's sessions instances plot by applying various optional
-        filters.
-
-        For multiple comma separated fields, make sure no whitespace characters
-        exist before or after commas.
+        Fetch an app's sessions instances plot, optionally narrowed by a
+        filter expression.
 
         Sessions that contain only a session start event, with no other
         activity, are always excluded from the instance counts regardless of
@@ -2475,114 +2357,7 @@ paths:
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/Timezone"
         - $ref: "#/components/parameters/PlotTimeGroup"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated app version identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated app version codes to return only matching sessions.
-          schema:
-            type: string
-        - name: type
-          in: query
-          required: false
-          description: "Comma-separated list of event source types to filter sessions. Accepted values: any combination of `error`, `anr`. When both `type` and `severity` are absent, all sessions are returned. When `type` is absent but `severity` is set, behaves as `type=error,anr`."
-          schema:
-            type: string
-        - name: severity
-          in: query
-          required: false
-          description: "Comma-separated list of exception severities to further narrow results. Accepted values: any combination of `fatal`, `unhandled`, `handled`. Severity filters only exceptions; ANR sessions are never filtered by severity."
-          schema:
-            type: string
-        - name: bug_report
-          in: query
-          required: false
-          description: Boolean true/false to control if only sessions containing at least 1 bug report should be fetched.
-          schema:
-            type: string
-        - name: background
-          in: query
-          required: false
-          description: Boolean true/false to control if only background sessions should be fetched.
-          schema:
-            type: string
-        - name: foreground
-          in: query
-          required: false
-          description: Boolean true/false to control if only foreground sessions should be fetched.
-          schema:
-            type: string
-        - name: user_interaction
-          in: query
-          required: false
-          description: Boolean true/false to control if only sessions that contain user interactions should be fetched.
-          schema:
-            type: string
-        - name: countries
-          in: query
-          required: false
-          description: List of comma separated country identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: device_names
-          in: query
-          required: false
-          description: List of comma separated device name identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: device_manufacturers
-          in: query
-          required: false
-          description: List of comma separated device manufacturer identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: locales
-          in: query
-          required: false
-          description: List of comma separated device locale identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_providers
-          in: query
-          required: false
-          description: List of comma separated network provider identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_types
-          in: query
-          required: false
-          description: List of comma separated network type identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: network_generations
-          in: query
-          required: false
-          description: List of comma separated network generation identifier strings to return only matching sessions.
-          schema:
-            type: string
-        - name: free_text
-          in: query
-          required: false
-          description: A keyword to search across session data.
-          schema:
-            type: string
-        - name: filter_short_code
-          in: query
-          required: false
-          description: Code representing combination of filters.
-          schema:
-            type: string
-        - name: ud_expression
-          in: query
-          required: false
-          description: JSON string expression to filter using user defined attributes.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/FilterExpr"
       responses:
         "200":
           description: Successful response, no errors.
