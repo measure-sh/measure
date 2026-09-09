@@ -1,0 +1,167 @@
+---
+title: "Pitfalls of measuring screen load time in Jetpack Compose"
+description: "Exploring how to measure navigation latency for Compose apps."
+date: "2026-07-30"
+image: /blog/assets/pitfalls-of-measuring-screen-load-time-in-jetpack-compose-hero.webp
+author:
+  name: Abhay Sood
+  avatar: /images/profile_pics/profile_abhay.webp
+tags:
+  - android
+  - compose
+  - performance
+---
+
+![Hero Image](/blog/assets/pitfalls-of-measuring-screen-load-time-in-jetpack-compose-hero.webp)
+
+On Android we track a screen load time or TTID for every Activity and Fragment. It measures the time from Activity or Fragment creation to the first frame being drawn.
+
+Here's an Activity launch traced in Perfetto. The Activity TTID is marked above the main thread. It starts just before the Activity's `onCreate` (the `onActivityPreCreated` callback). It ends 555ms later, when the first frame that draws the screen completes.
+
+![Perfetto trace of an Activity launch with the Activity TTID marked from activityStart through the first drawn frame](/blog/assets/pitfalls-of-measuring-screen-load-time-in-jetpack-compose-1.webp)
+
+For Compose there is no `onCreate` equivalent. In this post we'll go through some common pitfalls developers run into when they try to replicate the Activity/Fragment TTID measurement from inside a composable. By the end we'll arrive at a metric that fits Compose better than TTID.
+
+## Measuring from inside a composable
+
+Most guides you'll find online suggest something like the snippet below.
+
+```kotlin
+@Composable
+fun ScreenLoadTrace(name: String) {
+    val view = LocalView.current
+    val span = remember(name) { Measure.startSpan(name) }
+    DisposableEffect(name) {
+        view.doOnPreDraw { span.setStatus(SpanStatus.Ok).end() }
+    }
+}
+```
+
+Let's analyze why this gives completely wrong metrics.
+
+The span starts when the screen begins composing. It ends just before the window draws a frame. The trace below captures the problem. It shows the navigation to the _profile screen_. The span recorded by the snippet is pinned at the top. What the app's main thread did during the navigation is below it.
+
+![Perfetto trace of a profile navigation with the span pinned above the app's main thread](/blog/assets/pitfalls-of-measuring-screen-load-time-in-jetpack-compose-2.webp)
+
+To understand this let's look at a simplified version of the trace. You can step through it.
+
+<iframe src="/blog/assets/pitfalls-of-measuring-screen-load-time-in-jetpack-compose-explainer-1.html" title="Interactive walkthrough of the navigation trace" width="100%" height="510" loading="lazy" style={{ border: 0 }}></iframe>
+
+Now select the last step, **the profile span**.
+
+The snippet's code lives inside the composable, so it first runs when the profile screen begins composing. That is where the span starts. Everything between the tap and the start of composition is lost. The span ends at `onPreDraw`, which fires before the frame's draw work has happened.
+
+In this trace the span reports 16.6ms while the user waited 58.4ms from the tap to the frame. Both the start and end timestamps for the span are wrong.
+
+## Fixing the end timestamp
+
+`onPreDraw` fires before the `Choreographer` actually hands over to the RenderThread, so the span misses most of the draw cost of the frame.
+
+The fix uses how the main thread works. The main thread processes messages from a queue, one at a time. Everything the app does on the main thread runs inside one of these messages.
+
+A frame is one such message. Everything from input handling to drawing happens inside a single `Choreographer#doFrame` message. When that message ends, the frame is fully drawn and handed over to the RenderThread.
+
+This gives us a way to catch the exact end of the frame. While the frame message is still running, post a message to the front of the queue. The main thread runs it as soon as the frame message ends. `onPreDraw` runs inside the frame, so that's the place to post from:
+
+```kotlin
+view.doOnPreDraw {
+    frameEndHandler.postAtFrontOfQueue {
+        span.setStatus(SpanStatus.Ok).end()
+    }
+}
+```
+
+The `frameEndHandler` in the snippet needs to be an async handler. When a frame is scheduled, Android puts a barrier on the message queue that holds back normal messages until the frame has run. If the next frame is already scheduled when we post, our span would end after the second frame. The barrier does not hold back async messages:
+
+```kotlin
+val frameEndHandler = HandlerCompat.createAsync(Looper.getMainLooper())
+```
+
+This moves the span end to the point where the frame is complete. Here's the frame again with both versions of the span. The top one ends at `onPreDraw`, before the frame's draw work. The fixed one below it ends when the frame completes:
+
+![Perfetto trace of the drawing frame with the original span ending at onPreDraw and the fixed span extending to the end of the frame](/blog/assets/pitfalls-of-measuring-screen-load-time-in-jetpack-compose-3.webp)
+
+## Scoping the span to one screen
+
+`doOnPreDraw` has another problem. It fires whenever anything in the window redraws, like the previous screen animating out. Because of this, the span can occasionally end on a frame that has nothing to do with the screen being measured.
+
+The fix is to make the tracing composable wrap the screen's content as shown in the snippet below.
+
+```kotlin
+@Composable
+fun ScreenLoadTrace(name: String, content: @Composable () -> Unit) {
+    Box(
+        Modifier.drawWithContent {
+            drawContent()
+            endSpanAfterFirstFrame()
+        },
+    ) {
+        content()
+    }
+}
+```
+
+`drawWithContent` runs only when this screen's content is drawn into a frame. The first time that happens, `endSpanAfterFirstFrame` ends the span with the same front-of-queue post as before.
+
+Wrapping the content fixes one more problem. Some composables compose their children late. A `Scaffold`, for example, composes its content during its measure pass, so a snippet placed inside it starts the span late. A wrapper is not affected by this, because it always composes before the content it wraps.
+
+## Fixing the start timestamp
+
+The bigger error is at the start. The span starts when the screen begins composing, and that happens well after the tap. Everything between the tap and the start of composition runs before any code inside the composable. A span started inside the composable can never include that time.
+
+A better starting point is when the navigation itself starts.
+
+In navigation-compose, an `OnDestinationChangedListener` gets called at that moment. We register it before the `NavHost`, which makes it fire before the new screen starts composing. The listener notes the route and time of the navigation in flight:
+
+```kotlin
+navController.addOnDestinationChangedListener { _, destination, _ ->
+    navigationTiming.record(destination.route, Measure.getCurrentTime())
+}
+```
+
+`navigationTiming` holds the pending route and time. One navigation is in flight at a time, so that is all the state it needs:
+
+```kotlin
+class NavigationTiming {
+    private var pendingRoute: String? = null
+    private var pendingStartTime = 0L
+
+    fun record(route: String?, time: Long) {
+        pendingRoute = route
+        pendingStartTime = time
+    }
+
+    fun consumeStartTime(route: String): Long? {
+        if (route != pendingRoute) return null
+        pendingRoute = null
+        return pendingStartTime
+    }
+}
+```
+
+`ScreenLoadTrace`, the wrapper from the previous section, consumes the recorded time for its route and starts the span with it:
+
+```kotlin
+val span = remember(name) {
+    val startTime = navigationTiming.consumeStartTime(name)
+    Measure.startSpan(name, timestamp = startTime)
+}
+```
+
+Here's the profile navigation again with the new span. It now starts when the destination change fired, during `navigate()` inside the tap's dispatch, and ends at the same frame end as before:
+
+![Perfetto trace of a profile navigation with the navigation span pinned above the app's main thread](/blog/assets/pitfalls-of-measuring-screen-load-time-in-jetpack-compose-4.webp)
+
+For the same navigation, the new span measures 58.4ms. The snippet at the start of this post reported 16.6ms.
+
+Here's the simplified trace again, this time with the navigation span. You can step through it:
+
+<iframe src="/blog/assets/pitfalls-of-measuring-screen-load-time-in-jetpack-compose-explainer-2.html" title="Interactive walkthrough of the navigation span" width="100%" height="510" loading="lazy" style={{ border: 0 }}></iframe>
+
+## Navigation latency
+
+The span we captured measures the **navigation latency**.
+
+Navigation latency is the time from the moment the app starts a navigation to the moment the new screen draws its first frame.
+
+If you already measure your screens from inside composables, record a trace of one navigation and check what your span actually covers.

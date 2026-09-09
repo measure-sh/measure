@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compose navigation trace, explained</title>
+<style>
+  :root {
+    --bg: #ffffff; --panel: #ffffff; --ink: #222222; --ink2: #6f6f6f;
+    --line: #e5e5e5; --chip: #ededed; --tint: 15%; --shadow: 0 1px 3px rgb(0 0 0 / 0.05);
+    --c-span: oklch(52.7% 0.154 150.069); --c-span-fg: #ffffff; --c-spanbar: #4a3aa7; --c-spanbar-fg: #ffffff; --c-tap: #eb6834; --c-compose: #2a78d6; --c-trav: #e87ba4; --c-frame: #eda100;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111111; --panel: #171717; --ink: #fafafa; --ink2: #a3a3a3;
+      --line: #262626; --chip: #262626; --tint: 26%; --shadow: none;
+      --c-span: oklch(79.2% 0.209 151.711); --c-span-fg: #1c1313; --c-spanbar: #9085e9; --c-spanbar-fg: #1c1313; --c-tap: #d95926; --c-compose: #3987e5; --c-trav: #d55181; --c-frame: #c98500;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #111111; --panel: #171717; --ink: #fafafa; --ink2: #a3a3a3;
+    --line: #262626; --chip: #262626; --tint: 26%; --shadow: none;
+    --c-span: oklch(79.2% 0.209 151.711); --c-span-fg: #1c1313; --c-spanbar: #9085e9; --c-spanbar-fg: #1c1313; --c-tap: #d95926; --c-compose: #3987e5; --c-trav: #d55181; --c-frame: #c98500;
+  }
+  :root[data-theme="light"] {
+    --bg: #ffffff; --panel: #ffffff; --ink: #222222; --ink2: #6f6f6f;
+    --line: #e5e5e5; --chip: #ededed; --tint: 15%; --shadow: 0 1px 3px rgb(0 0 0 / 0.05);
+    --c-span: oklch(52.7% 0.154 150.069); --c-span-fg: #ffffff; --c-spanbar: #4a3aa7; --c-spanbar-fg: #ffffff; --c-tap: #eb6834; --c-compose: #2a78d6; --c-trav: #e87ba4; --c-frame: #eda100;
+  }
+  body { background: var(--bg); color: var(--ink); margin: 0; padding: 20px 16px;
+         font: 15px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  .trx { max-width: 840px; margin: 0 auto; border: 1px solid var(--line);
+         border-radius: 14px; background: var(--panel); box-shadow: var(--shadow);
+         padding: 20px; }
+
+  .trx-steps { position: relative; display: flex; width: fit-content; max-width: 100%;
+               overflow-x: auto; gap: 2px; padding: 3px; margin: 0 auto 14px;
+               border: 1px solid var(--line); border-radius: 999px; }
+  .trx-thumb { position: absolute; top: 3px; bottom: 3px; border-radius: 999px;
+               background: var(--c-span); transition: left 0.25s ease, width 0.25s ease; }
+  .trx-steps button { position: relative; font: 500 13px/1 system-ui, sans-serif;
+                      color: var(--ink2); background: transparent; border: none;
+                      white-space: nowrap; border-radius: 999px; padding: 8px 14px;
+                      cursor: pointer; transition: color 0.15s; }
+  .trx-steps button:hover { color: var(--ink); }
+  .trx-steps button[aria-pressed="true"] { color: var(--c-span-fg); }
+  .trx-steps button:focus-visible { outline: 2px solid var(--c-span); outline-offset: 2px; }
+
+  .trx-scroll { overflow-x: auto; margin: 0 -20px; padding: 16px 20px 0;
+                border-top: 1px solid var(--line); }
+  .trx-canvas { position: relative; min-width: 720px; height: 268px; }
+  .plot { position: absolute; inset: 0;
+          font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+  .tick { position: absolute; top: 24px; bottom: 8px;
+          border-left: 1px solid color-mix(in srgb, var(--line) 70%, transparent); }
+  .tick span { position: absolute; top: -20px; left: 0; font-size: 9.5px;
+               color: var(--ink2); font-variant-numeric: tabular-nums; }
+
+  .lane { position: absolute; left: 0; font-size: 9px; font-weight: 600;
+          letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink2);
+          font-family: system-ui, sans-serif; }
+  .lane-div { position: absolute; left: -20px; right: -20px;
+              border-top: 1px solid var(--line); }
+
+  .sl { position: absolute; height: 26px; border-radius: 5px;
+        white-space: nowrap; font-size: 11.5px; line-height: 26px; padding: 0 8px;
+        box-sizing: border-box; color: var(--ink); border-left: 3px solid transparent;
+        transition: opacity 0.35s ease; }
+  .g-tap     { background: color-mix(in srgb, var(--c-tap) var(--tint), var(--panel));
+               border-left-color: var(--c-tap); }
+  .g-compose { background: color-mix(in srgb, var(--c-compose) var(--tint), var(--panel));
+               border-left-color: var(--c-compose); }
+  .g-trav    { background: color-mix(in srgb, var(--c-trav) var(--tint), var(--panel));
+               border-left-color: var(--c-trav); }
+  .g-frame   { background: color-mix(in srgb, var(--c-frame) var(--tint), var(--panel));
+               border-left-color: var(--c-frame); }
+  .g-span    { background: var(--c-spanbar); color: var(--c-spanbar-fg); font-weight: 600;
+               border-left: none; letter-spacing: 0.01em;
+               box-shadow: 0 1px 2px color-mix(in srgb, var(--c-spanbar) 30%, transparent); }
+
+  .dim .sl { opacity: 0.16; }
+  .dim .sl.hot { opacity: 1; }
+
+  .trx-caption { min-height: 60px; padding: 0 0 16px; color: var(--ink);
+                 max-width: 66ch; font-size: 14.5px; }
+  .trx-caption code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+                      font-size: 12.5px; background: var(--chip); padding: 1.5px 5px;
+                      border-radius: 4px; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .trx * { transition: none !important; }
+  }
+</style>
+
+<div class="trx" id="trx">
+  <div class="trx-steps" id="steps" role="group" aria-label="Trace walkthrough steps"></div>
+  <div class="trx-caption" id="caption" aria-live="polite"></div>
+  <div class="trx-scroll">
+    <div class="trx-canvas"><div class="plot" id="plot"
+      aria-label="Simplified trace of a Compose navigation"></div></div>
+  </div>
+</div>
+
+<script>
+  const SPAN_TOP = 46, DIV_Y = 86, MAIN_TOP = 108, ROW_H = 30;
+
+  const slices = [
+    { g: "tap",     d: 0, l: 0,    w: 11.4, t: "dispatchInputEvent",     ms: 8 },
+    { g: "tap",     d: 1, l: 2.9,  w: 7.7,  t: "navigate()",             ms: 4 },
+    { g: "frame",   d: 0, l: 42.9, w: 45.7, t: "Choreographer#doFrame",  ms: 32 },
+    { g: "compose", d: 1, l: 43.6, w: 16.4, t: "composition",            ms: 11.5 },
+    { g: "compose", d: 2, l: 45,   w: 14.3, t: "NavHost",                ms: 10 },
+    { g: "compose", d: 3, l: 47.9, w: 10,   t: "ProfileScreen",          ms: 7 },
+    { g: "compose", d: 4, l: 49.3, w: 7.1,  t: "Scaffold",               ms: 5 },
+    { g: "trav",    d: 1, l: 60.4, w: 27.7, t: "traversal",              ms: 19.4 },
+    { g: "trav",    d: 2, l: 61.1, w: 14.6, t: "measure",                ms: 10.2 },
+    { g: "trav",    d: 2, l: 76.4, w: 11.2, t: "layout · draw",          ms: 7.3 },
+  ];
+
+  const steps = [
+    { label: "Overview",
+      hot: null,
+      caption: "This is a simplified trace of one navigation. The user taps at 0ms and the " +
+               "profile screen appears at 58ms. Use the steps to see what happens in between." },
+    { label: "Tap",
+      hot: ["tap"],
+      caption: "The user taps the profile button. <code>navController.navigate()</code> runs " +
+               "inside the tap's dispatch. It updates the navigation state and schedules a " +
+               "recomposition. No UI is built yet." },
+    { label: "Compose",
+      hot: ["compose", "frame"],
+      caption: "Two frames later, the profile screen is composed. Each slice under " +
+               "<code>composition</code> is a composable function. This is the first point where " +
+               "a composable can run any code, so it is also the earliest the span can start." },
+    { label: "Draw",
+      hot: ["trav", "frame"],
+      caption: "<code>traversal</code> measures, lays out, and draws the new screen. The frame " +
+               "then goes to the RenderThread and the screen appears." },
+    { label: "Profile span",
+      hot: ["span"],
+      caption: "The profile span covers composition to <code>onPreDraw</code>: 16.6ms of the " +
+               "58ms the user waited." },
+  ];
+
+  const plot = document.getElementById("plot");
+  const root = document.getElementById("trx");
+
+  let html = "";
+  for (let ms = 0; ms <= 60; ms += 20) {
+    html += `<div class="tick" style="left:${(ms / 70) * 100}%"><span>${ms}ms</span></div>`;
+  }
+  html += `<div class="sl g-span" data-g="span" title="profile span, 16.6ms of a 58ms wait" ` +
+          `style="top:${SPAN_TOP}px;left:47.9%;width:33.1%">profile span · 16.6ms</div>`;
+  html += `<div class="lane-div" style="top:${DIV_Y}px"></div>`;
+  html += `<div class="lane" style="top:${DIV_Y + 8}px">main thread</div>`;
+  for (const s of slices) {
+    html += `<div class="sl g-${s.g}" data-g="${s.g}" title="${s.t} · ~${s.ms}ms" ` +
+            `style="top:${MAIN_TOP + s.d * ROW_H}px;left:${s.l}%;width:${s.w}%">${s.t}</div>`;
+  }
+  plot.innerHTML = html;
+
+  const stepsEl = document.getElementById("steps");
+  const captionEl = document.getElementById("caption");
+  const buttons = steps.map((s, i) => {
+    const b = document.createElement("button");
+    b.textContent = s.label;
+    b.setAttribute("aria-pressed", i === 0 ? "true" : "false");
+    b.addEventListener("click", () => setStep(i));
+    stepsEl.appendChild(b);
+    return b;
+  });
+
+  const thumb = document.createElement("div");
+  thumb.className = "trx-thumb";
+  stepsEl.prepend(thumb);
+
+  let currentStep = 0;
+  function setStep(i) {
+    currentStep = i;
+    root.classList.toggle("dim", steps[i].hot !== null);
+    plot.querySelectorAll(".sl").forEach((el) => {
+      el.classList.toggle("hot", !!steps[i].hot && steps[i].hot.includes(el.dataset.g));
+    });
+    captionEl.innerHTML = steps[i].caption;
+    buttons.forEach((b, j) => b.setAttribute("aria-pressed", String(i === j)));
+    const active = buttons[i];
+    thumb.style.left = active.offsetLeft + "px";
+    thumb.style.width = active.offsetWidth + "px";
+  }
+  window.addEventListener("resize", () => setStep(currentStep));
+  setStep(0);
+</script>
+
+</html>
