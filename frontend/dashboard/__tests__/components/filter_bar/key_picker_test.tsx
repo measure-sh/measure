@@ -23,8 +23,11 @@ jest.mock("@/app/components/popover", () => {
           {/* Stands in for Radix calling onCloseAutoFocus as the popover closes. */}
           <button
             data-testid="close-popover"
-            onClick={() =>
-              onCloseAutoFocus?.({ preventDefault: () => {} } as any)
+            onClick={(e) =>
+              onCloseAutoFocus?.({
+                preventDefault: () => {},
+                currentTarget: e.currentTarget.parentElement,
+              } as any)
             }
           >
             close
@@ -282,6 +285,35 @@ describe("KeyPicker", () => {
     fireEvent.click(screen.getByTestId("close-popover"));
 
     expect(screen.getByTestId("lands-here")).toHaveFocus();
+  });
+
+  it("does not take focus back from a value input that gained it while the list was closing", () => {
+    function Harness() {
+      const ref = React.useRef<HTMLButtonElement>(null);
+      return (
+        <>
+          <button ref={ref} data-testid="lands-here">
+            lands here
+          </button>
+          <input data-testid="value-input" />
+          <KeyPicker
+            keys={keys}
+            keyGroups={keyGroups}
+            selected={null}
+            open
+            focusOnClose={ref}
+            onSelect={jest.fn()}
+            trigger={<button>open</button>}
+          />
+        </>
+      );
+    }
+
+    render(<Harness />);
+    screen.getByTestId("value-input").focus();
+    fireEvent.click(screen.getByTestId("close-popover"));
+
+    expect(screen.getByTestId("value-input")).toHaveFocus();
   });
 
   describe("a user-defined key", () => {
