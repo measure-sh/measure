@@ -127,6 +127,7 @@ var sessionsTableValues = fixedKeyValueSource{
 		sessionScreen.Name:      "arrayJoin(" + rawSessionColumnForms.screen + ")",
 	},
 	recencyExpr: "max(first_event_timestamp)",
+	timeColumn:  "first_event_timestamp",
 }
 
 // Every attribute written in the session counts, whichever event or bug report

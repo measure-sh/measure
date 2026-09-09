@@ -62,6 +62,7 @@ var bugReportFixedKeyValues = fixedKeyValueSource{
 	table:       "bug_reports",
 	columns:     bugReportsTableColumns,
 	recencyExpr: "max(timestamp)",
+	timeColumn:  "timestamp",
 }
 
 // The custom keys are the user-defined attributes set on the session a
