@@ -13,8 +13,11 @@ import org.mockito.kotlin.never
 import org.robolectric.Robolectric.buildActivity
 import org.robolectric.android.controller.ActivityController
 import sh.measure.android.TestLifecycleActivity
+import sh.measure.android.events.Attachment
+import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.fakes.FakeLayoutSnapshotCollector
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.TestClock
 
@@ -24,10 +27,12 @@ class AppLifecycleCollectorTest {
     private val timeProvider = AndroidTimeProvider(TestClock.create())
     private val application = InstrumentationRegistry.getInstrumentation().context as Application
     private val appLifecycleManager = AppLifecycleManager(application)
+    private val layoutSnapshotCollector = FakeLayoutSnapshotCollector()
     private val appLifecycleCollector: AppLifecycleCollector = AppLifecycleCollector(
         appLifecycleManager,
         signalProcessor,
         timeProvider,
+        layoutSnapshotCollector,
     )
     private lateinit var controller: ActivityController<TestLifecycleActivity>
 
@@ -47,6 +52,25 @@ class AppLifecycleCollectorTest {
             data = ApplicationLifecycleData(
                 type = AppLifecycleType.BACKGROUND,
             ),
+        )
+    }
+
+    @Test
+    fun `attaches layout snapshot to application background event`() {
+        val snapshot = Attachment(
+            name = "snapshot.json.gz",
+            type = AttachmentType.LAYOUT_SNAPSHOT_JSON,
+            bytes = byteArrayOf(1),
+        )
+        layoutSnapshotCollector.attachment = snapshot
+        controller.setup().stop()
+        verify(signalProcessor, times(1)).track(
+            timestamp = timeProvider.now(),
+            type = EventType.LIFECYCLE_APP,
+            data = ApplicationLifecycleData(
+                type = AppLifecycleType.BACKGROUND,
+            ),
+            attachments = mutableListOf(snapshot),
         )
     }
 

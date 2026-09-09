@@ -468,11 +468,17 @@ function isGesture(eventType: string): boolean {
   return (gestureTypes as readonly string[]).includes(eventType);
 }
 
+// Every event which can carry a layout snapshot or a screenshot, since those
+// are the ones which put something new on the screen. An event type which
+// starts carrying one belongs here too.
 const activityEventTypes = [
   ...gestureTypes,
   "error",
   "anr",
   "bug_report",
+  "screen_view",
+  "lifecycle_activity",
+  "lifecycle_app",
 ] as const;
 
 function isActivityEvent(eventType: string): boolean {
@@ -1372,10 +1378,9 @@ function fillIdleSkipTargets(
     // sees a moment of stillness before whatever happens next. The lead is
     // shorter than the gap that counts as idle, so the target always lands
     // ahead of where this slice began. It can still land past slices in
-    // between, since slices are cut at every event while only gestures, errors
-    // and bug reports count as activity, and a log or an http call inside the
-    // gap starts a slice the skip carries straight over. Those slices hold no
-    // attachment of their own, so nothing that would be drawn is missed.
+    // between, since slices are cut at every event while only the ones which
+    // put something on the screen count as activity, so a log or an http call
+    // inside the gap starts a slice the skip carries straight over.
     slice.skipToOffsetMs = targetOffsetMs;
   });
 }

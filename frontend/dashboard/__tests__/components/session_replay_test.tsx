@@ -1136,7 +1136,7 @@ describe("idle stretches", () => {
     { event_type: "lifecycle_activity", timestamp: at(1) },
     { event_type: "gesture_click", timestamp: at(2) },
     { event_type: "http", timestamp: at(20) },
-    { event_type: "lifecycle_app", timestamp: at(40) },
+    { event_type: "trim_memory", timestamp: at(40) },
     { event_type: "error", timestamp: at(60), severity: "unhandled" },
     { event_type: "anr", timestamp: at(70) },
     { event_type: "bug_report", timestamp: at(80) },
@@ -1157,12 +1157,32 @@ describe("idle stretches", () => {
   };
 
   it("skips a stretch that carries events but leaves the screen alone", () => {
-    // The events between the gesture and the error are network calls and
-    // lifecycle transitions, none of which put anything new on the screen.
+    // The events between the gesture and the error are a network call and a
+    // memory trim, neither of which puts anything new on the screen.
     const { slice } = sliceAt(3000);
 
     expect(slice.skipToOffsetMs).toBe(59_500);
   });
+
+  it.each(["screen_view", "lifecycle_activity", "lifecycle_app"])(
+    "stops at a %s, which can carry a layout snapshot",
+    (eventType) => {
+      const replay = replayFrom(
+        timelineWith([
+          { event_type: "gesture_click", timestamp: at(0) },
+          {
+            event_type: eventType,
+            timestamp: at(30),
+            name: "Checkout",
+            type: "resumed",
+          },
+          { event_type: "gesture_click", timestamp: at(60) },
+        ]),
+      );
+
+      expect(replay.slices[0].skipToOffsetMs).toBe(29_500);
+    },
+  );
 
   it("plays through a wait short enough to sit out", () => {
     const shortWait = replayFrom(
@@ -1431,8 +1451,10 @@ describe("the machine", () => {
     actor.send({ type: "user.toggle" });
     actor.send({ type: "clock.tick", clockOffsetMs: 1 });
 
-    expect(actor.getSnapshot().context.playheadOffsetMs).toBe(10000);
-    expect(actor.getSnapshot().context.skippedIdleMs).toBe(9999);
+    // The lifecycle event closing the session can carry a layout snapshot, so
+    // the jump stops short of it rather than running to the end.
+    expect(actor.getSnapshot().context.playheadOffsetMs).toBe(9500);
+    expect(actor.getSnapshot().context.skippedIdleMs).toBe(9499);
     expect(actor.getSnapshot().matches({ ready: { notice: "visible" } })).toBe(
       true,
     );

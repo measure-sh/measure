@@ -2,6 +2,7 @@ package sh.measure.android.lifecycle
 
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.layoutinspector.LayoutSnapshotCollector
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -9,6 +10,7 @@ internal class AppLifecycleCollector(
     private val appLifecycleManager: AppLifecycleManager,
     private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
+    private val layoutSnapshotCollector: LayoutSnapshotCollector,
 ) : AppLifecycleListener {
     private var isRegistered = AtomicBoolean(false)
 
@@ -33,10 +35,14 @@ internal class AppLifecycleCollector(
     }
 
     override fun onAppBackground() {
-        signalProcessor.track(
-            ApplicationLifecycleData(AppLifecycleType.BACKGROUND),
-            timeProvider.now(),
-            EventType.LIFECYCLE_APP,
-        )
+        val timestamp = timeProvider.now()
+        layoutSnapshotCollector.captureAttachment { attachment ->
+            signalProcessor.track(
+                ApplicationLifecycleData(AppLifecycleType.BACKGROUND),
+                timestamp,
+                EventType.LIFECYCLE_APP,
+                attachments = listOfNotNull(attachment).toMutableList(),
+            )
+        }
     }
 }

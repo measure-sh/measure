@@ -19,9 +19,12 @@ import org.robolectric.android.controller.ActivityController
 import sh.measure.android.ChildFragment
 import sh.measure.android.TestFragment
 import sh.measure.android.TestLifecycleActivity
+import sh.measure.android.events.Attachment
+import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeConfigProvider
+import sh.measure.android.fakes.FakeLayoutSnapshotCollector
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.tracing.SpanData
@@ -39,6 +42,7 @@ class ActivityLifecycleCollectorTest {
     private val application = InstrumentationRegistry.getInstrumentation().context as Application
     private val appLifecycleManager = AppLifecycleManager(application)
     private val configProvider = FakeConfigProvider()
+    private val layoutSnapshotCollector = FakeLayoutSnapshotCollector()
     private val tracer =
         TestTracer(signalProcessor, configProvider, logger, timeProvider, sessionManager)
     private var activityLifecycleCollector: DefaultActivityLifecycleCollector = DefaultActivityLifecycleCollector(
@@ -47,6 +51,7 @@ class ActivityLifecycleCollectorTest {
         timeProvider,
         configProvider,
         tracer,
+        layoutSnapshotCollector,
     )
     private lateinit var controller: ActivityController<TestLifecycleActivity>
 
@@ -105,6 +110,26 @@ class ActivityLifecycleCollectorTest {
                 type = ActivityLifecycleType.RESUMED,
                 class_name = TestLifecycleActivity::class.java.name,
             ),
+        )
+    }
+
+    @Test
+    fun `attaches layout snapshot to activity onResume`() {
+        val snapshot = Attachment(
+            name = "snapshot.json.gz",
+            type = AttachmentType.LAYOUT_SNAPSHOT_JSON,
+            bytes = byteArrayOf(1),
+        )
+        layoutSnapshotCollector.attachment = snapshot
+        controller.setup()
+        verify(signalProcessor, times(1)).track(
+            timestamp = timeProvider.now(),
+            type = EventType.LIFECYCLE_ACTIVITY,
+            data = ActivityLifecycleData(
+                type = ActivityLifecycleType.RESUMED,
+                class_name = TestLifecycleActivity::class.java.name,
+            ),
+            attachments = mutableListOf(snapshot),
         )
     }
 

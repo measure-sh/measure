@@ -26,7 +26,8 @@ type ScreenView struct {
 	ThreadName    string              `json:"thread_name"`
 	UserTriggered bool                `json:"user_triggered"`
 	*event.ScreenView
-	Timestamp time.Time `json:"timestamp"`
+	Timestamp   time.Time          `json:"timestamp"`
+	Attachments []event.Attachment `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread
@@ -70,6 +71,7 @@ func ComputeScreenViews(events []event.EventField) (result []ThreadGrouper) {
 			event.UserTriggered,
 			event.ScreenView,
 			event.Timestamp,
+			event.Attachments,
 		}
 		result = append(result, sv)
 	}
