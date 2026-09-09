@@ -7,6 +7,7 @@ import { Button } from "../button";
 import { Input } from "../input";
 import { Popover, PopoverContent, PopoverTrigger } from "../popover";
 import TabSelect from "../tab_select";
+import { keepOpenWithin, settleFocusOnClose } from "./picker_popover";
 
 interface KeyPickerProps {
   keys: FilterKey[];
@@ -15,12 +16,13 @@ interface KeyPickerProps {
   onSelect: (key: FilterKey) => void;
   onAddGroup?: () => void;
   trigger: React.ReactNode;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
   align?: "start" | "end";
   // Where focus goes when the list closes, for a caller that wants it
   // somewhere other than the control that opened it.
   focusOnClose?: React.RefObject<HTMLElement | null>;
+  stayOpenWithin?: React.RefObject<HTMLElement | null>;
 }
 
 export default function KeyPicker({
@@ -30,22 +32,16 @@ export default function KeyPicker({
   onSelect,
   onAddGroup,
   trigger,
-  open: controlledOpen,
+  open,
   onOpenChange,
   align = "start",
   focusOnClose,
+  stayOpenWithin,
 }: KeyPickerProps) {
-  const [internalOpen, setInternalOpen] = useState(false);
-  const open = controlledOpen ?? internalOpen;
-  const setOpen = (value: boolean) => {
-    setInternalOpen(value);
-    onOpenChange?.(value);
-  };
-
   return (
     // modal keeps the TAB key inside the open list, and returns focus to
     // whatever opened it when the list closes.
-    <Popover open={open} onOpenChange={setOpen} modal>
+    <Popover open={open} onOpenChange={onOpenChange} modal>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent
         // Sized to its content, so an entity with few tabs does not open
@@ -53,15 +49,13 @@ export default function KeyPicker({
         className="p-0 w-auto min-w-96 max-w-[min(32rem,calc(100vw-2rem))]"
         align={align}
         onCloseAutoFocus={(e) => settleFocusOnClose(e, focusOnClose)}
+        onPointerDownOutside={keepOpenWithin(stayOpenWithin)}
       >
         <KeyList
           keys={keys}
           keyGroups={keyGroups}
           selected={selected}
-          onSelect={(key) => {
-            onSelect(key);
-            setOpen(false);
-          }}
+          onSelect={onSelect}
         />
 
         {onAddGroup && (
@@ -69,10 +63,7 @@ export default function KeyPicker({
             <button
               type="button"
               data-testid="filter-add-group"
-              onClick={() => {
-                onAddGroup();
-                setOpen(false);
-              }}
+              onClick={onAddGroup}
               className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded outline-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground"
             >
               <Parentheses className="h-4 w-4 text-muted-foreground" />
@@ -200,62 +191,33 @@ function KeyList({
   );
 }
 
-// Radix runs this when a picker has finished closing, and by default then
-// focuses the picker's trigger. When the user picked a key or an operator,
-// the bar has already opened the value picker for that condition and its
-// input holds focus, and focusing the trigger would take the user's typing
-// away from it. So when focus is already somewhere outside the closed picker,
-// it stays there. Otherwise, as after Escape, focus goes to the control the
-// caller named, or to the trigger when the caller named none.
-function settleFocusOnClose(
-  e: Event,
-  focusOnClose?: React.RefObject<HTMLElement | null>,
-) {
-  const active = document.activeElement;
-  const content = e.currentTarget as HTMLElement | null;
-  const elsewhere =
-    active !== null && active !== document.body && !content?.contains(active);
-  if (elsewhere) {
-    e.preventDefault();
-    return;
-  }
-  if (focusOnClose?.current) {
-    e.preventDefault();
-    focusOnClose.current.focus();
-  }
-}
-
 export function OperatorPicker({
   operators,
   selected,
   operatorLabels,
   onSelect,
   trigger,
-  open: controlledOpen,
+  open,
   onOpenChange,
+  stayOpenWithin,
 }: {
   operators: string[];
   selected: string | null;
   operatorLabels: Record<string, string>;
   onSelect: (operator: string) => void;
   trigger: React.ReactNode;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  stayOpenWithin?: React.RefObject<HTMLElement | null>;
 }) {
-  const [internalOpen, setInternalOpen] = useState(false);
-  const open = controlledOpen ?? internalOpen;
-  const setOpen = (value: boolean) => {
-    setInternalOpen(value);
-    onOpenChange?.(value);
-  };
-
   return (
-    <Popover open={open} onOpenChange={setOpen} modal>
+    <Popover open={open} onOpenChange={onOpenChange} modal>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent
         className="p-1 w-48"
         align="start"
         onCloseAutoFocus={(e) => settleFocusOnClose(e)}
+        onPointerDownOutside={keepOpenWithin(stayOpenWithin)}
       >
         <div className="flex flex-col">
           {operators.map((operator) => (
@@ -266,10 +228,7 @@ export function OperatorPicker({
                 selected === operator ? "bg-accent" : ""
               }`}
               data-testid={`filter-op-${operator}`}
-              onClick={() => {
-                onSelect(operator);
-                setOpen(false);
-              }}
+              onClick={() => onSelect(operator)}
             >
               {operatorLabels[operator] ?? operator}
             </Button>

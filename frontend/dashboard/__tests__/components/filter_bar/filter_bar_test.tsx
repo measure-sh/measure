@@ -113,35 +113,44 @@ jest.mock("@/app/components/filter_bar/key_picker", () => ({
     <div
       data-testid="key-picker"
       data-groups={keyGroups.join(",")}
-      data-open={open === undefined ? undefined : String(open)}
+      data-open={String(open)}
     >
       {trigger}
-      {keys.map((key: any) => (
-        <button
-          key={key.name}
-          data-testid={`pick-key-${key.name}${selected ? "-in-row" : ""}`}
-          onClick={() => {
-            onSelect(key);
-            onOpenChange?.(false);
-          }}
-        >
-          pick {key.label}
-        </button>
-      ))}
-      {onAddGroup && (
-        <button data-testid="add-group" onClick={() => onAddGroup()}>
-          group
-        </button>
-      )}
-      {onOpenChange && (
-        <button data-testid="close-keys" onClick={() => onOpenChange(false)}>
-          close
-        </button>
+      <button data-testid="open-keys" onClick={() => onOpenChange(true)}>
+        open
+      </button>
+      {/* The real list is drawn only while the picker is open. */}
+      {open && (
+        <>
+          {keys.map((key: any) => (
+            <button
+              key={key.name}
+              data-testid={`pick-key-${key.name}${selected ? "-in-row" : ""}`}
+              onClick={() => onSelect(key)}
+            >
+              pick {key.label}
+            </button>
+          ))}
+          {onAddGroup && (
+            <button data-testid="add-group" onClick={() => onAddGroup()}>
+              group
+            </button>
+          )}
+          <button data-testid="close-keys" onClick={() => onOpenChange(false)}>
+            close
+          </button>
+        </>
       )}
     </div>
   ),
-  OperatorPicker: ({ operators, onSelect, trigger }: any) => (
-    <div data-testid="operator-picker">
+  OperatorPicker: ({
+    operators,
+    onSelect,
+    onOpenChange,
+    open,
+    trigger,
+  }: any) => (
+    <div data-testid="operator-picker" data-open={String(open)}>
       {trigger}
       {operators.map((operator: string) => (
         <button
@@ -152,6 +161,12 @@ jest.mock("@/app/components/filter_bar/key_picker", () => ({
           {operator}
         </button>
       ))}
+      <button data-testid="open-operator" onClick={() => onOpenChange(true)}>
+        open
+      </button>
+      <button data-testid="close-operator" onClick={() => onOpenChange(false)}>
+        close
+      </button>
     </div>
   ),
 }));
@@ -173,11 +188,17 @@ jest.mock("@/app/components/filter_bar/value_picker", () => ({
       >
         choose proguard
       </button>
+      <button data-testid="unpick-value" onClick={() => onChange([], false)}>
+        take every value off
+      </button>
       <button
         data-testid="pick-one-value"
         onClick={() => onChange([{ text: "dsym" }], true)}
       >
         choose dsym and finish
+      </button>
+      <button data-testid="open-values" onClick={() => onOpenChange(true)}>
+        open
       </button>
       <button data-testid="close-values" onClick={() => onOpenChange(false)}>
         close
@@ -378,6 +399,11 @@ function groupPicker(group: HTMLElement) {
   return pickerOf(within(group).getByLabelText("Add a filter to this group"));
 }
 
+// The key picker of the chip whose key segment reads this label.
+function chipKeyPicker(label: string) {
+  return pickerOf(screen.getByText(label));
+}
+
 function valuePickers() {
   return screen.queryAllByTestId("value-picker");
 }
@@ -392,11 +418,24 @@ async function pickValue() {
   await click(screen.getAllByTestId("pick-value").at(-1)!);
 }
 
+// The list of a closed picker is not drawn, so its control is pressed first.
+async function pickFromKeyList(
+  picker: ReturnType<typeof pickerOf>,
+  testId: string,
+) {
+  await click(picker.getByTestId("open-keys"));
+  await click(picker.getByTestId(testId));
+}
+
+async function addGroup(picker = wholeFilterPicker()) {
+  await pickFromKeyList(picker, "add-group");
+}
+
 async function addCondition(
   picker = wholeFilterPicker(),
   keyName = "mapping_type",
 ) {
-  await click(picker.getByTestId(`pick-key-${keyName}`));
+  await pickFromKeyList(picker, `pick-key-${keyName}`);
   await pickValue();
 }
 
@@ -498,7 +537,7 @@ describe("FilterBar", () => {
     it("stands in for the values an operator takes, one or many", async () => {
       await renderBar({ filterExpr: "mapping_type:in:dsym" });
 
-      await click(wholeFilterPicker().getByTestId("pick-key-version_name"));
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-version_name");
       expect(screen.getByText("<values>")).toBeInTheDocument();
 
       await click(screen.getAllByTestId("pick-op-contains")[0]);
@@ -513,7 +552,7 @@ describe("FilterBar", () => {
         "Filter builds…",
       );
 
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
 
       expect(screen.getByTestId("filter-input")).toHaveTextContent("");
     });
@@ -674,7 +713,10 @@ describe("FilterBar", () => {
         filterExpr: "mapping_type:in:dsym",
       });
 
-      await click(screen.getByTestId("pick-key-patch_id-in-row"));
+      await pickFromKeyList(
+        chipKeyPicker("File type"),
+        "pick-key-patch_id-in-row",
+      );
 
       expect(lastChange(onChange)).toEqual({ filterExpr: "patch_id:is_set" });
       expect(valuePickers()).toHaveLength(0);
@@ -757,7 +799,7 @@ describe("FilterBar", () => {
     it("starts with its key picked and its value picker open, sending nothing", async () => {
       const { onChange } = await renderBar();
 
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
 
       expect(onChange).not.toHaveBeenCalled();
       expect(screen.getByText("<values>")).toBeInTheDocument();
@@ -827,7 +869,7 @@ describe("FilterBar", () => {
     it("closes its picker after a value that ends the selection", async () => {
       const { onChange } = await renderBar();
 
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
       await click(screen.getByTestId("pick-one-value"));
 
       expect(lastChange(onChange)).toEqual({
@@ -859,7 +901,7 @@ describe("FilterBar", () => {
         filterExpr: "mapping_type:in:dsym",
       });
 
-      await click(wholeFilterPicker().getByTestId("pick-key-version_name"));
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-version_name");
       expect(valuePickers()[1]).toHaveAttribute("data-open", "true");
 
       await setValue({
@@ -882,10 +924,136 @@ describe("FilterBar", () => {
       });
     });
 
+    it("keeps its place when the operator picker is opened over the value picker", async () => {
+      const { onChange } = await renderBar();
+
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
+      await click(screen.getByTestId("open-operator"));
+
+      expect(screen.getByLabelText("Remove condition")).toBeInTheDocument();
+      expect(screen.getByTestId("value-picker")).toHaveAttribute(
+        "data-open",
+        "false",
+      );
+      expect(screen.getByTestId("operator-picker")).toHaveAttribute(
+        "data-open",
+        "true",
+      );
+      expect(onChange).not.toHaveBeenCalled();
+    });
+
+    it("waits for a value again once the operator is changed, and is sent when one is picked", async () => {
+      const { onChange } = await renderBar();
+
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
+      await click(screen.getByTestId("open-operator"));
+      await click(screen.getByTestId("pick-op-not_in"));
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getByTestId("operator-picker")).toHaveAttribute(
+        "data-open",
+        "false",
+      );
+      expect(screen.getByTestId("value-picker")).toHaveAttribute(
+        "data-open",
+        "true",
+      );
+
+      await click(screen.getByTestId("pick-value"));
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:not_in:dsym",
+      });
+    });
+
+    it("is dropped when the operator picker it was moved to closes", async () => {
+      const { onChange } = await renderBar();
+
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
+      await click(screen.getByTestId("open-operator"));
+      await click(screen.getByTestId("close-operator"));
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.queryByLabelText("Remove condition")).toBeNull();
+    });
+
+    it("keeps its place when the key picker is opened over the value picker", async () => {
+      await renderBar();
+
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
+      await click(chipKeyPicker("File type").getByTestId("open-keys"));
+
+      expect(screen.getByLabelText("Remove condition")).toBeInTheDocument();
+      expect(
+        screen.getByText("File type").closest("[data-testid='key-picker']"),
+      ).toHaveAttribute("data-open", "true");
+      expect(screen.getByTestId("value-picker")).toHaveAttribute(
+        "data-open",
+        "false",
+      );
+    });
+
+    it("is put back when the value picker reached through the operator picker is dismissed", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym",
+      });
+
+      await click(screen.getByTestId("open-operator"));
+      await click(screen.getByTestId("pick-op-contains"));
+
+      expect(screen.getByText("<value>")).toBeInTheDocument();
+      expect(screen.getByTestId("value-picker")).toHaveAttribute(
+        "data-open",
+        "true",
+      );
+
+      await click(screen.getByTestId("close-values"));
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym",
+      });
+      expect(screen.queryByText("<value>")).toBeNull();
+    });
+
+    it("is put back when the key picker opened over that value picker is dismissed", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym",
+      });
+
+      await click(screen.getByTestId("open-operator"));
+      await click(screen.getByTestId("pick-op-contains"));
+      await click(chipKeyPicker("File type").getByTestId("open-keys"));
+      await click(chipKeyPicker("File type").getByTestId("close-keys"));
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym",
+      });
+      expect(screen.queryByText("<value>")).toBeNull();
+    });
+
+    it("is put back when the value it was given is taken off again and the picker dismissed", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym",
+      });
+
+      await pickFromKeyList(
+        chipKeyPicker("File type"),
+        "pick-key-version_name-in-row",
+      );
+      await click(screen.getByTestId("pick-value"));
+      await click(screen.getByTestId("unpick-value"));
+      await click(screen.getByTestId("close-values"));
+
+      expect(lastChange(onChange)).toEqual({
+        filterExpr: "mapping_type:in:dsym",
+      });
+      expect(screen.getByText("dsym")).toBeInTheDocument();
+    });
+
     it("is dropped when its value picker closes without a value", async () => {
       const { onChange } = await renderBar();
 
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
       await click(screen.getByTestId("close-values"));
 
       expect(onChange).not.toHaveBeenCalled();
@@ -896,7 +1064,7 @@ describe("FilterBar", () => {
     it("is dropped when the filter changes from outside", async () => {
       const { onChange, setValue } = await renderBar();
 
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
       await setValue({ filterExpr: "version_name:in:1.0" });
 
       expect(onChange).not.toHaveBeenCalled();
@@ -908,7 +1076,7 @@ describe("FilterBar", () => {
     it("is dropped when the range changes from outside", async () => {
       const { onChange, setValue } = await renderBar();
 
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
       await setValue({
         date: toDateSelection({
           dateRange: "Last Week",
@@ -928,7 +1096,7 @@ describe("FilterBar", () => {
         { spanNames: ["span.first", "span.second"] },
       );
 
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
       await setValue({ rootSpanName: "span.second" });
 
       expect(onChange).not.toHaveBeenCalled();
@@ -941,7 +1109,7 @@ describe("FilterBar", () => {
         filterExpr: "mapping_type:in:dsym AND version_name:in:1.0",
       });
 
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
       await click(screen.getAllByTestId("filter-logical-operator")[0]);
 
       expect(lastChange(onChange)).toEqual({
@@ -954,7 +1122,7 @@ describe("FilterBar", () => {
     it("is dropped when another app is picked", async () => {
       const { onChange } = await renderBar();
 
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
       await click(screen.getByTestId("pick-app-app-2"));
 
       expect(lastChange(onChange)).toEqual({
@@ -970,7 +1138,7 @@ describe("FilterBar", () => {
         filterExpr: "version_name:in:1.0",
       });
 
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
       await click(screen.getAllByLabelText("Remove condition")[0]);
 
       expect(lastChange(onChange)).toEqual({ filterExpr: null });
@@ -980,8 +1148,8 @@ describe("FilterBar", () => {
     it("is replaced by the next one started", async () => {
       const { onChange } = await renderBar();
 
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
-      await click(wholeFilterPicker().getByTestId("pick-key-version_name"));
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-version_name");
 
       expect(onChange).not.toHaveBeenCalled();
       expect(screen.getAllByLabelText("Remove condition")).toHaveLength(1);
@@ -994,7 +1162,10 @@ describe("FilterBar", () => {
         filterExpr: "mapping_type:in:dsym AND version_name:in:1.0",
       });
 
-      await click(screen.getAllByTestId("pick-key-version_name-in-row")[0]);
+      await pickFromKeyList(
+        chipKeyPicker("File type"),
+        "pick-key-version_name-in-row",
+      );
 
       expect(lastChange(onChange)).toEqual({
         filterExpr: "version_name:in:1.0",
@@ -1013,7 +1184,10 @@ describe("FilterBar", () => {
         filterExpr: "mapping_type:in:dsym AND version_name:in:1.0",
       });
 
-      await click(screen.getAllByTestId("pick-key-version_name-in-row")[0]);
+      await pickFromKeyList(
+        chipKeyPicker("File type"),
+        "pick-key-version_name-in-row",
+      );
       await click(screen.getAllByTestId("pick-value")[0]);
 
       expect(lastChange(onChange)).toEqual({
@@ -1063,7 +1237,7 @@ describe("FilterBar", () => {
     it("drops the edit when the filter it sent was discarded", async () => {
       const { setValue } = await renderBar();
 
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
       await setValue({ discarded: true });
 
       expect(screen.queryByText("<values>")).toBeNull();
@@ -1076,7 +1250,7 @@ describe("FilterBar", () => {
         { spanNames: null },
       );
 
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
       await setValue({ rootSpanName: "span.first" });
 
       expect(screen.getByText("<values>")).toBeInTheDocument();
@@ -1088,7 +1262,10 @@ describe("FilterBar", () => {
       });
 
       const group = () => screen.getByRole("group", { name: "Filter group" });
-      await click(within(group()).getByTestId("pick-key-mapping_type-in-row"));
+      await pickFromKeyList(
+        chipKeyPicker("App version"),
+        "pick-key-mapping_type-in-row",
+      );
 
       expect(lastChange(onChange)).toEqual({
         filterExpr: "mapping_type:in:dsym",
@@ -1108,8 +1285,9 @@ describe("FilterBar", () => {
       });
 
       const innermost = () => screen.getAllByRole("group").at(-1)!;
-      await click(
-        within(innermost()).getByTestId("pick-key-mapping_type-in-row"),
+      await pickFromKeyList(
+        chipKeyPicker("App version"),
+        "pick-key-mapping_type-in-row",
       );
 
       expect(lastChange(onChange)).toEqual({
@@ -1132,7 +1310,7 @@ describe("FilterBar", () => {
       });
 
       const group = () => screen.getByRole("group", { name: "Filter group" });
-      await click(groupPicker(group()).getByTestId("pick-key-mapping_type"));
+      await pickFromKeyList(groupPicker(group()), "pick-key-mapping_type");
       expect(
         within(group()).getAllByLabelText("Remove condition"),
       ).toHaveLength(2);
@@ -1148,10 +1326,6 @@ describe("FilterBar", () => {
 
   describe("grouping", () => {
     const onlyGroup = () => screen.getByRole("group", { name: "Filter group" });
-
-    async function addGroup(picker = wholeFilterPicker()) {
-      await click(picker.getByTestId("add-group"));
-    }
 
     it("opens the key list for the first condition of a group, sending nothing", async () => {
       const { onChange } = await renderBar();
@@ -1174,6 +1348,30 @@ describe("FilterBar", () => {
       await click(groupPicker(onlyGroup()).getByTestId("close-keys"));
 
       expect(screen.queryByRole("group")).toBeNull();
+    });
+
+    it("offers a nested group from the list of a group that holds a condition", async () => {
+      await renderBar({
+        filterExpr: "mapping_type:in:dsym AND (version_name:in:1.0)",
+      });
+
+      await addGroup(groupPicker(onlyGroup()));
+
+      expect(screen.getAllByRole("group")).toHaveLength(2);
+    });
+
+    it("keeps a group that already holds a condition when its key list is dismissed", async () => {
+      const { onChange } = await renderBar({
+        filterExpr: "mapping_type:in:dsym AND (version_name:in:1.0)",
+      });
+
+      await click(groupPicker(onlyGroup()).getByTestId("open-keys"));
+      await click(groupPicker(onlyGroup()).getByTestId("close-keys"));
+
+      expect(onChange).not.toHaveBeenCalled();
+      expect(
+        within(onlyGroup()).getAllByLabelText("Remove condition"),
+      ).toHaveLength(1);
     });
 
     it("sends the group once its first condition has a value", async () => {
@@ -1317,6 +1515,31 @@ describe("FilterBar", () => {
 
       expect(wholePicker()).toHaveAttribute("data-open", "false");
       expect(lastChange(onChange)).toEqual({ filterExpr: null });
+    });
+
+    it("closes once a key is picked from it", async () => {
+      await renderBar();
+
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
+
+      expect(wholePicker()).toHaveAttribute("data-open", "false");
+    });
+
+    it("closes once a group is added from it", async () => {
+      await renderBar();
+
+      await addGroup();
+
+      expect(wholePicker()).toHaveAttribute("data-open", "false");
+    });
+
+    it("stays shut while a condition has a picker of its own open", async () => {
+      await renderBar();
+
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
+      await click(screen.getByTestId("filter-bar"));
+
+      expect(wholePicker()).toHaveAttribute("data-open", "false");
     });
 
     it("leaves the bar alone while the filter is edited as text", async () => {
@@ -1724,13 +1947,28 @@ describe("FilterBar", () => {
     it("declines the edit and names the limit that stopped it", async () => {
       const { onChange } = await renderBar({ filterExpr: full });
 
-      await click(wholeFilterPicker().getByTestId("pick-key-mapping_type"));
+      await pickFromKeyList(wholeFilterPicker(), "pick-key-mapping_type");
 
       expect(mockToastNegative).toHaveBeenCalledWith(
         `A filter can hold at most ${MAX_CONDITIONS} conditions`,
       );
       expect(onChange).not.toHaveBeenCalled();
       expect(screen.queryByText("<values>")).toBeNull();
+    });
+
+    it("keeps the group and its open list when its first condition is declined", async () => {
+      const { onChange } = await renderBar({ filterExpr: full });
+
+      await addGroup();
+      const group = screen.getByRole("group", { name: "Filter group" });
+      await click(groupPicker(group).getByTestId("pick-key-version_name"));
+
+      expect(mockToastNegative).toHaveBeenCalledWith(
+        `A filter can hold at most ${MAX_CONDITIONS} conditions`,
+      );
+      expect(onChange).not.toHaveBeenCalled();
+      expect(screen.getByRole("group")).toBeInTheDocument();
+      expect(groupPicker(group).getByTestId("close-keys")).toBeInTheDocument();
     });
 
     it("says nothing while the filter is still inside every limit", async () => {

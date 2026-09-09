@@ -229,6 +229,17 @@ export function dropById(filter: ConditionGroup, id: string): ConditionGroup {
   return replaceById(filter, id, () => null);
 }
 
+// Removes the condition or group with this id only when `shouldDrop` says so
+// about what is found there, and leaves the filter alone when there is nothing
+// with that id.
+export function dropWhen(
+  filter: ConditionGroup,
+  id: string,
+  shouldDrop: (item: ConditionOrGroup) => boolean,
+): ConditionGroup {
+  return replaceById(filter, id, (item) => (shouldDrop(item) ? null : item));
+}
+
 // Reading order, not sibling order.
 export function rowBefore(
   filter: ConditionGroup,

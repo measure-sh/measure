@@ -30,6 +30,7 @@ import {
   type ConditionOrGroup,
   type ConditionRow,
   dropById,
+  dropWhen,
   isConditionGroup,
   isRowComplete,
   rowBefore,
@@ -83,9 +84,11 @@ interface FilterBarProps {
   onChange: (change: FilterChange) => void;
 }
 
-type OpenPicker =
-  | { kind: "keys"; groupId: string }
-  | { kind: "values"; rowId: string };
+type RowPickerKind = "key" | "operator" | "values";
+
+type OpenRowPicker = { kind: RowPickerKind; rowId: string };
+
+type OpenPicker = { kind: "keys"; groupId: string } | OpenRowPicker;
 
 type PendingEdit = {
   appId: string;
@@ -138,21 +141,6 @@ function settle(edit: PendingEdit, value: FilterSelection): PendingEdit | null {
   return { ...edit, from: edit.to };
 }
 
-function rowIn(tree: ConditionGroup, rowId: string): ConditionRow | null {
-  for (const child of tree.children) {
-    if (child.id === rowId && !isConditionGroup(child)) {
-      return child;
-    }
-    if (isConditionGroup(child)) {
-      const found = rowIn(child, rowId);
-      if (found) {
-        return found;
-      }
-    }
-  }
-  return null;
-}
-
 function withPickerClosed(
   tree: ConditionGroup,
   picker: OpenPicker | null,
@@ -161,12 +149,17 @@ function withPickerClosed(
     return tree;
   }
   if (picker.kind === "keys") {
-    return dropById(tree, picker.groupId);
+    return dropWhen(
+      tree,
+      picker.groupId,
+      (item) => isConditionGroup(item) && item.children.length === 0,
+    );
   }
-  const row = rowIn(tree, picker.rowId);
-  return row !== null && !isRowComplete(row)
-    ? dropById(tree, picker.rowId)
-    : tree;
+  return dropWhen(
+    tree,
+    picker.rowId,
+    (item) => !isConditionGroup(item) && !isRowComplete(item),
+  );
 }
 
 function appendTo(
@@ -304,11 +297,13 @@ export default function FilterBar({
       : `${first.message} (+${rest.length} more)`;
   }, [draftFilterIssues]);
 
-  const openValuesRowId =
-    pending?.picker?.kind === "values" ? pending.picker.rowId : null;
+  const openRowPicker: OpenRowPicker | null =
+    pending?.picker != null && pending.picker.kind !== "keys"
+      ? pending.picker
+      : null;
 
   useEffect(() => {
-    if (focusedId !== null && focusedId === openValuesRowId) {
+    if (focusedId !== null && openRowPicker?.rowId === focusedId) {
       return;
     }
     focusedControlRef.current?.focus();
@@ -345,6 +340,16 @@ export default function FilterBar({
       toastNegative(limit);
       return;
     }
+    // The text to revert to belongs to the edit the user is making on one
+    // condition, so it is kept for as long as the picker stays on that
+    // condition, whichever of its three pickers is the open one.
+    const stayingOnRow =
+      pending?.picker != null &&
+      pending.picker.kind !== "keys" &&
+      picker !== null &&
+      picker.kind !== "keys" &&
+      pending.picker.rowId === picker.rowId;
+    const carriedRevert = stayingOnRow ? pending?.revert : undefined;
     const text = writeFilterExpr(tree);
     if (text !== drawnText) {
       onChange({ filterExpr: text });
@@ -357,7 +362,7 @@ export default function FilterBar({
       from: pending !== null ? pending.from : filterExpr,
       to: text,
       picker,
-      revert,
+      revert: revert !== undefined ? revert : carriedRevert,
     });
   }
 
@@ -404,6 +409,10 @@ export default function FilterBar({
     send(tree, { kind: "keys", groupId: id });
   }
 
+  function openKeys(groupId: string) {
+    send(baseFor(groupId), { kind: "keys", groupId });
+  }
+
   function closeKeys(groupId: string) {
     setEdit((current) =>
       current?.picker?.kind === "keys" && current.picker.groupId === groupId
@@ -422,7 +431,7 @@ export default function FilterBar({
     send(
       updateRow(baseFor(row.id), row.id, { key, operator, values: [] }),
       opensPicker ? { kind: "values", rowId: row.id } : null,
-      opensPicker && isRowComplete(row) ? drawnText : undefined,
+      isRowComplete(row) ? drawnText : undefined,
     );
   }
 
@@ -436,7 +445,7 @@ export default function FilterBar({
     send(
       updateRow(baseFor(row.id), row.id, { operator, values }),
       opensPicker ? { kind: "values", rowId: row.id } : null,
-      opensPicker && isRowComplete(row) ? drawnText : undefined,
+      isRowComplete(row) ? drawnText : undefined,
     );
   }
 
@@ -451,12 +460,16 @@ export default function FilterBar({
     );
   }
 
-  function openValues(row: ConditionRow) {
-    send(baseFor(row.id), { kind: "values", rowId: row.id });
+  function openRowPickerFor(row: ConditionRow, kind: RowPickerKind) {
+    send(baseFor(row.id), { kind, rowId: row.id });
   }
 
-  function closeValues(row: ConditionRow) {
-    if (pending?.picker?.kind !== "values" || pending.picker.rowId !== row.id) {
+  function closeRowPicker(row: ConditionRow) {
+    if (
+      !pending?.picker ||
+      pending.picker.kind === "keys" ||
+      pending.picker.rowId !== row.id
+    ) {
       return;
     }
     if (!isRowComplete(row) && pending.revert !== undefined) {
@@ -534,12 +547,13 @@ export default function FilterBar({
     focusedControlRef,
     openKeysGroupId:
       pending?.picker?.kind === "keys" ? pending.picker.groupId : null,
-    openValuesRowId,
+    openRowPicker,
     onChangeKey: changeKey,
     onChangeOperator: changeOperator,
     onChangeValues: changeValues,
-    onOpenValues: openValues,
-    onCloseValues: closeValues,
+    onOpenRowPicker: openRowPickerFor,
+    onCloseRowPicker: closeRowPicker,
+    onOpenKeys: openKeys,
     onCloseKeys: closeKeys,
     onRemove: removeById,
     onStartRow: startRow,
@@ -592,9 +606,13 @@ export default function FilterBar({
               keysUnavailable ? "opacity-50 select-none" : ""
             } ${!editingAsText && !keysUnavailable ? "cursor-pointer" : ""}`}
             // A click on empty space anywhere in the bar opens the key list.
-            // A click that reaches a button is left to that button.
+            // A click that reaches a button is left to that button. While a
+            // condition has a picker open, the click is ignored: the chip takes
+            // pointer events back from the modal layer, so a press on its border
+            // reaches the bar, and opening the key list then stacks it over the
+            // chip's picker.
             onClick={(e) => {
-              if (editingAsText || keysUnavailable) {
+              if (editingAsText || keysUnavailable || pending?.picker) {
                 return;
               }
               if ((e.target as HTMLElement).closest("button")) {
@@ -637,8 +655,14 @@ export default function FilterBar({
                       open={keyListOpen}
                       onOpenChange={setKeyListOpen}
                       focusOnClose={focusedControlRef}
-                      onSelect={(key) => startRow(drawn.id, key)}
-                      onAddGroup={() => startGroup(drawn.id)}
+                      onSelect={(key) => {
+                        startRow(drawn.id, key);
+                        setKeyListOpen(false);
+                      }}
+                      onAddGroup={() => {
+                        startGroup(drawn.id);
+                        setKeyListOpen(false);
+                      }}
                       trigger={
                         <button
                           type="button"
@@ -721,7 +745,7 @@ interface FilterEditor {
   focusedId: string | null;
   focusedControlRef: RefObject<HTMLButtonElement | null>;
   openKeysGroupId: string | null;
-  openValuesRowId: string | null;
+  openRowPicker: OpenRowPicker | null;
   onChangeKey: (row: ConditionRow, key: FilterKey) => void;
   onChangeOperator: (row: ConditionRow, operator: FilterOperator) => void;
   onChangeValues: (
@@ -729,8 +753,9 @@ interface FilterEditor {
     values: ConditionRow["values"],
     done: boolean,
   ) => void;
-  onOpenValues: (row: ConditionRow) => void;
-  onCloseValues: (row: ConditionRow) => void;
+  onOpenRowPicker: (row: ConditionRow, kind: RowPickerKind) => void;
+  onCloseRowPicker: (row: ConditionRow) => void;
+  onOpenKeys: (groupId: string) => void;
   onCloseKeys: (groupId: string) => void;
   onRemove: (id: string) => void;
   onStartRow: (groupId: string, key: FilterKey) => void;
@@ -790,20 +815,16 @@ function FilterGroup({
         keys={editor.keys}
         keyGroups={editor.keyGroups}
         selected={null}
-        open={pickingFirstKey ? true : undefined}
-        onOpenChange={
-          pickingFirstKey
-            ? (open) => {
-                if (!open) {
-                  editor.onCloseKeys(group.id);
-                }
-              }
-            : undefined
+        open={pickingFirstKey}
+        onOpenChange={(open) =>
+          open ? editor.onOpenKeys(group.id) : editor.onCloseKeys(group.id)
         }
         focusOnClose={editor.focusedControlRef}
         onSelect={(key) => editor.onStartRow(group.id, key)}
         onAddGroup={
-          pickingFirstKey ? undefined : () => editor.onStartGroup(group.id)
+          group.children.length === 0
+            ? undefined
+            : () => editor.onStartGroup(group.id)
         }
         trigger={
           <button
@@ -842,13 +863,32 @@ function FilterRow({
 }) {
   const { keys, keyGroups, appId, entity, focusedId, focusedControlRef } =
     editor;
+  const chipRef = useRef<HTMLSpanElement>(null);
+  const openPickerKind =
+    editor.openRowPicker?.rowId === row.id ? editor.openRowPicker.kind : null;
+  const segmentPicker = (kind: RowPickerKind) => ({
+    open: openPickerKind === kind,
+    onOpenChange: (open: boolean) =>
+      open ? editor.onOpenRowPicker(row, kind) : editor.onCloseRowPicker(row),
+  });
 
   return (
-    <span className="inline-flex items-stretch h-6 max-w-full min-w-0 overflow-hidden rounded-sm border border-input bg-accent/80 font-display text-xs">
+    <span
+      ref={chipRef}
+      // A picker of this chip is a modal popover, which turns off pointer
+      // events on everything behind it. The chip turns them back on for
+      // itself, so a press on one of its other segments reaches that segment
+      // and opens its picker.
+      className={`inline-flex items-stretch h-6 max-w-full min-w-0 overflow-hidden rounded-sm border border-input bg-accent/80 font-display text-xs ${
+        openPickerKind === null ? "" : "pointer-events-auto"
+      }`}
+    >
       <KeyPicker
         keys={keys}
         keyGroups={keyGroups}
         selected={row.key}
+        {...segmentPicker("key")}
+        stayOpenWithin={chipRef}
         onSelect={(key) => editor.onChangeKey(row, key)}
         trigger={
           <button
@@ -865,6 +905,8 @@ function FilterRow({
         operators={row.key.operators}
         selected={row.operator}
         operatorLabels={operatorLabels}
+        {...segmentPicker("operator")}
+        stayOpenWithin={chipRef}
         onSelect={(operator) =>
           editor.onChangeOperator(row, operator as FilterOperator)
         }
@@ -889,14 +931,8 @@ function FilterRow({
           takesOneValue={operatorTakesOneValue(row.operator)}
           selected={row.values}
           onChange={(values, done) => editor.onChangeValues(row, values, done)}
-          open={row.id === editor.openValuesRowId}
-          onOpenChange={(open) => {
-            if (open) {
-              editor.onOpenValues(row);
-            } else {
-              editor.onCloseValues(row);
-            }
-          }}
+          {...segmentPicker("values")}
+          stayOpenWithin={chipRef}
           trigger={
             <button
               type="button"
