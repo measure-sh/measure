@@ -15,6 +15,7 @@ final class CrashReportingManagerTests: XCTestCase {
     var logger: MockLogger!
     var idProvider: MockIdProvider!
     var configProvider: MockConfigProvider!
+    var signalSampler: MockSignalSampler!
     var crashReportingManager: BaseCrashReportingManager!
     var sysCtl: MockSysCtl!
 
@@ -30,6 +31,7 @@ final class CrashReportingManagerTests: XCTestCase {
         logger = MockLogger()
         idProvider = MockIdProvider()
         configProvider = MockConfigProvider()
+        signalSampler = MockSignalSampler()
         sysCtl = MockSysCtl()
     }
 
@@ -41,6 +43,7 @@ final class CrashReportingManagerTests: XCTestCase {
         logger = nil
         idProvider = nil
         configProvider = nil
+        signalSampler = nil
         sysCtl = nil
         super.tearDown()
     }
@@ -293,7 +296,8 @@ final class CrashReportingManagerTests: XCTestCase {
                                                           crashReporter: reporter,
                                                           idProvider: idProvider,
                                                           sysCtl: sysCtl,
-                                                          configProvider: configProvider)
+                                                          configProvider: configProvider,
+                                                          signalSampler: signalSampler)
         crashReportingManager.trackException {}
     }
 }

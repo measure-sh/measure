@@ -53,7 +53,7 @@ final class MockConfigProvider: ConfigProvider {
     var timeoutIntervalForRequest: TimeInterval
     var httpContentTypeAllowlist: [String]
     var maxEventsInBatch: Number
-    var crashTimelineDurationSeconds: Number
+    var errorReplayDurationSeconds: Number
     var anrTimelineDurationSeconds: Number
     var bugReportTimelineDurationSeconds: Number
     var traceSamplingRate: Float
@@ -64,7 +64,13 @@ final class MockConfigProvider: ConfigProvider {
     var logIgnorePatterns: [String]
     var cpuUsageInterval: Number
     var memoryUsageInterval: Number
-    var crashTakeScreenshot: Bool
+    var errorFatalTakeScreenshot: Bool
+    var errorFatalReplayEnabled: Bool
+    var errorUnhandledReplayEnabled: Bool
+    var errorHandledReplayEnabled: Bool
+    var errorFatalSamplingRate: Float
+    var errorUnhandledSamplingRate: Float
+    var errorHandledSamplingRate: Float
     var anrTakeScreenshot: Bool
     var launchSamplingRate: Float
     var gestureClickTakeSnapshot: Bool
@@ -146,7 +152,7 @@ final class MockConfigProvider: ConfigProvider {
          dynamicConfig: DynamicConfig = BaseDynamicConfig(),
          combinedHttpUrlBlocklist: [String] = [],
          maxEventsInBatch: Number = 10_000,
-         crashTimelineDurationSeconds: Number = 300,
+         errorReplayDurationSeconds: Number = 300,
          anrTimelineDurationSeconds: Number = 300,
          bugReportTimelineDurationSeconds: Number = 300,
          traceSamplingRate: Float = 0.01,
@@ -157,7 +163,13 @@ final class MockConfigProvider: ConfigProvider {
          logIgnorePatterns: [String] = [],
          cpuUsageInterval: Number = 5,
          memoryUsageInterval: Number = 5,
-         crashTakeScreenshot: Bool = true,
+         errorFatalTakeScreenshot: Bool = true,
+         errorFatalReplayEnabled: Bool = true,
+         errorUnhandledReplayEnabled: Bool = false,
+         errorHandledReplayEnabled: Bool = false,
+         errorFatalSamplingRate: Float = 100,
+         errorUnhandledSamplingRate: Float = 100,
+         errorHandledSamplingRate: Float = 0,
          anrTakeScreenshot: Bool = true,
          launchSamplingRate: Float = 0.01,
          gestureClickTakeSnapshot: Bool = true,
@@ -221,7 +233,7 @@ final class MockConfigProvider: ConfigProvider {
         self.combinedHttpUrlBlocklist = combinedHttpUrlBlocklist
         self.combinedHttpHeadersBlocklist = defaultHttpHeadersBlocklist + dynamicConfig.httpBlockedHeaders
         self.maxEventsInBatch = maxEventsInBatch
-        self.crashTimelineDurationSeconds = crashTimelineDurationSeconds
+        self.errorReplayDurationSeconds = errorReplayDurationSeconds
         self.anrTimelineDurationSeconds = anrTimelineDurationSeconds
         self.bugReportTimelineDurationSeconds = bugReportTimelineDurationSeconds
         self.traceSamplingRate = traceSamplingRate
@@ -232,7 +244,13 @@ final class MockConfigProvider: ConfigProvider {
         self.logIgnorePatterns = logIgnorePatterns
         self.cpuUsageInterval = cpuUsageInterval
         self.memoryUsageInterval = memoryUsageInterval
-        self.crashTakeScreenshot = crashTakeScreenshot
+        self.errorFatalTakeScreenshot = errorFatalTakeScreenshot
+        self.errorFatalReplayEnabled = errorFatalReplayEnabled
+        self.errorUnhandledReplayEnabled = errorUnhandledReplayEnabled
+        self.errorHandledReplayEnabled = errorHandledReplayEnabled
+        self.errorFatalSamplingRate = errorFatalSamplingRate
+        self.errorUnhandledSamplingRate = errorUnhandledSamplingRate
+        self.errorHandledSamplingRate = errorHandledSamplingRate
         self.anrTakeScreenshot = anrTakeScreenshot
         self.launchSamplingRate = launchSamplingRate
         self.gestureClickTakeSnapshot = gestureClickTakeSnapshot

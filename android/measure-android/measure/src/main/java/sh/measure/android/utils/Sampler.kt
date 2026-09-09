@@ -1,12 +1,14 @@
 package sh.measure.android.utils
 
 import sh.measure.android.config.ConfigProvider
+import sh.measure.android.exceptions.ExceptionSeverity
 
 internal interface Sampler {
     fun shouldSampleTrace(traceId: String): Boolean
     fun shouldSampleLaunchEvent(): Boolean
     fun shouldTrackJourneyForSession(sessionId: String): Boolean
     fun shouldSampleHttpEvent(): Boolean
+    fun shouldSampleError(severity: ExceptionSeverity): Boolean
     fun shouldSampleProfile(): Boolean
 }
 
@@ -53,6 +55,22 @@ internal class SamplerImpl(
         }
 
         return stableSamplingValue(sessionId) < samplingRate
+    }
+
+    override fun shouldSampleError(severity: ExceptionSeverity): Boolean {
+        val samplingRate = when (severity) {
+            ExceptionSeverity.Fatal -> configProvider.errorFatalSamplingRate
+            ExceptionSeverity.Unhandled -> configProvider.errorUnhandledSamplingRate
+            ExceptionSeverity.Handled -> configProvider.errorHandledSamplingRate
+        }
+        if (samplingRate == 0.0f) {
+            return false
+        }
+        if (samplingRate == 100f) {
+            return true
+        }
+
+        return randomizer.random() < (samplingRate / 100)
     }
 
     override fun shouldSampleHttpEvent(): Boolean {

@@ -27,6 +27,7 @@ final class BaseCrashReportingManager: CrashReportManager {
     private let idProvider: IdProvider
     private let sysCtl: SysCtl
     private let configProvider: ConfigProvider
+    private let signalSampler: SignalSampler
     let hasPendingCrashReport: Bool
 
     init(logger: Logger,
@@ -35,7 +36,8 @@ final class BaseCrashReportingManager: CrashReportManager {
          crashReporter: SystemCrashReporter,
          idProvider: IdProvider,
          sysCtl: SysCtl,
-         configProvider: ConfigProvider) {
+         configProvider: ConfigProvider,
+         signalSampler: SignalSampler) {
         self.logger = logger
         self.signalProcessor = signalProcessor
         self.crashDataPersistence = crashDataPersistence
@@ -44,6 +46,7 @@ final class BaseCrashReportingManager: CrashReportManager {
         self.idProvider = idProvider
         self.sysCtl = sysCtl
         self.configProvider = configProvider
+        self.signalSampler = signalSampler
     }
 
     func trackException(completion: (() -> Void)?) {
@@ -74,7 +77,7 @@ final class BaseCrashReportingManager: CrashReportManager {
                                   attachments: nil,
                                   userDefinedAttributes: nil,
                                   threadName: nil,
-                                  needsReporting: true,
+                                  needsReporting: signalSampler.shouldSampleError(exception.severity ?? .fatal),
                                   synchronous: true)
         }
 

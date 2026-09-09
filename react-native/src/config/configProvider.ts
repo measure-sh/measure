@@ -48,10 +48,6 @@ export class ConfigProvider implements IConfigProvider {
     return this.dynamicConfig.maxEventsInBatch;
   }
 
-  get crashTimelineDurationSeconds(): number {
-    return this.dynamicConfig.crashTimelineDurationSeconds;
-  }
-
   get anrTimelineDurationSeconds(): number {
     return this.dynamicConfig.anrTimelineDurationSeconds;
   }
@@ -90,10 +86,6 @@ export class ConfigProvider implements IConfigProvider {
 
   get memoryUsageInterval(): number {
     return this.dynamicConfig.memoryUsageInterval;
-  }
-
-  get crashTakeScreenshot(): boolean {
-    return this.dynamicConfig.crashTakeScreenshot;
   }
 
   get anrTakeScreenshot(): boolean {

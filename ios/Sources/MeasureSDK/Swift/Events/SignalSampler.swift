@@ -12,6 +12,7 @@ protocol SignalSampler {
     func shouldSampleTrace(_ traceId: String) -> Bool
     func shouldTrackJourneyForSession(sessionId: String) -> Bool
     func shouldSampleHttpEvent() -> Bool
+    func shouldSampleError(_ severity: ExceptionSeverity) -> Bool
 }
 
 final class BaseSignalSampler: SignalSampler {
@@ -76,6 +77,24 @@ final class BaseSignalSampler: SignalSampler {
             return true
         }
         return shouldTrack(configProvider.httpSamplingRate / 100)
+    }
+
+    func shouldSampleError(_ severity: ExceptionSeverity) -> Bool {
+        if configProvider.enableFullCollectionMode {
+            return true
+        }
+
+        let samplingRate: Float
+        switch severity {
+        case .fatal:
+            samplingRate = configProvider.errorFatalSamplingRate
+        case .unhandled:
+            samplingRate = configProvider.errorUnhandledSamplingRate
+        case .handled:
+            samplingRate = configProvider.errorHandledSamplingRate
+        }
+
+        return shouldTrack(samplingRate / 100)
     }
 
     /// Generates a stable sampling value in [0, 1] from a session ID.

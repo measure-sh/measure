@@ -20,11 +20,14 @@ import (
 )
 
 // configColumns must stay ordered to match the scan in PatchConfigForApp.
-const configColumns = `max_events_in_batch, crash_timeline_duration, anr_timeline_duration,
+const configColumns = `max_events_in_batch, error_replay_duration, anr_timeline_duration,
 	bug_report_timeline_duration, trace_sampling_rate, journey_sampling_rate,
 	screenshot_mask_level, log_autocollect_enabled, log_min_severity,
 	log_ignore_patterns, cpu_usage_interval, memory_usage_interval,
-	crash_take_screenshot, anr_take_screenshot, launch_sampling_rate,
+	error_fatal_take_screenshot, error_fatal_replay_enabled,
+	error_unhandled_replay_enabled, error_handled_replay_enabled,
+	error_fatal_sampling_rate, error_unhandled_sampling_rate, error_handled_sampling_rate,
+	anr_take_screenshot, launch_sampling_rate,
 	gesture_click_take_snapshot, http_sampling_rate, http_disable_event_for_urls,
 	http_track_request_for_urls, http_track_response_for_urls, http_blocked_headers,
 	profile_sampling_rate, updated_at, updated_by`
@@ -46,8 +49,8 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 	if patch.MaxEventsInBatch != nil {
 		stmt.Set("max_events_in_batch", *patch.MaxEventsInBatch)
 	}
-	if patch.CrashTimelineDuration != nil {
-		stmt.Set("crash_timeline_duration", *patch.CrashTimelineDuration)
+	if patch.ErrorReplayDuration != nil {
+		stmt.Set("error_replay_duration", *patch.ErrorReplayDuration)
 	}
 	if patch.ANRTimelineDuration != nil {
 		stmt.Set("anr_timeline_duration", *patch.ANRTimelineDuration)
@@ -88,8 +91,35 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 	if patch.MemoryUsageInterval != nil {
 		stmt.Set("memory_usage_interval", *patch.MemoryUsageInterval)
 	}
-	if patch.CrashTakeScreenshot != nil {
-		stmt.Set("crash_take_screenshot", *patch.CrashTakeScreenshot)
+	if patch.ErrorFatalTakeScreenshot != nil {
+		stmt.Set("error_fatal_take_screenshot", *patch.ErrorFatalTakeScreenshot)
+	}
+	if patch.ErrorFatalReplayEnabled != nil {
+		stmt.Set("error_fatal_replay_enabled", *patch.ErrorFatalReplayEnabled)
+	}
+	if patch.ErrorUnhandledReplayEnabled != nil {
+		stmt.Set("error_unhandled_replay_enabled", *patch.ErrorUnhandledReplayEnabled)
+	}
+	if patch.ErrorHandledReplayEnabled != nil {
+		stmt.Set("error_handled_replay_enabled", *patch.ErrorHandledReplayEnabled)
+	}
+	if patch.ErrorFatalSamplingRate != nil {
+		if *patch.ErrorFatalSamplingRate < 0 || *patch.ErrorFatalSamplingRate > 100 {
+			return fmt.Errorf("error_fatal_sampling_rate must be between 0-100")
+		}
+		stmt.Set("error_fatal_sampling_rate", *patch.ErrorFatalSamplingRate)
+	}
+	if patch.ErrorUnhandledSamplingRate != nil {
+		if *patch.ErrorUnhandledSamplingRate < 0 || *patch.ErrorUnhandledSamplingRate > 100 {
+			return fmt.Errorf("error_unhandled_sampling_rate must be between 0-100")
+		}
+		stmt.Set("error_unhandled_sampling_rate", *patch.ErrorUnhandledSamplingRate)
+	}
+	if patch.ErrorHandledSamplingRate != nil {
+		if *patch.ErrorHandledSamplingRate < 0 || *patch.ErrorHandledSamplingRate > 100 {
+			return fmt.Errorf("error_handled_sampling_rate must be between 0-100")
+		}
+		stmt.Set("error_handled_sampling_rate", *patch.ErrorHandledSamplingRate)
 	}
 	if patch.ANRTakeScreenshot != nil {
 		stmt.Set("anr_take_screenshot", *patch.ANRTakeScreenshot)
@@ -141,7 +171,7 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 	var config sdkconfig.SdkConfig
 	if err := deps.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
 		&config.MaxEventsInBatch,
-		&config.CrashTimelineDuration,
+		&config.ErrorReplayDuration,
 		&config.ANRTimelineDuration,
 		&config.BugReportTimelineDuration,
 		&config.TraceSamplingRate,
@@ -152,7 +182,13 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		&config.LogIgnorePatterns,
 		&config.CPUUsageInterval,
 		&config.MemoryUsageInterval,
-		&config.CrashTakeScreenshot,
+		&config.ErrorFatalTakeScreenshot,
+		&config.ErrorFatalReplayEnabled,
+		&config.ErrorUnhandledReplayEnabled,
+		&config.ErrorHandledReplayEnabled,
+		&config.ErrorFatalSamplingRate,
+		&config.ErrorUnhandledSamplingRate,
+		&config.ErrorHandledSamplingRate,
 		&config.ANRTakeScreenshot,
 		&config.LaunchSamplingRate,
 		&config.GestureClickTakeSnapshot,

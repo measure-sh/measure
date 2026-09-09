@@ -798,14 +798,14 @@ describe("Apps Page — mutations", () => {
   // SAVE SDK CONFIG
   // ================================================================
   describe("save SDK config", () => {
-    it("calls PATCH /apps/:appId/config for crashes section and updates UI", async () => {
+    it("calls PATCH /apps/:appId/config for errors section and updates UI", async () => {
       let capturedBody: any = null;
       server.use(
         http.patch("*/api/apps/:appId/config", async ({ request }) => {
           capturedBody = await request.json();
           return HttpResponse.json(
             makeSdkConfigFixture({
-              crash_take_screenshot: false,
+              error_fatal_take_screenshot: false,
             }),
           );
         }),
@@ -813,34 +813,36 @@ describe("Apps Page — mutations", () => {
 
       await renderAndWaitForData();
 
-      // Open the Crashes accordion
-      const crashesTrigger = screen.getByText("Crashes");
+      // Open the Errors accordion
+      const errorsTrigger = screen.getByText("Errors");
       await act(async () => {
-        fireEvent.click(crashesTrigger);
+        fireEvent.click(errorsTrigger);
       });
 
       // Wait for accordion content to appear
       await waitFor(() => {
-        expect(screen.getByTestId("crash-screenshot-switch")).toBeTruthy();
+        expect(
+          screen.getByTestId("error-fatal-screenshot-switch"),
+        ).toBeTruthy();
       });
 
-      // Toggle the crash screenshot switch
-      const crashScreenshotSwitch = screen.getByTestId(
-        "crash-screenshot-switch",
+      // Toggle the error screenshot switch
+      const errorScreenshotSwitch = screen.getByTestId(
+        "error-fatal-screenshot-switch",
       );
       await act(async () => {
-        fireEvent.click(crashScreenshotSwitch);
+        fireEvent.click(errorScreenshotSwitch);
       });
 
-      // The Save button in the crashes section should now be enabled
-      const crashesSaveBtn = screen.getByTestId("crashes-save-button");
+      // The Save button in the errors section should now be enabled
+      const errorsSaveBtn = screen.getByTestId("errors-save-button");
       await waitFor(() => {
-        expect(crashesSaveBtn.closest("button")?.disabled).toBe(false);
+        expect(errorsSaveBtn.closest("button")?.disabled).toBe(false);
       });
 
       // Click Save to open confirmation dialog
       await act(async () => {
-        fireEvent.click(crashesSaveBtn);
+        fireEvent.click(errorsSaveBtn);
       });
 
       // Confirm
@@ -855,7 +857,7 @@ describe("Apps Page — mutations", () => {
       await waitFor(
         () => {
           expect(capturedBody).toBeTruthy();
-          expect(capturedBody.crash_take_screenshot).toBe(false);
+          expect(capturedBody.error_fatal_take_screenshot).toBe(false);
         },
         { timeout: 5000 },
       );

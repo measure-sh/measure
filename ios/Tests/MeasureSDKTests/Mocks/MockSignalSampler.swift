@@ -14,6 +14,11 @@ final class MockSignalSampler: SignalSampler {
     var shouldTrackJourneyEventsReturnValue: Bool = false
     var shouldSampleTraceReturnValue: Bool = false
     var shouldSampleTHttpEventValue: Bool = false
+    var sampledErrorSeverities: Set<ExceptionSeverity> = [.fatal, .unhandled]
+
+    func shouldSampleError(_ severity: ExceptionSeverity) -> Bool {
+        return sampledErrorSeverities.contains(severity)
+    }
 
     func shouldTrackTrace() -> Bool {
         return shouldTrackTraceReturnValue

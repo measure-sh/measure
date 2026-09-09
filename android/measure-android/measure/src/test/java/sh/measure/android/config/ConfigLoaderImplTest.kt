@@ -141,7 +141,7 @@ internal class ConfigLoaderImplTest {
         // Then
         assertEquals(100, result?.maxEventsInBatch)
         assertEquals(0.5f, result?.traceSamplingRate)
-        assertEquals(true, result?.crashTakeScreenshot)
+        assertEquals(true, result?.errorFatalScreenshotEnabled)
         assertEquals(16, result?.logMinSeverity)
         configFile.delete()
     }

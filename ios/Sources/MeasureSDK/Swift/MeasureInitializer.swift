@@ -330,7 +330,8 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                             crashReporter: systemCrashReporter,
                                                             idProvider: idProvider,
                                                             sysCtl: sysCtl,
-                                                            configProvider: configProvider)
+                                                            configProvider: configProvider,
+                                                            signalSampler: signalSampler)
         self.gestureTargetFinder = BaseGestureTargetFinder()
         self.gestureCollector = BaseGestureCollector(logger: logger,
                                                      signalProcessor: signalProcessor,

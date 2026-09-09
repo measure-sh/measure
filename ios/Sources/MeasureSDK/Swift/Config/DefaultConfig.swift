@@ -24,7 +24,7 @@ struct DefaultConfig {
     static let enableDiagnosticModeGesture = false
 
     static let maxEventsInBatch: Number = 10_000
-    static let crashTimelineDurationSeconds: Number = 300
+    static let errorReplayDurationSeconds: Number = 300
     static let anrTimelineDurationSeconds: Number = 300
     static let bugReportTimelineDurationSeconds: Number = 300
     static let traceSamplingRate: Float = 100
@@ -35,7 +35,13 @@ struct DefaultConfig {
     static let logIgnorePatterns: [String] = []
     static let cpuUsageInterval: Number = 5
     static let memoryUsageInterval: Number = 5
-    static let crashTakeScreenshot: Bool = true
+    static let errorFatalTakeScreenshot: Bool = true
+    static let errorFatalReplayEnabled: Bool = true
+    static let errorUnhandledReplayEnabled: Bool = false
+    static let errorHandledReplayEnabled: Bool = false
+    static let errorFatalSamplingRate: Float = 100
+    static let errorUnhandledSamplingRate: Float = 100
+    static let errorHandledSamplingRate: Float = 0
     static let anrTakeScreenshot: Bool = true
     static let launchSamplingRate: Float = 100
     static let gestureClickTakeSnapshot: Bool = true

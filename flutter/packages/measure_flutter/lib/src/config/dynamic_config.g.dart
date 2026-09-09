@@ -16,7 +16,6 @@ DynamicConfig _$DynamicConfigFromJson(Map<String, dynamic> json) =>
               ?.map((e) => e as String)
               .toList() ??
           [],
-      crashTakeScreenshot: json['crash_take_screenshot'] as bool,
       gestureClickTakeSnapshot: json['gesture_click_take_snapshot'] as bool,
       httpDisableEventForUrls:
           (json['http_disable_event_for_urls'] as List<dynamic>)
@@ -42,7 +41,6 @@ Map<String, dynamic> _$DynamicConfigToJson(DynamicConfig instance) =>
           _$ScreenshotMaskLevelEnumMap[instance.screenshotMaskLevel]!,
       'log_min_severity': instance.logMinSeverity,
       'log_ignore_patterns': instance.logIgnorePatterns,
-      'crash_take_screenshot': instance.crashTakeScreenshot,
       'gesture_click_take_snapshot': instance.gestureClickTakeSnapshot,
       'http_disable_event_for_urls': instance.httpDisableEventForUrls,
       'http_track_request_for_urls': instance.httpTrackRequestForUrls,

@@ -235,7 +235,8 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                   crashReporter: self.systemCrashReporter,
                                                                                   idProvider: self.idProvider,
                                                                                   sysCtl: self.sysCtl,
-                                                                                  configProvider: self.configProvider)
+                                                                                  configProvider: self.configProvider,
+                                                                                  signalSampler: self.signalSampler)
         self.spanProcessor = spanProcessor ?? BaseSpanProcessor(logger: self.logger,
                                                signalProcessor: self.signalProcessor,
                                                attributeProcessors: attributeProcessors,
