@@ -367,5 +367,96 @@ final class MsrSpanTests: XCTestCase { // swiftlint:disable:this type_body_lengt
         XCTAssertEqual(child.traceId, parent.traceId)
         XCTAssertEqual(child.parentId, parent.spanId)
     }
+
+    /// A `SpanProcessor` that counts how many times each callback fires, for
+    /// asserting exactly-once invocation under concurrent access.
+    private final class CountingSpanProcessor: SpanProcessor {
+        private let lock = NSLock()
+        private var _onStartCount = 0
+        private var _onEndingCount = 0
+        private var _onEndedCount = 0
+
+        var onStartCount: Int { lock.lock(); defer { lock.unlock() }; return _onStartCount }
+        var onEndingCount: Int { lock.lock(); defer { lock.unlock() }; return _onEndingCount }
+        var onEndedCount: Int { lock.lock(); defer { lock.unlock() }; return _onEndedCount }
+
+        func onStart(_ span: InternalSpan) {
+            lock.lock(); _onStartCount += 1; lock.unlock()
+        }
+        func onEnding(_ span: InternalSpan) {
+            lock.lock(); _onEndingCount += 1; lock.unlock()
+        }
+        func onEnded(_ span: InternalSpan) {
+            lock.lock(); _onEndedCount += 1; lock.unlock()
+        }
+        func onConfigLoaded() {}
+    }
+
+    func test_end_calledTwice_onlyInvokesProcessorCallbacksOnce() {
+        let processor = CountingSpanProcessor()
+        let span = MsrSpan(logger: logger,
+                           timeProvider: timeProvider,
+                           isSampled: true,
+                           name: "span-name",
+                           spanId: "span-id",
+                           traceId: "trace-id",
+                           parentId: nil,
+                           sessionId: sessionManager.sessionId,
+                           startTime: 1000,
+                           spanProcessor: processor)
+
+        span.end(timestamp: 2000)
+        span.end(timestamp: 3000)
+
+        XCTAssertEqual(processor.onEndingCount, 1)
+        XCTAssertEqual(processor.onEndedCount, 1)
+        XCTAssertEqual(span.getDuration(), 1000, "The second end() call must not overwrite endTime")
+    }
+
+    func test_end_calledConcurrently_invokesProcessorCallbacksExactlyOnce() {
+        for trial in 0..<15 {
+            let processor = CountingSpanProcessor()
+            let span = MsrSpan(logger: logger,
+                               timeProvider: timeProvider,
+                               isSampled: true,
+                               name: "span-name",
+                               spanId: "span-id-\(trial)",
+                               traceId: "trace-id-\(trial)",
+                               parentId: nil,
+                               sessionId: sessionManager.sessionId,
+                               startTime: 1000,
+                               spanProcessor: processor)
+
+            let callerCount = 10
+            let startLock = NSLock()
+            var startedCount = 0
+            let startGate = DispatchSemaphore(value: 0)
+            let allReturned = expectation(description: "trial \(trial): all end() calls returned")
+            allReturned.expectedFulfillmentCount = callerCount
+
+            for i in 0..<callerCount {
+                Thread.detachNewThread {
+                    startLock.lock(); startedCount += 1; startLock.unlock()
+                    startGate.wait()
+                    _ = span.end(timestamp: Number(2000 + i))
+                    allReturned.fulfill()
+                }
+            }
+
+            let deadline = Date().addingTimeInterval(5)
+            while true {
+                startLock.lock(); let started = startedCount; startLock.unlock()
+                if started >= callerCount || Date() > deadline { break }
+                usleep(1000)
+            }
+            for _ in 0..<callerCount { startGate.signal() }
+
+            wait(for: [allReturned], timeout: 5)
+
+            XCTAssertEqual(processor.onEndingCount, 1, "trial \(trial): onEnding must fire exactly once regardless of concurrent end() calls")
+            XCTAssertEqual(processor.onEndedCount, 1, "trial \(trial): onEnded must fire exactly once regardless of concurrent end() calls")
+            XCTAssertTrue(span.hasEnded(), "trial \(trial): span should be ended")
+        }
+    }
 }
 // swiftlint:enable force_cast

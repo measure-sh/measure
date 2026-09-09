@@ -216,17 +216,21 @@ class MsrSpan: InternalSpan {
     @discardableResult
     func end(timestamp: Number) -> Span {
         lock.lock()
-        defer { lock.unlock() }
-
-        if hasEndedState != .notEnded {
-            return self
+        let alreadyEnding = hasEndedState != .notEnded
+        if !alreadyEnding {
+            hasEndedState = .ending
+            endTime = timestamp
         }
+        lock.unlock()
 
-        hasEndedState = .ending
-        endTime = timestamp
+        guard !alreadyEnding else { return self }
+
         spanProcessor.onEnding(self)
 
+        lock.lock()
         hasEndedState = .ended
+        lock.unlock()
+
         spanProcessor.onEnded(self)
         return self
     }
@@ -244,6 +248,8 @@ class MsrSpan: InternalSpan {
     }
 
     func toSpanData() -> SpanData {
+        lock.lock()
+        defer { lock.unlock() }
         return SpanData(name: name,
                         traceId: traceId,
                         spanId: spanId,
