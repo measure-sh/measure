@@ -335,6 +335,7 @@ describe("the attachment window", () => {
       atOffsetMs: second * 1000,
       url: `https://cdn/a${index}`,
       format: "layout" as const,
+      type: "layout_snapshot_json" as const,
     }));
 
   it("centres on the attachment the playhead has reached, or the next one due", () => {
@@ -480,7 +481,7 @@ describe("replayFrom", () => {
     ]);
   });
 
-  it("draws the ring of the gesture whose row is active, not an earlier one at the same time", () => {
+  it("matches the touch indicator to the highlighted gesture", () => {
     const replay = replayFrom(
       timelineWith([
         { event_type: "gesture_click", timestamp: at(1), x: 10, y: 10 },
@@ -496,12 +497,68 @@ describe("replayFrom", () => {
     expect(replay.touches[1].from).toEqual({ x: 90, y: 90 });
   });
 
-  it("shows the ring from the press until the release", () => {
+  it("shows the touch indicator from press to release", () => {
     const replay = replayFrom(timeline);
 
     expect(replay.slices[0].touchIndex).toBeNull();
     expect(replay.slices[1].touchIndex).toBe(0);
     expect(replay.slices[2].touchIndex).toBeNull();
+  });
+
+  it("removes the tap indicator when the app opens a new screen", () => {
+    const replay = replayFrom(
+      timelineWith([
+        {
+          event_type: "gesture_click",
+          timestamp: at(1),
+          x: 10,
+          y: 10,
+          attachments: [attachment("layout_snapshot_json", "tapped.json")],
+        },
+        { event_type: "lifecycle_activity", timestamp: at(1.05) },
+        {
+          event_type: "screen_view",
+          timestamp: at(1.12),
+          attachments: [attachment("layout_snapshot_json", "opened.json")],
+        },
+      ]),
+    );
+
+    // The screen view lands well inside the tap's 220ms hold. The lifecycle
+    // event between the two brings no screen of its own, so the tap's is still
+    // on the stage there and keeps the ring.
+    expect(
+      replay.slices.map((slice) => [slice.startOffsetMs, slice.touchIndex]),
+    ).toEqual([
+      [0, 0],
+      [50, 0],
+      [120, null],
+      [220, null],
+    ]);
+  });
+
+  it("continues to show touch indicators when the screen stays the same", () => {
+    const replay = replayFrom(
+      timelineWith([
+        {
+          event_type: "screen_view",
+          timestamp: at(1),
+          attachments: [attachment("layout_snapshot_json", "list.json")],
+        },
+        { event_type: "gesture_scroll", timestamp: at(2), x: 40, y: 300 },
+      ]),
+    );
+
+    // Only a tap records a screen of its own, so the screen view's is the one
+    // the scroll was made on and the one it is drawn against.
+    expect(replay.shownAttachmentRefGroupIndexByEventIndex).toEqual([0, 0]);
+    expect(
+      replay.slices.map((slice) => [slice.startOffsetMs, slice.touchIndex]),
+    ).toEqual([
+      [0, null],
+      [1000, 0],
+      [1220, null],
+    ]);
   });
 
   it("turns a gesture into a pressed touch that releases after a hold", () => {
@@ -879,12 +936,14 @@ describe("containerScaleOf", () => {
 
 describe("ringPositionAt", () => {
   const tap = {
+    eventIndex: 0,
     pressOffsetMs: 1000,
     releaseOffsetMs: 1220,
     from: { x: 10, y: 10 },
     to: { x: 10, y: 10 },
   };
   const swipe = {
+    eventIndex: 1,
     pressOffsetMs: 2000,
     releaseOffsetMs: 2320,
     from: { x: 0, y: 0 },
@@ -2474,7 +2533,14 @@ describe("the player", () => {
     }
   }, 20_000);
 
-  it("holds the touch ring back until there is a screen to place it on", async () => {
+  it("hides touch indicators when there is no screen to show", async () => {
+    renderReplay(tapWith([]));
+
+    await screen.findByLabelText("Play");
+    expect(screen.queryByTestId("session-replay-touch-ring")).toBeNull();
+  });
+
+  it("waits for the screen to load before showing a touch indicator", async () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn(() => new Promise(() => {})) as any;
     try {
@@ -2490,7 +2556,7 @@ describe("the player", () => {
     }
   });
 
-  it("shows the touch ring once the screen the gesture was made on arrives", async () => {
+  it("shows where the user tapped once the screen loads", async () => {
     const restoreFetch = stubFetch();
     try {
       renderReplay(tapWithAttachments(["https://cdn/good.json"]));
@@ -2503,7 +2569,142 @@ describe("the player", () => {
     }
   });
 
-  it("waits for the attachment it calls for while another of the same screen arrives", async () => {
+  it.each([
+    ["a wireframe", "snapshot.svg"],
+    ["an image of the layout", "snapshot.webp"],
+  ])("shows where the user tapped on %s", async (_label, name) => {
+    const originalFetch = global.fetch;
+    const originalImage = global.Image;
+    global.fetch = jest.fn(async () => ({
+      ok: true,
+      text: async () => '<svg viewBox="0 0 200 400"></svg>',
+    })) as any;
+    global.Image = class {
+      naturalWidth = 200;
+      naturalHeight = 400;
+      onload: (() => void) | null = null;
+      set src(_url: string) {
+        setTimeout(() => this.onload?.(), 0);
+      }
+    } as any;
+    try {
+      renderReplay(tapWith([{ type: "layout_snapshot", name }]));
+
+      expect(
+        await screen.findByTestId("session-replay-touch-ring"),
+      ).toBeTruthy();
+    } finally {
+      global.fetch = originalFetch;
+      global.Image = originalImage;
+    }
+  });
+
+  it("hides the touch indicator when switching to a screenshot", async () => {
+    const restoreFetch = stubFetch();
+    const originalImage = global.Image;
+    global.Image = class {
+      naturalWidth = 200;
+      naturalHeight = 400;
+      onload: (() => void) | null = null;
+      set src(_url: string) {
+        setTimeout(() => this.onload?.(), 0);
+      }
+    } as any;
+    try {
+      renderReplay(
+        tapWith([
+          {
+            type: "layout_snapshot_json",
+            name: "snapshot.json",
+            location: "https://cdn/good.json",
+          },
+          { type: "screenshot", name: "shot.webp" },
+        ]),
+      );
+      await screen.findByTestId("session-replay-touch-ring");
+      // Both attachments are loaded, so switching cannot hide the ring merely
+      // because the screenshot has no size yet.
+      await waitFor(() =>
+        expect(
+          queries.getQueryState(["session-attachment", "sess-001", "a1"])
+            ?.status,
+        ).toBe("success"),
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: "Attachment 2" }));
+      expect(screen.queryByTestId("session-replay-touch-ring")).toBeNull();
+
+      fireEvent.click(screen.getByRole("button", { name: "Attachment 1" }));
+      expect(
+        await screen.findByTestId("session-replay-touch-ring"),
+      ).toBeTruthy();
+    } finally {
+      restoreFetch();
+      global.Image = originalImage;
+    }
+  });
+
+  // A tap and the screen it opened, which lands well inside the tap's hold.
+  const tapThenScreenView = {
+    threads: {
+      main: [
+        {
+          event_type: "gesture_click",
+          thread_name: "main",
+          target: "android.widget.Button",
+          x: 10,
+          y: 10,
+          timestamp: "2026-04-10T10:00:00.000Z",
+          attachments: [
+            {
+              id: "a0",
+              key: "k0",
+              type: "layout_snapshot_json",
+              name: "snapshot.json",
+              location: "https://cdn/good1.json",
+            },
+          ],
+        },
+        {
+          event_type: "screen_view",
+          thread_name: "main",
+          name: "Checkout",
+          timestamp: "2026-04-10T10:00:00.120Z",
+          attachments: [
+            {
+              id: "a1",
+              key: "k1",
+              type: "layout_snapshot_json",
+              name: "snapshot.json",
+              location: "https://cdn/good2.json",
+            },
+          ],
+        },
+      ],
+    },
+    traces: [],
+  };
+
+  it("clears the tap indicator when jumping to another screen", async () => {
+    const restoreFetch = stubFetch();
+    try {
+      renderReplay(tapThenScreenView);
+      await screen.findByTestId("session-replay-touch-ring");
+
+      const row = (await screen.findByText("Checkout")).closest("button");
+      await act(async () => {
+        fireEvent.click(row!);
+      });
+
+      await waitFor(() =>
+        expect(screen.queryByTestId("session-replay-touch-ring")).toBeNull(),
+      );
+    } finally {
+      restoreFetch();
+    }
+  });
+
+  it("waits for the selected screen capture before showing the touch indicator", async () => {
     const original = (globalThis as any).fetch;
     (globalThis as any).fetch = jest.fn((url: unknown) =>
       String(url).includes("good")
@@ -2653,7 +2854,7 @@ describe("the player", () => {
     }
   });
 
-  it("draws a screenshot from the URL the session gave, holding only its size", async () => {
+  it("shows screenshots without touch indicators", async () => {
     const originalFetch = (globalThis as any).fetch;
     const originalImage = (globalThis as any).Image;
     const fetched = jest.fn(async () => {
@@ -2697,10 +2898,12 @@ describe("the player", () => {
         traces: [],
       });
 
-      await screen.findByTestId("session-replay-touch-ring");
-      expect(
-        container.querySelector('img[src="https://cdn/shot.webp"]'),
-      ).toBeTruthy();
+      await waitFor(() =>
+        expect(
+          container.querySelector('img[src="https://cdn/shot.webp"]'),
+        ).toBeTruthy(),
+      );
+      expect(screen.queryByTestId("session-replay-touch-ring")).toBeNull();
       expect(fetched).not.toHaveBeenCalled();
       expect(
         (queries.getQueryData(["session-attachment", "sess-001", "a0"]) as any)
