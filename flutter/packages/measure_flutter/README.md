@@ -93,5 +93,5 @@ For any other HTTP client libraries, you can manually track network requests usi
 
 # Checkout detailed documentation
 
-Checkout our [documentation](https://github.com/measure-sh/measure/tree/main/docs) to learn more
+Checkout our [documentation](https://measure.sh/docs) to learn more
 about Measure.
