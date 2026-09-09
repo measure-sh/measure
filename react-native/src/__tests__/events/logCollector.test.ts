@@ -204,7 +204,9 @@ describe('LogCollector - automatic console capture', () => {
       configProvider,
       signalProcessor: { trackEvent: jest.fn().mockResolvedValue(undefined) },
     } as any);
-    trackLogSpy = jest.spyOn(collector, 'trackLog').mockImplementation(() => {});
+    trackLogSpy = jest
+      .spyOn(collector, 'trackLog')
+      .mockImplementation(() => {});
   });
 
   afterEach(() => {
