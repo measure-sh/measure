@@ -77,8 +77,9 @@ void main() {
       expect(trackedNames(), equals(['/']));
     });
 
-    testWidgets('a push is tracked once its transition has ended, stamped at '
-        'the navigation', (tester) async {
+    testWidgets(
+        'a push is tracked once its transition has ended, stamped at the navigation',
+        (tester) async {
       await pumpApp(tester);
       fakeMeasure.clear();
       fakeMeasure.currentTime = 1000;

@@ -18,20 +18,30 @@ void main() {
       expect(throttler.shouldTakeSnapshot(), isTrue);
     });
 
-    test('blocks a snapshot taken too soon after the previous one', () {
+    test('blocks a snapshot asked for within the delay', () {
       throttler.shouldTakeSnapshot();
+      clock.advance(const Duration(milliseconds: 500));
 
       expect(throttler.shouldTakeSnapshot(), isFalse);
     });
 
-    test('allows a snapshot once the delay has elapsed', () {
+    test('allows a snapshot once the delay has passed', () {
       throttler.shouldTakeSnapshot();
       clock.advance(const Duration(milliseconds: 751));
 
       expect(throttler.shouldTakeSnapshot(), isTrue);
     });
 
-    test('respects a custom delay', () {
+    test('measures the delay from the last attempt, blocked or not', () {
+      throttler.shouldTakeSnapshot();
+      clock.advance(const Duration(milliseconds: 500));
+      throttler.shouldTakeSnapshot();
+      clock.advance(const Duration(milliseconds: 500));
+
+      expect(throttler.shouldTakeSnapshot(), isFalse);
+    });
+
+    test('takes the delay from the caller', () {
       throttler.shouldTakeSnapshot(delayMs: 100);
       clock.advance(const Duration(milliseconds: 50));
 

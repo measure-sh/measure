@@ -40,92 +40,100 @@ void main() {
     collector.register();
   });
 
-  TrackedEvent trackedEvent() => signalProcessor.trackedEvents.single;
+  Future<void> trackScreenView(
+    String name, {
+    bool userTriggered = false,
+    Map<String, AttributeValue> attributes = const {},
+    int? timestamp,
+    bool captureLayoutSnapshot = true,
+  }) =>
+      collector.trackScreenViewEvent(
+        name: name,
+        userTriggered: userTriggered,
+        attributes: attributes,
+        timestamp: timestamp,
+        captureLayoutSnapshot: captureLayoutSnapshot,
+      );
 
-  group('trackScreenViewEvent', () {
-    test('tracks the screen with its attributes, at the time of the call',
+  TrackedEvent lastEvent() => signalProcessor.trackedEvents.last;
+
+  String screenName(TrackedEvent event) => (event.data as ScreenViewData).name;
+
+  group('screen views', () {
+    test('tracks the screen name, its attributes and who triggered it',
         () async {
       final attributes = {'key': StringAttr('value')};
 
-      await collector.trackScreenViewEvent(
-        name: 'HomeScreen',
+      await trackScreenView(
+        'HomeScreen',
         userTriggered: true,
         attributes: attributes,
       );
 
-      expect((trackedEvent().data as ScreenViewData).name, equals('HomeScreen'));
-      expect(trackedEvent().userTriggered, isTrue);
-      expect(trackedEvent().userDefinedAttrs, equals(attributes));
-      expect(trackedEvent().timestamp, equals(timeProvider.now()));
+      expect(screenName(lastEvent()), equals('HomeScreen'));
+      expect(lastEvent().userTriggered, isTrue);
+      expect(lastEvent().userDefinedAttrs, equals(attributes));
     });
 
-    test('attaches the layout snapshot', () async {
-      await collector.trackScreenViewEvent(
-        name: 'HomeScreen',
-        userTriggered: false,
-        attributes: {},
-      );
+    test('stamps the screen view at the time it is tracked', () async {
+      await trackScreenView('HomeScreen');
 
-      expect(trackedEvent().attachments?.single, same(snapshotAttachment));
+      expect(lastEvent().timestamp, equals(clock.epochTime()));
     });
 
-    test('captures no snapshot when asked not to', () async {
-      await collector.trackScreenViewEvent(
-        name: 'HomeScreen',
-        userTriggered: true,
-        attributes: {},
-        captureLayoutSnapshot: false,
-      );
+    test('stamps the screen view at the timestamp the caller supplies',
+        () async {
+      final navigatedAt = clock.epochTime();
+      clock.advance(const Duration(milliseconds: 300));
 
-      expect(snapshotCollector.captureCount, equals(0));
-      expect(trackedEvent().attachments, isNull);
+      await trackScreenView('HomeScreen', timestamp: navigatedAt);
+
+      expect(lastEvent().timestamp, equals(navigatedAt));
     });
 
-    test('leaves out the snapshot of a screen view within the delay', () async {
-      await collector.trackScreenViewEvent(
-        name: 'HomeScreen',
-        userTriggered: false,
-        attributes: {},
-      );
-      clock.advance(const Duration(milliseconds: 500));
-
-      await collector.trackScreenViewEvent(
-        name: 'CheckoutScreen',
-        userTriggered: false,
-        attributes: {},
-      );
-
-      expect(signalProcessor.trackedEvents.last.attachments, isNull);
-    });
-
-    test('attaches a snapshot again once the delay has elapsed', () async {
-      await collector.trackScreenViewEvent(
-        name: 'HomeScreen',
-        userTriggered: false,
-        attributes: {},
-      );
-      clock.advance(const Duration(milliseconds: 751));
-
-      await collector.trackScreenViewEvent(
-        name: 'CheckoutScreen',
-        userTriggered: false,
-        attributes: {},
-      );
-
-      expect(signalProcessor.trackedEvents.last.attachments?.single,
-          same(snapshotAttachment));
-    });
-
-    test('does nothing while unregistered', () async {
+    test('ignores a screen view while the collector is unregistered', () async {
       collector.unregister();
 
-      await collector.trackScreenViewEvent(
-        name: 'HomeScreen',
-        userTriggered: true,
-        attributes: {},
-      );
+      await trackScreenView('HomeScreen');
 
       expect(signalProcessor.trackedEvents, isEmpty);
+    });
+  });
+
+  group('layout snapshots', () {
+    test('attaches a snapshot of the screen to the screen view', () async {
+      await trackScreenView('HomeScreen');
+
+      expect(lastEvent().attachments?.single, same(snapshotAttachment));
+    });
+
+    test('captures no snapshot when the caller opts out', () async {
+      await trackScreenView('HomeScreen', captureLayoutSnapshot: false);
+
+      expect(lastEvent().attachments, isNull);
+      expect(snapshotCollector.captureCount, isZero);
+    });
+
+    test('tracks a screen view within the throttle window without a snapshot',
+        () async {
+      await trackScreenView('HomeScreen');
+      clock.advance(const Duration(milliseconds: 500));
+
+      await trackScreenView('CheckoutScreen');
+
+      expect(screenName(lastEvent()), equals('CheckoutScreen'));
+      expect(lastEvent().attachments, isNull);
+      expect(snapshotCollector.captureCount, equals(1));
+    });
+
+    test('attaches a snapshot again once the throttle window has passed',
+        () async {
+      await trackScreenView('HomeScreen');
+      clock.advance(const Duration(milliseconds: 751));
+
+      await trackScreenView('CheckoutScreen');
+
+      expect(lastEvent().attachments?.single, same(snapshotAttachment));
     });
   });
 }
