@@ -1,5 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:measure_flutter/measure_flutter.dart';
+import 'package:measure_flutter/src/gestures/layout_snapshot_throttler.dart';
 import 'package:measure_flutter/src/navigation/navigation_collector.dart';
 import 'package:measure_flutter/src/navigation/screen_view_data.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
@@ -13,6 +14,7 @@ void main() {
   late NavigationCollector collector;
   late TimeProvider timeProvider;
   late FakeLayoutSnapshotCollector snapshotCollector;
+  late TestClock clock;
 
   final snapshotAttachment = MsrAttachment.fromPath(
     path: 'snapshot-path',
@@ -24,7 +26,8 @@ void main() {
 
   setUp(() {
     signalProcessor = FakeSignalProcessor();
-    timeProvider = FlutterTimeProvider(TestClock.create());
+    clock = TestClock.create();
+    timeProvider = FlutterTimeProvider(clock);
     snapshotCollector = FakeLayoutSnapshotCollector(
       attachment: snapshotAttachment,
     );
@@ -32,6 +35,7 @@ void main() {
       signalProcessor: signalProcessor,
       timeProvider: timeProvider,
       layoutSnapshotCollector: snapshotCollector,
+      layoutSnapshotThrottler: LayoutSnapshotThrottler(timeProvider),
     );
     collector.register();
   });
@@ -75,6 +79,41 @@ void main() {
 
       expect(snapshotCollector.captureCount, equals(0));
       expect(trackedEvent().attachments, isNull);
+    });
+
+    test('leaves out the snapshot of a screen view within the delay', () async {
+      await collector.trackScreenViewEvent(
+        name: 'HomeScreen',
+        userTriggered: false,
+        attributes: {},
+      );
+      clock.advance(const Duration(milliseconds: 500));
+
+      await collector.trackScreenViewEvent(
+        name: 'CheckoutScreen',
+        userTriggered: false,
+        attributes: {},
+      );
+
+      expect(signalProcessor.trackedEvents.last.attachments, isNull);
+    });
+
+    test('attaches a snapshot again once the delay has elapsed', () async {
+      await collector.trackScreenViewEvent(
+        name: 'HomeScreen',
+        userTriggered: false,
+        attributes: {},
+      );
+      clock.advance(const Duration(milliseconds: 751));
+
+      await collector.trackScreenViewEvent(
+        name: 'CheckoutScreen',
+        userTriggered: false,
+        attributes: {},
+      );
+
+      expect(signalProcessor.trackedEvents.last.attachments?.single,
+          same(snapshotAttachment));
     });
 
     test('does nothing while unregistered', () async {

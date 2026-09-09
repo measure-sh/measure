@@ -6,6 +6,7 @@ import 'package:measure_flutter/src/events/custom_event_collector.dart';
 import 'package:measure_flutter/src/exception/exception_collector.dart';
 import 'package:measure_flutter/src/gestures/gesture_collector.dart';
 import 'package:measure_flutter/src/gestures/layout_snapshot_collector.dart';
+import 'package:measure_flutter/src/gestures/layout_snapshot_throttler.dart';
 import 'package:measure_flutter/src/http/http_collector.dart';
 import 'package:measure_flutter/src/isolate/file_processing_isolate.dart';
 import 'package:measure_flutter/src/isolate/file_processor.dart';
@@ -164,12 +165,18 @@ final class MeasureInitializer {
       signalProcessor: signalProcessor,
       timeProvider: timeProvider,
       layoutSnapshotCollector: _layoutSnapshotCollector,
+      layoutSnapshotThrottler: LayoutSnapshotThrottler(_timeProvider),
     );
     _httpCollector = HttpCollector(
       signalProcessor: signalProcessor,
       configProvider: configProvider,
     );
-    _gestureCollector = GestureCollector(signalProcessor, timeProvider, _layoutSnapshotCollector);
+    _gestureCollector = GestureCollector(
+      signalProcessor,
+      timeProvider,
+      _layoutSnapshotCollector,
+      LayoutSnapshotThrottler(_timeProvider),
+    );
     _shakeDetector = ShakeDetectorImpl(
       methodChannel: _methodChannel,
       methodChannelCallbacks: methodChannelCallbacks,

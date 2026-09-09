@@ -4,6 +4,7 @@ import 'dart:isolate';
 import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:measure_flutter/src/gestures/layout_snapshot_collector.dart';
+import 'package:measure_flutter/src/gestures/layout_snapshot_throttler.dart';
 import 'package:measure_flutter/src/gestures/long_click_data.dart';
 import 'package:measure_flutter/src/gestures/scroll_data.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
@@ -15,15 +16,18 @@ class GestureCollector {
   final SignalProcessor _signalProcessor;
   final TimeProvider _timeProvider;
   final LayoutSnapshotCollector _layoutSnapshotCollector;
+  final LayoutSnapshotThrottler _layoutSnapshotThrottler;
   bool _isRegistered = false;
 
   GestureCollector(
     SignalProcessor signalProcessor,
     TimeProvider timeProvider,
     LayoutSnapshotCollector layoutSnapshotCollector,
+    LayoutSnapshotThrottler layoutSnapshotThrottler,
   )   : _signalProcessor = signalProcessor,
         _timeProvider = timeProvider,
-        _layoutSnapshotCollector = layoutSnapshotCollector;
+        _layoutSnapshotCollector = layoutSnapshotCollector,
+        _layoutSnapshotThrottler = layoutSnapshotThrottler;
 
   void register() {
     _isRegistered = true;
@@ -44,11 +48,9 @@ class GestureCollector {
       if (!_isRegistered) {
         return;
       }
-      // Taken before the snapshot is written so that the event carries the
-      // time of the gesture, not the time the attachment finished.
       final eventTimestamp = timestamp ?? _timeProvider.now();
       MsrAttachment? attachment;
-      if (snapshot != null) {
+      if (snapshot != null && _layoutSnapshotThrottler.shouldTakeSnapshot()) {
         attachment = await _layoutSnapshotCollector.createAttachment(snapshot);
       }
       _signalProcessor.trackEvent(
@@ -95,11 +97,9 @@ class GestureCollector {
       if (!_isRegistered) {
         return;
       }
-      // Taken before the snapshot is written so that the event carries the
-      // time of the gesture, not the time the attachment finished.
       final eventTimestamp = timestamp ?? _timeProvider.now();
       MsrAttachment? attachment;
-      if (snapshot != null) {
+      if (snapshot != null && _layoutSnapshotThrottler.shouldTakeSnapshot()) {
         attachment = await _layoutSnapshotCollector.createAttachment(snapshot);
       }
       _signalProcessor.trackEvent(
