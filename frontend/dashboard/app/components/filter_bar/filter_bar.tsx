@@ -304,7 +304,13 @@ export default function FilterBar({
       : `${first.message} (+${rest.length} more)`;
   }, [draftFilterIssues]);
 
+  const openValuesRowId =
+    pending?.picker?.kind === "values" ? pending.picker.rowId : null;
+
   useEffect(() => {
+    if (focusedId !== null && focusedId === openValuesRowId) {
+      return;
+    }
     focusedControlRef.current?.focus();
   }, [focusedId]);
 
@@ -528,8 +534,7 @@ export default function FilterBar({
     focusedControlRef,
     openKeysGroupId:
       pending?.picker?.kind === "keys" ? pending.picker.groupId : null,
-    openValuesRowId:
-      pending?.picker?.kind === "values" ? pending.picker.rowId : null,
+    openValuesRowId,
     onChangeKey: changeKey,
     onChangeOperator: changeOperator,
     onChangeValues: changeValues,

@@ -56,7 +56,21 @@ export default function KeyPicker({
           focusOnClose &&
           ((e) => {
             e.preventDefault();
-            focusOnClose.current?.focus();
+            // Radix calls this when the list has finished closing. If the user
+            // picked a key, the bar has by then opened the value picker for the
+            // new condition and its input holds focus, so moving focus to the
+            // caller's control would take it away from that input. Focus is
+            // moved only when nothing outside this list has it, as after the
+            // user pressed Escape.
+            const active = document.activeElement;
+            const content = e.currentTarget as HTMLElement | null;
+            if (
+              active === null ||
+              active === document.body ||
+              content?.contains(active)
+            ) {
+              focusOnClose.current?.focus();
+            }
           })
         }
       >
