@@ -31,6 +31,7 @@ export default defineConfig([
       'src/__tests__/**',
       'src/events/logCollector.ts',
       'src/utils/internalConsole.ts',
+      'src/metro/**',
     ],
     rules: {
       'no-console': 'error',
