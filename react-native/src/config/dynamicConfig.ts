@@ -1,3 +1,4 @@
+import { internalConsole } from '../utils/internalConsole';
 import { ScreenshotMaskLevel } from './screenshotMaskLevel';
 
 export interface IDynamicConfig {
@@ -136,25 +137,167 @@ export class DynamicConfig implements IDynamicConfig {
       return DynamicConfig.default();
     }
 
+    const defaults = DynamicConfig.default();
+
     return new DynamicConfig({
-      maxEventsInBatch: obj['max_events_in_batch'],
-      anrTimelineDurationSeconds: obj['anr_timeline_duration'],
-      bugReportTimelineDurationSeconds: obj['bug_report_timeline_duration'],
-      traceSamplingRate: obj['trace_sampling_rate'],
-      journeySamplingRate: obj['journey_sampling_rate'],
-      screenshotMaskLevel: obj['screenshot_mask_level'],
-      logAutocollectEnabled: obj['log_autocollect_enabled'] ?? false,
-      logMinSeverity: obj['log_min_severity'] ?? 16,
-      logIgnorePatterns: obj['log_ignore_patterns'] || [],
-      cpuUsageInterval: obj['cpu_usage_interval'],
-      memoryUsageInterval: obj['memory_usage_interval'],
-      anrTakeScreenshot: obj['anr_take_screenshot'],
-      launchSamplingRate: obj['launch_sampling_rate'],
-      gestureClickTakeSnapshot: obj['gesture_click_take_snapshot'],
-      httpDisableEventForUrls: obj['http_disable_event_for_urls'] || [],
-      httpTrackRequestForUrls: obj['http_track_request_for_urls'] || [],
-      httpTrackResponseForUrls: obj['http_track_response_for_urls'] || [],
-      httpBlockedHeaders: obj['http_blocked_headers'] || [],
+      maxEventsInBatch: numberOrDefault(
+        obj,
+        'max_events_in_batch',
+        defaults.maxEventsInBatch
+      ),
+      anrTimelineDurationSeconds: numberOrDefault(
+        obj,
+        'anr_timeline_duration',
+        defaults.anrTimelineDurationSeconds
+      ),
+      bugReportTimelineDurationSeconds: numberOrDefault(
+        obj,
+        'bug_report_timeline_duration',
+        defaults.bugReportTimelineDurationSeconds
+      ),
+      traceSamplingRate: numberOrDefault(
+        obj,
+        'trace_sampling_rate',
+        defaults.traceSamplingRate
+      ),
+      journeySamplingRate: numberOrDefault(
+        obj,
+        'journey_sampling_rate',
+        defaults.journeySamplingRate
+      ),
+      screenshotMaskLevel: screenshotMaskLevelOrDefault(
+        obj,
+        'screenshot_mask_level',
+        defaults.screenshotMaskLevel
+      ),
+      logAutocollectEnabled: booleanOrDefault(
+        obj,
+        'log_autocollect_enabled',
+        defaults.logAutocollectEnabled
+      ),
+      logMinSeverity: numberOrDefault(
+        obj,
+        'log_min_severity',
+        defaults.logMinSeverity
+      ),
+      logIgnorePatterns: stringArrayOrDefault(
+        obj,
+        'log_ignore_patterns',
+        defaults.logIgnorePatterns
+      ),
+      cpuUsageInterval: numberOrDefault(
+        obj,
+        'cpu_usage_interval',
+        defaults.cpuUsageInterval
+      ),
+      memoryUsageInterval: numberOrDefault(
+        obj,
+        'memory_usage_interval',
+        defaults.memoryUsageInterval
+      ),
+      anrTakeScreenshot: booleanOrDefault(
+        obj,
+        'anr_take_screenshot',
+        defaults.anrTakeScreenshot
+      ),
+      launchSamplingRate: numberOrDefault(
+        obj,
+        'launch_sampling_rate',
+        defaults.launchSamplingRate
+      ),
+      gestureClickTakeSnapshot: booleanOrDefault(
+        obj,
+        'gesture_click_take_snapshot',
+        defaults.gestureClickTakeSnapshot
+      ),
+      httpDisableEventForUrls: stringArrayOrDefault(
+        obj,
+        'http_disable_event_for_urls',
+        defaults.httpDisableEventForUrls
+      ),
+      httpTrackRequestForUrls: stringArrayOrDefault(
+        obj,
+        'http_track_request_for_urls',
+        defaults.httpTrackRequestForUrls
+      ),
+      httpTrackResponseForUrls: stringArrayOrDefault(
+        obj,
+        'http_track_response_for_urls',
+        defaults.httpTrackResponseForUrls
+      ),
+      httpBlockedHeaders: stringArrayOrDefault(
+        obj,
+        'http_blocked_headers',
+        defaults.httpBlockedHeaders
+      ),
     });
   }
+}
+
+function warnInvalidField(key: string, expected: string): void {
+  internalConsole.warn(
+    `[Measure] Dynamic config field '${key}' expected ${expected}, using default.`
+  );
+}
+
+function numberOrDefault(obj: any, key: string, fallback: number): number {
+  const value = obj[key];
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    warnInvalidField(key, 'a number');
+    return fallback;
+  }
+  return value;
+}
+
+function booleanOrDefault(obj: any, key: string, fallback: boolean): boolean {
+  const value = obj[key];
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+  if (typeof value !== 'boolean') {
+    warnInvalidField(key, 'a boolean');
+    return fallback;
+  }
+  return value;
+}
+
+function stringArrayOrDefault(
+  obj: any,
+  key: string,
+  fallback: string[]
+): string[] {
+  const value = obj[key];
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+  if (
+    !Array.isArray(value) ||
+    !value.every((item) => typeof item === 'string')
+  ) {
+    warnInvalidField(key, 'a string array');
+    return fallback;
+  }
+  return value;
+}
+
+function screenshotMaskLevelOrDefault(
+  obj: any,
+  key: string,
+  fallback: ScreenshotMaskLevel
+): ScreenshotMaskLevel {
+  const value = obj[key];
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+  if (
+    typeof value !== 'string' ||
+    !Object.values(ScreenshotMaskLevel).includes(value as ScreenshotMaskLevel)
+  ) {
+    warnInvalidField(key, 'a valid ScreenshotMaskLevel');
+    return fallback;
+  }
+  return value as ScreenshotMaskLevel;
 }
