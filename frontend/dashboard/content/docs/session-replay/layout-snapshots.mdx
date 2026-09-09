@@ -1,10 +1,10 @@
 ---
 title: "Layout snapshots"
-seoTitle: "Layout Snapshots for Mobile Gesture Tracking"
-description: "Capture a lightweight wireframe of the screen with every tap to see the UI a gesture acted on."
+seoTitle: "Layout Snapshots for Mobile Session Replay"
+description: "Capture a lightweight wireframe of the screen as the user moves through the app to see the UI behind each event."
 ---
 
-Measure captures a layout snapshot with every click: a wireframe of the screen at the moment of the gesture. A snapshot shows what the user was acting on at a fraction of the cost of capturing, storing, and rendering a screenshot.
+Measure captures a layout snapshot as the user moves through the app: a wireframe of the screen at that moment. A snapshot shows what the user was acting on at a fraction of the cost of capturing, storing, and rendering a screenshot.
 
 | Screenshot                                                  | Layout snapshot                                       |
 |-------------------------------------------------------------|-------------------------------------------------------|
@@ -32,6 +32,13 @@ Layout snapshots with clicks are throttled to one snapshot every 750 ms, and the
 Snapshots capture the full view hierarchy of the screen with no setup. SwiftUI content appears with its underlying system view names rather than your SwiftUI view names.
 
 ## Flutter
+
+A snapshot is captured at each of these moments:
+
+- A click or long press, with the target widget marked.
+- A screen view, whether tracked by `MsrNavigatorObserver` or with `Measure.instance.trackScreenViewEvent`.
+
+Clicks and screen views are throttled separately, each to one snapshot every 750 ms.
 
 A screen can hold thousands of widgets, so snapshots include only common widget types by default and skip the rest:
 

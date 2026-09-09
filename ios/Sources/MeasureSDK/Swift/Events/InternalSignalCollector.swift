@@ -212,7 +212,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector { // swiftlint:
                     type: .screenView,
                     attributes: evaluatedAttributes,
                     sessionId: sessionId,
-                    attachments: nil,
+                    attachments: attachments,
                     userDefinedAttributes: serializedUserDefinedAttributes,
                     threadName: threadName,
                     needsReporting: signalSampler.shouldTrackJourneyForSession(sessionId: sessionId ?? sessionManager.sessionId),

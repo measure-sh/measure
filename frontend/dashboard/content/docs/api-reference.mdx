@@ -96,7 +96,7 @@ Pass a config object to `init` to customize the SDK. The available options diffe
 | `enableLogging` | `bool` | `false` | Turn on internal SDK logs. |
 | `autoStart` | `bool` | `true` | Start tracking automatically on init. Set to `false` to delay starting collection. |
 | `enableDiagnosticMode` | `bool` | `false` | Write all SDK logs to a file you can attach when reporting an SDK bug. |
-| `widgetFilter` | `Map<Type, String>` | built-in set | Widget types to include in layout snapshots. Generate a fuller list with the `measure_build` package. |
+| `widgetFilter` | `Map<Type, String>` | built-in set | Widget types to include in Layout snapshots on Flutter. Generate a fuller list with the `measure_build` package. |
 
 </Tab>
 <Tab value="React Native">
@@ -630,9 +630,20 @@ Measure.trackScreenView("Home", attributes)
 </Tab>
 </Tabs>
 
+### Layout snapshots on Flutter
+
+A screen view tracked from Flutter carries a [layout snapshot](/docs/session-replay/layout-snapshots) of the widget tree.
+For screen view events tracked manually using `trackScreenViewEvent`, you can disable layout snapshot using `captureLayoutSnapshot` if needed.
+
+```dart
+import 'package:measure_flutter/measure_flutter.dart';
+
+Measure.instance.trackScreenViewEvent(name: "Home", captureLayoutSnapshot: false);
+```
+
 ### Automatic tracking on Flutter
 
-Add `MsrNavigatorObserver` to your app's `navigatorObservers` to track screen views automatically. It works best with named routes.
+Add `MsrNavigatorObserver` to your app's `navigatorObservers` to track screen views automatically. It works best with named routes. The observer tracks a screen once its route transition finishes, and keeps the time of the navigation on the event.
 
 ```dart
 import 'package:flutter/material.dart';

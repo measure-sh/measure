@@ -92,6 +92,8 @@ Widget build(BuildContext context) {
 }
 ```
 
+The observer tracks a screen once its route transition finishes, which keeps the [layout snapshot](/docs/session-replay/layout-snapshots) on the event from showing the animation instead of the screen. The event keeps the time of the navigation.
+
 ### React Native
 
 Screen views aren't recorded automatically because React Native apps use a variety of navigation libraries. For [React Navigation](https://reactnavigation.org/), hook into the `onStateChange` callback of `NavigationContainer`:
