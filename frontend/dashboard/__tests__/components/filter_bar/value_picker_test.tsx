@@ -4,8 +4,12 @@ import { fireEvent, render, screen } from "@testing-library/react";
 
 jest.mock("@/app/components/popover", () => {
   const PopoverOpen = { current: false };
+  // Radix reports a press outside the popover to this handler; the tests call
+  // it with a press they build themselves.
+  const pointerDownOutside = { current: (_event: any) => {} };
   return {
     __esModule: true,
+    pointerDownOutside,
     Popover: ({ children, open }: any) => {
       PopoverOpen.current = open;
       return <div data-testid="popover">{children}</div>;
@@ -13,10 +17,41 @@ jest.mock("@/app/components/popover", () => {
     PopoverTrigger: ({ children }: any) => (
       <div data-testid="popover-trigger">{children}</div>
     ),
-    PopoverContent: ({ children }: any) =>
-      PopoverOpen.current ? (
-        <div data-testid="popover-content">{children}</div>
-      ) : null,
+    PopoverContent: ({
+      children,
+      onCloseAutoFocus,
+      onPointerDownOutside,
+    }: any) => {
+      pointerDownOutside.current = onPointerDownOutside;
+      return PopoverOpen.current ? (
+        <div data-testid="popover-content">
+          {children}
+          {/* Stands in for Radix finishing a close: it offers the close to the
+              handler and, unless the handler takes it, focuses the trigger. */}
+          <button
+            data-testid="close-popover"
+            onClick={(e) => {
+              let taken = false;
+              onCloseAutoFocus?.({
+                preventDefault: () => {
+                  taken = true;
+                },
+                currentTarget: e.currentTarget.parentElement,
+              } as any);
+              if (!taken) {
+                document
+                  .querySelector<HTMLElement>(
+                    "[data-testid='popover-trigger'] button",
+                  )
+                  ?.focus();
+              }
+            }}
+          >
+            close
+          </button>
+        </div>
+      ) : null;
+    },
   };
 });
 
@@ -91,9 +126,54 @@ function renderPicker(props: any = {}) {
   return { onChange, onOpenChange };
 }
 
+const popover = jest.requireMock("@/app/components/popover") as {
+  pointerDownOutside: { current: (event: unknown) => void };
+};
+
+// Hands the picker a press it did not receive itself, the way Radix does, and
+// reports whether the picker asked to stay open.
+function pressOutside(
+  target: Node,
+  press: { button?: number; ctrlKey?: boolean } = {},
+) {
+  const preventDefault = jest.fn();
+  popover.pointerDownOutside.current({
+    detail: { originalEvent: { target, button: 0, ...press } },
+    preventDefault,
+  });
+  return preventDefault;
+}
+
 describe("ValuePicker", () => {
   beforeEach(() => {
     valuesLoaded([{ text: "1.0.0" }, { text: "1.0.1" }]);
+  });
+
+  it("stays open when the left button goes down inside the chip it was given", () => {
+    const chip = document.createElement("div");
+    chip.appendChild(document.createElement("button"));
+    renderPicker({ stayOpenWithin: { current: chip } });
+
+    expect(pressOutside(chip.firstChild!)).toHaveBeenCalled();
+    expect(pressOutside(document.body)).not.toHaveBeenCalled();
+    expect(
+      pressOutside(chip.firstChild!, { button: 2 }),
+    ).not.toHaveBeenCalled();
+    expect(
+      pressOutside(chip.firstChild!, { ctrlKey: true }),
+    ).not.toHaveBeenCalled();
+  });
+
+  it("leaves focus with whatever took it while the picker was closing", () => {
+    renderPicker();
+    const elsewhere = document.createElement("input");
+    document.body.appendChild(elsewhere);
+    elsewhere.focus();
+
+    fireEvent.click(screen.getByTestId("close-popover"));
+
+    expect(elsewhere).toHaveFocus();
+    elsewhere.remove();
   });
 
   it("shows nothing until it is opened", () => {

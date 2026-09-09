@@ -12,6 +12,7 @@ import DebounceTextInput from "../debounce_text_input";
 import { Input } from "../input";
 import { Popover, PopoverContent, PopoverTrigger } from "../popover";
 import { Skeleton } from "../skeleton";
+import { keepOpenWithin, settleFocusOnClose } from "./picker_popover";
 
 interface ValuePickerProps {
   appId: string;
@@ -28,8 +29,9 @@ interface ValuePickerProps {
   // `done` marks a pick that ends the selection; the owner of `open` closes.
   onChange: (values: FilterValue[], done: boolean) => void;
   trigger: React.ReactNode;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  stayOpenWithin?: React.RefObject<HTMLElement | null>;
 }
 
 export default function ValuePicker({
@@ -43,16 +45,10 @@ export default function ValuePicker({
   selected,
   onChange,
   trigger,
-  open: controlledOpen,
+  open,
   onOpenChange,
+  stayOpenWithin,
 }: ValuePickerProps) {
-  const [internalOpen, setInternalOpen] = useState(false);
-  const open = controlledOpen ?? internalOpen;
-  const setOpen = (value: boolean) => {
-    setInternalOpen(value);
-    onOpenChange?.(value);
-  };
-
   const listed =
     !takesTypedText &&
     (valueSuggestionMode === "full_list" || valueSuggestionMode === "sample");
@@ -64,7 +60,6 @@ export default function ValuePicker({
   const toggle = (value: FilterValue) => {
     if (takesOneValue) {
       onChange([value], true);
-      setInternalOpen(false);
       return;
     }
     if (isSelected(value)) {
@@ -78,11 +73,13 @@ export default function ValuePicker({
   };
 
   return (
-    <Popover open={open} onOpenChange={setOpen} modal>
+    <Popover open={open} onOpenChange={onOpenChange} modal>
       <PopoverTrigger asChild>{trigger}</PopoverTrigger>
       <PopoverContent
         className="p-0 w-auto min-w-72 max-w-[min(24rem,calc(100vw-2rem))]"
         align="start"
+        onCloseAutoFocus={(e) => settleFocusOnClose(e)}
+        onPointerDownOutside={keepOpenWithin(stayOpenWithin)}
       >
         {listed ? (
           <ValueList
@@ -99,10 +96,7 @@ export default function ValuePicker({
           <TypedValue
             initial={selected[0]?.text ?? ""}
             valueType={valueType}
-            onApply={(text) => {
-              onChange([{ text }], true);
-              setInternalOpen(false);
-            }}
+            onApply={(text) => onChange([{ text }], true)}
           />
         )}
       </PopoverContent>

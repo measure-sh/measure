@@ -7,8 +7,12 @@ import React from "react";
 // same.
 jest.mock("@/app/components/popover", () => {
   const PopoverOpen = { current: false };
+  // Radix reports a press outside the popover to this handler; the tests call
+  // it with a press they build themselves.
+  const pointerDownOutside = { current: (_event: any) => {} };
   return {
     __esModule: true,
+    pointerDownOutside,
     Popover: ({ children, open }: any) => {
       PopoverOpen.current = open;
       return <div data-testid="popover">{children}</div>;
@@ -16,8 +20,13 @@ jest.mock("@/app/components/popover", () => {
     PopoverTrigger: ({ children }: any) => (
       <div data-testid="popover-trigger">{children}</div>
     ),
-    PopoverContent: ({ children, onCloseAutoFocus }: any) =>
-      PopoverOpen.current ? (
+    PopoverContent: ({
+      children,
+      onCloseAutoFocus,
+      onPointerDownOutside,
+    }: any) => {
+      pointerDownOutside.current = onPointerDownOutside;
+      return PopoverOpen.current ? (
         <div data-testid="popover-content">
           {children}
           {/* Stands in for Radix calling onCloseAutoFocus as the popover closes. */}
@@ -33,7 +42,8 @@ jest.mock("@/app/components/popover", () => {
             close
           </button>
         </div>
-      ) : null,
+      ) : null;
+    },
   };
 });
 
@@ -124,6 +134,30 @@ function search(text: string) {
   });
 }
 
+const popover = jest.requireMock("@/app/components/popover") as {
+  pointerDownOutside: { current: (event: unknown) => void };
+};
+
+// Hands the picker a press it did not receive itself, the way Radix does, and
+// reports whether the picker asked to stay open.
+function pressOutside(
+  target: Node,
+  press: { button?: number; ctrlKey?: boolean } = {},
+) {
+  const preventDefault = jest.fn();
+  popover.pointerDownOutside.current({
+    detail: { originalEvent: { target, button: 0, ...press } },
+    preventDefault,
+  });
+  return preventDefault;
+}
+
+function chipHoldingASegment() {
+  const chip = document.createElement("div");
+  chip.appendChild(document.createElement("button"));
+  return chip;
+}
+
 describe("KeyPicker", () => {
   it("shows nothing until it is opened", () => {
     render(
@@ -131,6 +165,8 @@ describe("KeyPicker", () => {
         keys={keys}
         keyGroups={keyGroups}
         selected={null}
+        open={false}
+        onOpenChange={jest.fn()}
         onSelect={jest.fn()}
         trigger={<button>open</button>}
       />,
@@ -181,6 +217,7 @@ describe("KeyPicker", () => {
         keyGroups={keyGroups}
         selected={null}
         open
+        onOpenChange={jest.fn()}
         onSelect={jest.fn()}
         trigger={<button>open</button>}
       />,
@@ -193,6 +230,7 @@ describe("KeyPicker", () => {
         keyGroups={["Version"]}
         selected={null}
         open
+        onOpenChange={jest.fn()}
         onSelect={jest.fn()}
         trigger={<button>open</button>}
       />,
@@ -242,6 +280,7 @@ describe("KeyPicker", () => {
         keyGroups={["Build"]}
         selected={null}
         open
+        onOpenChange={jest.fn()}
         onSelect={jest.fn()}
         trigger={<button>open</button>}
       />,
@@ -251,13 +290,27 @@ describe("KeyPicker", () => {
     expect(screen.getByText("Patch id")).toBeInTheDocument();
   });
 
-  it("reports the key that was picked and closes", () => {
+  it("reports the picked key and closes, leaving the close itself unreported", () => {
     const { onSelect, onOpenChange } = openPicker();
 
     fireEvent.click(screen.getByTestId("filter-key-version"));
 
     expect(onSelect).toHaveBeenCalledWith(keys[0]);
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+  });
+
+  it("stays open when the left button goes down inside the chip it was given", () => {
+    const chip = chipHoldingASegment();
+    openPicker({ stayOpenWithin: { current: chip } });
+
+    expect(pressOutside(chip.firstChild!)).toHaveBeenCalled();
+    expect(pressOutside(document.body)).not.toHaveBeenCalled();
+    expect(
+      pressOutside(chip.firstChild!, { button: 2 }),
+    ).not.toHaveBeenCalled();
+    expect(
+      pressOutside(chip.firstChild!, { ctrlKey: true }),
+    ).not.toHaveBeenCalled();
   });
 
   it("hands focus to the control the caller named as it closes", () => {
@@ -273,6 +326,7 @@ describe("KeyPicker", () => {
             keyGroups={keyGroups}
             selected={null}
             open
+            onOpenChange={jest.fn()}
             focusOnClose={ref}
             onSelect={jest.fn()}
             trigger={<button>open</button>}
@@ -301,6 +355,7 @@ describe("KeyPicker", () => {
             keyGroups={keyGroups}
             selected={null}
             open
+            onOpenChange={jest.fn()}
             focusOnClose={ref}
             onSelect={jest.fn()}
             trigger={<button>open</button>}
@@ -326,6 +381,7 @@ describe("KeyPicker", () => {
           operatorLabels={{ in: "is", contains: "contains" }}
           onSelect={jest.fn()}
           open
+          onOpenChange={jest.fn()}
           trigger={<button>is</button>}
         />
       </>,
@@ -379,6 +435,7 @@ describe("OperatorPicker", () => {
         operatorLabels={operatorLabels}
         onSelect={jest.fn()}
         open
+        onOpenChange={jest.fn()}
         trigger={<button>open</button>}
       />,
     );
@@ -395,6 +452,7 @@ describe("OperatorPicker", () => {
         operatorLabels={operatorLabels}
         onSelect={jest.fn()}
         open
+        onOpenChange={jest.fn()}
         trigger={<button>open</button>}
       />,
     );
@@ -412,6 +470,7 @@ describe("OperatorPicker", () => {
         operatorLabels={filterBarOperatorLabels}
         onSelect={jest.fn()}
         open
+        onOpenChange={jest.fn()}
         trigger={<button>open</button>}
       />,
     );
@@ -432,6 +491,7 @@ describe("OperatorPicker", () => {
         operatorLabels={filterBarOperatorLabels}
         onSelect={jest.fn()}
         open
+        onOpenChange={jest.fn()}
         trigger={<button>open</button>}
       />,
     );
@@ -450,7 +510,7 @@ describe("OperatorPicker", () => {
     );
   });
 
-  it("reports the operator that was picked and closes", () => {
+  it("reports the picked operator and closes, leaving the close itself unreported", () => {
     const onSelect = jest.fn();
     const onOpenChange = jest.fn();
     render(
@@ -468,6 +528,31 @@ describe("OperatorPicker", () => {
     fireEvent.click(screen.getByTestId("filter-op-not_in"));
 
     expect(onSelect).toHaveBeenCalledWith("not_in");
-    expect(onOpenChange).toHaveBeenCalledWith(false);
+    expect(onOpenChange).not.toHaveBeenCalledWith(false);
+  });
+
+  it("stays open when the left button goes down inside the chip it was given", () => {
+    const chip = chipHoldingASegment();
+    render(
+      <OperatorPicker
+        operators={["in", "not_in"]}
+        selected="in"
+        operatorLabels={operatorLabels}
+        onSelect={jest.fn()}
+        open
+        onOpenChange={jest.fn()}
+        stayOpenWithin={{ current: chip }}
+        trigger={<button>open</button>}
+      />,
+    );
+
+    expect(pressOutside(chip.firstChild!)).toHaveBeenCalled();
+    expect(pressOutside(document.body)).not.toHaveBeenCalled();
+    expect(
+      pressOutside(chip.firstChild!, { button: 2 }),
+    ).not.toHaveBeenCalled();
+    expect(
+      pressOutside(chip.firstChild!, { ctrlKey: true }),
+    ).not.toHaveBeenCalled();
   });
 });
