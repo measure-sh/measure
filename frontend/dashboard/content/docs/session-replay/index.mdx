@@ -4,13 +4,19 @@ seoTitle: "Mobile App Session Replay"
 description: "Replay each session as a chronological sequence of events with CPU and memory usage, screenshots, and layout snapshots."
 ---
 
-A session replay shows everything that happened during a session in order: screen views, gestures, logs, network calls, and errors, alongside charts of [CPU and memory usage](/docs/cpu-memory-monitoring). Screenshots and [layout snapshots](/docs/gesture-tracking/layout-snapshots) capture what was on screen at the time.
+A session replay shows everything that happened during a session in order: screen views, gestures, logs, network calls, and errors, alongside charts of [CPU and memory usage](/docs/cpu-memory-monitoring). Screenshots and [layout snapshots](/docs/session-replay/layout-snapshots) capture what was on screen at the time.
 
 ## What counts as a session
 
 A session is a continuous period of activity in the app. A new one starts when the SDK initializes, or when the app returns to the foreground after more than 30 seconds in the background.
 
 To reference a session from your own logs or backend, read the current session ID with [`getSessionId`](/docs/api-reference#get-session-id).
+
+## Layout snapshots
+
+A layout snapshot is a wireframe of the screen, captured as the user moves through the app. It shows what the user was acting on at a fraction of the cost of capturing, storing, and rendering a screenshot.
+
+See [Layout snapshots](/docs/session-replay/layout-snapshots) for more details on how they work and ways to configure them for each platform.
 
 ## Replay duration
 

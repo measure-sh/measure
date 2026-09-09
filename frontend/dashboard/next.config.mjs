@@ -134,6 +134,11 @@ const nextConfig = {
         permanent: true,
       },
       {
+        source: "/docs/gesture-tracking/layout-snapshots",
+        destination: "/docs/session-replay/layout-snapshots",
+        permanent: true,
+      },
+      {
         source: "/:teamId/crashes/:rest*",
         destination: "/:teamId/errors/:rest*",
         permanent: true,
