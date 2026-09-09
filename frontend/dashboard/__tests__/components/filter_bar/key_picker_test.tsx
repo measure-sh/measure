@@ -316,6 +316,26 @@ describe("KeyPicker", () => {
     expect(screen.getByTestId("value-input")).toHaveFocus();
   });
 
+  it("does not take focus back from a value input after an operator was picked", () => {
+    render(
+      <>
+        <input data-testid="value-input" />
+        <OperatorPicker
+          operators={["in", "contains"]}
+          selected="in"
+          operatorLabels={{ in: "is", contains: "contains" }}
+          onSelect={jest.fn()}
+          open
+          trigger={<button>is</button>}
+        />
+      </>,
+    );
+    screen.getByTestId("value-input").focus();
+    fireEvent.click(screen.getByTestId("close-popover"));
+
+    expect(screen.getByTestId("value-input")).toHaveFocus();
+  });
+
   describe("a user-defined key", () => {
     const customKey = key(
       "custom.is_premium",
