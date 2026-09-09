@@ -5,12 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [rn-v0.3.1] - 2026-09-09
+
+### :bug: Bug fixes
+
+
+- (**rn**): Validate dynamic config field types (#4433) by @adwinross in #4433
+
 ## [rn-v0.3.0] - 2026-09-02
 
 ### :books: Documentation
 
 
 - (**rn**): Update link in upload build script (#4258) by @detj in #4258
+
+### :hammer: Misc
+
+
+- (**rn**): Prepare release 0.3.0 (#4369) by @abhaysood in #4369
 
 ### :sparkles: New features
 
@@ -99,6 +111,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**rn**): Add exception tracking (#2628) by @adwinross in #2628
 - (**rn**): Add sdk initialization api (#2505) by @adwinross in #2505
 
+[rn-v0.3.1]: https://github.com/measure-sh/measure/compare/rn-v0.3.0..rn-v0.3.1
 [rn-v0.3.0]: https://github.com/measure-sh/measure/compare/rn-v0.2.0..rn-v0.3.0
 [rn-v0.2.0]: https://github.com/measure-sh/measure/compare/rn-v0.1.1..rn-v0.2.0
 [rn-v0.1.1]: https://github.com/measure-sh/measure/compare/rn-v0.1.0..rn-v0.1.1
