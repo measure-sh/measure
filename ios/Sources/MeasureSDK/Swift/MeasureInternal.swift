@@ -50,6 +50,9 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var userAttributeProcessor: UserAttributeProcessor {
         return measureInitializer.userAttributeProcessor
     }
+    private var patchAttributeProcessor: PatchAttributeProcessor {
+        return measureInitializer.patchAttributeProcessor
+    }
     private var userDefaultStorage: UserDefaultStorage {
         return measureInitializer.userDefaultStorage
     }
@@ -336,6 +339,10 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
 
     func clearUserId() {
         userAttributeProcessor.clearUserId()
+    }
+
+    func internalSetPatch(_ patchId: String, patchVersion: String?) {
+        patchAttributeProcessor.setPatch(patchId, patchVersion: patchVersion)
     }
 
     func createSpan(name: String) -> SpanBuilder? {

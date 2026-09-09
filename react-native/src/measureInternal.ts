@@ -17,9 +17,6 @@ import type { Span } from './tracing/span';
 import type { SpanBuilder } from './tracing/spanBuilder';
 import type { ValidAttributeValue } from './utils/attributeValueValidator';
 
-export const PATCH_ID_KEY = 'patch_id';
-export const PATCH_VERSION_KEY = 'patch_version';
-
 export class MeasureInternal {
   private measureInitializer: MeasureInitializer;
   private shakeHandler?: (() => void) | null;
@@ -74,24 +71,28 @@ export class MeasureInternal {
         this.measureInitializer.spanProcessor.onConfigLoaded();
       });
 
-    // Framework level attributes are attached to every RN-originated event and
-    // span by the signal processor, keeping them scoped to the React Native
-    // layer.
+    // Framework level attributes (e.g. Expo attributes) are attached to every
+    // RN-originated event and span by the signal processor, keeping them
+    // scoped to the React Native layer.
+    const frameworkAttributes: Record<string, any> = collectExpoAttributes();
+    if (Object.keys(frameworkAttributes).length > 0) {
+      this.measureInitializer.signalProcessor.setFrameworkAttributes(
+        frameworkAttributes
+      );
+    }
+
+    // patch_id/patch_version are set on the native SDK so they're attached to
+    // every event and span generated after this point, including native
+    // events, not just RN-originated ones.
     //
     // config.patchId takes priority (manual / CodePush approach).
     // Falls back to global.__measurePatchId injected by withMeasureConfig()
     // in metro.config.js (automated approach).
-    const frameworkAttributes: Record<string, any> = collectExpoAttributes();
     const patchId = config?.patchId ?? (global as any).__measurePatchId;
     if (patchId) {
-      frameworkAttributes[PATCH_ID_KEY] = patchId;
-    }
-    if (config?.patchVersion) {
-      frameworkAttributes[PATCH_VERSION_KEY] = config.patchVersion;
-    }
-    if (Object.keys(frameworkAttributes).length > 0) {
-      this.measureInitializer.signalProcessor.setFrameworkAttributes(
-        frameworkAttributes
+      this.measureInitializer.nativeApiProcessor.internalSetPatch(
+        patchId,
+        config?.patchVersion
       );
     }
 

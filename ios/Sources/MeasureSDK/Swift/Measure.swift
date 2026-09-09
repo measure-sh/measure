@@ -182,6 +182,11 @@ import UIKit
         measureInternal.clearUserId()
     }
 
+    @objc func internalSetPatch(_ patchId: String, patchVersion: String?) {
+        guard let measureInternal = measureInternal else { return }
+        measureInternal.internalSetPatch(patchId, patchVersion: patchVersion)
+    }
+
     @objc func getCurrentTime() -> Int64 {
         guard let measureInternal = self.measureInternal else { return 0 }
         return measureInternal.timeProvider.now()
@@ -713,6 +718,21 @@ extension Measure {
     /// ```
     @objc public static func clearUserId() {
         Measure.shared.clearUserId()
+    }
+
+    /// An internal method that sets the patch ID and, optionally, the patch version for the
+    /// current app instance. These are attached as attributes to every event and span generated
+    /// after this point. This method is not intended for public usage.
+    ///
+    /// This is used internally by the React Native SDK to propagate the patch identifiers of an
+    /// OTA update to the native SDK. The value is held in memory only and is not persisted across
+    /// app launches.
+    ///
+    /// - Parameters:
+    ///   - patchId: The patch ID string.
+    ///   - patchVersion: An optional, human-readable patch version label.
+    @objc public static func internalSetPatch(_ patchId: String, patchVersion: String?) {
+        Measure.shared.internalSetPatch(patchId, patchVersion: patchVersion)
     }
 
     /// Returns the current time in milliseconds since epoch.

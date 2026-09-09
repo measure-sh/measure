@@ -114,6 +114,15 @@ class MeasureModule: NSObject, RCTBridgeModule {
         resolve("User ID cleared successfully")
     }
 
+    @objc(internalSetPatch:patchVersion:resolver:rejecter:)
+    func internalSetPatch(_ patchId: NSString,
+                  patchVersion: NSString?,
+                  resolver resolve: @escaping RCTPromiseResolveBlock,
+                  rejecter reject: @escaping RCTPromiseRejectBlock) {
+        Measure.internalSetPatch(patchId as String, patchVersion: patchVersion as String?)
+        resolve("Patch set successfully")
+    }
+
     @objc(trackHttpEvent:method:startTime:endTime:statusCode:error:requestHeaders:responseHeaders:requestBody:responseBody:client:resolver:rejecter:)
     func trackHttpEvent(
         url: String,

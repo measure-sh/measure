@@ -167,6 +167,16 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun internalSetPatch(patchId: String, patchVersion: String?, promise: Promise) {
+        try {
+            Measure.internalSetPatch(patchId, patchVersion)
+            promise.resolve("Patch set successfully")
+        } catch (e: Exception) {
+            promise.reject("SET_PATCH_ERROR", "Failed to set patch", e)
+        }
+    }
+
+    @ReactMethod
     fun getSessionId(promise: Promise) {
         try {
             val sessionId = Measure.getSessionId()

@@ -26,6 +26,7 @@ function makeMockInitializer() {
   return {
     logger: { internalLog: jest.fn(), log: jest.fn() },
     signalProcessor: { setFrameworkAttributes: jest.fn() },
+    nativeApiProcessor: { internalSetPatch: jest.fn() },
     configLoader: { loadDynamicConfig: jest.fn(() => Promise.resolve(null)) },
     configProvider: { setDynamicConfig: jest.fn() },
     spanProcessor: { onConfigLoaded: jest.fn() },
@@ -251,7 +252,18 @@ describe('MeasureInternal.init framework attributes', () => {
     });
   });
 
-  it('combines Expo attributes with the OTA patch identifiers', async () => {
+  it('does not set patch on the native SDK when neither config nor Metro provide one', async () => {
+    const initializer = makeMockInitializer();
+    const sdk = new MeasureInternal(initializer);
+
+    await sdk.init({ config: { autoStart: false } as any });
+
+    expect(
+      initializer.nativeApiProcessor.internalSetPatch
+    ).not.toHaveBeenCalled();
+  });
+
+  it('sets patch id and version on the native SDK, separately from Expo attributes', async () => {
     (collectExpoAttributes as jest.Mock).mockReturnValue({
       expo_update_id: 'update-id',
     });
@@ -270,27 +282,10 @@ describe('MeasureInternal.init framework attributes', () => {
       initializer.signalProcessor.setFrameworkAttributes
     ).toHaveBeenCalledWith({
       expo_update_id: 'update-id',
-      patch_id: 'patch-id',
-      patch_version: 'v1.0.3-hotfix',
     });
-  });
-
-  it('keeps expo_update_id and patch_id separate', async () => {
-    (collectExpoAttributes as jest.Mock).mockReturnValue({
-      expo_update_id: 'update-id',
-    });
-    const initializer = makeMockInitializer();
-    const sdk = new MeasureInternal(initializer);
-
-    await sdk.init({
-      config: { autoStart: false, patchId: 'patch-id' } as any,
-    });
-
-    const attributes = (
-      initializer.signalProcessor.setFrameworkAttributes as jest.Mock
-    ).mock.calls[0][0];
-    expect(attributes.expo_update_id).toBe('update-id');
-    expect(attributes.patch_id).toBe('patch-id');
+    expect(
+      initializer.nativeApiProcessor.internalSetPatch
+    ).toHaveBeenCalledWith('patch-id', 'v1.0.3-hotfix');
   });
 
   it('falls back to the Metro-injected patch id', async () => {
@@ -301,8 +296,8 @@ describe('MeasureInternal.init framework attributes', () => {
     await sdk.init({ config: { autoStart: false } as any });
 
     expect(
-      initializer.signalProcessor.setFrameworkAttributes
-    ).toHaveBeenCalledWith({ patch_id: 'metro-patch-id' });
+      initializer.nativeApiProcessor.internalSetPatch
+    ).toHaveBeenCalledWith('metro-patch-id', undefined);
   });
 
   it('prefers config.patchId over the Metro-injected patch id', async () => {
@@ -315,8 +310,8 @@ describe('MeasureInternal.init framework attributes', () => {
     });
 
     expect(
-      initializer.signalProcessor.setFrameworkAttributes
-    ).toHaveBeenCalledWith({ patch_id: 'config-patch-id' });
+      initializer.nativeApiProcessor.internalSetPatch
+    ).toHaveBeenCalledWith('config-patch-id', undefined);
   });
 
   it('sets framework attributes before starting the native SDK', async () => {
