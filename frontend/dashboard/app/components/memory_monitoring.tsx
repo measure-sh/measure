@@ -8,6 +8,7 @@ import {
   useMemoryUsagePlotQuery,
 } from "../query/hooks";
 import BetaBadge from "./beta_badge";
+import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
 import FilterBar from "./filter_bar/filter_bar";
 import { useExprFilterPage } from "./filter_bar/use_expr_filter_page";
 import LoadingBar from "./loading_bar";
@@ -32,10 +33,14 @@ function platformsForApp(osNames: string[] | null): MemoryPlatform[] {
   return unique.length > 0 ? unique : ["android", "ios"];
 }
 
+// Mirrors the four process states Play Console's own Memory usage (Anon RSS
+// + Swap) vital segments by.
 const SCOPES: { label: string; value: MemoryScope }[] = [
   { label: "All", value: "" },
   { label: "Foreground", value: "foreground" },
+  { label: "User-perceived service", value: "user_perceived_service" },
   { label: "Background", value: "background" },
+  { label: "Cached", value: "cached" },
 ];
 
 export default function MemoryMonitoring({
@@ -78,12 +83,14 @@ export default function MemoryMonitoring({
       ? platformOverride
       : availablePlatforms[0];
 
-  // Foreground/Background here is a property of each reading
-  // (memory_usage_dynamic.foreground), not a session-level fact, so it's a
-  // plot-local control rather than a FilterBar/exprfilter key — the shared
-  // filter already offers session-level facts like RAM tier and
-  // "did this session run in the background at all" (session_ram_tier,
-  // session_foreground_background) generically.
+  // Process state (foreground / user_perceived_service / background /
+  // cached — matching Play Console's own Memory usage vital) is a property
+  // of each reading (memory_usage_dynamic.process_state), not a
+  // session-level fact, so it's a plot-local control rather than a
+  // FilterBar/exprfilter key — the shared filter already offers
+  // session-level facts like RAM tier and "did this session run in the
+  // background at all" (session_ram_tier, session_foreground_background)
+  // generically.
   const [scope, setScope] = useState<MemoryScope>("");
 
   const plotTimeGroup = readyValue
@@ -158,11 +165,18 @@ export default function MemoryMonitoring({
               />
             )}
             {platform === "android" && (
-              <TabSelect
+              <DropdownSelect
+                type={DropdownSelectType.SingleString}
+                title="Process State"
                 items={SCOPES.map((s) => s.label)}
-                selected={SCOPES.find((s) => s.value === scope)?.label ?? "All"}
-                onChangeSelected={(label) =>
-                  setScope(SCOPES.find((s) => s.label === label)?.value ?? "")
+                initialSelected={
+                  SCOPES.find((s) => s.value === scope)?.label ?? "All"
+                }
+                onChangeSelected={(item) =>
+                  setScope(
+                    SCOPES.find((s) => s.label === (item as string))?.value ??
+                      "",
+                  )
                 }
               />
             )}

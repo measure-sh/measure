@@ -1153,7 +1153,14 @@ export const fetchSessionReplayOverviewPlotFromServer = async (
 // ─── Memory Monitoring ────────────────────────────────────────────────────
 
 export type MemoryPlatform = "android" | "ios";
-export type MemoryScope = "" | "foreground" | "background";
+// Mirrors the four process states Play Console's own Memory usage (Anon RSS
+// + Swap) vital segments by.
+export type MemoryScope =
+  | ""
+  | "foreground"
+  | "user_perceived_service"
+  | "background"
+  | "cached";
 
 export type MemoryUsagePlotPoint = {
   datetime: string;
