@@ -134,15 +134,14 @@ func (a App) matchingSessionIDs(ef *exprfilter.ExprFilter) (*sqlf.Stmt, error) {
 // no process-state concept).
 //
 // Each point is computed from sessions, not raw event rows: a session's
-// readings within a given bucket and state are first collapsed to that
-// session's own p90 for that bucket+state, then P50/P90/P95/Sessions
-// describe the distribution of those per-session numbers across sessions
-// active in that bucket — so a session with more readings in a bucket (a
-// longer session, or a background sampler that simply accumulates more
-// samples there) can't outweigh a session with fewer, regardless of the
-// bucket's overall sample size. This mirrors how GetHighestMemorySessions
-// already collapses a session to one number, applied per bucket instead of
-// once across the whole selected range.
+// readings for a given state are first collapsed to one number — that
+// session's own p90 across every reading in that state, anywhere in the
+// selected range, exactly like GetHighestMemorySessions's peak_memory — so
+// a session contributes exactly one point per state it reached, never more,
+// regardless of how many readings it produced or how long it ran. That
+// point is placed at the bucket containing the session's earliest reading
+// in that state; P50/P90/P95/Sessions then describe the distribution of
+// per-session numbers landing in each bucket.
 func (a App) GetUsagePlot(
 	ctx context.Context,
 	ch driver.Conn,
@@ -166,10 +165,10 @@ func (a App) GetUsagePlot(
 		return nil, err
 	}
 
-	perSessionBucket := sqlf.
+	perSessionState := sqlf.
 		From("events").
 		Select("session_id").
-		Select(bucketExpr+" as datetime_bucket", ef.Timezone).
+		Select("min("+bucketExpr+") as datetime_bucket", ef.Timezone).
 		Select("quantile(0.9)("+valueExpr+") as session_p90").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
@@ -177,8 +176,7 @@ func (a App) GetUsagePlot(
 		Where("timestamp >= ?", ef.From).
 		Where("timestamp < ?", ef.To).
 		Where("session_id in (select session_id from matching_sessions)").
-		GroupBy("session_id").
-		GroupBy("datetime_bucket")
+		GroupBy("session_id")
 
 	if !ios {
 		// a memory_usage_dynamic row with a null anon_rss carried no usable
@@ -189,7 +187,7 @@ func (a App) GetUsagePlot(
 		for i, s := range thresholdableMemoryScopes {
 			thresholdableScopeNames[i] = string(s)
 		}
-		perSessionBucket.
+		perSessionState.
 			Select("memory_usage_dynamic.process_state as process_state").
 			Where("memory_usage_dynamic.anon_rss is not null").
 			Where("memory_usage_dynamic.process_state").In(thresholdableScopeNames).
@@ -197,12 +195,12 @@ func (a App) GetUsagePlot(
 	}
 
 	stmt := sqlf.With("matching_sessions", matching).
-		With("per_session_bucket", perSessionBucket).
-		From("per_session_bucket").
+		With("per_session_state", perSessionState).
+		From("per_session_state").
 		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
 		Select("quantiles(0.5, 0.9, 0.95)(session_p90) as usage").
-		// per_session_bucket already has one row per (session_id,
-		// datetime_bucket[, process_state]), so a plain count() — not
+		// per_session_state already has one row per (session_id[,
+		// process_state]), so a plain count() — not
 		// uniqCombined64(session_id) — is correct.
 		Select("count() as sessions").
 		GroupBy("datetime_bucket").
