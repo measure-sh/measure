@@ -196,8 +196,9 @@ describe("Memory Monitoring (MSW integration)", () => {
       expect(screen.getByText("Foreground")).toBeTruthy();
       expect(screen.getByText("Background")).toBeTruthy();
       expect(screen.getByText("Session ID: mem-sess-002")).toBeTruthy();
-      expect(screen.getByText("256 MB")).toBeTruthy();
-      expect(screen.getByText("8 GB")).toBeTruthy();
+      expect(
+        screen.getByText((_, node) => node?.textContent === "256 MB / 8 GB"),
+      ).toBeTruthy();
     });
 
     it("asks for the trend over the range it settled on, with no process-state param", async () => {
