@@ -10,11 +10,12 @@ test.describe("memory monitoring", () => {
   });
 
   test.describe("android", { tag: "@android" }, () => {
-    test("renders the trend and at least one ranked session for the flow's session", async () => {
+    test("renders the summary cards and at least one ranked session for the flow's session", async () => {
       await expect(memory.trendSection).toBeVisible();
-      await expect(memory.trendSection).toContainText(
-        "Dynamic Memory Usage Trend",
-      );
+      await expect(memory.trendSection).toContainText("Dynamic Memory Usage");
+      await expect(memory.summaryCard.first()).toBeVisible({
+        timeout: 20_000,
+      });
 
       await expect(memory.sessionsSection).toBeVisible();
       // The Maestro flow guarantees this session was sampled (100% via
@@ -56,11 +57,12 @@ test.describe("memory monitoring", () => {
   });
 
   test.describe("ios", { tag: "@ios" }, () => {
-    test("renders the trend and at least one ranked session for the flow's session", async () => {
+    test("renders the summary card and at least one ranked session for the flow's session", async () => {
       await expect(memory.trendSection).toBeVisible();
-      await expect(memory.trendSection).toContainText(
-        "Memory Footprint Trend",
-      );
+      await expect(memory.trendSection).toContainText("Memory Footprint");
+      await expect(memory.summaryCard.first()).toBeVisible({
+        timeout: 20_000,
+      });
 
       await expect(memory.sessionsSection).toBeVisible();
       await expect(memory.sessionRow.first()).toBeVisible({ timeout: 20_000 });

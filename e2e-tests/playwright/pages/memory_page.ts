@@ -7,6 +7,7 @@ export class MemoryPage {
   readonly sessionsSection: Locator;
   readonly sessionRow: Locator;
   readonly sessionRamTier: Locator;
+  readonly summaryCard: Locator;
 
   constructor(page: Page, teamId: string) {
     this.page = page;
@@ -15,6 +16,7 @@ export class MemoryPage {
     this.sessionsSection = page.getByTestId("memory-sessions-section");
     this.sessionRow = page.getByTestId("memory-session-row");
     this.sessionRamTier = page.getByTestId("memory-session-ram-tier");
+    this.summaryCard = page.getByTestId("memory-summary-card");
   }
 
   async goto(appId: string) {
