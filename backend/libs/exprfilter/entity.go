@@ -296,12 +296,14 @@ var (
 	}
 
 	// sessionRAMTier buckets a session's device by total memory into Google
-	// Play's own RAM tiers, e.g. for the memory monitoring trend chart.
+	// Play's own RAM tiers, e.g. for the memory monitoring summary cards.
+	// Grouped under Device, not Session: it's a fact about the device the
+	// session ran on, like device_name/device_model, not the session itself.
 	sessionRAMTier = Key{
 		Name:                "session_ram_tier",
 		Label:               "RAM Tier",
 		Description:         "Google Play RAM tier of the session's device, by total device memory.",
-		KeyGroup:            KeyGroupSession,
+		KeyGroup:            KeyGroupDevice,
 		ValueType:           ValueTypeEnum,
 		Operators:           []Operator{OperatorIn, OperatorNotIn},
 		ValueSuggestionMode: ValueSuggestionModeFullList,

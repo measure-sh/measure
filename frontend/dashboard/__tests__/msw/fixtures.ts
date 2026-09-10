@@ -1624,7 +1624,7 @@ export function makeSessionsFilterKeysFixture(
         label: "RAM Tier",
         description:
           "Google Play RAM tier of the session's device, by total device memory.",
-        key_group: "Session",
+        key_group: "Device",
         value_type: "enum",
         value_suggestion_mode: "full_list",
         operators: ["in", "not_in"],
