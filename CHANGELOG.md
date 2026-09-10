@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Round the suggestion window start down to the hour by @anupcowkur in #4466
+- (**backend**): Expand session arrays with an ARRAY JOIN clause by @anupcowkur
 - (**backend**): Bind the suggestion window start as a query parameter by @anupcowkur in #4464
 - (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
 - (**frontend**): Keep a filter chip when its operator or key is changed first by @anupcowkur in #4445
