@@ -48,6 +48,10 @@ type MemorySessionDisplay struct {
 	StartTime          *time.Time `json:"start_time"`
 	// PeakMemoryKB is the session's own p90 across its sampled readings, in KB.
 	PeakMemoryKB uint64 `json:"peak_memory_kb"`
+	// RAMUsageRatio is PeakMemoryKB as a fraction (0-1) of DeviceTotalMemory
+	// — the ranking key, since the raw KB value alone is misleading across
+	// devices with different total RAM. 0 when DeviceTotalMemory is unknown.
+	RAMUsageRatio float64 `json:"ram_usage_ratio"`
 }
 
 // withMemoryQueryName tags a query with its name for the ClickHouse query log.
@@ -183,10 +187,13 @@ func (a App) GetUsagePlot(
 	return result, nil
 }
 
-// GetHighestMemorySessions ranks sessions by their own p90 dynamic memory
-// usage (Android, anon_rss + swap) or memory footprint (iOS, used_memory),
-// highest first. Only sessions the memory sampling rate selected have a
-// usable reading; sessions with none are excluded, not ranked at the bottom.
+// GetHighestMemorySessions ranks sessions by their own p90 memory usage as a
+// fraction of their device's total RAM, highest first — not by the raw p90
+// value, which is misleading across devices: a 68 MB peak means very
+// different things on a 4 GB phone and a 16 GB one. A session with no known
+// device_total_memory_kb ranks last, not first. Only sessions the memory
+// sampling rate selected have a usable reading; sessions with none are
+// excluded, not ranked at the bottom.
 func (a App) GetHighestMemorySessions(ctx context.Context, rch driver.Conn, ios bool, ef *exprfilter.ExprFilter) (sessions []MemorySessionDisplay, next, previous bool, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	sessions = make([]MemorySessionDisplay, 0)
@@ -244,7 +251,11 @@ func (a App) GetHighestMemorySessions(ctx context.Context, rch driver.Conn, ios 
 		Select("device_total_memory_kb").
 		Select("start_time").
 		Select("peak_memory").
-		OrderBy("peak_memory desc").
+		// NULL and zero denominators (device_total_memory_kb unknown) fall
+		// back to 0 rather than NULL, so those sessions sort last under
+		// ORDER BY ... DESC without needing an explicit NULLS LAST.
+		Select("coalesce(peak_memory / nullIf(device_total_memory_kb, 0), 0) as ram_usage_ratio").
+		OrderBy("ram_usage_ratio desc").
 		OrderBy("session_id desc")
 
 	defer stmt.Close()
@@ -283,6 +294,7 @@ func (a App) GetHighestMemorySessions(ctx context.Context, rch driver.Conn, ios 
 			&sess.DeviceTotalMemory,
 			&sess.StartTime,
 			&peakMemory,
+			&sess.RAMUsageRatio,
 		}
 
 		if err = rows.Scan(dest...); err != nil {
