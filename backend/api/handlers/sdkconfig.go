@@ -30,7 +30,7 @@ const configColumns = `max_events_in_batch, error_replay_duration, anr_timeline_
 	anr_take_screenshot, launch_sampling_rate,
 	gesture_click_take_snapshot, http_sampling_rate, http_disable_event_for_urls,
 	http_track_request_for_urls, http_track_response_for_urls, http_blocked_headers,
-	profile_sampling_rate, updated_at, updated_by`
+	profile_sampling_rate, memory_usage_session_sampling_rate, updated_at, updated_by`
 
 // PatchConfigForApp applies a patch to an app's SDK config in Postgres, then refreshes the cache.
 func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userID string) error {
@@ -157,6 +157,12 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		}
 		stmt.Set("profile_sampling_rate", *patch.ProfileSamplingRate)
 	}
+	if patch.MemoryUsageSessionSamplingRate != nil {
+		if *patch.MemoryUsageSessionSamplingRate < 0 || *patch.MemoryUsageSessionSamplingRate > 100 {
+			return fmt.Errorf("memory_usage_session_sampling_rate must be between 0-100")
+		}
+		stmt.Set("memory_usage_session_sampling_rate", *patch.MemoryUsageSessionSamplingRate)
+	}
 	// the database clock, evaluated after the row lock, orders concurrent patches
 	stmt.SetExpr("updated_at", "clock_timestamp()")
 	stmt.Set("updated_by", &userIdUUID)
@@ -198,6 +204,7 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		&config.HTTPTrackResponseForURLs,
 		&config.HTTPBlockedHeaders,
 		&config.ProfileSamplingRate,
+		&config.MemoryUsageSessionSamplingRate,
 		&config.UpdatedAt,
 		&config.UpdatedBy,
 	); err != nil {

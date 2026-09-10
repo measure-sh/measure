@@ -138,6 +138,11 @@ type Attribute struct {
 	// of the device if available.
 	DeviceCPUArch string `json:"device_cpu_arch"`
 
+	// DeviceTotalMemoryKB is the total memory available on the
+	// device, in KB. Optional — nil when the SDK does not report
+	// it (e.g. iOS, or an older SDK version).
+	DeviceTotalMemoryKB *uint64 `json:"device_total_memory_kb"`
+
 	// OSName is the operating system's name
 	OSName string `json:"os_name" binding:"required"`
 
@@ -291,6 +296,9 @@ func (a Attribute) Validate() error {
 	}
 	if len(a.DeviceCPUArch) > maxDeviceCPUArchChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.device_cpu_arch`, maxDeviceCPUArchChars)
+	}
+	if a.DeviceTotalMemoryKB != nil && *a.DeviceTotalMemoryKB > maxPlausibleMemoryKB {
+		return fmt.Errorf(`%q exceeds plausible maximum`, `attribute.device_total_memory_kb`)
 	}
 	if len(a.OSVersion) > maxOSVersionChars {
 		return fmt.Errorf(`%q exceeds maximum allowed characters of %d`, `attribute.os_version`, maxOSVersionChars)

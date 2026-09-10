@@ -76,6 +76,9 @@ const (
 	maxErrorMetaBytes                         = 4096 // Maximum size for marshaled Error.Meta in bytes
 	maxEventAttachments                       = 5
 	customNameKeyPattern                      = "^[a-zA-Z0-9_-]+$"
+	// maxPlausibleMemoryKB is a sanity bound (64 GiB in KB) for individual
+	// memory readings, not a device RAM ceiling.
+	maxPlausibleMemoryKB = 64 * 1024 * 1024
 )
 
 const TypeCustom = "custom"
@@ -99,6 +102,7 @@ const TypeNetworkChange = "network_change"
 const TypeHttp = "http"
 const TypeMemoryUsage = "memory_usage"
 const TypeMemoryUsageAbs = "memory_usage_absolute"
+const TypeMemoryUsageDynamic = "memory_usage_dynamic"
 const TypeLowMemory = "low_memory"
 const TypeTrimMemory = "trim_memory"
 const TypeCPUUsage = "cpu_usage"
@@ -168,7 +172,7 @@ var androidValidTypes = []string{
 	TypeLifecycleApp,
 	TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch,
 	TypeNetworkChange, TypeHttp,
-	TypeMemoryUsage, TypeMemoryUsageAbs, TypeLowMemory, TypeTrimMemory,
+	TypeMemoryUsage, TypeMemoryUsageAbs, TypeMemoryUsageDynamic, TypeLowMemory, TypeTrimMemory,
 	TypeCPUUsage, TypeNavigation, TypeScreenView,
 	TypeString,
 	TypeLog,
@@ -653,6 +657,16 @@ type MemoryUsageAbs struct {
 	Interval   uint64 `json:"interval" binding:"required"`
 }
 
+// MemoryUsageDynamic is Android's Dynamic Memory Usage vital, anon_rss + swap
+// from /proc/self/status. AnonRSS and Swap are pointers: a nil value means the
+// reading was unavailable and must not be treated as zero.
+type MemoryUsageDynamic struct {
+	AnonRSS    *uint64 `json:"anon_rss"`
+	Swap       *uint64 `json:"swap"`
+	Foreground bool    `json:"foreground"`
+	Interval   uint64  `json:"interval" binding:"required"`
+}
+
 type LowMemory struct {
 	JavaMaxHeap     uint64 `json:"java_max_heap" binding:"required"`
 	JavaTotalHeap   uint64 `json:"java_total_heap" binding:"required"`
@@ -740,6 +754,7 @@ type EventField struct {
 	Http                    *Http                    `json:"http,omitempty"`
 	MemoryUsage             *MemoryUsage             `json:"memory_usage,omitempty"`
 	MemoryUsageAbs          *MemoryUsageAbs          `json:"memory_usage_absolute,omitempty"`
+	MemoryUsageDynamic      *MemoryUsageDynamic      `json:"memory_usage_dynamic,omitempty"`
 	LowMemory               *LowMemory               `json:"low_memory,omitempty"`
 	TrimMemory              *TrimMemory              `json:"trim_memory,omitempty"`
 	CPUUsage                *CPUUsage                `json:"cpu_usage,omitempty"`
@@ -1219,6 +1234,18 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		}
 	}
 
+	if e.IsMemoryUsageDynamic() {
+		// anon_rss and swap are intentionally not required: a nil value means
+		// /proc/self/status was unavailable for that reading, which is a valid,
+		// expected outcome, not a malformed event.
+		if e.MemoryUsageDynamic.AnonRSS != nil && *e.MemoryUsageDynamic.AnonRSS > maxPlausibleMemoryKB {
+			return fmt.Errorf(`%q exceeds plausible maximum`, `memory_usage_dynamic.anon_rss`)
+		}
+		if e.MemoryUsageDynamic.Swap != nil && *e.MemoryUsageDynamic.Swap > maxPlausibleMemoryKB {
+			return fmt.Errorf(`%q exceeds plausible maximum`, `memory_usage_dynamic.swap`)
+		}
+	}
+
 	if e.IsNavigation() {
 		if len(e.Navigation.To) > maxNavigationToChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `navigation.to`, maxNavigationToChars)
@@ -1424,6 +1451,12 @@ func (e EventField) IsMemoryUsage() bool {
 // memory usage absolute event.
 func (e EventField) IsMemoryUsageAbs() bool {
 	return e.Type == TypeMemoryUsageAbs
+}
+
+// IsMemoryUsageDynamic returns true for
+// dynamic memory usage event.
+func (e EventField) IsMemoryUsageDynamic() bool {
+	return e.Type == TypeMemoryUsageDynamic
 }
 
 // IsTrimMemory returns true for trim

@@ -532,6 +532,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			Set(`attribute.device_low_power_mode`, e.events[i].Attribute.DeviceLowPowerMode).
 			Set(`attribute.device_thermal_throttling_enabled`, e.events[i].Attribute.DeviceThermalThrottlingEnabled).
 			Set(`attribute.device_cpu_arch`, e.events[i].Attribute.DeviceCPUArch).
+			Set(`attribute.device_total_memory_kb`, e.events[i].Attribute.DeviceTotalMemoryKB).
 			Set(`attribute.os_name`, e.events[i].Attribute.OSName).
 			Set(`attribute.os_version`, e.events[i].Attribute.OSVersion).
 			Set(`attribute.os_page_size`, e.events[i].Attribute.OSPageSize).
@@ -930,6 +931,21 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`memory_usage_absolute.max_memory`, nil).
 				Set(`memory_usage_absolute.used_memory`, nil).
 				Set(`memory_usage_absolute.interval`, nil)
+		}
+
+		// memory usage dynamic
+		if e.events[i].IsMemoryUsageDynamic() {
+			row.
+				Set(`memory_usage_dynamic.anon_rss`, e.events[i].MemoryUsageDynamic.AnonRSS).
+				Set(`memory_usage_dynamic.swap`, e.events[i].MemoryUsageDynamic.Swap).
+				Set(`memory_usage_dynamic.foreground`, e.events[i].MemoryUsageDynamic.Foreground).
+				Set(`memory_usage_dynamic.interval`, e.events[i].MemoryUsageDynamic.Interval)
+		} else {
+			row.
+				Set(`memory_usage_dynamic.anon_rss`, nil).
+				Set(`memory_usage_dynamic.swap`, nil).
+				Set(`memory_usage_dynamic.foreground`, nil).
+				Set(`memory_usage_dynamic.interval`, nil)
 		}
 
 		// low memory
