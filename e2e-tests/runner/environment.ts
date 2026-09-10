@@ -114,6 +114,31 @@ async function bootAndroid(repoRoot: string): Promise<void> {
   const stylus = ["shell", "settings", "put", "secure"];
   await quiet("adb", [...stylus, "stylus_handwriting_enabled", "0"]);
   await quiet("adb", [...stylus, "stylus_handwriting_default_value", "0"]);
+
+  // A real device (unlike an emulator, which never locks) can fall asleep
+  // and re-lock during the several-minute app build that follows this step,
+  // and Maestro's launchApp does not wake or unlock it, so a flow silently
+  // fails its first assertion against the lock screen. Push the timeout out
+  // for the run (30 min) and wake+unlock now; wakeDevice() is called again
+  // right before Maestro actually runs, as a second-chance safety net for
+  // the case where something else (a phone call, the physical power button)
+  // relocked it in between. Harmless no-ops on an emulator or an
+  // already-awake, already-unlocked device.
+  await quiet("adb", [
+    "shell",
+    "settings",
+    "put",
+    "system",
+    "screen_off_timeout",
+    "1800000",
+  ]);
+  await wakeDevice();
+}
+
+// See the comment above this function's caller in bootAndroid.
+export async function wakeDevice(): Promise<void> {
+  await quiet("adb", ["shell", "input", "keyevent", "KEYCODE_WAKEUP"]);
+  await quiet("adb", ["shell", "wm", "dismiss-keyguard"]);
 }
 
 async function bootIos(repoRoot: string): Promise<void> {
