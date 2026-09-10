@@ -56,6 +56,24 @@ func withMemoryQueryName(ctx context.Context, name string) context.Context {
 	return chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, name))
 }
 
+// groupBySessionDimensions applies the standard sessions-table grouping key
+// shared by every per-session memory query: one row per session, settled by
+// the display dimensions GetSessionsWithFilter also groups by.
+//
+// device_total_memory_kb is deliberately not among them — it's a
+// SimpleAggregateFunction(anyLast, ...) column, so it's read via anyLast(...)
+// where it's selected, not used as a grouping key (see matchingSessionIDs /
+// GetHighestMemorySessions).
+func groupBySessionDimensions(stmt *sqlf.Stmt) {
+	stmt.
+		GroupBy("session_id").
+		GroupBy("app_version").
+		GroupBy("os_version").
+		GroupBy("device_name").
+		GroupBy("device_model").
+		GroupBy("device_manufacturer")
+}
+
 // matchingSessionIDs is a subquery selecting the session_ids that satisfy
 // ef's filter, scoped to the app and date range. Used to scope the trend
 // query — which reads raw events, not the sessions rollup — to the same
@@ -77,14 +95,7 @@ func (a App) matchingSessionIDs(ef *exprfilter.ExprFilter) (*sqlf.Stmt, error) {
 		}
 	}
 
-	sub.
-		GroupBy("session_id").
-		GroupBy("app_version").
-		GroupBy("os_version").
-		GroupBy("device_name").
-		GroupBy("device_model").
-		GroupBy("device_manufacturer").
-		GroupBy("device_total_memory_kb")
+	groupBySessionDimensions(sub)
 
 	return sub, nil
 }
@@ -190,7 +201,13 @@ func (a App) GetHighestMemorySessions(ctx context.Context, rch driver.Conn, ios 
 		Select("device_name").
 		Select("device_model").
 		Select("device_manufacturer").
-		Select("device_total_memory_kb").
+		// device_total_memory_kb is a SimpleAggregateFunction(anyLast, ...)
+		// column: re-applying anyLast() here is what actually merges it
+		// correctly across any not-yet-background-merged parts, the same way
+		// aggregatedSessionColumnForms re-applies sum()/max() for its fields.
+		// A bare Select would return whichever physical row's value happened
+		// to survive an unrelated merge, including null.
+		Select("anyLast(device_total_memory_kb) as device_total_memory_kb").
 		Select("min(first_event_timestamp) as start_time").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
@@ -208,14 +225,7 @@ func (a App) GetHighestMemorySessions(ctx context.Context, rch driver.Conn, ios 
 		}
 	}
 
-	base.
-		GroupBy("session_id").
-		GroupBy("app_version").
-		GroupBy("os_version").
-		GroupBy("device_name").
-		GroupBy("device_model").
-		GroupBy("device_manufacturer").
-		GroupBy("device_total_memory_kb")
+	groupBySessionDimensions(base)
 
 	// a session the sampling rate did not select has an empty percentile
 	// state, which merges to NaN — excluded, not shown as a zero.
@@ -255,6 +265,11 @@ func (a App) GetHighestMemorySessions(ctx context.Context, rch driver.Conn, ios 
 
 	for rows.Next() {
 		var sess MemorySessionDisplay
+		// ClickHouse's quantile functions always return Float64, regardless
+		// of the input column's type — scanning straight into the uint64
+		// field errors on every row (see network.GetLatencyPlot for the same
+		// pattern: scan float64, then round).
+		var peakMemory float64
 
 		dest := []any{
 			&sess.SessionID,
@@ -267,12 +282,13 @@ func (a App) GetHighestMemorySessions(ctx context.Context, rch driver.Conn, ios 
 			&sess.DeviceManufacturer,
 			&sess.DeviceTotalMemory,
 			&sess.StartTime,
-			&sess.PeakMemoryKB,
+			&peakMemory,
 		}
 
 		if err = rows.Scan(dest...); err != nil {
 			return
 		}
+		sess.PeakMemoryKB = uint64(math.Round(peakMemory))
 
 		sessions = append(sessions, sess)
 	}
