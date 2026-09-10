@@ -21,7 +21,6 @@ import (
 	"backend/libs/journey"
 	"backend/libs/logcomment"
 	"backend/libs/measure"
-	"backend/libs/memory"
 	"backend/libs/metrics"
 	"backend/libs/network"
 	"backend/libs/opsys"
@@ -3101,20 +3100,26 @@ func (h Handlers) GetNetworkEndpointTimelinePlot(c *gin.Context) {
 }
 
 // memoryScopeFromQuery reads the `scope` query param (foreground, background,
-// or absent for both) into a memory.Scope, rejecting anything else.
-func memoryScopeFromQuery(c *gin.Context) (memory.Scope, error) {
-	switch v := memory.Scope(c.Query("scope")); v {
-	case memory.ScopeAny, memory.ScopeForeground, memory.ScopeBackground:
+// or absent for both) into a measure.MemoryScope, rejecting anything else.
+func memoryScopeFromQuery(c *gin.Context) (measure.MemoryScope, error) {
+	switch v := measure.MemoryScope(c.Query("scope")); v {
+	case measure.MemoryScopeAny, measure.MemoryScopeForeground, measure.MemoryScopeBackground:
 		return v, nil
 	default:
-		return memory.ScopeAny, fmt.Errorf("invalid scope %q", v)
+		return measure.MemoryScopeAny, fmt.Errorf("invalid scope %q", v)
 	}
 }
 
+// GetMemoryUsagePlot uses exprfilter.SessionsEntity, the same entity the
+// FilterBar and GetHighestMemorySessions use, even though this query reads
+// raw events rather than the sessions rollup: the trend is scoped to
+// matching sessions via a subquery (App.matchingSessionIDs), so one filter
+// expression works for both views of the tab instead of two incompatible
+// key vocabularies.
 func (h Handlers) GetMemoryUsagePlot(c *gin.Context) {
 	deps := h.Deps
 	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:          exprfilter.MemoryEntity,
+		entity:          exprfilter.SessionsEntity,
 		appScope:        *measure.ScopeAppRead,
 		logRoot:         logcomment.Memory,
 		logName:         "usage_plot",
@@ -3141,7 +3146,7 @@ func (h Handlers) GetMemoryUsagePlot(c *gin.Context) {
 		return
 	}
 
-	result, err := memory.GetUsagePlot(ctx, deps.RchPool, *app.ID, app.TeamId, ios, scope, &ef, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := app.GetUsagePlot(ctx, deps.RchPool, ios, scope, &ef, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		msg := "failed to get memory usage metrics"
 		fmt.Println(msg, err)
