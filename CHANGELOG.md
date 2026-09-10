@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump google.golang.org/grpc in /self-host/sessionator (#4450) by @dependabot[bot] in #4450
 - (**deps**): Bump dompurify from 3.4.6 to 3.4.14 in /frontend/dashboard (#4399) by @dependabot[bot] in #4399
 - (**deps**): Bump fflate from 0.4.8 to 0.4.9 in /frontend/dashboard (#4398) by @dependabot[bot] in #4398
 - (**deps**): Bump valibot and @c15t/nextjs in /frontend/dashboard (#4397) by @dependabot[bot] in #4397
