@@ -99,9 +99,9 @@ var (
 
 // ramTierPredicates buckets sessions.device_total_memory_kb into Google
 // Play's RAM tiers (thresholds are the tier table's MB boundaries * 1024).
-// device_total_memory_kb is a plain per-session column, like
-// device_manufacturer, so the same predicate form works for both the raw and
-// aggregated bindings — no sum/count wrapping needed.
+// Used in the raw (WHERE) binding: device_total_memory_kb there is a single
+// row's own column value, already resolved for that ingest batch, so no
+// aggregate wrapping is needed.
 var ramTierPredicates = map[string]string{
 	"0-4gb": "device_total_memory_kb < 3276800",
 	"4gb":   "device_total_memory_kb >= 3276800 and device_total_memory_kb < 4915200",
@@ -112,11 +112,27 @@ var ramTierPredicates = map[string]string{
 	"16gb+": "device_total_memory_kb >= 18874368",
 }
 
+// ramTierAggregatedPredicates is the HAVING-context counterpart.
+// device_total_memory_kb is a SimpleAggregateFunction(anyLast, ...) column
+// deliberately left out of groupBySessionDimensions's GROUP BY (see its doc
+// comment), so a bare reference in HAVING is invalid ClickHouse SQL — it must
+// be wrapped in anyLast(...) here, the same way device_manufacturer et al.
+// don't need wrapping only because they ARE GROUP BY keys.
+var ramTierAggregatedPredicates = map[string]string{
+	"0-4gb": "anyLast(device_total_memory_kb) < 3276800",
+	"4gb":   "anyLast(device_total_memory_kb) >= 3276800 and anyLast(device_total_memory_kb) < 4915200",
+	"6gb":   "anyLast(device_total_memory_kb) >= 4915200 and anyLast(device_total_memory_kb) < 6963200",
+	"8gb":   "anyLast(device_total_memory_kb) >= 6963200 and anyLast(device_total_memory_kb) < 9437184",
+	"12gb":  "anyLast(device_total_memory_kb) >= 9437184 and anyLast(device_total_memory_kb) < 14680064",
+	"16gb":  "anyLast(device_total_memory_kb) >= 14680064 and anyLast(device_total_memory_kb) < 18874368",
+	"16gb+": "anyLast(device_total_memory_kb) >= 18874368",
+}
+
 func sessionsKeyBindingOverridesFor(forms sessionColumnForms) map[string]columnKeyBinding {
 	return map[string]columnKeyBinding{
 		sessionEvents.Name:               bindEnumKeyToPredicates(forms.events),
 		sessionForegroundBackground.Name: bindEnumKeyToPredicates(forms.foregroundBackground),
-		sessionRAMTier.Name:              bindEnumKeyToPredicates(ramTierPredicates),
+		sessionRAMTier.Name:              bindEnumKeyToPredicates(forms.ramTier),
 		sessionCustomEvent.Name:          bindArrayKey,
 		sessionLog.Name:                  bindArrayKey,
 		sessionErrorText.Name:            bindArrayKey,
@@ -157,13 +173,19 @@ var sessionCustomKeys = customKeyStore{
 }
 
 var (
-	rawSessionColumnForms        = sessionColumnFormsWith(func(_, column string) string { return column })
-	aggregatedSessionColumnForms = sessionColumnFormsWith(func(aggregate, column string) string { return aggregate + "(" + column + ")" })
+	rawSessionColumnForms        = withRAMTier(sessionColumnFormsWith(func(_, column string) string { return column }), ramTierPredicates)
+	aggregatedSessionColumnForms = withRAMTier(sessionColumnFormsWith(func(aggregate, column string) string { return aggregate + "(" + column + ")" }), ramTierAggregatedPredicates)
 )
+
+func withRAMTier(forms sessionColumnForms, ramTier map[string]string) sessionColumnForms {
+	forms.ramTier = ramTier
+	return forms
+}
 
 type sessionColumnForms struct {
 	events               map[string]string
 	foregroundBackground map[string]string
+	ramTier              map[string]string
 	log                  string
 	errorText            string
 	screen               string
