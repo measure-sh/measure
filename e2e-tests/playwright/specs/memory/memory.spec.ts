@@ -23,7 +23,7 @@ test.describe("memory monitoring", () => {
       // at least one memory_usage_dynamic reading and shows up here.
       await expect(memory.sessionRow.first()).toBeVisible({ timeout: 20_000 });
       await expect(
-        memory.sessionRow.first().getByText(/^\d+ MB$/),
+        memory.sessionRow.first().getByText(/^\d+ MB \/ .+$/),
       ).toBeVisible();
     });
 
