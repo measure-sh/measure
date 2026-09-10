@@ -1155,14 +1155,16 @@ export const fetchSessionReplayOverviewPlotFromServer = async (
 export type MemoryPlatform = "android" | "ios";
 // Mirrors the process states Play Console's own Memory usage (Anon RSS +
 // Swap) vital publishes a ceiling for. Cached is a real process state but
-// has no published ceiling and is never returned by the summary endpoint.
+// has no published ceiling and is never returned by the trend endpoint.
 export type MemoryScope =
   | "foreground"
   | "user_perceived_service"
   | "background";
 
-export type MemoryUsageSummaryRow = {
-  // Absent on iOS, which has no process-state concept — one row, one card.
+export type MemoryUsagePlotPoint = {
+  datetime: string;
+  // Absent on iOS, which has no process-state concept — one series, not
+  // one per state.
   process_state?: MemoryScope;
   p50: number;
   p90: number;
@@ -1203,8 +1205,8 @@ export const emptyHighestMemorySessionsResponse = {
   results: [] as MemorySessionRow[],
 };
 
-export type MemoryUsageSummaryResponse = {
-  results: MemoryUsageSummaryRow[];
+export type MemoryUsagePlotResponse = {
+  results: MemoryUsagePlotPoint[];
   // Google Play Console's own "excessive memory usage" ceiling, one entry
   // per process state Play publishes a number for, computed server-side
   // (backend/libs/measure/memory_thresholds.go, which owns the published
@@ -1213,17 +1215,18 @@ export type MemoryUsageSummaryResponse = {
   thresholds?: MemoryThresholdEntry[];
 };
 
-export const fetchMemoryUsageSummaryFromServer = async (
+export const fetchMemoryUsagePlotFromServer = async (
   appId: string,
   startDate: string,
   endDate: string,
   filterExpr: string | null,
   os: MemoryPlatform,
-): Promise<MemoryUsageSummaryResponse | null> => {
+): Promise<MemoryUsagePlotResponse | null> => {
   const params = new URLSearchParams({
     from: formatUserInputDateToServerFormat(startDate),
     to: formatUserInputDateToServerFormat(endDate),
     timezone: getTimeZoneForServer(),
+    plot_time_group: getPlotTimeGroupForRange(startDate, endDate),
     os,
   });
   if (filterExpr) {
@@ -1231,8 +1234,8 @@ export const fetchMemoryUsageSummaryFromServer = async (
   }
 
   const data = await request(
-    `/api/apps/${appId}/memory/summary?${params.toString()}`,
-    { failsWith: "Failed to fetch memory usage summary" },
+    `/api/apps/${appId}/memory/plots/usage?${params.toString()}`,
+    { failsWith: "Failed to fetch memory usage plot" },
   );
 
   return data === null ||

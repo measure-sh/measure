@@ -34,7 +34,7 @@ import {
   fetchErrorsOverviewPlotFromServer,
   fetchHighestMemorySessionsFromServer,
   fetchJourneyFromServer,
-  fetchMemoryUsageSummaryFromServer,
+  fetchMemoryUsagePlotFromServer,
   fetchMetricsFromServer,
   fetchNetworkEndpointsFromServer,
   fetchNetworkEndpointStatusCodesPlotFromServer,
@@ -915,13 +915,13 @@ export function useSessionReplayOverviewQuery(
 
 const MEMORY_SESSIONS_LIMIT = 5;
 
-export function useMemoryUsageSummaryQuery(
+export function useMemoryUsagePlotQuery(
   params: FilterParams | null,
   os: MemoryPlatform,
 ) {
   return useQuery({
     queryKey: [
-      "memoryUsageSummary",
+      "memoryUsagePlot",
       params?.appId,
       params?.startDate,
       params?.endDate,
@@ -929,7 +929,7 @@ export function useMemoryUsageSummaryQuery(
       os,
     ] as const,
     queryFn: () =>
-      fetchMemoryUsageSummaryFromServer(
+      fetchMemoryUsagePlotFromServer(
         params!.appId,
         params!.startDate,
         params!.endDate,

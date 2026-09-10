@@ -368,18 +368,19 @@ export function makeSessionReplayOverviewPage2Fixture() {
   };
 }
 
-// --- Memory Monitoring Summary (GET /apps/:appId/memory/summary) ---
+// --- Memory Monitoring Trend (GET /apps/:appId/memory/plots/usage) ---
 // thresholds is empty by default, matching the "no RAM tier filtered" case
 // — the backend's MemoryThresholdsByScope (backend/libs/measure/
 // memory_thresholds.go) only resolves entries once a single RAM tier is
 // selected.
 
-export function makeMemoryUsageSummaryFixture(
+export function makeMemoryUsagePlotFixture(
   overrides: Record<string, any> = {},
 ) {
   return {
     results: [
       {
+        datetime: "2026-04-01T00:00:00Z",
         process_state: "foreground",
         p50: 180224,
         p90: 245760,
@@ -387,6 +388,15 @@ export function makeMemoryUsageSummaryFixture(
         sessions: 12,
       },
       {
+        datetime: "2026-04-01T01:00:00Z",
+        process_state: "foreground",
+        p50: 192512,
+        p90: 251904,
+        p95: 271360,
+        sessions: 15,
+      },
+      {
+        datetime: "2026-04-01T00:00:00Z",
         process_state: "background",
         p50: 102400,
         p90: 143360,
@@ -399,8 +409,8 @@ export function makeMemoryUsageSummaryFixture(
   };
 }
 
-export function makeMemoryUsageSummaryWithThresholdFixture() {
-  return makeMemoryUsageSummaryFixture({
+export function makeMemoryUsagePlotWithThresholdFixture() {
+  return makeMemoryUsagePlotFixture({
     thresholds: [
       {
         process_state: "foreground",

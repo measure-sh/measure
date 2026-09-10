@@ -1,15 +1,14 @@
 /**
  * Integration tests for the wiring between the Memory Monitoring page and
- * the server: request paths and parameters, the per-process-state summary
- * cards, Play threshold plumbing, pagination, and filter propagation
- * through the shared sessions FilterBar.
+ * the server: request paths and parameters, the multi-series trend chart,
+ * Play threshold plumbing, pagination, and filter propagation through the
+ * shared sessions FilterBar.
  *
  * Unique to memory:
  *   - the sessions filter entity, reused rather than a bespoke one
- *   - no time bucketing and no process-state scope param — the summary
- *     endpoint returns every state's distribution in one response, and the
- *     page renders one card per state rather than requiring one to be
- *     picked first
+ *   - no process-state filter/param — the trend endpoint returns every
+ *     state's series in one response, and the chart draws all of them
+ *     simultaneously rather than requiring one to be picked first
  *   - the Play threshold, computed server-side and only ever displayed,
  *     never recomputed client-side (backend/libs/measure/memory_thresholds.go
  *     owns the ambiguity rules — see its tests for that coverage)
@@ -61,8 +60,33 @@ jest.mock("next-themes", () => ({
   useTheme: () => ({ theme: "light" }),
 }));
 
-// Radix popovers/tooltips (FilterBar, the card status-icon tooltip) need
-// browser APIs jsdom lacks.
+// Exposes whether MemoryUsagePlot decided to include the threshold layer
+// (memory_usage_plot.tsx's `layers` array carries a function only when a
+// threshold resolves) without needing to render real canvas pixels.
+jest.mock("@nivo/line", () => {
+  const LineChartStub = ({ data, layers }: any) => (
+    <div
+      data-testid="nivo-line-chart"
+      data-has-threshold={
+        Array.isArray(layers) &&
+        layers.some((l: any) => typeof l === "function")
+      }
+    >
+      {data?.map((s: any) => (
+        <span key={s.id} data-testid={`chart-series-${s.id}`}>
+          {s.id}: {s.data?.length ?? 0} points
+        </span>
+      ))}
+    </div>
+  );
+  return {
+    __esModule: true,
+    ResponsiveLine: LineChartStub,
+    ResponsiveLineCanvas: LineChartStub,
+  };
+});
+
+// Radix popovers/tooltips (FilterBar) need browser APIs jsdom lacks.
 (globalThis as any).ResizeObserver = class {
   observe() {}
   unobserve() {}
@@ -78,8 +102,8 @@ import {
   makeAppFixture,
   makeMemorySessionsFixture,
   makeMemorySessionsPage2Fixture,
-  makeMemoryUsageSummaryFixture,
-  makeMemoryUsageSummaryWithThresholdFixture,
+  makeMemoryUsagePlotFixture,
+  makeMemoryUsagePlotWithThresholdFixture,
 } from "../msw/fixtures";
 import { server } from "../msw/server";
 
@@ -160,36 +184,36 @@ describe("Memory Monitoring (MSW integration)", () => {
   }
 
   describe("opening the page", () => {
-    it("draws the summary cards and the ranked sessions the server sent", async () => {
+    it("draws the trend and the ranked sessions the server sent", async () => {
       renderPage();
       await waitForContent();
 
-      expect(screen.getByText("Dynamic Memory Usage")).toBeTruthy();
+      expect(screen.getByText("Dynamic Memory Usage Trend")).toBeTruthy();
       expect(screen.getByText("Highest Memory Sessions")).toBeTruthy();
-      expect(screen.getAllByTestId("memory-summary-card")).toHaveLength(2);
+      expect(screen.getByTestId("nivo-line-chart")).toBeTruthy();
+      expect(screen.getByTestId("chart-series-foreground")).toBeTruthy();
+      expect(screen.getByTestId("chart-series-background")).toBeTruthy();
       expect(screen.getByText("Foreground")).toBeTruthy();
       expect(screen.getByText("Background")).toBeTruthy();
-      expect(screen.getByText("12 sessions")).toBeTruthy();
-      expect(screen.getByText("9 sessions")).toBeTruthy();
       expect(screen.getByText("Session ID: mem-sess-002")).toBeTruthy();
       expect(screen.getByText("256 MB")).toBeTruthy();
       expect(screen.getByText("8 GB")).toBeTruthy();
     });
 
-    it("asks for the summary over the range it settled on, with no bucketing or scope params", async () => {
-      const sent = record("memory/summary", () =>
-        makeMemoryUsageSummaryFixture(),
+    it("asks for the trend over the range it settled on, with no process-state param", async () => {
+      const sent = record("memory/plots/usage", () =>
+        makeMemoryUsagePlotFixture(),
       );
       renderPage();
       await waitForContent();
 
       expect(sent).toHaveLength(1);
-      expect(sent[0].pathname).toBe(`/api/apps/${appId}/memory/summary`);
+      expect(sent[0].pathname).toBe(`/api/apps/${appId}/memory/plots/usage`);
       expect(sent[0].searchParams.get("os")).toBe("android");
       expect(sent[0].searchParams.get("from")).toMatch(/Z$/);
       expect(sent[0].searchParams.get("to")).toMatch(/Z$/);
       expect(sent[0].searchParams.get("timezone")).toBeTruthy();
-      expect(sent[0].searchParams.has("plot_time_group")).toBe(false);
+      expect(sent[0].searchParams.get("plot_time_group")).toBeTruthy();
       expect(sent[0].searchParams.has("scope")).toBe(false);
       expect(sent[0].searchParams.has("filter_expr")).toBe(false);
     });
@@ -204,42 +228,45 @@ describe("Memory Monitoring (MSW integration)", () => {
       expect(sent[0].searchParams.get("offset")).toBe("0");
     });
 
-    it("shows no status badge on any card when the backend sends no thresholds", async () => {
+    it("shows no threshold line when the backend sends none", async () => {
       renderPage();
       await waitForContent();
 
-      expect(screen.queryByTestId("memory-summary-status-icon")).toBeNull();
+      expect(
+        screen
+          .getByTestId("nivo-line-chart")
+          .getAttribute("data-has-threshold"),
+      ).toBe("false");
     });
   });
 
   describe("the Play threshold", () => {
-    it("draws a status badge per card with a resolved threshold", async () => {
+    it("draws it when the backend sends one", async () => {
       server.use(
-        http.get("*/api/apps/:appId/memory/summary", () =>
-          HttpResponse.json(makeMemoryUsageSummaryWithThresholdFixture()),
+        http.get("*/api/apps/:appId/memory/plots/usage", () =>
+          HttpResponse.json(makeMemoryUsagePlotWithThresholdFixture()),
         ),
       );
       renderPage();
       await waitForContent();
 
-      const badges = await screen.findAllByTestId("memory-summary-status-icon");
-      expect(badges).toHaveLength(2);
-      expect(
-        screen.getByText(/Play threshold \(8 GB, Foreground\)/),
-      ).toBeTruthy();
-      expect(
-        screen.getByText(/Play threshold \(8 GB, Background\)/),
-      ).toBeTruthy();
+      await waitFor(() =>
+        expect(
+          screen
+            .getByTestId("nivo-line-chart")
+            .getAttribute("data-has-threshold"),
+        ).toBe("true"),
+      );
     });
   });
 
   describe("a link carrying a filter", () => {
-    it("filters both the summary and the ranking by it", async () => {
+    it("filters both the trend and the ranking by it", async () => {
       mockRouter.setUrl(
         `filter_expr=${encodeURIComponent("session_ram_tier:in:8gb")}`,
       );
-      const summary = record("memory/summary", () =>
-        makeMemoryUsageSummaryFixture(),
+      const plot = record("memory/plots/usage", () =>
+        makeMemoryUsagePlotFixture(),
       );
       const sessions = record("memory/sessions", () =>
         makeMemorySessionsFixture(),
@@ -247,7 +274,7 @@ describe("Memory Monitoring (MSW integration)", () => {
       renderPage();
       await waitForContent();
 
-      for (const sent of [summary, sessions]) {
+      for (const sent of [plot, sessions]) {
         expect(sent[0].searchParams.get("filter_expr")).toBe(
           "session_ram_tier:in:8gb",
         );
@@ -298,9 +325,9 @@ describe("Memory Monitoring (MSW integration)", () => {
   });
 
   describe("when the server fails", () => {
-    it("says so for the summary", async () => {
+    it("says so for the trend", async () => {
       server.use(
-        http.get("*/api/apps/:appId/memory/summary", () => {
+        http.get("*/api/apps/:appId/memory/plots/usage", () => {
           return new HttpResponse(null, { status: 500 });
         }),
       );
@@ -324,9 +351,9 @@ describe("Memory Monitoring (MSW integration)", () => {
   });
 
   describe("when the server answers with nothing", () => {
-    it("says there is no data for the summary and the ranking", async () => {
+    it("says there is no data for the trend and the ranking", async () => {
       server.use(
-        http.get("*/api/apps/:appId/memory/summary", () =>
+        http.get("*/api/apps/:appId/memory/plots/usage", () =>
           HttpResponse.json({ results: [] }),
         ),
         http.get("*/api/apps/:appId/memory/sessions", () =>

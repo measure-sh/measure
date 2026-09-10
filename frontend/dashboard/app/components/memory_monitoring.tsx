@@ -5,16 +5,17 @@ import type { MemoryPlatform } from "../api/api_calls";
 import { emptyHighestMemorySessionsResponse } from "../api/api_calls";
 import {
   useHighestMemorySessionsQuery,
-  useMemoryUsageSummaryQuery,
+  useMemoryUsagePlotQuery,
 } from "../query/hooks";
 import FilterBar from "./filter_bar/filter_bar";
 import { useExprFilterPage } from "./filter_bar/use_expr_filter_page";
 import LoadingBar from "./loading_bar";
 import MemorySessionsTable from "./memory_sessions_table";
-import MemoryUsageSummaryCards from "./memory_usage_summary_cards";
+import MemoryUsagePlot from "./memory_usage_plot";
 import Paginator from "./paginator";
 import { SkeletonListPage, SkeletonPlot } from "./skeleton";
 import TabSelect from "./tab_select";
+import { getPlotTimeGroupForRange } from "../utils/time_utils";
 
 const MEMORY_SESSIONS_LIMIT = 5;
 
@@ -70,7 +71,14 @@ export default function MemoryMonitoring({
       ? platformOverride
       : availablePlatforms[0];
 
-  const summaryQuery = useMemoryUsageSummaryQuery(filterParams, platform);
+  const plotTimeGroup = readyValue
+    ? getPlotTimeGroupForRange(
+        readyValue.date.startDate,
+        readyValue.date.endDate,
+      )
+    : "days";
+
+  const plotQuery = useMemoryUsagePlotQuery(filterParams, platform);
   const sessionsQuery = useHighestMemorySessionsQuery(
     filterParams,
     platform,
@@ -79,8 +87,8 @@ export default function MemoryMonitoring({
 
   const metricLabel =
     platform === "android" ? "Dynamic Memory Usage" : "Memory Footprint";
-  const summary = summaryQuery.data?.results ?? [];
-  const thresholds = summaryQuery.data?.thresholds ?? [];
+  const trend = plotQuery.data?.results ?? [];
+  const thresholds = plotQuery.data?.thresholds ?? [];
   const sessionsOverview =
     sessionsQuery.data ?? emptyHighestMemorySessionsResponse;
 
@@ -121,21 +129,22 @@ export default function MemoryMonitoring({
           <div className="py-8" />
 
           <div className="w-full" data-testid="memory-trend-section">
-            <p className="font-display text-xl">{metricLabel}</p>
+            <p className="font-display text-xl">{metricLabel} Trend</p>
             <div className="py-2" />
-            {summaryQuery.status === "pending" && (
-              <div className="w-full h-64">
+            {plotQuery.status === "pending" && (
+              <div className="w-full h-144">
                 <SkeletonPlot />
               </div>
             )}
-            {summaryQuery.status === "error" && (
+            {plotQuery.status === "error" && (
               <p className="font-body text-sm">
                 Error fetching memory usage, please change filters & try again
               </p>
             )}
-            {summaryQuery.status === "success" && (
-              <MemoryUsageSummaryCards
-                data={summary}
+            {plotQuery.status === "success" && (
+              <MemoryUsagePlot
+                data={trend}
+                plotTimeGroup={plotTimeGroup}
                 metricLabel={metricLabel}
                 thresholds={thresholds}
               />
