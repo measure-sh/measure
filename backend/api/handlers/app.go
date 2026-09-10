@@ -3099,11 +3099,12 @@ func (h Handlers) GetNetworkEndpointTimelinePlot(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-// memoryScopeFromQuery reads the `scope` query param (foreground, background,
-// or absent for both) into a measure.MemoryScope, rejecting anything else.
+// memoryScopeFromQuery reads the `scope` query param (foreground,
+// user_perceived_service, background, cached, or absent for all) into a
+// measure.MemoryScope, rejecting anything else.
 func memoryScopeFromQuery(c *gin.Context) (measure.MemoryScope, error) {
 	switch v := measure.MemoryScope(c.Query("scope")); v {
-	case measure.MemoryScopeAny, measure.MemoryScopeForeground, measure.MemoryScopeBackground:
+	case measure.MemoryScopeAny, measure.MemoryScopeForeground, measure.MemoryScopeUserPerceivedService, measure.MemoryScopeBackground, measure.MemoryScopeCached:
 		return v, nil
 	default:
 		return measure.MemoryScopeAny, fmt.Errorf("invalid scope %q", v)

@@ -15,15 +15,18 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-// MemoryScope narrows the memory usage trend to foreground-only or
-// background-only readings. Android only — iOS collection is
-// foreground-only already, so it has no background reading to narrow away.
+// MemoryScope narrows the memory usage trend to one of the four process
+// states Play Console's own Memory usage (Anon RSS + Swap) vital segments
+// by. Android only — iOS collection is foreground-only already, so it has
+// no other process state to narrow to.
 type MemoryScope string
 
 const (
-	MemoryScopeAny        MemoryScope = ""
-	MemoryScopeForeground MemoryScope = "foreground"
-	MemoryScopeBackground MemoryScope = "background"
+	MemoryScopeAny                  MemoryScope = ""
+	MemoryScopeForeground           MemoryScope = "foreground"
+	MemoryScopeUserPerceivedService MemoryScope = "user_perceived_service"
+	MemoryScopeBackground           MemoryScope = "background"
+	MemoryScopeCached               MemoryScope = "cached"
 )
 
 // UsageDataPoint is one time bucket of the memory usage trend.
@@ -144,11 +147,8 @@ func (a App) GetUsagePlot(
 		// reading (proc/self/status was unavailable) and must not enter the
 		// percentile computation.
 		stmt.Where("memory_usage_dynamic.anon_rss is not null")
-		switch scope {
-		case MemoryScopeForeground:
-			stmt.Where("memory_usage_dynamic.foreground = true")
-		case MemoryScopeBackground:
-			stmt.Where("memory_usage_dynamic.foreground = false")
+		if scope != MemoryScopeAny {
+			stmt.Where("memory_usage_dynamic.process_state = ?", string(scope))
 		}
 	}
 
