@@ -126,23 +126,12 @@ type AppFilter struct {
 	// Deprecated: Use ErrorType instead.
 	ANR bool `form:"anr"`
 
-	// Severity is the raw comma-separated severity filter value.
-	// Valid values: any combination of "fatal", "unhandled", "handled".
-	Severity string `form:"severity"`
-
-	// Severities holds the parsed severity values, populated in Expand.
-	Severities []event.Severity
-
 	// ErrorType is the raw comma-separated error type filter value.
 	// Valid values: any combination of "error", "anr".
 	ErrorType string `form:"type"`
 
 	// ErrorTypes holds the parsed error type values, populated in Expand.
 	ErrorTypes []event.ErrorType
-
-	// CustomError indicates if the filtering should
-	// consider only custom errors.
-	CustomError bool `form:"custom"`
 
 	// UDAttrKeys indicates a request to receive
 	// list of user defined attribute key &
@@ -284,12 +273,6 @@ func (af *AppFilter) Expand(ctx context.Context, pg *pgxpool.Pool) (err error) {
 			af.NetworkGenerations = filters.NetworkGenerations
 		}
 
-		if af.Severity != "" {
-			for _, s := range text.SplitTrimEmpty(af.Severity, ",") {
-				af.Severities = append(af.Severities, event.Severity(s))
-			}
-		}
-
 		if af.ErrorType != "" {
 			for _, t := range text.SplitTrimEmpty(af.ErrorType, ",") {
 				af.ErrorTypes = append(af.ErrorTypes, event.ErrorType(t))
@@ -344,12 +327,6 @@ func (af *AppFilter) Expand(ctx context.Context, pg *pgxpool.Pool) (err error) {
 		af.NetworkGenerations = text.SplitTrimEmpty(af.NetworkGenerations[0], ",")
 	}
 
-	if af.Severity != "" {
-		for _, s := range text.SplitTrimEmpty(af.Severity, ",") {
-			af.Severities = append(af.Severities, event.Severity(s))
-		}
-	}
-
 	if af.ErrorType != "" {
 		for _, t := range text.SplitTrimEmpty(af.ErrorType, ",") {
 			af.ErrorTypes = append(af.ErrorTypes, event.ErrorType(t))
@@ -400,12 +377,6 @@ func (af *AppFilter) Validate() error {
 	if af.HasPlotTimeGroup() {
 		if _, ok := validPlotTimeGroups[af.PlotTimeGroup]; !ok {
 			return fmt.Errorf("`plot_time_group` must be one of: %s, %s, %s, %s", PlotTimeGroupMinutes, PlotTimeGroupHours, PlotTimeGroupDays, PlotTimeGroupMonths)
-		}
-	}
-
-	for _, s := range af.Severities {
-		if !s.IsValid() {
-			return fmt.Errorf("`severity` must be any combination of: %s, %s, %s", event.SeverityFatal, event.SeverityUnhandled, event.SeverityHandled)
 		}
 	}
 

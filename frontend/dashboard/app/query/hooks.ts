@@ -912,111 +912,158 @@ export function useSessionReplayOverviewQuery(
 const ERRORS_OVERVIEW_LIMIT = 5;
 const ERRORS_DETAILS_LIMIT = 1;
 
-export function useErrorsOverviewQuery(paginationOffset: number) {
-  const filters = useFiltersStore((s) => s.filters);
+export function useErrorsOverviewQuery(
+  params: FilterParams | null,
+  paginationOffset: number,
+) {
   return useQuery({
     queryKey: [
       "errorsOverview",
-      filters.serialisedFilters,
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
     queryFn: () =>
       fetchErrorsOverviewFromServer(
-        filters,
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
         ERRORS_OVERVIEW_LIMIT,
         paginationOffset,
       ),
-    enabled: filters.ready,
+    enabled: params !== null,
+    retry: false,
   });
 }
 
-export function useErrorsOverviewPlotQuery() {
-  const filters = useFiltersStore((s) => s.filters);
+export function useErrorsOverviewPlotQuery(params: FilterParams | null) {
   return useQuery({
-    queryKey: ["errorsOverviewPlot", filters.serialisedFilters] as const,
+    queryKey: [
+      "errorsOverviewPlot",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+    ] as const,
     queryFn: async () => {
-      const result = await fetchErrorsOverviewPlotFromServer(filters);
+      const result = await fetchErrorsOverviewPlotFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+      );
       return mapPlotData(result);
     },
-    enabled: filters.ready,
+    enabled: params !== null,
+    retry: false,
   });
 }
 
 export function useErrorsDetailsQuery(
+  params: FilterParams | null,
   errorGroupId: string,
   paginationOffset: number,
 ) {
-  const filters = useFiltersStore((s) => s.filters);
   return useQuery({
     queryKey: [
       "errorsDetails",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
       errorGroupId,
-      filters.serialisedFilters,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
     queryFn: () =>
       fetchErrorsDetailsFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
         errorGroupId,
-        paginationOffset,
-        filters,
         ERRORS_DETAILS_LIMIT,
+        paginationOffset,
       ),
-    enabled: filters.ready && errorGroupId !== "",
+    enabled: params !== null && errorGroupId !== "",
+    retry: false,
   });
 }
 
-export function useErrorsDetailsPlotQuery(errorGroupId: string) {
-  const filters = useFiltersStore((s) => s.filters);
+export function useErrorsDetailsPlotQuery(
+  params: FilterParams | null,
+  errorGroupId: string,
+) {
   return useQuery({
     queryKey: [
       "errorsDetailsPlot",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
       errorGroupId,
-      filters.serialisedFilters,
     ] as const,
     queryFn: async () => {
       const result = await fetchErrorsDetailsPlotFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
         errorGroupId,
-        filters,
       );
       return mapPlotData(result);
     },
-    enabled: filters.ready && errorGroupId !== "",
+    enabled: params !== null && errorGroupId !== "",
+    retry: false,
   });
 }
 
-export function useErrorsDistributionPlotQuery(errorGroupId: string) {
-  const filters = useFiltersStore((s) => s.filters);
+export function useErrorsDistributionPlotQuery(
+  params: FilterParams | null,
+  errorGroupId: string,
+) {
   return useQuery({
     queryKey: [
       "errorsDistributionPlot",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
       errorGroupId,
-      filters.serialisedFilters,
     ] as const,
     queryFn: async () => {
       const result = await fetchErrorsDistributionPlotFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
         errorGroupId,
-        filters,
       );
       return parseDistributionPlot(result);
     },
-    enabled: filters.ready && errorGroupId !== "",
+    enabled: params !== null && errorGroupId !== "",
+    retry: false,
   });
 }
 
-export function useErrorGroupCommonPathQuery(errorGroupId: string) {
-  const filters = useFiltersStore((s) => s.filters);
+export function useErrorGroupCommonPathQuery(
+  appId: string,
+  errorGroupId: string,
+) {
   return useQuery<ExceptionGroupCommonPath>({
-    queryKey: ["errorGroupCommonPath", filters.app?.id, errorGroupId] as const,
+    queryKey: ["errorGroupCommonPath", appId, errorGroupId] as const,
     queryFn: async () => {
       const result = await fetchErrorGroupCommonPathFromServer(
+        appId,
         errorGroupId,
-        filters,
       );
       return result as ExceptionGroupCommonPath;
     },
-    enabled: !!filters.app && !!errorGroupId,
+    enabled: !!appId && !!errorGroupId,
   });
 }
 

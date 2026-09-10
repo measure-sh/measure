@@ -1,10 +1,5 @@
 "use client";
-import {
-  ChevronsUpDown,
-  Circle,
-  CircleCheck,
-  SlidersHorizontal,
-} from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { DateTime } from "luxon";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
@@ -53,9 +48,7 @@ import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
 import Pill, { type PillAction } from "./pill";
 import { Input } from "./input";
 import Onboarding from "./onboarding";
-import { Popover, PopoverContent, PopoverTrigger } from "./popover";
 import { Skeleton } from "./skeleton";
-import { Switch } from "./switch";
 import UserDefAttrSelector, { UdAttrMatcher } from "./user_def_attr_selector";
 
 export { AppVersionsInitialSelectionType };
@@ -87,34 +80,12 @@ interface FiltersProps {
   showDeviceNames?: boolean;
   showUdAttrs?: boolean;
   showFreeText?: boolean;
-  showErrorType?: boolean;
-  showSeverity?: boolean;
-  showCustomErrors?: boolean;
   freeTextPlaceholder?: string;
 }
 
 const defaultFreeTextPlaceholder = "Search anything...";
 
 const SEARCH_INPUT_ID = "free-text";
-
-// Custom errors aren't a supported feature yet, so the errors "Custom Only"
-// filter toggle stays hidden regardless of the per-page showCustomErrors prop.
-// Flip to true to surface it once custom errors are supported.
-const CUSTOM_ERRORS_ENABLED = false;
-
-// Errors-only Severity filter: store holds lowercase values; the dropdown
-// shows capitalized labels.
-const SEVERITY_DISPLAY_ITEMS: string[] = ["Fatal", "Unhandled", "Handled"];
-const SEVERITY_DISPLAY_TO_STORE: Record<string, string> = {
-  Fatal: "fatal",
-  Unhandled: "unhandled",
-  Handled: "handled",
-};
-const SEVERITY_STORE_TO_DISPLAY: Record<string, string> = {
-  fatal: "Fatal",
-  unhandled: "Unhandled",
-  handled: "Handled",
-};
 
 enum DateRange {
   Last15Mins = "Last 15 Minutes",
@@ -207,15 +178,6 @@ export function deserializeUrlFilters(queryString: string): URLFilters {
               return { key, type, op, value: val } as UdAttrMatcher;
             })
             .filter((m) => m.key && m.type && m.op && m.value);
-          break;
-
-        case "errorTypes":
-        case "severities":
-          result[originalKey] = value.split(",").filter((s) => s);
-          break;
-
-        case "customErrorsOnly":
-          result[originalKey] = value === "1";
           break;
 
         case "dateRange":
@@ -326,123 +288,6 @@ function StringMultiRow({
   );
 }
 
-interface ErrorsTypeFilterProps {
-  selectedErrorTypes: string[];
-  customErrorsOnly: boolean;
-  onChangeErrorTypes: (types: string[]) => void;
-  onChangeCustomErrorsOnly: (custom: boolean) => void;
-  showCustomToggle?: boolean;
-  disabled?: boolean;
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-}
-
-export const ErrorsTypeFilter: React.FC<ErrorsTypeFilterProps> = ({
-  selectedErrorTypes,
-  customErrorsOnly,
-  onChangeErrorTypes,
-  onChangeCustomErrorsOnly,
-  showCustomToggle = true,
-  disabled = false,
-  open: controlledOpen,
-  onOpenChange,
-}) => {
-  const [internalOpen, setInternalOpen] = useState(false);
-  const open = controlledOpen ?? internalOpen;
-  const setOpen = (value: boolean) => {
-    setInternalOpen(value);
-    onOpenChange?.(value);
-  };
-
-  const errorChecked = selectedErrorTypes.includes("error");
-  const anrChecked = selectedErrorTypes.includes("anr");
-
-  const toggleError = (checked: boolean) => {
-    const next = checked
-      ? Array.from(new Set([...selectedErrorTypes, "error"]))
-      : selectedErrorTypes.filter((t) => t !== "error");
-    onChangeErrorTypes(next);
-    if (!checked && customErrorsOnly) {
-      onChangeCustomErrorsOnly(false);
-    }
-  };
-
-  const toggleAnr = (checked: boolean) => {
-    const next = checked
-      ? Array.from(new Set([...selectedErrorTypes, "anr"]))
-      : selectedErrorTypes.filter((t) => t !== "anr");
-    onChangeErrorTypes(next);
-  };
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger disabled={disabled} asChild>
-        <Button
-          variant="outline"
-          className="flex justify-between w-fit min-w-37.5 select-none"
-        >
-          <span className="truncate">Type</span>
-          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="p-2 w-64" align="start">
-        <div className="flex flex-col">
-          <div className="flex items-center px-2 py-2 rounded hover:bg-accent hover:text-accent-foreground">
-            <button
-              type="button"
-              role="checkbox"
-              aria-checked={errorChecked}
-              onClick={() => toggleError(!errorChecked)}
-              className="flex items-center gap-2 cursor-pointer select-none font-display text-sm flex-1 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <span className="flex items-center justify-center w-4 h-4">
-                {errorChecked ? (
-                  <CircleCheck className="h-4 w-4" />
-                ) : (
-                  <Circle className="h-4 w-4 opacity-50" />
-                )}
-              </span>
-              <span className="flex-1 truncate">Error</span>
-            </button>
-            {showCustomToggle && (
-              <label
-                className={`flex items-center gap-2 select-none font-display text-xs ml-2 ${
-                  errorChecked ? "cursor-pointer" : "opacity-50"
-                }`}
-              >
-                <span className="pr-1">Custom Only</span>
-                <Switch
-                  disabled={!errorChecked}
-                  checked={customErrorsOnly}
-                  onCheckedChange={(checked) =>
-                    onChangeCustomErrorsOnly(checked === true)
-                  }
-                />
-              </label>
-            )}
-          </div>
-          <button
-            type="button"
-            role="checkbox"
-            aria-checked={anrChecked}
-            onClick={() => toggleAnr(!anrChecked)}
-            className="flex items-center gap-2 cursor-pointer select-none font-display text-sm px-2 py-2 rounded hover:bg-accent hover:text-accent-foreground text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <span className="flex items-center justify-center w-4 h-4">
-              {anrChecked ? (
-                <CircleCheck className="h-4 w-4" />
-              ) : (
-                <Circle className="h-4 w-4 opacity-50" />
-              )}
-            </span>
-            <span className="flex-1 truncate">ANR</span>
-          </button>
-        </div>
-      </PopoverContent>
-    </Popover>
-  );
-};
-
 const FiltersComponent = forwardRef<
   { refresh: (appIdToSelect?: string) => Promise<void> },
   FiltersProps
@@ -469,9 +314,6 @@ const FiltersComponent = forwardRef<
       showDeviceNames = false,
       showUdAttrs = false,
       showFreeText = false,
-      showErrorType = false,
-      showSeverity = false,
-      showCustomErrors = false,
       freeTextPlaceholder,
     },
     ref,
@@ -691,9 +533,6 @@ const FiltersComponent = forwardRef<
     const [scrollTarget, setScrollTarget] = useState<string | null>(null);
     // Drives the inline app versions dropdown so its chip can open it too.
     const [appVersionsOpen, setAppVersionsOpen] = useState(false);
-    // Drives the Errors type popover so the combined error-types pill can
-    // open it on click.
-    const [errorsTypeOpen, setErrorsTypeOpen] = useState(false);
 
     // Pending snapshot of every store field driven by a control inside the More
     // filters modal. Initialized when the modal opens, written to by modal
@@ -801,27 +640,11 @@ const FiltersComponent = forwardRef<
       showDeviceNames ||
       showUdAttrs;
 
-    // Errors-only controls live on the main row alongside the standard
-    // inline dropdowns. Severity is hidden when the user has unchecked Error
-    // in the Type multi-select. Custom only lives inside the Type popover.
-    const isErrorsSource = filterSource === FilterSource.Errors;
-    const onlyAnrSelected =
-      store.selectedErrorTypes.length === 1 &&
-      store.selectedErrorTypes[0] === "anr";
-    const showErrorTypeControl = isErrorsSource && showErrorType;
-    const showSeverityControl =
-      isErrorsSource && showSeverity && !onlyAnrSelected;
-
     // Dropdowns that stay inline: app, date range, app versions,
-    // the Errors-only controls, plus the "More filters" trigger.
+    // plus the "More filters" trigger.
     const skeletonMainRowCount =
-      [
-        showAppSelector,
-        showDates,
-        showAppVersions,
-        showErrorTypeControl,
-        showSeverityControl,
-      ].filter(Boolean).length + (hasMoreFiltersConfig ? 1 : 0);
+      [showAppSelector, showDates, showAppVersions].filter(Boolean).length +
+      (hasMoreFiltersConfig ? 1 : 0);
 
     // Same as hasMoreFiltersConfig but gated on loaded data — drives the real
     // trigger so it never opens an empty modal.
@@ -924,50 +747,6 @@ const FiltersComponent = forwardRef<
     // Search lives inline, not in the modal — its chip points back to that
     // input instead of opening the modal.
     const searchActive = showFreeText && store.selectedFreeText !== "";
-
-    // Combined error-types pill mirrors the multi-select state: one chip
-    // summarising both ANRs and Errors. "ANRs" is added when 'anr' is in the
-    // selection; the Errors portion folds in custom + severity. With a single
-    // severity and no custom flag the form reads "<Severity> Errors"; with
-    // multiple severities or the custom flag set it switches to the dash
-    // form "Errors - Sev1, Sev2" / "Custom Errors only - Sev1, Sev2".
-    const anrSelected = store.selectedErrorTypes.includes("anr");
-    const errorSelected = store.selectedErrorTypes.includes("error");
-    const showErrorTypesPill =
-      isErrorsSource && showErrorType && (anrSelected || errorSelected);
-    const errorTypesPillParts: string[] = [];
-    if (anrSelected) {
-      errorTypesPillParts.push("ANRs");
-    }
-    if (errorSelected) {
-      const severityDisplays = store.selectedSeverities
-        .map((s) => SEVERITY_STORE_TO_DISPLAY[s])
-        .filter((d): d is string => Boolean(d));
-      let errorLabel: string;
-      if (store.customErrorsOnly) {
-        errorLabel =
-          severityDisplays.length === 0
-            ? "Custom Errors only"
-            : `Custom Errors only - ${severityDisplays.join(", ")}`;
-      } else if (severityDisplays.length === 1) {
-        errorLabel = `${severityDisplays[0]} Errors`;
-      } else if (severityDisplays.length === 0) {
-        errorLabel = "Errors";
-      } else {
-        errorLabel = `Errors - ${severityDisplays.join(", ")}`;
-      }
-      errorTypesPillParts.push(errorLabel);
-    }
-    const errorTypesPillLabel = errorTypesPillParts.join(", ");
-    const errorTypesAtDefaults =
-      sameItems(store.selectedErrorTypes, ["error", "anr"]) &&
-      sameItems(store.selectedSeverities, ["fatal"]) &&
-      !store.customErrorsOnly;
-    const resetErrorTypesPill = () => {
-      store.setSelectedErrorTypes(["error", "anr"]);
-      store.setSelectedSeverities(["fatal"]);
-      store.setCustomErrorsOnly(false);
-    };
 
     // App versions: page default is the latest build, or every build.
     const defaultAppVersions =
@@ -1313,39 +1092,6 @@ const FiltersComponent = forwardRef<
                     onOpenChange={setAppVersionsOpen}
                   />
                 )}
-                {showErrorTypeControl && (
-                  <ErrorsTypeFilter
-                    selectedErrorTypes={store.selectedErrorTypes}
-                    customErrorsOnly={store.customErrorsOnly}
-                    onChangeErrorTypes={(types) =>
-                      store.setSelectedErrorTypes(types)
-                    }
-                    onChangeCustomErrorsOnly={(custom) =>
-                      store.setCustomErrorsOnly(custom)
-                    }
-                    showCustomToggle={showCustomErrors && CUSTOM_ERRORS_ENABLED}
-                    open={errorsTypeOpen}
-                    onOpenChange={setErrorsTypeOpen}
-                  />
-                )}
-                {showSeverityControl && (
-                  <DropdownSelect
-                    title="Severity"
-                    type={DropdownSelectType.MultiString}
-                    items={SEVERITY_DISPLAY_ITEMS}
-                    initialSelected={store.selectedSeverities.map(
-                      (s) => SEVERITY_STORE_TO_DISPLAY[s] ?? s,
-                    )}
-                    onChangeSelected={(items) => {
-                      const display = items as string[];
-                      store.setSelectedSeverities(
-                        display
-                          .map((d) => SEVERITY_DISPLAY_TO_STORE[d])
-                          .filter((v): v is string => v !== undefined),
-                      );
-                    }}
-                  />
-                )}
                 {hasMoreFilters && (
                   <Button
                     variant="outline"
@@ -1373,10 +1119,7 @@ const FiltersComponent = forwardRef<
                 )}
               </div>
 
-              {(showAppVersions ||
-                filterChips.length > 0 ||
-                searchActive ||
-                showErrorTypesPill) && (
+              {(showAppVersions || filterChips.length > 0 || searchActive) && (
                 <>
                   <div className="py-4" />
                   <div
@@ -1419,18 +1162,6 @@ const FiltersComponent = forwardRef<
                         {chip.label}
                       </Pill>
                     ))}
-                    {showErrorTypesPill && (
-                      <Pill
-                        onClick={() => setErrorsTypeOpen(true)}
-                        action={
-                          errorTypesAtDefaults
-                            ? undefined
-                            : resetAction(resetErrorTypesPill)
-                        }
-                      >
-                        {errorTypesPillLabel}
-                      </Pill>
-                    )}
                     {searchActive && (
                       <Pill
                         onClick={() =>

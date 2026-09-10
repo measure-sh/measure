@@ -1,16 +1,19 @@
 "use client";
 
-import { emptyErrorGroupDetails, FilterSource } from "@/app/api/api_calls";
+import { emptyErrorGroupDetails } from "@/app/api/api_calls";
+import { type FilterExprIssue, filterExprIssuesIn } from "@/app/api/api_error";
+import FilterBar from "@/app/components/filter_bar/filter_bar";
+import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
 import Paginator from "@/app/components/paginator";
 import {
-  paginationOffsetUrlKey,
+  useErrorsDetailsPlotQuery,
   useErrorsDetailsQuery,
+  useErrorsDistributionPlotQuery,
 } from "@/app/query/hooks";
-import { useFiltersStore } from "@/app/stores/provider";
 import { DateTime } from "luxon";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import { cn } from "../utils/shadcn_utils";
 import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
@@ -27,7 +30,6 @@ import CopyAgentPrompt from "./copy_agent_prompt";
 import ErrorGroupCommonPath from "./error_group_common_path";
 import ErrorsDetailsPlot from "./errors_details_plot";
 import ErrorsDistributionPlot from "./errors_distribution_plot";
-import Filters, { AppVersionsInitialSelectionType } from "./filters";
 import Pill, { PillType } from "./pill";
 import { Skeleton, SkeletonPlot } from "./skeleton";
 
@@ -170,15 +172,6 @@ const demoErrorDetails = {
   ],
 } as any;
 
-interface ErrorsDetailsProps {
-  teamId?: string;
-  appId?: string;
-  errorGroupId?: string;
-  errorGroupName?: string;
-  demo?: boolean;
-  hideDemoTitle?: boolean;
-}
-
 const stackTraceCodeBlockClassName = cn(
   CODE_BLOCK_CARD_CLASS,
   "text-sm leading-relaxed",
@@ -206,68 +199,45 @@ function renderAttributeRow(key: string, value: unknown): ReactNode {
   );
 }
 
-export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
+interface ErrorsDetailsViewProps {
+  teamId?: string;
+  appId?: string;
+  appName?: string;
+  errorGroupId?: string;
+  startDate?: string;
+  endDate?: string;
+  data?: typeof emptyErrorGroupDetails;
+  status?: "pending" | "success" | "error";
+  isFetching?: boolean;
+  filterExprIssues?: FilterExprIssue[] | null;
+  onNext?: () => void;
+  onPrev?: () => void;
+  detailsPlotQuery?: ReturnType<typeof useErrorsDetailsPlotQuery>;
+  distributionPlotQuery?: ReturnType<typeof useErrorsDistributionPlotQuery>;
+  demo?: boolean;
+  hideDemoTitle?: boolean;
+}
+
+// Rendering only. The demo pages use it with no filter hook or queries.
+export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
   teamId = "demo-team",
   appId = "demo-app",
+  appName = "Demo App",
   errorGroupId = "demo-error-group",
-  errorGroupName = "java.lang.IllegalStateException@CheckoutActivity.kt",
+  startDate = "",
+  endDate = "",
+  data = demoErrorDetails as typeof emptyErrorGroupDetails,
+  status = "success",
+  isFetching = false,
+  filterExprIssues = null,
+  onNext = () => {},
+  onPrev = () => {},
+  detailsPlotQuery,
+  distributionPlotQuery,
   demo = false,
   hideDemoTitle = false,
 }) => {
-  const router = useRouter();
   const searchParams = useSearchParams();
-
-  const filters = useFiltersStore((state) => state.filters);
-
-  // Pagination is component-local state, initialized from URL
-  const [paginationOffset, setPaginationOffset] = useState(() => {
-    const po = searchParams.get(paginationOffsetUrlKey);
-    return po ? parseInt(po) : 0;
-  });
-
-  // Reset pagination when filters change (skip pre-ready transitions)
-  const prevFiltersRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (!filters.ready) return;
-    if (
-      prevFiltersRef.current !== null &&
-      prevFiltersRef.current !== filters.serialisedFilters
-    ) {
-      setPaginationOffset(0);
-    }
-    prevFiltersRef.current = filters.serialisedFilters;
-  }, [filters.ready, filters.serialisedFilters]);
-
-  // URL sync
-  useEffect(() => {
-    if (demo) {
-      return;
-    }
-
-    if (!filters.ready) {
-      return;
-    }
-
-    router.replace(
-      `?${paginationOffsetUrlKey}=${encodeURIComponent(paginationOffset)}&${filters.serialisedFilters!}`,
-      { scroll: false },
-    );
-  }, [paginationOffset, filters.ready, filters.serialisedFilters]);
-
-  const {
-    data: queryData,
-    status,
-    isFetching,
-  } = useErrorsDetailsQuery(errorGroupId!, paginationOffset);
-
-  const errorsDetails = (
-    demo ? demoErrorDetails : (queryData ?? emptyErrorGroupDetails)
-  ) as typeof emptyErrorGroupDetails;
-  const effectiveStatus = demo ? ("success" as const) : status;
-  const effectiveFetching = demo ? false : isFetching;
-
-  const nextPage = () => setPaginationOffset((o) => o + 1);
-  const prevPage = () => setPaginationOffset((o) => Math.max(0, o - 1));
 
   const [imageErrors, setImageErrors] = useState<Set<string>>(new Set());
 
@@ -275,7 +245,7 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
     setImageErrors((prev) => new Set(prev).add(key));
   };
 
-  const firstResult = errorsDetails.results?.[0];
+  const firstResult = data.results?.[0];
   const stacktrace =
     firstResult?.exception?.stacktrace ?? firstResult?.anr?.stacktrace ?? "";
 
@@ -327,37 +297,309 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
   }, [demo, errorGroupId, firstResult, teamId, appId, entryPoint]);
 
   return (
-    <div className="flex flex-col items-start">
-      {demo && !hideDemoTitle && (
-        <p className="font-display font-normal text-4xl max-w-6xl text-center">
-          Error Details
-        </p>
+    <div className="flex flex-col items-start w-full">
+      {demo && (
+        <>
+          {!hideDemoTitle && (
+            <p className="font-display font-normal text-4xl max-w-6xl text-center">
+              Error Details
+            </p>
+          )}
+          <div className="py-4" />
+        </>
       )}
-      <div className="py-4" />
 
-      {!demo && (
-        <Filters
-          teamId={teamId}
+      <div className="w-full">
+        <div className="flex flex-col md:flex-row w-full">
+          <ErrorsDetailsPlot
+            startDate={startDate}
+            endDate={endDate}
+            query={detailsPlotQuery}
+            demo={demo}
+          />
+          <ErrorsDistributionPlot query={distributionPlotQuery} demo={demo} />
+        </div>
+
+        <div className="py-8" />
+        <ErrorGroupCommonPath
           appId={appId}
-          filterSource={FilterSource.Errors}
-          appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-          showAppSelector={false}
-          showOsVersions={true}
-          showCountries={true}
-          showNetworkTypes={true}
-          showNetworkProviders={true}
-          showNetworkGenerations={true}
-          showLocales={true}
-          showDeviceManufacturers={true}
-          showDeviceNames={true}
-          showUdAttrs={true}
+          groupId={errorGroupId}
+          demo={demo}
         />
-      )}
+        <div className="py-12" />
 
+        {status === "error" && filterExprIssues === null && (
+          <p className="font-body text-sm">
+            Error fetching list of errors, please change filters, refresh page
+            or select a different app to try again
+          </p>
+        )}
+
+        {(status === "success" || status === "pending") && (
+          <div className="flex flex-col">
+            <div className="flex flex-col md:flex-row md:items-center w-full">
+              <p className="font-body text-3xl"> Stack traces</p>
+              <div className="grow" />
+              <Paginator
+                prevEnabled={isFetching ? false : data.meta.previous}
+                nextEnabled={isFetching ? false : data.meta.next}
+                displayText=""
+                onNext={onNext}
+                onPrev={onPrev}
+              />
+            </div>
+
+            <div className="py-2" />
+
+            {isFetching && (
+              <div className="flex flex-col gap-3 w-full py-4">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-2/3" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            )}
+
+            {firstResult && (
+              <div className={`${isFetching ? "invisible" : "visible"}`}>
+                <p
+                  data-testid="exception-detail-id"
+                  className="font-display text-xl"
+                >
+                  {" "}
+                  Id: {firstResult.id}
+                </p>
+                <div
+                  data-testid="exception-detail-pills"
+                  className="flex flex-wrap gap-2 py-2 items-center"
+                >
+                  <Pill
+                    type={
+                      firstResult.anr
+                        ? PillType.Anr
+                        : firstResult.severity === "fatal"
+                          ? PillType.Crash
+                          : PillType.Error
+                    }
+                  />
+                  {firstResult.severity === "fatal" && (
+                    <Pill type={PillType.Fatal} />
+                  )}
+                  {firstResult.severity === "unhandled" && (
+                    <Pill type={PillType.Unhandled} />
+                  )}
+                  {firstResult.severity === "handled" && (
+                    <Pill type={PillType.Handled} />
+                  )}
+                  <Pill
+                    data-testid="exception-detail-timestamp"
+                    tooltip
+                  >{`Time: ${formatDateToHumanReadableDateTime(firstResult.timestamp)}`}</Pill>
+                  <Pill
+                    data-testid="exception-detail-app-version"
+                    tooltip
+                  >{`App version: ${firstResult.attribute.app_version}`}</Pill>
+                  <Pill
+                    data-testid="exception-detail-device"
+                    tooltip
+                  >{`Device: ${firstResult.attribute.device_manufacturer + firstResult.attribute.device_model}`}</Pill>
+                  <Pill
+                    data-testid="exception-detail-network-type"
+                    tooltip
+                  >{`Network type: ${firstResult.attribute.network_type}`}</Pill>
+                </div>
+                {firstResult.attachments?.length > 0 && (
+                  <div className="flex mt-8 flex-wrap gap-8 items-center">
+                    {firstResult.attachments
+                      .filter((attachment) => !imageErrors.has(attachment.key))
+                      .map((attachment, index) => (
+                        <Image
+                          key={attachment.key}
+                          className="border border-black"
+                          src={attachment.location}
+                          width={200}
+                          height={200}
+                          unoptimized={true}
+                          alt={`Screenshot ${index}`}
+                          onError={() => handleImageError(attachment.key)}
+                        />
+                      ))}
+                  </div>
+                )}
+                <div className="py-4" />
+                <div className="flex flex-row items-center">
+                  {demo ? (
+                    <div
+                      className={cn(
+                        buttonVariants({ variant: "outline" }),
+                        "justify-center w-fit",
+                      )}
+                    >
+                      View Session Replay
+                    </div>
+                  ) : (
+                    <Link
+                      key={firstResult.id}
+                      href={`/${teamId}/session_replays/${appId}/${firstResult.session_id}`}
+                      className={cn(
+                        buttonVariants({ variant: "outline" }),
+                        "justify-center w-fit",
+                      )}
+                    >
+                      View Session Replay
+                    </Link>
+                  )}
+                  {!demo && (
+                    <>
+                      <div className="px-2" />
+                      <CopyAgentPrompt
+                        appId={appId}
+                        appName={appName}
+                        errorEvent={firstResult}
+                      />
+                    </>
+                  )}
+                </div>
+                <div className="py-4" />
+                {extraAttributeRows.length > 0 && (
+                  <>
+                    <div className="flex flex-col">
+                      {extraAttributeRows.map(([k, v]) =>
+                        renderAttributeRow(k, v),
+                      )}
+                    </div>
+                    <div className="py-4" />
+                  </>
+                )}
+                <Accordion
+                  type="single"
+                  collapsible
+                  defaultValue={"Thread: " + firstResult.attribute.thread_name}
+                >
+                  {stacktrace && (
+                    <AccordionItem
+                      value={"Thread: " + firstResult.attribute.thread_name}
+                    >
+                      <AccordionTrigger className="font-display">
+                        {"Thread: " + firstResult.attribute.thread_name}
+                      </AccordionTrigger>
+                      <AccordionContent data-testid="exception-detail-main-stacktrace">
+                        <CodeBlock
+                          language="java"
+                          className={stackTraceCodeBlockClassName}
+                          code={stacktrace}
+                        />
+                      </AccordionContent>
+                    </AccordionItem>
+                  )}
+                  {firstResult.threads?.map((e, index) => (
+                    <AccordionItem
+                      value={`${e.name}-${index}`}
+                      key={`${e.name}-${index}`}
+                    >
+                      <AccordionTrigger className="font-display">
+                        {"Thread: " + e.name}
+                      </AccordionTrigger>
+                      <AccordionContent>
+                        <CodeBlock
+                          language="java"
+                          className={stackTraceCodeBlockClassName}
+                          code={e.frames.join("\n")}
+                        />
+                      </AccordionContent>
+                    </AccordionItem>
+                  )) || []}
+                </Accordion>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+interface ErrorsDetailsProps {
+  teamId: string;
+  appId: string;
+  errorGroupId: string;
+  errorGroupName?: string;
+}
+
+export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
+  teamId,
+  appId,
+  errorGroupId,
+}) => {
+  const {
+    value,
+    apps,
+    keys,
+    keyGroups,
+    keysUnavailable,
+    status: filterStatus,
+    filterParams,
+    paginationOffset,
+    onChange,
+    nextPage,
+    prevPage,
+  } = useExprFilterPage({
+    teamId,
+    entity: "error_group_events",
+    paginationLimit: 1,
+    appId,
+  });
+  const readyValue = filterStatus.kind === "ready" ? value : null;
+
+  const detailsQuery = useErrorsDetailsQuery(
+    filterParams,
+    errorGroupId,
+    paginationOffset,
+  );
+  const detailsPlotQuery = useErrorsDetailsPlotQuery(
+    filterParams,
+    errorGroupId,
+  );
+  const distributionPlotQuery = useErrorsDistributionPlotQuery(
+    filterParams,
+    errorGroupId,
+  );
+
+  const filterExprIssues =
+    filterExprIssuesIn(detailsQuery.error) ??
+    filterExprIssuesIn(detailsPlotQuery.error) ??
+    filterExprIssuesIn(distributionPlotQuery.error);
+
+  const {
+    data: errorsDetails = emptyErrorGroupDetails,
+    status,
+    isFetching,
+  } = detailsQuery;
+
+  return (
+    <div className="flex flex-col items-start">
       <div className="py-4" />
 
-      {/* Full page skeleton when filters not ready */}
-      {!demo && filters.loading && (
+      <FilterBar
+        entity="error_group_events"
+        placeholder="Filter events…"
+        value={value}
+        apps={apps}
+        keys={keys}
+        keyGroups={keyGroups}
+        keysUnavailable={keysUnavailable}
+        filterExprIssues={filterExprIssues}
+        showAppSelect={false}
+        onChange={onChange}
+      />
+      <div className="py-4" />
+
+      {filterStatus.kind === "error" && (
+        <p className="text-lg font-display">{filterStatus.message}</p>
+      )}
+
+      {filterStatus.kind === "loading" && (
         <div className="w-full">
           <div className="flex flex-col md:flex-row w-full">
             <div className="flex font-body items-center justify-center w-full md:w-1/2 h-128">
@@ -387,213 +629,23 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
         </div>
       )}
 
-      {(demo || filters.ready) && (
-        <div className="w-full">
-          <div className="flex flex-col md:flex-row w-full">
-            <ErrorsDetailsPlot errorGroupId={errorGroupId!} demo={demo} />
-            <ErrorsDistributionPlot errorGroupId={errorGroupId!} demo={demo} />
-          </div>
-
-          <div className="py-8" />
-          <ErrorGroupCommonPath
-            groupId={errorGroupId!}
-            appId={demo ? "demo-app-id" : filters.app!.id}
-            demo={demo}
-          />
-          <div className="py-12" />
-
-          {effectiveStatus === "error" && (
-            <p className="font-body text-sm">
-              Error fetching list of errors, please change filters, refresh page
-              or select a different app to try again
-            </p>
-          )}
-
-          {(effectiveStatus === "success" || effectiveStatus === "pending") && (
-            <div className="flex flex-col">
-              <div className="flex flex-col md:flex-row md:items-center w-full">
-                <p className="font-body text-3xl"> Stack traces</p>
-                <div className="grow" />
-                <Paginator
-                  prevEnabled={
-                    effectiveFetching ? false : errorsDetails.meta.previous
-                  }
-                  nextEnabled={
-                    effectiveFetching ? false : errorsDetails.meta.next
-                  }
-                  displayText=""
-                  onNext={nextPage}
-                  onPrev={prevPage}
-                />
-              </div>
-
-              <div className="py-2" />
-
-              {effectiveFetching && (
-                <div className="flex flex-col gap-3 w-full py-4">
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-full" />
-                  <Skeleton className="h-4 w-2/3" />
-                  <Skeleton className="h-4 w-full" />
-                </div>
-              )}
-
-              {firstResult && (
-                <div
-                  className={`${effectiveFetching ? "invisible" : "visible"}`}
-                >
-                  <p
-                    data-testid="exception-detail-id"
-                    className="font-display text-xl"
-                  >
-                    {" "}
-                    Id: {firstResult.id}
-                  </p>
-                  <div
-                    data-testid="exception-detail-pills"
-                    className="flex flex-wrap gap-2 py-2 items-center"
-                  >
-                    <Pill
-                      type={firstResult.anr ? PillType.Anr : PillType.Error}
-                    />
-                    {firstResult.severity === "fatal" && (
-                      <Pill type={PillType.Fatal} />
-                    )}
-                    {firstResult.severity === "unhandled" && (
-                      <Pill type={PillType.Unhandled} />
-                    )}
-                    {firstResult.severity === "handled" && (
-                      <Pill type={PillType.Handled} />
-                    )}
-                    <Pill
-                      data-testid="exception-detail-timestamp"
-                      tooltip
-                    >{`Time: ${formatDateToHumanReadableDateTime(firstResult.timestamp)}`}</Pill>
-                    <Pill
-                      data-testid="exception-detail-app-version"
-                      tooltip
-                    >{`App version: ${firstResult.attribute.app_version}`}</Pill>
-                    <Pill
-                      data-testid="exception-detail-device"
-                      tooltip
-                    >{`Device: ${firstResult.attribute.device_manufacturer + firstResult.attribute.device_model}`}</Pill>
-                    <Pill
-                      data-testid="exception-detail-network-type"
-                      tooltip
-                    >{`Network type: ${firstResult.attribute.network_type}`}</Pill>
-                  </div>
-                  {firstResult.attachments?.length > 0 && (
-                    <div className="flex mt-8 flex-wrap gap-8 items-center">
-                      {firstResult.attachments
-                        .filter(
-                          (attachment) => !imageErrors.has(attachment.key),
-                        )
-                        .map((attachment, index) => (
-                          <Image
-                            key={attachment.key}
-                            className="border border-black"
-                            src={attachment.location}
-                            width={200}
-                            height={200}
-                            unoptimized={true}
-                            alt={`Screenshot ${index}`}
-                            onError={() => handleImageError(attachment.key)}
-                          />
-                        ))}
-                    </div>
-                  )}
-                  <div className="py-4" />
-                  <div className="flex flex-row items-center">
-                    {demo ? (
-                      <div
-                        className={cn(
-                          buttonVariants({ variant: "outline" }),
-                          "justify-center w-fit",
-                        )}
-                      >
-                        View Session Replay
-                      </div>
-                    ) : (
-                      <Link
-                        key={firstResult.id}
-                        href={`/${teamId}/session_replays/${appId}/${firstResult.session_id}`}
-                        className={cn(
-                          buttonVariants({ variant: "outline" }),
-                          "justify-center w-fit",
-                        )}
-                      >
-                        View Session Replay
-                      </Link>
-                    )}
-                    {!demo && (
-                      <>
-                        <div className="px-2" />
-                        <CopyAgentPrompt
-                          appId={appId}
-                          appName={filters.app!.name}
-                          errorEvent={firstResult}
-                        />
-                      </>
-                    )}
-                  </div>
-                  <div className="py-4" />
-                  {extraAttributeRows.length > 0 && (
-                    <>
-                      <div className="flex flex-col">
-                        {extraAttributeRows.map(([k, v]) =>
-                          renderAttributeRow(k, v),
-                        )}
-                      </div>
-                      <div className="py-4" />
-                    </>
-                  )}
-                  <Accordion
-                    type="single"
-                    collapsible
-                    defaultValue={
-                      "Thread: " + firstResult.attribute.thread_name
-                    }
-                  >
-                    {stacktrace && (
-                      <AccordionItem
-                        value={"Thread: " + firstResult.attribute.thread_name}
-                      >
-                        <AccordionTrigger className="font-display">
-                          {"Thread: " + firstResult.attribute.thread_name}
-                        </AccordionTrigger>
-                        <AccordionContent data-testid="exception-detail-main-stacktrace">
-                          <CodeBlock
-                            language="java"
-                            className={stackTraceCodeBlockClassName}
-                            code={stacktrace}
-                          />
-                        </AccordionContent>
-                      </AccordionItem>
-                    )}
-                    {firstResult.threads?.map((e, index) => (
-                      <AccordionItem
-                        value={`${e.name}-${index}`}
-                        key={`${e.name}-${index}`}
-                      >
-                        <AccordionTrigger className="font-display">
-                          {"Thread: " + e.name}
-                        </AccordionTrigger>
-                        <AccordionContent>
-                          <CodeBlock
-                            language="java"
-                            className={stackTraceCodeBlockClassName}
-                            code={e.frames.join("\n")}
-                          />
-                        </AccordionContent>
-                      </AccordionItem>
-                    )) || []}
-                  </Accordion>
-                </div>
-              )}
-            </div>
-          )}
-        </div>
+      {readyValue !== null && (
+        <ErrorsDetailsView
+          teamId={teamId}
+          appId={readyValue.app.id}
+          appName={readyValue.app.name}
+          errorGroupId={errorGroupId}
+          startDate={readyValue.date.startDate}
+          endDate={readyValue.date.endDate}
+          data={errorsDetails}
+          status={status}
+          isFetching={isFetching}
+          filterExprIssues={filterExprIssues}
+          onNext={nextPage}
+          onPrev={prevPage}
+          detailsPlotQuery={detailsPlotQuery}
+          distributionPlotQuery={distributionPlotQuery}
+        />
       )}
     </div>
   );

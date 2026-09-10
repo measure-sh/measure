@@ -71,6 +71,14 @@ func (ef *ExprFilter) HasFilterExpr() bool {
 	return ef.ExprTree != nil
 }
 
+// RootVersionConditions returns the version names and codes of the in
+// conditions at the root of the expression or directly under a root AND.
+// Every matching row carries one of them, so a query on a table sorted by
+// version can prune with them before the full predicate.
+func (ef *ExprFilter) RootVersionConditions() (versionNames, versionCodes [][]string) {
+	return collectRootVersionConditions(ef.ExprTree)
+}
+
 // NeedsWholeGroup reports whether the filter carries a predicate that cannot be
 // decided from a single row of a group: a negation, or a conjunction whose
 // parts can be true on different rows.

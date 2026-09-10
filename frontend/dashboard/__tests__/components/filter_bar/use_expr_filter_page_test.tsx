@@ -377,6 +377,36 @@ describe("useExprFilterPage", () => {
     });
   });
 
+  describe("a fixed app", () => {
+    const fixedToApp2: Options = { ...paginated, appId: "app-2" };
+
+    it("takes precedence over the URL's app id", async () => {
+      mockRouter.setUrl("?a=app-1&d=Last+6+Hours");
+      await renderPage(fixedToApp2);
+
+      expect(page.value).toMatchObject({ app: apps[1] });
+      expect(page.filterParams).toMatchObject({ appId: "app-2" });
+    });
+
+    it("is still written to the URL", async () => {
+      await renderPage(fixedToApp2);
+
+      expect(mockRouter.urlParams()).toEqual({ a: "app-2", d: "Last 6 Hours" });
+    });
+
+    it("stays fixed after the URL's app id changes underneath it", async () => {
+      const rendered = await renderPage(fixedToApp2);
+
+      await act(async () => {
+        mockRouter.setUrl("?a=app-1&d=Last+6+Hours");
+        rendered.rerender(<Host {...fixedToApp2} />);
+      });
+
+      expect(page.value).toMatchObject({ app: apps[1] });
+      expect(mockRouter.urlParams()).toEqual({ a: "app-2", d: "Last 6 Hours" });
+    });
+  });
+
   describe("the fetch", () => {
     it("waits while the URL still says something else", async () => {
       mockRouter.setUrl("?a=app-1&d=Last+6+Hours");

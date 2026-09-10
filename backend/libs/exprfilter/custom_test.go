@@ -606,6 +606,55 @@ func TestBindBugReportCustomKeyScopesToBugReportRows(t *testing.T) {
 	})
 }
 
+const errorsCustomSubqueryScope = "select event_id from user_def_attrs where team_id = toUUID(?) and app_id = toUUID(?) and timestamp >= ? and timestamp <= ? and bug_report = false and key = ? and type = ?"
+
+const errorsCustomGroupedScope = "select event_id from user_def_attrs where team_id = toUUID(?) and app_id = toUUID(?) and timestamp >= ? and timestamp <= ? and bug_report = false and key in ? group by event_id having "
+
+func TestBindErrorsCustomKeyMatchesTheEventIDColumn(t *testing.T) {
+	keys := []Key{
+		CustomKey("plan", ValueTypeString),
+		CustomKey("retries", ValueTypeInt64),
+	}
+	binding := ErrorsEntity.BindCustomKeys(testCustomKeyScope(), keys)
+
+	bind := func(t *testing.T, operator LogicalOperator, conditions []Condition) string {
+		t.Helper()
+		stmt, err := binding(operator, conditions)
+		if err != nil {
+			t.Fatalf("bind %v: %v", conditions, err)
+		}
+		defer stmt.Close()
+		return stmt.String()
+	}
+
+	t.Run("a lone condition", func(t *testing.T) {
+		got := bind(t, LogicalAnd, []Condition{customCondition("custom.plan", OperatorIn, "pro")})
+		want := "id in (" + errorsCustomSubqueryScope + " and value in ?)"
+		if got != want {
+			t.Errorf("\n got %s\nwant %s", got, want)
+		}
+	})
+
+	t.Run("a grouped scan", func(t *testing.T) {
+		got := bind(t, LogicalAnd, []Condition{
+			customCondition("custom.plan", OperatorIn, "pro"),
+			customCondition("custom.retries", OperatorGt, "9"),
+		})
+		want := "id in (" + errorsCustomGroupedScope + "countIf(key = ? and type = ? and value in ?) > 0 and countIf(key = ? and type = ? and toInt64OrNull(value) > ?) > 0)"
+		if got != want {
+			t.Errorf("\n got %s\nwant %s", got, want)
+		}
+	})
+
+	t.Run("a negation excludes the ids it matches", func(t *testing.T) {
+		got := bind(t, LogicalAnd, []Condition{customCondition("custom.plan", OperatorNotIn, "pro")})
+		want := "id not in (" + errorsCustomSubqueryScope + " and value in ?)"
+		if got != want {
+			t.Errorf("\n got %s\nwant %s", got, want)
+		}
+	})
+}
+
 func TestCollectRootVersionConditions(t *testing.T) {
 	assertLists := func(t *testing.T, label string, got, want [][]string) {
 		t.Helper()

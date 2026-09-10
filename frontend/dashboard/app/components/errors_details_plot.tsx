@@ -1,7 +1,6 @@
 "use client";
 
-import { useErrorsDetailsPlotQuery } from "@/app/query/hooks";
-import { useFiltersStore } from "@/app/stores/provider";
+import { type useErrorsDetailsPlotQuery } from "@/app/query/hooks";
 import { ResponsiveLineCanvas } from "@nivo/line";
 import { DateTime } from "luxon";
 import { useTheme } from "next-themes";
@@ -86,7 +85,9 @@ const demoData = [
 ];
 
 interface ErrorsDetailsPlotProps {
-  errorGroupId: string;
+  startDate: string;
+  endDate: string;
+  query?: ReturnType<typeof useErrorsDetailsPlotQuery>;
   demo?: boolean;
 }
 
@@ -104,22 +105,19 @@ const demoPlot: ErrorsDetailsPlotData = demoData.map((item: any) => ({
 }));
 
 const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
-  errorGroupId,
+  startDate,
+  endDate,
+  query,
   demo = false,
 }) => {
-  const filters = useFiltersStore((state) => state.filters);
-  const { data: queryPlot, status } = useErrorsDetailsPlotQuery(errorGroupId);
   const { theme } = useTheme();
   const chartColors = useChartColors();
   const canvasTheme = useChartCanvasTheme();
-  const plotTimeGroup = getPlotTimeGroupForRange(
-    filters.startDate,
-    filters.endDate,
-  );
+  const plotTimeGroup = getPlotTimeGroupForRange(startDate, endDate);
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
 
-  const effectiveStatus = demo ? "success" : status;
-  const rawPlot = demo ? demoPlot : queryPlot;
+  const effectiveStatus = demo ? "success" : (query?.status ?? "pending");
+  const rawPlot = demo ? demoPlot : query?.data;
 
   const plot = useMemo(() => {
     if (!rawPlot) {

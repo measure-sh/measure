@@ -74,7 +74,7 @@ const ErrorGroupCommonPath: React.FC<ErrorGroupCommonPathProps> = ({
   demo = false,
 }) => {
   const { data: queryCommonPath, status: queryStatus } =
-    useErrorGroupCommonPathQuery(demo ? "" : groupId);
+    useErrorGroupCommonPathQuery(demo ? "" : appId, demo ? "" : groupId);
 
   const [confidenceThreshold, setConfidenceThreshold] = useState<number>(80);
 

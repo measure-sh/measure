@@ -76,6 +76,10 @@ func FindByName(name string) (Entity, error) {
 		return NetworkEntity, nil
 	case SessionsEntity.Name:
 		return SessionsEntity, nil
+	case ErrorsEntity.Name:
+		return ErrorsEntity, nil
+	case ErrorGroupEventsEntity.Name:
+		return ErrorGroupEventsEntity, nil
 	}
 
 	return Entity{}, fmt.Errorf("Unknown filter entity %q", name)
@@ -83,6 +87,7 @@ func FindByName(name string) (Entity, error) {
 
 // The groups a key can belong to.
 const (
+	KeyGroupError     KeyGroup = "Error"
 	KeyGroupVersion   KeyGroup = "Version"
 	KeyGroupBuild     KeyGroup = "Build"
 	KeyGroupSpan      KeyGroup = "Span"
@@ -99,7 +104,7 @@ const (
 
 // keyGroupOrder is the order the filter bar shows groups in.
 var keyGroupOrder = []KeyGroup{
-	KeyGroupBugReport, KeyGroupSession, KeyGroupVersion, KeyGroupBuild, KeyGroupSpan,
+	KeyGroupError, KeyGroupBugReport, KeyGroupSession, KeyGroupVersion, KeyGroupBuild, KeyGroupSpan,
 	KeyGroupRequest, KeyGroupOS, KeyGroupDevice, KeyGroupNetwork, KeyGroupLocation,
 	KeyGroupUser, KeyGroupCustom,
 }
@@ -216,6 +221,20 @@ var (
 		Operators:           []Operator{OperatorIn, OperatorNotIn},
 		ValueSuggestionMode: ValueSuggestionModeFullList,
 		EnumValues:          []string{"open", "closed"},
+	}
+
+	errorType = Key{
+		Name:                "error_type",
+		Label:               "Error Type",
+		Description:         "Fatal or Non-fatal error types",
+		KeyGroup:            KeyGroupError,
+		ValueType:           ValueTypeEnum,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeFullList,
+		EnumValues: []string{
+			ErrorTypeCrash, ErrorTypeANR,
+			ErrorTypeHandledError, ErrorTypeUnhandledError,
+		},
 	}
 
 	sessionEvents = Key{

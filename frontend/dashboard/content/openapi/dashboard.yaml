@@ -800,9 +800,6 @@ paths:
         `builds=1` to return version filters computed from uploaded build
         mappings instead of event data. If `type`, `span` and `builds` are
         omitted, filters are computed from all events.
-
-        `severity` is not honoured on this endpoint and is ignored if passed.
-        Use it on the errorGroups endpoints instead.
       parameters:
         - name: id
           in: path
@@ -1182,14 +1179,20 @@ paths:
         - Errors
       summary: Fetch an app's error overview
       description: |
-        Fetch an app's error overview. Returns fatal, unhandled & handled
-        errors plus ANRs unified into a single list.
+        Fetch an app's error groups, optionally narrowed by a filter
+        expression. Crashes, ANRs, and handled and unhandled non-fatal errors
+        come back in one list.
 
-        Both `versions` & `version_codes` should be present if any one of them
-        is present. When neither `type` nor `severity` is set, all sources
-        (fatal errors, nonfatal errors, ANRs) are returned.
-        `custom=true` filters errors to custom-tracked only & does not
-        suppress ANRs. To exclude ANRs explicitly, use `type=error`.
+        Pass `limit` and `offset` values to paginate results.
+
+        In the response, `meta.next` / `meta.previous` are booleans indicating
+        whether more pages exist in the respective direction. `count` is the
+        number of matching events in the group and `percentage_contribution`
+        its share of the matching events on the page.
+
+        The `error_type` filter key takes the values `Crash`, `ANR`,
+        `Handled Error` and `Unhandled Error`. A value holding a space is
+        double-quoted, as in `error_type:in:[Crash, "Handled Error"]`.
       parameters:
         - name: id
           in: path
@@ -1200,114 +1203,19 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version codes.
-          schema:
-            type: string
-        - name: os_names
-          in: query
-          required: false
-          description: List of comma separated OS names.
-          schema:
-            type: string
-        - name: os_versions
-          in: query
-          required: false
-          description: List of comma separated OS versions.
-          schema:
-            type: string
-        - name: countries
-          in: query
-          required: false
-          description: List of comma separated country codes.
-          schema:
-            type: string
-        - name: device_names
-          in: query
-          required: false
-          description: List of comma separated device names.
-          schema:
-            type: string
-        - name: device_manufacturers
-          in: query
-          required: false
-          description: List of comma separated device manufacturers.
-          schema:
-            type: string
-        - name: locales
-          in: query
-          required: false
-          description: List of comma separated locale strings.
-          schema:
-            type: string
-        - name: network_providers
-          in: query
-          required: false
-          description: List of comma separated network providers.
-          schema:
-            type: string
-        - name: network_types
-          in: query
-          required: false
-          description: List of comma separated network types.
-          schema:
-            type: string
-        - name: network_generations
-          in: query
-          required: false
-          description: List of comma separated network generations.
-          schema:
-            type: string
-        - name: type
-          in: query
-          required: false
-          description: "Comma-separated list of error source types to include. Accepted values: any combination of `error`, `anr`. When omitted, all sources are returned."
-          schema:
-            type: string
-        - name: severity
-          in: query
-          required: false
-          description: "Comma-separated list of severity levels to filter by. Accepted values: any combination of `fatal`, `unhandled`, `handled`. Applies only to exception events (`type=error`); ANRs are unaffected."
-          schema:
-            type: string
-        - name: custom
-          in: query
-          required: false
-          description: "`true` to restrict exception results to custom-tracked only. ANRs are unaffected by this flag; they are included whenever their source is in scope (`type` is omitted or includes `anr`)."
-          schema:
-            type: string
-        - name: limit
-          in: query
-          required: false
-          description: Number of items to return. Defaults to 10, max 1000.
-          schema:
-            type: integer
+        - $ref: "#/components/parameters/FilterExpr"
         - name: offset
           in: query
           required: false
-          description: Number of items to skip. Defaults to 0.
+          description: Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
           schema:
             type: integer
-        - name: filter_short_code
+        - name: limit
           in: query
           required: false
-          description: Code representing combination of filters.
+          description: Number of items to return. Used for pagination. Should be used along with `offset`.
           schema:
-            type: string
-        - name: ud_expression
-          in: query
-          required: false
-          description: Expression in JSON to filter using user defined attributes.
-          schema:
-            type: string
+            type: integer
       responses:
         "200":
           description: Successful response, no errors.
@@ -1406,12 +1314,12 @@ paths:
         - Errors
       summary: Fetch an app's error overview instances plot
       description: |
-        Fetch an app's error overview instances plot aggregated by date range &
-        version.
+        Fetch an app's error instances plot, aggregated by date range and
+        app version, optionally narrowed by a filter expression.
 
-        Both `versions` & `version_codes` should be present if any one of them
-        is present. Both `from` and `to` MUST be present when specifying a date
-        range.
+        The `error_type` filter key takes the values `Crash`, `ANR`,
+        `Handled Error` and `Unhandled Error`. A value holding a space is
+        double-quoted, as in `error_type:in:[Crash, "Handled Error"]`.
       parameters:
         - name: id
           in: path
@@ -1424,48 +1332,7 @@ paths:
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/Timezone"
         - $ref: "#/components/parameters/PlotTimeGroup"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version codes.
-          schema:
-            type: string
-        - name: type
-          in: query
-          required: false
-          description: "Comma-separated list of error source types to include. Accepted values: any combination of `error`, `anr`. When omitted, all sources are returned."
-          schema:
-            type: string
-        - name: severity
-          in: query
-          required: false
-          description: "Comma-separated list of severity levels to filter by. Accepted values: any combination of `fatal`, `unhandled`, `handled`. Applies only to exception events (`type=error`); ANRs are unaffected."
-          schema:
-            type: string
-        - name: custom
-          in: query
-          required: false
-          description: "`true` to restrict exception results to custom-tracked only. ANRs are unaffected by this flag; they are included whenever their source is in scope (`type` is omitted or includes `anr`)."
-          schema:
-            type: string
-        - name: filter_short_code
-          in: query
-          required: false
-          description: Code representing combination of filters.
-          schema:
-            type: string
-        - name: ud_expression
-          in: query
-          required: false
-          description: Expression in JSON to filter using user defined attributes.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/FilterExpr"
       responses:
         "200":
           description: Successful response, no errors.
@@ -1520,10 +1387,10 @@ paths:
         - Errors
       summary: Fetch an error group's individual error events
       description: |
-        Fetch an error group's individual error events.
+        Fetch an error group's individual error events, optionally narrowed by
+        a filter expression.
 
-        Both `versions` & `version_codes` should be present if any one of them
-        is present.
+        Pass `limit` and `offset` values to paginate results.
 
         Each result is either an exception event or an ANR event, distinguished
         by the `type` field (`exception` or `anr`). Exception events include
@@ -1532,6 +1399,10 @@ paths:
         `handled`. ANR events include an `anr` field instead of `exception`;
         `severity` is always `fatal` for ANRs and ANR events do not include
         `user_defined_attribute`.
+
+        The filter is written against the `error_group_events` entity, whose keys
+        are those of `errors` without `error_type`: one group holds one kind
+        of error.
       parameters:
         - name: id
           in: path
@@ -1548,114 +1419,19 @@ paths:
             type: string
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version codes.
-          schema:
-            type: string
-        - name: os_names
-          in: query
-          required: false
-          description: List of comma separated OS names.
-          schema:
-            type: string
-        - name: os_versions
-          in: query
-          required: false
-          description: List of comma separated OS versions.
-          schema:
-            type: string
-        - name: countries
-          in: query
-          required: false
-          description: List of comma separated country codes.
-          schema:
-            type: string
-        - name: device_names
-          in: query
-          required: false
-          description: List of comma separated device names.
-          schema:
-            type: string
-        - name: device_manufacturers
-          in: query
-          required: false
-          description: List of comma separated device manufacturers.
-          schema:
-            type: string
-        - name: locales
-          in: query
-          required: false
-          description: List of comma separated locale strings.
-          schema:
-            type: string
-        - name: network_providers
-          in: query
-          required: false
-          description: List of comma separated network providers.
-          schema:
-            type: string
-        - name: network_types
-          in: query
-          required: false
-          description: List of comma separated network types.
-          schema:
-            type: string
-        - name: network_generations
-          in: query
-          required: false
-          description: List of comma separated network generations.
-          schema:
-            type: string
-        - name: type
-          in: query
-          required: false
-          description: "Comma-separated list of error source types to include. Accepted values: any combination of `error`, `anr`. When omitted, all sources are returned."
-          schema:
-            type: string
-        - name: severity
-          in: query
-          required: false
-          description: "Comma-separated list of severity levels to filter by. Accepted values: any combination of `fatal`, `unhandled`, `handled`. Applies only to exception events (`type=error`); ANRs are unaffected."
-          schema:
-            type: string
-        - name: custom
-          in: query
-          required: false
-          description: "`true` to restrict exception results to custom-tracked only. ANRs are unaffected by this flag; they are included whenever their source is in scope (`type` is omitted or includes `anr`)."
-          schema:
-            type: string
-        - name: limit
-          in: query
-          required: false
-          description: Number of items to return. Defaults to 10, max 1000.
-          schema:
-            type: integer
+        - $ref: "#/components/parameters/FilterExpr"
         - name: offset
           in: query
           required: false
-          description: Number of items to skip. Defaults to 0.
+          description: Number of items to skip when paginating. Use with `limit` parameter to control amount of items fetched.
           schema:
             type: integer
-        - name: filter_short_code
+        - name: limit
           in: query
           required: false
-          description: Code representing combination of filters.
+          description: Number of items to return. Used for pagination. Should be used along with `offset`.
           schema:
-            type: string
-        - name: ud_expression
-          in: query
-          required: false
-          description: Expression in JSON to filter using user defined attributes.
-          schema:
-            type: string
+            type: integer
       responses:
         "200":
           description: Successful response, no errors.
@@ -1914,12 +1690,12 @@ paths:
         - Errors
       summary: Fetch an app's error detail instances plot
       description: |
-        Fetch an app's error detail instances aggregated by date range &
-        version.
+        Fetch an error group's instances plot, aggregated by date range and
+        app version, optionally narrowed by a filter expression.
 
-        Both `versions` & `version_codes` should be present if any one of them
-        is present. Both `from` and `to` MUST be present when specifying a date
-        range.
+        The filter is written against the `error_group_events` entity, whose keys
+        are those of `errors` without `error_type`: one group holds one kind
+        of error.
       parameters:
         - name: id
           in: path
@@ -1938,48 +1714,7 @@ paths:
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/Timezone"
         - $ref: "#/components/parameters/PlotTimeGroup"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version codes.
-          schema:
-            type: string
-        - name: type
-          in: query
-          required: false
-          description: "Comma-separated list of error source types to include. Accepted values: any combination of `error`, `anr`. When omitted, all sources are returned."
-          schema:
-            type: string
-        - name: severity
-          in: query
-          required: false
-          description: "Comma-separated list of severity levels to filter by. Accepted values: any combination of `fatal`, `unhandled`, `handled`. Applies only to exception events (`type=error`); ANRs are unaffected."
-          schema:
-            type: string
-        - name: custom
-          in: query
-          required: false
-          description: "`true` to restrict exception results to custom-tracked only. ANRs are unaffected by this flag; they are included whenever their source is in scope (`type` is omitted or includes `anr`)."
-          schema:
-            type: string
-        - name: filter_short_code
-          in: query
-          required: false
-          description: Code representing combination of filters.
-          schema:
-            type: string
-        - name: ud_expression
-          in: query
-          required: false
-          description: Expression in JSON to filter using user defined attributes.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/FilterExpr"
       responses:
         "200":
           description: Successful response, no errors.
@@ -2031,10 +1766,12 @@ paths:
       summary: Fetch an error group's attribute distribution plot
       description: |
         Fetch an error group's attribute distribution, occurrence counts broken
-        down by app version, OS, country, network type, locale, and device.
+        down by app version, OS, country, network type, locale, and device,
+        optionally narrowed by a filter expression.
 
-        Both `versions` & `version_codes` should be present if any one of them
-        is present.
+        The filter is written against the `error_group_events` entity, whose keys
+        are those of `errors` without `error_type`: one group holds one kind
+        of error.
       parameters:
         - name: id
           in: path
@@ -2051,102 +1788,7 @@ paths:
             type: string
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated version identifier strings.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated version codes.
-          schema:
-            type: string
-        - name: os_names
-          in: query
-          required: false
-          description: List of comma separated OS names.
-          schema:
-            type: string
-        - name: os_versions
-          in: query
-          required: false
-          description: List of comma separated OS versions.
-          schema:
-            type: string
-        - name: countries
-          in: query
-          required: false
-          description: List of comma separated country codes.
-          schema:
-            type: string
-        - name: device_names
-          in: query
-          required: false
-          description: List of comma separated device names.
-          schema:
-            type: string
-        - name: device_manufacturers
-          in: query
-          required: false
-          description: List of comma separated device manufacturers.
-          schema:
-            type: string
-        - name: locales
-          in: query
-          required: false
-          description: List of comma separated locale strings.
-          schema:
-            type: string
-        - name: network_providers
-          in: query
-          required: false
-          description: List of comma separated network providers.
-          schema:
-            type: string
-        - name: network_types
-          in: query
-          required: false
-          description: List of comma separated network types.
-          schema:
-            type: string
-        - name: network_generations
-          in: query
-          required: false
-          description: List of comma separated network generations.
-          schema:
-            type: string
-        - name: type
-          in: query
-          required: false
-          description: "Comma-separated list of error source types to include. Accepted values: any combination of `error`, `anr`. When omitted, all sources are returned."
-          schema:
-            type: string
-        - name: severity
-          in: query
-          required: false
-          description: "Comma-separated list of severity levels to filter by. Accepted values: any combination of `fatal`, `unhandled`, `handled`. Applies only to exception events (`type=error`); ANRs are unaffected."
-          schema:
-            type: string
-        - name: custom
-          in: query
-          required: false
-          description: "`true` to restrict exception results to custom-tracked only. ANRs are unaffected by this flag; they are included whenever their source is in scope (`type` is omitted or includes `anr`)."
-          schema:
-            type: string
-        - name: filter_short_code
-          in: query
-          required: false
-          description: Code representing combination of filters.
-          schema:
-            type: string
-        - name: ud_expression
-          in: query
-          required: false
-          description: Expression in JSON to filter using user defined attributes.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/FilterExpr"
       responses:
         "200":
           description: Successful response, no errors.

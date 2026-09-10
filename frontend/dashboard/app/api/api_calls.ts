@@ -632,9 +632,6 @@ export type Filters = {
   deviceNames: { selected: string[]; all: boolean };
   udAttrMatchers: UdAttrMatcher[];
   freeText: string;
-  selectedErrorTypes: string[];
-  selectedSeverities: string[];
-  customErrorsOnly: boolean;
   serialisedFilters: string | null;
   // Resolves to the server-side filter_short_code for this filter combination.
   // Set by the filters store when filters change. URL builders await this
@@ -660,9 +657,6 @@ export const defaultFilters: Filters = {
   deviceNames: { selected: [], all: false },
   udAttrMatchers: [],
   freeText: "",
-  selectedErrorTypes: [],
-  selectedSeverities: [],
-  customErrorsOnly: false,
   serialisedFilters: null,
   filterShortCodePromise: Promise.resolve(null),
 };
@@ -1150,108 +1144,130 @@ export const fetchSessionReplayOverviewPlotFromServer = async (
   );
 };
 
-function appendErrorFiltersToUrl(url: string, filters: Filters): string {
-  const u = new URL(url, window.location.origin);
-  if (filters.selectedErrorTypes.length > 0) {
-    u.searchParams.append("type", filters.selectedErrorTypes.join(","));
-  }
-  if (filters.selectedSeverities.length > 0) {
-    u.searchParams.append("severity", filters.selectedSeverities.join(","));
-  }
-  if (filters.customErrorsOnly) {
-    u.searchParams.append("custom", "true");
-  }
-  return u.toString();
-}
-
 export const fetchErrorsOverviewFromServer = async (
-  filters: Filters,
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
   limit: number,
   offset: number,
 ) => {
-  var url = `/api/apps/${filters.app!.id}/errorGroups?`;
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    limit: String(limit),
+    offset: String(offset),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
 
-  url = await applyGenericFiltersToUrl(url, filters, limit, offset);
-  url = appendErrorFiltersToUrl(url, filters);
-
-  const data = await request(url, {
+  return await request(`/api/apps/${appId}/errorGroups?${params.toString()}`, {
     failsWith: "Failed to fetch errors overview",
   });
-
-  return data;
 };
 
-export const fetchErrorsOverviewPlotFromServer = async (filters: Filters) => {
-  var url = `/api/apps/${filters.app!.id}/errorGroups/plots/instances?`;
-
-  url = await applyGenericFiltersToUrl(url, filters, null, null);
-  url = appendPlotTimeGroupToUrl(url, filters);
-  url = appendErrorFiltersToUrl(url, filters);
-
-  const data = await request(url, {
-    failsWith: "Failed to fetch errors overview plot",
+export const fetchErrorsOverviewPlotFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+) => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    plot_time_group: getPlotTimeGroupForRange(startDate, endDate),
   });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
 
-  return data;
+  return await request(
+    `/api/apps/${appId}/errorGroups/plots/instances?${params.toString()}`,
+    { failsWith: "Failed to fetch errors overview plot" },
+  );
 };
 
 export const fetchErrorsDetailsFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
   errorGroupId: string,
-  paginationOffset: number,
-  filters: Filters,
-  limit: number = 1,
+  limit: number,
+  offset: number,
 ) => {
-  var url = `/api/apps/${filters.app!.id}/errorGroups/${errorGroupId}/errors?`;
-
-  url = await applyGenericFiltersToUrl(url, filters, limit, paginationOffset);
-
-  const data = await request(url, {
-    failsWith: "Failed to fetch errors details",
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    limit: String(limit),
+    offset: String(offset),
   });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
 
-  return data;
+  return await request(
+    `/api/apps/${appId}/errorGroups/${errorGroupId}/errors?${params.toString()}`,
+    { failsWith: "Failed to fetch errors details" },
+  );
 };
 
 export const fetchErrorGroupCommonPathFromServer = async (
+  appId: string,
   errorGroupId: string,
-  filters: Filters,
 ) => {
-  const url = `/api/apps/${filters.app!.id}/errorGroups/${errorGroupId}/path`;
-
-  const data = await request(url, {
+  return await request(`/api/apps/${appId}/errorGroups/${errorGroupId}/path`, {
     failsWith: "Failed to fetch error group common path",
   });
-
-  return data;
 };
 
 export const fetchErrorsDetailsPlotFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
   errorGroupId: string,
-  filters: Filters,
 ) => {
-  var url = `/api/apps/${filters.app!.id}/errorGroups/${errorGroupId}/plots/instances?`;
-
-  url = await applyGenericFiltersToUrl(url, filters, null, null);
-  url = appendPlotTimeGroupToUrl(url, filters);
-
-  const data = await request(url, {
-    failsWith: "Failed to fetch errors details plot",
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    plot_time_group: getPlotTimeGroupForRange(startDate, endDate),
   });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
 
-  return data;
+  return await request(
+    `/api/apps/${appId}/errorGroups/${errorGroupId}/plots/instances?${params.toString()}`,
+    { failsWith: "Failed to fetch errors details plot" },
+  );
 };
 
 export const fetchErrorsDistributionPlotFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
   errorGroupId: string,
-  filters: Filters,
 ) => {
-  var url = `/api/apps/${filters.app!.id}/errorGroups/${errorGroupId}/plots/distribution?`;
-
-  url = await applyGenericFiltersToUrl(url, filters, null, null);
-
-  const data = await request(url, {
-    failsWith: "Failed to fetch errors distribution plot",
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
   });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+
+  const data = await request(
+    `/api/apps/${appId}/errorGroups/${errorGroupId}/plots/distribution?${params.toString()}`,
+    { failsWith: "Failed to fetch errors distribution plot" },
+  );
 
   if (
     data === null ||

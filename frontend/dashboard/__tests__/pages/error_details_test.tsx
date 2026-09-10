@@ -1,16 +1,21 @@
+import { mockRouter } from "@/__tests__/helpers/mock_router";
 import { promiseParams } from "@/__tests__/helpers/promise_params";
-import ErrorDetailsPage from "@/app/[teamId]/errors/[appId]/[errorGroupId]/[errorGroupName]/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 
-const replaceMock = jest.fn();
-const pushMock = jest.fn();
+jest.mock("next/navigation", () =>
+  require("@/__tests__/helpers/mock_router").nextNavigationMock(),
+);
 
-let mockSearchParams = new URLSearchParams();
-jest.mock("next/navigation", () => ({
-  useRouter: () => ({ replace: replaceMock, push: pushMock }),
-  useSearchParams: () => mockSearchParams,
+jest.mock("@/app/stores/provider", () =>
+  require("@/__tests__/helpers/mock_filters_store").filtersProviderMock(),
+);
+
+const mockToastNegative = jest.fn();
+jest.mock("@/app/components/toast", () => ({
+  __esModule: true,
+  toastNegative: (text: string) => mockToastNegative(text),
 }));
 
 jest.mock("@/app/api/api_calls", () => ({
@@ -19,34 +24,77 @@ jest.mock("@/app/api/api_calls", () => ({
     meta: { next: false, previous: false },
     results: [],
   },
-  FilterSource: { Errors: "errors", Events: "events" },
 }));
 
-jest.mock("@/app/stores/provider", () => {
-  const { create } = jest.requireActual("zustand");
-  const filtersStore = create(() => ({
-    filters: { ready: false, serialisedFilters: "" },
-  }));
-  return { __esModule: true, useFiltersStore: filtersStore };
-});
-
-const mockUseErrorsDetailsQuery = jest.fn(() => ({
+const pendingQueryState = () => ({
   data: undefined as any,
   status: "pending" as string,
   isFetching: true,
   error: null as Error | null,
-}));
+});
+
+const mockUseAppsQuery = jest.fn();
+const mockUseFilterKeysQuery = jest.fn();
+const mockUseErrorsDetailsQuery = jest.fn(
+  (_filter: any, _errorGroupId: string, _offset: number) => pendingQueryState(),
+);
+const mockUseErrorsDetailsPlotQuery = jest.fn(
+  (_filter: any, _errorGroupId: string) => pendingQueryState(),
+);
+const mockUseErrorsDistributionPlotQuery = jest.fn(
+  (_filter: any, _errorGroupId: string) => pendingQueryState(),
+);
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
-  useErrorsDetailsQuery: () => mockUseErrorsDetailsQuery(),
   paginationOffsetUrlKey: "po",
+  useAppsQuery: (teamId: string) => mockUseAppsQuery(teamId),
+  useFilterKeysQuery: (
+    appId: string | undefined,
+    entity: string,
+    keyNames: string[],
+  ) => mockUseFilterKeysQuery(appId, entity, keyNames),
+  useRootSpanNamesQuery: () => ({
+    data: undefined,
+    isSuccess: false,
+    isError: false,
+  }),
+  useErrorsDetailsQuery: (filter: any, errorGroupId: string, offset: number) =>
+    mockUseErrorsDetailsQuery(filter, errorGroupId, offset),
+  useErrorsDetailsPlotQuery: (filter: any, errorGroupId: string) =>
+    mockUseErrorsDetailsPlotQuery(filter, errorGroupId),
+  useErrorsDistributionPlotQuery: (filter: any, errorGroupId: string) =>
+    mockUseErrorsDistributionPlotQuery(filter, errorGroupId),
 }));
 
-jest.mock("@/app/components/filters", () => ({
+jest.mock("@/app/components/filter_bar/filter_bar", () => ({
   __esModule: true,
-  default: () => <div data-testid="filters-mock" />,
-  AppVersionsInitialSelectionType: { Latest: "latest", All: "all" },
+  default: (props: any) => (
+    <div data-testid="filter-bar-mock">
+      <span data-testid="filter-bar-entity">{props.entity}</span>
+      <span data-testid="filter-bar-show-app-select">
+        {String(props.showAppSelect)}
+      </span>
+      <span data-testid="filter-bar-app">
+        {props.value?.app.name ?? "none"}
+      </span>
+      <span data-testid="filter-bar-expr">
+        {props.value?.filterExpr ?? "none"}
+      </span>
+      <button
+        data-testid="filter-bar-apply"
+        onClick={() => props.onChange({ filterExpr: "os_name:in:android" })}
+      >
+        apply
+      </button>
+      <button
+        data-testid="filter-bar-clear"
+        onClick={() => props.onChange({ filterExpr: null })}
+      >
+        clear
+      </button>
+    </div>
+  ),
 }));
 
 jest.mock("@/app/components/errors_details_plot", () => ({
@@ -124,7 +172,19 @@ jest.mock("@/app/utils/time_utils", () => ({
   formatDateToHumanReadableDateTime: () => "Jan 1, 2026, 12:00 AM",
 }));
 
-const { useFiltersStore } = require("@/app/stores/provider") as any;
+import ErrorDetailsPage from "@/app/[teamId]/errors/[appId]/[errorGroupId]/[errorGroupName]/page";
+
+const mockApp = { id: "app-1", name: "measure demo" };
+
+const osNameKey = {
+  name: "os_name",
+  label: "OS name",
+  key_group: "OS",
+  description: "The operating system the error occurred on",
+  value_type: "string",
+  value_suggestion_mode: "full_list",
+  operators: ["in", "not_in"],
+};
 
 const sampleErrorEvent = {
   id: "event-1",
@@ -157,48 +217,82 @@ const sampleErrorsDetails = {
   meta: { previous: false, next: true },
 };
 
-describe("ErrorGroupDetails Page", () => {
+function detailsLoaded(data: any = sampleErrorsDetails) {
+  mockUseErrorsDetailsQuery.mockReturnValue({
+    data,
+    status: "success",
+    isFetching: false,
+    error: null,
+  });
+}
+
+const settled = { a: "app-1", d: "Last 6 Hours" };
+
+function renderPage() {
+  return render(
+    <ErrorDetailsPage
+      params={promiseParams({
+        teamId: "123",
+        appId: "app-1",
+        errorGroupId: "g1",
+        errorGroupName: "test",
+      })}
+    />,
+  );
+}
+
+describe("ErrorGroupDetails page", () => {
   beforeEach(() => {
-    replaceMock.mockClear();
-    pushMock.mockClear();
-    mockSearchParams = new URLSearchParams();
+    mockRouter.reset();
+    mockToastNegative.mockClear();
+    mockUseAppsQuery.mockReturnValue({ status: "success", data: [mockApp] });
+    mockUseFilterKeysQuery.mockReturnValue({
+      data: { keys: [osNameKey], key_groups: ["Error"] },
+      isPending: false,
+      isError: false,
+      isPlaceholderData: false,
+    });
     mockUseErrorsDetailsQuery.mockReset();
-    mockUseErrorsDetailsQuery.mockReturnValue({
-      data: undefined,
-      status: "pending" as string,
-      isFetching: true,
-      error: null,
-    });
-    useFiltersStore.setState({
-      filters: { ready: false, serialisedFilters: "" },
-    });
+    mockUseErrorsDetailsQuery.mockReturnValue(pendingQueryState());
+    mockUseErrorsDetailsPlotQuery.mockReset();
+    mockUseErrorsDetailsPlotQuery.mockReturnValue(pendingQueryState());
+    mockUseErrorsDistributionPlotQuery.mockReset();
+    mockUseErrorsDistributionPlotQuery.mockReturnValue(pendingQueryState());
   });
 
-  it("renders the Filters component", () => {
-    render(
-      <ErrorDetailsPage
-        params={promiseParams({
-          teamId: "123",
-          appId: "app-1",
-          errorGroupId: "g1",
-          errorGroupName: "test",
-        })}
-      />,
+  it("renders the filter bar fixed to the route's app, with no app select", () => {
+    renderPage();
+
+    expect(screen.getByTestId("filter-bar-mock")).toBeInTheDocument();
+    expect(screen.getByTestId("filter-bar-entity")).toHaveTextContent(
+      "error_group_events",
     );
-    expect(screen.getByTestId("filters-mock")).toBeInTheDocument();
+    expect(screen.getByTestId("filter-bar-show-app-select")).toHaveTextContent(
+      "false",
+    );
+    expect(screen.getByTestId("filter-bar-app")).toHaveTextContent(
+      "measure demo",
+    );
   });
 
-  it("does not render the main UI when filters are not ready", () => {
-    render(
-      <ErrorDetailsPage
-        params={promiseParams({
-          teamId: "123",
-          appId: "app-1",
-          errorGroupId: "g1",
-          errorGroupName: "test",
-        })}
-      />,
+  it("stays fixed to the route's app even when the URL names another one", () => {
+    mockRouter.setUrl("?a=some-other-app");
+    renderPage();
+
+    expect(screen.getByTestId("filter-bar-app")).toHaveTextContent(
+      "measure demo",
     );
+    expect(mockUseErrorsDetailsQuery).toHaveBeenLastCalledWith(
+      expect.objectContaining({ appId: "app-1" }),
+      "g1",
+      0,
+    );
+  });
+
+  it("does not render the main UI until the app and range settle", () => {
+    mockUseAppsQuery.mockReturnValue({ status: "pending", data: undefined });
+    renderPage();
+
     expect(
       screen.queryByTestId("errors-details-plot-mock"),
     ).not.toBeInTheDocument();
@@ -210,33 +304,9 @@ describe("ErrorGroupDetails Page", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("renders details plot, distribution plot, and common path when filters are ready", async () => {
-    mockUseErrorsDetailsQuery.mockReturnValue({
-      data: sampleErrorsDetails,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(
-      <ErrorDetailsPage
-        params={promiseParams({
-          teamId: "123",
-          appId: "app-1",
-          errorGroupId: "g1",
-          errorGroupName: "test",
-        })}
-      />,
-    );
-
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1", name: "measure demo" },
-        },
-      });
-    });
+  it("renders details plot, distribution plot, and common path once ready", async () => {
+    detailsLoaded();
+    renderPage();
 
     expect(
       await screen.findByTestId("errors-details-plot-mock"),
@@ -249,32 +319,9 @@ describe("ErrorGroupDetails Page", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders Stack traces heading and event details when query succeeds", async () => {
-    mockUseErrorsDetailsQuery.mockReturnValue({
-      data: sampleErrorsDetails,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(
-      <ErrorDetailsPage
-        params={promiseParams({
-          teamId: "123",
-          appId: "app-1",
-          errorGroupId: "g1",
-          errorGroupName: "test",
-        })}
-      />,
-    );
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1", name: "measure demo" },
-        },
-      });
-    });
+  it("renders Stack traces heading and event details when the query succeeds", () => {
+    detailsLoaded();
+    renderPage();
 
     expect(screen.getByText(/Stack traces/)).toBeInTheDocument();
     expect(screen.getByText(/Id: event-1/)).toBeInTheDocument();
@@ -283,64 +330,23 @@ describe("ErrorGroupDetails Page", () => {
     expect(screen.getByText(/Network type: wifi/)).toBeInTheDocument();
   });
 
-  it("renders View Session Replay link with teamId/appId/sessionId", async () => {
-    mockUseErrorsDetailsQuery.mockReturnValue({
-      data: sampleErrorsDetails,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(
-      <ErrorDetailsPage
-        params={promiseParams({
-          teamId: "123",
-          appId: "app-1",
-          errorGroupId: "g1",
-          errorGroupName: "test",
-        })}
-      />,
-    );
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1", name: "measure demo" },
-        },
-      });
-    });
+  it("renders a View Session Replay link with teamId/appId/sessionId", () => {
+    detailsLoaded();
+    renderPage();
 
     const link = screen.getByText("View Session Replay").closest("a");
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "/123/session_replays/app-1/sess-1");
   });
 
-  it("renders error message when details query errors", async () => {
+  it("shows an error message when the details query errors", () => {
     mockUseErrorsDetailsQuery.mockReturnValue({
       data: undefined,
       status: "error",
       isFetching: false,
       error: new Error("fail"),
     });
-    render(
-      <ErrorDetailsPage
-        params={promiseParams({
-          teamId: "123",
-          appId: "app-1",
-          errorGroupId: "g1",
-          errorGroupName: "test",
-        })}
-      />,
-    );
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1", name: "measure demo" },
-        },
-      });
-    });
+    renderPage();
 
     expect(
       screen.getByText(/Error fetching list of errors/),
@@ -348,41 +354,17 @@ describe("ErrorGroupDetails Page", () => {
   });
 
   // Renders the page with a single event assembled from sampleErrorEvent plus
-  // the given field overrides, then marks filters ready so the details UI
-  // paints. Used by the ANR and extra-attribute cases below.
-  async function renderPageWithEvent(overrides: Record<string, any>) {
-    mockUseErrorsDetailsQuery.mockReturnValue({
-      data: {
-        results: [{ ...sampleErrorEvent, ...overrides }],
-        meta: { previous: false, next: true },
-      },
-      status: "success",
-      isFetching: false,
-      error: null,
+  // the given field overrides.
+  function renderPageWithEvent(overrides: Record<string, any>) {
+    detailsLoaded({
+      results: [{ ...sampleErrorEvent, ...overrides }],
+      meta: { previous: false, next: true },
     });
-    render(
-      <ErrorDetailsPage
-        params={promiseParams({
-          teamId: "123",
-          appId: "app-1",
-          errorGroupId: "g1",
-          errorGroupName: "test",
-        })}
-      />,
-    );
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1", name: "measure demo" },
-        },
-      });
-    });
+    return renderPage();
   }
 
-  it("renders the ANR stack trace when the event is an ANR", async () => {
-    await renderPageWithEvent({
+  it("renders the ANR stack trace when the event is an ANR", () => {
+    renderPageWithEvent({
       exception: null,
       anr: {
         title: "ANR at CheckoutActivity.onClick",
@@ -393,8 +375,8 @@ describe("ErrorGroupDetails Page", () => {
     expect(screen.getByText(/ANR in sh\.measure\.demo/)).toBeInTheDocument();
   });
 
-  it("renders num_code, code, meta, and user_defined_attribute rows when present", async () => {
-    await renderPageWithEvent({
+  it("renders num_code, code, meta, and user_defined_attribute rows when present", () => {
+    renderPageWithEvent({
       num_code: 137,
       code: "OUT_OF_MEMORY",
       meta: {
@@ -418,8 +400,8 @@ describe("ErrorGroupDetails Page", () => {
     expect(screen.getByText(/premium/)).toBeInTheDocument();
   });
 
-  it("omits num_code, code, meta, and user_defined_attribute rows when absent", async () => {
-    await renderPageWithEvent({});
+  it("omits num_code, code, meta, and user_defined_attribute rows when absent", () => {
+    renderPageWithEvent({});
     expect(screen.queryByText("num_code")).not.toBeInTheDocument();
     expect(screen.queryByText("code")).not.toBeInTheDocument();
     expect(screen.queryByText("meta")).not.toBeInTheDocument();
@@ -435,8 +417,8 @@ describe("ErrorGroupDetails Page", () => {
   // non-null object with keys. The three cases below mirror real iOS error
   // payloads where that mix occurs.
 
-  it("shows num_code 0 and meta, hides empty code", async () => {
-    await renderPageWithEvent({
+  it("shows num_code 0 and meta, hides empty code", () => {
+    renderPageWithEvent({
       num_code: 0,
       code: "",
       meta: {
@@ -447,16 +429,14 @@ describe("ErrorGroupDetails Page", () => {
       },
     });
 
-    // num_code of 0 is a real value, so the row must still show.
     expect(screen.getByText("num_code")).toBeInTheDocument();
     expect(screen.getByText("meta")).toBeInTheDocument();
     expect(screen.getByText(/NSFilePath/)).toBeInTheDocument();
-    // An empty code string hides the code row.
     expect(screen.queryByText("code")).not.toBeInTheDocument();
   });
 
-  it("shows num_code 0 and code, hides null meta", async () => {
-    await renderPageWithEvent({
+  it("shows num_code 0 and code, hides null meta", () => {
+    renderPageWithEvent({
       num_code: 0,
       code: "NamedException, Something happened",
       meta: null,
@@ -470,8 +450,8 @@ describe("ErrorGroupDetails Page", () => {
     expect(screen.queryByText("meta")).not.toBeInTheDocument();
   });
 
-  it("shows num_code, code, and meta together", async () => {
-    await renderPageWithEvent({
+  it("shows num_code, code, and meta together", () => {
+    renderPageWithEvent({
       num_code: 260,
       code: "NSCocoaErrorDomain",
       meta: {
@@ -489,133 +469,62 @@ describe("ErrorGroupDetails Page", () => {
     expect(screen.getByText(/NSFilePath/)).toBeInTheDocument();
   });
 
-  it("hides the meta row when meta is an empty object", async () => {
-    await renderPageWithEvent({ meta: {} });
+  it("hides the meta row when meta is an empty object", () => {
+    renderPageWithEvent({ meta: {} });
     expect(screen.queryByText("meta")).not.toBeInTheDocument();
   });
 
-  it("Next click increments pagination offset by 1 and updates URL", async () => {
-    mockUseErrorsDetailsQuery.mockReturnValue({
-      data: sampleErrorsDetails,
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(
-      <ErrorDetailsPage
-        params={promiseParams({
-          teamId: "123",
-          appId: "app-1",
-          errorGroupId: "g1",
-          errorGroupName: "test",
-        })}
-      />,
-    );
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1", name: "measure demo" },
-        },
+  describe("pagination", () => {
+    it("Next click increments the pagination offset by 1", async () => {
+      detailsLoaded();
+      renderPage();
+
+      const nextButton = await screen.findByTestId("next-button");
+      await act(async () => {
+        fireEvent.click(nextButton);
       });
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "1" });
+      expect(mockUseErrorsDetailsQuery).toHaveBeenLastCalledWith(
+        expect.objectContaining({ appId: "app-1" }),
+        "g1",
+        1,
+      );
     });
 
-    expect(replaceMock).toHaveBeenCalledWith("?po=0&updated", {
-      scroll: false,
-    });
-
-    const nextButton = await screen.findByTestId("next-button");
-    await act(async () => {
-      fireEvent.click(nextButton);
-    });
-    expect(replaceMock).toHaveBeenLastCalledWith("?po=1&updated", {
-      scroll: false,
-    });
-  });
-
-  it("Prev click does not go below 0", async () => {
-    mockUseErrorsDetailsQuery.mockReturnValue({
-      data: { ...sampleErrorsDetails, meta: { previous: true, next: true } },
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(
-      <ErrorDetailsPage
-        params={promiseParams({
-          teamId: "123",
-          appId: "app-1",
-          errorGroupId: "g1",
-          errorGroupName: "test",
-        })}
-      />,
-    );
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1", name: "measure demo" },
-        },
+    it("Prev click does not go below 0", async () => {
+      mockRouter.setUrl("?po=1");
+      detailsLoaded({
+        ...sampleErrorsDetails,
+        meta: { previous: true, next: true },
       });
-    });
+      renderPage();
 
-    const prevButton = await screen.findByTestId("prev-button");
-    await act(async () => {
-      fireEvent.click(prevButton);
-    });
-    expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated", {
-      scroll: false,
-    });
-  });
-
-  it("resets pagination offset when filters change", async () => {
-    mockUseErrorsDetailsQuery.mockReturnValue({
-      data: { ...sampleErrorsDetails, meta: { previous: true, next: true } },
-      status: "success",
-      isFetching: false,
-      error: null,
-    });
-    render(
-      <ErrorDetailsPage
-        params={promiseParams({
-          teamId: "123",
-          appId: "app-1",
-          errorGroupId: "g1",
-          errorGroupName: "test",
-        })}
-      />,
-    );
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated",
-          app: { id: "app-1", name: "measure demo" },
-        },
+      const prevButton = await screen.findByTestId("prev-button");
+      await act(async () => {
+        fireEvent.click(prevButton);
       });
-    });
-    const nextButton = await screen.findByTestId("next-button");
-    await act(async () => {
-      fireEvent.click(nextButton);
-    });
-    expect(replaceMock).toHaveBeenLastCalledWith("?po=1&updated", {
-      scroll: false,
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
+
+      await act(async () => {
+        fireEvent.click(prevButton);
+      });
+      expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
     });
 
-    await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          serialisedFilters: "updated2",
-          app: { id: "app-1", name: "measure demo" },
-        },
+    it("resets the pagination offset when the filter changes", async () => {
+      mockRouter.setUrl("?po=1");
+      detailsLoaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("filter-bar-apply"));
       });
-      await new Promise((r) => setTimeout(r, 0));
-    });
-    expect(replaceMock).toHaveBeenLastCalledWith("?po=0&updated2", {
-      scroll: false,
+
+      expect(mockRouter.urlParams()).toEqual({
+        ...settled,
+        po: "0",
+        filter_expr: "os_name:in:android",
+      });
     });
   });
 });

@@ -1935,452 +1935,316 @@ describe("additional branch coverage", () => {
 // Errors (unified Crashes + ANRs)
 // ========================================================================
 
-// Builds a Filters object with the Errors-source fields set, useful for
-// asserting on URL parameters added by appendErrorFiltersToUrl.
-function makeErrorsFilters(
-  overrides: Partial<Filters> = {},
-  errorOverrides: Partial<{
-    selectedErrorTypes: string[];
-    selectedSeverities: string[];
-    customErrorsOnly: boolean;
-  }> = {},
-): Filters {
-  return {
-    ...defaultFilters,
-    ready: true,
-    app: { id: "app-a", onboarded: true } as any,
-    startDate: "2026-04-01T00:00:00.000Z",
-    endDate: "2026-04-10T00:00:00.000Z",
-    versions: { selected: [{ name: "1.0.0", code: "100" } as any], all: false },
-    filterShortCodePromise: Promise.resolve("code-123"),
-    selectedErrorTypes: errorOverrides.selectedErrorTypes ?? [],
-    selectedSeverities: errorOverrides.selectedSeverities ?? [],
-    customErrorsOnly: errorOverrides.customErrorsOnly ?? false,
-    ...overrides,
-  };
-}
-
-// Parse the most recent fetch URL into URLSearchParams so query-param
-// assertions can be order-independent.
-function lastFetchParams(): URLSearchParams {
-  const url = lastFetchUrl();
-  const qIndex = url.indexOf("?");
-  if (qIndex === -1) {
-    return new URLSearchParams("");
-  }
-  return new URLSearchParams(url.slice(qIndex + 1));
-}
-
 describe("fetchErrorsOverviewFromServer", () => {
-  it("returns the body on 200", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ results: [{ id: "g1" }] }),
+  const call = (filterExpr: string | null = null) =>
+    fetchErrorsOverviewFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      filterExpr,
+      5,
+      0,
     );
-    const r = await fetchErrorsOverviewFromServer(makeErrorsFilters(), 5, 0);
-    expect(r).toEqual({ results: [{ id: "g1" }] });
-  });
 
-  it("hits /apps/:id/errorGroups", async () => {
+  it("sends the range, timezone and page in the URL", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
-    await fetchErrorsOverviewFromServer(makeErrorsFilters(), 5, 0);
-    expect(lastFetchUrl()).toContain("/api/apps/app-a/errorGroups");
+    await call();
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/errorGroups");
+    expect(url.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    expect(url.searchParams.get("limit")).toBe("5");
+    expect(url.searchParams.get("offset")).toBe("0");
+    expect(url.searchParams.has("filter_expr")).toBe(false);
   });
 
   it("appends limit/offset", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
-    await fetchErrorsOverviewFromServer(makeErrorsFilters(), 25, 100);
-    const params = lastFetchParams();
-    expect(params.get("limit")).toBe("25");
-    expect(params.get("offset")).toBe("100");
+    await fetchErrorsOverviewFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      null,
+      25,
+      100,
+    );
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("limit")).toBe("25");
+    expect(url.searchParams.get("offset")).toBe("100");
   });
 
-  it("appends type/severity/custom when all are set", async () => {
+  it("sends the filter expression when one is given", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
-    await fetchErrorsOverviewFromServer(
-      makeErrorsFilters(
-        {},
-        {
-          selectedErrorTypes: ["error", "anr"],
-          selectedSeverities: ["fatal", "handled"],
-          customErrorsOnly: true,
-        },
-      ),
-      5,
-      0,
-    );
-    const params = lastFetchParams();
-    expect(params.get("type")).toBe("error,anr");
-    expect(params.get("severity")).toBe("fatal,handled");
-    expect(params.get("custom")).toBe("true");
+    await call("error_type:in:[Crash]");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("filter_expr")).toBe("error_type:in:[Crash]");
   });
 
-  it("omits type/severity/custom when all are at defaults", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
-    await fetchErrorsOverviewFromServer(
-      makeErrorsFilters(
-        {},
-        {
-          selectedErrorTypes: [],
-          selectedSeverities: [],
-          customErrorsOnly: false,
-        },
-      ),
-      5,
-      0,
+  it("returns the body on 200", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse({ results: [{ id: "g1" }] }),
     );
-    const params = lastFetchParams();
-    expect(params.has("type")).toBe(false);
-    expect(params.has("severity")).toBe(false);
-    expect(params.has("custom")).toBe(false);
+    expect(await call()).toEqual({ results: [{ id: "g1" }] });
   });
 
   it("throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse(500));
-    await expect(
-      fetchErrorsOverviewFromServer(makeErrorsFilters(), 5, 0),
-    ).rejects.toThrow(ApiError);
+    await expect(call()).rejects.toThrow(ApiError);
   });
 
   it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("boom"));
-    await expect(
-      fetchErrorsOverviewFromServer(makeErrorsFilters(), 5, 0),
-    ).rejects.toThrow(RequestError);
+    await expect(call()).rejects.toThrow(RequestError);
   });
 });
 
 describe("fetchErrorsOverviewPlotFromServer", () => {
-  it("returns the plot body on 200", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse([{ data: [{ datetime: "x", instances: 1 }] }]),
+  const call = (filterExpr: string | null = null) =>
+    fetchErrorsOverviewPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      filterExpr,
     );
-    const r = await fetchErrorsOverviewPlotFromServer(makeErrorsFilters());
-    expect(r).toEqual([{ data: [{ datetime: "x", instances: 1 }] }]);
+
+  it("sends the range, timezone and time group in the URL", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
+    await call();
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/errorGroups/plots/instances");
+    expect(url.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    expect(url.searchParams.get("plot_time_group")).toBe("days");
+    expect(url.searchParams.has("filter_expr")).toBe(false);
   });
 
-  it("hits /apps/:id/errorGroups/plots/instances", async () => {
+  it("sends the filter expression when one is given", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    await fetchErrorsOverviewPlotFromServer(makeErrorsFilters());
-    expect(lastFetchUrl()).toContain(
-      "/api/apps/app-a/errorGroups/plots/instances",
-    );
-  });
-
-  it("appends type/severity/custom when set", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    await fetchErrorsOverviewPlotFromServer(
-      makeErrorsFilters(
-        {},
-        {
-          selectedErrorTypes: ["error"],
-          selectedSeverities: ["fatal"],
-          customErrorsOnly: true,
-        },
-      ),
-    );
-    const params = lastFetchParams();
-    expect(params.get("type")).toBe("error");
-    expect(params.get("severity")).toBe("fatal");
-    expect(params.get("custom")).toBe("true");
-  });
-
-  it("omits type/severity/custom when at defaults", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    await fetchErrorsOverviewPlotFromServer(makeErrorsFilters());
-    const params = lastFetchParams();
-    expect(params.has("type")).toBe(false);
-    expect(params.has("severity")).toBe(false);
-    expect(params.has("custom")).toBe(false);
+    await call("os_name:in:[android]");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("filter_expr")).toBe("os_name:in:[android]");
   });
 
   it("returns null on a null body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    const r = await fetchErrorsOverviewPlotFromServer(makeErrorsFilters());
-    expect(r).toBeNull();
+    expect(await call()).toBeNull();
   });
 
-  it("throws on non-ok", async () => {
+  it("returns data, throws on failure", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse([{ data: [{ datetime: "x", instances: 1 }] }]),
+    );
+    expect(await call()).toEqual([{ data: [{ datetime: "x", instances: 1 }] }]);
+
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    await expect(
-      fetchErrorsOverviewPlotFromServer(makeErrorsFilters()),
-    ).rejects.toThrow(ApiError);
-  });
+    await expect(call()).rejects.toThrow(ApiError);
 
-  it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    await expect(
-      fetchErrorsOverviewPlotFromServer(makeErrorsFilters()),
-    ).rejects.toThrow(RequestError);
+    await expect(call()).rejects.toThrow(RequestError);
   });
 });
 
 describe("fetchErrorsDetailsFromServer", () => {
-  it("hits /apps/:id/errorGroups/:id/errors", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
-    await fetchErrorsDetailsFromServer("group-1", 0, makeErrorsFilters());
-    expect(lastFetchUrl()).toContain(
-      "/api/apps/app-a/errorGroups/group-1/errors",
+  const call = (filterExpr: string | null = null, offset = 0) =>
+    fetchErrorsDetailsFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      filterExpr,
+      "group-1",
+      1,
+      offset,
     );
+
+  it("hits /apps/:id/errorGroups/:id/errors with the range, timezone and page", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await call(null, 10);
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/errorGroups/group-1/errors");
+    expect(url.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    expect(url.searchParams.get("limit")).toBe("1");
+    expect(url.searchParams.get("offset")).toBe("10");
+    expect(url.searchParams.has("filter_expr")).toBe(false);
+  });
+
+  it("sends the filter expression when one is given", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await call("user_id:eq:demo-user-id");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("filter_expr")).toBe("user_id:eq:demo-user-id");
   });
 
   it("returns the body on 200", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ results: [{ id: "e1" }] }),
     );
-    const r = await fetchErrorsDetailsFromServer(
-      "group-1",
-      0,
-      makeErrorsFilters(),
-    );
-    expect(r).toEqual({ results: [{ id: "e1" }] });
-  });
-
-  it("does NOT append type/severity/custom (single-group endpoint, filters don't apply)", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
-    await fetchErrorsDetailsFromServer(
-      "group-1",
-      10,
-      makeErrorsFilters(
-        {},
-        {
-          selectedErrorTypes: ["anr"],
-          selectedSeverities: ["handled"],
-          customErrorsOnly: true,
-        },
-      ),
-    );
-    const params = lastFetchParams();
-    expect(params.get("type")).toBeNull();
-    expect(params.get("severity")).toBeNull();
-    expect(params.get("custom")).toBeNull();
-    expect(params.get("offset")).toBe("10");
-  });
-
-  it("omits type/severity/custom when at defaults", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
-    await fetchErrorsDetailsFromServer("group-1", 0, makeErrorsFilters());
-    const params = lastFetchParams();
-    expect(params.has("type")).toBe(false);
-    expect(params.has("severity")).toBe(false);
-    expect(params.has("custom")).toBe(false);
+    expect(await call()).toEqual({ results: [{ id: "e1" }] });
   });
 
   it("throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    await expect(
-      fetchErrorsDetailsFromServer("group-1", 0, makeErrorsFilters()),
-    ).rejects.toThrow(ApiError);
+    await expect(call()).rejects.toThrow(ApiError);
   });
 
   it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    await expect(
-      fetchErrorsDetailsFromServer("group-1", 0, makeErrorsFilters()),
-    ).rejects.toThrow(RequestError);
+    await expect(call()).rejects.toThrow(RequestError);
   });
 });
 
 describe("fetchErrorGroupCommonPathFromServer", () => {
-  it("hits /apps/:id/errorGroups/:id/path", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ sessions_analyzed: 0, steps: [] }),
-    );
-    await fetchErrorGroupCommonPathFromServer("group-1", makeErrorsFilters());
-    expect(lastFetchUrl()).toContain(
-      "/api/apps/app-a/errorGroups/group-1/path",
-    );
-  });
+  const call = () => fetchErrorGroupCommonPathFromServer("app-a", "group-1");
 
-  it("does NOT add any filter query params (path endpoint takes none)", async () => {
+  it("hits /apps/:id/errorGroups/:id/path with no query params", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ sessions_analyzed: 0, steps: [] }),
     );
-    await fetchErrorGroupCommonPathFromServer(
-      "group-1",
-      makeErrorsFilters(
-        {},
-        {
-          selectedErrorTypes: ["error", "anr"],
-          selectedSeverities: ["fatal"],
-          customErrorsOnly: true,
-        },
-      ),
-    );
-    const url = lastFetchUrl();
-    expect(url).not.toContain("type=");
-    expect(url).not.toContain("severity=");
-    expect(url).not.toContain("custom=");
-    expect(url).not.toContain("from=");
-    expect(url).not.toContain("to=");
-    expect(url).not.toContain("filter_short_code=");
+    await call();
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/errorGroups/group-1/path");
+    expect(url.search).toBe("");
   });
 
   it("returns the body on 200", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ sessions_analyzed: 3, steps: [] }),
     );
-    const r = await fetchErrorGroupCommonPathFromServer(
-      "group-1",
-      makeErrorsFilters(),
-    );
+    const r = await call();
     expect((r as any).sessions_analyzed).toBe(3);
   });
 
   it("throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    await expect(
-      fetchErrorGroupCommonPathFromServer("group-1", makeErrorsFilters()),
-    ).rejects.toThrow(ApiError);
+    await expect(call()).rejects.toThrow(ApiError);
   });
 
   it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    await expect(
-      fetchErrorGroupCommonPathFromServer("group-1", makeErrorsFilters()),
-    ).rejects.toThrow(RequestError);
+    await expect(call()).rejects.toThrow(RequestError);
   });
 });
 
 describe("fetchErrorsDetailsPlotFromServer", () => {
-  it("hits /apps/:id/errorGroups/:id/plots/instances", async () => {
+  const call = (filterExpr: string | null = null) =>
+    fetchErrorsDetailsPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      filterExpr,
+      "group-1",
+    );
+
+  it("hits /apps/:id/errorGroups/:id/plots/instances with the range and time group", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse([{ data: [{ datetime: "x", instances: 1 }] }]),
     );
-    await fetchErrorsDetailsPlotFromServer("group-1", makeErrorsFilters());
-    expect(lastFetchUrl()).toContain(
+    await call();
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe(
       "/api/apps/app-a/errorGroups/group-1/plots/instances",
     );
+    expect(url.searchParams.get("plot_time_group")).toBe("days");
+    expect(url.searchParams.has("filter_expr")).toBe(false);
   });
 
-  it("does NOT append type/severity/custom (single-group endpoint, filters don't apply)", async () => {
+  it("sends the filter expression when one is given", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
-    await fetchErrorsDetailsPlotFromServer(
-      "group-1",
-      makeErrorsFilters(
-        {},
-        {
-          selectedErrorTypes: ["error", "anr"],
-          selectedSeverities: ["fatal"],
-          customErrorsOnly: true,
-        },
-      ),
+    await call("device_manufacturer:eq:Google");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("filter_expr")).toBe(
+      "device_manufacturer:eq:Google",
     );
-    const url = lastFetchUrl();
-    expect(url).not.toContain("type=");
-    expect(url).not.toContain("severity=");
-    expect(url).not.toContain("custom=");
   });
 
   it("returns the body on 200", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse([{ data: [{ datetime: "x", instances: 1 }] }]),
     );
-    const r = await fetchErrorsDetailsPlotFromServer(
-      "group-1",
-      makeErrorsFilters(),
-    );
-    expect(r).toEqual([{ data: [{ datetime: "x", instances: 1 }] }]);
+    expect(await call()).toEqual([{ data: [{ datetime: "x", instances: 1 }] }]);
   });
 
   it("returns null on a null body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    const r = await fetchErrorsDetailsPlotFromServer(
-      "group-1",
-      makeErrorsFilters(),
-    );
-    expect(r).toBeNull();
+    expect(await call()).toBeNull();
   });
 
   it("throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    await expect(
-      fetchErrorsDetailsPlotFromServer("group-1", makeErrorsFilters()),
-    ).rejects.toThrow(ApiError);
+    await expect(call()).rejects.toThrow(ApiError);
   });
 
   it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    await expect(
-      fetchErrorsDetailsPlotFromServer("group-1", makeErrorsFilters()),
-    ).rejects.toThrow(RequestError);
+    await expect(call()).rejects.toThrow(RequestError);
   });
 });
 
 describe("fetchErrorsDistributionPlotFromServer", () => {
-  it("hits /apps/:id/errorGroups/:id/plots/distribution", async () => {
+  const call = (filterExpr: string | null = null) =>
+    fetchErrorsDistributionPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      filterExpr,
+      "group-1",
+    );
+
+  it("hits /apps/:id/errorGroups/:id/plots/distribution with the range and timezone, no time group", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ os_version: { "android 13": 5 } }),
     );
-    await fetchErrorsDistributionPlotFromServer("group-1", makeErrorsFilters());
-    expect(lastFetchUrl()).toContain(
+    await call();
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe(
       "/api/apps/app-a/errorGroups/group-1/plots/distribution",
     );
+    expect(url.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    expect(url.searchParams.has("plot_time_group")).toBe(false);
+    expect(url.searchParams.has("filter_expr")).toBe(false);
   });
 
-  it("does NOT append type/severity/custom (single-group endpoint, filters don't apply)", async () => {
+  it("sends the filter expression when one is given", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ os_version: { "android 13": 5 } }),
     );
-    await fetchErrorsDistributionPlotFromServer(
-      "group-1",
-      makeErrorsFilters(
-        {},
-        {
-          selectedErrorTypes: ["error"],
-          selectedSeverities: ["fatal", "handled"],
-          customErrorsOnly: true,
-        },
-      ),
-    );
-    const params = lastFetchParams();
-    expect(params.get("type")).toBeNull();
-    expect(params.get("severity")).toBeNull();
-    expect(params.get("custom")).toBeNull();
+    await call("network_type:eq:wifi");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("filter_expr")).toBe("network_type:eq:wifi");
   });
 
   it("returns the body when it is non-empty", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ os_version: { "android 13": 5 } }),
     );
-    const r = await fetchErrorsDistributionPlotFromServer(
-      "group-1",
-      makeErrorsFilters(),
-    );
-    expect(r).toEqual({ os_version: { "android 13": 5 } });
+    expect(await call()).toEqual({ os_version: { "android 13": 5 } });
   });
 
   it("returns null on a null body", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    const r = await fetchErrorsDistributionPlotFromServer(
-      "group-1",
-      makeErrorsFilters(),
-    );
-    expect(r).toBeNull();
+    expect(await call()).toBeNull();
   });
 
   it("returns null on a body where every attribute is empty", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse({ os_version: {}, country: {} }),
     );
-    const r = await fetchErrorsDistributionPlotFromServer(
-      "group-1",
-      makeErrorsFilters(),
-    );
-    expect(r).toBeNull();
+    expect(await call()).toBeNull();
   });
 
   it("throws on non-ok", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    await expect(
-      fetchErrorsDistributionPlotFromServer("group-1", makeErrorsFilters()),
-    ).rejects.toThrow(ApiError);
+    await expect(call()).rejects.toThrow(ApiError);
   });
 
   it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    await expect(
-      fetchErrorsDistributionPlotFromServer("group-1", makeErrorsFilters()),
-    ).rejects.toThrow(RequestError);
+    await expect(call()).rejects.toThrow(RequestError);
   });
 });
 

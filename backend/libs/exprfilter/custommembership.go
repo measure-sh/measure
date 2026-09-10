@@ -283,7 +283,7 @@ func (b *customMembershipBinder) single(match customConditionMatch) (string, []a
 		operator = "not in"
 	}
 	versionSQL, versionArgs := b.versionConditions()
-	text := b.store.idColumn + " " + operator + " (" +
+	text := b.store.matchColumn() + " " + operator + " (" +
 		"select " + b.store.idColumn + " from " + b.store.table +
 		b.scopeSQL() +
 		versionSQL +
@@ -307,7 +307,7 @@ func (b *customMembershipBinder) grouped(operator string, matches []customCondit
 	}
 
 	versionSQL, versionArgs := b.versionConditions()
-	text := b.store.idColumn + " " + operator + " (" +
+	text := b.store.matchColumn() + " " + operator + " (" +
 		"select " + b.store.idColumn + " from " + b.store.table +
 		b.scopeSQL() +
 		versionSQL +

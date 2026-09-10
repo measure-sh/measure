@@ -1,7 +1,6 @@
 "use client";
 
-import { useErrorsDistributionPlotQuery } from "@/app/query/hooks";
-import { useFiltersStore } from "@/app/stores/provider";
+import { type useErrorsDistributionPlotQuery } from "@/app/query/hooks";
 import { ResponsiveBar } from "@nivo/bar";
 import React from "react";
 import { numberToKMB } from "../utils/number_utils";
@@ -114,21 +113,19 @@ const { parsedPlot: demoParsedPlot, parsedPlotKeys: demoParsedPlotKeys } =
   parseDemoData(demoDistribution);
 
 interface ErrorsDistributionPlotProps {
-  errorGroupId: string;
+  query?: ReturnType<typeof useErrorsDistributionPlotQuery>;
   demo?: boolean;
 }
 
 const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
-  errorGroupId,
+  query,
   demo = false,
 }) => {
-  const { data: queryData, status } =
-    useErrorsDistributionPlotQuery(errorGroupId);
   const chartColors = useChartColors();
 
-  const effectiveStatus = demo ? "success" : status;
-  const plot = demo ? demoParsedPlot : queryData?.plot;
-  const plotKeys = demo ? demoParsedPlotKeys : queryData?.plotKeys;
+  const effectiveStatus = demo ? "success" : (query?.status ?? "pending");
+  const plot = demo ? demoParsedPlot : query?.data?.plot;
+  const plotKeys = demo ? demoParsedPlotKeys : query?.data?.plotKeys;
 
   return (
     <div
@@ -142,7 +139,7 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
           again
         </p>
       )}
-      {effectiveStatus === "success" && queryData === null && !demo && (
+      {effectiveStatus === "success" && query?.data === null && !demo && (
         <p
           data-testid="exception-distribution-plot-no-data"
           className="text-lg font-display text-center p-4"

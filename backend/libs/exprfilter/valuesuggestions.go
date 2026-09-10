@@ -29,6 +29,12 @@ type fixedKeyValueSource struct {
 	recencyExpr  string
 	timeColumn   string
 	arrayColumns bool
+
+	// extraScope is an extra boolean SQL clause for tables holding more than
+	// the entity's rows. The events table holds every event type of event, so the
+	// errors entity reads user ids from it with type in ('exception', 'anr').
+	// Empty when every row belongs to the entity.
+	extraScope string
 }
 
 // A suggestion is only a shortcut for typing a value, so a raw table is read
@@ -115,6 +121,10 @@ func suggestFixedKeyValuesFromClickHouse(sources ...fixedKeyValueSource) func(ct
 
 		if fixedValues.timeColumn != "" {
 			stmt.Where(fixedValues.timeColumn+" >= ?", suggestionWindowStart())
+		}
+
+		if fixedValues.extraScope != "" {
+			stmt.Where(fixedValues.extraScope)
 		}
 
 		stmt.

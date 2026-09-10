@@ -1937,13 +1937,13 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 		rawToken := "msr_tok1"
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
 
-		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{"error_types": []string{"error"}})
+		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{})
 		if !isToolError(resp) {
 			t.Error("want tool error for missing app_id")
 		}
 	})
 
-	t.Run("invalid error_types value", func(t *testing.T) {
+	t.Run("invalid filter_expr returns the issue", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "u2@mcp.test")
@@ -1956,15 +1956,18 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
-			"error_types": []string{"invalid"},
+			"filter_expr": "bogus_key:in:x",
 			"app_id":      appID.String(),
 		})
 		if !isToolError(resp) {
-			t.Error("want tool error for invalid error_types")
+			t.Fatal("want tool error for unknown filter key")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "filter_expr is invalid") || !strings.Contains(text, "bogus_key") {
+			t.Errorf("error text %q should name the unknown key", text)
 		}
 	})
 
-	t.Run("invalid severities value", func(t *testing.T) {
+	t.Run("an error type the key does not offer is refused", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "u3@mcp.test")
@@ -1977,11 +1980,11 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
-			"severities": []string{"bogus"},
-			"app_id":     appID.String(),
+			"filter_expr": "error_type:in:crash",
+			"app_id":      appID.String(),
 		})
 		if !isToolError(resp) {
-			t.Error("want tool error for invalid severities")
+			t.Error("want tool error for an unknown error type")
 		}
 	})
 
@@ -1995,7 +1998,9 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
 
-		fingerprint := "fp-crash-1"
+		// exception.fingerprint is FixedString(32); a shorter value is padded
+		// and never matches its group row.
+		fingerprint := "0000000000000000000000000000f001"
 		th.SeedFatalExceptionGroupWithCustomFlag(ctx, t, teamID.String(), appID.String(), fingerprint, false)
 		th.SeedIssueEventWithSeverity(ctx, t, teamID.String(), appID.String(), fingerprint, "fatal", time.Now().Add(-1*time.Hour))
 
@@ -2005,19 +2010,21 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 		now := time.Now().UTC()
 		from := now.Add(-7 * 24 * time.Hour)
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
-			"error_types": []string{"error"},
-			"severities":  []string{"fatal"},
+			"filter_expr": `error_type:in:[Crash]`,
 			"app_id":      appID.String(),
 			"from":        from.Format(time.RFC3339),
-			"to":          now.Format(time.RFC3339),
+			"to":          now.Add(time.Hour).Format(time.RFC3339),
 		})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
 		content := extractTextContent(t, resp)
-		var groups []any
+		var groups []map[string]any
 		if err := json.Unmarshal([]byte(content), &groups); err != nil {
-			t.Errorf("response is not JSON array: %v\ncontent: %s", err, content)
+			t.Fatalf("response is not JSON array: %v\ncontent: %s", err, content)
+		}
+		if len(groups) != 1 || groups[0]["id"] != fingerprint {
+			t.Errorf("want only the crash group %q, got %s", fingerprint, content)
 		}
 	})
 
@@ -2035,12 +2042,10 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
-			"error_types": []string{"error"},
-			"severities":  []string{"fatal"},
-			"app_id":      appID.String(),
-			"limit":       0,
-			"from":        now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
-			"to":          now.Format(time.RFC3339),
+			"app_id": appID.String(),
+			"limit":  0,
+			"from":   now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
+			"to":     now.Format(time.RFC3339),
 		})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
@@ -2061,12 +2066,10 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
-			"error_types": []string{"error"},
-			"severities":  []string{"fatal"},
-			"app_id":      appID.String(),
-			"limit":       500,
-			"from":        now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
-			"to":          now.Format(time.RFC3339),
+			"app_id": appID.String(),
+			"limit":  500,
+			"from":   now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
+			"to":     now.Format(time.RFC3339),
 		})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
@@ -2099,7 +2102,7 @@ func TestMCPGetErrors_ANR(t *testing.T) {
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
-			"error_types": []string{"anr"},
+			"filter_expr": `error_type:in:[ANR]`,
 			"app_id":      appID.String(),
 			"from":        now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
 			"to":          now.Format(time.RFC3339),
@@ -2155,8 +2158,6 @@ func TestMCPGetError_Crash(t *testing.T) {
 			"error_group_id": fingerprint,
 			"from":           now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
 			"to":             now.Format(time.RFC3339),
-			"versions":       []string{"1.0.0"},
-			"version_codes":  []string{"1"},
 			"limit":          1,
 		})
 		if isToolError(resp) {
@@ -2166,6 +2167,31 @@ func TestMCPGetError_Crash(t *testing.T) {
 		var events []any
 		if err := json.Unmarshal([]byte(content), &events); err != nil {
 			t.Errorf("response is not JSON array: %v\ncontent: %s", err, content)
+		}
+	})
+
+	t.Run("error_type is not a key of one group's events", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "dettype@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "dettype team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := "msr_dettype"
+		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+
+		resp := callMCPTool(t, rawToken, "get_error", map[string]any{
+			"app_id":         appID.String(),
+			"error_group_id": "fp-detail-type",
+			"filter_expr":    `error_type:in:[ANR]`,
+		})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for an error_type condition on one group's events")
+		}
+		if content := extractTextContent(t, resp); !strings.Contains(content, "error_type") {
+			t.Errorf("want the unknown key named, got %s", content)
 		}
 	})
 
@@ -2188,8 +2214,6 @@ func TestMCPGetError_Crash(t *testing.T) {
 			"limit":          0,
 			"from":           now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
 			"to":             now.Format(time.RFC3339),
-			"versions":       []string{"1.0.0"},
-			"version_codes":  []string{"1"},
 		})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
@@ -2215,8 +2239,6 @@ func TestMCPGetError_Crash(t *testing.T) {
 			"limit":          500,
 			"from":           now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
 			"to":             now.Format(time.RFC3339),
-			"versions":       []string{"1.0.0"},
-			"version_codes":  []string{"1"},
 		})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
@@ -2264,8 +2286,6 @@ func TestMCPGetError_ANR(t *testing.T) {
 			"error_group_id": fingerprint,
 			"from":           now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
 			"to":             now.Format(time.RFC3339),
-			"versions":       []string{"1.0.0"},
-			"version_codes":  []string{"1"},
 		})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
@@ -2995,11 +3015,14 @@ func TestMCPGetErrorOverviewPlot(t *testing.T) {
 		return appID, rawToken
 	}
 
-	t.Run("invalid error_types", func(t *testing.T) {
+	t.Run("invalid filter_expr returns the issue", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "eplotbadtype@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_errors_over_time", map[string]any{"error_types": []string{"invalid"}, "app_id": appID.String(), "timezone": "UTC"})
+		resp := callMCPTool(t, rawToken, "get_errors_over_time", map[string]any{"filter_expr": "bogus_key:in:x", "app_id": appID.String(), "timezone": "UTC"})
 		if !isToolError(resp) {
-			t.Error("want tool error for invalid error_types")
+			t.Fatal("want tool error for unknown filter key")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "filter_expr is invalid") || !strings.Contains(text, "bogus_key") {
+			t.Errorf("error text %q should name the unknown key", text)
 		}
 	})
 	t.Run("missing timezone", func(t *testing.T) {
@@ -3012,7 +3035,7 @@ func TestMCPGetErrorOverviewPlot(t *testing.T) {
 	t.Run("valid crash plot call", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "eplot2@mcp.test")
 		now := time.Now().UTC()
-		resp := callMCPTool(t, rawToken, "get_errors_over_time", map[string]any{"error_types": []string{"error"}, "severities": []string{"fatal"}, "app_id": appID.String(), "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
+		resp := callMCPTool(t, rawToken, "get_errors_over_time", map[string]any{"filter_expr": `error_type:in:[Crash]`, "app_id": appID.String(), "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
@@ -3020,7 +3043,7 @@ func TestMCPGetErrorOverviewPlot(t *testing.T) {
 	t.Run("valid ANR plot call", func(t *testing.T) {
 		appID, rawToken := setupToolTest(t, "eplotanr@mcp.test")
 		now := time.Now().UTC()
-		resp := callMCPTool(t, rawToken, "get_errors_over_time", map[string]any{"error_types": []string{"anr"}, "app_id": appID.String(), "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
+		resp := callMCPTool(t, rawToken, "get_errors_over_time", map[string]any{"filter_expr": `error_type:in:[ANR]`, "app_id": appID.String(), "timezone": "UTC", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}

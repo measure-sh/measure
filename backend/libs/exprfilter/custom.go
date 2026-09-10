@@ -245,7 +245,7 @@ func (ef *ExprFilter) ResolveCustomKeys(ctx context.Context, chPool driver.Conn)
 	// array untouched.
 	ef.Entity.Keys = append(slices.Clip(ef.Entity.Keys), keys...)
 
-	versionNames, versionCodes := collectRootVersionConditions(ef.ExprTree)
+	versionNames, versionCodes := ef.RootVersionConditions()
 	ef.customBinder = ef.Entity.CustomKeys.bindConditions(CustomKeyScope{
 		TeamID:       ef.TeamID,
 		AppID:        ef.AppID,

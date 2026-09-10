@@ -453,6 +453,26 @@ export function makeExceptionsOverviewFixture(
   };
 }
 
+export function makeExceptionsOverviewPage2Fixture() {
+  return {
+    meta: { next: false, previous: true },
+    results: [
+      {
+        id: "crash-group-003",
+        app_id: "b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f",
+        type: "java.lang.ArithmeticException",
+        message: "divide by zero",
+        method_name: "computeTotal",
+        file_name: "CartActivity.kt",
+        line_number: 12,
+        count: 91,
+        percentage_contribution: 2.7,
+        updated_at: "2026-04-08T10:00:00Z",
+      },
+    ],
+  };
+}
+
 // --- Exception Instance Detail (GET /apps/:appId/crashGroups/:id/crashes) ---
 
 // Pass `variant: 'anr'` to get an ANR instance (with `anr` field instead of `exception`)
@@ -1694,6 +1714,172 @@ export function makeNetworkFilterKeysFixture(
       },
     ],
     key_groups: ["Request", "Version", "OS", "Device", "Network", "Location"],
+    ...overrides,
+  };
+}
+
+// --- Filter keys for the errors entity ---
+
+export function makeErrorGroupEventsFilterKeysFixture() {
+  const errors = makeErrorsFilterKeysFixture();
+  return {
+    ...errors,
+    keys: errors.keys.filter((key: any) => key.name !== "error_type"),
+    key_groups: errors.key_groups.filter((group: string) => group !== "Error"),
+  };
+}
+
+export function makeErrorsFilterKeysFixture(
+  overrides: Record<string, any> = {},
+) {
+  return {
+    keys: [
+      {
+        name: "error_type",
+        label: "Error Type",
+        description: "The kind and severity of the error",
+        key_group: "Error",
+        value_type: "enum",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+        enum_values: ["Crash", "ANR", "Handled Error", "Unhandled Error"],
+      },
+      {
+        name: "version_name",
+        label: "App version",
+        description: "The app version the error occurred on",
+        key_group: "Version",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "version_code",
+        label: "App build",
+        description: "The app build the error occurred on",
+        key_group: "Version",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "patch_version",
+        label: "Patch version",
+        description: "The version of an Over-The-Air patch.",
+        key_group: "Version",
+        value_type: "string",
+        value_suggestion_mode: "sample",
+        operators: ["in", "not_in", "contains"],
+      },
+      {
+        name: "patch_id",
+        label: "Patch id",
+        description: "The id of an Over-The-Air patch.",
+        key_group: "Version",
+        value_type: "uuid",
+        value_suggestion_mode: "sample",
+        operators: ["in", "not_in", "is_set", "is_not_set"],
+      },
+      {
+        name: "user_id",
+        label: "User ID",
+        description: "The user the error occurred for",
+        key_group: "User",
+        value_type: "string",
+        value_suggestion_mode: "sample",
+        operators: ["in", "not_in", "contains"],
+      },
+      {
+        name: "os_name",
+        label: "OS name",
+        description: "The operating system's name",
+        key_group: "OS",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "os_version",
+        label: "OS version",
+        description: "The operating system's version",
+        key_group: "OS",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "device_name",
+        label: "Device name",
+        description: "The device's model name",
+        key_group: "Device",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "device_manufacturer",
+        label: "Device manufacturer",
+        description: "The device's manufacturer",
+        key_group: "Device",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "locale",
+        label: "Locale",
+        description: "The device's locale",
+        key_group: "Device",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "network_type",
+        label: "Network type",
+        description: "The kind of network the device was on",
+        key_group: "Network",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "network_generation",
+        label: "Network generation",
+        description: "The cellular network generation the device was on",
+        key_group: "Network",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "network_provider",
+        label: "Network provider",
+        description: "The device's network carrier",
+        key_group: "Network",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+      {
+        name: "country",
+        label: "Country",
+        description: "The country the error occurred in",
+        key_group: "Location",
+        value_type: "string",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+      },
+    ],
+    key_groups: [
+      "Error",
+      "Version",
+      "User",
+      "OS",
+      "Device",
+      "Network",
+      "Location",
+    ],
     ...overrides,
   };
 }

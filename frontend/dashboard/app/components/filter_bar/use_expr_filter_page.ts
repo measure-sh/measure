@@ -113,11 +113,14 @@ export function useExprFilterPage({
   entity,
   paginationLimit,
   rootSpan = false,
+  appId: fixedAppId,
 }: {
   teamId: string;
   entity: string;
   paginationLimit?: number;
   rootSpan?: boolean;
+  // Fixes the app. The URL app id is overwritten with it.
+  appId?: string;
 }) {
   const searchParams = useSearchParams();
   const search = searchParams.toString();
@@ -133,7 +136,7 @@ export function useExprFilterPage({
 
   const url = useMemo(
     () => ({
-      appId: searchParams.get(appIdUrlKey),
+      appId: fixedAppId ?? searchParams.get(appIdUrlKey),
       dateRange: {
         dateRange: searchParams.get(dateRangeUrlKey),
         startDate: searchParams.get(startDateUrlKey),
@@ -142,7 +145,7 @@ export function useExprFilterPage({
       filterExpr: searchParams.get(filterExprUrlKey),
       rootSpanName: rootSpan ? searchParams.get(rootSpanNameUrlKey) : null,
     }),
-    [search, rootSpan],
+    [search, rootSpan, fixedAppId],
   );
 
   const appsQuery = useAppsQuery(teamId);
