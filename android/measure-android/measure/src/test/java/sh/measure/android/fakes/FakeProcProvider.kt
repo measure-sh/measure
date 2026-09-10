@@ -35,9 +35,11 @@ internal class FakeProcProvider : ProcProvider {
     }
 
     /**
-     * A trimmed but realistic /proc/pid/status: VmRSS and VmSwap are what
-     * anonRss()/swap() read, the surrounding lines exercise that unrelated
-     * lines are correctly skipped.
+     * A trimmed but realistic /proc/pid/status: RssAnon and VmSwap are what
+     * anonRss()/swap() read. VmRSS and RssFile/RssShmem are included so a
+     * regression back to reading total (not anonymous-only) RSS, or a
+     * startsWith("RssAnon") prefix collision with a sibling Rss* field,
+     * would be caught.
      */
     private fun createDummyProcStatusFile(): File = File.createTempFile("status", "").apply {
         writeText(
@@ -46,7 +48,10 @@ internal class FakeProcProvider : ProcProvider {
             State:	S (sleeping)
             VmPeak:	  123456 kB
             VmSize:	  120000 kB
-            VmRSS:	   $anonRss kB
+            VmRSS:	   99999 kB
+            RssAnon:	   $anonRss kB
+            RssFile:	   11111 kB
+            RssShmem:	   2222 kB
             VmSwap:	     $swap kB
             Threads:	4
             """.trimIndent(),

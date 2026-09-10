@@ -42,7 +42,7 @@ internal interface MemoryReader {
 
     /**
      * Returns the anonymous resident set size of the process, from
-     * /proc/self/status VmRSS, in KB. Null when the file or the field is
+     * /proc/self/status RssAnon, in KB. Null when the file or the field is
      * unavailable — never treat that as zero.
      */
     fun anonRss(): Long?
@@ -104,7 +104,12 @@ internal class DefaultMemoryReader(
         return null
     }
 
-    override fun anonRss(): Long? = readStatusField("VmRSS")
+    // RssAnon, not VmRSS: VmRSS is total resident memory, including
+    // file-backed/shared pages, which the feature is deliberately excluding
+    // (it mirrors Android's own memory vital, which reports anonymous-only
+    // usage precisely because shared pages don't reflect the app's own
+    // footprint).
+    override fun anonRss(): Long? = readStatusField("RssAnon")
 
     override fun swap(): Long? = readStatusField("VmSwap")
 

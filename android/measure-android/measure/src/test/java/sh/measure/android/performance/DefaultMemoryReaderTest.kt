@@ -91,7 +91,7 @@ internal class DefaultMemoryReaderTest {
     }
 
     @Test
-    fun `returns null for anon RSS when the status file has no VmRSS line`() {
+    fun `returns null for anon RSS when the status file has no RssAnon line`() {
         val emptyStatusProcProvider = object : ProcProvider by procProvider {
             override fun getStatusFile(pid: Int) = File.createTempFile("status-empty", "").apply {
                 writeText("Name:\tsample\n")
