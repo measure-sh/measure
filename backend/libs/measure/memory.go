@@ -178,6 +178,7 @@ func (a App) GetUsagePlot(
 // usable reading; sessions with none are excluded, not ranked at the bottom.
 func (a App) GetHighestMemorySessions(ctx context.Context, rch driver.Conn, ios bool, ef *exprfilter.ExprFilter) (sessions []MemorySessionDisplay, next, previous bool, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
+	sessions = make([]MemorySessionDisplay, 0)
 
 	base := sqlf.
 		From("sessions").
