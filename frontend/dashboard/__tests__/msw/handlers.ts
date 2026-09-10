@@ -20,6 +20,8 @@ import {
   makeBugReportDetailFixture,
   makeBugReportsFilterKeysFixture,
   makeJourneysFilterKeysFixture,
+  makeMemorySessionsFixture,
+  makeMemoryUsagePlotFixture,
   makeSessionsFilterKeysFixture,
   makeBugReportsOverviewFixture,
   makeBugReportsPlotFixture,
@@ -446,5 +448,15 @@ export const handlers = [
   // 71. GET /api/apps/:appId/builds
   http.get("*/api/apps/:appId/builds", () => {
     return HttpResponse.json(makeBuildsFixture());
+  }),
+
+  // 72. GET /api/apps/:appId/memory/plots/usage
+  http.get("*/api/apps/:appId/memory/plots/usage", () => {
+    return HttpResponse.json(makeMemoryUsagePlotFixture());
+  }),
+
+  // 73. GET /api/apps/:appId/memory/sessions
+  http.get("*/api/apps/:appId/memory/sessions", () => {
+    return HttpResponse.json(makeMemorySessionsFixture());
   }),
 ];

@@ -368,6 +368,100 @@ export function makeSessionReplayOverviewPage2Fixture() {
   };
 }
 
+// --- Memory Monitoring Trend (GET /apps/:appId/memory/plots/usage) ---
+// threshold_mb/threshold_label are set only when the backend's
+// MemoryThreshold (backend/libs/measure/memory_thresholds.go) resolves one
+// for the current RAM tier + process state; makeMemoryUsagePlotFixture
+// leaves them unset by default, matching the "no filter" case.
+
+export function makeMemoryUsagePlotFixture(
+  overrides: Record<string, any> = {},
+) {
+  return {
+    results: [
+      {
+        datetime: "2026-04-01T00:00:00Z",
+        count: 12,
+        p50: 180224,
+        p90: 245760,
+        p95: 262144,
+      },
+      {
+        datetime: "2026-04-01T01:00:00Z",
+        count: 15,
+        p50: 192512,
+        p90: 251904,
+        p95: 271360,
+      },
+    ],
+    ...overrides,
+  };
+}
+
+export function makeMemoryUsagePlotWithThresholdFixture() {
+  return makeMemoryUsagePlotFixture({
+    threshold_mb: 1536,
+    threshold_label: "Play threshold (8 GB, Background)",
+  });
+}
+
+// --- Memory Monitoring Highest Sessions (GET /apps/:appId/memory/sessions) ---
+
+export function makeMemorySessionsFixture() {
+  return {
+    meta: { next: true, previous: false },
+    results: [
+      {
+        session_id: "mem-sess-001",
+        app_version: "3.1.0",
+        app_build: "310",
+        os_name: "android",
+        os_version: "14",
+        device_name: "Pixel 8",
+        device_model: "Pixel 8",
+        device_manufacturer: "Google",
+        device_total_memory_kb: 7500000,
+        start_time: "2026-04-10T10:00:00Z",
+        peak_memory_kb: 262144,
+      },
+      {
+        session_id: "mem-sess-002",
+        app_version: "3.0.2",
+        app_build: "302",
+        os_name: "android",
+        os_version: "14",
+        device_name: "Galaxy S24",
+        device_model: "SM-S921B",
+        device_manufacturer: "Samsung",
+        device_total_memory_kb: null,
+        start_time: null,
+        peak_memory_kb: 204800,
+      },
+    ],
+  };
+}
+
+export function makeMemorySessionsPage2Fixture() {
+  return {
+    meta: { next: false, previous: true },
+    results: [
+      {
+        session_id: "mem-sess-006",
+        app_version: "3.0.1",
+        app_build: "301",
+        os_name: "android",
+        os_version: "13",
+        device_name: "Pixel 7",
+        device_model: "Pixel 7",
+        device_manufacturer: "Google",
+        device_total_memory_kb: 6900000,
+        start_time: "2026-04-09T15:00:00Z",
+        peak_memory_kb: 180224,
+      },
+    ],
+  };
+}
+
 // --- Session Replay Details (GET /apps/:appId/sessions/:sessionId) ---
 
 // --- Journey (GET /apps/:appId/journey) ---
@@ -1510,6 +1604,17 @@ export function makeSessionsFilterKeysFixture(
         value_suggestion_mode: "full_list",
         operators: ["in", "not_in"],
         enum_values: ["foreground", "background"],
+      },
+      {
+        name: "session_ram_tier",
+        label: "RAM Tier",
+        description:
+          "Google Play RAM tier of the session's device, by total device memory.",
+        key_group: "Session",
+        value_type: "enum",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+        enum_values: ["0-4gb", "4gb", "6gb", "8gb", "12gb", "16gb", "16gb+"],
       },
       {
         name: "session_custom_event",
