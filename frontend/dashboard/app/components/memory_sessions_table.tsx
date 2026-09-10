@@ -71,6 +71,7 @@ export default function MemorySessionsTable({
           return (
             <TableRow
               key={session.session_id}
+              data-testid="memory-session-row"
               className="font-body"
               tabIndex={0}
               onKeyDown={(e) => {

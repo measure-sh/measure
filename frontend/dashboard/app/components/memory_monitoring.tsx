@@ -197,7 +197,7 @@ export default function MemoryMonitoring({
 
           <div className="py-8" />
 
-          <div className="w-full">
+          <div className="w-full" data-testid="memory-trend-section">
             <p className="font-display text-xl">{metricLabel} Trend</p>
             <div className="py-2" />
             {showThresholdHint && (
@@ -231,7 +231,7 @@ export default function MemoryMonitoring({
 
           <div className="py-10" />
 
-          <div className="w-full">
+          <div className="w-full" data-testid="memory-sessions-section">
             <p className="font-display text-xl">Highest Memory Sessions</p>
             <div className="py-2" />
             {sessionsQuery.status === "pending" && <SkeletonListPage />}
