@@ -79,7 +79,7 @@
 ///
 /// ## Checkout detailed documentation
 ///
-/// Checkout the [documentation](https://github.com/measure-sh/measure/tree/main/docs) to learn more
+/// Checkout the [documentation](https://measure.sh/docs) to learn more
 /// about Measure.
 library;
 

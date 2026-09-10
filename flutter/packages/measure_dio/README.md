@@ -13,5 +13,5 @@ final dio = Dio();
 dio.interceptors.add(MsrInterceptor());
 ```
 
-Checkout our [documentation](https://github.com/measure-sh/measure/tree/main/docs) for more details
+Checkout our [documentation](https://measure.sh/docs) for more details
 and features.

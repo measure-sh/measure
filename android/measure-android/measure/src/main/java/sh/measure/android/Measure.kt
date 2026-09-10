@@ -350,7 +350,7 @@ object Measure {
     /**
      * Starts a new performance tracing span with the specified [name].
      *
-     * @param name The name to identify this span. Follow the [naming convention guide](https://github.com/measure-sh/measure/blob/main/docs/android/features/feature_performance_tracing.md#span-names)
+     * @param name The name to identify this span. Follow the [naming convention guide](https://measure.sh/docs/performance-tracing)
      * for consistent naming practices.
      *
      * @return [Span] A new span instance if the SDK is initialized, or an invalid no-op span if not initialized
@@ -364,7 +364,7 @@ object Measure {
     /**
      * Starts a new performance tracing span with the specified [name] and start [timestamp].
      *
-     * @param name The name to identify this span. Follow the [naming convention guide](https://github.com/measure-sh/measure/blob/main/docs/android/features/feature_performance_tracing.md#span-names)
+     * @param name The name to identify this span. Follow the [naming convention guide](https://measure.sh/docs/performance-tracing)
      * for consistent naming practices.
      * @param timestamp The milliseconds since epoch when the span started. Must be obtained using [getCurrentTime]
      * to minimize clock drift effects.
@@ -383,7 +383,7 @@ object Measure {
     /**
      * Creates a configurable span builder for deferred span creation.
      *
-     * @param name The name to identify this span. Follow the [naming convention guide](https://github.com/measure-sh/measure/blob/main/docs/android/features/feature_performance_tracing.md#span-names)
+     * @param name The name to identify this span. Follow the [naming convention guide](https://measure.sh/docs/performance-tracing)
      * for consistent naming practices.
      *
      * @return [SpanBuilder] A builder instance to configure the span if the SDK is initialized,
