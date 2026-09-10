@@ -180,15 +180,16 @@ func (a App) GetUsageSummaryByProcessState(
 		// a memory_usage_dynamic row with a null anon_rss carried no usable
 		// reading (proc/self/status was unavailable) and must not enter the
 		// percentile computation. Cached is dropped before it ever reaches
-		// the aggregation — see thresholdableMemoryScopes.
-		thresholdableScopeNames := make([]string, len(thresholdableMemoryScopes))
-		for i, s := range thresholdableMemoryScopes {
-			thresholdableScopeNames[i] = string(s)
-		}
+		// the aggregation — see thresholdableMemoryScopes. This is a
+		// blocklist, not an allowlist of the three thresholdable states: a
+		// reading from before process_state was tracked (or any other SDK
+		// version that never sets it) has process_state "", which must
+		// still count — dropping it would make otherwise-valid readings
+		// disappear from the summary entirely, not just lose a threshold.
 		perSession.
 			Select("memory_usage_dynamic.process_state as process_state").
 			Where("memory_usage_dynamic.anon_rss is not null").
-			Where("memory_usage_dynamic.process_state").In(thresholdableScopeNames).
+			Where("memory_usage_dynamic.process_state != ?", string(MemoryScopeCached)).
 			GroupBy("process_state")
 	}
 
