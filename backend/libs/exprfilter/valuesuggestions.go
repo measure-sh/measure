@@ -34,9 +34,12 @@ type fixedKeyValueSource struct {
 // A suggestion is only a shortcut for typing a value, so a raw table is read
 // for the last 30 days only; older values can still be typed in. The start of
 // the window is computed here and bound as a parameter because ClickHouse
-// refuses to cache a query that calls its own now() function.
+// refuses to cache a query that calls its own now() function. The driver
+// writes the bound time into the query text, so the start is rounded down to
+// the hour; otherwise the text would change every second and no read would
+// ever find a cached result.
 func suggestionWindowStart() time.Time {
-	return time.Now().Add(-30 * 24 * time.Hour)
+	return time.Now().Add(-30 * 24 * time.Hour).Truncate(time.Hour)
 }
 
 // SuggestKeyValues lists what one key can be set to, narrowed by what has

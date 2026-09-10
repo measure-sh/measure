@@ -226,7 +226,10 @@ func TestSuggestionSQL(t *testing.T) {
 			gotArgs := slices.Clone(recorder.args)
 			for i, arg := range gotArgs {
 				if bound, ok := arg.(time.Time); ok {
-					if drift := time.Since(bound) - 30*24*time.Hour; drift < 0 || drift > time.Minute {
+					if !bound.Equal(bound.Truncate(time.Hour)) {
+						t.Errorf("window start %v is not on the hour", bound)
+					}
+					if drift := time.Since(bound) - 30*24*time.Hour; drift < 0 || drift > time.Hour+time.Minute {
 						t.Errorf("window start %v is not 30 days ago", bound)
 					}
 					gotArgs[i] = windowStart{}
