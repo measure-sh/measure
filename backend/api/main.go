@@ -170,7 +170,7 @@ func main() {
 		apps.GET(":id/networkRequests/plots/timeline", hdl.GetNetworkEndpointTimelinePlot)
 
 		// memory monitoring
-		apps.GET(":id/memory/plots/usage", hdl.GetMemoryUsagePlot)
+		apps.GET(":id/memory/summary", hdl.GetMemoryUsageSummary)
 		apps.GET(":id/memory/sessions", hdl.GetHighestMemorySessions)
 
 		// misc

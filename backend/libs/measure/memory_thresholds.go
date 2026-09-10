@@ -137,3 +137,24 @@ func MemoryThreshold(ef *exprfilter.ExprFilter, ios bool, scope MemoryScope) (mb
 	ok = true
 	return
 }
+
+// MemoryThresholdEntry is one process state's Play threshold, for the
+// summary cards (one per state) to draw a matching status badge against.
+type MemoryThresholdEntry struct {
+	ProcessState MemoryScope `json:"process_state"`
+	MB           float64     `json:"mb"`
+	Label        string      `json:"label"`
+}
+
+// MemoryThresholdsByScope returns MemoryThreshold's result for every
+// process state Play publishes a ceiling for, skipping any that don't
+// resolve (ambiguous or unfiltered RAM tier, iOS, ...).
+func MemoryThresholdsByScope(ef *exprfilter.ExprFilter, ios bool) []MemoryThresholdEntry {
+	entries := make([]MemoryThresholdEntry, 0, len(thresholdableMemoryScopes))
+	for _, scope := range thresholdableMemoryScopes {
+		if mb, label, ok := MemoryThreshold(ef, ios, scope); ok {
+			entries = append(entries, MemoryThresholdEntry{ProcessState: scope, MB: mb, Label: label})
+		}
+	}
+	return entries
+}
