@@ -141,9 +141,9 @@ func TestSuggestionSQL(t *testing.T) {
 				byName := IndexKeysByName(SessionsEntity.Keys)
 				_, _ = SessionsEntity.SuggestKeyValues(ctx, nil, recorder, teamID, appID, byName["user_id"], ValueRequest{Search: "ana"})
 			},
-			wantSQL: "SELECT arrayJoin(user_ids) as suggested_value, max(first_event_timestamp) as recency" +
-				" FROM sessions" +
-				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND first_event_timestamp >= ? AND arrayJoin(user_ids) <> '' AND arrayJoin(user_ids) ilike ?" +
+			wantSQL: "SELECT array_value as suggested_value, max(first_event_timestamp) as recency" +
+				" FROM sessions ARRAY JOIN user_ids AS array_value" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND first_event_timestamp >= ? AND array_value <> '' AND array_value ilike ?" +
 				" GROUP BY suggested_value ORDER BY recency desc, suggested_value LIMIT ?",
 			wantArgs: []any{teamID, appID, windowStart{}, "%ana%", DefaultValueLimit + 1},
 		},
