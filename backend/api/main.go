@@ -169,6 +169,10 @@ func main() {
 		apps.GET(":id/networkRequests/plots/latency", hdl.GetNetworkEndpointLatencyPlot)
 		apps.GET(":id/networkRequests/plots/timeline", hdl.GetNetworkEndpointTimelinePlot)
 
+		// memory monitoring
+		apps.GET(":id/memory/plots/usage", hdl.GetMemoryUsagePlot)
+		apps.GET(":id/memory/sessions", hdl.GetHighestMemorySessions)
+
 		// misc
 		apps.PATCH(":id/rename", hdl.RenameApp)
 		apps.PATCH(":id/apiKey", hdl.RotateApiKey)

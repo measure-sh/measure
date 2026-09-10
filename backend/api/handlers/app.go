@@ -21,6 +21,7 @@ import (
 	"backend/libs/journey"
 	"backend/libs/logcomment"
 	"backend/libs/measure"
+	"backend/libs/memory"
 	"backend/libs/metrics"
 	"backend/libs/network"
 	"backend/libs/opsys"
@@ -3097,6 +3098,89 @@ func (h Handlers) GetNetworkEndpointTimelinePlot(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+// memoryScopeFromQuery reads the `scope` query param (foreground, background,
+// or absent for both) into a memory.Scope, rejecting anything else.
+func memoryScopeFromQuery(c *gin.Context) (memory.Scope, error) {
+	switch v := memory.Scope(c.Query("scope")); v {
+	case memory.ScopeAny, memory.ScopeForeground, memory.ScopeBackground:
+		return v, nil
+	default:
+		return memory.ScopeAny, fmt.Errorf("invalid scope %q", v)
+	}
+}
+
+func (h Handlers) GetMemoryUsagePlot(c *gin.Context) {
+	deps := h.Deps
+	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:          exprfilter.MemoryEntity,
+		appScope:        *measure.ScopeAppRead,
+		logRoot:         logcomment.Memory,
+		logName:         "usage_plot",
+		requireTimezone: true,
+	})
+	if !ok {
+		return
+	}
+
+	ios := opsys.ToFamily(c.Query("os")) == opsys.AppleFamily
+
+	scope, err := memoryScopeFromQuery(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	ef.SetDefaultPlotTimeGroupIfUnset()
+	groupExpr, err := measure.GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
+	if err != nil {
+		msg := "failed to compute time group expression"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	result, err := memory.GetUsagePlot(ctx, deps.RchPool, *app.ID, app.TeamId, ios, scope, &ef, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	if err != nil {
+		msg := "failed to get memory usage metrics"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"results": result})
+}
+
+func (h Handlers) GetHighestMemorySessions(c *gin.Context) {
+	deps := h.Deps
+	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:   exprfilter.SessionsEntity,
+		appScope: *measure.ScopeAppRead,
+		logRoot:  logcomment.Memory,
+		logName:  "highest_sessions",
+	})
+	if !ok {
+		return
+	}
+
+	ios := opsys.ToFamily(c.Query("os")) == opsys.AppleFamily
+
+	sessions, next, previous, err := app.GetHighestMemorySessions(ctx, deps.RchPool, ios, &ef)
+	if err != nil {
+		msg := "failed to get highest memory sessions"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"results": sessions,
+		"meta": gin.H{
+			"next":     next,
+			"previous": previous,
+		},
+	})
 }
 
 func (h Handlers) GetNetworkStatusCodesPlot(c *gin.Context) {
