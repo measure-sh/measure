@@ -57,7 +57,7 @@ export default function MemorySessionsTable({
           <TableHead className="w-[45%]">Session</TableHead>
           <TableHead className="w-[25%]">Device</TableHead>
           <TableHead className="w-[15%] text-center">
-            Peak Memory (P90)
+            % of Device RAM (P90)
           </TableHead>
           <TableHead className="w-[15%] text-center">Start Time</TableHead>
         </TableRow>
@@ -131,7 +131,15 @@ export default function MemorySessionsTable({
                   style={{ display: "block" }}
                 />
                 <div className="pointer-events-none p-4">
-                  {Math.round(session.peak_memory_kb / 1024)} MB
+                  <p className="select-none">
+                    {session.device_total_memory_kb
+                      ? `${(session.ram_usage_ratio * 100).toFixed(1)}%`
+                      : "—"}
+                  </p>
+                  <div className="py-1" />
+                  <p className="text-xs text-muted-foreground select-none">
+                    {Math.round(session.peak_memory_kb / 1024)} MB
+                  </p>
                 </div>
               </TableCell>
               <TableCell className="w-[15%] text-center relative p-0">

@@ -1182,6 +1182,11 @@ export type MemorySessionRow = {
   device_total_memory_kb: number | null;
   start_time: string | null;
   peak_memory_kb: number;
+  // peak_memory_kb as a fraction (0-1) of device_total_memory_kb — what the
+  // list is actually ranked by, since the raw KB value alone is misleading
+  // across devices with different total RAM. 0 when device_total_memory_kb
+  // is unknown.
+  ram_usage_ratio: number;
 };
 
 export const emptyHighestMemorySessionsResponse = {

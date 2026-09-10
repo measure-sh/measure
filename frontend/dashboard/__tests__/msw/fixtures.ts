@@ -423,6 +423,7 @@ export function makeMemorySessionsFixture() {
         device_total_memory_kb: 7500000,
         start_time: "2026-04-10T10:00:00Z",
         peak_memory_kb: 262144,
+        ram_usage_ratio: 262144 / 7500000,
       },
       {
         session_id: "mem-sess-002",
@@ -436,6 +437,7 @@ export function makeMemorySessionsFixture() {
         device_total_memory_kb: null,
         start_time: null,
         peak_memory_kb: 204800,
+        ram_usage_ratio: 0,
       },
     ],
   };
@@ -457,6 +459,7 @@ export function makeMemorySessionsPage2Fixture() {
         device_total_memory_kb: 6900000,
         start_time: "2026-04-09T15:00:00Z",
         peak_memory_kb: 180224,
+        ram_usage_ratio: 180224 / 6900000,
       },
     ],
   };
