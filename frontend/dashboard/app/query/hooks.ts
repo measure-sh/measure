@@ -1,6 +1,9 @@
 "use client";
 
 import {
+  MemoryPlatform,
+  MemoryScope,
+  MemoryUsagePlotPoint,
   SdkConfig,
   Team,
   changeAppApiKeyFromServer,
@@ -12,6 +15,7 @@ import {
   defaultAppThresholdPrefs,
   downgradeToFreeFromServer,
   emptyAppRetention,
+  emptyHighestMemorySessionsResponse,
   emptyNotifPrefs,
   fetchAlertsOverviewFromServer,
   fetchAppRetentionFromServer,
@@ -30,7 +34,9 @@ import {
   fetchErrorsDistributionPlotFromServer,
   fetchErrorsOverviewFromServer,
   fetchErrorsOverviewPlotFromServer,
+  fetchHighestMemorySessionsFromServer,
   fetchJourneyFromServer,
+  fetchMemoryUsagePlotFromServer,
   fetchMetricsFromServer,
   fetchNetworkEndpointsFromServer,
   fetchNetworkEndpointStatusCodesPlotFromServer,
@@ -900,6 +906,69 @@ export function useSessionReplayOverviewQuery(
         params!.endDate,
         params!.filterExpr,
         SESSION_REPLAY_LIMIT,
+        paginationOffset,
+      ),
+    enabled: params !== null,
+    retry: false,
+  });
+}
+
+// ─── Memory Monitoring ────────────────────────────────────────────────────
+
+const MEMORY_SESSIONS_LIMIT = 5;
+
+export function useMemoryUsagePlotQuery(
+  params: FilterParams | null,
+  os: MemoryPlatform,
+  scope: MemoryScope,
+) {
+  return useQuery({
+    queryKey: [
+      "memoryUsagePlot",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+      os,
+      scope,
+    ] as const,
+    queryFn: () =>
+      fetchMemoryUsagePlotFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+        os,
+        scope,
+      ),
+    enabled: params !== null,
+  });
+}
+
+export function useHighestMemorySessionsQuery(
+  params: FilterParams | null,
+  os: MemoryPlatform,
+  paginationOffset: number,
+) {
+  return useQuery({
+    queryKey: [
+      "highestMemorySessions",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+      os,
+      paginationOffset,
+    ] as const,
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      fetchHighestMemorySessionsFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+        os,
+        MEMORY_SESSIONS_LIMIT,
         paginationOffset,
       ),
     enabled: params !== null,

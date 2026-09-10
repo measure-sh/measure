@@ -1150,6 +1150,106 @@ export const fetchSessionReplayOverviewPlotFromServer = async (
   );
 };
 
+// ─── Memory Monitoring ────────────────────────────────────────────────────
+
+export type MemoryPlatform = "android" | "ios";
+export type MemoryScope = "" | "foreground" | "background";
+
+export type MemoryUsagePlotPoint = {
+  datetime: string;
+  count: number;
+  p50?: number;
+  p90?: number;
+  p95?: number;
+};
+
+export type MemorySessionRow = {
+  session_id: string;
+  app_version: string;
+  app_build: string;
+  os_name: string;
+  os_version: string;
+  device_name: string;
+  device_model: string;
+  device_manufacturer: string;
+  device_total_memory_kb: number | null;
+  start_time: string | null;
+  peak_memory_kb: number;
+};
+
+export const emptyHighestMemorySessionsResponse = {
+  meta: {
+    next: false,
+    previous: false,
+  },
+  results: [] as MemorySessionRow[],
+};
+
+export const fetchMemoryUsagePlotFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  os: MemoryPlatform,
+  scope: MemoryScope,
+): Promise<{ results: MemoryUsagePlotPoint[] } | null> => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    plot_time_group: getPlotTimeGroupForRange(startDate, endDate),
+    os,
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+  if (scope) {
+    params.set("scope", scope);
+  }
+
+  const data = await request(
+    `/api/apps/${appId}/memory/plots/usage?${params.toString()}`,
+    { failsWith: "Failed to fetch memory usage plot" },
+  );
+
+  return data === null ||
+    (Array.isArray(data?.results) && data.results.length === 0)
+    ? null
+    : data;
+};
+
+export const fetchHighestMemorySessionsFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  os: MemoryPlatform,
+  limit: number,
+  offset: number,
+): Promise<{
+  results: MemorySessionRow[];
+  meta: { next: boolean; previous: boolean };
+}> => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    os,
+    limit: String(limit),
+    offset: String(offset),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+
+  return await request(
+    `/api/apps/${appId}/memory/sessions?${params.toString()}`,
+    {
+      failsWith: "Failed to fetch highest memory sessions",
+    },
+  );
+};
+
 function appendErrorFiltersToUrl(url: string, filters: Filters): string {
   const u = new URL(url, window.location.origin);
   if (filters.selectedErrorTypes.length > 0) {
