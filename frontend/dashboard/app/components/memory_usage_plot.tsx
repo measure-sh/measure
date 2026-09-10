@@ -64,9 +64,9 @@ type PlotSeries = { id: string; data: PlotDatum[] };
 type PlotData = PlotSeries[];
 
 // A horizontal reference line drawn across the whole plot: either a Play
-// threshold or one of a state's p50/p90/p95 across sessions. Distinguished
-// visually by dash pattern and line weight, not just color, since a state
-// can have both a threshold and up to three percentile lines at once.
+// threshold or a state's p90 across sessions. A state can have both at
+// once, so lines are also distinguished by dash pattern and weight, not
+// just color.
 type ReferenceLine = {
   mb: number;
   color: string;
