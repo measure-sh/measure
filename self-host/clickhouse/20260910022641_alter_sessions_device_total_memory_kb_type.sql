@@ -6,24 +6,21 @@
 -- to null after a real merge despite every contributing row being non-null.
 -- SimpleAggregateFunction(anyLast, ...) makes the merge deterministic, the
 -- same way sum/min/max already do for the table's other rollup columns.
--- DROP and ADD of the same column name must be separate ALTER statements:
--- combined into one ALTER (as this migration originally had it), ClickHouse
--- executed the drop mutation but the column never came back — verified live
--- (system.mutations showed the DROP COLUMN mutation done, system.columns had
--- no device_total_memory_kb at all afterward).
+--
+-- A single MODIFY COLUMN, not drop+add: SimpleAggregateFunction shares its
+-- on-disk representation with the plain type it wraps, so this is a metadata
+-- change only, not a mutation. A same-name drop+add was tried first and
+-- found unsafe two different ways — combined into one ALTER, ClickHouse
+-- executed the drop but the add never took effect (verified live:
+-- system.mutations showed the DROP COLUMN mutation done, system.columns had
+-- no device_total_memory_kb at all afterward); split into two ALTER
+-- statements, dbmate-clickhouse rejects the block outright ("Multi-statements
+-- are not allowed" — each migrate block must be exactly one statement).
 alter table sessions
-  drop column if exists device_total_memory_kb
-settings mutations_sync = 2;
-
-alter table sessions
-  add column if not exists device_total_memory_kb SimpleAggregateFunction(anyLast, Nullable(UInt64)) comment 'total memory available on the device, in kb' after device_model
+  modify column device_total_memory_kb SimpleAggregateFunction(anyLast, Nullable(UInt64)) comment 'total memory available on the device, in kb'
 settings mutations_sync = 2;
 
 -- migrate:down
 alter table sessions
-  drop column if exists device_total_memory_kb
-settings mutations_sync = 2;
-
-alter table sessions
-  add column if not exists device_total_memory_kb Nullable(UInt64) comment 'total memory available on the device, in kb' after device_model
+  modify column device_total_memory_kb Nullable(UInt64) comment 'total memory available on the device, in kb'
 settings mutations_sync = 2;
