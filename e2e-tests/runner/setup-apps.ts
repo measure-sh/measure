@@ -79,6 +79,24 @@ export async function enableLogCollection(
   );
 }
 
+// Dynamic Memory Usage/Memory Footprint collection only runs for sessions
+// memory_usage_session_sampling_rate selects, defaulting to 0.01% — far too
+// low to reliably produce memory events within one Maestro run. Set it to
+// 100 for the test apps so the memory spec's session is guaranteed one.
+// The SDKs treat this as a percentage (Sampler.kt divides it by 100 before
+// comparing), not a 0-1 fraction — 1 here would mean 1%, not 100%.
+export async function enableFullMemorySampling(
+  pool: pg.Pool,
+  appIds: AppIds,
+): Promise<void> {
+  const ids = Object.values(appIds).filter((id): id is string => !!id);
+  if (ids.length === 0) return;
+  await pool.query(
+    "update sdk_config set memory_usage_session_sampling_rate = 100 where app_id = any($1)",
+    [ids],
+  );
+}
+
 export async function fetchAppIds(
   pool: pg.Pool,
   teamId: string,

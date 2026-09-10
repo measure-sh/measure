@@ -1,0 +1,54 @@
+appId: ${APP_ID}
+---
+# Memory Footprint on iOS is a passive collector, foreground-only, gated by
+# session sampling — this flow's job is to give the app enough foreground
+# dwell for readings to land, not to visit any particular screen.
+#
+# A fresh install's first session always uses the SDK's compiled-in default
+# sampling rate (0.01%), never the server's: on cold start there's no config
+# file on disk yet, so the config loader falls back to defaults for that
+# whole session, and only writes the server's config to disk in the
+# background — it takes effect starting the *next* launch, not the current
+# one. So this warms the cache with a throwaway first session, then kills
+# and relaunches (a bare launchApp implicitly stops the app first) for the
+# session that actually gets sampled and tested.
+- clearState
+
+- launchApp
+- extendedWaitUntil:
+    visible: "Native iOS"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      text: "__maestro_wait_sentinel__"
+    timeout: 5000
+    optional: true
+
+- launchApp
+- extendedWaitUntil:
+    visible: "Native iOS"
+    timeout: 30000
+
+- extendedWaitUntil:
+    visible:
+      text: "__maestro_wait_sentinel__"
+    timeout: 6000
+    optional: true
+
+- pressKey: "Home"
+- extendedWaitUntil:
+    visible:
+      text: "__maestro_wait_sentinel__"
+    timeout: 8000
+    optional: true
+
+- launchApp:
+    appId: ${APP_ID}
+    stopApp: false
+- extendedWaitUntil:
+    visible:
+      text: "__maestro_wait_sentinel__"
+    timeout: 6000
+    optional: true
+
+- pressKey: "Home"

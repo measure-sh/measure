@@ -10,6 +10,7 @@ import {
   startStack,
   stopDevice,
   stopStack,
+  wakeDevice,
 } from "./environment.ts";
 import {
   buildAndInstallAndroid,
@@ -27,6 +28,7 @@ import {
 } from "./playwright-result.ts";
 import {
   createAppsViaDashboard,
+  enableFullMemorySampling,
   enableLogCollection,
   fetchAppIds,
   type AppKeys,
@@ -221,6 +223,7 @@ async function createTargets(
   await writeFrankSecrets(repoRoot, keys);
   const appIds = await fetchAppIds(pool, account.teamId, flags.devices);
   await enableLogCollection(pool, appIds);
+  await enableFullMemorySampling(pool, appIds);
 
   return flags.devices.map((device) => ({
     device,
@@ -318,6 +321,7 @@ async function runMaestro(
   if (!existsSync(flowPath)) return;
   const label = `maestro: ${device}:${spec}`;
   const logger = log.scope(label);
+  if (device === "android") await wakeDevice();
   logger.info("running flow");
   const t = Date.now();
   const ok = await run(repoRoot, {
