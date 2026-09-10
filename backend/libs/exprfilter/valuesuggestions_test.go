@@ -6,12 +6,17 @@ import (
 	"reflect"
 	"slices"
 	"testing"
+	"time"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/google/uuid"
 )
 
 var errQueryRecorded = errors.New("query recorded")
+
+// windowStart stands in an expected argument list for the bound start of the
+// suggestion window, whose actual value depends on when the test runs.
+type windowStart struct{}
 
 // sqlRecorder satisfies driver.Conn through the embedded interface and
 // records the one query a fetch function issues before failing it, so a test
@@ -78,9 +83,9 @@ func TestSuggestionSQL(t *testing.T) {
 			},
 			wantSQL: "SELECT device_name as suggested_value, max(timestamp) as recency" +
 				" FROM bug_reports" +
-				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND timestamp >= now() - interval 30 day AND device_name <> ''" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND timestamp >= ? AND device_name <> ''" +
 				" GROUP BY suggested_value ORDER BY recency desc, suggested_value LIMIT ?",
-			wantArgs: []any{teamID, appID, DefaultValueLimit + 1},
+			wantArgs: []any{teamID, appID, windowStart{}, DefaultValueLimit + 1},
 		},
 		{
 			name: "bug report patch id values read the column as text and leave out the nil uuid",
@@ -90,9 +95,9 @@ func TestSuggestionSQL(t *testing.T) {
 			},
 			wantSQL: "SELECT toString(patch_id) as suggested_value, max(timestamp) as recency" +
 				" FROM bug_reports" +
-				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND timestamp >= now() - interval 30 day AND toString(patch_id) <> ?" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND timestamp >= ? AND toString(patch_id) <> ?" +
 				" GROUP BY suggested_value ORDER BY recency desc, suggested_value LIMIT ?",
-			wantArgs: []any{teamID, appID, uuid.Nil.String(), DefaultValueLimit + 1},
+			wantArgs: []any{teamID, appID, windowStart{}, uuid.Nil.String(), DefaultValueLimit + 1},
 		},
 		{
 			name: "journey fixed key values read the app_filters rollup by month",
@@ -138,9 +143,9 @@ func TestSuggestionSQL(t *testing.T) {
 			},
 			wantSQL: "SELECT arrayJoin(user_ids) as suggested_value, max(first_event_timestamp) as recency" +
 				" FROM sessions" +
-				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND first_event_timestamp >= now() - interval 30 day AND arrayJoin(user_ids) <> '' AND arrayJoin(user_ids) ilike ?" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND first_event_timestamp >= ? AND arrayJoin(user_ids) <> '' AND arrayJoin(user_ids) ilike ?" +
 				" GROUP BY suggested_value ORDER BY recency desc, suggested_value LIMIT ?",
-			wantArgs: []any{teamID, appID, "%ana%", DefaultValueLimit + 1},
+			wantArgs: []any{teamID, appID, windowStart{}, "%ana%", DefaultValueLimit + 1},
 		},
 		{
 			name: "span custom key values read span_user_def_attrs by key and type",
@@ -149,9 +154,9 @@ func TestSuggestionSQL(t *testing.T) {
 			},
 			wantSQL: "SELECT value, max(timestamp) as recency" +
 				" FROM span_user_def_attrs" +
-				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND timestamp >= now() - interval 30 day AND key = ? AND type = ? AND value <> ''" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND timestamp >= ? AND key = ? AND type = ? AND value <> ''" +
 				" GROUP BY value ORDER BY recency desc, value LIMIT ?",
-			wantArgs: []any{teamID, appID, "plan", "string", DefaultValueLimit + 1},
+			wantArgs: []any{teamID, appID, windowStart{}, "plan", "string", DefaultValueLimit + 1},
 		},
 		{
 			name: "bug report custom key values keep to the rows flagged bug_report",
@@ -160,9 +165,9 @@ func TestSuggestionSQL(t *testing.T) {
 			},
 			wantSQL: "SELECT value, max(timestamp) as recency" +
 				" FROM user_def_attrs" +
-				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND timestamp >= now() - interval 30 day AND bug_report = true AND key = ? AND type = ? AND value <> '' AND value ilike ?" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND timestamp >= ? AND bug_report = true AND key = ? AND type = ? AND value <> '' AND value ilike ?" +
 				" GROUP BY value ORDER BY recency desc, value LIMIT ?",
-			wantArgs: []any{teamID, appID, "plan", "string", "%fr%", 4},
+			wantArgs: []any{teamID, appID, windowStart{}, "plan", "string", "%fr%", 4},
 		},
 		{
 			name: "the span custom key listing skips the skip indexes",
@@ -218,8 +223,17 @@ func TestSuggestionSQL(t *testing.T) {
 			if recorder.query != test.wantSQL {
 				t.Errorf("\n got %s\nwant %s", recorder.query, test.wantSQL)
 			}
-			if !reflect.DeepEqual(recorder.args, test.wantArgs) {
-				t.Errorf("\n got args %#v\nwant args %#v", recorder.args, test.wantArgs)
+			gotArgs := slices.Clone(recorder.args)
+			for i, arg := range gotArgs {
+				if bound, ok := arg.(time.Time); ok {
+					if drift := time.Since(bound) - 30*24*time.Hour; drift < 0 || drift > time.Minute {
+						t.Errorf("window start %v is not 30 days ago", bound)
+					}
+					gotArgs[i] = windowStart{}
+				}
+			}
+			if !reflect.DeepEqual(gotArgs, test.wantArgs) {
+				t.Errorf("\n got args %#v\nwant args %#v", gotArgs, test.wantArgs)
 			}
 		})
 	}

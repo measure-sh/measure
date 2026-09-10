@@ -99,9 +99,9 @@ func (s customKeyStore) fetchKeysByName(ctx context.Context, pgPool *pgxpool.Poo
 // recently written first, asking for one row past the limit so it can report
 // that more matched without counting them. Empty ones are left out.
 //
-// The scan is on the full table without a time bound. If needed in future:
-// time bound it so only suggestions in time range show up or add a rollup of
-// distinct keys and values like the span_filters rollup that fixed keys read.
+// The scan reads the raw attribute table within the suggestion window.
+// If it gets slow, add a rollup of distinct keys and values
+// like the span_filters rollup that fixed keys read.
 func (s customKeyStore) suggestValues(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
 	limit := valueRequest.effectiveLimit()
 
@@ -113,7 +113,7 @@ func (s customKeyStore) suggestValues(ctx context.Context, chPool driver.Conn, t
 		Select("max(timestamp) as recency").
 		Where("team_id = toUUID(?)", teamID).
 		Where("app_id = toUUID(?)", appID).
-		Where("timestamp >= " + suggestionWindow)
+		Where("timestamp >= ?", suggestionWindowStart())
 
 	if s.extraScope != "" {
 		stmt.Where(s.extraScope)
