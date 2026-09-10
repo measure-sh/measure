@@ -938,13 +938,13 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			row.
 				Set(`memory_usage_dynamic.anon_rss`, e.events[i].MemoryUsageDynamic.AnonRSS).
 				Set(`memory_usage_dynamic.swap`, e.events[i].MemoryUsageDynamic.Swap).
-				Set(`memory_usage_dynamic.foreground`, e.events[i].MemoryUsageDynamic.Foreground).
+				Set(`memory_usage_dynamic.process_state`, e.events[i].MemoryUsageDynamic.ProcessState).
 				Set(`memory_usage_dynamic.interval`, e.events[i].MemoryUsageDynamic.Interval)
 		} else {
 			row.
 				Set(`memory_usage_dynamic.anon_rss`, nil).
 				Set(`memory_usage_dynamic.swap`, nil).
-				Set(`memory_usage_dynamic.foreground`, nil).
+				Set(`memory_usage_dynamic.process_state`, nil).
 				Set(`memory_usage_dynamic.interval`, nil)
 		}
 

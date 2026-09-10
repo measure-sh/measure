@@ -660,11 +660,30 @@ type MemoryUsageAbs struct {
 // MemoryUsageDynamic is Android's Dynamic Memory Usage vital, anon_rss + swap
 // from /proc/self/status. AnonRSS and Swap are pointers: a nil value means the
 // reading was unavailable and must not be treated as zero.
+//
+// ProcessState mirrors the four states Play Console's own Memory usage (Anon
+// RSS + Swap) vital segments by: process_state_foreground,
+// process_state_user_perceived_service, process_state_background,
+// process_state_cached.
 type MemoryUsageDynamic struct {
-	AnonRSS    *uint64 `json:"anon_rss"`
-	Swap       *uint64 `json:"swap"`
-	Foreground bool    `json:"foreground"`
-	Interval   uint64  `json:"interval" binding:"required"`
+	AnonRSS      *uint64 `json:"anon_rss"`
+	Swap         *uint64 `json:"swap"`
+	ProcessState string  `json:"process_state" binding:"required"`
+	Interval     uint64  `json:"interval" binding:"required"`
+}
+
+const (
+	ProcessStateForeground           = "foreground"
+	ProcessStateUserPerceivedService = "user_perceived_service"
+	ProcessStateBackground           = "background"
+	ProcessStateCached               = "cached"
+)
+
+var validProcessStates = map[string]bool{
+	ProcessStateForeground:           true,
+	ProcessStateUserPerceivedService: true,
+	ProcessStateBackground:           true,
+	ProcessStateCached:               true,
 }
 
 type LowMemory struct {
@@ -1243,6 +1262,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		}
 		if e.MemoryUsageDynamic.Swap != nil && *e.MemoryUsageDynamic.Swap > maxPlausibleMemoryKB {
 			return fmt.Errorf(`%q exceeds plausible maximum`, `memory_usage_dynamic.swap`)
+		}
+		if !validProcessStates[e.MemoryUsageDynamic.ProcessState] {
+			return fmt.Errorf(`%q must be one of foreground, user_perceived_service, background, cached`, `memory_usage_dynamic.process_state`)
 		}
 	}
 
