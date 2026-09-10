@@ -115,7 +115,10 @@ export default function MemorySessionsTable({
                   {ramTier && (
                     <>
                       <div className="py-1" />
-                      <p className="text-xs truncate text-muted-foreground select-none">
+                      <p
+                        data-testid="memory-session-ram-tier"
+                        className="text-xs truncate text-muted-foreground select-none"
+                      >
                         {ramTier}
                       </p>
                     </>
