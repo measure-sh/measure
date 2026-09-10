@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
 - (**frontend**): Keep touch indicators on the correct replay screen (#4436) by @abhaysood in #4436
+- Record workspace sums for the grpc dependency bumps by @anupcowkur in #4465
 - Migrate session replays to expr filter by @anupcowkur in #4441
 - Migrate network to expression filters by @anupcowkur in #4427
 - Migrate alerts to expression filters by @anupcowkur in #4417
