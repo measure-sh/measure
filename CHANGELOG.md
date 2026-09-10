@@ -33,6 +33,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump google.golang.org/grpc in /backend/agent (#4455) by @dependabot[bot] in #4455
+- (**deps**): Bump google.golang.org/grpc in /backend/alerts (#4454) by @dependabot[bot] in #4454
 - (**deps**): Bump google.golang.org/grpc in /backend/cleanup (#4453) by @dependabot[bot] in #4453
 - (**deps**): Bump google.golang.org/grpc in /backend/libs (#4452) by @dependabot[bot] in #4452
 - (**deps**): Bump google.golang.org/grpc in /backend/symboloader (#4451) by @dependabot[bot] in #4451
