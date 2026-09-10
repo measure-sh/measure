@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import sh.measure.android.Measure
 import sh.measure.android.attributes.AttributesBuilder
 import sh.measure.android.bugreport.MsrShakeListener
@@ -49,6 +50,7 @@ private enum class DemoCategory(val label: String) {
     NAVIGATION("Navigation"),
     SCREENSHOTS("Screenshots"),
     LOGS("Logs"),
+    BACKGROUND_WORK("Background Work"),
     MISC("Misc"),
 }
 
@@ -299,6 +301,27 @@ fun NativeAndroidScreen() {
             action = {
                 Measure.clearUserId()
                 Toast.makeText(context, "User ID cleared", Toast.LENGTH_SHORT).show()
+            },
+        ),
+        DemoItem(
+            title = "Start Background Service",
+            description = "Runs a plain (non-foreground) service for 90s — Android reports the process as IMPORTANCE_SERVICE while it's active",
+            category = DemoCategory.BACKGROUND_WORK,
+            action = {
+                context.startService(Intent(context, DemoBackgroundService::class.java))
+                Toast.makeText(context, "Background service started", Toast.LENGTH_SHORT).show()
+            },
+        ),
+        DemoItem(
+            title = "Start Foreground Service",
+            description = "Runs a foreground service with a notification for 90s — Android reports the process as IMPORTANCE_FOREGROUND_SERVICE while it's active",
+            category = DemoCategory.BACKGROUND_WORK,
+            action = {
+                ContextCompat.startForegroundService(
+                    context,
+                    Intent(context, DemoForegroundService::class.java),
+                )
+                Toast.makeText(context, "Foreground service started", Toast.LENGTH_SHORT).show()
             },
         ),
     )
