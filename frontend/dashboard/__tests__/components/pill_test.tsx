@@ -16,12 +16,20 @@ function findBadge(text: string): HTMLElement | null {
 
 describe("Pill", () => {
   describe("typed pills (default labels + tint)", () => {
-    it("renders 'Error' label with sky tint for PillType.Error", () => {
-      render(<Pill type={PillType.Error} />);
-      const badge = findBadge("Error");
+    it("renders 'Crash' label with sky tint for PillType.Crash", () => {
+      render(<Pill type={PillType.Crash} />);
+      const badge = findBadge("Crash");
       expect(badge).not.toBeNull();
       expect(badge!.className).toMatch(/border-sky-400/);
       expect(badge!.className).toMatch(/text-sky-700/);
+    });
+
+    it("renders 'Error' label with slate tint for PillType.Error", () => {
+      render(<Pill type={PillType.Error} />);
+      const badge = findBadge("Error");
+      expect(badge).not.toBeNull();
+      expect(badge!.className).toMatch(/border-slate-400/);
+      expect(badge!.className).toMatch(/text-slate-700/);
     });
 
     it("renders 'ANR' label with violet tint for PillType.Anr", () => {
@@ -241,7 +249,7 @@ describe("Pill", () => {
         </Pill>,
       );
       const outer = container.querySelector("span");
-      expect(outer!.className).toMatch(/border-sky-400/);
+      expect(outer!.className).toMatch(/border-slate-400/);
     });
   });
 });

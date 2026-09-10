@@ -11,6 +11,7 @@ export enum PillType {
   // (Time, Device, App version, etc.) and filter chips.
   Neutral = "neutral",
   // Errors — type
+  Crash = "crash",
   Error = "error",
   Anr = "anr",
   // Errors — severity
@@ -121,9 +122,13 @@ const sessionZinc =
 // are passed) and its colour tint.
 const pillDefaults: Record<PillType, { label?: string; tint: string }> = {
   [PillType.Neutral]: { tint: "" },
+  [PillType.Crash]: {
+    label: "Crash",
+    tint: "border-sky-400 text-sky-700 bg-sky-100 dark:border-sky-400 dark:text-sky-400 dark:bg-sky-950/40",
+  },
   [PillType.Error]: {
     label: "Error",
-    tint: "border-sky-400 text-sky-700 bg-sky-100 dark:border-sky-400 dark:text-sky-400 dark:bg-sky-950/40",
+    tint: "border-slate-400 text-slate-700 bg-slate-100 dark:border-slate-400 dark:text-slate-300 dark:bg-slate-800/60",
   },
   [PillType.Anr]: {
     label: "ANR",

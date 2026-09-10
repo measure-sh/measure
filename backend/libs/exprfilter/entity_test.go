@@ -11,7 +11,7 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, SessionsEntity, JourneysEntity, AlertsEntity, NetworkEntity}
+var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, SessionsEntity, ErrorsEntity, JourneysEntity, AlertsEntity, NetworkEntity}
 
 func sampleValues(t *testing.T, key Key, operator Operator) []Value {
 	t.Helper()
@@ -882,6 +882,198 @@ func TestSessionsAggregatedKeyBindingsReadThePerSessionTotals(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestErrorsEntityOffersEveryErrorKey(t *testing.T) {
+	byName := IndexKeysByName(ErrorsEntity.Keys)
+
+	wanted := []string{
+		"error_type",
+		"version_name", "version_code", "patch_version", "patch_id",
+		"user_id",
+		"os_name", "os_version",
+		"device_name", "device_manufacturer", "locale",
+		"network_type", "network_generation", "network_provider",
+		"country",
+	}
+	for _, name := range wanted {
+		if _, ok := byName[name]; !ok {
+			t.Errorf("want a %q key on the errors entity", name)
+		}
+	}
+	if len(ErrorsEntity.Keys) != len(wanted) {
+		t.Errorf("want %d errors keys, got %d", len(wanted), len(ErrorsEntity.Keys))
+	}
+
+	if ErrorsEntity.Keys[0].Name != "error_type" {
+		t.Errorf("want the error type key first, got %q", ErrorsEntity.Keys[0].Name)
+	}
+	if groups := ListKeyGroups(ErrorsEntity.Keys); len(groups) == 0 || groups[0] != KeyGroupError {
+		t.Errorf("want the error group listed first, got %v", groups)
+	}
+}
+
+func TestErrorGroupEventsEntityOffersEveryErrorKeyButTheType(t *testing.T) {
+	entity, err := FindByName("error_group_events")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, ok := IndexKeysByName(entity.Keys)["error_type"]; ok {
+		t.Error("want no error_type key on the error events entity")
+	}
+	if want := len(ErrorsEntity.Keys) - 1; len(entity.Keys) != want {
+		t.Errorf("want %d error event keys, got %d", want, len(entity.Keys))
+	}
+	for i, key := range entity.Keys {
+		if ErrorsEntity.Keys[i+1].Name != key.Name {
+			t.Errorf("want key %d to be %q, got %q", i, ErrorsEntity.Keys[i+1].Name, key.Name)
+		}
+	}
+}
+
+func TestErrorsBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
+	_, err := ErrorsEntity.BindKey(Condition{
+		KeyName:  "session_events",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "anr"}},
+	})
+
+	if err == nil {
+		t.Fatal("want a key the errors entity does not have refused")
+	}
+	if !strings.Contains(err.Error(), "session_events") {
+		t.Errorf("want the key named, got %q", err)
+	}
+}
+
+func TestErrorTypeBindsPredicates(t *testing.T) {
+	bind := func(t *testing.T, operator Operator, names ...string) (*sqlf.Stmt, error) {
+		t.Helper()
+		values := make([]Value, len(names))
+		for i, name := range names {
+			values[i] = Value{Text: name}
+		}
+		return ErrorsEntity.BindKey(Condition{
+			KeyName:  "error_type",
+			Operator: operator,
+			Values:   values,
+		})
+	}
+
+	const (
+		crashSQL     = "(type = 'exception' and (`exception.severity` = 'fatal' or (`exception.severity` = '' and `exception.handled` = false)))"
+		anrSQL       = "(type = 'anr')"
+		handledSQL   = "(type = 'exception' and (`exception.severity` = 'handled' or (`exception.severity` = '' and `exception.handled` = true)))"
+		unhandledSQL = "(type = 'exception' and `exception.severity` = 'unhandled')"
+	)
+
+	tests := []struct {
+		name     string
+		operator Operator
+		values   []string
+		want     string
+	}{
+		{"a crash", OperatorIn, []string{ErrorTypeCrash}, "(" + crashSQL + ")"},
+		{"an anr", OperatorIn, []string{ErrorTypeANR}, "(" + anrSQL + ")"},
+		{"a handled error", OperatorIn, []string{ErrorTypeHandledError}, "(" + handledSQL + ")"},
+		{"an unhandled error", OperatorIn, []string{ErrorTypeUnhandledError}, "(" + unhandledSQL + ")"},
+		{"many values match either", OperatorIn, []string{ErrorTypeCrash, ErrorTypeANR}, "(" + crashSQL + " or " + anrSQL + ")"},
+		{"not in", OperatorNotIn, []string{ErrorTypeANR}, "not (" + anrSQL + ")"},
+		{"not in many", OperatorNotIn, []string{ErrorTypeHandledError, ErrorTypeUnhandledError}, "not (" + handledSQL + " or " + unhandledSQL + ")"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			stmt, err := bind(t, test.operator, test.values...)
+			if err != nil {
+				t.Fatalf("bind error type: %v", err)
+			}
+			defer stmt.Close()
+
+			if got := stmt.String(); got != test.want {
+				t.Errorf("\n got %s\nwant %s", got, test.want)
+			}
+			if args := stmt.Args(); len(args) != 0 {
+				t.Errorf("want no bound arguments, got %v", args)
+			}
+		})
+	}
+
+	t.Run("unknown value", func(t *testing.T) {
+		_, err := bind(t, OperatorIn, "Kernel Panic")
+		if err == nil {
+			t.Fatal("want an error kind the entity does not know refused")
+		}
+		if !strings.Contains(err.Error(), "Kernel Panic") {
+			t.Errorf("want the value named, got %q", err)
+		}
+	})
+
+	t.Run("operator it does not offer", func(t *testing.T) {
+		if _, err := bind(t, OperatorContains, ErrorTypeCrash); err == nil {
+			t.Fatal("want contains on the error type refused")
+		}
+	})
+}
+
+func TestErrorsBindKeysToEventColumns(t *testing.T) {
+	patch := uuid.New()
+
+	tests := []struct {
+		keyName  string
+		operator Operator
+		values   []string
+		want     string
+	}{
+		{"version_name", OperatorIn, []string{"1.2.0"}, "`attribute.app_version` in ?"},
+		{"version_code", OperatorNotIn, []string{"120"}, "`attribute.app_build` not in ?"},
+		{"patch_version", OperatorContains, []string{"patch"}, "`attribute.patch_version` ilike ?"},
+		{"patch_id", OperatorIn, []string{patch.String()}, "`attribute.patch_id` in ?"},
+		{"patch_id", OperatorIsSet, nil, "`attribute.patch_id` <> ?"},
+		{"patch_id", OperatorIsNotSet, nil, "`attribute.patch_id` = ?"},
+		{"user_id", OperatorIn, []string{"alice"}, "`attribute.user_id` in ?"},
+		{"os_name", OperatorIn, []string{"android"}, "`attribute.os_name` in ?"},
+		{"os_version", OperatorStartsWith, []string{"14"}, "`attribute.os_version` ilike ?"},
+		{"device_name", OperatorIn, []string{"pixel"}, "`attribute.device_name` in ?"},
+		{"device_manufacturer", OperatorIn, []string{"TestCo"}, "`attribute.device_manufacturer` in ?"},
+		{"locale", OperatorIn, []string{"en-US"}, "`attribute.device_locale` in ?"},
+		{"network_type", OperatorIn, []string{"wifi"}, "`attribute.network_type` in ?"},
+		{"network_generation", OperatorIn, []string{"4g"}, "`attribute.network_generation` in ?"},
+		{"network_provider", OperatorIn, []string{"carrier"}, "`attribute.network_provider` in ?"},
+		{"country", OperatorNotIn, []string{"US"}, "`inet.country_code` not in ?"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.keyName+" "+string(test.operator), func(t *testing.T) {
+			values := make([]Value, len(test.values))
+			for i, text := range test.values {
+				values[i] = Value{Text: text}
+			}
+			stmt, err := ErrorsEntity.BindKey(Condition{
+				KeyName:  test.keyName,
+				Operator: test.operator,
+				Values:   values,
+			})
+			if err != nil {
+				t.Fatalf("bind %s: %v", test.keyName, err)
+			}
+			defer stmt.Close()
+
+			if got := stmt.String(); got != test.want {
+				t.Errorf("\n got %s\nwant %s", got, test.want)
+			}
+		})
+	}
+
+	t.Run("a patch id that is not a uuid", func(t *testing.T) {
+		if _, err := ErrorsEntity.BindKey(Condition{
+			KeyName:  "patch_id",
+			Operator: OperatorIn,
+			Values:   []Value{{Text: "not-a-uuid"}},
+		}); err == nil {
+			t.Fatal("want a patch id that is not a uuid refused")
+		}
+	})
 }
 
 func TestAlertsEntityCannotBeFiltered(t *testing.T) {

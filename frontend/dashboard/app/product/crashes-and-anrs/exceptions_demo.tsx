@@ -2,14 +2,14 @@
 
 import dynamic from "next/dynamic";
 
-const ErrorsDetails = dynamic(
+const ErrorsDetailsView = dynamic(
   () =>
     import("../../components/errors_details").then(
-      (mod) => mod.ErrorsDetails as unknown as React.ComponentType<any>,
+      (mod) => mod.ErrorsDetailsView as unknown as React.ComponentType<any>,
     ),
   { ssr: false },
 );
 
 export default function ExceptionsDemo() {
-  return <ErrorsDetails demo={true} hideDemoTitle={true} />;
+  return <ErrorsDetailsView demo={true} hideDemoTitle={true} />;
 }

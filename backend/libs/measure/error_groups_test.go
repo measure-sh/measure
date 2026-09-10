@@ -3,43 +3,143 @@
 package measure
 
 import (
+	"slices"
 	"testing"
 	"time"
 
 	"backend/libs/event"
-	"backend/libs/filter"
+	"backend/libs/exprfilter"
 	"backend/libs/group"
+	"backend/testinfra"
+
+	"github.com/google/uuid"
 )
 
 // 32-char fingerprints (events.exception.fingerprint and anr.fingerprint are
 // FixedString(32)).
 const (
-	fpGroupFatal     = "0000000000000000000000000000000a"
-	fpGroupHandled   = "0000000000000000000000000000000b"
-	fpGroupUnhandled = "0000000000000000000000000000000c"
-	fpGroupANR       = "0000000000000000000000000000000d"
+	fpCrash         = "0000000000000000000000000000c001"
+	fpANR           = "0000000000000000000000000000c002"
+	fpHandled       = "0000000000000000000000000000c003"
+	fpUnhandled     = "0000000000000000000000000000c004"
+	fpLegacyCrash   = "0000000000000000000000000000c005"
+	fpLegacyHandled = "0000000000000000000000000000c006"
+	fpPatched       = "0000000000000000000000000000c007"
 )
 
-// seedAllErrorSources writes one row of each kind (fatal, handled nonfatal,
-// unhandled nonfatal, ANR) to both the events table and the corresponding
-// *_groups aggregating table — necessary because GetErrorGroupsWithFilter
-// joins the groups CTE against an events count CTE and filters out rows with
-// zero matching events.
-func seedAllErrorSources(f plotFixture, t *testing.T, ts time.Time) {
+type errorKindsFixture struct {
+	plotFixture
+	ts         time.Time
+	patchID    uuid.UUID
+	crashEvent uuid.UUID
+}
+
+// newErrorKindsFixture seeds one event and its group row for every error
+// kind: crash, ANR, handled, unhandled, the two legacy shapes with no
+// severity, and a crash on a later version with an OTA patch.
+func newErrorKindsFixture(t *testing.T) errorKindsFixture {
 	t.Helper()
+
+	f := errorKindsFixture{
+		plotFixture: newPlotFixture(t),
+		ts:          time.Now().UTC(),
+		patchID:     uuid.New(),
+		crashEvent:  uuid.New(),
+	}
 	teamID, appID := f.teamIDStr(), f.appIDStr()
 
-	seedExceptionGroup(f.ctx, t, teamID, appID, fpGroupFatal)
-	seedIssueEvent(f.ctx, t, teamID, appID, "exception", fpGroupFatal, false, ts)
+	// Readers index into the exceptions list, so it must not be empty.
+	const exceptionsJSON = `[{"type":"java.lang.RuntimeException","message":"Test error","frames":[]}]`
 
-	seedNonfatalExceptionGroup(f.ctx, t, teamID, appID, fpGroupHandled, true, false)
-	seedIssueEvent(f.ctx, t, teamID, appID, "exception", fpGroupHandled, true, ts)
+	android := func(row testinfra.EventRow) testinfra.EventRow {
+		row.Timestamp = f.ts
+		row.ExceptionsJSON = exceptionsJSON
+		row.AppVersion = "1.1.0"
+		row.AppBuild = "110"
+		row.OSName = "android"
+		row.OSVersion = "14"
+		row.CountryCode = "US"
+		row.NetworkProvider = "carrier"
+		row.NetworkType = "wifi"
+		row.NetworkGeneration = "4g"
+		row.DeviceLocale = "en-US"
+		row.DeviceManufacturer = "TestCo"
+		row.DeviceName = "pixel"
+		return row
+	}
 
-	seedNonfatalExceptionGroup(f.ctx, t, teamID, appID, fpGroupUnhandled, false, false)
-	seedIssueEvent(f.ctx, t, teamID, appID, "exception", fpGroupUnhandled, false, ts)
+	seedGroup := func(table, fingerprint string, handled bool) {
+		th.SeedGroupRow(f.ctx, t, teamID, appID, testinfra.GroupRow{
+			Table: table, Fingerprint: fingerprint, AppVersion: "1.1.0", AppBuild: "110", Handled: handled,
+		})
+	}
 
-	seedAnrGroup(f.ctx, t, teamID, appID, fpGroupANR)
-	seedIssueEvent(f.ctx, t, teamID, appID, "anr", fpGroupANR, false, ts)
+	seedGroup("fatal_exception_groups", fpCrash, false)
+	seedEventRows(f.ctx, t, teamID, appID, 1, android(testinfra.EventRow{
+		Type: "exception", EventID: f.crashEvent.String(), Fingerprint: fpCrash,
+		Severity: "fatal", UserID: "ana",
+	}))
+
+	seedGroup("anr_groups", fpANR, false)
+	seedEventRows(f.ctx, t, teamID, appID, 1, android(testinfra.EventRow{
+		Type: "anr", Fingerprint: fpANR, UserID: "zoe",
+	}))
+
+	seedGroup("nonfatal_exception_groups", fpHandled, true)
+	seedEventRows(f.ctx, t, teamID, appID, 1, android(testinfra.EventRow{
+		Type: "exception", Fingerprint: fpHandled, Severity: "handled",
+	}))
+
+	seedGroup("nonfatal_exception_groups", fpUnhandled, false)
+	seedEventRows(f.ctx, t, teamID, appID, 1, android(testinfra.EventRow{
+		Type: "exception", Fingerprint: fpUnhandled, Severity: "unhandled",
+	}))
+
+	seedGroup("fatal_exception_groups", fpLegacyCrash, false)
+	seedEventRows(f.ctx, t, teamID, appID, 1, android(testinfra.EventRow{
+		Type: "exception", Fingerprint: fpLegacyCrash, Handled: false,
+	}))
+
+	seedGroup("nonfatal_exception_groups", fpLegacyHandled, true)
+	seedEventRows(f.ctx, t, teamID, appID, 1, android(testinfra.EventRow{
+		Type: "exception", Fingerprint: fpLegacyHandled, Handled: true,
+	}))
+
+	th.SeedGroupRow(f.ctx, t, teamID, appID, testinfra.GroupRow{
+		Table: "fatal_exception_groups", Fingerprint: fpPatched, AppVersion: "1.2.0", AppBuild: "120",
+	})
+	seedEventRows(f.ctx, t, teamID, appID, 1, testinfra.EventRow{
+		Type: "exception", Fingerprint: fpPatched, Severity: "fatal",
+		ExceptionsJSON: exceptionsJSON,
+		Timestamp:      f.ts, AppVersion: "1.2.0", AppBuild: "120", UserID: "ana",
+		OSName: "ios", OSVersion: "18", CountryCode: "IN",
+		NetworkProvider: "carrier", NetworkType: "wifi", NetworkGeneration: "5g",
+		DeviceLocale: "en-IN", DeviceManufacturer: "Apple", DeviceName: "iphone",
+		PatchID: f.patchID, PatchVersion: "1.2.0-patch.3",
+	})
+
+	return f
+}
+
+func (f errorKindsFixture) filter(exprTree *exprfilter.ExprTree) *exprfilter.ExprFilter {
+	ef := f.errorExprFilter(f.ts.Add(-time.Hour), f.ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays)
+	ef.ExprTree = exprTree
+	return ef
+}
+
+// groupIDs returns the listed fingerprints, sorted.
+func groupIDs(t *testing.T, f errorKindsFixture, ef *exprfilter.ExprFilter) []string {
+	t.Helper()
+	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, ef)
+	if err != nil {
+		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
+	}
+	ids := make([]string, len(groups))
+	for i, g := range groups {
+		ids[i] = g.ID
+	}
+	slices.Sort(ids)
+	return ids
 }
 
 func findErrorGroup(groups []group.ErrorGroup, id string) *group.ErrorGroup {
@@ -51,22 +151,24 @@ func findErrorGroup(groups []group.ErrorGroup, id string) *group.ErrorGroup {
 	return nil
 }
 
-// TestGetErrorGroupsWithFilterTypeAndSeverity confirms that the type and
-// severity fields are populated correctly for each source.
-func TestGetErrorGroupsWithFilterTypeAndSeverity(t *testing.T) {
-	f := newPlotFixture(t)
-	ts := time.Now().UTC()
-	seedAllErrorSources(f, t, ts)
+func findErrorGroupBySeverity(groups []group.ErrorGroup, id string, severity event.Severity) *group.ErrorGroup {
+	for i := range groups {
+		if groups[i].ID == id && groups[i].Severity == severity {
+			return &groups[i]
+		}
+	}
+	return nil
+}
 
-	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "", "")
-	af.ErrorTypes = []event.ErrorType{event.ErrorTypeError, event.ErrorTypeANR}
+func TestGetErrorGroupsWithFilterCoversEverySource(t *testing.T) {
+	f := newErrorKindsFixture(t)
 
-	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, af)
+	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, f.filter(nil))
 	if err != nil {
 		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
 	}
-	if len(groups) != 4 {
-		t.Fatalf("expected 4 rows (one per source), got %d: %+v", len(groups), groups)
+	if len(groups) != 7 {
+		t.Fatalf("want one row per seeded group, got %d: %+v", len(groups), groups)
 	}
 
 	cases := []struct {
@@ -74,10 +176,13 @@ func TestGetErrorGroupsWithFilterTypeAndSeverity(t *testing.T) {
 		wantType     string
 		wantSeverity event.Severity
 	}{
-		{fpGroupFatal, "exception", event.SeverityFatal},
-		{fpGroupHandled, "exception", event.SeverityHandled},
-		{fpGroupUnhandled, "exception", event.SeverityUnhandled},
-		{fpGroupANR, "anr", event.SeverityFatal},
+		{fpCrash, "exception", event.SeverityFatal},
+		{fpANR, "anr", event.SeverityFatal},
+		{fpHandled, "exception", event.SeverityHandled},
+		{fpUnhandled, "exception", event.SeverityUnhandled},
+		{fpLegacyCrash, "exception", event.SeverityFatal},
+		{fpLegacyHandled, "exception", event.SeverityHandled},
+		{fpPatched, "exception", event.SeverityFatal},
 	}
 
 	for _, c := range cases {
@@ -95,408 +200,283 @@ func TestGetErrorGroupsWithFilterTypeAndSeverity(t *testing.T) {
 	}
 }
 
-// TestGetErrorGroupsWithFilterSeverityFiltering exercises each severity flag
-// and confirms the returned rows carry the right (type, severity) pair.
-func TestGetErrorGroupsWithFilterSeverityFiltering(t *testing.T) {
-	cases := []struct {
+func TestGetErrorGroupsWithFilterByErrorType(t *testing.T) {
+	f := newErrorKindsFixture(t)
+
+	tests := []struct {
 		name     string
-		modify   func(af *filter.AppFilter)
-		wantIDs  map[string]event.Severity
-		wantType map[string]string
+		operator exprfilter.Operator
+		values   []string
+		want     []string
 	}{
 		{
-			name: "type=error with severity=fatal returns fatal only",
-			modify: func(af *filter.AppFilter) {
-				af.ErrorTypes = []event.ErrorType{event.ErrorTypeError}
-				af.Severities = []event.Severity{event.SeverityFatal}
-			},
-			wantIDs:  map[string]event.Severity{fpGroupFatal: event.SeverityFatal},
-			wantType: map[string]string{fpGroupFatal: "exception"},
+			name:   "a crash covers the severity and the legacy unhandled row",
+			values: []string{exprfilter.ErrorTypeCrash},
+			want:   []string{fpCrash, fpLegacyCrash, fpPatched},
 		},
 		{
-			name:     "severity=fatal returns fatal only",
-			modify:   func(af *filter.AppFilter) { af.Severities = []event.Severity{event.SeverityFatal} },
-			wantIDs:  map[string]event.Severity{fpGroupFatal: event.SeverityFatal},
-			wantType: map[string]string{fpGroupFatal: "exception"},
+			name:   "an anr",
+			values: []string{exprfilter.ErrorTypeANR},
+			want:   []string{fpANR},
 		},
 		{
-			name:     "severity=handled returns handled nonfatal only",
-			modify:   func(af *filter.AppFilter) { af.Severities = []event.Severity{event.SeverityHandled} },
-			wantIDs:  map[string]event.Severity{fpGroupHandled: event.SeverityHandled},
-			wantType: map[string]string{fpGroupHandled: "exception"},
+			name:   "a handled error covers the legacy handled row",
+			values: []string{exprfilter.ErrorTypeHandledError},
+			want:   []string{fpHandled, fpLegacyHandled},
 		},
 		{
-			name:     "severity=unhandled returns unhandled nonfatal only",
-			modify:   func(af *filter.AppFilter) { af.Severities = []event.Severity{event.SeverityUnhandled} },
-			wantIDs:  map[string]event.Severity{fpGroupUnhandled: event.SeverityUnhandled},
-			wantType: map[string]string{fpGroupUnhandled: "exception"},
+			name:   "an unhandled error needs a named severity",
+			values: []string{exprfilter.ErrorTypeUnhandledError},
+			want:   []string{fpUnhandled},
 		},
 		{
-			name:   "type=anr returns ANR only",
-			modify: func(af *filter.AppFilter) { af.ErrorTypes = []event.ErrorType{event.ErrorTypeANR} },
-			wantIDs: map[string]event.Severity{
-				fpGroupANR: event.SeverityFatal,
-			},
-			wantType: map[string]string{fpGroupANR: "anr"},
+			name:   "many kinds match either",
+			values: []string{exprfilter.ErrorTypeCrash, exprfilter.ErrorTypeANR},
+			want:   []string{fpANR, fpCrash, fpLegacyCrash, fpPatched},
 		},
 		{
-			name: "type=error with nonfatal severities returns both nonfatal",
-			modify: func(af *filter.AppFilter) {
-				af.ErrorTypes = []event.ErrorType{event.ErrorTypeError}
-				af.Severities = []event.Severity{event.SeverityHandled, event.SeverityUnhandled}
-			},
-			wantIDs: map[string]event.Severity{
-				fpGroupHandled:   event.SeverityHandled,
-				fpGroupUnhandled: event.SeverityUnhandled,
-			},
-			wantType: map[string]string{
-				fpGroupHandled:   "exception",
-				fpGroupUnhandled: "exception",
-			},
-		},
-		{
-			// ANR is unaffected by severity — must appear alongside fatal exception.
-			name: "type=error,anr with severity=fatal returns fatal exception and ANR",
-			modify: func(af *filter.AppFilter) {
-				af.ErrorTypes = []event.ErrorType{event.ErrorTypeError, event.ErrorTypeANR}
-				af.Severities = []event.Severity{event.SeverityFatal}
-			},
-			wantIDs: map[string]event.Severity{
-				fpGroupFatal: event.SeverityFatal,
-				fpGroupANR:   event.SeverityFatal,
-			},
-			wantType: map[string]string{
-				fpGroupFatal: "exception",
-				fpGroupANR:   "anr",
-			},
-		},
-		{
-			// ANR must appear alongside handled exception when severity=handled.
-			name: "type=error,anr with severity=handled returns handled exception and ANR",
-			modify: func(af *filter.AppFilter) {
-				af.ErrorTypes = []event.ErrorType{event.ErrorTypeError, event.ErrorTypeANR}
-				af.Severities = []event.Severity{event.SeverityHandled}
-			},
-			wantIDs: map[string]event.Severity{
-				fpGroupHandled: event.SeverityHandled,
-				fpGroupANR:     event.SeverityFatal,
-			},
-			wantType: map[string]string{
-				fpGroupHandled: "exception",
-				fpGroupANR:     "anr",
-			},
-		},
-		{
-			name: "type=error,anr with severity=fatal,handled returns fatal, handled exception and ANR",
-			modify: func(af *filter.AppFilter) {
-				af.ErrorTypes = []event.ErrorType{event.ErrorTypeError, event.ErrorTypeANR}
-				af.Severities = []event.Severity{event.SeverityFatal, event.SeverityHandled}
-			},
-			wantIDs: map[string]event.Severity{
-				fpGroupFatal:   event.SeverityFatal,
-				fpGroupHandled: event.SeverityHandled,
-				fpGroupANR:     event.SeverityFatal,
-			},
-			wantType: map[string]string{
-				fpGroupFatal:   "exception",
-				fpGroupHandled: "exception",
-				fpGroupANR:     "anr",
-			},
-		},
-		{
-			name: "type=error with severity=fatal,unhandled returns fatal and unhandled exception",
-			modify: func(af *filter.AppFilter) {
-				af.ErrorTypes = []event.ErrorType{event.ErrorTypeError}
-				af.Severities = []event.Severity{event.SeverityFatal, event.SeverityUnhandled}
-			},
-			wantIDs: map[string]event.Severity{
-				fpGroupFatal:     event.SeverityFatal,
-				fpGroupUnhandled: event.SeverityUnhandled,
-			},
-			wantType: map[string]string{
-				fpGroupFatal:     "exception",
-				fpGroupUnhandled: "exception",
-			},
+			name:     "not in leaves a kind out",
+			operator: exprfilter.OperatorNotIn,
+			values:   []string{exprfilter.ErrorTypeCrash},
+			want:     []string{fpANR, fpHandled, fpLegacyHandled, fpUnhandled},
 		},
 	}
 
-	for _, c := range cases {
-		c := c
-		t.Run(c.name, func(t *testing.T) {
-			f := newPlotFixture(t)
-			ts := time.Now().UTC()
-			seedAllErrorSources(f, t, ts)
-
-			af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "", "")
-			c.modify(af)
-
-			groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, af)
-			if err != nil {
-				t.Fatalf("GetErrorGroupsWithFilter: %v", err)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			operator := test.operator
+			if operator == "" {
+				operator = exprfilter.OperatorIn
 			}
-			if len(groups) != len(c.wantIDs) {
-				t.Fatalf("got %d rows, want %d: %+v", len(groups), len(c.wantIDs), groups)
-			}
-			for id, wantSev := range c.wantIDs {
-				g := findErrorGroup(groups, id)
-				if g == nil {
-					t.Errorf("missing row for fingerprint %s", id)
-					continue
-				}
-				if g.Severity != wantSev {
-					t.Errorf("fingerprint %s: severity = %q, want %q", id, g.Severity, wantSev)
-				}
-				if g.ErrorType != c.wantType[id] {
-					t.Errorf("fingerprint %s: error_type = %q, want %q", id, g.ErrorType, c.wantType[id])
-				}
+			exprTree := leaf("error_type", operator, test.values...)
+			want := slices.Clone(test.want)
+			slices.Sort(want)
+			if got := groupIDs(t, f, f.filter(&exprTree)); !slices.Equal(got, want) {
+				t.Fatalf("want %v, got %v", want, got)
 			}
 		})
 	}
 }
 
-// 32-char fingerprints shared across the fatal and nonfatal group tables —
-// the same crash reported both fatally and nonfatally, which is the scenario
-// the per-severity count split must handle.
-const (
-	fpSharedFatalHandled   = "00000000000000000000000000000020"
-	fpSharedFatalUnhandled = "00000000000000000000000000000021"
-)
+func TestGetErrorGroupsWithFilterByAttributes(t *testing.T) {
+	f := newErrorKindsFixture(t)
 
-// seedSharedFingerprintCounts writes two fingerprints that each live in BOTH
-// fatal_exception_groups and nonfatal_exception_groups, with asymmetric event
-// counts per severity. This reproduces the count-duplication bug: a single
-// counts row joined to two per-severity group rows handed both the combined
-// total.
-//
-//   - fpSharedFatalHandled:   1 fatal event + 3 handled events
-//   - fpSharedFatalUnhandled: 1 fatal event + 2 unhandled events
-//
-// This seed is for the case where error groups were not symbolicated, but we still want the final instance count to be accurate no matter the severity.
-func seedSharedFingerprintCounts(f plotFixture, t *testing.T, ts time.Time) {
-	t.Helper()
-	teamID, appID := f.teamIDStr(), f.appIDStr()
+	tests := []struct {
+		name     string
+		exprTree exprfilter.ExprTree
+		want     []string
+	}{
+		{
+			name:     "version name",
+			exprTree: leaf("version_name", exprfilter.OperatorIn, "1.2.0"),
+			want:     []string{fpPatched},
+		},
+		{
+			name:     "version code",
+			exprTree: leaf("version_code", exprfilter.OperatorIn, "120"),
+			want:     []string{fpPatched},
+		},
+		{
+			name:     "patch id",
+			exprTree: leaf("patch_id", exprfilter.OperatorIn, f.patchID.String()),
+			want:     []string{fpPatched},
+		},
+		{
+			name:     "patch version",
+			exprTree: leaf("patch_version", exprfilter.OperatorIn, "1.2.0-patch.3"),
+			want:     []string{fpPatched},
+		},
+		{
+			name:     "no patch",
+			exprTree: leaf("patch_id", exprfilter.OperatorIsNotSet),
+			want:     []string{fpCrash, fpANR, fpHandled, fpUnhandled, fpLegacyCrash, fpLegacyHandled},
+		},
+		{
+			name:     "user id",
+			exprTree: leaf("user_id", exprfilter.OperatorIn, "ana"),
+			want:     []string{fpCrash, fpPatched},
+		},
+		{
+			name:     "os name",
+			exprTree: leaf("os_name", exprfilter.OperatorIn, "ios"),
+			want:     []string{fpPatched},
+		},
+		{
+			name:     "country",
+			exprTree: leaf("country", exprfilter.OperatorIn, "IN"),
+			want:     []string{fpPatched},
+		},
+		{
+			name: "an error kind and an os name together",
+			exprTree: exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
+				leaf("error_type", exprfilter.OperatorIn, exprfilter.ErrorTypeCrash),
+				leaf("os_name", exprfilter.OperatorIn, "android"),
+			}},
+			want: []string{fpCrash, fpLegacyCrash},
+		},
+	}
 
-	seedExceptionGroup(f.ctx, t, teamID, appID, fpSharedFatalHandled)
-	seedNonfatalExceptionGroup(f.ctx, t, teamID, appID, fpSharedFatalHandled, true, false)
-	seedSeverityEvents(f, t, fpSharedFatalHandled, "fatal", 1, ts)
-	seedSeverityEvents(f, t, fpSharedFatalHandled, "handled", 3, ts)
-
-	seedExceptionGroup(f.ctx, t, teamID, appID, fpSharedFatalUnhandled)
-	seedNonfatalExceptionGroup(f.ctx, t, teamID, appID, fpSharedFatalUnhandled, false, false)
-	seedSeverityEvents(f, t, fpSharedFatalUnhandled, "fatal", 1, ts)
-	seedSeverityEvents(f, t, fpSharedFatalUnhandled, "unhandled", 2, ts)
-}
-
-func seedSeverityEvents(f plotFixture, t *testing.T, fingerprint, severity string, n int, ts time.Time) {
-	t.Helper()
-	for i := 0; i < n; i++ {
-		seedIssueEventWithSeverity(f.ctx, t, f.teamIDStr(), f.appIDStr(), fingerprint, severity, ts)
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			want := slices.Clone(test.want)
+			slices.Sort(want)
+			exprTree := test.exprTree
+			if got := groupIDs(t, f, f.filter(&exprTree)); !slices.Equal(got, want) {
+				t.Fatalf("want %v, got %v", want, got)
+			}
+		})
 	}
 }
 
-// wantCount pairs an expected fingerprint+severity row with its event count.
-type wantCount struct {
-	id       string
-	severity event.Severity
-	count    uint64
+func TestGetErrorGroupsWithFilterByCustomAttribute(t *testing.T) {
+	f := newErrorKindsFixture(t)
+
+	th.SeedUDAttrRow(f.ctx, t, f.teamIDStr(), f.appIDStr(), testinfra.UDAttrRow{
+		EventID: f.crashEvent.String(), Key: "plan", Value: "pro", Timestamp: f.ts,
+	})
+
+	list := func(t *testing.T, exprTree exprfilter.ExprTree) []string {
+		t.Helper()
+		ef := f.filter(&exprTree)
+		resolveCustomKeys(t, ef)
+		return groupIDs(t, f, ef)
+	}
+
+	t.Run("a value narrows to the error carrying it", func(t *testing.T) {
+		if got := list(t, leaf("custom.plan", exprfilter.OperatorIn, "pro")); !slices.Equal(got, []string{fpCrash}) {
+			t.Fatalf("want the crash group, got %v", got)
+		}
+	})
+
+	t.Run("a custom key beside a built-in key", func(t *testing.T) {
+		got := list(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
+			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
+			leaf("error_type", exprfilter.OperatorIn, exprfilter.ErrorTypeCrash),
+		}})
+		if !slices.Equal(got, []string{fpCrash}) {
+			t.Fatalf("want the crash group, got %v", got)
+		}
+	})
+
+	t.Run("an attribute no error carries matches nothing", func(t *testing.T) {
+		if got := list(t, leaf("custom.plan", exprfilter.OperatorIn, "free")); len(got) != 0 {
+			t.Fatalf("want no groups, got %v", got)
+		}
+	})
 }
+
+func TestGetErrorGroupsWithFilterPaginates(t *testing.T) {
+	f := newErrorKindsFixture(t)
+
+	ef := f.filter(nil)
+	ef.Limit = 3
+
+	groups, next, previous, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, ef)
+	if err != nil {
+		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
+	}
+	if len(groups) != 3 || !next || previous {
+		t.Fatalf("want the first page with more to come, got %d groups next=%v previous=%v", len(groups), next, previous)
+	}
+
+	ef.Offset = 6
+	groups, next, previous, err = f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, ef)
+	if err != nil {
+		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
+	}
+	if len(groups) != 1 || next || !previous {
+		t.Fatalf("want the last page with pages before it, got %d groups next=%v previous=%v", len(groups), next, previous)
+	}
+}
+
+// A fingerprint present in both the fatal and nonfatal group tables.
+const fpSharedFatalHandled = "0000000000000000000000000000c020"
 
 // TestGetErrorGroupsWithFilterSharedFingerprintCounts guards against the
 // count-duplication bug where a fingerprint present in both the fatal and
 // nonfatal group tables had the combined event total reported on every
 // per-severity row. Each row must carry only the count for its own severity.
 func TestGetErrorGroupsWithFilterSharedFingerprintCounts(t *testing.T) {
-	cases := []struct {
-		name       string
-		severities []event.Severity
-		want       []wantCount
-	}{
-		{
-			name:       "fatal,handled splits counts per severity",
-			severities: []event.Severity{event.SeverityFatal, event.SeverityHandled},
-			want: []wantCount{
-				{fpSharedFatalHandled, event.SeverityFatal, 1},
-				{fpSharedFatalHandled, event.SeverityHandled, 3},
-				// unhandled twin contributes only its fatal row here.
-				{fpSharedFatalUnhandled, event.SeverityFatal, 1},
-			},
-		},
-		{
-			name:       "fatal,unhandled splits counts per severity",
-			severities: []event.Severity{event.SeverityFatal, event.SeverityUnhandled},
-			want: []wantCount{
-				{fpSharedFatalHandled, event.SeverityFatal, 1},
-				{fpSharedFatalUnhandled, event.SeverityFatal, 1},
-				{fpSharedFatalUnhandled, event.SeverityUnhandled, 2},
-			},
-		},
-		{
-			name:       "handled,unhandled excludes fatal events",
-			severities: []event.Severity{event.SeverityHandled, event.SeverityUnhandled},
-			want: []wantCount{
-				{fpSharedFatalHandled, event.SeverityHandled, 3},
-				{fpSharedFatalUnhandled, event.SeverityUnhandled, 2},
-			},
-		},
-		{
-			name:       "fatal,handled,unhandled covers every row",
-			severities: []event.Severity{event.SeverityFatal, event.SeverityHandled, event.SeverityUnhandled},
-			want: []wantCount{
-				{fpSharedFatalHandled, event.SeverityFatal, 1},
-				{fpSharedFatalHandled, event.SeverityHandled, 3},
-				{fpSharedFatalUnhandled, event.SeverityFatal, 1},
-				{fpSharedFatalUnhandled, event.SeverityUnhandled, 2},
-			},
-		},
-		{
-			name:       "fatal returns fatal counts only",
-			severities: []event.Severity{event.SeverityFatal},
-			want: []wantCount{
-				{fpSharedFatalHandled, event.SeverityFatal, 1},
-				{fpSharedFatalUnhandled, event.SeverityFatal, 1},
-			},
-		},
+	f := newPlotFixture(t)
+	ts := time.Now().UTC()
+	teamID, appID := f.teamIDStr(), f.appIDStr()
+
+	seedExceptionGroup(f.ctx, t, teamID, appID, fpSharedFatalHandled)
+	seedNonfatalExceptionGroup(f.ctx, t, teamID, appID, fpSharedFatalHandled, true, false)
+	seedIssueEventWithSeverity(f.ctx, t, teamID, appID, fpSharedFatalHandled, "fatal", ts)
+	for range 3 {
+		seedIssueEventWithSeverity(f.ctx, t, teamID, appID, fpSharedFatalHandled, "handled", ts)
 	}
 
-	for _, c := range cases {
-		c := c
-		t.Run(c.name, func(t *testing.T) {
-			f := newPlotFixture(t)
-			ts := time.Now().UTC()
-			seedSharedFingerprintCounts(f, t, ts)
+	ef := f.errorExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays)
 
-			af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "", "")
-			af.ErrorTypes = []event.ErrorType{event.ErrorTypeError}
-			af.Severities = c.severities
-
-			groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, af)
-			if err != nil {
-				t.Fatalf("GetErrorGroupsWithFilter: %v", err)
-			}
-			if len(groups) != len(c.want) {
-				t.Fatalf("got %d rows, want %d: %+v", len(groups), len(c.want), groups)
-			}
-			for _, w := range c.want {
-				g := findErrorGroupBySeverity(groups, w.id, w.severity)
-				if g == nil {
-					t.Errorf("missing row for fingerprint %s severity %s", w.id, w.severity)
-					continue
-				}
-				if g.Count != w.count {
-					t.Errorf("fingerprint %s severity %s: count = %d, want %d", w.id, w.severity, g.Count, w.count)
-				}
-			}
-		})
+	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, ef)
+	if err != nil {
+		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
 	}
-}
+	if len(groups) != 2 {
+		t.Fatalf("want one row per severity class, got %d: %+v", len(groups), groups)
+	}
 
-func findErrorGroupBySeverity(groups []group.ErrorGroup, id string, severity event.Severity) *group.ErrorGroup {
-	for i := range groups {
-		if groups[i].ID == id && groups[i].Severity == severity {
-			return &groups[i]
+	wantCounts := map[event.Severity]uint64{
+		event.SeverityFatal:   1,
+		event.SeverityHandled: 3,
+	}
+	for severity, wantCount := range wantCounts {
+		g := findErrorGroupBySeverity(groups, fpSharedFatalHandled, severity)
+		if g == nil {
+			t.Errorf("missing row for severity %s", severity)
+			continue
+		}
+		if g.Count != wantCount {
+			t.Errorf("severity %s: count = %d, want %d", severity, g.Count, wantCount)
 		}
 	}
-	return nil
 }
 
 // 32-char fingerprints for is_custom tests.
 const (
-	fpGroupCustomFatal    = "0000000000000000000000000000000e"
-	fpGroupCustomHandled  = "0000000000000000000000000000000f"
-	fpGroupNativeFatal    = "00000000000000000000000000000010"
-	fpGroupNativeUnhandld = "00000000000000000000000000000011"
-	fpGroupCustomANRish   = "00000000000000000000000000000012"
+	fpCustomFatal   = "0000000000000000000000000000c030"
+	fpCustomHandled = "0000000000000000000000000000c031"
+	fpNativeFatal   = "0000000000000000000000000000c032"
+	fpCustomANRish  = "0000000000000000000000000000c033"
 )
 
-// seedCustomMix seeds two custom-captured exceptions (one fatal, one handled
-// nonfatal), two native exceptions (one fatal, one unhandled nonfatal), and
-// one ANR. ANRs are never custom — they exist to verify is_custom is false
-// on ANR rows and that type=error+custom=1 still excludes them.
-func seedCustomMix(f plotFixture, t *testing.T, ts time.Time) {
-	t.Helper()
-	teamID, appID := f.teamIDStr(), f.appIDStr()
-
-	seedFatalExceptionGroupWithCustomFlag(f.ctx, t, teamID, appID, fpGroupCustomFatal, true)
-	seedIssueEventWithCustomFlag(f.ctx, t, teamID, appID, fpGroupCustomFatal, false, true, ts)
-
-	seedNonfatalExceptionGroup(f.ctx, t, teamID, appID, fpGroupCustomHandled, true, true)
-	seedIssueEventWithCustomFlag(f.ctx, t, teamID, appID, fpGroupCustomHandled, true, true, ts)
-
-	seedFatalExceptionGroupWithCustomFlag(f.ctx, t, teamID, appID, fpGroupNativeFatal, false)
-	seedIssueEventWithCustomFlag(f.ctx, t, teamID, appID, fpGroupNativeFatal, false, false, ts)
-
-	seedNonfatalExceptionGroup(f.ctx, t, teamID, appID, fpGroupNativeUnhandld, false, false)
-	seedIssueEventWithCustomFlag(f.ctx, t, teamID, appID, fpGroupNativeUnhandld, false, false, ts)
-
-	seedAnrGroup(f.ctx, t, teamID, appID, fpGroupCustomANRish)
-	seedIssueEvent(f.ctx, t, teamID, appID, "anr", fpGroupCustomANRish, false, ts)
-}
-
-// TestGetErrorGroupsWithFilterCustomErrorFilter confirms that ?custom=true with
-// type=error,anr returns custom exceptions AND ANRs (ANRs are always included
-// when explicitly requested), while native exceptions are excluded.
-// is_custom is true for custom exceptions and false for ANRs.
-func TestGetErrorGroupsWithFilterCustomErrorFilter(t *testing.T) {
-	f := newPlotFixture(t)
-	ts := time.Now().UTC()
-	seedCustomMix(f, t, ts)
-
-	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "", "")
-	af.ErrorTypes = []event.ErrorType{event.ErrorTypeError, event.ErrorTypeANR}
-	af.CustomError = true
-
-	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, af)
-	if err != nil {
-		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
-	}
-
-	// ANRs are included because type=error,anr explicitly requests them;
-	// is_custom is false for ANR rows since ANRs are never custom-captured.
-	wantIsCustom := map[string]bool{
-		fpGroupCustomFatal:   true,
-		fpGroupCustomHandled: true,
-		fpGroupCustomANRish:  false,
-	}
-	if len(groups) != len(wantIsCustom) {
-		t.Fatalf("got %d rows, want %d: %+v", len(groups), len(wantIsCustom), groups)
-	}
-	for _, g := range groups {
-		want, ok := wantIsCustom[g.ID]
-		if !ok {
-			t.Errorf("unexpected row %s in result", g.ID)
-			continue
-		}
-		if g.IsCustom != want {
-			t.Errorf("row %s: is_custom = %t, want %t", g.ID, g.IsCustom, want)
-		}
-	}
-}
-
-// TestGetErrorGroupsWithFilterIsCustomPopulated confirms is_custom is set
-// correctly on every row when no custom filter is applied — true for
-// custom-captured rows, false otherwise (including ANR).
+// TestGetErrorGroupsWithFilterIsCustomPopulated confirms is_custom is true for
+// the custom-captured rows and false otherwise, ANRs included since an ANR is
+// never custom-captured.
 func TestGetErrorGroupsWithFilterIsCustomPopulated(t *testing.T) {
 	f := newPlotFixture(t)
 	ts := time.Now().UTC()
-	seedCustomMix(f, t, ts)
+	teamID, appID := f.teamIDStr(), f.appIDStr()
 
-	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "", "")
-	af.ErrorTypes = []event.ErrorType{event.ErrorTypeError, event.ErrorTypeANR}
+	seedFatalExceptionGroupWithCustomFlag(f.ctx, t, teamID, appID, fpCustomFatal, true)
+	seedIssueEventWithCustomFlag(f.ctx, t, teamID, appID, fpCustomFatal, false, true, ts)
 
-	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, af)
+	seedNonfatalExceptionGroup(f.ctx, t, teamID, appID, fpCustomHandled, true, true)
+	seedIssueEventWithCustomFlag(f.ctx, t, teamID, appID, fpCustomHandled, true, true, ts)
+
+	seedFatalExceptionGroupWithCustomFlag(f.ctx, t, teamID, appID, fpNativeFatal, false)
+	seedIssueEventWithCustomFlag(f.ctx, t, teamID, appID, fpNativeFatal, false, false, ts)
+
+	seedAnrGroup(f.ctx, t, teamID, appID, fpCustomANRish)
+	seedIssueEvent(f.ctx, t, teamID, appID, "anr", fpCustomANRish, false, ts)
+
+	ef := f.errorExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays)
+
+	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, ef)
 	if err != nil {
 		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
 	}
-	if len(groups) != 5 {
-		t.Fatalf("expected 5 rows, got %d: %+v", len(groups), groups)
+	if len(groups) != 4 {
+		t.Fatalf("want 4 rows, got %d: %+v", len(groups), groups)
 	}
 
 	want := map[string]bool{
-		fpGroupCustomFatal:    true,
-		fpGroupCustomHandled:  true,
-		fpGroupNativeFatal:    false,
-		fpGroupNativeUnhandld: false,
-		fpGroupCustomANRish:   false,
+		fpCustomFatal:   true,
+		fpCustomHandled: true,
+		fpNativeFatal:   false,
+		fpCustomANRish:  false,
 	}
 	for id, wantCustom := range want {
 		g := findErrorGroup(groups, id)
@@ -507,26 +487,5 @@ func TestGetErrorGroupsWithFilterIsCustomPopulated(t *testing.T) {
 		if g.IsCustom != wantCustom {
 			t.Errorf("row %s: is_custom = %t, want %t", id, g.IsCustom, wantCustom)
 		}
-	}
-}
-
-// TestGetErrorPlotInstancesCustomErrorFilter confirms the overview plot
-// honors ?custom=true: custom exceptions and ANRs (no explicit type = include
-// all) are counted, while native exceptions are excluded.
-func TestGetErrorPlotInstancesCustomErrorFilter(t *testing.T) {
-	f := newPlotFixture(t)
-	ts := time.Now().UTC()
-	seedCustomMix(f, t, ts)
-
-	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
-	af.CustomError = true
-
-	items, err := f.app.GetErrorPlotInstances(f.ctx, deps.RchPool, af)
-	if err != nil {
-		t.Fatalf("GetErrorPlotInstances: %v", err)
-	}
-	// 2 custom exception events + 1 ANR event (type omitted → ANRs included).
-	if got := sumIssueInstances(items); got != 3 {
-		t.Fatalf("instances = %d, want 3 (two custom exceptions + one ANR), items=%+v", got, items)
 	}
 }

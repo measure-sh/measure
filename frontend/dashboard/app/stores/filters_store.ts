@@ -57,9 +57,6 @@ export type URLFilters = {
   deviceNames?: number[];
   udAttrMatchers?: UdAttrMatcher[];
   freeText?: string;
-  errorTypes?: string[];
-  severities?: string[];
-  customErrorsOnly?: boolean;
 };
 
 export type InitConfig = {
@@ -100,9 +97,6 @@ const urlFiltersKeyMap = {
   deviceNames: "dn",
   udAttrMatchers: "ud",
   freeText: "ft",
-  errorTypes: "et",
-  severities: "sv",
-  customErrorsOnly: "co",
 };
 
 function compressArrayToRanges(arr: number[]): string {
@@ -198,11 +192,6 @@ function serializeUrlFilters(
       case "appId":
         if (!config.showAppSelector) return;
         break;
-      case "errorTypes":
-      case "severities":
-      case "customErrorsOnly":
-        if (config.filterSource !== FilterSource.Errors) return;
-        break;
       /* v8 ignore next */
       default:
         break;
@@ -232,15 +221,6 @@ function serializeUrlFilters(
               `${encodeURIComponent(m.key)}~${encodeURIComponent(m.type)}~${encodeURIComponent(m.op)}~${encodeURIComponent(m.value)}`,
           )
           .join("|");
-        break;
-      case "errorTypes":
-      case "severities":
-        if ((value as string[]).length === 0) return;
-        serializedValue = (value as string[]).join(",");
-        break;
-      case "customErrorsOnly":
-        if (!value) return;
-        serializedValue = "1";
         break;
       case "dateRange":
         serializedValue = value.toString();
@@ -318,9 +298,6 @@ interface FiltersStoreState {
   selectedDeviceNames: string[];
   selectedUdAttrMatchers: UdAttrMatcher[];
   selectedFreeText: string;
-  selectedErrorTypes: string[];
-  selectedSeverities: string[];
-  customErrorsOnly: boolean;
 
   currentTeamId: string;
 }
@@ -350,9 +327,6 @@ interface FiltersStoreActions {
   setSelectedDeviceNames: (names: string[]) => void;
   setSelectedUdAttrMatchers: (matchers: UdAttrMatcher[]) => void;
   setSelectedFreeText: (text: string) => void;
-  setSelectedErrorTypes: (types: string[]) => void;
-  setSelectedSeverities: (severities: string[]) => void;
-  setCustomErrorsOnly: (customOnly: boolean) => void;
 
   applySelections: (patch: Partial<FiltersStoreState>) => void;
 
@@ -401,9 +375,6 @@ const initialState: FiltersStoreState = {
   selectedDeviceNames: [],
   selectedUdAttrMatchers: [],
   selectedFreeText: "",
-  selectedErrorTypes: ["error", "anr"],
-  selectedSeverities: ["fatal"],
-  customErrorsOnly: false,
   currentTeamId: "",
 };
 
@@ -464,9 +435,6 @@ function computeFilters(state: FiltersStoreState): Filters {
     ),
     udAttrMatchers: state.selectedUdAttrMatchers,
     freeText: state.selectedFreeText,
-    errorTypes: state.selectedErrorTypes,
-    severities: state.selectedSeverities,
-    customErrorsOnly: state.customErrorsOnly,
   };
 
   const loading =
@@ -522,9 +490,6 @@ function computeFilters(state: FiltersStoreState): Filters {
     },
     udAttrMatchers: state.selectedUdAttrMatchers,
     freeText: state.selectedFreeText,
-    selectedErrorTypes: state.selectedErrorTypes,
-    selectedSeverities: state.selectedSeverities,
-    customErrorsOnly: state.customErrorsOnly,
     serialisedFilters: serializeUrlFilters(updatedUrlFilters, config),
     // Placeholder; the wrapped `set` overwrites this with a real POST promise
     // when serialisedFilters changes (and otherwise carries the existing one
@@ -638,27 +603,6 @@ export function applyFilterOptions(
     selectedFreeText = "";
   }
 
-  let selectedErrorTypes: string[];
-  if (isUrlMatch && urlFilters.errorTypes) {
-    selectedErrorTypes = urlFilters.errorTypes;
-  } else {
-    selectedErrorTypes = ["error", "anr"];
-  }
-
-  let selectedSeverities: string[];
-  if (isUrlMatch && urlFilters.severities) {
-    selectedSeverities = urlFilters.severities;
-  } else {
-    selectedSeverities = ["fatal"];
-  }
-
-  let customErrorsOnly: boolean;
-  if (isUrlMatch && urlFilters.customErrorsOnly !== undefined) {
-    customErrorsOnly = urlFilters.customErrorsOnly;
-  } else {
-    customErrorsOnly = false;
-  }
-
   return {
     versions: data.versions,
     osVersions: data.osVersions,
@@ -682,9 +626,6 @@ export function applyFilterOptions(
     selectedDeviceNames,
     selectedUdAttrMatchers,
     selectedFreeText,
-    selectedErrorTypes,
-    selectedSeverities,
-    customErrorsOnly,
   };
 }
 
@@ -794,9 +735,6 @@ export function createFiltersStore() {
           selectedDeviceNames: [],
           selectedUdAttrMatchers: [],
           selectedFreeText: "",
-          selectedErrorTypes: ["error", "anr"],
-          selectedSeverities: [],
-          customErrorsOnly: false,
         });
       },
 
@@ -861,11 +799,6 @@ export function createFiltersStore() {
       setSelectedUdAttrMatchers: (matchers) =>
         set({ selectedUdAttrMatchers: matchers }),
       setSelectedFreeText: (text) => set({ selectedFreeText: text }),
-      setSelectedErrorTypes: (types) => set({ selectedErrorTypes: types }),
-      setSelectedSeverities: (severities) =>
-        set({ selectedSeverities: severities }),
-      setCustomErrorsOnly: (customOnly) =>
-        set({ customErrorsOnly: customOnly }),
 
       applySelections: (patch) => set(patch),
 

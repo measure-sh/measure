@@ -363,6 +363,11 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 			boolLit(row.Handled), "true", quote(row.Fingerprint),
 			boolLit(row.Handled), "true", quote(row.Fingerprint))
 
+		// Error event readers json-decode these columns, and the column
+		// default is an empty string, not "[]".
+		cols = append(cols, "`exception.threads`", "`anr.threads`", "attachments")
+		vals = append(vals, "'[]'", "'[]'", "'[]'")
+
 		if row.ExceptionsJSON != "" {
 			cols = append(cols, "`exception.exceptions`", "`anr.exceptions`")
 			vals = append(vals, quote(row.ExceptionsJSON), quote(row.ExceptionsJSON))
@@ -914,119 +919,96 @@ func (h *TestHelper) SeedEventWithSession(ctx context.Context, t *testing.T, tea
 	h.SeedEventRows(ctx, t, teamID, appID, 1, EventRow{SessionID: sessionID, Timestamp: ts})
 }
 
-// SeedExceptionGroup inserts a row into fatal_exception_groups so that
-// crash-alert group-info lookups succeed. fingerprint must be exactly 32
-// characters to match the FixedString(32) id column.
+// GroupRow is one row of an error group table. Empty fields take the
+// EventRow defaults.
+type GroupRow struct {
+	Table       string
+	Fingerprint string
+	AppVersion  string
+	AppBuild    string
+	Type        string
+	Message     string
+	Handled     bool
+	IsCustom    bool
+}
+
+func (r GroupRow) filled() GroupRow {
+	if r.AppVersion == "" {
+		r.AppVersion = "v1"
+	}
+	if r.AppBuild == "" {
+		r.AppBuild = "1"
+	}
+	if r.Type == "" {
+		r.Type = "java.lang.RuntimeException"
+	}
+	if r.Message == "" {
+		r.Message = "Test error"
+	}
+	return r
+}
+
+// SeedGroupRow inserts one row into the group table the row names.
+// Fingerprint must be 32 characters: the id column is FixedString(32).
+// anr_groups has no handled or is_custom columns.
+func (h *TestHelper) SeedGroupRow(ctx context.Context, t *testing.T, teamID, appID string, row GroupRow) {
+	t.Helper()
+	row = row.filled()
+
+	flagCols, flagVals, args := "", "", []any{teamID, appID, row.Fingerprint, row.AppVersion, row.AppBuild, row.Type, row.Message}
+	if row.Table != "anr_groups" {
+		flagCols = "handled, is_custom, "
+		flagVals = "?, ?, "
+		args = append(args, row.Handled, row.IsCustom)
+	}
+
+	query := `insert into ` + row.Table + ` (
+			team_id, app_id, id, app_version, type, message, method_name, file_name, line_number, ` + flagCols + `os_versions, country_codes, network_providers, network_types, network_generations, device_locales, device_manufacturers, device_names, device_models, count, timestamp
+		)
+		select
+			toUUID(?),
+			toUUID(?),
+			?,
+			(?, ?),
+			?,
+			?,
+			'testMethod',
+			'TestFile.java',
+			42,
+			` + flagVals + `
+			groupUniqArrayState(tuple('android', '33')),
+			groupUniqArrayState('US'),
+			groupUniqArrayState('Verizon'),
+			groupUniqArrayState('cellular'),
+			groupUniqArrayState('5g'),
+			groupUniqArrayState('en-US'),
+			groupUniqArrayState('Google'),
+			groupUniqArrayState('Pixel'),
+			groupUniqArrayState('Pixel 8'),
+			sumState(toUInt64(1)),
+			now64(3)`
+
+	if err := h.ChConn.Exec(ctx, query, args...); err != nil {
+		t.Fatalf("seed %s row: %v", row.Table, err)
+	}
+}
+
+// SeedExceptionGroup inserts a fatal_exception_groups row.
 func (h *TestHelper) SeedExceptionGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {
 	t.Helper()
-
-	query := `insert into
-		fatal_exception_groups (
-			team_id, app_id, id, app_version, type, message, method_name, file_name, line_number, os_versions, country_codes, network_providers, network_types, network_generations, device_locales, device_manufacturers, device_names, device_models, count, timestamp
-		)
-		select
-			toUUID(?),
-			toUUID(?),
-			?,
-			('v1', '1'),
-			'java.lang.RuntimeException',
-			'Test crash',
-			'testMethod',
-			'TestFile.java',
-			42,
-			groupUniqArrayState(tuple('android', '33')),
-			groupUniqArrayState('US'),
-			groupUniqArrayState('Verizon'),
-			groupUniqArrayState('cellular'),
-			groupUniqArrayState('5g'),
-			groupUniqArrayState('en-US'),
-			groupUniqArrayState('Google'),
-			groupUniqArrayState('Pixel'),
-			groupUniqArrayState('Pixel 8'),
-			sumState(toUInt64(1)),
-			now64(3)`
-
-	if err := h.ChConn.Exec(ctx, query, []any{teamID, appID, fingerprint}...); err != nil {
-		t.Fatalf("seed exception group: %v", err)
-	}
+	h.SeedGroupRow(ctx, t, teamID, appID, GroupRow{Table: "fatal_exception_groups", Fingerprint: fingerprint, Message: "Test crash"})
 }
 
-// SeedNonfatalExceptionGroup inserts a row into nonfatal_exception_groups
-// with explicit handled and is_custom values. fingerprint must be exactly 32
-// characters.
+// SeedNonfatalExceptionGroup inserts a nonfatal_exception_groups row.
 func (h *TestHelper) SeedNonfatalExceptionGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string, handled, isCustom bool) {
 	t.Helper()
-
-	query := `insert into
-		nonfatal_exception_groups (
-			team_id, app_id, id, app_version, type, message, method_name, file_name, line_number, handled, is_custom, os_versions, country_codes, network_providers, network_types, network_generations, device_locales, device_manufacturers, device_names, device_models, count, timestamp
-		)
-		select
-			toUUID(?),
-			toUUID(?),
-			?,
-			('v1', '1'),
-			'java.lang.RuntimeException',
-			'Test nonfatal',
-			'testMethod',
-			'TestFile.java',
-			42,
-			?,
-			?,
-			groupUniqArrayState(tuple('android', '33')),
-			groupUniqArrayState('US'),
-			groupUniqArrayState('Verizon'),
-			groupUniqArrayState('cellular'),
-			groupUniqArrayState('5g'),
-			groupUniqArrayState('en-US'),
-			groupUniqArrayState('Google'),
-			groupUniqArrayState('Pixel'),
-			groupUniqArrayState('Pixel 8'),
-			sumState(toUInt64(1)),
-			now64(3)`
-
-	if err := h.ChConn.Exec(ctx, query, []any{teamID, appID, fingerprint, handled, isCustom}...); err != nil {
-		t.Fatalf("seed nonfatal exception group: %v", err)
-	}
+	h.SeedGroupRow(ctx, t, teamID, appID, GroupRow{Table: "nonfatal_exception_groups", Fingerprint: fingerprint, Message: "Test nonfatal", Handled: handled, IsCustom: isCustom})
 }
 
-// SeedFatalExceptionGroupWithCustomFlag inserts a row into
-// fatal_exception_groups with explicit is_custom. fingerprint must be exactly
-// 32 characters.
+// SeedFatalExceptionGroupWithCustomFlag inserts a fatal_exception_groups row.
 func (h *TestHelper) SeedFatalExceptionGroupWithCustomFlag(ctx context.Context, t *testing.T, teamID, appID, fingerprint string, isCustom bool) {
 	t.Helper()
-
-	query := `insert into
-		fatal_exception_groups (
-			team_id, app_id, id, app_version, type, message, method_name, file_name, line_number, handled, is_custom, os_versions, country_codes, network_providers, network_types, network_generations, device_locales, device_manufacturers, device_names, device_models, count, timestamp
-		)
-		select
-			toUUID(?),
-			toUUID(?),
-			?,
-			('v1', '1'),
-			'java.lang.RuntimeException',
-			'Test crash',
-			'testMethod',
-			'TestFile.java',
-			42,
-			false,
-			?,
-			groupUniqArrayState(tuple('android', '33')),
-			groupUniqArrayState('US'),
-			groupUniqArrayState('Verizon'),
-			groupUniqArrayState('cellular'),
-			groupUniqArrayState('5g'),
-			groupUniqArrayState('en-US'),
-			groupUniqArrayState('Google'),
-			groupUniqArrayState('Pixel'),
-			groupUniqArrayState('Pixel 8'),
-			sumState(toUInt64(1)),
-			now64(3)`
-
-	if err := h.ChConn.Exec(ctx, query, []any{teamID, appID, fingerprint, isCustom}...); err != nil {
-		t.Fatalf("seed fatal exception group with custom flag: %v", err)
-	}
+	h.SeedGroupRow(ctx, t, teamID, appID, GroupRow{Table: "fatal_exception_groups", Fingerprint: fingerprint, Message: "Test crash", IsCustom: isCustom})
 }
 
 // SeedIssueEventWithCustomFlag inserts an exception event with explicit
@@ -1049,40 +1031,10 @@ func (h *TestHelper) SeedIssueEventWithCustomFlag(
 	})
 }
 
-// SeedAnrGroup inserts a row into anr_groups so that ANR-alert group-info
-// lookups succeed. fingerprint must be exactly 32 characters.
+// SeedAnrGroup inserts an anr_groups row.
 func (h *TestHelper) SeedAnrGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {
 	t.Helper()
-
-	query := `insert into
-		anr_groups (
-			team_id, app_id, id, app_version, type, message, method_name, file_name, line_number, os_versions, country_codes, network_providers, network_types, network_generations, device_locales, device_manufacturers, device_names, device_models, count, timestamp
-		)
-		select
-			toUUID(?),
-			toUUID(?),
-			?,
-			('v1', '1'),
-			'ANR',
-			'Test ANR',
-			'testMethod',
-			'TestFile.java',
-			42,
-			groupUniqArrayState(tuple('android', '33')),
-			groupUniqArrayState('US'),
-			groupUniqArrayState('Verizon'),
-			groupUniqArrayState('cellular'),
-			groupUniqArrayState('5g'),
-			groupUniqArrayState('en-US'),
-			groupUniqArrayState('Google'),
-			groupUniqArrayState('Pixel'),
-			groupUniqArrayState('Pixel 8'),
-			sumState(toUInt64(1)),
-			now64(3)`
-
-	if err := h.ChConn.Exec(ctx, query, []any{teamID, appID, fingerprint}...); err != nil {
-		t.Fatalf("seed ANR group: %v", err)
-	}
+	h.SeedGroupRow(ctx, t, teamID, appID, GroupRow{Table: "anr_groups", Fingerprint: fingerprint, Type: "ANR", Message: "Test ANR"})
 }
 
 // SeedAppMetrics inserts generic, exception/error, and ANR events so that

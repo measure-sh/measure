@@ -420,7 +420,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_filter_keys
 		newTool(&mcpsdk.Tool{
 			Name:        "get_filter_keys",
-			Description: "List the filter keys of an entity (spans, bug_reports, sessions, journeys, network or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
+			Description: "List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
 			InputSchema: mcpMustInferSchema[mcpGetFilterKeysInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFilterKeysInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetFilterKeys(ctx, in)
@@ -456,8 +456,8 @@ func commonTools(cfg *Config) []Tool {
 		// get_errors
 		newTool(&mcpsdk.Tool{
 			Name:        "get_errors",
-			Description: "Get error groups (crashes, non-fatal exceptions and ANRs) for an app. Filter by error_types and severities (e.g. error_types=[\"error\"]+severities=[\"fatal\"] for crashes, error_types=[\"anr\"] for ANRs). Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
-			InputSchema: mcpMustInferErrorFilterSchema[mcpGetErrorsInput](),
+			Description: "Get error groups (crashes, non-fatal errors and ANRs) for an app. Covers every error unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.ErrorsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorsInput](mcpErrorsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrors(ctx, in)
 		}),
@@ -465,8 +465,8 @@ func commonTools(cfg *Config) []Tool {
 		// get_error
 		newTool(&mcpsdk.Tool{
 			Name:        "get_error",
-			Description: "Get individual error events (exception or ANR) for a specific error group. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
-			InputSchema: mcpMustInferSchema[mcpGetErrorInput](),
+			Description: "Get individual error events (exception or ANR) for a specific error group. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.ErrorGroupEventsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorInput](mcpErrorGroupEventsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetError(ctx, in)
 		}),
@@ -474,8 +474,8 @@ func commonTools(cfg *Config) []Tool {
 		// get_errors_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_errors_over_time",
-			Description: "Get time-series of error occurrences across all error groups. Filter by error_types and severities. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
-			InputSchema: mcpMustInferErrorFilterSchema[mcpGetErrorsOverTimeInput](),
+			Description: "Get time-series of error occurrences across all error groups. Covers every error unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.ErrorsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorsOverTimeInput](mcpErrorsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrorsOverTime(ctx, in)
 		}),
@@ -483,8 +483,8 @@ func commonTools(cfg *Config) []Tool {
 		// get_error_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_error_over_time",
-			Description: "Get time-series of occurrences for a specific error group. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
-			InputSchema: mcpMustInferSchema[mcpGetErrorOverTimeInput](),
+			Description: "Get time-series of occurrences for a specific error group. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.ErrorGroupEventsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorOverTimeInput](mcpErrorGroupEventsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrorOverTime(ctx, in)
 		}),
@@ -492,8 +492,8 @@ func commonTools(cfg *Config) []Tool {
 		// get_error_distribution
 		newTool(&mcpsdk.Tool{
 			Name:        "get_error_distribution",
-			Description: "Get attribute distribution (OS, device, version, country) for a specific error group. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
-			InputSchema: mcpMustInferSchema[mcpGetErrorDistributionInput](),
+			Description: "Get attribute distribution (OS, device, version, country) for a specific error group. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.ErrorGroupEventsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorDistributionInput](mcpErrorGroupEventsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorDistributionInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrorDistribution(ctx, in)
 		}),
@@ -696,11 +696,13 @@ func mcpFilterExprGrammar(entity exprfilter.Entity, example string) string {
 // The grammar text each entity's tools advertise, built from the shared
 // template with an example in that entity's keys.
 var (
-	mcpSpansFilterExprGrammar      = mcpFilterExprGrammar(exprfilter.SpansEntity, "version_name:in:[1.2.0,1.1.9] AND span_status:in:error")
-	mcpBugReportsFilterExprGrammar = mcpFilterExprGrammar(exprfilter.BugReportsEntity, "version_name:in:[1.2.0] AND bug_report_status:in:open")
-	mcpJourneysFilterExprGrammar   = mcpFilterExprGrammar(exprfilter.JourneysEntity, "version_name:in:[1.2.0] AND version_code:in:[120]")
-	mcpNetworkFilterExprGrammar    = mcpFilterExprGrammar(exprfilter.NetworkEntity, "version_name:in:[1.2.0] AND http_method:in:get")
-	mcpSessionsFilterExprGrammar   = mcpFilterExprGrammar(exprfilter.SessionsEntity, "session_events:in:[fatal_error, anr] AND session_foreground_background:in:[foreground]")
+	mcpSpansFilterExprGrammar            = mcpFilterExprGrammar(exprfilter.SpansEntity, "version_name:in:[1.2.0,1.1.9] AND span_status:in:error")
+	mcpBugReportsFilterExprGrammar       = mcpFilterExprGrammar(exprfilter.BugReportsEntity, "version_name:in:[1.2.0] AND bug_report_status:in:open")
+	mcpJourneysFilterExprGrammar         = mcpFilterExprGrammar(exprfilter.JourneysEntity, "version_name:in:[1.2.0] AND version_code:in:[120]")
+	mcpNetworkFilterExprGrammar          = mcpFilterExprGrammar(exprfilter.NetworkEntity, "version_name:in:[1.2.0] AND http_method:in:get")
+	mcpSessionsFilterExprGrammar         = mcpFilterExprGrammar(exprfilter.SessionsEntity, "session_events:in:[fatal_error, anr] AND session_foreground_background:in:[foreground]")
+	mcpErrorsFilterExprGrammar           = mcpFilterExprGrammar(exprfilter.ErrorsEntity, `error_type:in:[Crash, ANR] AND os_name:in:[android]`)
+	mcpErrorGroupEventsFilterExprGrammar = mcpFilterExprGrammar(exprfilter.ErrorGroupEventsEntity, "version_name:in:[1.2.0] AND os_name:in:[android]")
 )
 
 // mcpMustInferFilterExprSchema infers a JSON schema from a Go type and sets
@@ -738,10 +740,8 @@ func mcpMustInferSchema[T any]() json.RawMessage {
 	return json.RawMessage(data)
 }
 
-// mcpMustInferErrorFilterSchema infers a JSON schema from a Go type and adds
-// enum constraints to the items of the "error_types" (error | anr) and
-// "severities" (fatal | unhandled | handled) array properties when present.
-// Used by tools that embed mcpErrorFilters (or otherwise expose those fields).
+// mcpMustInferErrorFilterSchema infers the JSON schema of T and restricts
+// its error_types items to "error" and "anr".
 func mcpMustInferErrorFilterSchema[T any]() json.RawMessage {
 	schema, err := jsonschema.For[T](nil)
 	if err != nil {
@@ -749,9 +749,6 @@ func mcpMustInferErrorFilterSchema[T any]() json.RawMessage {
 	}
 	if p, ok := schema.Properties["error_types"]; ok && p.Items != nil {
 		p.Items.Enum = []any{string(event.ErrorTypeError), string(event.ErrorTypeANR)}
-	}
-	if p, ok := schema.Properties["severities"]; ok && p.Items != nil {
-		p.Items.Enum = []any{string(event.SeverityFatal), string(event.SeverityUnhandled), string(event.SeverityHandled)}
 	}
 	data, err := schema.MarshalJSON()
 	if err != nil {
@@ -782,16 +779,6 @@ type mcpCommonFilters struct {
 	DeviceNames         []string `json:"device_names,omitempty" jsonschema:"Filter by device names"`
 }
 
-// mcpErrorFilters contains the error-scoping filters shared by the errors
-// tools and the session tools, mirroring the dashboard's type/severity query
-// params. A crash is error_types=["error"] with severities=["fatal"]; an ANR
-// is error_types=["anr"]. Leaving these empty matches every error source.
-type mcpErrorFilters struct {
-	ErrorTypes       []string `json:"error_types,omitempty" jsonschema:"Filter by error source: 'error' (exceptions) and/or 'anr'. Default: both"`
-	Severities       []string `json:"severities,omitempty" jsonschema:"Filter exceptions by severity: 'fatal' (crashes), 'unhandled' (uncaught non-fatal), 'handled' (caught & reported). Applies to the 'error' type only, not 'anr'. Default: all"`
-	CustomErrorsOnly bool     `json:"custom_errors_only,omitempty" jsonschema:"Restrict exceptions to custom (developer-reported) ones only. ANRs are never custom and are not filtered by this. No Measure SDK emits custom errors yet, so there are currently no custom exceptions."`
-}
-
 type mcpListAppsInput struct{}
 type mcpGetFiltersInput struct {
 	AppID      string   `json:"app_id" jsonschema:"UUID of the app to query"`
@@ -801,12 +788,12 @@ type mcpGetFiltersInput struct {
 }
 type mcpGetFilterKeysInput struct {
 	AppID  string   `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, journeys, network or builds"`
+	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network or builds"`
 	Keys   []string `json:"keys,omitempty" jsonschema:"Key names you already know, for example from the user's request, to include in the result even when the listing is truncated"`
 }
 type mcpGetFilterValuesInput struct {
 	AppID   string `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, journeys, network or builds"`
+	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network or builds"`
 	KeyName string `json:"key_name" jsonschema:"Name of the filter key to list values for, as get_filter_keys returns it"`
 	Search  string `json:"search,omitempty" jsonschema:"Return only values containing this text"`
 	Limit   int    `json:"limit,omitempty" jsonschema:"Maximum number of values to return (default: 50, max: 200)"`
@@ -821,29 +808,42 @@ type mcpGetAppHealthOverTimeInput struct {
 	Timezone string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
 }
 type mcpGetErrorsInput struct {
-	mcpCommonFilters
-	mcpErrorFilters
-	Limit  int `json:"limit,omitempty" jsonschema:"Maximum number of groups to return (default: 25, max: 100)"`
-	Offset int `json:"offset,omitempty" jsonschema:"Number of groups to skip for pagination (default: 0)"`
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of groups to return (default: 10, max: 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of groups to skip for pagination (default: 0)"`
 }
 type mcpGetErrorInput struct {
-	mcpCommonFilters
+	AppID        string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From         string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To           string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr   string `json:"filter_expr,omitempty"`
 	ErrorGroupID string `json:"error_group_id" jsonschema:"Fingerprint/ID of the error group"`
-	Limit        int    `json:"limit,omitempty" jsonschema:"Maximum number of events to return (default: 1)"`
+	Limit        int    `json:"limit,omitempty" jsonschema:"Maximum number of events to return (default: 1, max: 5)"`
 	Offset       int    `json:"offset,omitempty" jsonschema:"Number of events to skip for pagination (default: 0)"`
 }
 type mcpGetErrorsOverTimeInput struct {
-	mcpCommonFilters
-	mcpErrorFilters
-	Timezone string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Timezone   string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
 }
 type mcpGetErrorOverTimeInput struct {
-	mcpCommonFilters
+	AppID        string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From         string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To           string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr   string `json:"filter_expr,omitempty"`
 	ErrorGroupID string `json:"error_group_id" jsonschema:"Fingerprint/ID of the error group"`
 	Timezone     string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
 }
 type mcpGetErrorDistributionInput struct {
-	mcpCommonFilters
+	AppID        string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From         string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To           string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr   string `json:"filter_expr,omitempty"`
 	ErrorGroupID string `json:"error_group_id" jsonschema:"Fingerprint/ID of the error group"`
 }
 type mcpGetSessionsInput struct {
@@ -1203,27 +1203,6 @@ func mcpFilterExprError(err error) error {
 	return err
 }
 
-// mcpApplyErrorFilters validates and applies the error-scoping filters onto an
-// AppFilter. Empty fields leave the filter unscoped (all error sources).
-func mcpApplyErrorFilters(af *filter.AppFilter, ef mcpErrorFilters) error {
-	for _, t := range ef.ErrorTypes {
-		et := event.ErrorType(t)
-		if !et.IsValid() {
-			return fmt.Errorf("error_types values must be any combination of: %s, %s", event.ErrorTypeError, event.ErrorTypeANR)
-		}
-		af.ErrorTypes = append(af.ErrorTypes, et)
-	}
-	for _, s := range ef.Severities {
-		sv := event.Severity(s)
-		if !sv.IsValid() {
-			return fmt.Errorf("severities values must be any combination of: %s, %s, %s", event.SeverityFatal, event.SeverityUnhandled, event.SeverityHandled)
-		}
-		af.Severities = append(af.Severities, sv)
-	}
-	af.CustomError = ef.CustomErrorsOnly
-	return nil
-}
-
 // mcpParseTimeRangeStrings parses optional RFC3339 from/to strings.
 // Defaults: from = 7 days ago, to = now.
 func mcpParseTimeRangeStrings(fromStr, toStr string) (from, to time.Time, err error) {
@@ -1329,8 +1308,12 @@ func (c *Config) mcpGetFilters(ctx context.Context, in mcpGetFiltersInput) (*mcp
 	if in.Span {
 		af.Span = true
 	}
-	if err := mcpApplyErrorFilters(af, mcpErrorFilters{ErrorTypes: in.ErrorTypes}); err != nil {
-		return nil, nil, err
+	for _, t := range in.ErrorTypes {
+		errorType := event.ErrorType(t)
+		if !errorType.IsValid() {
+			return nil, nil, fmt.Errorf("error_types values must be any combination of: %s, %s", event.ErrorTypeError, event.ErrorTypeANR)
+		}
+		af.ErrorTypes = append(af.ErrorTypes, errorType)
 	}
 
 	app, err := measure.SelectApp(ctx, deps.PgPool, appID)
@@ -1568,31 +1551,23 @@ func (c *Config) mcpGetAppHealthOverTime(ctx context.Context, in mcpGetAppHealth
 
 func (c *Config) mcpGetErrors(ctx context.Context, in mcpGetErrorsInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.ErrorsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
+		limit := in.Limit
+		if limit <= 0 {
+			limit = 10
+		}
+		if limit > 30 {
+			limit = 30
+		}
+		ef.Limit = limit
+		ef.Offset = in.Offset
+	})
 	if err != nil {
 		return nil, nil, err
 	}
-
-	af, err := c.mcpBuildAppFilter(ctx, appID, in.mcpCommonFilters)
-	if err != nil {
-		return nil, nil, err
-	}
-	if err := mcpApplyErrorFilters(af, in.mcpErrorFilters); err != nil {
-		return nil, nil, err
-	}
-
-	limit := in.Limit
-	if limit <= 0 {
-		limit = 10
-	}
-	if limit > 30 {
-		limit = 30
-	}
-	af.Limit = limit
-	af.Offset = in.Offset
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
-	groups, _, _, groupErr := app.GetErrorGroupsWithFilter(ctx, deps.RchPool, af)
+	groups, _, _, groupErr := app.GetErrorGroupsWithFilter(ctx, deps.RchPool, ef)
 	if groupErr != nil {
 		return nil, nil, fmt.Errorf("failed to get error groups: %v", groupErr)
 	}
@@ -1607,28 +1582,23 @@ func (c *Config) mcpGetError(ctx context.Context, in mcpGetErrorInput) (*mcpsdk.
 		return nil, nil, fmt.Errorf("error_group_id is required")
 	}
 
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.ErrorGroupEventsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
+		limit := in.Limit
+		if limit <= 0 {
+			limit = 1
+		}
+		if limit > 5 {
+			limit = 5
+		}
+		ef.Limit = limit
+		ef.Offset = in.Offset
+	})
 	if err != nil {
 		return nil, nil, err
 	}
-
-	af, err := c.mcpBuildAppFilter(ctx, appID, in.mcpCommonFilters)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	limit := in.Limit
-	if limit <= 0 {
-		limit = 1
-	}
-	if limit > 5 {
-		limit = 5
-	}
-	af.Limit = limit
-	af.Offset = in.Offset
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
-	events, _, _, evErr := app.GetErrorsWithFilter(ctx, deps.RchPool, in.ErrorGroupID, af)
+	events, _, _, evErr := app.GetErrorsWithFilter(ctx, deps.RchPool, in.ErrorGroupID, ef)
 	if evErr != nil {
 		return nil, nil, fmt.Errorf("failed to get error details: %v", evErr)
 	}
@@ -1643,24 +1613,16 @@ func (c *Config) mcpGetErrorsOverTime(ctx context.Context, in mcpGetErrorsOverTi
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
 
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.ErrorsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
+		ef.Timezone = in.Timezone
+	})
 	if err != nil {
 		return nil, nil, err
 	}
-
-	af, err := c.mcpBuildAppFilter(ctx, appID, in.mcpCommonFilters)
-	if err != nil {
-		return nil, nil, err
-	}
-	if err := mcpApplyErrorFilters(af, in.mcpErrorFilters); err != nil {
-		return nil, nil, err
-	}
-	af.Timezone = in.Timezone
-	af.Limit = filter.DefaultPaginationLimit
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	plotCtx := ambient.WithTeamId(ctx, teamID)
-	instances, plotErr := app.GetErrorPlotInstances(plotCtx, deps.RchPool, af)
+	instances, plotErr := app.GetErrorPlotInstances(plotCtx, deps.RchPool, ef)
 	if plotErr != nil {
 		return nil, nil, fmt.Errorf("failed to get error overview plot: %v", plotErr)
 	}
@@ -1678,21 +1640,16 @@ func (c *Config) mcpGetErrorOverTime(ctx context.Context, in mcpGetErrorOverTime
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
 
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.ErrorGroupEventsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
+		ef.Timezone = in.Timezone
+	})
 	if err != nil {
 		return nil, nil, err
 	}
-
-	af, err := c.mcpBuildAppFilter(ctx, appID, in.mcpCommonFilters)
-	if err != nil {
-		return nil, nil, err
-	}
-	af.Timezone = in.Timezone
-	af.Limit = filter.DefaultPaginationLimit
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	plotCtx := ambient.WithTeamId(ctx, teamID)
-	instances, plotErr := app.GetErrorGroupPlotInstances(plotCtx, deps.RchPool, in.ErrorGroupID, af)
+	instances, plotErr := app.GetErrorGroupPlotInstances(plotCtx, deps.RchPool, in.ErrorGroupID, ef)
 	if plotErr != nil {
 		return nil, nil, fmt.Errorf("failed to get error detail plot: %v", plotErr)
 	}
@@ -1707,20 +1664,14 @@ func (c *Config) mcpGetErrorDistribution(ctx context.Context, in mcpGetErrorDist
 		return nil, nil, fmt.Errorf("error_group_id is required")
 	}
 
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.ErrorGroupEventsEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
 	if err != nil {
 		return nil, nil, err
 	}
-
-	af, err := c.mcpBuildAppFilter(ctx, appID, in.mcpCommonFilters)
-	if err != nil {
-		return nil, nil, err
-	}
-	af.Limit = filter.DefaultPaginationLimit
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	distCtx := ambient.WithTeamId(ctx, teamID)
-	distribution, distErr := app.GetErrorGroupAttributesDistribution(distCtx, deps.RchPool, in.ErrorGroupID, af)
+	distribution, distErr := app.GetErrorGroupAttributesDistribution(distCtx, deps.RchPool, in.ErrorGroupID, ef)
 	if distErr != nil {
 		return nil, nil, fmt.Errorf("failed to get error distribution: %v", distErr)
 	}

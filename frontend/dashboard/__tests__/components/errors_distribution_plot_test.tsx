@@ -16,79 +16,44 @@ jest.mock("@/app/components/skeleton", () => ({
   SkeletonPlot: () => <div data-testid="skeleton-mock">loading</div>,
 }));
 
-const mockUseErrorsDistributionPlotQuery = jest.fn(
-  (): { data: any; status: string; error: Error | null } => ({
+function queryWith(overrides: any) {
+  return {
     data: undefined,
     status: "pending",
     error: null,
-  }),
-);
-
-jest.mock("@/app/query/hooks", () => ({
-  __esModule: true,
-  useErrorsDistributionPlotQuery: () => mockUseErrorsDistributionPlotQuery(),
-}));
-
-jest.mock("@/app/stores/provider", () => {
-  const { create } = jest.requireActual("zustand");
-  const filtersStore = create(() => ({
-    filters: { ready: false, serialisedFilters: "" },
-  }));
-  return { __esModule: true, useFiltersStore: filtersStore };
-});
-
-const { useFiltersStore } = require("@/app/stores/provider") as any;
-
-const filters = { ready: true, serialisedFilters: "test" };
+    ...overrides,
+  } as any;
+}
 
 describe("ErrorsDistributionPlot", () => {
   beforeEach(() => {
     lastBarProps = null;
-    useFiltersStore.setState({
-      filters: { ready: false, serialisedFilters: "" },
-    });
-    mockUseErrorsDistributionPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "pending",
-      error: null,
-    });
   });
 
   it("renders loading state when query is pending", () => {
-    useFiltersStore.setState({ filters });
-    mockUseErrorsDistributionPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "pending",
-      error: null,
-    });
-    render(<ErrorsDistributionPlot errorGroupId="g1" />);
+    render(<ErrorsDistributionPlot query={queryWith({})} />);
     expect(screen.getByText("loading")).toBeInTheDocument();
   });
 
   it("renders error state when query errors", () => {
-    useFiltersStore.setState({ filters });
-    mockUseErrorsDistributionPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "error",
-      error: new Error("boom"),
-    });
-    render(<ErrorsDistributionPlot errorGroupId="g1" />);
+    render(
+      <ErrorsDistributionPlot
+        query={queryWith({ status: "error", error: new Error("boom") })}
+      />,
+    );
     expect(screen.getByText(/Error fetching plot/)).toBeInTheDocument();
   });
 
   it("renders No Data state when data is null", () => {
-    useFiltersStore.setState({ filters });
-    mockUseErrorsDistributionPlotQuery.mockReturnValue({
-      data: null,
-      status: "success",
-      error: null,
-    });
-    render(<ErrorsDistributionPlot errorGroupId="g1" />);
+    render(
+      <ErrorsDistributionPlot
+        query={queryWith({ data: null, status: "success" })}
+      />,
+    );
     expect(screen.getByText("No Data")).toBeInTheDocument();
   });
 
   it("renders bar chart with parsed plot and keys on success", () => {
-    useFiltersStore.setState({ filters });
     const parsed = {
       plot: [
         { attribute: "Country", US: 700, IN: 300 },
@@ -96,12 +61,11 @@ describe("ErrorsDistributionPlot", () => {
       ],
       plotKeys: ["US", "IN", "Google", "Samsung"],
     };
-    mockUseErrorsDistributionPlotQuery.mockReturnValue({
-      data: parsed,
-      status: "success",
-      error: null,
-    });
-    render(<ErrorsDistributionPlot errorGroupId="g1" />);
+    render(
+      <ErrorsDistributionPlot
+        query={queryWith({ data: parsed, status: "success" })}
+      />,
+    );
 
     expect(screen.getByTestId("bar-mock")).toBeInTheDocument();
     expect(lastBarProps.data).toEqual(parsed.plot);
@@ -111,13 +75,7 @@ describe("ErrorsDistributionPlot", () => {
   });
 
   it("uses demo data and bypasses query in demo mode", () => {
-    useFiltersStore.setState({ filters });
-    mockUseErrorsDistributionPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "pending",
-      error: null,
-    });
-    render(<ErrorsDistributionPlot errorGroupId="g1" demo />);
+    render(<ErrorsDistributionPlot query={queryWith({})} demo />);
 
     expect(screen.getByTestId("bar-mock")).toBeInTheDocument();
     // Demo data has an `App Version` row (formatted from `app_version`)
@@ -130,13 +88,14 @@ describe("ErrorsDistributionPlot", () => {
   });
 
   it("renders tooltip with instances/instance pluralization", () => {
-    useFiltersStore.setState({ filters });
-    mockUseErrorsDistributionPlotQuery.mockReturnValue({
-      data: { plot: [{ attribute: "Country", US: 5 }], plotKeys: ["US"] },
-      status: "success",
-      error: null,
-    });
-    render(<ErrorsDistributionPlot errorGroupId="g1" />);
+    render(
+      <ErrorsDistributionPlot
+        query={queryWith({
+          data: { plot: [{ attribute: "Country", US: 5 }], plotKeys: ["US"] },
+          status: "success",
+        })}
+      />,
+    );
 
     const many = lastBarProps.tooltip({ id: "US", value: 5, color: "#111" });
     const one = lastBarProps.tooltip({ id: "IN", value: 1, color: "#111" });

@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math"
-	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -192,76 +191,6 @@ func (a App) IssueGroupExists(ctx context.Context, rch driver.Conn, groupType gr
 	return
 }
 
-// anrAllowed returns whether the ANR source should be queried given the
-// AppFilter. ANRs are never custom-captured, so when custom=1 and the caller
-// explicitly asked for error-only (type=error), ANRs are suppressed. When
-// type is absent or includes anr, the requested value is respected.
-// Use this as the single source of truth in every error-endpoint flow.
-func anrAllowed(af *filter.AppFilter, requested bool) bool {
-	explicitErrorOnly := len(af.ErrorTypes) > 0 && !slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
-	if af.CustomError && explicitErrorOnly {
-		return false
-	}
-	return requested
-}
-
-// resolveErrorSources maps an AppFilter's severity flags onto the underlying
-// event sources for the unified error endpoints. Returns whether the ANR
-// branch is active and which exception.handled rows the exception branch
-// should match. When no severity flag is set, all sources are included.
-func resolveErrorSources(af *filter.AppFilter) (queryANR, wantHandledTrue, wantHandledFalse bool) {
-	includeANR := (len(af.ErrorTypes) == 0 && len(af.Severities) == 0) || slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
-	includeError := len(af.ErrorTypes) == 0 || slices.Contains(af.ErrorTypes, event.ErrorTypeError)
-
-	if includeANR {
-		queryANR = true
-	}
-
-	if includeError {
-		hasFatal := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityFatal)
-		hasUnhandled := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityUnhandled)
-		hasHandled := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityHandled)
-
-		wantHandledTrue = hasHandled
-		wantHandledFalse = hasFatal || hasUnhandled
-	}
-
-	queryANR = anrAllowed(af, queryANR)
-	return
-}
-
-// applyExceptionSeverityFilter adds a WHERE clause to s restricting events to
-// those matching severities. Bridges new data (exception.severity populated)
-// and legacy data (exception.severity not present, falls back to exception.handled).
-// Legacy mapping: handled=false matches both fatal and unhandled
-// (indistinguishable in legacy data); handled=true matches handled.
-//
-// No-op when severities is empty.
-func applyExceptionSeverityFilter(s *sqlf.Stmt, severities []event.Severity) {
-	if len(severities) == 0 {
-		return
-	}
-	hasFatal := slices.Contains(severities, event.SeverityFatal)
-	hasHandled := slices.Contains(severities, event.SeverityHandled)
-	hasUnhandled := slices.Contains(severities, event.SeverityUnhandled)
-
-	wantLegacyFalse := hasFatal || hasUnhandled
-	var legacyClause string
-	if wantLegacyFalse && hasHandled {
-		legacyClause = "`exception.severity` = ''"
-	} else if wantLegacyFalse {
-		legacyClause = "`exception.severity` = '' AND `exception.handled` = false"
-	} else if hasHandled {
-		legacyClause = "`exception.severity` = '' AND `exception.handled` = true"
-	}
-
-	if legacyClause != "" {
-		s.Where("(`exception.severity` IN (?) OR ("+legacyClause+"))", severities)
-	} else {
-		s.Where("`exception.severity`").In(severities)
-	}
-}
-
 // unionStmts combines one or more sqlf statements with UNION ALL.
 // Returns the single statement unchanged when len == 1.
 func unionStmts(stmts []*sqlf.Stmt) *sqlf.Stmt {
@@ -277,79 +206,42 @@ func unionStmts(stmts []*sqlf.Stmt) *sqlf.Stmt {
 	return sqlf.New(strings.Join(parts, " UNION ALL "), args...)
 }
 
-func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (groups []group.ErrorGroup, next, previous bool, err error) {
-	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	includeANR := (len(af.ErrorTypes) == 0 && len(af.Severities) == 0) || slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
-	includeError := len(af.ErrorTypes) == 0 || slices.Contains(af.ErrorTypes, event.ErrorTypeError)
+var errorEventTypes = []string{event.TypeANR, event.TypeException}
 
-	hasFatal := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityFatal)
-	hasUnhandled := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityUnhandled)
-	hasHandled := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityHandled)
+// errorFingerprintExpr reads the fingerprint of an ANR or an exception row.
+// Never alias it "id": that shadows events.id, which the custom attribute
+// membership subqueries compare against.
+const errorFingerprintExpr = "if(type = 'anr', `anr.fingerprint`, `exception.fingerprint`)"
 
-	queryANR := includeANR
-	queryFatal := includeError && hasFatal
-	queryNonfatal := includeError && (hasHandled || hasUnhandled)
+// errorFingerprintMatch matches the events of one error group.
+const errorFingerprintMatch = "((type = 'anr' and `anr.fingerprint` = ?) or (type = 'exception' and `exception.fingerprint` = ?))"
 
-	if !queryANR && !queryFatal && !queryNonfatal {
-		return
-	}
-
-	queryANR = anrAllowed(af, queryANR)
-
-	applyGroupFilters := func(s *sqlf.Stmt) error {
-		s.Where("team_id = toUUID(?)", a.TeamId).
-			Where("app_id = toUUID(?)", a.ID).
-			Where("timestamp >= toDateTime64(?, 3, 'UTC')", af.From).
-			Where("timestamp <= toDateTime64(?, 3, 'UTC')", af.To).
-			GroupBy("team_id").
-			GroupBy("app_id").
-			GroupBy("id")
-
-		if af.HasVersions() {
-			s.Where("app_version.1 in ?", af.Versions)
-			s.Where("app_version.2 in ?", af.VersionCodes)
-		}
-
-		if af.HasOSVersions() {
-			osVersions, errOS := af.OSVersionPairs()
-			if errOS != nil {
-				return errOS
-			}
-			s.Having("hasAll(groupUniqArrayMerge(os_versions), [?])", osVersions.Parameterize())
-		}
-
-		if af.HasCountries() {
-			s.Having("hasAll(groupUniqArrayMerge(country_codes), ?)", af.Countries)
-		}
-
-		if af.HasNetworkProviders() {
-			s.Having("hasAll(groupUniqArrayMerge(network_providers), ?)", af.NetworkProviders)
-		}
-
-		if af.HasNetworkTypes() {
-			s.Having("hasAll(groupUniqArrayMerge(network_types), ?)", af.NetworkTypes)
-		}
-
-		if af.HasNetworkGenerations() {
-			s.Having("hasAll(groupUniqArrayMerge(network_generations), ?)", af.NetworkGenerations)
-		}
-
-		if af.HasDeviceLocales() {
-			s.Having("hasAll(groupUniqArrayMerge(device_locales), ?)", af.Locales)
-		}
-
-		if af.HasDeviceManufacturers() {
-			s.Having("hasAll(groupUniqArrayMerge(device_manufacturers), ?)", af.DeviceManufacturers)
-		}
-
-		if af.HasDeviceNames() {
-			s.Having("hasAll(groupUniqArrayMerge(device_names), ?)", af.DeviceNames)
-		}
-
+// applyErrorPredicate adds the filter expression to an error events query.
+func applyErrorPredicate(stmt *sqlf.Stmt, ef *exprfilter.ExprFilter) error {
+	if !ef.HasFilterExpr() {
 		return nil
 	}
 
-	newGroupsBranch := func(table, sourceType, severityClass, severityExpr, isCustomExpr string) (*sqlf.Stmt, error) {
+	predicate, err := ef.Predicate(nil)
+	if err != nil {
+		return err
+	}
+	defer predicate.Close()
+
+	stmt.Where(predicate.String(), predicate.Args()...)
+	return nil
+}
+
+// GetErrorGroupsWithFilter lists the app's error groups with the number of
+// matching events in each. The filter runs on events, so a group with no
+// matching events is dropped by the join; the group tables only describe
+// the groups.
+func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (groups []group.ErrorGroup, next, previous bool, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
+
+	versionNames, versionCodes := ef.RootVersionConditions()
+
+	newGroupsBranch := func(table, sourceType, severityClass, severityExpr, isCustomExpr string) *sqlf.Stmt {
 		s := sqlf.
 			From(table).
 			Select("team_id").
@@ -361,132 +253,60 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, af *
 			Select("argMax(file_name, timestamp) as file_name").
 			Select("argMax(line_number, timestamp) as line_number").
 			Select("any(timestamp) as last_occurrence").
-			Select("'" + sourceType + "' as source_type").
-			Select("'" + severityClass + "' as severity_class").
-			Select(severityExpr + " as severity").
-			Select(isCustomExpr + " as is_custom")
-		return s, applyGroupFilters(s)
-	}
-
-	var groupsBranches []*sqlf.Stmt
-
-	if queryANR {
-		s, errBranch := newGroupsBranch("anr_groups final", "anr", "fatal", "'fatal'", "false")
-		if errBranch != nil {
-			err = errBranch
-			return
-		}
-		groupsBranches = append(groupsBranches, s)
-	}
-
-	if queryFatal {
-		s, errBranch := newGroupsBranch("fatal_exception_groups final", "exception", "fatal", "'fatal'", "argMax(is_custom, timestamp)")
-		if errBranch != nil {
-			err = errBranch
-			return
-		}
-		groupsBranches = append(groupsBranches, s)
-	}
-
-	if queryNonfatal {
-		s, errBranch := newGroupsBranch("nonfatal_exception_groups final", "exception", "nonfatal", "if(argMax(handled, timestamp), 'handled', 'unhandled')", "argMax(is_custom, timestamp)")
-		if errBranch != nil {
-			err = errBranch
-			return
-		}
-		if hasHandled && !hasUnhandled {
-			s.Where("handled = true")
-		} else if !hasHandled && hasUnhandled {
-			s.Where("handled = false")
-		}
-		groupsBranches = append(groupsBranches, s)
-	}
-
-	var countsBranches []*sqlf.Stmt
-
-	if queryANR {
-		s := sqlf.
-			From("events").
-			Select("team_id").
-			Select("app_id").
-			Select("anr.fingerprint as id").
-			Select("count() as event_count").
-			Select("'anr' as source_type").
-			Select("'fatal' as severity_class").
-			Where("team_id = toUUID(?)", a.TeamId).
-			Where("app_id = toUUID(?)", a.ID).
-			Where("timestamp >= toDateTime64(?, 3, 'UTC')", af.From).
-			Where("timestamp <= toDateTime64(?, 3, 'UTC')", af.To).
-			Where("type = ?", event.TypeANR).
-			Where("`anr.fingerprint` != ''").
-			GroupBy("team_id").
-			GroupBy("app_id").
-			GroupBy("id")
-
-		if af.HasVersions() {
-			s.Where("attribute.app_version in ?", af.Versions)
-			s.Where("attribute.app_build in ?", af.VersionCodes)
-		}
-
-		countsBranches = append(countsBranches, s)
-	}
-
-	// Exception counts are split into one branch per severity_class so the
-	// counts mirror the groups CTE: a fingerprint living in both
-	// fatal_exception_groups and nonfatal_exception_groups gets a separate
-	// count per class instead of a single combined total joined to both rows.
-	// Each branch counts only the events matching its bucket's severities; the
-	// groups-driven LEFT JOIN drops counts whose group is absent for that class.
-	newExceptionCountsBranch := func(severityClass string, severities []event.Severity) *sqlf.Stmt {
-		s := sqlf.
-			From("events").
-			Select("team_id").
-			Select("app_id").
-			Select("exception.fingerprint as id").
-			Select("count() as event_count").
-			Select("'exception' as source_type").
+			Select("'"+sourceType+"' as source_type").
 			Select("'"+severityClass+"' as severity_class").
+			Select(severityExpr+" as severity").
+			Select(isCustomExpr+" as is_custom").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
-			Where("timestamp >= toDateTime64(?, 3, 'UTC')", af.From).
-			Where("timestamp <= toDateTime64(?, 3, 'UTC')", af.To).
-			Where("type = ?", event.TypeException).
-			Where("`exception.fingerprint` != ''").
+			Where("timestamp >= toDateTime64(?, 3, 'UTC')", ef.From).
+			Where("timestamp <= toDateTime64(?, 3, 'UTC')", ef.To).
 			GroupBy("team_id").
 			GroupBy("app_id").
 			GroupBy("id")
 
-		applyExceptionSeverityFilter(s, severities)
-
-		if af.CustomError {
-			s.Where("`exception.is_custom` = true")
+		for _, names := range versionNames {
+			s.Where("app_version.1 in ?", names)
 		}
-
-		if af.HasVersions() {
-			s.Where("attribute.app_version in ?", af.Versions)
-			s.Where("attribute.app_build in ?", af.VersionCodes)
+		for _, codes := range versionCodes {
+			s.Where("app_version.2 in ?", codes)
 		}
 
 		return s
 	}
 
-	if queryFatal {
-		countsBranches = append(countsBranches, newExceptionCountsBranch("fatal", []event.Severity{event.SeverityFatal}))
-	}
+	groupsCTE := unionStmts([]*sqlf.Stmt{
+		newGroupsBranch("anr_groups final", "anr", "fatal", "'fatal'", "false"),
+		newGroupsBranch("fatal_exception_groups final", "exception", "fatal", "'fatal'", "argMax(is_custom, timestamp)"),
+		newGroupsBranch("nonfatal_exception_groups final", "exception", "nonfatal", "if(argMax(handled, timestamp), 'handled', 'unhandled')", "argMax(is_custom, timestamp)"),
+	})
 
-	if queryNonfatal {
-		var nonfatalSeverities []event.Severity
-		if hasHandled {
-			nonfatalSeverities = append(nonfatalSeverities, event.SeverityHandled)
-		}
-		if hasUnhandled {
-			nonfatalSeverities = append(nonfatalSeverities, event.SeverityUnhandled)
-		}
-		countsBranches = append(countsBranches, newExceptionCountsBranch("nonfatal", nonfatalSeverities))
-	}
+	// severity_class mirrors how ingest picked the group table: a fatal
+	// exception went to fatal_exception_groups, any other exception to
+	// nonfatal_exception_groups, and an ANR is always fatal.
+	countsCTE := sqlf.
+		From("events").
+		Select("team_id").
+		Select("app_id").
+		Select(errorFingerprintExpr+" as fingerprint").
+		Select("if(type = 'anr', 'anr', 'exception') as source_type").
+		Select("multiIf(type = 'anr', 'fatal', `exception.severity` = 'fatal' or (`exception.severity` = '' and `exception.handled` = false), 'fatal', 'nonfatal') as severity_class").
+		Select("count() as event_count").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("timestamp >= toDateTime64(?, 3, 'UTC')", ef.From).
+		Where("timestamp <= toDateTime64(?, 3, 'UTC')", ef.To).
+		Where("type in ?", errorEventTypes).
+		Where(errorFingerprintExpr + " != ''").
+		GroupBy("team_id").
+		GroupBy("app_id").
+		GroupBy("fingerprint").
+		GroupBy("source_type").
+		GroupBy("severity_class")
 
-	groupsCTE := unionStmts(groupsBranches)
-	countsCTE := unionStmts(countsBranches)
+	if err = applyErrorPredicate(countsCTE, ef); err != nil {
+		return
+	}
 
 	stmt := sqlf.
 		With("groups", groupsCTE).
@@ -505,16 +325,16 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, af *
 		Select("c.event_count as event_count").
 		Select("round((event_count * 100.0) / sum(event_count) over (), 2) as contribution").
 		From("groups as g").
-		LeftJoin("counts as c", "c.team_id = g.team_id and c.app_id = g.app_id and c.id = g.id and c.source_type = g.source_type and c.severity_class = g.severity_class").
+		LeftJoin("counts as c", "c.team_id = g.team_id and c.app_id = g.app_id and c.fingerprint = g.id and c.source_type = g.source_type and c.severity_class = g.severity_class").
 		Where("c.event_count > 0").
 		OrderBy("event_count desc, g.last_occurrence desc, g.id")
 
-	if af.Limit > 0 {
-		stmt.Limit(uint64(af.Limit) + 1)
+	if ef.Limit > 0 {
+		stmt.Limit(uint64(ef.Limit) + 1)
 	}
 
-	if af.Offset >= 0 {
-		stmt.Offset(uint64(af.Offset))
+	if ef.Offset >= 0 {
+		stmt.Offset(uint64(ef.Offset))
 	}
 
 	defer stmt.Close()
@@ -559,115 +379,49 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, af *
 
 	resultLen := len(groups)
 
-	if resultLen > af.Limit {
+	if resultLen > ef.Limit {
 		groups = groups[:resultLen-1]
 		next = true
 	}
 
-	if af.Offset > 0 {
+	if ef.Offset > 0 {
 		previous = true
 	}
 
 	return
 }
 
-// GetErrorPlotInstances computes error instance plot data
-// across ANR, fatal exception, and nonfatal exception sources
-// based on the filter's severity flags. When no severity flag
-// is set, all sources are included.
-func (a App) GetErrorPlotInstances(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (issueInstances []event.IssueInstance, err error) {
+// GetErrorPlotInstances buckets the matching error events by time and app
+// version.
+func (a App) GetErrorPlotInstances(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (issueInstances []event.IssueInstance, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	if af.Timezone == "" {
+	if ef.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
 	}
 
-	queryANR, wantHandledTrue, wantHandledFalse := resolveErrorSources(af)
+	ef.SetDefaultPlotTimeGroupIfUnset()
 
-	if !af.HasPlotTimeGroup() {
-		af.SetDefaultPlotTimeGroup()
-	}
-
-	groupExpr, err := GetPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	groupExpr, err := GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
 	if err != nil {
 		return nil, err
 	}
 
-	applyCommonFilters := func(s *sqlf.Stmt) {
-		s.Where("team_id = toUUID(?)", a.TeamId).
-			Where("app_id = toUUID(?)", a.ID).
-			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-
-		if af.HasVersions() {
-			s.Where("attribute.app_version").In(af.Versions)
-			s.Where("attribute.app_build").In(af.VersionCodes)
-		}
-		if af.HasOSVersions() {
-			s.Where("attribute.os_name").In(af.OsNames)
-			s.Where("attribute.os_version").In(af.OsVersions)
-		}
-		if af.HasCountries() {
-			s.Where("inet.country_code").In(af.Countries)
-		}
-		if af.HasNetworkProviders() {
-			s.Where("attribute.network_provider").In(af.NetworkProviders)
-		}
-		if af.HasNetworkTypes() {
-			s.Where("attribute.network_type").In(af.NetworkTypes)
-		}
-		if af.HasNetworkGenerations() {
-			s.Where("attribute.network_generation").In(af.NetworkGenerations)
-		}
-		if af.HasDeviceLocales() {
-			s.Where("attribute.device_locale").In(af.Locales)
-		}
-		if af.HasDeviceManufacturers() {
-			s.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
-		}
-		if af.HasDeviceNames() {
-			s.Where("attribute.device_name").In(af.DeviceNames)
-		}
-
-		s.GroupBy("app_version, datetime_bucket")
-	}
-
-	newBranch := func() *sqlf.Stmt {
-		return sqlf.
-			From("events final").
-			Select(groupExpr.BucketExpr+" as datetime_bucket", af.Timezone).
-			Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
-			Select("concat(attribute.app_version, '', '(', attribute.app_build, ')') as app_version").
-			Select("count() as total")
-	}
-
-	var branches []*sqlf.Stmt
-
-	if queryANR {
-		s := newBranch().Where("type = ?", event.TypeANR)
-		applyCommonFilters(s)
-		branches = append(branches, s)
-	}
-
-	if wantHandledTrue || wantHandledFalse {
-		s := newBranch().Where("type = ?", event.TypeException)
-		applyExceptionSeverityFilter(s, af.Severities)
-		if af.CustomError {
-			s.Where("`exception.is_custom` = true")
-		}
-		applyCommonFilters(s)
-		branches = append(branches, s)
-	}
-
-	plotsCTE := unionStmts(branches)
-
 	stmt := sqlf.
-		With("plots", plotsCTE).
-		From("plots").
-		Select("datetime_bucket").
-		Select("any(datetime) as datetime").
-		Select("app_version").
-		Select("sum(total) as total").
+		From("events final").
+		Select(groupExpr.BucketExpr+" as datetime_bucket", ef.Timezone).
+		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
+		Select("concat(`attribute.app_version`, '', '(', `attribute.app_build`, ')') as app_version").
+		Select("count() as total").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To).
+		Where("type in ?", errorEventTypes).
 		GroupBy("app_version, datetime_bucket").
 		OrderBy("app_version, datetime_bucket")
+
+	if err = applyErrorPredicate(stmt, ef); err != nil {
+		return
+	}
 
 	defer stmt.Close()
 
@@ -675,6 +429,8 @@ func (a App) GetErrorPlotInstances(ctx context.Context, rch driver.Conn, af *fil
 	if err != nil {
 		return
 	}
+
+	defer rows.Close()
 
 	for rows.Next() {
 		var instance event.IssueInstance
@@ -695,107 +451,38 @@ func (a App) GetErrorPlotInstances(ctx context.Context, rch driver.Conn, af *fil
 	return
 }
 
-// GetErrorGroupPlotInstances computes plot instances for a single
-// error group fingerprint, unioning across ANR, fatal exception and
-// nonfatal exception sources selected by the filter's severity flags.
-// When no severity flag is set, all sources are included.
-func (a App) GetErrorGroupPlotInstances(ctx context.Context, rch driver.Conn, fingerprint string, af *filter.AppFilter) (instances []event.IssueInstance, err error) {
+// GetErrorGroupPlotInstances buckets one error group's matching events by
+// time and app version.
+func (a App) GetErrorGroupPlotInstances(ctx context.Context, rch driver.Conn, fingerprint string, ef *exprfilter.ExprFilter) (instances []event.IssueInstance, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	if af.Timezone == "" {
+	if ef.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
 	}
 
-	queryANR, wantHandledTrue, wantHandledFalse := resolveErrorSources(af)
+	ef.SetDefaultPlotTimeGroupIfUnset()
 
-	if !af.HasPlotTimeGroup() {
-		af.SetDefaultPlotTimeGroup()
-	}
-
-	groupExpr, err := GetPlotTimeGroupExpr("timestamp", af.PlotTimeGroup)
+	groupExpr, err := GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
 	if err != nil {
 		return nil, err
 	}
 
-	applyCommonFilters := func(s *sqlf.Stmt) {
-		s.Where("team_id = toUUID(?)", a.TeamId).
-			Where("app_id = toUUID(?)", a.ID).
-			Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-
-		if af.HasVersions() {
-			s.Where("attribute.app_version").In(af.Versions)
-			s.Where("attribute.app_build").In(af.VersionCodes)
-		}
-		if af.HasOSVersions() {
-			s.Where("attribute.os_name").In(af.OsNames)
-			s.Where("attribute.os_version").In(af.OsVersions)
-		}
-		if af.HasCountries() {
-			s.Where("inet.country_code").In(af.Countries)
-		}
-		if af.HasNetworkProviders() {
-			s.Where("attribute.network_provider").In(af.NetworkProviders)
-		}
-		if af.HasNetworkTypes() {
-			s.Where("attribute.network_type").In(af.NetworkTypes)
-		}
-		if af.HasNetworkGenerations() {
-			s.Where("attribute.network_generation").In(af.NetworkGenerations)
-		}
-		if af.HasDeviceLocales() {
-			s.Where("attribute.device_locale").In(af.Locales)
-		}
-		if af.HasDeviceManufacturers() {
-			s.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
-		}
-		if af.HasDeviceNames() {
-			s.Where("attribute.device_name").In(af.DeviceNames)
-		}
-
-		s.GroupBy("version, datetime_bucket")
-	}
-
-	newBranch := func() *sqlf.Stmt {
-		return sqlf.
-			From("events").
-			Select(groupExpr.BucketExpr+" as datetime_bucket", af.Timezone).
-			Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
-			Select("concat(attribute.app_version, ' ', '(', attribute.app_build, ')') as version").
-			Select("count(id) as total")
-	}
-
-	var branches []*sqlf.Stmt
-
-	if queryANR {
-		s := newBranch().
-			Where("type = ?", event.TypeANR).
-			Where("anr.fingerprint = ?", fingerprint)
-		applyCommonFilters(s)
-		branches = append(branches, s)
-	}
-
-	if wantHandledTrue || wantHandledFalse {
-		s := newBranch().
-			Where("type = ?", event.TypeException).
-			Where("`exception.fingerprint` = ?", fingerprint)
-		applyExceptionSeverityFilter(s, af.Severities)
-		if af.CustomError {
-			s.Where("`exception.is_custom` = true")
-		}
-		applyCommonFilters(s)
-		branches = append(branches, s)
-	}
-
-	plotsCTE := unionStmts(branches)
-
 	stmt := sqlf.
-		With("plots", plotsCTE).
-		From("plots").
-		Select("datetime_bucket").
-		Select("any(datetime) as datetime").
-		Select("version").
-		Select("sum(total) as instances").
+		From("events").
+		Select(groupExpr.BucketExpr+" as datetime_bucket", ef.Timezone).
+		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
+		Select("concat(`attribute.app_version`, ' ', '(', `attribute.app_build`, ')') as version").
+		Select("count(id) as total").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To).
+		Where("type in ?", errorEventTypes).
+		Where(errorFingerprintMatch, fingerprint, fingerprint).
 		GroupBy("version, datetime_bucket").
 		OrderBy("version, datetime_bucket")
+
+	if err = applyErrorPredicate(stmt, ef); err != nil {
+		return
+	}
 
 	defer stmt.Close()
 
@@ -820,92 +507,36 @@ func (a App) GetErrorGroupPlotInstances(ctx context.Context, rch driver.Conn, fi
 	return
 }
 
-// GetErrorGroupAttributesDistribution computes attribute distribution
-// for a single error group fingerprint, unioning across ANR, fatal
-// exception and nonfatal exception sources selected by the filter's
-// severity flags. When no severity flag is set, all sources are
-// included.
-func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, rch driver.Conn, fingerprint string, af *filter.AppFilter) (distribution event.IssueDistribution, err error) {
+// GetErrorGroupAttributesDistribution counts one error group's matching
+// events per attribute value.
+func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, rch driver.Conn, fingerprint string, ef *exprfilter.ExprFilter) (distribution event.IssueDistribution, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	queryANR, wantHandledTrue, wantHandledFalse := resolveErrorSources(af)
 
-	applyCommonFilters := func(s *sqlf.Stmt) {
-		s.Where("team_id = toUUID(?)", a.TeamId).
-			Where("app_id = toUUID(?)", a.ID).
-			Where("timestamp >= ? and timestamp <= ?", af.From, af.To).
-			GroupBy("app_version").
-			GroupBy("os_version").
-			GroupBy("country").
-			GroupBy("network_type").
-			GroupBy("locale").
-			GroupBy("device")
+	stmt := sqlf.
+		From("events").
+		Select("concat(`attribute.app_version`, ' (', `attribute.app_build`, ')') as app_version").
+		Select("concat(`attribute.os_name`, ' ', `attribute.os_version`) as os_version").
+		Select("`inet.country_code` as country").
+		Select("`attribute.network_type` as network_type").
+		Select("`attribute.device_locale` as locale").
+		Select("concat(`attribute.device_manufacturer`, ' - ', `attribute.device_name`) as device").
+		Select("count(id) as count").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To).
+		Where("type in ?", errorEventTypes).
+		Where(errorFingerprintMatch, fingerprint, fingerprint).
+		GroupBy("app_version").
+		GroupBy("os_version").
+		GroupBy("country").
+		GroupBy("network_type").
+		GroupBy("locale").
+		GroupBy("device")
 
-		if af.HasVersions() {
-			s.Where("attribute.app_version").In(af.Versions)
-			s.Where("attribute.app_build").In(af.VersionCodes)
-		}
-		if af.HasOSVersions() {
-			s.Where("attribute.os_name").In(af.OsNames)
-			s.Where("attribute.os_version").In(af.OsVersions)
-		}
-		if af.HasCountries() {
-			s.Where("inet.country_code").In(af.Countries)
-		}
-		if af.HasNetworkTypes() {
-			s.Where("attribute.network_type").In(af.NetworkTypes)
-		}
-		if af.HasNetworkProviders() {
-			s.Where("attribute.network_provider").In(af.NetworkProviders)
-		}
-		if af.HasNetworkGenerations() {
-			s.Where("attribute.network_generation").In(af.NetworkGenerations)
-		}
-		if af.HasDeviceLocales() {
-			s.Where("attribute.device_locale").In(af.Locales)
-		}
-		if af.HasDeviceManufacturers() {
-			s.Where("attribute.device_manufacturer").In(af.DeviceManufacturers)
-		}
-		if af.HasDeviceNames() {
-			s.Where("attribute.device_name").In(af.DeviceNames)
-		}
+	if err = applyErrorPredicate(stmt, ef); err != nil {
+		return
 	}
 
-	newBranch := func() *sqlf.Stmt {
-		return sqlf.
-			From("events").
-			Select("concat(attribute.app_version, ' (', attribute.app_build, ')') as app_version").
-			Select("concat(attribute.os_name, ' ', attribute.os_version) as os_version").
-			Select("inet.country_code as country").
-			Select("attribute.network_type as network_type").
-			Select("attribute.device_locale as locale").
-			Select("concat(attribute.device_manufacturer, ' - ', attribute.device_name) as device").
-			Select("count(id) as count")
-	}
-
-	var branches []*sqlf.Stmt
-
-	if queryANR {
-		s := newBranch().
-			Where("type = ?", event.TypeANR).
-			Where("anr.fingerprint = ?", fingerprint)
-		applyCommonFilters(s)
-		branches = append(branches, s)
-	}
-
-	if wantHandledTrue || wantHandledFalse {
-		s := newBranch().
-			Where("type = ?", event.TypeException).
-			Where("`exception.fingerprint` = ?", fingerprint)
-		applyExceptionSeverityFilter(s, af.Severities)
-		if af.CustomError {
-			s.Where("`exception.is_custom` = true")
-		}
-		applyCommonFilters(s)
-		branches = append(branches, s)
-	}
-
-	stmt := unionStmts(branches)
 	defer stmt.Close()
 
 	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
@@ -950,72 +581,33 @@ func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, rch driver
 	return
 }
 
-// GetErrorsWithFilter fetches raw error events (exceptions and/or ANRs)
-// belonging to a single fingerprint, across the sources selected by
-// the filter's severity flags. When no severity flag is set, all
-// sources are queried.
-func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerprint string, af *filter.AppFilter) (events []any, next, previous bool, err error) {
+// GetErrorsWithFilter reads one error group's matching events, newest first.
+// Exceptions and ANRs are stored in different columns, so each is read by
+// its own query.
+func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerprint string, ef *exprfilter.ExprFilter) (events []any, next, previous bool, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	includeANR := (len(af.ErrorTypes) == 0 && len(af.Severities) == 0) || slices.Contains(af.ErrorTypes, event.ErrorTypeANR)
-	includeError := len(af.ErrorTypes) == 0 || slices.Contains(af.ErrorTypes, event.ErrorTypeError)
 
-	hasFatal := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityFatal)
-	hasUnhandled := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityUnhandled)
-	hasHandled := len(af.Severities) == 0 || slices.Contains(af.Severities, event.SeverityHandled)
-
-	queryANR := includeANR
-	queryFatal := includeError && hasFatal
-	queryNonfatal := includeError && (hasHandled || hasUnhandled)
-
-	queryANR = anrAllowed(af, queryANR)
-
-	applyCommonFilters := func(s *sqlf.Stmt) {
+	applyCommonFilters := func(s *sqlf.Stmt) error {
 		s.Where("team_id = toUUID(?)", a.TeamId)
 		s.Where("app_id = toUUID(?)", a.ID)
-		s.Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
+		s.Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To)
 
-		if af.HasVersions() {
-			s.Where("attribute.app_version in ?", af.Versions)
-			s.Where("attribute.app_build in ?", af.VersionCodes)
-		}
-
-		if af.HasOSVersions() {
-			s.Where("attribute.os_name in ?", af.OsNames)
-			s.Where("attribute.os_version in ?", af.OsVersions)
-		}
-		if af.HasCountries() {
-			s.Where("inet.country_code in ?", af.Countries)
-		}
-		if af.HasDeviceNames() {
-			s.Where("attribute.device_name in ?", af.DeviceNames)
-		}
-		if af.HasDeviceManufacturers() {
-			s.Where("attribute.device_manufacturer in ?", af.DeviceManufacturers)
-		}
-		if af.HasDeviceLocales() {
-			s.Where("attribute.device_locale in ?", af.Locales)
-		}
-		if af.HasNetworkTypes() {
-			s.Where("attribute.network_type in ?", af.NetworkTypes)
-		}
-		if af.HasNetworkProviders() {
-			s.Where("attribute.network_provider in ?", af.NetworkProviders)
-		}
-		if af.HasNetworkGenerations() {
-			s.Where("attribute.network_generation in ?", af.NetworkGenerations)
+		if err := applyErrorPredicate(s, ef); err != nil {
+			return err
 		}
 
-		if af.Limit > 0 {
-			s.Limit(uint64(af.Limit) + 1)
+		if ef.Limit > 0 {
+			s.Limit(uint64(ef.Limit) + 1)
 		}
-		if af.Offset >= 0 {
-			s.Offset(uint64(af.Offset))
+		if ef.Offset >= 0 {
+			s.Offset(uint64(ef.Offset))
 		}
 
 		s.OrderBy("timestamp desc")
+		return nil
 	}
 
-	if queryFatal || queryNonfatal {
+	{
 		stmt := sqlf.From("events").
 			Select("id").
 			Select("type").
@@ -1039,13 +631,9 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 			Where("type = ?", event.TypeException).
 			Where("exception.fingerprint = ?", fingerprint)
 
-		applyExceptionSeverityFilter(stmt, af.Severities)
-
-		if af.CustomError {
-			stmt.Where("`exception.is_custom` = true")
+		if err = applyCommonFilters(stmt); err != nil {
+			return
 		}
-
-		applyCommonFilters(stmt)
 		defer stmt.Close()
 
 		rows, errQ := rch.Query(ctx, stmt.String(), stmt.Args()...)
@@ -1110,7 +698,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 		}
 	}
 
-	if queryANR {
+	{
 		stmt := sqlf.From("events").
 			Select("id").
 			Select("type").
@@ -1128,7 +716,9 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 			Where("type = ?", event.TypeANR).
 			Where("anr.fingerprint = ?", fingerprint)
 
-		applyCommonFilters(stmt)
+		if err = applyCommonFilters(stmt); err != nil {
+			return
+		}
 		defer stmt.Close()
 
 		rows, errQ := rch.Query(ctx, stmt.String(), stmt.Args()...)
@@ -1191,11 +781,11 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 	})
 
 	resultLen := len(events)
-	if af.Limit > 0 && resultLen > af.Limit {
-		events = events[:af.Limit]
+	if ef.Limit > 0 && resultLen > ef.Limit {
+		events = events[:ef.Limit]
 		next = true
 	}
-	if af.Offset > 0 {
+	if ef.Offset > 0 {
 		previous = true
 	}
 

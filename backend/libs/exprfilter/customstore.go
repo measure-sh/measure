@@ -27,10 +27,23 @@ type customKeyStore struct {
 	// what membership subqueries select.
 	idColumn string
 
+	// entityColumn is the entity table's column a membership subquery
+	// compares idColumn against, when the two are named differently: the
+	// events table calls event_id id. Empty means the same name as idColumn.
+	entityColumn string
+
 	// extraScope is an extra boolean SQL clause for tables shared by more than
 	// one entity, such as the bug_report flag of user_def_attrs; empty when
 	// the table holds one entity's rows only.
 	extraScope string
+}
+
+// matchColumn is the entity table's id column.
+func (s customKeyStore) matchColumn() string {
+	if s.entityColumn != "" {
+		return s.entityColumn
+	}
+	return s.idColumn
 }
 
 // keyQuery reads an app's user-defined attribute keys with their types. An

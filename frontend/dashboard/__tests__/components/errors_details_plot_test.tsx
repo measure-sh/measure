@@ -16,102 +16,65 @@ jest.mock("@/app/components/skeleton", () => ({
   SkeletonPlot: () => <div data-testid="skeleton-mock">loading</div>,
 }));
 
-const mockUseErrorsDetailsPlotQuery = jest.fn(
-  (): { data: any; status: string; error: Error | null } => ({
-    data: undefined,
-    status: "pending",
-    error: null,
-  }),
-);
-
-jest.mock("@/app/query/hooks", () => ({
-  __esModule: true,
-  useErrorsDetailsPlotQuery: () => mockUseErrorsDetailsPlotQuery(),
-}));
-
-jest.mock("@/app/stores/provider", () => {
-  const { create } = jest.requireActual("zustand");
-  const filtersStore = create(() => ({
-    filters: {
-      ready: false,
-      serialisedFilters: "",
-      startDate: "",
-      endDate: "",
-    },
-  }));
-  return { __esModule: true, useFiltersStore: filtersStore };
-});
-
-const { useFiltersStore } = require("@/app/stores/provider") as any;
-
-const filters = {
-  ready: true,
-  serialisedFilters: "test",
+const plotDates = {
   startDate: "2026-02-01T00:00:00Z",
   endDate: "2026-02-01T06:00:00Z",
 };
 
+function queryWith(overrides: any) {
+  return {
+    data: undefined,
+    status: "pending",
+    error: null,
+    ...overrides,
+  } as any;
+}
+
 describe("ErrorsDetailsPlot", () => {
   beforeEach(() => {
     lastLineProps = null;
-    useFiltersStore.setState({
-      filters: {
-        ready: false,
-        serialisedFilters: "",
-        startDate: "",
-        endDate: "",
-      },
-    });
-    mockUseErrorsDetailsPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "pending",
-      error: null,
-    });
   });
 
   it("renders loading state when query is pending", () => {
-    useFiltersStore.setState({ filters });
-    mockUseErrorsDetailsPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "pending",
-      error: null,
-    });
-    render(<ErrorsDetailsPlot errorGroupId="g1" />);
+    render(<ErrorsDetailsPlot {...plotDates} query={queryWith({})} />);
     expect(screen.getByText("loading")).toBeInTheDocument();
   });
 
   it("renders error state when query errors", () => {
-    useFiltersStore.setState({ filters });
-    mockUseErrorsDetailsPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "error",
-      error: new Error("boom"),
-    });
-    render(<ErrorsDetailsPlot errorGroupId="g1" />);
+    render(
+      <ErrorsDetailsPlot
+        {...plotDates}
+        query={queryWith({ status: "error", error: new Error("boom") })}
+      />,
+    );
     expect(screen.getByText(/Error fetching plot/)).toBeInTheDocument();
   });
 
   it("renders No Data state when query returns null", () => {
-    useFiltersStore.setState({ filters });
-    mockUseErrorsDetailsPlotQuery.mockReturnValue({
-      data: null,
-      status: "success",
-      error: null,
-    });
-    render(<ErrorsDetailsPlot errorGroupId="g1" />);
+    render(
+      <ErrorsDetailsPlot
+        {...plotDates}
+        query={queryWith({ data: null, status: "success" })}
+      />,
+    );
     expect(screen.getByText("No Data")).toBeInTheDocument();
   });
 
   it("renders chart with provided data on success", () => {
-    useFiltersStore.setState({ filters });
-    mockUseErrorsDetailsPlotQuery.mockReturnValue({
-      data: [
-        { id: "3.1.0", data: [{ id: "p1", x: "2026-02-01T01:00:00", y: 8 }] },
-      ],
-      status: "success",
-      error: null,
-    });
-    render(<ErrorsDetailsPlot errorGroupId="g1" />);
+    render(
+      <ErrorsDetailsPlot
+        {...plotDates}
+        query={queryWith({
+          data: [
+            {
+              id: "3.1.0",
+              data: [{ id: "p1", x: "2026-02-01T01:00:00", y: 8 }],
+            },
+          ],
+          status: "success",
+        })}
+      />,
+    );
     expect(screen.getByTestId("line-mock")).toBeInTheDocument();
     expect(lastLineProps.data[0].id).toBe("3.1.0");
     expect(lastLineProps.data[0].data[0].y).toBe(8);
@@ -119,14 +82,10 @@ describe("ErrorsDetailsPlot", () => {
   });
 
   it("uses demo data and bypasses query in demo mode", () => {
-    useFiltersStore.setState({ filters });
     // Even if the query reports pending, demo mode shows the chart.
-    mockUseErrorsDetailsPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "pending",
-      error: null,
-    });
-    render(<ErrorsDetailsPlot errorGroupId="g1" demo />);
+    render(
+      <ErrorsDetailsPlot startDate="" endDate="" query={queryWith({})} demo />,
+    );
     expect(screen.getByTestId("line-mock")).toBeInTheDocument();
     // Demo dataset has two series with version-build labels
     const seriesIds = lastLineProps.data.map((d: any) => d.id);
@@ -134,32 +93,35 @@ describe("ErrorsDetailsPlot", () => {
     expect(seriesIds).toContain("2.0.0 (200)");
   });
 
-  it("selects axis precision from filter range", () => {
-    const dayFilters = {
-      ...filters,
-      startDate: "2026-01-01T00:00:00Z",
-      endDate: "2026-03-15T00:00:00Z",
-    };
-    useFiltersStore.setState({ filters: dayFilters });
-    mockUseErrorsDetailsPlotQuery.mockReturnValue({
-      data: [{ id: "v", data: [{ id: "p", x: "2026-02-01", y: 1 }] }],
-      status: "success",
-      error: null,
-    });
-    render(<ErrorsDetailsPlot errorGroupId="g1" />);
+  it("selects axis precision from the given range", () => {
+    render(
+      <ErrorsDetailsPlot
+        startDate="2026-01-01T00:00:00Z"
+        endDate="2026-03-15T00:00:00Z"
+        query={queryWith({
+          data: [{ id: "v", data: [{ id: "p", x: "2026-02-01", y: 1 }] }],
+          status: "success",
+        })}
+      />,
+    );
     expect(lastLineProps.xScale.precision).toBe("day");
   });
 
   it("renders tooltip with instances/instance pluralization", () => {
-    useFiltersStore.setState({ filters });
-    mockUseErrorsDetailsPlotQuery.mockReturnValue({
-      data: [
-        { id: "3.1.0", data: [{ id: "p1", x: "2026-02-01T01:00:00", y: 5 }] },
-      ],
-      status: "success",
-      error: null,
-    });
-    render(<ErrorsDetailsPlot errorGroupId="g1" />);
+    render(
+      <ErrorsDetailsPlot
+        {...plotDates}
+        query={queryWith({
+          data: [
+            {
+              id: "3.1.0",
+              data: [{ id: "p1", x: "2026-02-01T01:00:00", y: 5 }],
+            },
+          ],
+          status: "success",
+        })}
+      />,
+    );
 
     const many = lastLineProps.tooltip({
       point: {

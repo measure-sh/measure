@@ -111,6 +111,19 @@ func (f plotFixture) bugReportExprFilter(from, to time.Time, timezone, plotTimeG
 	}
 }
 
+func (f plotFixture) errorExprFilter(from, to time.Time, timezone, plotTimeGroup string) *exprfilter.ExprFilter {
+	return &exprfilter.ExprFilter{
+		AppID:         f.appID,
+		TeamID:        f.teamID,
+		Entity:        exprfilter.ErrorsEntity,
+		From:          from,
+		To:            to,
+		Timezone:      timezone,
+		Limit:         exprfilter.DefaultPaginationLimit,
+		PlotTimeGroup: plotTimeGroup,
+	}
+}
+
 func (f plotFixture) teamIDStr() string { return f.teamID.String() }
 func (f plotFixture) appIDStr() string  { return f.appID.String() }
 

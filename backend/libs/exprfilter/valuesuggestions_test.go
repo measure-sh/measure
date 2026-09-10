@@ -148,6 +148,41 @@ func TestSuggestionSQL(t *testing.T) {
 			wantArgs: []any{teamID, appID, windowStart{}, "%ana%", DefaultValueLimit + 1},
 		},
 		{
+			name: "error user id values read the error events only",
+			run: func(recorder *sqlRecorder) {
+				byName := IndexKeysByName(ErrorsEntity.Keys)
+				_, _ = ErrorsEntity.SuggestKeyValues(ctx, nil, recorder, teamID, appID, byName["user_id"], ValueRequest{})
+			},
+			wantSQL: "SELECT `attribute.user_id` as suggested_value, max(timestamp) as recency" +
+				" FROM events" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND timestamp >= ? AND type in ('exception', 'anr') AND `attribute.user_id` <> ''" +
+				" GROUP BY suggested_value ORDER BY recency desc, suggested_value LIMIT ?",
+			wantArgs: []any{teamID, appID, windowStart{}, DefaultValueLimit + 1},
+		},
+		{
+			name: "error fixed key values read the app_filters rollup by month",
+			run: func(recorder *sqlRecorder) {
+				byName := IndexKeysByName(ErrorsEntity.Keys)
+				_, _ = ErrorsEntity.SuggestKeyValues(ctx, nil, recorder, teamID, appID, byName["device_name"], ValueRequest{})
+			},
+			wantSQL: "SELECT device_name as suggested_value, max(end_of_month) as recency" +
+				" FROM app_filters" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND device_name <> ''" +
+				" GROUP BY suggested_value ORDER BY recency desc, suggested_value LIMIT ?",
+			wantArgs: []any{teamID, appID, DefaultValueLimit + 1},
+		},
+		{
+			name: "error custom key values leave out the bug report rows",
+			run: func(recorder *sqlRecorder) {
+				_, _ = ErrorsEntity.SuggestKeyValues(ctx, nil, recorder, teamID, appID, CustomKey("plan", ValueTypeString), ValueRequest{})
+			},
+			wantSQL: "SELECT value, max(timestamp) as recency" +
+				" FROM user_def_attrs" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND timestamp >= ? AND bug_report = false AND key = ? AND type = ? AND value <> ''" +
+				" GROUP BY value ORDER BY recency desc, value LIMIT ?",
+			wantArgs: []any{teamID, appID, windowStart{}, "plan", "string", DefaultValueLimit + 1},
+		},
+		{
 			name: "span custom key values read span_user_def_attrs by key and type",
 			run: func(recorder *sqlRecorder) {
 				_, _ = SpansEntity.SuggestKeyValues(ctx, nil, recorder, teamID, appID, CustomKey("plan", ValueTypeString), ValueRequest{})

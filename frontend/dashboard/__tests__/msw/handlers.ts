@@ -12,7 +12,6 @@
 import { http, HttpResponse } from "msw";
 import {
   makeAlertsOverviewFixture,
-  makeAnrPlotFixture,
   makeAppFixture,
   makeAppRetentionFixture,
   makeAuthzAndMembersFixture,
@@ -26,6 +25,8 @@ import {
   makeBuildsFixture,
   makeCommonPathFixture,
   makeCrashPlotFixture,
+  makeErrorGroupEventsFilterKeysFixture,
+  makeErrorsFilterKeysFixture,
   makeExceptionDistributionFixture,
   makeExceptionInstanceFixture,
   makeExceptionsOverviewFixture,
@@ -80,13 +81,8 @@ export const handlers = [
     return HttpResponse.json(makeSessionPlotFixture());
   }),
 
-  // 5. GET /api/apps/:appId/errorGroups/plots/instances (unified — branches on type query param)
-  http.get("*/api/apps/:appId/errorGroups/plots/instances", ({ request }) => {
-    const url = new URL(request.url);
-    const typeParam = url.searchParams.get("type") ?? "";
-    if (typeParam.includes("anr")) {
-      return HttpResponse.json(makeAnrPlotFixture());
-    }
+  // 5. GET /api/apps/:appId/errorGroups/plots/instances (unified errors overview plot)
+  http.get("*/api/apps/:appId/errorGroups/plots/instances", () => {
     return HttpResponse.json(makeCrashPlotFixture());
   }),
 
@@ -427,6 +423,12 @@ export const handlers = [
     }
     if (entity === "network") {
       return HttpResponse.json(makeNetworkFilterKeysFixture());
+    }
+    if (entity === "errors") {
+      return HttpResponse.json(makeErrorsFilterKeysFixture());
+    }
+    if (entity === "error_group_events") {
+      return HttpResponse.json(makeErrorGroupEventsFilterKeysFixture());
     }
     if (entity === "alerts") {
       return HttpResponse.json({

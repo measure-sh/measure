@@ -653,132 +653,28 @@ func (h Handlers) GetAppFilters(c *gin.Context) {
 	})
 }
 
+func errorGroupIDParam(c *gin.Context) (string, bool) {
+	errorGroupId := c.Param("errorGroupId")
+	if errorGroupId == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": `error group id is invalid or missing`})
+		return "", false
+	}
+	return errorGroupId, true
+}
+
 func (h Handlers) GetErrorOverview(c *gin.Context) {
 	deps := h.Deps
-	ctx := c.Request.Context()
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": msg,
-		})
+	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:   exprfilter.ErrorsEntity,
+		appScope: *measure.ScopeAppRead,
+		logRoot:  logcomment.Errors,
+		logName:  "errors_list",
+	})
+	if !ok {
 		return
 	}
 
-	af := filter.AppFilter{
-		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
-	}
-
-	if err := c.ShouldBindQuery(&af); err != nil {
-		msg := `failed to parse query parameters`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	msg := "error overview request validation failed"
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
-	}
-
-	app := measure.App{
-		ID: &id,
-	}
-	team, err := app.GetTeam(ctx, deps.PgPool)
-	if err != nil {
-		msg := "failed to get team from app id"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	if !okTeam || !okApp {
-		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	app.TeamId = *team.ID
-
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.MustPut(logcomment.Root, logcomment.Errors).String(),
-	}
-
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "errors_list"))
-
-	errGroups, next, previous, err := app.GetErrorGroupsWithFilter(ctx, deps.RchPool, &af)
+	errGroups, next, previous, err := app.GetErrorGroupsWithFilter(ctx, deps.RchPool, &ef)
 	if err != nil {
 		msg := "failed to get app's error groups with filter"
 		fmt.Println(msg, err)
@@ -788,135 +684,29 @@ func (h Handlers) GetErrorOverview(c *gin.Context) {
 		return
 	}
 
-	meta := gin.H{
-		"next":     next,
-		"previous": previous,
-	}
-
 	c.JSON(http.StatusOK, gin.H{
 		"results": errGroups,
-		"meta":    meta,
+		"meta": gin.H{
+			"next":     next,
+			"previous": previous,
+		},
 	})
 }
 
 func (h Handlers) GetErrorOverviewPlotInstances(c *gin.Context) {
 	deps := h.Deps
-	ctx := c.Request.Context()
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": msg,
-		})
+	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:          exprfilter.ErrorsEntity,
+		appScope:        *measure.ScopeAppRead,
+		logRoot:         logcomment.Errors,
+		logName:         "plots_instances",
+		requireTimezone: true,
+	})
+	if !ok {
 		return
 	}
 
-	af := filter.AppFilter{
-		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
-	}
-
-	if err := c.ShouldBindQuery(&af); err != nil {
-		msg := `failed to parse query parameters`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	msg := `error overview plot request validation failed`
-
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
-	}
-
-	app := measure.App{
-		ID: &id,
-	}
-	team, err := app.GetTeam(ctx, deps.PgPool)
-	if err != nil {
-		msg := "failed to get team from app id"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	if !okTeam || !okApp {
-		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
-		return
-	}
-
-	app.TeamId = *team.ID
-	ctx = ambient.WithTeamId(ctx, *team.ID)
-
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.MustPut(logcomment.Root, logcomment.Errors).String(),
-	}
-
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_instances"))
-
-	errorInstances, err := app.GetErrorPlotInstances(ctx, deps.RchPool, &af)
+	errorInstances, err := app.GetErrorPlotInstances(ctx, deps.RchPool, &ef)
 	if err != nil {
 		msg := `failed to query error instances`
 		fmt.Println(msg, err)
@@ -959,120 +749,22 @@ func (h Handlers) GetErrorOverviewPlotInstances(c *gin.Context) {
 
 func (h Handlers) GetErrorDetailErrors(c *gin.Context) {
 	deps := h.Deps
-	ctx := c.Request.Context()
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:   exprfilter.ErrorGroupEventsEntity,
+		appScope: *measure.ScopeAppRead,
+		logRoot:  logcomment.Errors,
+		logName:  "detail-stacktrace",
+	})
+	if !ok {
 		return
 	}
 
-	errorGroupId := c.Param("errorGroupId")
-	if errorGroupId == "" {
-		msg := `error group id is invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+	errorGroupId, ok := errorGroupIDParam(c)
+	if !ok {
 		return
 	}
 
-	af := filter.AppFilter{
-		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
-	}
-
-	if err := c.ShouldBindQuery(&af); err != nil {
-		msg := `failed to parse query parameters`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
-		return
-	}
-
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	msg := "error detail request validation failed"
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
-		return
-	}
-
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
-	}
-
-	app := measure.App{
-		ID: &id,
-	}
-	team, err := app.GetTeam(ctx, deps.PgPool)
-	if err != nil {
-		msg := "failed to get team from app id"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	if !okTeam || !okApp {
-		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
-		return
-	}
-
-	app.TeamId = *team.ID
-
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.MustPut(logcomment.Root, logcomment.Errors).String(),
-	}
-
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "detail-stacktrace"))
-
-	errorEvents, next, previous, err := app.GetErrorsWithFilter(ctx, deps.RchPool, errorGroupId, &af)
+	errorEvents, next, previous, err := app.GetErrorsWithFilter(ctx, deps.RchPool, errorGroupId, &ef)
 	if err != nil {
 		msg := `failed to get error group's events`
 		fmt.Println(msg, err)
@@ -1111,120 +803,23 @@ func (h Handlers) GetErrorDetailErrors(c *gin.Context) {
 
 func (h Handlers) GetErrorDetailPlotInstances(c *gin.Context) {
 	deps := h.Deps
-	ctx := c.Request.Context()
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:          exprfilter.ErrorGroupEventsEntity,
+		appScope:        *measure.ScopeAppRead,
+		logRoot:         logcomment.Errors,
+		logName:         "detail_plots_instances",
+		requireTimezone: true,
+	})
+	if !ok {
 		return
 	}
 
-	errorGroupId := c.Param("errorGroupId")
-	if errorGroupId == "" {
-		msg := `error group id is invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+	errorGroupId, ok := errorGroupIDParam(c)
+	if !ok {
 		return
 	}
 
-	af := filter.AppFilter{
-		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
-	}
-
-	if err := c.ShouldBindQuery(&af); err != nil {
-		msg := `failed to parse query parameters`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
-		return
-	}
-
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	msg := "error detail plot request validation failed"
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
-		return
-	}
-
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
-	}
-
-	app := measure.App{
-		ID: &id,
-	}
-	team, err := app.GetTeam(ctx, deps.PgPool)
-	if err != nil {
-		msg := "failed to get team from app id"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	if !okTeam || !okApp {
-		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
-		return
-	}
-
-	app.TeamId = *team.ID
-
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.MustPut(logcomment.Root, logcomment.Errors).String(),
-	}
-
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "detail_plots_instances"))
-
-	errorInstances, err := app.GetErrorGroupPlotInstances(ctx, deps.RchPool, errorGroupId, &af)
+	errorInstances, err := app.GetErrorGroupPlotInstances(ctx, deps.RchPool, errorGroupId, &ef)
 	if err != nil {
 		msg := `failed to query data for error instances plot`
 		fmt.Println(msg, err)
@@ -1264,120 +859,22 @@ func (h Handlers) GetErrorDetailPlotInstances(c *gin.Context) {
 
 func (h Handlers) GetErrorDetailAttributeDistribution(c *gin.Context) {
 	deps := h.Deps
-	ctx := c.Request.Context()
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:   exprfilter.ErrorGroupEventsEntity,
+		appScope: *measure.ScopeAppRead,
+		logRoot:  logcomment.Errors,
+		logName:  "plots_distribution",
+	})
+	if !ok {
 		return
 	}
 
-	errorGroupId := c.Param("errorGroupId")
-	if errorGroupId == "" {
-		msg := `error group id is invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+	errorGroupId, ok := errorGroupIDParam(c)
+	if !ok {
 		return
 	}
 
-	af := filter.AppFilter{
-		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
-	}
-
-	if err := c.ShouldBindQuery(&af); err != nil {
-		msg := `failed to parse query parameters`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
-		return
-	}
-
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	msg := "error detail distribution request validation failed"
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg, "details": err.Error()})
-		return
-	}
-
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
-	}
-
-	app := measure.App{
-		ID: &id,
-	}
-	team, err := app.GetTeam(ctx, deps.PgPool)
-	if err != nil {
-		msg := "failed to get team from app id"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-	if team == nil {
-		msg := fmt.Sprintf("no team exists for app [%s]", app.ID)
-		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		return
-	}
-
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	if !okTeam || !okApp {
-		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
-		return
-	}
-
-	app.TeamId = *team.ID
-
-	lc := logcomment.New(2)
-	settings := clickhouse.Settings{
-		"log_comment": lc.MustPut(logcomment.Root, logcomment.Errors),
-	}
-
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_distribution"))
-
-	distribution, err := app.GetErrorGroupAttributesDistribution(ctx, deps.RchPool, errorGroupId, &af)
+	distribution, err := app.GetErrorGroupAttributesDistribution(ctx, deps.RchPool, errorGroupId, &ef)
 	if err != nil {
 		msg := `failed to query data for error distribution plot`
 		fmt.Println(msg, err)

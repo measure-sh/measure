@@ -1,7 +1,6 @@
 "use client";
 
-import { useErrorsOverviewPlotQuery } from "@/app/query/hooks";
-import { useFiltersStore } from "@/app/stores/provider";
+import { type useErrorsOverviewPlotQuery } from "@/app/query/hooks";
 import { ResponsiveLineCanvas } from "@nivo/line";
 import { useTheme } from "next-themes";
 import React, { useMemo } from "react";
@@ -19,16 +18,16 @@ import {
 } from "./plot_tooltip";
 import { SkeletonPlot } from "./skeleton";
 
-const ErrorsOverviewPlot: React.FC = () => {
-  const filters = useFiltersStore((state) => state.filters);
-  const { data: rawPlot, status } = useErrorsOverviewPlotQuery();
+const ErrorsOverviewPlot: React.FC<{
+  startDate: string;
+  endDate: string;
+  query: ReturnType<typeof useErrorsOverviewPlotQuery>;
+}> = ({ startDate, endDate, query }) => {
+  const { data: rawPlot, status } = query;
   const { theme } = useTheme();
   const chartColors = useChartColors();
   const canvasTheme = useChartCanvasTheme();
-  const plotTimeGroup = getPlotTimeGroupForRange(
-    filters.startDate,
-    filters.endDate,
-  );
+  const plotTimeGroup = getPlotTimeGroupForRange(startDate, endDate);
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
 
   const plot = useMemo(() => {
