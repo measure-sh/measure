@@ -141,8 +141,8 @@ export default function MemoryMonitoring({
       <div className="py-2" />
       <p className="font-body text-sm text-muted-foreground max-w-2xl">
         {platform === "android"
-          ? "Dynamic Memory Usage (anon RSS + swap), sampled from a subset of sessions."
-          : "Memory Footprint (used memory), sampled from a subset of sessions while the app is in the foreground."}
+          ? "Dynamic Memory Usage, sampled from a subset of sessions."
+          : "Memory Footprint, sampled from a subset of sessions while the app is in the foreground."}
       </p>
 
       <div className="py-6" />
