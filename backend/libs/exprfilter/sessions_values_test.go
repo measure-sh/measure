@@ -67,6 +67,10 @@ func TestSessionValues(t *testing.T) {
 	ctx := context.Background()
 	teamID, appID, patchID := seedSessionEvents(ctx, t)
 
+	// The reads carry the release mode query settings, so a statement that
+	// ClickHouse refuses to cache fails here the same way it fails in production.
+	ctx = WithFilterQuerySettings(ctx, true, false, "session_values")
+
 	byName := IndexKeysByName(SessionsEntity.Keys)
 
 	list := func(t *testing.T, keyName string, valueRequest ValueRequest) []string {

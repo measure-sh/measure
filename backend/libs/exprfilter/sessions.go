@@ -122,12 +122,13 @@ var sessionsAppFiltersValues = fixedKeyValueSource{
 var sessionsTableValues = fixedKeyValueSource{
 	table: "sessions",
 	columns: map[string]string{
-		userID.Name:             "arrayJoin(user_ids)",
-		sessionCustomEvent.Name: "arrayJoin(unique_custom_type_names)",
-		sessionScreen.Name:      "arrayJoin(" + rawSessionColumnForms.screen + ")",
+		userID.Name:             "user_ids",
+		sessionCustomEvent.Name: "unique_custom_type_names",
+		sessionScreen.Name:      rawSessionColumnForms.screen,
 	},
-	recencyExpr: "max(first_event_timestamp)",
-	timeColumn:  "first_event_timestamp",
+	recencyExpr:  "max(first_event_timestamp)",
+	timeColumn:   "first_event_timestamp",
+	arrayColumns: true,
 }
 
 // Every attribute written in the session counts, whichever event or bug report

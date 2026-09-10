@@ -19,12 +19,16 @@ import (
 // read from, and the aggregate expression that dates a value for
 // most-recently-seen-first ordering. timeColumn names the row timestamp of a
 // raw table so the read stays within the suggestion window; a rollup that is
-// small enough to read whole leaves it empty.
+// small enough to read whole leaves it empty. arrayColumns marks a source
+// whose column expressions are arrays, so each element is suggested as its own
+// value; the elements are expanded with an ARRAY JOIN clause because ClickHouse
+// refuses to cache a query that calls its arrayJoin function.
 type fixedKeyValueSource struct {
-	table       string
-	columns     map[string]string
-	recencyExpr string
-	timeColumn  string
+	table        string
+	columns      map[string]string
+	recencyExpr  string
+	timeColumn   string
+	arrayColumns bool
 }
 
 // A suggestion is only a shortcut for typing a value, so a raw table is read
@@ -85,17 +89,22 @@ func suggestFixedKeyValuesFromClickHouse(sources ...fixedKeyValueSource) func(ct
 		// which use the nil UUID. Unset values are excluded.
 		// UUID columns are read as text so searches and returned
 		// values use strings. Ties are ordered alphabetically.
+		from := fixedValues.table
 		valueExpr := column
+		if fixedValues.arrayColumns {
+			from += " ARRAY JOIN " + column + " AS array_value"
+			valueExpr = "array_value"
+		}
 		unsetTest := valueExpr + " <> ''"
 		var unsetArgs []any
 		if key.ValueType == ValueTypeUUID {
-			valueExpr = "toString(" + column + ")"
+			valueExpr = "toString(" + valueExpr + ")"
 			unsetTest = valueExpr + " <> ?"
 			unsetArgs = []any{uuid.Nil.String()}
 		}
 
 		stmt := sqlf.
-			From(fixedValues.table).
+			From(from).
 			Select(valueExpr+" as suggested_value").
 			Select(fixedValues.recencyExpr+" as recency").
 			Where("team_id = toUUID(?)", teamID).
