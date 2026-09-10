@@ -1,5 +1,5 @@
 import { expect, test } from "../../fixtures.ts";
-import { MemoryPage } from "../../pages/memory_page.ts";
+import { MemoryPage, ramTierLabelToFilterValue } from "../../pages/memory_page.ts";
 
 test.describe("memory monitoring", () => {
   let memory: MemoryPage;
@@ -32,6 +32,26 @@ test.describe("memory monitoring", () => {
         path: "test-results/memory-android.png",
         fullPage: true,
       });
+    });
+
+    test("filtering by the session's own RAM Tier still renders the ranking", async ({
+      appId,
+    }) => {
+      // Regression test: a session_ram_tier filter used to make
+      // GetHighestMemorySessions 500 (an alias in its query shadowed the
+      // column the filter's WHERE clause referenced) — caught live, not by
+      // any test, because nothing here had exercised the RAM Tier filter
+      // against the ranked-sessions endpoint before.
+      await expect(memory.sessionRow.first()).toBeVisible({ timeout: 20_000 });
+      const ramTierLabel = await memory.sessionRamTier.first().innerText();
+      const ramTierValue = ramTierLabelToFilterValue(ramTierLabel);
+
+      await memory.gotoFilteredByRamTier(appId, ramTierValue);
+
+      await expect(memory.sessionsSection).not.toContainText(
+        "Error fetching sessions",
+      );
+      await expect(memory.sessionRow.first()).toBeVisible({ timeout: 20_000 });
     });
   });
 
