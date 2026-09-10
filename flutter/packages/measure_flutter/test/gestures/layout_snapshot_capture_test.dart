@@ -6,7 +6,7 @@ import 'package:measure_flutter/src/gestures/snapshot_node.dart';
 void main() {
   group('LayoutSnapshotCapture', () {
     testWidgets('returns null for null element', (WidgetTester tester) async {
-      final result = LayoutSnapshotCapture.capture(null);
+      final result = LayoutSnapshotCapture.capture(null, devicePixelRatio: 1);
 
       expect(result, isNull);
     });
@@ -32,7 +32,7 @@ void main() {
       );
 
       final element = tester.element(find.byType(MaterialApp));
-      final result = LayoutSnapshotCapture.capture(element);
+      final result = LayoutSnapshotCapture.capture(element, devicePixelRatio: 1);
 
       expect(result, isNotNull);
       // With ancestor support, MaterialApp is now the root with Scaffold nested inside
@@ -70,6 +70,7 @@ void main() {
         element,
         detectionPosition: buttonCenter,
         detectionMode: GestureDetectionMode.click,
+        devicePixelRatio: 1,
       );
 
       // We detect the inner most widget which can take the gesture,
@@ -104,6 +105,7 @@ void main() {
         element,
         detectionPosition: listViewCenter,
         detectionMode: GestureDetectionMode.scroll,
+        devicePixelRatio: 1,
       );
 
       expect(result, isNotNull);
@@ -141,7 +143,7 @@ void main() {
       );
 
       final element = tester.element(find.byType(MaterialApp));
-      final result = LayoutSnapshotCapture.capture(element);
+      final result = LayoutSnapshotCapture.capture(element, devicePixelRatio: 1);
 
       expect(result, isNotNull);
       // With ancestor support, MaterialApp is the root with nested structure inside
@@ -189,6 +191,7 @@ void main() {
       final result = LayoutSnapshotCapture.capture(
         element,
         screenBounds: screenBounds,
+        devicePixelRatio: 1,
       );
 
       expect(result, isNotNull);
@@ -231,7 +234,7 @@ void main() {
       );
 
       final element = tester.element(find.byType(MaterialApp));
-      final result = LayoutSnapshotCapture.capture(element);
+      final result = LayoutSnapshotCapture.capture(element, devicePixelRatio: 1);
 
       expect(result, isNotNull);
       // Visible button should be captured
@@ -266,7 +269,7 @@ void main() {
       );
 
       final element = tester.element(find.byType(MaterialApp));
-      final result = LayoutSnapshotCapture.capture(element);
+      final result = LayoutSnapshotCapture.capture(element, devicePixelRatio: 1);
 
       expect(result, isNotNull);
       // Visible button should be captured
@@ -301,7 +304,7 @@ void main() {
       );
 
       final element = tester.element(find.byType(MaterialApp));
-      final result = LayoutSnapshotCapture.capture(element);
+      final result = LayoutSnapshotCapture.capture(element, devicePixelRatio: 1);
 
       expect(result, isNotNull);
       // Visible button should be captured
@@ -330,7 +333,7 @@ void main() {
       );
 
       final element = tester.element(find.byType(MaterialApp));
-      final result = LayoutSnapshotCapture.capture(element);
+      final result = LayoutSnapshotCapture.capture(element, devicePixelRatio: 1);
 
       expect(result, isNotNull);
       final buttonSnapshot = _findWidgetByType(result!.snapshot, 'ElevatedButton');
@@ -340,6 +343,31 @@ void main() {
       expect(buttonSnapshot.height, greaterThan(0));
       expect(buttonSnapshot.x, greaterThanOrEqualTo(0));
       expect(buttonSnapshot.y, greaterThanOrEqualTo(0));
+    });
+
+    testWidgets('reports bounds in device pixels', (WidgetTester tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(child: Text('Scaled')),
+          ),
+        ),
+      );
+
+      final textRect = tester.getRect(find.text('Scaled'));
+      final element = tester.element(find.byType(MaterialApp));
+
+      final result = LayoutSnapshotCapture.capture(
+        element,
+        devicePixelRatio: 3,
+      );
+
+      final textSnapshot = _findWidgetByType(result!.snapshot, 'Text');
+      expect(textSnapshot, isNotNull);
+      expect(textSnapshot!.x, textRect.left * 3);
+      expect(textSnapshot.y, textRect.top * 3);
+      expect(textSnapshot.width, textRect.width * 3);
+      expect(textSnapshot.height, textRect.height * 3);
     });
 
     testWidgets('uses framework widgets when widgets filter input is null', (WidgetTester tester) async {
@@ -363,6 +391,7 @@ void main() {
       final result = LayoutSnapshotCapture.capture(
         element,
         widgetFilter: null,
+        devicePixelRatio: 1,
       );
 
       expect(result, isNotNull);
@@ -393,6 +422,7 @@ void main() {
       final result = LayoutSnapshotCapture.capture(
         element,
         widgetFilter: {},
+        devicePixelRatio: 1,
       );
 
       expect(result, isNotNull);
@@ -429,6 +459,7 @@ void main() {
         widgetFilter: {
           _CustomWidget: 'CustomWidget',
         },
+        devicePixelRatio: 1,
       );
 
       expect(result, isNotNull);
@@ -468,7 +499,7 @@ void main() {
       await tester.pumpAndSettle();
 
       final element = tester.element(find.byType(MaterialApp));
-      final result = LayoutSnapshotCapture.capture(element);
+      final result = LayoutSnapshotCapture.capture(element, devicePixelRatio: 1);
 
       expect(result, isNotNull);
       // The home route's button should be filtered out
@@ -492,7 +523,7 @@ void main() {
       );
 
       final element = tester.element(find.byType(MaterialApp));
-      final result = LayoutSnapshotCapture.capture(element);
+      final result = LayoutSnapshotCapture.capture(element, devicePixelRatio: 1);
 
       expect(result, isNotNull);
       final buttonSnapshot = _findWidgetByType(result!.snapshot, 'ElevatedButton');

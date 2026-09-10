@@ -41,6 +41,7 @@ class LayoutSnapshotCollector {
         rootElement,
         screenBounds: _screenBounds(rootElement),
         widgetFilter: _configProvider.widgetFilter,
+        devicePixelRatio: MediaQuery.of(rootElement).devicePixelRatio,
       );
       if (result == null) {
         return null;

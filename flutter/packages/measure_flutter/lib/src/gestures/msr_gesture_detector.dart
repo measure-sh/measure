@@ -174,6 +174,7 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
       detectionPosition: position,
       detectionMode: GestureDetectionMode.click,
       widgetFilter: Measure.instance.getLayoutSnapshotWidgetFilter(),
+      devicePixelRatio: devicePixelRatio,
     );
 
     if (result != null) {
@@ -225,6 +226,7 @@ class MsrGestureDetectorState extends State<MsrGestureDetector> {
       detectionMode: GestureDetectionMode.click,
       widgetFilter: Measure.instance.getLayoutSnapshotWidgetFilter(),
       screenBounds: screenBounds,
+      devicePixelRatio: devicePixelRatio,
     );
 
     if (result == null ||
