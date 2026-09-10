@@ -35,6 +35,7 @@ class _CaptureState {
   final GestureDetectionMode? detectionMode;
   final Element rootElement;
   final Map<Type, String>? widgetFilter;
+  final double devicePixelRatio;
 
   Element? gestureElement;
   String? gestureElementType;
@@ -49,6 +50,7 @@ class _CaptureState {
     this.detectionPosition,
     this.detectionMode,
     this.widgetFilter,
+    required this.devicePixelRatio,
   });
 }
 
@@ -60,6 +62,7 @@ class LayoutSnapshotCapture {
     Offset? detectionPosition,
     GestureDetectionMode? detectionMode,
     Map<Type, String>? widgetFilter,
+    required double devicePixelRatio,
   }) {
     Timeline.startSync('msr-layoutSnapshot-capture');
     try {
@@ -73,6 +76,7 @@ class LayoutSnapshotCapture {
         detectionPosition: detectionPosition,
         detectionMode: detectionMode,
         widgetFilter: widgetFilter,
+        devicePixelRatio: devicePixelRatio,
       );
 
       final nodes = _recursiveTraverse(rootElement, state);
@@ -154,7 +158,10 @@ class LayoutSnapshotCapture {
     // 2. This is the detected gesture element
     // 3. Widget matches filter
     if (isGestureElement || (isInScreenBounds && matchedType != null)) {
-      return [_createNode(element, children, isGestureElement, matchedType, bounds)];
+      return [
+        _createNode(element, children, isGestureElement, matchedType, bounds,
+            state.devicePixelRatio)
+      ];
     }
 
     // Otherwise promote children
@@ -277,15 +284,16 @@ class LayoutSnapshotCapture {
     bool isGestureElement,
     String? widgetName,
     Rect bounds,
+    double devicePixelRatio,
   ) {
     final widget = element.widget;
     return SnapshotNode(
       label: widgetName ?? widget.runtimeType.toString(),
       type: getWidgetElementType(widget),
-      x: bounds.left,
-      y: bounds.top,
-      width: bounds.width,
-      height: bounds.height,
+      x: bounds.left * devicePixelRatio,
+      y: bounds.top * devicePixelRatio,
+      width: bounds.width * devicePixelRatio,
+      height: bounds.height * devicePixelRatio,
       highlighted: isGestureElement,
       scrollable: getScrollableWidgetName(widget) != null,
       children: children,

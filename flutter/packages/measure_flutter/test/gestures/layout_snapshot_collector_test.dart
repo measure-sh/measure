@@ -98,6 +98,20 @@ void main() {
       expect(result!.type, equals(AttachmentType.layoutSnapshotJson));
     });
 
+    testWidgets('captures the screen in device pixels', (tester) async {
+      tester.view.devicePixelRatio = 2;
+      addTearDown(() => tester.view.devicePixelRatio = 1);
+
+      final future = collector.captureAttachmentAfterNextFrame();
+      await tester.pumpWidget(measureApp(child: const Text('Home')));
+      await future;
+
+      final textRect = tester.getRect(find.text('Home'));
+      final captured = worker.lastSnapshot!;
+      expect(captured.width, textRect.width * 2);
+      expect(captured.height, textRect.height * 2);
+    });
+
     testWidgets('returns null when reading the widget tree throws',
         (tester) async {
       final failing = LayoutSnapshotCollector(
