@@ -214,7 +214,16 @@ func (a App) GetHighestMemorySessions(ctx context.Context, rch driver.Conn, ios 
 		// aggregatedSessionColumnForms re-applies sum()/max() for its fields.
 		// A bare Select would return whichever physical row's value happened
 		// to survive an unrelated merge, including null.
-		Select("anyLast(device_total_memory_kb) as device_total_memory_kb").
+		//
+		// Aliased to a different name, not back to device_total_memory_kb:
+		// a session_ram_tier filter (applySessionsPredicate below) adds a
+		// WHERE on the bare column in this same query, and ClickHouse
+		// resolves that identifier against the SELECT alias when the names
+		// match, turning a legal plain-column predicate into an illegal
+		// "aggregate function found in WHERE" error. Re-aliased back to
+		// device_total_memory_kb in the outer SELECT below instead, where
+		// there's no WHERE clause left to collide with.
+		Select("anyLast(device_total_memory_kb) as resolved_device_total_memory_kb").
 		Select("min(first_event_timestamp) as start_time").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
@@ -248,13 +257,13 @@ func (a App) GetHighestMemorySessions(ctx context.Context, rch driver.Conn, ios 
 		Select("device_name").
 		Select("device_model").
 		Select("device_manufacturer").
-		Select("device_total_memory_kb").
+		Select("resolved_device_total_memory_kb as device_total_memory_kb").
 		Select("start_time").
 		Select("peak_memory").
 		// NULL and zero denominators (device_total_memory_kb unknown) fall
 		// back to 0 rather than NULL, so those sessions sort last under
 		// ORDER BY ... DESC without needing an explicit NULLS LAST.
-		Select("coalesce(peak_memory / nullIf(device_total_memory_kb, 0), 0) as ram_usage_ratio").
+		Select("coalesce(peak_memory / nullIf(resolved_device_total_memory_kb, 0), 0) as ram_usage_ratio").
 		OrderBy("ram_usage_ratio desc").
 		OrderBy("session_id desc")
 
