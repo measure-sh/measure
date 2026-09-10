@@ -295,6 +295,19 @@ var (
 		EnumValues:          []string{"foreground", "background"},
 	}
 
+	// sessionRAMTier buckets a session's device by total memory into Google
+	// Play's own RAM tiers, e.g. for the memory monitoring trend chart.
+	sessionRAMTier = Key{
+		Name:                "session_ram_tier",
+		Label:               "RAM Tier",
+		Description:         "Google Play RAM tier of the session's device, by total device memory.",
+		KeyGroup:            KeyGroupSession,
+		ValueType:           ValueTypeEnum,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeFullList,
+		EnumValues:          []string{"0-4gb", "4gb", "6gb", "8gb", "12gb", "16gb", "16gb+"},
+	}
+
 	userID = Key{
 		Name:        "user_id",
 		Label:       "User ID",

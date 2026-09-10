@@ -547,7 +547,7 @@ func TestSessionsEntityOffersEverySessionKey(t *testing.T) {
 
 	wanted := []string{
 		"version_name", "version_code", "patch_version", "patch_id",
-		"session_events", "session_foreground_background", "session_custom_event", "session_log", "session_screen", "session_error_text",
+		"session_events", "session_foreground_background", "session_ram_tier", "session_custom_event", "session_log", "session_screen", "session_error_text",
 		"session_id", "user_id",
 		"os_name", "os_version",
 		"device_name", "device_manufacturer", "locale",
@@ -659,6 +659,69 @@ func TestSessionEventsBindPredicates(t *testing.T) {
 		})
 		if err == nil {
 			t.Fatal("want contains on events refused")
+		}
+	})
+}
+
+func TestSessionRAMTierBindPredicates(t *testing.T) {
+	bind := func(t *testing.T, operator Operator, names ...string) *sqlf.Stmt {
+		t.Helper()
+		values := make([]Value, len(names))
+		for i, name := range names {
+			values[i] = Value{Text: name}
+		}
+		stmt, err := SessionsEntity.BindKey(Condition{
+			KeyName:  "session_ram_tier",
+			Operator: operator,
+			Values:   values,
+		})
+		if err != nil {
+			t.Fatalf("bind ram tier: %v", err)
+		}
+		return stmt
+	}
+
+	t.Run("one tier", func(t *testing.T) {
+		stmt := bind(t, OperatorIn, "8gb")
+		defer stmt.Close()
+
+		want := "(device_total_memory_kb >= 6963200 and device_total_memory_kb < 9437184)"
+		if got := stmt.String(); got != want {
+			t.Errorf("\n got %s\nwant %s", got, want)
+		}
+	})
+
+	t.Run("many tiers", func(t *testing.T) {
+		stmt := bind(t, OperatorIn, "0-4gb", "16gb+")
+		defer stmt.Close()
+
+		want := "(device_total_memory_kb < 3276800 or device_total_memory_kb >= 18874368)"
+		if got := stmt.String(); got != want {
+			t.Errorf("\n got %s\nwant %s", got, want)
+		}
+	})
+
+	t.Run("not in", func(t *testing.T) {
+		stmt := bind(t, OperatorNotIn, "0-4gb")
+		defer stmt.Close()
+
+		want := "not (device_total_memory_kb < 3276800)"
+		if got := stmt.String(); got != want {
+			t.Errorf("\n got %s\nwant %s", got, want)
+		}
+	})
+
+	t.Run("unknown tier", func(t *testing.T) {
+		_, err := SessionsEntity.BindKey(Condition{
+			KeyName:  "session_ram_tier",
+			Operator: OperatorIn,
+			Values:   []Value{{Text: "1gb"}},
+		})
+		if err == nil {
+			t.Fatal("want a tier the entity does not know refused")
+		}
+		if !strings.Contains(err.Error(), "1gb") {
+			t.Errorf("want the value named, got %q", err)
 		}
 	})
 }

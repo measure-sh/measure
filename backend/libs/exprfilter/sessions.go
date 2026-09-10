@@ -20,6 +20,7 @@ var sessionsKeys = []Key{
 	patchID,
 	sessionEvents,
 	sessionForegroundBackground,
+	sessionRAMTier,
 	sessionCustomEvent,
 	sessionLog,
 	sessionScreen,
@@ -46,6 +47,7 @@ var sessionsTableColumns = map[string]string{
 	patchID.Name:                     "patch_id",
 	sessionEvents.Name:               "",
 	sessionForegroundBackground.Name: "",
+	sessionRAMTier.Name:              "",
 	sessionCustomEvent.Name:          "unique_custom_type_names",
 	sessionLog.Name:                  rawSessionColumnForms.log,
 	sessionErrorText.Name:            rawSessionColumnForms.errorText,
@@ -70,6 +72,7 @@ var sessionsAggregatedColumns = map[string]string{
 	patchID.Name:                     "max(patch_id)",
 	sessionEvents.Name:               "",
 	sessionForegroundBackground.Name: "",
+	sessionRAMTier.Name:              "",
 	sessionCustomEvent.Name:          "groupUniqArrayArray(unique_custom_type_names)",
 	sessionLog.Name:                  aggregatedSessionColumnForms.log,
 	sessionErrorText.Name:            aggregatedSessionColumnForms.errorText,
@@ -94,10 +97,26 @@ var (
 	sessionsAggregatedKeyBindingOverrides = sessionsKeyBindingOverridesFor(aggregatedSessionColumnForms)
 )
 
+// ramTierPredicates buckets sessions.device_total_memory_kb into Google
+// Play's RAM tiers (thresholds are the tier table's MB boundaries * 1024).
+// device_total_memory_kb is a plain per-session column, like
+// device_manufacturer, so the same predicate form works for both the raw and
+// aggregated bindings — no sum/count wrapping needed.
+var ramTierPredicates = map[string]string{
+	"0-4gb": "device_total_memory_kb < 3276800",
+	"4gb":   "device_total_memory_kb >= 3276800 and device_total_memory_kb < 4915200",
+	"6gb":   "device_total_memory_kb >= 4915200 and device_total_memory_kb < 6963200",
+	"8gb":   "device_total_memory_kb >= 6963200 and device_total_memory_kb < 9437184",
+	"12gb":  "device_total_memory_kb >= 9437184 and device_total_memory_kb < 14680064",
+	"16gb":  "device_total_memory_kb >= 14680064 and device_total_memory_kb < 18874368",
+	"16gb+": "device_total_memory_kb >= 18874368",
+}
+
 func sessionsKeyBindingOverridesFor(forms sessionColumnForms) map[string]columnKeyBinding {
 	return map[string]columnKeyBinding{
 		sessionEvents.Name:               bindEnumKeyToPredicates(forms.events),
 		sessionForegroundBackground.Name: bindEnumKeyToPredicates(forms.foregroundBackground),
+		sessionRAMTier.Name:              bindEnumKeyToPredicates(ramTierPredicates),
 		sessionCustomEvent.Name:          bindArrayKey,
 		sessionLog.Name:                  bindArrayKey,
 		sessionErrorText.Name:            bindArrayKey,
