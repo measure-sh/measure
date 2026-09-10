@@ -39,12 +39,24 @@ var thresholdableMemoryScopes = []MemoryScope{
 	MemoryScopeBackground,
 }
 
-// MemoryUsagePoint is one time bucket of the memory usage trend: on
-// Android, one row per (bucket, process state) actually present in that
-// bucket (ProcessState set); on iOS, one row per bucket (ProcessState "" —
-// iOS has no process-state concept). Values are in KB.
+// MemoryUsagePoint is one session's own memory usage in one process state:
+// on Android, one row per (session, process state) it reached; on iOS, one
+// row per session (ProcessState "" — iOS has no process-state concept). The
+// scatter plot draws these as individual points rather than an aggregate,
+// so a viewer sees the real spread across sessions instead of only a
+// percentile summary. Value is in KB.
 type MemoryUsagePoint struct {
+	SessionID    uuid.UUID   `json:"session_id"`
 	Datetime     string      `json:"datetime"`
+	ProcessState MemoryScope `json:"process_state,omitempty"`
+	Value        uint64      `json:"value_kb"`
+}
+
+// MemoryUsagePercentile is the p50/p90/p95 across sessions' own values, one
+// process state, computed once over ef's whole selected date range — drawn
+// as reference lines over the scatter of individual MemoryUsagePoints
+// rather than a per-bucket aggregate.
+type MemoryUsagePercentile struct {
 	ProcessState MemoryScope `json:"process_state,omitempty"`
 	P50          uint64      `json:"p50"`
 	P90          uint64      `json:"p90"`
@@ -127,49 +139,44 @@ func (a App) matchingSessionIDs(ef *exprfilter.ExprFilter) (*sqlf.Stmt, error) {
 	return sub, nil
 }
 
-// GetUsagePlot returns the memory usage trend — dynamic memory usage
-// (Android, anon_rss + swap) or memory footprint (iOS, used_memory) — over
-// time, one line per process state Play publishes a threshold for (Android
-// — Cached excluded, see thresholdableMemoryScopes) or one line total (iOS,
-// no process-state concept).
-//
-// Each point is computed from sessions, not raw event rows: a session's
-// readings for a given state are first collapsed to one number — that
-// session's own p90 across every reading in that state, anywhere in the
-// selected range, exactly like GetHighestMemorySessions's peak_memory — so
-// a session contributes exactly one point per state it reached, never more,
-// regardless of how many readings it produced or how long it ran. That
-// point is placed at the bucket containing the session's earliest reading
-// in that state; P50/P90/P95/Sessions then describe the distribution of
-// per-session numbers landing in each bucket.
-func (a App) GetUsagePlot(
-	ctx context.Context,
-	ch driver.Conn,
-	ios bool,
-	ef *exprfilter.ExprFilter,
-	bucketExpr, datetimeFormat string,
-) ([]MemoryUsagePoint, error) {
-	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-
-	result := make([]MemoryUsagePoint, 0)
-
-	valueExpr := "memory_usage_dynamic.anon_rss + coalesce(memory_usage_dynamic.swap, 0)"
-	eventType := "memory_usage_dynamic"
+// memoryValueExpr returns the value expression and event type to read a
+// memory reading from, matching GetHighestMemorySessions's own definition:
+// dynamic memory usage (Android, anon_rss + swap) or memory footprint (iOS,
+// used_memory).
+func memoryValueExpr(ios bool) (valueExpr, eventType string) {
 	if ios {
-		valueExpr = "memory_usage_absolute.used_memory"
-		eventType = "memory_usage_absolute"
+		return "memory_usage_absolute.used_memory", "memory_usage_absolute"
 	}
+	return "memory_usage_dynamic.anon_rss + coalesce(memory_usage_dynamic.swap, 0)", "memory_usage_dynamic"
+}
 
-	matching, err := a.matchingSessionIDs(ef)
+// perSessionStateUsage is the shared building block for both the scatter
+// points and the percentile reference lines: one row per (session, process
+// state it reached), each session's own p90 across every reading in that
+// state anywhere in ef's selected range — exactly like
+// GetHighestMemorySessions's peak_memory — so a session counts once per
+// state regardless of how many readings it produced or how long it ran.
+// bucketExpr, when non-empty, additionally computes the bucket containing
+// the session's earliest reading in that state (needed for the scatter's
+// x position; the percentile query has no use for it and omits it).
+//
+// Returns the matching-sessions subquery alongside the per-session-state
+// one: both are top-level CTEs (sqlf.With("matching_sessions",
+// matching).With("per_session_state", perSessionState)...) in every caller
+// rather than nested, matching how the rest of this file already builds
+// multi-CTE queries.
+func (a App) perSessionStateUsage(ios bool, ef *exprfilter.ExprFilter, bucketExpr string) (matching, perSessionState *sqlf.Stmt, err error) {
+	matching, err = a.matchingSessionIDs(ef)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	perSessionState := sqlf.
+	valueExpr, eventType := memoryValueExpr(ios)
+
+	perSessionState = sqlf.
 		From("events").
 		Select("session_id").
-		Select("min("+bucketExpr+") as datetime_bucket", ef.Timezone).
-		Select("quantile(0.9)("+valueExpr+") as session_p90").
+		Select("quantile(0.9)("+valueExpr+") as session_value").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
 		Where("type = ?", eventType).
@@ -177,6 +184,10 @@ func (a App) GetUsagePlot(
 		Where("timestamp < ?", ef.To).
 		Where("session_id in (select session_id from matching_sessions)").
 		GroupBy("session_id")
+
+	if bucketExpr != "" {
+		perSessionState.Select("min("+bucketExpr+") as datetime_bucket", ef.Timezone)
+	}
 
 	if !ios {
 		// a memory_usage_dynamic row with a null anon_rss carried no usable
@@ -194,20 +205,41 @@ func (a App) GetUsagePlot(
 			GroupBy("process_state")
 	}
 
+	return matching, perSessionState, nil
+}
+
+// GetUsagePlot returns one point per session per process state it reached
+// (Android — Cached excluded, see thresholdableMemoryScopes) or one point
+// per session (iOS, no process-state concept), each carrying that session's
+// own value — not an aggregate — so the scatter plot can show the real
+// spread across sessions instead of only a percentile summary. See
+// perSessionStateUsage for how a session's own value is computed.
+func (a App) GetUsagePlot(
+	ctx context.Context,
+	ch driver.Conn,
+	ios bool,
+	ef *exprfilter.ExprFilter,
+	bucketExpr, datetimeFormat string,
+) ([]MemoryUsagePoint, error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
+
+	result := make([]MemoryUsagePoint, 0)
+
+	matching, perSessionState, err := a.perSessionStateUsage(ios, ef, bucketExpr)
+	if err != nil {
+		return nil, err
+	}
+
 	stmt := sqlf.With("matching_sessions", matching).
 		With("per_session_state", perSessionState).
 		From("per_session_state").
+		Select("session_id").
 		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
-		Select("quantiles(0.5, 0.9, 0.95)(session_p90) as usage").
-		// per_session_state already has one row per (session_id[,
-		// process_state]), so a plain count() — not
-		// uniqCombined64(session_id) — is correct.
-		Select("count() as sessions").
-		GroupBy("datetime_bucket").
+		Select("session_value").
 		OrderBy("datetime_bucket")
 
 	if !ios {
-		stmt.Select("process_state").GroupBy("process_state").OrderBy("process_state")
+		stmt.Select("process_state")
 	}
 
 	defer stmt.Close()
@@ -220,12 +252,12 @@ func (a App) GetUsagePlot(
 	}
 
 	for rows.Next() {
+		var sessionID uuid.UUID
 		var dt string
-		var usage []float64
-		var sessions uint64
+		var value float64
 		var processState string
 
-		dest := []any{&dt, &usage, &sessions}
+		dest := []any{&sessionID, &dt, &value}
 		if !ios {
 			dest = append(dest, &processState)
 		}
@@ -233,13 +265,82 @@ func (a App) GetUsagePlot(
 			return nil, err
 		}
 
-		point := MemoryUsagePoint{Datetime: dt, ProcessState: MemoryScope(processState), Sessions: sessions}
-		if len(usage) >= 3 {
-			point.P50 = uint64(math.Round(usage[0]))
-			point.P90 = uint64(math.Round(usage[1]))
-			point.P95 = uint64(math.Round(usage[2]))
+		result = append(result, MemoryUsagePoint{
+			SessionID:    sessionID,
+			Datetime:     dt,
+			ProcessState: MemoryScope(processState),
+			Value:        uint64(math.Round(value)),
+		})
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
+// GetUsagePercentiles returns the p50/p90/p95 across sessions' own values,
+// one row per process state (or one total row on iOS), computed once over
+// ef's whole selected date range — the reference lines drawn over
+// GetUsagePlot's scatter of individual points.
+func (a App) GetUsagePercentiles(
+	ctx context.Context,
+	ch driver.Conn,
+	ios bool,
+	ef *exprfilter.ExprFilter,
+) ([]MemoryUsagePercentile, error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
+
+	result := make([]MemoryUsagePercentile, 0)
+
+	matching, perSessionState, err := a.perSessionStateUsage(ios, ef, "")
+	if err != nil {
+		return nil, err
+	}
+
+	stmt := sqlf.With("matching_sessions", matching).
+		With("per_session_state", perSessionState).
+		From("per_session_state").
+		Select("quantiles(0.5, 0.9, 0.95)(session_value) as usage").
+		// per_session_state already has one row per (session_id[,
+		// process_state]), so a plain count() — not
+		// uniqCombined64(session_id) — is correct.
+		Select("count() as sessions")
+
+	if !ios {
+		stmt.Select("process_state").GroupBy("process_state").OrderBy("process_state")
+	}
+
+	defer stmt.Close()
+
+	ctx = withMemoryQueryName(ctx, "usage_percentiles")
+
+	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, err
+	}
+
+	for rows.Next() {
+		var usage []float64
+		var sessions uint64
+		var processState string
+
+		dest := []any{&usage, &sessions}
+		if !ios {
+			dest = append(dest, &processState)
 		}
-		result = append(result, point)
+		if err = rows.Scan(dest...); err != nil {
+			return nil, err
+		}
+
+		percentile := MemoryUsagePercentile{ProcessState: MemoryScope(processState), Sessions: sessions}
+		if len(usage) >= 3 {
+			percentile.P50 = uint64(math.Round(usage[0]))
+			percentile.P90 = uint64(math.Round(usage[1]))
+			percentile.P95 = uint64(math.Round(usage[2]))
+		}
+		result = append(result, percentile)
 	}
 
 	if err = rows.Err(); err != nil {

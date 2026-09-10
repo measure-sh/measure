@@ -88,6 +88,7 @@ export default function MemoryMonitoring({
   const metricLabel =
     platform === "android" ? "Dynamic Memory Usage" : "Memory Footprint";
   const trend = plotQuery.data?.results ?? [];
+  const percentiles = plotQuery.data?.percentiles ?? [];
   const thresholds = plotQuery.data?.thresholds ?? [];
   const sessionsOverview =
     sessionsQuery.data ?? emptyHighestMemorySessionsResponse;
@@ -146,6 +147,7 @@ export default function MemoryMonitoring({
                 data={trend}
                 plotTimeGroup={plotTimeGroup}
                 metricLabel={metricLabel}
+                percentiles={percentiles}
                 thresholds={thresholds}
               />
             )}

@@ -369,6 +369,8 @@ export function makeSessionReplayOverviewPage2Fixture() {
 }
 
 // --- Memory Monitoring Trend (GET /apps/:appId/memory/plots/usage) ---
+// One row per session per process state it reached (a scatter point, not
+// an aggregate), plus percentiles across those sessions per state.
 // thresholds is empty by default, matching the "no RAM tier filtered" case
 // — the backend's MemoryThresholdsByScope (backend/libs/measure/
 // memory_thresholds.go) only resolves entries once a single RAM tier is
@@ -380,28 +382,38 @@ export function makeMemoryUsagePlotFixture(
   return {
     results: [
       {
+        session_id: "mem-sess-001",
         datetime: "2026-04-01T00:00:00Z",
         process_state: "foreground",
-        p50: 180224,
-        p90: 245760,
-        p95: 262144,
-        sessions: 12,
+        value_kb: 245760,
       },
       {
+        session_id: "mem-sess-003",
         datetime: "2026-04-01T01:00:00Z",
         process_state: "foreground",
-        p50: 192512,
-        p90: 251904,
-        p95: 271360,
-        sessions: 15,
+        value_kb: 251904,
       },
       {
+        session_id: "mem-sess-002",
         datetime: "2026-04-01T00:00:00Z",
         process_state: "background",
-        p50: 102400,
+        value_kb: 143360,
+      },
+    ],
+    percentiles: [
+      {
+        process_state: "foreground",
+        p50: 245760,
+        p90: 251904,
+        p95: 253000,
+        sessions: 2,
+      },
+      {
+        process_state: "background",
+        p50: 143360,
         p90: 143360,
-        p95: 163840,
-        sessions: 9,
+        p95: 143360,
+        sessions: 1,
       },
     ],
     thresholds: [],

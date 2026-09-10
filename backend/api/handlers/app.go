@@ -3137,9 +3137,18 @@ func (h Handlers) GetMemoryUsagePlot(c *gin.Context) {
 		return
 	}
 
+	percentiles, err := app.GetUsagePercentiles(ctx, deps.RchPool, ios, &ef)
+	if err != nil {
+		msg := "failed to get memory usage percentiles"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
 	c.JSON(http.StatusOK, gin.H{
-		"results":    result,
-		"thresholds": measure.MemoryThresholdsByScope(&ef, ios),
+		"results":     result,
+		"percentiles": percentiles,
+		"thresholds":  measure.MemoryThresholdsByScope(&ef, ios),
 	})
 }
 

@@ -1161,10 +1161,20 @@ export type MemoryScope =
   | "user_perceived_service"
   | "background";
 
+// One session's own memory usage in one process state — a scatter point,
+// not an aggregate. Absent process_state on iOS, which has no process-state
+// concept — one series, not one per state.
 export type MemoryUsagePlotPoint = {
+  session_id: string;
   datetime: string;
-  // Absent on iOS, which has no process-state concept — one series, not
-  // one per state.
+  process_state?: MemoryScope;
+  value_kb: number;
+};
+
+// p50/p90/p95 across sessions' own values, one process state, over the
+// whole selected range — the reference lines drawn over the scatter of
+// individual MemoryUsagePlotPoints.
+export type MemoryUsagePercentile = {
   process_state?: MemoryScope;
   p50: number;
   p90: number;
@@ -1207,6 +1217,7 @@ export const emptyHighestMemorySessionsResponse = {
 
 export type MemoryUsagePlotResponse = {
   results: MemoryUsagePlotPoint[];
+  percentiles?: MemoryUsagePercentile[];
   // Google Play Console's own "excessive memory usage" ceiling, one entry
   // per process state Play publishes a number for, computed server-side
   // (backend/libs/measure/memory_thresholds.go, which owns the published

@@ -60,14 +60,15 @@ jest.mock("next-themes", () => ({
   useTheme: () => ({ theme: "light" }),
 }));
 
-// Exposes whether MemoryUsagePlot decided to include the threshold layer
-// (memory_usage_plot.tsx's `layers` array carries a function only when a
-// threshold resolves) without needing to render real canvas pixels.
-jest.mock("@nivo/line", () => {
-  const LineChartStub = ({ data, layers }: any) => (
+// Exposes whether MemoryUsagePlot decided to include the reference-lines
+// layer (memory_usage_plot.tsx's `layers` array carries a function only
+// when a threshold or percentile resolves) without needing to render real
+// canvas pixels.
+jest.mock("@nivo/scatterplot", () => {
+  const ScatterPlotStub = ({ data, layers }: any) => (
     <div
-      data-testid="nivo-line-chart"
-      data-has-threshold={
+      data-testid="nivo-scatter-chart"
+      data-has-reference-lines={
         Array.isArray(layers) &&
         layers.some((l: any) => typeof l === "function")
       }
@@ -81,8 +82,8 @@ jest.mock("@nivo/line", () => {
   );
   return {
     __esModule: true,
-    ResponsiveLine: LineChartStub,
-    ResponsiveLineCanvas: LineChartStub,
+    ResponsiveScatterPlot: ScatterPlotStub,
+    ResponsiveScatterPlotCanvas: ScatterPlotStub,
   };
 });
 
@@ -190,7 +191,7 @@ describe("Memory Monitoring (MSW integration)", () => {
 
       expect(screen.getByText("Dynamic Memory Usage Trend")).toBeTruthy();
       expect(screen.getByText("Highest Memory Sessions")).toBeTruthy();
-      expect(screen.getByTestId("nivo-line-chart")).toBeTruthy();
+      expect(screen.getByTestId("nivo-scatter-chart")).toBeTruthy();
       expect(screen.getByTestId("chart-series-foreground")).toBeTruthy();
       expect(screen.getByTestId("chart-series-background")).toBeTruthy();
       expect(screen.getByText("Foreground")).toBeTruthy();
@@ -229,15 +230,18 @@ describe("Memory Monitoring (MSW integration)", () => {
       expect(sent[0].searchParams.get("offset")).toBe("0");
     });
 
-    it("shows no threshold line when the backend sends none", async () => {
+    it("still draws the p90 reference lines when the backend sends no threshold", async () => {
       renderPage();
       await waitForContent();
 
+      // The fixture has percentiles but an empty thresholds array — the
+      // chart draws a p90 line per state regardless of whether a Play
+      // ceiling resolved, so the reference-lines layer is still present.
       expect(
         screen
-          .getByTestId("nivo-line-chart")
-          .getAttribute("data-has-threshold"),
-      ).toBe("false");
+          .getByTestId("nivo-scatter-chart")
+          .getAttribute("data-has-reference-lines"),
+      ).toBe("true");
     });
   });
 
@@ -254,8 +258,8 @@ describe("Memory Monitoring (MSW integration)", () => {
       await waitFor(() =>
         expect(
           screen
-            .getByTestId("nivo-line-chart")
-            .getAttribute("data-has-threshold"),
+            .getByTestId("nivo-scatter-chart")
+            .getAttribute("data-has-reference-lines"),
         ).toBe("true"),
       );
     });

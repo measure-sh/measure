@@ -1,12 +1,15 @@
 "use client";
 
-import type { LineCanvasLayer, LineCustomCanvasLayer } from "@nivo/line";
-import { ResponsiveLineCanvas } from "@nivo/line";
-import { useTheme } from "next-themes";
-import React, { useMemo, useState } from "react";
+import type {
+  ScatterPlotCustomCanvasLayer,
+  ScatterPlotLayerId,
+} from "@nivo/scatterplot";
+import { ResponsiveScatterPlotCanvas } from "@nivo/scatterplot";
+import React, { useMemo } from "react";
 import type {
   MemoryScope,
   MemoryThresholdEntry,
+  MemoryUsagePercentile,
   MemoryUsagePlotPoint,
 } from "../api/api_calls";
 import { useChartCanvasTheme, useChartColor } from "../utils/shared_styles";
@@ -16,22 +19,26 @@ import {
   getPlotTimeGroupNivoConfig,
   PlotTimeGroup,
 } from "../utils/time_utils";
-import TabSelect from "./tab_select";
 
 interface MemoryUsagePlotProps {
   data: MemoryUsagePlotPoint[];
   plotTimeGroup: PlotTimeGroup;
+  // p50/p90/p95 across sessions, one entry per process state — drawn as
+  // reference lines over the scatter of individual session points, so a
+  // viewer can see both the real spread and where the percentile cutoffs
+  // fall within it. iOS gets one entry with no process_state.
+  percentiles?: MemoryUsagePercentile[];
   // e.g. "Dynamic Memory Usage" (Android) or "Memory Footprint" (iOS).
   metricLabel: string;
   // Google Play's own "excessive memory usage" ceiling for the currently
   // filtered RAM tier — one dashed reference line per entry, color-matched
-  // to that process state's own data line. Empty when Play doesn't publish
+  // to that process state's own points. Empty when Play doesn't publish
   // one for the current RAM tier filter (the common case) — never guessed
   // client-side.
   thresholds?: MemoryThresholdEntry[];
 }
 
-// A single, fixed line for iOS's data, which has no process-state concept.
+// A single, fixed series for iOS's data, which has no process-state concept.
 const IOS_SERIES_ID = "usage";
 
 const PROCESS_STATE_LABEL: Record<MemoryScope, string> = {
@@ -40,50 +47,47 @@ const PROCESS_STATE_LABEL: Record<MemoryScope, string> = {
   background: "Background",
 };
 
-const BASE_CANVAS_LAYERS: LineCanvasLayer<any>[] = [
+const BASE_LAYERS: ScatterPlotLayerId[] = [
   "grid",
   "axes",
-  "areas",
-  "crosshair",
-  "lines",
-  "points",
-  "slices",
   "mesh",
+  "nodes",
   "legends",
 ];
 
-type PlotSeries = {
-  id: string;
-  data: {
-    id: string;
-    x: string;
-    y: number;
-    sessions: number;
-  }[];
+type PlotDatum = {
+  x: string;
+  y: number;
+  sessionId: string;
 };
+type PlotSeries = { id: string; data: PlotDatum[] };
 type PlotData = PlotSeries[];
 
-enum Quantile {
-  p50 = "p50",
-  p90 = "p90",
-  p95 = "p95",
-}
+// A horizontal reference line drawn across the whole plot: either a Play
+// threshold or one of a state's p50/p90/p95 across sessions. Distinguished
+// visually by dash pattern and line weight, not just color, since a state
+// can have both a threshold and up to three percentile lines at once.
+type ReferenceLine = {
+  mb: number;
+  color: string;
+  dash: number[];
+  width: number;
+  label: string;
+};
 
 const MemoryUsagePlot: React.FC<MemoryUsagePlotProps> = ({
   data,
   plotTimeGroup,
+  percentiles,
   metricLabel,
   thresholds,
 }) => {
-  const [quantile, setQuantile] = useState(Quantile.p90);
-  const { theme } = useTheme();
   const chartColor = useChartColor();
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
-
   const canvasTheme = useChartCanvasTheme();
 
-  // One line per process state actually present in the data (Android), or
-  // a single fixed line (iOS, which has no process-state concept).
+  // One series per process state actually present in the data (Android),
+  // or a single fixed series (iOS, which has no process-state concept).
   const seriesColor = useMemo<Record<string, string>>(
     () => ({
       [IOS_SERIES_ID]: chartColor.blue,
@@ -97,16 +101,15 @@ const MemoryUsagePlot: React.FC<MemoryUsagePlotProps> = ({
   const plot = useMemo<PlotData | undefined>(() => {
     if (!data) return undefined;
 
-    const byState = new Map<string, PlotSeries["data"]>();
-    data.forEach((d, index) => {
+    const byState = new Map<string, PlotDatum[]>();
+    data.forEach((d) => {
       const seriesId = d.process_state ?? IOS_SERIES_ID;
       const points = byState.get(seriesId) ?? [];
+      // backend values are in KB; the axis and tooltip both read MB.
       points.push({
-        id: seriesId + "." + index,
         x: d.datetime,
-        // backend values are in KB; the axis and tooltip both read MB.
-        y: (d[quantile] ?? 0) / 1024,
-        sessions: d.sessions,
+        y: d.value_kb / 1024,
+        sessionId: d.session_id,
       });
       byState.set(seriesId, points);
     });
@@ -115,64 +118,113 @@ const MemoryUsagePlot: React.FC<MemoryUsagePlotProps> = ({
       id,
       data: points,
     }));
-  }, [data, quantile]);
+  }, [data]);
 
-  const thresholdsToDraw = useMemo(
-    () => thresholds?.filter((t) => t.mb > 0) ?? [],
-    [thresholds],
-  );
+  const referenceLines = useMemo<ReferenceLine[]>(() => {
+    const lines: ReferenceLine[] = [];
 
-  // "auto" alone can put a threshold line above the visible plot area when
-  // every reading is comfortably under it; extend the scale to always
-  // include every drawn line.
+    (thresholds ?? [])
+      .filter((t) => t.mb > 0)
+      .forEach((t) => {
+        lines.push({
+          mb: t.mb,
+          color: seriesColor[t.process_state] ?? chartColor.red,
+          dash: [6, 4],
+          width: 1.5,
+          label: t.label,
+        });
+      });
+
+    // Only p90 — the same primary reference used elsewhere in this feature
+    // (the ranked sessions list, the status badges) — not the full p50/p95
+    // spread, which got cluttered with up to three states on one chart.
+    (percentiles ?? []).forEach((p) => {
+      if (p.p90 <= 0) return;
+      const color =
+        seriesColor[p.process_state ?? IOS_SERIES_ID] ?? chartColor.blue;
+      const stateLabel = p.process_state
+        ? PROCESS_STATE_LABEL[p.process_state]
+        : metricLabel;
+      lines.push({
+        mb: p.p90 / 1024,
+        color,
+        dash: [6, 3],
+        width: 1.5,
+        label: `${stateLabel} p90`,
+      });
+    });
+
+    return lines;
+  }, [thresholds, percentiles, seriesColor, chartColor, metricLabel]);
+
+  // "auto" alone can put a reference line above the visible plot area when
+  // every point is comfortably under it; extend the scale to always
+  // include every drawn line and point.
   const yScaleMax = useMemo(() => {
-    if (thresholdsToDraw.length === 0) return "auto" as const;
     const dataMax = Math.max(
       0,
       ...(plot?.flatMap((s) => s.data.map((d) => d.y)) ?? [0]),
     );
-    const thresholdMax = Math.max(...thresholdsToDraw.map((t) => t.mb));
-    return Math.max(dataMax, thresholdMax) * 1.05;
-  }, [plot, thresholdsToDraw]);
+    const lineMax = Math.max(0, ...referenceLines.map((l) => l.mb));
+    return Math.max(dataMax, lineMax, 1) * 1.05;
+  }, [plot, referenceLines]);
 
-  const thresholdLayer = useMemo<LineCustomCanvasLayer<any> | null>(() => {
-    if (thresholdsToDraw.length === 0) return null;
-    // Nivo's generic Series type collapses `yScale`'s inferred parameter to
-    // `never` when the layer function is written directly against
-    // LineCustomCanvasLayer<any> (a TS quirk with conditional types over
-    // `any`); a locally-typed function cast once at the boundary avoids it.
-    const draw = (
-      ctx: CanvasRenderingContext2D,
-      layerProps: { innerWidth: number; yScale: (value: number) => number },
-    ) => {
-      thresholdsToDraw.forEach((t) => {
-        const color = seriesColor[t.process_state] ?? chartColor.red;
-        const y = layerProps.yScale(t.mb);
-        ctx.save();
-        ctx.strokeStyle = color;
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([6, 4]);
-        ctx.beginPath();
-        ctx.moveTo(0, y);
-        ctx.lineTo(layerProps.innerWidth, y);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        ctx.fillStyle = color;
-        ctx.font = "11px sans-serif";
-        ctx.textBaseline = "bottom";
-        ctx.fillText(t.label, 4, y - 4);
-        ctx.restore();
-      });
-    };
-    return draw as unknown as LineCustomCanvasLayer<any>;
-  }, [thresholdsToDraw, seriesColor, chartColor]);
+  const referenceLinesLayer =
+    useMemo<ScatterPlotCustomCanvasLayer<PlotDatum> | null>(() => {
+      if (referenceLines.length === 0) return null;
+      const draw: ScatterPlotCustomCanvasLayer<PlotDatum> = (
+        ctx,
+        layerProps,
+      ) => {
+        // Draw every line at its real position first — a threshold and its
+        // state's p90 can land within a pixel or two of each other, and the
+        // lines staying close is informative. Only the text labels get
+        // pushed apart, in a second pass, so they stay legible without
+        // moving the lines they describe.
+        const positions = referenceLines.map((line) =>
+          layerProps.yScale(line.mb),
+        );
+        referenceLines.forEach((line, i) => {
+          const y = positions[i];
+          ctx.save();
+          ctx.strokeStyle = line.color;
+          ctx.lineWidth = line.width;
+          ctx.setLineDash(line.dash);
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(layerProps.innerWidth, y);
+          ctx.stroke();
+          ctx.restore();
+        });
 
-  const layers = useMemo<LineCanvasLayer<any>[]>(
+        const order = referenceLines
+          .map((_, i) => i)
+          .sort((a, b) => positions[a] - positions[b]);
+        const MIN_LABEL_GAP = 14;
+        let previousY = -Infinity;
+        order.forEach((i) => {
+          const y = Math.max(positions[i], previousY + MIN_LABEL_GAP);
+          previousY = y;
+          const line = referenceLines[i];
+          ctx.save();
+          ctx.fillStyle = line.color;
+          ctx.font = "11px sans-serif";
+          ctx.textBaseline = "bottom";
+          ctx.fillText(line.label, 4, y - 1);
+          ctx.restore();
+        });
+      };
+      return draw;
+    }, [referenceLines]);
+
+  const layers = useMemo<
+    (ScatterPlotLayerId | ScatterPlotCustomCanvasLayer<PlotDatum>)[]
+  >(
     () =>
-      thresholdLayer
-        ? ["grid", thresholdLayer, ...BASE_CANVAS_LAYERS.slice(1)]
-        : BASE_CANVAS_LAYERS,
-    [thresholdLayer],
+      referenceLinesLayer
+        ? ["grid", referenceLinesLayer, ...BASE_LAYERS.slice(1)]
+        : BASE_LAYERS,
+    [referenceLinesLayer],
   );
 
   if (!plot || plot.length === 0 || plot.every((s) => s.data.length === 0)) {
@@ -189,38 +241,29 @@ const MemoryUsagePlot: React.FC<MemoryUsagePlotProps> = ({
       data-testid="memory-usage-chart"
     >
       <div className="flex flex-col w-full h-full">
-        <div className="flex flex-wrap w-full items-center justify-between gap-2 p-2">
-          <div className="flex flex-wrap items-center gap-3">
-            {plot.map((series) => (
-              <div key={series.id} className="flex items-center gap-1.5">
-                <PlotTooltipSwatch
-                  color={seriesColor[series.id] ?? chartColor.blue}
-                />
-                <p className="text-xs text-muted-foreground select-none">
-                  {series.id === IOS_SERIES_ID
-                    ? metricLabel
-                    : PROCESS_STATE_LABEL[series.id as MemoryScope]}
-                </p>
-              </div>
-            ))}
-          </div>
-          <TabSelect
-            items={Object.values(Quantile)}
-            selected={quantile}
-            onChangeSelected={(item) => setQuantile(item as Quantile)}
-          />
+        <div className="flex flex-wrap items-center gap-3 p-2">
+          {plot.map((series) => (
+            <div key={series.id} className="flex items-center gap-1.5">
+              <PlotTooltipSwatch
+                color={seriesColor[series.id] ?? chartColor.blue}
+              />
+              <p className="text-xs text-muted-foreground select-none">
+                {series.id === IOS_SERIES_ID
+                  ? metricLabel
+                  : PROCESS_STATE_LABEL[series.id as MemoryScope]}
+              </p>
+            </div>
+          ))}
         </div>
         <div className="size-full">
-          <ResponsiveLineCanvas
+          <ResponsiveScatterPlotCanvas
             data={plot}
             layers={layers}
-            curve="monotoneX"
             theme={canvasTheme}
-            enableArea={true}
-            areaOpacity={0.1}
             colors={(series) =>
-              seriesColor[String(series.id)] ?? chartColor.blue
+              seriesColor[String(series.serieId)] ?? chartColor.blue
             }
+            nodeSize={6}
             margin={{ top: 20, right: 80, bottom: 140, left: 100 }}
             xFormat={timeConfig.xFormat}
             xScale={{
@@ -252,47 +295,34 @@ const MemoryUsagePlot: React.FC<MemoryUsagePlotProps> = ({
               legendOffset: -80,
               legendPosition: "middle",
             }}
-            pointSize={6}
-            pointBorderWidth={1.5}
-            pointColor={
-              theme === "dark"
-                ? "rgba(0, 0, 0, 255)"
-                : "rgba(255, 255, 255, 255)"
-            }
-            pointBorderColor={{
-              from: "seriesColor",
-              modifiers: [["darker", 0.3]],
-            }}
             enableGridX={false}
             enableGridY={false}
-            tooltip={({ point }) => {
-              const pointData = point.data as unknown as {
-                xFormatted: string;
-                yFormatted: string;
-                sessions: number;
-              };
-              const seriesId = point.seriesId;
+            tooltip={({ node }) => {
               const label =
-                seriesId === IOS_SERIES_ID
+                node.serieId === IOS_SERIES_ID
                   ? metricLabel
-                  : (PROCESS_STATE_LABEL[seriesId as MemoryScope] ?? seriesId);
+                  : (PROCESS_STATE_LABEL[node.serieId as MemoryScope] ??
+                    String(node.serieId));
               return (
                 <PlotTooltipShell>
                   <p className="p-2 font-semibold">
                     {formatPlotTooltipDate(
-                      pointData.xFormatted.toString(),
+                      node.formattedX.toString(),
                       plotTimeGroup,
                     )}
                   </p>
                   <p className="px-2 pb-1">
-                    Sessions: {(pointData.sessions ?? 0).toLocaleString()}
+                    Session: {node.data.sessionId.slice(0, 8)}
                   </p>
                   <div className="flex flex-row items-center px-2 py-0.5">
-                    <PlotTooltipSwatch color={point.seriesColor} />
+                    <PlotTooltipSwatch
+                      color={
+                        seriesColor[String(node.serieId)] ?? chartColor.blue
+                      }
+                    />
                     <div className="px-1" />
                     <p>
-                      {label} {quantile}:{" "}
-                      {Number(pointData.yFormatted).toFixed(0)} MB
+                      {label}: {Number(node.formattedY).toFixed(0)} MB
                     </p>
                   </div>
                 </PlotTooltipShell>
