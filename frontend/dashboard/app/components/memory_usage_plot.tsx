@@ -248,7 +248,7 @@ const MemoryUsagePlot: React.FC<MemoryUsagePlotProps> = ({
             axisLeft={{
               tickSize: 1,
               tickPadding: 5,
-              legend: `${metricLabel} (${quantile}), MB`,
+              legend: `${metricLabel}, MB`,
               legendOffset: -80,
               legendPosition: "middle",
             }}
