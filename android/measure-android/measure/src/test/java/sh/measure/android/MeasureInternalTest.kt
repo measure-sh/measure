@@ -44,6 +44,7 @@ class MeasureInternalTest {
         `when`(initializer.anrCollector).thenReturn(mock())
         `when`(initializer.cpuUsageCollector).thenReturn(mock())
         `when`(initializer.memoryUsageCollector).thenReturn(mock())
+        `when`(initializer.dynamicMemoryUsageCollector).thenReturn(mock())
         `when`(initializer.componentCallbacksCollector).thenReturn(mock())
         `when`(initializer.appLifecycleManager).thenReturn(mock())
         `when`(initializer.activityLifecycleCollector).thenReturn(mock())
@@ -146,6 +147,10 @@ class MeasureInternalTest {
 
         verify(initializer.cpuUsageCollector).unregister()
         verify(initializer.memoryUsageCollector).unregister()
+        // unlike the two above, DynamicMemoryUsageCollector manages its own
+        // foreground/background schedule as an AppLifecycleListener and must
+        // keep running (at its background interval) rather than stop here.
+        verify(initializer.dynamicMemoryUsageCollector, never()).unregister()
     }
 
     @Test
@@ -270,6 +275,7 @@ class MeasureInternalTest {
         verify(initializer.appLifecycleCollector, never()).register()
         verify(initializer.cpuUsageCollector, never()).register()
         verify(initializer.memoryUsageCollector, never()).register()
+        verify(initializer.dynamicMemoryUsageCollector, never()).register()
         verify(initializer.componentCallbacksCollector, never()).register()
         verify(initializer.gestureCollector, never()).register()
         verify(initializer.networkChangesCollector, never()).register()
@@ -301,6 +307,7 @@ class MeasureInternalTest {
         verify(initializer.appLifecycleCollector).register()
         verify(initializer.cpuUsageCollector).register()
         verify(initializer.memoryUsageCollector).register()
+        verify(initializer.dynamicMemoryUsageCollector).register()
         verify(initializer.componentCallbacksCollector).register()
         verify(initializer.gestureCollector).register()
         verify(initializer.networkChangesCollector).register()
@@ -348,6 +355,7 @@ class MeasureInternalTest {
         verify(initializer.appLifecycleCollector).unregister()
         verify(initializer.cpuUsageCollector).unregister()
         verify(initializer.memoryUsageCollector).unregister()
+        verify(initializer.dynamicMemoryUsageCollector).unregister()
         verify(initializer.componentCallbacksCollector).unregister()
         verify(initializer.gestureCollector).unregister()
         verify(initializer.networkChangesCollector).unregister()

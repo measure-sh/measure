@@ -5,10 +5,14 @@ import java.io.File
 
 internal class FakeProcProvider : ProcProvider {
     internal val rss = 5000L
+    internal val anonRss = 23456L
+    internal val swap = 789L
 
     override fun getStatFile(pid: Int): File = createDummyProcStatFile()
 
     override fun getStatmFile(pid: Int): File = createDummyProcStatmFile()
+
+    override fun getStatusFile(pid: Int): File = createDummyProcStatusFile()
 
     /**
      * utime: 500
@@ -28,5 +32,24 @@ internal class FakeProcProvider : ProcProvider {
      */
     private fun createDummyProcStatmFile(): File = File.createTempFile("statm", "").apply {
         writeText("100000 $rss 2000 1000 500 0 0")
+    }
+
+    /**
+     * A trimmed but realistic /proc/pid/status: VmRSS and VmSwap are what
+     * anonRss()/swap() read, the surrounding lines exercise that unrelated
+     * lines are correctly skipped.
+     */
+    private fun createDummyProcStatusFile(): File = File.createTempFile("status", "").apply {
+        writeText(
+            """
+            Name:	sample
+            State:	S (sleeping)
+            VmPeak:	  123456 kB
+            VmSize:	  120000 kB
+            VmRSS:	   $anonRss kB
+            VmSwap:	     $swap kB
+            Threads:	4
+            """.trimIndent(),
+        )
     }
 }

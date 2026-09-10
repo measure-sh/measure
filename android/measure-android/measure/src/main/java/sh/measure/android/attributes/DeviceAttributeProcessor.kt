@@ -1,5 +1,6 @@
 package sh.measure.android.attributes
 
+import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
@@ -15,6 +16,7 @@ internal class DeviceAttributeProcessor(
     private val context: Context,
     private val localeProvider: LocaleProvider,
     private val osSysConfProvider: OsSysConfProvider,
+    private val activityManager: ActivityManager?,
 ) : ComputeOnceAttributeProcessor() {
     private val configuration = context.resources.configuration
     private val resources = context.resources
@@ -31,6 +33,7 @@ internal class DeviceAttributeProcessor(
         Attribute.DEVICE_HEIGHT_PX_KEY to resources.displayMetrics.heightPixels,
         Attribute.DEVICE_DENSITY_KEY to resources.displayMetrics.density,
         Attribute.DEVICE_LOCALE_KEY to getDeviceLocale(),
+        Attribute.DEVICE_TOTAL_MEMORY_KB_KEY to getDeviceTotalMemoryKB(),
         Attribute.OS_NAME_KEY to "android",
         Attribute.OS_VERSION_KEY to Build.VERSION.SDK_INT.toString(),
         Attribute.OS_PAGE_SIZE to getPageSizeKB(),
@@ -83,6 +86,18 @@ internal class DeviceAttributeProcessor(
     }
 
     private fun getDeviceLocale(): String = localeProvider.getLocale()
+
+    // Returns total device memory in KB, null when ActivityManager is unavailable.
+    private fun getDeviceTotalMemoryKB(): Long? {
+        val manager = activityManager ?: return null
+        val memoryInfo = ActivityManager.MemoryInfo()
+        return try {
+            manager.getMemoryInfo(memoryInfo)
+            memoryInfo.totalMem / 1024
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     // Returns page size in KB.
     private fun getPageSizeKB(): Long = osSysConfProvider.get(OsConstants._SC_PAGESIZE) / 1024

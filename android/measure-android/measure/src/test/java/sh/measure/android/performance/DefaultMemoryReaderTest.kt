@@ -13,6 +13,8 @@ import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.DefaultRuntimeProvider
 import sh.measure.android.utils.OsSysConfProvider
+import sh.measure.android.utils.ProcProvider
+import java.io.File
 
 internal class DefaultMemoryReaderTest {
     private val debugProvider = FakeDebugProvider()
@@ -74,6 +76,37 @@ internal class DefaultMemoryReaderTest {
         val pageSizeKB = pageSizeBytes / BYTES_TO_KB_FACTOR
         val expected = procProvider.rss * pageSizeKB
         Assert.assertEquals(expected, actual)
+    }
+
+    @Test
+    fun `reads anon RSS from status file`() {
+        val actual = memoryReader.anonRss()
+        Assert.assertEquals(procProvider.anonRss, actual)
+    }
+
+    @Test
+    fun `reads swap from status file`() {
+        val actual = memoryReader.swap()
+        Assert.assertEquals(procProvider.swap, actual)
+    }
+
+    @Test
+    fun `returns null for anon RSS when the status file has no VmRSS line`() {
+        val emptyStatusProcProvider = object : ProcProvider by procProvider {
+            override fun getStatusFile(pid: Int) = File.createTempFile("status-empty", "").apply {
+                writeText("Name:\tsample\n")
+            }
+        }
+        val reader = DefaultMemoryReader(
+            logger = NoopLogger(),
+            debugProvider = debugProvider,
+            runtimeProvider = runtimeProvider,
+            processInfo = processInfo,
+            procProvider = emptyStatusProcProvider,
+            osSysConfProvider = osSysConfProvider,
+        )
+        Assert.assertNull(reader.anonRss())
+        Assert.assertNull(reader.swap())
     }
 
     @Test

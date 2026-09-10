@@ -17,6 +17,7 @@ internal enum class EventType(val value: String) {
     NETWORK_CHANGE("network_change"),
     HTTP("http"),
     MEMORY_USAGE("memory_usage"),
+    MEMORY_USAGE_DYNAMIC("memory_usage_dynamic"),
     TRIM_MEMORY("trim_memory"),
     CPU_USAGE("cpu_usage"),
     SCREEN_VIEW("screen_view"),

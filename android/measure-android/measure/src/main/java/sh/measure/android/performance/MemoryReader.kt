@@ -41,6 +41,20 @@ internal interface MemoryReader {
     fun rss(): Long?
 
     /**
+     * Returns the anonymous resident set size of the process, from
+     * /proc/self/status VmRSS, in KB. Null when the file or the field is
+     * unavailable — never treat that as zero.
+     */
+    fun anonRss(): Long?
+
+    /**
+     * Returns the swap usage of the process, from /proc/self/status VmSwap,
+     * in KB. Null when the file or the field is unavailable — never treat
+     * that as zero.
+     */
+    fun swap(): Long?
+
+    /**
      * Returns the total size of the native heap, in KB.
      */
     fun nativeTotalHeapSize(): Long
@@ -85,6 +99,31 @@ internal class DefaultMemoryReader(
                 return pages * pageSize
             } catch (e: Exception) {
                 logger.log(LogLevel.Debug, "Failed to read RSS file from /proc/pid/statm", e)
+            }
+        }
+        return null
+    }
+
+    override fun anonRss(): Long? = readStatusField("VmRSS")
+
+    override fun swap(): Long? = readStatusField("VmSwap")
+
+    /**
+     * /proc/pid/status is key:value lines, e.g. "VmRSS:\t   12345 kB". The
+     * value is already in KB, unlike statm's page-count, so no pageSize
+     * conversion is needed here.
+     */
+    private fun readStatusField(key: String): Long? {
+        val pid = processInfo.getPid()
+        val file = procProvider.getStatusFile(pid)
+        if (file.exists()) {
+            try {
+                return file.readLines()
+                    .firstOrNull { it.startsWith(key) }
+                    ?.filter { it.isDigit() }
+                    ?.toLongOrNull()
+            } catch (e: Exception) {
+                logger.log(LogLevel.Debug, "Failed to read $key from /proc/pid/status", e)
             }
         }
         return null

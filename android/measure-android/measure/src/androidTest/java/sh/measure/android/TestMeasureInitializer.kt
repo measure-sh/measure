@@ -12,6 +12,7 @@ import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.DeviceAttributeProcessor
 import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
+import sh.measure.android.attributes.PatchAttributeProcessor
 import sh.measure.android.attributes.PowerStateAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.bugreport.AccelerometerShakeDetector
@@ -59,6 +60,7 @@ import sh.measure.android.okhttp.OkHttpEventCollectorImpl
 import sh.measure.android.performance.ComponentCallbacksCollector
 import sh.measure.android.performance.CpuUsageCollector
 import sh.measure.android.performance.DefaultMemoryReader
+import sh.measure.android.performance.DynamicMemoryUsageCollector
 import sh.measure.android.performance.MemoryReader
 import sh.measure.android.performance.MemoryUsageCollector
 import sh.measure.android.profiling.ProfileCollector
@@ -185,10 +187,12 @@ internal class TestMeasureInitializer(
         prefsStorage,
         executorServiceRegistry.ioExecutor(),
     ),
+    override val patchAttributeProcessor: PatchAttributeProcessor = PatchAttributeProcessor(),
     private val deviceAttributeProcessor: DeviceAttributeProcessor = DeviceAttributeProcessor(
         context = application,
         localeProvider = localeProvider,
         osSysConfProvider = osSysConfProvider,
+        activityManager = systemServiceProvider.activityManager,
     ),
     private val appAttributeProcessor: AppAttributeProcessor = AppAttributeProcessor(
         context = application,
@@ -329,6 +333,17 @@ internal class TestMeasureInitializer(
     ),
     override val appLifecycleManager: AppLifecycleManager = AppLifecycleManager(
         application = application,
+    ),
+    override val dynamicMemoryUsageCollector: DynamicMemoryUsageCollector = DynamicMemoryUsageCollector(
+        logger = logger,
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        defaultExecutor = executorServiceRegistry.defaultExecutor(),
+        memoryReader = memoryReader,
+        sampler = sampler,
+        sessionManager = sessionManager,
+        processInfo = processInfoProvider,
+        appLifecycleManager = appLifecycleManager,
     ),
     override val spanAttributeProcessors: List<AttributeProcessor> = emptyList(),
     override val spanProcessor: SpanProcessor = MsrSpanProcessor(

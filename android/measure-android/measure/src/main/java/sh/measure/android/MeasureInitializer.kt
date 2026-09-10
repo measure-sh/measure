@@ -65,6 +65,7 @@ import sh.measure.android.okhttp.HttpEventCollectorFactory
 import sh.measure.android.performance.ComponentCallbacksCollector
 import sh.measure.android.performance.CpuUsageCollector
 import sh.measure.android.performance.DefaultMemoryReader
+import sh.measure.android.performance.DynamicMemoryUsageCollector
 import sh.measure.android.performance.MemoryReader
 import sh.measure.android.performance.MemoryUsageCollector
 import sh.measure.android.profiling.ProfileCollector
@@ -213,6 +214,7 @@ internal class MeasureInitializerImpl(
         context = application,
         localeProvider = localeProvider,
         osSysConfProvider = osSysConfProvider,
+        activityManager = systemServiceProvider.activityManager,
     ),
     private val appAttributeProcessor: AppAttributeProcessor = AppAttributeProcessor(
         context = application,
@@ -371,6 +373,17 @@ internal class MeasureInitializerImpl(
         signalProcessor = signalProcessor,
     ),
     override val appLifecycleManager: AppLifecycleManager = AppLifecycleManager(application),
+    override val dynamicMemoryUsageCollector: DynamicMemoryUsageCollector = DynamicMemoryUsageCollector(
+        logger = logger,
+        signalProcessor = signalProcessor,
+        timeProvider = timeProvider,
+        defaultExecutor = executorServiceRegistry.defaultExecutor(),
+        memoryReader = memoryReader,
+        sampler = sampler,
+        sessionManager = sessionManager,
+        processInfo = processInfoProvider,
+        appLifecycleManager = appLifecycleManager,
+    ),
     private val spanDeviceAttributeProcessor: SpanDeviceAttributeProcessor = SpanDeviceAttributeProcessor(
         localeProvider = localeProvider,
     ),
@@ -520,6 +533,7 @@ internal interface MeasureInitializer {
     val appExitCollector: AppExitCollector
     val cpuUsageCollector: CpuUsageCollector
     val memoryUsageCollector: MemoryUsageCollector
+    val dynamicMemoryUsageCollector: DynamicMemoryUsageCollector
     val componentCallbacksCollector: ComponentCallbacksCollector
     val appLifecycleManager: AppLifecycleManager
     val activityLifecycleCollector: ActivityLifecycleCollector

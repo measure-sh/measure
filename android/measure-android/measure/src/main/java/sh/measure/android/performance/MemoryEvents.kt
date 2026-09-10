@@ -18,3 +18,16 @@ internal data class MemoryUsageData(
 internal data class TrimMemoryData(
     val level: String,
 )
+
+/**
+ * Android's Dynamic Memory Usage vital: anon_rss + swap from
+ * /proc/self/status. anon_rss and swap are null, never zero, when a reading
+ * was unavailable.
+ */
+@Serializable
+internal data class MemoryUsageDynamicData(
+    val anon_rss: Long?,
+    val swap: Long?,
+    val foreground: Boolean,
+    val interval: Long,
+)

@@ -168,6 +168,14 @@ internal interface IDynamicConfig {
      * is an additional, remotely tunable cap on top of that.
      */
     val profileSamplingRate: Float
+
+    /**
+     * Sampling rate in percentage for sessions that should collect dynamic memory usage
+     * (Android) / memory footprint (iOS). Defaults to 0.01%, far lower than every other
+     * sampling rate, since this collector can run every 5 seconds for the life of a
+     * session, including in the background.
+     */
+    val memoryUsageSessionSamplingRate: Float
 }
 
 @Serializable
@@ -279,6 +287,9 @@ internal data class DynamicConfig(
 
     @SerialName("profile_sampling_rate")
     override val profileSamplingRate: Float = 100f,
+
+    @SerialName("memory_usage_session_sampling_rate")
+    override val memoryUsageSessionSamplingRate: Float = 0.01f,
 ) : IDynamicConfig {
     @Suppress("DEPRECATION")
     override val errorReplayDurationSeconds: Int

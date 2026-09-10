@@ -30,6 +30,7 @@ import sh.measure.android.networkchange.NetworkChangeData
 import sh.measure.android.okhttp.HttpData
 import sh.measure.android.performance.CpuUsageData
 import sh.measure.android.performance.MemoryUsageData
+import sh.measure.android.performance.MemoryUsageDynamicData
 import sh.measure.android.performance.TrimMemoryData
 import sh.measure.android.profiling.ProfileData
 import sh.measure.android.utils.toJsonElement
@@ -141,6 +142,10 @@ internal fun <T> Event<T>.serializeDataToString(): String = when (type) {
 
     EventType.MEMORY_USAGE -> {
         json.encodeToString(MemoryUsageData.serializer(), data as MemoryUsageData)
+    }
+
+    EventType.MEMORY_USAGE_DYNAMIC -> {
+        json.encodeToString(MemoryUsageDynamicData.serializer(), data as MemoryUsageDynamicData)
     }
 
     EventType.TRIM_MEMORY -> {

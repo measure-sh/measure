@@ -63,6 +63,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var gestureClickTakeSnapshot: Boolean = true
     override var httpSamplingRate: Float = 1f
     override var profileSamplingRate: Float = 100f
+    override var memoryUsageSessionSamplingRate: Float = 100f
     override var httpDisableEventForUrls: List<String> = emptyList()
     override var httpTrackRequestForUrls: List<String> = emptyList()
     override var httpTrackResponseForUrls: List<String> = emptyList()

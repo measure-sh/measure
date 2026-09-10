@@ -168,6 +168,8 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
         get() = dynamicConfig.httpBlockedHeaders.toList()
     override val profileSamplingRate: Float
         get() = dynamicConfig.profileSamplingRate
+    override val memoryUsageSessionSamplingRate: Float
+        get() = dynamicConfig.memoryUsageSessionSamplingRate
 
     override fun shouldTrackHttpEvent(url: String): Boolean {
         val state = httpPatternState

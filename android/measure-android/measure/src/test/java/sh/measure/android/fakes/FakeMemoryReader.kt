@@ -8,6 +8,8 @@ internal class FakeMemoryReader(
     private val freeHeapSize: Long = 300,
     private val totalPss: Int = 400,
     private val rss: Long = 1000,
+    private val anonRss: Long? = 800,
+    private val swap: Long? = 100,
     private val nativeTotalHeapSize: Long = 600,
     private val nativeFreeHeapSize: Long = 250,
 ) : MemoryReader {
@@ -20,6 +22,10 @@ internal class FakeMemoryReader(
     override fun totalPss(): Int = totalPss
 
     override fun rss(): Long = rss
+
+    override fun anonRss(): Long? = anonRss
+
+    override fun swap(): Long? = swap
 
     override fun nativeTotalHeapSize(): Long = nativeTotalHeapSize
 
