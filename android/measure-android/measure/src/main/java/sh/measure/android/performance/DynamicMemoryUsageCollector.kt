@@ -130,7 +130,13 @@ internal class DynamicMemoryUsageCollector(
         val data = MemoryUsageDynamicData(
             anon_rss = memoryReader.anonRss(),
             swap = memoryReader.swap(),
-            foreground = isForeground,
+            // read fresh at track time rather than derived from isForeground:
+            // isForeground only drives the coarse fg/bg scheduling cadence
+            // below, not the precise process state Play Console itself
+            // distinguishes (a foreground service reading between
+            // onAppBackground() and the process actually losing
+            // IMPORTANCE_FOREGROUND would otherwise be mislabeled).
+            process_state = ProcessState.from(processInfo.getProcessImportance()),
             interval = interval,
         )
         signalProcessor.track(

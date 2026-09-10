@@ -22,12 +22,12 @@ internal data class TrimMemoryData(
 /**
  * Android's Dynamic Memory Usage vital: anon_rss + swap from
  * /proc/self/status. anon_rss and swap are null, never zero, when a reading
- * was unavailable.
+ * was unavailable. process_state is one of [ProcessState]'s four values.
  */
 @Serializable
 internal data class MemoryUsageDynamicData(
     val anon_rss: Long?,
     val swap: Long?,
-    val foreground: Boolean,
+    val process_state: String,
     val interval: Long,
 )
