@@ -57,7 +57,8 @@ const MemoryUsagePlot: React.FC<MemoryUsagePlotProps> = ({
         data: data.map((d, index) => ({
           id: quantile + "." + index,
           x: d.datetime,
-          y: d[quantile] ?? 0,
+          // backend values are in KB; the axis and tooltip both read MB.
+          y: (d[quantile] ?? 0) / 1024,
           count: d.count,
         })),
       },
