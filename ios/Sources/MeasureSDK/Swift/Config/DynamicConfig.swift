@@ -107,6 +107,11 @@ protocol DynamicConfig {
 
     /// HTTP headers that should never be collected.
     var httpBlockedHeaders: [String] { get }
+
+    /// Sampling rate for sessions that should collect memory footprint (used_memory).
+    /// Defaults to 0.01%, far lower than every other sampling rate, since the collector
+    /// samples every memoryUsageInterval seconds for the life of the session.
+    var memoryUsageSessionSamplingRate: Float { get }
 }
 
 struct BaseDynamicConfig: DynamicConfig, Codable {
@@ -137,6 +142,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
     let httpTrackRequestForUrls: [String]
     let httpTrackResponseForUrls: [String]
     let httpBlockedHeaders: [String]
+    let memoryUsageSessionSamplingRate: Float
 
     init(maxEventsInBatch: Number = DefaultConfig.maxEventsInBatch,
          errorReplayDurationSeconds: Number = DefaultConfig.errorReplayDurationSeconds,
@@ -164,7 +170,8 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
          httpDisableEventForUrls: [String] = DefaultConfig.httpDisableEventForUrls,
          httpTrackRequestForUrls: [String] = DefaultConfig.httpTrackRequestForUrls,
          httpTrackResponseForUrls: [String] = DefaultConfig.httpTrackResponseForUrls,
-         httpBlockedHeaders: [String] = DefaultConfig.httpBlockedHeaders
+         httpBlockedHeaders: [String] = DefaultConfig.httpBlockedHeaders,
+         memoryUsageSessionSamplingRate: Float = DefaultConfig.memoryUsageSessionSamplingRate
     ) {
         self.maxEventsInBatch = maxEventsInBatch
         self.errorReplayDurationSeconds = errorReplayDurationSeconds
@@ -193,6 +200,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         self.httpTrackRequestForUrls = httpTrackRequestForUrls
         self.httpTrackResponseForUrls = httpTrackResponseForUrls
         self.httpBlockedHeaders = httpBlockedHeaders
+        self.memoryUsageSessionSamplingRate = memoryUsageSessionSamplingRate
     }
 
     init(from decoder: Decoder) throws {
@@ -229,6 +237,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         httpTrackRequestForUrls = try c.decodeIfPresent([String].self, forKey: .httpTrackRequestForUrls) ?? DefaultConfig.httpTrackRequestForUrls
         httpTrackResponseForUrls = try c.decodeIfPresent([String].self, forKey: .httpTrackResponseForUrls) ?? DefaultConfig.httpTrackResponseForUrls
         httpBlockedHeaders = try c.decodeIfPresent([String].self, forKey: .httpBlockedHeaders) ?? DefaultConfig.httpBlockedHeaders
+        memoryUsageSessionSamplingRate = try c.decodeIfPresent(Float.self, forKey: .memoryUsageSessionSamplingRate) ?? DefaultConfig.memoryUsageSessionSamplingRate
     }
 
     // Flutter and React Native read this file, and Flutter SDKs released before the rename
@@ -265,6 +274,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         try c.encode(httpTrackRequestForUrls, forKey: .httpTrackRequestForUrls)
         try c.encode(httpTrackResponseForUrls, forKey: .httpTrackResponseForUrls)
         try c.encode(httpBlockedHeaders, forKey: .httpBlockedHeaders)
+        try c.encode(memoryUsageSessionSamplingRate, forKey: .memoryUsageSessionSamplingRate)
     }
 
     private enum CodingKeys: String, CodingKey {
@@ -301,5 +311,6 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         case httpTrackRequestForUrls = "http_track_request_for_urls"
         case httpTrackResponseForUrls = "http_track_response_for_urls"
         case httpBlockedHeaders = "http_blocked_headers"
+        case memoryUsageSessionSamplingRate = "memory_usage_session_sampling_rate"
     }
 }

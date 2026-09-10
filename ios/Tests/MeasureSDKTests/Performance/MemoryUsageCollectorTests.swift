@@ -16,6 +16,8 @@ final class MemoryUsageCollectorTests: XCTestCase {
     private var mockTimeProvider: MockTimeProvider!
     private var mockMemoryUsageCalculator: MockMemoryUsageCalculator!
     private var mockSysCtl: MockSysCtl!
+    private var mockSignalSampler: MockSignalSampler!
+    private var mockSessionManager: MockSessionManager!
 
     override func setUp() {
         super.setUp()
@@ -25,12 +27,16 @@ final class MemoryUsageCollectorTests: XCTestCase {
         mockTimeProvider = MockTimeProvider()
         mockMemoryUsageCalculator = MockMemoryUsageCalculator()
         mockSysCtl = MockSysCtl()
+        mockSignalSampler = MockSignalSampler()
+        mockSessionManager = MockSessionManager()
         memoryUsageCollector = BaseMemoryUsageCollector(logger: mockLogger,
                                                         configProvider: mockConfigProvider,
                                                         signalProcessor: mockSignalProcessor,
                                                         timeProvider: mockTimeProvider,
                                                         memoryUsageCalculator: mockMemoryUsageCalculator,
-                                                        sysCtl: mockSysCtl)
+                                                        sysCtl: mockSysCtl,
+                                                        signalSampler: mockSignalSampler,
+                                                        sessionManager: mockSessionManager)
     }
 
     func testEnableStartsTimerOnce() {
@@ -40,6 +46,14 @@ final class MemoryUsageCollectorTests: XCTestCase {
 
         memoryUsageCollector.enable()
         XCTAssertEqual(mockLogger.logs.count, 1, "Enable should not create multiple timers.")
+    }
+
+    func testEnableDoesNotStartTimerWhenSessionIsNotSampled() {
+        mockSignalSampler.shouldTrackMemoryEventsReturnValue = false
+
+        memoryUsageCollector.enable()
+
+        XCTAssertEqual(mockLogger.logs.count, 0, "A session the sampler did not select must not start the timer.")
     }
 
     func testResumeStartsTimerIfNotRunning() {

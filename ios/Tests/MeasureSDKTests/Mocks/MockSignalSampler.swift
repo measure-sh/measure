@@ -12,6 +12,7 @@ final class MockSignalSampler: SignalSampler {
     var shouldTrackLaunchEventsReturnValue: Bool = false
     var shouldTrackTraceReturnValue: Bool = false
     var shouldTrackJourneyEventsReturnValue: Bool = false
+    var shouldTrackMemoryEventsReturnValue: Bool = true
     var shouldSampleTraceReturnValue: Bool = false
     var shouldSampleTHttpEventValue: Bool = false
     var sampledErrorSeverities: Set<ExceptionSeverity> = [.fatal, .unhandled]
@@ -26,6 +27,10 @@ final class MockSignalSampler: SignalSampler {
 
     func shouldTrackJourneyForSession(sessionId: String) -> Bool {
         shouldTrackLaunchEventsReturnValue
+    }
+
+    func shouldTrackMemoryForSession(sessionId: String) -> Bool {
+        shouldTrackMemoryEventsReturnValue
     }
 
     func shouldTrackLaunchEvents() -> Bool {

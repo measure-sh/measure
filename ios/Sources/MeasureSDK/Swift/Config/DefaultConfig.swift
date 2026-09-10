@@ -57,4 +57,5 @@ struct DefaultConfig {
         "WWW-Authenticate",
         "X-Api-Key"
     ]
+    static let memoryUsageSessionSamplingRate: Float = 0.01
 }

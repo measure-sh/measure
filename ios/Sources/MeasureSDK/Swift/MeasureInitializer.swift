@@ -379,7 +379,9 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                              signalProcessor: signalProcessor,
                                                              timeProvider: timeProvider,
                                                              memoryUsageCalculator: memoryUsageCalculator,
-                                                             sysCtl: sysCtl)
+                                                             sysCtl: sysCtl,
+                                                             signalSampler: signalSampler,
+                                                             sessionManager: sessionManager)
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? AttributeConstants.unknown
         self.launchCallback = LaunchCallbacks()
         self.launchTracker = BaseLaunchTracker(launchCallbacks: launchCallback,

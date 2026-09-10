@@ -79,6 +79,7 @@ final class MockConfigProvider: ConfigProvider {
     var httpTrackRequestForUrls: [String]
     var httpTrackResponseForUrls: [String]
     var httpBlockedHeaders: [String]
+    var memoryUsageSessionSamplingRate: Float
     var dynamicConfig: DynamicConfig?
     var combinedHttpHeadersBlocklist: [String]
     var combinedHttpUrlBlocklist: [String] = []
@@ -185,6 +186,7 @@ final class MockConfigProvider: ConfigProvider {
             "WWW-Authenticate",
             "X-Api-Key",
          ],
+         memoryUsageSessionSamplingRate: Float = 0.01,
          httpUrlBlocklist: [String] = ["https://storage.googleapis.com/"]) {
         self.enableLogging = enableLogging
         self.autoStart = autoStart
@@ -259,6 +261,7 @@ final class MockConfigProvider: ConfigProvider {
         self.httpTrackRequestForUrls = httpTrackRequestForUrls
         self.httpTrackResponseForUrls = httpTrackResponseForUrls
         self.httpBlockedHeaders = httpBlockedHeaders
+        self.memoryUsageSessionSamplingRate = memoryUsageSessionSamplingRate
         self.httpUrlBlocklist = httpUrlBlocklist
     }
 

@@ -282,7 +282,9 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                              signalProcessor: self.signalProcessor,
                                                              timeProvider: self.timeProvider,
                                                              memoryUsageCalculator: self.memoryUsageCalculator,
-                                                             sysCtl: self.sysCtl)
+                                                             sysCtl: self.sysCtl,
+                                                             signalSampler: self.signalSampler,
+                                                             sessionManager: self.sessionManager)
 
         self.launchCallback = launchCallback ?? LaunchCallbacks()
         self.launchTracker = launchTracker ?? BaseLaunchTracker(launchCallbacks: self.launchCallback,

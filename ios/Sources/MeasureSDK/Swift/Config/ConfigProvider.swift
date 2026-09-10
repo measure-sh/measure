@@ -155,6 +155,7 @@ final class BaseConfigProvider: ConfigProvider {
     var httpTrackRequestForUrls: [String] { dynamicConfig.httpTrackRequestForUrls }
     var httpTrackResponseForUrls: [String] { dynamicConfig.httpTrackResponseForUrls }
     var httpBlockedHeaders: [String] { dynamicConfig.httpBlockedHeaders }
+    var memoryUsageSessionSamplingRate: Float { dynamicConfig.memoryUsageSessionSamplingRate }
 
     // HTTP Tracking Logic
 

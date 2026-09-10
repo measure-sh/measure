@@ -23,6 +23,8 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
     private let signalProcessor: SignalProcessor
     private let timeProvider: TimeProvider
     private let memoryUsageCalculator: MemoryUsageCalculator
+    private let signalSampler: SignalSampler
+    private let sessionManager: SessionManager
     private var isTrackingInProgress = false
     private let isEnabled = AtomicBool(false)
 
@@ -31,13 +33,17 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
          signalProcessor: SignalProcessor,
          timeProvider: TimeProvider,
          memoryUsageCalculator: MemoryUsageCalculator,
-         sysCtl: SysCtl) {
+         sysCtl: SysCtl,
+         signalSampler: SignalSampler,
+         sessionManager: SessionManager) {
         self.logger = logger
         self.configProvider = configProvider
         self.signalProcessor = signalProcessor
         self.sysCtl = sysCtl
         self.timeProvider = timeProvider
         self.memoryUsageCalculator = memoryUsageCalculator
+        self.signalSampler = signalSampler
+        self.sessionManager = sessionManager
     }
 
     func enable() {
@@ -75,6 +81,10 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
 
     private func register() {
         guard timer == nil else { return }
+        // A pure function of the session ID, so it is cheap to recompute on
+        // every registration rather than caching the decision, and always
+        // reflects the session that is current right now.
+        guard signalSampler.shouldTrackMemoryForSession(sessionId: sessionManager.sessionId) else { return }
 
         let intervalSeconds = TimeInterval(configProvider.memoryUsageInterval)
 
