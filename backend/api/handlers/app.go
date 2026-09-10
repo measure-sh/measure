@@ -3099,19 +3099,20 @@ func (h Handlers) GetNetworkEndpointTimelinePlot(c *gin.Context) {
 	c.JSON(http.StatusOK, result)
 }
 
-// GetMemoryUsageSummary uses exprfilter.SessionsEntity, the same entity the
+// GetMemoryUsagePlot uses exprfilter.SessionsEntity, the same entity the
 // FilterBar and GetHighestMemorySessions use, even though this query reads
-// raw events rather than the sessions rollup: the summary is scoped to
+// raw events rather than the sessions rollup: the trend is scoped to
 // matching sessions via a subquery (App.matchingSessionIDs), so one filter
 // expression works for both views of the tab instead of two incompatible
 // key vocabularies.
-func (h Handlers) GetMemoryUsageSummary(c *gin.Context) {
+func (h Handlers) GetMemoryUsagePlot(c *gin.Context) {
 	deps := h.Deps
 	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:   exprfilter.SessionsEntity,
-		appScope: *measure.ScopeAppRead,
-		logRoot:  logcomment.Memory,
-		logName:  "usage_summary",
+		entity:          exprfilter.SessionsEntity,
+		appScope:        *measure.ScopeAppRead,
+		logRoot:         logcomment.Memory,
+		logName:         "usage_plot",
+		requireTimezone: true,
 	})
 	if !ok {
 		return
@@ -3119,7 +3120,16 @@ func (h Handlers) GetMemoryUsageSummary(c *gin.Context) {
 
 	ios := opsys.ToFamily(c.Query("os")) == opsys.AppleFamily
 
-	result, err := app.GetUsageSummaryByProcessState(ctx, deps.RchPool, ios, &ef)
+	ef.SetDefaultPlotTimeGroupIfUnset()
+	groupExpr, err := measure.GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
+	if err != nil {
+		msg := "failed to compute time group expression"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	result, err := app.GetUsagePlot(ctx, deps.RchPool, ios, &ef, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		msg := "failed to get memory usage metrics"
 		fmt.Println(msg, err)

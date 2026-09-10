@@ -30,8 +30,8 @@ const (
 
 // thresholdableMemoryScopes is every MemoryScope Play publishes a ceiling
 // for. Cached is deliberately excluded everywhere it's used — from the
-// summary query's own aggregation, not just the threshold lookup — since
-// the OS can evict a cached process at will and Play doesn't track it as a
+// trend query's own aggregation, not just the threshold lookup — since the
+// OS can evict a cached process at will and Play doesn't track it as a
 // vital.
 var thresholdableMemoryScopes = []MemoryScope{
 	MemoryScopeForeground,
@@ -39,12 +39,12 @@ var thresholdableMemoryScopes = []MemoryScope{
 	MemoryScopeBackground,
 }
 
-// MemoryUsageSummary is one process state's (Android) or the whole app's
-// (iOS, ProcessState "") memory usage distribution across sessions in the
-// selected date range: each contributing session is first collapsed to its
-// own p90 across its sampled readings, then P50/P90/P95/Sessions describe
-// the distribution of those per-session numbers. Values are in KB.
-type MemoryUsageSummary struct {
+// MemoryUsagePoint is one time bucket of the memory usage trend: on
+// Android, one row per (bucket, process state) actually present in that
+// bucket (ProcessState set); on iOS, one row per bucket (ProcessState "" —
+// iOS has no process-state concept). Values are in KB.
+type MemoryUsagePoint struct {
+	Datetime     string      `json:"datetime"`
 	ProcessState MemoryScope `json:"process_state,omitempty"`
 	P50          uint64      `json:"p50"`
 	P90          uint64      `json:"p90"`
@@ -127,30 +127,32 @@ func (a App) matchingSessionIDs(ef *exprfilter.ExprFilter) (*sqlf.Stmt, error) {
 	return sub, nil
 }
 
-// GetUsageSummaryByProcessState returns, for each process state Play
-// publishes a threshold for (Android — Cached excluded, see
-// thresholdableMemoryScopes), the distribution of dynamic memory usage
-// (anon_rss + swap) across the sessions active in ef's selected date range.
-// iOS has no process-state concept, so it returns exactly one row (memory
-// footprint, used_memory) with ProcessState "".
+// GetUsagePlot returns the memory usage trend — dynamic memory usage
+// (Android, anon_rss + swap) or memory footprint (iOS, used_memory) — over
+// time, one line per process state Play publishes a threshold for (Android
+// — Cached excluded, see thresholdableMemoryScopes) or one line total (iOS,
+// no process-state concept).
 //
-// Each contributing session is first collapsed to its own p90 across its
-// sampled readings for that state — not raw event rows — so a session with
-// more readings (a longer session, or a background sampler that simply
-// accumulates more samples) doesn't skew the result relative to its actual
-// significance; P50/P90/P95 then describe the distribution of those
-// per-session numbers, matching how GetHighestMemorySessions already
-// collapses a session to one number. No time bucketing: one distribution
-// per state, over the whole selected range.
-func (a App) GetUsageSummaryByProcessState(
+// Each point is computed from sessions, not raw event rows: a session's
+// readings within a given bucket and state are first collapsed to that
+// session's own p90 for that bucket+state, then P50/P90/P95/Sessions
+// describe the distribution of those per-session numbers across sessions
+// active in that bucket — so a session with more readings in a bucket (a
+// longer session, or a background sampler that simply accumulates more
+// samples there) can't outweigh a session with fewer, regardless of the
+// bucket's overall sample size. This mirrors how GetHighestMemorySessions
+// already collapses a session to one number, applied per bucket instead of
+// once across the whole selected range.
+func (a App) GetUsagePlot(
 	ctx context.Context,
 	ch driver.Conn,
 	ios bool,
 	ef *exprfilter.ExprFilter,
-) ([]MemoryUsageSummary, error) {
+	bucketExpr, datetimeFormat string,
+) ([]MemoryUsagePoint, error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 
-	result := make([]MemoryUsageSummary, 0)
+	result := make([]MemoryUsagePoint, 0)
 
 	valueExpr := "memory_usage_dynamic.anon_rss + coalesce(memory_usage_dynamic.swap, 0)"
 	eventType := "memory_usage_dynamic"
@@ -164,9 +166,10 @@ func (a App) GetUsageSummaryByProcessState(
 		return nil, err
 	}
 
-	perSession := sqlf.
+	perSessionBucket := sqlf.
 		From("events").
 		Select("session_id").
+		Select(bucketExpr+" as datetime_bucket", ef.Timezone).
 		Select("quantile(0.9)("+valueExpr+") as session_p90").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
@@ -174,7 +177,8 @@ func (a App) GetUsageSummaryByProcessState(
 		Where("timestamp >= ?", ef.From).
 		Where("timestamp < ?", ef.To).
 		Where("session_id in (select session_id from matching_sessions)").
-		GroupBy("session_id")
+		GroupBy("session_id").
+		GroupBy("datetime_bucket")
 
 	if !ios {
 		// a memory_usage_dynamic row with a null anon_rss carried no usable
@@ -185,7 +189,7 @@ func (a App) GetUsageSummaryByProcessState(
 		for i, s := range thresholdableMemoryScopes {
 			thresholdableScopeNames[i] = string(s)
 		}
-		perSession.
+		perSessionBucket.
 			Select("memory_usage_dynamic.process_state as process_state").
 			Where("memory_usage_dynamic.anon_rss is not null").
 			Where("memory_usage_dynamic.process_state").In(thresholdableScopeNames).
@@ -193,12 +197,16 @@ func (a App) GetUsageSummaryByProcessState(
 	}
 
 	stmt := sqlf.With("matching_sessions", matching).
-		With("per_session", perSession).
-		From("per_session").
+		With("per_session_bucket", perSessionBucket).
+		From("per_session_bucket").
+		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
 		Select("quantiles(0.5, 0.9, 0.95)(session_p90) as usage").
-		// per_session already has one row per (session_id, process_state),
-		// so a plain count() — not uniqCombined64(session_id) — is correct.
-		Select("count() as sessions")
+		// per_session_bucket already has one row per (session_id,
+		// datetime_bucket[, process_state]), so a plain count() — not
+		// uniqCombined64(session_id) — is correct.
+		Select("count() as sessions").
+		GroupBy("datetime_bucket").
+		OrderBy("datetime_bucket")
 
 	if !ios {
 		stmt.Select("process_state").GroupBy("process_state").OrderBy("process_state")
@@ -206,7 +214,7 @@ func (a App) GetUsageSummaryByProcessState(
 
 	defer stmt.Close()
 
-	ctx = withMemoryQueryName(ctx, "usage_summary")
+	ctx = withMemoryQueryName(ctx, "usage_plot")
 
 	rows, err := ch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -214,11 +222,12 @@ func (a App) GetUsageSummaryByProcessState(
 	}
 
 	for rows.Next() {
+		var dt string
 		var usage []float64
 		var sessions uint64
 		var processState string
 
-		dest := []any{&usage, &sessions}
+		dest := []any{&dt, &usage, &sessions}
 		if !ios {
 			dest = append(dest, &processState)
 		}
@@ -226,13 +235,13 @@ func (a App) GetUsageSummaryByProcessState(
 			return nil, err
 		}
 
-		summary := MemoryUsageSummary{ProcessState: MemoryScope(processState), Sessions: sessions}
+		point := MemoryUsagePoint{Datetime: dt, ProcessState: MemoryScope(processState), Sessions: sessions}
 		if len(usage) >= 3 {
-			summary.P50 = uint64(math.Round(usage[0]))
-			summary.P90 = uint64(math.Round(usage[1]))
-			summary.P95 = uint64(math.Round(usage[2]))
+			point.P50 = uint64(math.Round(usage[0]))
+			point.P90 = uint64(math.Round(usage[1]))
+			point.P95 = uint64(math.Round(usage[2]))
 		}
-		result = append(result, summary)
+		result = append(result, point)
 	}
 
 	if err = rows.Err(); err != nil {

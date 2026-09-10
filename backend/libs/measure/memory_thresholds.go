@@ -139,7 +139,8 @@ func MemoryThreshold(ef *exprfilter.ExprFilter, ios bool, scope MemoryScope) (mb
 }
 
 // MemoryThresholdEntry is one process state's Play threshold, for the
-// summary cards (one per state) to draw a matching status badge against.
+// trend chart's multi-line display (one line per state a reading landed
+// in) to draw a matching dashed reference against.
 type MemoryThresholdEntry struct {
 	ProcessState MemoryScope `json:"process_state"`
 	MB           float64     `json:"mb"`
