@@ -11,10 +11,6 @@ import {
   TableHeader,
   TableRow,
 } from "./table";
-import {
-  formatDateToHumanReadableDate,
-  formatDateToHumanReadableTime,
-} from "../utils/time_utils";
 
 interface MemorySessionsTableProps {
   teamId: string;
@@ -54,12 +50,10 @@ export default function MemorySessionsTable({
     <Table className="font-display select-none">
       <TableHeader className="hover:bg-muted/50">
         <TableRow className="hover:bg-transparent">
-          <TableHead className="w-[45%]">Session</TableHead>
-          <TableHead className="w-[25%]">Device</TableHead>
-          <TableHead className="w-[15%] text-center">
+          <TableHead className="w-[70%]">Session</TableHead>
+          <TableHead className="w-[30%] text-center">
             % of Device RAM (P90)
           </TableHead>
-          <TableHead className="w-[15%] text-center">Start Time</TableHead>
         </TableRow>
       </TableHeader>
       <TableBody>
@@ -81,7 +75,7 @@ export default function MemorySessionsTable({
                 }
               }}
             >
-              <TableCell className="w-[45%] relative p-0">
+              <TableCell className="w-[70%] relative p-0">
                 <Link
                   href={sessionHref}
                   className="absolute inset-0 z-10 cursor-pointer"
@@ -100,32 +94,7 @@ export default function MemorySessionsTable({
                   </p>
                 </div>
               </TableCell>
-              <TableCell className="w-[25%] relative p-0">
-                <Link
-                  href={sessionHref}
-                  className="absolute inset-0 z-10 cursor-pointer"
-                  tabIndex={-1}
-                  aria-hidden="true"
-                  style={{ display: "block" }}
-                />
-                <div className="pointer-events-none p-4">
-                  <p className="truncate select-none">
-                    {session.device_manufacturer} {session.device_model}
-                  </p>
-                  {ramTier && (
-                    <>
-                      <div className="py-1" />
-                      <p
-                        data-testid="memory-session-ram-tier"
-                        className="text-xs truncate text-muted-foreground select-none"
-                      >
-                        {ramTier}
-                      </p>
-                    </>
-                  )}
-                </div>
-              </TableCell>
-              <TableCell className="w-[15%] text-center relative p-0">
+              <TableCell className="w-[30%] text-center relative p-0">
                 <Link
                   href={sessionHref}
                   className="absolute inset-0 z-10 cursor-pointer"
@@ -142,31 +111,15 @@ export default function MemorySessionsTable({
                   <div className="py-1" />
                   <p className="text-xs text-muted-foreground select-none">
                     {Math.round(session.peak_memory_kb / 1024)} MB
+                    {ramTier && (
+                      <>
+                        {" / "}
+                        <span data-testid="memory-session-ram-tier">
+                          {ramTier}
+                        </span>
+                      </>
+                    )}
                   </p>
-                </div>
-              </TableCell>
-              <TableCell className="w-[15%] text-center relative p-0">
-                <Link
-                  href={sessionHref}
-                  className="absolute inset-0 z-10 cursor-pointer"
-                  tabIndex={-1}
-                  aria-hidden="true"
-                  style={{ display: "block" }}
-                />
-                <div className="pointer-events-none p-4">
-                  {session.start_time ? (
-                    <>
-                      <p className="truncate select-none">
-                        {formatDateToHumanReadableDate(session.start_time)}
-                      </p>
-                      <div className="py-1" />
-                      <p className="text-xs truncate select-none">
-                        {formatDateToHumanReadableTime(session.start_time)}
-                      </p>
-                    </>
-                  ) : (
-                    "N/A"
-                  )}
                 </div>
               </TableCell>
             </TableRow>
