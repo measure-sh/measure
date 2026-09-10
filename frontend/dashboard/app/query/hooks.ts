@@ -2,8 +2,6 @@
 
 import {
   MemoryPlatform,
-  MemoryScope,
-  MemoryUsagePlotPoint,
   SdkConfig,
   Team,
   changeAppApiKeyFromServer,
@@ -36,7 +34,7 @@ import {
   fetchErrorsOverviewPlotFromServer,
   fetchHighestMemorySessionsFromServer,
   fetchJourneyFromServer,
-  fetchMemoryUsagePlotFromServer,
+  fetchMemoryUsageSummaryFromServer,
   fetchMetricsFromServer,
   fetchNetworkEndpointsFromServer,
   fetchNetworkEndpointStatusCodesPlotFromServer,
@@ -917,29 +915,26 @@ export function useSessionReplayOverviewQuery(
 
 const MEMORY_SESSIONS_LIMIT = 5;
 
-export function useMemoryUsagePlotQuery(
+export function useMemoryUsageSummaryQuery(
   params: FilterParams | null,
   os: MemoryPlatform,
-  scope: MemoryScope,
 ) {
   return useQuery({
     queryKey: [
-      "memoryUsagePlot",
+      "memoryUsageSummary",
       params?.appId,
       params?.startDate,
       params?.endDate,
       params?.filterExpr,
       os,
-      scope,
     ] as const,
     queryFn: () =>
-      fetchMemoryUsagePlotFromServer(
+      fetchMemoryUsageSummaryFromServer(
         params!.appId,
         params!.startDate,
         params!.endDate,
         params!.filterExpr,
         os,
-        scope,
       ),
     enabled: params !== null,
   });

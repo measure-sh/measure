@@ -21,7 +21,7 @@ import {
   makeBugReportsFilterKeysFixture,
   makeJourneysFilterKeysFixture,
   makeMemorySessionsFixture,
-  makeMemoryUsagePlotFixture,
+  makeMemoryUsageSummaryFixture,
   makeSessionsFilterKeysFixture,
   makeBugReportsOverviewFixture,
   makeBugReportsPlotFixture,
@@ -450,9 +450,9 @@ export const handlers = [
     return HttpResponse.json(makeBuildsFixture());
   }),
 
-  // 72. GET /api/apps/:appId/memory/plots/usage
-  http.get("*/api/apps/:appId/memory/plots/usage", () => {
-    return HttpResponse.json(makeMemoryUsagePlotFixture());
+  // 72. GET /api/apps/:appId/memory/summary
+  http.get("*/api/apps/:appId/memory/summary", () => {
+    return HttpResponse.json(makeMemoryUsageSummaryFixture());
   }),
 
   // 73. GET /api/apps/:appId/memory/sessions

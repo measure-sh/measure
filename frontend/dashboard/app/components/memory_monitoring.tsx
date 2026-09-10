@@ -1,23 +1,20 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import type { MemoryPlatform, MemoryScope } from "../api/api_calls";
+import type { MemoryPlatform } from "../api/api_calls";
 import { emptyHighestMemorySessionsResponse } from "../api/api_calls";
 import {
   useHighestMemorySessionsQuery,
-  useMemoryUsagePlotQuery,
+  useMemoryUsageSummaryQuery,
 } from "../query/hooks";
-import BetaBadge from "./beta_badge";
-import DropdownSelect, { DropdownSelectType } from "./dropdown_select";
 import FilterBar from "./filter_bar/filter_bar";
 import { useExprFilterPage } from "./filter_bar/use_expr_filter_page";
 import LoadingBar from "./loading_bar";
 import MemorySessionsTable from "./memory_sessions_table";
-import MemoryUsagePlot from "./memory_usage_plot";
+import MemoryUsageSummaryCards from "./memory_usage_summary_cards";
 import Paginator from "./paginator";
 import { SkeletonListPage, SkeletonPlot } from "./skeleton";
 import TabSelect from "./tab_select";
-import { getPlotTimeGroupForRange } from "../utils/time_utils";
 
 const MEMORY_SESSIONS_LIMIT = 5;
 
@@ -32,16 +29,6 @@ function platformsForApp(osNames: string[] | null): MemoryPlatform[] {
   // Unknown/empty os_names: don't assume, offer both.
   return unique.length > 0 ? unique : ["android", "ios"];
 }
-
-// Mirrors the four process states Play Console's own Memory usage (Anon RSS
-// + Swap) vital segments by.
-const SCOPES: { label: string; value: MemoryScope }[] = [
-  { label: "All", value: "" },
-  { label: "Foreground", value: "foreground" },
-  { label: "User-perceived service", value: "user_perceived_service" },
-  { label: "Background", value: "background" },
-  { label: "Cached", value: "cached" },
-];
 
 export default function MemoryMonitoring({
   params,
@@ -83,28 +70,7 @@ export default function MemoryMonitoring({
       ? platformOverride
       : availablePlatforms[0];
 
-  // Process state (foreground / user_perceived_service / background /
-  // cached — matching Play Console's own Memory usage vital) is a property
-  // of each reading (memory_usage_dynamic.process_state), not a
-  // session-level fact, so it's a plot-local control rather than a
-  // FilterBar/exprfilter key — the shared filter already offers
-  // session-level facts like RAM tier and "did this session run in the
-  // background at all" (session_ram_tier, session_foreground_background)
-  // generically.
-  const [scope, setScope] = useState<MemoryScope>("");
-
-  const plotTimeGroup = readyValue
-    ? getPlotTimeGroupForRange(
-        readyValue.date.startDate,
-        readyValue.date.endDate,
-      )
-    : "days";
-
-  const plotQuery = useMemoryUsagePlotQuery(
-    filterParams,
-    platform,
-    platform === "android" ? scope : "",
-  );
+  const summaryQuery = useMemoryUsageSummaryQuery(filterParams, platform);
   const sessionsQuery = useHighestMemorySessionsQuery(
     filterParams,
     platform,
@@ -113,39 +79,14 @@ export default function MemoryMonitoring({
 
   const metricLabel =
     platform === "android" ? "Dynamic Memory Usage" : "Memory Footprint";
-  const trend = plotQuery.data?.results ?? [];
+  const summary = summaryQuery.data?.results ?? [];
+  const thresholds = summaryQuery.data?.thresholds ?? [];
   const sessionsOverview =
     sessionsQuery.data ?? emptyHighestMemorySessionsResponse;
-
-  // Google Play's own "excessive memory usage" ceiling, computed
-  // server-side (backend/libs/measure/memory_thresholds.go, which owns the
-  // published table and decides when the current RAM tier + process state
-  // is unambiguous enough to show one) — absent whenever it doesn't apply,
-  // never guessed client-side.
-  const thresholdMB = plotQuery.data?.threshold_mb;
-  const thresholdLabel = plotQuery.data?.threshold_label;
-  const showThresholdHint =
-    platform === "android" &&
-    scope !== "" &&
-    scope !== "cached" &&
-    thresholdMB == null;
 
   return (
     <div className="flex flex-col items-start w-full">
       <div className="py-4" />
-
-      <div className="flex items-center gap-2">
-        <p className="font-display text-2xl">Memory Monitoring</p>
-        <BetaBadge popup="Session-sampled memory vitals: Dynamic Memory Usage on Android, Memory Footprint on iOS." />
-      </div>
-      <div className="py-2" />
-      <p className="font-body text-sm text-muted-foreground max-w-2xl">
-        {platform === "android"
-          ? "Dynamic Memory Usage, sampled from a subset of sessions."
-          : "Memory Footprint, sampled from a subset of sessions while the app is in the foreground."}
-      </p>
-
-      <div className="py-6" />
 
       <FilterBar
         entity="sessions"
@@ -167,64 +108,36 @@ export default function MemoryMonitoring({
 
       {readyValue !== null && (
         <>
-          <div className="flex flex-wrap items-center gap-3">
-            {availablePlatforms.length > 1 && (
-              <TabSelect
-                items={["Android", "iOS"]}
-                selected={platform === "android" ? "Android" : "iOS"}
-                onChangeSelected={(item) =>
-                  setPlatformOverride(item === "Android" ? "android" : "ios")
-                }
-              />
-            )}
-            {platform === "android" && (
-              <DropdownSelect
-                type={DropdownSelectType.SingleString}
-                title="Process State"
-                items={SCOPES.map((s) => s.label)}
-                initialSelected={
-                  SCOPES.find((s) => s.value === scope)?.label ?? "All"
-                }
-                onChangeSelected={(item) =>
-                  setScope(
-                    SCOPES.find((s) => s.label === (item as string))?.value ??
-                      "",
-                  )
-                }
-              />
-            )}
-          </div>
+          {availablePlatforms.length > 1 && (
+            <TabSelect
+              items={["Android", "iOS"]}
+              selected={platform === "android" ? "Android" : "iOS"}
+              onChangeSelected={(item) =>
+                setPlatformOverride(item === "Android" ? "android" : "ios")
+              }
+            />
+          )}
 
           <div className="py-8" />
 
           <div className="w-full" data-testid="memory-trend-section">
-            <p className="font-display text-xl">{metricLabel} Trend</p>
+            <p className="font-display text-xl">{metricLabel}</p>
             <div className="py-2" />
-            {showThresholdHint && (
-              <p className="font-body text-xs text-muted-foreground pb-2">
-                Filter to a single RAM Tier to see Play Console&apos;s
-                excessive-memory threshold line for the selected process state.
-                Play doesn&apos;t publish a threshold for the 0–4 GB or 16 GB+
-                tiers.
-              </p>
-            )}
-            {plotQuery.status === "pending" && (
-              <div className="w-full h-144">
+            {summaryQuery.status === "pending" && (
+              <div className="w-full h-64">
                 <SkeletonPlot />
               </div>
             )}
-            {plotQuery.status === "error" && (
+            {summaryQuery.status === "error" && (
               <p className="font-body text-sm">
                 Error fetching memory usage, please change filters & try again
               </p>
             )}
-            {plotQuery.status === "success" && (
-              <MemoryUsagePlot
-                data={trend}
-                plotTimeGroup={plotTimeGroup}
+            {summaryQuery.status === "success" && (
+              <MemoryUsageSummaryCards
+                data={summary}
                 metricLabel={metricLabel}
-                thresholdMB={thresholdMB}
-                thresholdLabel={thresholdLabel}
+                thresholds={thresholds}
               />
             )}
           </div>

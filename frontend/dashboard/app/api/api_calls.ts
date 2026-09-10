@@ -1153,21 +1153,27 @@ export const fetchSessionReplayOverviewPlotFromServer = async (
 // ─── Memory Monitoring ────────────────────────────────────────────────────
 
 export type MemoryPlatform = "android" | "ios";
-// Mirrors the four process states Play Console's own Memory usage (Anon RSS
-// + Swap) vital segments by.
+// Mirrors the process states Play Console's own Memory usage (Anon RSS +
+// Swap) vital publishes a ceiling for. Cached is a real process state but
+// has no published ceiling and is never returned by the summary endpoint.
 export type MemoryScope =
-  | ""
   | "foreground"
   | "user_perceived_service"
-  | "background"
-  | "cached";
+  | "background";
 
-export type MemoryUsagePlotPoint = {
-  datetime: string;
-  count: number;
-  p50?: number;
-  p90?: number;
-  p95?: number;
+export type MemoryUsageSummaryRow = {
+  // Absent on iOS, which has no process-state concept — one row, one card.
+  process_state?: MemoryScope;
+  p50: number;
+  p90: number;
+  p95: number;
+  sessions: number;
+};
+
+export type MemoryThresholdEntry = {
+  process_state: MemoryScope;
+  mb: number;
+  label: string;
 };
 
 export type MemorySessionRow = {
@@ -1197,42 +1203,36 @@ export const emptyHighestMemorySessionsResponse = {
   results: [] as MemorySessionRow[],
 };
 
-export type MemoryUsagePlotResponse = {
-  results: MemoryUsagePlotPoint[];
-  // Google Play Console's own "excessive memory usage" ceiling for the
-  // currently-selected RAM tier + process state, computed server-side
+export type MemoryUsageSummaryResponse = {
+  results: MemoryUsageSummaryRow[];
+  // Google Play Console's own "excessive memory usage" ceiling, one entry
+  // per process state Play publishes a number for, computed server-side
   // (backend/libs/measure/memory_thresholds.go, which owns the published
-  // table). Absent when Play doesn't publish a number for the current
-  // filter/scope combination — never guess one client-side.
-  threshold_mb?: number;
-  threshold_label?: string;
+  // table). Empty when Play doesn't publish a number for the current
+  // RAM-tier filter (or none is selected) — never guess one client-side.
+  thresholds?: MemoryThresholdEntry[];
 };
 
-export const fetchMemoryUsagePlotFromServer = async (
+export const fetchMemoryUsageSummaryFromServer = async (
   appId: string,
   startDate: string,
   endDate: string,
   filterExpr: string | null,
   os: MemoryPlatform,
-  scope: MemoryScope,
-): Promise<MemoryUsagePlotResponse | null> => {
+): Promise<MemoryUsageSummaryResponse | null> => {
   const params = new URLSearchParams({
     from: formatUserInputDateToServerFormat(startDate),
     to: formatUserInputDateToServerFormat(endDate),
     timezone: getTimeZoneForServer(),
-    plot_time_group: getPlotTimeGroupForRange(startDate, endDate),
     os,
   });
   if (filterExpr) {
     params.set("filter_expr", filterExpr);
   }
-  if (scope) {
-    params.set("scope", scope);
-  }
 
   const data = await request(
-    `/api/apps/${appId}/memory/plots/usage?${params.toString()}`,
-    { failsWith: "Failed to fetch memory usage plot" },
+    `/api/apps/${appId}/memory/summary?${params.toString()}`,
+    { failsWith: "Failed to fetch memory usage summary" },
   );
 
   return data === null ||

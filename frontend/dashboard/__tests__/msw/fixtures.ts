@@ -368,40 +368,51 @@ export function makeSessionReplayOverviewPage2Fixture() {
   };
 }
 
-// --- Memory Monitoring Trend (GET /apps/:appId/memory/plots/usage) ---
-// threshold_mb/threshold_label are set only when the backend's
-// MemoryThreshold (backend/libs/measure/memory_thresholds.go) resolves one
-// for the current RAM tier + process state; makeMemoryUsagePlotFixture
-// leaves them unset by default, matching the "no filter" case.
+// --- Memory Monitoring Summary (GET /apps/:appId/memory/summary) ---
+// thresholds is empty by default, matching the "no RAM tier filtered" case
+// — the backend's MemoryThresholdsByScope (backend/libs/measure/
+// memory_thresholds.go) only resolves entries once a single RAM tier is
+// selected.
 
-export function makeMemoryUsagePlotFixture(
+export function makeMemoryUsageSummaryFixture(
   overrides: Record<string, any> = {},
 ) {
   return {
     results: [
       {
-        datetime: "2026-04-01T00:00:00Z",
-        count: 12,
+        process_state: "foreground",
         p50: 180224,
         p90: 245760,
         p95: 262144,
+        sessions: 12,
       },
       {
-        datetime: "2026-04-01T01:00:00Z",
-        count: 15,
-        p50: 192512,
-        p90: 251904,
-        p95: 271360,
+        process_state: "background",
+        p50: 102400,
+        p90: 143360,
+        p95: 163840,
+        sessions: 9,
       },
     ],
+    thresholds: [],
     ...overrides,
   };
 }
 
-export function makeMemoryUsagePlotWithThresholdFixture() {
-  return makeMemoryUsagePlotFixture({
-    threshold_mb: 1536,
-    threshold_label: "Play threshold (8 GB, Background)",
+export function makeMemoryUsageSummaryWithThresholdFixture() {
+  return makeMemoryUsageSummaryFixture({
+    thresholds: [
+      {
+        process_state: "foreground",
+        mb: 2304,
+        label: "Play threshold (8 GB, Foreground)",
+      },
+      {
+        process_state: "background",
+        mb: 1536,
+        label: "Play threshold (8 GB, Background)",
+      },
+    ],
   });
 }
 
