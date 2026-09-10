@@ -18,6 +18,12 @@ import Paginator from "./paginator";
 import { SkeletonListPage, SkeletonPlot } from "./skeleton";
 import TabSelect from "./tab_select";
 import { getPlotTimeGroupForRange } from "../utils/time_utils";
+import {
+  isThresholdableProcessState,
+  PLAY_MEMORY_THRESHOLDS_MB,
+  RAM_TIER_DISPLAY_LABEL,
+  singleSelectedRamTier,
+} from "../utils/memory_thresholds";
 
 const MEMORY_SESSIONS_LIMIT = 5;
 
@@ -117,6 +123,29 @@ export default function MemoryMonitoring({
   const sessionsOverview =
     sessionsQuery.data ?? emptyHighestMemorySessionsResponse;
 
+  // Play Console's own "excessive memory usage" ceiling — Android only (no
+  // Play-vitals equivalent on iOS), and only drawable when both the RAM tier
+  // and the process state are unambiguous: exactly one session_ram_tier
+  // filter clause, and a scope other than "All"/"Cached" (Play doesn't
+  // publish a Cached ceiling — the OS can evict it at will).
+  const ramTier =
+    platform === "android"
+      ? singleSelectedRamTier(readyValue?.filterExpr ?? null)
+      : null;
+  const thresholdMB =
+    platform === "android" && ramTier && isThresholdableProcessState(scope)
+      ? PLAY_MEMORY_THRESHOLDS_MB[ramTier]?.[scope]
+      : null;
+  const thresholdLabel =
+    thresholdMB != null
+      ? `Play threshold (${RAM_TIER_DISPLAY_LABEL[ramTier!] ?? ramTier}, ${SCOPES.find((s) => s.value === scope)?.label})`
+      : undefined;
+  const showThresholdHint =
+    platform === "android" &&
+    scope !== "" &&
+    scope !== "cached" &&
+    thresholdMB == null;
+
   return (
     <div className="flex flex-col items-start w-full">
       <div className="py-4" />
@@ -187,6 +216,14 @@ export default function MemoryMonitoring({
           <div className="w-full">
             <p className="font-display text-xl">{metricLabel} Trend</p>
             <div className="py-2" />
+            {showThresholdHint && (
+              <p className="font-body text-xs text-muted-foreground pb-2">
+                Filter to a single RAM Tier to see Play Console&apos;s
+                excessive-memory threshold line for the selected process state.
+                Play doesn&apos;t publish a threshold for the 0–4 GB or 16 GB+
+                tiers.
+              </p>
+            )}
             {plotQuery.status === "pending" && (
               <div className="w-full h-144">
                 <SkeletonPlot />
@@ -202,6 +239,8 @@ export default function MemoryMonitoring({
                 data={trend}
                 plotTimeGroup={plotTimeGroup}
                 metricLabel={metricLabel}
+                thresholdMB={thresholdMB}
+                thresholdLabel={thresholdLabel}
               />
             )}
           </div>

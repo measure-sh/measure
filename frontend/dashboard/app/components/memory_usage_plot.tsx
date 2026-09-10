@@ -1,10 +1,15 @@
 "use client";
 
+import type { LineCanvasLayer, LineCustomCanvasLayer } from "@nivo/line";
 import { ResponsiveLineCanvas } from "@nivo/line";
 import { useTheme } from "next-themes";
 import React, { useMemo, useState } from "react";
 import type { MemoryUsagePlotPoint } from "../api/api_calls";
-import { useChartCanvasTheme, useChartColors } from "../utils/shared_styles";
+import {
+  useChartCanvasTheme,
+  useChartColor,
+  useChartColors,
+} from "../utils/shared_styles";
 import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
 import {
   formatPlotTooltipDate,
@@ -18,7 +23,25 @@ interface MemoryUsagePlotProps {
   plotTimeGroup: PlotTimeGroup;
   // e.g. "Dynamic Memory Usage" (Android) or "Memory Footprint" (iOS).
   metricLabel: string;
+  // Google Play's own "excessive memory usage" ceiling for the currently
+  // selected RAM tier + process state, in MB. Drawn as a dashed reference
+  // line when present; omitted entirely (not just hidden) when null/undefined,
+  // since there's nothing meaningful to compare against.
+  thresholdMB?: number | null;
+  thresholdLabel?: string;
 }
+
+const BASE_CANVAS_LAYERS: LineCanvasLayer<any>[] = [
+  "grid",
+  "axes",
+  "areas",
+  "crosshair",
+  "lines",
+  "points",
+  "slices",
+  "mesh",
+  "legends",
+];
 
 type PlotData = {
   id: string;
@@ -40,10 +63,13 @@ const MemoryUsagePlot: React.FC<MemoryUsagePlotProps> = ({
   data,
   plotTimeGroup,
   metricLabel,
+  thresholdMB,
+  thresholdLabel,
 }) => {
   const [quantile, setQuantile] = useState(Quantile.p90);
   const { theme } = useTheme();
   const chartColors = useChartColors();
+  const thresholdColor = useChartColor().red;
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
 
   const canvasTheme = useChartCanvasTheme();
@@ -64,6 +90,54 @@ const MemoryUsagePlot: React.FC<MemoryUsagePlotProps> = ({
       },
     ];
   }, [data, quantile]);
+
+  // "auto" alone can put the threshold line above the visible plot area
+  // when every reading is comfortably under it; extend the scale to always
+  // include the line when one is drawn.
+  const yScaleMax = useMemo(() => {
+    if (thresholdMB == null) return "auto" as const;
+    const dataMax = Math.max(0, ...(plot?.[0]?.data.map((d) => d.y) ?? [0]));
+    return Math.max(dataMax, thresholdMB) * 1.05;
+  }, [plot, thresholdMB]);
+
+  const thresholdLayer = useMemo<LineCustomCanvasLayer<any> | null>(() => {
+    if (thresholdMB == null) return null;
+    // Nivo's generic Series type collapses `yScale`'s inferred parameter to
+    // `never` when the layer function is written directly against
+    // LineCustomCanvasLayer<any> (a TS quirk with conditional types over
+    // `any`); a locally-typed function cast once at the boundary avoids it.
+    const draw = (
+      ctx: CanvasRenderingContext2D,
+      layerProps: { innerWidth: number; yScale: (value: number) => number },
+    ) => {
+      const y = layerProps.yScale(thresholdMB);
+      ctx.save();
+      ctx.strokeStyle = thresholdColor;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(layerProps.innerWidth, y);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      if (thresholdLabel) {
+        ctx.fillStyle = thresholdColor;
+        ctx.font = "11px sans-serif";
+        ctx.textBaseline = "bottom";
+        ctx.fillText(thresholdLabel, 4, y - 4);
+      }
+      ctx.restore();
+    };
+    return draw as unknown as LineCustomCanvasLayer<any>;
+  }, [thresholdMB, thresholdLabel, thresholdColor]);
+
+  const layers = useMemo<LineCanvasLayer<any>[]>(
+    () =>
+      thresholdLayer
+        ? ["grid", thresholdLayer, ...BASE_CANVAS_LAYERS.slice(1)]
+        : BASE_CANVAS_LAYERS,
+    [thresholdLayer],
+  );
 
   if (!plot || plot.length === 0 || plot[0].data.length === 0) {
     return (
@@ -86,6 +160,7 @@ const MemoryUsagePlot: React.FC<MemoryUsagePlotProps> = ({
         <div className="size-full">
           <ResponsiveLineCanvas
             data={plot}
+            layers={layers}
             curve="monotoneX"
             theme={canvasTheme}
             enableArea={true}
@@ -102,7 +177,7 @@ const MemoryUsagePlot: React.FC<MemoryUsagePlotProps> = ({
             yScale={{
               type: "linear",
               min: 0,
-              max: "auto",
+              max: yScaleMax,
             }}
             yFormat=".0f"
             axisTop={null}
