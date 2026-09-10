@@ -3155,7 +3155,13 @@ func (h Handlers) GetMemoryUsagePlot(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"results": result})
+	response := gin.H{"results": result}
+	if thresholdMB, thresholdLabel, ok := measure.MemoryThreshold(&ef, ios, scope); ok {
+		response["threshold_mb"] = thresholdMB
+		response["threshold_label"] = thresholdLabel
+	}
+
+	c.JSON(http.StatusOK, response)
 }
 
 func (h Handlers) GetHighestMemorySessions(c *gin.Context) {

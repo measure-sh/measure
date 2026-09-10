@@ -1192,6 +1192,17 @@ export const emptyHighestMemorySessionsResponse = {
   results: [] as MemorySessionRow[],
 };
 
+export type MemoryUsagePlotResponse = {
+  results: MemoryUsagePlotPoint[];
+  // Google Play Console's own "excessive memory usage" ceiling for the
+  // currently-selected RAM tier + process state, computed server-side
+  // (backend/libs/measure/memory_thresholds.go, which owns the published
+  // table). Absent when Play doesn't publish a number for the current
+  // filter/scope combination — never guess one client-side.
+  threshold_mb?: number;
+  threshold_label?: string;
+};
+
 export const fetchMemoryUsagePlotFromServer = async (
   appId: string,
   startDate: string,
@@ -1199,7 +1210,7 @@ export const fetchMemoryUsagePlotFromServer = async (
   filterExpr: string | null,
   os: MemoryPlatform,
   scope: MemoryScope,
-): Promise<{ results: MemoryUsagePlotPoint[] } | null> => {
+): Promise<MemoryUsagePlotResponse | null> => {
   const params = new URLSearchParams({
     from: formatUserInputDateToServerFormat(startDate),
     to: formatUserInputDateToServerFormat(endDate),

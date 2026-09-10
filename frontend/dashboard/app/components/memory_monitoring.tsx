@@ -18,12 +18,6 @@ import Paginator from "./paginator";
 import { SkeletonListPage, SkeletonPlot } from "./skeleton";
 import TabSelect from "./tab_select";
 import { getPlotTimeGroupForRange } from "../utils/time_utils";
-import {
-  isThresholdableProcessState,
-  PLAY_MEMORY_THRESHOLDS_MB,
-  RAM_TIER_DISPLAY_LABEL,
-  singleSelectedRamTier,
-} from "../utils/memory_thresholds";
 
 const MEMORY_SESSIONS_LIMIT = 5;
 
@@ -123,23 +117,13 @@ export default function MemoryMonitoring({
   const sessionsOverview =
     sessionsQuery.data ?? emptyHighestMemorySessionsResponse;
 
-  // Play Console's own "excessive memory usage" ceiling — Android only (no
-  // Play-vitals equivalent on iOS), and only drawable when both the RAM tier
-  // and the process state are unambiguous: exactly one session_ram_tier
-  // filter clause, and a scope other than "All"/"Cached" (Play doesn't
-  // publish a Cached ceiling — the OS can evict it at will).
-  const ramTier =
-    platform === "android"
-      ? singleSelectedRamTier(readyValue?.filterExpr ?? null)
-      : null;
-  const thresholdMB =
-    platform === "android" && ramTier && isThresholdableProcessState(scope)
-      ? PLAY_MEMORY_THRESHOLDS_MB[ramTier]?.[scope]
-      : null;
-  const thresholdLabel =
-    thresholdMB != null
-      ? `Play threshold (${RAM_TIER_DISPLAY_LABEL[ramTier!] ?? ramTier}, ${SCOPES.find((s) => s.value === scope)?.label})`
-      : undefined;
+  // Google Play's own "excessive memory usage" ceiling, computed
+  // server-side (backend/libs/measure/memory_thresholds.go, which owns the
+  // published table and decides when the current RAM tier + process state
+  // is unambiguous enough to show one) — absent whenever it doesn't apply,
+  // never guessed client-side.
+  const thresholdMB = plotQuery.data?.threshold_mb;
+  const thresholdLabel = plotQuery.data?.threshold_label;
   const showThresholdHint =
     platform === "android" &&
     scope !== "" &&
