@@ -4,7 +4,7 @@ Pod::Spec.new do |spec|
   spec.version      = "0.13.2"
   spec.summary      = "Open source tool to monitor mobile apps"
   spec.homepage     = "https://github.com/measure-sh/measure.git"
-  spec.license      = { :type => "Apache 2.0", :file => "LICENSE" }
+  spec.license      = { :type => "Apache-2.0", :file => "LICENSE" }
   spec.author       = "measure.sh"
   spec.platform     = :ios, "13.0"
   spec.swift_version = "5.10"
