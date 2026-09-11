@@ -46,20 +46,6 @@ func newPlotFixture(t *testing.T) plotFixture {
 	}
 }
 
-func (f plotFixture) appFilter(from, to time.Time, timezone, plotTimeGroup string) *filter.AppFilter {
-	af := &filter.AppFilter{
-		AppID:    f.appID,
-		From:     from,
-		To:       to,
-		Timezone: timezone,
-		Limit:    filter.DefaultPaginationLimit,
-	}
-	if plotTimeGroup != "" {
-		af.PlotTimeGroup = plotTimeGroup
-	}
-	return af
-}
-
 func (f plotFixture) spanExprFilter(from, to time.Time, timezone, plotTimeGroup string) *exprfilter.ExprFilter {
 	return &exprfilter.ExprFilter{
 		AppID:         f.appID,
@@ -109,6 +95,27 @@ func (f plotFixture) bugReportExprFilter(from, to time.Time, timezone, plotTimeG
 		Limit:         exprfilter.DefaultPaginationLimit,
 		PlotTimeGroup: plotTimeGroup,
 	}
+}
+
+// appHealthExprFilter builds the overview filter, parsing filterExpr when one
+// is given. An empty expression means every row of the app counts as selected.
+func (f plotFixture) appHealthExprFilter(t *testing.T, from, to time.Time, timezone, plotTimeGroup, filterExpr string) *exprfilter.ExprFilter {
+	t.Helper()
+	ef := &exprfilter.ExprFilter{
+		AppID:         f.appID,
+		TeamID:        f.teamID,
+		Entity:        exprfilter.AppHealthEntity,
+		From:          from,
+		To:            to,
+		Timezone:      timezone,
+		Limit:         exprfilter.DefaultPaginationLimit,
+		PlotTimeGroup: plotTimeGroup,
+		FilterExpr:    filterExpr,
+	}
+	if err := ef.BuildExprTree(); err != nil {
+		t.Fatalf("build filter expression %q: %v", filterExpr, err)
+	}
+	return ef
 }
 
 func (f plotFixture) errorExprFilter(from, to time.Time, timezone, plotTimeGroup string) *exprfilter.ExprFilter {

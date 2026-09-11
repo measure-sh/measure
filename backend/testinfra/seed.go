@@ -171,6 +171,19 @@ func (h *TestHelper) SeedBuildMappingRow(ctx context.Context, t *testing.T, mapp
 	}
 }
 
+// SeedBuildSize inserts the download size of one build of an app, the row the
+// app size metric is read from.
+func (h *TestHelper) SeedBuildSize(ctx context.Context, t *testing.T, appID, versionName, versionCode string, buildSize int, buildType string) {
+	t.Helper()
+
+	_, err := h.PgPool.Exec(ctx,
+		`INSERT INTO build_sizes (app_id, version_name, version_code, build_size, build_type) VALUES ($1, $2, $3, $4, $5)`,
+		appID, versionName, versionCode, buildSize, buildType)
+	if err != nil {
+		t.Fatalf("seed build size: %v", err)
+	}
+}
+
 func (h *TestHelper) SeedAPIKey(
 	ctx context.Context,
 	t *testing.T,

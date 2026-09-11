@@ -7,6 +7,8 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -80,12 +82,15 @@ func TestGetHealthOverviewPlotInstancesHandler(t *testing.T) {
 		wantJSONContains(t, w, "error", "timezone")
 	})
 
-	t.Run("versions without version_codes returns 400", func(t *testing.T) {
+	t.Run("a filter expression on a key the entity does not have is refused", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
 		appID := uuid.New()
-		c, w := newTestGinContext("GET", "/apps/"+appID.String()+"/health/plots/instances?timezone=UTC&versions=v1", nil)
-		c.Set("userId", uuid.New().String())
+		seedApp(ctx, t, appID, teamID, 30)
+
+		c, w := newTestGinContext("GET", "/apps/"+appID.String()+"/health/plots/instances?timezone=UTC&filter_expr=os_name:in:android", nil)
+		c.Set("userId", userID)
 		c.Params = gin.Params{{Key: "id", Value: appID.String()}}
 
 		h.GetHealthOverviewPlotInstances(c)
@@ -93,7 +98,10 @@ func TestGetHealthOverviewPlotInstancesHandler(t *testing.T) {
 		if w.Code != http.StatusBadRequest {
 			t.Fatalf("status = %d, want 400, body: %s", w.Code, w.Body.String())
 		}
-		wantJSONContains(t, w, "details", "version_codes")
+		wantJSONContains(t, w, "error", "invalid_filter_expr")
+		if !strings.Contains(w.Body.String(), "os_name") {
+			t.Errorf("want the unknown key named, got %s", w.Body.String())
+		}
 	})
 
 	t.Run("app with no team returns 400", func(t *testing.T) {
@@ -219,6 +227,35 @@ func TestGetHealthOverviewPlotInstancesHandler(t *testing.T) {
 		}
 		if got := sumSeries(series, "anrs"); got != 1 {
 			t.Errorf("anrs = %d, want 1", got)
+		}
+	})
+
+	t.Run("a filter expression narrows the series", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+
+		// The seed helpers tag every event with app_version v1 / build 1.
+		ts := time.Now().UTC().Add(-1 * time.Hour)
+		seedAppMetrics(ctx, t, teamID.String(), appID.String(), ts, 10, 2, 1)
+
+		query := "timezone=UTC&filter_expr=" + url.QueryEscape("version_name:in:v2 AND version_code:in:2")
+		c, w := newTestGinContext("GET", "/apps/"+appID.String()+"/health/plots/instances?"+query, nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: appID.String()}}
+
+		h.GetHealthOverviewPlotInstances(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+		}
+		series := decodeHealthSeries(t, w)
+		for _, id := range []string{"sessions", "crashes", "anrs"} {
+			if got := sumSeries(series, id); got != 0 {
+				t.Errorf("%s = %d, want 0 for an unseeded version", id, got)
+			}
 		}
 	})
 }

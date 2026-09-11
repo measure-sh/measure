@@ -16,37 +16,7 @@ jest.mock("@/app/components/skeleton", () => ({
   SkeletonPlot: () => <div data-testid="skeleton-mock">loading</div>,
 }));
 
-const mockUseAppHealthPlotQuery = jest.fn(
-  (): { data: any; status: string; error: Error | null } => ({
-    data: undefined,
-    status: "pending",
-    error: null,
-  }),
-);
-
-jest.mock("@/app/query/hooks", () => ({
-  __esModule: true,
-  useAppHealthPlotQuery: () => mockUseAppHealthPlotQuery(),
-}));
-
-jest.mock("@/app/stores/provider", () => {
-  const { create } = jest.requireActual("zustand");
-  const filtersStore = create(() => ({
-    filters: {
-      ready: false,
-      serialisedFilters: "",
-      startDate: "",
-      endDate: "",
-    },
-  }));
-  return { __esModule: true, useFiltersStore: filtersStore };
-});
-
-const { useFiltersStore } = require("@/app/stores/provider") as any;
-
-const filters = {
-  ready: true,
-  serialisedFilters: "test",
+const plotDates = {
   startDate: "2026-02-01T00:00:00Z",
   endDate: "2026-02-01T06:00:00Z",
 };
@@ -54,74 +24,36 @@ const filters = {
 describe("AppHealthPlot", () => {
   beforeEach(() => {
     lastLineProps = null;
-    useFiltersStore.setState({
-      filters: {
-        ready: false,
-        serialisedFilters: "",
-        startDate: "",
-        endDate: "",
-      },
-    });
-    mockUseAppHealthPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "pending",
-      error: null,
-    });
-  });
-
-  it("renders no data state", () => {
-    useFiltersStore.setState({ filters });
-    mockUseAppHealthPlotQuery.mockReturnValue({
-      data: null,
-      status: "success",
-      error: null,
-    });
-    render(<AppHealthPlot />);
-    expect(screen.getByText("No Data")).toBeInTheDocument();
-  });
-
-  it("renders error state", () => {
-    useFiltersStore.setState({ filters });
-    mockUseAppHealthPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "error",
-      error: new Error("test"),
-    });
-    render(<AppHealthPlot />);
-    expect(screen.getByText(/Error fetching plot/)).toBeInTheDocument();
   });
 
   it("renders loading state", () => {
-    useFiltersStore.setState({ filters });
-    mockUseAppHealthPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "pending",
-      error: null,
-    });
-    render(<AppHealthPlot />);
+    render(<AppHealthPlot {...plotDates} status="pending" plot={undefined} />);
     expect(screen.getByText("loading")).toBeInTheDocument();
   });
 
-  it("uses demo data and bypasses API in demo mode", () => {
-    useFiltersStore.setState({ filters });
-    render(<AppHealthPlot demo />);
-    expect(screen.getByTestId("line-mock")).toBeInTheDocument();
-    expect(lastLineProps.data[0].id).toBe("Sessions");
+  it("renders error state", () => {
+    render(<AppHealthPlot {...plotDates} status="error" plot={undefined} />);
+    expect(screen.getByText(/Error fetching plot/)).toBeInTheDocument();
+  });
+
+  it("renders no data state", () => {
+    render(<AppHealthPlot {...plotDates} status="success" plot={null} />);
+    expect(screen.getByText("No Data")).toBeInTheDocument();
   });
 
   it("renders data and minute precision axis for sub-12h range", () => {
-    useFiltersStore.setState({ filters });
-    mockUseAppHealthPlotQuery.mockReturnValue({
-      data: [
-        {
-          id: "Sessions",
-          data: [{ id: "s1", x: "2026-02-01T01:00:00", y: 10 }],
-        },
-      ],
-      status: "success",
-      error: null,
-    });
-    render(<AppHealthPlot />);
+    render(
+      <AppHealthPlot
+        {...plotDates}
+        status="success"
+        plot={[
+          {
+            id: "Sessions",
+            data: [{ id: "s1", x: "2026-02-01T01:00:00", y: 10 }],
+          },
+        ]}
+      />,
+    );
 
     expect(screen.getByTestId("line-mock")).toBeInTheDocument();
     expect(lastLineProps.xScale.precision).toBe("minute");
@@ -129,64 +61,67 @@ describe("AppHealthPlot", () => {
   });
 
   it("uses hour/day/month axis config based on range", () => {
+    const plot = [
+      {
+        id: "Sessions",
+        data: [{ id: "s1", x: "2026-02-01T01:00:00", y: 10 }],
+      },
+    ];
+
     // Hours range (5 days)
-    const hourFilters = {
-      ...filters,
-      startDate: "2026-02-01T00:00:00Z",
-      endDate: "2026-02-06T00:00:00Z",
-    };
-    useFiltersStore.setState({ filters: hourFilters });
-    mockUseAppHealthPlotQuery.mockReturnValue({
-      data: [
-        {
-          id: "Sessions",
-          data: [{ id: "s1", x: "2026-02-01T01:00:00", y: 10 }],
-        },
-      ],
-      status: "success",
-      error: null,
-    });
-    const { unmount: u1 } = render(<AppHealthPlot />);
+    const { unmount: u1 } = render(
+      <AppHealthPlot
+        startDate="2026-02-01T00:00:00Z"
+        endDate="2026-02-06T00:00:00Z"
+        status="success"
+        plot={plot}
+      />,
+    );
     expect(lastLineProps.xScale.precision).toBe("hour");
     u1();
 
     // Days range (73 days)
-    const dayFilters = {
-      ...filters,
-      startDate: "2026-01-01T00:00:00Z",
-      endDate: "2026-03-15T00:00:00Z",
-    };
-    useFiltersStore.setState({ filters: dayFilters });
-    const { unmount: u2 } = render(<AppHealthPlot />);
+    const { unmount: u2 } = render(
+      <AppHealthPlot
+        startDate="2026-01-01T00:00:00Z"
+        endDate="2026-03-15T00:00:00Z"
+        status="success"
+        plot={plot}
+      />,
+    );
     expect(lastLineProps.xScale.precision).toBe("day");
     u2();
 
     // Months range (1 year)
-    const monthFilters = {
-      ...filters,
-      startDate: "2025-01-01T00:00:00Z",
-      endDate: "2026-01-01T00:00:00Z",
-    };
-    useFiltersStore.setState({ filters: monthFilters });
-    render(<AppHealthPlot />);
+    render(
+      <AppHealthPlot
+        startDate="2025-01-01T00:00:00Z"
+        endDate="2026-01-01T00:00:00Z"
+        status="success"
+        plot={plot}
+      />,
+    );
     expect(lastLineProps.axisBottom.format).toBe("%d %b, %Y");
   });
 
   it("renders tooltip in Sessions, Crashes, ANRs order", () => {
-    useFiltersStore.setState({ filters });
-    mockUseAppHealthPlotQuery.mockReturnValue({
-      data: [
-        { id: "ANRs", data: [{ id: "a1", x: "2026-02-01T01:00:00", y: 1 }] },
-        {
-          id: "Sessions",
-          data: [{ id: "s1", x: "2026-02-01T01:00:00", y: 10 }],
-        },
-        { id: "Crashes", data: [{ id: "c1", x: "2026-02-01T01:00:00", y: 2 }] },
-      ],
-      status: "success",
-      error: null,
-    });
-    render(<AppHealthPlot />);
+    render(
+      <AppHealthPlot
+        {...plotDates}
+        status="success"
+        plot={[
+          { id: "ANRs", data: [{ id: "a1", x: "2026-02-01T01:00:00", y: 1 }] },
+          {
+            id: "Sessions",
+            data: [{ id: "s1", x: "2026-02-01T01:00:00", y: 10 }],
+          },
+          {
+            id: "Crashes",
+            data: [{ id: "c1", x: "2026-02-01T01:00:00", y: 2 }],
+          },
+        ]}
+      />,
+    );
     expect(screen.getByTestId("line-mock")).toBeInTheDocument();
 
     const datum = lastLineProps.data[0].data[0];
@@ -201,19 +136,19 @@ describe("AppHealthPlot", () => {
   });
 
   it("skips missing tooltip series and keeps known ordering", () => {
-    useFiltersStore.setState({ filters });
-    mockUseAppHealthPlotQuery.mockReturnValue({
-      data: [
-        {
-          id: "Sessions",
-          data: [{ id: "s1", x: "2026-02-01T01:00:00", y: 10 }],
-        },
-        { id: "ANRs", data: [{ id: "a1", x: "2026-02-01T01:00:00", y: 1 }] },
-      ],
-      status: "success",
-      error: null,
-    });
-    render(<AppHealthPlot />);
+    render(
+      <AppHealthPlot
+        {...plotDates}
+        status="success"
+        plot={[
+          {
+            id: "Sessions",
+            data: [{ id: "s1", x: "2026-02-01T01:00:00", y: 10 }],
+          },
+          { id: "ANRs", data: [{ id: "a1", x: "2026-02-01T01:00:00", y: 1 }] },
+        ]}
+      />,
+    );
 
     const datum = lastLineProps.data[0].data[0];
     const tooltip = lastLineProps.tooltip({
@@ -228,18 +163,18 @@ describe("AppHealthPlot", () => {
   });
 
   it("uses fallback color for unknown series id", () => {
-    useFiltersStore.setState({ filters });
-    mockUseAppHealthPlotQuery.mockReturnValue({
-      data: [
-        {
-          id: "Sessions",
-          data: [{ id: "s1", x: "2026-02-01T01:00:00", y: 10 }],
-        },
-      ],
-      status: "success",
-      error: null,
-    });
-    render(<AppHealthPlot />);
+    render(
+      <AppHealthPlot
+        {...plotDates}
+        status="success"
+        plot={[
+          {
+            id: "Sessions",
+            data: [{ id: "s1", x: "2026-02-01T01:00:00", y: 10 }],
+          },
+        ]}
+      />,
+    );
 
     expect(lastLineProps.colors({ id: "Unknown" })).toBe("#888");
     expect(lastLineProps.pointBorderColor({ seriesId: "Unknown" })).toBe(
@@ -249,34 +184,30 @@ describe("AppHealthPlot", () => {
 
   it("hides stale chart while new range data is loading", () => {
     // First render with data
-    useFiltersStore.setState({ filters });
-    mockUseAppHealthPlotQuery.mockReturnValue({
-      data: [
-        {
-          id: "Sessions",
-          data: [{ id: "s1", x: "2026-02-01T01:00:00", y: 10 }],
-        },
-      ],
-      status: "success",
-      error: null,
-    });
-    const { unmount } = render(<AppHealthPlot />);
+    const { unmount } = render(
+      <AppHealthPlot
+        {...plotDates}
+        status="success"
+        plot={[
+          {
+            id: "Sessions",
+            data: [{ id: "s1", x: "2026-02-01T01:00:00", y: 10 }],
+          },
+        ]}
+      />,
+    );
     expect(screen.getByTestId("line-mock")).toBeInTheDocument();
     unmount();
 
     // New range, data loading
-    const newFilters = {
-      ...filters,
-      startDate: "2026-02-01T00:00:00Z",
-      endDate: "2026-02-01T03:00:00Z",
-    };
-    useFiltersStore.setState({ filters: newFilters });
-    mockUseAppHealthPlotQuery.mockReturnValue({
-      data: undefined,
-      status: "pending",
-      error: null,
-    });
-    render(<AppHealthPlot />);
+    render(
+      <AppHealthPlot
+        startDate="2026-02-01T00:00:00Z"
+        endDate="2026-02-01T03:00:00Z"
+        status="pending"
+        plot={undefined}
+      />,
+    );
 
     expect(screen.getByText("loading")).toBeInTheDocument();
     expect(screen.queryByTestId("line-mock")).not.toBeInTheDocument();

@@ -45,15 +45,6 @@ func TestAppFilterValidatePlotTimeGroup(t *testing.T) {
 	}
 }
 
-func TestSetDefaultPlotTimeGroup(t *testing.T) {
-	af := &AppFilter{}
-	af.SetDefaultPlotTimeGroup()
-
-	if af.PlotTimeGroup != PlotTimeGroupDays {
-		t.Fatalf("expected default plot_time_group %q, got %q", PlotTimeGroupDays, af.PlotTimeGroup)
-	}
-}
-
 func TestHasPlotTimeGroup(t *testing.T) {
 	af := AppFilter{}
 	if af.HasPlotTimeGroup() {

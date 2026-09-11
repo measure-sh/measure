@@ -114,12 +114,6 @@ func (v Versions) Codes() []string {
 	return v.codes
 }
 
-// HasVersions returns true if at least
-// 1 (version, code) pair exists.
-func (v Versions) HasVersions() bool {
-	return len(v.names) > 0
-}
-
 // IsValidSemver determines if all version names
 // adhere to semver specification.
 func (v Versions) IsValidSemver() bool {
@@ -168,26 +162,4 @@ func compareNumeric(a, b string) int {
 		}
 	}
 	return 0
-}
-
-// exclude figures out the set of excluded versions
-// from sets of all versions and sets of selected
-// versions.
-func exclude(allV, allC, selV, selC []string) (versions Versions) {
-	selCount := make(map[string]int)
-	for i := range selV {
-		key := selV[i] + "\x00" + selC[i]
-		selCount[key]++
-	}
-
-	for i := range allV {
-		key := allV[i] + "\x00" + allC[i]
-		if selCount[key] > 0 {
-			selCount[key]--
-			continue
-		}
-		versions.Add(allV[i], allC[i])
-	}
-
-	return
 }

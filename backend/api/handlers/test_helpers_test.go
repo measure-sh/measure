@@ -147,6 +147,10 @@ func seedGenericEvents(ctx context.Context, t *testing.T, teamID, appID string, 
 	th.SeedGenericEvents(ctx, t, teamID, appID, count, ts)
 }
 
+func seedBuildSize(ctx context.Context, t *testing.T, appID uuid.UUID, versionName, versionCode string, buildSize int) {
+	th.SeedBuildSize(ctx, t, appID.String(), versionName, versionCode, buildSize, "apk")
+}
+
 func seedAppMetrics(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time, genericCount, crashCount, anrCount int) {
 	th.SeedAppMetrics(ctx, t, teamID, appID, ts, genericCount, crashCount, anrCount)
 }

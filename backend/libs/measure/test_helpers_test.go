@@ -155,6 +155,10 @@ func seedBuildMappingRow(
 	th.SeedBuildMappingRow(ctx, t, mappingID.String(), appID.String(), versionName, versionCode, mappingType, fmt.Sprintf("test/%s", mappingID), patchID, patchVersion, lastUpdated)
 }
 
+func seedBuildSize(ctx context.Context, t *testing.T, appID uuid.UUID, versionName, versionCode string, buildSize int) {
+	th.SeedBuildSize(ctx, t, appID.String(), versionName, versionCode, buildSize, "apk")
+}
+
 func seedGenericEvents(ctx context.Context, t *testing.T, teamID, appID string, count int, ts time.Time) {
 	th.SeedGenericEvents(ctx, t, teamID, appID, count, ts)
 }

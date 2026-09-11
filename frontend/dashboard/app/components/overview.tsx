@@ -1,78 +1,112 @@
 "use client";
 
-import { FilterSource } from "@/app/api/api_calls";
-import Filters, {
-  AppVersionsInitialSelectionType,
-} from "@/app/components/filters";
-import MetricsOverview from "@/app/components/metrics_overview";
-import AppHealthPlot from "@/app/components/app_health_plot";
-import { Skeleton, SkeletonPlot } from "@/app/components/skeleton";
-import { useFiltersStore } from "@/app/stores/provider";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { defaultAppThresholdPrefs, emptyMetrics } from "@/app/api/api_calls";
+import { filterExprIssuesIn } from "@/app/api/api_error";
+import AppHealthPlot, { demoPlot } from "@/app/components/app_health_plot";
+import FilterBar from "@/app/components/filter_bar/filter_bar";
+import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
+import MetricsOverview, {
+  demoMetrics,
+} from "@/app/components/metrics_overview";
+import { SkeletonListPage } from "@/app/components/skeleton";
+import {
+  useAppHealthPlotQuery,
+  useAppThresholdPrefsQuery,
+  useMetricsQuery,
+} from "@/app/query/hooks";
 
-interface OverviewProps {
-  params?: { teamId: string };
-  demo?: boolean;
-  hideDemoTitle?: boolean;
-}
-
-export default function Overview({
-  params = { teamId: "demo-team-id" },
-  demo = false,
-  hideDemoTitle = false,
-}: OverviewProps) {
-  const router = useRouter();
-  const teamId = params?.teamId ?? "demo-team";
-  const filters = useFiltersStore((state) => state.filters);
-
-  useEffect(() => {
-    if (!filters.ready) {
-      return;
-    }
-
-    // update url
-    router.replace(`?${filters.serialisedFilters!}`, { scroll: false });
-  }, [filters.ready, filters.serialisedFilters]);
-
+export function OverviewDemo({ hideTitle = false }: { hideTitle?: boolean }) {
   return (
     <div className="flex flex-col items-start">
       <p className="font-display text-4xl max-w-6xl text-center">
-        {demo ? (hideDemoTitle ? "" : "App Health") : ""}
+        {hideTitle ? "" : "App Health"}
       </p>
+      {!hideTitle && <div className="py-4" />}
+      <div className="py-8" />
+
+      <AppHealthPlot status="success" plot={demoPlot} startDate="" endDate="" />
+      <div className="py-8" />
+      <MetricsOverview
+        status="success"
+        metrics={demoMetrics}
+        appThresholdPrefs={defaultAppThresholdPrefs}
+        gapClassName="gap-x-12 gap-y-16"
+      />
+    </div>
+  );
+}
+
+export default function Overview({ params }: { params: { teamId: string } }) {
+  const { teamId } = params;
+  const {
+    value,
+    apps,
+    keys,
+    keyGroups,
+    keysUnavailable,
+    status: filterStatus,
+    filterParams,
+    onChange,
+  } = useExprFilterPage({ teamId, entity: "app_health" });
+  const readyValue = filterStatus.kind === "ready" ? value : null;
+
+  const metricsQuery = useMetricsQuery(filterParams);
+  const healthPlotQuery = useAppHealthPlotQuery(filterParams);
+  const thresholdPrefsQuery = useAppThresholdPrefsQuery(readyValue?.app.id);
+
+  const filterExprIssues =
+    filterExprIssuesIn(metricsQuery.error) ??
+    filterExprIssuesIn(healthPlotQuery.error);
+
+  const metrics = metricsQuery.data ?? emptyMetrics;
+  const appThresholdPrefs =
+    thresholdPrefsQuery.data ?? defaultAppThresholdPrefs;
+
+  return (
+    <div className="flex flex-col items-start">
       <div className="py-4" />
 
-      {!demo && (
-        <Filters
-          teamId={teamId}
-          filterSource={FilterSource.Events}
-          appVersionsInitialSelectionType={
-            AppVersionsInitialSelectionType.Latest
-          }
-        />
-      )}
+      <FilterBar
+        entity="app_health"
+        placeholder="Filter by app version…"
+        value={value}
+        apps={apps}
+        keys={keys}
+        keyGroups={keyGroups}
+        keysUnavailable={keysUnavailable}
+        filterExprIssues={filterExprIssues}
+        onChange={onChange}
+      />
 
-      <div className="py-2" />
-
-      {!demo && filters.loading && (
+      {filterStatus.kind === "error" && (
         <>
-          <div className="flex font-body items-center justify-center w-full h-96">
-            <SkeletonPlot />
-          </div>
-          <div className="py-8" />
-          <div className="flex flex-wrap gap-16 w-full justify-center">
-            {Array.from({ length: 9 }).map((_, i) => (
-              <Skeleton key={i} className="w-full md:w-75 h-40" />
-            ))}
-          </div>
+          <div className="py-4" />
+          <p className="text-lg font-display">{filterStatus.message}</p>
         </>
       )}
 
-      {(demo || filters.ready) && (
+      {filterStatus.kind === "loading" && (
         <>
-          <AppHealthPlot demo={demo} />
+          <div className="py-4" />
+          <SkeletonListPage />
+        </>
+      )}
+
+      {readyValue !== null && (
+        <>
           <div className="py-8" />
-          <MetricsOverview demo={demo} />
+          <AppHealthPlot
+            status={healthPlotQuery.status}
+            plot={healthPlotQuery.data}
+            startDate={readyValue.date.startDate}
+            endDate={readyValue.date.endDate}
+          />
+          <div className="py-8" />
+          <MetricsOverview
+            status={metricsQuery.status}
+            metrics={metrics}
+            appThresholdPrefs={appThresholdPrefs}
+          />
         </>
       )}
     </div>

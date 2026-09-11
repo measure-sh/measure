@@ -238,76 +238,18 @@ func journeyIssues(nodeIssues []journey.Issue, titles map[string]string) (issues
 
 func (h Handlers) GetAppMetrics(c *gin.Context) {
 	deps := h.Deps
-	ctx := c.Request.Context()
-	id, err := uuid.Parse(c.Param("id"))
-	if err != nil {
-		msg := `app id invalid or missing`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": msg,
-		})
+	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
+		entity:   exprfilter.AppHealthEntity,
+		appScope: *measure.ScopeAppRead,
+		logRoot:  logcomment.Metrics,
+		logName:  "metrics",
+	})
+	if !ok {
 		return
 	}
 
-	af := filter.AppFilter{
-		AppID: id,
-		Limit: filter.DefaultPaginationLimit,
-	}
-
-	if err := c.ShouldBindQuery(&af); err != nil {
-		msg := `failed to parse app metrics request`
-		fmt.Println(msg, err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if err := af.Expand(ctx, deps.PgPool); err != nil {
-		msg := `failed to expand filters`
-		fmt.Println(msg, err)
-		status := http.StatusInternalServerError
-		if errors.Is(err, pgx.ErrNoRows) {
-			status = http.StatusNotFound
-		}
-		c.JSON(status, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	msg := `app metrics request validation failed`
-
-	if err := af.Validate(); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 {
-		if err := af.ValidateVersions(); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-	}
-
-	if !af.HasTimeRange() {
-		af.SetDefaultTimeRange()
-	}
-
-	app := measure.App{
-		ID: &id,
-	}
-
+	// Which metrics are read depends on the app's OS family and onboarded
+	// state, which only the app row carries.
 	if err := app.Populate(ctx, deps.PgPool); err != nil {
 		msg := `failed to fetch app details`
 		fmt.Println(msg, err)
@@ -325,61 +267,24 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 		return
 	}
 
-	team := &measure.Team{
-		ID: &app.TeamId,
-	}
-
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	if !okTeam || !okApp {
-		msg := `you are not authorized to access this app`
-		c.JSON(http.StatusForbidden, gin.H{"error": msg})
-		return
-	}
-
-	ctx = ambient.WithTeamId(ctx, app.TeamId)
-
-	excludedVersions, err := af.GetExcludedVersions(ctx, deps.RchPool)
-	if err != nil {
-		msg := `failed to fetch excluded versions`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
 	var metricsGroup errgroup.Group
 
 	// each go routine isolates log comment &
 	// clickhouse settings for safe concurrency
 
-	var adoption *metrics.SessionAdoption
-	metricsGroup.Go(func() (err error) {
+	metricsSettings := func(name string) context.Context {
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
 			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
 			"use_query_cache": gin.Mode() == gin.ReleaseMode,
 			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 		}
-		ctx := chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "adoption"))
+		return chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, name))
+	}
 
-		adoption, err = app.GetAdoptionMetrics(ctx, deps.RchPool, &af)
+	var adoption *metrics.SessionAdoption
+	metricsGroup.Go(func() (err error) {
+		adoption, err = app.GetAdoptionMetrics(metricsSettings("adoption"), deps.RchPool, &ef)
 		if err != nil {
 			err = fmt.Errorf("failed to fetch adoption metrics: %w", err)
 		}
@@ -391,15 +296,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 	var anrFree *metrics.ANRFreeSession
 	var perceivedANRFree *metrics.PerceivedANRFreeSession
 	metricsGroup.Go(func() (err error) {
-		lc := logcomment.New(2)
-		settings := clickhouse.Settings{
-			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
-			"use_query_cache": gin.Mode() == gin.ReleaseMode,
-			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
-		}
-		ctx := chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "issue_free"))
-
-		crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err = app.GetIssueFreeMetrics(ctx, deps.RchPool, &af)
+		crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err = app.GetIssueFreeMetrics(metricsSettings("issue_free"), deps.RchPool, &ef)
 		if err != nil {
 			err = fmt.Errorf("failed to fetch issue free metrics: %w", err)
 		}
@@ -408,41 +305,23 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 
 	var launch *metrics.LaunchMetric
 	metricsGroup.Go(func() (err error) {
-		lc := logcomment.New(2)
-		settings := clickhouse.Settings{
-			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
-			"use_query_cache": gin.Mode() == gin.ReleaseMode,
-			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
-		}
-		ctx := chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "launch"))
-
-		launch, err = app.GetLaunchMetrics(ctx, deps.RchPool, &af)
+		launch, err = app.GetLaunchMetrics(metricsSettings("launch"), deps.RchPool, &ef)
 		if err != nil {
 			err = fmt.Errorf("failed to fetch launch metrics: %w", err)
 		}
 		return
 	})
 
-	var sizes *metrics.SizeMetric = nil
-	if len(af.Versions) > 0 || len(af.VersionCodes) > 0 && !af.HasMultiVersions() {
-		metricsGroup.Go(func() (err error) {
-			lc := logcomment.New(2)
-			settings := clickhouse.Settings{
-				"log_comment":     lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
-				"use_query_cache": gin.Mode() == gin.ReleaseMode,
-				"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
-			}
-			ctx := chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "sizes"))
+	var sizes *metrics.SizeMetric
+	metricsGroup.Go(func() (err error) {
+		sizes, err = app.GetSizeMetrics(metricsSettings("sizes"), deps.PgPool, deps.RchPool, &ef)
+		if err != nil {
+			err = fmt.Errorf("failed to fetch size metrics: %w", err)
+		}
+		return
+	})
 
-			sizes, err = app.GetSizeMetrics(ctx, deps.PgPool, &af, excludedVersions)
-			if err != nil {
-				err = fmt.Errorf("failed to fetch size metrics: %w", err)
-			}
-			return
-		})
-	}
-
-	if err = metricsGroup.Wait(); err != nil {
+	if err := metricsGroup.Wait(); err != nil {
 		err = fmt.Errorf("failed to fetch metrics: %w", err)
 		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{

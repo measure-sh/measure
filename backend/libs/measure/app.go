@@ -792,41 +792,104 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 	return
 }
 
-// GetSizeMetrics computes app size of the selected app version
-// and delta size change between app size of the selected app version
-// and average size of unselected app versions.
-//
-// Computation bails out if there are no events for selected app
-// version.
-func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, af *filter.AppFilter, versions filter.Versions) (size *metrics.SizeMetric, err error) {
-	size = &metrics.SizeMetric{}
+// versionPair is one (version_name, version_code) combination the app has
+// rows for in the queried time range.
+type versionPair struct {
+	name string
+	code string
+}
 
-	// bail out if app has not been onboarded
-	if !a.Onboarded {
-		size.SetNoData()
-		return
+// splitVersions lists the app versions the filter matches, most recently seen
+// first, and the ones it leaves out, reading the version dimension of the
+// app_metrics rollup. Builds active in the same fifteen-minute bucket tie on
+// last activity, and the version tuple decides between them.
+func (a App) splitVersions(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (selected, unselected []versionPair, err error) {
+	predicate, err := ef.Predicate(nil)
+	if err != nil {
+		return nil, nil, err
 	}
+	defer predicate.Close()
+
+	stmt := sqlf.From(config.AppMetricsTable).
+		Select("tupleElement(app_version, 1) as version_name").
+		Select("tupleElement(app_version, 2) as version_code").
+		Select("("+predicate.String()+") as matched", predicate.Args()...).
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", ef.AppID).
+		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To).
+		GroupBy("app_version").
+		OrderBy("max(timestamp) desc, app_version desc")
+	defer stmt.Close()
+
+	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var pair versionPair
+		var matched bool
+		if err := rows.Scan(&pair.name, &pair.code, &matched); err != nil {
+			return nil, nil, err
+		}
+		if matched {
+			selected = append(selected, pair)
+		} else {
+			unselected = append(unselected, pair)
+		}
+	}
+
+	return selected, unselected, rows.Err()
+}
+
+// GetSizeMetrics computes the download size of the app version the filter
+// selects and its difference from the average size of the app's other builds.
+// A size belongs to a single build, so nothing is returned unless the filter
+// narrows the app to one version name; a version with several builds in the
+// range reports its most recently seen build. When no other build exists, the
+// average covers every build of the app.
+func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, rch driver.Conn, ef *exprfilter.ExprFilter) (size *metrics.SizeMetric, err error) {
+	if !ef.HasFilterExpr() {
+		return nil, nil
+	}
+
+	if !a.Onboarded {
+		size = &metrics.SizeMetric{}
+		size.SetNoData()
+		return size, nil
+	}
+
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
+
+	selected, unselected, err := a.splitVersions(ctx, rch, ef)
+	if err != nil {
+		return nil, err
+	}
+	if len(selected) == 0 {
+		return nil, nil
+	}
+	for _, pair := range selected[1:] {
+		if pair.name != selected[0].name {
+			return nil, nil
+		}
+	}
+	shown := selected[0]
+	others := append(selected[1:], unselected...)
 
 	avgSizeStmt := sqlf.PostgreSQL.
 		From("build_sizes").
 		Select("round(coalesce(avg(build_size), 2), 0) as average_size").
-		Where("app_id = ?", af.AppID)
+		Where("app_id = ?", ef.AppID)
 
-	if versions.HasVersions() {
-		var names []any
-		var codes []any
-
-		for _, v := range versions.Versions() {
-			names = append(names, v)
+	if len(others) > 0 {
+		placeholders := make([]string, len(others))
+		args := make([]any, 0, len(others)*2)
+		for i, pair := range others {
+			placeholders[i] = "(?, ?)"
+			args = append(args, pair.name, pair.code)
 		}
-
-		for _, v := range versions.Codes() {
-			codes = append(codes, v)
-		}
-
-		avgSizeStmt.
-			Where("version_name").In(names...).
-			Where("version_code").In(codes...)
+		avgSizeStmt.Where("(version_name, version_code) in ("+strings.Join(placeholders, ", ")+")", args...)
 	}
 
 	sizeStmt := sqlf.PostgreSQL.
@@ -835,21 +898,21 @@ func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, af *filter.Ap
 		Select("t2.build_size as selected_app_size").
 		Select("(t2.build_size - t1.average_size) as delta").
 		From("avg_size as t1 cross join build_sizes as t2").
-		Where("app_id = ?", af.AppID).
-		Where("version_name = ?", af.Versions[0]).
-		Where("version_code = ?", af.VersionCodes[0])
+		Where("app_id = ?", ef.AppID).
+		Where("version_name = ?", shown.name).
+		Where("version_code = ?", shown.code)
 
 	defer sizeStmt.Close()
 
+	size = &metrics.SizeMetric{}
 	if err := pg.QueryRow(ctx, sizeStmt.String(), sizeStmt.Args()...).Scan(&size.AverageAppSize, &size.SelectedAppSize, &size.Delta); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, nil
-		} else {
-			return nil, err
 		}
+		return nil, err
 	}
 
-	return
+	return size, nil
 }
 
 // GetIssueFreeMetrics computes crash and anr free sessions
@@ -863,7 +926,7 @@ func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, af *filter.Ap
 func (a App) GetIssueFreeMetrics(
 	ctx context.Context,
 	rch driver.Conn,
-	af *filter.AppFilter,
+	ef *exprfilter.ExprFilter,
 ) (
 	crashFree *metrics.CrashFreeSession,
 	perceivedCrashFree *metrics.PerceivedCrashFreeSession,
@@ -881,34 +944,37 @@ func (a App) GetIssueFreeMetrics(
 		perceivedANRFree = &metrics.PerceivedANRFreeSession{}
 	}
 
-	selectedVersions, err := af.VersionPairs()
+	predicate, err := appMetricsPredicate(ef)
 	if err != nil {
 		return
 	}
+	if predicate != nil {
+		defer predicate.Close()
+	}
 
-	stmt := sqlf.From(config.AppMetricsTable).
-		Select("uniqMergeIf(unique_sessions, app_version in (?)) as selected_sessions", selectedVersions.Parameterize()).
-		Select("uniqMergeIf(unique_sessions, app_version not in (?)) as unselected_sessions", selectedVersions.Parameterize()).
-		Select("uniqMergeIf(crash_sessions, app_version in (?)) as selected_crash_sessions", selectedVersions.Parameterize()).
-		Select("uniqMergeIf(crash_sessions, app_version not in (?)) as unselected_crash_sessions", selectedVersions.Parameterize()).
-		Select("uniqMergeIf(perceived_crash_sessions, app_version in (?)) as selected_perceived_crash_sessions", selectedVersions.Parameterize()).
-		Select("uniqMergeIf(perceived_crash_sessions, app_version not in (?)) as unselected_perceived_crash_sessions", selectedVersions.Parameterize())
+	stmt := sqlf.From(config.AppMetricsTable)
+	defer stmt.Close()
 
+	columns := []string{"unique_sessions", "crash_sessions", "perceived_crash_sessions"}
 	switch a.Family() {
 	case opsys.Android:
-		stmt.
-			Select("uniqMergeIf(anr_sessions, app_version in (?)) as selected_anr_sessions", selectedVersions.Parameterize()).
-			Select("uniqMergeIf(anr_sessions, app_version not in (?)) as unselected_anr_sessions", selectedVersions.Parameterize()).
-			Select("uniqMergeIf(perceived_anr_sessions, app_version in (?)) as selected_perceived_anr_sessions", selectedVersions.Parameterize()).
-			Select("uniqMergeIf(perceived_anr_sessions, app_version not in (?)) as unselected_perceived_anr_sessions", selectedVersions.Parameterize())
+		columns = append(columns, "anr_sessions", "perceived_anr_sessions")
+	}
+
+	for _, column := range columns {
+		if predicate == nil {
+			stmt.Select("uniqMerge(" + column + ") as selected_" + column)
+			stmt.Select("toUInt64(0) as unselected_" + column)
+			continue
+		}
+		stmt.Select("uniqMergeIf("+column+", "+predicate.String()+") as selected_"+column, predicate.Args()...)
+		stmt.Select("uniqMergeIf("+column+", not ("+predicate.String()+")) as unselected_"+column, predicate.Args()...)
 	}
 
 	stmt.
 		Where("team_id = toUUID(?)", a.TeamId).
-		Where("app_id = toUUID(?)", af.AppID).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-
-	defer stmt.Close()
+		Where("app_id = toUUID(?)", ef.AppID).
+		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To)
 
 	var (
 		selected, unselected                             uint64
@@ -988,25 +1054,45 @@ func (a App) GetIssueFreeMetrics(
 	return
 }
 
-// GetAdoptionMetrics computes adoption by computing sessions
-// for selected versions and sessions of all versions for an app.
-func (a App) GetAdoptionMetrics(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (adoption *metrics.SessionAdoption, err error) {
+// appMetricsPredicate writes the filter as a boolean expression over the
+// app_metrics columns, or nil when the request carried no filter expression
+// and every row of the app counts as selected.
+func appMetricsPredicate(ef *exprfilter.ExprFilter) (*sqlf.Stmt, error) {
+	if !ef.HasFilterExpr() {
+		return nil, nil
+	}
+	return ef.Predicate(nil)
+}
+
+// GetAdoptionMetrics computes adoption by comparing the sessions of the
+// selected app versions against the sessions of every version of the app.
+func (a App) GetAdoptionMetrics(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (adoption *metrics.SessionAdoption, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	adoption = &metrics.SessionAdoption{}
-	selectedVersions, err := af.VersionPairs()
+
+	predicate, err := appMetricsPredicate(ef)
 	if err != nil {
 		return
 	}
+	if predicate != nil {
+		defer predicate.Close()
+	}
 
-	stmt := sqlf.From(config.AppMetricsTable).
-		Select("uniqMergeIf(unique_sessions, app_version in (?)) as selected_sessions", selectedVersions.Parameterize()).
+	stmt := sqlf.From(config.AppMetricsTable)
+	defer stmt.Close()
+
+	if predicate == nil {
+		stmt.Select("uniqMerge(unique_sessions) as selected_sessions")
+	} else {
+		stmt.Select("uniqMergeIf(unique_sessions, "+predicate.String()+") as selected_sessions", predicate.Args()...)
+	}
+
+	stmt.
 		Select("uniqMerge(unique_sessions) as all_sessions").
 		Select("round((selected_sessions / all_sessions) * 100, 2) as adoption").
 		Where("team_id = toUUID(?)", a.TeamId).
-		Where("app_id = toUUID(?)", af.AppID).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-
-	defer stmt.Close()
+		Where("app_id = toUUID(?)", ef.AppID).
+		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To)
 
 	if err = rch.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&adoption.SelectedVersion, &adoption.AllVersions, &adoption.Adoption); err != nil {
 		return
@@ -1017,38 +1103,47 @@ func (a App) GetAdoptionMetrics(ctx context.Context, rch driver.Conn, af *filter
 	return
 }
 
-// GetLaunchMetrics computes cold, warm and hot launch quantiles
-// while respecting all applicable app filters. Each quantile is
-// computed twice: once over the selected app versions and once
-// over the unselected app versions.
-func (a App) GetLaunchMetrics(ctx context.Context, rch driver.Conn, af *filter.AppFilter) (launch *metrics.LaunchMetric, err error) {
+// GetLaunchMetrics computes the cold, warm and hot launch p95 quantiles twice:
+// once over the app versions the filter selects and once over the versions it
+// leaves out. A quantile merged over no rows comes back as NaN, which the
+// no-data flags then record.
+func (a App) GetLaunchMetrics(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (launch *metrics.LaunchMetric, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	launch = &metrics.LaunchMetric{}
 
-	selectedVersions, err := af.VersionPairs()
+	predicate, err := appMetricsPredicate(ef)
+	if err != nil {
+		return
+	}
+	if predicate != nil {
+		defer predicate.Close()
+	}
 
-	withStmt := sqlf.From(config.AppMetricsTable).
-		Select("quantileMergeIf(0.95)(cold_launch_p95, app_version not in (?)) as cold_launch_p95", selectedVersions.Parameterize()).
-		Select("quantileMergeIf(0.95)(warm_launch_p95, app_version not in (?)) as warm_launch_p95", selectedVersions.Parameterize()).
-		Select("quantileMergeIf(0.95)(hot_launch_p95, app_version not in (?)) as hot_launch_p95", selectedVersions.Parameterize()).
-		Where("app_id = toUUID(?)", af.AppID).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-
-	defer withStmt.Close()
-
-	stmt := sqlf.New(fmt.Sprintf("with (%s) as unselected select", withStmt.String()), withStmt.Args()...).
-		Select("round(quantileMergeIf(0.95)(cold_launch_p95, app_version in (?)), 2) as selected_cold_launch_p95", selectedVersions.Parameterize()).
-		Select("round(quantileMergeIf(0.95)(warm_launch_p95, app_version in (?)), 2) as selected_warm_launch_p95", selectedVersions.Parameterize()).
-		Select("round(quantileMergeIf(0.95)(hot_launch_p95, app_version in (?)), 2) as selected_hot_launch_p95", selectedVersions.Parameterize()).
-		Select("round(unselected.cold_launch_p95, 2) as unselected_cold_launch_p95").
-		Select("round(unselected.warm_launch_p95, 2) as unselected_warm_launch_p95").
-		Select("round(unselected.hot_launch_p95, 2) as unselected_hot_launch_p95").
-		From(config.AppMetricsTable).
-		Where("team_id = toUUID(?)", a.TeamId).
-		Where("app_id = toUUID(?)", af.AppID).
-		Where("timestamp >= ? and timestamp <= ?", af.From, af.To)
-
+	stmt := sqlf.From(config.AppMetricsTable)
 	defer stmt.Close()
+
+	columns := []string{"cold_launch_p95", "warm_launch_p95", "hot_launch_p95"}
+
+	for _, column := range columns {
+		if predicate == nil {
+			stmt.Select("round(quantileMerge(0.95)(" + column + "), 2) as selected_" + column)
+			continue
+		}
+		stmt.Select("round(quantileMergeIf(0.95)("+column+", "+predicate.String()+"), 2) as selected_"+column, predicate.Args()...)
+	}
+
+	for _, column := range columns {
+		if predicate == nil {
+			stmt.Select("nan as unselected_" + column)
+			continue
+		}
+		stmt.Select("round(quantileMergeIf(0.95)("+column+", not ("+predicate.String()+")), 2) as unselected_"+column, predicate.Args()...)
+	}
+
+	stmt.
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", ef.AppID).
+		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To)
 
 	if err = rch.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
 		&launch.ColdLaunchP95,

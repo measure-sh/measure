@@ -83,7 +83,6 @@ import { ApiError } from "@/app/api/api_error";
 import { apiClient } from "@/app/api/api_client";
 import { queryClient } from "@/app/query/query_client";
 import type { FilterOptionsData } from "@/app/stores/filters_store";
-import { useFiltersStore } from "@/app/stores/provider";
 import {
   Query,
   keepPreviousData,
@@ -443,12 +442,24 @@ function parseDistributionPlot(resultData: any) {
 
 // ─── Metrics ─────────────────────────────────────────────────────────────
 
-export function useMetricsQuery() {
-  const filters = useFiltersStore((s) => s.filters);
+export function useMetricsQuery(params: FilterParams | null) {
   return useQuery({
-    queryKey: ["metrics", filters.serialisedFilters] as const,
-    queryFn: () => fetchMetricsFromServer(filters),
-    enabled: filters.ready,
+    queryKey: [
+      "metrics",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+    ] as const,
+    queryFn: () =>
+      fetchMetricsFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+      ),
+    enabled: params !== null,
+    retry: false,
   });
 }
 
@@ -710,12 +721,24 @@ export function useSessionReplayOverviewPlotQuery(params: FilterParams | null) {
   });
 }
 
-export function useAppHealthPlotQuery() {
-  const filters = useFiltersStore((s) => s.filters);
+export function useAppHealthPlotQuery(params: FilterParams | null) {
   return useQuery({
-    queryKey: ["appHealthPlot", filters.serialisedFilters] as const,
-    queryFn: () => fetchAppHealthPlotFromServer(filters),
-    enabled: filters.ready,
+    queryKey: [
+      "appHealthPlot",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+    ] as const,
+    queryFn: () =>
+      fetchAppHealthPlotFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+      ),
+    enabled: params !== null,
+    retry: false,
   });
 }
 

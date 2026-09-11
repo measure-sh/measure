@@ -1882,12 +1882,11 @@ func TestMCPGetAppHealthOverTime(t *testing.T) {
 		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_app_health_over_time", map[string]any{
-			"app_id":        appID.String(),
-			"timezone":      "UTC",
-			"versions":      []string{"v1"},
-			"version_codes": []string{"1"},
-			"from":          now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
-			"to":            now.Format(time.RFC3339),
+			"app_id":      appID.String(),
+			"timezone":    "UTC",
+			"filter_expr": "version_name:in:v1 AND version_code:in:1",
+			"from":        now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
+			"to":          now.Format(time.RFC3339),
 		})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
@@ -1923,6 +1922,73 @@ func TestMCPGetAppHealthOverTime(t *testing.T) {
 		}
 		if got := sumInstances("anrs"); got != 1 {
 			t.Errorf("anrs = %d, want 1", got)
+		}
+	})
+
+	t.Run("invalid filter_expr returns the issue", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "healthbadexpr@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "healthbadexpr team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := "msr_healthbadexpr"
+		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+
+		resp := callMCPTool(t, rawToken, "get_app_health_over_time", map[string]any{
+			"app_id":      appID.String(),
+			"timezone":    "UTC",
+			"filter_expr": "os_name:in:android",
+		})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for a key the entity does not have")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "filter_expr is invalid") || !strings.Contains(text, "os_name") {
+			t.Errorf("error text %q should name the unknown key", text)
+		}
+	})
+
+	t.Run("a filter expression narrows the series", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "healthnarrow@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "healthnarrow team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+
+		now := time.Now().UTC()
+		// The seed helpers tag every event with app_version v1 / build 1.
+		seedAppMetrics(ctx, t, teamID.String(), appID.String(), now.Add(-time.Hour), 5, 2, 1)
+
+		rawToken := "msr_healthnarrow"
+		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+
+		resp := callMCPTool(t, rawToken, "get_app_health_over_time", map[string]any{
+			"app_id":      appID.String(),
+			"timezone":    "UTC",
+			"filter_expr": "version_name:in:v2 AND version_code:in:2",
+			"from":        now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
+			"to":          now.Format(time.RFC3339),
+		})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+
+		content := extractTextContent(t, resp)
+		var result map[string][]struct {
+			Instances uint64 `json:"instances"`
+		}
+		if err := json.Unmarshal([]byte(content), &result); err != nil {
+			t.Fatalf("response is not the expected JSON object: %v\ncontent: %s", err, content)
+		}
+		for _, series := range []string{"sessions", "crashes", "anrs"} {
+			if len(result[series]) != 0 {
+				t.Errorf("%s = %v, want nothing for an unseeded version", series, result[series])
+			}
 		}
 	})
 }
@@ -2817,6 +2883,20 @@ func TestMCPGetFilterValues(t *testing.T) {
 func TestMCPGetMetrics(t *testing.T) {
 	ctx := context.Background()
 
+	setupMetricsApp := func(t *testing.T, email, token string) (uuid.UUID, uuid.UUID, string) {
+		t.Helper()
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), email)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, email+" team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		seedMCPAccessToken(ctx, t, token, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		return teamID, appID, token
+	}
+
 	t.Run("missing app_id", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
@@ -2831,16 +2911,7 @@ func TestMCPGetMetrics(t *testing.T) {
 	})
 
 	t.Run("malformed from date", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "metbad@mcp.test")
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "metbad team")
-		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
-		appID := uuid.New()
-		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_metbadtok"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		_, appID, rawToken := setupMetricsApp(t, "metbad@mcp.test", "msr_metbadtok")
 
 		resp := callMCPTool(t, rawToken, "get_metrics", map[string]any{
 			"app_id": appID.String(),
@@ -2852,16 +2923,7 @@ func TestMCPGetMetrics(t *testing.T) {
 	})
 
 	t.Run("malformed to date", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "metbad2@mcp.test")
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "metbad2 team")
-		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
-		appID := uuid.New()
-		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_metbad2tok"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		_, appID, rawToken := setupMetricsApp(t, "metbad2@mcp.test", "msr_metbad2tok")
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_metrics", map[string]any{
@@ -2874,120 +2936,89 @@ func TestMCPGetMetrics(t *testing.T) {
 		}
 	})
 
-	t.Run("valid call", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "metrics2@mcp.test")
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "metrics team")
-		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
-		appID := uuid.New()
-		seedApp(ctx, t, appID, teamID, 30)
+	t.Run("invalid filter_expr returns the issue", func(t *testing.T) {
+		_, appID, rawToken := setupMetricsApp(t, "metbadexpr@mcp.test", "msr_metbadexpr")
 
-		rawToken := "msr_metricstok2"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		resp := callMCPTool(t, rawToken, "get_metrics", map[string]any{
+			"app_id":      appID.String(),
+			"filter_expr": "os_name:in:android",
+		})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for a key the entity does not have")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "filter_expr is invalid") || !strings.Contains(text, "os_name") {
+			t.Errorf("error text %q should name the unknown key", text)
+		}
+	})
+
+	t.Run("no filter expression covers every version", func(t *testing.T) {
+		teamID, appID, rawToken := setupMetricsApp(t, "metall@mcp.test", "msr_metalltok")
 
 		now := time.Now().UTC()
+		ts := now.Add(-time.Hour)
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 3, testinfra.EventRow{AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{AppVersion: "v2", AppBuild: "2", Timestamp: ts})
+
 		resp := callMCPTool(t, rawToken, "get_metrics", map[string]any{
-			"app_id":        appID.String(),
-			"from":          now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
-			"to":            now.Format(time.RFC3339),
-			"versions":      []string{"1.0.0"},
-			"version_codes": []string{"1"},
+			"app_id": appID.String(),
+			"from":   now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
+			"to":     now.Format(time.RFC3339),
 		})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+
+		var result struct {
+			Adoption struct {
+				AllVersions     uint64  `json:"all_versions"`
+				SelectedVersion uint64  `json:"selected_version"`
+				Adoption        float64 `json:"adoption"`
+			} `json:"adoption"`
+			Sizes any `json:"sizes"`
 		}
 		content := extractTextContent(t, resp)
-		var result map[string]any
 		if err := json.Unmarshal([]byte(content), &result); err != nil {
-			t.Errorf("response is not JSON object: %v\ncontent: %s", err, content)
+			t.Fatalf("response is not JSON object: %v\ncontent: %s", err, content)
+		}
+		if result.Adoption.SelectedVersion != 4 || result.Adoption.AllVersions != 4 || result.Adoption.Adoption != 100 {
+			t.Errorf("adoption = %+v, want 4 of 4 at 100%%", result.Adoption)
+		}
+		if result.Sizes != nil {
+			t.Errorf("sizes = %v, want none without a filter expression", result.Sizes)
 		}
 	})
 
-	t.Run("with all common filter fields", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "metallf@mcp.test")
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "metallf team")
-		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
-		appID := uuid.New()
-		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_metallfiltok"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+	t.Run("a filter expression narrows the metrics", func(t *testing.T) {
+		teamID, appID, rawToken := setupMetricsApp(t, "metnarrow@mcp.test", "msr_metnarrowtok")
 
 		now := time.Now().UTC()
+		ts := now.Add(-time.Hour)
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 3, testinfra.EventRow{AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{AppVersion: "v2", AppBuild: "2", Timestamp: ts})
+
 		resp := callMCPTool(t, rawToken, "get_metrics", map[string]any{
-			"app_id":               appID.String(),
-			"from":                 now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
-			"to":                   now.Format(time.RFC3339),
-			"versions":             []string{"1.0.0"},
-			"version_codes":        []string{"1"},
-			"os_names":             []string{"android"},
-			"os_versions":          []string{"14"},
-			"countries":            []string{"US"},
-			"network_providers":    []string{"Verizon"},
-			"network_types":        []string{"wifi"},
-			"network_generations":  []string{"4g"},
-			"locales":              []string{"en_US"},
-			"device_manufacturers": []string{"Google"},
-			"device_names":         []string{"Pixel 6"},
+			"app_id":      appID.String(),
+			"filter_expr": "version_name:in:v1 AND version_code:in:1",
+			"from":        now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
+			"to":          now.Format(time.RFC3339),
 		})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
-	})
 
-	t.Run("limit 0 defaults to 10", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "metlim0@mcp.test")
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "metlim0 team")
-		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
-		appID := uuid.New()
-		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_metlim0"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
-
-		now := time.Now().UTC()
-		resp := callMCPTool(t, rawToken, "get_metrics", map[string]any{
-			"app_id":        appID.String(),
-			"limit":         0,
-			"from":          now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
-			"to":            now.Format(time.RFC3339),
-			"versions":      []string{"1.0.0"},
-			"version_codes": []string{"1"},
-		})
-		if isToolError(resp) {
-			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		var result struct {
+			Adoption struct {
+				AllVersions     uint64  `json:"all_versions"`
+				SelectedVersion uint64  `json:"selected_version"`
+				Adoption        float64 `json:"adoption"`
+			} `json:"adoption"`
 		}
-	})
-
-	t.Run("limit exceeding max capped to 30", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "metlimmax@mcp.test")
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "metlimmax team")
-		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
-		appID := uuid.New()
-		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_metlimmax"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
-
-		now := time.Now().UTC()
-		resp := callMCPTool(t, rawToken, "get_metrics", map[string]any{
-			"app_id":        appID.String(),
-			"limit":         500,
-			"from":          now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
-			"to":            now.Format(time.RFC3339),
-			"versions":      []string{"1.0.0"},
-			"version_codes": []string{"1"},
-		})
-		if isToolError(resp) {
-			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		content := extractTextContent(t, resp)
+		if err := json.Unmarshal([]byte(content), &result); err != nil {
+			t.Fatalf("response is not JSON object: %v\ncontent: %s", err, content)
+		}
+		if result.Adoption.SelectedVersion != 3 || result.Adoption.AllVersions != 4 || result.Adoption.Adoption != 75 {
+			t.Errorf("adoption = %+v, want 3 of 4 at 75%%", result.Adoption)
 		}
 	})
 }

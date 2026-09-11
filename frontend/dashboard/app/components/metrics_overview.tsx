@@ -1,12 +1,10 @@
 "use client";
 
-import { useAppThresholdPrefsQuery, useMetricsQuery } from "@/app/query/hooks";
-import { useFiltersStore } from "@/app/stores/provider";
 import React from "react";
 import { defaultAppThresholdPrefs, emptyMetrics } from "../api/api_calls";
-import MetricsCard from "./metrics_card";
+import MetricsCard, { MetricsCardStatus } from "./metrics_card";
 
-const demoMetrics = {
+export const demoMetrics = {
   adoption: {
     all_versions: 10000000,
     selected_version: 4100000,
@@ -64,26 +62,23 @@ const demoMetrics = {
 };
 
 interface MetricsOverviewProps {
-  demo?: boolean;
+  status: MetricsCardStatus;
+  metrics: typeof emptyMetrics;
+  appThresholdPrefs: typeof defaultAppThresholdPrefs;
+  gapClassName?: string;
 }
 
-const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
-  const filters = useFiltersStore((state) => state.filters);
-  const metricsQuery = useMetricsQuery();
-  const thresholdPrefsQuery = useAppThresholdPrefsQuery(filters.app?.id);
-
-  const metricsStatus = demo ? "success" : metricsQuery.status;
-  const metrics = demo ? demoMetrics : (metricsQuery.data ?? emptyMetrics);
-  const appThresholdPrefs =
-    thresholdPrefsQuery.data ?? defaultAppThresholdPrefs;
-
+const MetricsOverview: React.FC<MetricsOverviewProps> = ({
+  status,
+  metrics,
+  appThresholdPrefs,
+  gapClassName = "gap-16",
+}) => {
   return (
-    <div
-      className={`flex flex-wrap ${demo ? "gap-x-12 gap-y-16" : "gap-16"} w-full justify-center`}
-    >
+    <div className={`flex flex-wrap ${gapClassName} w-full justify-center`}>
       <MetricsCard
         type="app_adoption"
-        status={metricsStatus}
+        status={status}
         noData={metrics.adoption.no_data}
         value={metrics.adoption.adoption}
         sessions={metrics.adoption.selected_version}
@@ -92,7 +87,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
 
       <MetricsCard
         type="crash_free_sessions"
-        status={metricsStatus}
+        status={status}
         noData={metrics.crash_free_sessions.no_data}
         value={metrics.crash_free_sessions.crash_free_sessions}
         unselectedValue={
@@ -105,7 +100,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
 
       <MetricsCard
         type="perceived_crash_free_sessions"
-        status={metricsStatus}
+        status={status}
         noData={metrics.perceived_crash_free_sessions.no_data}
         value={
           metrics.perceived_crash_free_sessions.perceived_crash_free_sessions
@@ -122,7 +117,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
       {metrics.anr_free_sessions && (
         <MetricsCard
           type="anr_free_sessions"
-          status={metricsStatus}
+          status={status}
           noData={metrics.anr_free_sessions.no_data}
           value={metrics.anr_free_sessions.anr_free_sessions}
           unselectedValue={
@@ -137,7 +132,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
       {metrics.perceived_anr_free_sessions && (
         <MetricsCard
           type="perceived_anr_free_sessions"
-          status={metricsStatus}
+          status={status}
           noData={metrics.perceived_anr_free_sessions.no_data}
           value={
             metrics.perceived_anr_free_sessions.perceived_anr_free_sessions
@@ -154,7 +149,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
 
       <MetricsCard
         type="app_start_time"
-        status={metricsStatus}
+        status={status}
         launchType="Cold"
         noData={metrics.cold_launch.no_data}
         noComparison={metrics.cold_launch.unselected_no_data}
@@ -164,7 +159,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
 
       <MetricsCard
         type="app_start_time"
-        status={metricsStatus}
+        status={status}
         launchType="Warm"
         noData={metrics.warm_launch.no_data}
         noComparison={metrics.warm_launch.unselected_no_data}
@@ -174,7 +169,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
 
       <MetricsCard
         type="app_start_time"
-        status={metricsStatus}
+        status={status}
         launchType="Hot"
         noData={metrics.hot_launch.no_data}
         noComparison={metrics.hot_launch.unselected_no_data}
@@ -182,17 +177,14 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({ demo = false }) => {
         unselectedValue={metrics.hot_launch.unselected_p95}
       />
 
-      {/* show app size metrics only on single app version selection && only when app size is available */}
-      {metrics.sizes !== null && (
-        <MetricsCard
-          type="app_size"
-          status={metricsStatus}
-          multiVersion={filters.versions.selected.length > 1}
-          noData={metrics.sizes.no_data}
-          valueInBytes={metrics.sizes.selected_app_size}
-          deltaInBytes={metrics.sizes.delta}
-        />
-      )}
+      <MetricsCard
+        type="app_size"
+        status={status}
+        multiVersion={metrics.sizes === null}
+        noData={metrics.sizes?.no_data ?? false}
+        valueInBytes={metrics.sizes?.selected_app_size ?? 0}
+        deltaInBytes={metrics.sizes?.delta ?? 0}
+      />
     </div>
   );
 };

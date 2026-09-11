@@ -8,6 +8,7 @@ import (
 
 	"backend/libs/ambient"
 	"backend/libs/event"
+	"backend/libs/exprfilter"
 	"backend/libs/filter"
 )
 
@@ -87,11 +88,9 @@ func TestGetIssueFreeMetricsExcludesHandled(t *testing.T) {
 	seedIssueEventWithSeverity(f.ctx, t, team, app, "", "fatal", ts)
 	seedIssueEventWithSeverity(f.ctx, t, team, app, "", "handled", ts)
 
-	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
-	af.Versions = []string{"v1"}
-	af.VersionCodes = []string{"1"}
+	ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, "version_name:in:v1 AND version_code:in:1")
 
-	crashFree, _, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, af)
+	crashFree, _, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, ef)
 	if err != nil {
 		t.Fatalf("GetIssueFreeMetrics: %v", err)
 	}

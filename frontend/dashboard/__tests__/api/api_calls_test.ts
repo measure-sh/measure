@@ -480,41 +480,43 @@ describe("fetchFiltersFromServer", () => {
   });
 });
 
-// ========================================================================
-// Functions that use applyGenericFiltersToUrl
-// ========================================================================
-describe("fetch functions that use applyGenericFiltersToUrl", () => {
-  it("fetchMetricsFromServer adds filter_short_code from filterShortCodePromise", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({ metric: 1 }));
-    await fetchMetricsFromServer(makeFilters());
-    const url = lastFetchUrl();
-    expect(url).toContain("/api/apps/app-a/metrics");
-    expect(url).toContain("filter_short_code=code-123");
-    expect(url).toContain("from=");
-    expect(url).toContain("to=");
-  });
-
-  it("fetchMetricsFromServer does not add filter_short_code when promise resolves to null", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
-    await fetchMetricsFromServer(
-      makeFilters({ filterShortCodePromise: Promise.resolve(null) }),
+describe("fetchMetricsFromServer", () => {
+  const call = (filterExpr: string | null = null) =>
+    fetchMetricsFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      filterExpr,
     );
-    expect(lastFetchUrl()).not.toContain("filter_short_code");
+
+  it("sends the range and timezone in the URL", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ metric: 1 }));
+    await call();
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/metrics");
+    expect(url.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    expect(url.searchParams.has("filter_expr")).toBe(false);
   });
 
-  it.each([["fetchMetricsFromServer", fetchMetricsFromServer]])(
-    "%s: returns data, throws on failure",
-    async (_name, fn) => {
-      mockApiClientFetch.mockResolvedValueOnce(successResponse({ a: 1 }));
-      expect(await (fn as any)(makeFilters())).toEqual({ a: 1 });
+  it("sends the filter expression when one is given", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
+    await call("version_name:in:[1.2.0]");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("filter_expr")).toBe("version_name:in:[1.2.0]");
+  });
 
-      mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-      await expect((fn as any)(makeFilters())).rejects.toThrow(ApiError);
+  it("returns data, throws on failure", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ a: 1 }));
+    expect(await call()).toEqual({ a: 1 });
 
-      mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-      await expect((fn as any)(makeFilters())).rejects.toThrow(RequestError);
-    },
-  );
+    mockApiClientFetch.mockResolvedValueOnce(errorResponse());
+    await expect(call()).rejects.toThrow(ApiError);
+
+    mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
+    await expect(call()).rejects.toThrow(RequestError);
+  });
 });
 
 describe("fetchSessionReplayOverviewFromServer", () => {
@@ -668,28 +670,64 @@ describe("fetchAppHealthPlotFromServer", () => {
       ]),
     );
 
-    const r = await fetchAppHealthPlotFromServer(makeFilters());
+    const r = await fetchAppHealthPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      null,
+    );
     expect(r?.map((s: any) => s.id)).toEqual(["Sessions", "Crashes", "ANRs"]);
   });
 
-  it("hits the health plots endpoint", async () => {
+  it("sends the range, timezone and time group in the URL", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    await fetchAppHealthPlotFromServer(makeFilters());
-    expect(mockApiClientFetch.mock.calls[0][0]).toContain(
-      "/health/plots/instances",
+    await fetchAppHealthPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      null,
     );
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/health/plots/instances");
+    expect(url.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    expect(url.searchParams.get("plot_time_group")).toBe("days");
+    expect(url.searchParams.has("filter_expr")).toBe(false);
+  });
+
+  it("sends the filter expression when one is given", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
+    await fetchAppHealthPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      "version_name:in:[1.2.0]",
+    );
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("filter_expr")).toBe("version_name:in:[1.2.0]");
   });
 
   it("throws when the fetch returns a non-ok response", async () => {
     mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    await expect(fetchAppHealthPlotFromServer(makeFilters())).rejects.toThrow(
-      ApiError,
-    );
+    await expect(
+      fetchAppHealthPlotFromServer(
+        "app-a",
+        "2026-04-01T00:00:00.000Z",
+        "2026-04-10T00:00:00.000Z",
+        null,
+      ),
+    ).rejects.toThrow(ApiError);
   });
 
   it("returns null when the response body is null", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    const r = await fetchAppHealthPlotFromServer(makeFilters());
+    const r = await fetchAppHealthPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      null,
+    );
     expect(r).toBeNull();
   });
 
@@ -701,7 +739,12 @@ describe("fetchAppHealthPlotFromServer", () => {
         { id: "anrs", data: [{ datetime: "2026-01-01", instances: 0 }] },
       ]),
     );
-    const r = await fetchAppHealthPlotFromServer(makeFilters());
+    const r = await fetchAppHealthPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      null,
+    );
     expect(r).toBeNull();
   });
 
@@ -713,7 +756,12 @@ describe("fetchAppHealthPlotFromServer", () => {
         { id: "anrs", data: [{ datetime: "2026-01-01", instances: 0 }] },
       ]),
     );
-    const r = await fetchAppHealthPlotFromServer(makeFilters());
+    const r = await fetchAppHealthPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      null,
+    );
     expect(r?.map((s: any) => s.id)).toEqual(["Sessions", "Crashes"]);
   });
 
@@ -731,7 +779,12 @@ describe("fetchAppHealthPlotFromServer", () => {
         { id: "anrs", data: [] },
       ]),
     );
-    const r = await fetchAppHealthPlotFromServer(makeFilters());
+    const r = await fetchAppHealthPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      null,
+    );
     const sessions = r?.find((s: any) => s.id === "Sessions");
     expect(sessions?.data.map((p: any) => p.y)).toEqual([0, 100]);
   });
@@ -744,7 +797,12 @@ describe("fetchAppHealthPlotFromServer", () => {
         { id: "anrs", data: [{ datetime: "2026-01-01", instances: 1 }] },
       ]),
     );
-    const r = await fetchAppHealthPlotFromServer(makeFilters());
+    const r = await fetchAppHealthPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      null,
+    );
     expect(r).toHaveLength(3);
     for (const series of r!) {
       expect(series.data).toHaveLength(1);
@@ -773,7 +831,12 @@ describe("fetchAppHealthPlotFromServer", () => {
         { id: "anrs", data: [{ datetime: "2026-01-02", instances: 1 }] },
       ]),
     );
-    const r = await fetchAppHealthPlotFromServer(makeFilters());
+    const r = await fetchAppHealthPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      null,
+    );
     // Three unique dates exist across the series, so every series is padded
     // to three points with zeroes where it had no data.
     for (const series of r!) {
@@ -1375,26 +1438,6 @@ describe("billing endpoints", () => {
 });
 
 // ========================================================================
-// applyGenericFiltersToUrl — exercised via any function that uses it.
-// These tests cover the per-field append branches (span statuses, bug report
-// statuses, free text, span filters, http methods) by passing filters with
-// non-default values.
-// ========================================================================
-describe("applyGenericFiltersToUrl filter branches", () => {
-  it("appends free_text when non-empty", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
-    await fetchMetricsFromServer(makeFilters({ freeText: "search me" }));
-    expect(lastFetchUrl()).toContain("free_text=search+me");
-  });
-
-  it("URL-encodes special characters in free_text", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
-    await fetchMetricsFromServer(makeFilters({ freeText: "a&b=c?d 100%" }));
-    expect(lastFetchUrl()).toContain("free_text=a%26b%3Dc%3Fd+100%25");
-  });
-});
-
-// ========================================================================
 // Expression-filter span fetchers
 // ========================================================================
 describe("fetchSpansFromServer", () => {
@@ -1609,7 +1652,16 @@ describe("fetch functions: failure paths", () => {
           null,
         ),
     ],
-    ["fetchMetricsFromServer", () => fetchMetricsFromServer(makeFilters())],
+    [
+      "fetchMetricsFromServer",
+      () =>
+        fetchMetricsFromServer(
+          "app-a",
+          "2026-04-01T00:00:00.000Z",
+          "2026-04-10T00:00:00.000Z",
+          null,
+        ),
+    ],
     [
       "fetchSessionReplayOverviewFromServer",
       () =>
@@ -1809,9 +1861,14 @@ describe("mutation functions: failure paths", () => {
 describe("additional branch coverage", () => {
   it("fetchAppHealthPlotFromServer throws when the fetch throws", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("network down"));
-    await expect(fetchAppHealthPlotFromServer(makeFilters())).rejects.toThrow(
-      RequestError,
-    );
+    await expect(
+      fetchAppHealthPlotFromServer(
+        "app-a",
+        "2026-04-01T00:00:00.000Z",
+        "2026-04-10T00:00:00.000Z",
+        null,
+      ),
+    ).rejects.toThrow(RequestError);
   });
 
   it("fetchUsageFromServer returns null on 404", async () => {

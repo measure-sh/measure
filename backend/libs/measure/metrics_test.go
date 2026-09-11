@@ -6,7 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"backend/libs/filter"
+	"backend/libs/exprfilter"
+	"backend/libs/metrics"
 	"backend/testinfra"
 )
 
@@ -25,11 +26,9 @@ func TestGetIssueFreeMetricsUnselected(t *testing.T) {
 	seedEventRows(f.ctx, t, team, app, 8, testinfra.EventRow{AppVersion: "v2", AppBuild: "2", Timestamp: ts})
 	seedEventRows(f.ctx, t, team, app, 2, testinfra.EventRow{Type: "exception", AppVersion: "v2", AppBuild: "2", Severity: "fatal", Timestamp: ts})
 
-	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
-	af.Versions = []string{"v1"}
-	af.VersionCodes = []string{"1"}
+	ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, "version_name:in:v1 AND version_code:in:1")
 
-	crashFree, perceivedCrashFree, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, af)
+	crashFree, perceivedCrashFree, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, ef)
 	if err != nil {
 		t.Fatalf("GetIssueFreeMetrics: %v", err)
 	}
@@ -66,11 +65,9 @@ func TestGetIssueFreeMetricsUnselectedNoData(t *testing.T) {
 	seedEventRows(f.ctx, t, team, app, 9, testinfra.EventRow{AppVersion: "v1", AppBuild: "1", Timestamp: ts})
 	seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{Type: "exception", AppVersion: "v1", AppBuild: "1", Severity: "fatal", Timestamp: ts})
 
-	af := f.appFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
-	af.Versions = []string{"v1"}
-	af.VersionCodes = []string{"1"}
+	ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, "version_name:in:v1 AND version_code:in:1")
 
-	crashFree, perceivedCrashFree, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, af)
+	crashFree, perceivedCrashFree, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, ef)
 	if err != nil {
 		t.Fatalf("GetIssueFreeMetrics: %v", err)
 	}
@@ -84,4 +81,141 @@ func TestGetIssueFreeMetricsUnselectedNoData(t *testing.T) {
 	if !perceivedCrashFree.UnselectedNoData {
 		t.Error("perceivedCrashFree.UnselectedNoData = false, want true")
 	}
+}
+
+// With no filter expression every row is selected, so the selected side
+// covers the whole app and the unselected side has no sessions to compute a
+// percentage from.
+func TestGetIssueFreeMetricsWithoutFilterExpr(t *testing.T) {
+	f := newPlotFixture(t)
+	ts := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
+	team, app := f.teamIDStr(), f.appIDStr()
+
+	seedEventRows(f.ctx, t, team, app, 8, testinfra.EventRow{AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+	seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{Type: "exception", AppVersion: "v1", AppBuild: "1", Severity: "fatal", Timestamp: ts})
+	seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{Type: "exception", AppVersion: "v2", AppBuild: "2", Severity: "fatal", Timestamp: ts})
+
+	ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, "")
+
+	crashFree, _, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, ef)
+	if err != nil {
+		t.Fatalf("GetIssueFreeMetrics: %v", err)
+	}
+
+	// 10 sessions across both versions, 2 of them crashed.
+	if want := 80.0; crashFree.CrashFreeSessions != want {
+		t.Errorf("crashFree.CrashFreeSessions = %v, want %v", crashFree.CrashFreeSessions, want)
+	}
+	if !crashFree.UnselectedNoData {
+		t.Error("crashFree.UnselectedNoData = false, want true")
+	}
+}
+
+// Adoption compares the selected versions against every version of the app,
+// so an unfiltered request adopts the whole app.
+func TestGetAdoptionMetrics(t *testing.T) {
+	f := newPlotFixture(t)
+	ts := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
+	team, app := f.teamIDStr(), f.appIDStr()
+
+	seedEventRows(f.ctx, t, team, app, 3, testinfra.EventRow{AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+	seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{AppVersion: "v2", AppBuild: "2", Timestamp: ts})
+
+	adopt := func(t *testing.T, filterExpr string) *metrics.SessionAdoption {
+		t.Helper()
+		ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, filterExpr)
+		adoption, err := f.app.GetAdoptionMetrics(f.ctx, deps.RchPool, ef)
+		if err != nil {
+			t.Fatalf("GetAdoptionMetrics: %v", err)
+		}
+		return adoption
+	}
+
+	t.Run("no filter expression adopts every version", func(t *testing.T) {
+		adoption := adopt(t, "")
+		if adoption.SelectedVersion != 4 || adoption.AllVersions != 4 || adoption.Adoption != 100 {
+			t.Errorf("adoption = %+v, want 4 of 4 at 100%%", adoption)
+		}
+	})
+
+	t.Run("a filter expression adopts the selected version", func(t *testing.T) {
+		adoption := adopt(t, "version_name:in:v1 AND version_code:in:1")
+		if adoption.SelectedVersion != 3 || adoption.AllVersions != 4 || adoption.Adoption != 75 {
+			t.Errorf("adoption = %+v, want 3 of 4 at 75%%", adoption)
+		}
+	})
+}
+
+// App size is a property of one build, so it is reported only when the filter
+// narrows the app to a single version name, and then for that version's most
+// recent build.
+func TestGetSizeMetrics(t *testing.T) {
+	f := newPlotFixture(t)
+	ts := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
+	team, app := f.teamIDStr(), f.appIDStr()
+
+	seedTeam(f.ctx, t, f.teamID, testTeamName)
+	seedApp(f.ctx, t, f.appID, f.teamID, 90)
+	onboarded := App{ID: &f.appID, TeamId: f.teamID, Onboarded: true}
+
+	seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+	seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{AppVersion: "v2", AppBuild: "2", Timestamp: ts})
+	seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{AppVersion: "v3", AppBuild: "3", Timestamp: ts})
+
+	seedBuildSize(f.ctx, t, f.appID, "v1", "1", 1000)
+	seedBuildSize(f.ctx, t, f.appID, "v2", "2", 2000)
+	seedBuildSize(f.ctx, t, f.appID, "v3", "3", 4000)
+
+	size := func(t *testing.T, filterExpr string) *metrics.SizeMetric {
+		t.Helper()
+		ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, filterExpr)
+		size, err := onboarded.GetSizeMetrics(f.ctx, deps.PgPool, deps.RchPool, ef)
+		if err != nil {
+			t.Fatalf("GetSizeMetrics: %v", err)
+		}
+		return size
+	}
+
+	t.Run("one selected version is compared against the rest", func(t *testing.T) {
+		got := size(t, "version_name:in:v1 AND version_code:in:1")
+		if got == nil {
+			t.Fatal("want a size for a single selected version")
+		}
+		// v2 and v3 average 3000.
+		if got.SelectedAppSize != 1000 || got.AverageAppSize != 3000 || got.Delta != -2000 {
+			t.Errorf("size = %+v, want 1000 against an average of 3000", got)
+		}
+	})
+
+	t.Run("more than one selected version name has no size", func(t *testing.T) {
+		if got := size(t, "version_name:in:[v1,v2]"); got != nil {
+			t.Errorf("size = %+v, want none for two selected version names", got)
+		}
+	})
+
+	t.Run("a version name with several builds reports its most recent build", func(t *testing.T) {
+		seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{AppVersion: "v1", AppBuild: "2", Timestamp: ts.Add(30 * time.Minute)})
+		seedBuildSize(f.ctx, t, f.appID, "v1", "2", 1500)
+
+		got := size(t, "version_name:in:v1")
+		if got == nil {
+			t.Fatal("want a size for a single selected version name")
+		}
+		// The older v1 build joins v2 and v3 in the average: (1000 + 2000 + 4000) / 3.
+		if got.SelectedAppSize != 1500 || got.AverageAppSize != 2333 || got.Delta != -833 {
+			t.Errorf("size = %+v, want 1500 against an average of 2333", got)
+		}
+	})
+
+	t.Run("no filter expression has no size", func(t *testing.T) {
+		if got := size(t, ""); got != nil {
+			t.Errorf("size = %+v, want none without a filter expression", got)
+		}
+	})
+
+	t.Run("a version with no rows has no size", func(t *testing.T) {
+		if got := size(t, "version_name:in:v9"); got != nil {
+			t.Errorf("size = %+v, want none for an unknown version", got)
+		}
+	})
 }
