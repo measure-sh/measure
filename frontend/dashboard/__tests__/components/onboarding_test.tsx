@@ -214,12 +214,6 @@ import Onboarding from "@/app/components/onboarding";
 
 // --- Helpers ---
 
-const mockInitConfig: any = {
-  urlFilters: {},
-  appVersionsInitialSelectionType: 0,
-  filterSource: 0,
-};
-
 function makeApp(overrides: Partial<MockApp> = {}): MockApp {
   return {
     id: "app-1",
@@ -240,10 +234,7 @@ const {
 function renderOnboarding(props: Partial<{ teamId: string }> = {}) {
   return render(
     <RenderQCProvider client={renderQueryClient}>
-      <Onboarding
-        teamId={props.teamId ?? "team-1"}
-        initConfig={mockInitConfig}
-      />
+      <Onboarding teamId={props.teamId ?? "team-1"} />
     </RenderQCProvider>,
   );
 }
@@ -1786,7 +1777,7 @@ describe("Onboarding — Persistence", () => {
       );
       render(
         <React.StrictMode>
-          <Onboarding teamId="team-1" initConfig={mockInitConfig} />
+          <Onboarding teamId="team-1" />
         </React.StrictMode>,
       );
       const stored = window.localStorage.getItem(STORAGE_KEY);
@@ -1807,7 +1798,7 @@ describe("Onboarding — Persistence", () => {
         }),
       );
       const { rerender } = renderOnboarding();
-      rerender(<Onboarding teamId="team-1" initConfig={mockInitConfig} />);
+      rerender(<Onboarding teamId="team-1" />);
       const stored = window.localStorage.getItem(STORAGE_KEY);
       const parsed = JSON.parse(stored!);
       expect(parsed.step).toBe("verify");
