@@ -78,6 +78,7 @@ export default function BugReportsOverview(props: {
 
       <FilterBar
         entity="bug_reports"
+        teamId={params.teamId}
         placeholder="Filter bug reports…"
         value={value}
         apps={apps}
@@ -85,6 +86,7 @@ export default function BugReportsOverview(props: {
         keyGroups={keyGroups}
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
+        status={filterStatus}
         onChange={onChange}
       />
       <div className="py-4" />

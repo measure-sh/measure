@@ -68,6 +68,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
       <FilterBar
         entity="app_health"
+        teamId={teamId}
         placeholder="Filter by app version…"
         value={value}
         apps={apps}
@@ -75,6 +76,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         keyGroups={keyGroups}
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
+        status={filterStatus}
         onChange={onChange}
       />
 

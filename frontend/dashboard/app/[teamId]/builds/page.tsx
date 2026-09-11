@@ -28,6 +28,7 @@ export default function Builds(props: { params: Promise<{ teamId: string }> }) {
     teamId: params.teamId,
     entity: "builds",
     paginationLimit: PAGINATION_LIMIT,
+    onboarding: false,
   });
 
   const buildsQuery = useBuildsQuery(filterParams, paginationOffset);
@@ -40,6 +41,7 @@ export default function Builds(props: { params: Promise<{ teamId: string }> }) {
 
       <FilterBar
         entity="builds"
+        teamId={params.teamId}
         placeholder="Filter builds…"
         value={value}
         apps={apps}
@@ -47,6 +49,7 @@ export default function Builds(props: { params: Promise<{ teamId: string }> }) {
         keyGroups={keyGroups}
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
+        status={status}
         onChange={onChange}
       />
       <div className="py-4" />

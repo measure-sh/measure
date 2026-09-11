@@ -43,9 +43,8 @@ export default function BuildsResults({
         <p className="text-lg font-display">{status.message}</p>
       )}
 
-      {status.kind !== "error" && query.status === "pending" && (
-        <SkeletonListPage />
-      )}
+      {(status.kind === "loading" || status.kind === "ready") &&
+        query.status === "pending" && <SkeletonListPage />}
 
       {query.status === "error" && !filterExprHasIssues && (
         <p className="text-lg font-display">

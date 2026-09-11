@@ -129,8 +129,8 @@ jest.mock("@/app/utils/time_utils", () => ({
 import AlertsOverview from "@/app/[teamId]/alerts/page";
 
 const mockApps = [
-  { id: "app-1", name: "Sample" },
-  { id: "app-2", name: "Second" },
+  { id: "app-1", name: "Sample", onboarded: true },
+  { id: "app-2", name: "Second", onboarded: true },
 ];
 
 const mockAlertResult = {

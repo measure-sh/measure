@@ -129,7 +129,7 @@ import NetworkOverview, {
 } from "@/app/components/network_overview";
 import { ApiError, invalidFilterExpr } from "@/app/api/api_error";
 
-const mockApp = { id: "app-1", name: "Sample" };
+const mockApp = { id: "app-1", name: "Sample", onboarded: true };
 
 const httpMethodKey = {
   name: "http_method",

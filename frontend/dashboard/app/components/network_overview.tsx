@@ -246,6 +246,7 @@ export default function NetworkOverview({
 
       <FilterBar
         entity="network"
+        teamId={teamId}
         placeholder="Filter network requests…"
         value={value}
         apps={apps}
@@ -253,6 +254,7 @@ export default function NetworkOverview({
         keyGroups={keyGroups}
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
+        status={filterStatus}
         onChange={onChange}
       />
 

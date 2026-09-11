@@ -144,7 +144,7 @@ jest.mock("@/app/utils/time_utils", () => ({
 
 import TracesOverview from "@/app/[teamId]/traces/page";
 
-const mockApp = { id: "app-1", name: "Sample" };
+const mockApp = { id: "app-1", name: "Sample", onboarded: true };
 
 const spanStatusKey = {
   name: "span_status",

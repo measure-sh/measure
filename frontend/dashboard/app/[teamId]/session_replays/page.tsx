@@ -78,6 +78,7 @@ export default function SessionReplayOverview(props: {
 
       <FilterBar
         entity="sessions"
+        teamId={params.teamId}
         placeholder="Filter sessions…"
         value={value}
         apps={apps}
@@ -85,6 +86,7 @@ export default function SessionReplayOverview(props: {
         keyGroups={keyGroups}
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
+        status={filterStatus}
         onChange={onChange}
       />
       <div className="py-4" />

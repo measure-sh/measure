@@ -92,6 +92,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
 
       <FilterBar
         entity="errors"
+        teamId={teamId}
         placeholder="Filter errors…"
         value={value}
         apps={apps}
@@ -99,6 +100,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
         keyGroups={keyGroups}
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
+        status={filterStatus}
         onChange={onChange}
       />
       <div className="py-4" />

@@ -145,8 +145,8 @@ jest.mock("@/app/components/debounce_text_input", () => ({
 import UserJourneysPage from "@/app/[teamId]/journeys/page";
 import { ApiError, invalidFilterExpr } from "@/app/api/api_error";
 
-const mockApp = { id: "app-1", name: "Sample" };
-const mockOtherApp = { id: "app-2", name: "Other" };
+const mockApp = { id: "app-1", name: "Sample", onboarded: true };
+const mockOtherApp = { id: "app-2", name: "Other", onboarded: true };
 
 const versionKey = {
   name: "version_name",

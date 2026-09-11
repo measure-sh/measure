@@ -79,6 +79,7 @@ export default function TracesOverview(props: {
 
       <FilterBar
         entity="spans"
+        teamId={params.teamId}
         placeholder="Filter traces…"
         value={value}
         apps={apps}
@@ -87,6 +88,7 @@ export default function TracesOverview(props: {
         keysUnavailable={keysUnavailable}
         spanNames={spanNames}
         filterExprIssues={filterExprIssues}
+        status={filterStatus}
         onChange={onChange}
       />
       <div className="py-4" />

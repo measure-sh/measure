@@ -956,7 +956,7 @@ export default function Onboarding({ teamId }: OnboardingProps) {
               >
                 <p className="font-display text-xl">Crash received.</p>
                 <p className="font-body text-sm text-muted-foreground">
-                  Your first crash made it to Measure.
+                  First crash received!
                 </p>
                 <div>
                   <Button

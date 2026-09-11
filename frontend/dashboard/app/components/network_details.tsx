@@ -83,6 +83,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
       <div className="py-4" />
       <FilterBar
         entity="network"
+        teamId={params.teamId}
         placeholder="Filter network requests…"
         value={value}
         apps={apps}
@@ -91,6 +92,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
         showAppSelect={false}
+        status={filterStatus}
         onChange={onChange}
       />
 

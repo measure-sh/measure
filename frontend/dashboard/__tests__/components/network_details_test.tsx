@@ -113,7 +113,7 @@ jest.mock("@/app/components/network_timeline_plot", () => ({
 import NetworkDetails from "@/app/components/network_details";
 import { ApiError, invalidFilterExpr } from "@/app/api/api_error";
 
-const mockApp = { id: "app-1", name: "Sample" };
+const mockApp = { id: "app-1", name: "Sample", onboarded: true };
 
 const httpMethodKey = {
   name: "http_method",
