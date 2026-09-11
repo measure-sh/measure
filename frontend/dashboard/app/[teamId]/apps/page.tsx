@@ -1,6 +1,7 @@
 "use client";
 import {
   useAppRetentionQuery,
+  useAppsQuery,
   useAppThresholdPrefsQuery,
   useAuthzAndMembersQuery,
   useChangeAppApiKeyMutation,
@@ -12,7 +13,7 @@ import {
 import { useFiltersStore } from "@/app/stores/provider";
 
 import {
-  FilterSource,
+  type App,
   defaultAppThresholdPrefs,
   emptyAppRetention,
 } from "@/app/api/api_calls";
@@ -22,11 +23,11 @@ import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialo
 import DropdownSelect, {
   DropdownSelectType,
 } from "@/app/components/dropdown_select";
-import Filters, {
-  AppVersionsInitialSelectionType,
-} from "@/app/components/filters";
+import AppSelect from "@/app/components/filter_bar/app_select";
+import { resolveApp } from "@/app/components/filter_bar/resolve_filters";
 import InfoTooltip from "@/app/components/info_tooltip";
 import { Input } from "@/app/components/input";
+import Onboarding from "@/app/components/onboarding";
 import SdkConfigNumericInput from "@/app/components/sdk_config_numeric_input";
 import SdkConfigurator from "@/app/components/sdk_configurator";
 import { Skeleton } from "@/app/components/skeleton";
@@ -35,20 +36,22 @@ import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
 import { toastNegative, toastPositive } from "@/app/components/toast";
 import Link from "next/link";
-import { use, useRef, useState } from "react";
+import { use, useEffect, useState } from "react";
+
+const noApps: App[] = [];
 
 export default function Apps(props: { params: Promise<{ teamId: string }> }) {
   const params = use(props.params);
-  const filters = useFiltersStore((state) => state.filters);
-  const appsState = useFiltersStore((state) => state.appsState);
-  // The team has no apps yet. Render <Onboarding> through Filters, and hide
-  // the CreateApp button, so the onboarding flow is the only call to action.
-  // After the user creates an app, the apps query resolves to "loaded", and
-  // the page shows its usual app-settings layout.
-  const hasNoApps = appsState === "no-apps";
+  const rememberedAppId = useFiltersStore((state) => state.selectedApp?.id);
+  const setSelectedApp = useFiltersStore((state) => state.setSelectedApp);
 
-  // TanStack Query: reads
-  const appId = filters.ready ? filters.app?.id : undefined;
+  const appsQuery = useAppsQuery(params.teamId);
+  const apps = appsQuery.data ?? noApps;
+  // Use the app remembered from other pages, else the first in the list
+  const app = resolveApp(null, appsQuery.data, rememberedAppId);
+  // A team with no apps gets the onboarding flow instead of app settings
+  const hasNoApps = appsQuery.isSuccess && apps.length === 0;
+  const appId = app?.id;
   const { data: authzAndMembers } = useAuthzAndMembersQuery(params.teamId);
   const { data: appRetention, status: appRetentionStatus } =
     useAppRetentionQuery(appId);
@@ -73,14 +76,14 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
 
   // Derive page load status from query statuses
   const pageDataLoading =
-    filters.loading ||
-    (filters.ready &&
+    appsQuery.isPending ||
+    (app !== null &&
       (appRetentionStatus === "pending" || sdkConfigStatus === "pending"));
   const pageDataError =
-    filters.ready &&
+    app !== null &&
     (appRetentionStatus === "error" || sdkConfigStatus === "error");
   const pageDataSuccess =
-    filters.ready &&
+    app !== null &&
     appRetentionStatus === "success" &&
     sdkConfigStatus === "success" &&
     sdkConfig;
@@ -113,15 +116,18 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
     editableThresholdPrefs ?? thresholdPrefs ?? defaultAppThresholdPrefs;
   const savedThresholdPrefs = thresholdPrefs ?? defaultAppThresholdPrefs;
 
-  const filtersRef = useRef<any>(null);
+  // Write picked app to store so other pages that read from it stay in sync
+  useEffect(() => {
+    if (app !== null && app.id !== rememberedAppId) {
+      setSelectedApp(app);
+    }
+  }, [app?.id]);
 
-  // Sync the editable name input to the selected app. Keyed on name so a
-  // rename (which updates filters.app in place) re-syncs the input to the
-  // server's stored value.
+  // Reset name input whenever the selected app's name changes
   const [prevAppName, setPrevAppName] = useState<string>("");
-  if (filters.ready && filters.app && filters.app.name !== prevAppName) {
-    setPrevAppName(filters.app.name);
-    setAppName(filters.app.name);
+  if (app !== null && app.name !== prevAppName) {
+    setPrevAppName(app.name);
+    setAppName(app.name);
     setSaveAppNameButtonDisabled(true);
   }
 
@@ -129,8 +135,8 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
   // changes. Keyed on id so renaming the current app doesn't discard
   // in-progress edits.
   const [prevAppId, setPrevAppId] = useState<string>("");
-  if (filters.ready && filters.app && filters.app.id !== prevAppId) {
-    setPrevAppId(filters.app.id);
+  if (app !== null && app.id !== prevAppId) {
+    setPrevAppId(app.id);
     setUpdatedRetention(null);
     setEditableThresholdPrefs(null);
   }
@@ -205,7 +211,7 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
     }
 
     updateThresholdPrefsMutation.mutate(
-      { appId: filters.app!.id, prefs: currentThresholdPrefs },
+      { appId: app!.id, prefs: currentThresholdPrefs },
       {
         onSuccess: () => {
           setEditableThresholdPrefs(null);
@@ -220,7 +226,7 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
 
   const handleSaveAppRetention = async () => {
     updateRetentionMutation.mutate(
-      { appId: filters.app!.id, retention: currentRetention },
+      { appId: app!.id, retention: currentRetention },
       {
         onSuccess: () => {
           toastPositive("Your app settings have been saved");
@@ -234,14 +240,11 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
 
   const handleChangeAppName = async () => {
     changeAppNameMutation.mutate(
-      { appId: filters.app!.id, appName },
+      { appId: app!.id, appName },
       {
         onSuccess: () => {
           setSaveAppNameButtonDisabled(true);
           toastPositive("App name changed");
-          if (filtersRef.current?.refresh) {
-            filtersRef.current.refresh();
-          }
         },
         onError: () => {
           toastNegative("Error changing app name");
@@ -252,13 +255,10 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
 
   const handleChangeAppApiKey = async () => {
     changeAppApiKeyMutation.mutate(
-      { appId: filters.app!.id },
+      { appId: app!.id },
       {
         onSuccess: () => {
           toastPositive("API key rotated");
-          if (filtersRef.current?.refresh) {
-            filtersRef.current.refresh();
-          }
         },
         onError: () => {
           toastNegative("Error rotating API key");
@@ -281,24 +281,22 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
     <div className="flex flex-col items-start">
       <div className="py-4" />
       <div className="flex flex-row items-start gap-2 justify-between w-full">
-        <Filters
-          ref={filtersRef}
-          teamId={params.teamId}
-          filterSource={FilterSource.Events}
-          appVersionsInitialSelectionType={AppVersionsInitialSelectionType.All}
-          showNoData={false}
-          showNotOnboarded={hasNoApps}
-          showAppVersions={false}
-          showDates={false}
-        />
+        {appsQuery.isPending && <Skeleton className="h-9 w-37.5" />}
+        {appsQuery.isError && app === null && (
+          <p className="font-body text-sm">
+            Error fetching apps, please refresh page to try again
+          </p>
+        )}
+        {hasNoApps && <Onboarding teamId={params.teamId} />}
+        {app !== null && (
+          <AppSelect apps={apps} selected={app} onChange={setSelectedApp} />
+        )}
 
         {!hasNoApps && (
           <CreateApp
             teamId={params.teamId}
             disabled={!canCreateApp}
-            onSuccess={(app) => {
-              filtersRef.current?.refresh(app.id);
-            }}
+            onSuccess={setSelectedApp}
           />
         )}
       </div>
@@ -399,10 +397,8 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
             body={
               <p className="font-body">
                 Are you sure you want to rename app{" "}
-                <span className="font-display font-bold">
-                  {filters.app!.name}
-                </span>{" "}
-                to <span className="font-display font-bold">{appName}</span>?
+                <span className="font-display font-bold">{app!.name}</span> to{" "}
+                <span className="font-display font-bold">{appName}</span>?
               </p>
             }
             open={appNameConfirmationDialogOpen}
@@ -419,9 +415,7 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
             body={
               <p className="font-body">
                 Are you sure you want to rotate the API key for app{" "}
-                <span className="font-display font-bold">
-                  {filters.app!.name}
-                </span>
+                <span className="font-display font-bold">{app!.name}</span>
                 ? <br /> <br /> All apps currently using this key won&apos;t be
                 able to send data anymore until they are updated.
               </p>
@@ -441,10 +435,7 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
             body={
               <p className="font-body">
                 Are you sure you want to change the retention period for app{" "}
-                <span className="font-display font-bold">
-                  {filters.app!.name}
-                </span>{" "}
-                to{" "}
+                <span className="font-display font-bold">{app!.name}</span> to{" "}
                 <span className="font-display font-bold">
                   {currentRetention.retention} days
                 </span>
@@ -466,44 +457,33 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
 
           <div className="font-body">
             <div className="flex flex-col mt-8">
-              {filters.app!.unique_identifier &&
-                !!filters.app!.os_names?.length && (
-                  <p className="font-display text-muted-foreground">
-                    Unique Identifier
-                  </p>
-                )}
-              {filters.app!.unique_identifier &&
-                !!filters.app!.os_names?.length && (
-                  <p className="text-sm mt-0.5">
-                    {filters.app!.unique_identifier}
-                  </p>
-                )}
-              {filters.app!.unique_identifier &&
-                !!filters.app!.os_names?.length && (
-                  <p className="font-display text-muted-foreground mt-6">
-                    Operating Systems
-                  </p>
-                )}
-              {filters.app!.unique_identifier &&
-                !!filters.app!.os_names?.length && (
-                  <p className="text-sm mt-0.5">
-                    {filters.app!.os_names?.join(", ")}
-                  </p>
-                )}
-              {filters.app!.unique_identifier &&
-                !!filters.app!.os_names?.length && (
-                  <p className="font-display text-muted-foreground mt-6">
-                    Created at
-                  </p>
-                )}
-              {filters.app!.unique_identifier &&
-                !!filters.app!.os_names?.length && (
-                  <p className="text-sm mt-0.5">
-                    {formatDateToHumanReadableDateTime(filters.app!.created_at)}
-                  </p>
-                )}
-              {(!filters.app!.unique_identifier ||
-                !filters.app!.os_names?.length) && (
+              {app!.unique_identifier && !!app!.os_names?.length && (
+                <p className="font-display text-muted-foreground">
+                  Unique Identifier
+                </p>
+              )}
+              {app!.unique_identifier && !!app!.os_names?.length && (
+                <p className="text-sm mt-0.5">{app!.unique_identifier}</p>
+              )}
+              {app!.unique_identifier && !!app!.os_names?.length && (
+                <p className="font-display text-muted-foreground mt-6">
+                  Operating Systems
+                </p>
+              )}
+              {app!.unique_identifier && !!app!.os_names?.length && (
+                <p className="text-sm mt-0.5">{app!.os_names?.join(", ")}</p>
+              )}
+              {app!.unique_identifier && !!app!.os_names?.length && (
+                <p className="font-display text-muted-foreground mt-6">
+                  Created at
+                </p>
+              )}
+              {app!.unique_identifier && !!app!.os_names?.length && (
+                <p className="text-sm mt-0.5">
+                  {formatDateToHumanReadableDateTime(app!.created_at)}
+                </p>
+              )}
+              {(!app!.unique_identifier || !app!.os_names?.length) && (
                 <p className="font-body text-sm">
                   Follow our{" "}
                   <Link className={underlineLinkStyle} href="/docs">
@@ -549,14 +529,14 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
                 data-testid="api-key-input"
                 type="text"
                 readOnly={true}
-                value={filters.app!.api_key.key}
+                value={app!.api_key.key}
                 className="w-96"
               />
               <Button
                 variant="outline"
                 className="mx-4 my-3"
                 onClick={() => {
-                  navigator.clipboard.writeText(filters.app!.api_key.key);
+                  navigator.clipboard.writeText(app!.api_key.key);
                   toastPositive("API key copied to clipboard");
                 }}
               >
@@ -566,9 +546,9 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
             <div className="py-8" />
 
             <SdkConfigurator
-              appId={filters.app!.id}
-              appName={filters.app!.name}
-              osNames={filters.app!.os_names}
+              appId={app!.id}
+              appName={app!.name}
+              osNames={app!.os_names}
               initialConfig={sdkConfig!}
               currentUserCanChangeAppSettings={canWriteSdkConfig}
             />
@@ -795,7 +775,7 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
                 type="text"
                 value={appName}
                 onChange={(event) => {
-                  event.target.value === filters.app!.name
+                  event.target.value === app!.name
                     ? setSaveAppNameButtonDisabled(true)
                     : setSaveAppNameButtonDisabled(false);
                   setAppName(event.target.value);
@@ -825,7 +805,7 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
               <Input
                 type="text"
                 readOnly={true}
-                value={filters.app!.api_key.key}
+                value={app!.api_key.key}
                 className="w-96"
               />
               <Button
