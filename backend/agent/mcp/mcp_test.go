@@ -1598,7 +1598,7 @@ func TestMCPToolsList(t *testing.T) {
 	}
 
 	expectedTools := []string{
-		"list_apps", "get_filters", "get_filter_keys", "get_filter_values", "get_metrics",
+		"list_apps", "get_filter_keys", "get_filter_values", "get_metrics",
 		"get_app_health_over_time",
 		"get_errors", "get_error",
 		"get_errors_over_time", "get_error_over_time", "get_error_distribution",
@@ -2360,163 +2360,6 @@ func TestMCPGetError_ANR(t *testing.T) {
 		var events []any
 		if err := json.Unmarshal([]byte(content), &events); err != nil {
 			t.Errorf("response is not JSON array: %v\ncontent: %s", err, content)
-		}
-	})
-}
-
-func TestMCPGetFilters(t *testing.T) {
-	ctx := context.Background()
-
-	t.Run("missing app_id", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "filters@mcp.test")
-		rawToken := "msr_filterstok1"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
-
-		resp := callMCPTool(t, rawToken, "get_filters", nil)
-		if !isToolError(resp) {
-			t.Error("want tool error for missing app_id")
-		}
-	})
-
-	t.Run("invalid error_types value", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "filtbad@mcp.test")
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "filtbad team")
-		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
-		appID := uuid.New()
-		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_filtbadtok"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
-
-		resp := callMCPTool(t, rawToken, "get_filters", map[string]any{
-			"app_id":      appID.String(),
-			"error_types": []string{"bogus"},
-		})
-		if !isToolError(resp) {
-			t.Error("want tool error for invalid error_types value")
-		}
-	})
-
-	t.Run("span and error_types are mutually exclusive", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "filtmutex@mcp.test")
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "filtmutex team")
-		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
-		appID := uuid.New()
-		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_filtmutextok"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
-
-		resp := callMCPTool(t, rawToken, "get_filters", map[string]any{
-			"app_id":      appID.String(),
-			"error_types": []string{"error"},
-			"span":        true,
-		})
-		if !isToolError(resp) {
-			t.Error("want tool error when span and error_types are both set")
-		}
-	})
-
-	t.Run("builds and span are mutually exclusive", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "filtbldmutex@mcp.test")
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "filtbldmutex team")
-		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
-		appID := uuid.New()
-		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_filtbldmutextok"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
-
-		resp := callMCPTool(t, rawToken, "get_filters", map[string]any{
-			"app_id": appID.String(),
-			"builds": true,
-			"span":   true,
-		})
-		if !isToolError(resp) {
-			t.Error("want tool error when builds and span are both set")
-		}
-	})
-
-	t.Run("builds source lists versions from build mappings", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "filtbld@mcp.test")
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "filtbld team")
-		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
-		appID := uuid.New()
-		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_filtbldtok"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
-
-		// no event data seeded: build versions must surface regardless
-		now := time.Now().UTC()
-		seedBuildMappingRow(ctx, t, uuid.New().String(), appID.String(), "1.0.1", "1", "proguard", now.Add(-2*time.Hour))
-		seedBuildMappingRow(ctx, t, uuid.New().String(), appID.String(), "1.0.1", "1", "elf_debug", now.Add(-2*time.Hour))
-		seedBuildMappingRow(ctx, t, uuid.New().String(), appID.String(), "1.0.2", "2", "proguard", now.Add(-time.Hour))
-
-		resp := callMCPTool(t, rawToken, "get_filters", map[string]any{
-			"app_id": appID.String(),
-			"builds": true,
-		})
-		if isToolError(resp) {
-			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
-		}
-
-		var fl struct {
-			Versions     []string `json:"versions"`
-			VersionCodes []string `json:"version_codes"`
-			OsNames      []string `json:"os_names"`
-		}
-		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &fl); err != nil {
-			t.Fatalf("parse filters response: %v", err)
-		}
-
-		wantVersions := []string{"1.0.2", "1.0.1"}
-		wantCodes := []string{"2", "1"}
-		if !reflect.DeepEqual(fl.Versions, wantVersions) {
-			t.Errorf("want versions %v, got %v", wantVersions, fl.Versions)
-		}
-		if !reflect.DeepEqual(fl.VersionCodes, wantCodes) {
-			t.Errorf("want version codes %v, got %v", wantCodes, fl.VersionCodes)
-		}
-		if len(fl.OsNames) != 0 {
-			t.Errorf("want no os_names for builds source, got %v", fl.OsNames)
-		}
-	})
-
-	t.Run("valid call", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "filters2@mcp.test")
-		teamID := uuid.New()
-		seedTeam(ctx, t, teamID, "filters team")
-		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
-		appID := uuid.New()
-		seedApp(ctx, t, appID, teamID, 30)
-
-		rawToken := "msr_filterstok2"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
-
-		resp := callMCPTool(t, rawToken, "get_filters", map[string]any{
-			"app_id":      appID.String(),
-			"error_types": []string{"error", "anr"},
-		})
-		if isToolError(resp) {
-			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
-		}
-		content := extractTextContent(t, resp)
-		var result map[string]any
-		if err := json.Unmarshal([]byte(content), &result); err != nil {
-			t.Errorf("response is not JSON object: %v\ncontent: %s", err, content)
 		}
 	})
 }
@@ -4513,7 +4356,6 @@ func TestMCPAccessControl(t *testing.T) {
 		name string
 		args map[string]any
 	}{
-		{"get_filters", map[string]any{"app_id": appA.String()}},
 		{"get_filter_keys", map[string]any{"app_id": appA.String(), "entity": "spans"}},
 		{"get_filter_values", map[string]any{"app_id": appA.String(), "entity": "spans", "key_name": "version_name"}},
 		{"get_metrics", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
@@ -4560,7 +4402,6 @@ func TestMCPInvalidAppIDFormat(t *testing.T) {
 		name string
 		args map[string]any
 	}{
-		{"get_filters", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_filter_keys", map[string]any{"app_id": "not-a-uuid", "entity": "spans"}},
 		{"get_filter_values", map[string]any{"app_id": "not-a-uuid", "entity": "spans", "key_name": "version_name"}},
 		{"get_errors", map[string]any{"app_id": "not-a-uuid"}},

@@ -17,7 +17,6 @@ import (
 	"backend/libs/chquery"
 	"backend/libs/event"
 	"backend/libs/exprfilter"
-	"backend/libs/filter"
 	"backend/libs/group"
 	"backend/libs/measure"
 	"backend/libs/network"
@@ -408,15 +407,6 @@ func commonTools(cfg *Config) []Tool {
 			return cfg.mcpListApps(ctx, in)
 		}),
 
-		// get_filters
-		newTool(&mcpsdk.Tool{
-			Name:        "get_filters",
-			Description: "Get available filter options (versions, OS, countries, devices, etc.) for an app. Events, spans and builds are separate sources: options derive from events by default, from span data with span. The builds source lists versions only, taken from uploaded build mappings. error_types narrows the event-derived options to errors/ANRs.",
-			InputSchema: mcpMustInferErrorFilterSchema[mcpGetFiltersInput](),
-		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFiltersInput) (*mcpsdk.CallToolResult, any, error) {
-			return cfg.mcpGetFilters(ctx, in)
-		}),
-
 		// get_filter_keys
 		newTool(&mcpsdk.Tool{
 			Name:        "get_filter_keys",
@@ -741,34 +731,11 @@ func mcpMustInferSchema[T any]() json.RawMessage {
 	return json.RawMessage(data)
 }
 
-// mcpMustInferErrorFilterSchema infers the JSON schema of T and restricts
-// its error_types items to "error" and "anr".
-func mcpMustInferErrorFilterSchema[T any]() json.RawMessage {
-	schema, err := jsonschema.For[T](nil)
-	if err != nil {
-		panic("mcp: failed to infer schema: " + err.Error())
-	}
-	if p, ok := schema.Properties["error_types"]; ok && p.Items != nil {
-		p.Items.Enum = []any{string(event.ErrorTypeError), string(event.ErrorTypeANR)}
-	}
-	data, err := schema.MarshalJSON()
-	if err != nil {
-		panic("mcp: failed to marshal schema: " + err.Error())
-	}
-	return json.RawMessage(data)
-}
-
 // --------------------------------------------------------------------------
 // Tool input structs
 // --------------------------------------------------------------------------
 
 type mcpListAppsInput struct{}
-type mcpGetFiltersInput struct {
-	AppID      string   `json:"app_id" jsonschema:"UUID of the app to query"`
-	ErrorTypes []string `json:"error_types,omitempty" jsonschema:"Narrow the event-derived options to errors of these types: 'error' (exceptions) and/or 'anr'. Mutually exclusive with span and builds. Omitted, options cover all events, not only errors"`
-	Span       bool     `json:"span,omitempty" jsonschema:"Scope filter options to span data. Required for span-relevant options; omitted, options derive from event data, not spans. Mutually exclusive with error_types and builds"`
-	Builds     bool     `json:"builds,omitempty" jsonschema:"Scope filter options to uploaded builds. Required for build-relevant versions; omitted, versions derive from event data, not build mappings. Mutually exclusive with span and error_types"`
-}
 type mcpGetFilterKeysInput struct {
 	AppID  string   `json:"app_id" jsonschema:"UUID of the app to query"`
 	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health or builds"`
@@ -1188,59 +1155,6 @@ func (c *Config) mcpListApps(ctx context.Context, _ mcpListAppsInput) (*mcpsdk.C
 		apps = []appRow{}
 	}
 	data, _ := json.Marshal(apps)
-	return mcpTextResult(string(data)), nil, nil
-}
-
-func (c *Config) mcpGetFilters(ctx context.Context, in mcpGetFiltersInput) (*mcpsdk.CallToolResult, any, error) {
-	deps := c.Deps
-	appID, _, err := c.mcpResolveAppAccess(ctx, in.AppID)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	af := &filter.AppFilter{
-		AppID: appID,
-		Limit: filter.DefaultPaginationLimit,
-	}
-	af.SetDefaultTimeRange()
-
-	if in.Span && len(in.ErrorTypes) > 0 {
-		return nil, nil, fmt.Errorf("span and error_types are mutually exclusive")
-	}
-	if in.Builds && (in.Span || len(in.ErrorTypes) > 0) {
-		return nil, nil, fmt.Errorf("builds is mutually exclusive with span and error_types")
-	}
-	if in.Span {
-		af.Span = true
-	}
-	for _, t := range in.ErrorTypes {
-		errorType := event.ErrorType(t)
-		if !errorType.IsValid() {
-			return nil, nil, fmt.Errorf("error_types values must be any combination of: %s, %s", event.ErrorTypeError, event.ErrorTypeANR)
-		}
-		af.ErrorTypes = append(af.ErrorTypes, errorType)
-	}
-
-	app, err := measure.SelectApp(ctx, deps.PgPool, appID)
-	if err != nil {
-		return nil, nil, err
-	}
-	filterCtx := ambient.WithTeamId(ctx, app.TeamId)
-
-	var fl filter.FilterList
-
-	// The builds scope reads version options from uploaded build mappings;
-	// every other scope derives its options from event data.
-	if in.Builds {
-		err = af.GetBuildFilters(ctx, deps.PgPool, &fl)
-	} else {
-		err = af.GetGenericFilters(filterCtx, deps.RchPool, &fl, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode)
-	}
-
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get filters: %v", err)
-	}
-	data, _ := json.Marshal(fl)
 	return mcpTextResult(string(data)), nil, nil
 }
 

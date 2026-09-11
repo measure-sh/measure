@@ -312,29 +312,6 @@ func (s Severity) IsValid() bool {
 	}
 }
 
-// ErrorType distinguishes the two error source tables: exception events
-// (fatal + nonfatal) and ANR events. Used by the ?type query parameter to
-// route queries to the correct ClickHouse tables.
-type ErrorType string
-
-const (
-	ErrorTypeError ErrorType = "error" // all exceptions (fatal and nonfatal)
-	ErrorTypeANR   ErrorType = "anr"   // application-not-responding events
-)
-
-func (e ErrorType) String() string {
-	return string(e)
-}
-
-func (e ErrorType) IsValid() bool {
-	switch e {
-	case ErrorTypeError, ErrorTypeANR:
-		return true
-	default:
-		return false
-	}
-}
-
 // ExceptionUnitiOS represents iOS specific
 // structure to work with iOS exceptions.
 type ExceptionUnitiOS struct {

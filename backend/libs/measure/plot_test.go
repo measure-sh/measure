@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"backend/libs/exprfilter"
-	"backend/libs/filter"
 	"backend/libs/session"
 	"backend/libs/span"
 
@@ -154,7 +153,7 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 	groups := []plotCase{
 		{
 			name:  "minutes",
-			group: filter.PlotTimeGroupMinutes,
+			group: exprfilter.PlotTimeGroupMinutes,
 			timestamps: []time.Time{
 				time.Date(2026, 1, 5, 10, 15, 10, 0, time.UTC),
 				time.Date(2026, 1, 5, 10, 15, 40, 0, time.UTC),
@@ -163,7 +162,7 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 		},
 		{
 			name:  "hours",
-			group: filter.PlotTimeGroupHours,
+			group: exprfilter.PlotTimeGroupHours,
 			timestamps: []time.Time{
 				time.Date(2026, 1, 5, 10, 5, 0, 0, time.UTC),
 				time.Date(2026, 1, 5, 10, 45, 0, 0, time.UTC),
@@ -172,7 +171,7 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 		},
 		{
 			name:  "days",
-			group: filter.PlotTimeGroupDays,
+			group: exprfilter.PlotTimeGroupDays,
 			timestamps: []time.Time{
 				time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC),
 				time.Date(2026, 1, 5, 22, 0, 0, 0, time.UTC),
@@ -181,7 +180,7 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 		},
 		{
 			name:  "months",
-			group: filter.PlotTimeGroupMonths,
+			group: exprfilter.PlotTimeGroupMonths,
 			timestamps: []time.Time{
 				time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC),
 				time.Date(2026, 1, 20, 22, 0, 0, 0, time.UTC),
@@ -359,7 +358,7 @@ func TestPlotMethodsDefaultToDaysWhenPlotTimeGroupMissing(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GetSessionsInstancesPlot: %v", err)
 		}
-		assertSessionBuckets(t, items, expectedCounts([]time.Time{t1, t2}, filter.PlotTimeGroupDays, false))
+		assertSessionBuckets(t, items, expectedCounts([]time.Time{t1, t2}, exprfilter.PlotTimeGroupDays, false))
 	})
 
 	t.Run("span metrics", func(t *testing.T) {
@@ -371,7 +370,7 @@ func TestPlotMethodsDefaultToDaysWhenPlotTimeGroupMissing(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 		}
-		assertSpanBuckets(t, items, expectedUniqueBuckets([]time.Time{t1, t2}, filter.PlotTimeGroupDays, true))
+		assertSpanBuckets(t, items, expectedUniqueBuckets([]time.Time{t1, t2}, exprfilter.PlotTimeGroupDays, true))
 	})
 
 	t.Run("bug reports", func(t *testing.T) {
@@ -383,7 +382,7 @@ func TestPlotMethodsDefaultToDaysWhenPlotTimeGroupMissing(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GetBugReportInstancesPlot: %v", err)
 		}
-		assertBugReportBuckets(t, items, expectedCounts([]time.Time{t1, t2}, filter.PlotTimeGroupDays, false))
+		assertBugReportBuckets(t, items, expectedCounts([]time.Time{t1, t2}, exprfilter.PlotTimeGroupDays, false))
 	})
 }
 
@@ -598,13 +597,13 @@ func expectedUniqueBuckets(timestamps []time.Time, group string, withSpanPreBuck
 // It normalizes timestamps to UTC and expected output formats used in API rows.
 func formatBucket(ts time.Time, group string) string {
 	switch group {
-	case filter.PlotTimeGroupMinutes:
+	case exprfilter.PlotTimeGroupMinutes:
 		return ts.Truncate(time.Minute).Format("2006-01-02T15:04:05")
-	case filter.PlotTimeGroupHours:
+	case exprfilter.PlotTimeGroupHours:
 		return ts.Truncate(time.Hour).Format("2006-01-02T15:04:05")
-	case filter.PlotTimeGroupMonths:
+	case exprfilter.PlotTimeGroupMonths:
 		return time.Date(ts.Year(), ts.Month(), 1, 0, 0, 0, 0, time.UTC).Format("2006-01-02")
-	case filter.PlotTimeGroupDays:
+	case exprfilter.PlotTimeGroupDays:
 		fallthrough
 	default:
 		return time.Date(ts.Year(), ts.Month(), ts.Day(), 0, 0, 0, 0, time.UTC).Format("2006-01-02")
@@ -615,19 +614,19 @@ func formatBucket(ts time.Time, group string) string {
 // for each grouping mode. This makes accidental grouping regressions obvious.
 func spanMetricTimesForGroup(group string) []time.Time {
 	switch group {
-	case filter.PlotTimeGroupMinutes:
+	case exprfilter.PlotTimeGroupMinutes:
 		return []time.Time{
 			time.Date(2026, 1, 5, 10, 15, 10, 0, time.UTC),
 			time.Date(2026, 1, 5, 10, 19, 0, 0, time.UTC),
 			time.Date(2026, 1, 5, 10, 30, 0, 0, time.UTC),
 		}
-	case filter.PlotTimeGroupHours:
+	case exprfilter.PlotTimeGroupHours:
 		return []time.Time{
 			time.Date(2026, 1, 5, 10, 2, 0, 0, time.UTC),
 			time.Date(2026, 1, 5, 10, 14, 0, 0, time.UTC),
 			time.Date(2026, 1, 5, 11, 1, 0, 0, time.UTC),
 		}
-	case filter.PlotTimeGroupMonths:
+	case exprfilter.PlotTimeGroupMonths:
 		return []time.Time{
 			time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC),
 			time.Date(2026, 1, 20, 10, 0, 0, 0, time.UTC),

@@ -196,10 +196,6 @@ func seedEventWithSession(ctx context.Context, t *testing.T, teamID, appID, sess
 	th.SeedEventWithSession(ctx, t, teamID, appID, sessionID, ts)
 }
 
-func seedBuildMappingRow(ctx context.Context, t *testing.T, mappingID, appID, versionName, versionCode, mappingType string, lastUpdated time.Time) {
-	th.SeedBuildMappingRow(ctx, t, mappingID, appID, versionName, versionCode, mappingType, "test/"+mappingID, uuid.Nil.String(), "", lastUpdated)
-}
-
 // --------------------------------------------------------------------------
 // Gin test context
 // --------------------------------------------------------------------------

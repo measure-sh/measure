@@ -113,7 +113,6 @@ func main() {
 		apps.GET(":id/journey", hdl.GetAppJourney)
 		apps.GET(":id/metrics", hdl.GetAppMetrics)
 		apps.GET(":id/health/plots/instances", hdl.GetHealthOverviewPlotInstances)
-		apps.GET(":id/filters", hdl.GetAppFilters)
 
 		// errors
 		apps.GET(":id/errorGroups", hdl.GetErrorOverview)
@@ -172,9 +171,6 @@ func main() {
 		// misc
 		apps.PATCH(":id/rename", hdl.RenameApp)
 		apps.PATCH(":id/apiKey", hdl.RotateApiKey)
-
-		// filters
-		apps.POST(":id/shortFilters", hdl.CreateShortFilters)
 	}
 
 	teams := r.Group("/teams", hdl.ValidateAccessToken())

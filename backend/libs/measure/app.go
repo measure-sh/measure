@@ -14,7 +14,6 @@ import (
 	"backend/libs/config"
 	"backend/libs/event"
 	"backend/libs/exprfilter"
-	"backend/libs/filter"
 	"backend/libs/group"
 	"backend/libs/metrics"
 	"backend/libs/numeric"
@@ -63,22 +62,22 @@ type PlotTimeGroupExpr struct {
 
 func GetPlotTimeGroupExpr(tsExpr, plotTimeGroup string) (*PlotTimeGroupExpr, error) {
 	switch plotTimeGroup {
-	case filter.PlotTimeGroupMinutes:
+	case exprfilter.PlotTimeGroupMinutes:
 		return &PlotTimeGroupExpr{
 			BucketExpr:     fmt.Sprintf("toStartOfMinute(toTimeZone(%s, ?))", tsExpr),
 			DatetimeFormat: "%Y-%m-%dT%H:%i:%S",
 		}, nil
-	case filter.PlotTimeGroupHours:
+	case exprfilter.PlotTimeGroupHours:
 		return &PlotTimeGroupExpr{
 			BucketExpr:     fmt.Sprintf("toStartOfHour(toTimeZone(%s, ?))", tsExpr),
 			DatetimeFormat: "%Y-%m-%dT%H:%i:%S",
 		}, nil
-	case filter.PlotTimeGroupDays:
+	case exprfilter.PlotTimeGroupDays:
 		return &PlotTimeGroupExpr{
 			BucketExpr:     fmt.Sprintf("toDate(toTimeZone(%s, ?))", tsExpr),
 			DatetimeFormat: "%Y-%m-%d",
 		}, nil
-	case filter.PlotTimeGroupMonths:
+	case exprfilter.PlotTimeGroupMonths:
 		return &PlotTimeGroupExpr{
 			BucketExpr:     fmt.Sprintf("toStartOfMonth(toTimeZone(%s, ?))", tsExpr),
 			DatetimeFormat: "%Y-%m-01",

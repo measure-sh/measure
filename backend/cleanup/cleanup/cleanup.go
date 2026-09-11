@@ -41,9 +41,6 @@ func DeleteStaleData(ctx context.Context) {
 	// delete stale mcp access tokens
 	deleteStaleMCPAccessTokens(ctx)
 
-	// delete shortened filters
-	deleteStaleShortenedFilters(ctx)
-
 	// delete stale invites
 	deleteStaleInvites(ctx)
 
@@ -163,24 +160,6 @@ func deleteStaleMCPAccessTokens(ctx context.Context) {
 	}
 
 	fmt.Printf("Successfully deleted stale mcp access tokens\n")
-}
-
-// deleteStaleShortenedFilters deletes stale shortened filters that
-// have passed the expiry threshold
-func deleteStaleShortenedFilters(ctx context.Context) {
-	threshold := time.Now().Add(-60 * time.Minute) // 1 hour expiry
-	stmt := sqlf.PostgreSQL.DeleteFrom("short_filters").
-		Where("created_at < ?", threshold)
-
-	defer stmt.Close()
-
-	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		fmt.Printf("Failed to delete stale short filter codes: %v\n", err)
-		return
-	}
-
-	fmt.Printf("Succesfully deleted stale short filters\n")
 }
 
 // deleteStaleInvites deletes stale invites that
