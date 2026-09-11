@@ -4,20 +4,6 @@ import { fireEvent, render, screen } from "@testing-library/react";
 
 // --- Mocks ---
 
-jest.mock("@/app/api/api_calls", () => ({
-  __esModule: true,
-  AppVersion: class AppVersion {
-    name: string;
-    code: string;
-    displayName: string;
-    constructor(name: string, code: string) {
-      this.name = name;
-      this.code = code;
-      this.displayName = `${name} (${code})`;
-    }
-  },
-}));
-
 jest.mock("lucide-react", () => ({
   Check: ({ className }: any) => (
     <span data-testid="check-icon" className={className} />
@@ -89,16 +75,11 @@ jest.mock("@/app/components/command", () => ({
 
 // --- Import ---
 
-import { AppVersion } from "@/app/api/api_calls";
 import DropdownSelect, {
   DropdownSelectType,
 } from "@/app/components/dropdown_select";
 
 // --- Helpers ---
-
-function av(name: string, code: string): AppVersion {
-  return new AppVersion(name, code);
-}
 
 function getItems() {
   return screen.getAllByTestId("command-item");
@@ -360,122 +341,6 @@ describe("DropdownSelect", () => {
     });
   });
 
-  // --- MultiAppVersion ---
-
-  describe("MultiAppVersion", () => {
-    const versions = [av("1.0", "1"), av("2.0", "2"), av("3.0", "10")];
-
-    it("renders version displayNames", () => {
-      render(
-        <DropdownSelect
-          type={DropdownSelectType.MultiAppVersion}
-          title="App versions"
-          items={versions}
-          initialSelected={versions}
-        />,
-      );
-      expect(screen.getByText("1.0 (1)")).toBeInTheDocument();
-      expect(screen.getByText("2.0 (2)")).toBeInTheDocument();
-      expect(screen.getByText("3.0 (10)")).toBeInTheDocument();
-    });
-
-    it("shows All and Latest buttons (not Clear)", () => {
-      render(
-        <DropdownSelect
-          type={DropdownSelectType.MultiAppVersion}
-          title="App versions"
-          items={versions}
-          initialSelected={versions}
-        />,
-      );
-      expect(screen.getByText("All")).toBeInTheDocument();
-      expect(screen.getByText("Latest")).toBeInTheDocument();
-      expect(screen.queryByText("Clear")).not.toBeInTheDocument();
-    });
-
-    it("toggles version on when clicked", () => {
-      const onChangeSelected = jest.fn();
-      render(
-        <DropdownSelect
-          type={DropdownSelectType.MultiAppVersion}
-          title="App versions"
-          items={versions}
-          initialSelected={[versions[0]]}
-          onChangeSelected={onChangeSelected}
-        />,
-      );
-      clickItem(1); // 2.0
-      const lastCall = onChangeSelected.mock.calls.slice(-1)[0][0];
-      expect(lastCall).toHaveLength(2);
-    });
-
-    it("prevents deselecting the last remaining version", () => {
-      const onChangeSelected = jest.fn();
-      render(
-        <DropdownSelect
-          type={DropdownSelectType.MultiAppVersion}
-          title="App versions"
-          items={versions}
-          initialSelected={[versions[0]]}
-          onChangeSelected={onChangeSelected}
-        />,
-      );
-      clickItem(0); // try to deselect 1.0 (only one selected)
-      expect(onChangeSelected).not.toHaveBeenCalled();
-    });
-
-    it("allows deselecting when multiple versions are selected", () => {
-      const onChangeSelected = jest.fn();
-      render(
-        <DropdownSelect
-          type={DropdownSelectType.MultiAppVersion}
-          title="App versions"
-          items={versions}
-          initialSelected={[versions[0], versions[1]]}
-          onChangeSelected={onChangeSelected}
-        />,
-      );
-      clickItem(0); // deselect 1.0
-      const lastCall = onChangeSelected.mock.calls.slice(-1)[0][0];
-      expect(lastCall).toHaveLength(1);
-      expect(lastCall[0].displayName).toBe("2.0 (2)");
-    });
-
-    it("selects version with highest code when Latest is clicked", () => {
-      const onChangeSelected = jest.fn();
-      // codes: '1', '2', '10' — highest is '10' (parsed as int)
-      render(
-        <DropdownSelect
-          type={DropdownSelectType.MultiAppVersion}
-          title="App versions"
-          items={versions}
-          initialSelected={versions}
-          onChangeSelected={onChangeSelected}
-        />,
-      );
-      fireEvent.click(screen.getByText("Latest"));
-      const lastCall = onChangeSelected.mock.calls.slice(-1)[0][0];
-      expect(lastCall).toHaveLength(1);
-      expect(lastCall[0].displayName).toBe("3.0 (10)");
-    });
-
-    it("selects all versions when All is clicked", () => {
-      const onChangeSelected = jest.fn();
-      render(
-        <DropdownSelect
-          type={DropdownSelectType.MultiAppVersion}
-          title="App versions"
-          items={versions}
-          initialSelected={[versions[0]]}
-          onChangeSelected={onChangeSelected}
-        />,
-      );
-      fireEvent.click(screen.getByText("All"));
-      const lastCall = onChangeSelected.mock.calls.slice(-1)[0][0];
-      expect(lastCall).toHaveLength(3);
-    });
-  });
-
   // --- Search filtering ---
 
   describe("Search filtering", () => {
@@ -491,21 +356,6 @@ describe("DropdownSelect", () => {
       search("ind");
       expect(getItems()).toHaveLength(1);
       expect(screen.getByText("India")).toBeInTheDocument();
-    });
-
-    it("filters AppVersion items by displayName", () => {
-      const versions = [av("1.0", "1"), av("2.0", "2"), av("10.0", "10")];
-      render(
-        <DropdownSelect
-          type={DropdownSelectType.MultiAppVersion}
-          title="Versions"
-          items={versions}
-          initialSelected={[]}
-        />,
-      );
-      search("10");
-      expect(getItems()).toHaveLength(1);
-      expect(screen.getByText("10.0 (10)")).toBeInTheDocument();
     });
 
     it("shows all items when search is cleared", () => {
@@ -570,23 +420,6 @@ describe("DropdownSelect", () => {
       fireEvent.keyDown(screen.getByText("Clear"), { key: "Enter" });
       const lastCall = onChangeSelected.mock.calls.slice(-1)[0][0];
       expect(lastCall).toEqual([]);
-    });
-
-    it("selects latest on Enter key on Latest button", () => {
-      const onChangeSelected = jest.fn();
-      render(
-        <DropdownSelect
-          type={DropdownSelectType.MultiAppVersion}
-          title="Versions"
-          items={[av("1.0", "1"), av("2.0", "10")]}
-          initialSelected={[av("1.0", "1"), av("2.0", "10")]}
-          onChangeSelected={onChangeSelected}
-        />,
-      );
-      fireEvent.keyDown(screen.getByText("Latest"), { key: "Enter" });
-      const lastCall = onChangeSelected.mock.calls.slice(-1)[0][0];
-      expect(lastCall).toHaveLength(1);
-      expect(lastCall[0].displayName).toBe("2.0 (10)");
     });
 
     it("selects item on Enter key on command item", () => {

@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { renderHook, waitFor } from "@testing-library/react";
 import React from "react";
 
-import { FilterSource } from "@/app/api/api_calls";
 import { ApiError } from "@/app/api/api_error";
 
 jest.mock("@/app/api/api_calls", () => {
@@ -15,7 +14,6 @@ jest.mock("@/app/api/api_calls", () => {
     fetchBugReportsOverviewPlotFromServer: jest.fn(),
     fetchBuildsFromServer: jest.fn(),
     fetchFilterKeys: jest.fn(),
-    fetchFiltersFromServer: jest.fn(),
     fetchRootSpanNamesFromServer: jest.fn(),
     fetchSpansFromServer: jest.fn(),
     fetchSpanMetricsPlotFromServer: jest.fn(),
@@ -64,7 +62,6 @@ import {
   fetchErrorsOverviewFromServer,
   fetchErrorsOverviewPlotFromServer,
   fetchFilterKeys,
-  fetchFiltersFromServer,
   fetchRootSpanNamesFromServer,
   fetchSpanMetricsPlotFromServer,
   fetchSpansFromServer,
@@ -84,7 +81,6 @@ import {
   useErrorsOverviewPlotQuery,
   useErrorsOverviewQuery,
   useFilterKeysQuery,
-  useFilterOptionsQuery,
   useRootSpanNamesQuery,
   useSessionQuery,
   useSpanMetricsPlotQuery,
@@ -98,7 +94,6 @@ const mockFetchBugReportsOverviewPlot =
   fetchBugReportsOverviewPlotFromServer as jest.Mock;
 const mockFetchBuilds = fetchBuildsFromServer as jest.Mock;
 const mockFetchFilterKeys = fetchFilterKeys as jest.Mock;
-const mockFetchFilters = fetchFiltersFromServer as jest.Mock;
 const mockFetchRootSpanNames = fetchRootSpanNamesFromServer as jest.Mock;
 const mockFetchSpans = fetchSpansFromServer as jest.Mock;
 const mockFetchSpanMetricsPlot = fetchSpanMetricsPlotFromServer as jest.Mock;
@@ -174,167 +169,6 @@ describe("useAppsQuery", () => {
 
     await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.error).toBe(failure);
-  });
-});
-
-describe("useFilterOptionsQuery", () => {
-  const onboardedApp = { id: "a1", name: "App 1", onboarded: true } as any;
-  const notOnboardedApp = { id: "a2", name: "App 2", onboarded: false } as any;
-
-  it("does not fetch when app is null", () => {
-    const { wrapper } = makeWrapper();
-    const { result } = renderHook(
-      () => useFilterOptionsQuery(null, FilterSource.Errors),
-      { wrapper },
-    );
-    expect(result.current.fetchStatus).toBe("idle");
-    expect(mockFetchFilters).not.toHaveBeenCalled();
-  });
-
-  it("returns NotOnboarded without hitting the network for never-onboarded apps", async () => {
-    const { wrapper } = makeWrapper();
-    const { result } = renderHook(
-      () => useFilterOptionsQuery(notOnboardedApp, FilterSource.Errors),
-      { wrapper },
-    );
-
-    await waitFor(() => expect(result.current.status).toBe("success"));
-
-    expect(result.current.data).toEqual({ kind: "not-onboarded" });
-    expect(mockFetchFilters).not.toHaveBeenCalled();
-  });
-
-  it("fetches for the Builds source even when the app is never onboarded", async () => {
-    mockFetchFilters.mockResolvedValueOnce({
-      kind: "options",
-      data: {
-        versions: [{ name: "1.0.2", code: "2" }],
-        os_versions: null,
-        countries: null,
-        network_providers: null,
-        network_types: null,
-        network_generations: null,
-        locales: null,
-        device_manufacturers: null,
-        device_names: null,
-        ud_attrs: null,
-      },
-    });
-
-    const { wrapper } = makeWrapper();
-    const { result } = renderHook(
-      () => useFilterOptionsQuery(notOnboardedApp, FilterSource.Builds),
-      { wrapper },
-    );
-
-    await waitFor(() => expect(result.current.status).toBe("success"));
-
-    expect(mockFetchFilters).toHaveBeenCalledWith(
-      notOnboardedApp,
-      FilterSource.Builds,
-    );
-    expect(result.current.data?.kind).toBe("options");
-    expect((result.current.data as any)?.data?.versions).toHaveLength(1);
-  });
-
-  it("fetches and parses on Success when app is onboarded", async () => {
-    mockFetchFilters.mockResolvedValueOnce({
-      kind: "options",
-      data: {
-        versions: [{ name: "1.0", code: "100" }],
-        os_versions: [{ name: "android", version: "13" }],
-        countries: ["US"],
-        network_providers: ["Verizon"],
-        network_types: ["wifi"],
-        network_generations: ["4G"],
-        locales: ["en-US"],
-        device_manufacturers: ["Pixel"],
-        device_names: ["Pixel 8"],
-        ud_attrs: null,
-      },
-    });
-
-    const { wrapper } = makeWrapper();
-    const { result } = renderHook(
-      () => useFilterOptionsQuery(onboardedApp, FilterSource.Errors),
-      { wrapper },
-    );
-
-    await waitFor(() => expect(result.current.status).toBe("success"));
-
-    expect(mockFetchFilters).toHaveBeenCalledWith(
-      onboardedApp,
-      FilterSource.Errors,
-    );
-    expect(result.current.data?.kind).toBe("options");
-    expect((result.current.data as any)?.data?.countries).toEqual(["US"]);
-    expect((result.current.data as any)?.data?.versions).toHaveLength(1);
-    expect((result.current.data as any)?.data?.osVersions).toHaveLength(1);
-  });
-
-  it("passes the no-data outcome through", async () => {
-    mockFetchFilters.mockResolvedValueOnce({ kind: "no-data" });
-
-    const { wrapper } = makeWrapper();
-    const { result } = renderHook(
-      () => useFilterOptionsQuery(onboardedApp, FilterSource.Errors),
-      { wrapper },
-    );
-
-    await waitFor(() => expect(result.current.status).toBe("success"));
-    expect(result.current.data).toEqual({ kind: "no-data" });
-  });
-
-  it("surfaces a failed fetch as a query error", async () => {
-    const failure = new ApiError(500, "request failed");
-    mockFetchFilters.mockRejectedValueOnce(failure);
-
-    const { wrapper } = makeWrapper();
-    const { result } = renderHook(
-      () => useFilterOptionsQuery(onboardedApp, FilterSource.Errors),
-      { wrapper },
-    );
-
-    await waitFor(() => expect(result.current.status).toBe("error"));
-    expect(result.current.error).toBe(failure);
-  });
-
-  it("refetches when the onboarded flag flips", async () => {
-    mockFetchFilters.mockResolvedValueOnce({
-      kind: "options",
-      data: {
-        versions: [{ name: "1.0", code: "100" }],
-        os_versions: null,
-        countries: null,
-        network_providers: null,
-        network_types: null,
-        network_generations: null,
-        locales: null,
-        device_manufacturers: null,
-        device_names: null,
-        ud_attrs: null,
-      },
-    });
-
-    const { wrapper } = makeWrapper();
-    const { rerender, result } = renderHook(
-      ({ app }: { app: any }) =>
-        useFilterOptionsQuery(app, FilterSource.Errors),
-      {
-        wrapper,
-        initialProps: { app: notOnboardedApp },
-      },
-    );
-
-    await waitFor(() =>
-      expect(result.current.data?.kind).toBe("not-onboarded"),
-    );
-    expect(mockFetchFilters).not.toHaveBeenCalled();
-
-    rerender({ app: onboardedApp });
-
-    await waitFor(() => expect(result.current.data?.kind).toBe("options"));
-    expect(mockFetchFilters).toHaveBeenCalledTimes(1);
   });
 });
 

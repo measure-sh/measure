@@ -1,9 +1,8 @@
 "use client";
 
-import { RotateCcw, X } from "lucide-react";
 import * as React from "react";
 import { cn } from "@/app/utils/shadcn_utils";
-import { Badge, badgeVariants } from "./badge";
+import { Badge } from "./badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 export enum PillType {
@@ -65,14 +64,6 @@ export enum PillType {
   SessionEventDefault = "session_event_default",
 }
 
-// Action button shown on the right half of the pill. "clear" empties the
-// underlying filter and removes the pill; "reset" restores a non-empty
-// default (and the pill stays visible).
-export type PillAction = {
-  icon: "clear" | "reset";
-  onClick: () => void;
-};
-
 interface PillProps {
   children?: React.ReactNode;
   type?: PillType;
@@ -81,9 +72,6 @@ interface PillProps {
   tooltip?: boolean | string;
   // Click handler for the body. When set, the body becomes a button.
   onClick?: () => void;
-  // Optional action button (X for clear, ↺ for reset). Pair with onClick to
-  // make a two-zone interactive pill.
-  action?: PillAction;
   className?: string;
   "data-testid"?: string;
 }
@@ -264,7 +252,6 @@ const Pill: React.FC<PillProps> = ({
   type = PillType.Neutral,
   tooltip,
   onClick,
-  action,
   className,
   "data-testid": testId,
 }) => {
@@ -310,57 +297,6 @@ const Pill: React.FC<PillProps> = ({
     );
   };
 
-  // Two-zone interactive pill: clickable body + clear/reset action button.
-  // Outer span carries the badge shell with padding zeroed out so the inner
-  // halves own their padding and fill the capsule edge-to-edge on hover.
-  if (action) {
-    const ariaPrefix = action.icon === "reset" ? "Reset" : "Clear";
-    const ariaBody = typeof body === "string" ? body.split(":")[0] : "";
-    return (
-      <span
-        className={cn(
-          badgeVariants({ variant: "outline" }),
-          "p-0 items-stretch select-none",
-          defaults.tint,
-          className,
-        )}
-      >
-        {wrapTip(
-          <button
-            type="button"
-            onClick={onClick}
-            className={cn("rounded-l-full px-2 py-1", interactiveZone)}
-          >
-            {body}
-          </button>,
-        )}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button
-              type="button"
-              aria-label={`${ariaPrefix} ${ariaBody}`.trim()}
-              onClick={action.onClick}
-              className={cn(
-                "inline-flex items-center justify-center rounded-r-full pr-2 pl-1",
-                interactiveZone,
-              )}
-            >
-              {action.icon === "reset" ? (
-                <RotateCcw className="h-3 w-3" />
-              ) : (
-                <X className="h-3 w-3" />
-              )}
-            </button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {action.icon === "reset" ? "Reset to defaults" : "Clear"}
-          </TooltipContent>
-        </Tooltip>
-      </span>
-    );
-  }
-
-  // Single interactive pill: clickable body, no separate action.
   if (onClick) {
     return wrapTip(
       <Badge

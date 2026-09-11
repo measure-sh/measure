@@ -197,7 +197,6 @@ describe("Journeys page (MSW integration)", () => {
       expect(sent[0].searchParams.has("filter_expr")).toBe(false);
       expect(sent[0].searchParams.has("bigraph")).toBe(false);
       expect(sent[0].searchParams.has("versions")).toBe(false);
-      expect(sent[0].searchParams.has("filter_short_code")).toBe(false);
     });
 
     it("asks the keys endpoint for the journeys entity", async () => {

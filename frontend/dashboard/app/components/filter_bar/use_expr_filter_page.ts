@@ -136,7 +136,6 @@ export function useExprFilterPage({
   const setSelectedDateRange = useFiltersStore((s) => s.setSelectedDateRange);
   const setSelectedStartDate = useFiltersStore((s) => s.setSelectedStartDate);
   const setSelectedEndDate = useFiltersStore((s) => s.setSelectedEndDate);
-  const setApps = useFiltersStore((s) => s.setApps);
 
   const url = useMemo(
     () => ({
@@ -228,19 +227,6 @@ export function useExprFilterPage({
     setSelectedStartDate(date.startDate);
     setSelectedEndDate(date.endDate);
   }, [date]);
-
-  useEffect(() => {
-    if (appsQuery.status === "pending") {
-      setApps([], "pending");
-      return;
-    }
-    if (appsQuery.status === "error") {
-      setApps([], "error");
-      return;
-    }
-    const loaded = appsQuery.data;
-    setApps(loaded, loaded.length === 0 ? "no-apps" : "loaded");
-  }, [appsQuery.status, appsQuery.data]);
 
   // Writes only while the rendered URL is still the live one, so a
   // navigation the router has not rendered yet is not overwritten.
