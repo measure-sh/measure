@@ -56,6 +56,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector { // swiftlint:
     private let configProvider: ConfigProvider
     private let screenshotGenerator: ScreenshotGenerator
     private let systemCrashReporter: SystemCrashReporter
+    private let layoutSnapshotCollector: LayoutSnapshotCollector
 
     private var isEnabled = AtomicBool(false)
     var isForeground: Bool
@@ -68,7 +69,8 @@ final class BaseInternalSignalCollector: InternalSignalCollector { // swiftlint:
          signalSampler: SignalSampler,
          configProvider: ConfigProvider,
          screenshotGenerator: ScreenshotGenerator,
-         systemCrashReporter: SystemCrashReporter) {
+         systemCrashReporter: SystemCrashReporter,
+         layoutSnapshotCollector: LayoutSnapshotCollector) {
         self.logger = logger
         self.signalProcessor = signalProcessor
         self.sessionManager = sessionManager
@@ -78,6 +80,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector { // swiftlint:
         self.configProvider = configProvider
         self.screenshotGenerator = screenshotGenerator
         self.systemCrashReporter = systemCrashReporter
+        self.layoutSnapshotCollector = layoutSnapshotCollector
         self.isForeground = true
     }
 
@@ -206,18 +209,31 @@ final class BaseInternalSignalCollector: InternalSignalCollector { // swiftlint:
 
             case EventType.screenView.rawValue:
                 let screenViewData = try extractScreenViewData(data: data)
-                signalProcessor.track(
-                    data: screenViewData,
-                    timestamp: timestamp,
-                    type: .screenView,
-                    attributes: evaluatedAttributes,
-                    sessionId: sessionId,
-                    attachments: attachments,
-                    userDefinedAttributes: serializedUserDefinedAttributes,
-                    threadName: threadName,
-                    needsReporting: signalSampler.shouldTrackJourneyForSession(sessionId: sessionId ?? sessionManager.sessionId),
-                    synchronous: false
-                )
+
+                func trackScreenView(attachments: [MsrAttachment]) {
+                    signalProcessor.track(
+                        data: screenViewData,
+                        timestamp: timestamp,
+                        type: .screenView,
+                        attributes: evaluatedAttributes,
+                        sessionId: sessionId,
+                        attachments: attachments,
+                        userDefinedAttributes: serializedUserDefinedAttributes,
+                        threadName: threadName,
+                        needsReporting: signalSampler.shouldTrackJourneyForSession(sessionId: sessionId ?? sessionManager.sessionId),
+                        synchronous: false
+                    )
+                }
+
+                // The cross platform SDK may already have captured its own layout snapshot,
+                // only fall back to a native capture when it hasn't.
+                if attachments.contains(where: { $0.type == .layoutSnapshotJson }) {
+                    trackScreenView(attachments: attachments)
+                } else {
+                    layoutSnapshotCollector.captureAttachment { attachment in
+                        trackScreenView(attachments: attachments + (attachment.map { [$0] } ?? []))
+                    }
+                }
 
             case EventType.http.rawValue:
                 let httpData = try extractHttpData(data: data)

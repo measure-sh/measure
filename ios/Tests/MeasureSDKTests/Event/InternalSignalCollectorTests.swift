@@ -8,7 +8,7 @@
 import XCTest
 @testable import Measure
 
-final class BaseInternalSignalCollectorTests: XCTestCase {
+final class BaseInternalSignalCollectorTests: XCTestCase { // swiftlint:disable:this type_body_length
     private var logger: MockLogger!
     private var signalProcessor: MockSignalProcessor!
     private var eventCollector: BaseInternalSignalCollector!
@@ -19,12 +19,14 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
     private var configProvider = MockConfigProvider()
     private var screenshotGenerator = MockScreenshotGenerator()
     private var systemCrashReporter = MockSystemCrashReporter()
+    private var layoutSnapshotCollector = MockLayoutSnapshotCollector()
 
     override func setUp() {
         super.setUp()
         logger = MockLogger()
         signalProcessor = MockSignalProcessor()
         systemCrashReporter = MockSystemCrashReporter()
+        layoutSnapshotCollector = MockLayoutSnapshotCollector()
         eventCollector = BaseInternalSignalCollector(
             logger: logger,
             timeProvider: timeProvider,
@@ -34,7 +36,8 @@ final class BaseInternalSignalCollectorTests: XCTestCase {
             signalSampler: signalSampler,
             configProvider: configProvider,
             screenshotGenerator: screenshotGenerator,
-            systemCrashReporter: systemCrashReporter
+            systemCrashReporter: systemCrashReporter,
+            layoutSnapshotCollector: layoutSnapshotCollector
         )
     }
 

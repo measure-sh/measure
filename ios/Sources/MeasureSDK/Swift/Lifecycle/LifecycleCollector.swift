@@ -30,6 +30,7 @@ final class BaseLifecycleCollector: LifecycleCollector {
     private var activeSpans: [String: Span] = [:]
     private let sessionManager: SessionManager
     private let signalSampler: SignalSampler
+    private let layoutSnapshotCollector: LayoutSnapshotCollector
     private var isAppLaunchForegroundTriggered = false
 
     init(signalProcessor: SignalProcessor,
@@ -38,7 +39,8 @@ final class BaseLifecycleCollector: LifecycleCollector {
          configProvider: ConfigProvider,
          sessionManager: SessionManager,
          logger: Logger,
-         signalSampler: SignalSampler) {
+         signalSampler: SignalSampler,
+         layoutSnapshotCollector: LayoutSnapshotCollector) {
         self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.tracer = tracer
@@ -46,6 +48,7 @@ final class BaseLifecycleCollector: LifecycleCollector {
         self.sessionManager = sessionManager
         self.logger = logger
         self.signalSampler = signalSampler
+        self.layoutSnapshotCollector = layoutSnapshotCollector
     }
 
     func enable() {
@@ -63,7 +66,13 @@ final class BaseLifecycleCollector: LifecycleCollector {
     }
 
     func applicationDidEnterBackground() {
-        trackEvent(ApplicationLifecycleData(type: .background), type: .lifecycleApp)
+        let timestamp = timeProvider.now()
+        layoutSnapshotCollector.captureAttachment { [weak self] attachment in
+            self?.trackEvent(ApplicationLifecycleData(type: .background),
+                             type: .lifecycleApp,
+                             timestamp: timestamp,
+                             attachments: attachment.map { [$0] })
+        }
     }
 
     func applicationWillEnterForeground() {
@@ -81,14 +90,25 @@ final class BaseLifecycleCollector: LifecycleCollector {
         trackEvent(ApplicationLifecycleData(type: .terminated), type: .lifecycleApp)
     }
 
-    func processControllerLifecycleEvent(_ vcLifecycleType: VCLifecycleEventType, for viewController: UIViewController) {
+    func processControllerLifecycleEvent(_ vcLifecycleType: VCLifecycleEventType, for viewController: UIViewController) { // swiftlint:disable:this cyclomatic_complexity
         guard isEnabled.get() else { return }
 
         let className = String(describing: type(of: viewController))
 
         guard !configProvider.lifecycleViewControllerExcludeList.contains(where: { className.contains($0) }) else { return }
 
-        trackEvent(VCLifecycleData(type: vcLifecycleType.stringValue, className: className), type: .lifecycleViewController)
+        if vcLifecycleType == .viewDidAppear {
+            let timestamp = timeProvider.now()
+            layoutSnapshotCollector.captureAttachment { [weak self] attachment in
+                guard let self else { return }
+                self.trackEvent(VCLifecycleData(type: vcLifecycleType.stringValue, className: className),
+                                 type: .lifecycleViewController,
+                                 timestamp: timestamp,
+                                 attachments: (attachment.map { [$0] } ?? nil))
+            }
+        } else {
+            trackEvent(VCLifecycleData(type: vcLifecycleType.stringValue, className: className), type: .lifecycleViewController)
+        }
 
         switch vcLifecycleType {
         case .loadView:
@@ -111,10 +131,21 @@ final class BaseLifecycleCollector: LifecycleCollector {
     }
 
     func processSwiftUILifecycleEvent(_ swiftUILifecycleType: SwiftUILifecycleType, for className: String) {
-        trackEvent(
-            SwiftUILifecycleData(type: swiftUILifecycleType, className: className),
-            type: .lifecycleSwiftUI
-        )
+        if swiftUILifecycleType == .onAppear {
+            let timestamp = timeProvider.now()
+            layoutSnapshotCollector.captureAttachment { [weak self] attachment in
+                guard let self else { return }
+                self.trackEvent(SwiftUILifecycleData(type: swiftUILifecycleType, className: className),
+                                 type: .lifecycleSwiftUI,
+                                 timestamp: timestamp,
+                                 attachments: attachment.map { [$0] })
+            }
+        } else {
+            trackEvent(
+                SwiftUILifecycleData(type: swiftUILifecycleType, className: className),
+                type: .lifecycleSwiftUI
+            )
+        }
     }
 
     // MARK: - TTID Span Tracking
@@ -157,13 +188,13 @@ final class BaseLifecycleCollector: LifecycleCollector {
 
     // MARK: - Event tracking
 
-    private func trackEvent(_ data: Codable, type: EventType) {
+    private func trackEvent(_ data: Codable, type: EventType, timestamp: Number? = nil, attachments: [MsrAttachment]? = nil) {
         signalProcessor.track(data: data,
-                              timestamp: timeProvider.now(),
+                              timestamp: timestamp ?? timeProvider.now(),
                               type: type,
                               attributes: nil,
                               sessionId: nil,
-                              attachments: nil,
+                              attachments: attachments,
                               userDefinedAttributes: nil,
                               threadName: nil,
                               needsReporting: signalSampler.shouldTrackJourneyForSession(sessionId: sessionManager.sessionId),

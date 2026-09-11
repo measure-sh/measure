@@ -60,6 +60,7 @@ type LifecycleViewController struct {
 	ThreadName  string              `json:"thread_name"`
 	*event.LifecycleViewController
 	Timestamp time.Time `json:"timestamp"`
+	Attachments []event.Attachment `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread
@@ -82,6 +83,7 @@ type LifecycleSwiftUI struct {
 	ThreadName  string              `json:"thread_name"`
 	*event.LifecycleSwiftUI
 	Timestamp time.Time `json:"timestamp"`
+	Attachments []event.Attachment `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread
@@ -164,6 +166,7 @@ func ComputeLifecycleViewControllers(events []event.EventField) (result []Thread
 			event.Attribute.ThreadName,
 			event.LifecycleViewController,
 			event.Timestamp,
+			event.Attachments,
 		}
 		result = append(result, viewControllers)
 	}
@@ -181,6 +184,7 @@ func ComputeLifecycleSwiftUIViews(events []event.EventField) (result []ThreadGro
 			event.Attribute.ThreadName,
 			event.LifecycleSwiftUI,
 			event.Timestamp,
+			event.Attachments,
 		}
 		result = append(result, swiftUIViews)
 	}

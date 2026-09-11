@@ -58,6 +58,8 @@ protocol MeasureInitializer {
     var dataCleanupService: DataCleanupService { get }
     var attachmentProcessor: AttachmentProcessor { get }
     var layoutSnapshotGenerator: LayoutSnapshotGenerator { get }
+    var layoutSnapshotThrottler: LayoutSnapshotThrottler { get }
+    var layoutSnapshotCollector: LayoutSnapshotCollector { get }
     var userPermissionManager: UserPermissionManager { get }
     var httpEventValidator: HttpEventValidator { get }
     var randomizer: Randomizer { get }
@@ -133,6 +135,9 @@ protocol MeasureInitializer {
 /// - `dataCleanupService`: `DataCleanupService` object responsible for clearing stale data
 /// - `attachmentProcessor`: `AttachmentProcessor` object responsible for generating and managing screenshots.
 /// - `layoutSnapshotGenerator`: `LayoutSnapshotGenerator` object responsible for generating a layout snapshot.
+/// - `layoutSnapshotThrottler`: `LayoutSnapshotThrottler` object that limits how often layout snapshots are captured.
+/// - `layoutSnapshotCollector`: `LayoutSnapshotCollector` object that coordinates capturing layout snapshots for
+///   lifecycle, background and screen view events.
 /// - `userPermissionManager`: `UserPermissionManager` object managing user permissions.
 /// - `httpEventValidator`: `HttpEventValidator` object that lets you check if a http event should be tracked or not.
 /// - `randomizer`: `Randomizer` object that generates random numbers.
@@ -196,6 +201,8 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
     let dataCleanupService: DataCleanupService
     let attachmentProcessor: AttachmentProcessor
     let layoutSnapshotGenerator: LayoutSnapshotGenerator
+    let layoutSnapshotThrottler: LayoutSnapshotThrottler
+    let layoutSnapshotCollector: LayoutSnapshotCollector
     let userPermissionManager: UserPermissionManager
     let httpEventValidator: HttpEventValidator
     let randomizer: Randomizer
@@ -302,6 +309,11 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                                    timeProvider: timeProvider,
                                                                    attachmentProcessor: attachmentProcessor,
                                                                    measureDispatchQueue: measureDispatchQueue)
+        self.layoutSnapshotThrottler = BaseLayoutSnapshotThrottler(timeProvider: timeProvider)
+        self.layoutSnapshotCollector = BaseLayoutSnapshotCollector(logger: logger,
+                                                                   layoutSnapshotGenerator: layoutSnapshotGenerator,
+                                                                   layoutSnapshotThrottler: layoutSnapshotThrottler,
+                                                                   configProvider: configProvider)
         self.exporter = BaseExporter(logger: logger,
                                      idProvider: idProvider,
                                      dispatchQueue: MeasureQueue.periodicEventExporter,
@@ -343,6 +355,7 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                      configProvider: configProvider,
                                                      gestureTargetFinder: gestureTargetFinder,
                                                      layoutSnapshotGenerator: layoutSnapshotGenerator,
+                                                     layoutSnapshotThrottler: layoutSnapshotThrottler,
                                                      systemFileManager: systemFileManager)
         self.attributeValueValidator = BaseAttributeValueValidator(configProvider: configProvider,
                                                                    logger: logger)
@@ -365,7 +378,8 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                          configProvider: configProvider,
                                                          sessionManager: sessionManager,
                                                          logger: logger,
-                                                         signalSampler: signalSampler)
+                                                         signalSampler: signalSampler,
+                                                         layoutSnapshotCollector: layoutSnapshotCollector)
         self.cpuUsageCalculator = BaseCpuUsageCalculator()
         self.memoryUsageCalculator = BaseMemoryUsageCalculator()
         self.cpuUsageCollector = BaseCpuUsageCollector(logger: logger,
@@ -419,7 +433,8 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                                            attributeValueValidator: attributeValueValidator,
                                                                            configProvider: configProvider,
                                                                            sessionManager: sessionManager,
-                                                                           signalSampler: signalSampler)
+                                                                           signalSampler: signalSampler,
+                                                                           layoutSnapshotCollector: layoutSnapshotCollector)
         self.dataCleanupService = BaseDataCleanupService(eventStore: eventStore,
                                                          spanStore: spanStore,
                                                          sessionStore: sessionStore,
@@ -452,7 +467,8 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                                    signalSampler: signalSampler,
                                                                    configProvider: configProvider,
                                                                    screenshotGenerator: screenshotGenerator,
-                                                                   systemCrashReporter: systemCrashReporter)
+                                                                   systemCrashReporter: systemCrashReporter,
+                                                                   layoutSnapshotCollector: layoutSnapshotCollector)
         self.bugReportManager = BaseBugReportManager(screenshotGenerator: screenshotGenerator,
                                                      configProvider: configProvider,
                                                      idProvider: idProvider,

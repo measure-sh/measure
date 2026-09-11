@@ -18,6 +18,7 @@ final class UserTriggeredEventCollectorTests: XCTestCase {
     var collector: BaseUserTriggeredEventCollector!
     var sessionManager: MockSessionManager!
     var signalSampler: MockSignalSampler!
+    var layoutSnapshotCollector: MockLayoutSnapshotCollector!
 
     override func setUp() {
         super.setUp()
@@ -27,6 +28,7 @@ final class UserTriggeredEventCollectorTests: XCTestCase {
         timeProvider = MockTimeProvider()
         sessionManager = MockSessionManager()
         signalSampler = MockSignalSampler()
+        layoutSnapshotCollector = MockLayoutSnapshotCollector()
 
         collector = BaseUserTriggeredEventCollector(
             signalProcessor: signalProcessor,
@@ -36,7 +38,8 @@ final class UserTriggeredEventCollectorTests: XCTestCase {
             attributeValueValidator: BaseAttributeValueValidator(configProvider: configProvider, logger: logger),
             configProvider: configProvider,
             sessionManager: sessionManager,
-            signalSampler: signalSampler
+            signalSampler: signalSampler,
+            layoutSnapshotCollector: layoutSnapshotCollector
         )
 
         collector.enable()
@@ -50,6 +53,7 @@ final class UserTriggeredEventCollectorTests: XCTestCase {
         collector = nil
         sessionManager = nil
         signalSampler = nil
+        layoutSnapshotCollector = nil
         super.tearDown()
     }
 

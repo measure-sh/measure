@@ -38,6 +38,7 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
     private let configProvider: ConfigProvider
     private let sessionManager: SessionManager
     private let signalSampler: SignalSampler
+    private let layoutSnapshotCollector: LayoutSnapshotCollector
 
     init(signalProcessor: SignalProcessor,
          timeProvider: TimeProvider,
@@ -46,7 +47,8 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
          attributeValueValidator: AttributeValueValidator,
          configProvider: ConfigProvider,
          sessionManager: SessionManager,
-         signalSampler: SignalSampler) {
+         signalSampler: SignalSampler,
+         layoutSnapshotCollector: LayoutSnapshotCollector) {
         self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.logger = logger
@@ -55,6 +57,7 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
         self.configProvider = configProvider
         self.sessionManager = sessionManager
         self.signalSampler = signalSampler
+        self.layoutSnapshotCollector = layoutSnapshotCollector
     }
 
     func enable() {
@@ -73,10 +76,17 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
         guard isEnabled.get() else { return }
         guard attributeValueValidator.validateAttributes(name: screenName, attributes: attributes) else { return }
 
-        track(ScreenViewData(name: screenName),
-              type: .screenView,
-              userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes),
-              needsReporting: signalSampler.shouldTrackJourneyForSession(sessionId: sessionManager.sessionId))
+        let timestamp = timeProvider.now()
+        let needsReporting = signalSampler.shouldTrackJourneyForSession(sessionId: sessionManager.sessionId)
+        layoutSnapshotCollector.captureAttachment { [weak self] attachment in
+            guard let self else { return }
+            self.track(ScreenViewData(name: screenName),
+                        type: .screenView,
+                        timestamp: timestamp,
+                        userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes),
+                        attachments: attachment == nil ? nil : [attachment!],
+                        needsReporting: needsReporting)
+        }
     }
 
     func trackError(_ error: Error, attributes: [String: AttributeValue]?, framesToStrip: Int) {
@@ -202,13 +212,18 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
         track(data, type: .http, needsReporting: signalSampler.shouldSampleHttpEvent())
     }
 
-    private func track(_ data: Codable, type: EventType, userDefinedAttributes: String? = nil, needsReporting: Bool?) {
+    private func track(_ data: Codable,
+                       type: EventType,
+                       timestamp: Number? = nil,
+                       userDefinedAttributes: String? = nil,
+                       attachments: [MsrAttachment]? = nil,
+                       needsReporting: Bool?) {
         signalProcessor.trackUserTriggered(data: data,
-                                           timestamp: timeProvider.now(),
+                                           timestamp: timestamp ?? timeProvider.now(),
                                            type: type,
                                            attributes: nil,
                                            sessionId: nil,
-                                           attachments: nil,
+                                           attachments: attachments,
                                            userDefinedAttributes: userDefinedAttributes,
                                            threadName: nil,
                                            needsReporting: signalSampler.shouldSampleHttpEvent())
