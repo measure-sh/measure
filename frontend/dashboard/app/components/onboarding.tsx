@@ -15,7 +15,6 @@ import {
   useAuthzAndMembersQuery,
   useCreateAppMutation,
 } from "../query/hooks";
-import { useQueryClient } from "@tanstack/react-query";
 import {
   DEFAULT_ONBOARDING_STATE,
   NATIVE_TARGETS,
@@ -574,7 +573,6 @@ function resolveApiUrl(): string {
 
 export default function Onboarding({ teamId }: OnboardingProps) {
   const router = useRouter();
-  const queryClient = useQueryClient();
   const filtersStore = useFiltersStore();
   const onboardingStore = useOnboardingStore();
   const selectedApp = useFiltersStore((state) => state.selectedApp);
@@ -712,9 +710,6 @@ export default function Onboarding({ teamId }: OnboardingProps) {
     try {
       const app = await createApp.mutateAsync({ teamId, appName: trimmed });
       if (app) {
-        await queryClient.refetchQueries({
-          queryKey: ["filterApps", teamId],
-        });
         filtersStore.setSelectedApp(app);
         onboardingStore.setOnboardingStep(app.id, "integrate");
       }

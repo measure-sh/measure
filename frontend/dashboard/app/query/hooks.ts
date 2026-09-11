@@ -89,6 +89,7 @@ import {
   keepPreviousData,
   useMutation,
   useQuery,
+  useQueryClient,
 } from "@tanstack/react-query";
 
 // ─── Filter options & session ────────────────────────────────────────────
@@ -1164,12 +1165,16 @@ export function useSaveNotifPrefsMutation() {
 // ─── Create App ─────────────────────────────────────────────────────────
 
 export function useCreateAppMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: { teamId: string; appName: string }) =>
       createAppFromServer(params.teamId, params.appName),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teams"] });
-    },
+    // Returned so callers run only after the apps list has refetched
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["teams"] }),
+        queryClient.invalidateQueries({ queryKey: ["filterApps"] }),
+      ]),
   });
 }
 
@@ -1254,24 +1259,32 @@ export function useUpdateAppRetentionMutation() {
 }
 
 export function useChangeAppNameMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { appId: string; appName: string }) => {
       await changeAppNameFromServer(params.appId, params.appName);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teams"] });
-    },
+    // Returned so callers run only after the apps list has refetched
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["teams"] }),
+        queryClient.invalidateQueries({ queryKey: ["filterApps"] }),
+      ]),
   });
 }
 
 export function useChangeAppApiKeyMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { appId: string }) => {
       await changeAppApiKeyFromServer(params.appId);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["teams"] });
-    },
+    // Returned so callers run only after the apps list has refetched
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["teams"] }),
+        queryClient.invalidateQueries({ queryKey: ["filterApps"] }),
+      ]),
   });
 }
 

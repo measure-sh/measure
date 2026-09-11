@@ -13,7 +13,6 @@ import {
 
 const mockToastPositive = jest.fn();
 const mockToastNegative = jest.fn();
-const mockRefreshFilters = jest.fn();
 
 const baseMockApp = {
   id: "app-1",
@@ -57,9 +56,6 @@ jest.mock("@/app/api/api_calls", () => ({
     error_spike_min_count_threshold: 100,
     error_spike_min_rate_threshold: 0.5,
   },
-  FilterSource: {
-    Events: "events",
-  },
   emptyAppRetention: {
     retention: 30,
   },
@@ -77,6 +73,10 @@ jest.mock("@/app/api/api_calls", () => ({
 // --- Bridge store: tests control this, query hook mocks read from it ---
 const { create: createBridge } = jest.requireActual("zustand") as any;
 const appsStore = createBridge((set: any) => ({
+  // Apps query state, where "no-apps" is a loaded empty list and an
+  // appsVersion bump stands in for a refetch
+  appsStatus: "pending",
+  appsVersion: 0,
   // Permissions (derived from the authzAndMembers query)
   canCreateApp: false,
   canRenameApp: false,
@@ -155,6 +155,22 @@ function deriveThresholdStatus(state: any) {
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
+  useAppsQuery: () => {
+    const status = appsStore((s: any) => s.appsStatus);
+    appsStore((s: any) => s.appsVersion);
+    const data =
+      status === "success"
+        ? [getAppPayload()]
+        : status === "no-apps"
+          ? []
+          : undefined;
+    return {
+      data,
+      isPending: status === "pending",
+      isSuccess: status === "success" || status === "no-apps",
+      isError: status === "error",
+    };
+  },
   useAuthzAndMembersQuery: () => {
     const s = appsStore.getState();
     return {
@@ -240,6 +256,16 @@ jest.mock("@/app/query/hooks", () => ({
         if (result && typeof result.then === "function") {
           result.then((success: boolean) => {
             if (success) {
+              mockCurrentApp = {
+                ...mockCurrentApp,
+                api_key: {
+                  ...mockCurrentApp.api_key,
+                  key: "msrsh_rotated_key_checksum",
+                },
+              };
+              appsStore.setState({
+                appsVersion: appsStore.getState().appsVersion + 1,
+              });
               opts?.onSuccess?.();
             } else {
               opts?.onError?.();
@@ -274,8 +300,9 @@ jest.mock("@/app/query/hooks", () => ({
 
 jest.mock("@/app/stores/provider", () => {
   const { create } = jest.requireActual("zustand");
-  const filtersStore = create(() => ({
-    filters: { ready: false, app: null, serialisedFilters: "" },
+  const filtersStore = create((set: any) => ({
+    selectedApp: null,
+    setSelectedApp: (app: any) => set({ selectedApp: app }),
   }));
   return {
     __esModule: true,
@@ -283,37 +310,17 @@ jest.mock("@/app/stores/provider", () => {
   };
 });
 
-jest.mock("@/app/components/filters", () => {
-  const React = require("react");
-  return {
-    __esModule: true,
-    default: React.forwardRef((_props: any, ref: any) => {
-      const { useFiltersStore } = require("@/app/stores/provider");
-      React.useImperativeHandle(ref, () => ({
-        refresh: () => {
-          mockRefreshFilters();
-          mockCurrentApp = {
-            ...mockCurrentApp,
-            api_key: {
-              ...mockCurrentApp.api_key,
-              key: "msrsh_rotated_key_checksum",
-            },
-          };
-          useFiltersStore.setState({
-            filters: {
-              ready: true,
-              app: getAppPayload(),
-              serialisedFilters: "app=app-1",
-            },
-          });
-        },
-      }));
+jest.mock("@/app/components/onboarding", () => ({
+  __esModule: true,
+  default: () => <div data-testid="onboarding-mock" />,
+}));
 
-      return <div data-testid="filters-mock" />;
-    }),
-    AppVersionsInitialSelectionType: { All: "all" },
-  };
-});
+jest.mock("@/app/components/filter_bar/app_select", () => ({
+  __esModule: true,
+  default: ({ selected }: any) => (
+    <div data-testid="app-select-mock">{selected.name}</div>
+  ),
+}));
 
 jest.mock("@/app/components/button", () => ({
   Button: ({ children, loading, disabled, ...props }: any) => (
@@ -447,13 +454,7 @@ const renderLoadedPage = async () => {
   await renderPage();
 
   await act(async () => {
-    useFiltersStore.setState({
-      filters: {
-        ready: true,
-        app: getAppPayload(),
-        serialisedFilters: "app=app-1",
-      },
-    });
+    useAppsStore.setState({ appsStatus: "success" });
   });
 };
 
@@ -496,11 +497,10 @@ describe("Apps Page", () => {
     const { isCloud } = require("@/app/utils/env_utils");
     isCloud.mockReturnValue(false);
     mockCurrentApp = { ...baseMockApp, api_key: { ...baseMockApp.api_key } };
-    useFiltersStore.setState({
-      filters: { ready: false, app: null, serialisedFilters: "" },
-      appsState: "loaded",
-    });
+    useFiltersStore.setState({ selectedApp: null });
     useAppsStore.setState({
+      appsStatus: "pending",
+      appsVersion: 0,
       canCreateApp: false,
       canRenameApp: false,
       canChangeRetention: false,
@@ -607,11 +607,12 @@ describe("Apps Page", () => {
     expect(screen.queryByText("Operating Systems")).not.toBeInTheDocument();
   });
 
-  it("hides the Create App button when the team has no apps", async () => {
-    useFiltersStore.setState({ appsState: "no-apps" });
+  it("renders onboarding and hides the Create App button when the team has no apps", async () => {
+    useAppsStore.setState({ ...defaultLoadedAppsState, appsStatus: "no-apps" });
 
-    await renderLoadedPage();
+    await renderPage();
 
+    expect(screen.getByTestId("onboarding-mock")).toBeInTheDocument();
     expect(screen.queryByTestId("create-app-mock")).not.toBeInTheDocument();
   });
 
@@ -634,13 +635,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     expect(screen.getAllByTestId("skeleton-mock").length).toBeGreaterThan(0);
@@ -656,13 +651,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     expect(
@@ -699,13 +688,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     expect(screen.getByRole("button", { name: "Rotate" })).toBeDisabled();
@@ -732,13 +715,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     await act(async () => {
@@ -771,13 +748,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     expect(screen.getByRole("button", { name: "Rotate" })).toBeDisabled();
@@ -805,13 +776,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     expect(screen.getByRole("button", { name: "Rotate" })).toBeDisabled();
@@ -839,13 +804,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     expect(screen.getByRole("button", { name: "Rotate" })).toBeDisabled();
@@ -886,7 +845,7 @@ describe("Apps Page", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("rotates API key successfully, reloads filters, and updates displayed key", async () => {
+  it("rotates API key successfully and updates displayed key", async () => {
     await renderLoadedPage();
     await openRotateDialog();
 
@@ -896,7 +855,6 @@ describe("Apps Page", () => {
 
     expect(useAppsStore.getState().changeAppApiKey).toHaveBeenCalled();
     expect(mockToastPositive).toHaveBeenCalledWith("API key rotated");
-    expect(mockRefreshFilters).toHaveBeenCalled();
     expect(
       await screen.findAllByDisplayValue("msrsh_rotated_key_checksum"),
     ).toHaveLength(2);
@@ -914,13 +872,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     await openRotateDialog();
@@ -930,7 +882,6 @@ describe("Apps Page", () => {
     });
 
     expect(mockToastNegative).toHaveBeenCalledWith("Error rotating API key");
-    expect(mockRefreshFilters).not.toHaveBeenCalled();
   });
 
   it("re-enables the Rotate button after a failed rotation", async () => {
@@ -942,13 +893,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     await openRotateDialog();
@@ -978,13 +923,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     await openRotateDialog();
@@ -1042,7 +981,6 @@ describe("Apps Page", () => {
       "Renamed App",
     );
     expect(mockToastPositive).toHaveBeenCalledWith("App name changed");
-    expect(mockRefreshFilters).toHaveBeenCalled();
     expect(
       screen.queryByRole("button", { name: "Yes, I'm sure" }),
     ).not.toBeInTheDocument();
@@ -1065,13 +1003,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     await openRenameDialog();
@@ -1103,13 +1035,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     await openRenameDialog();
@@ -1130,13 +1056,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     await openRenameDialog();
@@ -1212,13 +1132,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     await openRetentionDialog();
@@ -1254,13 +1168,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     await openRetentionDialog();
@@ -1379,13 +1287,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     expect(
@@ -1402,13 +1304,7 @@ describe("Apps Page", () => {
     await renderPage();
 
     await act(async () => {
-      useFiltersStore.setState({
-        filters: {
-          ready: true,
-          app: getAppPayload(),
-          serialisedFilters: "app=app-1",
-        },
-      });
+      useAppsStore.setState({ appsStatus: "success" });
     });
 
     expect(
@@ -1443,14 +1339,11 @@ describe("Apps Page", () => {
       expect(retentionSave()).not.toBeDisabled();
       expect(thresholdSave()).not.toBeDisabled();
 
-      // A rename lands via a filters refresh: same id, new name.
+      // A rename keeps the app id and changes the name
       await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            app: { ...getAppPayload(), name: "Renamed App" },
-            serialisedFilters: "app=app-1",
-          },
+        mockCurrentApp = { ...getAppPayload(), name: "Renamed App" };
+        useAppsStore.setState({
+          appsVersion: useAppsStore.getState().appsVersion + 1,
         });
       });
 
@@ -1468,14 +1361,11 @@ describe("Apps Page", () => {
       expect(retentionSave()).not.toBeDisabled();
       expect(thresholdSave()).not.toBeDisabled();
 
-      // Switch to a different app (new id) via a filters update.
+      // Switch to a different app id
       await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            app: { ...getAppPayload(), id: "app-2", name: "Other App" },
-            serialisedFilters: "app=app-2",
-          },
+        mockCurrentApp = { ...getAppPayload(), id: "app-2", name: "Other App" };
+        useAppsStore.setState({
+          appsVersion: useAppsStore.getState().appsVersion + 1,
         });
       });
 
@@ -1503,13 +1393,7 @@ describe("Apps Page", () => {
       await renderPage();
 
       await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            app: getAppPayload(),
-            serialisedFilters: "app=app-1",
-          },
-        });
+        useAppsStore.setState({ appsStatus: "success" });
       });
 
       const spinners = screen.getAllByTestId("skeleton-mock");
@@ -1525,13 +1409,7 @@ describe("Apps Page", () => {
       await renderPage();
 
       await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            app: getAppPayload(),
-            serialisedFilters: "app=app-1",
-          },
-        });
+        useAppsStore.setState({ appsStatus: "success" });
       });
 
       const errorMessages = screen.getAllByText(
@@ -1656,13 +1534,7 @@ describe("Apps Page", () => {
       await renderPage();
 
       await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            app: getAppPayload(),
-            serialisedFilters: "app=app-1",
-          },
-        });
+        useAppsStore.setState({ appsStatus: "success" });
       });
 
       await act(async () => {
@@ -1692,13 +1564,7 @@ describe("Apps Page", () => {
       await renderPage();
 
       await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            app: getAppPayload(),
-            serialisedFilters: "app=app-1",
-          },
-        });
+        useAppsStore.setState({ appsStatus: "success" });
       });
 
       await act(async () => {
@@ -1728,13 +1594,7 @@ describe("Apps Page", () => {
       await renderPage();
 
       await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            app: getAppPayload(),
-            serialisedFilters: "app=app-1",
-          },
-        });
+        useAppsStore.setState({ appsStatus: "success" });
       });
 
       await act(async () => {
@@ -1764,13 +1624,7 @@ describe("Apps Page", () => {
       await renderPage();
 
       await act(async () => {
-        useFiltersStore.setState({
-          filters: {
-            ready: true,
-            app: getAppPayload(),
-            serialisedFilters: "app=app-1",
-          },
-        });
+        useAppsStore.setState({ appsStatus: "success" });
       });
 
       expect(screen.getByTestId("error-good-threshold-input")).toBeDisabled();

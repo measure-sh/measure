@@ -444,19 +444,18 @@ describe("Onboarding — Step 1: Create app", () => {
   describe("Success path", () => {
     beforeEach(() => {
       const newApp = makeApp({ name: "My App", id: "app-99" });
-      mockMutateAsync.mockResolvedValue(newApp);
-      // refetch resolves immediately; the component then sets the new app
-      // as selected via setSelectedApp.
-      mockRefetchQueries.mockImplementation(async () => {
+      // The mutation refetches the apps list before it settles, so the
+      // list holds the new app by the time the component reads it.
+      mockMutateAsync.mockImplementation(async () => {
         mockApps = [newApp];
-        mockSelectedApp = newApp;
+        return newApp;
       });
       mockSetSelectedApp.mockImplementation((app: MockApp) => {
         mockSelectedApp = app;
       });
     });
 
-    it("refetches the apps query and selects the new app", async () => {
+    it("selects the new app", async () => {
       renderOnboarding({ teamId: "team-42" });
       fireEvent.change(screen.getByTestId("onboarding-app-name-input"), {
         target: { value: "My App" },
@@ -467,13 +466,10 @@ describe("Onboarding — Step 1: Create app", () => {
         );
       });
       await waitFor(() => {
-        expect(mockRefetchQueries).toHaveBeenCalledWith({
-          queryKey: ["filterApps", "team-42"],
-        });
+        expect(mockSetSelectedApp).toHaveBeenCalledWith(
+          expect.objectContaining({ id: "app-99" }),
+        );
       });
-      expect(mockSetSelectedApp).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "app-99" }),
-      );
     });
 
     it("shows positive toast with the app name", async () => {
@@ -584,7 +580,6 @@ describe("Onboarding — Step 1: Create app", () => {
       await waitFor(() => {
         expect(mockToastNegative).toHaveBeenCalled();
       });
-      expect(mockRefetchQueries).not.toHaveBeenCalled();
       expect(mockSetSelectedApp).not.toHaveBeenCalled();
     });
 
