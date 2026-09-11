@@ -102,6 +102,7 @@ function resolve(
     keys: keysLoaded,
     spanNames: null,
     remembered: nothingRemembered,
+    onboarding: false,
     ...overrides,
   });
 }
@@ -450,17 +451,15 @@ describe("resolveFilters", () => {
       expect(resolution.filters).toBeNull();
     });
 
-    it("reports a team with no apps", () => {
+    it("reports a team with no apps to a page without the wizard", () => {
       const resolution = resolve({
         apps: { status: "success", data: [] },
         keys: keysFailed,
         spanNames: namesFailed,
+        onboarding: false,
       });
 
-      expect(resolution.status).toEqual({
-        kind: "error",
-        message: expect.stringContaining("don't have any apps yet"),
-      });
+      expect(resolution.status).toEqual({ kind: "no-apps" });
       expect(resolution.filters).toBeNull();
     });
 
@@ -472,6 +471,60 @@ describe("resolveFilters", () => {
         message: expect.stringContaining("Error fetching filters"),
       });
       expect(resolution.filters?.app).toEqual(apps[0]);
+    });
+  });
+
+  describe("the integration wizard", () => {
+    const notOnboarded = [{ ...apps[0], onboarded: false } as App];
+    const onboarded = [{ ...apps[0], onboarded: true } as App];
+
+    it("takes over for a team with no apps", () => {
+      const resolution = resolve({
+        apps: { status: "success", data: [] },
+        onboarding: true,
+      });
+
+      expect(resolution.status).toEqual({
+        kind: "onboarding",
+        reason: "no-apps",
+      });
+      expect(resolution.filters).toBeNull();
+    });
+
+    it("takes over for an app that has not reported an event, with the app settled", () => {
+      const resolution = resolve({
+        apps: { status: "success", data: notOnboarded },
+        onboarding: true,
+      });
+
+      expect(resolution.status).toEqual({
+        kind: "onboarding",
+        reason: "not-onboarded",
+      });
+      expect(resolution.filters).toEqual({
+        app: notOnboarded[0],
+        filterExpr: null,
+        rootSpanName: null,
+      });
+    });
+
+    it("leaves the filters alone once the app has reported one", () => {
+      const resolution = resolve({
+        apps: { status: "success", data: onboarded },
+        onboarding: true,
+      });
+
+      expect(resolution.status).toEqual({ kind: "ready" });
+      expect(resolution.filters?.app).toEqual(onboarded[0]);
+    });
+
+    it("is skipped on a page that does without it", () => {
+      const resolution = resolve({
+        apps: { status: "success", data: notOnboarded },
+      });
+
+      expect(resolution.status).toEqual({ kind: "ready" });
+      expect(resolution.filters?.app).toEqual(notOnboarded[0]);
     });
   });
 });

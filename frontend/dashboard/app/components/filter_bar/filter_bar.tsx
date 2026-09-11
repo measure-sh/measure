@@ -1,6 +1,7 @@
 "use client";
 
 import { Plus, SlidersHorizontal, Type, X } from "lucide-react";
+import Link from "next/link";
 import {
   Fragment,
   type RefObject,
@@ -13,10 +14,13 @@ import { type App } from "../../api/api_calls";
 import type { FilterExprIssue } from "../../api/api_error";
 import { type FilterKey, type FilterOperator } from "../../api/filter_types";
 import { useFilterKeysQuery } from "../../query/hooks";
+import { underlineLinkStyle } from "../../utils/shared_styles";
 import { toastNegative } from "../toast";
+import Onboarding from "../onboarding";
 import { Skeleton } from "../skeleton";
 import DropdownSelect, { DropdownSelectType } from "../dropdown_select";
 import AppSelect from "./app_select";
+import type { FilterStatus } from "./resolve_filters";
 import DateRangeSelect, {
   DateRange,
   type DateSelection,
@@ -69,7 +73,9 @@ export type FilterChange = Partial<{
 
 interface FilterBarProps {
   entity: string;
+  teamId: string;
   placeholder?: string;
+  status: FilterStatus;
   value: FilterSelection | null;
   apps: App[];
   keys: FilterKey[] | null;
@@ -177,7 +183,9 @@ function appendTo(
 
 export default function FilterBar({
   entity,
+  teamId,
   placeholder = "Filter…",
+  status,
   value,
   apps,
   keys,
@@ -308,6 +316,42 @@ export default function FilterBar({
     }
     focusedControlRef.current?.focus();
   }, [focusedId]);
+
+  if (status.kind === "no-apps") {
+    return (
+      <p className="font-body">
+        Looks like you don&apos;t have any apps yet. Get started by{" "}
+        <Link className={underlineLinkStyle} href="apps">
+          creating your first app!
+        </Link>
+      </p>
+    );
+  }
+
+  // A team with no apps, or an app that has not reported an event yet, gets
+  // the integration wizard in place of the filters. The app selector stays so
+  // the user can change apps.
+  if (status.kind === "onboarding") {
+    return (
+      <div className="flex flex-col w-full">
+        {status.reason === "not-onboarded" &&
+          showAppSelect &&
+          value !== null && (
+            <>
+              <div className="flex flex-wrap gap-4 items-center w-full">
+                <AppSelect
+                  apps={apps}
+                  selected={value.app}
+                  onChange={(picked) => onChange({ appId: picked.id })}
+                />
+              </div>
+              <div className="py-4" />
+            </>
+          )}
+        <Onboarding teamId={teamId} />
+      </div>
+    );
+  }
 
   if (value === null || keys === null) {
     return (

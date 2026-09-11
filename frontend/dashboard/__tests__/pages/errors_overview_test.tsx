@@ -138,7 +138,7 @@ jest.mock("@/app/components/loading_bar", () => () => (
 
 import ErrorsOverviewPage from "@/app/[teamId]/errors/page";
 
-const mockApp = { id: "app-1", name: "Sample" };
+const mockApp = { id: "app-1", name: "Sample", onboarded: true };
 
 const errorTypeKey = {
   name: "error_type",

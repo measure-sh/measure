@@ -82,6 +82,7 @@ export default function UserJourneys({
 
       <FilterBar
         entity="journeys"
+        teamId={teamId}
         placeholder="Filter journeys…"
         value={value}
         apps={apps}
@@ -89,6 +90,7 @@ export default function UserJourneys({
         keyGroups={keyGroups}
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
+        status={filterStatus}
         onChange={onChange}
       />
       <div className="py-4" />

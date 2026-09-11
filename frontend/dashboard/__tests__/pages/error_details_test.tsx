@@ -174,7 +174,7 @@ jest.mock("@/app/utils/time_utils", () => ({
 
 import ErrorDetailsPage from "@/app/[teamId]/errors/[appId]/[errorGroupId]/[errorGroupName]/page";
 
-const mockApp = { id: "app-1", name: "measure demo" };
+const mockApp = { id: "app-1", name: "measure demo", onboarded: true };
 
 const osNameKey = {
   name: "os_name",

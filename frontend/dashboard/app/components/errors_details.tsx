@@ -583,6 +583,7 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
 
       <FilterBar
         entity="error_group_events"
+        teamId={teamId}
         placeholder="Filter events…"
         value={value}
         apps={apps}
@@ -591,6 +592,7 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
         showAppSelect={false}
+        status={filterStatus}
         onChange={onChange}
       />
       <div className="py-4" />

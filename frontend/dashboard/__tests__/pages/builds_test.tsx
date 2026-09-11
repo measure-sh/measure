@@ -59,6 +59,7 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => ({
       <span data-testid="filter-bar-app">
         {props.value?.app.name ?? "none"}
       </span>
+      <span data-testid="filter-bar-status">{props.status.kind}</span>
       <span data-testid="filter-bar-expr">
         {props.value?.filterExpr ?? "none"}
       </span>
@@ -473,6 +474,17 @@ describe("Builds page", () => {
       renderPage();
 
       expect(mockRouter.urlParams()).toEqual({ ...settled, po: "10" });
+    });
+  });
+
+  describe("a team with no apps", () => {
+    it("is told so in words, since builds are listed without the wizard", () => {
+      mockUseAppsQuery.mockReturnValue({ status: "success", data: [] });
+      renderPage();
+
+      expect(screen.getByTestId("filter-bar-status")).toHaveTextContent(
+        "no-apps",
+      );
     });
   });
 

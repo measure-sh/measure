@@ -139,7 +139,7 @@ jest.mock("@/app/utils/time_utils", () => ({
 
 import BugReportsOverview from "@/app/[teamId]/bug_reports/page";
 
-const mockApp = { id: "app-1", name: "Sample" };
+const mockApp = { id: "app-1", name: "Sample", onboarded: true };
 
 const statusKey = {
   name: "bug_report_status",

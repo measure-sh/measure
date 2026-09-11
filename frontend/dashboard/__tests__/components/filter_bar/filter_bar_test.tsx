@@ -25,6 +25,13 @@ jest.mock("@/app/components/skeleton", () => ({
   Skeleton: () => <div data-testid="skeleton" />,
 }));
 
+jest.mock("@/app/components/onboarding", () => ({
+  __esModule: true,
+  default: ({ teamId }: any) => (
+    <div data-testid="onboarding" data-team={teamId} />
+  ),
+}));
+
 jest.mock("@/app/components/dropdown_select", () => ({
   __esModule: true,
   DropdownSelectType: { SingleString: "SingleString" },
@@ -340,6 +347,8 @@ async function renderBar(
   const bar = () => (
     <FilterBar
       entity="builds"
+      teamId="team-1"
+      status={{ kind: "ready" }}
       value={drawnValue}
       apps={apps}
       keys={keys}
@@ -459,6 +468,56 @@ describe("FilterBar", () => {
 
       expect(screen.queryByTestId("filter-bar")).toBeNull();
       expect(screen.getAllByTestId("skeleton")).toHaveLength(3);
+    });
+
+    it("draws the integration wizard on its own for a team with no apps", async () => {
+      await renderBar(null, {
+        status: { kind: "onboarding", reason: "no-apps" },
+      });
+
+      expect(screen.getByTestId("onboarding")).toHaveAttribute(
+        "data-team",
+        "team-1",
+      );
+      expect(screen.queryByTestId("app-select")).toBeNull();
+      expect(screen.queryByTestId("date-select")).toBeNull();
+      expect(screen.queryByTestId("filter-bar")).toBeNull();
+    });
+
+    it("points a team with no apps at the apps page when the wizard is not offered", async () => {
+      await renderBar(null, { status: { kind: "no-apps" } });
+
+      expect(
+        screen.getByRole("link", { name: "creating your first app!" }),
+      ).toHaveAttribute("href", "apps");
+      expect(screen.queryByTestId("onboarding")).toBeNull();
+      expect(screen.queryByTestId("filter-bar")).toBeNull();
+    });
+
+    it("draws the wizard under the app selector for an app with no events", async () => {
+      await renderBar(
+        {},
+        { status: { kind: "onboarding", reason: "not-onboarded" } },
+      );
+
+      expect(screen.getByTestId("app-select")).toHaveAttribute(
+        "data-selected",
+        "Checkout",
+      );
+      expect(screen.getByTestId("onboarding")).toBeInTheDocument();
+      expect(screen.queryByTestId("date-select")).toBeNull();
+      expect(screen.queryByTestId("filter-bar")).toBeNull();
+    });
+
+    it("sends the app the selector picks while the wizard is up", async () => {
+      const { onChange } = await renderBar(
+        {},
+        { status: { kind: "onboarding", reason: "not-onboarded" } },
+      );
+
+      await click(screen.getByTestId("pick-app-app-2"));
+
+      expect(lastChange(onChange)).toEqual({ appId: "app-2" });
     });
 
     it("draws the app and range it is given", async () => {

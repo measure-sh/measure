@@ -114,6 +114,7 @@ export function useExprFilterPage({
   paginationLimit,
   rootSpan = false,
   appId: fixedAppId,
+  onboarding = true,
 }: {
   teamId: string;
   entity: string;
@@ -121,6 +122,9 @@ export function useExprFilterPage({
   rootSpan?: boolean;
   // Fixes the app. The URL app id is overwritten with it.
   appId?: string;
+  // Whether the page offers the integration wizard to a team with no apps and
+  // to an app that has not reported an event yet.
+  onboarding?: boolean;
 }) {
   const searchParams = useSearchParams();
   const search = searchParams.toString();
@@ -160,7 +164,12 @@ export function useExprFilterPage({
         : [],
     [url.filterExpr],
   );
-  const keysQuery = useFilterKeysQuery(app?.id, entity, urlCustomKeyNames);
+  // An app that has not reported yet gets the wizard, so its keys are not read.
+  const keysQuery = useFilterKeysQuery(
+    onboarding && app !== null && !app.onboarded ? undefined : app?.id,
+    entity,
+    urlCustomKeyNames,
+  );
   const spanNamesQuery = useRootSpanNamesQuery(rootSpan ? app : null);
 
   const {
@@ -181,6 +190,7 @@ export function useExprFilterPage({
         endDate: rememberedEndDate,
       },
     },
+    onboarding,
   });
 
   const customDate = dateRange.dateRange === DateRange.Custom;

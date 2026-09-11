@@ -39,7 +39,8 @@ jest.mock("@/app/query/hooks", () => ({
 
 import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
 
-const app = (id: string, name: string) => ({ id, name }) as App;
+const app = (id: string, name: string, onboarded = true) =>
+  ({ id, name, onboarded }) as App;
 const apps = [app("app-1", "Checkout"), app("app-2", "Wallet")];
 
 const mappingTypeKey = {
@@ -682,6 +683,46 @@ describe("useExprFilterPage", () => {
 
       expect(mockRouter.urlParams()).toEqual({ ...settled, po: "10" });
       expect(page.paginationOffset).toBe(0);
+    });
+  });
+
+  describe("the integration wizard", () => {
+    const fresh = app("app-3", "Fresh", false);
+
+    it("stands in for a team with no apps, with nothing fetched", async () => {
+      appsLoaded([]);
+      await renderPage();
+
+      expect(page.status).toEqual({ kind: "onboarding", reason: "no-apps" });
+      expect(page.value).toBeNull();
+      expect(page.filterParams).toBeNull();
+      expect(mockFiltersStore.store.getState().appsState).toBe("no-apps");
+    });
+
+    it("stands in for an app that has not reported an event, which it still puts on the store", async () => {
+      appsLoaded([fresh]);
+      await renderPage();
+
+      expect(page.status).toEqual({
+        kind: "onboarding",
+        reason: "not-onboarded",
+      });
+      expect(page.value).toMatchObject({ app: fresh, filterExpr: null });
+      expect(page.filterParams).toBeNull();
+      expect(mockFiltersStore.store.getState().selectedApp).toEqual(fresh);
+      expect(mockUseFilterKeysQuery).toHaveBeenLastCalledWith(
+        undefined,
+        "builds",
+        [],
+      );
+    });
+
+    it("is left out on a page that does without it", async () => {
+      appsLoaded([fresh]);
+      await renderPage({ ...paginated, onboarding: false });
+
+      expect(page.status).toEqual({ kind: "ready" });
+      expect(page.filterParams).toMatchObject({ appId: "app-3" });
     });
   });
 });

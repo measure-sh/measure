@@ -141,7 +141,7 @@ jest.mock("@/app/utils/time_utils", () => ({
 
 import SessionReplayOverview from "@/app/[teamId]/session_replays/page";
 
-const mockApp = { id: "app-1", name: "Sample" };
+const mockApp = { id: "app-1", name: "Sample", onboarded: true };
 
 const eventsKey = {
   name: "session_events",

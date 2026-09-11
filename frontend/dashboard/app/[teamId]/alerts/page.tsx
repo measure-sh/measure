@@ -62,12 +62,14 @@ export default function AlertsOverview(props: {
 
       <FilterBar
         entity="alerts"
+        teamId={params.teamId}
         value={value}
         apps={apps}
         keys={keys}
         keyGroups={keyGroups}
         keysUnavailable={keysUnavailable}
         showFilterExpr={false}
+        status={filterStatus}
         onChange={onChange}
       />
       <div className="py-4" />

@@ -42,6 +42,8 @@ export type RememberedFilters = {
 export type FilterStatus =
   | { kind: "loading" }
   | { kind: "error"; message: string }
+  | { kind: "no-apps" }
+  | { kind: "onboarding"; reason: "no-apps" | "not-onboarded" }
   | { kind: "ready" };
 
 export type ResolvedFilters = {
@@ -59,8 +61,6 @@ export type FilterResolution = {
 
 const appsErrorMessage =
   "Error fetching apps, please refresh page to try again";
-const noAppsMessage =
-  "Looks like you don't have any apps yet. Get started by creating your first app!";
 const keysErrorMessage =
   "Error fetching filters, please refresh page to try again";
 const spanNamesErrorMessage =
@@ -108,12 +108,16 @@ export function resolveFilters({
   keys,
   spanNames,
   remembered,
+  onboarding,
 }: {
   url: UrlFilters;
   apps: AppsQueryState;
   keys: KeysQueryState;
   spanNames: SpanNamesQueryState | null;
   remembered: RememberedFilters;
+  // Whether the page offers the integration wizard to a team with no apps and
+  // to an app that has not reported an event yet.
+  onboarding: boolean;
 }): FilterResolution {
   const app = resolveApp(url.appId, apps.data, remembered.appId);
   const date = pickDateRange(url.dateRange, remembered.dateRange);
@@ -164,10 +168,24 @@ export function resolveFilters({
     return resolution({ kind: "error", message: appsErrorMessage }, null);
   }
   if (apps.status === "success" && (apps.data ?? []).length === 0) {
-    return resolution({ kind: "error", message: noAppsMessage }, null);
+    return onboarding
+      ? resolution({ kind: "onboarding", reason: "no-apps" }, null)
+      : resolution({ kind: "no-apps" }, null);
   }
   if (app === null) {
     return resolution({ kind: "loading" }, null);
+  }
+  // The filters still carry the app so the bar can offer the app selector
+  // above the wizard.
+  if (onboarding && !app.onboarded) {
+    return resolution(
+      { kind: "onboarding", reason: "not-onboarded" },
+      {
+        app,
+        filterExpr: null,
+        rootSpanName: null,
+      },
+    );
   }
   if (keys.isError) {
     return resolution(

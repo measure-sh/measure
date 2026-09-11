@@ -61,6 +61,9 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => ({
   default: (props: any) => (
     <div data-testid="filter-bar-mock">
       <span data-testid="filter-bar-entity">{props.entity}</span>
+      <span data-testid="filter-bar-status" data-reason={props.status.reason}>
+        {props.status.kind}
+      </span>
       <span data-testid="filter-bar-expr">
         {props.value?.filterExpr ?? "none"}
       </span>
@@ -116,7 +119,7 @@ jest.mock("@/app/components/metrics_overview", () => ({
 import { ApiError, invalidFilterExpr } from "@/app/api/api_error";
 import Overview, { OverviewDemo } from "@/app/components/overview";
 
-const mockApp = { id: "app-1", name: "Sample" };
+const mockApp = { id: "app-1", name: "Sample", onboarded: true };
 
 const versionNameKey = {
   name: "version_name",
@@ -302,6 +305,19 @@ describe("Overview page", () => {
     expect(screen.getByTestId("filter-bar-issues")).toHaveTextContent(
       'Unknown key "os_name"',
     );
+  });
+
+  describe("a team with no apps", () => {
+    it("hands the bar the wizard to draw, and fetches nothing", () => {
+      mockUseAppsQuery.mockReturnValue({ status: "success", data: [] });
+      renderPage();
+
+      const status = screen.getByTestId("filter-bar-status");
+      expect(status).toHaveTextContent("onboarding");
+      expect(status).toHaveAttribute("data-reason", "no-apps");
+      expect(screen.queryByTestId("app-health-plot-mock")).toBeNull();
+      expect(mockUseMetricsQuery).toHaveBeenLastCalledWith(null);
+    });
   });
 
   describe("a filter it could not settle", () => {
