@@ -25,14 +25,12 @@ jest.mock("@/app/utils/navigation", () => ({
 }));
 
 import {
-  buildShortFiltersPostBody,
   changeAppApiKeyFromServer,
   changeAppNameFromServer,
   changeRoleFromServer,
   changeTeamNameFromServer,
   createAppFromServer,
   createTeamFromServer,
-  defaultFilters,
   downgradeToFreeFromServer,
   downloadBuildFile,
   undoDowngradeFromServer,
@@ -54,7 +52,6 @@ import {
   fetchErrorsOverviewPlotFromServer,
   fetchCheckoutSessionFromServer,
   fetchCustomerPortalUrlFromServer,
-  fetchFiltersFromServer,
   fetchJourneyFromServer,
   fetchMetricsFromServer,
   fetchNetworkEndpointStatusCodesPlotFromServer,
@@ -78,14 +75,11 @@ import {
   fetchTeamSlackStatusFromServer,
   fetchTraceFromServer,
   fetchUsageFromServer,
-  Filters,
-  FilterSource,
   inviteMemberFromServer,
   JourneyType,
   removeMemberFromServer,
   removePendingInviteFromServer,
   resendPendingInviteFromServer,
-  saveListFiltersToServer,
   SdkConfig,
   sendTestSlackAlertFromServer,
   updateAppRetentionFromServer,
@@ -126,19 +120,6 @@ function errorResponse(status: number = 500, body: any = {}) {
 const isoFrom = "2026-04-01T00:00:00.000Z";
 const isoTo = "2026-04-10T00:00:00.000Z";
 
-function makeFilters(overrides: Partial<Filters> = {}): Filters {
-  return {
-    ...defaultFilters,
-    ready: true,
-    app: { id: "app-a", onboarded: true } as any,
-    startDate: "2026-04-01T00:00:00.000Z",
-    endDate: "2026-04-10T00:00:00.000Z",
-    versions: { selected: [{ name: "1.0.0", code: "100" } as any], all: false },
-    filterShortCodePromise: Promise.resolve("code-123"),
-    ...overrides,
-  };
-}
-
 // Resolve the most recent fetch call's URL as a string, regardless of
 // whether apiClient.fetch was called with a string, URL, or Request.
 function lastFetchUrl(): string {
@@ -155,106 +136,6 @@ function lastFetchOpts(): any {
 
 beforeEach(() => {
   mockApiClientFetch.mockReset();
-});
-
-// ========================================================================
-// buildShortFiltersPostBody
-// ========================================================================
-describe("buildShortFiltersPostBody", () => {
-  it("returns null when every filter is empty", () => {
-    const empty: Filters = {
-      ...defaultFilters,
-      app: { id: "app-a" } as any,
-    };
-    expect(buildShortFiltersPostBody(empty)).toBeNull();
-  });
-
-  it("omits ud_expression when no matchers are selected", () => {
-    const filters = makeFilters();
-    const body = buildShortFiltersPostBody(filters);
-    expect(body).not.toBeNull();
-    expect((body!.filters as any).ud_expression).toBeUndefined();
-  });
-
-  it("adds ud_expression with the matcher details when matchers are present", () => {
-    const filters = makeFilters({
-      udAttrMatchers: [
-        { key: "user_id", type: "string", op: "eq", value: "alice" },
-      ],
-    });
-    const body = buildShortFiltersPostBody(filters);
-    expect(body).not.toBeNull();
-    const udExpression = JSON.parse((body!.filters as any).ud_expression);
-    expect(udExpression).toEqual({
-      and: [
-        { cmp: { key: "user_id", type: "string", op: "eq", value: "alice" } },
-      ],
-    });
-  });
-
-  it("coerces boolean matcher values to strings so the server sees String(true)", () => {
-    const filters = makeFilters({
-      udAttrMatchers: [{ key: "premium", type: "bool", op: "eq", value: true }],
-    });
-    const body = buildShortFiltersPostBody(filters);
-    const udExpression = JSON.parse((body!.filters as any).ud_expression);
-    expect(udExpression.and[0].cmp.value).toBe("true");
-  });
-
-  it("produces a different body for different matcher values", () => {
-    const a = buildShortFiltersPostBody(
-      makeFilters({
-        udAttrMatchers: [
-          { key: "user_id", type: "string", op: "eq", value: "alice" },
-        ],
-      }),
-    );
-    const b = buildShortFiltersPostBody(
-      makeFilters({
-        udAttrMatchers: [
-          { key: "user_id", type: "string", op: "eq", value: "bob" },
-        ],
-      }),
-    );
-    expect(JSON.stringify(a)).not.toBe(JSON.stringify(b));
-  });
-});
-
-// ========================================================================
-// saveListFiltersToServer
-// ========================================================================
-describe("saveListFiltersToServer", () => {
-  it("returns null without a network call when the body would be empty", async () => {
-    const empty: Filters = { ...defaultFilters, app: { id: "app-a" } as any };
-    const code = await saveListFiltersToServer(empty);
-    expect(code).toBeNull();
-    expect(mockApiClientFetch).not.toHaveBeenCalled();
-  });
-
-  it("POSTs to /shortFilters with the body builder output and returns filter_short_code", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ filter_short_code: "abc" }),
-    );
-    const code = await saveListFiltersToServer(makeFilters());
-    expect(code).toBe("abc");
-    expect(lastFetchUrl()).toBe("/api/apps/app-a/shortFilters");
-    expect(lastFetchOpts().method).toBe("POST");
-    const body = JSON.parse(lastFetchOpts().body);
-    expect(body.filters.versions).toEqual(["1.0.0"]);
-    expect(body.filters.version_codes).toEqual(["100"]);
-  });
-
-  it("returns null on non-ok response", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(errorResponse(500));
-    const code = await saveListFiltersToServer(makeFilters());
-    expect(code).toBeNull();
-  });
-
-  it("returns null when fetch throws", async () => {
-    mockApiClientFetch.mockRejectedValueOnce(new Error("network"));
-    const code = await saveListFiltersToServer(makeFilters());
-    expect(code).toBeNull();
-  });
 });
 
 // ========================================================================
@@ -378,108 +259,6 @@ describe("simple GET helpers", () => {
   });
 });
 
-// ========================================================================
-// fetchFiltersFromServer — has NoData / NotOnboarded branches
-// ========================================================================
-describe("fetchFiltersFromServer", () => {
-  const onboardedApp = { id: "app-1", onboarded: true } as any;
-  const notOnboardedApp = { id: "app-1", onboarded: false } as any;
-
-  it("appends type=error,anr for Errors filterSource", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({ versions: [] }));
-    await fetchFiltersFromServer(onboardedApp, FilterSource.Errors);
-    const url = lastFetchUrl();
-    expect(url).toContain("type=error,anr");
-  });
-
-  it("has no source-specific param for Events", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({ versions: [] }));
-    await fetchFiltersFromServer(onboardedApp, FilterSource.Events);
-    const url = lastFetchUrl();
-    expect(url).not.toContain("crash=");
-    expect(url).not.toContain("anr=");
-    expect(url).not.toContain("span=");
-    expect(url).toContain("ud_attr_keys=1");
-  });
-
-  it("throws a RequestError when the body is missing altogether", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
-    const err = await fetchFiltersFromServer(
-      onboardedApp,
-      FilterSource.Events,
-    ).catch((e) => e);
-    expect(err).toBeInstanceOf(RequestError);
-    expect(err.message).toBe("Failed to fetch filters");
-  });
-
-  it("reports options when the server has filter data", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ versions: ["1.0.0"] }),
-    );
-    const result = await fetchFiltersFromServer(
-      onboardedApp,
-      FilterSource.Events,
-    );
-    expect(result).toEqual({ kind: "options", data: { versions: ["1.0.0"] } });
-  });
-
-  it("returns NoBuilds for the Builds source when the app has no builds", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ versions: null }),
-    );
-    const result = await fetchFiltersFromServer(
-      onboardedApp,
-      FilterSource.Builds,
-    );
-    expect(result).toEqual({ kind: "no-builds" });
-  });
-
-  it("reports no-data when the app is onboarded but has no versions", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ versions: null }),
-    );
-    const result = await fetchFiltersFromServer(
-      onboardedApp,
-      FilterSource.Events,
-    );
-    expect(result).toEqual({ kind: "no-data" });
-  });
-
-  it("reports options when versions is an empty array (onboarded app, no versions yet)", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({ versions: [] }));
-    const result = await fetchFiltersFromServer(
-      onboardedApp,
-      FilterSource.Events,
-    );
-    expect(result).toEqual({ kind: "options", data: { versions: [] } });
-  });
-
-  it("returns NotOnboarded when the app is not onboarded", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ versions: null }),
-    );
-    const result = await fetchFiltersFromServer(
-      notOnboardedApp,
-      FilterSource.Events,
-    );
-    expect(result).toEqual({ kind: "not-onboarded" });
-  });
-
-  it("throws on non-ok", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(errorResponse());
-    await expect(
-      fetchFiltersFromServer(onboardedApp, FilterSource.Events),
-    ).rejects.toThrow(ApiError);
-  });
-
-  it("throws on exception", async () => {
-    mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
-    await expect(
-      fetchFiltersFromServer(onboardedApp, FilterSource.Events),
-    ).rejects.toThrow(RequestError);
-  });
-});
-
 describe("fetchMetricsFromServer", () => {
   const call = (filterExpr: string | null = null) =>
     fetchMetricsFromServer(
@@ -541,7 +320,6 @@ describe("fetchSessionReplayOverviewFromServer", () => {
     expect(url.searchParams.get("limit")).toBe("5");
     expect(url.searchParams.get("offset")).toBe("10");
     expect(url.searchParams.has("filter_expr")).toBe(false);
-    expect(url.searchParams.has("filter_short_code")).toBe(false);
     expect(url.searchParams.has("type")).toBe(false);
     expect(url.searchParams.has("free_text")).toBe(false);
   });
@@ -1061,7 +839,6 @@ describe("sessions, bug reports, alerts", () => {
     expect(url).toContain("to=");
     expect(url).toContain("limit=20");
     expect(url).toContain("offset=0");
-    expect(url).not.toContain("filter_short_code=");
   });
 
   it("fetchBuildsFromServer hits /builds with the range, expression and pagination", async () => {
@@ -1562,7 +1339,6 @@ describe("fetchBugReportsOverviewFromServer", () => {
     expect(url.searchParams.get("limit")).toBe("5");
     expect(url.searchParams.get("offset")).toBe("10");
     expect(url.searchParams.has("filter_expr")).toBe(false);
-    expect(url.searchParams.has("filter_short_code")).toBe(false);
     expect(url.searchParams.has("bug_report_statuses")).toBe(false);
     expect(url.searchParams.has("free_text")).toBe(false);
   });
@@ -1894,36 +1670,6 @@ describe("additional branch coverage", () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
     const r = await fetchNetworkTrendsFromServer("a", isoFrom, isoTo, null, 10);
     expect(r).toBeNull();
-  });
-
-  it("AppVersion class constructs name/code/displayName", async () => {
-    const { AppVersion } = jest.requireActual("@/app/api/api_calls");
-    const v = new AppVersion("1.0.0", "100");
-    expect(v.name).toBe("1.0.0");
-    expect(v.code).toBe("100");
-    expect(v.displayName).toBe("1.0.0 (100)");
-  });
-
-  it("OsVersion class adds Android API Level label", async () => {
-    const { OsVersion } = jest.requireActual("@/app/api/api_calls");
-    expect(new OsVersion("android", "14").displayName).toBe(
-      "Android API Level 14",
-    );
-  });
-
-  it("OsVersion class adds iOS label", async () => {
-    const { OsVersion } = jest.requireActual("@/app/api/api_calls");
-    expect(new OsVersion("ios", "17").displayName).toBe("iOS 17");
-  });
-
-  it("OsVersion class adds iPadOS label", async () => {
-    const { OsVersion } = jest.requireActual("@/app/api/api_calls");
-    expect(new OsVersion("ipados", "17").displayName).toBe("iPadOS 17");
-  });
-
-  it("OsVersion class passes through unknown OS name", async () => {
-    const { OsVersion } = jest.requireActual("@/app/api/api_calls");
-    expect(new OsVersion("windows", "11").displayName).toBe("windows 11");
   });
 
   it("createTeamFromServer throws the server message on non-ok", async () => {

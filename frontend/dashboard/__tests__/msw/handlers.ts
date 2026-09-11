@@ -33,7 +33,6 @@ import {
   makeFilterKeysFixture,
   makeNetworkFilterKeysFixture,
   makeFilterValuesFixture,
-  makeFiltersFixture,
   makeHealthPlotFixture,
   makeJourneyFixture,
   makeMetricsFixture,
@@ -49,7 +48,6 @@ import {
   makeSessionPlotFixture,
   makeSessionReplayFixture,
   makeSessionReplayOverviewFixture,
-  makeShortFiltersFixture,
   makeSlackConnectUrlFixture,
   makeSlackStatusFixture,
   makeSpanMetricsPlotFixture,
@@ -64,16 +62,6 @@ export const handlers = [
   // 1. GET /api/teams/:teamId/apps
   http.get("*/api/teams/:teamId/apps", () => {
     return HttpResponse.json([makeAppFixture()]);
-  }),
-
-  // 2. GET /api/apps/:appId/filters
-  http.get("*/api/apps/:appId/filters", () => {
-    return HttpResponse.json(makeFiltersFixture());
-  }),
-
-  // 3. POST /api/apps/:appId/shortFilters
-  http.post("*/api/apps/:appId/shortFilters", () => {
-    return HttpResponse.json(makeShortFiltersFixture());
   }),
 
   // 4. GET /api/apps/:appId/sessions/plots/instances

@@ -210,7 +210,6 @@ describe("Traces Overview (MSW integration)", () => {
       expect(sent[0].searchParams.get("limit")).toBe("5");
       expect(sent[0].searchParams.get("offset")).toBe("0");
       expect(sent[0].searchParams.has("filter_expr")).toBe(false);
-      expect(sent[0].searchParams.has("filter_short_code")).toBe(false);
       expect(sent[0].searchParams.has("span_statuses")).toBe(false);
     });
 

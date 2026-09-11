@@ -1,5 +1,6 @@
 "use client";
 
+import { DateTime } from "luxon";
 import { Check, ChevronLeft, ChevronRight, Copy, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -7,8 +8,7 @@ import { useEffect, useState } from "react";
 import {
   App,
   fetchAppsFromServer,
-  fetchFiltersFromServer,
-  FilterSource,
+  fetchErrorsOverviewFromServer,
 } from "../api/api_calls";
 import {
   useAppsQuery,
@@ -660,22 +660,26 @@ export default function Onboarding({ teamId }: OnboardingProps) {
     // of touching a screen that's no longer there.
     let stopped = false;
 
-    // The onboarded flag flips as soon as the SDK reports its first event
-    // of any kind but we need to make sure that filters are updated by the
-    // materialised view before proceeding so that the destination page
-    // does not show "No Data" when users heads there.
-    const firstEventHasLanded = async (): Promise<boolean> => {
+    // The onboarded flag flips on the first batch of any kind, a plain session
+    // included, so an error group is required as well before the step reports
+    // the crash it asked for. The group is looked for over all time, since
+    // the device clock that stamped the crash need not be near the server's.
+    const firstErrorHasLanded = async (): Promise<boolean> => {
       try {
         const polledApps = await fetchAppsFromServer(teamId);
         const refetchedApp = polledApps.find((app) => app.id === targetAppId);
         if (!refetchedApp?.onboarded) {
           return false;
         }
-        const errorsFilterResult = await fetchFiltersFromServer(
-          refetchedApp,
-          FilterSource.Errors,
-        );
-        return errorsFilterResult.kind === "options";
+        const { results } = (await fetchErrorsOverviewFromServer(
+          targetAppId,
+          DateTime.fromMillis(0, { zone: "utc" }).toISO()!,
+          DateTime.now().plus({ days: 1 }).toISO()!,
+          null,
+          1,
+          0,
+        )) as { results: unknown[] | null };
+        return (results?.length ?? 0) > 0;
       } catch {
         // A failed poll looks the same as an app that has not reported yet.
         // The caller tries again in both conditions.
@@ -683,8 +687,8 @@ export default function Onboarding({ teamId }: OnboardingProps) {
       }
     };
 
-    const pollForFirstEvent = async () => {
-      if ((await firstEventHasLanded()) && !stopped) {
+    const pollForFirstError = async () => {
+      if ((await firstErrorHasLanded()) && !stopped) {
         // Only show the success card. Don't update the app's onboarded
         // flag or refetch apps here: that reloads the filters, which
         // unmounts this screen before the user sees the success message.
@@ -694,8 +698,8 @@ export default function Onboarding({ teamId }: OnboardingProps) {
       }
     };
 
-    pollForFirstEvent();
-    const interval = setInterval(pollForFirstEvent, POLL_INTERVAL_MS);
+    pollForFirstError();
+    const interval = setInterval(pollForFirstError, POLL_INTERVAL_MS);
     return () => {
       stopped = true;
       clearInterval(interval);
@@ -736,8 +740,7 @@ export default function Onboarding({ teamId }: OnboardingProps) {
     // date range, the destination page inherits whatever startDate/
     // endDate the filters store last computed — possibly long before the
     // test crash arrived — which would render the just-onboarded crash
-    // outside the window. Filters.tsx detects the URL dateRange and
-    // recomputes the actual timestamps from now on mount.
+    // outside the window.
     const params = new URLSearchParams({
       a: selectedApp.id,
       d: "Last 6 Hours",

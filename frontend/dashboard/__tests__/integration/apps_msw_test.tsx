@@ -369,10 +369,8 @@ describe("Apps Page — no apps in team", () => {
       );
     });
 
-    // The settings UI renders once retention/sdkConfig/threshold queries
-    // succeed for the new app. That gate flips because the apps page's
-    // dynamic showNotOnboarded prop falls to false, which re-fires
-    // Filters' setConfig effect and makes filters.ready=true.
+    // The settings UI renders once the retention, sdkConfig and threshold
+    // queries succeed for the app that was just created and selected.
     await waitFor(
       () => {
         expect(screen.getByText("Copy SDK Variables")).toBeTruthy();

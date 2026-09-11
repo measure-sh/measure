@@ -192,7 +192,6 @@ describe("Network overview (MSW integration)", () => {
       expect(sent[0].searchParams.get("path")).toBe("");
       expect(sent[0].searchParams.has("filter_expr")).toBe(false);
       expect(sent[0].searchParams.has("http_methods")).toBe(false);
-      expect(sent[0].searchParams.has("filter_short_code")).toBe(false);
     });
 
     it("asks for the ranking with a limit and no time group", async () => {

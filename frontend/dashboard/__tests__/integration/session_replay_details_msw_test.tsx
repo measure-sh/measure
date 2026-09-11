@@ -200,35 +200,5 @@ describe("Session Replay Details (MSW integration)", () => {
       );
       await waitFor(() => expect(fetchCount).toBe(2), { timeout: 5000 });
     });
-
-    it("filter store state does not interfere with detail page fetch", async () => {
-      // Detail page has no filters. Setting filter state shouldn't
-      // prevent or alter the session detail fetch.
-      filtersStore.getState().setSelectedFreeText("some search text");
-
-      const detailUrls: string[] = [];
-      server.use(
-        http.get("*/api/apps/:appId/sessions/:sessionId", ({ request }) => {
-          detailUrls.push(request.url);
-          return HttpResponse.json(makeSessionReplayFixture());
-        }),
-      );
-
-      renderWithProviders(
-        <SessionDetail
-          params={promiseParams({
-            teamId: "test-team",
-            appId: "app-1",
-            sessionId: "sess-001",
-          })}
-        />,
-      );
-      await waitFor(() => expect(detailUrls.length).toBeGreaterThan(0), {
-        timeout: 5000,
-      });
-
-      expect(detailUrls[0]).not.toContain("free_text=");
-      expect(detailUrls[0]).not.toContain("filter_short_code=");
-    });
   });
 });

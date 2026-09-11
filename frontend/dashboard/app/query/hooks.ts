@@ -68,21 +68,15 @@ import {
 } from "@/app/api/api_calls";
 import {
   App,
-  AppVersion,
   fetchAppsFromServer,
   fetchFilterKeys,
   fetchFilterValues,
-  fetchFiltersFromServer,
   fetchRootSpanNamesFromServer,
-  FilterSource,
-  OsVersion,
-  UserDefAttr,
 } from "@/app/api/api_calls";
 import type { FilterKeysResponse } from "@/app/api/filter_types";
 import { ApiError } from "@/app/api/api_error";
 import { apiClient } from "@/app/api/api_client";
 import { queryClient } from "@/app/query/query_client";
-import type { FilterOptionsData } from "@/app/stores/filters_store";
 import {
   Query,
   keepPreviousData,
@@ -91,96 +85,11 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-// ─── Filter options & session ────────────────────────────────────────────
-
-function parseFilterResponse(data: any): FilterOptionsData {
-  const versions =
-    data.versions !== null
-      ? data.versions.map(
-          (v: { name: string; code: string }) => new AppVersion(v.name, v.code),
-        )
-      : [];
-
-  const osVersions =
-    data.os_versions !== null
-      ? data.os_versions.map(
-          (v: { name: string; version: string }) =>
-            new OsVersion(v.name, v.version),
-        )
-      : [];
-
-  let userDefAttrs: UserDefAttr[] = [];
-  let userDefAttrOps = new Map<string, string[]>();
-  if (
-    data.ud_attrs !== null &&
-    data.ud_attrs.key_types !== null &&
-    data.ud_attrs.operator_types !== null
-  ) {
-    userDefAttrs = data.ud_attrs.key_types;
-    userDefAttrOps = new Map<string, string[]>(
-      Object.entries(data.ud_attrs.operator_types),
-    );
-  }
-
-  return {
-    versions,
-    osVersions,
-    countries: data.countries ?? [],
-    networkProviders: data.network_providers ?? [],
-    networkTypes: data.network_types ?? [],
-    networkGenerations: data.network_generations ?? [],
-    locales: data.locales ?? [],
-    deviceManufacturers: data.device_manufacturers ?? [],
-    deviceNames: data.device_names ?? [],
-    userDefAttrs,
-    userDefAttrOps,
-  };
-}
-
 export function useAppsQuery(teamId: string | undefined) {
   return useQuery<App[]>({
     queryKey: ["filterApps", teamId] as const,
     queryFn: () => fetchAppsFromServer(teamId!),
     enabled: !!teamId,
-  });
-}
-
-/**
- * The parsed form of FilterOptionsResult. It has the same four outcomes, and
- * the raw server response becomes the option lists that the store holds.
- */
-export type ParsedFilterOptionsResult =
-  | { kind: "options"; data: FilterOptionsData }
-  | { kind: "no-data" }
-  | { kind: "not-onboarded" }
-  | { kind: "no-builds" };
-
-export function useFilterOptionsQuery(
-  app: App | null | undefined,
-  filterSource: FilterSource,
-) {
-  return useQuery<ParsedFilterOptionsResult>({
-    queryKey: [
-      "filterOptions",
-      app?.id,
-      filterSource,
-      app?.onboarded ?? false,
-    ] as const,
-    queryFn: async () => {
-      // An app that is not onboarded has no events, so every event-derived
-      // filterSource is empty. This code therefore skips the request. The
-      // user can upload a build before onboarding, so the Builds source
-      // always asks the server.
-      if (!app!.onboarded && filterSource !== FilterSource.Builds) {
-        return { kind: "not-onboarded" };
-      }
-      const result = await fetchFiltersFromServer(app!, filterSource);
-      if (result.kind !== "options") {
-        return result;
-      }
-      return { kind: "options", data: parseFilterResponse(result.data) };
-    },
-    enabled: !!app,
   });
 }
 

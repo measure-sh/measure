@@ -216,40 +216,4 @@ describe("Pill", () => {
       expect(onClick).toHaveBeenCalledTimes(1);
     });
   });
-
-  describe("action button (two-zone)", () => {
-    it("renders a clear button with X icon when action.icon is 'clear'", () => {
-      const onClick = jest.fn();
-      const action = { icon: "clear" as const, onClick: jest.fn() };
-      render(
-        <Pill onClick={onClick} action={action}>
-          Country: US
-        </Pill>,
-      );
-      const clearBtn = screen.getByLabelText(/Clear Country/);
-      fireEvent.click(clearBtn);
-      expect(action.onClick).toHaveBeenCalledTimes(1);
-      // Body click stays separate.
-      expect(onClick).not.toHaveBeenCalled();
-    });
-
-    it("renders a reset button with RotateCcw icon when action.icon is 'reset'", () => {
-      const action = { icon: "reset" as const, onClick: jest.fn() };
-      render(<Pill action={action}>App versions: 1.0</Pill>);
-      const resetBtn = screen.getByLabelText(/Reset App versions/);
-      fireEvent.click(resetBtn);
-      expect(action.onClick).toHaveBeenCalledTimes(1);
-    });
-
-    it("applies the typed tint to the outer shell of the action variant too", () => {
-      const action = { icon: "reset" as const, onClick: jest.fn() };
-      const { container } = render(
-        <Pill type={PillType.Error} action={action}>
-          Errors
-        </Pill>,
-      );
-      const outer = container.querySelector("span");
-      expect(outer!.className).toMatch(/border-slate-400/);
-    });
-  });
 });

@@ -28,13 +28,12 @@ const mockToastNegative = jest.fn();
 const mockRefetchQueries = jest.fn();
 const mockInvalidateQueries = jest.fn();
 const mockSetSelectedApp = jest.fn();
-const mockMarkAppOnboarded = jest.fn();
 const mockSetOnboardingStep = jest.fn();
 const mockSetOnboardingPlatform = jest.fn();
 const mockMarkVerified = jest.fn();
 const mockPush = jest.fn();
 const mockFetchAppsFromServer = jest.fn();
-const mockFetchFiltersFromServer = jest.fn();
+const mockFetchErrorsOverviewFromServer = jest.fn();
 const mockWriteText = jest.fn();
 let mockCanCreateApp = true;
 
@@ -79,9 +78,7 @@ jest.mock("@tanstack/react-query", () => {
   };
 });
 
-// filters_store imports a wide surface of types/enums from api_calls, so
-// we spread the real module and only override the two functions the
-// polling tick exercises.
+// Only the fetchers the poll calls are replaced, the rest stays real.
 jest.mock("@/app/api/api_calls", () => {
   const actual = jest.requireActual<typeof import("@/app/api/api_calls")>(
     "@/app/api/api_calls",
@@ -89,8 +86,8 @@ jest.mock("@/app/api/api_calls", () => {
   return {
     ...actual,
     fetchAppsFromServer: (...args: any[]) => mockFetchAppsFromServer(...args),
-    fetchFiltersFromServer: (...args: any[]) =>
-      mockFetchFiltersFromServer(...args),
+    fetchErrorsOverviewFromServer: (...args: any[]) =>
+      mockFetchErrorsOverviewFromServer(...args),
   };
 });
 
@@ -124,10 +121,8 @@ function getFiltersView() {
   if (cachedFiltersKey !== key) {
     cachedFiltersKey = key;
     cachedFiltersView = {
-      apps: mockApps,
       selectedApp: mockSelectedApp,
       setSelectedApp: mockSetSelectedApp,
-      markAppOnboarded: mockMarkAppOnboarded,
     };
   }
   return cachedFiltersView;
@@ -257,20 +252,9 @@ beforeEach(() => {
   mockCanCreateApp = true;
   mockRefetchQueries.mockResolvedValue(undefined);
   mockFetchAppsFromServer.mockResolvedValue([]);
-  mockFetchFiltersFromServer.mockResolvedValue({
-    kind: "options",
-    data: {
-      versions: [],
-      os_versions: [],
-      countries: [],
-      network_providers: [],
-      network_types: [],
-      network_generations: [],
-      locales: [],
-      device_manufacturers: [],
-      device_names: [],
-      ud_attrs: null,
-    },
+  mockFetchErrorsOverviewFromServer.mockResolvedValue({
+    results: [{ id: "group-1" }],
+    meta: { next: false, previous: false },
   });
   Object.assign(navigator, {
     clipboard: { writeText: mockWriteText },
@@ -1396,6 +1380,64 @@ describe("Onboarding — Step 3: Verify", () => {
     it("does not advance when the apps fetch fails", async () => {
       mockFetchAppsFromServer.mockRejectedValue(
         new ApiError(500, "Failed to fetch apps"),
+      );
+      await reachVerifyStep();
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(3000);
+      });
+      expect(screen.getByTestId("onboarding-waiting")).toBeInTheDocument();
+    });
+
+    it("keeps waiting while onboarded is true but no error group exists", async () => {
+      mockFetchAppsFromServer.mockResolvedValue([
+        makeApp({ id: "target-app", onboarded: true }),
+      ]);
+      mockFetchErrorsOverviewFromServer.mockResolvedValue({
+        results: [],
+        meta: { next: false, previous: false },
+      });
+      await reachVerifyStep();
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(3000);
+      });
+      expect(screen.getByTestId("onboarding-waiting")).toBeInTheDocument();
+      expect(
+        screen.queryByTestId("onboarding-success"),
+      ).not.toBeInTheDocument();
+    });
+
+    it("succeeds once the errors fetch returns a group", async () => {
+      mockFetchAppsFromServer.mockResolvedValue([
+        makeApp({ id: "target-app", onboarded: true }),
+      ]);
+      mockFetchErrorsOverviewFromServer
+        .mockResolvedValueOnce({
+          results: [],
+          meta: { next: false, previous: false },
+        })
+        .mockResolvedValueOnce({
+          results: [{ id: "group-1" }],
+          meta: { next: false, previous: false },
+        });
+      await reachVerifyStep();
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(0);
+      });
+      expect(
+        screen.queryByTestId("onboarding-success"),
+      ).not.toBeInTheDocument();
+      await act(async () => {
+        await jest.advanceTimersByTimeAsync(3000);
+      });
+      expect(screen.getByTestId("onboarding-success")).toBeInTheDocument();
+    });
+
+    it("does not advance when the errors fetch fails", async () => {
+      mockFetchAppsFromServer.mockResolvedValue([
+        makeApp({ id: "target-app", onboarded: true }),
+      ]);
+      mockFetchErrorsOverviewFromServer.mockRejectedValue(
+        new ApiError(500, "Failed to fetch errors overview"),
       );
       await reachVerifyStep();
       await act(async () => {

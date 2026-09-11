@@ -155,15 +155,13 @@ describe("useExprFilterPage", () => {
       expect(mockRouter.urlParams()).toEqual({ a: "app-2", d: "Last Week" });
     });
 
-    it("puts the app, the range and the apps on the store for other pages", async () => {
+    it("puts the app and the range on the store for other pages", async () => {
       await renderPage();
 
       const state = mockFiltersStore.store.getState();
       expect(state.selectedApp).toEqual(apps[0]);
       expect(state.selectedDateRange).toBe("Last 6 Hours");
       expect(state.selectedStartDate).toBe(page.value!.date.startDate);
-      expect(state.apps).toEqual(apps);
-      expect(state.appsState).toBe("loaded");
     });
 
     it("fetches nothing until the apps have loaded", async () => {
@@ -174,7 +172,6 @@ describe("useExprFilterPage", () => {
       expect(page.value).toBeNull();
       expect(page.filterParams).toBeNull();
       expect(mockRouter.urlParams()).toEqual({});
-      expect(mockFiltersStore.store.getState().appsState).toBe("pending");
     });
 
     it("fetches before the keys load when there is no filter to judge, with no keys for the bar yet", async () => {
@@ -696,7 +693,6 @@ describe("useExprFilterPage", () => {
       expect(page.status).toEqual({ kind: "onboarding", reason: "no-apps" });
       expect(page.value).toBeNull();
       expect(page.filterParams).toBeNull();
-      expect(mockFiltersStore.store.getState().appsState).toBe("no-apps");
     });
 
     it("stands in for an app that has not reported an event, which it still puts on the store", async () => {

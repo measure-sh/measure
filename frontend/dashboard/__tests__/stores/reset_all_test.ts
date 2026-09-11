@@ -10,7 +10,6 @@ jest.mock("@/app/query/query_client", () => ({
   queryClient: {
     clear: () => mockQueryClientClear(),
   },
-  SHORT_CODE_STALE_TIME: 5 * 60 * 1000,
 }));
 
 function createTestRegistry(): MeasureStoreRegistry {

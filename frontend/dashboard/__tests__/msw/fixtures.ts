@@ -34,51 +34,6 @@ export function makeAppFixture(overrides: Record<string, any> = {}) {
   };
 }
 
-// --- Filters (GET /apps/:appId/filters?ud_attr_keys=1) ---
-// Go struct: assembled in GetAppFilters handler, backend/api/measure/app.go
-
-export function makeFiltersFixture(overrides: Record<string, any> = {}) {
-  return {
-    versions: [
-      { name: "3.1.0", code: "310" },
-      { name: "3.0.2", code: "302" },
-      { name: "3.0.1", code: "301" },
-    ],
-    os_versions: [
-      { name: "android", version: "14" },
-      { name: "android", version: "13" },
-    ],
-    countries: ["US", "IN", "DE"],
-    network_providers: ["T-Mobile", "Jio"],
-    network_types: ["wifi", "cellular"],
-    network_generations: ["4g", "5g"],
-    locales: ["en-US", "hi-IN", "de-DE"],
-    device_manufacturers: ["Google", "Samsung"],
-    device_names: ["Pixel 8", "Galaxy S24"],
-    ud_attrs: {
-      key_types: [
-        { key: "user_id", type: "string" },
-        { key: "premium", type: "bool" },
-      ],
-      operator_types: {
-        string: ["eq", "neq", "contains", "starts_with"],
-        bool: ["eq"],
-      },
-    },
-    ...overrides,
-  };
-}
-
-// --- Short Filters (POST /apps/:appId/shortFilters) ---
-// Go struct: response from CreateShortFilters, backend/api/measure/app.go
-
-export function makeShortFiltersFixture(overrides: Record<string, any> = {}) {
-  return {
-    filter_short_code: "msw-test-code-abc123",
-    ...overrides,
-  };
-}
-
 // --- Session Plot (GET /apps/:appId/sessions/plots/instances) ---
 // Go struct: session.SessionInstance in backend/api/session/plot.go
 // Response is array of { id, data: [{ datetime, instances }] }

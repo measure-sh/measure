@@ -13,7 +13,6 @@ const FILES_WITH_REWRITTEN_LINKS = [
   "page.tsx",
   "pricing/page.tsx",
   "why-measure/page.tsx",
-  "components/filters.tsx",
   "components/sdk_configurator.tsx",
   "components/user_journeys.tsx",
   "[teamId]/apps/page.tsx",
