@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/libs/objstore"
 	"backend/libs/symbol"
 
@@ -347,7 +347,7 @@ func GetBuildFile(ctx context.Context, pg *pgxpool.Pool, appID, buildFileID uuid
 // (version_name, version_code, patch_id) are grouped into one build, keeping
 // only the latest file of each mapping type. Pagination applies to builds,
 // not files.
-func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, ef *exprfilter.ExprFilter) (builds []Build, next, previous bool, err error) {
+func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, flt *filter.Filter) (builds []Build, next, previous bool, err error) {
 	// latest keeps the most recently uploaded file of each mapping
 	// type within every (version_name, version_code, patch_id) group
 	latest := sqlf.PostgreSQL.From("build_mappings").
@@ -360,20 +360,20 @@ func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, ef *exprfilter.E
 		Select("key").
 		Select("file_size").
 		Select("last_updated").
-		Where("app_id = ?", ef.AppID).
+		Where("app_id = ?", flt.AppID).
 		Where("key != ''").
 		// id breaks ties when last_updated is equal
 		OrderBy("version_name, version_code, patch_id, mapping_type, last_updated desc, id")
 
-	if ef.HasTimeRange() {
-		latest.Where("last_updated >= ?", ef.From)
-		latest.Where("last_updated <= ?", ef.To)
+	if flt.HasTimeRange() {
+		latest.Where("last_updated >= ?", flt.From)
+		latest.Where("last_updated <= ?", flt.To)
 	}
 
 	// Apply the filter before grouping so pagination counts only builds
 	// that contain matching files.
-	if ef.HasFilterExpr() {
-		predicate, errFilter := ef.Predicate(nil)
+	if flt.HasFilterExpr() {
+		predicate, errFilter := flt.Predicate(nil)
 		if errFilter != nil {
 			return nil, false, false, errFilter
 		}
@@ -390,13 +390,13 @@ func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, ef *exprfilter.E
 		GroupBy("version_name, version_code, patch_id").
 		OrderBy("build_last_updated desc, version_name desc, version_code desc, patch_id desc")
 
-	if ef.Limit > 0 {
+	if flt.Limit > 0 {
 		// Fetch one extra build to determine whether another page exists.
-		page.Limit(uint64(ef.Limit) + 1)
+		page.Limit(uint64(flt.Limit) + 1)
 	}
 
-	if ef.Offset >= 0 {
-		page.Offset(uint64(ef.Offset))
+	if flt.Offset >= 0 {
+		page.Offset(uint64(flt.Offset))
 	}
 
 	stmt := sqlf.PostgreSQL.
@@ -469,11 +469,11 @@ func GetBuildsWithFilter(ctx context.Context, pg *pgxpool.Pool, ef *exprfilter.E
 		return nil, false, false, err
 	}
 
-	if ef.Limit > 0 && len(builds) > ef.Limit {
-		builds = builds[:ef.Limit]
+	if flt.Limit > 0 && len(builds) > flt.Limit {
+		builds = builds[:flt.Limit]
 		next = true
 	}
-	if ef.Offset > 0 {
+	if flt.Offset > 0 {
 		previous = true
 	}
 

@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 )
 
 // sumHealthInstances returns the total instances across all buckets of a series.
@@ -41,9 +41,9 @@ func dateOf(items []HealthInstance) string {
 func TestGetHealthPlotInstancesEmpty(t *testing.T) {
 	f := newPlotFixture(t)
 	ts := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
-	ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, "")
+	flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "")
 
-	sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, ef)
+	sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetHealthPlotInstances: %v", err)
 	}
@@ -61,8 +61,8 @@ func TestGetHealthPlotInstancesCounts(t *testing.T) {
 	// 10 plain sessions, 2 crash sessions (unhandled exceptions), 1 ANR session.
 	seedAppMetrics(f.ctx, t, f.teamIDStr(), f.appIDStr(), ts, 10, 2, 1)
 
-	ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, "")
-	sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, ef)
+	flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "")
+	sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetHealthPlotInstances: %v", err)
 	}
@@ -99,8 +99,8 @@ func TestGetHealthPlotInstancesCrashSeverity(t *testing.T) {
 	// One ANR.
 	seedIssueEvent(f.ctx, t, team, app, "anr", "", false, ts)
 
-	ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, "")
-	sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, ef)
+	flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "")
+	sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetHealthPlotInstances: %v", err)
 	}
@@ -124,8 +124,8 @@ func TestGetHealthPlotInstancesVersionFilter(t *testing.T) {
 	seedAppMetrics(f.ctx, t, f.teamIDStr(), f.appIDStr(), ts, 5, 1, 1)
 
 	t.Run("matching version returns counts", func(t *testing.T) {
-		ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, "version_name:in:v1 AND version_code:in:1")
-		sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, ef)
+		flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "version_name:in:v1 AND version_code:in:1")
+		sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetHealthPlotInstances: %v", err)
 		}
@@ -141,8 +141,8 @@ func TestGetHealthPlotInstancesVersionFilter(t *testing.T) {
 	})
 
 	t.Run("non-matching version returns nothing", func(t *testing.T) {
-		ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, "version_name:in:v2 AND version_code:in:2")
-		sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, ef)
+		flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "version_name:in:v2 AND version_code:in:2")
+		sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetHealthPlotInstances: %v", err)
 		}
@@ -162,8 +162,8 @@ func TestGetHealthPlotInstancesTimeBuckets(t *testing.T) {
 	seedAppMetrics(f.ctx, t, f.teamIDStr(), f.appIDStr(), day1, 3, 2, 0) // day1: 5 sessions, 2 crashes
 	seedAppMetrics(f.ctx, t, f.teamIDStr(), f.appIDStr(), day2, 2, 0, 3) // day2: 5 sessions, 3 anrs
 
-	ef := f.appHealthExprFilter(t, day1.Add(-time.Hour), day2.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, "")
-	sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, ef)
+	flt := f.appHealthFilter(t, day1.Add(-time.Hour), day2.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "")
+	sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetHealthPlotInstances: %v", err)
 	}
@@ -183,9 +183,9 @@ func TestGetHealthPlotInstancesTimeBuckets(t *testing.T) {
 func TestGetHealthPlotInstancesMissingTimezone(t *testing.T) {
 	f := newPlotFixture(t)
 	ts := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
-	ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "", exprfilter.PlotTimeGroupDays, "")
+	flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "", filter.PlotTimeGroupDays, "")
 
-	_, _, _, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, ef)
+	_, _, _, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
 	if err == nil || !strings.Contains(err.Error(), "timezone") {
 		t.Fatalf("expected timezone error, got %v", err)
 	}
@@ -197,8 +197,8 @@ func TestGetHealthPlotInstancesDefaultsPlotTimeGroup(t *testing.T) {
 	ts := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
 	seedAppMetrics(f.ctx, t, f.teamIDStr(), f.appIDStr(), ts, 4, 1, 0)
 
-	ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", "", "") // no plot_time_group
-	sessions, crashes, _, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, ef)
+	flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", "", "") // no plot_time_group
+	sessions, crashes, _, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetHealthPlotInstances: %v", err)
 	}
@@ -218,11 +218,11 @@ func TestGetHealthPlotInstancesTimezoneBucketing(t *testing.T) {
 	ts := time.Date(2026, 1, 5, 23, 30, 0, 0, time.UTC)
 	seedAppMetrics(f.ctx, t, f.teamIDStr(), f.appIDStr(), ts, 1, 1, 0)
 
-	ef := f.appHealthExprFilter(t,
+	flt := f.appHealthFilter(t,
 		time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC),
 		time.Date(2026, 1, 6, 23, 59, 0, 0, time.UTC),
-		"Asia/Kolkata", exprfilter.PlotTimeGroupDays, "")
-	sessions, crashes, _, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, ef)
+		"Asia/Kolkata", filter.PlotTimeGroupDays, "")
+	sessions, crashes, _, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetHealthPlotInstances: %v", err)
 	}

@@ -15,7 +15,7 @@ import (
 	"backend/libs/chquery"
 	"backend/libs/config"
 	"backend/libs/event"
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/libs/group"
 	"backend/libs/journey"
 	"backend/libs/logcomment"
@@ -51,8 +51,8 @@ func presignConfig(deps *server.Deps) event.PreSignConfig {
 
 func (h Handlers) GetAppJourney(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:   exprfilter.JourneysEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:   filter.JourneysEntity,
 		appScope: *measure.ScopeAppRead,
 		logRoot:  logcomment.Journeys,
 		logName:  "journey",
@@ -85,7 +85,7 @@ func (h Handlers) GetAppJourney(c *gin.Context) {
 
 	msg := `failed to compute app's journey`
 
-	g, err := app.GetJourneyGraph(ctx, deps.RchPool, &ef)
+	g, err := app.GetJourneyGraph(ctx, deps.RchPool, &flt)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -105,7 +105,7 @@ func (h Handlers) GetAppJourney(c *gin.Context) {
 
 	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "fatal_exception_groups"))
 
-	exceptionGroups, err := group.GetExceptionGroupsFromFingerprints(ctx, deps.RchPool, &ef, crashFingerprints)
+	exceptionGroups, err := group.GetExceptionGroupsFromFingerprints(ctx, deps.RchPool, &flt, crashFingerprints)
 	if err != nil {
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -125,7 +125,7 @@ func (h Handlers) GetAppJourney(c *gin.Context) {
 	if app.Family() == opsys.Android {
 		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "anr_groups"))
 
-		anrGroups, err := group.GetANRGroupsFromFingerprints(ctx, deps.RchPool, &ef, anrFingerprints)
+		anrGroups, err := group.GetANRGroupsFromFingerprints(ctx, deps.RchPool, &flt, anrFingerprints)
 		if err != nil {
 			fmt.Println(msg, err)
 			c.JSON(http.StatusInternalServerError, gin.H{
@@ -236,8 +236,8 @@ func journeyIssues(nodeIssues []journey.Issue, titles map[string]string) (issues
 
 func (h Handlers) GetAppMetrics(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:   exprfilter.AppHealthEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:   filter.AppHealthEntity,
 		appScope: *measure.ScopeAppRead,
 		logRoot:  logcomment.Metrics,
 		logName:  "metrics",
@@ -282,7 +282,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 
 	var adoption *metrics.SessionAdoption
 	metricsGroup.Go(func() (err error) {
-		adoption, err = app.GetAdoptionMetrics(metricsSettings("adoption"), deps.RchPool, &ef)
+		adoption, err = app.GetAdoptionMetrics(metricsSettings("adoption"), deps.RchPool, &flt)
 		if err != nil {
 			err = fmt.Errorf("failed to fetch adoption metrics: %w", err)
 		}
@@ -294,7 +294,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 	var anrFree *metrics.ANRFreeSession
 	var perceivedANRFree *metrics.PerceivedANRFreeSession
 	metricsGroup.Go(func() (err error) {
-		crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err = app.GetIssueFreeMetrics(metricsSettings("issue_free"), deps.RchPool, &ef)
+		crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err = app.GetIssueFreeMetrics(metricsSettings("issue_free"), deps.RchPool, &flt)
 		if err != nil {
 			err = fmt.Errorf("failed to fetch issue free metrics: %w", err)
 		}
@@ -303,7 +303,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 
 	var launch *metrics.LaunchMetric
 	metricsGroup.Go(func() (err error) {
-		launch, err = app.GetLaunchMetrics(metricsSettings("launch"), deps.RchPool, &ef)
+		launch, err = app.GetLaunchMetrics(metricsSettings("launch"), deps.RchPool, &flt)
 		if err != nil {
 			err = fmt.Errorf("failed to fetch launch metrics: %w", err)
 		}
@@ -312,7 +312,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 
 	var sizes *metrics.SizeMetric
 	metricsGroup.Go(func() (err error) {
-		sizes, err = app.GetSizeMetrics(metricsSettings("sizes"), deps.PgPool, deps.RchPool, &ef)
+		sizes, err = app.GetSizeMetrics(metricsSettings("sizes"), deps.PgPool, deps.RchPool, &flt)
 		if err != nil {
 			err = fmt.Errorf("failed to fetch size metrics: %w", err)
 		}
@@ -368,8 +368,8 @@ func errorGroupIDParam(c *gin.Context) (string, bool) {
 
 func (h Handlers) GetErrorOverview(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:   exprfilter.ErrorsEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:   filter.ErrorsEntity,
 		appScope: *measure.ScopeAppRead,
 		logRoot:  logcomment.Errors,
 		logName:  "errors_list",
@@ -378,7 +378,7 @@ func (h Handlers) GetErrorOverview(c *gin.Context) {
 		return
 	}
 
-	errGroups, next, previous, err := app.GetErrorGroupsWithFilter(ctx, deps.RchPool, &ef)
+	errGroups, next, previous, err := app.GetErrorGroupsWithFilter(ctx, deps.RchPool, &flt)
 	if err != nil {
 		msg := "failed to get app's error groups with filter"
 		fmt.Println(msg, err)
@@ -399,8 +399,8 @@ func (h Handlers) GetErrorOverview(c *gin.Context) {
 
 func (h Handlers) GetErrorOverviewPlotInstances(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:          exprfilter.ErrorsEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:          filter.ErrorsEntity,
 		appScope:        *measure.ScopeAppRead,
 		logRoot:         logcomment.Errors,
 		logName:         "plots_instances",
@@ -410,7 +410,7 @@ func (h Handlers) GetErrorOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
-	errorInstances, err := app.GetErrorPlotInstances(ctx, deps.RchPool, &ef)
+	errorInstances, err := app.GetErrorPlotInstances(ctx, deps.RchPool, &flt)
 	if err != nil {
 		msg := `failed to query error instances`
 		fmt.Println(msg, err)
@@ -453,8 +453,8 @@ func (h Handlers) GetErrorOverviewPlotInstances(c *gin.Context) {
 
 func (h Handlers) GetErrorDetailErrors(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:   exprfilter.ErrorGroupEventsEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:   filter.ErrorGroupEventsEntity,
 		appScope: *measure.ScopeAppRead,
 		logRoot:  logcomment.Errors,
 		logName:  "detail-stacktrace",
@@ -468,7 +468,7 @@ func (h Handlers) GetErrorDetailErrors(c *gin.Context) {
 		return
 	}
 
-	errorEvents, next, previous, err := app.GetErrorsWithFilter(ctx, deps.RchPool, errorGroupId, &ef)
+	errorEvents, next, previous, err := app.GetErrorsWithFilter(ctx, deps.RchPool, errorGroupId, &flt)
 	if err != nil {
 		msg := `failed to get error group's events`
 		fmt.Println(msg, err)
@@ -507,8 +507,8 @@ func (h Handlers) GetErrorDetailErrors(c *gin.Context) {
 
 func (h Handlers) GetErrorDetailPlotInstances(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:          exprfilter.ErrorGroupEventsEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:          filter.ErrorGroupEventsEntity,
 		appScope:        *measure.ScopeAppRead,
 		logRoot:         logcomment.Errors,
 		logName:         "detail_plots_instances",
@@ -523,7 +523,7 @@ func (h Handlers) GetErrorDetailPlotInstances(c *gin.Context) {
 		return
 	}
 
-	errorInstances, err := app.GetErrorGroupPlotInstances(ctx, deps.RchPool, errorGroupId, &ef)
+	errorInstances, err := app.GetErrorGroupPlotInstances(ctx, deps.RchPool, errorGroupId, &flt)
 	if err != nil {
 		msg := `failed to query data for error instances plot`
 		fmt.Println(msg, err)
@@ -563,8 +563,8 @@ func (h Handlers) GetErrorDetailPlotInstances(c *gin.Context) {
 
 func (h Handlers) GetErrorDetailAttributeDistribution(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:   exprfilter.ErrorGroupEventsEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:   filter.ErrorGroupEventsEntity,
 		appScope: *measure.ScopeAppRead,
 		logRoot:  logcomment.Errors,
 		logName:  "plots_distribution",
@@ -578,7 +578,7 @@ func (h Handlers) GetErrorDetailAttributeDistribution(c *gin.Context) {
 		return
 	}
 
-	distribution, err := app.GetErrorGroupAttributesDistribution(ctx, deps.RchPool, errorGroupId, &ef)
+	distribution, err := app.GetErrorGroupAttributesDistribution(ctx, deps.RchPool, errorGroupId, &flt)
 	if err != nil {
 		msg := `failed to query data for error distribution plot`
 		fmt.Println(msg, err)
@@ -696,8 +696,8 @@ func (h Handlers) CreateApp(c *gin.Context) {
 
 func (h Handlers) GetSessionsOverview(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:   exprfilter.SessionsEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:   filter.SessionsEntity,
 		appScope: *measure.ScopeAppRead,
 		logRoot:  logcomment.Sessions,
 		logName:  "list",
@@ -706,7 +706,7 @@ func (h Handlers) GetSessionsOverview(c *gin.Context) {
 		return
 	}
 
-	sessions, next, previous, err := app.GetSessionsWithFilter(ctx, deps.RchPool, &ef)
+	sessions, next, previous, err := app.GetSessionsWithFilter(ctx, deps.RchPool, &flt)
 	if err != nil {
 		msg := "failed to get app's sessions"
 		fmt.Println(msg, err)
@@ -727,8 +727,8 @@ func (h Handlers) GetSessionsOverview(c *gin.Context) {
 
 func (h Handlers) GetSessionsOverviewPlotInstances(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:          exprfilter.SessionsEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:          filter.SessionsEntity,
 		appScope:        *measure.ScopeAppRead,
 		logRoot:         logcomment.Sessions,
 		logName:         "plots_instances",
@@ -738,7 +738,7 @@ func (h Handlers) GetSessionsOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
-	sessionInstances, err := app.GetSessionsInstancesPlot(ctx, deps.RchPool, &ef)
+	sessionInstances, err := app.GetSessionsInstancesPlot(ctx, deps.RchPool, &flt)
 	if err != nil {
 		msg := `failed to query data for sessions overview plot`
 		fmt.Println(msg, err)
@@ -1516,8 +1516,8 @@ func (h Handlers) GetRootSpanNames(c *gin.Context) {
 
 func (h Handlers) GetSpansForSpanName(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, spanName, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:          exprfilter.SpansEntity,
+	app, flt, ctx, spanName, ok := h.prepareFilter(c, filterEndpoint{
+		entity:          filter.SpansEntity,
 		appScope:        *measure.ScopeAppRead,
 		logRoot:         logcomment.Spans,
 		logName:         "list",
@@ -1528,7 +1528,7 @@ func (h Handlers) GetSpansForSpanName(c *gin.Context) {
 		return
 	}
 
-	spans, next, previous, err := app.GetSpansForSpanNameWithFilter(ctx, deps.RchPool, spanName, &ef)
+	spans, next, previous, err := app.GetSpansForSpanNameWithFilter(ctx, deps.RchPool, spanName, &flt)
 	if err != nil {
 		msg := "failed to get app's root spans"
 		fmt.Println(msg, err)
@@ -1549,8 +1549,8 @@ func (h Handlers) GetSpansForSpanName(c *gin.Context) {
 
 func (h Handlers) GetMetricsPlotForSpanName(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, spanName, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:          exprfilter.SpansEntity,
+	app, flt, ctx, spanName, ok := h.prepareFilter(c, filterEndpoint{
+		entity:          filter.SpansEntity,
 		appScope:        *measure.ScopeAppRead,
 		logRoot:         logcomment.Spans,
 		logName:         "plots_metrics",
@@ -1560,7 +1560,7 @@ func (h Handlers) GetMetricsPlotForSpanName(c *gin.Context) {
 		return
 	}
 
-	spanMetricsPlotInstances, err := app.GetMetricsPlotForSpanNameWithFilter(ctx, deps.RchPool, spanName, &ef)
+	spanMetricsPlotInstances, err := app.GetMetricsPlotForSpanNameWithFilter(ctx, deps.RchPool, spanName, &flt)
 	if err != nil {
 		msg := "failed to get span's plot"
 		fmt.Println(msg, err)
@@ -1691,8 +1691,8 @@ func (h Handlers) GetTrace(c *gin.Context) {
 
 func (h Handlers) GetBugReportsOverview(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:   exprfilter.BugReportsEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:   filter.BugReportsEntity,
 		appScope: *measure.ScopeBugReportRead,
 		logRoot:  logcomment.BugReports,
 		logName:  "list",
@@ -1701,7 +1701,7 @@ func (h Handlers) GetBugReportsOverview(c *gin.Context) {
 		return
 	}
 
-	bugReports, next, previous, err := app.GetBugReportsWithFilter(ctx, deps.RchPool, &ef)
+	bugReports, next, previous, err := app.GetBugReportsWithFilter(ctx, deps.RchPool, &flt)
 	if err != nil {
 		msg := "failed to get app's bug reports"
 		fmt.Println(msg, err)
@@ -1722,8 +1722,8 @@ func (h Handlers) GetBugReportsOverview(c *gin.Context) {
 
 func (h Handlers) GetBugReportsInstancesPlot(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:          exprfilter.BugReportsEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:          filter.BugReportsEntity,
 		appScope:        *measure.ScopeBugReportRead,
 		logRoot:         logcomment.BugReports,
 		logName:         "plots_instances",
@@ -1733,7 +1733,7 @@ func (h Handlers) GetBugReportsInstancesPlot(c *gin.Context) {
 		return
 	}
 
-	bugReportInstances, err := app.GetBugReportInstancesPlot(ctx, deps.RchPool, &ef)
+	bugReportInstances, err := app.GetBugReportInstancesPlot(ctx, deps.RchPool, &flt)
 	if err != nil {
 		msg := `failed to query data for bug reports plot`
 		fmt.Println(msg, err)
@@ -1962,8 +1962,8 @@ func (h Handlers) UpdateBugReportStatus(c *gin.Context) {
 
 func (h Handlers) GetAlertsOverview(c *gin.Context) {
 	deps := h.Deps
-	_, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:   exprfilter.AlertsEntity,
+	_, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:   filter.AlertsEntity,
 		appScope: *measure.ScopeAppRead,
 		logRoot:  logcomment.Alerts,
 		logName:  "list",
@@ -1972,7 +1972,7 @@ func (h Handlers) GetAlertsOverview(c *gin.Context) {
 		return
 	}
 
-	alerts, next, previous, err := measure.GetAlertsWithFilter(ctx, deps.PgPool, &ef)
+	alerts, next, previous, err := measure.GetAlertsWithFilter(ctx, deps.PgPool, &flt)
 	if err != nil {
 		msg := "failed to get app's alerts"
 		fmt.Println(msg, err)
@@ -2103,8 +2103,8 @@ func (h Handlers) PatchConfig(c *gin.Context) {
 // GetNetworkRequestsEndpoints serves the dashboard's endpoint search.
 func (h Handlers) GetNetworkRequestsEndpoints(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:   exprfilter.NetworkEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:   filter.NetworkEntity,
 		appScope: *measure.ScopeAppRead,
 		logRoot:  logcomment.Network,
 		logName:  "endpoints",
@@ -2113,7 +2113,7 @@ func (h Handlers) GetNetworkRequestsEndpoints(c *gin.Context) {
 		return
 	}
 
-	endpoints, err := network.FetchEndpoints(ctx, deps.RchPool, *app.ID, app.TeamId, c.Query("query"), &ef)
+	endpoints, err := network.FetchEndpoints(ctx, deps.RchPool, *app.ID, app.TeamId, c.Query("query"), &flt)
 	if err != nil {
 		msg := "failed to get network endpoints"
 		fmt.Println(msg, err)
@@ -2126,8 +2126,8 @@ func (h Handlers) GetNetworkRequestsEndpoints(c *gin.Context) {
 
 func (h Handlers) GetNetworkEndpointLatencyPlot(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:          exprfilter.NetworkEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:          filter.NetworkEntity,
 		appScope:        *measure.ScopeAppRead,
 		logRoot:         logcomment.Network,
 		logName:         "latency",
@@ -2137,8 +2137,8 @@ func (h Handlers) GetNetworkEndpointLatencyPlot(c *gin.Context) {
 		return
 	}
 
-	ef.SetDefaultPlotTimeGroupIfUnset()
-	groupExpr, err := measure.GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
+	flt.SetDefaultPlotTimeGroupIfUnset()
+	groupExpr, err := measure.GetPlotTimeGroupExpr("timestamp", flt.PlotTimeGroup)
 	if err != nil {
 		msg := "failed to compute time group expression"
 		fmt.Println(msg, err)
@@ -2146,7 +2146,7 @@ func (h Handlers) GetNetworkEndpointLatencyPlot(c *gin.Context) {
 		return
 	}
 
-	result, err := network.GetLatencyPlot(ctx, deps.RchPool, *app.ID, app.TeamId, c.Query("domain"), c.Query("path"), &ef, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetLatencyPlot(ctx, deps.RchPool, *app.ID, app.TeamId, c.Query("domain"), c.Query("path"), &flt, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		msg := "failed to get network latency metrics"
 		fmt.Println(msg, err)
@@ -2159,8 +2159,8 @@ func (h Handlers) GetNetworkEndpointLatencyPlot(c *gin.Context) {
 
 func (h Handlers) GetNetworkRequestsTrends(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:   exprfilter.NetworkEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:   filter.NetworkEntity,
 		appScope: *measure.ScopeAppRead,
 		logRoot:  logcomment.Network,
 		logName:  "trends",
@@ -2177,7 +2177,7 @@ func (h Handlers) GetNetworkRequestsTrends(c *gin.Context) {
 		trendsLimit = 50
 	}
 
-	result, err := network.FetchTrends(ctx, deps.RchPool, *app.ID, app.TeamId, &ef, trendsLimit)
+	result, err := network.FetchTrends(ctx, deps.RchPool, *app.ID, app.TeamId, &flt, trendsLimit)
 	if err != nil {
 		msg := "failed to get network overview"
 		fmt.Println(msg, err)
@@ -2190,8 +2190,8 @@ func (h Handlers) GetNetworkRequestsTrends(c *gin.Context) {
 
 func (h Handlers) GetNetworkEndpointTimelinePlot(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:   exprfilter.NetworkEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:   filter.NetworkEntity,
 		appScope: *measure.ScopeAppRead,
 		logRoot:  logcomment.Network,
 		logName:  "timeline",
@@ -2200,7 +2200,7 @@ func (h Handlers) GetNetworkEndpointTimelinePlot(c *gin.Context) {
 		return
 	}
 
-	result, err := network.FetchTimelinePlot(ctx, deps.RchPool, *app.ID, app.TeamId, c.Query("domain"), c.Query("path"), &ef)
+	result, err := network.FetchTimelinePlot(ctx, deps.RchPool, *app.ID, app.TeamId, c.Query("domain"), c.Query("path"), &flt)
 	if err != nil {
 		msg := "failed to get endpoint timeline data"
 		fmt.Println(msg, err)
@@ -2233,8 +2233,8 @@ func (h Handlers) getNetworkStatusCodesPlot(c *gin.Context, exactCodes bool) {
 		logName = "endpoint_status_codes"
 	}
 
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:          exprfilter.NetworkEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:          filter.NetworkEntity,
 		appScope:        *measure.ScopeAppRead,
 		logRoot:         logcomment.Network,
 		logName:         logName,
@@ -2244,8 +2244,8 @@ func (h Handlers) getNetworkStatusCodesPlot(c *gin.Context, exactCodes bool) {
 		return
 	}
 
-	ef.SetDefaultPlotTimeGroupIfUnset()
-	groupExpr, err := measure.GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
+	flt.SetDefaultPlotTimeGroupIfUnset()
+	groupExpr, err := measure.GetPlotTimeGroupExpr("timestamp", flt.PlotTimeGroup)
 	if err != nil {
 		msg := "failed to compute time group expression"
 		fmt.Println(msg, err)
@@ -2254,7 +2254,7 @@ func (h Handlers) getNetworkStatusCodesPlot(c *gin.Context, exactCodes bool) {
 	}
 
 	if exactCodes {
-		result, err := network.GetEndpointStatusCodesPlot(ctx, deps.RchPool, *app.ID, app.TeamId, domain, path, &ef, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+		result, err := network.GetEndpointStatusCodesPlot(ctx, deps.RchPool, *app.ID, app.TeamId, domain, path, &flt, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 		if err != nil {
 			msg := "failed to get network endpoint status codes plot"
 			fmt.Println(msg, err)
@@ -2266,7 +2266,7 @@ func (h Handlers) getNetworkStatusCodesPlot(c *gin.Context, exactCodes bool) {
 		return
 	}
 
-	result, err := network.GetStatusCodesPlot(ctx, deps.RchPool, *app.ID, app.TeamId, domain, path, &ef, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetStatusCodesPlot(ctx, deps.RchPool, *app.ID, app.TeamId, domain, path, &flt, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		msg := "failed to get network status codes plot"
 		fmt.Println(msg, err)

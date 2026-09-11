@@ -3,7 +3,7 @@
 package network
 
 import (
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/testinfra"
 	"context"
 	"slices"
@@ -13,25 +13,25 @@ import (
 	"github.com/google/uuid"
 )
 
-func networkExprFilter(t *testing.T, appID, teamID uuid.UUID, from, to time.Time, filterExpr string) *exprfilter.ExprFilter {
+func networkFilter(t *testing.T, appID, teamID uuid.UUID, from, to time.Time, filterExpr string) *filter.Filter {
 	t.Helper()
-	ef := &exprfilter.ExprFilter{
+	flt := &filter.Filter{
 		AppID:      appID,
 		TeamID:     teamID,
-		Entity:     exprfilter.NetworkEntity,
+		Entity:     filter.NetworkEntity,
 		From:       from,
 		To:         to,
 		Timezone:   "UTC",
-		Limit:      exprfilter.DefaultPaginationLimit,
+		Limit:      filter.DefaultPaginationLimit,
 		FilterExpr: filterExpr,
 	}
-	if err := ef.BuildExprTree(); err != nil {
+	if err := flt.BuildExprTree(); err != nil {
 		t.Fatalf("parse %q: %v", filterExpr, err)
 	}
-	if err := ef.Validate(); err != nil {
+	if err := flt.Validate(); err != nil {
 		t.Fatalf("validate %q: %v", filterExpr, err)
 	}
-	return ef
+	return flt
 }
 
 // --------------------------------------------------------------------------
@@ -47,7 +47,7 @@ func TestFetchEndpoints(t *testing.T) {
 		teamID := uuid.New()
 		appID := uuid.New()
 		now := time.Now().UTC()
-		af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/pattern")
 		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/raw-only", "GET", 200, 1, now)
@@ -68,7 +68,7 @@ func TestFetchEndpoints(t *testing.T) {
 		teamID := uuid.New()
 		appID := uuid.New()
 		now := time.Now().UTC()
-		appFilter := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+		appFilter := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/fallback", "GET", 200, 1, now)
 
@@ -87,7 +87,7 @@ func TestFetchEndpoints(t *testing.T) {
 		teamID := uuid.New()
 		appID := uuid.New()
 		now := time.Now().UTC()
-		appFilter := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+		appFilter := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/known")
 		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/raw-only", "GET", 200, 1, now)
@@ -107,7 +107,7 @@ func TestFetchEndpoints(t *testing.T) {
 		teamID := uuid.New()
 		appID := uuid.New()
 		now := time.Now().UTC()
-		af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "http_method:in:get")
+		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "http_method:in:get")
 
 		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/visible", "GET", 200, 1, now)
 		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/post", "POST", 200, 1, now)
@@ -128,7 +128,7 @@ func TestFetchEndpoints(t *testing.T) {
 		teamID := uuid.New()
 		appID := uuid.New()
 		now := time.Now().UTC()
-		af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/products/*")
 		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/products/123", "GET", 200, 1, now)
@@ -152,7 +152,7 @@ func TestFetchEndpoints(t *testing.T) {
 		teamID := uuid.New()
 		appID := uuid.New()
 		now := time.Now().UTC()
-		af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users/*")
 		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/orders/*")
@@ -178,7 +178,7 @@ func TestFetchEndpoints(t *testing.T) {
 		teamID := uuid.New()
 		appID := uuid.New()
 		now := time.Now().UTC()
-		af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/stale/*")
 		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/stale/123", "GET", 200, 1, now.Add(-24*time.Hour))
@@ -199,7 +199,7 @@ func TestFetchEndpoints(t *testing.T) {
 		teamID := uuid.New()
 		appID := uuid.New()
 		now := time.Now().UTC()
-		af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users/123/profile", "GET", 200, 1, now)
 		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users/123/settings/profile", "GET", 200, 1, now)
@@ -224,7 +224,7 @@ func TestFetchEndpoints(t *testing.T) {
 		teamID := uuid.New()
 		appID := uuid.New()
 		now := time.Now().UTC()
-		af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users", "GET", 200, 1, now)
 		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users/123", "GET", 200, 1, now)
@@ -254,7 +254,7 @@ func TestFetchEndpoints(t *testing.T) {
 		teamID := uuid.New()
 		appID := uuid.New()
 		now := time.Now().UTC()
-		af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "patterns.example.com", "/v1/known")
 		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://raw.example.com/v1/raw", "GET", 200, 1, now)
@@ -282,7 +282,7 @@ func TestGetStatusCodesPlot(t *testing.T) {
 	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/path", "GET", 404, 5, now)
 	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/path", "GET", 500, 2, now)
 
-	af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+	af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 	bucketExpr := "toStartOfHour(timestamp, ?)"
 	datetimeFormat := "%Y-%m-%d %H:00:00"
@@ -327,7 +327,7 @@ func TestGetEndpointStatusCodesPlot(t *testing.T) {
 	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/path", "GET", 404, 2, now)
 	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/other", "GET", 500, 7, now)
 
-	af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+	af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 	result, err := GetEndpointStatusCodesPlot(
 		ctx,
@@ -376,7 +376,7 @@ func TestGetLatencyPlot(t *testing.T) {
 
 	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users", "GET", 200, 20, now)
 
-	af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+	af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 	bucketExpr := "toStartOfHour(timestamp, ?)"
 	datetimeFormat := "%Y-%m-%d %H:00:00"
@@ -419,7 +419,7 @@ func TestGetLatencyPlot_WildcardMatchesOnePathSegment(t *testing.T) {
 	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/users/123/orders", "GET", 200, 11, now)
 	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/users/a/b/orders", "GET", 200, 17, now)
 
-	af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+	af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 	result, err := GetLatencyPlot(
 		ctx, deps.ChPool, appID, teamID, "api.example.com", "/users/*/orders", af,
 		"toStartOfHour(timestamp, ?)", "%Y-%m-%d %H:00:00",
@@ -447,7 +447,7 @@ func TestGetLatencyPlot_HttpMethodFilter(t *testing.T) {
 
 		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users", "GET", 200, 20, now)
 
-		af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "http_method:in:get")
+		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "http_method:in:get")
 
 		bucketExpr := "toStartOfHour(timestamp, ?)"
 		datetimeFormat := "%Y-%m-%d %H:00:00"
@@ -470,7 +470,7 @@ func TestGetLatencyPlot_HttpMethodFilter(t *testing.T) {
 
 		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users", "GET", 200, 20, now)
 
-		af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "http_method:in:post")
+		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "http_method:in:post")
 
 		bucketExpr := "toStartOfHour(timestamp, ?)"
 		datetimeFormat := "%Y-%m-%d %H:00:00"
@@ -497,7 +497,7 @@ func TestGetLatencyPlot_AppVersionFilter(t *testing.T) {
 
 		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users", "GET", 200, 20, now)
 
-		af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "version_name:in:v1 AND version_code:in:1")
+		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "version_name:in:v1 AND version_code:in:1")
 
 		bucketExpr := "toStartOfHour(timestamp, ?)"
 		datetimeFormat := "%Y-%m-%d %H:00:00"
@@ -520,7 +520,7 @@ func TestGetLatencyPlot_AppVersionFilter(t *testing.T) {
 
 		seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://api.example.com/v1/users", "GET", 200, 20, now)
 
-		af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "version_name:in:v2 AND version_code:in:2")
+		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "version_name:in:v2 AND version_code:in:2")
 
 		bucketExpr := "toStartOfHour(timestamp, ?)"
 		datetimeFormat := "%Y-%m-%d %H:00:00"
@@ -554,7 +554,7 @@ func TestFetchTrends(t *testing.T) {
 		// Endpoint B: low request count, high errors
 		seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/orders", "", uuid.Nil, 10, 2, 5, 3, now)
 
-		af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 		resp, err := FetchTrends(ctx, deps.ChPool, appID, teamID, af, 10)
 		if err != nil {
@@ -585,7 +585,7 @@ func TestFetchTrends(t *testing.T) {
 		appID := uuid.New()
 		now := time.Now().UTC()
 
-		af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 		resp, err := FetchTrends(ctx, deps.ChPool, appID, teamID, af, 10)
 		if err != nil {
@@ -613,7 +613,7 @@ func TestFetchTimelinePlot_Unscoped(t *testing.T) {
 
 	seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users", "", uuid.Nil, 50, 50, 0, 0, now)
 
-	af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+	af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 	resp, err := FetchTimelinePlot(ctx, deps.ChPool, appID, teamID, "", "", af)
 	if err != nil {
@@ -649,7 +649,7 @@ func TestFetchTimelinePlot(t *testing.T) {
 		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users")
 		seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users", "", uuid.Nil, 50, 50, 0, 0, now)
 
-		af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 		resp, err := FetchTimelinePlot(ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", af)
 		if err != nil {
@@ -680,7 +680,7 @@ func TestFetchTimelinePlot(t *testing.T) {
 		appID := uuid.New()
 		now := time.Now().UTC()
 
-		af := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
+		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
 		resp, err := FetchTimelinePlot(ctx, deps.ChPool, appID, teamID, "nonexistent.com", "/v1/nope", af)
 		if err != nil {
@@ -724,9 +724,9 @@ func TestGetLatencyPlot_PatchFilter(t *testing.T) {
 
 	count := func(t *testing.T, filterExpr string) uint64 {
 		t.Helper()
-		ef := networkExprFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), filterExpr)
+		flt := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), filterExpr)
 		result, err := GetLatencyPlot(
-			ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", ef,
+			ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", flt,
 			"toStartOfHour(timestamp, ?)", "%Y-%m-%d %H:00:00",
 		)
 		if err != nil {
@@ -768,8 +768,8 @@ func TestHttpMetricsPatchFilter(t *testing.T) {
 
 	timelinePaths := func(t *testing.T, filterExpr string) []string {
 		t.Helper()
-		ef := networkExprFilter(t, appID, teamID, from, to, filterExpr)
-		resp, err := FetchTimelinePlot(ctx, deps.ChPool, appID, teamID, "", "", ef)
+		flt := networkFilter(t, appID, teamID, from, to, filterExpr)
+		resp, err := FetchTimelinePlot(ctx, deps.ChPool, appID, teamID, "", "", flt)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -795,7 +795,7 @@ func TestHttpMetricsPatchFilter(t *testing.T) {
 		t.Errorf("is_not_set timeline paths = %v, want [/v1/orders]", got)
 	}
 
-	trends, err := FetchTrends(ctx, deps.ChPool, appID, teamID, networkExprFilter(t, appID, teamID, from, to, "patch_id:in:"+patchID.String()), 10)
+	trends, err := FetchTrends(ctx, deps.ChPool, appID, teamID, networkFilter(t, appID, teamID, from, to, "patch_id:in:"+patchID.String()), 10)
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}

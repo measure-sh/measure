@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 )
 
 // These tests drive the real app_filters_mv & app_metrics_mv by seeding raw
@@ -82,9 +82,9 @@ func TestGetIssueFreeMetricsExcludesHandled(t *testing.T) {
 	seedIssueEventWithSeverity(f.ctx, t, team, app, "", "fatal", ts)
 	seedIssueEventWithSeverity(f.ctx, t, team, app, "", "handled", ts)
 
-	ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, "version_name:in:v1 AND version_code:in:1")
+	flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "version_name:in:v1 AND version_code:in:1")
 
-	crashFree, _, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, ef)
+	crashFree, _, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetIssueFreeMetrics: %v", err)
 	}

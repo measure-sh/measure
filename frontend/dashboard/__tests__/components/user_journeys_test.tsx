@@ -3,7 +3,7 @@ import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 
 const mockRouterPush = jest.fn();
-const mockUseExprFilterPage = jest.fn();
+const mockUseFilterPage = jest.fn();
 
 jest.mock("next/navigation", () => ({
   __esModule: true,
@@ -16,9 +16,9 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => ({
   default: () => <div data-testid="filter-bar" />,
 }));
 
-jest.mock("@/app/components/filter_bar/use_expr_filter_page", () => ({
+jest.mock("@/app/components/filter_bar/use_filter_page", () => ({
   __esModule: true,
-  useExprFilterPage: () => mockUseExprFilterPage(),
+  useFilterPage: () => mockUseFilterPage(),
 }));
 
 jest.mock("@/app/query/hooks", () => ({
@@ -56,7 +56,7 @@ import UserJourneys, { UserJourneysDemo } from "@/app/components/user_journeys";
 describe("UserJourneys", () => {
   beforeEach(() => {
     mockRouterPush.mockClear();
-    mockUseExprFilterPage.mockClear();
+    mockUseFilterPage.mockClear();
   });
 
   it("renders the title", () => {
@@ -77,7 +77,7 @@ describe("UserJourneys", () => {
     ).toBeInTheDocument();
     expect(screen.queryByPlaceholderText("Search nodes...")).toBeNull();
     expect(screen.queryByTestId("filter-bar")).toBeNull();
-    expect(mockUseExprFilterPage).not.toHaveBeenCalled();
+    expect(mockUseFilterPage).not.toHaveBeenCalled();
   });
 
   it("starts on the Paths tab", () => {

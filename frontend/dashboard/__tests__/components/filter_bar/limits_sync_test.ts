@@ -13,7 +13,7 @@ import {
 // server's file and fails if they are different.
 const limitsFile = path.join(
   __dirname,
-  "../../../../../backend/libs/exprfilter/limits.go",
+  "../../../../../backend/libs/filter/limits.go",
 );
 
 // Parse only the forms used in limits.go; reject anything else.

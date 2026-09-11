@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 
 	"github.com/google/uuid"
 )
@@ -38,11 +38,11 @@ func TestGetAlertsWithFilter(t *testing.T) {
 	seedAlert(ctx, t, teamID, appID, "middle", base)
 	seedAlert(ctx, t, teamID, appID, "newest", base.Add(time.Hour))
 
-	exprFilter := func(offset int) *exprfilter.ExprFilter {
-		return &exprfilter.ExprFilter{
+	newFilter := func(offset int) *filter.Filter {
+		return &filter.Filter{
 			AppID:  appID,
 			TeamID: teamID,
-			Entity: exprfilter.AlertsEntity,
+			Entity: filter.AlertsEntity,
 			From:   base.Add(-time.Hour),
 			To:     base.Add(2 * time.Hour),
 			Limit:  1,
@@ -50,7 +50,7 @@ func TestGetAlertsWithFilter(t *testing.T) {
 		}
 	}
 
-	alerts, next, previous, err := GetAlertsWithFilter(ctx, th.PgPool, exprFilter(0))
+	alerts, next, previous, err := GetAlertsWithFilter(ctx, th.PgPool, newFilter(0))
 	if err != nil {
 		t.Fatalf("GetAlertsWithFilter: %v", err)
 	}
@@ -61,7 +61,7 @@ func TestGetAlertsWithFilter(t *testing.T) {
 		t.Errorf("want next true and previous false, got next %v previous %v", next, previous)
 	}
 
-	alerts, _, previous, err = GetAlertsWithFilter(ctx, th.PgPool, exprFilter(1))
+	alerts, _, previous, err = GetAlertsWithFilter(ctx, th.PgPool, newFilter(1))
 	if err != nil {
 		t.Fatalf("GetAlertsWithFilter: %v", err)
 	}

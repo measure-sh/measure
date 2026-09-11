@@ -8,7 +8,7 @@ import (
 	"backend/libs/chquery"
 	"backend/libs/config"
 	"backend/libs/event"
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/libs/logcomment"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -27,15 +27,15 @@ type HealthInstance struct {
 // GetHealthPlotInstances computes the sessions, crashes and ANRs time
 // series for the health overview plot, bucketed by the filter's plot
 // time group.
-func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (sessions, crashes, anrs []HealthInstance, err error) {
+func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, flt *filter.Filter) (sessions, crashes, anrs []HealthInstance, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	if ef.Timezone == "" {
+	if flt.Timezone == "" {
 		return nil, nil, nil, errors.New("missing timezone filter")
 	}
 
-	ef.SetDefaultPlotTimeGroupIfUnset()
+	flt.SetDefaultPlotTimeGroupIfUnset()
 
-	groupExpr, err := GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
+	groupExpr, err := GetPlotTimeGroupExpr("timestamp", flt.PlotTimeGroup)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -51,16 +51,16 @@ func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, ef *ex
 		sctx := chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_instances"))
 
 		stmt := sqlf.From(config.AppMetricsTable).
-			Select(groupExpr.BucketExpr+" as datetime_bucket", ef.Timezone).
+			Select(groupExpr.BucketExpr+" as datetime_bucket", flt.Timezone).
 			Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 			Select("uniqMerge(unique_sessions) as instances").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
-			Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To)
+			Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To)
 		defer stmt.Close()
 
-		if ef.HasFilterExpr() {
-			predicate, predErr := ef.Predicate(nil)
+		if flt.HasFilterExpr() {
+			predicate, predErr := flt.Predicate(nil)
 			if predErr != nil {
 				return predErr
 			}
@@ -99,18 +99,18 @@ func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, ef *ex
 		ectx := chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "plots_instances"))
 
 		stmt := sqlf.From("events final").
-			Select(groupExpr.BucketExpr+" as datetime_bucket", ef.Timezone).
+			Select(groupExpr.BucketExpr+" as datetime_bucket", flt.Timezone).
 			Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 			Select("countIf(type = ? and "+config.FatalExceptionExpr+") as crashes", event.TypeException).
 			Select("countIf(type = ?) as anrs", event.TypeANR).
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
-			Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To).
+			Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To).
 			Where("type in (?, ?)", event.TypeException, event.TypeANR)
 		defer stmt.Close()
 
-		if ef.HasFilterExpr() {
-			predicate, predErr := ef.Predicate(exprfilter.AppHealthEventsKeyBindings)
+		if flt.HasFilterExpr() {
+			predicate, predErr := flt.Predicate(filter.AppHealthEventsKeyBindings)
 			if predErr != nil {
 				return predErr
 			}

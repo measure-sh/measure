@@ -13,7 +13,7 @@ import (
 	"backend/libs/chquery"
 	"backend/libs/config"
 	"backend/libs/event"
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/libs/group"
 	"backend/libs/metrics"
 	"backend/libs/numeric"
@@ -62,22 +62,22 @@ type PlotTimeGroupExpr struct {
 
 func GetPlotTimeGroupExpr(tsExpr, plotTimeGroup string) (*PlotTimeGroupExpr, error) {
 	switch plotTimeGroup {
-	case exprfilter.PlotTimeGroupMinutes:
+	case filter.PlotTimeGroupMinutes:
 		return &PlotTimeGroupExpr{
 			BucketExpr:     fmt.Sprintf("toStartOfMinute(toTimeZone(%s, ?))", tsExpr),
 			DatetimeFormat: "%Y-%m-%dT%H:%i:%S",
 		}, nil
-	case exprfilter.PlotTimeGroupHours:
+	case filter.PlotTimeGroupHours:
 		return &PlotTimeGroupExpr{
 			BucketExpr:     fmt.Sprintf("toStartOfHour(toTimeZone(%s, ?))", tsExpr),
 			DatetimeFormat: "%Y-%m-%dT%H:%i:%S",
 		}, nil
-	case exprfilter.PlotTimeGroupDays:
+	case filter.PlotTimeGroupDays:
 		return &PlotTimeGroupExpr{
 			BucketExpr:     fmt.Sprintf("toDate(toTimeZone(%s, ?))", tsExpr),
 			DatetimeFormat: "%Y-%m-%d",
 		}, nil
-	case exprfilter.PlotTimeGroupMonths:
+	case filter.PlotTimeGroupMonths:
 		return &PlotTimeGroupExpr{
 			BucketExpr:     fmt.Sprintf("toStartOfMonth(toTimeZone(%s, ?))", tsExpr),
 			DatetimeFormat: "%Y-%m-01",
@@ -216,12 +216,12 @@ const errorFingerprintExpr = "if(type = 'anr', `anr.fingerprint`, `exception.fin
 const errorFingerprintMatch = "((type = 'anr' and `anr.fingerprint` = ?) or (type = 'exception' and `exception.fingerprint` = ?))"
 
 // applyErrorPredicate adds the filter expression to an error events query.
-func applyErrorPredicate(stmt *sqlf.Stmt, ef *exprfilter.ExprFilter) error {
-	if !ef.HasFilterExpr() {
+func applyErrorPredicate(stmt *sqlf.Stmt, flt *filter.Filter) error {
+	if !flt.HasFilterExpr() {
 		return nil
 	}
 
-	predicate, err := ef.Predicate(nil)
+	predicate, err := flt.Predicate(nil)
 	if err != nil {
 		return err
 	}
@@ -235,10 +235,10 @@ func applyErrorPredicate(stmt *sqlf.Stmt, ef *exprfilter.ExprFilter) error {
 // matching events in each. The filter runs on events, so a group with no
 // matching events is dropped by the join; the group tables only describe
 // the groups.
-func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (groups []group.ErrorGroup, next, previous bool, err error) {
+func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt *filter.Filter) (groups []group.ErrorGroup, next, previous bool, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 
-	versionNames, versionCodes := ef.RootVersionConditions()
+	versionNames, versionCodes := flt.RootVersionConditions()
 
 	newGroupsBranch := func(table, sourceType, severityClass, severityExpr, isCustomExpr string) *sqlf.Stmt {
 		s := sqlf.
@@ -258,8 +258,8 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, ef *
 			Select(isCustomExpr+" as is_custom").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
-			Where("timestamp >= toDateTime64(?, 3, 'UTC')", ef.From).
-			Where("timestamp <= toDateTime64(?, 3, 'UTC')", ef.To).
+			Where("timestamp >= toDateTime64(?, 3, 'UTC')", flt.From).
+			Where("timestamp <= toDateTime64(?, 3, 'UTC')", flt.To).
 			GroupBy("team_id").
 			GroupBy("app_id").
 			GroupBy("id")
@@ -293,8 +293,8 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, ef *
 		Select("count() as event_count").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
-		Where("timestamp >= toDateTime64(?, 3, 'UTC')", ef.From).
-		Where("timestamp <= toDateTime64(?, 3, 'UTC')", ef.To).
+		Where("timestamp >= toDateTime64(?, 3, 'UTC')", flt.From).
+		Where("timestamp <= toDateTime64(?, 3, 'UTC')", flt.To).
 		Where("type in ?", errorEventTypes).
 		Where(errorFingerprintExpr + " != ''").
 		GroupBy("team_id").
@@ -303,7 +303,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, ef *
 		GroupBy("source_type").
 		GroupBy("severity_class")
 
-	if err = applyErrorPredicate(countsCTE, ef); err != nil {
+	if err = applyErrorPredicate(countsCTE, flt); err != nil {
 		return
 	}
 
@@ -328,12 +328,12 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, ef *
 		Where("c.event_count > 0").
 		OrderBy("event_count desc, g.last_occurrence desc, g.id")
 
-	if ef.Limit > 0 {
-		stmt.Limit(uint64(ef.Limit) + 1)
+	if flt.Limit > 0 {
+		stmt.Limit(uint64(flt.Limit) + 1)
 	}
 
-	if ef.Offset >= 0 {
-		stmt.Offset(uint64(ef.Offset))
+	if flt.Offset >= 0 {
+		stmt.Offset(uint64(flt.Offset))
 	}
 
 	defer stmt.Close()
@@ -378,12 +378,12 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, ef *
 
 	resultLen := len(groups)
 
-	if resultLen > ef.Limit {
+	if resultLen > flt.Limit {
 		groups = groups[:resultLen-1]
 		next = true
 	}
 
-	if ef.Offset > 0 {
+	if flt.Offset > 0 {
 		previous = true
 	}
 
@@ -392,33 +392,33 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, ef *
 
 // GetErrorPlotInstances buckets the matching error events by time and app
 // version.
-func (a App) GetErrorPlotInstances(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (issueInstances []event.IssueInstance, err error) {
+func (a App) GetErrorPlotInstances(ctx context.Context, rch driver.Conn, flt *filter.Filter) (issueInstances []event.IssueInstance, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	if ef.Timezone == "" {
+	if flt.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
 	}
 
-	ef.SetDefaultPlotTimeGroupIfUnset()
+	flt.SetDefaultPlotTimeGroupIfUnset()
 
-	groupExpr, err := GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
+	groupExpr, err := GetPlotTimeGroupExpr("timestamp", flt.PlotTimeGroup)
 	if err != nil {
 		return nil, err
 	}
 
 	stmt := sqlf.
 		From("events final").
-		Select(groupExpr.BucketExpr+" as datetime_bucket", ef.Timezone).
+		Select(groupExpr.BucketExpr+" as datetime_bucket", flt.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 		Select("concat(`attribute.app_version`, '', '(', `attribute.app_build`, ')') as app_version").
 		Select("count() as total").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
-		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To).
+		Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To).
 		Where("type in ?", errorEventTypes).
 		GroupBy("app_version, datetime_bucket").
 		OrderBy("app_version, datetime_bucket")
 
-	if err = applyErrorPredicate(stmt, ef); err != nil {
+	if err = applyErrorPredicate(stmt, flt); err != nil {
 		return
 	}
 
@@ -452,34 +452,34 @@ func (a App) GetErrorPlotInstances(ctx context.Context, rch driver.Conn, ef *exp
 
 // GetErrorGroupPlotInstances buckets one error group's matching events by
 // time and app version.
-func (a App) GetErrorGroupPlotInstances(ctx context.Context, rch driver.Conn, fingerprint string, ef *exprfilter.ExprFilter) (instances []event.IssueInstance, err error) {
+func (a App) GetErrorGroupPlotInstances(ctx context.Context, rch driver.Conn, fingerprint string, flt *filter.Filter) (instances []event.IssueInstance, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	if ef.Timezone == "" {
+	if flt.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
 	}
 
-	ef.SetDefaultPlotTimeGroupIfUnset()
+	flt.SetDefaultPlotTimeGroupIfUnset()
 
-	groupExpr, err := GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
+	groupExpr, err := GetPlotTimeGroupExpr("timestamp", flt.PlotTimeGroup)
 	if err != nil {
 		return nil, err
 	}
 
 	stmt := sqlf.
 		From("events").
-		Select(groupExpr.BucketExpr+" as datetime_bucket", ef.Timezone).
+		Select(groupExpr.BucketExpr+" as datetime_bucket", flt.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 		Select("concat(`attribute.app_version`, ' ', '(', `attribute.app_build`, ')') as version").
 		Select("count(id) as total").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
-		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To).
+		Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To).
 		Where("type in ?", errorEventTypes).
 		Where(errorFingerprintMatch, fingerprint, fingerprint).
 		GroupBy("version, datetime_bucket").
 		OrderBy("version, datetime_bucket")
 
-	if err = applyErrorPredicate(stmt, ef); err != nil {
+	if err = applyErrorPredicate(stmt, flt); err != nil {
 		return
 	}
 
@@ -508,7 +508,7 @@ func (a App) GetErrorGroupPlotInstances(ctx context.Context, rch driver.Conn, fi
 
 // GetErrorGroupAttributesDistribution counts one error group's matching
 // events per attribute value.
-func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, rch driver.Conn, fingerprint string, ef *exprfilter.ExprFilter) (distribution event.IssueDistribution, err error) {
+func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, rch driver.Conn, fingerprint string, flt *filter.Filter) (distribution event.IssueDistribution, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 
 	stmt := sqlf.
@@ -522,7 +522,7 @@ func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, rch driver
 		Select("count(id) as count").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
-		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To).
+		Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To).
 		Where("type in ?", errorEventTypes).
 		Where(errorFingerprintMatch, fingerprint, fingerprint).
 		GroupBy("app_version").
@@ -532,7 +532,7 @@ func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, rch driver
 		GroupBy("locale").
 		GroupBy("device")
 
-	if err = applyErrorPredicate(stmt, ef); err != nil {
+	if err = applyErrorPredicate(stmt, flt); err != nil {
 		return
 	}
 
@@ -583,23 +583,23 @@ func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, rch driver
 // GetErrorsWithFilter reads one error group's matching events, newest first.
 // Exceptions and ANRs are stored in different columns, so each is read by
 // its own query.
-func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerprint string, ef *exprfilter.ExprFilter) (events []any, next, previous bool, err error) {
+func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerprint string, flt *filter.Filter) (events []any, next, previous bool, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 
 	applyCommonFilters := func(s *sqlf.Stmt) error {
 		s.Where("team_id = toUUID(?)", a.TeamId)
 		s.Where("app_id = toUUID(?)", a.ID)
-		s.Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To)
+		s.Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To)
 
-		if err := applyErrorPredicate(s, ef); err != nil {
+		if err := applyErrorPredicate(s, flt); err != nil {
 			return err
 		}
 
-		if ef.Limit > 0 {
-			s.Limit(uint64(ef.Limit) + 1)
+		if flt.Limit > 0 {
+			s.Limit(uint64(flt.Limit) + 1)
 		}
-		if ef.Offset >= 0 {
-			s.Offset(uint64(ef.Offset))
+		if flt.Offset >= 0 {
+			s.Offset(uint64(flt.Offset))
 		}
 
 		s.OrderBy("timestamp desc")
@@ -780,11 +780,11 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 	})
 
 	resultLen := len(events)
-	if ef.Limit > 0 && resultLen > ef.Limit {
-		events = events[:ef.Limit]
+	if flt.Limit > 0 && resultLen > flt.Limit {
+		events = events[:flt.Limit]
 		next = true
 	}
-	if ef.Offset > 0 {
+	if flt.Offset > 0 {
 		previous = true
 	}
 
@@ -802,8 +802,8 @@ type versionPair struct {
 // first, and the ones it leaves out, reading the version dimension of the
 // app_metrics rollup. Builds active in the same fifteen-minute bucket tie on
 // last activity, and the version tuple decides between them.
-func (a App) splitVersions(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (selected, unselected []versionPair, err error) {
-	predicate, err := ef.Predicate(nil)
+func (a App) splitVersions(ctx context.Context, rch driver.Conn, flt *filter.Filter) (selected, unselected []versionPair, err error) {
+	predicate, err := flt.Predicate(nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -814,8 +814,8 @@ func (a App) splitVersions(ctx context.Context, rch driver.Conn, ef *exprfilter.
 		Select("tupleElement(app_version, 2) as version_code").
 		Select("("+predicate.String()+") as matched", predicate.Args()...).
 		Where("team_id = toUUID(?)", a.TeamId).
-		Where("app_id = toUUID(?)", ef.AppID).
-		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To).
+		Where("app_id = toUUID(?)", flt.AppID).
+		Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To).
 		GroupBy("app_version").
 		OrderBy("max(timestamp) desc, app_version desc")
 	defer stmt.Close()
@@ -848,8 +848,8 @@ func (a App) splitVersions(ctx context.Context, rch driver.Conn, ef *exprfilter.
 // narrows the app to one version name; a version with several builds in the
 // range reports its most recently seen build. When no other build exists, the
 // average covers every build of the app.
-func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, rch driver.Conn, ef *exprfilter.ExprFilter) (size *metrics.SizeMetric, err error) {
-	if !ef.HasFilterExpr() {
+func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, rch driver.Conn, flt *filter.Filter) (size *metrics.SizeMetric, err error) {
+	if !flt.HasFilterExpr() {
 		return nil, nil
 	}
 
@@ -861,7 +861,7 @@ func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, rch driver.Co
 
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 
-	selected, unselected, err := a.splitVersions(ctx, rch, ef)
+	selected, unselected, err := a.splitVersions(ctx, rch, flt)
 	if err != nil {
 		return nil, err
 	}
@@ -879,7 +879,7 @@ func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, rch driver.Co
 	avgSizeStmt := sqlf.PostgreSQL.
 		From("build_sizes").
 		Select("round(coalesce(avg(build_size), 2), 0) as average_size").
-		Where("app_id = ?", ef.AppID)
+		Where("app_id = ?", flt.AppID)
 
 	if len(others) > 0 {
 		placeholders := make([]string, len(others))
@@ -897,7 +897,7 @@ func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, rch driver.Co
 		Select("t2.build_size as selected_app_size").
 		Select("(t2.build_size - t1.average_size) as delta").
 		From("avg_size as t1 cross join build_sizes as t2").
-		Where("app_id = ?", ef.AppID).
+		Where("app_id = ?", flt.AppID).
 		Where("version_name = ?", shown.name).
 		Where("version_code = ?", shown.code)
 
@@ -925,7 +925,7 @@ func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, rch driver.Co
 func (a App) GetIssueFreeMetrics(
 	ctx context.Context,
 	rch driver.Conn,
-	ef *exprfilter.ExprFilter,
+	flt *filter.Filter,
 ) (
 	crashFree *metrics.CrashFreeSession,
 	perceivedCrashFree *metrics.PerceivedCrashFreeSession,
@@ -943,7 +943,7 @@ func (a App) GetIssueFreeMetrics(
 		perceivedANRFree = &metrics.PerceivedANRFreeSession{}
 	}
 
-	predicate, err := appMetricsPredicate(ef)
+	predicate, err := appMetricsPredicate(flt)
 	if err != nil {
 		return
 	}
@@ -972,8 +972,8 @@ func (a App) GetIssueFreeMetrics(
 
 	stmt.
 		Where("team_id = toUUID(?)", a.TeamId).
-		Where("app_id = toUUID(?)", ef.AppID).
-		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To)
+		Where("app_id = toUUID(?)", flt.AppID).
+		Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To)
 
 	var (
 		selected, unselected                             uint64
@@ -1056,20 +1056,20 @@ func (a App) GetIssueFreeMetrics(
 // appMetricsPredicate writes the filter as a boolean expression over the
 // app_metrics columns, or nil when the request carried no filter expression
 // and every row of the app counts as selected.
-func appMetricsPredicate(ef *exprfilter.ExprFilter) (*sqlf.Stmt, error) {
-	if !ef.HasFilterExpr() {
+func appMetricsPredicate(flt *filter.Filter) (*sqlf.Stmt, error) {
+	if !flt.HasFilterExpr() {
 		return nil, nil
 	}
-	return ef.Predicate(nil)
+	return flt.Predicate(nil)
 }
 
 // GetAdoptionMetrics computes adoption by comparing the sessions of the
 // selected app versions against the sessions of every version of the app.
-func (a App) GetAdoptionMetrics(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (adoption *metrics.SessionAdoption, err error) {
+func (a App) GetAdoptionMetrics(ctx context.Context, rch driver.Conn, flt *filter.Filter) (adoption *metrics.SessionAdoption, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	adoption = &metrics.SessionAdoption{}
 
-	predicate, err := appMetricsPredicate(ef)
+	predicate, err := appMetricsPredicate(flt)
 	if err != nil {
 		return
 	}
@@ -1090,8 +1090,8 @@ func (a App) GetAdoptionMetrics(ctx context.Context, rch driver.Conn, ef *exprfi
 		Select("uniqMerge(unique_sessions) as all_sessions").
 		Select("round((selected_sessions / all_sessions) * 100, 2) as adoption").
 		Where("team_id = toUUID(?)", a.TeamId).
-		Where("app_id = toUUID(?)", ef.AppID).
-		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To)
+		Where("app_id = toUUID(?)", flt.AppID).
+		Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To)
 
 	if err = rch.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&adoption.SelectedVersion, &adoption.AllVersions, &adoption.Adoption); err != nil {
 		return
@@ -1106,11 +1106,11 @@ func (a App) GetAdoptionMetrics(ctx context.Context, rch driver.Conn, ef *exprfi
 // once over the app versions the filter selects and once over the versions it
 // leaves out. A quantile merged over no rows comes back as NaN, which the
 // no-data flags then record.
-func (a App) GetLaunchMetrics(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (launch *metrics.LaunchMetric, err error) {
+func (a App) GetLaunchMetrics(ctx context.Context, rch driver.Conn, flt *filter.Filter) (launch *metrics.LaunchMetric, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	launch = &metrics.LaunchMetric{}
 
-	predicate, err := appMetricsPredicate(ef)
+	predicate, err := appMetricsPredicate(flt)
 	if err != nil {
 		return
 	}
@@ -1141,8 +1141,8 @@ func (a App) GetLaunchMetrics(ctx context.Context, rch driver.Conn, ef *exprfilt
 
 	stmt.
 		Where("team_id = toUUID(?)", a.TeamId).
-		Where("app_id = toUUID(?)", ef.AppID).
-		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To)
+		Where("app_id = toUUID(?)", flt.AppID).
+		Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To)
 
 	if err = rch.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
 		&launch.ColdLaunchP95,
@@ -1178,16 +1178,16 @@ func (a App) GetLaunchMetrics(ctx context.Context, rch driver.Conn, ef *exprfilt
 // the count indexes, so ClickHouse reads every session row of the app in the
 // time range before discarding, where a WHERE skips the granules whose counts
 // rule them out.
-func applySessionsPredicate(base *sqlf.Stmt, ef *exprfilter.ExprFilter) error {
-	if ef.NeedsWholeGroup() {
-		predicate, err := ef.Predicate(exprfilter.SessionsAggregatedKeyBindings)
+func applySessionsPredicate(base *sqlf.Stmt, flt *filter.Filter) error {
+	if flt.NeedsWholeGroup() {
+		predicate, err := flt.Predicate(filter.SessionsAggregatedKeyBindings)
 		if err != nil {
 			return err
 		}
 		defer predicate.Close()
 		base.Having(predicate.String(), predicate.Args()...)
 	} else {
-		predicate, err := ef.Predicate(nil)
+		predicate, err := flt.Predicate(nil)
 		if err != nil {
 			return err
 		}
@@ -1200,15 +1200,15 @@ func applySessionsPredicate(base *sqlf.Stmt, ef *exprfilter.ExprFilter) error {
 
 // GetSessionsInstancesPlot provides aggregated session instances
 // matching the filter expression.
-func (a App) GetSessionsInstancesPlot(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (sessionInstances []session.SessionInstance, err error) {
+func (a App) GetSessionsInstancesPlot(ctx context.Context, rch driver.Conn, flt *filter.Filter) (sessionInstances []session.SessionInstance, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	if ef.Timezone == "" {
+	if flt.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
 	}
 
-	ef.SetDefaultPlotTimeGroupIfUnset()
+	flt.SetDefaultPlotTimeGroupIfUnset()
 
-	groupExpr, err := GetPlotTimeGroupExpr("start_time", ef.PlotTimeGroup)
+	groupExpr, err := GetPlotTimeGroupExpr("start_time", flt.PlotTimeGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -1219,10 +1219,10 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, rch driver.Conn, ef *
 		Select("app_version").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
-		Where("first_event_timestamp >= ? and last_event_timestamp <= ?", ef.From, ef.To)
+		Where("first_event_timestamp >= ? and last_event_timestamp <= ?", flt.From, flt.To)
 
-	if ef.HasFilterExpr() {
-		if err = applySessionsPredicate(base, ef); err != nil {
+	if flt.HasFilterExpr() {
+		if err = applySessionsPredicate(base, flt); err != nil {
 			return nil, err
 		}
 	}
@@ -1243,7 +1243,7 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, rch driver.Conn, ef *
 		With("base", base).
 		From("base").
 		Select("count() as instances").
-		Select(groupExpr.BucketExpr+" as datetime_bucket", ef.Timezone).
+		Select(groupExpr.BucketExpr+" as datetime_bucket", flt.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 		Select("concat(app_version.1, ' ', '(', app_version.2, ')') as app_version_fmt").
 		GroupBy("app_version, datetime_bucket").
@@ -1273,7 +1273,7 @@ func (a App) GetSessionsInstancesPlot(ctx context.Context, rch driver.Conn, ef *
 
 // GetSessionsWithFilter provides sessions that match the filter
 // expression in a paginated fashion.
-func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (sessions []SessionDisplay, next, previous bool, err error) {
+func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, flt *filter.Filter) (sessions []SessionDisplay, next, previous bool, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	base := sqlf.
 		From("sessions").
@@ -1289,10 +1289,10 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, ef *exp
 		Select("max(last_event_timestamp) as end_time").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
-		Where("first_event_timestamp >= ? and last_event_timestamp <= ?", ef.From, ef.To)
+		Where("first_event_timestamp >= ? and last_event_timestamp <= ?", flt.From, flt.To)
 
-	if ef.HasFilterExpr() {
-		if err = applySessionsPredicate(base, ef); err != nil {
+	if flt.HasFilterExpr() {
+		if err = applySessionsPredicate(base, flt); err != nil {
 			return
 		}
 	}
@@ -1338,12 +1338,12 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, ef *exp
 
 	// paginate
 	{
-		if ef.Limit > 0 {
-			stmt.Limit(uint64(ef.Limit) + 1)
+		if flt.Limit > 0 {
+			stmt.Limit(uint64(flt.Limit) + 1)
 		}
 
-		if ef.Offset >= 0 {
-			stmt.Offset(uint64(ef.Offset))
+		if flt.Offset >= 0 {
+			stmt.Offset(uint64(flt.Offset))
 		}
 	}
 
@@ -1356,7 +1356,7 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, ef *exp
 		var sess SessionDisplay
 		sess.Session = new(Session)
 		sess.Attribute = new(event.Attribute)
-		sess.AppID = ef.AppID
+		sess.AppID = flt.AppID
 
 		dest := []any{
 			&sess.SessionID,
@@ -1391,12 +1391,12 @@ func (a App) GetSessionsWithFilter(ctx context.Context, rch driver.Conn, ef *exp
 	resultLen := len(sessions)
 
 	// set pagination next & previous flags
-	if resultLen > ef.Limit {
+	if resultLen > flt.Limit {
 		sessions = sessions[:resultLen-1]
 		next = true
 	}
 
-	if ef.Offset > 0 {
+	if flt.Offset > 0 {
 		previous = true
 	}
 
@@ -1501,7 +1501,7 @@ func (a App) FetchTracesForSessionId(ctx context.Context, rch driver.Conn, sessi
 // GetSpansForSpanNameWithFilter provides the list of spans for the given
 // span name that matches the filter expression, newest first, in a paginated
 // fashion.
-func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, rch driver.Conn, spanName string, ef *exprfilter.ExprFilter) (rootSpans []span.RootSpanDisplay, next, previous bool, err error) {
+func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, rch driver.Conn, spanName string, flt *filter.Filter) (rootSpans []span.RootSpanDisplay, next, previous bool, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.
 		From("spans final").
@@ -1521,12 +1521,12 @@ func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, rch driver.Conn,
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
 		Where("span_name = ?", spanName).
-		Where("start_time >= ? and end_time <= ?", ef.From, ef.To)
+		Where("start_time >= ? and end_time <= ?", flt.From, flt.To)
 
 	defer stmt.Close()
 
-	if ef.HasFilterExpr() {
-		predicate, errPredicate := ef.Predicate(nil)
+	if flt.HasFilterExpr() {
+		predicate, errPredicate := flt.Predicate(nil)
 		if errPredicate != nil {
 			err = errPredicate
 			return
@@ -1537,12 +1537,12 @@ func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, rch driver.Conn,
 
 	stmt.OrderBy("start_time desc")
 
-	if ef.Limit > 0 {
-		stmt.Limit(uint64(ef.Limit) + 1)
+	if flt.Limit > 0 {
+		stmt.Limit(uint64(flt.Limit) + 1)
 	}
 
-	if ef.Offset >= 0 {
-		stmt.Offset(uint64(ef.Offset))
+	if flt.Offset >= 0 {
+		stmt.Offset(uint64(flt.Offset))
 	}
 
 	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
@@ -1572,11 +1572,11 @@ func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, rch driver.Conn,
 	resultLen := len(rootSpans)
 
 	// Set pagination next & previous flags
-	if resultLen > ef.Limit {
+	if resultLen > flt.Limit {
 		rootSpans = rootSpans[:resultLen-1]
 		next = true
 	}
-	if ef.Offset > 0 {
+	if flt.Offset > 0 {
 		previous = true
 	}
 
@@ -1586,15 +1586,15 @@ func (a App) GetSpansForSpanNameWithFilter(ctx context.Context, rch driver.Conn,
 // GetMetricsPlotForSpanNameWithFilter provides p50, p90, p95 and p99
 // duration metrics for the given span name that matches the filter
 // expression.
-func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, rch driver.Conn, spanName string, ef *exprfilter.ExprFilter) (spanMetricsPlotInstances []span.SpanMetricsPlotInstance, err error) {
+func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, rch driver.Conn, spanName string, flt *filter.Filter) (spanMetricsPlotInstances []span.SpanMetricsPlotInstance, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	if ef.Timezone == "" {
+	if flt.Timezone == "" {
 		err = fmt.Errorf("timezone is required")
 		return
 	}
 
-	ef.SetDefaultPlotTimeGroupIfUnset()
-	groupExpr, err := GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
+	flt.SetDefaultPlotTimeGroupIfUnset()
+	groupExpr, err := GetPlotTimeGroupExpr("timestamp", flt.PlotTimeGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -1602,7 +1602,7 @@ func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, rch driver
 	stmt := sqlf.
 		From("span_metrics").
 		Select("concat(tupleElement(app_version, 1), ' ', '(', tupleElement(app_version, 2), ')') app_version_fmt").
-		Select(groupExpr.BucketExpr+" as datetime_bucket", ef.Timezone).
+		Select(groupExpr.BucketExpr+" as datetime_bucket", flt.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 		Select("round(quantileMerge(0.50)(p50), 2) as p50").
 		Select("round(quantileMerge(0.90)(p90), 2) as p90").
@@ -1611,12 +1611,12 @@ func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, rch driver
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
 		Where("span_name = ?", spanName).
-		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To)
+		Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To)
 
 	defer stmt.Close()
 
-	if ef.HasFilterExpr() {
-		predicate, errPredicate := ef.Predicate(exprfilter.SpanMetricsKeyBindings)
+	if flt.HasFilterExpr() {
+		predicate, errPredicate := flt.Predicate(filter.SpanMetricsKeyBindings)
 		if errPredicate != nil {
 			return nil, errPredicate
 		}
@@ -1784,7 +1784,7 @@ func (a App) GetTrace(ctx context.Context, rch driver.Conn, traceId string) (tra
 
 // GetBugReportsWithFilter provides bug reports that match the filter
 // expression, newest first, in a paginated fashion.
-func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (bugReports []BugReportDisplay, next, previous bool, err error) {
+func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, flt *filter.Filter) (bugReports []BugReportDisplay, next, previous bool, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.
 		From("bug_reports final").
@@ -1804,12 +1804,12 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, ef *e
 		Select("user_id").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
-		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To)
+		Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To)
 
 	defer stmt.Close()
 
-	if ef.HasFilterExpr() {
-		predicate, errPredicate := ef.Predicate(nil)
+	if flt.HasFilterExpr() {
+		predicate, errPredicate := flt.Predicate(nil)
 		if errPredicate != nil {
 			err = errPredicate
 			return
@@ -1820,12 +1820,12 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, ef *e
 
 	stmt.OrderBy("timestamp desc")
 
-	if ef.Limit > 0 {
-		stmt.Limit(uint64(ef.Limit) + 1)
+	if flt.Limit > 0 {
+		stmt.Limit(uint64(flt.Limit) + 1)
 	}
 
-	if ef.Offset >= 0 {
-		stmt.Offset(uint64(ef.Offset))
+	if flt.Offset >= 0 {
+		stmt.Offset(uint64(flt.Offset))
 	}
 
 	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
@@ -1839,7 +1839,7 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, ef *e
 		var bugReport BugReportDisplay
 		bugReport.BugReport = new(BugReport)
 		bugReport.Attribute = new(event.Attribute)
-		bugReport.AppID = ef.AppID
+		bugReport.AppID = flt.AppID
 
 		dest := []any{
 			&bugReport.EventID,
@@ -1871,11 +1871,11 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, ef *e
 	resultLen := len(bugReports)
 
 	// Set pagination next & previous flags
-	if resultLen > ef.Limit {
+	if resultLen > flt.Limit {
 		bugReports = bugReports[:resultLen-1]
 		next = true
 	}
-	if ef.Offset > 0 {
+	if flt.Offset > 0 {
 		previous = true
 	}
 
@@ -1884,15 +1884,15 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, ef *e
 
 // GetBugReportInstancesPlot provides aggregated bug report instances
 // matching the filter expression.
-func (a App) GetBugReportInstancesPlot(ctx context.Context, rch driver.Conn, ef *exprfilter.ExprFilter) (bugReportInstances []BugReportInstance, err error) {
+func (a App) GetBugReportInstancesPlot(ctx context.Context, rch driver.Conn, flt *filter.Filter) (bugReportInstances []BugReportInstance, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	if ef.Timezone == "" {
+	if flt.Timezone == "" {
 		err = fmt.Errorf("timezone is required")
 		return
 	}
 
-	ef.SetDefaultPlotTimeGroupIfUnset()
-	groupExpr, err := GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
+	flt.SetDefaultPlotTimeGroupIfUnset()
+	groupExpr, err := GetPlotTimeGroupExpr("timestamp", flt.PlotTimeGroup)
 	if err != nil {
 		return nil, err
 	}
@@ -1903,10 +1903,10 @@ func (a App) GetBugReportInstancesPlot(ctx context.Context, rch driver.Conn, ef 
 		Select("timestamp").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
-		Where("timestamp >= ? and timestamp <= ?", ef.From, ef.To)
+		Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To)
 
-	if ef.HasFilterExpr() {
-		predicate, errPredicate := ef.Predicate(nil)
+	if flt.HasFilterExpr() {
+		predicate, errPredicate := flt.Predicate(nil)
 		if errPredicate != nil {
 			return nil, errPredicate
 		}
@@ -1923,7 +1923,7 @@ func (a App) GetBugReportInstancesPlot(ctx context.Context, rch driver.Conn, ef 
 		With("base", base).
 		From("base").
 		Select("uniq(event_id) instances").
-		Select(groupExpr.BucketExpr+" as datetime_bucket", ef.Timezone).
+		Select(groupExpr.BucketExpr+" as datetime_bucket", flt.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 		Select("concat(tupleElement(app_version, 1), ' ', '(', tupleElement(app_version, 2), ')') app_version_fmt").
 		GroupBy("app_version, datetime_bucket").

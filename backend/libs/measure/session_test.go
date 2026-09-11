@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/testinfra"
 
 	"github.com/google/uuid"
@@ -126,11 +126,11 @@ func newSessionFixture(t *testing.T) (sessionFixture, time.Time) {
 	return f, base
 }
 
-func (f sessionFixture) exprFilter(from, to time.Time, exprTree *exprfilter.ExprTree) *exprfilter.ExprFilter {
-	return &exprfilter.ExprFilter{
+func (f sessionFixture) newFilter(from, to time.Time, exprTree *filter.ExprTree) *filter.Filter {
+	return &filter.Filter{
 		AppID:    f.appID,
 		TeamID:   f.teamID,
-		Entity:   exprfilter.SessionsEntity,
+		Entity:   filter.SessionsEntity,
 		From:     from,
 		To:       to,
 		Timezone: "UTC",
@@ -139,9 +139,9 @@ func (f sessionFixture) exprFilter(from, to time.Time, exprTree *exprfilter.Expr
 	}
 }
 
-func sessionIDs(t *testing.T, ef *exprfilter.ExprFilter, f sessionFixture) []uuid.UUID {
+func sessionIDs(t *testing.T, flt *filter.Filter, f sessionFixture) []uuid.UUID {
 	t.Helper()
-	sessions, _, _, err := f.app.GetSessionsWithFilter(f.ctx, deps.RchPool, ef)
+	sessions, _, _, err := f.app.GetSessionsWithFilter(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetSessionsWithFilter: %v", err)
 	}
@@ -156,9 +156,9 @@ func TestGetSessionsWithFilter(t *testing.T) {
 	f, base := newSessionFixture(t)
 	from, to := base.Add(-time.Hour), base.Add(time.Hour)
 
-	list := func(t *testing.T, exprTree *exprfilter.ExprTree) []uuid.UUID {
+	list := func(t *testing.T, exprTree *filter.ExprTree) []uuid.UUID {
 		t.Helper()
-		return sessionIDs(t, f.exprFilter(from, to, exprTree), f)
+		return sessionIDs(t, f.newFilter(from, to, exprTree), f)
 	}
 
 	t.Run("no filter returns the app's sessions newest first", func(t *testing.T) {
@@ -170,50 +170,50 @@ func TestGetSessionsWithFilter(t *testing.T) {
 	})
 
 	t.Run("one event kind", func(t *testing.T) {
-		exprTree := leaf("session_events", exprfilter.OperatorIn, "fatal_error")
+		exprTree := leaf("session_events", filter.OperatorIn, "fatal_error")
 		if got := list(t, &exprTree); !slices.Equal(got, []uuid.UUID{f.fatal}) {
 			t.Fatalf("want the fatal session, got %v", got)
 		}
 	})
 
 	t.Run("many event kinds match either", func(t *testing.T) {
-		exprTree := leaf("session_events", exprfilter.OperatorIn, "fatal_error", "anr")
+		exprTree := leaf("session_events", filter.OperatorIn, "fatal_error", "anr")
 		if got := list(t, &exprTree); !slices.Equal(got, []uuid.UUID{f.anr, f.fatal}) {
 			t.Fatalf("want the anr and fatal sessions, got %v", got)
 		}
 	})
 
 	t.Run("bug report and user interaction sessions", func(t *testing.T) {
-		exprTree := leaf("session_events", exprfilter.OperatorIn, "bug_report")
+		exprTree := leaf("session_events", filter.OperatorIn, "bug_report")
 		if got := list(t, &exprTree); !slices.Equal(got, []uuid.UUID{f.bugReport}) {
 			t.Fatalf("want the bug report session, got %v", got)
 		}
 
-		exprTree = leaf("session_events", exprfilter.OperatorIn, "user_interaction")
+		exprTree = leaf("session_events", filter.OperatorIn, "user_interaction")
 		if got := list(t, &exprTree); !slices.Equal(got, []uuid.UUID{f.gesture}) {
 			t.Fatalf("want the gesture session, got %v", got)
 		}
 	})
 
 	t.Run("not in an event kind leaves the sessions without it", func(t *testing.T) {
-		exprTree := leaf("session_events", exprfilter.OperatorNotIn, "bug_report")
+		exprTree := leaf("session_events", filter.OperatorNotIn, "bug_report")
 		if got := list(t, &exprTree); slices.Contains(got, f.bugReport) {
 			t.Fatalf("want the bug report session left out, got %v", got)
 		}
 	})
 
 	t.Run("lifecycle splits the sessions by where the app ran", func(t *testing.T) {
-		exprTree := leaf("session_foreground_background", exprfilter.OperatorIn, "foreground")
+		exprTree := leaf("session_foreground_background", filter.OperatorIn, "foreground")
 		if got := list(t, &exprTree); !slices.Equal(got, []uuid.UUID{f.screenView, f.gesture}) {
 			t.Fatalf("want the screen view and gesture sessions, got %v", got)
 		}
 
-		exprTree = leaf("session_foreground_background", exprfilter.OperatorIn, "background")
+		exprTree = leaf("session_foreground_background", filter.OperatorIn, "background")
 		if got := list(t, &exprTree); !slices.Equal(got, []uuid.UUID{f.background}) {
 			t.Fatalf("want the background session, got %v", got)
 		}
 
-		exprTree = leaf("session_foreground_background", exprfilter.OperatorNotIn, "foreground")
+		exprTree = leaf("session_foreground_background", filter.OperatorNotIn, "foreground")
 		got := list(t, &exprTree)
 		if slices.Contains(got, f.screenView) || slices.Contains(got, f.gesture) {
 			t.Fatalf("want the foreground sessions left out, got %v", got)
@@ -224,9 +224,9 @@ func TestGetSessionsWithFilter(t *testing.T) {
 	})
 
 	t.Run("an event kind and a lifecycle together", func(t *testing.T) {
-		exprTree := exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("session_events", exprfilter.OperatorIn, "fatal_error"),
-			leaf("session_foreground_background", exprfilter.OperatorNotIn, "foreground"),
+		exprTree := filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("session_events", filter.OperatorIn, "fatal_error"),
+			leaf("session_foreground_background", filter.OperatorNotIn, "foreground"),
 		}}
 		if got := list(t, &exprTree); !slices.Equal(got, []uuid.UUID{f.fatal}) {
 			t.Fatalf("want the fatal session, got %v", got)
@@ -234,43 +234,43 @@ func TestGetSessionsWithFilter(t *testing.T) {
 	})
 
 	t.Run("user id reads the session's id list", func(t *testing.T) {
-		exprTree := leaf("user_id", exprfilter.OperatorIn, "alice")
+		exprTree := leaf("user_id", filter.OperatorIn, "alice")
 		if got := list(t, &exprTree); !slices.Equal(got, []uuid.UUID{f.alice}) {
 			t.Fatalf("want alice's session, got %v", got)
 		}
 	})
 
 	t.Run("country reads the session's country list", func(t *testing.T) {
-		exprTree := leaf("country", exprfilter.OperatorIn, "IN")
+		exprTree := leaf("country", filter.OperatorIn, "IN")
 		if got := list(t, &exprTree); !slices.Equal(got, []uuid.UUID{f.bob}) {
 			t.Fatalf("want bob's session, got %v", got)
 		}
 
-		exprTree = leaf("country", exprfilter.OperatorIn, "US", "IN")
+		exprTree = leaf("country", filter.OperatorIn, "US", "IN")
 		if got := list(t, &exprTree); !slices.Equal(got, []uuid.UUID{f.bob, f.alice}) {
 			t.Fatalf("want both attributed sessions, got %v", got)
 		}
 	})
 
 	t.Run("patch keys read the patch columns", func(t *testing.T) {
-		exprTree := leaf("patch_id", exprfilter.OperatorIn, f.patchID.String())
+		exprTree := leaf("patch_id", filter.OperatorIn, f.patchID.String())
 		if got := list(t, &exprTree); !slices.Equal(got, []uuid.UUID{f.patched}) {
 			t.Fatalf("want the patched session, got %v", got)
 		}
 
-		exprTree = leaf("patch_version", exprfilter.OperatorIn, "1.2.0-patch.3")
+		exprTree = leaf("patch_version", filter.OperatorIn, "1.2.0-patch.3")
 		if got := list(t, &exprTree); !slices.Equal(got, []uuid.UUID{f.patched}) {
 			t.Fatalf("want the patched session, got %v", got)
 		}
 
-		exprTree = leaf("patch_id", exprfilter.OperatorIsNotSet)
+		exprTree = leaf("patch_id", filter.OperatorIsNotSet)
 		if got := list(t, &exprTree); slices.Contains(got, f.patched) {
 			t.Fatalf("want the patched session left out, got %v", got)
 		}
 	})
 
 	t.Run("session id binds the uuid column", func(t *testing.T) {
-		exprTree := leaf("session_id", exprfilter.OperatorIn, f.anr.String())
+		exprTree := leaf("session_id", filter.OperatorIn, f.anr.String())
 		if got := list(t, &exprTree); !slices.Equal(got, []uuid.UUID{f.anr}) {
 			t.Fatalf("want the anr session, got %v", got)
 		}
@@ -283,10 +283,10 @@ func TestGetSessionsWithFilter(t *testing.T) {
 	})
 
 	t.Run("pagination flags", func(t *testing.T) {
-		ef := f.exprFilter(from, to, nil)
-		ef.Limit = 1
+		flt := f.newFilter(from, to, nil)
+		flt.Limit = 1
 
-		sessions, next, previous, err := f.app.GetSessionsWithFilter(f.ctx, deps.RchPool, ef)
+		sessions, next, previous, err := f.app.GetSessionsWithFilter(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetSessionsWithFilter: %v", err)
 		}
@@ -294,8 +294,8 @@ func TestGetSessionsWithFilter(t *testing.T) {
 			t.Fatalf("want the first page with more to come, got %d sessions next=%v previous=%v", len(sessions), next, previous)
 		}
 
-		ef.Offset = 8
-		sessions, next, previous, err = f.app.GetSessionsWithFilter(f.ctx, deps.RchPool, ef)
+		flt.Offset = 8
+		sessions, next, previous, err = f.app.GetSessionsWithFilter(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetSessionsWithFilter: %v", err)
 		}
@@ -318,23 +318,23 @@ func TestGetSessionsWithCustomKeyFilter(t *testing.T) {
 		Key:       "plan", Value: "free", Timestamp: base.Add(5 * time.Minute),
 	})
 
-	list := func(t *testing.T, exprTree exprfilter.ExprTree) []uuid.UUID {
+	list := func(t *testing.T, exprTree filter.ExprTree) []uuid.UUID {
 		t.Helper()
-		ef := f.exprFilter(from, to, &exprTree)
-		resolveCustomKeys(t, ef)
-		return sessionIDs(t, ef, f)
+		flt := f.newFilter(from, to, &exprTree)
+		resolveCustomKeys(t, flt)
+		return sessionIDs(t, flt, f)
 	}
 
 	t.Run("a value narrows to its session", func(t *testing.T) {
-		if got := list(t, leaf("custom.plan", exprfilter.OperatorIn, "pro")); !slices.Equal(got, []uuid.UUID{f.fatal}) {
+		if got := list(t, leaf("custom.plan", filter.OperatorIn, "pro")); !slices.Equal(got, []uuid.UUID{f.fatal}) {
 			t.Fatalf("want the fatal session, got %v", got)
 		}
 	})
 
 	t.Run("a custom key beside a built-in key", func(t *testing.T) {
-		got := list(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("custom.plan", exprfilter.OperatorIn, "pro", "free"),
-			leaf("session_events", exprfilter.OperatorIn, "fatal_error"),
+		got := list(t, filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("custom.plan", filter.OperatorIn, "pro", "free"),
+			leaf("session_events", filter.OperatorIn, "fatal_error"),
 		}})
 		if !slices.Equal(got, []uuid.UUID{f.fatal}) {
 			t.Fatalf("want the fatal session, got %v", got)
@@ -346,11 +346,11 @@ func TestGetSessionsInstancesPlotWithFilter(t *testing.T) {
 	f, base := newSessionFixture(t)
 	from, to := base.Add(-time.Hour), base.Add(time.Hour)
 
-	total := func(t *testing.T, exprTree *exprfilter.ExprTree) uint64 {
+	total := func(t *testing.T, exprTree *filter.ExprTree) uint64 {
 		t.Helper()
-		ef := f.exprFilter(from, to, exprTree)
-		ef.PlotTimeGroup = exprfilter.PlotTimeGroupDays
-		items, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, ef)
+		flt := f.newFilter(from, to, exprTree)
+		flt.PlotTimeGroup = filter.PlotTimeGroupDays
+		items, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetSessionsInstancesPlot: %v", err)
 		}
@@ -368,7 +368,7 @@ func TestGetSessionsInstancesPlotWithFilter(t *testing.T) {
 	})
 
 	t.Run("narrowed by event kind", func(t *testing.T) {
-		exprTree := leaf("session_events", exprfilter.OperatorIn, "anr")
+		exprTree := leaf("session_events", filter.OperatorIn, "anr")
 		if got := total(t, &exprTree); got != 1 {
 			t.Fatalf("want the one anr session, got %d", got)
 		}
@@ -431,28 +431,28 @@ func TestGetSessionsWithTextFilter(t *testing.T) {
 	f, base := newSessionTextFixture(t)
 	from, to := base.Add(-time.Hour), base.Add(time.Hour)
 
-	list := func(t *testing.T, keyName string, operator exprfilter.Operator, text string) []uuid.UUID {
+	list := func(t *testing.T, keyName string, operator filter.Operator, text string) []uuid.UUID {
 		t.Helper()
 		exprTree := leaf(keyName, operator, text)
-		return sessionIDs(t, f.exprFilter(from, to, &exprTree), f)
+		return sessionIDs(t, f.newFilter(from, to, &exprTree), f)
 	}
 
 	tests := []struct {
 		name     string
 		keyName  string
-		operator exprfilter.Operator
+		operator filter.Operator
 		text     string
 		want     uuid.UUID
 	}{
-		{"custom event by name", "session_custom_event", exprfilter.OperatorIn, "checkout_completed", f.custom},
-		{"custom event by substring", "session_custom_event", exprfilter.OperatorContains, "checkout", f.custom},
-		{"log body", "session_log", exprfilter.OperatorContains, "gateway", f.log},
-		{"log string", "session_log", exprfilter.OperatorContains, "legacy", f.logString},
-		{"exception type", "session_error_text", exprfilter.OperatorContains, "NullPointer", f.fatal},
-		{"exception message", "session_error_text", exprfilter.OperatorContains, "boom on checkout", f.fatal},
-		{"anr message", "session_error_text", exprfilter.OperatorContains, "input dispatch", f.anr},
-		{"screen view name", "session_screen", exprfilter.OperatorIn, "CheckoutScreen", f.screenView},
-		{"activity class name", "session_screen", exprfilter.OperatorContains, "HomeActivity", f.activity},
+		{"custom event by name", "session_custom_event", filter.OperatorIn, "checkout_completed", f.custom},
+		{"custom event by substring", "session_custom_event", filter.OperatorContains, "checkout", f.custom},
+		{"log body", "session_log", filter.OperatorContains, "gateway", f.log},
+		{"log string", "session_log", filter.OperatorContains, "legacy", f.logString},
+		{"exception type", "session_error_text", filter.OperatorContains, "NullPointer", f.fatal},
+		{"exception message", "session_error_text", filter.OperatorContains, "boom on checkout", f.fatal},
+		{"anr message", "session_error_text", filter.OperatorContains, "input dispatch", f.anr},
+		{"screen view name", "session_screen", filter.OperatorIn, "CheckoutScreen", f.screenView},
+		{"activity class name", "session_screen", filter.OperatorContains, "HomeActivity", f.activity},
 	}
 
 	for _, test := range tests {
@@ -464,7 +464,7 @@ func TestGetSessionsWithTextFilter(t *testing.T) {
 	}
 
 	t.Run("text nothing carries matches no session", func(t *testing.T) {
-		if got := list(t, "session_error_text", exprfilter.OperatorContains, "nowhere"); len(got) != 0 {
+		if got := list(t, "session_error_text", filter.OperatorContains, "nowhere"); len(got) != 0 {
 			t.Fatalf("want no sessions, got %v", got)
 		}
 	})
@@ -505,11 +505,11 @@ func TestGetSessionsWithFilterOverUnmergedSessionRows(t *testing.T) {
 		t.Fatalf("want the session split across 2 unmerged rows, got %d", rowCount)
 	}
 
-	exprFilter := func(exprTree exprfilter.ExprTree) *exprfilter.ExprFilter {
-		return &exprfilter.ExprFilter{
+	newFilter := func(exprTree filter.ExprTree) *filter.Filter {
+		return &filter.Filter{
 			AppID:    appID,
 			TeamID:   teamID,
-			Entity:   exprfilter.SessionsEntity,
+			Entity:   filter.SessionsEntity,
 			From:     from,
 			To:       to,
 			Timezone: "UTC",
@@ -518,9 +518,9 @@ func TestGetSessionsWithFilterOverUnmergedSessionRows(t *testing.T) {
 		}
 	}
 
-	found := func(t *testing.T, exprTree exprfilter.ExprTree) bool {
+	found := func(t *testing.T, exprTree filter.ExprTree) bool {
 		t.Helper()
-		sessions, _, _, err := app.GetSessionsWithFilter(ctx, deps.RchPool, exprFilter(exprTree))
+		sessions, _, _, err := app.GetSessionsWithFilter(ctx, deps.RchPool, newFilter(exprTree))
 		if err != nil {
 			t.Fatalf("GetSessionsWithFilter: %v", err)
 		}
@@ -529,9 +529,9 @@ func TestGetSessionsWithFilterOverUnmergedSessionRows(t *testing.T) {
 		})
 	}
 
-	instances := func(t *testing.T, exprTree exprfilter.ExprTree) uint64 {
+	instances := func(t *testing.T, exprTree filter.ExprTree) uint64 {
 		t.Helper()
-		items, err := app.GetSessionsInstancesPlot(ctx, deps.RchPool, exprFilter(exprTree))
+		items, err := app.GetSessionsInstancesPlot(ctx, deps.RchPool, newFilter(exprTree))
 		if err != nil {
 			t.Fatalf("GetSessionsInstancesPlot: %v", err)
 		}
@@ -544,15 +544,15 @@ func TestGetSessionsWithFilterOverUnmergedSessionRows(t *testing.T) {
 		return total
 	}
 
-	hasFatal := leaf("session_events", exprfilter.OperatorIn, "fatal_error")
-	noFatal := leaf("session_events", exprfilter.OperatorNotIn, "fatal_error")
-	logAndFatal := exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-		leaf("session_log", exprfilter.OperatorContains, "checkout failed"),
-		leaf("session_events", exprfilter.OperatorIn, "fatal_error"),
+	hasFatal := leaf("session_events", filter.OperatorIn, "fatal_error")
+	noFatal := leaf("session_events", filter.OperatorNotIn, "fatal_error")
+	logAndFatal := filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+		leaf("session_log", filter.OperatorContains, "checkout failed"),
+		leaf("session_events", filter.OperatorIn, "fatal_error"),
 	}}
-	logOrANR := exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalOr, Children: []exprfilter.ExprTree{
-		leaf("session_log", exprfilter.OperatorContains, "checkout failed"),
-		leaf("session_events", exprfilter.OperatorIn, "anr"),
+	logOrANR := filter.ExprTree{LogicalOperator: filter.LogicalOr, Children: []filter.ExprTree{
+		leaf("session_log", filter.OperatorContains, "checkout failed"),
+		leaf("session_events", filter.OperatorIn, "anr"),
 	}}
 
 	t.Run("an event kind one row carries", func(t *testing.T) {

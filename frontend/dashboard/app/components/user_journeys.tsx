@@ -3,7 +3,7 @@
 import { filterExprIssuesIn } from "@/app/api/api_error";
 import DebounceTextInput from "@/app/components/debounce_text_input";
 import FilterBar from "@/app/components/filter_bar/filter_bar";
-import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
+import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import Journey, {
   JourneyType,
   PlotType,
@@ -61,7 +61,7 @@ export default function UserJourneys({
     filterParams,
     onChange,
     setPageUrlKey,
-  } = useExprFilterPage({ teamId, entity: "journeys" });
+  } = useFilterPage({ teamId, entity: "journeys" });
   const readyValue = filterStatus.kind === "ready" ? value : null;
 
   const plotType =

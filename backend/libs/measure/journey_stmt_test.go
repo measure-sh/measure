@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/libs/opsys"
 
 	"github.com/google/uuid"
@@ -17,13 +17,13 @@ import (
 // edited without its args silently shifts every later bind.
 func TestJourneyStmtArgsAlign(t *testing.T) {
 	id := uuid.New()
-	ef := &exprfilter.ExprFilter{
-		Entity:     exprfilter.JourneysEntity,
+	flt := &filter.Filter{
+		Entity:     filter.JourneysEntity,
 		From:       time.Now().Add(-24 * time.Hour),
 		To:         time.Now(),
 		FilterExpr: "version_name:in:1.0 AND version_code:in:100",
 	}
-	if err := ef.BuildExprTree(); err != nil {
+	if err := flt.BuildExprTree(); err != nil {
 		t.Fatalf("build filter expression: %v", err)
 	}
 
@@ -34,14 +34,14 @@ func TestJourneyStmtArgsAlign(t *testing.T) {
 			t.Fatalf("%s: no journey expressions", family)
 		}
 
-		builders := map[string]func(*exprfilter.ExprFilter, journeyExpr) (*sqlf.Stmt, error){
+		builders := map[string]func(*filter.Filter, journeyExpr) (*sqlf.Stmt, error){
 			"nodes":  a.journeyNodesStmt,
 			"edges":  a.journeyEdgesStmt,
 			"issues": a.journeyIssuesStmt,
 		}
 
 		for name, build := range builders {
-			stmt, err := build(ef, je)
+			stmt, err := build(flt, je)
 			if err != nil {
 				t.Fatalf("%s/%s: %v", family, name, err)
 			}

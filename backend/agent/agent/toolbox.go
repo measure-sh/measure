@@ -16,7 +16,7 @@ import (
 	"backend/libs/ambient"
 	"backend/libs/chquery"
 	"backend/libs/event"
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/libs/group"
 	"backend/libs/measure"
 	"backend/libs/network"
@@ -428,7 +428,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_metrics
 		newTool(&mcpsdk.Tool{
 			Name:        "get_metrics",
-			Description: "Get app metrics including adoption, crash-free/ANR-free sessions, launch performance (cold/warm/hot p95) and app size. Covers every app version unless filter_expr narrows it; each metric is reported for the selected versions and for the rest, and adoption is only meaningful against a specific version, so narrow to one with its version_code when reading it. App size is reported only when the filter selects a single version name, as the size of that version's most recent build. " + mcpFilterExprToolsHint(exprfilter.AppHealthEntity) + ".",
+			Description: "Get app metrics including adoption, crash-free/ANR-free sessions, launch performance (cold/warm/hot p95) and app size. Covers every app version unless filter_expr narrows it; each metric is reported for the selected versions and for the rest, and adoption is only meaningful against a specific version, so narrow to one with its version_code when reading it. App size is reported only when the filter selects a single version name, as the size of that version's most recent build. " + mcpFilterExprToolsHint(filter.AppHealthEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetMetricsInput](mcpAppHealthFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetMetricsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetMetrics(ctx, in)
@@ -437,7 +437,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_app_health_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_app_health_over_time",
-			Description: "Get the app health timeline: sessions, crashes (fatal exceptions) and ANRs bucketed over time. This is the overview health plot. Covers every app version unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.AppHealthEntity) + ".",
+			Description: "Get the app health timeline: sessions, crashes (fatal exceptions) and ANRs bucketed over time. This is the overview health plot. Covers every app version unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.AppHealthEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetAppHealthOverTimeInput](mcpAppHealthFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetAppHealthOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetAppHealthOverTime(ctx, in)
@@ -446,7 +446,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_errors
 		newTool(&mcpsdk.Tool{
 			Name:        "get_errors",
-			Description: "Get error groups (crashes, non-fatal errors and ANRs) for an app. Covers every error unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.ErrorsEntity) + ".",
+			Description: "Get error groups (crashes, non-fatal errors and ANRs) for an app. Covers every error unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorsInput](mcpErrorsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrors(ctx, in)
@@ -455,7 +455,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_error
 		newTool(&mcpsdk.Tool{
 			Name:        "get_error",
-			Description: "Get individual error events (exception or ANR) for a specific error group. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.ErrorGroupEventsEntity) + ".",
+			Description: "Get individual error events (exception or ANR) for a specific error group. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorGroupEventsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorInput](mcpErrorGroupEventsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetError(ctx, in)
@@ -464,7 +464,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_errors_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_errors_over_time",
-			Description: "Get time-series of error occurrences across all error groups. Covers every error unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.ErrorsEntity) + ".",
+			Description: "Get time-series of error occurrences across all error groups. Covers every error unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorsOverTimeInput](mcpErrorsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrorsOverTime(ctx, in)
@@ -473,7 +473,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_error_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_error_over_time",
-			Description: "Get time-series of occurrences for a specific error group. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.ErrorGroupEventsEntity) + ".",
+			Description: "Get time-series of occurrences for a specific error group. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorGroupEventsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorOverTimeInput](mcpErrorGroupEventsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrorOverTime(ctx, in)
@@ -482,7 +482,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_error_distribution
 		newTool(&mcpsdk.Tool{
 			Name:        "get_error_distribution",
-			Description: "Get attribute distribution (OS, device, version, country) for a specific error group. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.ErrorGroupEventsEntity) + ".",
+			Description: "Get attribute distribution (OS, device, version, country) for a specific error group. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorGroupEventsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorDistributionInput](mcpErrorGroupEventsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorDistributionInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrorDistribution(ctx, in)
@@ -500,7 +500,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_sessions
 		newTool(&mcpsdk.Tool{
 			Name:        "get_sessions",
-			Description: "Get sessions for an app, ordered by most recent first. Covers every session unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.SessionsEntity) + ".",
+			Description: "Get sessions for an app, ordered by most recent first. Covers every session unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.SessionsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetSessionsInput](mcpSessionsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSessionsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSessions(ctx, in)
@@ -509,7 +509,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_sessions_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_sessions_over_time",
-			Description: "Get time-series of session counts. Covers every session unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.SessionsEntity) + ".",
+			Description: "Get time-series of session counts. Covers every session unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.SessionsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetSessionsOverTimeInput](mcpSessionsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSessionsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSessionsOverTime(ctx, in)
@@ -527,7 +527,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_bug_reports
 		newTool(&mcpsdk.Tool{
 			Name:        "get_bug_reports",
-			Description: "Get bug reports for an app, ordered by most recent first. Covers every bug report unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.BugReportsEntity) + ".",
+			Description: "Get bug reports for an app, ordered by most recent first. Covers every bug report unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.BugReportsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetBugReportsInput](mcpBugReportsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetBugReportsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetBugReports(ctx, in)
@@ -536,7 +536,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_bug_reports_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_bug_reports_over_time",
-			Description: "Get time-series of bug report counts. Covers every bug report unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.BugReportsEntity) + ".",
+			Description: "Get time-series of bug report counts. Covers every bug report unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.BugReportsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetBugReportsOverTimeInput](mcpBugReportsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetBugReportsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetBugReportsOverTime(ctx, in)
@@ -572,7 +572,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_span_instances
 		newTool(&mcpsdk.Tool{
 			Name:        "get_span_instances",
-			Description: "Get span instances for a root span name. Covers every span unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.SpansEntity) + ".",
+			Description: "Get span instances for a root span name. Covers every span unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.SpansEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetSpanInstancesInput](mcpSpansFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSpanInstancesInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSpanInstances(ctx, in)
@@ -581,7 +581,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_span_metrics_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_span_metrics_over_time",
-			Description: "Get p50/p90/p95/p99 duration metrics over time for a span name. Covers every span unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.SpansEntity) + ".",
+			Description: "Get p50/p90/p95/p99 duration metrics over time for a span name. Covers every span unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.SpansEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetSpanMetricsOverTimeInput](mcpSpansFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSpanMetricsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSpanMetricsOverTime(ctx, in)
@@ -608,7 +608,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_journey
 		newTool(&mcpsdk.Tool{
 			Name:        "get_journey",
-			Description: "Get an app's journey as a graph of screens. Each link is a transition between consecutive screens within a session, valued by the number of sessions that made that transition. Covers every session unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.JourneysEntity) + ".",
+			Description: "Get an app's journey as a graph of screens. Each link is a transition between consecutive screens within a session, valued by the number of sessions that made that transition. Covers every session unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneyInput](mcpJourneysFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetJourney(ctx, in)
@@ -617,7 +617,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_network_metrics_trends
 		newTool(&mcpsdk.Tool{
 			Name:        "get_network_metrics_trends",
-			Description: "Get top network endpoints by latency, error rate, and frequency for domain and path pattern. Covers every request unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.NetworkEntity) + ".",
+			Description: "Get top network endpoints by latency, error rate, and frequency for domain and path pattern. Covers every request unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.NetworkEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetNetworkTrendsInput](mcpNetworkFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetNetworkTrendsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetNetworkTrends(ctx, in)
@@ -626,7 +626,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_network_status_codes_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_network_status_codes_over_time",
-			Description: "Get HTTP status-class counts over time for the whole app or a selected endpoint. Covers every request unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.NetworkEntity) + ".",
+			Description: "Get HTTP status-class counts over time for the whole app or a selected endpoint. Covers every request unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.NetworkEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetAppHttpStatusCodesOverTimeInput](mcpNetworkFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetAppHttpStatusCodesOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetAppStatusCodesOverTime(ctx, in)
@@ -635,7 +635,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_network_endpoint_status_codes_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_network_endpoint_status_codes_over_time",
-			Description: "Get exact HTTP status-code counts over time for a selected endpoint. Covers every request unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.NetworkEntity) + ".",
+			Description: "Get exact HTTP status-code counts over time for a selected endpoint. Covers every request unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.NetworkEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetHttpEndpointStatusCodesOverTimeInput](mcpNetworkFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetHttpEndpointStatusCodesOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetHttpEndpointStatusCodesOverTime(ctx, in)
@@ -644,7 +644,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_network_latency_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_network_latency_over_time",
-			Description: "Get latency percentiles over time for the whole app or a selected endpoint. Covers every request unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.NetworkEntity) + ".",
+			Description: "Get latency percentiles over time for the whole app or a selected endpoint. Covers every request unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.NetworkEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetNetworkLatencyOverTimeInput](mcpNetworkFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetNetworkLatencyOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetNetworkLatencyOverTime(ctx, in)
@@ -653,7 +653,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_network_timeline
 		newTool(&mcpsdk.Tool{
 			Name:        "get_network_timeline",
-			Description: "Get the per-session HTTP request timeline for the whole app or a selected endpoint. Covers every request unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.NetworkEntity) + ".",
+			Description: "Get the per-session HTTP request timeline for the whole app or a selected endpoint. Covers every request unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.NetworkEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetNetworkTimelineInput](mcpNetworkFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetNetworkTimelineInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetNetworkTimeline(ctx, in)
@@ -664,17 +664,17 @@ func commonTools(cfg *Config) []Tool {
 // mcpFilterExprToolsHint tells the client where the vocabulary of a
 // filter_expr comes from, naming the entity whose keys get_filter_keys is
 // called with. It is shared by every tool that takes a filter_expr.
-func mcpFilterExprToolsHint(entity exprfilter.Entity) string {
+func mcpFilterExprToolsHint(entity filter.Entity) string {
 	return "get_filter_keys with entity " + entity.Name + " lists the keys and operators a filter_expr may use, get_filter_values lists a key's suggested values"
 }
 
 // mcpFilterExprGrammar is the filter_expr grammar, condensed from
-// backend/libs/exprfilter/parse.go, shared as the filter_expr property's
+// backend/libs/filter/parse.go, shared as the filter_expr property's
 // schema description by every tool that takes one. The prose names the
 // entity being narrowed and the example is written in that entity's keys.
 // Custom keys are mentioned only for an entity that stores user-defined
 // attributes, since any other entity rejects the custom. prefix as unknown.
-func mcpFilterExprGrammar(entity exprfilter.Entity, example string) string {
+func mcpFilterExprGrammar(entity filter.Entity, example string) string {
 	noun := strings.ReplaceAll(entity.Name, "_", " ")
 	grammar := "Filter expression narrowing the " + noun + ". A condition is key:operator:value or key:operator:[v1,v2]; a no-value operator like is_set is written key:operator. Conditions join with AND / OR, parentheses group, and AND binds tighter than OR. A value holding a space, comma, bracket, colon or quote is written in double quotes. Example: " + example + ". "
 	if entity.CustomKeys != nil {
@@ -686,14 +686,14 @@ func mcpFilterExprGrammar(entity exprfilter.Entity, example string) string {
 // The grammar text each entity's tools advertise, built from the shared
 // template with an example in that entity's keys.
 var (
-	mcpSpansFilterExprGrammar            = mcpFilterExprGrammar(exprfilter.SpansEntity, "version_name:in:[1.2.0,1.1.9] AND span_status:in:error")
-	mcpBugReportsFilterExprGrammar       = mcpFilterExprGrammar(exprfilter.BugReportsEntity, "version_name:in:[1.2.0] AND bug_report_status:in:open")
-	mcpJourneysFilterExprGrammar         = mcpFilterExprGrammar(exprfilter.JourneysEntity, "version_name:in:[1.2.0] AND version_code:in:[120]")
-	mcpNetworkFilterExprGrammar          = mcpFilterExprGrammar(exprfilter.NetworkEntity, "version_name:in:[1.2.0] AND http_method:in:get")
-	mcpSessionsFilterExprGrammar         = mcpFilterExprGrammar(exprfilter.SessionsEntity, "session_events:in:[fatal_error, anr] AND session_foreground_background:in:[foreground]")
-	mcpErrorsFilterExprGrammar           = mcpFilterExprGrammar(exprfilter.ErrorsEntity, `error_type:in:[Crash, ANR] AND os_name:in:[android]`)
-	mcpErrorGroupEventsFilterExprGrammar = mcpFilterExprGrammar(exprfilter.ErrorGroupEventsEntity, "version_name:in:[1.2.0] AND os_name:in:[android]")
-	mcpAppHealthFilterExprGrammar        = mcpFilterExprGrammar(exprfilter.AppHealthEntity, "version_name:in:[1.2.0] AND version_code:in:[120]")
+	mcpSpansFilterExprGrammar            = mcpFilterExprGrammar(filter.SpansEntity, "version_name:in:[1.2.0,1.1.9] AND span_status:in:error")
+	mcpBugReportsFilterExprGrammar       = mcpFilterExprGrammar(filter.BugReportsEntity, "version_name:in:[1.2.0] AND bug_report_status:in:open")
+	mcpJourneysFilterExprGrammar         = mcpFilterExprGrammar(filter.JourneysEntity, "version_name:in:[1.2.0] AND version_code:in:[120]")
+	mcpNetworkFilterExprGrammar          = mcpFilterExprGrammar(filter.NetworkEntity, "version_name:in:[1.2.0] AND http_method:in:get")
+	mcpSessionsFilterExprGrammar         = mcpFilterExprGrammar(filter.SessionsEntity, "session_events:in:[fatal_error, anr] AND session_foreground_background:in:[foreground]")
+	mcpErrorsFilterExprGrammar           = mcpFilterExprGrammar(filter.ErrorsEntity, `error_type:in:[Crash, ANR] AND os_name:in:[android]`)
+	mcpErrorGroupEventsFilterExprGrammar = mcpFilterExprGrammar(filter.ErrorGroupEventsEntity, "version_name:in:[1.2.0] AND os_name:in:[android]")
+	mcpAppHealthFilterExprGrammar        = mcpFilterExprGrammar(filter.AppHealthEntity, "version_name:in:[1.2.0] AND version_code:in:[120]")
 )
 
 // mcpMustInferFilterExprSchema infers a JSON schema from a Go type and sets
@@ -993,62 +993,62 @@ func (c *Config) mcpResolveAppAccess(ctx context.Context, rawAppID string) (uuid
 	return appID, *team.ID, nil
 }
 
-// mcpExprFilter builds the exprfilter.ExprFilter a query tool passes to the
+// mcpFilter builds the filter.Filter a query tool passes to the
 // given entity's queries, parsing the tool's filter_expr input into the
 // filter tree. The caller still sets Limit, Offset and Timezone, then runs
 // Validate.
-func mcpExprFilter(entity exprfilter.Entity, appID, teamID uuid.UUID, fromStr, toStr, filterExpr string) (*exprfilter.ExprFilter, error) {
+func mcpFilter(entity filter.Entity, appID, teamID uuid.UUID, fromStr, toStr, filterExpr string) (*filter.Filter, error) {
 	from, to, err := mcpParseTimeRangeStrings(fromStr, toStr)
 	if err != nil {
 		return nil, err
 	}
 
-	ef := &exprfilter.ExprFilter{
+	flt := &filter.Filter{
 		AppID:      appID,
 		TeamID:     teamID,
 		Entity:     entity,
 		From:       from,
 		To:         to,
-		Limit:      exprfilter.DefaultPaginationLimit,
+		Limit:      filter.DefaultPaginationLimit,
 		FilterExpr: filterExpr,
 	}
 
-	if err := ef.BuildExprTree(); err != nil {
+	if err := flt.BuildExprTree(); err != nil {
 		return nil, mcpFilterExprError(err)
 	}
 
-	return ef, nil
+	return flt, nil
 }
 
-// mcpPrepareExprFilter runs the request prologue shared by the tools that
-// query with an exprfilter.ExprFilter: it resolves the caller's access to the
+// mcpPrepareFilter runs the request prologue shared by the tools that
+// query with a filter.Filter: it resolves the caller's access to the
 // app, builds the filter from the tool's time range and filter_expr inputs,
 // lets the tool set its pagination and timezone fields through apply, then
 // resolves the filter's custom keys and validates it.
-func (c *Config) mcpPrepareExprFilter(ctx context.Context, entity exprfilter.Entity, rawAppID, from, to, filterExpr string, apply func(*exprfilter.ExprFilter)) (appID, teamID uuid.UUID, ef *exprfilter.ExprFilter, err error) {
+func (c *Config) mcpPrepareFilter(ctx context.Context, entity filter.Entity, rawAppID, from, to, filterExpr string, apply func(*filter.Filter)) (appID, teamID uuid.UUID, flt *filter.Filter, err error) {
 	appID, teamID, err = c.mcpResolveAppAccess(ctx, rawAppID)
 	if err != nil {
 		return uuid.UUID{}, uuid.UUID{}, nil, err
 	}
 
-	ef, err = mcpExprFilter(entity, appID, teamID, from, to, filterExpr)
+	flt, err = mcpFilter(entity, appID, teamID, from, to, filterExpr)
 	if err != nil {
 		return uuid.UUID{}, uuid.UUID{}, nil, err
 	}
 
 	if apply != nil {
-		apply(ef)
+		apply(flt)
 	}
 
-	if err := ef.ResolveCustomKeys(ctx, c.Deps.RchPool); err != nil {
+	if err := flt.ResolveCustomKeys(ctx, c.Deps.RchPool); err != nil {
 		return uuid.UUID{}, uuid.UUID{}, nil, fmt.Errorf("failed to read the filter's custom keys: %v", err)
 	}
 
-	if err := ef.Validate(); err != nil {
+	if err := flt.Validate(); err != nil {
 		return uuid.UUID{}, uuid.UUID{}, nil, mcpFilterExprError(err)
 	}
 
-	return appID, teamID, ef, nil
+	return appID, teamID, flt, nil
 }
 
 // mcpFilterExprError renders a filter_expr parse or validation failure as one
@@ -1056,8 +1056,8 @@ func (c *Config) mcpPrepareExprFilter(ctx context.Context, entity exprfilter.Ent
 // the model can correct the expression and call again. Other errors pass
 // through unchanged.
 func mcpFilterExprError(err error) error {
-	var parseErr *exprfilter.ParseError
-	var invalid *exprfilter.ValidationError
+	var parseErr *filter.ParseError
+	var invalid *filter.ValidationError
 	switch {
 	case errors.As(err, &parseErr):
 		return fmt.Errorf("filter_expr could not be parsed: %s at position %d", parseErr.Message, parseErr.Position)
@@ -1159,7 +1159,7 @@ func (c *Config) mcpListApps(ctx context.Context, _ mcpListAppsInput) (*mcpsdk.C
 }
 
 func (c *Config) mcpGetFilterKeys(ctx context.Context, in mcpGetFilterKeysInput) (*mcpsdk.CallToolResult, any, error) {
-	entity, err := exprfilter.FindByName(in.Entity)
+	entity, err := filter.FindByName(in.Entity)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1169,7 +1169,7 @@ func (c *Config) mcpGetFilterKeys(ctx context.Context, in mcpGetFilterKeysInput)
 		return nil, nil, err
 	}
 
-	ctx = exprfilter.WithFilterQuerySettings(ctx, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode, "filter_keys")
+	ctx = filter.WithFilterQuerySettings(ctx, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode, "filter_keys")
 	keys, keysTruncated, err := entity.ListKeys(ctx, c.Deps.PgPool, c.Deps.RchPool, teamID, appID, in.Keys)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get filter keys: %v", err)
@@ -1177,7 +1177,7 @@ func (c *Config) mcpGetFilterKeys(ctx context.Context, in mcpGetFilterKeysInput)
 
 	result := map[string]any{
 		"keys":           keys,
-		"key_groups":     exprfilter.ListKeyGroups(keys),
+		"key_groups":     filter.ListKeyGroups(keys),
 		"keys_truncated": keysTruncated,
 	}
 	data, _ := json.Marshal(result)
@@ -1186,7 +1186,7 @@ func (c *Config) mcpGetFilterKeys(ctx context.Context, in mcpGetFilterKeysInput)
 
 func (c *Config) mcpGetFilterValues(ctx context.Context, in mcpGetFilterValuesInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
-	entity, err := exprfilter.FindByName(in.Entity)
+	entity, err := filter.FindByName(in.Entity)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1196,10 +1196,10 @@ func (c *Config) mcpGetFilterValues(ctx context.Context, in mcpGetFilterValuesIn
 
 	limit := in.Limit
 	if limit <= 0 {
-		limit = exprfilter.DefaultValueLimit
+		limit = filter.DefaultValueLimit
 	}
-	if limit > exprfilter.MaxValueLimit {
-		return nil, nil, fmt.Errorf("limit cannot be more than %d", exprfilter.MaxValueLimit)
+	if limit > filter.MaxValueLimit {
+		return nil, nil, fmt.Errorf("limit cannot be more than %d", filter.MaxValueLimit)
 	}
 
 	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
@@ -1207,7 +1207,7 @@ func (c *Config) mcpGetFilterValues(ctx context.Context, in mcpGetFilterValuesIn
 		return nil, nil, err
 	}
 
-	ctx = exprfilter.WithFilterQuerySettings(ctx, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode, "filter_values")
+	ctx = filter.WithFilterQuerySettings(ctx, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode, "filter_values")
 	key, found, err := entity.FindKey(ctx, deps.RchPool, teamID, appID, in.KeyName)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get filter values: %v", err)
@@ -1215,11 +1215,11 @@ func (c *Config) mcpGetFilterValues(ctx context.Context, in mcpGetFilterValuesIn
 	if !found {
 		return nil, nil, fmt.Errorf("entity %q has no key %q", entity.Name, in.KeyName)
 	}
-	if key.ValueSuggestionMode == exprfilter.ValueSuggestionModeNone {
+	if key.ValueSuggestionMode == filter.ValueSuggestionModeNone {
 		return nil, nil, fmt.Errorf("key %q takes typed values only and has no value list", key.Name)
 	}
 
-	valueList, err := entity.SuggestKeyValues(ctx, deps.PgPool, deps.RchPool, teamID, appID, key, exprfilter.ValueRequest{
+	valueList, err := entity.SuggestKeyValues(ctx, deps.PgPool, deps.RchPool, teamID, appID, key, filter.ValueRequest{
 		Search: in.Search,
 		Limit:  limit,
 	})
@@ -1237,7 +1237,7 @@ func (c *Config) mcpGetFilterValues(ctx context.Context, in mcpGetFilterValuesIn
 
 func (c *Config) mcpGetMetrics(ctx context.Context, in mcpGetMetricsInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.AppHealthEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.AppHealthEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1249,17 +1249,17 @@ func (c *Config) mcpGetMetrics(ctx context.Context, in mcpGetMetricsInput) (*mcp
 		return nil, nil, err
 	}
 
-	adoption, err := app.GetAdoptionMetrics(ctx, deps.RchPool, ef)
+	adoption, err := app.GetAdoptionMetrics(ctx, deps.RchPool, flt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch adoption metrics: %w", err)
 	}
 
-	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err := app.GetIssueFreeMetrics(ctx, deps.RchPool, ef)
+	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err := app.GetIssueFreeMetrics(ctx, deps.RchPool, flt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch issue free metrics: %w", err)
 	}
 
-	launch, err := app.GetLaunchMetrics(ctx, deps.RchPool, ef)
+	launch, err := app.GetLaunchMetrics(ctx, deps.RchPool, flt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch launch metrics: %w", err)
 	}
@@ -1290,7 +1290,7 @@ func (c *Config) mcpGetMetrics(ctx context.Context, in mcpGetMetricsInput) (*mcp
 		},
 	}
 
-	sizes, err := app.GetSizeMetrics(ctx, deps.PgPool, deps.RchPool, ef)
+	sizes, err := app.GetSizeMetrics(ctx, deps.PgPool, deps.RchPool, flt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch size metrics: %w", err)
 	}
@@ -1308,15 +1308,15 @@ func (c *Config) mcpGetAppHealthOverTime(ctx context.Context, in mcpGetAppHealth
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
 
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.AppHealthEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
-		ef.Timezone = in.Timezone
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.AppHealthEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		flt.Timezone = in.Timezone
 	})
 	if err != nil {
 		return nil, nil, err
 	}
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
-	sessions, crashes, anrs, plotErr := app.GetHealthPlotInstances(ctx, deps.RchPool, ef)
+	sessions, crashes, anrs, plotErr := app.GetHealthPlotInstances(ctx, deps.RchPool, flt)
 	if plotErr != nil {
 		return nil, nil, fmt.Errorf("failed to get app health plot: %v", plotErr)
 	}
@@ -1344,7 +1344,7 @@ func (c *Config) mcpGetAppHealthOverTime(ctx context.Context, in mcpGetAppHealth
 
 func (c *Config) mcpGetErrors(ctx context.Context, in mcpGetErrorsInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.ErrorsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.ErrorsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
 		limit := in.Limit
 		if limit <= 0 {
 			limit = 10
@@ -1352,15 +1352,15 @@ func (c *Config) mcpGetErrors(ctx context.Context, in mcpGetErrorsInput) (*mcpsd
 		if limit > 30 {
 			limit = 30
 		}
-		ef.Limit = limit
-		ef.Offset = in.Offset
+		flt.Limit = limit
+		flt.Offset = in.Offset
 	})
 	if err != nil {
 		return nil, nil, err
 	}
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
-	groups, _, _, groupErr := app.GetErrorGroupsWithFilter(ctx, deps.RchPool, ef)
+	groups, _, _, groupErr := app.GetErrorGroupsWithFilter(ctx, deps.RchPool, flt)
 	if groupErr != nil {
 		return nil, nil, fmt.Errorf("failed to get error groups: %v", groupErr)
 	}
@@ -1375,7 +1375,7 @@ func (c *Config) mcpGetError(ctx context.Context, in mcpGetErrorInput) (*mcpsdk.
 		return nil, nil, fmt.Errorf("error_group_id is required")
 	}
 
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.ErrorGroupEventsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.ErrorGroupEventsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
 		limit := in.Limit
 		if limit <= 0 {
 			limit = 1
@@ -1383,15 +1383,15 @@ func (c *Config) mcpGetError(ctx context.Context, in mcpGetErrorInput) (*mcpsdk.
 		if limit > 5 {
 			limit = 5
 		}
-		ef.Limit = limit
-		ef.Offset = in.Offset
+		flt.Limit = limit
+		flt.Offset = in.Offset
 	})
 	if err != nil {
 		return nil, nil, err
 	}
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
-	events, _, _, evErr := app.GetErrorsWithFilter(ctx, deps.RchPool, in.ErrorGroupID, ef)
+	events, _, _, evErr := app.GetErrorsWithFilter(ctx, deps.RchPool, in.ErrorGroupID, flt)
 	if evErr != nil {
 		return nil, nil, fmt.Errorf("failed to get error details: %v", evErr)
 	}
@@ -1406,8 +1406,8 @@ func (c *Config) mcpGetErrorsOverTime(ctx context.Context, in mcpGetErrorsOverTi
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
 
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.ErrorsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
-		ef.Timezone = in.Timezone
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.ErrorsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		flt.Timezone = in.Timezone
 	})
 	if err != nil {
 		return nil, nil, err
@@ -1415,7 +1415,7 @@ func (c *Config) mcpGetErrorsOverTime(ctx context.Context, in mcpGetErrorsOverTi
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	plotCtx := ambient.WithTeamId(ctx, teamID)
-	instances, plotErr := app.GetErrorPlotInstances(plotCtx, deps.RchPool, ef)
+	instances, plotErr := app.GetErrorPlotInstances(plotCtx, deps.RchPool, flt)
 	if plotErr != nil {
 		return nil, nil, fmt.Errorf("failed to get error overview plot: %v", plotErr)
 	}
@@ -1433,8 +1433,8 @@ func (c *Config) mcpGetErrorOverTime(ctx context.Context, in mcpGetErrorOverTime
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
 
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.ErrorGroupEventsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
-		ef.Timezone = in.Timezone
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.ErrorGroupEventsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		flt.Timezone = in.Timezone
 	})
 	if err != nil {
 		return nil, nil, err
@@ -1442,7 +1442,7 @@ func (c *Config) mcpGetErrorOverTime(ctx context.Context, in mcpGetErrorOverTime
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	plotCtx := ambient.WithTeamId(ctx, teamID)
-	instances, plotErr := app.GetErrorGroupPlotInstances(plotCtx, deps.RchPool, in.ErrorGroupID, ef)
+	instances, plotErr := app.GetErrorGroupPlotInstances(plotCtx, deps.RchPool, in.ErrorGroupID, flt)
 	if plotErr != nil {
 		return nil, nil, fmt.Errorf("failed to get error detail plot: %v", plotErr)
 	}
@@ -1457,14 +1457,14 @@ func (c *Config) mcpGetErrorDistribution(ctx context.Context, in mcpGetErrorDist
 		return nil, nil, fmt.Errorf("error_group_id is required")
 	}
 
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.ErrorGroupEventsEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.ErrorGroupEventsEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	distCtx := ambient.WithTeamId(ctx, teamID)
-	distribution, distErr := app.GetErrorGroupAttributesDistribution(distCtx, deps.RchPool, in.ErrorGroupID, ef)
+	distribution, distErr := app.GetErrorGroupAttributesDistribution(distCtx, deps.RchPool, in.ErrorGroupID, flt)
 	if distErr != nil {
 		return nil, nil, fmt.Errorf("failed to get error distribution: %v", distErr)
 	}
@@ -1475,7 +1475,7 @@ func (c *Config) mcpGetErrorDistribution(ctx context.Context, in mcpGetErrorDist
 
 func (c *Config) mcpGetSessions(ctx context.Context, in mcpGetSessionsInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.SessionsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.SessionsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
 		limit := in.Limit
 		if limit <= 0 {
 			limit = 10
@@ -1483,8 +1483,8 @@ func (c *Config) mcpGetSessions(ctx context.Context, in mcpGetSessionsInput) (*m
 		if limit > 30 {
 			limit = 30
 		}
-		ef.Limit = limit
-		ef.Offset = in.Offset
+		flt.Limit = limit
+		flt.Offset = in.Offset
 	})
 	if err != nil {
 		return nil, nil, err
@@ -1492,7 +1492,7 @@ func (c *Config) mcpGetSessions(ctx context.Context, in mcpGetSessionsInput) (*m
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	sessCtx := ambient.WithTeamId(ctx, teamID)
-	sessions, _, _, sessErr := app.GetSessionsWithFilter(sessCtx, deps.RchPool, ef)
+	sessions, _, _, sessErr := app.GetSessionsWithFilter(sessCtx, deps.RchPool, flt)
 	if sessErr != nil {
 		return nil, nil, fmt.Errorf("failed to get session timelines: %v", sessErr)
 	}
@@ -1506,8 +1506,8 @@ func (c *Config) mcpGetSessionsOverTime(ctx context.Context, in mcpGetSessionsOv
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
 
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.SessionsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
-		ef.Timezone = in.Timezone
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.SessionsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		flt.Timezone = in.Timezone
 	})
 	if err != nil {
 		return nil, nil, err
@@ -1515,7 +1515,7 @@ func (c *Config) mcpGetSessionsOverTime(ctx context.Context, in mcpGetSessionsOv
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	plotCtx := ambient.WithTeamId(ctx, teamID)
-	instances, plotErr := app.GetSessionsInstancesPlot(plotCtx, deps.RchPool, ef)
+	instances, plotErr := app.GetSessionsInstancesPlot(plotCtx, deps.RchPool, flt)
 	if plotErr != nil {
 		return nil, nil, fmt.Errorf("failed to get session timelines plot: %v", plotErr)
 	}
@@ -1549,7 +1549,7 @@ func (c *Config) mcpGetSession(ctx context.Context, in mcpGetSessionInput) (*mcp
 
 func (c *Config) mcpGetBugReports(ctx context.Context, in mcpGetBugReportsInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.BugReportsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.BugReportsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
 		limit := in.Limit
 		if limit <= 0 {
 			limit = 10
@@ -1557,8 +1557,8 @@ func (c *Config) mcpGetBugReports(ctx context.Context, in mcpGetBugReportsInput)
 		if limit > 30 {
 			limit = 30
 		}
-		ef.Limit = limit
-		ef.Offset = in.Offset
+		flt.Limit = limit
+		flt.Offset = in.Offset
 	})
 	if err != nil {
 		return nil, nil, err
@@ -1566,7 +1566,7 @@ func (c *Config) mcpGetBugReports(ctx context.Context, in mcpGetBugReportsInput)
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	bugCtx := ambient.WithTeamId(ctx, teamID)
-	bugReports, _, _, bugErr := app.GetBugReportsWithFilter(bugCtx, deps.RchPool, ef)
+	bugReports, _, _, bugErr := app.GetBugReportsWithFilter(bugCtx, deps.RchPool, flt)
 	if bugErr != nil {
 		return nil, nil, fmt.Errorf("failed to get bug reports: %v", bugErr)
 	}
@@ -1580,8 +1580,8 @@ func (c *Config) mcpGetBugReportsOverTime(ctx context.Context, in mcpGetBugRepor
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
 
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.BugReportsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
-		ef.Timezone = in.Timezone
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.BugReportsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		flt.Timezone = in.Timezone
 	})
 	if err != nil {
 		return nil, nil, err
@@ -1589,7 +1589,7 @@ func (c *Config) mcpGetBugReportsOverTime(ctx context.Context, in mcpGetBugRepor
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	plotCtx := ambient.WithTeamId(ctx, teamID)
-	instances, plotErr := app.GetBugReportInstancesPlot(plotCtx, deps.RchPool, ef)
+	instances, plotErr := app.GetBugReportInstancesPlot(plotCtx, deps.RchPool, flt)
 	if plotErr != nil {
 		return nil, nil, fmt.Errorf("failed to get bug reports plot: %v", plotErr)
 	}
@@ -1642,7 +1642,7 @@ func (c *Config) mcpGetSpanInstances(ctx context.Context, in mcpGetSpanInstances
 		return nil, nil, fmt.Errorf("root_span_name is required")
 	}
 
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.SpansEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.SpansEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
 		limit := in.Limit
 		if limit <= 0 {
 			limit = 10
@@ -1650,8 +1650,8 @@ func (c *Config) mcpGetSpanInstances(ctx context.Context, in mcpGetSpanInstances
 		if limit > 30 {
 			limit = 30
 		}
-		ef.Limit = limit
-		ef.Offset = in.Offset
+		flt.Limit = limit
+		flt.Offset = in.Offset
 	})
 	if err != nil {
 		return nil, nil, err
@@ -1659,7 +1659,7 @@ func (c *Config) mcpGetSpanInstances(ctx context.Context, in mcpGetSpanInstances
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	spanCtx := ambient.WithTeamId(ctx, teamID)
-	spans, _, _, spanErr := app.GetSpansForSpanNameWithFilter(spanCtx, deps.RchPool, in.RootSpanName, ef)
+	spans, _, _, spanErr := app.GetSpansForSpanNameWithFilter(spanCtx, deps.RchPool, in.RootSpanName, flt)
 	if spanErr != nil {
 		return nil, nil, fmt.Errorf("failed to get span instances: %v", spanErr)
 	}
@@ -1676,8 +1676,8 @@ func (c *Config) mcpGetSpanMetricsOverTime(ctx context.Context, in mcpGetSpanMet
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
 
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.SpansEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
-		ef.Timezone = in.Timezone
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.SpansEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		flt.Timezone = in.Timezone
 	})
 	if err != nil {
 		return nil, nil, err
@@ -1685,7 +1685,7 @@ func (c *Config) mcpGetSpanMetricsOverTime(ctx context.Context, in mcpGetSpanMet
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	plotCtx := ambient.WithTeamId(ctx, teamID)
-	instances, plotErr := app.GetMetricsPlotForSpanNameWithFilter(plotCtx, deps.RchPool, in.RootSpanName, ef)
+	instances, plotErr := app.GetMetricsPlotForSpanNameWithFilter(plotCtx, deps.RchPool, in.RootSpanName, flt)
 	if plotErr != nil {
 		return nil, nil, fmt.Errorf("failed to get span metrics plot: %v", plotErr)
 	}
@@ -1715,7 +1715,7 @@ func (c *Config) mcpGetTrace(ctx context.Context, in mcpGetTraceInput) (*mcpsdk.
 
 func (c *Config) mcpGetAlerts(ctx context.Context, in mcpGetAlertsInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
-	_, _, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.AlertsEntity, in.AppID, in.From, in.To, "", func(ef *exprfilter.ExprFilter) {
+	_, _, flt, err := c.mcpPrepareFilter(ctx, filter.AlertsEntity, in.AppID, in.From, in.To, "", func(flt *filter.Filter) {
 		limit := in.Limit
 		if limit <= 0 {
 			limit = 10
@@ -1723,14 +1723,14 @@ func (c *Config) mcpGetAlerts(ctx context.Context, in mcpGetAlertsInput) (*mcpsd
 		if limit > 30 {
 			limit = 30
 		}
-		ef.Limit = limit
-		ef.Offset = in.Offset
+		flt.Limit = limit
+		flt.Offset = in.Offset
 	})
 	if err != nil {
 		return nil, nil, err
 	}
 
-	alerts, _, _, alertErr := measure.GetAlertsWithFilter(ctx, deps.PgPool, ef)
+	alerts, _, _, alertErr := measure.GetAlertsWithFilter(ctx, deps.PgPool, flt)
 	if alertErr != nil {
 		return nil, nil, fmt.Errorf("failed to get alerts: %v", alertErr)
 	}
@@ -1740,7 +1740,7 @@ func (c *Config) mcpGetAlerts(ctx context.Context, in mcpGetAlertsInput) (*mcpsd
 
 func (c *Config) mcpGetJourney(ctx context.Context, in mcpGetJourneyInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.JourneysEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.JourneysEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1751,7 +1751,7 @@ func (c *Config) mcpGetJourney(ctx context.Context, in mcpGetJourneyInput) (*mcp
 	}
 	journeyCtx := ambient.WithTeamId(ctx, teamID)
 
-	g, journeyErr := app.GetJourneyGraph(journeyCtx, deps.RchPool, ef)
+	g, journeyErr := app.GetJourneyGraph(journeyCtx, deps.RchPool, flt)
 	if journeyErr != nil {
 		return nil, nil, fmt.Errorf("failed to get journey: %v", journeyErr)
 	}
@@ -1845,12 +1845,12 @@ func (c *Config) mcpGetNetworkTrends(ctx context.Context, in mcpGetNetworkTrends
 		limit = 50
 	}
 
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.NetworkEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.NetworkEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	result, err := network.FetchTrends(ctx, deps.RchPool, appID, teamID, ef, limit)
+	result, err := network.FetchTrends(ctx, deps.RchPool, appID, teamID, flt, limit)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network trends: %v", err)
 	}
@@ -1864,20 +1864,20 @@ func (c *Config) mcpGetAppStatusCodesOverTime(ctx context.Context, in mcpGetAppH
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
 
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.NetworkEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
-		ef.Timezone = in.Timezone
-		ef.SetDefaultPlotTimeGroupIfUnset()
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.NetworkEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		flt.Timezone = in.Timezone
+		flt.SetDefaultPlotTimeGroupIfUnset()
 	})
 	if err != nil {
 		return nil, nil, err
 	}
 
-	groupExpr, err := measure.GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
+	groupExpr, err := measure.GetPlotTimeGroupExpr("timestamp", flt.PlotTimeGroup)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to compute time group expression: %v", err)
 	}
 
-	result, err := network.GetStatusCodesPlot(ctx, deps.RchPool, appID, teamID, in.Domain, in.Path, ef, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetStatusCodesPlot(ctx, deps.RchPool, appID, teamID, in.Domain, in.Path, flt, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network status overview over time: %v", err)
 	}
@@ -1891,20 +1891,20 @@ func (c *Config) mcpGetNetworkLatencyOverTime(ctx context.Context, in mcpGetNetw
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
 
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.NetworkEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
-		ef.Timezone = in.Timezone
-		ef.SetDefaultPlotTimeGroupIfUnset()
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.NetworkEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		flt.Timezone = in.Timezone
+		flt.SetDefaultPlotTimeGroupIfUnset()
 	})
 	if err != nil {
 		return nil, nil, err
 	}
 
-	groupExpr, err := measure.GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
+	groupExpr, err := measure.GetPlotTimeGroupExpr("timestamp", flt.PlotTimeGroup)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to compute time group expression: %v", err)
 	}
 
-	result, err := network.GetLatencyPlot(ctx, deps.RchPool, appID, teamID, in.Domain, in.Path, ef, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetLatencyPlot(ctx, deps.RchPool, appID, teamID, in.Domain, in.Path, flt, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network latency over time: %v", err)
 	}
@@ -1921,20 +1921,20 @@ func (c *Config) mcpGetHttpEndpointStatusCodesOverTime(ctx context.Context, in m
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
 
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.NetworkEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
-		ef.Timezone = in.Timezone
-		ef.SetDefaultPlotTimeGroupIfUnset()
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.NetworkEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		flt.Timezone = in.Timezone
+		flt.SetDefaultPlotTimeGroupIfUnset()
 	})
 	if err != nil {
 		return nil, nil, err
 	}
 
-	groupExpr, err := measure.GetPlotTimeGroupExpr("timestamp", ef.PlotTimeGroup)
+	groupExpr, err := measure.GetPlotTimeGroupExpr("timestamp", flt.PlotTimeGroup)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to compute time group expression: %v", err)
 	}
 
-	result, err := network.GetEndpointStatusCodesPlot(ctx, deps.RchPool, appID, teamID, in.Domain, in.Path, ef, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
+	result, err := network.GetEndpointStatusCodesPlot(ctx, deps.RchPool, appID, teamID, in.Domain, in.Path, flt, groupExpr.BucketExpr, groupExpr.DatetimeFormat)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network endpoint status codes over time: %v", err)
 	}
@@ -1944,12 +1944,12 @@ func (c *Config) mcpGetHttpEndpointStatusCodesOverTime(ctx context.Context, in m
 
 func (c *Config) mcpGetNetworkTimeline(ctx context.Context, in mcpGetNetworkTimelineInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
-	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.NetworkEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.NetworkEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	result, err := network.FetchTimelinePlot(ctx, deps.RchPool, appID, teamID, in.Domain, in.Path, ef)
+	result, err := network.FetchTimelinePlot(ctx, deps.RchPool, appID, teamID, in.Domain, in.Path, flt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get network request timeline: %v", err)
 	}

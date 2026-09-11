@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/testinfra"
 
 	"github.com/google/uuid"
@@ -83,15 +83,15 @@ func newBugReportFixture(t *testing.T) (bugReportFixture, time.Time) {
 	return f, base
 }
 
-func (f bugReportFixture) exprFilter(from, to time.Time, exprTree *exprfilter.ExprTree) *exprfilter.ExprFilter {
-	ef := f.spanFixture.exprFilter(from, to, exprTree)
-	ef.Entity = exprfilter.BugReportsEntity
-	return ef
+func (f bugReportFixture) newFilter(from, to time.Time, exprTree *filter.ExprTree) *filter.Filter {
+	flt := f.spanFixture.newFilter(from, to, exprTree)
+	flt.Entity = filter.BugReportsEntity
+	return flt
 }
 
-func bugReportVersions(t *testing.T, ef *exprfilter.ExprFilter, f bugReportFixture) []string {
+func bugReportVersions(t *testing.T, flt *filter.Filter, f bugReportFixture) []string {
 	t.Helper()
-	bugReports, _, _, err := f.app.GetBugReportsWithFilter(f.ctx, deps.RchPool, ef)
+	bugReports, _, _, err := f.app.GetBugReportsWithFilter(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetBugReportsWithFilter: %v", err)
 	}
@@ -107,108 +107,108 @@ func TestGetBugReportsWithFilter(t *testing.T) {
 	from, to := base.Add(-time.Hour), base.Add(time.Hour)
 
 	t.Run("no filter returns the app's reports newest first", func(t *testing.T) {
-		got := bugReportVersions(t, f.exprFilter(from, to, nil), f)
+		got := bugReportVersions(t, f.newFilter(from, to, nil), f)
 		if len(got) != 2 || got[0] != "v2" || got[1] != "v1" {
 			t.Fatalf("want [v2 v1], got %v", got)
 		}
 	})
 
 	t.Run("status filter translates names to codes", func(t *testing.T) {
-		exprTree := leaf("bug_report_status", exprfilter.OperatorIn, "open")
-		got := bugReportVersions(t, f.exprFilter(from, to, &exprTree), f)
+		exprTree := leaf("bug_report_status", filter.OperatorIn, "open")
+		got := bugReportVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 1 || got[0] != "v1" {
 			t.Fatalf("want the open report [v1], got %v", got)
 		}
 
-		exprTree = leaf("bug_report_status", exprfilter.OperatorIn, "closed")
-		got = bugReportVersions(t, f.exprFilter(from, to, &exprTree), f)
+		exprTree = leaf("bug_report_status", filter.OperatorIn, "closed")
+		got = bugReportVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 1 || got[0] != "v2" {
 			t.Fatalf("want the closed report [v2], got %v", got)
 		}
 
-		exprTree = leaf("bug_report_status", exprfilter.OperatorIn, "open", "closed")
-		got = bugReportVersions(t, f.exprFilter(from, to, &exprTree), f)
+		exprTree = leaf("bug_report_status", filter.OperatorIn, "open", "closed")
+		got = bugReportVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 2 {
 			t.Fatalf("want both reports, got %v", got)
 		}
 	})
 
 	t.Run("version filter", func(t *testing.T) {
-		exprTree := leaf("version_name", exprfilter.OperatorIn, "v1")
-		got := bugReportVersions(t, f.exprFilter(from, to, &exprTree), f)
+		exprTree := leaf("version_name", filter.OperatorIn, "v1")
+		got := bugReportVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 1 || got[0] != "v1" {
 			t.Fatalf("want [v1], got %v", got)
 		}
 	})
 
 	t.Run("os name filter reads the version tuple", func(t *testing.T) {
-		exprTree := leaf("os_name", exprfilter.OperatorIn, "iOS")
-		got := bugReportVersions(t, f.exprFilter(from, to, &exprTree), f)
+		exprTree := leaf("os_name", filter.OperatorIn, "iOS")
+		got := bugReportVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 1 || got[0] != "v2" {
 			t.Fatalf("want [v2], got %v", got)
 		}
 	})
 
 	t.Run("description substring match", func(t *testing.T) {
-		exprTree := leaf("bug_report_description", exprfilter.OperatorContains, "freezes")
-		got := bugReportVersions(t, f.exprFilter(from, to, &exprTree), f)
+		exprTree := leaf("bug_report_description", filter.OperatorContains, "freezes")
+		got := bugReportVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 1 || got[0] != "v2" {
 			t.Fatalf("want [v2], got %v", got)
 		}
 
-		exprTree = leaf("bug_report_description", exprfilter.OperatorNotContains, "freezes")
-		got = bugReportVersions(t, f.exprFilter(from, to, &exprTree), f)
+		exprTree = leaf("bug_report_description", filter.OperatorNotContains, "freezes")
+		got = bugReportVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 1 || got[0] != "v1" {
 			t.Fatalf("want [v1], got %v", got)
 		}
 	})
 
 	t.Run("user id filter", func(t *testing.T) {
-		exprTree := leaf("user_id", exprfilter.OperatorIn, "alice")
-		got := bugReportVersions(t, f.exprFilter(from, to, &exprTree), f)
+		exprTree := leaf("user_id", filter.OperatorIn, "alice")
+		got := bugReportVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 1 || got[0] != "v1" {
 			t.Fatalf("want [v1], got %v", got)
 		}
 	})
 
 	t.Run("session id filter binds the uuid column", func(t *testing.T) {
-		exprTree := leaf("session_id", exprfilter.OperatorIn, f.openSessionID.String())
-		got := bugReportVersions(t, f.exprFilter(from, to, &exprTree), f)
+		exprTree := leaf("session_id", filter.OperatorIn, f.openSessionID.String())
+		got := bugReportVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 1 || got[0] != "v1" {
 			t.Fatalf("want [v1], got %v", got)
 		}
 
-		exprTree = leaf("session_id", exprfilter.OperatorNotIn, f.openSessionID.String())
-		got = bugReportVersions(t, f.exprFilter(from, to, &exprTree), f)
+		exprTree = leaf("session_id", filter.OperatorNotIn, f.openSessionID.String())
+		got = bugReportVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 1 || got[0] != "v2" {
 			t.Fatalf("want [v2], got %v", got)
 		}
 	})
 
 	t.Run("or group matches either side", func(t *testing.T) {
-		exprTree := exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalOr, Children: []exprfilter.ExprTree{
-			leaf("user_id", exprfilter.OperatorIn, "alice"),
-			leaf("bug_report_status", exprfilter.OperatorIn, "closed"),
+		exprTree := filter.ExprTree{LogicalOperator: filter.LogicalOr, Children: []filter.ExprTree{
+			leaf("user_id", filter.OperatorIn, "alice"),
+			leaf("bug_report_status", filter.OperatorIn, "closed"),
 		}}
-		got := bugReportVersions(t, f.exprFilter(from, to, &exprTree), f)
+		got := bugReportVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 2 {
 			t.Fatalf("want both reports, got %v", got)
 		}
 	})
 
 	t.Run("a filter matching nothing", func(t *testing.T) {
-		exprTree := leaf("network_type", exprfilter.OperatorIn, "vpn")
-		got := bugReportVersions(t, f.exprFilter(from, to, &exprTree), f)
+		exprTree := leaf("network_type", filter.OperatorIn, "vpn")
+		got := bugReportVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 0 {
 			t.Fatalf("want no reports, got %v", got)
 		}
 	})
 
 	t.Run("pagination flags", func(t *testing.T) {
-		ef := f.exprFilter(from, to, nil)
-		ef.Limit = 1
+		flt := f.newFilter(from, to, nil)
+		flt.Limit = 1
 
-		bugReports, next, previous, err := f.app.GetBugReportsWithFilter(f.ctx, deps.RchPool, ef)
+		bugReports, next, previous, err := f.app.GetBugReportsWithFilter(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetBugReportsWithFilter: %v", err)
 		}
@@ -216,8 +216,8 @@ func TestGetBugReportsWithFilter(t *testing.T) {
 			t.Fatalf("want the first page with more to come, got %d reports next=%v previous=%v", len(bugReports), next, previous)
 		}
 
-		ef.Offset = 1
-		bugReports, next, previous, err = f.app.GetBugReportsWithFilter(f.ctx, deps.RchPool, ef)
+		flt.Offset = 1
+		bugReports, next, previous, err = f.app.GetBugReportsWithFilter(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetBugReportsWithFilter: %v", err)
 		}
@@ -227,9 +227,9 @@ func TestGetBugReportsWithFilter(t *testing.T) {
 	})
 }
 
-func bugReportPlotVersions(t *testing.T, ef *exprfilter.ExprFilter, f bugReportFixture) map[string]bool {
+func bugReportPlotVersions(t *testing.T, flt *filter.Filter, f bugReportFixture) map[string]bool {
 	t.Helper()
-	items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, ef)
+	items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetBugReportInstancesPlot: %v", err)
 	}
@@ -240,27 +240,27 @@ func bugReportPlotVersions(t *testing.T, ef *exprfilter.ExprFilter, f bugReportF
 	return versions
 }
 
-func TestGetBugReportInstancesPlotWithExprFilter(t *testing.T) {
+func TestGetBugReportInstancesPlotWithFilter(t *testing.T) {
 	f, base := newBugReportFixture(t)
 	from, to := base.Add(-time.Hour), base.Add(time.Hour)
 
-	plot := func(t *testing.T, exprTree *exprfilter.ExprTree, plotTimeGroup string) map[string]bool {
+	plot := func(t *testing.T, exprTree *filter.ExprTree, plotTimeGroup string) map[string]bool {
 		t.Helper()
-		ef := f.exprFilter(from, to, exprTree)
-		ef.PlotTimeGroup = plotTimeGroup
-		return bugReportPlotVersions(t, ef, f)
+		flt := f.newFilter(from, to, exprTree)
+		flt.PlotTimeGroup = plotTimeGroup
+		return bugReportPlotVersions(t, flt, f)
 	}
 
 	t.Run("no filter returns one series per version", func(t *testing.T) {
-		got := plot(t, nil, exprfilter.PlotTimeGroupDays)
+		got := plot(t, nil, filter.PlotTimeGroupDays)
 		if len(got) != 2 || !got["v1 (1)"] || !got["v2 (2)"] {
 			t.Fatalf("want v1 (1) and v2 (2), got %v", got)
 		}
 	})
 
 	t.Run("status filter translates names to codes", func(t *testing.T) {
-		exprTree := leaf("bug_report_status", exprfilter.OperatorIn, "open")
-		got := plot(t, &exprTree, exprfilter.PlotTimeGroupDays)
+		exprTree := leaf("bug_report_status", filter.OperatorIn, "open")
+		got := plot(t, &exprTree, filter.PlotTimeGroupDays)
 		if len(got) != 1 || !got["v1 (1)"] {
 			t.Fatalf("want only v1 (1), got %v", got)
 		}
@@ -274,17 +274,17 @@ func TestGetBugReportInstancesPlotWithExprFilter(t *testing.T) {
 	})
 
 	t.Run("missing timezone returns an error", func(t *testing.T) {
-		ef := f.exprFilter(from, to, nil)
-		ef.Timezone = ""
-		if _, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, ef); err == nil {
+		flt := f.newFilter(from, to, nil)
+		flt.Timezone = ""
+		if _, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, flt); err == nil {
 			t.Fatal("want an error for a missing timezone")
 		}
 	})
 
 	t.Run("unsupported plot time group returns an error", func(t *testing.T) {
-		ef := f.exprFilter(from, to, nil)
-		ef.PlotTimeGroup = "weeks"
-		if _, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, ef); err == nil {
+		flt := f.newFilter(from, to, nil)
+		flt.PlotTimeGroup = "weeks"
+		if _, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, flt); err == nil {
 			t.Fatal("want an error for an unsupported plot time group")
 		}
 	})
@@ -314,45 +314,45 @@ func TestGetBugReportsWithCustomKeys(t *testing.T) {
 		Key: "plan", Value: "pro", AppVersion: "v2", AppBuild: "2", Timestamp: base.Add(10 * time.Minute),
 	})
 
-	listVersions := func(t *testing.T, exprTree exprfilter.ExprTree) []string {
+	listVersions := func(t *testing.T, exprTree filter.ExprTree) []string {
 		t.Helper()
-		ef := f.exprFilter(from, to, &exprTree)
-		resolveCustomKeys(t, ef)
-		return bugReportVersions(t, ef, f)
+		flt := f.newFilter(from, to, &exprTree)
+		resolveCustomKeys(t, flt)
+		return bugReportVersions(t, flt, f)
 	}
 
 	t.Run("string value narrows to its report", func(t *testing.T) {
-		got := listVersions(t, leaf("custom.plan", exprfilter.OperatorIn, "free"))
+		got := listVersions(t, leaf("custom.plan", filter.OperatorIn, "free"))
 		if len(got) != 1 || got[0] != "v2" {
 			t.Fatalf("want [v2], got %v", got)
 		}
 	})
 
 	t.Run("a non-bug-report attribute row does not leak in", func(t *testing.T) {
-		got := listVersions(t, leaf("custom.plan", exprfilter.OperatorIn, "pro"))
+		got := listVersions(t, leaf("custom.plan", filter.OperatorIn, "pro"))
 		if len(got) != 1 || got[0] != "v1" {
 			t.Fatalf("want only the open report [v1], got %v", got)
 		}
 	})
 
 	t.Run("numbers compare as numbers", func(t *testing.T) {
-		got := listVersions(t, leaf("custom.retries", exprfilter.OperatorGt, "5"))
+		got := listVersions(t, leaf("custom.retries", filter.OperatorGt, "5"))
 		if len(got) != 1 || got[0] != "v1" {
 			t.Fatalf("want [v1], got %v", got)
 		}
 	})
 
 	t.Run("is_not_set matches reports without the attribute", func(t *testing.T) {
-		got := listVersions(t, leaf("custom.retries", exprfilter.OperatorIsNotSet))
+		got := listVersions(t, leaf("custom.retries", filter.OperatorIsNotSet))
 		if len(got) != 1 || got[0] != "v2" {
 			t.Fatalf("want [v2], got %v", got)
 		}
 	})
 
 	t.Run("a custom key beside a built-in key", func(t *testing.T) {
-		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("custom.plan", exprfilter.OperatorIn, "pro", "free"),
-			leaf("bug_report_status", exprfilter.OperatorIn, "closed"),
+		got := listVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("custom.plan", filter.OperatorIn, "pro", "free"),
+			leaf("bug_report_status", filter.OperatorIn, "closed"),
 		}})
 		if len(got) != 1 || got[0] != "v2" {
 			t.Fatalf("want [v2], got %v", got)
@@ -360,9 +360,9 @@ func TestGetBugReportsWithCustomKeys(t *testing.T) {
 	})
 
 	t.Run("two custom conditions under and share one scan", func(t *testing.T) {
-		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
-			leaf("custom.retries", exprfilter.OperatorGt, "5"),
+		got := listVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("custom.plan", filter.OperatorIn, "pro"),
+			leaf("custom.retries", filter.OperatorGt, "5"),
 		}})
 		if len(got) != 1 || got[0] != "v1" {
 			t.Fatalf("want [v1], got %v", got)
@@ -370,11 +370,11 @@ func TestGetBugReportsWithCustomKeys(t *testing.T) {
 	})
 
 	t.Run("the plot narrows by the same membership", func(t *testing.T) {
-		exprTree := leaf("custom.plan", exprfilter.OperatorIn, "pro")
-		ef := f.exprFilter(from, to, &exprTree)
-		ef.PlotTimeGroup = exprfilter.PlotTimeGroupDays
-		resolveCustomKeys(t, ef)
-		got := bugReportPlotVersions(t, ef, f)
+		exprTree := leaf("custom.plan", filter.OperatorIn, "pro")
+		flt := f.newFilter(from, to, &exprTree)
+		flt.PlotTimeGroup = filter.PlotTimeGroupDays
+		resolveCustomKeys(t, flt)
+		got := bugReportPlotVersions(t, flt, f)
 		if len(got) != 1 || !got["v1 (1)"] {
 			t.Fatalf("want only v1 (1), got %v", got)
 		}

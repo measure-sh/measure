@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"backend/libs/event"
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/libs/group"
 	"backend/testinfra"
 
@@ -121,16 +121,16 @@ func newErrorKindsFixture(t *testing.T) errorKindsFixture {
 	return f
 }
 
-func (f errorKindsFixture) filter(exprTree *exprfilter.ExprTree) *exprfilter.ExprFilter {
-	ef := f.errorExprFilter(f.ts.Add(-time.Hour), f.ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays)
-	ef.ExprTree = exprTree
-	return ef
+func (f errorKindsFixture) newFilter(exprTree *filter.ExprTree) *filter.Filter {
+	flt := f.errorFilter(f.ts.Add(-time.Hour), f.ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
+	flt.ExprTree = exprTree
+	return flt
 }
 
 // groupIDs returns the listed fingerprints, sorted.
-func groupIDs(t *testing.T, f errorKindsFixture, ef *exprfilter.ExprFilter) []string {
+func groupIDs(t *testing.T, f errorKindsFixture, flt *filter.Filter) []string {
 	t.Helper()
-	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, ef)
+	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
 	}
@@ -163,7 +163,7 @@ func findErrorGroupBySeverity(groups []group.ErrorGroup, id string, severity eve
 func TestGetErrorGroupsWithFilterCoversEverySource(t *testing.T) {
 	f := newErrorKindsFixture(t)
 
-	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, f.filter(nil))
+	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, f.newFilter(nil))
 	if err != nil {
 		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
 	}
@@ -205,39 +205,39 @@ func TestGetErrorGroupsWithFilterByErrorType(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		operator exprfilter.Operator
+		operator filter.Operator
 		values   []string
 		want     []string
 	}{
 		{
 			name:   "a crash covers the severity and the legacy unhandled row",
-			values: []string{exprfilter.ErrorTypeCrash},
+			values: []string{filter.ErrorTypeCrash},
 			want:   []string{fpCrash, fpLegacyCrash, fpPatched},
 		},
 		{
 			name:   "an anr",
-			values: []string{exprfilter.ErrorTypeANR},
+			values: []string{filter.ErrorTypeANR},
 			want:   []string{fpANR},
 		},
 		{
 			name:   "a handled error covers the legacy handled row",
-			values: []string{exprfilter.ErrorTypeHandledError},
+			values: []string{filter.ErrorTypeHandledError},
 			want:   []string{fpHandled, fpLegacyHandled},
 		},
 		{
 			name:   "an unhandled error needs a named severity",
-			values: []string{exprfilter.ErrorTypeUnhandledError},
+			values: []string{filter.ErrorTypeUnhandledError},
 			want:   []string{fpUnhandled},
 		},
 		{
 			name:   "many kinds match either",
-			values: []string{exprfilter.ErrorTypeCrash, exprfilter.ErrorTypeANR},
+			values: []string{filter.ErrorTypeCrash, filter.ErrorTypeANR},
 			want:   []string{fpANR, fpCrash, fpLegacyCrash, fpPatched},
 		},
 		{
 			name:     "not in leaves a kind out",
-			operator: exprfilter.OperatorNotIn,
-			values:   []string{exprfilter.ErrorTypeCrash},
+			operator: filter.OperatorNotIn,
+			values:   []string{filter.ErrorTypeCrash},
 			want:     []string{fpANR, fpHandled, fpLegacyHandled, fpUnhandled},
 		},
 	}
@@ -246,12 +246,12 @@ func TestGetErrorGroupsWithFilterByErrorType(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			operator := test.operator
 			if operator == "" {
-				operator = exprfilter.OperatorIn
+				operator = filter.OperatorIn
 			}
 			exprTree := leaf("error_type", operator, test.values...)
 			want := slices.Clone(test.want)
 			slices.Sort(want)
-			if got := groupIDs(t, f, f.filter(&exprTree)); !slices.Equal(got, want) {
+			if got := groupIDs(t, f, f.newFilter(&exprTree)); !slices.Equal(got, want) {
 				t.Fatalf("want %v, got %v", want, got)
 			}
 		})
@@ -263,54 +263,54 @@ func TestGetErrorGroupsWithFilterByAttributes(t *testing.T) {
 
 	tests := []struct {
 		name     string
-		exprTree exprfilter.ExprTree
+		exprTree filter.ExprTree
 		want     []string
 	}{
 		{
 			name:     "version name",
-			exprTree: leaf("version_name", exprfilter.OperatorIn, "1.2.0"),
+			exprTree: leaf("version_name", filter.OperatorIn, "1.2.0"),
 			want:     []string{fpPatched},
 		},
 		{
 			name:     "version code",
-			exprTree: leaf("version_code", exprfilter.OperatorIn, "120"),
+			exprTree: leaf("version_code", filter.OperatorIn, "120"),
 			want:     []string{fpPatched},
 		},
 		{
 			name:     "patch id",
-			exprTree: leaf("patch_id", exprfilter.OperatorIn, f.patchID.String()),
+			exprTree: leaf("patch_id", filter.OperatorIn, f.patchID.String()),
 			want:     []string{fpPatched},
 		},
 		{
 			name:     "patch version",
-			exprTree: leaf("patch_version", exprfilter.OperatorIn, "1.2.0-patch.3"),
+			exprTree: leaf("patch_version", filter.OperatorIn, "1.2.0-patch.3"),
 			want:     []string{fpPatched},
 		},
 		{
 			name:     "no patch",
-			exprTree: leaf("patch_id", exprfilter.OperatorIsNotSet),
+			exprTree: leaf("patch_id", filter.OperatorIsNotSet),
 			want:     []string{fpCrash, fpANR, fpHandled, fpUnhandled, fpLegacyCrash, fpLegacyHandled},
 		},
 		{
 			name:     "user id",
-			exprTree: leaf("user_id", exprfilter.OperatorIn, "ana"),
+			exprTree: leaf("user_id", filter.OperatorIn, "ana"),
 			want:     []string{fpCrash, fpPatched},
 		},
 		{
 			name:     "os name",
-			exprTree: leaf("os_name", exprfilter.OperatorIn, "ios"),
+			exprTree: leaf("os_name", filter.OperatorIn, "ios"),
 			want:     []string{fpPatched},
 		},
 		{
 			name:     "country",
-			exprTree: leaf("country", exprfilter.OperatorIn, "IN"),
+			exprTree: leaf("country", filter.OperatorIn, "IN"),
 			want:     []string{fpPatched},
 		},
 		{
 			name: "an error kind and an os name together",
-			exprTree: exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-				leaf("error_type", exprfilter.OperatorIn, exprfilter.ErrorTypeCrash),
-				leaf("os_name", exprfilter.OperatorIn, "android"),
+			exprTree: filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+				leaf("error_type", filter.OperatorIn, filter.ErrorTypeCrash),
+				leaf("os_name", filter.OperatorIn, "android"),
 			}},
 			want: []string{fpCrash, fpLegacyCrash},
 		},
@@ -321,7 +321,7 @@ func TestGetErrorGroupsWithFilterByAttributes(t *testing.T) {
 			want := slices.Clone(test.want)
 			slices.Sort(want)
 			exprTree := test.exprTree
-			if got := groupIDs(t, f, f.filter(&exprTree)); !slices.Equal(got, want) {
+			if got := groupIDs(t, f, f.newFilter(&exprTree)); !slices.Equal(got, want) {
 				t.Fatalf("want %v, got %v", want, got)
 			}
 		})
@@ -335,23 +335,23 @@ func TestGetErrorGroupsWithFilterByCustomAttribute(t *testing.T) {
 		EventID: f.crashEvent.String(), Key: "plan", Value: "pro", Timestamp: f.ts,
 	})
 
-	list := func(t *testing.T, exprTree exprfilter.ExprTree) []string {
+	list := func(t *testing.T, exprTree filter.ExprTree) []string {
 		t.Helper()
-		ef := f.filter(&exprTree)
-		resolveCustomKeys(t, ef)
-		return groupIDs(t, f, ef)
+		flt := f.newFilter(&exprTree)
+		resolveCustomKeys(t, flt)
+		return groupIDs(t, f, flt)
 	}
 
 	t.Run("a value narrows to the error carrying it", func(t *testing.T) {
-		if got := list(t, leaf("custom.plan", exprfilter.OperatorIn, "pro")); !slices.Equal(got, []string{fpCrash}) {
+		if got := list(t, leaf("custom.plan", filter.OperatorIn, "pro")); !slices.Equal(got, []string{fpCrash}) {
 			t.Fatalf("want the crash group, got %v", got)
 		}
 	})
 
 	t.Run("a custom key beside a built-in key", func(t *testing.T) {
-		got := list(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
-			leaf("error_type", exprfilter.OperatorIn, exprfilter.ErrorTypeCrash),
+		got := list(t, filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("custom.plan", filter.OperatorIn, "pro"),
+			leaf("error_type", filter.OperatorIn, filter.ErrorTypeCrash),
 		}})
 		if !slices.Equal(got, []string{fpCrash}) {
 			t.Fatalf("want the crash group, got %v", got)
@@ -359,7 +359,7 @@ func TestGetErrorGroupsWithFilterByCustomAttribute(t *testing.T) {
 	})
 
 	t.Run("an attribute no error carries matches nothing", func(t *testing.T) {
-		if got := list(t, leaf("custom.plan", exprfilter.OperatorIn, "free")); len(got) != 0 {
+		if got := list(t, leaf("custom.plan", filter.OperatorIn, "free")); len(got) != 0 {
 			t.Fatalf("want no groups, got %v", got)
 		}
 	})
@@ -368,10 +368,10 @@ func TestGetErrorGroupsWithFilterByCustomAttribute(t *testing.T) {
 func TestGetErrorGroupsWithFilterPaginates(t *testing.T) {
 	f := newErrorKindsFixture(t)
 
-	ef := f.filter(nil)
-	ef.Limit = 3
+	flt := f.newFilter(nil)
+	flt.Limit = 3
 
-	groups, next, previous, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, ef)
+	groups, next, previous, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
 	}
@@ -379,8 +379,8 @@ func TestGetErrorGroupsWithFilterPaginates(t *testing.T) {
 		t.Fatalf("want the first page with more to come, got %d groups next=%v previous=%v", len(groups), next, previous)
 	}
 
-	ef.Offset = 6
-	groups, next, previous, err = f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, ef)
+	flt.Offset = 6
+	groups, next, previous, err = f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
 	}
@@ -408,9 +408,9 @@ func TestGetErrorGroupsWithFilterSharedFingerprintCounts(t *testing.T) {
 		seedIssueEventWithSeverity(f.ctx, t, teamID, appID, fpSharedFatalHandled, "handled", ts)
 	}
 
-	ef := f.errorExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays)
+	flt := f.errorFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
 
-	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, ef)
+	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
 	}
@@ -462,9 +462,9 @@ func TestGetErrorGroupsWithFilterIsCustomPopulated(t *testing.T) {
 	seedAnrGroup(f.ctx, t, teamID, appID, fpCustomANRish)
 	seedIssueEvent(f.ctx, t, teamID, appID, "anr", fpCustomANRish, false, ts)
 
-	ef := f.errorExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays)
+	flt := f.errorFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
 
-	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, ef)
+	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
 	}

@@ -7,7 +7,7 @@ import {
   emptyBuildsResponse,
 } from "@/app/api/api_calls";
 import { Button } from "@/app/components/button";
-import type { FilterStatus } from "@/app/components/filter_bar/use_expr_filter_page";
+import type { FilterStatus } from "@/app/components/filter_bar/use_filter_page";
 import LoadingBar from "@/app/components/loading_bar";
 import Paginator from "@/app/components/paginator";
 import { SkeletonListPage } from "@/app/components/skeleton";
