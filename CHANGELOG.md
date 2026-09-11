@@ -55,6 +55,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump lodash from 4.17.21 to 4.18.1 in /frontend/dashboard (#4394) by @dependabot[bot] in #4394
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
+- (**frontend**): Replace the legacy filter bar on the apps page by @anupcowkur in #4468
+- (**frontend**): Drop unused initConfig prop from Onboarding by @anupcowkur
 - (**frontend**): Keep touch indicators on the correct replay screen (#4436) by @abhaysood in #4436
 - Migrate errors and details pages to expression filters by @anupcowkur in #4467
 - Record workspace sums for the grpc dependency bumps by @anupcowkur in #4465
