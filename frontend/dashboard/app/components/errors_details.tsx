@@ -3,7 +3,7 @@
 import { emptyErrorGroupDetails } from "@/app/api/api_calls";
 import { type FilterExprIssue, filterExprIssuesIn } from "@/app/api/api_error";
 import FilterBar from "@/app/components/filter_bar/filter_bar";
-import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
+import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import Paginator from "@/app/components/paginator";
 import {
   useErrorsDetailsPlotQuery,
@@ -544,7 +544,7 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
     onChange,
     nextPage,
     prevPage,
-  } = useExprFilterPage({
+  } = useFilterPage({
     teamId,
     entity: "error_group_events",
     paginationLimit: 1,

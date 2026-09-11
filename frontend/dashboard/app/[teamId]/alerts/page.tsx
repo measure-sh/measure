@@ -2,7 +2,7 @@
 
 import { emptyAlertsOverviewResponse } from "@/app/api/api_calls";
 import FilterBar from "@/app/components/filter_bar/filter_bar";
-import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
+import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import LoadingBar from "@/app/components/loading_bar";
 import Paginator from "@/app/components/paginator";
 import { SkeletonListPage } from "@/app/components/skeleton";
@@ -43,7 +43,7 @@ export default function AlertsOverview(props: {
     onChange,
     nextPage,
     prevPage,
-  } = useExprFilterPage({
+  } = useFilterPage({
     teamId: params.teamId,
     entity: "alerts",
     paginationLimit: PAGINATION_LIMIT,

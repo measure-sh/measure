@@ -2,7 +2,7 @@
 
 import { filterExprIssuesIn } from "@/app/api/api_error";
 import FilterBar from "@/app/components/filter_bar/filter_bar";
-import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
+import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import InfoTooltip from "@/app/components/info_tooltip";
 import NetworkEndpointSearch from "@/app/components/network_endpoint_search";
 import NetworkStatusDistributionPlot from "@/app/components/network_status_distribution_plot";
@@ -214,7 +214,7 @@ export default function NetworkOverview({
     status: filterStatus,
     filterParams,
     onChange,
-  } = useExprFilterPage({ teamId, entity: "network" });
+  } = useFilterPage({ teamId, entity: "network" });
   const readyValue = filterStatus.kind === "ready" ? value : null;
 
   const statusCodesQuery = useNetworkStatusCodesQuery(filterParams, "", "");

@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/libs/session"
 	"backend/libs/span"
 
@@ -45,87 +45,87 @@ func newPlotFixture(t *testing.T) plotFixture {
 	}
 }
 
-func (f plotFixture) spanExprFilter(from, to time.Time, timezone, plotTimeGroup string) *exprfilter.ExprFilter {
-	return &exprfilter.ExprFilter{
+func (f plotFixture) spanFilter(from, to time.Time, timezone, plotTimeGroup string) *filter.Filter {
+	return &filter.Filter{
 		AppID:         f.appID,
 		TeamID:        f.teamID,
-		Entity:        exprfilter.SpansEntity,
+		Entity:        filter.SpansEntity,
 		From:          from,
 		To:            to,
 		Timezone:      timezone,
-		Limit:         exprfilter.DefaultPaginationLimit,
+		Limit:         filter.DefaultPaginationLimit,
 		PlotTimeGroup: plotTimeGroup,
 	}
 }
 
-func (f plotFixture) journeyExprFilter(from, to time.Time, exprTree *exprfilter.ExprTree) *exprfilter.ExprFilter {
-	return &exprfilter.ExprFilter{
+func (f plotFixture) journeyFilter(from, to time.Time, exprTree *filter.ExprTree) *filter.Filter {
+	return &filter.Filter{
 		AppID:    f.appID,
 		TeamID:   f.teamID,
-		Entity:   exprfilter.JourneysEntity,
+		Entity:   filter.JourneysEntity,
 		From:     from,
 		To:       to,
-		Limit:    exprfilter.DefaultPaginationLimit,
+		Limit:    filter.DefaultPaginationLimit,
 		ExprTree: exprTree,
 	}
 }
 
-func (f plotFixture) sessionExprFilter(from, to time.Time, timezone, plotTimeGroup string) *exprfilter.ExprFilter {
-	return &exprfilter.ExprFilter{
+func (f plotFixture) sessionFilter(from, to time.Time, timezone, plotTimeGroup string) *filter.Filter {
+	return &filter.Filter{
 		AppID:         f.appID,
 		TeamID:        f.teamID,
-		Entity:        exprfilter.SessionsEntity,
+		Entity:        filter.SessionsEntity,
 		From:          from,
 		To:            to,
 		Timezone:      timezone,
-		Limit:         exprfilter.DefaultPaginationLimit,
+		Limit:         filter.DefaultPaginationLimit,
 		PlotTimeGroup: plotTimeGroup,
 	}
 }
 
-func (f plotFixture) bugReportExprFilter(from, to time.Time, timezone, plotTimeGroup string) *exprfilter.ExprFilter {
-	return &exprfilter.ExprFilter{
+func (f plotFixture) bugReportFilter(from, to time.Time, timezone, plotTimeGroup string) *filter.Filter {
+	return &filter.Filter{
 		AppID:         f.appID,
 		TeamID:        f.teamID,
-		Entity:        exprfilter.BugReportsEntity,
+		Entity:        filter.BugReportsEntity,
 		From:          from,
 		To:            to,
 		Timezone:      timezone,
-		Limit:         exprfilter.DefaultPaginationLimit,
+		Limit:         filter.DefaultPaginationLimit,
 		PlotTimeGroup: plotTimeGroup,
 	}
 }
 
-// appHealthExprFilter builds the overview filter, parsing filterExpr when one
+// appHealthFilter builds the overview filter, parsing filterExpr when one
 // is given. An empty expression means every row of the app counts as selected.
-func (f plotFixture) appHealthExprFilter(t *testing.T, from, to time.Time, timezone, plotTimeGroup, filterExpr string) *exprfilter.ExprFilter {
+func (f plotFixture) appHealthFilter(t *testing.T, from, to time.Time, timezone, plotTimeGroup, filterExpr string) *filter.Filter {
 	t.Helper()
-	ef := &exprfilter.ExprFilter{
+	flt := &filter.Filter{
 		AppID:         f.appID,
 		TeamID:        f.teamID,
-		Entity:        exprfilter.AppHealthEntity,
+		Entity:        filter.AppHealthEntity,
 		From:          from,
 		To:            to,
 		Timezone:      timezone,
-		Limit:         exprfilter.DefaultPaginationLimit,
+		Limit:         filter.DefaultPaginationLimit,
 		PlotTimeGroup: plotTimeGroup,
 		FilterExpr:    filterExpr,
 	}
-	if err := ef.BuildExprTree(); err != nil {
+	if err := flt.BuildExprTree(); err != nil {
 		t.Fatalf("build filter expression %q: %v", filterExpr, err)
 	}
-	return ef
+	return flt
 }
 
-func (f plotFixture) errorExprFilter(from, to time.Time, timezone, plotTimeGroup string) *exprfilter.ExprFilter {
-	return &exprfilter.ExprFilter{
+func (f plotFixture) errorFilter(from, to time.Time, timezone, plotTimeGroup string) *filter.Filter {
+	return &filter.Filter{
 		AppID:         f.appID,
 		TeamID:        f.teamID,
-		Entity:        exprfilter.ErrorsEntity,
+		Entity:        filter.ErrorsEntity,
 		From:          from,
 		To:            to,
 		Timezone:      timezone,
-		Limit:         exprfilter.DefaultPaginationLimit,
+		Limit:         filter.DefaultPaginationLimit,
 		PlotTimeGroup: plotTimeGroup,
 	}
 }
@@ -153,7 +153,7 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 	groups := []plotCase{
 		{
 			name:  "minutes",
-			group: exprfilter.PlotTimeGroupMinutes,
+			group: filter.PlotTimeGroupMinutes,
 			timestamps: []time.Time{
 				time.Date(2026, 1, 5, 10, 15, 10, 0, time.UTC),
 				time.Date(2026, 1, 5, 10, 15, 40, 0, time.UTC),
@@ -162,7 +162,7 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 		},
 		{
 			name:  "hours",
-			group: exprfilter.PlotTimeGroupHours,
+			group: filter.PlotTimeGroupHours,
 			timestamps: []time.Time{
 				time.Date(2026, 1, 5, 10, 5, 0, 0, time.UTC),
 				time.Date(2026, 1, 5, 10, 45, 0, 0, time.UTC),
@@ -171,7 +171,7 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 		},
 		{
 			name:  "days",
-			group: exprfilter.PlotTimeGroupDays,
+			group: filter.PlotTimeGroupDays,
 			timestamps: []time.Time{
 				time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC),
 				time.Date(2026, 1, 5, 22, 0, 0, 0, time.UTC),
@@ -180,7 +180,7 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 		},
 		{
 			name:  "months",
-			group: exprfilter.PlotTimeGroupMonths,
+			group: filter.PlotTimeGroupMonths,
 			timestamps: []time.Time{
 				time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC),
 				time.Date(2026, 1, 20, 22, 0, 0, 0, time.UTC),
@@ -200,7 +200,7 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 				seedGenericEvents(f.ctx, t, f.teamIDStr(), f.appIDStr(), 2, tc.timestamps[0])
 				seedGenericEvents(f.ctx, t, f.teamIDStr(), f.appIDStr(), 1, tc.timestamps[2])
 
-				items, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, f.sessionExprFilter(from, to, "UTC", tc.group))
+				items, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, f.sessionFilter(from, to, "UTC", tc.group))
 				if err != nil {
 					t.Fatalf("GetSessionsInstancesPlot: %v", err)
 				}
@@ -212,7 +212,7 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 				cleanupAll(f.ctx, t)
 
 				spanTimes := spanMetricTimesForGroup(tc.group)
-				efSpan := f.spanExprFilter(spanTimes[0].Add(-time.Hour), spanTimes[len(spanTimes)-1].Add(time.Hour), "UTC", tc.group)
+				efSpan := f.spanFilter(spanTimes[0].Add(-time.Hour), spanTimes[len(spanTimes)-1].Add(time.Hour), "UTC", tc.group)
 				for _, ts := range spanTimes {
 					seedSpan(
 						f.ctx, t, f.teamIDStr(), f.appIDStr(),
@@ -236,7 +236,7 @@ func TestPlotMethodsGroupByPlotTimeGroup(t *testing.T) {
 					seedBugReport(f.ctx, t, f.teamIDStr(), f.appIDStr(), uuid.New().String(), "test report", ts)
 				}
 
-				items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, f.bugReportExprFilter(from, to, "UTC", tc.group))
+				items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, f.bugReportFilter(from, to, "UTC", tc.group))
 				if err != nil {
 					t.Fatalf("GetBugReportInstancesPlot: %v", err)
 				}
@@ -256,25 +256,25 @@ func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 	now := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
 
 	t.Run("missing timezone returns error", func(t *testing.T) {
-		if _, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, f.sessionExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "", exprfilter.PlotTimeGroupDays)); err == nil {
+		if _, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, f.sessionFilter(now.Add(-time.Hour), now.Add(time.Hour), "", filter.PlotTimeGroupDays)); err == nil {
 			t.Fatalf("expected error for missing timezone in sessions plot")
 		}
-		if _, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, f.bugReportExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "", exprfilter.PlotTimeGroupDays)); err == nil {
+		if _, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, f.bugReportFilter(now.Add(-time.Hour), now.Add(time.Hour), "", filter.PlotTimeGroupDays)); err == nil {
 			t.Fatalf("expected error for missing timezone in bug report plot")
 		}
 	})
 
 	t.Run("unsupported plot_time_group returns error", func(t *testing.T) {
-		if _, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, f.sessionExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", "weeks")); err == nil {
+		if _, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, f.sessionFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", "weeks")); err == nil {
 			t.Fatalf("expected error for unsupported plot_time_group in sessions plot")
 		}
-		if _, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, f.bugReportExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", "weeks")); err == nil {
+		if _, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, f.bugReportFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", "weeks")); err == nil {
 			t.Fatalf("expected error for unsupported plot_time_group in bug report plot")
 		}
 	})
 
 	t.Run("returns empty results when no matching data", func(t *testing.T) {
-		sessions, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, f.sessionExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays))
+		sessions, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, f.sessionFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", filter.PlotTimeGroupDays))
 		if err != nil {
 			t.Fatalf("GetSessionsInstancesPlot: %v", err)
 		}
@@ -282,7 +282,7 @@ func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 			t.Fatalf("expected empty sessions plot, got %d rows", len(sessions))
 		}
 
-		spans, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", f.spanExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays))
+		spans, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", f.spanFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", filter.PlotTimeGroupDays))
 		if err != nil {
 			t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 		}
@@ -290,7 +290,7 @@ func TestPlotMethodsValidationAndEmptyResults(t *testing.T) {
 			t.Fatalf("expected empty spans plot, got %d rows", len(spans))
 		}
 
-		bugReports, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, f.bugReportExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays))
+		bugReports, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, f.bugReportFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", filter.PlotTimeGroupDays))
 		if err != nil {
 			t.Fatalf("GetBugReportInstancesPlot: %v", err)
 		}
@@ -313,8 +313,8 @@ func TestNonExceptionPlotsRespectTimezoneBucketing(t *testing.T) {
 	t.Run("sessions", func(t *testing.T) {
 		cleanupAll(f.ctx, t)
 		seedGenericEvents(f.ctx, t, f.teamIDStr(), f.appIDStr(), 1, ts)
-		ef := f.sessionExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "Asia/Kolkata", exprfilter.PlotTimeGroupDays)
-		items, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, ef)
+		flt := f.sessionFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "Asia/Kolkata", filter.PlotTimeGroupDays)
+		items, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetSessionsInstancesPlot: %v", err)
 		}
@@ -324,8 +324,8 @@ func TestNonExceptionPlotsRespectTimezoneBucketing(t *testing.T) {
 	t.Run("span metrics", func(t *testing.T) {
 		cleanupAll(f.ctx, t)
 		seedSpan(f.ctx, t, f.teamIDStr(), f.appIDStr(), "http_request", 1, ts, ts.Add(750*time.Millisecond), "v1", "1")
-		ef := f.spanExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "Asia/Kolkata", exprfilter.PlotTimeGroupDays)
-		items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
+		flt := f.spanFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "Asia/Kolkata", filter.PlotTimeGroupDays)
+		items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", flt)
 		if err != nil {
 			t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 		}
@@ -335,8 +335,8 @@ func TestNonExceptionPlotsRespectTimezoneBucketing(t *testing.T) {
 	t.Run("bug reports", func(t *testing.T) {
 		cleanupAll(f.ctx, t)
 		seedBugReport(f.ctx, t, f.teamIDStr(), f.appIDStr(), uuid.New().String(), "tz bug report", ts)
-		ef := f.bugReportExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "Asia/Kolkata", exprfilter.PlotTimeGroupDays)
-		items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, ef)
+		flt := f.bugReportFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "Asia/Kolkata", filter.PlotTimeGroupDays)
+		items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetBugReportInstancesPlot: %v", err)
 		}
@@ -353,36 +353,36 @@ func TestPlotMethodsDefaultToDaysWhenPlotTimeGroupMissing(t *testing.T) {
 		cleanupAll(f.ctx, t)
 		seedGenericEvents(f.ctx, t, f.teamIDStr(), f.appIDStr(), 1, t1)
 		seedGenericEvents(f.ctx, t, f.teamIDStr(), f.appIDStr(), 1, t2)
-		ef := f.sessionExprFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
-		items, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, ef)
+		flt := f.sessionFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
+		items, err := f.app.GetSessionsInstancesPlot(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetSessionsInstancesPlot: %v", err)
 		}
-		assertSessionBuckets(t, items, expectedCounts([]time.Time{t1, t2}, exprfilter.PlotTimeGroupDays, false))
+		assertSessionBuckets(t, items, expectedCounts([]time.Time{t1, t2}, filter.PlotTimeGroupDays, false))
 	})
 
 	t.Run("span metrics", func(t *testing.T) {
 		cleanupAll(f.ctx, t)
 		seedSpan(f.ctx, t, f.teamIDStr(), f.appIDStr(), "http_request", 1, t1, t1.Add(time.Second), "v1", "1")
 		seedSpan(f.ctx, t, f.teamIDStr(), f.appIDStr(), "http_request", 1, t2, t2.Add(time.Second), "v1", "1")
-		ef := f.spanExprFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
-		items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
+		flt := f.spanFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
+		items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", flt)
 		if err != nil {
 			t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 		}
-		assertSpanBuckets(t, items, expectedUniqueBuckets([]time.Time{t1, t2}, exprfilter.PlotTimeGroupDays, true))
+		assertSpanBuckets(t, items, expectedUniqueBuckets([]time.Time{t1, t2}, filter.PlotTimeGroupDays, true))
 	})
 
 	t.Run("bug reports", func(t *testing.T) {
 		cleanupAll(f.ctx, t)
 		seedBugReport(f.ctx, t, f.teamIDStr(), f.appIDStr(), uuid.New().String(), "test report", t1)
 		seedBugReport(f.ctx, t, f.teamIDStr(), f.appIDStr(), uuid.New().String(), "test report", t2)
-		ef := f.bugReportExprFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
-		items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, ef)
+		flt := f.bugReportFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
+		items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetBugReportInstancesPlot: %v", err)
 		}
-		assertBugReportBuckets(t, items, expectedCounts([]time.Time{t1, t2}, exprfilter.PlotTimeGroupDays, false))
+		assertBugReportBuckets(t, items, expectedCounts([]time.Time{t1, t2}, filter.PlotTimeGroupDays, false))
 	})
 }
 
@@ -399,10 +399,10 @@ func TestPlotMethodsRespectOptionalFilters(t *testing.T) {
 		// seedBugReport writes the report closed.
 		seedBugReport(f.ctx, t, f.teamIDStr(), f.appIDStr(), uuid.New().String(), "test report", now)
 
-		ef := f.bugReportExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays)
-		closedTree := leaf("bug_report_status", exprfilter.OperatorIn, "closed")
-		ef.ExprTree = &closedTree
-		items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, ef)
+		flt := f.bugReportFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
+		closedTree := leaf("bug_report_status", filter.OperatorIn, "closed")
+		flt.ExprTree = &closedTree
+		items, err := f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetBugReportInstancesPlot: %v", err)
 		}
@@ -410,9 +410,9 @@ func TestPlotMethodsRespectOptionalFilters(t *testing.T) {
 			t.Fatalf("expected non-empty bug report plot for matching status")
 		}
 
-		openTree := leaf("bug_report_status", exprfilter.OperatorIn, "open")
-		ef.ExprTree = &openTree
-		items, err = f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, ef)
+		openTree := leaf("bug_report_status", filter.OperatorIn, "open")
+		flt.ExprTree = &openTree
+		items, err = f.app.GetBugReportInstancesPlot(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetBugReportInstancesPlot mismatch status: %v", err)
 		}
@@ -438,8 +438,8 @@ func TestSpanMetricsPlotQuantilesForUniformDurations(t *testing.T) {
 		seedSpan(f.ctx, t, f.teamIDStr(), f.appIDStr(), "http_request", 1, start, end, "v1", "1")
 	}
 
-	ef := f.spanExprFilter(base.Add(-time.Hour), base.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupHours)
-	items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
+	flt := f.spanFilter(base.Add(-time.Hour), base.Add(time.Hour), "UTC", filter.PlotTimeGroupHours)
+	items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", flt)
 	if err != nil {
 		t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 	}
@@ -478,8 +478,8 @@ func TestSpanMetricsPlotQuantilesAreMonotonicAndVersionIsolated(t *testing.T) {
 		seedSpan(f.ctx, t, f.teamIDStr(), f.appIDStr(), "http_request", 1, start, start.Add(time.Duration(secs)*time.Second), "v2", "2")
 	}
 
-	ef := f.spanExprFilter(base.Add(-time.Hour), base.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupHours)
-	items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
+	flt := f.spanFilter(base.Add(-time.Hour), base.Add(time.Hour), "UTC", filter.PlotTimeGroupHours)
+	items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", flt)
 	if err != nil {
 		t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 	}
@@ -539,8 +539,8 @@ func TestSpanMetricsPlotQuantilesForSkewedDistribution(t *testing.T) {
 		seedSpan(f.ctx, t, f.teamIDStr(), f.appIDStr(), "http_request", 1, base, base.Add(dur), "v1", "1")
 	}
 
-	ef := f.spanExprFilter(base.Add(-time.Hour), base.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupHours)
-	items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
+	flt := f.spanFilter(base.Add(-time.Hour), base.Add(time.Hour), "UTC", filter.PlotTimeGroupHours)
+	items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", flt)
 	if err != nil {
 		t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 	}
@@ -597,13 +597,13 @@ func expectedUniqueBuckets(timestamps []time.Time, group string, withSpanPreBuck
 // It normalizes timestamps to UTC and expected output formats used in API rows.
 func formatBucket(ts time.Time, group string) string {
 	switch group {
-	case exprfilter.PlotTimeGroupMinutes:
+	case filter.PlotTimeGroupMinutes:
 		return ts.Truncate(time.Minute).Format("2006-01-02T15:04:05")
-	case exprfilter.PlotTimeGroupHours:
+	case filter.PlotTimeGroupHours:
 		return ts.Truncate(time.Hour).Format("2006-01-02T15:04:05")
-	case exprfilter.PlotTimeGroupMonths:
+	case filter.PlotTimeGroupMonths:
 		return time.Date(ts.Year(), ts.Month(), 1, 0, 0, 0, 0, time.UTC).Format("2006-01-02")
-	case exprfilter.PlotTimeGroupDays:
+	case filter.PlotTimeGroupDays:
 		fallthrough
 	default:
 		return time.Date(ts.Year(), ts.Month(), ts.Day(), 0, 0, 0, 0, time.UTC).Format("2006-01-02")
@@ -614,19 +614,19 @@ func formatBucket(ts time.Time, group string) string {
 // for each grouping mode. This makes accidental grouping regressions obvious.
 func spanMetricTimesForGroup(group string) []time.Time {
 	switch group {
-	case exprfilter.PlotTimeGroupMinutes:
+	case filter.PlotTimeGroupMinutes:
 		return []time.Time{
 			time.Date(2026, 1, 5, 10, 15, 10, 0, time.UTC),
 			time.Date(2026, 1, 5, 10, 19, 0, 0, time.UTC),
 			time.Date(2026, 1, 5, 10, 30, 0, 0, time.UTC),
 		}
-	case exprfilter.PlotTimeGroupHours:
+	case filter.PlotTimeGroupHours:
 		return []time.Time{
 			time.Date(2026, 1, 5, 10, 2, 0, 0, time.UTC),
 			time.Date(2026, 1, 5, 10, 14, 0, 0, time.UTC),
 			time.Date(2026, 1, 5, 11, 1, 0, 0, time.UTC),
 		}
-	case exprfilter.PlotTimeGroupMonths:
+	case filter.PlotTimeGroupMonths:
 		return []time.Time{
 			time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC),
 			time.Date(2026, 1, 20, 10, 0, 0, 0, time.UTC),

@@ -1,7 +1,7 @@
 "use client";
 
 import FilterBar from "@/app/components/filter_bar/filter_bar";
-import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
+import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import { filterExprIssuesIn } from "@/app/api/api_error";
 import { useBuildsQuery } from "@/app/query/hooks";
 import { use } from "react";
@@ -24,7 +24,7 @@ export default function Builds(props: { params: Promise<{ teamId: string }> }) {
     onChange,
     nextPage,
     prevPage,
-  } = useExprFilterPage({
+  } = useFilterPage({
     teamId: params.teamId,
     entity: "builds",
     paginationLimit: PAGINATION_LIMIT,

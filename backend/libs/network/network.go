@@ -2,7 +2,7 @@ package network
 
 import (
 	"backend/libs/chquery"
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/libs/logcomment"
 	"context"
 	"fmt"
@@ -246,7 +246,7 @@ func applyPathFilter(stmt *sqlf.Stmt, pathPattern string) {
 }
 
 // fetchTrendsCategory returns one endpoint ranking from http_metrics.
-func fetchTrendsCategory(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, ef *exprfilter.ExprFilter, orderBy string, limit int) ([]TrendMetric, error) {
+func fetchTrendsCategory(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, flt *filter.Filter, orderBy string, limit int) ([]TrendMetric, error) {
 	ctx = chquery.WithTeamScope(ctx, teamId)
 	stmt := sqlf.
 		Select("domain").
@@ -257,13 +257,13 @@ func fetchTrendsCategory(ctx context.Context, ch driver.Conn, appId, teamId uuid
 		From("http_metrics").
 		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", appId).
-		Where("timestamp >= ?", ef.From).
-		Where("timestamp < ?", ef.To)
+		Where("timestamp >= ?", flt.From).
+		Where("timestamp < ?", flt.To)
 
 	defer stmt.Close()
 
-	if ef.HasFilterExpr() {
-		predicate, err := ef.Predicate(exprfilter.NetworkMetricsKeyBindings)
+	if flt.HasFilterExpr() {
+		predicate, err := flt.Predicate(filter.NetworkMetricsKeyBindings)
 		if err != nil {
 			return nil, err
 		}
@@ -317,7 +317,7 @@ func scanEndpoints(rows driver.Rows) (endpoints []Endpoint, err error) {
 }
 
 // FetchEndpoints returns matching generated patterns and raw request paths.
-func FetchEndpoints(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, search string, ef *exprfilter.ExprFilter) (endpoints []Endpoint, err error) {
+func FetchEndpoints(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, search string, flt *filter.Filter) (endpoints []Endpoint, err error) {
 	ctx = chquery.WithTeamScope(ctx, teamId)
 
 	// parse the search query
@@ -390,15 +390,15 @@ func FetchEndpoints(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID
 			From("http_events").
 			Where("team_id = toUUID(?)", teamId).
 			Where("app_id = toUUID(?)", appId).
-			Where("timestamp >= ?", ef.From).
-			Where("timestamp < ?", ef.To)
+			Where("timestamp >= ?", flt.From).
+			Where("timestamp < ?", flt.To)
 		defer stmt.Close()
 
 		condition, args := endpointSearchCondition("domain", "path", input)
 		stmt.Where(condition, args...)
 
-		if ef.HasFilterExpr() {
-			predicate, err := ef.Predicate(nil)
+		if flt.HasFilterExpr() {
+			predicate, err := flt.Predicate(nil)
 			if err != nil {
 				return err
 			}
@@ -441,22 +441,22 @@ func FetchEndpoints(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID
 }
 
 // FetchTrends returns endpoint rankings by latency, error rate, and frequency.
-func FetchTrends(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, ef *exprfilter.ExprFilter, limit int) (*TrendsResponse, error) {
+func FetchTrends(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, flt *filter.Filter, limit int) (*TrendsResponse, error) {
 	var result TrendsResponse
 	var trendsGroup errgroup.Group
 
 	trendsGroup.Go(func() (err error) {
-		result.TrendsLatency, err = fetchTrendsCategory(ctx, ch, appId, teamId, ef, "p95_latency DESC", limit)
+		result.TrendsLatency, err = fetchTrendsCategory(ctx, ch, appId, teamId, flt, "p95_latency DESC", limit)
 		return
 	})
 
 	trendsGroup.Go(func() (err error) {
-		result.TrendsErrorRate, err = fetchTrendsCategory(ctx, ch, appId, teamId, ef, "error_rate DESC", limit)
+		result.TrendsErrorRate, err = fetchTrendsCategory(ctx, ch, appId, teamId, flt, "error_rate DESC", limit)
 		return
 	})
 
 	trendsGroup.Go(func() (err error) {
-		result.TrendsFrequency, err = fetchTrendsCategory(ctx, ch, appId, teamId, ef, "frequency DESC", limit)
+		result.TrendsFrequency, err = fetchTrendsCategory(ctx, ch, appId, teamId, flt, "frequency DESC", limit)
 		return
 	})
 
@@ -468,10 +468,10 @@ func FetchTrends(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, e
 }
 
 // GetStatusCodesPlot returns HTTP status-class counts over time for an optional endpoint selection.
-func GetStatusCodesPlot(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, domain, path string, ef *exprfilter.ExprFilter, bucketExpr, datetimeFormat string) (result []MetricsDataPoint, err error) {
+func GetStatusCodesPlot(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, domain, path string, flt *filter.Filter, bucketExpr, datetimeFormat string) (result []MetricsDataPoint, err error) {
 	ctx = chquery.WithTeamScope(ctx, teamId)
 	stmt := sqlf.From("http_events").
-		Select(bucketExpr+" as datetime_bucket", ef.Timezone).
+		Select(bucketExpr+" as datetime_bucket", flt.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
 		Select("countIf(status_code_bucket in ('2xx','3xx','4xx','5xx')) as total_count").
 		Select("countIf(status_code_bucket = '2xx') as count_2xx").
@@ -480,15 +480,15 @@ func GetStatusCodesPlot(ctx context.Context, ch driver.Conn, appId, teamId uuid.
 		Select("countIf(status_code_bucket = '5xx') as count_5xx").
 		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", appId).
-		Where("timestamp >= ?", ef.From).
-		Where("timestamp < ?", ef.To)
+		Where("timestamp >= ?", flt.From).
+		Where("timestamp < ?", flt.To)
 
 	applyDomainFilter(stmt, domain)
 	applyPathFilter(stmt, path)
 	defer stmt.Close()
 
-	if ef.HasFilterExpr() {
-		predicate, errPredicate := ef.Predicate(nil)
+	if flt.HasFilterExpr() {
+		predicate, errPredicate := flt.Predicate(nil)
 		if errPredicate != nil {
 			return nil, errPredicate
 		}
@@ -532,27 +532,27 @@ func GetEndpointStatusCodesPlot(
 	ch driver.Conn,
 	appId, teamId uuid.UUID,
 	domain, path string,
-	ef *exprfilter.ExprFilter,
+	flt *filter.Filter,
 	bucketExpr, datetimeFormat string,
 ) (*EndpointStatusCodesPlotResponse, error) {
 	ctx = chquery.WithTeamScope(ctx, teamId)
 	stmt := sqlf.From("http_events").
-		Select(bucketExpr+" as datetime_bucket", ef.Timezone).
+		Select(bucketExpr+" as datetime_bucket", flt.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
 		Select("status_code").
 		Select("count() as count").
 		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", appId).
 		Where("status_code != ?", 0).
-		Where("timestamp >= ?", ef.From).
-		Where("timestamp < ?", ef.To)
+		Where("timestamp >= ?", flt.From).
+		Where("timestamp < ?", flt.To)
 
 	applyDomainFilter(stmt, domain)
 	applyPathFilter(stmt, path)
 	defer stmt.Close()
 
-	if ef.HasFilterExpr() {
-		predicate, err := ef.Predicate(nil)
+	if flt.HasFilterExpr() {
+		predicate, err := flt.Predicate(nil)
 		if err != nil {
 			return nil, err
 		}
@@ -621,7 +621,7 @@ func GetLatencyPlot(
 	ch driver.Conn,
 	appId, teamId uuid.UUID,
 	domain, path string,
-	ef *exprfilter.ExprFilter,
+	flt *filter.Filter,
 	bucketExpr, datetimeFormat string,
 ) ([]MetricsDataPoint, error) {
 	ctx = chquery.WithTeamScope(ctx, teamId)
@@ -629,22 +629,22 @@ func GetLatencyPlot(
 	result := make([]MetricsDataPoint, 0)
 
 	stmt := sqlf.From("http_events").
-		Select(bucketExpr+" as datetime_bucket", ef.Timezone).
+		Select(bucketExpr+" as datetime_bucket", flt.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", datetimeFormat).
 		Select("quantiles(0.50, 0.90, 0.95, 0.99)(latency_ms) as latencies").
 		Select("count() as count").
 		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", appId).
 		Where("status_code != ?", 0).
-		Where("timestamp >= ?", ef.From).
-		Where("timestamp < ?", ef.To)
+		Where("timestamp >= ?", flt.From).
+		Where("timestamp < ?", flt.To)
 
 	applyDomainFilter(stmt, domain)
 	applyPathFilter(stmt, path)
 	defer stmt.Close()
 
-	if ef.HasFilterExpr() {
-		predicate, err := ef.Predicate(nil)
+	if flt.HasFilterExpr() {
+		predicate, err := flt.Predicate(nil)
 		if err != nil {
 			return nil, err
 		}
@@ -684,7 +684,7 @@ func GetLatencyPlot(
 
 // FetchTimelinePlot returns five-second, per-session request-count buckets for
 // the whole app or a selected domain and path pattern.
-func FetchTimelinePlot(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, domain, pathPattern string, ef *exprfilter.ExprFilter) (*TimelineResponse, error) {
+func FetchTimelinePlot(ctx context.Context, ch driver.Conn, appId, teamId uuid.UUID, domain, pathPattern string, flt *filter.Filter) (*TimelineResponse, error) {
 	ctx = chquery.WithTeamScope(ctx, teamId)
 
 	stmt := sqlf.
@@ -696,15 +696,15 @@ func FetchTimelinePlot(ctx context.Context, ch driver.Conn, appId, teamId uuid.U
 		From("http_metrics").
 		Where("team_id = toUUID(?)", teamId).
 		Where("app_id = toUUID(?)", appId).
-		Where("timestamp >= ?", ef.From).
-		Where("timestamp < ?", ef.To)
+		Where("timestamp >= ?", flt.From).
+		Where("timestamp < ?", flt.To)
 
 	applyDomainFilter(stmt, domain)
 	applyPathFilter(stmt, pathPattern)
 	defer stmt.Close()
 
-	if ef.HasFilterExpr() {
-		predicate, err := ef.Predicate(exprfilter.NetworkMetricsKeyBindings)
+	if flt.HasFilterExpr() {
+		predicate, err := flt.Predicate(filter.NetworkMetricsKeyBindings)
 		if err != nil {
 			return nil, err
 		}

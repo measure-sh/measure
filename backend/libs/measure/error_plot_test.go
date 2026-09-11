@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"backend/libs/event"
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/testinfra"
 )
 
@@ -38,9 +38,9 @@ func issueBucketCounts(items []event.IssueInstance) map[string]uint64 {
 func TestGetErrorPlotInstancesCountsEveryErrorKind(t *testing.T) {
 	f := newErrorKindsFixture(t)
 
-	total := func(t *testing.T, exprTree *exprfilter.ExprTree) uint64 {
+	total := func(t *testing.T, exprTree *filter.ExprTree) uint64 {
 		t.Helper()
-		items, err := f.app.GetErrorPlotInstances(f.ctx, deps.RchPool, f.filter(exprTree))
+		items, err := f.app.GetErrorPlotInstances(f.ctx, deps.RchPool, f.newFilter(exprTree))
 		if err != nil {
 			t.Fatalf("GetErrorPlotInstances: %v", err)
 		}
@@ -55,18 +55,18 @@ func TestGetErrorPlotInstancesCountsEveryErrorKind(t *testing.T) {
 
 	tests := []struct {
 		name      string
-		exprTree  exprfilter.ExprTree
+		exprTree  filter.ExprTree
 		wantTotal uint64
 	}{
-		{"a crash covers the severity and the legacy unhandled row", leaf("error_type", exprfilter.OperatorIn, exprfilter.ErrorTypeCrash), 3},
-		{"an anr", leaf("error_type", exprfilter.OperatorIn, exprfilter.ErrorTypeANR), 1},
-		{"a handled error covers the legacy handled row", leaf("error_type", exprfilter.OperatorIn, exprfilter.ErrorTypeHandledError), 2},
-		{"an unhandled error needs a named severity", leaf("error_type", exprfilter.OperatorIn, exprfilter.ErrorTypeUnhandledError), 1},
-		{"not an anr", leaf("error_type", exprfilter.OperatorNotIn, exprfilter.ErrorTypeANR), 6},
-		{"one version", leaf("version_name", exprfilter.OperatorIn, "1.2.0"), 1},
-		{"one user", leaf("user_id", exprfilter.OperatorIn, "ana"), 2},
-		{"one patch", leaf("patch_version", exprfilter.OperatorIn, "1.2.0-patch.3"), 1},
-		{"one os", leaf("os_name", exprfilter.OperatorIn, "android"), 6},
+		{"a crash covers the severity and the legacy unhandled row", leaf("error_type", filter.OperatorIn, filter.ErrorTypeCrash), 3},
+		{"an anr", leaf("error_type", filter.OperatorIn, filter.ErrorTypeANR), 1},
+		{"a handled error covers the legacy handled row", leaf("error_type", filter.OperatorIn, filter.ErrorTypeHandledError), 2},
+		{"an unhandled error needs a named severity", leaf("error_type", filter.OperatorIn, filter.ErrorTypeUnhandledError), 1},
+		{"not an anr", leaf("error_type", filter.OperatorNotIn, filter.ErrorTypeANR), 6},
+		{"one version", leaf("version_name", filter.OperatorIn, "1.2.0"), 1},
+		{"one user", leaf("user_id", filter.OperatorIn, "ana"), 2},
+		{"one patch", leaf("patch_version", filter.OperatorIn, "1.2.0-patch.3"), 1},
+		{"one os", leaf("os_name", filter.OperatorIn, "android"), 6},
 	}
 
 	for _, test := range tests {
@@ -79,9 +79,9 @@ func TestGetErrorPlotInstancesCountsEveryErrorKind(t *testing.T) {
 	}
 
 	t.Run("an error kind and an os name together", func(t *testing.T) {
-		exprTree := exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("error_type", exprfilter.OperatorIn, exprfilter.ErrorTypeCrash),
-			leaf("os_name", exprfilter.OperatorIn, "android"),
+		exprTree := filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("error_type", filter.OperatorIn, filter.ErrorTypeCrash),
+			leaf("os_name", filter.OperatorIn, "android"),
 		}}
 		if got := total(t, &exprTree); got != 2 {
 			t.Fatalf("instances = %d, want 2", got)
@@ -92,8 +92,8 @@ func TestGetErrorPlotInstancesCountsEveryErrorKind(t *testing.T) {
 func TestGetErrorPlotInstancesMissingTimezone(t *testing.T) {
 	f := newPlotFixture(t)
 	now := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
-	ef := f.errorExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "", exprfilter.PlotTimeGroupDays)
-	if _, err := f.app.GetErrorPlotInstances(f.ctx, deps.RchPool, ef); err == nil {
+	flt := f.errorFilter(now.Add(-time.Hour), now.Add(time.Hour), "", filter.PlotTimeGroupDays)
+	if _, err := f.app.GetErrorPlotInstances(f.ctx, deps.RchPool, flt); err == nil {
 		t.Fatal("expected error for missing timezone")
 	}
 }
@@ -102,8 +102,8 @@ func TestGetErrorPlotInstancesEmptyWhenNoMatchingData(t *testing.T) {
 	f := newPlotFixture(t)
 	now := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
 
-	ef := f.errorExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays)
-	items, err := f.app.GetErrorPlotInstances(f.ctx, deps.RchPool, ef)
+	flt := f.errorFilter(now.Add(-time.Hour), now.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
+	items, err := f.app.GetErrorPlotInstances(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetErrorPlotInstances: %v", err)
 	}
@@ -119,22 +119,22 @@ func TestGetErrorPlotInstancesEmptyWhenNoMatchingData(t *testing.T) {
 func TestGetErrorGroupPlotInstancesScopesToTheFingerprint(t *testing.T) {
 	f := newErrorKindsFixture(t)
 
-	total := func(t *testing.T, fingerprint string, exprTree *exprfilter.ExprTree) uint64 {
+	total := func(t *testing.T, fingerprint string, exprTree *filter.ExprTree) uint64 {
 		t.Helper()
-		items, err := f.app.GetErrorGroupPlotInstances(f.ctx, deps.RchPool, fingerprint, f.filter(exprTree))
+		items, err := f.app.GetErrorGroupPlotInstances(f.ctx, deps.RchPool, fingerprint, f.newFilter(exprTree))
 		if err != nil {
 			t.Fatalf("GetErrorGroupPlotInstances: %v", err)
 		}
 		return sumIssueInstances(items)
 	}
 
-	crash := leaf("error_type", exprfilter.OperatorIn, exprfilter.ErrorTypeCrash)
-	anr := leaf("error_type", exprfilter.OperatorIn, exprfilter.ErrorTypeANR)
+	crash := leaf("error_type", filter.OperatorIn, filter.ErrorTypeCrash)
+	anr := leaf("error_type", filter.OperatorIn, filter.ErrorTypeANR)
 
 	tests := []struct {
 		name        string
 		fingerprint string
-		exprTree    *exprfilter.ExprTree
+		exprTree    *filter.ExprTree
 		wantTotal   uint64
 	}{
 		{"an exception fingerprint with no filter", fpCrash, nil, 1},
@@ -158,8 +158,8 @@ func TestGetErrorGroupPlotInstancesScopesToTheFingerprint(t *testing.T) {
 func TestGetErrorGroupPlotInstancesMissingTimezone(t *testing.T) {
 	f := newPlotFixture(t)
 	now := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
-	ef := f.errorExprFilter(now.Add(-time.Hour), now.Add(time.Hour), "", exprfilter.PlotTimeGroupDays)
-	if _, err := f.app.GetErrorGroupPlotInstances(f.ctx, deps.RchPool, fpCrash, ef); err == nil {
+	flt := f.errorFilter(now.Add(-time.Hour), now.Add(time.Hour), "", filter.PlotTimeGroupDays)
+	if _, err := f.app.GetErrorGroupPlotInstances(f.ctx, deps.RchPool, fpCrash, flt); err == nil {
 		t.Fatal("expected error for missing timezone")
 	}
 }
@@ -178,13 +178,13 @@ func TestGetErrorPlotInstancesDefaultsToDaysWhenPlotTimeGroupMissing(t *testing.
 		seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "exception", "", false, ts)
 	}
 
-	ef := f.errorExprFilter(t1.Add(-time.Hour), t3.Add(time.Hour), "UTC", "")
+	flt := f.errorFilter(t1.Add(-time.Hour), t3.Add(time.Hour), "UTC", "")
 
-	items, err := f.app.GetErrorPlotInstances(f.ctx, deps.RchPool, ef)
+	items, err := f.app.GetErrorPlotInstances(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetErrorPlotInstances: %v", err)
 	}
-	assertBucketCounts(t, issueBucketCounts(items), expectedCounts([]time.Time{t1, t2, t3}, exprfilter.PlotTimeGroupDays, false))
+	assertBucketCounts(t, issueBucketCounts(items), expectedCounts([]time.Time{t1, t2, t3}, filter.PlotTimeGroupDays, false))
 }
 
 func TestGetErrorGroupPlotInstancesDefaultsToDaysWhenPlotTimeGroupMissing(t *testing.T) {
@@ -196,13 +196,13 @@ func TestGetErrorGroupPlotInstancesDefaultsToDaysWhenPlotTimeGroupMissing(t *tes
 	seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "exception", fp, false, t1)
 	seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "exception", fp, false, t2)
 
-	ef := f.errorExprFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
+	flt := f.errorFilter(t1.Add(-time.Hour), t2.Add(time.Hour), "UTC", "")
 
-	items, err := f.app.GetErrorGroupPlotInstances(f.ctx, deps.RchPool, fp, ef)
+	items, err := f.app.GetErrorGroupPlotInstances(f.ctx, deps.RchPool, fp, flt)
 	if err != nil {
 		t.Fatalf("GetErrorGroupPlotInstances: %v", err)
 	}
-	assertBucketCounts(t, issueBucketCounts(items), expectedCounts([]time.Time{t1, t2}, exprfilter.PlotTimeGroupDays, false))
+	assertBucketCounts(t, issueBucketCounts(items), expectedCounts([]time.Time{t1, t2}, filter.PlotTimeGroupDays, false))
 }
 
 func TestGetErrorPlotInstancesRespectsTimezoneBucketing(t *testing.T) {
@@ -212,8 +212,8 @@ func TestGetErrorPlotInstancesRespectsTimezoneBucketing(t *testing.T) {
 	ts := time.Date(2026, 1, 5, 23, 30, 0, 0, time.UTC)
 	seedIssueEvent(f.ctx, t, f.teamIDStr(), f.appIDStr(), "exception", "", false, ts)
 
-	ef := f.errorExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "Asia/Kolkata", exprfilter.PlotTimeGroupDays)
-	items, err := f.app.GetErrorPlotInstances(f.ctx, deps.RchPool, ef)
+	flt := f.errorFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "Asia/Kolkata", filter.PlotTimeGroupDays)
+	items, err := f.app.GetErrorPlotInstances(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetErrorPlotInstances: %v", err)
 	}
@@ -236,11 +236,11 @@ func TestGetErrorPlotInstancesGroupsByVersion(t *testing.T) {
 		Type: "exception", Timestamp: ts, AppVersion: "v2", AppBuild: "2",
 	})
 
-	ef := f.errorExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays)
-	exprTree := leaf("version_name", exprfilter.OperatorIn, "v1")
-	ef.ExprTree = &exprTree
+	flt := f.errorFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays)
+	exprTree := leaf("version_name", filter.OperatorIn, "v1")
+	flt.ExprTree = &exprTree
 
-	items, err := f.app.GetErrorPlotInstances(f.ctx, deps.RchPool, ef)
+	items, err := f.app.GetErrorPlotInstances(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetErrorPlotInstances: %v", err)
 	}
@@ -262,7 +262,7 @@ func TestGetErrorGroupAttributesDistribution(t *testing.T) {
 	f := newErrorKindsFixture(t)
 
 	t.Run("an anr fingerprint reads the anr's attributes", func(t *testing.T) {
-		distribution, err := f.app.GetErrorGroupAttributesDistribution(f.ctx, deps.RchPool, fpANR, f.filter(nil))
+		distribution, err := f.app.GetErrorGroupAttributesDistribution(f.ctx, deps.RchPool, fpANR, f.newFilter(nil))
 		if err != nil {
 			t.Fatalf("GetErrorGroupAttributesDistribution: %v", err)
 		}
@@ -275,8 +275,8 @@ func TestGetErrorGroupAttributesDistribution(t *testing.T) {
 	})
 
 	t.Run("a filter the error does not match empties the distribution", func(t *testing.T) {
-		exprTree := leaf("os_name", exprfilter.OperatorIn, "ios")
-		distribution, err := f.app.GetErrorGroupAttributesDistribution(f.ctx, deps.RchPool, fpANR, f.filter(&exprTree))
+		exprTree := leaf("os_name", filter.OperatorIn, "ios")
+		distribution, err := f.app.GetErrorGroupAttributesDistribution(f.ctx, deps.RchPool, fpANR, f.newFilter(&exprTree))
 		if err != nil {
 			t.Fatalf("GetErrorGroupAttributesDistribution: %v", err)
 		}
@@ -293,9 +293,9 @@ func TestGetErrorGroupAttributesDistribution(t *testing.T) {
 func TestGetErrorsWithFilter(t *testing.T) {
 	f := newErrorKindsFixture(t)
 
-	count := func(t *testing.T, fingerprint string, exprTree *exprfilter.ExprTree) int {
+	count := func(t *testing.T, fingerprint string, exprTree *filter.ExprTree) int {
 		t.Helper()
-		events, _, _, err := f.app.GetErrorsWithFilter(f.ctx, deps.RchPool, fingerprint, f.filter(exprTree))
+		events, _, _, err := f.app.GetErrorsWithFilter(f.ctx, deps.RchPool, fingerprint, f.newFilter(exprTree))
 		if err != nil {
 			t.Fatalf("GetErrorsWithFilter: %v", err)
 		}
@@ -315,14 +315,14 @@ func TestGetErrorsWithFilter(t *testing.T) {
 	})
 
 	t.Run("a filter the event does not match returns nothing", func(t *testing.T) {
-		exprTree := leaf("os_name", exprfilter.OperatorIn, "ios")
+		exprTree := leaf("os_name", filter.OperatorIn, "ios")
 		if got := count(t, fpCrash, &exprTree); got != 0 {
 			t.Fatalf("want no events, got %d", got)
 		}
 	})
 
 	t.Run("an error kind filter reaches the anr query too", func(t *testing.T) {
-		exprTree := leaf("error_type", exprfilter.OperatorIn, exprfilter.ErrorTypeCrash)
+		exprTree := leaf("error_type", filter.OperatorIn, filter.ErrorTypeCrash)
 		if got := count(t, fpANR, &exprTree); got != 0 {
 			t.Fatalf("want no events, got %d", got)
 		}

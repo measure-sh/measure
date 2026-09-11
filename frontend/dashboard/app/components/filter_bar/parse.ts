@@ -29,9 +29,9 @@ import { MAX_FILTER_BYTES } from "./limits";
 //	version_name:in:"1.2.0 (beta)"
 //
 // The server reads and writes the same grammar in
-// backend/libs/exprfilter/parse.go. The two are separate implementations,
+// backend/libs/filter/parse.go. The two are separate implementations,
 // held to the same behaviour by the cases in
-// backend/libs/exprfilter/testdata/filter_test_expr_cases.json, which the tests
+// backend/libs/filter/testdata/filter_test_expr_cases.json, which the tests
 // on both sides read. Draft mode is the one behaviour this parser has and the
 // server's does not; see ParseOptions.
 

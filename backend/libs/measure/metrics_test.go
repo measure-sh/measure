@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/libs/metrics"
 	"backend/testinfra"
 )
@@ -26,9 +26,9 @@ func TestGetIssueFreeMetricsUnselected(t *testing.T) {
 	seedEventRows(f.ctx, t, team, app, 8, testinfra.EventRow{AppVersion: "v2", AppBuild: "2", Timestamp: ts})
 	seedEventRows(f.ctx, t, team, app, 2, testinfra.EventRow{Type: "exception", AppVersion: "v2", AppBuild: "2", Severity: "fatal", Timestamp: ts})
 
-	ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, "version_name:in:v1 AND version_code:in:1")
+	flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "version_name:in:v1 AND version_code:in:1")
 
-	crashFree, perceivedCrashFree, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, ef)
+	crashFree, perceivedCrashFree, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetIssueFreeMetrics: %v", err)
 	}
@@ -65,9 +65,9 @@ func TestGetIssueFreeMetricsUnselectedNoData(t *testing.T) {
 	seedEventRows(f.ctx, t, team, app, 9, testinfra.EventRow{AppVersion: "v1", AppBuild: "1", Timestamp: ts})
 	seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{Type: "exception", AppVersion: "v1", AppBuild: "1", Severity: "fatal", Timestamp: ts})
 
-	ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, "version_name:in:v1 AND version_code:in:1")
+	flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "version_name:in:v1 AND version_code:in:1")
 
-	crashFree, perceivedCrashFree, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, ef)
+	crashFree, perceivedCrashFree, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetIssueFreeMetrics: %v", err)
 	}
@@ -95,9 +95,9 @@ func TestGetIssueFreeMetricsWithoutFilterExpr(t *testing.T) {
 	seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{Type: "exception", AppVersion: "v1", AppBuild: "1", Severity: "fatal", Timestamp: ts})
 	seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{Type: "exception", AppVersion: "v2", AppBuild: "2", Severity: "fatal", Timestamp: ts})
 
-	ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, "")
+	flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "")
 
-	crashFree, _, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, ef)
+	crashFree, _, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetIssueFreeMetrics: %v", err)
 	}
@@ -123,8 +123,8 @@ func TestGetAdoptionMetrics(t *testing.T) {
 
 	adopt := func(t *testing.T, filterExpr string) *metrics.SessionAdoption {
 		t.Helper()
-		ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, filterExpr)
-		adoption, err := f.app.GetAdoptionMetrics(f.ctx, deps.RchPool, ef)
+		flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, filterExpr)
+		adoption, err := f.app.GetAdoptionMetrics(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetAdoptionMetrics: %v", err)
 		}
@@ -168,8 +168,8 @@ func TestGetSizeMetrics(t *testing.T) {
 
 	size := func(t *testing.T, filterExpr string) *metrics.SizeMetric {
 		t.Helper()
-		ef := f.appHealthExprFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", exprfilter.PlotTimeGroupDays, filterExpr)
-		size, err := onboarded.GetSizeMetrics(f.ctx, deps.PgPool, deps.RchPool, ef)
+		flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, filterExpr)
+		size, err := onboarded.GetSizeMetrics(f.ctx, deps.PgPool, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetSizeMetrics: %v", err)
 		}

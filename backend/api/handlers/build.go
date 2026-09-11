@@ -9,7 +9,7 @@ import (
 	"net/url"
 
 	"backend/api/server"
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/libs/measure"
 	"backend/libs/objstore"
 
@@ -40,12 +40,12 @@ func (h Handlers) GetBuilds(c *gin.Context) {
 		return
 	}
 
-	ef := exprfilter.ExprFilter{
+	flt := filter.Filter{
 		AppID: id,
-		Limit: exprfilter.DefaultPaginationLimit,
+		Limit: filter.DefaultPaginationLimit,
 	}
 
-	if err := c.ShouldBindQuery(&ef); err != nil {
+	if err := c.ShouldBindQuery(&flt); err != nil {
 		msg := `Failed to parse query parameters`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
@@ -55,19 +55,19 @@ func (h Handlers) GetBuilds(c *gin.Context) {
 		return
 	}
 
-	ef.Entity = exprfilter.BuildsEntity
+	flt.Entity = filter.BuildsEntity
 
-	if err := ef.BuildExprTree(); err != nil {
+	if err := flt.BuildExprTree(); err != nil {
 		respondFilterError(c, err)
 		return
 	}
 
-	if err := ef.Validate(); err != nil {
+	if err := flt.Validate(); err != nil {
 		respondFilterError(c, err)
 		return
 	}
 
-	ef.SetDefaultTimeRangeIfUnset()
+	flt.SetDefaultTimeRangeIfUnset()
 
 	app := measure.App{
 		ID: &id,
@@ -108,7 +108,7 @@ func (h Handlers) GetBuilds(c *gin.Context) {
 		return
 	}
 
-	builds, next, previous, err := measure.GetBuildsWithFilter(ctx, deps.PgPool, &ef)
+	builds, next, previous, err := measure.GetBuildsWithFilter(ctx, deps.PgPool, &flt)
 	if err != nil {
 		msg := "failed to get app's builds"
 		fmt.Println(msg, err)

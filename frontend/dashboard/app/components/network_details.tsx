@@ -2,7 +2,7 @@
 
 import { filterExprIssuesIn } from "@/app/api/api_error";
 import FilterBar from "@/app/components/filter_bar/filter_bar";
-import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
+import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import InfoTooltip from "@/app/components/info_tooltip";
 import NetworkEndpointStatusCodesPlot from "@/app/components/network_endpoint_status_codes_plot";
 import NetworkLatencyPlot from "@/app/components/network_latency_plot";
@@ -36,7 +36,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
     status: filterStatus,
     filterParams,
     onChange,
-  } = useExprFilterPage({ teamId: params.teamId, entity: "network" });
+  } = useFilterPage({ teamId: params.teamId, entity: "network" });
   const readyValue = filterStatus.kind === "ready" ? value : null;
 
   const latencyQuery = useNetworkLatencyQuery(filterParams, domain, path);

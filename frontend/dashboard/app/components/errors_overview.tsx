@@ -3,7 +3,7 @@
 import { emptyErrorsOverviewResponse } from "@/app/api/api_calls";
 import { filterExprIssuesIn } from "@/app/api/api_error";
 import FilterBar from "@/app/components/filter_bar/filter_bar";
-import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
+import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import {
   useErrorsOverviewPlotQuery,
   useErrorsOverviewQuery,
@@ -54,7 +54,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
     onChange,
     nextPage,
     prevPage,
-  } = useExprFilterPage({
+  } = useFilterPage({
     teamId,
     entity: "errors",
     paginationLimit: PAGINATION_LIMIT,

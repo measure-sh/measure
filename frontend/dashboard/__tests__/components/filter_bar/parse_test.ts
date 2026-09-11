@@ -12,7 +12,7 @@ import {
 
 const casesFile = path.join(
   __dirname,
-  "../../../../../backend/libs/exprfilter/testdata/filter_test_expr_cases.json",
+  "../../../../../backend/libs/filter/testdata/filter_test_expr_cases.json",
 );
 
 type TreeCase = { name: string; text: string; tree: ExprTree };

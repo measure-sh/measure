@@ -3,7 +3,7 @@
 import { emptySessionReplayOverviewResponse } from "@/app/api/api_calls";
 import { filterExprIssuesIn } from "@/app/api/api_error";
 import FilterBar from "@/app/components/filter_bar/filter_bar";
-import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
+import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import LoadingBar from "@/app/components/loading_bar";
 import Paginator from "@/app/components/paginator";
 import SessionReplayOverviewPlot from "@/app/components/session_replay_overview_plot";
@@ -49,7 +49,7 @@ export default function SessionReplayOverview(props: {
     onChange,
     nextPage,
     prevPage,
-  } = useExprFilterPage({
+  } = useFilterPage({
     teamId: params.teamId,
     entity: "sessions",
     paginationLimit: PAGINATION_LIMIT,

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/testinfra"
 
 	"github.com/google/uuid"
@@ -82,11 +82,11 @@ func newSpanFixture(t *testing.T) (spanFixture, time.Time) {
 	}, base
 }
 
-func (f spanFixture) exprFilter(from, to time.Time, exprTree *exprfilter.ExprTree) *exprfilter.ExprFilter {
-	return &exprfilter.ExprFilter{
+func (f spanFixture) newFilter(from, to time.Time, exprTree *filter.ExprTree) *filter.Filter {
+	return &filter.Filter{
 		AppID:    f.appID,
 		TeamID:   f.teamID,
-		Entity:   exprfilter.SpansEntity,
+		Entity:   filter.SpansEntity,
 		From:     from,
 		To:       to,
 		Timezone: "UTC",
@@ -95,9 +95,9 @@ func (f spanFixture) exprFilter(from, to time.Time, exprTree *exprfilter.ExprTre
 	}
 }
 
-func spanVersions(t *testing.T, ef *exprfilter.ExprFilter, f spanFixture) []string {
+func spanVersions(t *testing.T, flt *filter.Filter, f spanFixture) []string {
 	t.Helper()
-	spans, _, _, err := f.app.GetSpansForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
+	spans, _, _, err := f.app.GetSpansForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", flt)
 	if err != nil {
 		t.Fatalf("GetSpansForSpanNameWithFilter: %v", err)
 	}
@@ -113,69 +113,69 @@ func TestGetSpansForSpanNameWithFilter(t *testing.T) {
 	from, to := base.Add(-time.Hour), base.Add(time.Hour)
 
 	t.Run("no filter returns the named spans newest first", func(t *testing.T) {
-		ef := f.exprFilter(from, to, nil)
-		got := spanVersions(t, ef, f)
+		flt := f.newFilter(from, to, nil)
+		got := spanVersions(t, flt, f)
 		if len(got) != 2 || got[0] != "v2" || got[1] != "v1" {
 			t.Fatalf("want [v2 v1], got %v", got)
 		}
 	})
 
 	t.Run("version filter", func(t *testing.T) {
-		exprTree := leaf("version_name", exprfilter.OperatorIn, "v1")
-		got := spanVersions(t, f.exprFilter(from, to, &exprTree), f)
+		exprTree := leaf("version_name", filter.OperatorIn, "v1")
+		got := spanVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 1 || got[0] != "v1" {
 			t.Fatalf("want [v1], got %v", got)
 		}
 	})
 
 	t.Run("status filter translates names to codes", func(t *testing.T) {
-		exprTree := leaf("span_status", exprfilter.OperatorIn, "error")
-		got := spanVersions(t, f.exprFilter(from, to, &exprTree), f)
+		exprTree := leaf("span_status", filter.OperatorIn, "error")
+		got := spanVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 1 || got[0] != "v2" {
 			t.Fatalf("want [v2], got %v", got)
 		}
 	})
 
 	t.Run("os name filter reads the version tuple", func(t *testing.T) {
-		exprTree := leaf("os_name", exprfilter.OperatorIn, "iOS")
-		got := spanVersions(t, f.exprFilter(from, to, &exprTree), f)
+		exprTree := leaf("os_name", filter.OperatorIn, "iOS")
+		got := spanVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 1 || got[0] != "v2" {
 			t.Fatalf("want [v2], got %v", got)
 		}
 	})
 
 	t.Run("device name substring match", func(t *testing.T) {
-		exprTree := leaf("device_name", exprfilter.OperatorContains, "phone")
-		got := spanVersions(t, f.exprFilter(from, to, &exprTree), f)
+		exprTree := leaf("device_name", filter.OperatorContains, "phone")
+		got := spanVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 1 || got[0] != "v2" {
 			t.Fatalf("want [v2], got %v", got)
 		}
 	})
 
 	t.Run("or group matches either side", func(t *testing.T) {
-		exprTree := exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalOr, Children: []exprfilter.ExprTree{
-			leaf("version_name", exprfilter.OperatorIn, "v1"),
-			leaf("span_status", exprfilter.OperatorIn, "error"),
+		exprTree := filter.ExprTree{LogicalOperator: filter.LogicalOr, Children: []filter.ExprTree{
+			leaf("version_name", filter.OperatorIn, "v1"),
+			leaf("span_status", filter.OperatorIn, "error"),
 		}}
-		got := spanVersions(t, f.exprFilter(from, to, &exprTree), f)
+		got := spanVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 2 {
 			t.Fatalf("want both spans, got %v", got)
 		}
 	})
 
 	t.Run("a filter matching nothing", func(t *testing.T) {
-		exprTree := leaf("network_type", exprfilter.OperatorIn, "vpn")
-		got := spanVersions(t, f.exprFilter(from, to, &exprTree), f)
+		exprTree := leaf("network_type", filter.OperatorIn, "vpn")
+		got := spanVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 0 {
 			t.Fatalf("want no spans, got %v", got)
 		}
 	})
 
 	t.Run("pagination flags", func(t *testing.T) {
-		ef := f.exprFilter(from, to, nil)
-		ef.Limit = 1
+		flt := f.newFilter(from, to, nil)
+		flt.Limit = 1
 
-		spans, next, previous, err := f.app.GetSpansForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
+		spans, next, previous, err := f.app.GetSpansForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", flt)
 		if err != nil {
 			t.Fatalf("GetSpansForSpanNameWithFilter: %v", err)
 		}
@@ -183,8 +183,8 @@ func TestGetSpansForSpanNameWithFilter(t *testing.T) {
 			t.Fatalf("want the first page with more to come, got %d spans next=%v previous=%v", len(spans), next, previous)
 		}
 
-		ef.Offset = 1
-		spans, next, previous, err = f.app.GetSpansForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
+		flt.Offset = 1
+		spans, next, previous, err = f.app.GetSpansForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", flt)
 		if err != nil {
 			t.Fatalf("GetSpansForSpanNameWithFilter: %v", err)
 		}
@@ -194,10 +194,10 @@ func TestGetSpansForSpanNameWithFilter(t *testing.T) {
 	})
 }
 
-func metricsVersions(t *testing.T, ef *exprfilter.ExprFilter, f spanFixture, plotTimeGroup string) map[string]bool {
+func metricsVersions(t *testing.T, flt *filter.Filter, f spanFixture, plotTimeGroup string) map[string]bool {
 	t.Helper()
-	ef.PlotTimeGroup = plotTimeGroup
-	items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
+	flt.PlotTimeGroup = plotTimeGroup
+	items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", flt)
 	if err != nil {
 		t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 	}
@@ -213,56 +213,56 @@ func TestGetMetricsPlotForSpanNameWithFilter(t *testing.T) {
 	from, to := base.Add(-time.Hour), base.Add(time.Hour)
 
 	t.Run("no filter returns one row per version", func(t *testing.T) {
-		got := metricsVersions(t, f.exprFilter(from, to, nil), f, exprfilter.PlotTimeGroupDays)
+		got := metricsVersions(t, f.newFilter(from, to, nil), f, filter.PlotTimeGroupDays)
 		if len(got) != 2 || !got["v1 (1)"] || !got["v2 (2)"] {
 			t.Fatalf("want v1 (1) and v2 (2), got %v", got)
 		}
 	})
 
 	t.Run("device name filter binds the rollup's flat column", func(t *testing.T) {
-		exprTree := leaf("device_name", exprfilter.OperatorIn, "pixel 4a")
-		got := metricsVersions(t, f.exprFilter(from, to, &exprTree), f, exprfilter.PlotTimeGroupDays)
+		exprTree := leaf("device_name", filter.OperatorIn, "pixel 4a")
+		got := metricsVersions(t, f.newFilter(from, to, &exprTree), f, filter.PlotTimeGroupDays)
 		if len(got) != 1 || !got["v1 (1)"] {
 			t.Fatalf("want only v1 (1), got %v", got)
 		}
 	})
 
 	t.Run("os name filter reads the rollup's version tuple", func(t *testing.T) {
-		exprTree := leaf("os_name", exprfilter.OperatorIn, "iOS")
-		got := metricsVersions(t, f.exprFilter(from, to, &exprTree), f, exprfilter.PlotTimeGroupDays)
+		exprTree := leaf("os_name", filter.OperatorIn, "iOS")
+		got := metricsVersions(t, f.newFilter(from, to, &exprTree), f, filter.PlotTimeGroupDays)
 		if len(got) != 1 || !got["v2 (2)"] {
 			t.Fatalf("want only v2 (2), got %v", got)
 		}
 	})
 
 	t.Run("status filter translates names to codes", func(t *testing.T) {
-		exprTree := leaf("span_status", exprfilter.OperatorIn, "error")
-		got := metricsVersions(t, f.exprFilter(from, to, &exprTree), f, exprfilter.PlotTimeGroupDays)
+		exprTree := leaf("span_status", filter.OperatorIn, "error")
+		got := metricsVersions(t, f.newFilter(from, to, &exprTree), f, filter.PlotTimeGroupDays)
 		if len(got) != 1 || !got["v2 (2)"] {
 			t.Fatalf("want only v2 (2), got %v", got)
 		}
 	})
 
 	t.Run("an empty plot time group defaults to days", func(t *testing.T) {
-		got := metricsVersions(t, f.exprFilter(from, to, nil), f, "")
+		got := metricsVersions(t, f.newFilter(from, to, nil), f, "")
 		if len(got) != 2 {
 			t.Fatalf("want both versions, got %v", got)
 		}
 	})
 
 	t.Run("missing timezone returns an error", func(t *testing.T) {
-		ef := f.exprFilter(from, to, nil)
-		ef.Timezone = ""
-		ef.PlotTimeGroup = exprfilter.PlotTimeGroupDays
-		if _, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef); err == nil {
+		flt := f.newFilter(from, to, nil)
+		flt.Timezone = ""
+		flt.PlotTimeGroup = filter.PlotTimeGroupDays
+		if _, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", flt); err == nil {
 			t.Fatal("want an error for a missing timezone")
 		}
 	})
 
 	t.Run("unsupported plot time group returns an error", func(t *testing.T) {
-		ef := f.exprFilter(from, to, nil)
-		ef.PlotTimeGroup = "weeks"
-		if _, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef); err == nil {
+		flt := f.newFilter(from, to, nil)
+		flt.PlotTimeGroup = "weeks"
+		if _, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", flt); err == nil {
 			t.Fatal("want an error for an unsupported plot time group")
 		}
 	})
@@ -306,12 +306,12 @@ func newCustomKeySpanFixture(t *testing.T) (spanFixture, time.Time) {
 // resolveCustomKeys runs the same steps a handler does for a filter that may
 // mention user-defined attribute keys: read the mentioned keys, then validate
 // against the widened key set.
-func resolveCustomKeys(t *testing.T, ef *exprfilter.ExprFilter) {
+func resolveCustomKeys(t *testing.T, flt *filter.Filter) {
 	t.Helper()
-	if err := ef.ResolveCustomKeys(context.Background(), deps.RchPool); err != nil {
+	if err := flt.ResolveCustomKeys(context.Background(), deps.RchPool); err != nil {
 		t.Fatalf("ResolveCustomKeys: %v", err)
 	}
-	if err := ef.Validate(); err != nil {
+	if err := flt.Validate(); err != nil {
 		t.Fatalf("Validate: %v", err)
 	}
 }
@@ -322,11 +322,11 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 
 	// The unpinned spans of newSpanFixture carry no attributes, so a custom
 	// condition matching both attributed spans still returns two of the four.
-	listVersions := func(t *testing.T, exprTree exprfilter.ExprTree) []string {
+	listVersions := func(t *testing.T, exprTree filter.ExprTree) []string {
 		t.Helper()
-		ef := f.exprFilter(from, to, &exprTree)
-		resolveCustomKeys(t, ef)
-		spans, _, _, err := f.app.GetSpansForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
+		flt := f.newFilter(from, to, &exprTree)
+		resolveCustomKeys(t, flt)
+		spans, _, _, err := f.app.GetSpansForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", flt)
 		if err != nil {
 			t.Fatalf("GetSpansForSpanNameWithFilter: %v", err)
 		}
@@ -338,14 +338,14 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 	}
 
 	t.Run("string value narrows to its span", func(t *testing.T) {
-		got := listVersions(t, leaf("custom.plan", exprfilter.OperatorIn, "pro"))
+		got := listVersions(t, leaf("custom.plan", filter.OperatorIn, "pro"))
 		if len(got) != 1 || got[0] != "v1" {
 			t.Fatalf("want [v1], got %v", got)
 		}
 	})
 
 	t.Run("a list of string values matches each", func(t *testing.T) {
-		got := listVersions(t, leaf("custom.plan", exprfilter.OperatorIn, "pro", "free"))
+		got := listVersions(t, leaf("custom.plan", filter.OperatorIn, "pro", "free"))
 		if len(got) != 2 {
 			t.Fatalf("want both attributed spans, got %v", got)
 		}
@@ -353,26 +353,26 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 
 	t.Run("numbers compare as numbers", func(t *testing.T) {
 		// As text, "10" orders before "9"; the cast compares them as numbers.
-		got := listVersions(t, leaf("custom.retries", exprfilter.OperatorGt, "9"))
+		got := listVersions(t, leaf("custom.retries", filter.OperatorGt, "9"))
 		if len(got) != 1 || got[0] != "v2" {
 			t.Fatalf("want [v2], got %v", got)
 		}
 
-		got = listVersions(t, leaf("custom.retries", exprfilter.OperatorGt, "5"))
+		got = listVersions(t, leaf("custom.retries", filter.OperatorGt, "5"))
 		if len(got) != 2 {
 			t.Fatalf("want both attributed spans, got %v", got)
 		}
 	})
 
 	t.Run("bool value narrows to its span", func(t *testing.T) {
-		got := listVersions(t, leaf("custom.is_premium", exprfilter.OperatorEq, "true"))
+		got := listVersions(t, leaf("custom.is_premium", filter.OperatorEq, "true"))
 		if len(got) != 1 || got[0] != "v1" {
 			t.Fatalf("want [v1], got %v", got)
 		}
 	})
 
 	t.Run("is_set matches spans carrying the attribute", func(t *testing.T) {
-		got := listVersions(t, leaf("custom.coupon", exprfilter.OperatorIsSet))
+		got := listVersions(t, leaf("custom.coupon", filter.OperatorIsSet))
 		if len(got) != 1 || got[0] != "v1" {
 			t.Fatalf("want [v1], got %v", got)
 		}
@@ -382,7 +382,7 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 		// Of the four http_request spans, only the attributed v1 span carries
 		// the coupon attribute, so the other three remain: the attributed v2
 		// span and the two unattributed spans of the base fixture.
-		got := listVersions(t, leaf("custom.coupon", exprfilter.OperatorIsNotSet))
+		got := listVersions(t, leaf("custom.coupon", filter.OperatorIsNotSet))
 		if len(got) != 3 {
 			t.Fatalf("want the three spans without the attribute, got %v", got)
 		}
@@ -392,31 +392,31 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 		// Of the four http_request spans, only the pro span is excluded: the
 		// free span and the two unattributed spans of the base fixture stay,
 		// like a fixed key's empty column value would.
-		got := listVersions(t, leaf("custom.plan", exprfilter.OperatorNotIn, "pro"))
+		got := listVersions(t, leaf("custom.plan", filter.OperatorNotIn, "pro"))
 		if len(got) != 3 {
 			t.Fatalf("want the three spans without plan pro, got %v", got)
 		}
 	})
 
 	t.Run("is_set matches every type the attribute was written under", func(t *testing.T) {
-		got := listVersions(t, leaf("custom.badge", exprfilter.OperatorIsSet))
+		got := listVersions(t, leaf("custom.badge", filter.OperatorIsSet))
 		if len(got) != 2 {
 			t.Fatalf("want the string-typed and bool-typed spans, got %v", got)
 		}
 	})
 
 	t.Run("a custom key beside a built-in key", func(t *testing.T) {
-		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
-			leaf("version_name", exprfilter.OperatorIn, "v1"),
+		got := listVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("custom.plan", filter.OperatorIn, "pro"),
+			leaf("version_name", filter.OperatorIn, "v1"),
 		}})
 		if len(got) != 1 || got[0] != "v1" {
 			t.Fatalf("want [v1], got %v", got)
 		}
 
-		got = listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
-			leaf("version_name", exprfilter.OperatorIn, "v2"),
+		got = listVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("custom.plan", filter.OperatorIn, "pro"),
+			leaf("version_name", filter.OperatorIn, "v2"),
 		}})
 		if len(got) != 0 {
 			t.Fatalf("want no spans, got %v", got)
@@ -424,9 +424,9 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 	})
 
 	t.Run("a custom key inside an or group", func(t *testing.T) {
-		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalOr, Children: []exprfilter.ExprTree{
-			leaf("custom.plan", exprfilter.OperatorIn, "free"),
-			leaf("version_name", exprfilter.OperatorIn, "v1"),
+		got := listVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalOr, Children: []filter.ExprTree{
+			leaf("custom.plan", filter.OperatorIn, "free"),
+			leaf("version_name", filter.OperatorIn, "v1"),
 		}})
 		if len(got) != 3 {
 			t.Fatalf("want the free span and both v1 spans, got %v", got)
@@ -434,9 +434,9 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 	})
 
 	t.Run("two custom conditions under and share one scan", func(t *testing.T) {
-		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
-			leaf("custom.retries", exprfilter.OperatorGt, "5"),
+		got := listVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("custom.plan", filter.OperatorIn, "pro"),
+			leaf("custom.retries", filter.OperatorGt, "5"),
 		}})
 		if len(got) != 1 || got[0] != "v1" {
 			t.Fatalf("want [v1], got %v", got)
@@ -444,9 +444,9 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 	})
 
 	t.Run("a positive and a negative under and", func(t *testing.T) {
-		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("custom.retries", exprfilter.OperatorGt, "5"),
-			leaf("custom.plan", exprfilter.OperatorNotIn, "pro"),
+		got := listVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("custom.retries", filter.OperatorGt, "5"),
+			leaf("custom.plan", filter.OperatorNotIn, "pro"),
 		}})
 		if len(got) != 1 || got[0] != "v2" {
 			t.Fatalf("want [v2], got %v", got)
@@ -454,9 +454,9 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 	})
 
 	t.Run("a positive and is_not_set under and", func(t *testing.T) {
-		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("custom.plan", exprfilter.OperatorIn, "pro", "free"),
-			leaf("custom.coupon", exprfilter.OperatorIsNotSet),
+		got := listVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("custom.plan", filter.OperatorIn, "pro", "free"),
+			leaf("custom.coupon", filter.OperatorIsNotSet),
 		}})
 		if len(got) != 1 || got[0] != "v2" {
 			t.Fatalf("want [v2], got %v", got)
@@ -465,9 +465,9 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 
 	t.Run("negatives only under and keep spans without the attributes", func(t *testing.T) {
 		// Only the pro span carries an offending row for either condition.
-		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("custom.plan", exprfilter.OperatorNotIn, "pro"),
-			leaf("custom.coupon", exprfilter.OperatorIsNotSet),
+		got := listVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("custom.plan", filter.OperatorNotIn, "pro"),
+			leaf("custom.coupon", filter.OperatorIsNotSet),
 		}})
 		if len(got) != 3 {
 			t.Fatalf("want the three spans without plan pro or a coupon, got %v", got)
@@ -475,9 +475,9 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 	})
 
 	t.Run("or of two positive custom conditions", func(t *testing.T) {
-		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalOr, Children: []exprfilter.ExprTree{
-			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
-			leaf("custom.retries", exprfilter.OperatorGt, "9"),
+		got := listVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalOr, Children: []filter.ExprTree{
+			leaf("custom.plan", filter.OperatorIn, "pro"),
+			leaf("custom.retries", filter.OperatorGt, "9"),
 		}})
 		if len(got) != 2 {
 			t.Fatalf("want both attributed spans, got %v", got)
@@ -487,9 +487,9 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 	t.Run("or with a negative keeps spans without the attribute", func(t *testing.T) {
 		// Only the pro span is excluded: it carries the coupon and its retries
 		// value of 9 is not above 9.
-		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalOr, Children: []exprfilter.ExprTree{
-			leaf("custom.retries", exprfilter.OperatorGt, "9"),
-			leaf("custom.coupon", exprfilter.OperatorIsNotSet),
+		got := listVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalOr, Children: []filter.ExprTree{
+			leaf("custom.retries", filter.OperatorGt, "9"),
+			leaf("custom.coupon", filter.OperatorIsNotSet),
 		}})
 		if len(got) != 3 {
 			t.Fatalf("want every span but the couponed one, got %v", got)
@@ -499,9 +499,9 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 	t.Run("a numeric comparison inside a shared scan", func(t *testing.T) {
 		// The scan also reads the plan rows, whose text is not numeric, so the
 		// numeric term evaluates over rows that cast to null.
-		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("custom.plan", exprfilter.OperatorIn, "free"),
-			leaf("custom.retries", exprfilter.OperatorGt, "9"),
+		got := listVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("custom.plan", filter.OperatorIn, "free"),
+			leaf("custom.retries", filter.OperatorGt, "9"),
 		}})
 		if len(got) != 1 || got[0] != "v2" {
 			t.Fatalf("want [v2], got %v", got)
@@ -509,14 +509,14 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 	})
 
 	t.Run("a root version condition narrows the attribute scan without changing results", func(t *testing.T) {
-		customOnly := exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
-			leaf("custom.retries", exprfilter.OperatorGt, "5"),
+		customOnly := filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("custom.plan", filter.OperatorIn, "pro"),
+			leaf("custom.retries", filter.OperatorGt, "5"),
 		}}
-		withVersion := exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("version_name", exprfilter.OperatorIn, "v1"),
-			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
-			leaf("custom.retries", exprfilter.OperatorGt, "5"),
+		withVersion := filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("version_name", filter.OperatorIn, "v1"),
+			leaf("custom.plan", filter.OperatorIn, "pro"),
+			leaf("custom.retries", filter.OperatorGt, "5"),
 		}}
 
 		got, want := listVersions(t, withVersion), listVersions(t, customOnly)
@@ -529,10 +529,10 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 	})
 
 	t.Run("a root version condition matching no attributed span returns nothing", func(t *testing.T) {
-		got := listVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("version_name", exprfilter.OperatorIn, "v2"),
-			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
-			leaf("custom.retries", exprfilter.OperatorGt, "5"),
+		got := listVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("version_name", filter.OperatorIn, "v2"),
+			leaf("custom.plan", filter.OperatorIn, "pro"),
+			leaf("custom.retries", filter.OperatorGt, "5"),
 		}})
 		if len(got) != 0 {
 			t.Fatalf("want no spans, got %v", got)
@@ -540,12 +540,12 @@ func TestGetSpansForSpanNameWithCustomKeys(t *testing.T) {
 	})
 
 	t.Run("an unknown custom key fails validation", func(t *testing.T) {
-		exprTree := leaf("custom.nope", exprfilter.OperatorIn, "x")
-		ef := f.exprFilter(from, to, &exprTree)
-		if err := ef.ResolveCustomKeys(context.Background(), deps.RchPool); err != nil {
+		exprTree := leaf("custom.nope", filter.OperatorIn, "x")
+		flt := f.newFilter(from, to, &exprTree)
+		if err := flt.ResolveCustomKeys(context.Background(), deps.RchPool); err != nil {
 			t.Fatalf("ResolveCustomKeys: %v", err)
 		}
-		err := ef.Validate()
+		err := flt.Validate()
 		if err == nil {
 			t.Fatal("want validation to refuse a key the app's spans never reported")
 		}
@@ -559,12 +559,12 @@ func TestGetMetricsPlotForSpanNameWithCustomKeys(t *testing.T) {
 	f, base := newCustomKeySpanFixture(t)
 	from, to := base.Add(-time.Hour), base.Add(time.Hour)
 
-	plotVersions := func(t *testing.T, exprTree exprfilter.ExprTree) map[string]bool {
+	plotVersions := func(t *testing.T, exprTree filter.ExprTree) map[string]bool {
 		t.Helper()
-		ef := f.exprFilter(from, to, &exprTree)
-		ef.PlotTimeGroup = exprfilter.PlotTimeGroupDays
-		resolveCustomKeys(t, ef)
-		items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
+		flt := f.newFilter(from, to, &exprTree)
+		flt.PlotTimeGroup = filter.PlotTimeGroupDays
+		resolveCustomKeys(t, flt)
+		items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", flt)
 		if err != nil {
 			t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 		}
@@ -580,11 +580,11 @@ func TestGetMetricsPlotForSpanNameWithCustomKeys(t *testing.T) {
 		// The query ends 5 minutes after base, before v2's attributes end.
 		// The v2 series should still be included because its bucket overlaps
 		// the plot range.
-		exprTree := leaf("custom.plan", exprfilter.OperatorIn, "free")
-		ef := f.exprFilter(from, base.Add(5*time.Minute), &exprTree)
-		ef.PlotTimeGroup = exprfilter.PlotTimeGroupDays
-		resolveCustomKeys(t, ef)
-		items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", ef)
+		exprTree := leaf("custom.plan", filter.OperatorIn, "free")
+		flt := f.newFilter(from, base.Add(5*time.Minute), &exprTree)
+		flt.PlotTimeGroup = filter.PlotTimeGroupDays
+		resolveCustomKeys(t, flt)
+		items, err := f.app.GetMetricsPlotForSpanNameWithFilter(f.ctx, deps.RchPool, "http_request", flt)
 		if err != nil {
 			t.Fatalf("GetMetricsPlotForSpanNameWithFilter: %v", err)
 		}
@@ -594,23 +594,23 @@ func TestGetMetricsPlotForSpanNameWithCustomKeys(t *testing.T) {
 	})
 
 	t.Run("string value narrows the rollup by span id", func(t *testing.T) {
-		got := plotVersions(t, leaf("custom.plan", exprfilter.OperatorIn, "pro"))
+		got := plotVersions(t, leaf("custom.plan", filter.OperatorIn, "pro"))
 		if len(got) != 1 || !got["v1 (1)"] {
 			t.Fatalf("want only v1 (1), got %v", got)
 		}
 	})
 
 	t.Run("numbers compare as numbers", func(t *testing.T) {
-		got := plotVersions(t, leaf("custom.retries", exprfilter.OperatorGt, "9"))
+		got := plotVersions(t, leaf("custom.retries", filter.OperatorGt, "9"))
 		if len(got) != 1 || !got["v2 (2)"] {
 			t.Fatalf("want only v2 (2), got %v", got)
 		}
 	})
 
 	t.Run("a custom key beside a built-in key", func(t *testing.T) {
-		got := plotVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("custom.plan", exprfilter.OperatorIn, "free"),
-			leaf("os_name", exprfilter.OperatorIn, "Android"),
+		got := plotVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("custom.plan", filter.OperatorIn, "free"),
+			leaf("os_name", filter.OperatorIn, "Android"),
 		}})
 		if len(got) != 1 || !got["v2 (2)"] {
 			t.Fatalf("want only v2 (2), got %v", got)
@@ -618,9 +618,9 @@ func TestGetMetricsPlotForSpanNameWithCustomKeys(t *testing.T) {
 	})
 
 	t.Run("two custom conditions under and share one scan", func(t *testing.T) {
-		got := plotVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
-			leaf("custom.retries", exprfilter.OperatorGt, "5"),
+		got := plotVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("custom.plan", filter.OperatorIn, "pro"),
+			leaf("custom.retries", filter.OperatorGt, "5"),
 		}})
 		if len(got) != 1 || !got["v1 (1)"] {
 			t.Fatalf("want only v1 (1), got %v", got)
@@ -630,11 +630,11 @@ func TestGetMetricsPlotForSpanNameWithCustomKeys(t *testing.T) {
 	t.Run("or with a negative beside a built-in key", func(t *testing.T) {
 		// The only iOS span carries no attributes at all, so it can match only
 		// through the negative side.
-		got := plotVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("os_name", exprfilter.OperatorIn, "iOS"),
-			{LogicalOperator: exprfilter.LogicalOr, Children: []exprfilter.ExprTree{
-				leaf("custom.plan", exprfilter.OperatorIn, "pro"),
-				leaf("custom.coupon", exprfilter.OperatorIsNotSet),
+		got := plotVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("os_name", filter.OperatorIn, "iOS"),
+			{LogicalOperator: filter.LogicalOr, Children: []filter.ExprTree{
+				leaf("custom.plan", filter.OperatorIn, "pro"),
+				leaf("custom.coupon", filter.OperatorIsNotSet),
 			}},
 		}})
 		if len(got) != 1 || !got["v2 (2)"] {
@@ -643,10 +643,10 @@ func TestGetMetricsPlotForSpanNameWithCustomKeys(t *testing.T) {
 	})
 
 	t.Run("a root version condition narrows the rollup's attribute scan", func(t *testing.T) {
-		got := plotVersions(t, exprfilter.ExprTree{LogicalOperator: exprfilter.LogicalAnd, Children: []exprfilter.ExprTree{
-			leaf("version_name", exprfilter.OperatorIn, "v1"),
-			leaf("custom.plan", exprfilter.OperatorIn, "pro"),
-			leaf("custom.retries", exprfilter.OperatorGt, "5"),
+		got := plotVersions(t, filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+			leaf("version_name", filter.OperatorIn, "v1"),
+			leaf("custom.plan", filter.OperatorIn, "pro"),
+			leaf("custom.retries", filter.OperatorGt, "5"),
 		}})
 		if len(got) != 1 || !got["v1 (1)"] {
 			t.Fatalf("want only v1 (1), got %v", got)

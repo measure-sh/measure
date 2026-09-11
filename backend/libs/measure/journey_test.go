@@ -8,7 +8,7 @@ import (
 
 	"backend/libs/ambient"
 	"backend/libs/event"
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/libs/group"
 	"backend/testinfra"
 
@@ -50,10 +50,10 @@ func TestGetJourneyGraph(t *testing.T) {
 	seedIssueEventInSession(f.ctx, t, team, app, sessionA, "exception", fpJourneyHandled, true, at(5))
 	seedIssueEventInSession(f.ctx, t, team, app, sessionB, "anr", fpJourneyANR, false, at(6))
 
-	ef := f.journeyExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), nil)
+	flt := f.journeyFilter(ts.Add(-time.Hour), ts.Add(time.Hour), nil)
 	a := App{ID: f.app.ID, TeamId: f.teamID, OSNames: []string{"Android"}}
 
-	g, err := a.GetJourneyGraph(f.ctx, deps.RchPool, ef)
+	g, err := a.GetJourneyGraph(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetJourneyGraph: %v", err)
 	}
@@ -129,10 +129,10 @@ func TestGetJourneyGraphAndroidNodeTypes(t *testing.T) {
 	seedLifecycleActivityInSession(f.ctx, t, team, app, sessionB, event.LifecycleActivityTypeResumed, "HomeActivity", at(1))
 	seedLifecycleFragmentInSession(f.ctx, t, team, app, sessionB, event.LifecycleFragmentTypeAttached, "CartFragment", at(11))
 
-	ef := f.journeyExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), nil)
+	flt := f.journeyFilter(ts.Add(-time.Hour), ts.Add(time.Hour), nil)
 	a := App{ID: f.app.ID, TeamId: f.teamID, OSNames: []string{"Android"}}
 
-	g, err := a.GetJourneyGraph(f.ctx, deps.RchPool, ef)
+	g, err := a.GetJourneyGraph(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetJourneyGraph: %v", err)
 	}
@@ -188,10 +188,10 @@ func TestGetJourneyGraphApple(t *testing.T) {
 	seedScreenViewInSession(f.ctx, t, team, app, sessionID, "HelpScreen", at(20))
 	seedIssueEventInSession(f.ctx, t, team, app, sessionID, "exception", fpJourneyApple, false, at(25))
 
-	ef := f.journeyExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), nil)
+	flt := f.journeyFilter(ts.Add(-time.Hour), ts.Add(time.Hour), nil)
 	a := App{ID: f.app.ID, TeamId: f.teamID, OSNames: []string{"iOS"}}
 
-	g, err := a.GetJourneyGraph(f.ctx, deps.RchPool, ef)
+	g, err := a.GetJourneyGraph(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetJourneyGraph: %v", err)
 	}
@@ -240,10 +240,10 @@ func TestGetJourneyGraphEmptyAnchorResets(t *testing.T) {
 	seedScreenViewInSession(f.ctx, t, team, app, sessionID, "", at(1))
 	seedIssueEventInSession(f.ctx, t, team, app, sessionID, event.TypeException, fpJourneyEmptyName, false, at(2))
 
-	ef := f.journeyExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), nil)
+	flt := f.journeyFilter(ts.Add(-time.Hour), ts.Add(time.Hour), nil)
 	a := App{ID: f.app.ID, TeamId: f.teamID, OSNames: []string{"Android"}}
 
-	g, err := a.GetJourneyGraph(f.ctx, deps.RchPool, ef)
+	g, err := a.GetJourneyGraph(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetJourneyGraph: %v", err)
 	}
@@ -274,10 +274,10 @@ func TestGetJourneyGraphTieOrderIsStable(t *testing.T) {
 	seedLifecycleActivityInSession(f.ctx, t, team, app, sessionB, event.LifecycleActivityTypeResumed, "PayActivity", at(0))
 	seedLifecycleActivityInSession(f.ctx, t, team, app, sessionB, event.LifecycleActivityTypeResumed, "SettingsActivity", at(1))
 
-	ef := f.journeyExprFilter(ts.Add(-time.Hour), ts.Add(time.Hour), nil)
+	flt := f.journeyFilter(ts.Add(-time.Hour), ts.Add(time.Hour), nil)
 	a := App{ID: f.app.ID, TeamId: f.teamID, OSNames: []string{"Android"}}
 
-	g, err := a.GetJourneyGraph(f.ctx, deps.RchPool, ef)
+	g, err := a.GetJourneyGraph(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetJourneyGraph: %v", err)
 	}
@@ -313,7 +313,7 @@ func TestGetExceptionGroupsFromFingerprintsCountsFatalOnly(t *testing.T) {
 	ctx := ambient.WithTeamId(f.ctx, f.teamID)
 	from, to := ts.Add(-time.Hour), ts.Add(time.Hour)
 
-	groups, err := group.GetExceptionGroupsFromFingerprints(ctx, deps.RchPool, f.journeyExprFilter(from, to, nil), []string{fp})
+	groups, err := group.GetExceptionGroupsFromFingerprints(ctx, deps.RchPool, f.journeyFilter(from, to, nil), []string{fp})
 	if err != nil {
 		t.Fatalf("GetExceptionGroupsFromFingerprints: %v", err)
 	}
@@ -326,8 +326,8 @@ func TestGetExceptionGroupsFromFingerprintsCountsFatalOnly(t *testing.T) {
 
 	// The seeded events carry app version v1, so a filter on another version
 	// must reach the events columns and leave the group with nothing counted.
-	exprTree := leaf("version_name", exprfilter.OperatorIn, "v9")
-	groups, err = group.GetExceptionGroupsFromFingerprints(ctx, deps.RchPool, f.journeyExprFilter(from, to, &exprTree), []string{fp})
+	exprTree := leaf("version_name", filter.OperatorIn, "v9")
+	groups, err = group.GetExceptionGroupsFromFingerprints(ctx, deps.RchPool, f.journeyFilter(from, to, &exprTree), []string{fp})
 	if err != nil {
 		t.Fatalf("GetExceptionGroupsFromFingerprints with version filter: %v", err)
 	}
@@ -366,9 +366,9 @@ func TestGetJourneyGraphFiltersByPatch(t *testing.T) {
 	a := App{ID: f.app.ID, TeamId: f.teamID, OSNames: []string{"Android"}}
 	from, to := ts.Add(-time.Hour), ts.Add(time.Hour)
 
-	nodes := func(t *testing.T, exprTree *exprfilter.ExprTree) []string {
+	nodes := func(t *testing.T, exprTree *filter.ExprTree) []string {
 		t.Helper()
-		g, err := a.GetJourneyGraph(f.ctx, deps.RchPool, f.journeyExprFilter(from, to, exprTree))
+		g, err := a.GetJourneyGraph(f.ctx, deps.RchPool, f.journeyFilter(from, to, exprTree))
 		if err != nil {
 			t.Fatalf("GetJourneyGraph: %v", err)
 		}
@@ -379,17 +379,17 @@ func TestGetJourneyGraphFiltersByPatch(t *testing.T) {
 		t.Fatalf("unfiltered nodes = %v, want all three screens", got)
 	}
 
-	byPatchID := leaf("patch_id", exprfilter.OperatorIn, patchID.String())
+	byPatchID := leaf("patch_id", filter.OperatorIn, patchID.String())
 	if got := nodes(t, &byPatchID); len(got) != 2 || got[0] != "HomeActivity" || got[1] != "DetailActivity" {
 		t.Errorf("patch_id filter nodes = %v, want the patched session's screens", got)
 	}
 
-	byPatchVersion := leaf("patch_version", exprfilter.OperatorIn, "1.0-patch.2")
+	byPatchVersion := leaf("patch_version", filter.OperatorIn, "1.0-patch.2")
 	if got := nodes(t, &byPatchVersion); len(got) != 2 {
 		t.Errorf("patch_version filter nodes = %v, want the patched session's screens", got)
 	}
 
-	noPatch := leaf("patch_id", exprfilter.OperatorIsNotSet)
+	noPatch := leaf("patch_id", filter.OperatorIsNotSet)
 	if got := nodes(t, &noPatch); len(got) != 1 || got[0] != "CartActivity" {
 		t.Errorf("is_not_set filter nodes = %v, want only the unpatched session's screen", got)
 	}

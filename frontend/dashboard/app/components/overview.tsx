@@ -4,7 +4,7 @@ import { defaultAppThresholdPrefs, emptyMetrics } from "@/app/api/api_calls";
 import { filterExprIssuesIn } from "@/app/api/api_error";
 import AppHealthPlot, { demoPlot } from "@/app/components/app_health_plot";
 import FilterBar from "@/app/components/filter_bar/filter_bar";
-import { useExprFilterPage } from "@/app/components/filter_bar/use_expr_filter_page";
+import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import MetricsOverview, {
   demoMetrics,
 } from "@/app/components/metrics_overview";
@@ -47,7 +47,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     status: filterStatus,
     filterParams,
     onChange,
-  } = useExprFilterPage({ teamId, entity: "app_health" });
+  } = useFilterPage({ teamId, entity: "app_health" });
   const readyValue = filterStatus.kind === "ready" ? value : null;
 
   const metricsQuery = useMetricsQuery(filterParams);

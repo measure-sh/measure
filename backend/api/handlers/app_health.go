@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"backend/libs/exprfilter"
+	"backend/libs/filter"
 	"backend/libs/logcomment"
 	"backend/libs/measure"
 
@@ -13,8 +13,8 @@ import (
 
 func (h Handlers) GetHealthOverviewPlotInstances(c *gin.Context) {
 	deps := h.Deps
-	app, ef, ctx, _, ok := h.prepareExprFilter(c, exprFilterEndpoint{
-		entity:          exprfilter.AppHealthEntity,
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:          filter.AppHealthEntity,
 		appScope:        *measure.ScopeAppRead,
 		logRoot:         logcomment.Health,
 		logName:         "plots_instances",
@@ -24,7 +24,7 @@ func (h Handlers) GetHealthOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
-	sessions, crashes, anrs, err := app.GetHealthPlotInstances(ctx, deps.RchPool, &ef)
+	sessions, crashes, anrs, err := app.GetHealthPlotInstances(ctx, deps.RchPool, &flt)
 	if err != nil {
 		msg := `failed to query data for health overview plot`
 		fmt.Println(msg, err)
