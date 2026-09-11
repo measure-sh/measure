@@ -144,11 +144,9 @@ func newRemoveAppsCmd() *cobra.Command {
 				return
 			}
 
-			// builds, event requests and
-			// short filters will be removed via cascade
-			// when the app is finally removed.
-			// hence, no need for explicit removal
-			// of these resources.
+			// builds and event requests will be removed via
+			// cascade when the app is finally removed. hence, no
+			// need for explicit removal of these resources.
 			if err = j.rmApps(ctx, &tx); err != nil {
 				return
 			}

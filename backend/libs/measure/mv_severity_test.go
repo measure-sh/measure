@@ -6,10 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"backend/libs/ambient"
-	"backend/libs/event"
 	"backend/libs/exprfilter"
-	"backend/libs/filter"
 )
 
 // These tests drive the real app_filters_mv & app_metrics_mv by seeding raw
@@ -61,18 +58,15 @@ func TestAppFiltersMVExceptionFlagIncludesHandled(t *testing.T) {
 
 	seedIssueEventWithFullAttributes(f.ctx, t, team, app, "", true, ts)
 
-	ctx := ambient.WithTeamId(f.ctx, f.teamID)
-	af := filter.AppFilter{
-		AppID:      f.appID,
-		ErrorTypes: []event.ErrorType{event.ErrorTypeError},
+	var exceptionRows uint64
+	row := deps.RchPool.QueryRow(f.ctx,
+		`select count() from app_filters final where team_id = toUUID(?) and app_id = toUUID(?) and exception = true`,
+		team, app)
+	if err := row.Scan(&exceptionRows); err != nil {
+		t.Fatalf("query app_filters: %v", err)
 	}
-
-	var fl filter.FilterList
-	if err := af.GetGenericFilters(ctx, deps.RchPool, &fl, false, false); err != nil {
-		t.Fatalf("GetGenericFilters: %v", err)
-	}
-	if len(fl.Versions) == 0 {
-		t.Fatalf("expected version options for handled-only exception, got none")
+	if exceptionRows == 0 {
+		t.Fatalf("expected an app_filters row flagged as an exception for a handled exception, got none")
 	}
 }
 

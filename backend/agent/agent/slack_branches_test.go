@@ -381,10 +381,10 @@ func TestSlackTurnScopedToTeam(t *testing.T) {
 	delivered := captureSlackDelivery(t)
 
 	// Three model calls: list apps, try the other team's app, answer.
-	getFiltersArgs := fmt.Sprintf(`{"app_id":%q}`, bravoID)
+	filterKeysArgs := fmt.Sprintf(`{"app_id":%q,"entity":"errors"}`, bravoID)
 	c, stub := newTestAgent(t,
 		`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"c1","type":"function","function":{"name":"list_apps","arguments":"{}"}}]}}],"usage":{"prompt_tokens":10,"completion_tokens":2}}`,
-		fmt.Sprintf(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"c2","type":"function","function":{"name":"get_filters","arguments":%s}}]}}],"usage":{"prompt_tokens":10,"completion_tokens":2}}`, strconv.Quote(getFiltersArgs)),
+		fmt.Sprintf(`{"choices":[{"message":{"role":"assistant","tool_calls":[{"id":"c2","type":"function","function":{"name":"get_filter_keys","arguments":%s}}]}}],"usage":{"prompt_tokens":10,"completion_tokens":2}}`, strconv.Quote(filterKeysArgs)),
 		`{"choices":[{"message":{"role":"assistant","content":"Only alpha here."}}],"usage":{"prompt_tokens":10,"completion_tokens":3}}`,
 	)
 	handleSlackQuestion(t, c, slackQuestionEvent(teamA, slack.SurfaceMention, "what apps do we have?", "Ev-scope"))
@@ -417,7 +417,7 @@ func TestSlackTurnScopedToTeam(t *testing.T) {
 	}
 	denied := third.Messages[len(third.Messages)-1]
 	if !strings.Contains(denied.Content, "access denied") {
-		t.Errorf("get_filters on another team's app should be denied, got %q", denied.Content)
+		t.Errorf("get_filter_keys on another team's app should be denied, got %q", denied.Content)
 	}
 	if !strings.Contains(*delivered, "Only alpha here.") {
 		t.Errorf("delivered = %q, want the model's answer", *delivered)

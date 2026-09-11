@@ -197,10 +197,6 @@ func rmAppResources(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
-	if err = j.rmShortFilters(ctx, &tx); err != nil {
-		return
-	}
-
 	if err = j.rmSessionsIndex(ctx); err != nil {
 		return
 	}
@@ -313,7 +309,7 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 	attachmentsBucket := aws.String(j.config.Storage["attachments_s3_bucket"])
 
 	fmt.Println("removing all app resources")
-	_, err = tx.Exec(ctx, "truncate table build_mappings, build_sizes, short_filters")
+	_, err = tx.Exec(ctx, "truncate table build_mappings, build_sizes")
 	if err != nil {
 		return
 	}
@@ -651,22 +647,6 @@ func (j *janitor) rmIngestionMetrics(ctx context.Context) (err error) {
 		if err := conn.Exec(ctx, deleteMetrics, namedAppId); err != nil {
 			return err
 		}
-	}
-
-	return
-}
-
-// rmShortFilters removes short filters for
-// apps in config.
-func (j *janitor) rmShortFilters(ctx context.Context, tx *pgx.Tx) (err error) {
-	placeholders, args := parameterize(j.appIds)
-	deleteShortFilters := fmt.Sprintf("delete from short_filters where app_id in (%s);", placeholders)
-
-	fmt.Println("removing short filters")
-
-	_, err = (*tx).Exec(ctx, deleteShortFilters, args...)
-	if err != nil {
-		return
 	}
 
 	return
