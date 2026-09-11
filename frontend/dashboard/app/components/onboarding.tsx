@@ -16,7 +16,6 @@ import {
   useCreateAppMutation,
 } from "../query/hooks";
 import { useQueryClient } from "@tanstack/react-query";
-import { type InitConfig } from "../stores/filters_store";
 import {
   DEFAULT_ONBOARDING_STATE,
   NATIVE_TARGETS,
@@ -43,7 +42,6 @@ const POLL_INTERVAL_MS = 3000;
 
 interface OnboardingProps {
   teamId: string;
-  initConfig: InitConfig;
 }
 
 // The renderable essentials of a code block. The user-facing step title and
@@ -574,7 +572,7 @@ function resolveApiUrl(): string {
   );
 }
 
-export default function Onboarding({ teamId, initConfig }: OnboardingProps) {
+export default function Onboarding({ teamId }: OnboardingProps) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const filtersStore = useFiltersStore();

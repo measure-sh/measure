@@ -925,7 +925,7 @@ const FiltersComponent = forwardRef<
         )}
         {store.appsState === "no-apps" &&
           (showNotOnboarded ? (
-            <Onboarding teamId={teamId} initConfig={initConfig} />
+            <Onboarding teamId={teamId} />
           ) : (
             <p className="font-body">
               Looks like you don&apos;t have any apps yet. Get started by{" "}
@@ -970,7 +970,7 @@ const FiltersComponent = forwardRef<
               )}
               {showNotOnboarded &&
                 store.filterOptionsState === "not-onboarded" && (
-                  <Onboarding teamId={teamId} initConfig={initConfig} />
+                  <Onboarding teamId={teamId} />
                 )}
             </div>
           )}
