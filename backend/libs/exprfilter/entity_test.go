@@ -11,7 +11,7 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, SessionsEntity, ErrorsEntity, JourneysEntity, AlertsEntity, NetworkEntity}
+var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, SessionsEntity, ErrorsEntity, JourneysEntity, AlertsEntity, NetworkEntity, AppHealthEntity}
 
 func sampleValues(t *testing.T, key Key, operator Operator) []Value {
 	t.Helper()
@@ -418,6 +418,63 @@ func TestJourneyEventsKeyBindingsReadTheEventsColumns(t *testing.T) {
 	}
 	defer onEvents.Close()
 	if got := onEvents.String(); got != "((attribute.app_version in ?) and (attribute.app_build in ?))" {
+		t.Errorf("want the attribute columns compared, got %q", got)
+	}
+	if args := onEvents.Args(); len(args) != 2 || !slices.Equal(args[0].([]string), []string{"1.2.0"}) || !slices.Equal(args[1].([]string), []string{"120"}) {
+		t.Errorf("want the version values bound, got %v", args)
+	}
+}
+
+func TestAppHealthEntityOffersEveryAppHealthKey(t *testing.T) {
+	byName := IndexKeysByName(AppHealthEntity.Keys)
+
+	wanted := []string{"version_name", "version_code"}
+	for _, name := range wanted {
+		if _, ok := byName[name]; !ok {
+			t.Errorf("want a %q key on the app health entity", name)
+		}
+	}
+	if len(AppHealthEntity.Keys) != len(wanted) {
+		t.Errorf("want %d app health keys, got %d", len(wanted), len(AppHealthEntity.Keys))
+	}
+}
+
+func TestAppHealthBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
+	_, err := AppHealthEntity.BindKey(Condition{
+		KeyName:  "os_name",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "android"}},
+	})
+
+	if err == nil {
+		t.Fatal("want a key the app health entity does not have refused")
+	}
+	if !strings.Contains(err.Error(), "os_name") {
+		t.Errorf("want the key named, got %q", err)
+	}
+}
+
+func TestAppHealthEventsKeyBindingsReadTheEventsColumns(t *testing.T) {
+	ef := &ExprFilter{Entity: AppHealthEntity, FilterExpr: "version_name:in:1.2.0 AND version_code:in:120"}
+	if err := ef.BuildExprTree(); err != nil {
+		t.Fatalf("build: %v", err)
+	}
+
+	onMetrics, err := ef.Predicate(nil)
+	if err != nil {
+		t.Fatalf("predicate on the app metrics table: %v", err)
+	}
+	defer onMetrics.Close()
+	if got := onMetrics.String(); got != "((tupleElement(app_version, 1) in ?) and (tupleElement(app_version, 2) in ?))" {
+		t.Errorf("want the tuple columns compared, got %q", got)
+	}
+
+	onEvents, err := ef.Predicate(AppHealthEventsKeyBindings)
+	if err != nil {
+		t.Fatalf("predicate on the events table: %v", err)
+	}
+	defer onEvents.Close()
+	if got := onEvents.String(); got != "((`attribute.app_version` in ?) and (`attribute.app_build` in ?))" {
 		t.Errorf("want the attribute columns compared, got %q", got)
 	}
 	if args := onEvents.Args(); len(args) != 2 || !slices.Equal(args[0].([]string), []string{"1.2.0"}) || !slices.Equal(args[1].([]string), []string{"120"}) {

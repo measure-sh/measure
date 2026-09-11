@@ -420,7 +420,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_filter_keys
 		newTool(&mcpsdk.Tool{
 			Name:        "get_filter_keys",
-			Description: "List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
+			Description: "List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
 			InputSchema: mcpMustInferSchema[mcpGetFilterKeysInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFilterKeysInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetFilterKeys(ctx, in)
@@ -438,8 +438,8 @@ func commonTools(cfg *Config) []Tool {
 		// get_metrics
 		newTool(&mcpsdk.Tool{
 			Name:        "get_metrics",
-			Description: "Get app metrics including adoption, crash-free/ANR-free sessions, and launch performance (cold/warm/hot p95). Covers all app versions unless versions/version_codes narrow it; adoption is only meaningful against a specific version, so pass one with its version_code when reading it. get_filters lists the versions.",
-			InputSchema: mcpMustInferSchema[mcpGetMetricsInput](),
+			Description: "Get app metrics including adoption, crash-free/ANR-free sessions, launch performance (cold/warm/hot p95) and app size. Covers every app version unless filter_expr narrows it; each metric is reported for the selected versions and for the rest, and adoption is only meaningful against a specific version, so narrow to one with its version_code when reading it. App size is reported only when the filter selects a single version name, as the size of that version's most recent build. " + mcpFilterExprToolsHint(exprfilter.AppHealthEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetMetricsInput](mcpAppHealthFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetMetricsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetMetrics(ctx, in)
 		}),
@@ -447,8 +447,8 @@ func commonTools(cfg *Config) []Tool {
 		// get_app_health_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_app_health_over_time",
-			Description: "Get the app health timeline: sessions, crashes (fatal exceptions) and ANRs bucketed over time. This is the overview health plot. Covers all app versions unless versions/version_codes narrow it; get_filters lists the versions.",
-			InputSchema: mcpMustInferSchema[mcpGetAppHealthOverTimeInput](),
+			Description: "Get the app health timeline: sessions, crashes (fatal exceptions) and ANRs bucketed over time. This is the overview health plot. Covers every app version unless filter_expr narrows it; " + mcpFilterExprToolsHint(exprfilter.AppHealthEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetAppHealthOverTimeInput](mcpAppHealthFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetAppHealthOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetAppHealthOverTime(ctx, in)
 		}),
@@ -703,6 +703,7 @@ var (
 	mcpSessionsFilterExprGrammar         = mcpFilterExprGrammar(exprfilter.SessionsEntity, "session_events:in:[fatal_error, anr] AND session_foreground_background:in:[foreground]")
 	mcpErrorsFilterExprGrammar           = mcpFilterExprGrammar(exprfilter.ErrorsEntity, `error_type:in:[Crash, ANR] AND os_name:in:[android]`)
 	mcpErrorGroupEventsFilterExprGrammar = mcpFilterExprGrammar(exprfilter.ErrorGroupEventsEntity, "version_name:in:[1.2.0] AND os_name:in:[android]")
+	mcpAppHealthFilterExprGrammar        = mcpFilterExprGrammar(exprfilter.AppHealthEntity, "version_name:in:[1.2.0] AND version_code:in:[120]")
 )
 
 // mcpMustInferFilterExprSchema infers a JSON schema from a Go type and sets
@@ -761,24 +762,6 @@ func mcpMustInferErrorFilterSchema[T any]() json.RawMessage {
 // Tool input structs
 // --------------------------------------------------------------------------
 
-// mcpCommonFilters contains filter fields shared across most tools.
-type mcpCommonFilters struct {
-	AppID               string   `json:"app_id" jsonschema:"UUID of the app to query"`
-	From                string   `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
-	To                  string   `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
-	Versions            []string `json:"versions,omitempty" jsonschema:"Filter by app version strings. Pass together with version_codes as same-length index-aligned pairs; get_filters lists both"`
-	VersionCodes        []string `json:"version_codes,omitempty" jsonschema:"Filter by app version codes. Pass together with versions as same-length index-aligned pairs; get_filters lists both"`
-	OsNames             []string `json:"os_names,omitempty" jsonschema:"Filter by OS names (e.g. android, ios)"`
-	OsVersions          []string `json:"os_versions,omitempty" jsonschema:"Filter by OS versions. Pass together with os_names as same-length index-aligned pairs (one OS name per version); os_names alone works without this"`
-	Countries           []string `json:"countries,omitempty" jsonschema:"Filter by country codes (e.g. US, IN)"`
-	NetworkProviders    []string `json:"network_providers,omitempty" jsonschema:"Filter by network providers"`
-	NetworkTypes        []string `json:"network_types,omitempty" jsonschema:"Filter by network types (e.g. wifi, cellular)"`
-	NetworkGenerations  []string `json:"network_generations,omitempty" jsonschema:"Filter by network generations (e.g. 4g, 5g)"`
-	Locales             []string `json:"locales,omitempty" jsonschema:"Filter by device locales (e.g. en_US)"`
-	DeviceManufacturers []string `json:"device_manufacturers,omitempty" jsonschema:"Filter by device manufacturers"`
-	DeviceNames         []string `json:"device_names,omitempty" jsonschema:"Filter by device names"`
-}
-
 type mcpListAppsInput struct{}
 type mcpGetFiltersInput struct {
 	AppID      string   `json:"app_id" jsonschema:"UUID of the app to query"`
@@ -788,24 +771,28 @@ type mcpGetFiltersInput struct {
 }
 type mcpGetFilterKeysInput struct {
 	AppID  string   `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network or builds"`
+	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health or builds"`
 	Keys   []string `json:"keys,omitempty" jsonschema:"Key names you already know, for example from the user's request, to include in the result even when the listing is truncated"`
 }
 type mcpGetFilterValuesInput struct {
 	AppID   string `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network or builds"`
+	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health or builds"`
 	KeyName string `json:"key_name" jsonschema:"Name of the filter key to list values for, as get_filter_keys returns it"`
 	Search  string `json:"search,omitempty" jsonschema:"Return only values containing this text"`
 	Limit   int    `json:"limit,omitempty" jsonschema:"Maximum number of values to return (default: 50, max: 200)"`
 }
 type mcpGetMetricsInput struct {
-	mcpCommonFilters
-	Limit  int `json:"limit,omitempty" jsonschema:"Maximum number of items to return (default: 10)"`
-	Offset int `json:"offset,omitempty" jsonschema:"Number of items to skip for pagination (default: 0)"`
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
 }
 type mcpGetAppHealthOverTimeInput struct {
-	mcpCommonFilters
-	Timezone string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Timezone   string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
 }
 type mcpGetErrorsInput struct {
 	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
@@ -1037,88 +1024,6 @@ func (c *Config) mcpResolveAppAccess(ctx context.Context, rawAppID string) (uuid
 	}
 
 	return appID, *team.ID, nil
-}
-
-// mcpBuildAppFilter populates a filter.AppFilter from mcpCommonFilters.
-// When no versions/version_codes are provided, the query covers every app
-// version: the underlying queries want an explicit version list, so the
-// versions seen in the requested time range are fetched and all of them are
-// passed through. Narrowing silently (for example to the latest version)
-// makes the model report "no data" for questions that span versions.
-func (c *Config) mcpBuildAppFilter(ctx context.Context, appID uuid.UUID, cf mcpCommonFilters) (*filter.AppFilter, error) {
-	deps := c.Deps
-	af := &filter.AppFilter{AppID: appID}
-
-	// The query layer consumes versions/version_codes and os_names/os_versions
-	// as index-aligned pairs. One-sided or mismatched input has to be rejected
-	// here: deeper down it either fails with an internal pairing error or the
-	// filter is silently dropped, depending on the query.
-	if len(cf.Versions) != len(cf.VersionCodes) {
-		return nil, fmt.Errorf("versions and version_codes must be passed together as same-length index-aligned pairs, each version with its version code; get_filters lists both")
-	}
-	if len(cf.OsVersions) > 0 && len(cf.OsNames) != len(cf.OsVersions) {
-		return nil, fmt.Errorf("os_versions must be paired with os_names of the same length, one OS name per OS version; get_filters lists both")
-	}
-
-	from, to, err := mcpParseTimeRangeStrings(cf.From, cf.To)
-	if err != nil {
-		return nil, err
-	}
-	af.From, af.To = from, to
-
-	if len(cf.Versions) > 0 {
-		af.Versions = cf.Versions
-	}
-	if len(cf.VersionCodes) > 0 {
-		af.VersionCodes = cf.VersionCodes
-	}
-	if len(cf.OsNames) > 0 {
-		af.OsNames = cf.OsNames
-	}
-	if len(cf.OsVersions) > 0 {
-		af.OsVersions = cf.OsVersions
-	}
-	if len(cf.Countries) > 0 {
-		af.Countries = cf.Countries
-	}
-	if len(cf.NetworkProviders) > 0 {
-		af.NetworkProviders = cf.NetworkProviders
-	}
-	if len(cf.NetworkTypes) > 0 {
-		af.NetworkTypes = cf.NetworkTypes
-	}
-	if len(cf.NetworkGenerations) > 0 {
-		af.NetworkGenerations = cf.NetworkGenerations
-	}
-	if len(cf.Locales) > 0 {
-		af.Locales = cf.Locales
-	}
-	if len(cf.DeviceManufacturers) > 0 {
-		af.DeviceManufacturers = cf.DeviceManufacturers
-	}
-	if len(cf.DeviceNames) > 0 {
-		af.DeviceNames = cf.DeviceNames
-	}
-
-	if len(af.Versions) == 0 && len(af.VersionCodes) == 0 {
-		app, selectErr := measure.SelectApp(ctx, deps.PgPool, appID)
-		if selectErr != nil {
-			return nil, fmt.Errorf("failed to fetch versions: %v", selectErr)
-		}
-		// The version list comes from the query's own time range, so versions
-		// only seen outside some default window still count.
-		filtersAF := &filter.AppFilter{AppID: appID, From: af.From, To: af.To}
-		filterCtx := ambient.WithTeamId(ctx, app.TeamId)
-
-		var fl filter.FilterList
-		if err := filtersAF.GetGenericFilters(filterCtx, deps.RchPool, &fl, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode); err != nil {
-			return nil, fmt.Errorf("failed to fetch versions: %v", err)
-		}
-		af.Versions = fl.Versions
-		af.VersionCodes = fl.VersionCodes
-	}
-
-	return af, nil
 }
 
 // mcpExprFilter builds the exprfilter.ExprFilter a query tool passes to the
@@ -1418,48 +1323,29 @@ func (c *Config) mcpGetFilterValues(ctx context.Context, in mcpGetFilterValuesIn
 
 func (c *Config) mcpGetMetrics(ctx context.Context, in mcpGetMetricsInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.AppHealthEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	af, err := c.mcpBuildAppFilter(ctx, appID, in.mcpCommonFilters)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	limit := in.Limit
-	if limit <= 0 {
-		limit = 10
-	}
-	if limit > 30 {
-		limit = 30
-	}
-	af.Limit = limit
-	af.Offset = in.Offset
-
+	// Which metrics are read depends on the app's OS family and onboarded
+	// state, which only the app row carries.
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	if err := app.Populate(ctx, deps.PgPool); err != nil {
 		return nil, nil, err
 	}
-	metricsCtx := ambient.WithTeamId(ctx, teamID)
 
-	adoption, err := app.GetAdoptionMetrics(metricsCtx, deps.RchPool, af)
+	adoption, err := app.GetAdoptionMetrics(ctx, deps.RchPool, ef)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch adoption metrics: %w", err)
 	}
 
-	excludedVersions, err := af.GetExcludedVersions(metricsCtx, deps.RchPool)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to fetch excluded versions: %w", err)
-	}
-
-	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err := app.GetIssueFreeMetrics(metricsCtx, deps.RchPool, af)
+	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err := app.GetIssueFreeMetrics(ctx, deps.RchPool, ef)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch issue free metrics: %w", err)
 	}
 
-	launch, err := app.GetLaunchMetrics(metricsCtx, deps.RchPool, af)
+	launch, err := app.GetLaunchMetrics(ctx, deps.RchPool, ef)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch launch metrics: %w", err)
 	}
@@ -1490,11 +1376,11 @@ func (c *Config) mcpGetMetrics(ctx context.Context, in mcpGetMetricsInput) (*mcp
 		},
 	}
 
-	if len(af.Versions) > 0 && !af.HasMultiVersions() {
-		sizes, err := app.GetSizeMetrics(metricsCtx, deps.PgPool, af, excludedVersions)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to fetch size metrics: %w", err)
-		}
+	sizes, err := app.GetSizeMetrics(ctx, deps.PgPool, deps.RchPool, ef)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to fetch size metrics: %w", err)
+	}
+	if sizes != nil {
 		result["sizes"] = sizes
 	}
 
@@ -1508,22 +1394,15 @@ func (c *Config) mcpGetAppHealthOverTime(ctx context.Context, in mcpGetAppHealth
 		return nil, nil, fmt.Errorf("timezone is required for over time tools")
 	}
 
-	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	appID, teamID, ef, err := c.mcpPrepareExprFilter(ctx, exprfilter.AppHealthEntity, in.AppID, in.From, in.To, in.FilterExpr, func(ef *exprfilter.ExprFilter) {
+		ef.Timezone = in.Timezone
+	})
 	if err != nil {
 		return nil, nil, err
 	}
-
-	af, err := c.mcpBuildAppFilter(ctx, appID, in.mcpCommonFilters)
-	if err != nil {
-		return nil, nil, err
-	}
-	af.Timezone = in.Timezone
-	af.Limit = filter.DefaultPaginationLimit
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
-	plotCtx := ambient.WithTeamId(ctx, teamID)
-
-	sessions, crashes, anrs, plotErr := app.GetHealthPlotInstances(plotCtx, deps.RchPool, af)
+	sessions, crashes, anrs, plotErr := app.GetHealthPlotInstances(ctx, deps.RchPool, ef)
 	if plotErr != nil {
 		return nil, nil, fmt.Errorf("failed to get app health plot: %v", plotErr)
 	}

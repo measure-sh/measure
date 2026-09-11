@@ -2,10 +2,11 @@
 
 import dynamic from "next/dynamic";
 
-const Overview = dynamic(() => import("../../components/overview"), {
-  ssr: false,
-});
+const Demo = dynamic(
+  () => import("../../components/overview").then((m) => m.OverviewDemo),
+  { ssr: false },
+);
 
 export default function OverviewDemo() {
-  return <Overview demo={true} hideDemoTitle={true} />;
+  return <Demo hideTitle />;
 }

@@ -993,15 +993,26 @@ export const fetchFiltersFromServer = async (
   return { kind: "options", data };
 };
 
-export const fetchAppHealthPlotFromServer = async (filters: Filters) => {
-  let url = `/api/apps/${filters.app!.id}/health/plots/instances?`;
-
-  url = await applyGenericFiltersToUrl(url, filters, null, null);
-  url = appendPlotTimeGroupToUrl(url, filters);
-
-  const data = await request(url, {
-    failsWith: "Failed to fetch app health plot",
+export const fetchAppHealthPlotFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+) => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    plot_time_group: getPlotTimeGroupForRange(startDate, endDate),
   });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+
+  const data = await request(
+    `/api/apps/${appId}/health/plots/instances?${params.toString()}`,
+    { failsWith: "Failed to fetch app health plot" },
+  );
 
   if (data === null) {
     return null;
@@ -1088,14 +1099,24 @@ export const fetchJourneyFromServer = async (
   });
 };
 
-export const fetchMetricsFromServer = async (filters: Filters) => {
-  let url = `/api/apps/${filters.app!.id}/metrics?`;
+export const fetchMetricsFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+) => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
 
-  url = await applyGenericFiltersToUrl(url, filters, null, null);
-
-  const data = await request(url, { failsWith: "Failed to fetch metrics" });
-
-  return data;
+  return await request(`/api/apps/${appId}/metrics?${params.toString()}`, {
+    failsWith: "Failed to fetch metrics",
+  });
 };
 
 export const fetchSessionReplayOverviewFromServer = async (

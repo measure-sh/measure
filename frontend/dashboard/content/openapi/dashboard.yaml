@@ -478,22 +478,25 @@ paths:
         - Apps
       summary: Fetch an app's health metrics
       description: |
-        Fetch an app's health metrics. Filter time range using `from` & `to`
-        query string parameters. Filter version using `versions` &
-        `version_codes` query string parameters.
-
-        Both `versions` & `version_codes` should be present if any one of them
-        is present, and the number of items in each must be the same. `from` &
-        `to` values must be ISO 8601 UTC strings in milliseconds precision and
-        default to a last 7 days time range if not supplied.
+        Fetch an app's health metrics, optionally narrowed by a filter
+        expression over the app version. `from` & `to` values must be ISO 8601
+        UTC strings in milliseconds precision and default to a last 7 days
+        time range if not supplied.
 
         Each session and launch metric also carries an `unselected_` variant
-        holding the same metric computed over the app versions not selected by
-        the version filters, for comparison against the selected versions.
+        holding the same metric computed over the app versions the filter
+        expression leaves out, for comparison against the selected versions.
+        Without a filter expression every version is selected, so the
+        unselected side has no data and adoption is 100%.
 
         `no_data` and `unselected_no_data` are true when there was no data to
         compute the metric, for example no sessions on that side. The metric
         value is then a placeholder zero.
+
+        `sizes` is null unless the filter expression selects a single app
+        version name, since a download size belongs to a single build. A
+        version with several builds in the range reports its most recently
+        seen build.
       parameters:
         - name: id
           in: path
@@ -504,18 +507,7 @@ paths:
             format: uuid
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
-        - name: versions
-          in: query
-          required: false
-          description: Comma separated version identifiers.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: Comma separated version codes.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/FilterExpr"
       responses:
         "200":
           description: Successful response, no errors.
@@ -603,6 +595,8 @@ paths:
                         type: boolean
                   sizes:
                     type: object
+                    nullable: true
+                    description: Null unless the filter expression selects a single app version name; a version with several builds reports its most recent build.
                     properties:
                       average_app_size:
                         type: number
@@ -688,17 +682,14 @@ paths:
         - Apps
       summary: Fetch an app's health overview instances plot
       description: |
-        Fetch an app's health overview instances plot. The response is a time
+        Fetch an app's health overview instances plot, optionally narrowed by
+        a filter expression over the app version. The response is a time
         series of three metrics bucketed by datetime: sessions, crashes (fatal
-        exceptions) & ANRs. Filter time range using `from` & `to` query string
-        parameters. Filter version using `versions` & `version_codes` query
-        string parameters.
+        exceptions) & ANRs.
 
-        `from` & `to` will default to a last 7 days time range if not supplied.
-        Both `versions` & `version_codes` should be present if any one of them
-        is present, and must contain the same number of items. For multiple
-        comma separated fields, make sure no whitespace characters exist before
-        or after commas.
+        `from` & `to` will default to a last 7 days time range if not
+        supplied. `timezone` is required and decides which day a bucket falls
+        in.
 
         The response is an array of three series identified by `id`:
         `sessions`, `crashes` & `anrs`. Each series holds a sparse list of
@@ -716,24 +707,7 @@ paths:
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/Timezone"
         - $ref: "#/components/parameters/PlotTimeGroup"
-        - name: versions
-          in: query
-          required: false
-          description: List of comma separated app version identifier strings to return only matching data.
-          schema:
-            type: string
-        - name: version_codes
-          in: query
-          required: false
-          description: List of comma separated app version codes to return only matching data.
-          schema:
-            type: string
-        - name: filter_short_code
-          in: query
-          required: false
-          description: Code representing combination of filters.
-          schema:
-            type: string
+        - $ref: "#/components/parameters/FilterExpr"
       responses:
         "200":
           description: Successful response, no errors.
@@ -995,6 +969,9 @@ paths:
               - journeys
               - alerts
               - network
+              - errors
+              - error_group_events
+              - app_health
         - name: key
           in: query
           required: false
@@ -1121,6 +1098,9 @@ paths:
               - journeys
               - alerts
               - network
+              - errors
+              - error_group_events
+              - app_health
         - name: key_name
           in: query
           required: true

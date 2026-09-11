@@ -1,7 +1,5 @@
 "use client";
 
-import { useAppHealthPlotQuery } from "@/app/query/hooks";
-import { useFiltersStore } from "@/app/stores/provider";
 import { ResponsiveLineCanvas } from "@nivo/line";
 import { DateTime } from "luxon";
 import { useTheme } from "next-themes";
@@ -21,8 +19,13 @@ import {
 } from "./plot_tooltip";
 import { SkeletonPlot } from "./skeleton";
 
+export type AppHealthPlotData = {
+  id: string;
+  data: { id: string; x: string; y: number }[];
+}[];
+
 const demoDataDate = DateTime.now();
-const demoPlot = [
+export const demoPlot: AppHealthPlotData = [
   {
     id: "Sessions",
     data: [
@@ -134,22 +137,22 @@ const demoPlot = [
 ];
 
 interface AppHealthPlotProps {
-  demo?: boolean;
+  status: "pending" | "success" | "error";
+  plot: AppHealthPlotData | null | undefined;
+  startDate: string;
+  endDate: string;
 }
 
-const AppHealthPlot: React.FC<AppHealthPlotProps> = ({ demo = false }) => {
-  const filters = useFiltersStore((state) => state.filters);
-  const { data: queryPlot, status } = useAppHealthPlotQuery();
+const AppHealthPlot: React.FC<AppHealthPlotProps> = ({
+  status,
+  plot: rawPlot,
+  startDate,
+  endDate,
+}) => {
   const { theme } = useTheme();
   const chartColor = useChartColor();
-  const plotTimeGroup = getPlotTimeGroupForRange(
-    filters.startDate,
-    filters.endDate,
-  );
+  const plotTimeGroup = getPlotTimeGroupForRange(startDate, endDate);
   const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
-
-  const effectiveStatus = demo ? "success" : status;
-  const rawPlot = demo ? demoPlot : queryPlot;
 
   const colorMap = useMemo(
     () =>
@@ -180,17 +183,17 @@ const AppHealthPlot: React.FC<AppHealthPlotProps> = ({ demo = false }) => {
 
   return (
     <div className="flex font-body items-center justify-center w-full h-96">
-      {effectiveStatus === "pending" && <SkeletonPlot />}
-      {effectiveStatus === "error" && (
+      {status === "pending" && <SkeletonPlot />}
+      {status === "error" && (
         <p className="text-lg font-display text-center p-4">
           Error fetching plot, please change filters or refresh page to try
           again
         </p>
       )}
-      {effectiveStatus === "success" && plot === null && (
+      {status === "success" && (plot === null || plot === undefined) && (
         <p className="text-lg font-display text-center p-4">No Data</p>
       )}
-      {effectiveStatus === "success" && plot !== null && plot !== undefined && (
+      {status === "success" && plot !== null && plot !== undefined && (
         <div className="size-full">
           <ResponsiveLineCanvas
             data={plot}

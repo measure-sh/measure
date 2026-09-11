@@ -11,7 +11,10 @@ const UserJourneysDemo = dynamic(
   () => import("./user_journeys").then((m) => m.UserJourneysDemo),
   { ssr: false },
 );
-const Overview = dynamic(() => import("./overview"), { ssr: false });
+const OverviewDemo = dynamic(
+  () => import("./overview").then((m) => m.OverviewDemo),
+  { ssr: false },
+);
 const TraceDetails = dynamic(() => import("./trace/details"), { ssr: false });
 const SessionReplay = dynamic(() => import("./session_replay"), {
   ssr: false,
@@ -173,7 +176,7 @@ export default function FeatureDemoCarousel() {
       hideDemoTitle={false}
       key="demo-session-replay"
     />,
-    <Overview demo={true} hideDemoTitle={false} key="demo-overview" />,
+    <OverviewDemo hideTitle={false} key="demo-overview" />,
     <ErrorsDetailsView demo={true} hideDemoTitle={false} key="demo-errors" />,
     <TraceDetails demo={true} hideDemoTitle={false} key="demo-trace" />,
     <BugReport demo={true} hideDemoTitle={false} key="demo-bugreport" />,

@@ -102,6 +102,10 @@ func seedApp(ctx context.Context, t *testing.T, appID, teamID uuid.UUID, retenti
 	th.SeedApp(ctx, t, appID.String(), teamID.String(), fmt.Sprintf("app-%s", appID.String()[:8]), retention)
 }
 
+func seedEventRows(ctx context.Context, t *testing.T, teamID, appID string, count int, row testinfra.EventRow) {
+	th.SeedEventRows(ctx, t, teamID, appID, count, row)
+}
+
 func seedAppMetrics(ctx context.Context, t *testing.T, teamID, appID string, ts time.Time, genericCount, crashCount, anrCount int) {
 	th.SeedAppMetrics(ctx, t, teamID, appID, ts, genericCount, crashCount, anrCount)
 }

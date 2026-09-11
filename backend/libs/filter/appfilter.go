@@ -389,34 +389,6 @@ func (af *AppFilter) Validate() error {
 	return nil
 }
 
-// ValidateVersions validates presence of valid
-// version name and version code.
-func (af AppFilter) ValidateVersions() error {
-	presence := len(af.Versions) > 0 && len(af.VersionCodes) > 0
-	arity := len(af.Versions) == len(af.VersionCodes)
-
-	if !presence {
-		return fmt.Errorf(`%q and %q both are required`, "versions", "version_codes")
-	}
-	if !arity {
-		return fmt.Errorf(`%q and %q both should be of same length`, "versions", "version_codes")
-	}
-
-	return nil
-}
-
-// VersionPairs provides a convenient wrapper over versions
-// and version codes representing them in paired-up way, like
-// tuples. For many cases, a paired up version is more useful
-// than individual version names and codes.
-func (af AppFilter) VersionPairs() (versions *pairs.Pairs[string, string], err error) {
-	versions, err = pairs.NewPairs(af.Versions, af.VersionCodes)
-	if err != nil {
-		return
-	}
-	return
-}
-
 // OSVersionPairs provides a convenient wrapper over OS name
 // and OS version representing them in paired-up way, like
 // tuples. For many cases, a paired up version is more useful
@@ -441,22 +413,10 @@ func (af AppFilter) HasPositiveLimit() bool {
 	return af.Limit > 0
 }
 
-// HasVersions returns true if at least one
-// app version is requested.
-func (af AppFilter) HasVersions() bool {
-	return len(af.Versions) > 0 && len(af.VersionCodes) > 0
-}
-
 // HasOSVersions returns true if there at least
 // one OS Version is requested.
 func (af AppFilter) HasOSVersions() bool {
 	return len(af.OsNames) > 0 && len(af.OsVersions) > 0
-}
-
-// HasMultiVersions checks if multiple versions
-// are requested.
-func (af AppFilter) HasMultiVersions() bool {
-	return len(af.Versions) > 1 && len(af.VersionCodes) > 1
 }
 
 // HasCountries returns true if at least one
@@ -501,22 +461,10 @@ func (af AppFilter) HasDeviceNames() bool {
 	return len(af.DeviceNames) > 0
 }
 
-// HasTimezone returns true if a timezone
-// is requested.
-func (af AppFilter) HasTimezone() bool {
-	return af.Timezone != ""
-}
-
 // HasPlotTimeGroup returns true if a plot time group
 // is provided.
 func (af AppFilter) HasPlotTimeGroup() bool {
 	return af.PlotTimeGroup != ""
-}
-
-// SetDefaultPlotTimeGroup sets the default plot time
-// grouping granularity.
-func (af *AppFilter) SetDefaultPlotTimeGroup() {
-	af.PlotTimeGroup = PlotTimeGroupDays
 }
 
 // HasBugReportStatuses returns true if at least
@@ -1399,39 +1347,6 @@ func (af AppFilter) getUDAttrKeys(ctx context.Context, rch driver.Conn) (keytype
 	}
 
 	err = rows.Err()
-
-	return
-}
-
-// GetExcludedVersions computes list of app version
-// and version codes that are excluded from app filter.
-func (af AppFilter) GetExcludedVersions(ctx context.Context, rch driver.Conn) (versions Versions, err error) {
-	teamId, err := ambient.TeamId(ctx)
-	if err != nil {
-		return
-	}
-	ctx = chquery.WithTeamScope(ctx, teamId)
-
-	allVersions, allCodes, err := af.getAppVersions(ctx, rch)
-	if err != nil {
-		return
-	}
-
-	// If no versions are selected, treat it as if all versions were selected
-	if len(af.Versions) == 0 || len(af.VersionCodes) == 0 {
-		af.Versions = allVersions
-		af.VersionCodes = allCodes
-		return
-	}
-
-	count := len(allVersions)
-
-	if count != len(allCodes) {
-		err = fmt.Errorf("mismatch in length of versions and version codes detected")
-		return
-	}
-
-	versions = exclude(allVersions, allCodes, af.Versions, af.VersionCodes)
 
 	return
 }
