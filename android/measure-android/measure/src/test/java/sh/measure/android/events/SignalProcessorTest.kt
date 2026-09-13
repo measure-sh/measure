@@ -222,6 +222,29 @@ internal class SignalProcessorTest {
     }
 
     @Test
+    fun `memory usage sampling uses the session sampling decision`() {
+        configProvider.enableFullCollectionMode = false
+        configProvider.memoryUsageSessionSamplingRate = 0f
+        sampler.trackMemoryUsageForSession = false
+
+        signalProcessor.track(
+            data = TestData.getMemoryUsageData(),
+            timestamp = 1710746412L,
+            type = EventType.MEMORY_USAGE,
+        )
+
+        assertFalse(signalStore.trackedEvents.single().isSampled)
+        configProvider.memoryUsageSessionSamplingRate = 100f
+        sampler.trackMemoryUsageForSession = true
+        signalProcessor.track(
+            data = TestData.getMemoryUsageData(),
+            timestamp = 1710746413L,
+            type = EventType.MEMORY_USAGE,
+        )
+        assertTrue(signalStore.trackedEvents.last().isSampled)
+    }
+
+    @Test
     fun `track drops event when user defined attributes exceed maximum count`() {
         val attributes = (0..configProvider.maxUserDefinedAttributesPerEvent).associate {
             "key$it" to StringAttr("value")
