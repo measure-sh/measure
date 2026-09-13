@@ -2,10 +2,12 @@ package sh.measure.android.performance
 
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
+import org.mockito.kotlin.whenever
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeConfigProvider
@@ -38,6 +40,7 @@ internal class MemoryUsageCollectorTest {
     @Test
     fun `MemoryUsageCollector tracks memory usage`() {
         memoryUsageCollector.register()
+        assertEquals(3_000L, executorService.lastScheduledDelayMillis)
         assertEquals(1, memoryReader.procStatusReadCount)
         verify(signalProcessor).track(
             type = EventType.MEMORY_USAGE,
@@ -80,6 +83,46 @@ internal class MemoryUsageCollectorTest {
         processInfo.foregroundProcess = false
         memoryUsageCollector.register()
         assertNull(memoryUsageCollector.future)
+    }
+
+    @Test
+    fun `continues collecting in background at a 30 second interval`() {
+        memoryUsageCollector.register()
+
+        memoryUsageCollector.onAppBackground()
+
+        assertEquals(10_000L, executorService.lastScheduledDelayMillis)
+        assertNotNull(memoryUsageCollector.future)
+    }
+
+    @Test
+    fun `skips background readings for an unsampled session`() {
+        whenever(signalProcessor.shouldTrackMemoryUsage()).thenReturn(false)
+        memoryUsageCollector.register()
+
+        memoryUsageCollector.onAppBackground()
+
+        assertEquals(1, memoryReader.procStatusReadCount)
+    }
+
+    @Test
+    fun `collects background readings for a sampled session`() {
+        whenever(signalProcessor.shouldTrackMemoryUsage()).thenReturn(true)
+        memoryUsageCollector.register()
+
+        memoryUsageCollector.onAppBackground()
+
+        assertEquals(2, memoryReader.procStatusReadCount)
+    }
+
+    @Test
+    fun `switches back to configured interval in foreground`() {
+        memoryUsageCollector.register()
+        memoryUsageCollector.onAppBackground()
+
+        memoryUsageCollector.onAppForeground()
+
+        assertEquals(3_000L, executorService.lastScheduledDelayMillis)
     }
 
     @Test

@@ -14,6 +14,7 @@ import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 
 internal const val BYTES_TO_KB_FACTOR = 1024
+private const val BACKGROUND_MEMORY_USAGE_INTERVAL_SECONDS = 10L
 
 internal class MemoryUsageCollector(
     private val logger: Logger,
@@ -24,6 +25,8 @@ internal class MemoryUsageCollector(
     private val processInfo: ProcessInfoProvider,
     private val configProvider: ConfigProvider,
 ) {
+    private var isInForeground = true
+
     @VisibleForTesting
     var future: Future<*>? = null
 
@@ -36,19 +39,18 @@ internal class MemoryUsageCollector(
     fun register() {
         if (!processInfo.isForegroundProcess()) return
         if (future != null) return
-        future = try {
-            defaultExecutor.scheduleAtFixedRate(
-                {
-                    trackMemoryUsage()
-                },
-                0,
-                configProvider.memoryUsageInterval,
-                TimeUnit.SECONDS,
-            )
-        } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Debug, "Failed to start MemoryUsageCollector", e)
-            null
-        }
+        isInForeground = true
+        schedule()
+    }
+
+    fun onAppForeground() {
+        isInForeground = true
+        if (future == null) register() else reschedule()
+    }
+
+    fun onAppBackground() {
+        isInForeground = false
+        if (future != null) reschedule()
     }
 
     fun unregister() {
@@ -59,11 +61,31 @@ internal class MemoryUsageCollector(
     fun onConfigLoaded() {
         // re-register to reflect updated interval
         if (future == null) return
-        unregister()
-        register()
+        reschedule()
+    }
+
+    private fun reschedule() {
+        future?.cancel(false)
+        future = null
+        schedule()
+    }
+
+    private fun schedule() {
+        future = try {
+            defaultExecutor.scheduleAtFixedRate(
+                { trackMemoryUsage() },
+                0,
+                if (isInForeground) configProvider.memoryUsageInterval else BACKGROUND_MEMORY_USAGE_INTERVAL_SECONDS,
+                TimeUnit.SECONDS,
+            )
+        } catch (e: RejectedExecutionException) {
+            logger.log(LogLevel.Debug, "Failed to start MemoryUsageCollector", e)
+            null
+        }
     }
 
     private fun trackMemoryUsage() {
+        if (!isInForeground && !signalProcessor.shouldTrackMemoryUsage()) return
         val interval = getInterval()
         previousMemoryUsageReadTimeMs = timeProvider.elapsedRealtime
         val maxHeapSize = sanitizeNegativeValue(memoryReader.maxHeapSize())
