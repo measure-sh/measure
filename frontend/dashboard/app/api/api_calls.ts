@@ -1534,6 +1534,26 @@ export const fetchSpanMetricsPlotFromServer = async (
   );
 };
 
+export const fetchMemoryUsagePlotFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+) => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    plot_time_group: getPlotTimeGroupForRange(startDate, endDate),
+  });
+  if (filterExpr) params.set("filter_expr", filterExpr);
+
+  return await request(
+    `/api/apps/${appId}/memory/plots/usage?${params.toString()}`,
+    { failsWith: "Failed to fetch memory usage plot" },
+  );
+};
+
 export const fetchAlertsOverviewFromServer = async (
   appId: string,
   startDate: string,

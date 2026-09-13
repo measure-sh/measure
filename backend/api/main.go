@@ -127,6 +127,9 @@ func main() {
 		apps.GET(":id/sessions/:sessionId", hdl.GetSession)
 		apps.GET(":id/sessions/plots/instances", hdl.GetSessionsOverviewPlotInstances)
 
+		// memory
+		apps.GET(":id/memory/plots/usage", hdl.GetMemoryUsagePlot)
+
 		// spans & traces
 		apps.GET(":id/spans/roots/names", hdl.GetRootSpanNames)
 		apps.GET(":id/spans", hdl.GetSpansForSpanName)

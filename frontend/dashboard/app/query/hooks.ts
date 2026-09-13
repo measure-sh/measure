@@ -32,6 +32,7 @@ import {
   fetchErrorsOverviewPlotFromServer,
   fetchJourneyFromServer,
   fetchMetricsFromServer,
+  fetchMemoryUsagePlotFromServer,
   fetchNetworkEndpointsFromServer,
   fetchNetworkEndpointStatusCodesPlotFromServer,
   fetchNetworkLatencyPlotFromServer,
@@ -244,6 +245,13 @@ export enum RootSpanMetricsQuantile {
   p99 = "p99",
 }
 
+export enum MemoryUsageQuantile {
+  p50 = "p50",
+  p90 = "p90",
+  p95 = "p95",
+  p99 = "p99",
+}
+
 // ─── Shared helpers ──────────────────────────────────────────────────────
 
 /** Standard plot transformation: datetime/instances → x/y */
@@ -286,6 +294,24 @@ export function transformSpanMetricsPlotData(
       y: getYBasedOnQuantile(data, quantile),
     })),
   }));
+}
+
+export function transformMemoryUsagePlotData(
+  rawData: any[] | null,
+  quantile: MemoryUsageQuantile,
+) {
+  if (rawData === null) return null;
+  const pointsByVersion = new Map<string, any[]>();
+  for (const point of rawData) {
+    const data = pointsByVersion.get(point.version) ?? [];
+    data.push({
+      id: `${point.version}.${data.length}`,
+      x: point.datetime,
+      y: point[quantile],
+    });
+    pointsByVersion.set(point.version, data);
+  }
+  return Array.from(pointsByVersion, ([id, data]) => ({ id, data }));
 }
 
 /** Distribution plot: parse attribute/value pairs with OS version formatting */
@@ -675,6 +701,27 @@ export function useSpanMetricsPlotQuery(
         params!.filterExpr,
       ),
     enabled: params !== null && spanName !== null,
+    retry: false,
+  });
+}
+
+export function useMemoryUsagePlotQuery(params: FilterParams | null) {
+  return useQuery({
+    queryKey: [
+      "memoryUsagePlot",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+    ] as const,
+    queryFn: () =>
+      fetchMemoryUsagePlotFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+      ),
+    enabled: params !== null,
     retry: false,
   });
 }
