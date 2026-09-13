@@ -1,0 +1,12 @@
+{
+  "java_max_heap": 8192,
+  "java_total_heap": 4096,
+  "java_free_heap": 1024,
+  "total_pss": 3072,
+  "rss": 2048,
+  "anon_rss": 1234,
+  "swap": 56,
+  "native_total_heap": 1024,
+  "native_free_heap": 512,
+  "interval": 5000
+}
