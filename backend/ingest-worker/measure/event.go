@@ -528,6 +528,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			Set(`attribute.device_width_px`, e.events[i].Attribute.DeviceWidthPX).
 			Set(`attribute.device_height_px`, e.events[i].Attribute.DeviceHeightPX).
 			Set(`attribute.device_density`, e.events[i].Attribute.DeviceDensity).
+			Set(`attribute.device_total_memory`, e.events[i].Attribute.DeviceTotalMemory).
 			Set(`attribute.device_locale`, e.events[i].Attribute.DeviceLocale).
 			Set(`attribute.device_low_power_mode`, e.events[i].Attribute.DeviceLowPowerMode).
 			Set(`attribute.device_thermal_throttling_enabled`, e.events[i].Attribute.DeviceThermalThrottlingEnabled).
