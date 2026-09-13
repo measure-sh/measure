@@ -305,6 +305,17 @@ var (
 		EnumValues:          []string{"foreground", "background"},
 	}
 
+	deviceTotalMemory = Key{
+		Name:                "device_total_memory",
+		Label:               "Device total memory",
+		Description:         "The total memory of the session's device, in gigabytes.",
+		KeyGroup:            KeyGroupDevice,
+		ValueType:           ValueTypeEnum,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeFullList,
+		EnumValues:          []string{"0-3gb", "4-5gb", "6-7gb", "8-11gb", "12-15gb", "16-31gb", "32-63gb", "64gb+", "unknown"},
+	}
+
 	userID = Key{
 		Name:        "user_id",
 		Label:       "User ID",

@@ -1489,6 +1489,26 @@ export function makeSessionsFilterKeysFixture(
         enum_values: ["foreground", "background"],
       },
       {
+        name: "device_total_memory",
+        label: "Device total memory",
+        description: "The total memory of the session's device, in gigabytes.",
+        key_group: "Device",
+        value_type: "enum",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+        enum_values: [
+          "0-3gb",
+          "4-5gb",
+          "6-7gb",
+          "8-11gb",
+          "12-15gb",
+          "16-31gb",
+          "32-63gb",
+          "64gb+",
+          "unknown",
+        ],
+      },
+      {
         name: "session_custom_event",
         label: "Custom event name",
         description: "The name of a custom event recorded in the session",
@@ -1570,7 +1590,7 @@ export function makeSessionsFilterKeysFixture(
         operators: ["in", "not_in"],
       },
     ],
-    key_groups: ["Session", "Version", "OS", "User"],
+    key_groups: ["Session", "Version", "OS", "Device", "User"],
     ...overrides,
   };
 }

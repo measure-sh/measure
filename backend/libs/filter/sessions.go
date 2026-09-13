@@ -1,9 +1,40 @@
 package filter
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 )
+
+var deviceMemoryRanges = []struct {
+	name    string
+	lowerKB uint64
+	upperKB uint64
+}{
+	{"0-3gb", 0, 4 * 1024 * 1024},
+	{"4-5gb", 4 * 1024 * 1024, 6 * 1024 * 1024},
+	{"6-7gb", 6 * 1024 * 1024, 8 * 1024 * 1024},
+	{"8-11gb", 8 * 1024 * 1024, 12 * 1024 * 1024},
+	{"12-15gb", 12 * 1024 * 1024, 16 * 1024 * 1024},
+	{"16-31gb", 16 * 1024 * 1024, 32 * 1024 * 1024},
+	{"32-63gb", 32 * 1024 * 1024, 64 * 1024 * 1024},
+	{"64gb+", 64 * 1024 * 1024, 0},
+}
+
+func memoryRangePredicates(column string) map[string]string {
+	predicates := make(map[string]string, len(deviceMemoryRanges))
+	for _, r := range deviceMemoryRanges {
+		if r.upperKB == 0 {
+			predicates[r.name] = fmt.Sprintf("%s >= %d", column, r.lowerKB)
+		} else if r.lowerKB == 0 {
+			predicates[r.name] = fmt.Sprintf("%s > 0 and %s < %d", column, column, r.upperKB)
+		} else {
+			predicates[r.name] = fmt.Sprintf("%s >= %d and %s < %d", column, r.lowerKB, column, r.upperKB)
+		}
+	}
+	predicates["unknown"] = fmt.Sprintf("%s = 0", column)
+	return predicates
+}
 
 var SessionsEntity = Entity{
 	Name:            "sessions",
@@ -16,6 +47,7 @@ var SessionsEntity = Entity{
 var sessionsKeys = []Key{
 	sessionEvents,
 	sessionForegroundBackground,
+	deviceTotalMemory,
 	sessionCustomEvent,
 	sessionLog,
 	sessionScreen,
@@ -111,6 +143,7 @@ func sessionsColumnsWith(wrap func(aggregate, column string) string) *Columns {
 			"foreground": anyCountPresent(foregroundEventCounts),
 			"background": wrap("sum", "background_count") + " >= 1",
 		}},
+		deviceTotalMemory.Name:  {kind: columnPredicates, predicates: memoryRangePredicates(wrap("max", "device_total_memory"))},
 		sessionCustomEvent.Name: {expr: uniqueArray("unique_custom_type_names"), kind: columnTextArray},
 		sessionLog.Name: {expr: arrayConcat(
 			uniqueArray("unique_logs"),
