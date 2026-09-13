@@ -35,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import sh.measure.android.Measure
 import sh.measure.android.attributes.AttributesBuilder
 import sh.measure.android.bugreport.MsrShakeListener
@@ -70,6 +71,7 @@ fun NativeAndroidScreen() {
 
     var shakeEnabled by remember { mutableStateOf(false) }
     var heavyMediaEnabled by remember { mutableStateOf(AssetPrefetcher.enabled) }
+    var backgroundMemoryEnabled by remember { mutableStateOf(false) }
 
     DisposableEffect(Unit) {
         onDispose {
@@ -335,6 +337,24 @@ fun NativeAndroidScreen() {
                             ScreenMedia.enabled = enabled
                             if (!enabled) {
                                 AssetPrefetcher.clear()
+                            }
+                        },
+                    )
+                }
+            }
+            if (category == DemoCategory.MISC) {
+                item(key = "background_memory_toggle") {
+                    ToggleCard(
+                        title = "Background Memory Work",
+                        description = "Runs a foreground service and allocates up to 150 MB every 5 seconds",
+                        enabled = backgroundMemoryEnabled,
+                        onToggle = { enabled ->
+                            backgroundMemoryEnabled = enabled
+                            val intent = Intent(context, BackgroundMemoryService::class.java)
+                            if (enabled) {
+                                ContextCompat.startForegroundService(context, intent)
+                            } else {
+                                context.stopService(intent)
                             }
                         },
                     )
