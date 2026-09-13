@@ -1,6 +1,7 @@
 package sh.measure.android.performance
 
 import androidx.concurrent.futures.ResolvableFuture
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
 import org.mockito.Mockito.mock
@@ -37,6 +38,7 @@ internal class MemoryUsageCollectorTest {
     @Test
     fun `MemoryUsageCollector tracks memory usage`() {
         memoryUsageCollector.register()
+        assertEquals(1, memoryReader.procStatusReadCount)
         verify(signalProcessor).track(
             type = EventType.MEMORY_USAGE,
             timestamp = timeProvider.now(),
@@ -45,12 +47,32 @@ internal class MemoryUsageCollectorTest {
                 java_total_heap = memoryReader.totalHeapSize(),
                 java_free_heap = memoryReader.freeHeapSize(),
                 total_pss = memoryReader.totalPss(),
-                rss = memoryReader.rss(),
+                rss = 1000,
+                anon_rss = 800,
+                swap = 100,
                 native_total_heap = memoryReader.nativeTotalHeapSize(),
                 native_free_heap = memoryReader.nativeFreeHeapSize(),
                 interval = 0,
             ),
         )
+    }
+
+    @Test
+    fun `unavailable anonymous RSS and swap remain null on the event`() {
+        val collector = MemoryUsageCollector(
+            NoopLogger(),
+            signalProcessor,
+            timeProvider,
+            executorService,
+            FakeMemoryReader(anonRss = null, swap = null),
+            processInfo,
+            configProvider,
+        )
+
+        collector.register()
+
+        assertNull(collector.previousMemoryUsage!!.anon_rss)
+        assertNull(collector.previousMemoryUsage!!.swap)
     }
 
     @Test
@@ -87,7 +109,9 @@ internal class MemoryUsageCollectorTest {
                 java_total_heap = memoryReader.totalHeapSize(),
                 java_free_heap = memoryReader.freeHeapSize(),
                 total_pss = memoryReader.totalPss(),
-                rss = memoryReader.rss(),
+                rss = 1000,
+                anon_rss = 800,
+                swap = 100,
                 native_total_heap = memoryReader.nativeTotalHeapSize(),
                 native_free_heap = memoryReader.nativeFreeHeapSize(),
                 interval = advancedTime.toMillis(),

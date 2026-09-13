@@ -2,24 +2,17 @@ package sh.measure.android.performance
 
 import android.os.Debug
 import org.junit.Assert
-import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
-import org.mockito.Mockito.mock
-import org.mockito.Mockito.`when`
-import org.mockito.kotlin.any
+import org.junit.rules.TemporaryFolder
 import sh.measure.android.fakes.FakeDebugProvider
 import sh.measure.android.fakes.FakeProcProvider
-import sh.measure.android.fakes.FakeProcessInfoProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.DefaultRuntimeProvider
-import sh.measure.android.utils.OsSysConfProvider
 
 internal class DefaultMemoryReaderTest {
     private val debugProvider = FakeDebugProvider()
-    private val processInfo = FakeProcessInfoProvider()
     private val procProvider = FakeProcProvider()
-    private val osSysConfProvider = mock<OsSysConfProvider>()
-    private val pageSizeBytes: Long = 4096
 
     // Using the real implementation of RuntimeProvider as it is available in tests.
     private val runtimeProvider = DefaultRuntimeProvider()
@@ -28,15 +21,11 @@ internal class DefaultMemoryReaderTest {
         logger = NoopLogger(),
         debugProvider = debugProvider,
         runtimeProvider = runtimeProvider,
-        processInfo = processInfo,
         procProvider = procProvider,
-        osSysConfProvider = osSysConfProvider,
     )
 
-    @Before
-    fun setUp() {
-        `when`(osSysConfProvider.get(any())).thenReturn(pageSizeBytes)
-    }
+    @get:Rule
+    val tempFolder = TemporaryFolder()
 
     @Test
     fun `reads max heap size from runtime and returns it in KB`() {
@@ -69,11 +58,45 @@ internal class DefaultMemoryReaderTest {
     }
 
     @Test
-    fun `reads RSS from statm file, multiples it by pageSize and returns the RSS in KB`() {
-        val actual = memoryReader.rss()
-        val pageSizeKB = pageSizeBytes / BYTES_TO_KB_FACTOR
-        val expected = procProvider.rss * pageSizeKB
-        Assert.assertEquals(expected, actual)
+    fun `reads RSS anonymous RSS and swap in KB from one status file`() {
+        procProvider.statusContent = "Name:\tsample\nVmRSS:\t 5000 kB\nRssAnon:  4000   kB\nVmSwap:\t200 kB\n"
+
+        Assert.assertEquals(ProcStatusMemory(5000, 4000, 200), memoryReader.readProcStatus())
+        Assert.assertEquals(1, procProvider.statusFileAccessCount)
+    }
+
+    @Test
+    fun `missing fields are unavailable while zero swap is valid`() {
+        procProvider.statusContent = "VmRSS: 5000 kB\nVmSwap: 0 kB"
+
+        Assert.assertEquals(ProcStatusMemory(rss = 5000, swap = 0), memoryReader.readProcStatus())
+    }
+
+    @Test
+    fun `invalid fields do not prevent reading valid fields`() {
+        for (invalid in listOf("broken kB", "-1 kB", "9223372036854775808 kB", "123 MB", "123", "")) {
+            procProvider.statusContent = "VmRSS: 5000 kB\nRssAnon: $invalid\nVmSwap: 200 kB"
+
+            Assert.assertEquals(ProcStatusMemory(rss = 5000, swap = 200), memoryReader.readProcStatus())
+        }
+    }
+
+    @Test
+    fun `missing or unreadable status file returns unavailable fields`() {
+        procProvider.statusFileOverride = tempFolder.root.resolve("missing")
+        Assert.assertEquals(ProcStatusMemory(), memoryReader.readProcStatus())
+
+        procProvider.statusFileOverride = tempFolder.root
+        Assert.assertEquals(ProcStatusMemory(), memoryReader.readProcStatus())
+    }
+
+    @Test
+    fun `each measurement reads current status values`() {
+        Assert.assertEquals(ProcStatusMemory(5000, 4000, 200), memoryReader.readProcStatus())
+        procProvider.statusContent = "VmRSS: 6000 kB\nRssAnon: 4500 kB\nVmSwap: 300 kB"
+
+        Assert.assertEquals(ProcStatusMemory(6000, 4500, 300), memoryReader.readProcStatus())
+        Assert.assertEquals(2, procProvider.statusFileAccessCount)
     }
 
     @Test

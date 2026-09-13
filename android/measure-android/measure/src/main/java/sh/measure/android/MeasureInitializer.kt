@@ -182,11 +182,9 @@ internal class MeasureInitializerImpl(
     private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
     private val memoryReader: MemoryReader = DefaultMemoryReader(
         logger = logger,
-        processInfo = processInfoProvider,
         procProvider = procProvider,
         debugProvider = debugProvider,
         runtimeProvider = runtimeProvider,
-        osSysConfProvider = osSysConfProvider,
     ),
     private val localeProvider: LocaleProvider = LocaleProviderImpl(),
     private val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(application),

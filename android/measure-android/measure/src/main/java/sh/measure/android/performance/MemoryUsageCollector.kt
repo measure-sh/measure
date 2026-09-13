@@ -70,7 +70,8 @@ internal class MemoryUsageCollector(
         val totalHeapSize = sanitizeNegativeValue(memoryReader.totalHeapSize())
         val freeHeapSize = sanitizeNegativeValue(memoryReader.freeHeapSize())
         val totalPss = sanitizeNegativeValue(memoryReader.totalPss())
-        val rss = sanitizeNegativeValue(memoryReader.rss() ?: 0)
+        val procStatus = memoryReader.readProcStatus()
+        val rss = sanitizeNegativeValue(procStatus.rss ?: 0)
         val nativeTotalHeapSize = sanitizeNegativeValue(memoryReader.nativeTotalHeapSize())
         val nativeFreeHeap = sanitizeNegativeValue(memoryReader.nativeFreeHeapSize())
 
@@ -83,6 +84,8 @@ internal class MemoryUsageCollector(
             native_total_heap = nativeTotalHeapSize,
             native_free_heap = nativeFreeHeap,
             interval = interval,
+            anon_rss = procStatus.anonRss?.let { sanitizeNegativeValue(it) },
+            swap = procStatus.swap?.let { sanitizeNegativeValue(it) },
         )
         signalProcessor.track(
             timestamp = timeProvider.now(),
