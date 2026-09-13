@@ -65,9 +65,9 @@ class DeviceAttributeProcessorTest {
         events.forEach { event ->
             event.appendAttributes(listOf(processor))
 
-            assertEquals(8_388_608L, event.attributes["device_total_ram"])
+            assertEquals(8_388_608L, event.attributes["device_total_memory"])
             val json = Json.parseToJsonElement(event.serializeAttributes()!!).jsonObject
-            assertEquals(8_388_608L, json.getValue("device_total_ram").jsonPrimitive.long)
+            assertEquals(8_388_608L, json.getValue("device_total_memory").jsonPrimitive.long)
         }
         verify(activityManager, times(1)).getMemoryInfo(any())
     }
@@ -76,7 +76,7 @@ class DeviceAttributeProcessorTest {
     fun `converts bytes to KB using integer division`() {
         totalMemBytes = 4096 + 1023
 
-        assertEquals(4L, createProcessor().computeAttributes()[Attribute.DEVICE_TOTAL_RAM_KEY])
+        assertEquals(4L, createProcessor().computeAttributes()[Attribute.DEVICE_TOTAL_MEMORY_KEY])
     }
 
     @Test
@@ -84,7 +84,7 @@ class DeviceAttributeProcessorTest {
         for (invalid in listOf(0L, -1L, 1023L)) {
             totalMemBytes = invalid
 
-            assertNull(createProcessor().computeAttributes()[Attribute.DEVICE_TOTAL_RAM_KEY])
+            assertNull(createProcessor().computeAttributes()[Attribute.DEVICE_TOTAL_MEMORY_KEY])
         }
     }
 
@@ -93,7 +93,7 @@ class DeviceAttributeProcessorTest {
         whenever(systemServiceProvider.activityManager).thenReturn(null)
         val attributes = createProcessor().computeAttributes()
 
-        assertNull(attributes[Attribute.DEVICE_TOTAL_RAM_KEY])
+        assertNull(attributes[Attribute.DEVICE_TOTAL_MEMORY_KEY])
         assertEquals("android", attributes[Attribute.OS_NAME_KEY])
         assertTrue(attributes.containsKey(Attribute.DEVICE_MODEL_KEY))
     }
@@ -105,7 +105,7 @@ class DeviceAttributeProcessorTest {
 
         val attributes = createProcessor().computeAttributes()
 
-        assertNull(attributes[Attribute.DEVICE_TOTAL_RAM_KEY])
+        assertNull(attributes[Attribute.DEVICE_TOTAL_MEMORY_KEY])
         assertEquals("android", attributes[Attribute.OS_NAME_KEY])
     }
 

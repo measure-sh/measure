@@ -180,6 +180,7 @@ internal class MeasureInitializerImpl(
     private val debugProvider: DebugProvider = DefaultDebugProvider(),
     private val runtimeProvider: RuntimeProvider = DefaultRuntimeProvider(),
     private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
+    private val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(application),
     private val memoryReader: MemoryReader = DefaultMemoryReader(
         logger = logger,
         procProvider = procProvider,
@@ -187,7 +188,6 @@ internal class MeasureInitializerImpl(
         runtimeProvider = runtimeProvider,
     ),
     private val localeProvider: LocaleProvider = LocaleProviderImpl(),
-    private val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(application),
     private val initialNetworkStateProvider: InitialNetworkStateProvider = InitialNetworkStateProviderImpl(
         context = application,
         logger = logger,

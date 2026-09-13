@@ -113,8 +113,6 @@ internal class ConfigLoaderImplTest {
                 "log_min_severity": 16,
                 "cpu_usage_interval": 3000,
                 "memory_usage_interval": 3000,
-                "memory_usage_replay_enabled": false,
-                "memory_usage_replay_threshold_percent": 12.5,
                 "memory_usage_session_sampling_rate": 25.5,
                 "crash_take_screenshot": true,
                 "crash_timeline_sampling_rate": 1.0,
@@ -146,8 +144,6 @@ internal class ConfigLoaderImplTest {
         assertEquals(0.5f, result?.traceSamplingRate)
         assertEquals(true, result?.errorFatalScreenshotEnabled)
         assertEquals(16, result?.logMinSeverity)
-        assertEquals(false, result?.memoryUsageReplayEnabled)
-        assertEquals(12.5f, result?.memoryUsageReplayThresholdPercent)
         assertEquals(25.5f, result?.memoryUsageSessionSamplingRate)
         configFile.delete()
     }

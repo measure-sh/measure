@@ -35,7 +35,7 @@ internal class DeviceAttributeProcessor(
         Attribute.DEVICE_HEIGHT_PX_KEY to resources.displayMetrics.heightPixels,
         Attribute.DEVICE_DENSITY_KEY to resources.displayMetrics.density,
         Attribute.DEVICE_LOCALE_KEY to getDeviceLocale(),
-        Attribute.DEVICE_TOTAL_RAM_KEY to getTotalRamKB(),
+        Attribute.DEVICE_TOTAL_MEMORY_KEY to getTotalRamKB(),
         Attribute.OS_NAME_KEY to "android",
         Attribute.OS_VERSION_KEY to Build.VERSION.SDK_INT.toString(),
         Attribute.OS_PAGE_SIZE to getPageSizeKB(),

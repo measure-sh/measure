@@ -19,8 +19,6 @@ class ConfigProviderImplTest {
 
     @Test
     fun `memory settings use defaults before dynamic config loads`() {
-        assertTrue(configProvider.memoryUsageReplayEnabled)
-        assertEquals(50f, configProvider.memoryUsageReplayThresholdPercent)
         assertEquals(100f, configProvider.memoryUsageSessionSamplingRate)
     }
 
@@ -28,26 +26,18 @@ class ConfigProviderImplTest {
     fun `memory settings reflect dynamic config updates`() {
         configProvider.setDynamicConfig(
             DynamicConfig(
-                memoryUsageReplayEnabled = false,
-                memoryUsageReplayThresholdPercent = 12.5f,
                 memoryUsageSessionSamplingRate = 25.5f,
             ),
         )
 
-        assertFalse(configProvider.memoryUsageReplayEnabled)
-        assertEquals(12.5f, configProvider.memoryUsageReplayThresholdPercent)
         assertEquals(25.5f, configProvider.memoryUsageSessionSamplingRate)
 
         configProvider.setDynamicConfig(
             DynamicConfig(
-                memoryUsageReplayEnabled = true,
-                memoryUsageReplayThresholdPercent = 20f,
                 memoryUsageSessionSamplingRate = 0f,
             ),
         )
 
-        assertTrue(configProvider.memoryUsageReplayEnabled)
-        assertEquals(20f, configProvider.memoryUsageReplayThresholdPercent)
         assertEquals(0f, configProvider.memoryUsageSessionSamplingRate)
     }
 
