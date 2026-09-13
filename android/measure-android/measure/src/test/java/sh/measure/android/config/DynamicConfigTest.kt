@@ -1,0 +1,75 @@
+package sh.measure.android.config
+
+import kotlinx.serialization.json.jsonObject
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import sh.measure.android.serialization.jsonSerializer
+
+internal class DynamicConfigTest {
+    @Test
+    fun `omitted memory settings use defaults with older config payloads`() {
+        val config = jsonSerializer.decodeFromString(
+            DynamicConfig.serializer(),
+            """{"memory_usage_interval":10,"journey_sampling_rate":0}""",
+        )
+
+        assertTrue(config.memoryUsageReplayEnabled)
+        assertEquals(50f, config.memoryUsageReplayThresholdPercent)
+        assertEquals(100f, config.memoryUsageSessionSamplingRate)
+        assertEquals(10L, config.memoryUsageInterval)
+        assertEquals(0f, config.journeySamplingRate)
+    }
+
+    @Test
+    fun `decodes memory config wire names and fractional percentages`() {
+        val payload = """
+            {
+                "memory_usage_replay_enabled": false,
+                "memory_usage_replay_threshold_percent": 12.5,
+                "memory_usage_session_sampling_rate": 25.5
+            }
+        """.trimIndent()
+
+        val config = jsonSerializer.decodeFromString(DynamicConfig.serializer(), payload)
+
+        assertFalse(config.memoryUsageReplayEnabled)
+        assertEquals(12.5f, config.memoryUsageReplayThresholdPercent)
+        assertEquals(25.5f, config.memoryUsageSessionSamplingRate)
+    }
+
+    @Test
+    fun `preserves percentage boundaries`() {
+        for (percentage in listOf(0f, 100f)) {
+            val payload = """
+                {
+                    "memory_usage_replay_threshold_percent": $percentage,
+                    "memory_usage_session_sampling_rate": $percentage
+                }
+            """.trimIndent()
+
+            val config = jsonSerializer.decodeFromString(DynamicConfig.serializer(), payload)
+
+            assertEquals(percentage, config.memoryUsageSessionSamplingRate)
+            assertEquals(percentage, config.memoryUsageReplayThresholdPercent)
+        }
+    }
+
+    @Test
+    fun `serializes memory config with snake case wire names`() {
+        val config = DynamicConfig(
+            memoryUsageReplayEnabled = false,
+            memoryUsageReplayThresholdPercent = 12.5f,
+            memoryUsageSessionSamplingRate = 25.5f,
+        )
+
+        val serialized = jsonSerializer.encodeToString(DynamicConfig.serializer(), config)
+        val fields = jsonSerializer.parseToJsonElement(serialized).jsonObject
+
+        assertTrue(fields.containsKey("memory_usage_replay_enabled"))
+        assertTrue(fields.containsKey("memory_usage_replay_threshold_percent"))
+        assertTrue(fields.containsKey("memory_usage_session_sampling_rate"))
+        assertEquals(config, jsonSerializer.decodeFromString(DynamicConfig.serializer(), serialized))
+    }
+}

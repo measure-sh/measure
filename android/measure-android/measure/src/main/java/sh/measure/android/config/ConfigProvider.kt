@@ -136,6 +136,12 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
         get() = dynamicConfig.cpuUsageInterval
     override val memoryUsageInterval: Long
         get() = dynamicConfig.memoryUsageInterval
+    override val memoryUsageReplayEnabled: Boolean
+        get() = dynamicConfig.memoryUsageReplayEnabled
+    override val memoryUsageReplayThresholdPercent: Float
+        get() = dynamicConfig.memoryUsageReplayThresholdPercent
+    override val memoryUsageSessionSamplingRate: Float
+        get() = dynamicConfig.memoryUsageSessionSamplingRate
     override val errorFatalScreenshotEnabled: Boolean
         get() = dynamicConfig.errorFatalScreenshotEnabled
     override val errorFatalReplayEnabled: Boolean

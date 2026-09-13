@@ -70,6 +70,24 @@ internal interface IDynamicConfig {
     val memoryUsageInterval: Long
 
     /**
+     * Whether to collect the entire session when memory usage exceeds
+     * [memoryUsageReplayThresholdPercent]. Defaults to true.
+     */
+    val memoryUsageReplayEnabled: Boolean
+
+    /**
+     * Memory usage threshold for session replay, as a percentage of device total RAM.
+     * Uses anonymous RSS plus swap. Defaults to 50%.
+     */
+    val memoryUsageReplayThresholdPercent: Float
+
+    /**
+     * Sampling rate in percentage for sessions that should track all memory usage events.
+     * Defaults to 100%.
+     */
+    val memoryUsageSessionSamplingRate: Float
+
+    /**
      * Whether to take a screenshot when a fatal error occurs. Defaults to true.
      */
     val errorFatalScreenshotEnabled: Boolean
@@ -216,6 +234,15 @@ internal data class DynamicConfig(
 
     @SerialName("memory_usage_interval")
     override val memoryUsageInterval: Long = 5,
+
+    @SerialName("memory_usage_replay_enabled")
+    override val memoryUsageReplayEnabled: Boolean = true,
+
+    @SerialName("memory_usage_replay_threshold_percent")
+    override val memoryUsageReplayThresholdPercent: Float = 50f,
+
+    @SerialName("memory_usage_session_sampling_rate")
+    override val memoryUsageSessionSamplingRate: Float = 100f,
 
     @SerialName("error_fatal_take_screenshot")
     val errorFatalTakeScreenshot: Boolean? = null,
