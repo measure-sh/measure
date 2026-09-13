@@ -1,11 +1,14 @@
 package sh.measure.android.attributes
 
+import android.app.ActivityManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import android.system.OsConstants
+import sh.measure.android.performance.BYTES_TO_KB_FACTOR
 import sh.measure.android.utils.LocaleProvider
 import sh.measure.android.utils.OsSysConfProvider
+import sh.measure.android.utils.SystemServiceProvider
 
 /**
  * Generates the device attributes such as device name, model, manufacturer, and more. These
@@ -15,6 +18,7 @@ internal class DeviceAttributeProcessor(
     private val context: Context,
     private val localeProvider: LocaleProvider,
     private val osSysConfProvider: OsSysConfProvider,
+    private val systemServiceProvider: SystemServiceProvider,
 ) : ComputeOnceAttributeProcessor() {
     private val configuration = context.resources.configuration
     private val resources = context.resources
@@ -31,6 +35,7 @@ internal class DeviceAttributeProcessor(
         Attribute.DEVICE_HEIGHT_PX_KEY to resources.displayMetrics.heightPixels,
         Attribute.DEVICE_DENSITY_KEY to resources.displayMetrics.density,
         Attribute.DEVICE_LOCALE_KEY to getDeviceLocale(),
+        Attribute.DEVICE_TOTAL_RAM_KEY to getTotalRamKB(),
         Attribute.OS_NAME_KEY to "android",
         Attribute.OS_VERSION_KEY to Build.VERSION.SDK_INT.toString(),
         Attribute.OS_PAGE_SIZE to getPageSizeKB(),
@@ -83,6 +88,16 @@ internal class DeviceAttributeProcessor(
     }
 
     private fun getDeviceLocale(): String = localeProvider.getLocale()
+
+    // Total RAM accessible to the kernel, in KB (1024 bytes), rather than currently free RAM.
+    private fun getTotalRamKB(): Long? {
+        val manager = systemServiceProvider.activityManager ?: return null
+        return runCatching {
+            val memoryInfo = ActivityManager.MemoryInfo()
+            manager.getMemoryInfo(memoryInfo)
+            (memoryInfo.totalMem / BYTES_TO_KB_FACTOR).takeIf { it > 0 }
+        }.getOrNull()
+    }
 
     // Returns page size in KB.
     private fun getPageSizeKB(): Long = osSysConfProvider.get(OsConstants._SC_PAGESIZE) / 1024

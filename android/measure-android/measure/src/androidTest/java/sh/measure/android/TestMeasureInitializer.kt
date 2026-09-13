@@ -187,6 +187,7 @@ internal class TestMeasureInitializer(
         context = application,
         localeProvider = localeProvider,
         osSysConfProvider = osSysConfProvider,
+        systemServiceProvider = systemServiceProvider,
     ),
     private val appAttributeProcessor: AppAttributeProcessor = AppAttributeProcessor(
         context = application,
