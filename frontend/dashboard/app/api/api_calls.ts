@@ -560,6 +560,8 @@ export type SdkConfig = {
   http_blocked_headers: string[];
   screenshot_mask_level: string;
   profile_sampling_rate: number;
+  memory_usage_interval: number;
+  memory_usage_session_sampling_rate: number;
   log_autocollect_enabled: boolean;
   log_min_severity: number;
   log_ignore_patterns: string[];

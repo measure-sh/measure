@@ -3491,6 +3491,11 @@ paths:
                     type: integer
                   memory_usage_interval:
                     type: integer
+                  memory_usage_session_sampling_rate:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+                    description: Percentage of sessions that collect memory usage.
                   error_fatal_take_screenshot:
                     type: boolean
                   error_fatal_replay_enabled:
@@ -3558,6 +3563,7 @@ paths:
                     log_ignore_patterns: []
                     cpu_usage_interval: 5
                     memory_usage_interval: 5
+                    memory_usage_session_sampling_rate: 100
                     error_fatal_take_screenshot: true
                     error_fatal_replay_enabled: true
                     error_unhandled_replay_enabled: false
