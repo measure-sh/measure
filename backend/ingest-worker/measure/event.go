@@ -907,6 +907,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`memory_usage.rss`, e.events[i].MemoryUsage.RSS).
 				Set(`memory_usage.anon_rss`, e.events[i].MemoryUsage.AnonRSS).
 				Set(`memory_usage.swap`, e.events[i].MemoryUsage.Swap).
+				Set(`memory_usage.app_importance`, e.events[i].MemoryUsage.AppImportance).
 				Set(`memory_usage.native_total_heap`, e.events[i].MemoryUsage.NativeTotalHeap).
 				Set(`memory_usage.native_free_heap`, e.events[i].MemoryUsage.NativeFreeHeap).
 				Set(`memory_usage.interval`, e.events[i].MemoryUsage.Interval)
@@ -919,6 +920,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`memory_usage.rss`, nil).
 				Set(`memory_usage.anon_rss`, nil).
 				Set(`memory_usage.swap`, nil).
+				Set(`memory_usage.app_importance`, nil).
 				Set(`memory_usage.native_total_heap`, nil).
 				Set(`memory_usage.native_free_heap`, nil).
 				Set(`memory_usage.interval`, nil)

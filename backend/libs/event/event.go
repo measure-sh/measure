@@ -621,6 +621,7 @@ type MemoryUsage struct {
 	RSS             uint64 `json:"rss"`
 	AnonRSS         uint64 `json:"anon_rss"`
 	Swap            uint64 `json:"swap"`
+	AppImportance   string `json:"app_importance"`
 	NativeTotalHeap uint64 `json:"native_total_heap" binding:"required"`
 	NativeFreeHeap  uint64 `json:"native_free_heap" binding:"required"`
 	Interval        uint64 `json:"interval" binding:"required"`
