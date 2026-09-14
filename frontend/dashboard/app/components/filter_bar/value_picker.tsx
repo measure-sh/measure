@@ -4,15 +4,13 @@ import { Circle, CircleCheck, Search } from "lucide-react";
 import { useState } from "react";
 import {
   type FilterValue,
-  numberBoxAttributes,
   type ValueSuggestionMode,
 } from "@/app/api/filter_types";
 import { useFilterValuesQuery } from "@/app/query/hooks";
 import DebounceTextInput from "../debounce_text_input";
 import { Input } from "../input";
-import { Popover, PopoverContent, PopoverTrigger } from "../popover";
 import { Skeleton } from "../skeleton";
-import { keepOpenWithin, settleFocusOnClose } from "./picker_popover";
+import { PickerPopover } from "./picker_popover";
 
 interface ValuePickerProps {
   appId: string;
@@ -73,34 +71,32 @@ export default function ValuePicker({
   };
 
   return (
-    <Popover open={open} onOpenChange={onOpenChange} modal>
-      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent
-        className="p-0 w-auto min-w-72 max-w-[min(24rem,calc(100vw-2rem))]"
-        align="start"
-        onCloseAutoFocus={(e) => settleFocusOnClose(e)}
-        onPointerDownOutside={keepOpenWithin(stayOpenWithin)}
-      >
-        {listed ? (
-          <ValueList
-            appId={appId}
-            entity={entity}
-            keyName={keyName}
-            takesOneValue={takesOneValue}
-            takesTyped={takesTyped}
-            selected={selected}
-            isSelected={isSelected}
-            onToggle={toggle}
-          />
-        ) : (
-          <TypedValue
-            initial={selected[0]?.text ?? ""}
-            valueType={valueType}
-            onApply={(text) => onChange([{ text }], true)}
-          />
-        )}
-      </PopoverContent>
-    </Popover>
+    <PickerPopover
+      open={open}
+      onOpenChange={onOpenChange}
+      trigger={trigger}
+      className="p-0 w-auto min-w-72 max-w-[min(24rem,calc(100vw-2rem))]"
+      stayOpenWithin={stayOpenWithin}
+    >
+      {listed ? (
+        <ValueList
+          appId={appId}
+          entity={entity}
+          keyName={keyName}
+          takesOneValue={takesOneValue}
+          takesTyped={takesTyped}
+          selected={selected}
+          isSelected={isSelected}
+          onToggle={toggle}
+        />
+      ) : (
+        <TypedValue
+          initial={selected[0]?.text ?? ""}
+          valueType={valueType}
+          onApply={(text) => onChange([{ text }], true)}
+        />
+      )}
+    </PickerPopover>
   );
 }
 
@@ -213,6 +209,29 @@ function ValueList({
       )}
     </>
   );
+}
+
+/**
+ * Attributes for numeric keys, or null for other key types. Bounds match the
+ * column type to prevent out-of-range values; int64 has no bounds because
+ * JavaScript cannot represent its full range accurately and the server
+ * validates it on request send.
+ */
+function numberBoxAttributes(
+  valueType: string,
+): { step: number | "any"; min?: number; max?: number } | null {
+  switch (valueType) {
+    case "int32":
+      return { step: 1, min: -2147483648, max: 2147483647 };
+    case "uint32":
+      return { step: 1, min: 0, max: 4294967295 };
+    case "int64":
+      return { step: 1 };
+    case "float64":
+      return { step: "any" };
+    default:
+      return null;
+  }
 }
 
 // Holds the edit until it is applied, so closing the box without applying

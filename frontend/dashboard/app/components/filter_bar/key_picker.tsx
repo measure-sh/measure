@@ -5,9 +5,8 @@ import { useState } from "react";
 import type { FilterKey } from "@/app/api/filter_types";
 import { Button } from "../button";
 import { Input } from "../input";
-import { Popover, PopoverContent, PopoverTrigger } from "../popover";
 import TabSelect from "../tab_select";
-import { keepOpenWithin, settleFocusOnClose } from "./picker_popover";
+import { PickerPopover } from "./picker_popover";
 
 interface KeyPickerProps {
   keys: FilterKey[];
@@ -39,40 +38,38 @@ export default function KeyPicker({
   stayOpenWithin,
 }: KeyPickerProps) {
   return (
-    // modal keeps the TAB key inside the open list, and returns focus to
-    // whatever opened it when the list closes.
-    <Popover open={open} onOpenChange={onOpenChange} modal>
-      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent
-        // Sized to its content, so an entity with few tabs does not open
-        // a box built for many.
-        className="p-0 w-auto min-w-96 max-w-[min(32rem,calc(100vw-2rem))]"
-        align={align}
-        onCloseAutoFocus={(e) => settleFocusOnClose(e, focusOnClose)}
-        onPointerDownOutside={keepOpenWithin(stayOpenWithin)}
-      >
-        <KeyList
-          keys={keys}
-          keyGroups={keyGroups}
-          selected={selected}
-          onSelect={onSelect}
-        />
+    <PickerPopover
+      open={open}
+      onOpenChange={onOpenChange}
+      trigger={trigger}
+      // Sized to its content, so an entity with few tabs does not open
+      // a box built for many.
+      className="p-0 w-auto min-w-96 max-w-[min(32rem,calc(100vw-2rem))]"
+      align={align}
+      focusOnClose={focusOnClose}
+      stayOpenWithin={stayOpenWithin}
+    >
+      <KeyList
+        keys={keys}
+        keyGroups={keyGroups}
+        selected={selected}
+        onSelect={onSelect}
+      />
 
-        {onAddGroup && (
-          <div className="border-t p-1">
-            <button
-              type="button"
-              data-testid="filter-add-group"
-              onClick={onAddGroup}
-              className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded outline-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground"
-            >
-              <Parentheses className="h-4 w-4 text-muted-foreground" />
-              <span className="font-display text-sm">Add Group</span>
-            </button>
-          </div>
-        )}
-      </PopoverContent>
-    </Popover>
+      {onAddGroup && (
+        <div className="border-t p-1">
+          <button
+            type="button"
+            data-testid="filter-add-group"
+            onClick={onAddGroup}
+            className="flex items-center gap-2 w-full text-left px-2 py-1.5 rounded outline-none hover:bg-accent hover:text-accent-foreground focus-visible:bg-accent focus-visible:text-accent-foreground"
+          >
+            <Parentheses className="h-4 w-4 text-muted-foreground" />
+            <span className="font-display text-sm">Add Group</span>
+          </button>
+        </div>
+      )}
+    </PickerPopover>
   );
 }
 
@@ -211,30 +208,28 @@ export function OperatorPicker({
   stayOpenWithin?: React.RefObject<HTMLElement | null>;
 }) {
   return (
-    <Popover open={open} onOpenChange={onOpenChange} modal>
-      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
-      <PopoverContent
-        className="p-1 w-48"
-        align="start"
-        onCloseAutoFocus={(e) => settleFocusOnClose(e)}
-        onPointerDownOutside={keepOpenWithin(stayOpenWithin)}
-      >
-        <div className="flex flex-col">
-          {operators.map((operator) => (
-            <Button
-              key={operator}
-              variant="ghost"
-              className={`justify-start font-display text-sm ${
-                selected === operator ? "bg-accent" : ""
-              }`}
-              data-testid={`filter-op-${operator}`}
-              onClick={() => onSelect(operator)}
-            >
-              {operatorLabels[operator] ?? operator}
-            </Button>
-          ))}
-        </div>
-      </PopoverContent>
-    </Popover>
+    <PickerPopover
+      open={open}
+      onOpenChange={onOpenChange}
+      trigger={trigger}
+      className="p-1 w-48"
+      stayOpenWithin={stayOpenWithin}
+    >
+      <div className="flex flex-col">
+        {operators.map((operator) => (
+          <Button
+            key={operator}
+            variant="ghost"
+            className={`justify-start font-display text-sm ${
+              selected === operator ? "bg-accent" : ""
+            }`}
+            data-testid={`filter-op-${operator}`}
+            onClick={() => onSelect(operator)}
+          >
+            {operatorLabels[operator] ?? operator}
+          </Button>
+        ))}
+      </div>
+    </PickerPopover>
   );
 }

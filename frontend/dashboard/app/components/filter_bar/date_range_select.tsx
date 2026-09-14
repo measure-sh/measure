@@ -1,6 +1,6 @@
 "use client";
 
-import { DateTime } from "luxon";
+import { DateTime, type DurationLikeObject } from "luxon";
 import DropdownSelect, { DropdownSelectType } from "../dropdown_select";
 import CustomDateTimeInput from "./custom_date_input";
 
@@ -21,41 +21,26 @@ export enum DateRange {
   Custom = "Custom Range",
 }
 
-export function mapDateRangeToDate(dateRange: string): DateTime {
-  let today = DateTime.now();
+type RelativeDateRange = Exclude<DateRange, DateRange.Custom>;
 
-  switch (dateRange) {
-    case DateRange.Last15Mins:
-      return today.minus({ minutes: 15 });
-    case DateRange.Last30Mins:
-      return today.minus({ minutes: 30 });
-    case DateRange.LastHour:
-      return today.minus({ hours: 1 });
-    case DateRange.Last3Hours:
-      return today.minus({ hours: 3 });
-    case DateRange.Last6Hours:
-      return today.minus({ hours: 6 });
-    case DateRange.Last12Hours:
-      return today.minus({ hours: 12 });
-    case DateRange.Last24Hours:
-      return today.minus({ hours: 24 });
-    case DateRange.LastWeek:
-      return today.minus({ days: 7 });
-    case DateRange.Last15Days:
-      return today.minus({ days: 15 });
-    case DateRange.LastMonth:
-      return today.minus({ months: 1 });
-    case DateRange.Last3Months:
-      return today.minus({ months: 3 });
-    case DateRange.Last6Months:
-      return today.minus({ months: 6 });
-    case DateRange.LastYear:
-      return today.minus({ years: 1 });
-    case DateRange.Custom:
-      throw Error("Custom date range cannot be mapped to date");
-  }
+const durationBeforeNow: Record<RelativeDateRange, DurationLikeObject> = {
+  [DateRange.Last15Mins]: { minutes: 15 },
+  [DateRange.Last30Mins]: { minutes: 30 },
+  [DateRange.LastHour]: { hours: 1 },
+  [DateRange.Last3Hours]: { hours: 3 },
+  [DateRange.Last6Hours]: { hours: 6 },
+  [DateRange.Last12Hours]: { hours: 12 },
+  [DateRange.Last24Hours]: { hours: 24 },
+  [DateRange.LastWeek]: { days: 7 },
+  [DateRange.Last15Days]: { days: 15 },
+  [DateRange.LastMonth]: { months: 1 },
+  [DateRange.Last3Months]: { months: 3 },
+  [DateRange.Last6Months]: { months: 6 },
+  [DateRange.LastYear]: { years: 1 },
+};
 
-  throw Error(`Unknown date range "${dateRange}"`);
+function mapDateRangeToDate(dateRange: RelativeDateRange): DateTime {
+  return DateTime.now().minus(durationBeforeNow[dateRange]);
 }
 
 export type DateSelection = {
@@ -83,7 +68,7 @@ function isValidCustomRange(range: UncheckedDateRange): boolean {
   return start.isValid && end.isValid && start <= end;
 }
 
-function countBackFromNow(dateRange: DateRange): DateSelection {
+function countBackFromNow(dateRange: RelativeDateRange): DateSelection {
   return {
     dateRange,
     startDate: mapDateRangeToDate(dateRange).toISO()!,
@@ -146,7 +131,7 @@ export default function DateRangeSelect({
         items={Object.values(DateRange)}
         initialSelected={dateRange}
         onChangeSelected={(item) => {
-          const range = item as string;
+          const range = item as DateRange;
 
           if (range === dateRange) {
             return;

@@ -1,4 +1,5 @@
-import type { RefObject } from "react";
+import type { ReactNode, RefObject } from "react";
+import { Popover, PopoverContent, PopoverTrigger } from "../popover";
 
 // Radix runs this when a picker has finished closing, and by default then
 // focuses the picker's trigger. By then the bar has often opened another
@@ -6,7 +7,7 @@ import type { RefObject } from "react";
 // trigger would take it away. So when focus is already outside the closed
 // picker, it stays there. Otherwise, as after Escape, focus goes to the control
 // the caller named, or to the trigger when the caller named none.
-export function settleFocusOnClose(
+function settleFocusOnClose(
   e: Event,
   focusOnClose?: RefObject<HTMLElement | null>,
 ) {
@@ -29,7 +30,7 @@ export function settleFocusOnClose(
 // plain left press anywhere inside that chip does not close the picker, so
 // pressing another segment of the chip opens that segment's picker. Right,
 // middle and ctrl presses still dismiss.
-export function keepOpenWithin(
+function keepOpenWithin(
   stayOpenWithin: RefObject<HTMLElement | null> | undefined,
 ) {
   return (e: {
@@ -45,4 +46,40 @@ export function keepOpenWithin(
       e.preventDefault();
     }
   };
+}
+
+export function PickerPopover({
+  open,
+  onOpenChange,
+  trigger,
+  className,
+  align = "start",
+  focusOnClose,
+  stayOpenWithin,
+  children,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  trigger: ReactNode;
+  className: string;
+  align?: "start" | "end";
+  focusOnClose?: RefObject<HTMLElement | null>;
+  stayOpenWithin?: RefObject<HTMLElement | null>;
+  children: ReactNode;
+}) {
+  return (
+    // modal keeps the TAB key inside the open list, and returns focus to
+    // whatever opened it when the list closes.
+    <Popover open={open} onOpenChange={onOpenChange} modal>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
+      <PopoverContent
+        className={className}
+        align={align}
+        onCloseAutoFocus={(e) => settleFocusOnClose(e, focusOnClose)}
+        onPointerDownOutside={keepOpenWithin(stayOpenWithin)}
+      >
+        {children}
+      </PopoverContent>
+    </Popover>
+  );
 }
