@@ -1,23 +1,17 @@
 package filter
 
 import (
-	"context"
 	"fmt"
 	"strings"
 	"time"
 
 	"backend/libs/symbol"
 
-	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // Entity is one subject a filter can be written against, such as builds,
-// events or spans. It says which keys it offers, BindKey says how a key maps
-// to actual data, and SuggestKeyValues lists what one key can be set to. A
-// binding may read from more than one place, so no database or a table is
-// specified here.
+// events or spans.
 type Entity struct {
 	// Name is what a request specifies to filter this subject.
 	Name string
@@ -25,21 +19,19 @@ type Entity struct {
 	// Keys is everything this subject can be filtered by.
 	Keys []Key
 
-	// BindKey turns one condition into a boolean SQL expression, with
-	// the values to bind. A key this entity does not offer comes back as
-	// ErrKeyNotSupported.
-	BindKey KeyBinding
+	// Columns says how the entity's keys read on its own table. A query
+	// against a rollup or another table binds with that table's Columns.
+	Columns *Columns
 
-	// SuggestFixedKeyValues lists what one fixed key can be set to, narrowed
-	// by what has been typed. Both pools are passed because which one an
-	// entity reads is its own choice.
-	SuggestFixedKeyValues func(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error)
+	// ValueSources says where the fixed keys' value suggestions are read from.
+	// The first source that has a key answers it.
+	ValueSources []valueSource
 
-	// CustomKeys is the one store every custom-key listing, lookup, value
-	// read and condition binding goes through, so an entity cannot list keys
-	// from one table and bind conditions against another. Nil for an entity
-	// whose keys are all fixed.
-	CustomKeys *customKeyStore
+	// CustomKeySource says where the entity's user-defined attributes are
+	// read from. Every listing, lookup, value read and condition binding of a
+	// custom key goes through it, so the keys an entity lists are the keys
+	// it can bind. Nil for an entity whose keys are all fixed.
+	CustomKeySource *customKeySource
 
 	// MaxTimeBucketWidth is the widest time bucket used by any of the entity's
 	// tables. Bucketed queries may include rows from this bucket past the range
@@ -48,10 +40,10 @@ type Entity struct {
 	MaxTimeBucketWidth time.Duration
 }
 
-// CustomKeyScope is the request context a custom-key binding queries with.
+// customKeyScope is the request context a custom-key binding queries with.
 // The version lists mirror app version conditions already present in the filter.
 // A custom key binding may use it to reduce scans.
-type CustomKeyScope struct {
+type customKeyScope struct {
 	TeamID       uuid.UUID
 	AppID        uuid.UUID
 	From         time.Time
@@ -87,7 +79,6 @@ func FindByName(name string) (Entity, error) {
 	return Entity{}, fmt.Errorf("Unknown filter entity %q", name)
 }
 
-// The groups a key can belong to.
 const (
 	KeyGroupError     KeyGroup = "Error"
 	KeyGroupVersion   KeyGroup = "Version"
@@ -111,8 +102,6 @@ var keyGroupOrder = []KeyGroup{
 	KeyGroupUser, KeyGroupCustom,
 }
 
-// ListKeyGroups lists the groups a set of keys falls into, in the order the
-// filter bar shows them.
 func ListKeyGroups(keys []Key) []KeyGroup {
 	present := make(map[KeyGroup]bool, len(keys))
 	for _, key := range keys {
@@ -458,8 +447,7 @@ func mappingTypes() []string {
 	return names
 }
 
-// narrowEnumValues narrows a key's fixed value set by what has been typed. An
-// enum key carries its values itself, so no table is read.
+// An enum key carries its values itself, so no table is read.
 func narrowEnumValues(key Key, valueRequest ValueRequest) ValueList {
 	values := []Value{}
 	for _, text := range key.EnumValues {

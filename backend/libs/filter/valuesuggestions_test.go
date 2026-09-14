@@ -207,7 +207,7 @@ func TestSuggestionSQL(t *testing.T) {
 		{
 			name: "the span custom key listing skips the skip indexes",
 			run: func(recorder *sqlRecorder) {
-				_, _, _ = SpansEntity.FetchCustomKeys(ctx, nil, recorder, teamID, appID, CustomKeyLimit)
+				_, _, _ = SpansEntity.CustomKeySource.fetchKeys(ctx, recorder, teamID, appID, CustomKeyLimit)
 			},
 			wantSQL: "SELECT key, argMax(type, timestamp) as type" +
 				" FROM span_user_def_attrs" +
@@ -218,7 +218,7 @@ func TestSuggestionSQL(t *testing.T) {
 		{
 			name: "the bug report custom key listing keeps to the rows flagged bug_report",
 			run: func(recorder *sqlRecorder) {
-				_, _, _ = BugReportsEntity.FetchCustomKeys(ctx, nil, recorder, teamID, appID, CustomKeyLimit)
+				_, _, _ = BugReportsEntity.CustomKeySource.fetchKeys(ctx, recorder, teamID, appID, CustomKeyLimit)
 			},
 			wantSQL: "SELECT key, argMax(type, timestamp) as type" +
 				" FROM user_def_attrs" +
@@ -229,7 +229,7 @@ func TestSuggestionSQL(t *testing.T) {
 		{
 			name: "span custom keys resolve by name without a limit or settings",
 			run: func(recorder *sqlRecorder) {
-				_, _ = SpansEntity.FetchCustomKeysByName(ctx, nil, recorder, teamID, appID, []string{"plan", "retries"})
+				_, _ = SpansEntity.CustomKeySource.fetchKeysByName(ctx, recorder, teamID, appID, []string{"plan", "retries"})
 			},
 			wantSQL: "SELECT key, argMax(type, timestamp) as type" +
 				" FROM span_user_def_attrs" +
@@ -240,7 +240,7 @@ func TestSuggestionSQL(t *testing.T) {
 		{
 			name: "bug report custom keys resolve by name behind the bug_report flag",
 			run: func(recorder *sqlRecorder) {
-				_, _ = BugReportsEntity.FetchCustomKeysByName(ctx, nil, recorder, teamID, appID, []string{"plan"})
+				_, _ = BugReportsEntity.CustomKeySource.fetchKeysByName(ctx, recorder, teamID, appID, []string{"plan"})
 			},
 			wantSQL: "SELECT key, argMax(type, timestamp) as type" +
 				" FROM user_def_attrs" +

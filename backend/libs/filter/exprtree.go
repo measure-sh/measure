@@ -1,9 +1,6 @@
-// Package filter parses, validates and walks filter expressions: trees
-// of conditions joined by and/or groups, addressed by stable key names.
-//
-// The package writes no SQL of its own. Every part of a predicate comes from a
-// entity, which knows which tables a key is read from and what it means
-// there.
+// Package filter parses, validates and binds filter expressions: trees of
+// conditions joined by and/or groups, addressed by stable key names. What a
+// key means on a table comes from the entity that offers it.
 package filter
 
 import (
@@ -20,12 +17,10 @@ const (
 	LogicalOr  LogicalOperator = "or"
 )
 
-// String returns the operator as it reads in SQL.
 func (logicalOperator LogicalOperator) String() string {
 	return string(logicalOperator)
 }
 
-// Valid reports whether logicalOperator is a known logical operator.
 func (logicalOperator LogicalOperator) Valid() bool {
 	return logicalOperator == LogicalAnd || logicalOperator == LogicalOr
 }
@@ -39,12 +34,10 @@ type ExprTree struct {
 	Condition       *Condition      `json:"condition,omitempty"`
 }
 
-// IsGroup reports whether exprTree is a group rather than a condition.
 func (exprTree *ExprTree) IsGroup() bool {
 	return exprTree != nil && exprTree.Condition == nil
 }
 
-// Condition compares one key against a set of values.
 type Condition struct {
 	KeyName      string   `json:"key_name"`
 	Operator     Operator `json:"operator"`
@@ -53,7 +46,6 @@ type Condition struct {
 	TextEnd      int      `json:"-"`
 }
 
-// TextValues returns the values as text, in the order they were written.
 func (condition Condition) TextValues() []string {
 	texts := make([]string, len(condition.Values))
 	for i := range condition.Values {
@@ -62,8 +54,6 @@ func (condition Condition) TextValues() []string {
 	return texts
 }
 
-// TextValue returns the single value of a condition whose operator takes one.
-// It returns the empty string only for an operator that takes none.
 func (condition Condition) TextValue() string {
 	if len(condition.Values) == 0 {
 		return ""
@@ -71,7 +61,6 @@ func (condition Condition) TextValue() string {
 	return condition.Values[0].Text
 }
 
-// IntegerValue returns the single value of a condition on an integer key.
 func (condition Condition) IntegerValue() (int64, error) {
 	number, err := strconv.ParseInt(condition.TextValue(), 10, 64)
 	if err != nil {
@@ -80,7 +69,6 @@ func (condition Condition) IntegerValue() (int64, error) {
 	return number, nil
 }
 
-// FloatValue returns the single value of a condition on a number key.
 func (condition Condition) FloatValue() (float64, error) {
 	number, err := strconv.ParseFloat(condition.TextValue(), 64)
 	if err != nil {
@@ -89,7 +77,6 @@ func (condition Condition) FloatValue() (float64, error) {
 	return number, nil
 }
 
-// TimeValue returns the single value of a condition on a time key.
 func (condition Condition) TimeValue() (time.Time, error) {
 	at, err := time.Parse(time.RFC3339, condition.TextValue())
 	if err != nil {
@@ -98,7 +85,6 @@ func (condition Condition) TimeValue() (time.Time, error) {
 	return at, nil
 }
 
-// BoolValue returns the single value of a condition on a true-or-false key.
 func (condition Condition) BoolValue() (bool, error) {
 	yes, err := strconv.ParseBool(condition.TextValue())
 	if err != nil {

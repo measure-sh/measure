@@ -110,7 +110,7 @@ func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, flt *f
 		defer stmt.Close()
 
 		if flt.HasFilterExpr() {
-			predicate, predErr := flt.Predicate(filter.AppHealthEventsKeyBindings)
+			predicate, predErr := flt.Predicate(filter.AppHealthEventsColumns)
 			if predErr != nil {
 				return predErr
 			}

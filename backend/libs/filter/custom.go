@@ -8,7 +8,6 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 // A custom key is a user-defined attribute the app reported, offered as a
@@ -18,8 +17,6 @@ import (
 // after the prefix is the attribute name as the app reported it.
 const CustomKeyPrefix = "custom."
 
-// CustomKeyLimit caps how many user-defined attribute keys a key listing
-// returns.
 const CustomKeyLimit = 500
 
 var customValueTypes = map[string]ValueType{
@@ -29,7 +26,6 @@ var customValueTypes = map[string]ValueType{
 	string(ValueTypeBool):    ValueTypeBool,
 }
 
-// CustomKey is the filter key for one user-defined attribute.
 func CustomKey(rawName string, valueType ValueType) Key {
 	// Whether the attribute was set at all is independent of the value's
 	// type, so every custom key offers the presence operators on top of its
@@ -62,50 +58,22 @@ func CustomKey(rawName string, valueType ValueType) Key {
 	return key
 }
 
-// FetchCustomKeys lists the keys an app's user-defined attributes add to the
-// entity's fixed set, reporting whether the listing was cut off at limit.
-func (e Entity) FetchCustomKeys(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, limit int) ([]Key, bool, error) {
-	if e.CustomKeys == nil {
-		return nil, false, nil
-	}
-	return e.CustomKeys.fetchKeys(ctx, pgPool, chPool, teamID, appID, limit)
-}
-
-// FetchCustomKeysByName reads the entity's custom keys with the given names,
-// each name without the custom prefix. A name not present in user-defined
-// attributes yields no key.
-func (e Entity) FetchCustomKeysByName(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, rawNames []string) ([]Key, error) {
-	if e.CustomKeys == nil {
-		return nil, nil
-	}
-	return e.CustomKeys.fetchKeysByName(ctx, pgPool, chPool, teamID, appID, rawNames)
-}
-
-// BindCustomKeys builds the GroupKeyBinding for the given custom keys.
-func (e Entity) BindCustomKeys(scope CustomKeyScope, keys []Key) GroupKeyBinding {
-	if e.CustomKeys == nil {
-		return nil
-	}
-	return e.CustomKeys.bindConditions(scope, keys)
-}
-
 // ListKeys returns the entity's fixed keys followed by the app's custom
 // keys, reporting whether the custom set was cut off at CustomKeyLimit. Any
 // names the caller passes that carry the custom prefix and did not make the
 // listing are resolved by name and appended.
-func (e Entity) ListKeys(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, names []string) ([]Key, bool, error) {
-	return e.listKeys(ctx, pgPool, chPool, teamID, appID, names, CustomKeyLimit)
+func (e Entity) ListKeys(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, names []string) ([]Key, bool, error) {
+	return e.listKeys(ctx, chPool, teamID, appID, names, CustomKeyLimit)
 }
 
-// listKeys is ListKeys with the custom-key listing cap as a parameter. The
-// fixed Keys slice is package-level state, so the merge reallocates to leave
-// it untouched.
-func (e Entity) listKeys(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, names []string, limit int) ([]Key, bool, error) {
-	if e.CustomKeys == nil {
+// The fixed Keys slice is package-level state, so the merge reallocates to
+// leave it untouched.
+func (e Entity) listKeys(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, names []string, limit int) ([]Key, bool, error) {
+	if e.CustomKeySource == nil {
 		return e.Keys, false, nil
 	}
 
-	customKeys, truncated, err := e.CustomKeys.fetchKeys(ctx, pgPool, chPool, teamID, appID, limit)
+	customKeys, truncated, err := e.CustomKeySource.fetchKeys(ctx, chPool, teamID, appID, limit)
 	if err != nil {
 		return nil, false, err
 	}
@@ -127,7 +95,7 @@ func (e Entity) listKeys(ctx context.Context, pgPool *pgxpool.Pool, chPool drive
 		}
 	}
 	if len(missingRawNames) > 0 {
-		namedKeys, err := e.CustomKeys.fetchKeysByName(ctx, pgPool, chPool, teamID, appID, missingRawNames)
+		namedKeys, err := e.CustomKeySource.fetchKeysByName(ctx, chPool, teamID, appID, missingRawNames)
 		if err != nil {
 			return nil, false, err
 		}
@@ -137,19 +105,17 @@ func (e Entity) listKeys(ctx context.Context, pgPool *pgxpool.Pool, chPool drive
 	return keys, truncated, nil
 }
 
-// FindKey resolves one key name to the entity's key definition, fixed or
-// custom.
 func (e Entity) FindKey(ctx context.Context, ch driver.Conn, teamID, appID uuid.UUID, name string) (Key, bool, error) {
 	if key, found := IndexKeysByName(e.Keys)[name]; found {
 		return key, true, nil
 	}
 
 	rawName, isCustom := strings.CutPrefix(name, CustomKeyPrefix)
-	if !isCustom || e.CustomKeys == nil {
+	if !isCustom || e.CustomKeySource == nil {
 		return Key{}, false, nil
 	}
 
-	customKeys, err := e.CustomKeys.fetchKeysByName(ctx, nil, ch, teamID, appID, []string{rawName})
+	customKeys, err := e.CustomKeySource.fetchKeysByName(ctx, ch, teamID, appID, []string{rawName})
 	if err != nil {
 		return Key{}, false, err
 	}
@@ -159,8 +125,6 @@ func (e Entity) FindKey(ctx context.Context, ch driver.Conn, teamID, appID uuid.
 	return customKeys[0], true, nil
 }
 
-// collectCustomKeyNames lists the user-defined attribute names a filter tree
-// mentions, without their prefix, each name once.
 func collectCustomKeyNames(exprTree *ExprTree) []string {
 	if exprTree == nil {
 		return nil
@@ -221,21 +185,20 @@ func collectRootVersionConditions(exprTree *ExprTree) (versionNames, versionCode
 	return versionNames, versionCodes
 }
 
-// ResolveCustomKeys reads the custom keys in the filter expression,
-// extends this request's copy of the entity with them for validation, and
-// installs the group binder Predicate routes their conditions to. Keys not
-// reported by the app are left out so validation reports them as unknown.
+// ResolveCustomKeys adds the custom keys the filter expression mentions to
+// this request's copy of the entity. Keys the app never reported are left
+// out so validation reports them as unknown.
 func (flt *Filter) ResolveCustomKeys(ctx context.Context, chPool driver.Conn) error {
 	rawNames := collectCustomKeyNames(flt.ExprTree)
 	if len(rawNames) == 0 {
 		return nil
 	}
 
-	if flt.Entity.CustomKeys == nil {
+	if flt.Entity.CustomKeySource == nil {
 		return nil
 	}
 
-	keys, err := flt.Entity.CustomKeys.fetchKeysByName(ctx, nil, chPool, flt.TeamID, flt.AppID, rawNames)
+	keys, err := flt.Entity.CustomKeySource.fetchKeysByName(ctx, chPool, flt.TeamID, flt.AppID, rawNames)
 	if err != nil {
 		return err
 	}
@@ -244,15 +207,19 @@ func (flt *Filter) ResolveCustomKeys(ctx context.Context, chPool driver.Conn) er
 	// the package-level array, so the append must reallocate to leave that
 	// array untouched.
 	flt.Entity.Keys = append(slices.Clip(flt.Entity.Keys), keys...)
+	return nil
+}
 
+// The time range is widened by the entity's bucket width so a bucketed query
+// finds the attributes of every row it can include.
+func (flt *Filter) customKeyScope() customKeyScope {
 	versionNames, versionCodes := flt.RootVersionConditions()
-	flt.customBinder = flt.Entity.CustomKeys.bindConditions(CustomKeyScope{
+	return customKeyScope{
 		TeamID:       flt.TeamID,
 		AppID:        flt.AppID,
 		From:         flt.From,
 		To:           flt.To.Add(flt.Entity.MaxTimeBucketWidth),
 		VersionNames: versionNames,
 		VersionCodes: versionCodes,
-	}, keys)
-	return nil
+	}
 }

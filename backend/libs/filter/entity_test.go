@@ -52,13 +52,39 @@ func TestEntitiesFillEveryField(t *testing.T) {
 			if entity.Name == "" {
 				t.Error("an entity with no name cannot be asked for by a request")
 			}
-			if entity.BindKey == nil {
-				t.Error("an entity with no BindKey cannot write a filter")
+			if entity.Columns == nil {
+				t.Error("an entity with no Columns cannot write a filter")
 			}
-			if len(entity.Keys) > 0 && entity.SuggestFixedKeyValues == nil {
-				t.Error("an entity with no SuggestFixedKeyValues cannot list what a fixed key can be set to")
+			if len(entity.Keys) > 0 && len(entity.ValueSources) == 0 {
+				t.Error("an entity with no ValueSources cannot list what a fixed key can be set to")
 			}
 		})
+	}
+}
+
+// A column set without a dialect writes no list syntax and runs no value
+// query, so every set the package declares must name one.
+func TestEveryColumnSetNamesADialect(t *testing.T) {
+	sets := map[string]*Columns{
+		"SpanMetricsColumns":        SpanMetricsColumns,
+		"SessionsAggregatedColumns": SessionsAggregatedColumns,
+		"NetworkMetricsColumns":     NetworkMetricsColumns,
+		"JourneyEventsColumns":      JourneyEventsColumns,
+		"AppHealthEventsColumns":    AppHealthEventsColumns,
+	}
+	for _, entity := range allEntities {
+		if entity.Columns != nil {
+			sets[entity.Name] = entity.Columns
+		}
+		for _, source := range entity.ValueSources {
+			sets[entity.Name+" values from "+source.table] = source.columns
+		}
+	}
+
+	for name, columns := range sets {
+		if columns.dialect == 0 {
+			t.Errorf("column set %s names no dialect", name)
+		}
 	}
 }
 
@@ -173,7 +199,7 @@ func TestEntitiesBindEveryOperatorTheyOffer(t *testing.T) {
 							Values:   sampleValues(t, key, operator),
 						}
 
-						stmt, err := entity.BindKey(condition)
+						stmt, err := bindColumn(entity.Columns, condition)
 						if err != nil {
 							t.Errorf("Operator %q: %v", operator, err)
 							continue
@@ -190,7 +216,7 @@ func TestEntitiesBindEveryOperatorTheyOffer(t *testing.T) {
 }
 
 func TestBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
-	_, err := BuildsEntity.BindKey(Condition{
+	_, err := bindColumn(BuildsEntity.Columns, Condition{
 		KeyName:  "device_cohort",
 		Operator: OperatorIn,
 		Values:   []Value{{Text: "beta"}},
@@ -237,7 +263,7 @@ func TestSpansEntityOffersEverySpanKey(t *testing.T) {
 }
 
 func TestSpansBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
-	_, err := SpansEntity.BindKey(Condition{
+	_, err := bindColumn(SpansEntity.Columns, Condition{
 		KeyName:  "mapping_type",
 		Operator: OperatorIn,
 		Values:   []Value{{Text: "proguard"}},
@@ -252,7 +278,7 @@ func TestSpansBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
 }
 
 func TestSpanStatusBindsTheColumnCodes(t *testing.T) {
-	stmt, err := SpansEntity.BindKey(Condition{
+	stmt, err := bindColumn(SpansEntity.Columns, Condition{
 		KeyName:  "span_status",
 		Operator: OperatorIn,
 		Values:   []Value{{Text: "unset"}, {Text: "error"}},
@@ -269,11 +295,11 @@ func TestSpanStatusBindsTheColumnCodes(t *testing.T) {
 	if len(args) != 1 {
 		t.Fatalf("want one bound argument, got %v", args)
 	}
-	if got, ok := args[0].([]int8); !ok || !slices.Equal(got, []int8{0, 2}) {
+	if got, ok := args[0].([]int); !ok || !slices.Equal(got, []int{0, 2}) {
 		t.Errorf("want the codes [0 2] bound, got %v", args[0])
 	}
 
-	if _, err := SpansEntity.BindKey(Condition{
+	if _, err := bindColumn(SpansEntity.Columns, Condition{
 		KeyName:  "span_status",
 		Operator: OperatorIn,
 		Values:   []Value{{Text: "cancelled"}},
@@ -304,7 +330,7 @@ func TestBugReportsEntityOffersEveryBugReportKey(t *testing.T) {
 }
 
 func TestBugReportsBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
-	_, err := BugReportsEntity.BindKey(Condition{
+	_, err := bindColumn(BugReportsEntity.Columns, Condition{
 		KeyName:  "span_status",
 		Operator: OperatorIn,
 		Values:   []Value{{Text: "error"}},
@@ -319,7 +345,7 @@ func TestBugReportsBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
 }
 
 func TestBugReportStatusBindsTheColumnCodes(t *testing.T) {
-	stmt, err := BugReportsEntity.BindKey(Condition{
+	stmt, err := bindColumn(BugReportsEntity.Columns, Condition{
 		KeyName:  "bug_report_status",
 		Operator: OperatorIn,
 		Values:   []Value{{Text: "open"}, {Text: "closed"}},
@@ -336,11 +362,11 @@ func TestBugReportStatusBindsTheColumnCodes(t *testing.T) {
 	if len(args) != 1 {
 		t.Fatalf("want one bound argument, got %v", args)
 	}
-	if got, ok := args[0].([]uint8); !ok || !slices.Equal(got, []uint8{0, 1}) {
+	if got, ok := args[0].([]int); !ok || !slices.Equal(got, []int{0, 1}) {
 		t.Errorf("want the codes [0 1] bound, got %v", args[0])
 	}
 
-	notIn, err := BugReportsEntity.BindKey(Condition{
+	notIn, err := bindColumn(BugReportsEntity.Columns, Condition{
 		KeyName:  "bug_report_status",
 		Operator: OperatorNotIn,
 		Values:   []Value{{Text: "closed"}},
@@ -352,11 +378,11 @@ func TestBugReportStatusBindsTheColumnCodes(t *testing.T) {
 	if got := notIn.String(); got != "status not in ?" {
 		t.Errorf("want the status column excluded, got %q", got)
 	}
-	if got, ok := notIn.Args()[0].([]uint8); !ok || !slices.Equal(got, []uint8{1}) {
+	if got, ok := notIn.Args()[0].([]int); !ok || !slices.Equal(got, []int{1}) {
 		t.Errorf("want the code [1] bound, got %v", notIn.Args()[0])
 	}
 
-	if _, err := BugReportsEntity.BindKey(Condition{
+	if _, err := bindColumn(BugReportsEntity.Columns, Condition{
 		KeyName:  "bug_report_status",
 		Operator: OperatorIn,
 		Values:   []Value{{Text: "resolved"}},
@@ -380,7 +406,7 @@ func TestJourneysEntityOffersEveryJourneyKey(t *testing.T) {
 }
 
 func TestJourneysBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
-	_, err := JourneysEntity.BindKey(Condition{
+	_, err := bindColumn(JourneysEntity.Columns, Condition{
 		KeyName:  "os_name",
 		Operator: OperatorIn,
 		Values:   []Value{{Text: "android"}},
@@ -394,9 +420,9 @@ func TestJourneysBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
 	}
 }
 
-// Asserts the overrides compare the version keys against the
-// flat attribute columns of the events table, where the journey
-// table itself holds them as a tuple.
+// Asserts the events-table column set compares the version keys against the
+// flat attribute columns of the events table, where the journey table itself
+// holds them as a tuple.
 func TestJourneyEventsKeyBindingsReadTheEventsColumns(t *testing.T) {
 	flt := &Filter{Entity: JourneysEntity, FilterExpr: "version_name:in:1.2.0 AND version_code:in:120"}
 	if err := flt.BuildExprTree(); err != nil {
@@ -412,7 +438,7 @@ func TestJourneyEventsKeyBindingsReadTheEventsColumns(t *testing.T) {
 		t.Errorf("want the tuple columns compared, got %q", got)
 	}
 
-	onEvents, err := flt.Predicate(JourneyEventsKeyBindings)
+	onEvents, err := flt.Predicate(JourneyEventsColumns)
 	if err != nil {
 		t.Fatalf("predicate on the events table: %v", err)
 	}
@@ -440,7 +466,7 @@ func TestAppHealthEntityOffersEveryAppHealthKey(t *testing.T) {
 }
 
 func TestAppHealthBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
-	_, err := AppHealthEntity.BindKey(Condition{
+	_, err := bindColumn(AppHealthEntity.Columns, Condition{
 		KeyName:  "os_name",
 		Operator: OperatorIn,
 		Values:   []Value{{Text: "android"}},
@@ -469,7 +495,7 @@ func TestAppHealthEventsKeyBindingsReadTheEventsColumns(t *testing.T) {
 		t.Errorf("want the tuple columns compared, got %q", got)
 	}
 
-	onEvents, err := flt.Predicate(AppHealthEventsKeyBindings)
+	onEvents, err := flt.Predicate(AppHealthEventsColumns)
 	if err != nil {
 		t.Fatalf("predicate on the events table: %v", err)
 	}
@@ -504,7 +530,7 @@ func TestNetworkEntityOffersEveryNetworkKey(t *testing.T) {
 }
 
 func TestNetworkBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
-	_, err := NetworkEntity.BindKey(Condition{
+	_, err := bindColumn(NetworkEntity.Columns, Condition{
 		KeyName:  "span_status",
 		Operator: OperatorIn,
 		Values:   []Value{{Text: "error"}},
@@ -525,7 +551,7 @@ func TestNetworkHttpMethodComparesLowercased(t *testing.T) {
 		Values:   []Value{{Text: "get"}},
 	}
 
-	onEvents, err := NetworkEntity.BindKey(condition)
+	onEvents, err := bindColumn(NetworkEntity.Columns, condition)
 	if err != nil {
 		t.Fatalf("bind http_method: %v", err)
 	}
@@ -534,7 +560,7 @@ func TestNetworkHttpMethodComparesLowercased(t *testing.T) {
 		t.Errorf("want the method column lowercased, got %q", got)
 	}
 
-	onMetrics, err := NetworkMetricsKeyBindings["http_method"](condition)
+	onMetrics, err := bindColumn(NetworkMetricsColumns, condition)
 	if err != nil {
 		t.Fatalf("bind http_method on the rollup: %v", err)
 	}
@@ -559,7 +585,7 @@ func TestNetworkMetricsKeyBindingsReadTheRollupArrays(t *testing.T) {
 		t.Errorf("want the event columns compared, got %q", got)
 	}
 
-	onMetrics, err := flt.Predicate(NetworkMetricsKeyBindings)
+	onMetrics, err := flt.Predicate(NetworkMetricsColumns)
 	if err != nil {
 		t.Fatalf("predicate on the rollup: %v", err)
 	}
@@ -576,12 +602,11 @@ func TestNetworkMetricsKeyBindingsReadTheRollupArrays(t *testing.T) {
 func TestNetworkMetricsBindEveryOperatorTheKeysOffer(t *testing.T) {
 	for _, key := range NetworkEntity.Keys {
 		t.Run(key.Name, func(t *testing.T) {
-			binding, bound := NetworkMetricsKeyBindings[key.Name]
-			if !bound {
+			if _, bound := NetworkMetricsColumns.byKey[key.Name]; !bound {
 				t.Fatalf("key %q has no rollup binding", key.Name)
 			}
 			for _, operator := range key.Operators {
-				stmt, err := binding(Condition{
+				stmt, err := bindColumn(NetworkMetricsColumns, Condition{
 					KeyName:  key.Name,
 					Operator: operator,
 					Values:   sampleValues(t, key, operator),
@@ -622,7 +647,7 @@ func TestSessionsEntityOffersEverySessionKey(t *testing.T) {
 }
 
 func TestSessionsBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
-	_, err := SessionsEntity.BindKey(Condition{
+	_, err := bindColumn(SessionsEntity.Columns, Condition{
 		KeyName:  "span_status",
 		Operator: OperatorIn,
 		Values:   []Value{{Text: "error"}},
@@ -643,7 +668,7 @@ func TestSessionEventsBindPredicates(t *testing.T) {
 		for i, name := range names {
 			values[i] = Value{Text: name}
 		}
-		stmt, err := SessionsEntity.BindKey(Condition{
+		stmt, err := bindColumn(SessionsEntity.Columns, Condition{
 			KeyName:  "session_events",
 			Operator: operator,
 			Values:   values,
@@ -695,7 +720,7 @@ func TestSessionEventsBindPredicates(t *testing.T) {
 	})
 
 	t.Run("unknown value", func(t *testing.T) {
-		_, err := SessionsEntity.BindKey(Condition{
+		_, err := bindColumn(SessionsEntity.Columns, Condition{
 			KeyName:  "session_events",
 			Operator: OperatorIn,
 			Values:   []Value{{Text: "screen_view"}},
@@ -709,7 +734,7 @@ func TestSessionEventsBindPredicates(t *testing.T) {
 	})
 
 	t.Run("operator it does not offer", func(t *testing.T) {
-		_, err := SessionsEntity.BindKey(Condition{
+		_, err := bindColumn(SessionsEntity.Columns, Condition{
 			KeyName:  "session_events",
 			Operator: OperatorContains,
 			Values:   []Value{{Text: "anr"}},
@@ -727,7 +752,7 @@ func TestSessionLifecycleBindsPredicates(t *testing.T) {
 		for i, name := range names {
 			values[i] = Value{Text: name}
 		}
-		return SessionsEntity.BindKey(Condition{
+		return bindColumn(SessionsEntity.Columns, Condition{
 			KeyName:  "session_foreground_background",
 			Operator: operator,
 			Values:   values,
@@ -813,7 +838,7 @@ func TestSessionLifecycleBindsPredicates(t *testing.T) {
 func TestSessionTextKeysReadTheSessionArrays(t *testing.T) {
 	bind := func(t *testing.T, keyName string, operator Operator, text string) (*sqlf.Stmt, error) {
 		t.Helper()
-		return SessionsEntity.BindKey(Condition{
+		return bindColumn(SessionsEntity.Columns, Condition{
 			KeyName:  keyName,
 			Operator: operator,
 			Values:   []Value{{Text: text}},
@@ -924,11 +949,10 @@ func TestSessionsAggregatedKeyBindingsReadThePerSessionTotals(t *testing.T) {
 				values[i] = Value{Text: text}
 			}
 
-			binding, bound := SessionsAggregatedKeyBindings[test.keyName]
-			if !bound {
+			if _, bound := SessionsAggregatedColumns.byKey[test.keyName]; !bound {
 				t.Fatalf("key %q has no aggregated binding", test.keyName)
 			}
-			stmt, err := binding(Condition{KeyName: test.keyName, Operator: test.operator, Values: values})
+			stmt, err := bindColumn(SessionsAggregatedColumns, Condition{KeyName: test.keyName, Operator: test.operator, Values: values})
 			if err != nil {
 				t.Fatalf("bind %s: %v", test.keyName, err)
 			}
@@ -989,7 +1013,7 @@ func TestErrorGroupEventsEntityOffersEveryErrorKeyButTheType(t *testing.T) {
 }
 
 func TestErrorsBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
-	_, err := ErrorsEntity.BindKey(Condition{
+	_, err := bindColumn(ErrorsEntity.Columns, Condition{
 		KeyName:  "session_events",
 		Operator: OperatorIn,
 		Values:   []Value{{Text: "anr"}},
@@ -1010,7 +1034,7 @@ func TestErrorTypeBindsPredicates(t *testing.T) {
 		for i, name := range names {
 			values[i] = Value{Text: name}
 		}
-		return ErrorsEntity.BindKey(Condition{
+		return bindColumn(ErrorsEntity.Columns, Condition{
 			KeyName:  "error_type",
 			Operator: operator,
 			Values:   values,
@@ -1106,7 +1130,7 @@ func TestErrorsBindKeysToEventColumns(t *testing.T) {
 			for i, text := range test.values {
 				values[i] = Value{Text: text}
 			}
-			stmt, err := ErrorsEntity.BindKey(Condition{
+			stmt, err := bindColumn(ErrorsEntity.Columns, Condition{
 				KeyName:  test.keyName,
 				Operator: test.operator,
 				Values:   values,
@@ -1123,7 +1147,7 @@ func TestErrorsBindKeysToEventColumns(t *testing.T) {
 	}
 
 	t.Run("a patch id that is not a uuid", func(t *testing.T) {
-		if _, err := ErrorsEntity.BindKey(Condition{
+		if _, err := bindColumn(ErrorsEntity.Columns, Condition{
 			KeyName:  "patch_id",
 			Operator: OperatorIn,
 			Values:   []Value{{Text: "not-a-uuid"}},
@@ -1157,7 +1181,7 @@ func TestAlertsEntityCannotBeFiltered(t *testing.T) {
 		t.Errorf("want the unknown key named, got %v", invalid.Issues)
 	}
 
-	if _, err := AlertsEntity.BindKey(Condition{
+	if _, err := bindColumn(AlertsEntity.Columns, Condition{
 		KeyName:  "version_name",
 		Operator: OperatorIn,
 		Values:   []Value{{Text: "1.2.0"}},

@@ -27,8 +27,8 @@ type customConditionMatch struct {
 	negated bool
 }
 
-// matchCustomCondition translates a custom-key condition into a row predicate.
-// Values are stored as text, so numeric comparisons cast them to the key's type.
+// Values are stored as text, so numeric comparisons cast them to the key's
+// type.
 func matchCustomCondition(key Key, condition Condition) (customConditionMatch, error) {
 	rawName := strings.TrimPrefix(key.Name, CustomKeyPrefix)
 	storedType := string(key.ValueType)
@@ -38,8 +38,7 @@ func matchCustomCondition(key Key, condition Condition) (customConditionMatch, e
 	presence := func(negated bool) (customConditionMatch, error) {
 		return customConditionMatch{rawName: rawName, sql: "key = ?", args: []any{rawName}, negated: negated}, nil
 	}
-	// typed builds a predicate for a value-bearing condition, restricting rows
-	// to the key's current stored type before applying the value comparison.
+	// A value comparison only applies to rows of the key's current type.
 	typed := func(negated bool, valueComparison string, valueArgs ...any) (customConditionMatch, error) {
 		return customConditionMatch{
 			rawName: rawName,
@@ -122,42 +121,27 @@ func matchCustomCondition(key Key, condition Condition) (customConditionMatch, e
 	return customConditionMatch{}, fmt.Errorf("Key %q cannot be filtered with %q", condition.KeyName, condition.Operator)
 }
 
-// customMembershipBinder holds the request-scoped context needed to build
-// custom-key membership queries.
-type customMembershipBinder struct {
-	store      customKeyStore
-	scope      CustomKeyScope
+type customBinder struct {
+	source     customKeySource
+	scope      customKeyScope
 	keysByName map[string]Key
 }
 
-// customAttrScope limits attribute rows to the current team, app, and time range.
 const customAttrScope = " where team_id = toUUID(?) and app_id = toUUID(?)" +
 	" and timestamp >= ? and timestamp <= ?"
 
-// scopeSQL is customAttrScope extended with the store's extra clause, so
-// every membership subquery scans only the rows its entity owns.
-func (b *customMembershipBinder) scopeSQL() string {
-	if b.store.extraScope == "" {
+// Every membership subquery scans only the rows its entity owns.
+func (b *customBinder) scopeSQL() string {
+	if b.source.extraScope == "" {
 		return customAttrScope
 	}
-	return customAttrScope + " and " + b.store.extraScope
+	return customAttrScope + " and " + b.source.extraScope
 }
 
-// bindConditions creates a GroupKeyBinding for one request's conditions on
-// the store's custom keys. Multiple conditions are evaluated with countIf
-// over one grouped query instead of generating a separate subquery for each
-// condition.
-func (s customKeyStore) bindConditions(scope CustomKeyScope, keys []Key) GroupKeyBinding {
-	binder := &customMembershipBinder{
-		store:      s,
-		scope:      scope,
-		keysByName: IndexKeysByName(keys),
-	}
-	return binder.bind
-}
-
-// bind is the GroupKeyBinding for one request's custom keys.
-func (b *customMembershipBinder) bind(operator LogicalOperator, conditions []Condition) (*sqlf.Stmt, error) {
+// bind turns one group's conditions on the source's custom keys into a
+// membership subquery. Multiple conditions are evaluated with countIf over
+// one grouped query, so the attribute table is scanned once for the group.
+func (b *customBinder) bind(operator LogicalOperator, conditions []Condition) (*sqlf.Stmt, error) {
 	matches := make([]customConditionMatch, len(conditions))
 	for i, condition := range conditions {
 		key, found := b.keysByName[condition.KeyName]
@@ -184,7 +168,7 @@ func (b *customMembershipBinder) bind(operator LogicalOperator, conditions []Con
 // allOf builds the membership query for AND conditions.
 // Positive conditions require a matching row; negated conditions require
 // zero matching (offending) rows.
-func (b *customMembershipBinder) allOf(matches []customConditionMatch) *sqlf.Stmt {
+func (b *customBinder) allOf(matches []customConditionMatch) *sqlf.Stmt {
 	anyPositive := slices.ContainsFunc(matches, func(match customConditionMatch) bool {
 		return !match.negated
 	})
@@ -216,7 +200,7 @@ func (b *customMembershipBinder) allOf(matches []customConditionMatch) *sqlf.Stm
 // anyOf builds the membership query for OR conditions.
 // Positive conditions can share a grouped query; negated conditions stay
 // as separate NOT IN branches.
-func (b *customMembershipBinder) anyOf(matches []customConditionMatch) *sqlf.Stmt {
+func (b *customBinder) anyOf(matches []customConditionMatch) *sqlf.Stmt {
 	// Separate positive and negated conditions because they have different
 	// membership semantics when combined with OR.
 	positives := []customConditionMatch{}
@@ -261,7 +245,7 @@ func (b *customMembershipBinder) anyOf(matches []customConditionMatch) *sqlf.Stm
 
 // versionConditions writes the scope's version lists as subquery conditions to
 // reduce the rows scanned.
-func (b *customMembershipBinder) versionConditions() (string, []any) {
+func (b *customBinder) versionConditions() (string, []any) {
 	var text strings.Builder
 	args := []any{}
 	for _, names := range b.scope.VersionNames {
@@ -275,16 +259,15 @@ func (b *customMembershipBinder) versionConditions() (string, []any) {
 	return text.String(), args
 }
 
-// single builds the membership query for one condition.
-// Negated conditions use NOT IN so IDs without the attribute also match.
-func (b *customMembershipBinder) single(match customConditionMatch) (string, []any) {
+// A negated condition uses NOT IN so IDs without the attribute also match.
+func (b *customBinder) single(match customConditionMatch) (string, []any) {
 	operator := "in"
 	if match.negated {
 		operator = "not in"
 	}
 	versionSQL, versionArgs := b.versionConditions()
-	text := b.store.matchColumn() + " " + operator + " (" +
-		"select " + b.store.idColumn + " from " + b.store.table +
+	text := b.source.matchColumn() + " " + operator + " (" +
+		"select " + b.source.idColumn + " from " + b.source.table +
 		b.scopeSQL() +
 		versionSQL +
 		" and " + match.sql +
@@ -296,9 +279,9 @@ func (b *customMembershipBinder) single(match customConditionMatch) (string, []a
 	return text, args
 }
 
-// grouped builds a membership query that evaluates multiple conditions in
-// one grouped scan. The caller supplies the countIf-based HAVING expression.
-func (b *customMembershipBinder) grouped(operator string, matches []customConditionMatch, having string, havingArgs []any) (string, []any) {
+// grouped evaluates several conditions in one scan; the caller supplies the
+// HAVING expression.
+func (b *customBinder) grouped(operator string, matches []customConditionMatch, having string, havingArgs []any) (string, []any) {
 	rawNames := []string{}
 	for _, match := range matches {
 		if !slices.Contains(rawNames, match.rawName) {
@@ -307,12 +290,12 @@ func (b *customMembershipBinder) grouped(operator string, matches []customCondit
 	}
 
 	versionSQL, versionArgs := b.versionConditions()
-	text := b.store.matchColumn() + " " + operator + " (" +
-		"select " + b.store.idColumn + " from " + b.store.table +
+	text := b.source.matchColumn() + " " + operator + " (" +
+		"select " + b.source.idColumn + " from " + b.source.table +
 		b.scopeSQL() +
 		versionSQL +
 		" and key in ?" +
-		" group by " + b.store.idColumn +
+		" group by " + b.source.idColumn +
 		" having " + having +
 		")"
 	args := make([]any, 0, 5+len(versionArgs)+len(havingArgs))
@@ -323,8 +306,7 @@ func (b *customMembershipBinder) grouped(operator string, matches []customCondit
 	return text, args
 }
 
-// countIfHaving builds the HAVING expression from one countIf per condition.
-// The suffix determines whether a condition requires matches (> 0) or no
+// The suffix says whether a condition requires matches (> 0) or no
 // offending matches (= 0).
 func countIfHaving(matches []customConditionMatch, joiner string, suffix func(customConditionMatch) string) (string, []any) {
 	var having strings.Builder

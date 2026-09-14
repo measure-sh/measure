@@ -1180,7 +1180,7 @@ func (a App) GetLaunchMetrics(ctx context.Context, rch driver.Conn, flt *filter.
 // rule them out.
 func applySessionsPredicate(base *sqlf.Stmt, flt *filter.Filter) error {
 	if flt.NeedsWholeGroup() {
-		predicate, err := flt.Predicate(filter.SessionsAggregatedKeyBindings)
+		predicate, err := flt.Predicate(filter.SessionsAggregatedColumns)
 		if err != nil {
 			return err
 		}
@@ -1616,7 +1616,7 @@ func (a App) GetMetricsPlotForSpanNameWithFilter(ctx context.Context, rch driver
 	defer stmt.Close()
 
 	if flt.HasFilterExpr() {
-		predicate, errPredicate := flt.Predicate(filter.SpanMetricsKeyBindings)
+		predicate, errPredicate := flt.Predicate(filter.SpanMetricsColumns)
 		if errPredicate != nil {
 			return nil, errPredicate
 		}

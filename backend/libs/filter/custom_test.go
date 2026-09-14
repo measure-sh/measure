@@ -177,9 +177,6 @@ func TestResolveCustomKeysBindsEveryMentionedKey(t *testing.T) {
 	if rawNames, ok := conn.args[len(conn.args)-1].([]string); !ok || !slices.Equal(rawNames, []string{"plan", "retries"}) {
 		t.Errorf("want the mentioned names fetched, got %v", conn.args)
 	}
-	if flt.customBinder == nil {
-		t.Fatal("want the group binder installed on the filter")
-	}
 	byName := IndexKeysByName(flt.Entity.Keys)
 	for _, name := range []string{"custom.plan", "custom.retries"} {
 		if _, found := byName[name]; !found {
@@ -208,7 +205,7 @@ func TestResolveCustomKeysWithoutCustomKeysResolvesNothing(t *testing.T) {
 	if err := flt.ResolveCustomKeys(context.Background(), nil); err != nil {
 		t.Fatalf("ResolveCustomKeys: %v", err)
 	}
-	if _, err := flt.Entity.BindKey(Condition{KeyName: "custom.plan", Operator: OperatorIn, Values: []Value{{Text: "pro"}}}); err == nil {
+	if _, err := bindColumn(flt.Entity.Columns, Condition{KeyName: "custom.plan", Operator: OperatorIn, Values: []Value{{Text: "pro"}}}); err == nil {
 		t.Error("want the entity's binding unchanged, still refusing the custom key")
 	}
 }
@@ -233,13 +230,17 @@ func customCondition(keyName string, operator Operator, texts ...string) Conditi
 	return Condition{KeyName: keyName, Operator: operator, Values: values}
 }
 
-func testCustomKeyScope() CustomKeyScope {
-	return CustomKeyScope{
+func testCustomKeyScope() customKeyScope {
+	return customKeyScope{
 		TeamID: uuid.New(),
 		AppID:  uuid.New(),
 		From:   time.Now().UTC().Add(-time.Hour),
 		To:     time.Now().UTC(),
 	}
+}
+
+func bindCustomKeys(entity Entity, scope customKeyScope, keys []Key) customGroupBinder {
+	return (&customBinder{source: *entity.CustomKeySource, scope: scope, keysByName: IndexKeysByName(keys)}).bind
 }
 
 // bindCustomGroup writes the SQL for one batch of custom-key conditions,
@@ -249,10 +250,10 @@ func bindCustomGroup(t *testing.T, keys []Key, operator LogicalOperator, conditi
 	return bindCustomGroupInScope(t, testCustomKeyScope(), keys, operator, conditions)
 }
 
-func bindCustomGroupInScope(t *testing.T, scope CustomKeyScope, keys []Key, operator LogicalOperator, conditions []Condition) (string, []any) {
+func bindCustomGroupInScope(t *testing.T, scope customKeyScope, keys []Key, operator LogicalOperator, conditions []Condition) (string, []any) {
 	t.Helper()
 
-	binding := SpansEntity.BindCustomKeys(scope, keys)
+	binding := bindCustomKeys(SpansEntity, scope, keys)
 
 	stmt, err := binding(operator, conditions)
 	if err != nil {
@@ -398,7 +399,7 @@ func TestBindSpanCustomKeyEscapesLikeWildcards(t *testing.T) {
 
 func TestBindSpanCustomKeyRefusesAnOperatorTheTypeDoesNotOffer(t *testing.T) {
 	key := CustomKey("retries", ValueTypeInt64)
-	binding := SpansEntity.BindCustomKeys(testCustomKeyScope(), []Key{key})
+	binding := bindCustomKeys(SpansEntity, testCustomKeyScope(), []Key{key})
 
 	_, err := binding(LogicalAnd, []Condition{customCondition(key.Name, OperatorContains, "9")})
 	if err == nil {
@@ -574,7 +575,7 @@ func TestBindBugReportCustomKeyScopesToBugReportRows(t *testing.T) {
 		CustomKey("plan", ValueTypeString),
 		CustomKey("retries", ValueTypeInt64),
 	}
-	binding := BugReportsEntity.BindCustomKeys(testCustomKeyScope(), keys)
+	binding := bindCustomKeys(BugReportsEntity, testCustomKeyScope(), keys)
 
 	bind := func(t *testing.T, operator LogicalOperator, conditions []Condition) string {
 		t.Helper()
@@ -615,7 +616,7 @@ func TestBindErrorsCustomKeyMatchesTheEventIDColumn(t *testing.T) {
 		CustomKey("plan", ValueTypeString),
 		CustomKey("retries", ValueTypeInt64),
 	}
-	binding := ErrorsEntity.BindCustomKeys(testCustomKeyScope(), keys)
+	binding := bindCustomKeys(ErrorsEntity, testCustomKeyScope(), keys)
 
 	bind := func(t *testing.T, operator LogicalOperator, conditions []Condition) string {
 		t.Helper()

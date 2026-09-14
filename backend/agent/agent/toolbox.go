@@ -677,7 +677,7 @@ func mcpFilterExprToolsHint(entity filter.Entity) string {
 func mcpFilterExprGrammar(entity filter.Entity, example string) string {
 	noun := strings.ReplaceAll(entity.Name, "_", " ")
 	grammar := "Filter expression narrowing the " + noun + ". A condition is key:operator:value or key:operator:[v1,v2]; a no-value operator like is_set is written key:operator. Conditions join with AND / OR, parentheses group, and AND binds tighter than OR. A value holding a space, comma, bracket, colon or quote is written in double quotes. Example: " + example + ". "
-	if entity.CustomKeys != nil {
+	if entity.CustomKeySource != nil {
 		grammar += "User-defined attribute keys appear under the Custom key group and carry the custom. prefix, as in custom.is_premium:eq:true. "
 	}
 	return grammar + mcpFilterExprToolsHint(entity)
@@ -1170,7 +1170,7 @@ func (c *Config) mcpGetFilterKeys(ctx context.Context, in mcpGetFilterKeysInput)
 	}
 
 	ctx = filter.WithFilterQuerySettings(ctx, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode, "filter_keys")
-	keys, keysTruncated, err := entity.ListKeys(ctx, c.Deps.PgPool, c.Deps.RchPool, teamID, appID, in.Keys)
+	keys, keysTruncated, err := entity.ListKeys(ctx, c.Deps.RchPool, teamID, appID, in.Keys)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get filter keys: %v", err)
 	}

@@ -35,15 +35,11 @@ type Key struct {
 	EnumValues []string `json:"-"`
 }
 
-// ValueRequest is one request for a key's values: what has been typed so far,
-// and how many values to return.
 type ValueRequest struct {
 	Search string
 	Limit  int
 }
 
-// effectiveLimit is the requested limit, or DefaultValueLimit when the
-// request does not name one.
 func (r ValueRequest) effectiveLimit() int {
 	if r.Limit <= 0 {
 		return DefaultValueLimit
@@ -51,8 +47,7 @@ func (r ValueRequest) effectiveLimit() int {
 	return r.Limit
 }
 
-// ValueList is the answer to a ValueRequest. Truncated says more values matched
-// than the list holds.
+// Truncated says more values matched than the list holds.
 type ValueList struct {
 	Values    []Value
 	Truncated bool

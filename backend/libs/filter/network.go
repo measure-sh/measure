@@ -1,10 +1,10 @@
 package filter
 
 var NetworkEntity = Entity{
-	Name:                  "network",
-	Keys:                  networkKeys,
-	BindKey:               bindKeysToColumns(httpEventsColumns, networkKeyBindingOverrides),
-	SuggestFixedKeyValues: suggestFixedKeyValuesFromClickHouse(networkFixedKeyValues),
+	Name:         "network",
+	Keys:         networkKeys,
+	Columns:      httpEventsColumns,
+	ValueSources: []valueSource{networkFixedKeyValues},
 }
 
 var networkKeys = []Key{
@@ -24,87 +24,62 @@ var networkKeys = []Key{
 	country,
 }
 
-var (
-	httpEventsColumns = map[string]string{
-		versionName.Name:        "tupleElement(`attribute.app_version`, 1)",
-		versionCode.Name:        "tupleElement(`attribute.app_version`, 2)",
-		patchVersion.Name:       "`attribute.patch_version`",
-		patchID.Name:            "`attribute.patch_id`",
-		httpMethod.Name:         "lower(method)",
-		osName.Name:             "tupleElement(`attribute.os_version`, 1)",
-		osVersion.Name:          "tupleElement(`attribute.os_version`, 2)",
-		deviceName.Name:         "`attribute.device_name`",
-		deviceManufacturer.Name: "`attribute.device_manufacturer`",
-		locale.Name:             "`attribute.device_locale`",
-		networkType.Name:        "`attribute.network_type`",
-		networkGeneration.Name:  "`attribute.network_generation`",
-		networkProvider.Name:    "`attribute.network_provider`",
-		country.Name:            "`inet.country_code`",
-	}
+var httpEventsColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]column{
+	versionName.Name:        {expr: "tupleElement(`attribute.app_version`, 1)"},
+	versionCode.Name:        {expr: "tupleElement(`attribute.app_version`, 2)"},
+	patchVersion.Name:       {expr: "`attribute.patch_version`"},
+	patchID.Name:            {expr: "`attribute.patch_id`", kind: columnUUID},
+	httpMethod.Name:         {expr: "lower(method)"},
+	osName.Name:             {expr: "tupleElement(`attribute.os_version`, 1)"},
+	osVersion.Name:          {expr: "tupleElement(`attribute.os_version`, 2)"},
+	deviceName.Name:         {expr: "`attribute.device_name`"},
+	deviceManufacturer.Name: {expr: "`attribute.device_manufacturer`"},
+	locale.Name:             {expr: "`attribute.device_locale`"},
+	networkType.Name:        {expr: "`attribute.network_type`"},
+	networkGeneration.Name:  {expr: "`attribute.network_generation`"},
+	networkProvider.Name:    {expr: "`attribute.network_provider`"},
+	country.Name:            {expr: "`inet.country_code`"},
+}}
 
-	appFiltersColumns = map[string]string{
-		versionName.Name:        "tupleElement(app_version, 1)",
-		versionCode.Name:        "tupleElement(app_version, 2)",
-		patchVersion.Name:       "patch_version",
-		patchID.Name:            "patch_id",
-		osName.Name:             "tupleElement(os_version, 1)",
-		osVersion.Name:          "tupleElement(os_version, 2)",
-		deviceName.Name:         "device_name",
-		deviceManufacturer.Name: "device_manufacturer",
-		locale.Name:             "device_locale",
-		networkType.Name:        "network_type",
-		networkGeneration.Name:  "network_generation",
-		networkProvider.Name:    "network_provider",
-		country.Name:            "country_code",
-	}
-
-	httpMetricsColumns = map[string]string{
-		versionName.Name:        "arrayMap(version -> tupleElement(version, 1), app_versions)",
-		versionCode.Name:        "arrayMap(version -> tupleElement(version, 2), app_versions)",
-		patchVersion.Name:       "patch_versions",
-		patchID.Name:            "patch_ids",
-		httpMethod.Name:         "arrayMap(method -> lower(method), methods)",
-		osName.Name:             "arrayMap(version -> tupleElement(version, 1), os_versions)",
-		osVersion.Name:          "arrayMap(version -> tupleElement(version, 2), os_versions)",
-		deviceName.Name:         "device_names",
-		deviceManufacturer.Name: "device_manufacturers",
-		locale.Name:             "device_locales",
-		networkType.Name:        "network_types",
-		networkGeneration.Name:  "network_generations",
-		networkProvider.Name:    "network_providers",
-		country.Name:            "`inet.country_code`",
-	}
-)
-
-var networkKeyBindingOverrides = map[string]columnKeyBinding{
-	patchID.Name: bindUUIDKey,
-}
+var appFiltersColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]column{
+	versionName.Name:        {expr: "tupleElement(app_version, 1)"},
+	versionCode.Name:        {expr: "tupleElement(app_version, 2)"},
+	patchVersion.Name:       {expr: "patch_version"},
+	patchID.Name:            {expr: "patch_id", kind: columnUUID},
+	osName.Name:             {expr: "tupleElement(os_version, 1)"},
+	osVersion.Name:          {expr: "tupleElement(os_version, 2)"},
+	deviceName.Name:         {expr: "device_name"},
+	deviceManufacturer.Name: {expr: "device_manufacturer"},
+	locale.Name:             {expr: "device_locale"},
+	networkType.Name:        {expr: "network_type"},
+	networkGeneration.Name:  {expr: "network_generation"},
+	networkProvider.Name:    {expr: "network_provider"},
+	country.Name:            {expr: "country_code"},
+}}
 
 // app_filters keeps one row per attribute combination per month, so values
 // seen in the same month order alphabetically.
-var networkFixedKeyValues = fixedKeyValueSource{
+var networkFixedKeyValues = valueSource{
 	table:       "app_filters",
 	columns:     appFiltersColumns,
 	recencyExpr: "max(end_of_month)",
 }
 
-var httpMetricsKeyBindingOverrides = map[string]columnKeyBinding{
-	versionName.Name:        bindArrayKey,
-	versionCode.Name:        bindArrayKey,
-	patchVersion.Name:       bindArrayKey,
-	patchID.Name:            bindUUIDArrayKey,
-	httpMethod.Name:         bindArrayKey,
-	osName.Name:             bindArrayKey,
-	osVersion.Name:          bindArrayKey,
-	deviceName.Name:         bindArrayKey,
-	deviceManufacturer.Name: bindArrayKey,
-	locale.Name:             bindArrayKey,
-	networkType.Name:        bindArrayKey,
-	networkGeneration.Name:  bindArrayKey,
-	networkProvider.Name:    bindArrayKey,
-	country.Name:            bindArrayKey,
-}
-
-// NetworkMetricsKeyBindings rebinds the network keys onto the http_metrics
+// NetworkMetricsColumns rebinds the network keys onto the http_metrics
 // rollup, where a bucket matches when any request in it did.
-var NetworkMetricsKeyBindings = bindingForEachKey(networkKeys, bindKeysToColumns(httpMetricsColumns, httpMetricsKeyBindingOverrides))
+var NetworkMetricsColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]column{
+	versionName.Name:        {expr: "arrayMap(version -> tupleElement(version, 1), app_versions)", kind: columnTextArray},
+	versionCode.Name:        {expr: "arrayMap(version -> tupleElement(version, 2), app_versions)", kind: columnTextArray},
+	patchVersion.Name:       {expr: "patch_versions", kind: columnTextArray},
+	patchID.Name:            {expr: "patch_ids", kind: columnUUIDArray},
+	httpMethod.Name:         {expr: "arrayMap(method -> lower(method), methods)", kind: columnTextArray},
+	osName.Name:             {expr: "arrayMap(version -> tupleElement(version, 1), os_versions)", kind: columnTextArray},
+	osVersion.Name:          {expr: "arrayMap(version -> tupleElement(version, 2), os_versions)", kind: columnTextArray},
+	deviceName.Name:         {expr: "device_names", kind: columnTextArray},
+	deviceManufacturer.Name: {expr: "device_manufacturers", kind: columnTextArray},
+	locale.Name:             {expr: "device_locales", kind: columnTextArray},
+	networkType.Name:        {expr: "network_types", kind: columnTextArray},
+	networkGeneration.Name:  {expr: "network_generations", kind: columnTextArray},
+	networkProvider.Name:    {expr: "network_providers", kind: columnTextArray},
+	country.Name:            {expr: "`inet.country_code`", kind: columnTextArray},
+}}
