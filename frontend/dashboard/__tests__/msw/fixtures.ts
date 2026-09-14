@@ -1491,7 +1491,7 @@ export function makeSessionsFilterKeysFixture(
       {
         name: "device_total_memory",
         label: "Device total memory",
-        description: "The total memory of the session's device, in gigabytes.",
+        description: "The total memory of the device.",
         key_group: "Device",
         value_type: "enum",
         value_suggestion_mode: "full_list",
