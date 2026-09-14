@@ -52,6 +52,8 @@ export type PendingInvite = {
   valid_until: string;
 };
 
+export type MemoryAppImportance = "foreground" | "user_service" | "background";
+
 export type App = {
   id: string;
   team_id: string;
@@ -1539,6 +1541,7 @@ export const fetchMemoryUsagePlotFromServer = async (
   startDate: string,
   endDate: string,
   filterExpr: string | null,
+  appImportance?: MemoryAppImportance,
 ) => {
   const params = new URLSearchParams({
     from: formatUserInputDateToServerFormat(startDate),
@@ -1547,6 +1550,7 @@ export const fetchMemoryUsagePlotFromServer = async (
     plot_time_group: getPlotTimeGroupForRange(startDate, endDate),
   });
   if (filterExpr) params.set("filter_expr", filterExpr);
+  if (appImportance) params.set("app_importance", appImportance);
 
   return await request(
     `/api/apps/${appId}/memory/plots/usage?${params.toString()}`,

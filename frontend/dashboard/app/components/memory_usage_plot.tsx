@@ -109,7 +109,8 @@ export default function MemoryUsagePlot({
               axisLeft={{
                 tickSize: 1,
                 tickPadding: 5,
-                legend: `Peak memory (${quantile})`,
+                format: (value) => `${(Number(value) / 1024).toFixed(0)} MB`,
+                legend: "Memory usage (MB)",
                 legendOffset: -80,
                 legendPosition: "middle",
               }}
@@ -140,7 +141,7 @@ export default function MemoryUsagePlot({
                       <div className="flex items-center p-2" key={sibling.id}>
                         <PlotTooltipSwatch color={sibling.color} />
                         <span className="px-2">
-                          {sibling.id} - {formatMemory(sibling.y)} ({quantile})
+                          {sibling.id} - {formatMemory(sibling.y)}
                         </span>
                       </div>
                     ))}

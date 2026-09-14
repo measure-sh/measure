@@ -33,6 +33,7 @@ import {
   fetchJourneyFromServer,
   fetchMetricsFromServer,
   fetchMemoryUsagePlotFromServer,
+  type MemoryAppImportance,
   fetchNetworkEndpointsFromServer,
   fetchNetworkEndpointStatusCodesPlotFromServer,
   fetchNetworkLatencyPlotFromServer,
@@ -705,7 +706,10 @@ export function useSpanMetricsPlotQuery(
   });
 }
 
-export function useMemoryUsagePlotQuery(params: FilterParams | null) {
+export function useMemoryUsagePlotQuery(
+  params: FilterParams | null,
+  appImportance?: MemoryAppImportance,
+) {
   return useQuery({
     queryKey: [
       "memoryUsagePlot",
@@ -713,6 +717,7 @@ export function useMemoryUsagePlotQuery(params: FilterParams | null) {
       params?.startDate,
       params?.endDate,
       params?.filterExpr,
+      appImportance,
     ] as const,
     queryFn: () =>
       fetchMemoryUsagePlotFromServer(
@@ -720,6 +725,7 @@ export function useMemoryUsagePlotQuery(params: FilterParams | null) {
         params!.startDate,
         params!.endDate,
         params!.filterExpr,
+        appImportance,
       ),
     enabled: params !== null,
     retry: false,

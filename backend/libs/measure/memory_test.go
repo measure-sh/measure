@@ -2,28 +2,23 @@ package measure
 
 import "testing"
 
-func TestMemoryPeakColumn(t *testing.T) {
+func TestValidMemoryAppImportance(t *testing.T) {
 	tests := []struct {
-		name          string
-		appImportance string
-		wantColumn    string
-		wantError     bool
+		name  string
+		value string
+		want  bool
 	}{
-		{name: "overall", wantColumn: "peak_total_memory"},
-		{name: "foreground", appImportance: "foreground", wantColumn: "peak_total_memory_foreground"},
-		{name: "user service", appImportance: "user_service", wantColumn: "peak_total_memory_user_service"},
-		{name: "background", appImportance: "background", wantColumn: "peak_total_memory_background"},
-		{name: "invalid", appImportance: "cached", wantError: true},
+		{name: "all states", want: true},
+		{name: "foreground", value: "foreground", want: true},
+		{name: "user service", value: "user_service", want: true},
+		{name: "background", value: "background", want: true},
+		{name: "cached", value: "cached", want: false},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := memoryPeakColumn(tt.appImportance)
-			if (err != nil) != tt.wantError {
-				t.Fatalf("memoryPeakColumn() error = %v, want error: %v", err, tt.wantError)
-			}
-			if !tt.wantError && got != tt.wantColumn {
-				t.Errorf("memoryPeakColumn() = %q, want %q", got, tt.wantColumn)
+			if got := validMemoryAppImportance(tt.value); got != tt.want {
+				t.Fatalf("validMemoryAppImportance(%q) = %v, want %v", tt.value, got, tt.want)
 			}
 		})
 	}
