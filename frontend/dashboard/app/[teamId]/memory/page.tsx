@@ -6,8 +6,14 @@ import DropdownSelect, {
 import FilterBar from "@/app/components/filter_bar/filter_bar";
 import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import MemoryUsagePlot from "@/app/components/memory_usage_plot";
+import MemoryUsageBreakdown from "@/app/components/memory_usage_breakdown";
+import MemoryUsageDistribution from "@/app/components/memory_usage_distribution";
 import type { MemoryAppImportance } from "@/app/api/api_calls";
-import { useMemoryUsagePlotQuery } from "@/app/query/hooks";
+import {
+  useMemoryUsageBreakdownQuery,
+  useMemoryUsageDistributionQuery,
+  useMemoryUsagePlotQuery,
+} from "@/app/query/hooks";
 import { use, useState } from "react";
 
 interface PageProps {
@@ -49,6 +55,14 @@ export default function MemoryPage({ params }: PageProps) {
     filter.filterParams,
     isAndroidApp ? appImportance : undefined,
   );
+  const memoryBreakdownQuery = useMemoryUsageBreakdownQuery(
+    filter.filterParams,
+    isAndroidApp ? appImportance : undefined,
+  );
+  const memoryDistributionQuery = useMemoryUsageDistributionQuery(
+    filter.filterParams,
+    isAndroidApp ? appImportance : undefined,
+  );
 
   return (
     <div className="flex flex-col items-start w-full">
@@ -85,11 +99,17 @@ export default function MemoryPage({ params }: PageProps) {
       )}
       <div className="py-4" />
       {readyValue !== null && (
-        <MemoryUsagePlot
-          startDate={readyValue.date.startDate}
-          endDate={readyValue.date.endDate}
-          query={memoryPlotQuery}
-        />
+        <>
+          <MemoryUsagePlot
+            startDate={readyValue.date.startDate}
+            endDate={readyValue.date.endDate}
+            query={memoryPlotQuery}
+          />
+          <div className="h-12" />
+          <MemoryUsageDistribution query={memoryDistributionQuery} />
+          <div className="h-12" />
+          <MemoryUsageBreakdown query={memoryBreakdownQuery} />
+        </>
       )}
     </div>
   );

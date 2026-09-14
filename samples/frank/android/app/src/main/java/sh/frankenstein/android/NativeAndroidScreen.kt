@@ -43,6 +43,10 @@ import java.io.IOException
 
 private class CustomException(override val message: String? = null) : Exception()
 
+private object HeldMemory {
+    var allocation: ByteArray? = null
+}
+
 private enum class DemoCategory(val label: String) {
     CRASHES("Crashes"),
     ANRS("ANRs"),
@@ -301,6 +305,28 @@ fun NativeAndroidScreen() {
             action = {
                 Measure.clearUserId()
                 Toast.makeText(context, "User ID cleared", Toast.LENGTH_SHORT).show()
+            },
+        ),
+        DemoItem(
+            title = "Hold 800 MB",
+            description = "Allocates 800 MB and keeps it in memory until the process exits",
+            category = DemoCategory.MISC,
+            action = {
+                if (HeldMemory.allocation != null) {
+                    Toast.makeText(context, "800 MB is already held", Toast.LENGTH_SHORT).show()
+                } else {
+                    try {
+                        val allocation = ByteArray(800 * 1024 * 1024)
+                        // Touch each page so the allocation contributes to resident memory.
+                        for (index in allocation.indices step 4096) {
+                            allocation[index] = 1
+                        }
+                        HeldMemory.allocation = allocation
+                        Toast.makeText(context, "800 MB allocated", Toast.LENGTH_SHORT).show()
+                    } catch (_: OutOfMemoryError) {
+                        Toast.makeText(context, "Could not allocate 800 MB", Toast.LENGTH_SHORT).show()
+                    }
+                }
             },
         ),
     )

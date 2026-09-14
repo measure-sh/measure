@@ -33,7 +33,11 @@ import {
   fetchJourneyFromServer,
   fetchMetricsFromServer,
   fetchMemoryUsagePlotFromServer,
+  fetchMemoryUsageBreakdownFromServer,
+  fetchMemoryUsageDistributionFromServer,
   type MemoryAppImportance,
+  type MemoryUsageBreakdownPoint,
+  type MemoryUsageDistributionPoint,
   fetchNetworkEndpointsFromServer,
   fetchNetworkEndpointStatusCodesPlotFromServer,
   fetchNetworkLatencyPlotFromServer,
@@ -721,6 +725,58 @@ export function useMemoryUsagePlotQuery(
     ] as const,
     queryFn: () =>
       fetchMemoryUsagePlotFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+        appImportance,
+      ),
+    enabled: params !== null,
+    retry: false,
+  });
+}
+
+export function useMemoryUsageBreakdownQuery(
+  params: FilterParams | null,
+  appImportance?: MemoryAppImportance,
+) {
+  return useQuery<MemoryUsageBreakdownPoint[]>({
+    queryKey: [
+      "memoryUsageBreakdown",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+      appImportance,
+    ] as const,
+    queryFn: () =>
+      fetchMemoryUsageBreakdownFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+        appImportance,
+      ),
+    enabled: params !== null,
+    retry: false,
+  });
+}
+
+export function useMemoryUsageDistributionQuery(
+  params: FilterParams | null,
+  appImportance?: MemoryAppImportance,
+) {
+  return useQuery<MemoryUsageDistributionPoint[]>({
+    queryKey: [
+      "memoryUsageDistribution",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+      appImportance,
+    ] as const,
+    queryFn: () =>
+      fetchMemoryUsageDistributionFromServer(
         params!.appId,
         params!.startDate,
         params!.endDate,

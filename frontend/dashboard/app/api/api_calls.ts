@@ -54,6 +54,22 @@ export type PendingInvite = {
 
 export type MemoryAppImportance = "foreground" | "user_service" | "background";
 
+export type MemoryUsageBreakdownPoint = {
+  ram_tier: string;
+  p50: number | null;
+  p90: number | null;
+  p95: number | null;
+  p99: number | null;
+  session_count: number;
+  sample_count: number;
+};
+
+export type MemoryUsageDistributionPoint = {
+  bucket: string;
+  percentage: number;
+  sample_count: number;
+};
+
 export type App = {
   id: string;
   team_id: string;
@@ -1558,6 +1574,47 @@ export const fetchMemoryUsagePlotFromServer = async (
   );
 };
 
+export const fetchMemoryUsageBreakdownFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  appImportance?: MemoryAppImportance,
+): Promise<MemoryUsageBreakdownPoint[]> => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+  });
+  if (filterExpr) params.set("filter_expr", filterExpr);
+  if (appImportance) params.set("app_importance", appImportance);
+
+  return await request(
+    `/api/apps/${appId}/memory/plots/breakdown?${params.toString()}`,
+    { failsWith: "Failed to fetch memory usage breakdown" },
+  );
+};
+
+export const fetchMemoryUsageDistributionFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  appImportance?: MemoryAppImportance,
+): Promise<MemoryUsageDistributionPoint[]> => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+  });
+  if (filterExpr) params.set("filter_expr", filterExpr);
+  if (appImportance) params.set("app_importance", appImportance);
+
+  return await request(
+    `/api/apps/${appId}/memory/plots/distribution?${params.toString()}`,
+    { failsWith: "Failed to fetch memory usage distribution" },
+  );
+};
 export const fetchAlertsOverviewFromServer = async (
   appId: string,
   startDate: string,
