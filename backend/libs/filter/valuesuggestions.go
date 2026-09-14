@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leporo/sqlf"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // valueSource says where an entity's fixed keys read their value
@@ -66,7 +67,7 @@ func (e Entity) SuggestKeyValues(ctx context.Context, pgPool *pgxpool.Pool, chPo
 // An entity has several sources when a rollup answers most of its keys and
 // a few exist only on its own table; the first source that has the key
 // answers it.
-func suggestFixedKeyValues(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, sources []valueSource, key Key, valueRequest ValueRequest) (ValueList, error) {
+func suggestFixedKeyValues(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, sources []valueSource, key Key, valueRequest ValueRequest) (valueList ValueList, err error) {
 	var source valueSource
 	var col column
 	var ok bool
@@ -81,6 +82,16 @@ func suggestFixedKeyValues(ctx context.Context, pgPool *pgxpool.Pool, chPool dri
 	}
 
 	limit := valueRequest.effectiveLimit()
+
+	ctx, span := startReadSpan(ctx, "filter.values", source.table, teamID, appID,
+		attribute.String("filter.key", key.Name),
+		attribute.Int("filter.limit", limit),
+		attribute.Bool("filter.search", valueRequest.Search != ""))
+	defer func() {
+		endReadSpan(span, err,
+			attribute.Int("filter.values", len(valueList.Values)),
+			attribute.Bool("filter.truncated", valueList.Truncated))
+	}()
 
 	// Each element of an array column is suggested on its own. The elements
 	// are expanded with ARRAY JOIN because ClickHouse refuses to cache a

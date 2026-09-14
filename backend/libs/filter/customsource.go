@@ -10,6 +10,7 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/google/uuid"
 	"github.com/leporo/sqlf"
+	"go.opentelemetry.io/otel/attribute"
 )
 
 // customKeySource says where an entity's user-defined attributes are read
@@ -64,7 +65,15 @@ func (s customKeySource) keyQuery(teamID, appID uuid.UUID) *sqlf.Stmt {
 		OrderBy("key")
 }
 
-func (s customKeySource) fetchKeys(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, limit int) ([]Key, bool, error) {
+func (s customKeySource) fetchKeys(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, limit int) (keys []Key, truncated bool, err error) {
+	ctx, span := startReadSpan(ctx, "filter.custom_keys", s.table, teamID, appID,
+		attribute.Int("filter.limit", limit))
+	defer func() {
+		endReadSpan(span, err,
+			attribute.Int("filter.keys", len(keys)),
+			attribute.Bool("filter.truncated", truncated))
+	}()
+
 	stmt := s.keyQuery(teamID, appID).
 		Limit(limit + 1).
 		// Most granules hold rows of this team and app anyway, so skip
@@ -73,7 +82,7 @@ func (s customKeySource) fetchKeys(ctx context.Context, chPool driver.Conn, team
 
 	defer stmt.Close()
 
-	keys, err := readCustomKeys(ctx, chPool, teamID, stmt)
+	keys, err = readCustomKeys(ctx, chPool, teamID, stmt)
 	if err != nil {
 		return nil, false, err
 	}
@@ -84,10 +93,16 @@ func (s customKeySource) fetchKeys(ctx context.Context, chPool driver.Conn, team
 	return keys, false, nil
 }
 
-func (s customKeySource) fetchKeysByName(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, rawNames []string) ([]Key, error) {
+func (s customKeySource) fetchKeysByName(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, rawNames []string) (keys []Key, err error) {
 	if len(rawNames) == 0 {
 		return nil, nil
 	}
+
+	ctx, span := startReadSpan(ctx, "filter.custom_keys_by_name", s.table, teamID, appID,
+		attribute.Int("filter.names", len(rawNames)))
+	defer func() {
+		endReadSpan(span, err, attribute.Int("filter.keys", len(keys)))
+	}()
 
 	stmt := s.keyQuery(teamID, appID).
 		Where("key in ?", rawNames)
@@ -103,8 +118,18 @@ func (s customKeySource) fetchKeysByName(ctx context.Context, chPool driver.Conn
 // The scan reads the raw attribute table within the suggestion window. If
 // it gets slow, add a rollup of distinct keys and values like the
 // span_filters rollup that fixed keys read.
-func (s customKeySource) suggestValues(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
+func (s customKeySource) suggestValues(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (valueList ValueList, err error) {
 	limit := valueRequest.effectiveLimit()
+
+	ctx, span := startReadSpan(ctx, "filter.custom_values", s.table, teamID, appID,
+		attribute.String("filter.key", key.Name),
+		attribute.Int("filter.limit", limit),
+		attribute.Bool("filter.search", valueRequest.Search != ""))
+	defer func() {
+		endReadSpan(span, err,
+			attribute.Int("filter.values", len(valueList.Values)),
+			attribute.Bool("filter.truncated", valueList.Truncated))
+	}()
 
 	ctx = chquery.WithTeamScope(ctx, teamID)
 
