@@ -16,11 +16,11 @@ var SpansEntity = Entity{
 }
 
 var spansKeys = []Key{
+	spanStatus,
 	versionName,
 	versionCode,
 	patchVersion,
 	patchID,
-	spanStatus,
 	osName,
 	osVersion,
 	deviceName,

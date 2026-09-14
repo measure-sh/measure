@@ -9,14 +9,14 @@ var BugReportsEntity = Entity{
 }
 
 var bugReportsKeys = []Key{
+	bugReportStatus,
+	bugReportDescription,
+	sessionID,
 	versionName,
 	versionCode,
 	patchVersion,
 	patchID,
-	bugReportStatus,
 	userID,
-	bugReportDescription,
-	sessionID,
 	osName,
 	osVersion,
 	deviceName,

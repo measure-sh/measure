@@ -97,9 +97,9 @@ const (
 
 // keyGroupOrder is the order the filter bar shows groups in.
 var keyGroupOrder = []KeyGroup{
-	KeyGroupError, KeyGroupBugReport, KeyGroupSession, KeyGroupVersion, KeyGroupBuild, KeyGroupSpan,
-	KeyGroupRequest, KeyGroupOS, KeyGroupDevice, KeyGroupNetwork, KeyGroupLocation,
-	KeyGroupUser, KeyGroupCustom,
+	KeyGroupError, KeyGroupBugReport, KeyGroupSession, KeyGroupSpan, KeyGroupRequest, KeyGroupBuild,
+	KeyGroupVersion, KeyGroupUser, KeyGroupOS, KeyGroupDevice, KeyGroupNetwork, KeyGroupLocation,
+	KeyGroupCustom,
 }
 
 func ListKeyGroups(keys []Key) []KeyGroup {
