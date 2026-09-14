@@ -24,8 +24,12 @@ func (h Handlers) GetMemoryUsagePlot(c *gin.Context) {
 		return
 	}
 
-	points, err := app.GetMemoryUsagePlot(ctx, deps.RchPool, &flt)
+	points, err := app.GetMemoryUsagePlot(ctx, deps.RchPool, &flt, c.Query("app_importance"))
 	if err != nil {
+		if err.Error() == "invalid app importance" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
 		msg := "failed to query memory usage plot"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})

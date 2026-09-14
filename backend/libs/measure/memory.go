@@ -25,10 +25,14 @@ type MemoryUsagePlotPoint struct {
 
 // GetMemoryUsagePlot returns percentiles of session peak total memory,
 // grouped by the selected time interval and app version.
-func (a App) GetMemoryUsagePlot(ctx context.Context, rch driver.Conn, flt *filter.Filter) (points []MemoryUsagePlotPoint, err error) {
+func (a App) GetMemoryUsagePlot(ctx context.Context, rch driver.Conn, flt *filter.Filter, appImportance string) (points []MemoryUsagePlotPoint, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	if flt.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
+	}
+	peakColumn, err := memoryPeakColumn(appImportance)
+	if err != nil {
+		return nil, err
 	}
 
 	flt.SetDefaultPlotTimeGroupIfUnset()
@@ -41,7 +45,7 @@ func (a App) GetMemoryUsagePlot(ctx context.Context, rch driver.Conn, flt *filte
 		Select("session_id").
 		Select("app_version").
 		Select("min(first_event_timestamp) AS start_time").
-		Select("max(peak_total_memory) AS peak_total_memory").
+		Select("max("+peakColumn+") AS peak_total_memory").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
 		Where("first_event_timestamp >= ? AND last_event_timestamp <= ?", flt.From, flt.To).
@@ -82,4 +86,19 @@ func (a App) GetMemoryUsagePlot(ctx context.Context, rch driver.Conn, flt *filte
 		points = append(points, point)
 	}
 	return points, rows.Err()
+}
+
+func memoryPeakColumn(appImportance string) (string, error) {
+	switch appImportance {
+	case "":
+		return "peak_total_memory", nil
+	case "foreground":
+		return "peak_total_memory_foreground", nil
+	case "user_service":
+		return "peak_total_memory_user_service", nil
+	case "background":
+		return "peak_total_memory_background", nil
+	default:
+		return "", errors.New("invalid app importance")
+	}
 }
