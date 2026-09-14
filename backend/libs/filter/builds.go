@@ -10,9 +10,9 @@ var BuildsEntity = Entity{
 }
 
 var buildsKeys = []Key{
+	mappingType,
 	versionName,
 	versionCode,
-	mappingType,
 	patchVersion,
 	patchID,
 }

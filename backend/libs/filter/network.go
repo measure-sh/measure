@@ -8,11 +8,11 @@ var NetworkEntity = Entity{
 }
 
 var networkKeys = []Key{
+	httpMethod,
 	versionName,
 	versionCode,
 	patchVersion,
 	patchID,
-	httpMethod,
 	osName,
 	osVersion,
 	deviceName,

@@ -14,10 +14,6 @@ var SessionsEntity = Entity{
 }
 
 var sessionsKeys = []Key{
-	versionName,
-	versionCode,
-	patchVersion,
-	patchID,
 	sessionEvents,
 	sessionForegroundBackground,
 	sessionCustomEvent,
@@ -25,6 +21,10 @@ var sessionsKeys = []Key{
 	sessionScreen,
 	sessionErrorText,
 	sessionID,
+	versionName,
+	versionCode,
+	patchVersion,
+	patchID,
 	userID,
 	osName,
 	osVersion,
