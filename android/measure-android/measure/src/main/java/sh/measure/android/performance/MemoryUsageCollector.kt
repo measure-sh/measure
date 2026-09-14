@@ -1,5 +1,6 @@
 package sh.measure.android.performance
 
+import android.app.ActivityManager.RunningAppProcessInfo
 import androidx.annotation.VisibleForTesting
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.EventType
@@ -15,6 +16,9 @@ import java.util.concurrent.TimeUnit
 
 internal const val BYTES_TO_KB_FACTOR = 1024
 private const val BACKGROUND_MEMORY_USAGE_INTERVAL_SECONDS = 10L
+internal const val APP_IMPORTANCE_FOREGROUND = "foreground"
+internal const val APP_IMPORTANCE_USER_SERVICE = "user_service"
+internal const val APP_IMPORTANCE_BACKGROUND = "background"
 
 internal class MemoryUsageCollector(
     private val logger: Logger,
@@ -108,6 +112,7 @@ internal class MemoryUsageCollector(
             interval = interval,
             anon_rss = procStatus.anonRss?.let { sanitizeNegativeValue(it) },
             swap = procStatus.swap?.let { sanitizeNegativeValue(it) },
+            app_importance = processImportance(),
         )
         signalProcessor.track(
             timestamp = timeProvider.now(),
@@ -115,6 +120,12 @@ internal class MemoryUsageCollector(
             data = data,
         )
         previousMemoryUsage = data
+    }
+
+    private fun processImportance(): String = when (processInfo.getProcessImportance()) {
+        RunningAppProcessInfo.IMPORTANCE_FOREGROUND -> APP_IMPORTANCE_FOREGROUND
+        RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE -> APP_IMPORTANCE_USER_SERVICE
+        else -> APP_IMPORTANCE_BACKGROUND
     }
 
     private fun getInterval(): Long {

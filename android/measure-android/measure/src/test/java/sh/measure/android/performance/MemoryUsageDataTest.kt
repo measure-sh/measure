@@ -15,13 +15,14 @@ import sh.measure.android.storage.serializeDataToString
 internal class MemoryUsageDataTest {
     @Test
     fun `serializes anonymous RSS and swap in KB on the memory usage event`() {
-        val data = TestData.getMemoryUsageData().copy(anon_rss = 1234, swap = 0)
+        val data = TestData.getMemoryUsageData().copy(anon_rss = 1234, swap = 0, app_importance = "foreground")
         val event = data.toEvent(type = EventType.MEMORY_USAGE)
 
         val json = Json.parseToJsonElement(event.serializeDataToString()).jsonObject
 
         assertEquals(1234L, json.getValue("anon_rss").jsonPrimitive.long)
         assertEquals(0L, json.getValue("swap").jsonPrimitive.long)
+        assertEquals("foreground", json.getValue("app_importance").jsonPrimitive.content)
         assertEquals(data.rss, json.getValue("rss").jsonPrimitive.long)
     }
 

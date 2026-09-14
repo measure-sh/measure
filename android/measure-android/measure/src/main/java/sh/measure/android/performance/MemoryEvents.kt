@@ -14,6 +14,7 @@ internal data class MemoryUsageData(
     val interval: Long,
     val anon_rss: Long? = null,
     val swap: Long? = null,
+    val app_importance: String? = null,
 )
 
 @Serializable

@@ -1,5 +1,6 @@
 package sh.measure.android.performance
 
+import android.app.ActivityManager.RunningAppProcessInfo
 import androidx.concurrent.futures.ResolvableFuture
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -53,6 +54,7 @@ internal class MemoryUsageCollectorTest {
                 rss = 1000,
                 anon_rss = 800,
                 swap = 100,
+                app_importance = APP_IMPORTANCE_FOREGROUND,
                 native_total_heap = memoryReader.nativeTotalHeapSize(),
                 native_free_heap = memoryReader.nativeFreeHeapSize(),
                 interval = 0,
@@ -76,6 +78,23 @@ internal class MemoryUsageCollectorTest {
 
         assertNull(collector.previousMemoryUsage!!.anon_rss)
         assertNull(collector.previousMemoryUsage!!.swap)
+    }
+
+    @Test
+    fun `classifies process importance for memory usage events`() {
+        val cases = listOf(
+            RunningAppProcessInfo.IMPORTANCE_FOREGROUND to APP_IMPORTANCE_FOREGROUND,
+            RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE to APP_IMPORTANCE_USER_SERVICE,
+            RunningAppProcessInfo.IMPORTANCE_SERVICE to APP_IMPORTANCE_BACKGROUND,
+        )
+
+        cases.forEach { (importance, expected) ->
+            processInfo.importance = importance
+            memoryUsageCollector.register()
+
+            assertEquals(expected, memoryUsageCollector.previousMemoryUsage?.app_importance)
+            memoryUsageCollector.unregister()
+        }
     }
 
     @Test
@@ -155,6 +174,7 @@ internal class MemoryUsageCollectorTest {
                 rss = 1000,
                 anon_rss = 800,
                 swap = 100,
+                app_importance = APP_IMPORTANCE_FOREGROUND,
                 native_total_heap = memoryReader.nativeTotalHeapSize(),
                 native_free_heap = memoryReader.nativeFreeHeapSize(),
                 interval = advancedTime.toMillis(),
