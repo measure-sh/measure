@@ -38,12 +38,12 @@ import { MAX_FILTER_BYTES } from "./limits";
 // Position is the offset of a character in the filter, counted from zero.
 // Counting characters instead of bytes keeps a position lined up with the
 // text on screen when a value holds multi-byte characters.
-export type ParseError = {
+type ParseError = {
   message: string;
   position: number;
 };
 
-export type TokenKind =
+type TokenKind =
   | "key"
   | "operator"
   | "value"
@@ -64,7 +64,7 @@ export type ParseOutcome =
   | { ok: true; tree: ExprTree; tokens: ExprToken[] }
   | { ok: false; error: ParseError; tokens: ExprToken[] };
 
-export type ParseOptions = {
+type ParseOptions = {
   // Accept the two incomplete forms the filter bar uses while a filter is
   // being built: a condition whose values are still to be picked, written
   // `key:operator:`, and an empty group, written `()`. The server rejects

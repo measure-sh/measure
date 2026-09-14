@@ -35,7 +35,7 @@ import { useEffect, useMemo } from "react";
 
 export type { FilterStatus };
 
-export const filterExprUrlKey = "filter_expr";
+const filterExprUrlKey = "filter_expr";
 
 const {
   appId: appIdUrlKey,

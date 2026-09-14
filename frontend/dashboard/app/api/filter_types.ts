@@ -40,29 +40,6 @@ export type FilterKey = {
   value_suggestion_mode: ValueSuggestionMode;
 };
 
-/**
- * Attributes for numeric keys, or null for other key types. Bounds match the
- * column type to prevent out-of-range values; int64 has no bounds because
- * JavaScript cannot represent its full range accurately and the server
- * validates it on request send.
- */
-export function numberBoxAttributes(
-  valueType: string,
-): { step: number | "any"; min?: number; max?: number } | null {
-  switch (valueType) {
-    case "int32":
-      return { step: 1, min: -2147483648, max: 2147483647 };
-    case "uint32":
-      return { step: 1, min: 0, max: 4294967295 };
-    case "int64":
-      return { step: 1 };
-    case "float64":
-      return { step: "any" };
-    default:
-      return null;
-  }
-}
-
 // The keys an entity can be filtered by. `key_groups` is in the order the
 // server wants the groups shown.
 export type FilterKeysResponse = {

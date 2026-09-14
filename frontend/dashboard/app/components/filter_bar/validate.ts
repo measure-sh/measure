@@ -67,7 +67,7 @@ export function validateLimits(filter: ConditionGroup): string | null {
 
 // A part of the filter that parses but cannot be used against the app on
 // screen, and the span of text it covers.
-export type KeyIssue = {
+type KeyIssue = {
   message: string;
   start: number;
   end: number;
