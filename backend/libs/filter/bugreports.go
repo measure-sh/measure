@@ -1,11 +1,11 @@
 package filter
 
 var BugReportsEntity = Entity{
-	Name:                  "bug_reports",
-	Keys:                  bugReportsKeys,
-	BindKey:               bindKeysToColumns(bugReportsTableColumns, bugReportsKeyBindingOverrides),
-	SuggestFixedKeyValues: suggestFixedKeyValuesFromClickHouse(bugReportFixedKeyValues),
-	CustomKeys:            &bugReportCustomKeys,
+	Name:            "bug_reports",
+	Keys:            bugReportsKeys,
+	Columns:         bugReportsTableColumns,
+	ValueSources:    []valueSource{bugReportFixedKeyValues},
+	CustomKeySource: &bugReportCustomKeySource,
 }
 
 var bugReportsKeys = []Key{
@@ -28,37 +28,32 @@ var bugReportsKeys = []Key{
 	country,
 }
 
-var bugReportsTableColumns = map[string]string{
-	versionName.Name:          "tupleElement(app_version, 1)",
-	versionCode.Name:          "tupleElement(app_version, 2)",
-	patchVersion.Name:         "patch_version",
-	patchID.Name:              "patch_id",
-	bugReportStatus.Name:      "status",
-	userID.Name:               "user_id",
-	bugReportDescription.Name: "description",
-	sessionID.Name:            "session_id",
-	osName.Name:               "tupleElement(os_version, 1)",
-	osVersion.Name:            "tupleElement(os_version, 2)",
-	deviceName.Name:           "device_name",
-	deviceManufacturer.Name:   "device_manufacturer",
-	locale.Name:               "device_locale",
-	networkType.Name:          "network_type",
-	networkGeneration.Name:    "network_generation",
-	networkProvider.Name:      "network_provider",
-	country.Name:              "country_code",
-}
-
-var bugReportStatusCodes = map[string]uint8{
+var bugReportStatusCodes = map[string]int{
 	"open":   0,
 	"closed": 1,
 }
 
-var bugReportsKeyBindingOverrides = map[string]columnKeyBinding{
-	bugReportStatus.Name: bindEnumKeyToCodes(bugReportStatusCodes),
-	patchID.Name:         bindUUIDKey,
-}
+var bugReportsTableColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]column{
+	versionName.Name:          {expr: "tupleElement(app_version, 1)"},
+	versionCode.Name:          {expr: "tupleElement(app_version, 2)"},
+	patchVersion.Name:         {expr: "patch_version"},
+	patchID.Name:              {expr: "patch_id", kind: columnUUID},
+	bugReportStatus.Name:      {expr: "status", kind: columnEnumCodes, codes: bugReportStatusCodes},
+	userID.Name:               {expr: "user_id"},
+	bugReportDescription.Name: {expr: "description"},
+	sessionID.Name:            {expr: "session_id"},
+	osName.Name:               {expr: "tupleElement(os_version, 1)"},
+	osVersion.Name:            {expr: "tupleElement(os_version, 2)"},
+	deviceName.Name:           {expr: "device_name"},
+	deviceManufacturer.Name:   {expr: "device_manufacturer"},
+	locale.Name:               {expr: "device_locale"},
+	networkType.Name:          {expr: "network_type"},
+	networkGeneration.Name:    {expr: "network_generation"},
+	networkProvider.Name:      {expr: "network_provider"},
+	country.Name:              {expr: "country_code"},
+}}
 
-var bugReportFixedKeyValues = fixedKeyValueSource{
+var bugReportFixedKeyValues = valueSource{
 	table:       "bug_reports",
 	columns:     bugReportsTableColumns,
 	recencyExpr: "max(timestamp)",
@@ -67,7 +62,7 @@ var bugReportFixedKeyValues = fixedKeyValueSource{
 
 // The custom keys are the user-defined attributes set on the session a
 // report was filed in.
-var bugReportCustomKeys = customKeyStore{
+var bugReportCustomKeySource = customKeySource{
 	table:      "user_def_attrs",
 	idColumn:   "event_id",
 	extraScope: "bug_report = true",

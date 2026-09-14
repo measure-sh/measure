@@ -6,11 +6,11 @@ import (
 )
 
 var SessionsEntity = Entity{
-	Name:                  "sessions",
-	Keys:                  sessionsKeys,
-	BindKey:               bindKeysToColumns(sessionsTableColumns, sessionsKeyBindingOverrides),
-	SuggestFixedKeyValues: suggestFixedKeyValuesFromClickHouse(sessionsAppFiltersValues, sessionsTableValues),
-	CustomKeys:            &sessionCustomKeys,
+	Name:            "sessions",
+	Keys:            sessionsKeys,
+	Columns:         sessionsTableColumns,
+	ValueSources:    []valueSource{sessionsAppFiltersValues, sessionsTableValues},
+	CustomKeySource: &sessionCustomKeySource,
 }
 
 var sessionsKeys = []Key{
@@ -37,121 +37,41 @@ var sessionsKeys = []Key{
 	country,
 }
 
-// The events and foreground/background keys have no column of their own, so
-// their entries are empty and the overrides bind predicates instead.
-var sessionsTableColumns = map[string]string{
-	versionName.Name:                 "tupleElement(app_version, 1)",
-	versionCode.Name:                 "tupleElement(app_version, 2)",
-	patchVersion.Name:                "patch_version",
-	patchID.Name:                     "patch_id",
-	sessionEvents.Name:               "",
-	sessionForegroundBackground.Name: "",
-	sessionCustomEvent.Name:          "unique_custom_type_names",
-	sessionLog.Name:                  rawSessionColumnForms.log,
-	sessionErrorText.Name:            rawSessionColumnForms.errorText,
-	sessionScreen.Name:               rawSessionColumnForms.screen,
-	sessionID.Name:                   "session_id",
-	userID.Name:                      "user_ids",
-	osName.Name:                      "tupleElement(os_version, 1)",
-	osVersion.Name:                   "tupleElement(os_version, 2)",
-	deviceName.Name:                  "device_name",
-	deviceManufacturer.Name:          "device_manufacturer",
-	locale.Name:                      "device_locales",
-	networkType.Name:                 "network_types",
-	networkGeneration.Name:           "network_generations",
-	networkProvider.Name:             "network_providers",
-	country.Name:                     "country_codes",
-}
-
-var sessionsAggregatedColumns = map[string]string{
-	versionName.Name:                 "tupleElement(app_version, 1)",
-	versionCode.Name:                 "tupleElement(app_version, 2)",
-	patchVersion.Name:                "max(patch_version)",
-	patchID.Name:                     "max(patch_id)",
-	sessionEvents.Name:               "",
-	sessionForegroundBackground.Name: "",
-	sessionCustomEvent.Name:          "groupUniqArrayArray(unique_custom_type_names)",
-	sessionLog.Name:                  aggregatedSessionColumnForms.log,
-	sessionErrorText.Name:            aggregatedSessionColumnForms.errorText,
-	sessionScreen.Name:               aggregatedSessionColumnForms.screen,
-	sessionID.Name:                   "session_id",
-	userID.Name:                      "groupUniqArrayArray(user_ids)",
-	osName.Name:                      "tupleElement(os_version, 1)",
-	osVersion.Name:                   "tupleElement(os_version, 2)",
-	deviceName.Name:                  "device_name",
-	deviceManufacturer.Name:          "device_manufacturer",
-	locale.Name:                      "groupUniqArrayArray(device_locales)",
-	networkType.Name:                 "groupUniqArrayArray(network_types)",
-	networkGeneration.Name:           "groupUniqArrayArray(network_generations)",
-	networkProvider.Name:             "groupUniqArrayArray(network_providers)",
-	country.Name:                     "groupUniqArrayArray(country_codes)",
-}
-
-var SessionsAggregatedKeyBindings = bindingForEachKey(sessionsKeys, bindKeysToColumns(sessionsAggregatedColumns, sessionsAggregatedKeyBindingOverrides))
-
-var (
-	sessionsKeyBindingOverrides           = sessionsKeyBindingOverridesFor(rawSessionColumnForms)
-	sessionsAggregatedKeyBindingOverrides = sessionsKeyBindingOverridesFor(aggregatedSessionColumnForms)
-)
-
-func sessionsKeyBindingOverridesFor(forms sessionColumnForms) map[string]columnKeyBinding {
-	return map[string]columnKeyBinding{
-		sessionEvents.Name:               bindEnumKeyToPredicates(forms.events),
-		sessionForegroundBackground.Name: bindEnumKeyToPredicates(forms.foregroundBackground),
-		sessionCustomEvent.Name:          bindArrayKey,
-		sessionLog.Name:                  bindArrayKey,
-		sessionErrorText.Name:            bindArrayKey,
-		sessionScreen.Name:               bindArrayKey,
-		patchID.Name:                     bindUUIDKey,
-		userID.Name:                      bindArrayKey,
-		locale.Name:                      bindArrayKey,
-		networkType.Name:                 bindArrayKey,
-		networkGeneration.Name:           bindArrayKey,
-		networkProvider.Name:             bindArrayKey,
-		country.Name:                     bindArrayKey,
-	}
-}
-
-var sessionsAppFiltersValues = fixedKeyValueSource{
+var sessionsAppFiltersValues = valueSource{
 	table:       "app_filters",
 	columns:     appFiltersColumns,
 	recencyExpr: "max(end_of_month)",
 }
 
 // app_filters does not keep these, so they are read from the session's own arrays.
-var sessionsTableValues = fixedKeyValueSource{
+var sessionsTableValues = valueSource{
 	table: "sessions",
-	columns: map[string]string{
-		userID.Name:             "user_ids",
-		sessionCustomEvent.Name: "unique_custom_type_names",
-		sessionScreen.Name:      rawSessionColumnForms.screen,
-	},
-	recencyExpr:  "max(first_event_timestamp)",
-	timeColumn:   "first_event_timestamp",
-	arrayColumns: true,
+	columns: &Columns{dialect: dialectClickHouse, byKey: map[string]column{
+		userID.Name:             sessionsTableColumns.byKey[userID.Name],
+		sessionCustomEvent.Name: sessionsTableColumns.byKey[sessionCustomEvent.Name],
+		sessionScreen.Name:      sessionsTableColumns.byKey[sessionScreen.Name],
+	}},
+	recencyExpr: "max(first_event_timestamp)",
+	timeColumn:  "first_event_timestamp",
 }
 
 // Every attribute written in the session counts, whichever event or bug report
 // carried it.
-var sessionCustomKeys = customKeyStore{
+var sessionCustomKeySource = customKeySource{
 	table:    "user_def_attrs",
 	idColumn: "session_id",
 }
 
 var (
-	rawSessionColumnForms        = sessionColumnFormsWith(func(_, column string) string { return column })
-	aggregatedSessionColumnForms = sessionColumnFormsWith(func(aggregate, column string) string { return aggregate + "(" + column + ")" })
+	sessionsTableColumns      = sessionsColumnsWith(func(_, column string) string { return column })
+	SessionsAggregatedColumns = sessionsColumnsWith(func(aggregate, column string) string { return aggregate + "(" + column + ")" })
 )
 
-type sessionColumnForms struct {
-	events               map[string]string
-	foregroundBackground map[string]string
-	log                  string
-	errorText            string
-	screen               string
-}
-
-func sessionColumnFormsWith(wrap func(aggregate, column string) string) sessionColumnForms {
+// The sessions table holds several rows per session, so a per-session
+// column reads differently in a WHERE over raw rows and in a HAVING after
+// grouping by session. wrap picks the form, so every key's expression is
+// written once for both.
+func sessionsColumnsWith(wrap func(aggregate, column string) string) *Columns {
 	eventTypeCount := func(eventType string) string {
 		return wrap("sumMap", "event_type_counts") + "['" + eventType + "']"
 	}
@@ -174,37 +94,57 @@ func sessionColumnFormsWith(wrap func(aggregate, column string) string) sessionC
 		},
 	)
 
-	return sessionColumnForms{
-		events: map[string]string{
+	return &Columns{dialect: dialectClickHouse, byKey: map[string]column{
+		versionName.Name:  {expr: "tupleElement(app_version, 1)"},
+		versionCode.Name:  {expr: "tupleElement(app_version, 2)"},
+		patchVersion.Name: {expr: wrap("max", "patch_version")},
+		patchID.Name:      {expr: wrap("max", "patch_id"), kind: columnUUID},
+		sessionEvents.Name: {kind: columnPredicates, predicates: map[string]string{
 			"fatal_error":      wrap("sum", "fatal_exception_count") + " >= 1",
 			"unhandled_error":  wrap("sum", "unhandled_exception_count") + " >= 1",
 			"handled_error":    wrap("sum", "handled_exception_count") + " >= 1",
 			"anr":              wrap("sum", "anr_count") + " >= 1",
 			"bug_report":       wrap("sum", "bug_report_count") + " >= 1",
 			"user_interaction": anyCountPresent(gestureEventCounts),
-		},
-		foregroundBackground: map[string]string{
+		}},
+		sessionForegroundBackground.Name: {kind: columnPredicates, predicates: map[string]string{
 			"foreground": anyCountPresent(foregroundEventCounts),
 			"background": wrap("sum", "background_count") + " >= 1",
-		},
-		log: "arrayConcat(" + strings.Join([]string{
+		}},
+		sessionCustomEvent.Name: {expr: uniqueArray("unique_custom_type_names"), kind: columnTextArray},
+		sessionLog.Name: {expr: arrayConcat(
 			uniqueArray("unique_logs"),
 			uniqueArray("unique_strings"),
-		}, ", ") + ")",
-		errorText: "arrayConcat(" + strings.Join([]string{
+		), kind: columnTextArray},
+		sessionErrorText.Name: {expr: arrayConcat(
 			flattenExceptionText(uniqueArray("unique_fatal_exceptions")),
 			flattenExceptionText(uniqueArray("unique_unhandled_exceptions")),
 			flattenExceptionText(uniqueArray("unique_handled_exceptions")),
 			flattenExceptionText(uniqueArray("unique_anrs")),
 			errorCodeText(uniqueArray("unique_errors")),
-		}, ", ") + ")",
-		screen: "arrayConcat(" + strings.Join([]string{
+		), kind: columnTextArray},
+		sessionScreen.Name: {expr: arrayConcat(
 			uniqueArray("unique_screen_view_names"),
 			uniqueArray("unique_view_classnames"),
 			uniqueArray("unique_subview_classnames"),
 			uniqueArray("unique_view_controller_classnames"),
-		}, ", ") + ")",
-	}
+		), kind: columnTextArray},
+		sessionID.Name:          {expr: "session_id"},
+		userID.Name:             {expr: uniqueArray("user_ids"), kind: columnTextArray},
+		osName.Name:             {expr: "tupleElement(os_version, 1)"},
+		osVersion.Name:          {expr: "tupleElement(os_version, 2)"},
+		deviceName.Name:         {expr: "device_name"},
+		deviceManufacturer.Name: {expr: "device_manufacturer"},
+		locale.Name:             {expr: uniqueArray("device_locales"), kind: columnTextArray},
+		networkType.Name:        {expr: uniqueArray("network_types"), kind: columnTextArray},
+		networkGeneration.Name:  {expr: uniqueArray("network_generations"), kind: columnTextArray},
+		networkProvider.Name:    {expr: uniqueArray("network_providers"), kind: columnTextArray},
+		country.Name:            {expr: uniqueArray("country_codes"), kind: columnTextArray},
+	}}
+}
+
+func arrayConcat(arrays ...string) string {
+	return "arrayConcat(" + strings.Join(arrays, ", ") + ")"
 }
 
 // unique_errors holds one JSON object per error. Searching that text as it is

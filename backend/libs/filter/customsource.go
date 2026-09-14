@@ -9,18 +9,13 @@ import (
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leporo/sqlf"
 )
 
-// customKeyStore says where an entity's user-defined attributes are stored: a
-// ClickHouse table holding one row per entity row, attribute and value, with
-// the value of every type stored in one String column. The store answers the
-// entity's custom-key listing, by-name resolution and value suggestions, and
-// bindConditions turns conditions on its keys into membership subqueries. The
-// attributes are read from ClickHouse, so the Postgres pool the entity fields
-// carry is unused here.
-type customKeyStore struct {
+// customKeySource says where an entity's user-defined attributes are read
+// from: a ClickHouse table holding one row per entity row, attribute and
+// value, with the value of every type stored in one String column.
+type customKeySource struct {
 	table string
 
 	// idColumn identifies the entity row an attribute row belongs to, and is
@@ -38,8 +33,7 @@ type customKeyStore struct {
 	extraScope string
 }
 
-// matchColumn is the entity table's id column.
-func (s customKeyStore) matchColumn() string {
+func (s customKeySource) matchColumn() string {
 	if s.entityColumn != "" {
 		return s.entityColumn
 	}
@@ -53,7 +47,7 @@ func (s customKeyStore) matchColumn() string {
 // The scan is on the full table without a time bound. If needed in future:
 // time bound it so only keys in time range show up or add a rollup of
 // distinct keys and values like the span_filters rollup that fixed keys read.
-func (s customKeyStore) keyQuery(teamID, appID uuid.UUID) *sqlf.Stmt {
+func (s customKeySource) keyQuery(teamID, appID uuid.UUID) *sqlf.Stmt {
 	stmt := sqlf.
 		From(s.table).
 		Select("key").
@@ -70,10 +64,7 @@ func (s customKeyStore) keyQuery(teamID, appID uuid.UUID) *sqlf.Stmt {
 		OrderBy("key")
 }
 
-// fetchKeys lists the filter keys for every user-defined attribute of an
-// app's entity rows, ordered by name. It asks for one key past the limit so
-// it can report that more exist without counting them.
-func (s customKeyStore) fetchKeys(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, limit int) ([]Key, bool, error) {
+func (s customKeySource) fetchKeys(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, limit int) ([]Key, bool, error) {
 	stmt := s.keyQuery(teamID, appID).
 		Limit(limit + 1).
 		// Most granules hold rows of this team and app anyway, so skip
@@ -93,9 +84,7 @@ func (s customKeyStore) fetchKeys(ctx context.Context, pgPool *pgxpool.Pool, chP
 	return keys, false, nil
 }
 
-// fetchKeysByName reads the filter keys for the named user-defined attributes
-// of one app.
-func (s customKeyStore) fetchKeysByName(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, rawNames []string) ([]Key, error) {
+func (s customKeySource) fetchKeysByName(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, rawNames []string) ([]Key, error) {
 	if len(rawNames) == 0 {
 		return nil, nil
 	}
@@ -109,13 +98,12 @@ func (s customKeyStore) fetchKeysByName(ctx context.Context, pgPool *pgxpool.Poo
 }
 
 // suggestValues lists what one user-defined attribute has been set to, most
-// recently written first, asking for one row past the limit so it can report
-// that more matched without counting them. Empty ones are left out.
+// recently written first, leaving empty values out.
 //
-// The scan reads the raw attribute table within the suggestion window.
-// If it gets slow, add a rollup of distinct keys and values
-// like the span_filters rollup that fixed keys read.
-func (s customKeyStore) suggestValues(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
+// The scan reads the raw attribute table within the suggestion window. If
+// it gets slow, add a rollup of distinct keys and values like the
+// span_filters rollup that fixed keys read.
+func (s customKeySource) suggestValues(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
 	limit := valueRequest.effectiveLimit()
 
 	ctx = chquery.WithTeamScope(ctx, teamID)
@@ -146,7 +134,12 @@ func (s customKeyStore) suggestValues(ctx context.Context, chPool driver.Conn, t
 		stmt.Where("value ilike ?", "%"+EscapeLikeWildcards(valueRequest.Search)+"%")
 	}
 
-	return readSuggestedValues(ctx, chPool, key, stmt, limit)
+	rows, err := chPool.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return ValueList{}, fmt.Errorf("Failed to read the values of key %q: %w", key.Name, err)
+	}
+	defer rows.Close()
+	return readSuggestedValues(rows, key, limit)
 }
 
 func readCustomKeys(ctx context.Context, ch driver.Conn, teamID uuid.UUID, stmt *sqlf.Stmt) ([]Key, error) {

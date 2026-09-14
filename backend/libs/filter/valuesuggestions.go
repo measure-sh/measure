@@ -14,21 +14,18 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-// fixedKeyValueSource says where an entity's fixed-key value suggestions are
-// read from: a ClickHouse table, the column expression each key's values are
-// read from, and the aggregate expression that dates a value for
-// most-recently-seen-first ordering. timeColumn names the row timestamp of a
-// raw table so the read stays within the suggestion window; a rollup that is
-// small enough to read whole leaves it empty. arrayColumns marks a source
-// whose column expressions are arrays, so each element is suggested as its own
-// value; the elements are expanded with an ARRAY JOIN clause because ClickHouse
-// refuses to cache a query that calls its arrayJoin function.
-type fixedKeyValueSource struct {
-	table        string
-	columns      map[string]string
-	recencyExpr  string
-	timeColumn   string
-	arrayColumns bool
+// valueSource says where an entity's fixed keys read their value
+// suggestions from.
+type valueSource struct {
+	table   string
+	columns *Columns
+
+	// The aggregate that dates a value, for most-recently-seen-first order.
+	recencyExpr string
+
+	// The row timestamp a raw table is windowed on. A rollup small enough to
+	// read whole leaves it empty.
+	timeColumn string
 
 	// extraScope is an extra boolean SQL clause for tables holding more than
 	// the entity's rows. The events table holds every event type of event, so the
@@ -49,110 +46,131 @@ func suggestionWindowStart() time.Time {
 }
 
 // SuggestKeyValues lists what one key can be set to, narrowed by what has
-// been typed. An enum key answers from its own value list without a read, a
-// custom key reads the entity's custom key store, and every other key is
-// answered by the entity's fixed-key suggester.
+// been typed.
 func (e Entity) SuggestKeyValues(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
 	if len(key.EnumValues) > 0 {
 		return narrowEnumValues(key, valueRequest), nil
 	}
 
-	if e.CustomKeys != nil && strings.HasPrefix(key.Name, CustomKeyPrefix) {
-		if key.ValueSuggestionMode == ValueSuggestionModeNone {
-			return ValueList{}, fmt.Errorf("Key %q takes typed-in values only", key.Name)
-		}
-		return e.CustomKeys.suggestValues(ctx, chPool, teamID, appID, key, valueRequest)
+	if key.ValueSuggestionMode == ValueSuggestionModeNone {
+		return ValueList{}, fmt.Errorf("Key %q takes typed-in values only", key.Name)
 	}
 
-	return e.SuggestFixedKeyValues(ctx, pgPool, chPool, teamID, appID, key, valueRequest)
+	if e.CustomKeySource != nil && strings.HasPrefix(key.Name, CustomKeyPrefix) {
+		return e.CustomKeySource.suggestValues(ctx, chPool, teamID, appID, key, valueRequest)
+	}
+
+	return suggestFixedKeyValues(ctx, pgPool, chPool, teamID, appID, e.ValueSources, key, valueRequest)
 }
 
-// suggestFixedKeyValuesFromClickHouse builds an entity's fixed-key value
-// suggester. An entity may pass several sources because a rollup table
-// answers most of its keys while a few keys only exist on the entity's own
-// table; the first source that has a key answers it.
-func suggestFixedKeyValuesFromClickHouse(sources ...fixedKeyValueSource) func(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
-	return func(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
-		if key.ValueSuggestionMode == ValueSuggestionModeNone {
-			return ValueList{}, fmt.Errorf("Key %q takes typed-in values only", key.Name)
+// An entity has several sources when a rollup answers most of its keys and
+// a few exist only on its own table; the first source that has the key
+// answers it.
+func suggestFixedKeyValues(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, sources []valueSource, key Key, valueRequest ValueRequest) (ValueList, error) {
+	var source valueSource
+	var col column
+	var ok bool
+	for _, candidate := range sources {
+		if col, ok = candidate.columns.byKey[key.Name]; ok {
+			source = candidate
+			break
 		}
+	}
+	if !ok {
+		return ValueList{}, fmt.Errorf("%w: %q", ErrKeyNotSupported, key.Name)
+	}
 
-		var fixedValues fixedKeyValueSource
-		var column string
-		var ok bool
-		for _, source := range sources {
-			if column, ok = source.columns[key.Name]; ok {
-				fixedValues = source
-				break
-			}
-		}
-		if !ok {
-			return ValueList{}, fmt.Errorf("%w: %q", ErrKeyNotSupported, key.Name)
-		}
+	limit := valueRequest.effectiveLimit()
 
-		limit := valueRequest.effectiveLimit()
+	// Each element of an array column is suggested on its own. The elements
+	// are expanded with ARRAY JOIN because ClickHouse refuses to cache a
+	// query that calls arrayJoin.
+	from := source.table
+	valueExpr := col.expr
+	if col.kind == columnTextArray || col.kind == columnUUIDArray {
+		from += " ARRAY JOIN " + col.expr + " AS array_value"
+		valueExpr = "array_value"
+	}
 
+	// A row the key does not apply to holds the unset value, an empty string
+	// or the nil uuid, and is left out. A uuid column is read as text so the
+	// search and the returned values are strings.
+	unsetTest := valueExpr + " <> ''"
+	var unsetArgs []any
+	if col.kind == columnUUID || col.kind == columnUUIDArray {
+		valueExpr = fmt.Sprintf(uuidAsText[source.columns.dialect], valueExpr)
+		unsetTest = valueExpr + " <> ?"
+		unsetArgs = []any{uuid.Nil.String()}
+	}
+
+	var stmt *sqlf.Stmt
+	switch source.columns.dialect {
+	case dialectClickHouse:
 		ctx = chquery.WithTeamScope(ctx, teamID)
-
-		// Unset attributes use an empty string, except UUID columns,
-		// which use the nil UUID. Unset values are excluded.
-		// UUID columns are read as text so searches and returned
-		// values use strings. Ties are ordered alphabetically.
-		from := fixedValues.table
-		valueExpr := column
-		if fixedValues.arrayColumns {
-			from += " ARRAY JOIN " + column + " AS array_value"
-			valueExpr = "array_value"
-		}
-		unsetTest := valueExpr + " <> ''"
-		var unsetArgs []any
-		if key.ValueType == ValueTypeUUID {
-			valueExpr = "toString(" + valueExpr + ")"
-			unsetTest = valueExpr + " <> ?"
-			unsetArgs = []any{uuid.Nil.String()}
-		}
-
-		stmt := sqlf.
-			From(from).
-			Select(valueExpr+" as suggested_value").
-			Select(fixedValues.recencyExpr+" as recency").
+		stmt = sqlf.From(from).
 			Where("team_id = toUUID(?)", teamID).
 			Where("app_id = toUUID(?)", appID)
-
-		if fixedValues.timeColumn != "" {
-			stmt.Where(fixedValues.timeColumn+" >= ?", suggestionWindowStart())
-		}
-
-		if fixedValues.extraScope != "" {
-			stmt.Where(fixedValues.extraScope)
-		}
-
-		stmt.
-			Where(unsetTest, unsetArgs...).
-			GroupBy("suggested_value").
-			OrderBy("recency desc, suggested_value").
-			Limit(limit + 1)
-
-		defer stmt.Close()
-
-		if valueRequest.Search != "" {
-			stmt.Where(valueExpr+" ilike ?", "%"+EscapeLikeWildcards(valueRequest.Search)+"%")
-		}
-
-		return readSuggestedValues(ctx, chPool, key, stmt, limit)
+	case dialectPostgres:
+		stmt = sqlf.PostgreSQL.From(from).
+			Where("app_id = ?", appID)
 	}
+	stmt.
+		Select(valueExpr + " as suggested_value").
+		Select(source.recencyExpr + " as recency")
+
+	if source.timeColumn != "" {
+		stmt.Where(source.timeColumn+" >= ?", suggestionWindowStart())
+	}
+
+	if source.extraScope != "" {
+		stmt.Where(source.extraScope)
+	}
+
+	// Ties are ordered alphabetically.
+	stmt.
+		Where(unsetTest, unsetArgs...).
+		GroupBy("suggested_value").
+		OrderBy("recency desc, suggested_value").
+		Limit(limit + 1)
+
+	defer stmt.Close()
+
+	if valueRequest.Search != "" {
+		stmt.Where(valueExpr+" ilike ?", "%"+EscapeLikeWildcards(valueRequest.Search)+"%")
+	}
+
+	var rows suggestedValueRows
+	switch source.columns.dialect {
+	case dialectClickHouse:
+		chRows, err := chPool.Query(ctx, stmt.String(), stmt.Args()...)
+		if err != nil {
+			return ValueList{}, fmt.Errorf("Failed to read the values of key %q: %w", key.Name, err)
+		}
+		defer chRows.Close()
+		rows = chRows
+	case dialectPostgres:
+		pgRows, err := pgPool.Query(ctx, stmt.String(), stmt.Args()...)
+		if err != nil {
+			return ValueList{}, fmt.Errorf("Failed to read the values of key %q: %w", key.Name, err)
+		}
+		defer pgRows.Close()
+		rows = pgRows
+	}
+
+	return readSuggestedValues(rows, key, limit)
 }
 
-// readSuggestedValues runs a suggestion statement that selects a value and
-// its recency per row, and reports the list truncated when more than limit
-// rows come back, which the statement arranged by asking for one extra row.
-func readSuggestedValues(ctx context.Context, chPool driver.Conn, key Key, stmt *sqlf.Stmt, limit int) (ValueList, error) {
-	rows, err := chPool.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return ValueList{}, fmt.Errorf("Failed to read the values of key %q: %w", key.Name, err)
-	}
-	defer rows.Close()
+// suggestedValueRows is the part of the ClickHouse and pgx row cursors that
+// reading suggested values needs, so one reader serves either dialect.
+type suggestedValueRows interface {
+	Next() bool
+	Scan(dest ...any) error
+	Err() error
+}
 
+// The statement asked for one row past the limit, so an extra row means
+// the list is truncated without counting the rest.
+func readSuggestedValues(rows suggestedValueRows, key Key, limit int) (ValueList, error) {
 	values := []Value{}
 	for rows.Next() {
 		var text string

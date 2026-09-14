@@ -1,63 +1,25 @@
 package filter
 
 import (
-	"context"
-	"fmt"
 	"strings"
 	"testing"
 
-	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/google/uuid"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leporo/sqlf"
 )
+
+var testColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]column{
+	"version_name": {expr: "version_name"},
+	"patch_id":     {expr: "patch_id", kind: columnUUID},
+}}
 
 var testEntity = Entity{
 	Name: "test",
 	Keys: []Key{
 		{Name: "version_name", ValueType: ValueTypeString, Operators: AllowedOperatorsFor(ValueTypeString), ValueSuggestionMode: ValueSuggestionModeSample},
 		{Name: "patch_id", ValueType: ValueTypeUUID, Operators: AllowedOperatorsFor(ValueTypeUUID), ValueSuggestionMode: ValueSuggestionModeSample},
-		{Name: "file_size", ValueType: ValueTypeInt32, Operators: AllowedOperatorsFor(ValueTypeInt32), ValueSuggestionMode: ValueSuggestionModeNone},
 	},
-	BindKey:               bindTestKey,
-	SuggestFixedKeyValues: fetchTestKeySuggestions,
-}
-
-func bindTestKey(condition Condition) (*sqlf.Stmt, error) {
-	switch condition.KeyName {
-	case "version_name":
-		switch condition.Operator {
-		case OperatorIn:
-			return sqlf.New("version_name = any(?)", condition.TextValues()), nil
-		case OperatorContains:
-			return sqlf.New("version_name ilike ?", "%"+EscapeLikeWildcards(condition.TextValue())+"%"), nil
-		}
-
-	case "patch_id":
-		switch condition.Operator {
-		case OperatorIsSet:
-			return sqlf.New("patch_id::text <> '" + uuid.Nil.String() + "'"), nil
-		}
-
-	case "file_size":
-		switch condition.Operator {
-		case OperatorGt:
-			number, err := condition.IntegerValue()
-			if err != nil {
-				return nil, err
-			}
-			return sqlf.New("file_size > ?", number), nil
-		}
-
-	default:
-		return nil, fmt.Errorf("%w: %q", ErrKeyNotSupported, condition.KeyName)
-	}
-
-	return nil, fmt.Errorf("key %q cannot be filtered with %q", condition.KeyName, condition.Operator)
-}
-
-func fetchTestKeySuggestions(ctx context.Context, pgPool *pgxpool.Pool, chPool driver.Conn, teamID, appID uuid.UUID, key Key, valueRequest ValueRequest) (ValueList, error) {
-	return ValueList{}, nil
+	Columns: testColumns,
 }
 
 // testFilters is a request already parsed and validated, the state
@@ -80,13 +42,13 @@ func TestPredicate(t *testing.T) {
 		{
 			name:     "one condition is what its entity wrote",
 			exprTree: leafExprTree("version_name", OperatorIn, "1.2.0"),
-			want:     "version_name = any(?)",
+			want:     "version_name in ?",
 			wantArgs: 1,
 		},
 		{
 			name:     "a list is one bound argument rather than one each",
 			exprTree: leafExprTree("version_name", OperatorIn, "1.2.0", "1.1.9"),
-			want:     "version_name = any(?)",
+			want:     "version_name in ?",
 			wantArgs: 1,
 		},
 		{
@@ -96,24 +58,18 @@ func TestPredicate(t *testing.T) {
 			wantArgs: 1,
 		},
 		{
-			name:     "an operator taking no values binds nothing",
+			name:     "an operator with no condition values still binds the presence sentinel",
 			exprTree: leafExprTree("patch_id", OperatorIsSet),
-			want:     "patch_id::text <> '00000000-0000-0000-0000-000000000000'",
-			wantArgs: 0,
-		},
-		{
-			name:     "comparing a number",
-			exprTree: leafExprTree("file_size", OperatorGt, "1024"),
-			want:     "file_size > ?",
+			want:     "patch_id <> ?",
 			wantArgs: 1,
 		},
 		{
 			name: "a group joins its children with its own operator",
 			exprTree: &ExprTree{LogicalOperator: LogicalAnd, Children: []ExprTree{
-				*leafExprTree("file_size", OperatorGt, "1000"),
+				*leafExprTree("patch_id", OperatorIsSet),
 				*leafExprTree("version_name", OperatorIn, "1.2.0"),
 			}},
-			want:     "((file_size > ?) and (version_name = any(?)))",
+			want:     "((patch_id <> ?) and (version_name in ?))",
 			wantArgs: 2,
 		},
 		{
@@ -122,10 +78,10 @@ func TestPredicate(t *testing.T) {
 				*leafExprTree("version_name", OperatorIn, "1.2.0"),
 				{LogicalOperator: LogicalOr, Children: []ExprTree{
 					*leafExprTree("patch_id", OperatorIsSet),
-					*leafExprTree("file_size", OperatorGt, "10"),
+					*leafExprTree("version_name", OperatorIn, "9.9.9"),
 				}},
 			}},
-			want: "((version_name = any(?)) and (((patch_id::text <> '00000000-0000-0000-0000-000000000000') or (file_size > ?))))",
+			want: "((version_name in ?) and (((patch_id <> ?) or (version_name in ?))))",
 		},
 	}
 
@@ -185,28 +141,29 @@ func TestPredicateRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
 	}
 }
 
-func TestPredicateTakesAnOverrideForOneKey(t *testing.T) {
+func TestPredicateOnAnotherColumns(t *testing.T) {
 	exprTree := &ExprTree{LogicalOperator: LogicalAnd, Children: []ExprTree{
 		*leafExprTree("version_name", OperatorIn, "1.2.0"),
 		*leafExprTree("patch_id", OperatorIsSet),
 	}}
 
-	predicate, err := testFilters(exprTree).Predicate(map[string]KeyBinding{
-		"version_name": func(condition Condition) (*sqlf.Stmt, error) {
-			return sqlf.New("b.version_name = any(?)", condition.TextValues()), nil
-		},
-	})
+	rollupColumns := &Columns{dialect: dialectClickHouse, byKey: map[string]column{
+		"version_name": {expr: "b.version_name"},
+		"patch_id":     {expr: "patch_id", kind: columnUUID},
+	}}
+
+	predicate, err := testFilters(exprTree).Predicate(rollupColumns)
 	if err != nil {
 		t.Fatalf("Predicate failed: %v", err)
 	}
 	defer predicate.Close()
 
 	written := predicate.String()
-	if !strings.Contains(written, "b.version_name = any(?)") {
-		t.Errorf("want the override's SQL for the key it names, got %s", written)
+	if !strings.Contains(written, "b.version_name in ?") {
+		t.Errorf("want the passed columns' SQL for the key it names, got %s", written)
 	}
-	if !strings.Contains(written, "patch_id::text <>") {
-		t.Errorf("want the entity still writing the other key, got %s", written)
+	if !strings.Contains(written, "patch_id <>") {
+		t.Errorf("want the other key still written, got %s", written)
 	}
 }
 
@@ -231,7 +188,7 @@ func (b *fakeCustomBinder) bind(operator LogicalOperator, conditions []Condition
 	return sqlf.New("custom ?", strings.Join(keyNames, ",")), nil
 }
 
-func TestPredicateBatchesAGroupsCustomConditions(t *testing.T) {
+func TestBindNodeBatchesAGroupsCustomConditions(t *testing.T) {
 	t.Run("a mixed group appends the batch after the other children", func(t *testing.T) {
 		exprTree := &ExprTree{LogicalOperator: LogicalAnd, Children: []ExprTree{
 			*leafExprTree("custom.plan", OperatorIn, "pro"),
@@ -239,16 +196,14 @@ func TestPredicateBatchesAGroupsCustomConditions(t *testing.T) {
 			*leafExprTree("custom.retries", OperatorGt, "9"),
 		}}
 		binder := &fakeCustomBinder{}
-		flt := testFilters(exprTree)
-		flt.customBinder = binder.bind
 
-		predicate, err := flt.Predicate(nil)
+		predicate, err := bindNode(exprTree, testColumns, binder.bind)
 		if err != nil {
-			t.Fatalf("Predicate: %v", err)
+			t.Fatalf("bindNode: %v", err)
 		}
 		defer predicate.Close()
 
-		want := "((version_name = any(?)) and (custom ?))"
+		want := "((version_name in ?) and (custom ?))"
 		if got := predicate.String(); got != want {
 			t.Errorf("\n got %s\nwant %s", got, want)
 		}
@@ -273,12 +228,10 @@ func TestPredicateBatchesAGroupsCustomConditions(t *testing.T) {
 			}},
 		}}
 		binder := &fakeCustomBinder{}
-		flt := testFilters(exprTree)
-		flt.customBinder = binder.bind
 
-		predicate, err := flt.Predicate(nil)
+		predicate, err := bindNode(exprTree, testColumns, binder.bind)
 		if err != nil {
-			t.Fatalf("Predicate: %v", err)
+			t.Fatalf("bindNode: %v", err)
 		}
 		defer predicate.Close()
 
@@ -303,12 +256,10 @@ func TestPredicateBatchesAGroupsCustomConditions(t *testing.T) {
 			*leafExprTree("custom.retries", OperatorGt, "9"),
 		}}
 		binder := &fakeCustomBinder{}
-		flt := testFilters(exprTree)
-		flt.customBinder = binder.bind
 
-		predicate, err := flt.Predicate(nil)
+		predicate, err := bindNode(exprTree, testColumns, binder.bind)
 		if err != nil {
-			t.Fatalf("Predicate: %v", err)
+			t.Fatalf("bindNode: %v", err)
 		}
 		defer predicate.Close()
 
@@ -322,12 +273,10 @@ func TestPredicateBatchesAGroupsCustomConditions(t *testing.T) {
 
 	t.Run("a custom leaf at the root is a singleton binder call", func(t *testing.T) {
 		binder := &fakeCustomBinder{}
-		flt := testFilters(leafExprTree("custom.plan", OperatorIn, "pro"))
-		flt.customBinder = binder.bind
 
-		predicate, err := flt.Predicate(nil)
+		predicate, err := bindNode(leafExprTree("custom.plan", OperatorIn, "pro"), testColumns, binder.bind)
 		if err != nil {
-			t.Fatalf("Predicate: %v", err)
+			t.Fatalf("bindNode: %v", err)
 		}
 		defer predicate.Close()
 

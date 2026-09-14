@@ -63,11 +63,6 @@ type Filter struct {
 	FilterExpr string `form:"filter_expr"`
 
 	ExprTree *ExprTree
-
-	// customBinder writes the SQL for the custom-key conditions of one filter
-	// group. ResolveCustomKeys sets it; nil when the filter mentions no
-	// custom keys or the entity has none.
-	customBinder GroupKeyBinding
 }
 
 func (flt *Filter) HasFilterExpr() bool {
@@ -90,32 +85,31 @@ func (flt *Filter) NeedsWholeGroup() bool {
 		return false
 	}
 
-	needsWholeGroup, err := WalkExprTree(flt.ExprTree,
-		func(condition Condition) (bool, error) {
-			switch condition.Operator {
-			case OperatorNotIn, OperatorNotContains, OperatorIsNotSet:
-				return true, nil
-			}
-			return false, nil
-		},
-		func(operator LogicalOperator, children []bool) (bool, error) {
-			if operator == LogicalAnd && len(children) > 1 {
-				return true, nil
-			}
-			return slices.Contains(children, true), nil
-		})
-	if err != nil {
+	return needsWholeGroup(flt.ExprTree)
+}
+
+func needsWholeGroup(node *ExprTree) bool {
+	if !node.IsGroup() {
+		switch node.Condition.Operator {
+		case OperatorNotIn, OperatorNotContains, OperatorIsNotSet:
+			return true
+		}
+		return false
+	}
+
+	if node.LogicalOperator == LogicalAnd && len(node.Children) > 1 {
 		return true
 	}
-	return needsWholeGroup
+	return slices.ContainsFunc(node.Children, func(child ExprTree) bool {
+		return needsWholeGroup(&child)
+	})
 }
 
 func (flt *Filter) HasTimeRange() bool {
 	return !flt.From.IsZero() && !flt.To.IsZero()
 }
 
-// SetDefaultTimeRangeIfUnset fills the time range when the request gave neither
-// bound. A request giving only is left alone, so it can be rejected during validation.
+// A request giving only one bound is left alone, so validation can reject it.
 func (flt *Filter) SetDefaultTimeRangeIfUnset() {
 	if !flt.From.IsZero() || !flt.To.IsZero() {
 		return

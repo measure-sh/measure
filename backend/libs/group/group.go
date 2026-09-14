@@ -372,7 +372,7 @@ func GetExceptionGroupsFromFingerprints(ctx context.Context, conn driver.Conn, f
 		GroupBy("`exception.fingerprint`")
 
 	if flt.HasFilterExpr() {
-		predicate, errPredicate := flt.Predicate(filter.JourneyEventsKeyBindings)
+		predicate, errPredicate := flt.Predicate(filter.JourneyEventsColumns)
 		if errPredicate != nil {
 			err = errPredicate
 			return
@@ -468,7 +468,7 @@ func GetANRGroupsFromFingerprints(ctx context.Context, conn driver.Conn, flt *fi
 		GroupBy("`anr.fingerprint`")
 
 	if flt.HasFilterExpr() {
-		predicate, errPredicate := flt.Predicate(filter.JourneyEventsKeyBindings)
+		predicate, errPredicate := flt.Predicate(filter.JourneyEventsColumns)
 		if errPredicate != nil {
 			err = errPredicate
 			return

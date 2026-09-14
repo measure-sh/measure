@@ -5,10 +5,9 @@ import (
 	"testing"
 
 	"github.com/google/uuid"
+	"github.com/leporo/sqlf"
 )
 
-// TestColumnBindingSQL asserts the exact SQL each text operator produces for
-// a column-mapped key.
 func TestColumnBindingSQL(t *testing.T) {
 	tests := []struct {
 		name     string
@@ -38,7 +37,7 @@ func TestColumnBindingSQL(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			stmt, err := test.entity.BindKey(Condition{
+			stmt, err := bindColumn(test.entity.Columns, Condition{
 				KeyName:  test.keyName,
 				Operator: test.operator,
 				Values:   []Value{{Text: test.text}},
@@ -58,13 +57,39 @@ func TestColumnBindingSQL(t *testing.T) {
 	}
 }
 
-// TestUUIDKeyBinding asserts the SQL generated for the spans patch_id key.
-// The column stores a native UUID, with uuid.Nil meaning no patch.
+func TestColumnBindingUsesPostgresListSyntaxOnAPostgresColumns(t *testing.T) {
+	in, err := bindColumn(buildsColumns, Condition{
+		KeyName:  "version_name",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "1.2.0"}},
+	})
+	if err != nil {
+		t.Fatalf("bind version_name in: %v", err)
+	}
+	defer in.Close()
+	if got := in.String(); got != "version_name = any(?)" {
+		t.Errorf("want Postgres's list syntax, got %q", got)
+	}
+
+	notIn, err := bindColumn(buildsColumns, Condition{
+		KeyName:  "version_name",
+		Operator: OperatorNotIn,
+		Values:   []Value{{Text: "1.2.0"}},
+	})
+	if err != nil {
+		t.Fatalf("bind version_name not_in: %v", err)
+	}
+	defer notIn.Close()
+	if got := notIn.String(); got != "version_name <> all(?)" {
+		t.Errorf("want Postgres's list syntax, got %q", got)
+	}
+}
+
 func TestUUIDKeyBinding(t *testing.T) {
 	t.Run("in binds the parsed uuids", func(t *testing.T) {
 		one := uuid.New()
 		two := uuid.New()
-		stmt, err := SpansEntity.BindKey(Condition{
+		stmt, err := bindColumn(SpansEntity.Columns, Condition{
 			KeyName:  "patch_id",
 			Operator: OperatorIn,
 			Values:   []Value{{Text: one.String()}, {Text: two.String()}},
@@ -88,7 +113,7 @@ func TestUUIDKeyBinding(t *testing.T) {
 
 	t.Run("not_in negates the comparison", func(t *testing.T) {
 		id := uuid.New()
-		stmt, err := SpansEntity.BindKey(Condition{
+		stmt, err := bindColumn(SpansEntity.Columns, Condition{
 			KeyName:  "patch_id",
 			Operator: OperatorNotIn,
 			Values:   []Value{{Text: id.String()}},
@@ -104,7 +129,7 @@ func TestUUIDKeyBinding(t *testing.T) {
 	})
 
 	t.Run("is_set and is_not_set bind the nil uuid", func(t *testing.T) {
-		isSet, err := SpansEntity.BindKey(Condition{KeyName: "patch_id", Operator: OperatorIsSet})
+		isSet, err := bindColumn(SpansEntity.Columns, Condition{KeyName: "patch_id", Operator: OperatorIsSet})
 		if err != nil {
 			t.Fatalf("bind patch_id is_set: %v", err)
 		}
@@ -116,7 +141,7 @@ func TestUUIDKeyBinding(t *testing.T) {
 			t.Errorf("want the nil uuid bound, got %v", args)
 		}
 
-		isNotSet, err := SpansEntity.BindKey(Condition{KeyName: "patch_id", Operator: OperatorIsNotSet})
+		isNotSet, err := bindColumn(SpansEntity.Columns, Condition{KeyName: "patch_id", Operator: OperatorIsNotSet})
 		if err != nil {
 			t.Fatalf("bind patch_id is_not_set: %v", err)
 		}
@@ -130,7 +155,7 @@ func TestUUIDKeyBinding(t *testing.T) {
 	})
 
 	t.Run("a value that is not a uuid is refused", func(t *testing.T) {
-		if _, err := SpansEntity.BindKey(Condition{
+		if _, err := bindColumn(SpansEntity.Columns, Condition{
 			KeyName:  "patch_id",
 			Operator: OperatorIn,
 			Values:   []Value{{Text: "not-a-uuid"}},
@@ -138,6 +163,63 @@ func TestUUIDKeyBinding(t *testing.T) {
 			t.Error("want a value that does not parse as a uuid refused")
 		}
 	})
+}
+
+func TestUUIDColumnBindingComparesAsTextOnAPostgresColumns(t *testing.T) {
+	id := uuid.New()
+
+	in, err := bindColumn(buildsColumns, Condition{
+		KeyName:  "patch_id",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: id.String()}},
+	})
+	if err != nil {
+		t.Fatalf("bind patch_id in: %v", err)
+	}
+	defer in.Close()
+	if got := in.String(); got != "patch_id::text = any(?)" {
+		t.Errorf("want the column compared as text, got %q", got)
+	}
+	if got, ok := in.Args()[0].([]string); !ok || !slices.Equal(got, []string{id.String()}) {
+		t.Errorf("want the uuid bound as text, got %v", in.Args()[0])
+	}
+
+	notIn, err := bindColumn(buildsColumns, Condition{
+		KeyName:  "patch_id",
+		Operator: OperatorNotIn,
+		Values:   []Value{{Text: id.String()}},
+	})
+	if err != nil {
+		t.Fatalf("bind patch_id not_in: %v", err)
+	}
+	defer notIn.Close()
+	if got := notIn.String(); got != "patch_id::text <> all(?)" {
+		t.Errorf("want the column compared as text, got %q", got)
+	}
+
+	isSet, err := bindColumn(buildsColumns, Condition{KeyName: "patch_id", Operator: OperatorIsSet})
+	if err != nil {
+		t.Fatalf("bind patch_id is_set: %v", err)
+	}
+	defer isSet.Close()
+	if got := isSet.String(); got != "patch_id::text <> ?" {
+		t.Errorf("want the column tested against a bound value, got %q", got)
+	}
+	if args := isSet.Args(); len(args) != 1 || args[0] != uuid.Nil.String() {
+		t.Errorf("want the nil uuid bound as text, got %v", args)
+	}
+
+	isNotSet, err := bindColumn(buildsColumns, Condition{KeyName: "patch_id", Operator: OperatorIsNotSet})
+	if err != nil {
+		t.Fatalf("bind patch_id is_not_set: %v", err)
+	}
+	defer isNotSet.Close()
+	if got := isNotSet.String(); got != "patch_id::text = ?" {
+		t.Errorf("want the column tested against a bound value, got %q", got)
+	}
+	if args := isNotSet.Args(); len(args) != 1 || args[0] != uuid.Nil.String() {
+		t.Errorf("want the nil uuid bound as text, got %v", args)
+	}
 }
 
 func TestArrayColumnBindingSQL(t *testing.T) {
@@ -183,7 +265,7 @@ func TestArrayColumnBindingSQL(t *testing.T) {
 				values[i] = Value{Text: text}
 			}
 
-			stmt, err := NetworkMetricsKeyBindings[test.keyName](Condition{
+			stmt, err := bindColumn(NetworkMetricsColumns, Condition{
 				KeyName:  test.keyName,
 				Operator: test.operator,
 				Values:   values,
@@ -216,7 +298,7 @@ func TestArrayColumnBindingSQL(t *testing.T) {
 }
 
 func TestUUIDArrayKeyBinding(t *testing.T) {
-	bind := NetworkMetricsKeyBindings["patch_id"]
+	bind := func(condition Condition) (*sqlf.Stmt, error) { return bindColumn(NetworkMetricsColumns, condition) }
 
 	t.Run("in binds the parsed uuids", func(t *testing.T) {
 		one := uuid.New()
@@ -273,4 +355,18 @@ func TestUUIDArrayKeyBinding(t *testing.T) {
 			t.Error("want a value that does not parse as a uuid refused")
 		}
 	})
+}
+
+func TestBindColumnRefusesAKeyNotInTheMap(t *testing.T) {
+	_, err := bindColumn(SpansEntity.Columns, Condition{
+		KeyName:  "not_a_key",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "x"}},
+	})
+	if err == nil {
+		t.Fatal("want a key not in the columns map refused")
+	}
+	if got := err.Error(); got != `Key not supported by this query: "not_a_key"` {
+		t.Errorf("want the key named after ErrKeyNotSupported, got %q", got)
+	}
 }

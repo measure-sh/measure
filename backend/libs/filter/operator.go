@@ -110,8 +110,8 @@ var arityByOperator = map[Operator]arity{
 	OperatorBetween:     {2, 2},
 }
 
-// textMatchOperators compare a fragment of the text a value is written as
-// rather than the value itself, so their values skip the value type check.
+// textMatchOperators compare a fragment of the text a value is written as,
+// so their values skip the value type check.
 var textMatchOperators = []Operator{OperatorContains, OperatorNotContains, OperatorStartsWith, OperatorEndsWith}
 
 func isTextMatch(operator Operator) bool {

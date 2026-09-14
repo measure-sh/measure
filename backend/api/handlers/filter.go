@@ -261,7 +261,7 @@ func (h Handlers) GetFilterKeys(c *gin.Context) {
 	}
 
 	ctx = filter.WithFilterQuerySettings(ctx, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode, "filter_keys")
-	keys, keysTruncated, err := entity.ListKeys(ctx, h.Deps.PgPool, h.Deps.RchPool, teamID, appID, c.QueryArray("key"))
+	keys, keysTruncated, err := entity.ListKeys(ctx, h.Deps.RchPool, teamID, appID, c.QueryArray("key"))
 	if err != nil {
 		msg := "Failed to read the filter keys"
 		fmt.Println(msg, err)

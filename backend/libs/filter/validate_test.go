@@ -17,8 +17,6 @@ func testKeys() map[string]Key {
 		{Name: "is_debug", ValueType: ValueTypeBool, Operators: AllowedOperatorsFor(ValueTypeBool), ValueSuggestionMode: ValueSuggestionModeNone},
 		// A key offering fewer operators than its type allows.
 		{Name: "narrow_name", ValueType: ValueTypeString, Operators: []Operator{OperatorIn}, ValueSuggestionMode: ValueSuggestionModeSample},
-		// A key declaring no operators, which falls back to its type's.
-		{Name: "loose_name", ValueType: ValueTypeString, ValueSuggestionMode: ValueSuggestionModeSample},
 	})
 }
 
@@ -55,10 +53,6 @@ func TestValidate(t *testing.T) {
 		{
 			name:     "a key narrowing its own operators",
 			exprTree: leafExprTree("narrow_name", OperatorIn, "1.2.0"),
-		},
-		{
-			name:     "a key falling back to its type's operators",
-			exprTree: leafExprTree("loose_name", OperatorContains, "1.2"),
 		},
 		{
 			name: "groups nested inside groups",

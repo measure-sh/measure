@@ -263,7 +263,7 @@ func fetchTrendsCategory(ctx context.Context, ch driver.Conn, appId, teamId uuid
 	defer stmt.Close()
 
 	if flt.HasFilterExpr() {
-		predicate, err := flt.Predicate(filter.NetworkMetricsKeyBindings)
+		predicate, err := flt.Predicate(filter.NetworkMetricsColumns)
 		if err != nil {
 			return nil, err
 		}
@@ -704,7 +704,7 @@ func FetchTimelinePlot(ctx context.Context, ch driver.Conn, appId, teamId uuid.U
 	defer stmt.Close()
 
 	if flt.HasFilterExpr() {
-		predicate, err := flt.Predicate(filter.NetworkMetricsKeyBindings)
+		predicate, err := flt.Predicate(filter.NetworkMetricsColumns)
 		if err != nil {
 			return nil, err
 		}

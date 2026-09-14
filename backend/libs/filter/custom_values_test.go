@@ -55,7 +55,7 @@ func TestFetchSpanCustomKeys(t *testing.T) {
 	teamID, appID, _ := seedSpanUDAttrs(ctx, t)
 
 	t.Run("every key comes back ordered by name", func(t *testing.T) {
-		keys, truncated, err := SpansEntity.FetchCustomKeys(ctx, pgPool, chConn, teamID, appID, CustomKeyLimit)
+		keys, truncated, err := SpansEntity.CustomKeySource.fetchKeys(ctx, chConn, teamID, appID, CustomKeyLimit)
 		if err != nil {
 			t.Fatalf("fetch custom keys: %v", err)
 		}
@@ -76,7 +76,7 @@ func TestFetchSpanCustomKeys(t *testing.T) {
 	})
 
 	t.Run("a listing past the limit reports truncation", func(t *testing.T) {
-		keys, truncated, err := SpansEntity.FetchCustomKeys(ctx, pgPool, chConn, teamID, appID, 2)
+		keys, truncated, err := SpansEntity.CustomKeySource.fetchKeys(ctx, chConn, teamID, appID, 2)
 		if err != nil {
 			t.Fatalf("fetch custom keys: %v", err)
 		}
@@ -90,7 +90,7 @@ func TestFetchSpanCustomKeys(t *testing.T) {
 	})
 
 	t.Run("each key carries its stored type", func(t *testing.T) {
-		keys, _, err := SpansEntity.FetchCustomKeys(ctx, pgPool, chConn, teamID, appID, CustomKeyLimit)
+		keys, _, err := SpansEntity.CustomKeySource.fetchKeys(ctx, chConn, teamID, appID, CustomKeyLimit)
 		if err != nil {
 			t.Fatalf("fetch custom keys: %v", err)
 		}
@@ -118,7 +118,7 @@ func TestListKeysResolvesRequestedNames(t *testing.T) {
 	// is_premium, so the other seeded keys stand in for keys past
 	// CustomKeyLimit.
 	listKeys := func(names []string) ([]Key, bool, error) {
-		return SpansEntity.listKeys(ctx, pgPool, chConn, teamID, appID, names, 2)
+		return SpansEntity.listKeys(ctx, chConn, teamID, appID, names, 2)
 	}
 
 	baseKeys, _, err := listKeys(nil)
@@ -191,7 +191,7 @@ func TestFetchSpanCustomKeysByName(t *testing.T) {
 	teamID, appID, _ := seedSpanUDAttrs(ctx, t)
 
 	t.Run("only the requested names come back", func(t *testing.T) {
-		keys, err := SpansEntity.FetchCustomKeysByName(ctx, pgPool, chConn, teamID, appID, []string{"plan", "retries", "nope"})
+		keys, err := SpansEntity.CustomKeySource.fetchKeysByName(ctx, chConn, teamID, appID, []string{"plan", "retries", "nope"})
 		if err != nil {
 			t.Fatalf("fetch custom keys by name: %v", err)
 		}
@@ -202,7 +202,7 @@ func TestFetchSpanCustomKeysByName(t *testing.T) {
 	})
 
 	t.Run("no names read nothing", func(t *testing.T) {
-		keys, err := SpansEntity.FetchCustomKeysByName(ctx, pgPool, chConn, teamID, appID, nil)
+		keys, err := SpansEntity.CustomKeySource.fetchKeysByName(ctx, chConn, teamID, appID, nil)
 		if err != nil {
 			t.Fatalf("fetch custom keys by name: %v", err)
 		}
@@ -212,7 +212,7 @@ func TestFetchSpanCustomKeysByName(t *testing.T) {
 	})
 
 	t.Run("a key written under two types offers the last one", func(t *testing.T) {
-		keys, err := SpansEntity.FetchCustomKeysByName(ctx, pgPool, chConn, teamID, appID, []string{"flag"})
+		keys, err := SpansEntity.CustomKeySource.fetchKeysByName(ctx, chConn, teamID, appID, []string{"flag"})
 		if err != nil {
 			t.Fatalf("fetch custom keys by name: %v", err)
 		}

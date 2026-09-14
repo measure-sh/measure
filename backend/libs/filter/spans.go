@@ -5,11 +5,11 @@ import (
 )
 
 var SpansEntity = Entity{
-	Name:                  "spans",
-	Keys:                  spansKeys,
-	BindKey:               bindKeysToColumns(spansTableColumns, spansKeyBindingOverrides),
-	SuggestFixedKeyValues: suggestFixedKeyValuesFromClickHouse(spanFixedKeyValues),
-	CustomKeys:            &spanCustomKeys,
+	Name:            "spans",
+	Keys:            spansKeys,
+	Columns:         spansTableColumns,
+	ValueSources:    []valueSource{spanFixedKeyValues},
+	CustomKeySource: &spanCustomKeySource,
 	// span_metrics groups spans into 15-minute buckets by start time. A query
 	// can therefore include spans whose bucket extends past the range end.
 	MaxTimeBucketWidth: 15 * time.Minute,
@@ -32,82 +32,73 @@ var spansKeys = []Key{
 	country,
 }
 
-var (
-	spansTableColumns = map[string]string{
-		versionName.Name:        "tupleElement(attribute.app_version, 1)",
-		versionCode.Name:        "tupleElement(attribute.app_version, 2)",
-		patchVersion.Name:       "attribute.patch_version",
-		patchID.Name:            "attribute.patch_id",
-		spanStatus.Name:         "status",
-		osName.Name:             "tupleElement(attribute.os_version, 1)",
-		osVersion.Name:          "tupleElement(attribute.os_version, 2)",
-		deviceName.Name:         "attribute.device_name",
-		deviceManufacturer.Name: "attribute.device_manufacturer",
-		locale.Name:             "attribute.device_locale",
-		networkType.Name:        "attribute.network_type",
-		networkGeneration.Name:  "attribute.network_generation",
-		networkProvider.Name:    "attribute.network_provider",
-		country.Name:            "attribute.country_code",
-	}
-
-	spanFilterColumns = map[string]string{
-		versionName.Name:        "tupleElement(app_version, 1)",
-		versionCode.Name:        "tupleElement(app_version, 2)",
-		patchVersion.Name:       "patch_version",
-		patchID.Name:            "patch_id",
-		osName.Name:             "tupleElement(os_version, 1)",
-		osVersion.Name:          "tupleElement(os_version, 2)",
-		deviceName.Name:         "device_name",
-		deviceManufacturer.Name: "device_manufacturer",
-		locale.Name:             "device_locale",
-		networkType.Name:        "network_type",
-		networkGeneration.Name:  "network_generation",
-		networkProvider.Name:    "network_provider",
-		country.Name:            "country_code",
-	}
-
-	spanMetricsTableColumns = map[string]string{
-		versionName.Name:        "tupleElement(app_version, 1)",
-		versionCode.Name:        "tupleElement(app_version, 2)",
-		patchVersion.Name:       "patch_version",
-		patchID.Name:            "patch_id",
-		spanStatus.Name:         "status",
-		osName.Name:             "tupleElement(os_version, 1)",
-		osVersion.Name:          "tupleElement(os_version, 2)",
-		deviceName.Name:         "device_name",
-		deviceManufacturer.Name: "device_manufacturer",
-		locale.Name:             "device_locale",
-		networkType.Name:        "network_type",
-		networkGeneration.Name:  "network_generation",
-		networkProvider.Name:    "network_provider",
-		country.Name:            "country_code",
-	}
-)
-
-var spanStatusCodes = map[string]int8{
+var spanStatusCodes = map[string]int{
 	"unset": 0,
 	"ok":    1,
 	"error": 2,
 }
 
-var spansKeyBindingOverrides = map[string]columnKeyBinding{
-	spanStatus.Name: bindEnumKeyToCodes(spanStatusCodes),
-	patchID.Name:    bindUUIDKey,
-}
+var spansTableColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]column{
+	versionName.Name:        {expr: "tupleElement(attribute.app_version, 1)"},
+	versionCode.Name:        {expr: "tupleElement(attribute.app_version, 2)"},
+	patchVersion.Name:       {expr: "attribute.patch_version"},
+	patchID.Name:            {expr: "attribute.patch_id", kind: columnUUID},
+	spanStatus.Name:         {expr: "status", kind: columnEnumCodes, codes: spanStatusCodes},
+	osName.Name:             {expr: "tupleElement(attribute.os_version, 1)"},
+	osVersion.Name:          {expr: "tupleElement(attribute.os_version, 2)"},
+	deviceName.Name:         {expr: "attribute.device_name"},
+	deviceManufacturer.Name: {expr: "attribute.device_manufacturer"},
+	locale.Name:             {expr: "attribute.device_locale"},
+	networkType.Name:        {expr: "attribute.network_type"},
+	networkGeneration.Name:  {expr: "attribute.network_generation"},
+	networkProvider.Name:    {expr: "attribute.network_provider"},
+	country.Name:            {expr: "attribute.country_code"},
+}}
+
+var spanFilterColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]column{
+	versionName.Name:        {expr: "tupleElement(app_version, 1)"},
+	versionCode.Name:        {expr: "tupleElement(app_version, 2)"},
+	patchVersion.Name:       {expr: "patch_version"},
+	patchID.Name:            {expr: "patch_id", kind: columnUUID},
+	osName.Name:             {expr: "tupleElement(os_version, 1)"},
+	osVersion.Name:          {expr: "tupleElement(os_version, 2)"},
+	deviceName.Name:         {expr: "device_name"},
+	deviceManufacturer.Name: {expr: "device_manufacturer"},
+	locale.Name:             {expr: "device_locale"},
+	networkType.Name:        {expr: "network_type"},
+	networkGeneration.Name:  {expr: "network_generation"},
+	networkProvider.Name:    {expr: "network_provider"},
+	country.Name:            {expr: "country_code"},
+}}
 
 // span_filters keeps one row per attribute combination per month, so values
 // seen in the same month order alphabetically.
-var spanFixedKeyValues = fixedKeyValueSource{
+var spanFixedKeyValues = valueSource{
 	table:       "span_filters",
 	columns:     spanFilterColumns,
 	recencyExpr: "max(end_of_month)",
 }
 
-var spanCustomKeys = customKeyStore{
+var spanCustomKeySource = customKeySource{
 	table:    "span_user_def_attrs",
 	idColumn: "span_id",
 }
 
-// SpanMetricsKeyBindings rebinds the fixed spans keys onto the span_metrics
+// SpanMetricsColumns rebinds the fixed spans keys onto the span_metrics
 // rollup for the queries that aggregate over it.
-var SpanMetricsKeyBindings = bindingForEachKey(spansKeys, bindKeysToColumns(spanMetricsTableColumns, spansKeyBindingOverrides))
+var SpanMetricsColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]column{
+	versionName.Name:        {expr: "tupleElement(app_version, 1)"},
+	versionCode.Name:        {expr: "tupleElement(app_version, 2)"},
+	patchVersion.Name:       {expr: "patch_version"},
+	patchID.Name:            {expr: "patch_id", kind: columnUUID},
+	spanStatus.Name:         {expr: "status", kind: columnEnumCodes, codes: spanStatusCodes},
+	osName.Name:             {expr: "tupleElement(os_version, 1)"},
+	osVersion.Name:          {expr: "tupleElement(os_version, 2)"},
+	deviceName.Name:         {expr: "device_name"},
+	deviceManufacturer.Name: {expr: "device_manufacturer"},
+	locale.Name:             {expr: "device_locale"},
+	networkType.Name:        {expr: "network_type"},
+	networkGeneration.Name:  {expr: "network_generation"},
+	networkProvider.Name:    {expr: "network_provider"},
+	country.Name:            {expr: "country_code"},
+}}

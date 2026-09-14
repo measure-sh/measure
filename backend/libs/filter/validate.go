@@ -107,13 +107,7 @@ func validateCondition(condition Condition, keysByName map[string]Key) error {
 		return fmt.Errorf("Unknown operator %q on key %q", condition.Operator, condition.KeyName)
 	}
 
-	// Prefer the key's operators when specified; otherwise use those allowed
-	// by its value type.
-	allowed := key.Operators
-	if len(allowed) == 0 {
-		allowed = AllowedOperatorsFor(key.ValueType)
-	}
-	if !slices.Contains(allowed, condition.Operator) {
+	if !slices.Contains(key.Operators, condition.Operator) {
 		return fmt.Errorf("Operator %q is not offered by key %q", condition.Operator, condition.KeyName)
 	}
 
@@ -138,7 +132,6 @@ func validateCondition(condition Condition, keysByName map[string]Key) error {
 	return nil
 }
 
-// checkValueType verifies that a value is valid for the key's type.
 func checkValueType(key Key, operator Operator, value Value) error {
 	if isTextMatch(operator) {
 		return nil

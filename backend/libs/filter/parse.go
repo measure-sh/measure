@@ -39,13 +39,9 @@ func (e *ParseError) Error() string {
 	return fmt.Sprintf("%s at position %d", e.Message, e.Position)
 }
 
-// --------------------------------------------------------------------------
-// Parsing
-// --------------------------------------------------------------------------
-
-// ParseFilterExpr reads the text form of a filter into a tree. It checks that
-// the text is well formed and nothing else; whether the keys and operators
-// exist, and whether the values suit them, is validation's job.
+// ParseFilterExpr checks that the text is well formed and nothing else;
+// whether the keys and operators exist, and whether the values suit them, is
+// validation's job.
 func ParseFilterExpr(text string) (*ExprTree, error) {
 	if len(text) > MaxFilterBytes {
 		// The whole filter is too long, so no one character in it is the
@@ -151,7 +147,6 @@ func (p *parser) parseOperand() (*ExprTree, error) {
 	return p.parseCondition()
 }
 
-// parseCondition reads key:operator and the values the operator takes.
 func (p *parser) parseCondition() (*ExprTree, error) {
 	p.skipSpace()
 	position := p.at
@@ -187,9 +182,8 @@ func (p *parser) parseCondition() (*ExprTree, error) {
 	return &ExprTree{Condition: condition}, nil
 }
 
-// parseValues reads either one value or a bracketed list of them. A lone value
-// must follow its operator with no space, because allowing a space would let
-// "a:in: AND b:in:2" read AND as the missing value.
+// A lone value must follow its operator with no space, because allowing a
+// space would let "a:in: AND b:in:2" read AND as the missing value.
 func (p *parser) parseValues() ([]Value, error) {
 	if p.done() || p.peek() != '[' {
 		value, err := p.parseValue()
@@ -285,9 +279,8 @@ func (p *parser) parseWord(what string) (string, error) {
 	return string(p.runes[start:p.at]), nil
 }
 
-// takeWord consumes word when it appears at the current
-// position as a standalone keyword so a value of "android"
-// is not read as the keyword "AND".
+// takeWord consumes word only as a standalone keyword, so a value of
+// "android" is not read as the keyword "AND".
 func (p *parser) takeWord(word string) bool {
 	p.skipSpace()
 
@@ -324,8 +317,7 @@ func (p *parser) errorf(format string, args ...any) *ParseError {
 	return &ParseError{Message: fmt.Sprintf(format, args...), Position: p.at}
 }
 
-// isDelimiter reports whether a character ends a key, an operator or an
-// unquoted value. Everything else is part of one token, so a version like
+// Everything but a delimiter is part of one token, so a version like
 // 1.2.0-SNAPSHOT.debug can be written without quotes.
 func isDelimiter(c rune) bool {
 	switch c {
@@ -335,12 +327,8 @@ func isDelimiter(c rune) bool {
 	return unicode.IsSpace(c)
 }
 
-// --------------------------------------------------------------------------
-// Formatting
-// --------------------------------------------------------------------------
-
-// Serialize the tree so parsing the result preserves its structure,
-// including explicit groups.
+// FormatFilterExpr writes a tree so that parsing the result preserves its
+// structure, including explicit groups.
 func FormatFilterExpr(exprTree *ExprTree) string {
 	if exprTree == nil {
 		return ""
@@ -380,7 +368,6 @@ func formatCondition(condition Condition) string {
 	return written + ":[" + strings.Join(texts, ",") + "]"
 }
 
-// formatValue quotes a value that can't be parsed back unquoted.
 func formatValue(text string) string {
 	plain := text != ""
 	for _, c := range text {

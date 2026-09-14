@@ -1,10 +1,10 @@
 package filter
 
 var JourneysEntity = Entity{
-	Name:                  "journeys",
-	Keys:                  journeysKeys,
-	BindKey:               bindKeysToColumns(journeyTableColumns, journeysKeyBindingOverrides),
-	SuggestFixedKeyValues: suggestFixedKeyValuesFromClickHouse(journeyFixedKeyValues),
+	Name:         "journeys",
+	Keys:         journeysKeys,
+	Columns:      journeyTableColumns,
+	ValueSources: []valueSource{journeyFixedKeyValues},
 }
 
 var journeysKeys = []Key{
@@ -14,34 +14,26 @@ var journeysKeys = []Key{
 	patchID,
 }
 
-var (
-	journeyTableColumns = map[string]string{
-		versionName.Name:  "tupleElement(app_version, 1)",
-		versionCode.Name:  "tupleElement(app_version, 2)",
-		patchVersion.Name: "patch_version",
-		patchID.Name:      "patch_id",
-	}
-
-	journeyEventsColumns = map[string]string{
-		versionName.Name:  "attribute.app_version",
-		versionCode.Name:  "attribute.app_build",
-		patchVersion.Name: "attribute.patch_version",
-		patchID.Name:      "attribute.patch_id",
-	}
-)
-
-var journeysKeyBindingOverrides = map[string]columnKeyBinding{
-	patchID.Name: bindUUIDKey,
-}
+var journeyTableColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]column{
+	versionName.Name:  {expr: "tupleElement(app_version, 1)"},
+	versionCode.Name:  {expr: "tupleElement(app_version, 2)"},
+	patchVersion.Name: {expr: "patch_version"},
+	patchID.Name:      {expr: "patch_id", kind: columnUUID},
+}}
 
 // app_filters keeps one row per attribute combination per month, so values
 // seen in the same month order alphabetically.
-var journeyFixedKeyValues = fixedKeyValueSource{
+var journeyFixedKeyValues = valueSource{
 	table:       "app_filters",
 	columns:     journeyTableColumns,
 	recencyExpr: "max(end_of_month)",
 }
 
-// JourneyEventsKeyBindings rebinds the journey keys onto the events table for
+// JourneyEventsColumns rebinds the journey keys onto the events table for
 // the issue lookups that read it.
-var JourneyEventsKeyBindings = bindingForEachKey(journeysKeys, bindKeysToColumns(journeyEventsColumns, journeysKeyBindingOverrides))
+var JourneyEventsColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]column{
+	versionName.Name:  {expr: "attribute.app_version"},
+	versionCode.Name:  {expr: "attribute.app_build"},
+	patchVersion.Name: {expr: "attribute.patch_version"},
+	patchID.Name:      {expr: "attribute.patch_id", kind: columnUUID},
+}}
