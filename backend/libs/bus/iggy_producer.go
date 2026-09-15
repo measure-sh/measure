@@ -36,6 +36,13 @@ func NewIggyProducer(address, username, password, consumerName, streamName, topi
 		return nil, fmt.Errorf("bus: failed to create Iggy client: %w", err)
 	}
 
+	ok := false
+	defer func() {
+		if !ok {
+			client.Close()
+		}
+	}()
+
 	if _, err := client.LoginUser(username, password); err != nil {
 		return nil, fmt.Errorf("bus: Iggy login failed: %w", err)
 	}
@@ -67,6 +74,7 @@ func NewIggyProducer(address, username, password, consumerName, streamName, topi
 		partitioning = iggcon.None()
 	}
 
+	ok = true
 	return &iggyProducer{
 		client:       client,
 		streamID:     streamID,
@@ -81,7 +89,10 @@ func (p *iggyProducer) Publish(_ context.Context, data []byte) error {
 		return fmt.Errorf("bus: failed to create Iggy message: %w", err)
 	}
 	if err := p.client.SendMessages(p.streamID, p.topicID, p.partitioning, []iggcon.IggyMessage{msg}); err != nil {
-		return fmt.Errorf("bus: Iggy send failed: %w", err)
+		if IsOversized(err) {
+			return fmt.Errorf("bus: Iggy send failed: %w", err)
+		}
+		return fmt.Errorf("bus: Iggy send failed: %w: %w", ErrUnrecoverable, err)
 	}
 	return nil
 }

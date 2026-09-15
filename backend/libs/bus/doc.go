@@ -77,6 +77,10 @@
 //     successful poll. A fatal error is returned only after all retries are
 //     exhausted.
 //
+// An Iggy client that has lost its session cannot recover, so that fatal
+// error, and any Iggy publish failure other than an oversized payload, wraps
+// [ErrUnrecoverable] and the caller exits the process.
+//
 // # Iggy consumer types
 //
 // [NewIggyConsumer] creates a single consumer bound to one identity.

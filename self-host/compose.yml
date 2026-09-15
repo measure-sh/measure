@@ -68,6 +68,7 @@ services:
           target: /app
 
   api:
+    restart: unless-stopped
     build:
       dockerfile: dockerfile
       context: ../backend/api
@@ -179,6 +180,7 @@ services:
         condition: service_healthy
 
   agent:
+    restart: unless-stopped
     build:
       dockerfile: dockerfile
       context: ../backend/agent
@@ -262,6 +264,7 @@ services:
         required: false
 
   ingest-worker:
+    restart: unless-stopped
     build:
       dockerfile: dockerfile
       context: ../backend/ingest-worker

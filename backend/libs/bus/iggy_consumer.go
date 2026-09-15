@@ -159,16 +159,10 @@ func (c *iggyConsumer) processMessages(
 	messages []iggcon.IggyMessage,
 	handler func(context.Context, []byte) error,
 ) bool {
-	concurrency := c.processingConcurrency
-	if concurrency < 1 {
-		concurrency = 1
-	}
+	concurrency := max(c.processingConcurrency, 1)
 
 	for start := 0; start < len(messages); start += concurrency {
-		end := start + concurrency
-		if end > len(messages) {
-			end = len(messages)
-		}
+		end := min(start+concurrency, len(messages))
 
 		results := make([]error, end-start)
 
@@ -238,7 +232,7 @@ func (c *iggyConsumer) Listen(ctx context.Context, handler func(ctx context.Cont
 		if err != nil {
 			pollFailures++
 			if pollFailures >= maxPollRetries {
-				return fmt.Errorf("bus: Iggy poll failed after %d consecutive attempts: %w", pollFailures, err)
+				return fmt.Errorf("bus: Iggy poll failed after %d consecutive attempts: %w: %w", pollFailures, ErrUnrecoverable, err)
 			}
 
 			log.Printf("bus: iggy poll error (%d/%d), retrying in %s: %v", pollFailures, maxPollRetries, backoff, err)
@@ -250,10 +244,7 @@ func (c *iggyConsumer) Listen(ctx context.Context, handler func(ctx context.Cont
 			}
 
 			// Exponential backoff, capped at 30s.
-			backoff *= 2
-			if backoff > 30*time.Second {
-				backoff = 30 * time.Second
-			}
+			backoff = min(backoff*2, 30*time.Second)
 			continue
 		}
 

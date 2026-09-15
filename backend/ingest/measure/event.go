@@ -9,7 +9,9 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -1041,6 +1043,9 @@ func PutEvents(c *gin.Context) {
 	// drop the batch while the SDK deletes its copy. Detached from the request
 	// context so a client disconnect does not abort a publish about to land.
 	if err := server.Server.BusProducer.Publish(context.Background(), payload); err != nil {
+		if errors.Is(err, bus.ErrUnrecoverable) {
+			log.Fatalf("bus producer is beyond recovery: %v", err)
+		}
 		msg := "failed to publish ingest batch"
 		fmt.Println(msg, err)
 		if bus.IsOversized(err) {

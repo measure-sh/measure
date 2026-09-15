@@ -496,10 +496,9 @@ func Init(config *ServerConfig) {
 			bus.WithIggyProcessingConcurrency(processingConcurrency),
 		)
 		if err != nil {
-			log.Printf("failed to create Iggy consumer: %v\n", err)
-		} else {
-			Server.BusConsumer = consumer
+			log.Fatalf("failed to create Iggy consumer: %v", err)
 		}
+		Server.BusConsumer = consumer
 	}
 }
 

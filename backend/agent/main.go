@@ -61,59 +61,21 @@ func newSlackConsumer(ctx context.Context, config *server.Config) (bus.Consumer,
 	)
 }
 
-// runSlackConsumer keeps a Slack consumer alive for the life of the process.
-// Bus connections die (idle session reaping, broker restarts) and Listen
-// returns once its client is beyond recovery, so build a fresh client and
-// rejoin, backing off between attempts.
+// runSlackConsumer consumes Slack questions until ctx is cancelled. The
+// consumer stopping for any other reason is unrecoverable, so the process
+// exits.
 func runSlackConsumer(ctx context.Context, config *server.Config, handler func(context.Context, []byte) error) {
-	backoff := time.Second
-	for ctx.Err() == nil {
-		consumer, err := newSlackConsumer(ctx, config)
-		// A nil consumer with a nil error means no bus is configured, so there
-		// is nothing to supervise; stop for good.
-		if consumer == nil && err == nil {
-			return
-		}
-		// With a consumer in hand, run it. A construction error (err != nil)
-		// skips this block and falls through to the backoff below.
-		if err == nil {
-			log.Println("slack consumer listening")
-			start := time.Now()
-			// Listen blocks for the whole healthy life of the consumer,
-			// dispatching each event to handler. It returns only when the bus
-			// connection is beyond recovery or when ctx is cancelled.
-			err = consumer.Listen(ctx, handler)
-			// Listen has returned, so this client is finished. Close frees its
-			// socket and consumer-group membership before we build a fresh one.
-			consumer.Close()
-			// ctx here carries no timeout, so shutdown is the only thing that
-			// can cancel it. A non-nil error therefore means Listen returned
-			// because we are stopping, not because the bus broke, so exit
-			// without retrying.
-			if ctx.Err() != nil {
-				return
-			}
-			// Otherwise the bus broke while we were still live. A consumer that
-			// lasted a while was healthy, so reset to the base one-second
-			// backoff rather than inheriting the growth from an earlier streak
-			// of fast failures.
-			if time.Since(start) > time.Minute {
-				backoff = time.Second
-			}
-		}
-		log.Printf("slack consumer stopped, retrying in %s: %v\n", backoff, err)
-		// Wait out the backoff before retrying, staying responsive to shutdown:
-		// whichever of the timer and ctx.Done fires first wins.
-		select {
-		// Shutdown landed during the wait, stop
-		case <-ctx.Done():
-			return
-		// Backoff elapsed, so fall through and loop back to rebuild the consumer.
-		case <-time.After(backoff):
-		}
-		// Each failure waits longer, capped at a minute, so a broker that stays
-		// down is not hammered with reconnect attempts.
-		backoff = min(backoff*2, time.Minute)
+	consumer, err := newSlackConsumer(ctx, config)
+	if err != nil {
+		log.Fatalf("failed to create slack consumer: %v", err)
+	}
+	if consumer == nil {
+		return
+	}
+	defer consumer.Close()
+	log.Println("slack consumer listening")
+	if err := consumer.Listen(ctx, handler); err != nil && ctx.Err() == nil {
+		log.Fatalf("slack consumer stopped: %v", err)
 	}
 }
 
@@ -199,10 +161,8 @@ func main() {
 	// pull consumer. Exactly one is active.
 	pushEnabled := os.Getenv("AGENT_SLACK_PUBSUB_PUSH_ENABLED") == "true"
 
-	// Consume Slack questions the api service publishes to the bus.
-	// runSlackConsumer supervises the consumer, rebuilding it whenever the
-	// connection dies, and runs until consumerCtx is cancelled. stopConsumer is
-	// that cancel, called on shutdown below to bring the supervisor down.
+	// Consume Slack questions the api service publishes to the bus until
+	// shutdown.
 	consumerCtx, stopConsumer := context.WithCancel(context.Background())
 	defer stopConsumer()
 
