@@ -355,7 +355,6 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                      configProvider: configProvider,
                                                      gestureTargetFinder: gestureTargetFinder,
                                                      layoutSnapshotGenerator: layoutSnapshotGenerator,
-                                                     layoutSnapshotThrottler: layoutSnapshotThrottler,
                                                      systemFileManager: systemFileManager)
         self.attributeValueValidator = BaseAttributeValueValidator(configProvider: configProvider,
                                                                    logger: logger)

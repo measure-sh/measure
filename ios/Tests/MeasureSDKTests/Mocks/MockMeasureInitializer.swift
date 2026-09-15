@@ -269,7 +269,6 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                                          configProvider: self.configProvider,
                                                                          gestureTargetFinder: self.gestureTargetFinder,
                                                                          layoutSnapshotGenerator: self.layoutSnapshotGenerator,
-                                                                         layoutSnapshotThrottler: self.layoutSnapshotThrottler,
                                                                          systemFileManager: self.systemFileManager)
         self.lifecycleCollector = lifecycleCollector ?? BaseLifecycleCollector(signalProcessor: self.signalProcessor,
                                                          timeProvider: self.timeProvider,

@@ -21,7 +21,6 @@ final class BaseGestureCollector: GestureCollector {
     private let gestureTargetFinder: GestureTargetFinder
     private var window: UIWindow?
     private let layoutSnapshotGenerator: LayoutSnapshotGenerator
-    private let layoutSnapshotThrottler: LayoutSnapshotThrottler
     private let systemFileManager: SystemFileManager
     private var isEnabled = false
 
@@ -31,7 +30,6 @@ final class BaseGestureCollector: GestureCollector {
          configProvider: ConfigProvider,
          gestureTargetFinder: GestureTargetFinder,
          layoutSnapshotGenerator: LayoutSnapshotGenerator,
-         layoutSnapshotThrottler: LayoutSnapshotThrottler,
          systemFileManager: SystemFileManager) {
         self.logger = logger
         self.signalProcessor = signalProcessor
@@ -39,7 +37,6 @@ final class BaseGestureCollector: GestureCollector {
         self.configProvider = configProvider
         self.gestureTargetFinder = gestureTargetFinder
         self.layoutSnapshotGenerator = layoutSnapshotGenerator
-        self.layoutSnapshotThrottler = layoutSnapshotThrottler
         self.systemFileManager = systemFileManager
     }
 
@@ -174,9 +171,7 @@ final class BaseGestureCollector: GestureCollector {
     }
 
     private func collectLayoutSnapshot(_ gesture: DetectedGesture, touchPoint: CGPoint, completion: @escaping (MsrAttachment?) -> Void) {
-        if configProvider.gestureClickTakeSnapshot,
-           layoutSnapshotThrottler.shouldTakeSnapshot(delayMs: configProvider.layoutSnapshotDebounceInterval),
-           let window = self.window {
+        if configProvider.gestureClickTakeSnapshot, let window = self.window {
             layoutSnapshotGenerator.generate(for: window, touchPoint: touchPoint) { attachment in
                 completion(attachment)
             }

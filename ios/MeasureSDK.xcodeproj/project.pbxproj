@@ -181,7 +181,6 @@
 		69E4B4D32DA7581A00361E25 /* MeasureInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69E4B4D22DA7581A00361E25 /* MeasureInitializer.swift */; };
 		69F6D44B2DFAA2DA000367EA /* ClientInfoTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69F6D44A2DFAA2D4000367EA /* ClientInfoTests.swift */; };
 		8ACACF7A3657C814CB8520E1 /* LayoutSnapshotThrottler.swift in Sources */ = {isa = PBXBuildFile; fileRef = C3A0C116C0AFA0D309C25B57 /* LayoutSnapshotThrottler.swift */; };
-		9B62AD5428F76EBD18F1374B /* MockLayoutSnapshotThrottler.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9CAC0ED71D18B6ABBDB823D /* MockLayoutSnapshotThrottler.swift */; };
 		AB10C0022F62000000000002 /* LogData.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10C0012F62000000000001 /* LogData.swift */; };
 		AB10C0042F62000000000004 /* LogSeverity.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10C0032F62000000000003 /* LogSeverity.swift */; };
 		AB10C0062F62000000000006 /* LogEventCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10C0052F62000000000005 /* LogEventCollector.swift */; };
@@ -737,7 +736,6 @@
 		CFF77E682FB6CEFF00564FDA /* SystemFileManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemFileManagerTests.swift; sourceTree = "<group>"; };
 		CFF77E6A2FB6CFE500564FDA /* WebPEncoderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPEncoderTests.swift; sourceTree = "<group>"; };
 		D14C7C216053D3FE307E781C /* MockLayoutSnapshotCollector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MockLayoutSnapshotCollector.swift; sourceTree = "<group>"; };
-		F9CAC0ED71D18B6ABBDB823D /* MockLayoutSnapshotThrottler.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MockLayoutSnapshotThrottler.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -1336,7 +1334,6 @@
 				52B7F1202D757F81001498BC /* MockUserDefaultStorage.swift */,
 				52B7F1212D757F81001498BC /* MockUserPermissionManager.swift */,
 				D14C7C216053D3FE307E781C /* MockLayoutSnapshotCollector.swift */,
-				F9CAC0ED71D18B6ABBDB823D /* MockLayoutSnapshotThrottler.swift */,
 			);
 			path = Mocks;
 			sourceTree = "<group>";
@@ -2205,7 +2202,6 @@
 				CFE1A0022FD000010000AA02 /* ExpoAttributeTests.swift in Sources */,
 				CFB838212DAFEF780023592B /* SpanProcessorTests.swift in Sources */,
 				038104471FED9378F3009FF4 /* MockLayoutSnapshotCollector.swift in Sources */,
-				9B62AD5428F76EBD18F1374B /* MockLayoutSnapshotThrottler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
