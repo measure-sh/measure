@@ -21,9 +21,10 @@ import {
 } from "./plot_tooltip";
 import { SkeletonPlot } from "./skeleton";
 import TabSelect from "./tab_select";
+import { formatDeviceMemoryTier } from "../utils/device_memory_tiers";
 
 function formatMemory(value: number) {
-  if (value < 1024) return `${Math.round(value)} KiB`;
+  if (value < 1024) return `${Math.round(value)} KB`;
   const mb = value / 1024;
   if (mb < 1024) return `${mb.toFixed(1)} MB`;
   return `${(mb / 1024).toFixed(1)} GB`;
@@ -78,7 +79,7 @@ export default function MemoryUsagePlot({
               }
             />
           </div>
-          <div className="size-full">
+          <div className="flex-1 min-h-0">
             <ResponsiveLineCanvas
               data={plot}
               curve="monotoneX"
@@ -109,8 +110,8 @@ export default function MemoryUsagePlot({
               axisLeft={{
                 tickSize: 1,
                 tickPadding: 5,
-                format: (value) => `${(Number(value) / 1024).toFixed(0)} MB`,
-                legend: "Memory usage (MB)",
+                format: (value) => formatMemory(Number(value)),
+                legend: "Memory usage",
                 legendOffset: -80,
                 legendPosition: "middle",
               }}
@@ -137,11 +138,15 @@ export default function MemoryUsagePlot({
                     <p className="p-2">
                       Date: {formatPlotTooltipDate(data.xFormatted, timeGroup)}
                     </p>
+                    <p className="px-2 pb-1 text-muted-foreground">
+                      Total Memory - Memory usage
+                    </p>
                     {data.siblings.map((sibling) => (
                       <div className="flex items-center p-2" key={sibling.id}>
                         <PlotTooltipSwatch color={sibling.color} />
                         <span className="px-2">
-                          {sibling.id} - {formatMemory(sibling.y)}
+                          {formatDeviceMemoryTier(sibling.id.split(".")[0])} -{" "}
+                          {formatMemory(sibling.y)}
                         </span>
                       </div>
                     ))}

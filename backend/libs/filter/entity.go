@@ -308,12 +308,12 @@ var (
 	deviceTotalMemory = Key{
 		Name:                "device_total_memory",
 		Label:               "Device total memory",
-		Description:         "The total memory of the device.",
+		Description:         "The total memory of the device, grouped by whole GB.",
 		KeyGroup:            KeyGroupDevice,
 		ValueType:           ValueTypeEnum,
 		Operators:           []Operator{OperatorIn, OperatorNotIn},
 		ValueSuggestionMode: ValueSuggestionModeFullList,
-		EnumValues:          []string{"0-3gb", "4-5gb", "6-7gb", "8-11gb", "12-15gb", "16-31gb", "32-63gb", "64gb+", "unknown"},
+		EnumValues:          []string{"0-4gb", "5-6gb", "7-8gb", "9-12gb", "13-16gb", "16-32gb", "32gb+", "unknown"},
 	}
 
 	userID = Key{

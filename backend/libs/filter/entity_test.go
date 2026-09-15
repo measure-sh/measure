@@ -1210,7 +1210,7 @@ func TestDeviceTotalMemoryBindsRanges(t *testing.T) {
 	stmt, err := bindColumn(SessionsEntity.Columns, Condition{
 		KeyName:  "device_total_memory",
 		Operator: OperatorIn,
-		Values:   []Value{{Text: "16-31gb"}},
+		Values:   []Value{{Text: "16-32gb"}},
 	})
 	if err != nil {
 		t.Fatalf("bind device memory: %v", err)
@@ -1227,14 +1227,14 @@ func TestDeviceTotalMemoryUnderFourGBExcludesMissingValues(t *testing.T) {
 	stmt, err := bindColumn(SessionsEntity.Columns, Condition{
 		KeyName:  "device_total_memory",
 		Operator: OperatorIn,
-		Values:   []Value{{Text: "0-3gb"}},
+		Values:   []Value{{Text: "0-4gb"}},
 	})
 	if err != nil {
 		t.Fatalf("bind device memory: %v", err)
 	}
 	defer stmt.Close()
 
-	want := "(device_total_memory > 0 and device_total_memory < 4194304)"
+	want := "(device_total_memory > 0 and device_total_memory < 5242880)"
 	if got := stmt.String(); got != want {
 		t.Errorf("want %s, got %s", want, got)
 	}
@@ -1262,7 +1262,7 @@ func TestDeviceTotalMemoryValuesUseReadableNames(t *testing.T) {
 	if len(values) != len(deviceTotalMemory.EnumValues) {
 		t.Fatalf("want all memory values, got %d", len(values))
 	}
-	if values[0].Text != "0-3gb" || values[len(values)-1].Text != "unknown" {
+	if values[0].Text != "0-4gb" || values[len(values)-1].Text != "unknown" {
 		t.Errorf("unexpected display values: first=%q last=%q", values[0].Text, values[len(values)-1].Text)
 	}
 }

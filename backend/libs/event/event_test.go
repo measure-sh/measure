@@ -291,7 +291,7 @@ func TestHasError(t *testing.T) {
 	}
 }
 
-func TestMemoryUsageDynamicMemoryFields(t *testing.T) {
+func TestMemoryUsageFields(t *testing.T) {
 	memoryUsage, err := readMemoryUsage("./testdata/memory_usage_one.json")
 	if err != nil {
 		panic(err)

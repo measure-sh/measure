@@ -5,12 +5,13 @@ import DropdownSelect, {
 } from "@/app/components/dropdown_select";
 import FilterBar from "@/app/components/filter_bar/filter_bar";
 import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
+import HighMemoryUsageSessions from "@/app/components/high_memory_usage_sessions";
 import MemoryUsagePlot from "@/app/components/memory_usage_plot";
-import MemoryUsageBreakdown from "@/app/components/memory_usage_breakdown";
 import MemoryUsageDistribution from "@/app/components/memory_usage_distribution";
 import type { MemoryAppImportance } from "@/app/api/api_calls";
 import {
-  useMemoryUsageBreakdownQuery,
+  paginationOffsetUrlKey,
+  useHighMemoryUsageSessionsQuery,
   useMemoryUsageDistributionQuery,
   useMemoryUsagePlotQuery,
 } from "@/app/query/hooks";
@@ -37,7 +38,11 @@ const APP_IMPORTANCE_VALUES = Object.fromEntries(
 
 export default function MemoryPage({ params }: PageProps) {
   const { teamId } = use(params);
-  const filter = useFilterPage({ teamId, entity: "sessions" });
+  const filter = useFilterPage({
+    teamId,
+    entity: "sessions",
+    paginationLimit: 5,
+  });
   const readyValue = filter.status.kind === "ready" ? filter.value : null;
   const [importanceSelection, setImportanceSelection] = useState<{
     appId: string | null;
@@ -55,13 +60,14 @@ export default function MemoryPage({ params }: PageProps) {
     filter.filterParams,
     isAndroidApp ? appImportance : undefined,
   );
-  const memoryBreakdownQuery = useMemoryUsageBreakdownQuery(
-    filter.filterParams,
-    isAndroidApp ? appImportance : undefined,
-  );
   const memoryDistributionQuery = useMemoryUsageDistributionQuery(
     filter.filterParams,
     isAndroidApp ? appImportance : undefined,
+  );
+  const highMemorySessionsQuery = useHighMemoryUsageSessionsQuery(
+    filter.filterParams,
+    isAndroidApp ? appImportance : undefined,
+    filter.paginationOffset,
   );
 
   return (
@@ -88,6 +94,7 @@ export default function MemoryPage({ params }: PageProps) {
             initialSelected={APP_IMPORTANCE_LABELS[appImportance]}
             onChangeSelected={(item) => {
               if (typeof item === "string") {
+                filter.setPageUrlKey(paginationOffsetUrlKey, "0");
                 setImportanceSelection({
                   appId: readyValue?.app.id ?? null,
                   value: APP_IMPORTANCE_VALUES[item],
@@ -100,15 +107,25 @@ export default function MemoryPage({ params }: PageProps) {
       <div className="py-4" />
       {readyValue !== null && (
         <>
-          <MemoryUsagePlot
-            startDate={readyValue.date.startDate}
-            endDate={readyValue.date.endDate}
-            query={memoryPlotQuery}
+          <div className="flex w-full flex-col md:flex-row">
+            <div className="w-full md:w-1/2">
+              <MemoryUsagePlot
+                startDate={readyValue.date.startDate}
+                endDate={readyValue.date.endDate}
+                query={memoryPlotQuery}
+              />
+            </div>
+            <div className="w-full md:w-1/2">
+              <MemoryUsageDistribution query={memoryDistributionQuery} />
+            </div>
+          </div>
+          <div className="py-8" />
+          <HighMemoryUsageSessions
+            teamId={teamId}
+            query={highMemorySessionsQuery}
+            onNext={filter.nextPage}
+            onPrev={filter.prevPage}
           />
-          <div className="h-12" />
-          <MemoryUsageDistribution query={memoryDistributionQuery} />
-          <div className="h-12" />
-          <MemoryUsageBreakdown query={memoryBreakdownQuery} />
         </>
       )}
     </div>

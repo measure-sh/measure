@@ -302,10 +302,16 @@ type EventRow struct {
 	// Attributes written individually only when set, leaving ClickHouse
 	// column defaults otherwise. PatchID and PatchVersion identify an OTA
 	// patch the app was running; both stay unwritten for an unpatched app.
-	UserID       string
-	DeviceModel  string
-	PatchID      uuid.UUID
-	PatchVersion string
+	UserID            string
+	DeviceModel       string
+	DeviceTotalMemory uint64
+	PatchID           uuid.UUID
+	PatchVersion      string
+
+	// Memory usage values are written only for memory_usage events.
+	MemoryAnonRSS       uint64
+	MemorySwap          uint64
+	MemoryAppImportance string
 }
 
 func (r EventRow) filled() EventRow {
@@ -455,6 +461,16 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 	if row.DeviceModel != "" {
 		cols = append(cols, "`attribute.device_model`")
 		vals = append(vals, quote(row.DeviceModel))
+	}
+	if row.DeviceTotalMemory > 0 {
+		cols = append(cols, "`attribute.device_total_memory`")
+		vals = append(vals, strconv.FormatUint(row.DeviceTotalMemory, 10))
+	}
+	if row.Type == "memory_usage" {
+		cols = append(cols,
+			"`memory_usage.anon_rss`", "`memory_usage.swap`", "`memory_usage.app_importance`")
+		vals = append(vals,
+			strconv.FormatUint(row.MemoryAnonRSS, 10), strconv.FormatUint(row.MemorySwap, 10), quote(row.MemoryAppImportance))
 	}
 	if row.PatchID != uuid.Nil {
 		cols = append(cols, "`attribute.patch_id`")

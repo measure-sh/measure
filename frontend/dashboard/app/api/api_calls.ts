@@ -54,13 +54,13 @@ export type PendingInvite = {
 
 export type MemoryAppImportance = "foreground" | "user_service" | "background";
 
-export type MemoryUsageBreakdownPoint = {
-  ram_tier: string;
+export type MemoryUsagePlotPoint = {
+  device_total_memory_tier: string;
+  datetime: string;
   p50: number | null;
   p90: number | null;
   p95: number | null;
   p99: number | null;
-  session_count: number;
   sample_count: number;
 };
 
@@ -68,6 +68,31 @@ export type MemoryUsageDistributionPoint = {
   bucket: string;
   percentage: number;
   sample_count: number;
+};
+
+export type HighMemoryUsageSession = {
+  session_id: string;
+  app_id: string;
+  first_event_time: string;
+  last_event_time: string;
+  p90_memory_kb: number;
+  target_memory_kb: number;
+  percent_of_target: number;
+  attribute: {
+    app_version: string;
+    app_build: string;
+    device_name: string;
+    device_model: string;
+    device_manufacturer: string;
+    device_total_memory: number;
+    os_name: string;
+    os_version: string;
+  };
+};
+
+export type HighMemoryUsageSessionsResponse = {
+  meta: { next: boolean; previous: boolean };
+  results: HighMemoryUsageSession[];
 };
 
 export type App = {
@@ -1558,7 +1583,7 @@ export const fetchMemoryUsagePlotFromServer = async (
   endDate: string,
   filterExpr: string | null,
   appImportance?: MemoryAppImportance,
-) => {
+): Promise<MemoryUsagePlotPoint[]> => {
   const params = new URLSearchParams({
     from: formatUserInputDateToServerFormat(startDate),
     to: formatUserInputDateToServerFormat(endDate),
@@ -1571,27 +1596,6 @@ export const fetchMemoryUsagePlotFromServer = async (
   return await request(
     `/api/apps/${appId}/memory/plots/usage?${params.toString()}`,
     { failsWith: "Failed to fetch memory usage plot" },
-  );
-};
-
-export const fetchMemoryUsageBreakdownFromServer = async (
-  appId: string,
-  startDate: string,
-  endDate: string,
-  filterExpr: string | null,
-  appImportance?: MemoryAppImportance,
-): Promise<MemoryUsageBreakdownPoint[]> => {
-  const params = new URLSearchParams({
-    from: formatUserInputDateToServerFormat(startDate),
-    to: formatUserInputDateToServerFormat(endDate),
-    timezone: getTimeZoneForServer(),
-  });
-  if (filterExpr) params.set("filter_expr", filterExpr);
-  if (appImportance) params.set("app_importance", appImportance);
-
-  return await request(
-    `/api/apps/${appId}/memory/plots/breakdown?${params.toString()}`,
-    { failsWith: "Failed to fetch memory usage breakdown" },
   );
 };
 
@@ -1613,6 +1617,29 @@ export const fetchMemoryUsageDistributionFromServer = async (
   return await request(
     `/api/apps/${appId}/memory/plots/distribution?${params.toString()}`,
     { failsWith: "Failed to fetch memory usage distribution" },
+  );
+};
+
+export const fetchHighMemoryUsageSessionsFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  limit: number,
+  offset: number,
+  appImportance?: MemoryAppImportance,
+): Promise<HighMemoryUsageSessionsResponse> => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    limit: String(limit),
+    offset: String(offset),
+  });
+  if (filterExpr) params.set("filter_expr", filterExpr);
+  if (appImportance) params.set("app_importance", appImportance);
+  return await request(
+    `/api/apps/${appId}/memory/sessions/high-usage?${params.toString()}`,
+    { failsWith: "Failed to fetch high memory usage sessions" },
   );
 };
 export const fetchAlertsOverviewFromServer = async (

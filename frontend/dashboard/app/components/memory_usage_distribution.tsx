@@ -37,8 +37,7 @@ export default function MemoryUsageDistribution({
 
   return (
     <section className="w-full font-body">
-      <h2 className="mb-4 font-display text-xl">Memory Usage Distribution</h2>
-      <div className="flex h-128 w-full items-center justify-center">
+      <div className="flex h-144 w-full items-center justify-center">
         {status === "pending" && <SkeletonPlot />}
         {status === "error" && (
           <p className="p-4 text-center text-lg font-display">

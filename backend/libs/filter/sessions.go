@@ -6,19 +6,20 @@ import (
 	"strings"
 )
 
+const memoryKBPerGB uint64 = 1024 * 1024
+
 var deviceMemoryRanges = []struct {
 	name    string
 	lowerKB uint64
 	upperKB uint64
 }{
-	{"0-3gb", 0, 4 * 1024 * 1024},
-	{"4-5gb", 4 * 1024 * 1024, 6 * 1024 * 1024},
-	{"6-7gb", 6 * 1024 * 1024, 8 * 1024 * 1024},
-	{"8-11gb", 8 * 1024 * 1024, 12 * 1024 * 1024},
-	{"12-15gb", 12 * 1024 * 1024, 16 * 1024 * 1024},
-	{"16-31gb", 16 * 1024 * 1024, 32 * 1024 * 1024},
-	{"32-63gb", 32 * 1024 * 1024, 64 * 1024 * 1024},
-	{"64gb+", 64 * 1024 * 1024, 0},
+	{"0-4gb", 0, 5 * memoryKBPerGB},
+	{"5-6gb", 5 * memoryKBPerGB, 7 * memoryKBPerGB},
+	{"7-8gb", 7 * memoryKBPerGB, 9 * memoryKBPerGB},
+	{"9-12gb", 9 * memoryKBPerGB, 13 * memoryKBPerGB},
+	{"13-16gb", 13 * memoryKBPerGB, 16 * memoryKBPerGB},
+	{"16-32gb", 16 * memoryKBPerGB, 32 * memoryKBPerGB},
+	{"32gb+", 32 * memoryKBPerGB, 0},
 }
 
 func memoryRangePredicates(column string) map[string]string {
