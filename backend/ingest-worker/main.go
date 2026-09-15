@@ -91,7 +91,7 @@ func main() {
 		go func() {
 			fmt.Println("bus consumer listening")
 			if err := server.Server.BusConsumer.Listen(appCtx, measure.ConsumeHandler); err != nil && !errors.Is(err, context.Canceled) {
-				log.Printf("bus consumer stopped: %v\n", err)
+				log.Fatalf("bus consumer stopped: %v", err)
 			}
 		}()
 	}

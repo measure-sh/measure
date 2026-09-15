@@ -29,6 +29,14 @@ type Producer interface {
 	Close() error
 }
 
+// ErrUnrecoverable marks an error after which the producer or consumer will
+// never work again, so the process should exit and let its container come
+// back with a fresh client. The Iggy client cannot reconnect once the server
+// has dropped its session, so Iggy wraps it when polling gives up and on any
+// send failure other than an oversized payload. Pub/Sub reconnects on its
+// own and never returns it.
+var ErrUnrecoverable = errors.New("bus: connection is unrecoverable")
+
 // IsOversized reports whether a Publish error means the payload exceeded the
 // backend per-message limit. Permanent, the same payload always fails, so
 // callers should reject it rather than retry. Both backends cap at 10,000,000

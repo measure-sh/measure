@@ -12,6 +12,7 @@ import (
 
 	"cloud.google.com/go/pubsub/v2"
 	iggcon "github.com/apache/iggy/foreign/go/contracts"
+	ierror "github.com/apache/iggy/foreign/go/errors"
 )
 
 // --- Mock types ---
@@ -286,7 +287,7 @@ func TestIggyConsumerProcessesWindowConcurrently(t *testing.T) {
 		)
 	}()
 
-	for i := 0; i < 2; i++ {
+	for range 2 {
 		select {
 		case <-started:
 		case <-time.After(time.Second):
@@ -489,6 +490,9 @@ func TestIggyConsumerListen(t *testing.T) {
 		}
 		if !strings.Contains(err.Error(), "poll failed after 5 consecutive attempts") {
 			t.Errorf("err = %v, want message containing 'poll failed after 5 consecutive attempts'", err)
+		}
+		if !errors.Is(err, ErrUnrecoverable) {
+			t.Errorf("err = %v, want ErrUnrecoverable", err)
 		}
 		if n := calls.Load(); n != 5 {
 			t.Errorf("poll called %d times, want 5", n)
@@ -958,6 +962,22 @@ func TestIggyProducerPublish(t *testing.T) {
 		}
 		if !strings.Contains(err.Error(), "Iggy send failed") {
 			t.Errorf("err = %v, want message containing 'Iggy send failed'", err)
+		}
+		if !errors.Is(err, ErrUnrecoverable) {
+			t.Errorf("err = %v, want ErrUnrecoverable", err)
+		}
+	})
+
+	t.Run("oversized_is_not_unrecoverable", func(t *testing.T) {
+		mock := &mockIggyClient{sendErr: ierror.ErrTooBigMessagePayload}
+		p := newTestProducer(mock)
+
+		err := p.Publish(context.Background(), []byte("hello"))
+		if !IsOversized(err) {
+			t.Fatalf("err = %v, want an oversized error", err)
+		}
+		if errors.Is(err, ErrUnrecoverable) {
+			t.Errorf("err = %v, want it not marked unrecoverable", err)
 		}
 	})
 }

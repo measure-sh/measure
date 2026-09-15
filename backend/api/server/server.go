@@ -17,7 +17,6 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"backend/libs/autumn"
@@ -712,20 +711,16 @@ func InitTracing(c *Config) func(context.Context) error {
 }
 
 // NewAgentEventsProducer builds the bus producer that carries Slack events to
-// the agent service. Call it from api's main only, since api is the only service
-// that publishes. A failed build is not fatal: the wrapper retries it on the
-// next publish. It returns nil when no bus is configured at all; the Slack
-// agent is then off by design.
+// the agent service. Call it from api's main only, since api is the only
+// service that publishes. It returns nil when no bus is configured at all;
+// the Slack agent is then off by design.
 func NewAgentEventsProducer(config *Config) bus.Producer {
 	if !config.IsCloud() && config.IG.Addr == "" {
 		return nil
 	}
-
-	producer := &agentEventsProducer{build: func() (bus.Producer, error) {
-		return buildAgentEventsProducer(config)
-	}}
-	if _, err := producer.swap(nil); err != nil {
-		log.Printf("failed to create agent events producer, will retry on publish: %v\n", err)
+	producer, err := buildAgentEventsProducer(config)
+	if err != nil {
+		log.Fatalf("failed to create agent events producer: %v", err)
 	}
 	return producer
 }
@@ -744,79 +739,4 @@ func buildAgentEventsProducer(config *Config) (bus.Producer, error) {
 		bus.DefaultStreamName,
 		slack.AgentEventsTopic,
 	)
-}
-
-// agentEventsProducer wraps the bus producer and rebuilds it when a publish
-// fails. The Iggy client cannot reconnect or re-authenticate once its TCP
-// session dies (a broker restart kills it for good), so recovery means
-// building a fresh client.
-type agentEventsProducer struct {
-	mu    sync.Mutex
-	p     bus.Producer
-	build func() (bus.Producer, error)
-}
-
-func (a *agentEventsProducer) Publish(ctx context.Context, data []byte) error {
-	return a.publish(func(p bus.Producer) error { return p.Publish(ctx, data) })
-}
-
-func (a *agentEventsProducer) PublishOrdered(ctx context.Context, orderingKey string, data []byte) error {
-	return a.publish(func(p bus.Producer) error { return p.PublishOrdered(ctx, orderingKey, data) })
-}
-
-// publish runs send through the current producer, rebuilding it and retrying
-// once when the attempt fails.
-func (a *agentEventsProducer) publish(send func(bus.Producer) error) error {
-	a.mu.Lock()
-	p := a.p
-	a.mu.Unlock()
-
-	var firstErr error
-	if p != nil {
-		if firstErr = send(p); firstErr == nil {
-			return nil
-		}
-		log.Printf("agent events producer publish failed, rebuilding: %v\n", firstErr)
-	}
-
-	p, err := a.swap(p)
-	if err != nil {
-		log.Printf("agent events producer rebuild failed: %v\n", err)
-		if firstErr != nil {
-			return firstErr
-		}
-		return err
-	}
-	return send(p)
-}
-
-// swap replaces a broken producer with a freshly built one, unless another
-// publisher already replaced it.
-func (a *agentEventsProducer) swap(broken bus.Producer) (bus.Producer, error) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-
-	if a.p != broken && a.p != nil {
-		return a.p, nil
-	}
-	if a.p != nil {
-		a.p.Close()
-		a.p = nil
-	}
-
-	p, err := a.build()
-	if err != nil {
-		return nil, err
-	}
-	a.p = p
-	return p, nil
-}
-
-func (a *agentEventsProducer) Close() error {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	if a.p == nil {
-		return nil
-	}
-	return a.p.Close()
 }
