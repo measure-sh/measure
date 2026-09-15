@@ -276,7 +276,8 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                  versionCode: FrameworkInfo.version,
                                                  signalSampler: signalSampler)
         self.appAttributeProcessor = AppAttributeProcessor()
-        self.deviceAttributeProcessor = DeviceAttributeProcessor()
+        self.sysCtl = BaseSysCtl()
+        self.deviceAttributeProcessor = DeviceAttributeProcessor(sysCtl: sysCtl)
         self.installationIdAttributeProcessor = InstallationIdAttributeProcessor(userDefaultStorage: userDefaultStorage,
                                                                                  idProvider: idProvider)
         self.networkStateAttributeProcessor = NetworkStateAttributeProcessor(measureDispatchQueue: measureDispatchQueue)
@@ -327,7 +328,6 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                    signalSampler: signalSampler,
                                                    exporter: exporter)
         self.systemCrashReporter = BaseSystemCrashReporter(logger: logger)
-        self.sysCtl = BaseSysCtl()
         self.crashReportManager = BaseCrashReportingManager(logger: logger,
                                                             signalProcessor: signalProcessor,
                                                             crashDataPersistence: crashDataPersistence,

@@ -190,7 +190,8 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                    signalSampler: self.signalSampler)
         self.exporter = exporter ?? MockExporter()
         self.appAttributeProcessor = appAttributeProcessor ?? AppAttributeProcessor()
-        self.deviceAttributeProcessor = deviceAttributeProcessor ?? DeviceAttributeProcessor()
+        self.sysCtl = sysCtl ?? BaseSysCtl()
+        self.deviceAttributeProcessor = deviceAttributeProcessor ?? DeviceAttributeProcessor(sysCtl: self.sysCtl)
         self.installationIdAttributeProcessor = installationIdAttributeProcessor ?? InstallationIdAttributeProcessor(userDefaultStorage: self.userDefaultStorage,
                                                                                  idProvider: self.idProvider)
         self.networkStateAttributeProcessor = networkStateAttributeProcessor ?? NetworkStateAttributeProcessor(measureDispatchQueue: self.measureDispatchQueue)
@@ -232,7 +233,6 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                    signalSampler: self.signalSampler,
                                                    exporter: self.exporter)
         self.systemCrashReporter = systemCrashReporter ?? BaseSystemCrashReporter(logger: self.logger)
-        self.sysCtl = sysCtl ?? BaseSysCtl()
         self.crashReportManager = crashReportManager ?? BaseCrashReportingManager(logger: self.logger,
                                                                                   signalProcessor: self.signalProcessor,
                                                                                   crashDataPersistence: self.crashDataPersistence,

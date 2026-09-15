@@ -126,6 +126,9 @@ final class BaseCrashDataPersistence: CrashDataPersistence {
         if let deviceDensity = attribute?.deviceDensity {
             writer.pointee.addIntegerElement(writer, CrashDataKeys.deviceDensity, deviceDensity)
         }
+        if let deviceTotalMemory = attribute?.deviceTotalMemory {
+            writer.pointee.addUIntegerElement(writer, CrashDataKeys.deviceTotalMemory, deviceTotalMemory)
+        }
         writer.pointee.addBooleanElement(writer, CrashDataKeys.isForeground, isForeground)
     }
 
@@ -158,6 +161,7 @@ final class BaseCrashDataPersistence: CrashDataPersistence {
                           deviceWidthPx: crashData[CrashDataKeys.deviceWidthPx] as? Number,
                           deviceHeightPx: crashData[CrashDataKeys.deviceHeightPx] as? Number,
                           deviceDensity: crashData[CrashDataKeys.deviceDensity] as? Number,
+                          deviceTotalMemory: crashData[CrashDataKeys.deviceTotalMemory] as? UnsignedNumber,
                           deviceLocale: crashData[CrashDataKeys.deviceLocale] as? String,
                           osName: crashData[CrashDataKeys.osName] as? String,
                           osVersion: crashData[CrashDataKeys.osVersion] as? String,
