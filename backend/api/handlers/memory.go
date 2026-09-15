@@ -24,6 +24,11 @@ func (h Handlers) GetMemoryUsagePlot(c *gin.Context) {
 	if !ok {
 		return
 	}
+	if err := app.Populate(ctx, deps.PgPool); err != nil {
+		fmt.Println("failed to populate app", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to populate app"})
+		return
+	}
 
 	points, err := app.GetMemoryUsagePlot(ctx, deps.RchPool, &flt, c.Query("app_importance"))
 	if err != nil {
@@ -52,6 +57,11 @@ func (h Handlers) GetMemoryUsageDistribution(c *gin.Context) {
 	if !ok {
 		return
 	}
+	if err := app.Populate(ctx, deps.PgPool); err != nil {
+		fmt.Println("failed to populate app", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to populate app"})
+		return
+	}
 
 	points, err := app.GetMemoryUsageDistribution(ctx, deps.RchPool, &flt, c.Query("app_importance"))
 	if err != nil {
@@ -77,6 +87,11 @@ func (h Handlers) GetHighMemoryUsageSessions(c *gin.Context) {
 		logName:  "high_memory_usage_sessions",
 	})
 	if !ok {
+		return
+	}
+	if err := app.Populate(ctx, deps.PgPool); err != nil {
+		fmt.Println("failed to populate app", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to populate app"})
 		return
 	}
 
