@@ -40,9 +40,9 @@ export default function MemoryUsageBreakdown({
           <TableHeader>
             <TableRow>
               <TableHead>Device total memory</TableHead>
-              <TableHead className="text-right">P50</TableHead>
-              <TableHead className="text-right">P90</TableHead>
-              <TableHead className="text-right">P95</TableHead>
+              <TableHead className="text-right">p50</TableHead>
+              <TableHead className="text-right">p90</TableHead>
+              <TableHead className="text-right">p95</TableHead>
               <TableHead className="text-right">Sessions</TableHead>
             </TableRow>
           </TableHeader>

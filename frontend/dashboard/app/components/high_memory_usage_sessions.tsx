@@ -76,7 +76,7 @@ export default function HighMemoryUsageSessions({
                   Sessions with high memory usage
                 </TableHead>
                 <TableHead className="w-[22%] text-center">
-                  Memory usage (P90)
+                  Memory usage (p90)
                 </TableHead>
                 <TableHead className="w-[20%] text-center">
                   Start time

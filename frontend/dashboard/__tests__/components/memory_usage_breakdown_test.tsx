@@ -30,6 +30,9 @@ it("shows tier percentiles and session counts, including unknown memory", () => 
       }
     />,
   );
+  expect(screen.getByRole("columnheader", { name: "p50" })).toBeInTheDocument();
+  expect(screen.getByRole("columnheader", { name: "p90" })).toBeInTheDocument();
+  expect(screen.getByRole("columnheader", { name: "p95" })).toBeInTheDocument();
   const row = screen.getByText("5–6 GB").closest("tr")!;
   expect(within(row).getByText("100 MB")).toBeInTheDocument();
   expect(within(row).getByText("200 MB")).toBeInTheDocument();
