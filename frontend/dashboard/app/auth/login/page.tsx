@@ -39,6 +39,43 @@ function buildMcpAuthorizeUrl(
   return `${agentBaseUrl}/oauth/authorize?${params.toString()}`;
 }
 
+function firstParam(
+  searchParams: { [key: string]: string | string[] | undefined },
+  key: string,
+): string {
+  const value = searchParams[key];
+  return (Array.isArray(value) ? value[0] : value) ?? "";
+}
+
+// The client_id is the URL of a self-published metadata document, so its host
+// is the only part of the client's identity the user can trust.
+function mcpClientHost(searchParams: {
+  [key: string]: string | string[] | undefined;
+}): string {
+  try {
+    const url = new URL(firstParam(searchParams, "client_id"));
+    return url.protocol === "https:" ? url.host : "";
+  } catch {
+    return "";
+  }
+}
+
+// A private-use scheme has no hostname, so it is named by its scheme instead.
+function mcpRedirectHost(searchParams: {
+  [key: string]: string | string[] | undefined;
+}): string {
+  let url: URL;
+  try {
+    url = new URL(firstParam(searchParams, "redirect_uri"));
+  } catch {
+    return "";
+  }
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    return url.protocol.replace(/:$/, "");
+  }
+  return url.hostname;
+}
+
 export default function Login(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
@@ -134,6 +171,7 @@ export default function Login(props: {
     getSession();
   }, [session, isMcp]);
 
+  const redirectHost = mcpRedirectHost(searchParams);
   const mcpGitHubUrl = isMcp
     ? buildMcpAuthorizeUrl(searchParams, "github")
     : undefined;
@@ -162,6 +200,25 @@ export default function Login(props: {
           />
         </div>
 
+        {isMcp && (
+          <p className="font-body text-center text-sm text-muted-foreground">
+            Sign in to let{" "}
+            <span className="font-semibold text-foreground">
+              {mcpClientHost(searchParams) || "an MCP client"}
+            </span>{" "}
+            use Measure on your behalf.
+            {redirectHost !== "" && (
+              <>
+                {" "}
+                You will be sent back to{" "}
+                <span className="font-semibold text-foreground">
+                  {redirectHost}
+                </span>
+                .
+              </>
+            )}
+          </p>
+        )}
         {loading && <p className="font-body text-center">Loading...</p>}
         {home && <p className="font-body text-center">Logging in...</p>}
         {!loading && !session && !error && !message && (

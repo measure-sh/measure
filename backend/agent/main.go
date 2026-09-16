@@ -146,16 +146,20 @@ func main() {
 	}
 
 	// MCP OAuth 2.0 Authorization Server endpoints
+	r.GET("/.well-known/oauth-protected-resource", mcpH.MCPProtectedResourceMetadata)
+	r.GET("/.well-known/oauth-protected-resource/mcp", mcpH.MCPEndpointProtectedResourceMetadata)
 	r.GET("/.well-known/oauth-authorization-server", mcpH.MCPOAuthMetadata)
 	r.POST("/oauth/register", mcpH.MCPRegisterClient)
 	r.GET("/oauth/authorize", mcpH.MCPAuthorize)
 	r.POST("/mcp/auth/callback", mcpH.MCPCallbackExchange)
 	r.POST("/oauth/token", mcpH.MCPToken)
 
-	// MCP Streamable HTTP transport
+	// MCP Streamable HTTP transport. GET and DELETE are routed so clients on
+	// older protocol revisions get the transport's 405 rather than Gin's 404.
 	mcpHandler := mcp.NewMCPHandler(agent.MCPTools(agentConfig))
 	r.POST("/mcp", mcpH.ValidateMCPToken(), gin.WrapH(mcpHandler))
 	r.GET("/mcp", mcpH.ValidateMCPToken(), gin.WrapH(mcpHandler))
+	r.DELETE("/mcp", mcpH.ValidateMCPToken(), gin.WrapH(mcpHandler))
 
 	// Slack events arrive either by push to an HTTP endpoint or by a background
 	// pull consumer. Exactly one is active.

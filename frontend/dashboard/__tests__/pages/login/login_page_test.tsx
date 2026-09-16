@@ -112,6 +112,113 @@ describe("Login Page", () => {
     expect(mockFetchCurrentSession).not.toHaveBeenCalled();
   });
 
+  it("names the host of an https client_id in MCP mode", () => {
+    render(
+      <Login
+        searchParams={promiseParams({
+          mcp: "1",
+          response_type: "code",
+          client_id: "https://claude.ai/oauth/claude-code-client-metadata",
+          redirect_uri: "http://localhost/cb",
+          state: "s",
+          code_challenge: "ch",
+        })}
+      />,
+    );
+
+    expect(screen.getByText("claude.ai")).toBeInTheDocument();
+    expect(screen.getByText(/use Measure on your behalf/)).toBeInTheDocument();
+  });
+
+  it("names the redirect host", () => {
+    render(
+      <Login
+        searchParams={promiseParams({
+          mcp: "1",
+          response_type: "code",
+          client_id: "https://claude.ai/oauth/claude-code-client-metadata",
+          redirect_uri: "http://localhost:3118/callback",
+          state: "s",
+          code_challenge: "ch",
+        })}
+      />,
+    );
+
+    expect(screen.getByText("localhost")).toBeInTheDocument();
+  });
+
+  it("names a private-scheme redirect by its scheme", () => {
+    render(
+      <Login
+        searchParams={promiseParams({
+          mcp: "1",
+          response_type: "code",
+          client_id: "https://claude.ai/oauth/claude-code-client-metadata",
+          redirect_uri: "com.example.app:/oauth2redirect",
+          state: "s",
+          code_challenge: "ch",
+        })}
+      />,
+    );
+
+    expect(screen.getByText("com.example.app")).toBeInTheDocument();
+  });
+
+  it("omits the redirect clause when the redirect_uri will not parse", () => {
+    render(
+      <Login
+        searchParams={promiseParams({
+          mcp: "1",
+          response_type: "code",
+          client_id: "https://claude.ai/oauth/claude-code-client-metadata",
+          redirect_uri: "not a url",
+          state: "s",
+          code_challenge: "ch",
+        })}
+      />,
+    );
+
+    expect(screen.getByText(/use Measure on your behalf/)).toBeInTheDocument();
+    expect(screen.queryByText(/You will be sent back to/)).toBeNull();
+  });
+
+  it("names a remote redirect host", () => {
+    render(
+      <Login
+        searchParams={promiseParams({
+          mcp: "1",
+          response_type: "code",
+          client_id: "https://claude.ai/oauth/claude-code-client-metadata",
+          redirect_uri: "https://claude.ai/api/mcp/auth_callback",
+          state: "s",
+          code_challenge: "ch",
+        })}
+      />,
+    );
+
+    expect(screen.getAllByText("claude.ai").length).toBe(2);
+  });
+
+  it("shows a generic client name for a client_id that is not an https URL", () => {
+    for (const clientId of ["msr_client_abc", "http://claude.ai/x"]) {
+      const { unmount } = render(
+        <Login
+          searchParams={promiseParams({
+            mcp: "1",
+            response_type: "code",
+            client_id: clientId,
+            redirect_uri: "http://localhost/cb",
+            state: "s",
+            code_challenge: "ch",
+          })}
+        />,
+      );
+      expect(screen.getByText("an MCP client")).toBeInTheDocument();
+      expect(screen.queryByText("claude.ai")).not.toBeInTheDocument();
+      unmount();
+    }
+  });
+
   it("renders sign-in buttons in MCP mode without loading state", () => {
     render(
       <Login
