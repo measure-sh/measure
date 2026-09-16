@@ -8,8 +8,7 @@
 import Foundation
 @testable import Measure
 
-final class MockMeasureInitializer: MeasureInitializer {
-    // swiftlint:disable:this type_body_length
+final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:this type_body_length
     let configLoader: ConfigLoader
     let signalSampler: SignalSampler
     let configProvider: ConfigProvider
@@ -60,6 +59,8 @@ final class MockMeasureInitializer: MeasureInitializer {
     let dataCleanupService: DataCleanupService
     let attachmentProcessor: AttachmentProcessor
     let layoutSnapshotGenerator: LayoutSnapshotGenerator
+    let layoutSnapshotThrottler: LayoutSnapshotThrottler
+    let layoutSnapshotCollector: LayoutSnapshotCollector
     let userPermissionManager: UserPermissionManager
     let httpEventValidator: HttpEventValidator
     let randomizer: Randomizer
@@ -119,6 +120,8 @@ final class MockMeasureInitializer: MeasureInitializer {
          dataCleanupService: DataCleanupService? = nil,
          userPermissionManager: UserPermissionManager? = nil,
          layoutSnapshotGenerator: LayoutSnapshotGenerator? = nil,
+         layoutSnapshotThrottler: LayoutSnapshotThrottler? = nil,
+         layoutSnapshotCollector: LayoutSnapshotCollector? = nil,
          httpEventValidator: HttpEventValidator? = nil,
          httpEventCollector: HttpEventCollector? = nil,
          appAttributeProcessor: AppAttributeProcessor? = nil,
@@ -218,6 +221,11 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                               timeProvider: self.timeProvider,
                                                                                               attachmentProcessor: self.attachmentProcessor,
                                                                                               measureDispatchQueue: self.measureDispatchQueue)
+        self.layoutSnapshotThrottler = layoutSnapshotThrottler ?? BaseLayoutSnapshotThrottler(timeProvider: self.timeProvider)
+        self.layoutSnapshotCollector = layoutSnapshotCollector ?? BaseLayoutSnapshotCollector(logger: self.logger,
+                                                                                              layoutSnapshotGenerator: self.layoutSnapshotGenerator,
+                                                                                              layoutSnapshotThrottler: self.layoutSnapshotThrottler,
+                                                                                              configProvider: self.configProvider)
         self.attributeValueValidator = attributeValueValidator ?? BaseAttributeValueValidator(configProvider: self.configProvider,
                                                                    logger: self.logger)
         self.signalProcessor = signalProcessor ?? BaseSignalProcessor(logger: self.logger,
@@ -268,7 +276,8 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                          configProvider: self.configProvider,
                                                          sessionManager: self.sessionManager,
                                                          logger: self.logger,
-                                                         signalSampler: self.signalSampler)
+                                                         signalSampler: self.signalSampler,
+                                                         layoutSnapshotCollector: self.layoutSnapshotCollector)
         self.cpuUsageCalculator = cpuUsageCalculator ?? BaseCpuUsageCalculator()
         self.memoryUsageCalculator = memoryUsageCalculator ?? BaseMemoryUsageCalculator()
         self.cpuUsageCollector = cpuUsageCollector ?? BaseCpuUsageCollector(logger: self.logger,
@@ -324,7 +333,8 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                            attributeValueValidator: self.attributeValueValidator,
                                                                            configProvider: self.configProvider,
                                                                            sessionManager: self.sessionManager,
-                                                                           signalSampler: self.signalSampler)
+                                                                           signalSampler: self.signalSampler,
+                                                                           layoutSnapshotCollector: self.layoutSnapshotCollector)
         self.dataCleanupService = dataCleanupService ?? BaseDataCleanupService(eventStore: self.eventStore,
                                                                                spanStore: self.spanStore,
                                                                                sessionStore: self.sessionStore,
@@ -356,7 +366,8 @@ final class MockMeasureInitializer: MeasureInitializer {
                                                                                               signalSampler: self.signalSampler,
                                                                                               configProvider: self.configProvider,
                                                                                               screenshotGenerator: self.screenshotGenerator,
-                                                                                              systemCrashReporter: self.systemCrashReporter)
+                                                                                              systemCrashReporter: self.systemCrashReporter,
+                                                                                              layoutSnapshotCollector: self.layoutSnapshotCollector)
         self.bugReportManager = bugReportManager ?? BaseBugReportManager(screenshotGenerator: self.screenshotGenerator,
                                                      configProvider: self.configProvider,
                                                                          idProvider: self.idProvider,

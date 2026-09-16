@@ -8,14 +8,13 @@
 import UIKit
 
 protocol LayoutSnapshotGenerator {
-    func generate(for window: UIWindow, touchPoint: CGPoint, completion: @escaping (MsrAttachment?) -> Void)
+    func generate(for window: UIWindow, touchPoint: CGPoint?, completion: @escaping (MsrAttachment?) -> Void)
 }
 
 final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
     private let logger: Logger
     private let configProvider: ConfigProvider
     private let timeProvider: TimeProvider
-    private var lastSnapshotTime: Number = 0
     private let attachmentProcessor: AttachmentProcessor
     private let measureDispatchQueue: MeasureDispatchQueue
     // Since iOS 26, overlay views are added on top of the view hierarchy as part of the Liquid Glass UI.
@@ -35,9 +34,9 @@ final class BaseLayoutSnapshotGenerator: LayoutSnapshotGenerator {
         self.measureDispatchQueue = measureDispatchQueue
     }
 
-    func generate(for window: UIWindow, touchPoint: CGPoint, completion: @escaping (MsrAttachment?) -> Void) {
+    func generate(for window: UIWindow, touchPoint: CGPoint?, completion: @escaping (MsrAttachment?) -> Void) {
         SignPost.trace(subcategory: "Attachment", label: "generateLayoutSnapshotJson") {
-            let targetView = window.hitTest(touchPoint, with: nil)
+            let targetView = touchPoint.flatMap { window.hitTest($0, with: nil) }
             let node = buildSnapshotNode(for: window, rootView: window, targetView: targetView)
 
             measureDispatchQueue.submit { [weak self] in

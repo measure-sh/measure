@@ -62,6 +62,15 @@
     [self setTitle:@"Objc View Controller"];
     
     [self.view addSubview:tableView];
+}
+
+- (void) viewDidAppear:(BOOL)animated {
+    [super viewDidAppear:animated];
+    NSDictionary *userAttributes = @{
+        @"user_name": @"Alice",
+        @"paid_user": @YES,
+        @"credit_balance": @1000,
+        @"latitude": @30.2661403415387};
     [Measure trackScreenView:@"ObjcViewController" attributes:userAttributes];
 }
 

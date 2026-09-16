@@ -2970,9 +2970,15 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			ev.Custom = &custom
 			session.Events = append(session.Events, ev)
 		case event.TypeLifecycleViewController:
+			if err := unmarshalAttachments(attachments, &ev.Attachments); err != nil {
+				return nil, err
+			}
 			ev.LifecycleViewController = &lifecycleViewController
 			session.Events = append(session.Events, ev)
 		case event.TypeLifecycleSwiftUI:
+			if err := unmarshalAttachments(attachments, &ev.Attachments); err != nil {
+				return nil, err
+			}
 			ev.LifecycleSwiftUI = &lifecycleSwiftUI
 			session.Events = append(session.Events, ev)
 		case event.TypeMemoryUsageAbs:
