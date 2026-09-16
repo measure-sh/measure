@@ -372,3 +372,15 @@ div.sticky:has(> input[data-object-search-input]) {
         transform: translateX(-50%);
     }
 }
+
+/* Blog post images share the border and shadow treatment of code blocks
+   and embedded widgets. */
+.prose img {
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.05);
+}
+
+.dark .prose img {
+    box-shadow: none;
+}
