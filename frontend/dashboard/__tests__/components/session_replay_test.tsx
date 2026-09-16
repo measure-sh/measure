@@ -2078,6 +2078,81 @@ describe("the player", () => {
       });
     });
 
+    it("plots server-provided dynamic memory in MB and includes it in scaling", async () => {
+      const sample = makeSessionReplayFixture().memory_usage[0];
+      renderReplay({
+        memory_usage: [{ ...sample, dynamic_memory: 524288 }],
+        memory_usage_absolute: [],
+      });
+
+      const lane = await screen.findByRole("img", { name: "Memory usage" });
+      fireEvent(
+        lane,
+        new MouseEvent("pointermove", { bubbles: true, clientX: 0 }),
+      );
+      // Deliberately differs from anon_rss + swap: the server owns the sum.
+      expect(screen.getByText("Dynamic Memory: 512.00 MB")).toBeTruthy();
+      expect(screen.getByText("Java Max Heap: 256.00 MB")).toBeTruthy();
+      expect(screen.getByText("RSS: 132.07 MB")).toBeTruthy();
+      const lines = lane.querySelectorAll("polyline");
+      expect(lines.length).toBe(8);
+      const height = Number(
+        lane.querySelector("svg")!.getAttribute("viewBox")!.split(" ")[3],
+      );
+      const y = Number(
+        lines[7].getAttribute("points")!.split(" ")[0].split(",")[1],
+      );
+      // 512 MB raises the scale to 600 MB instead of clipping at the heap max.
+      expect(y).toBeCloseTo(height * (1 - 512 / 600));
+    });
+
+    it("shows zero dynamic memory as a valid reading", async () => {
+      renderReplay({
+        memory_usage: [
+          { ...makeSessionReplayFixture().memory_usage[0], dynamic_memory: 0 },
+        ],
+        memory_usage_absolute: [],
+      });
+      const lane = await screen.findByRole("img", { name: "Memory usage" });
+      fireEvent(
+        lane,
+        new MouseEvent("pointermove", { bubbles: true, clientX: 0 }),
+      );
+      expect(screen.getByText("Dynamic Memory: 0.00 MB")).toBeTruthy();
+    });
+
+    it("keeps older responses usable without a dynamic memory field", async () => {
+      const { dynamic_memory, ...sample } =
+        makeSessionReplayFixture().memory_usage[0];
+      renderReplay({ memory_usage: [sample], memory_usage_absolute: [] });
+      const lane = await screen.findByRole("img", { name: "Memory usage" });
+      fireEvent(
+        lane,
+        new MouseEvent("pointermove", { bubbles: true, clientX: 0 }),
+      );
+      expect(screen.queryByText(/Dynamic Memory:/)).toBeNull();
+      expect(screen.getByText("Java Max Heap: 256.00 MB")).toBeTruthy();
+      expect(lane.querySelectorAll("polyline").length).toBe(7);
+      expect(lane.innerHTML).not.toContain("NaN");
+    });
+
+    it("preserves the iOS memory chart", async () => {
+      const fixture = makeSessionReplayFixture();
+      renderReplay({
+        attribute: { ...fixture.attribute, platform: "ios", os_name: "ios" },
+        memory_usage: [],
+      });
+      const lane = await screen.findByRole("img", { name: "Memory usage" });
+      fireEvent(
+        lane,
+        new MouseEvent("pointermove", { bubbles: true, clientX: 0 }),
+      );
+      expect(screen.getByText("Max Memory: 1000.00 MB")).toBeTruthy();
+      expect(screen.getByText("Used Memory: 500.00 MB")).toBeTruthy();
+      expect(screen.queryByText(/Dynamic Memory:/)).toBeNull();
+      expect(lane.querySelectorAll("polyline").length).toBe(2);
+    });
+
     it("draws none when the session carries no samples", async () => {
       renderReplay({
         cpu_usage: [],

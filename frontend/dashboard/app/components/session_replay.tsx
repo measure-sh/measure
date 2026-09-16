@@ -2562,6 +2562,29 @@ function useSessionMetricStrips(
           value: kilobytesToMegabytes(sample[field]),
         }));
 
+    const androidMemoryFields: [string, string, string][] = [
+      ["Java Free Heap", chartColor.violet, "java_free_heap"],
+      ["Java Max Heap", chartColor.red, "java_max_heap"],
+      ["Java Total Heap", chartColor.yellow, "java_total_heap"],
+      ["Native Free Heap", chartColor.amber, "native_free_heap"],
+      ["Native Total Heap", chartColor.teal, "native_total_heap"],
+      ["RSS", chartColor.green, "rss"],
+      ["Total PSS", chartColor.pink, "total_pss"],
+    ];
+    // Older API responses can lack this field. Only plot a complete series.
+    if (
+      Array.isArray(session.memory_usage) &&
+      session.memory_usage.every((sample: any) =>
+        Number.isFinite(sample.dynamic_memory),
+      )
+    ) {
+      androidMemoryFields.push([
+        "Dynamic Memory",
+        chartColor.blue,
+        "dynamic_memory",
+      ]);
+    }
+
     const specs: StripSpec[] = [
       {
         key: "cpu",
@@ -2578,15 +2601,7 @@ function useSessionMetricStrips(
         title: "Memory",
         unit: "MB",
         samples: session.memory_usage,
-        read: megabytes([
-          ["Java Free Heap", chartColor.violet, "java_free_heap"],
-          ["Java Max Heap", chartColor.red, "java_max_heap"],
-          ["Java Total Heap", chartColor.yellow, "java_total_heap"],
-          ["Native Free Heap", chartColor.amber, "native_free_heap"],
-          ["Native Total Heap", chartColor.teal, "native_total_heap"],
-          ["RSS", chartColor.green, "rss"],
-          ["Total PSS", chartColor.pink, "total_pss"],
-        ]),
+        read: megabytes(androidMemoryFields),
       },
       {
         key: "memory-absolute",
@@ -3035,6 +3050,9 @@ export const demoSession = {
       java_free_heap: 259685,
       total_pss: 10846,
       rss: 105040,
+      anon_rss: 49152,
+      swap: 0,
+      dynamic_memory: 49152,
       native_total_heap: 12612,
       native_free_heap: 1170,
       interval: 0,
@@ -3046,6 +3064,9 @@ export const demoSession = {
       java_free_heap: 58687,
       total_pss: 57496,
       rss: 135104,
+      anon_rss: 61440,
+      swap: 4096,
+      dynamic_memory: 65536,
       native_total_heap: 17752,
       native_free_heap: 1259,
       interval: 2056,
@@ -3060,6 +3081,9 @@ export const demoSession = {
       java_free_heap: 58391,
       total_pss: 57572,
       rss: 135240,
+      anon_rss: 65536,
+      swap: 8192,
+      dynamic_memory: 73728,
       native_total_heap: 17752,
       native_free_heap: 1229,
       interval: 2043,
@@ -3074,6 +3098,9 @@ export const demoSession = {
       java_free_heap: 57931,
       total_pss: 59015,
       rss: 136396,
+      anon_rss: 67584,
+      swap: 8192,
+      dynamic_memory: 75776,
       native_total_heap: 18520,
       native_free_heap: 1314,
       interval: 2055,
@@ -3088,6 +3115,9 @@ export const demoSession = {
       java_free_heap: 57162,
       total_pss: 59904,
       rss: 137996,
+      anon_rss: 69632,
+      swap: 10240,
+      dynamic_memory: 79872,
       native_total_heap: 19544,
       native_free_heap: 1307,
       interval: 2032,
