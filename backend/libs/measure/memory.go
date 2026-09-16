@@ -18,14 +18,26 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-// MemoryUsagePlotPoint contains percentiles of individual memory samples.
+// MemoryUsagePlotPoint contains sample percentiles in KB (1024 bytes), grouped
+// by time bucket and app version/build across device memory tiers.
 type MemoryUsagePlotPoint struct {
+	Version     string   `json:"version"`
+	DateTime    string   `json:"datetime"`
+	P50         *float64 `json:"p50"`
+	P90         *float64 `json:"p90"`
+	P95         *float64 `json:"p95"`
+	P99         *float64 `json:"p99"`
+	SampleCount uint64   `json:"sample_count"`
+}
+
+// MemoryUsageBreakdownRow contains sample percentiles in KB (1024 bytes) over
+// the entire selected date range for one device memory tier.
+type MemoryUsageBreakdownRow struct {
 	DeviceTotalMemoryTier string   `json:"device_total_memory_tier"`
-	DateTime              string   `json:"datetime"`
 	P50                   *float64 `json:"p50"`
 	P90                   *float64 `json:"p90"`
 	P95                   *float64 `json:"p95"`
-	P99                   *float64 `json:"p99"`
+	SessionCount          uint64   `json:"session_count"`
 	SampleCount           uint64   `json:"sample_count"`
 }
 
@@ -127,7 +139,7 @@ func memoryThresholdExpression(deviceMemory, appImportance string) string {
 
 // GetMemoryUsagePlot returns percentiles
 // of memory usage samples grouped by
-// time interval and device memory tier.
+// time interval and app version/build, across device memory tiers.
 func (a App) GetMemoryUsagePlot(ctx context.Context, rch driver.Conn, flt *filter.Filter, appImportance string) (points []MemoryUsagePlotPoint, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	if err := validateMemoryUsageQuery(flt, appImportance); err != nil {
@@ -151,9 +163,8 @@ func (a App) GetMemoryUsagePlot(ctx context.Context, rch driver.Conn, flt *filte
 			return nil, err
 		}
 	}
-	tierExpr := memoryTierExpression(source.deviceMemoryKB)
 	stmt := memoryUsageEvents(filteredSessions, a, flt, source, appImportance).
-		Select(tierExpr+" AS device_total_memory_tier").
+		Select("concat(e.attribute.app_version, ' (', e.attribute.app_build, ')') AS version").
 		Select(groupExpr.BucketExpr+" AS datetime_bucket", flt.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) AS datetime", groupExpr.DatetimeFormat).
 		Select("toFloat64(quantilesTDigest(0.50, 0.90, 0.95, 0.99)(" + source.usageKB + ")[1]) AS p50").
@@ -161,8 +172,8 @@ func (a App) GetMemoryUsagePlot(ctx context.Context, rch driver.Conn, flt *filte
 		Select("toFloat64(quantilesTDigest(0.50, 0.90, 0.95, 0.99)(" + source.usageKB + ")[3]) AS p95").
 		Select("toFloat64(quantilesTDigest(0.50, 0.90, 0.95, 0.99)(" + source.usageKB + ")[4]) AS p99").
 		Select("count() AS sample_count").
-		GroupBy("device_total_memory_tier, datetime_bucket").
-		OrderBy("datetime_bucket")
+		GroupBy("e.attribute.app_version, e.attribute.app_build, datetime_bucket").
+		OrderBy("datetime_bucket, e.attribute.app_build DESC, e.attribute.app_version")
 	defer stmt.Close()
 
 	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
@@ -173,12 +184,57 @@ func (a App) GetMemoryUsagePlot(ctx context.Context, rch driver.Conn, flt *filte
 	for rows.Next() {
 		var point MemoryUsagePlotPoint
 		var bucket time.Time
-		if err := rows.Scan(&point.DeviceTotalMemoryTier, &bucket, &point.DateTime, &point.P50, &point.P90, &point.P95, &point.P99, &point.SampleCount); err != nil {
+		if err := rows.Scan(&point.Version, &bucket, &point.DateTime, &point.P50, &point.P90, &point.P95, &point.P99, &point.SampleCount); err != nil {
 			return nil, err
 		}
 		points = append(points, point)
 	}
 	return points, rows.Err()
+}
+
+// GetMemoryUsageBreakdown returns percentiles of individual samples grouped by
+// device memory tier over the entire selected date range.
+func (a App) GetMemoryUsageBreakdown(ctx context.Context, rch driver.Conn, flt *filter.Filter, appImportance string) (breakdown []MemoryUsageBreakdownRow, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
+	if err := validateMemoryUsageQuery(flt, appImportance); err != nil {
+		return nil, err
+	}
+	source, ok := a.memorySource()
+	if !ok {
+		return []MemoryUsageBreakdownRow{}, nil
+	}
+	var filteredSessions *sqlf.Stmt
+	if flt.HasFilterExpr() {
+		filteredSessions, err = a.memoryFilteredSessions(flt)
+		if err != nil {
+			return nil, err
+		}
+	}
+	tierExpr := memoryTierExpression(source.deviceMemoryKB)
+	stmt := memoryUsageEvents(filteredSessions, a, flt, source, appImportance).
+		Select(tierExpr + " AS device_total_memory_tier").
+		Select("toFloat64(quantilesTDigest(0.50, 0.90, 0.95)(" + source.usageKB + ")[1]) AS p50").
+		Select("toFloat64(quantilesTDigest(0.50, 0.90, 0.95)(" + source.usageKB + ")[2]) AS p90").
+		Select("toFloat64(quantilesTDigest(0.50, 0.90, 0.95)(" + source.usageKB + ")[3]) AS p95").
+		Select("uniqExact(e.session_id) AS session_count").
+		Select("count() AS sample_count").
+		GroupBy("device_total_memory_tier").
+		OrderBy("indexOf(['0-4gb', '5-6gb', '7-8gb', '9-12gb', '13-16gb', '16-32gb', '32gb+', 'unknown'], device_total_memory_tier)")
+	defer stmt.Close()
+
+	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var row MemoryUsageBreakdownRow
+		if err := rows.Scan(&row.DeviceTotalMemoryTier, &row.P50, &row.P90, &row.P95, &row.SessionCount, &row.SampleCount); err != nil {
+			return nil, err
+		}
+		breakdown = append(breakdown, row)
+	}
+	return breakdown, rows.Err()
 }
 
 // GetMemoryUsageDistribution returns the
@@ -263,7 +319,7 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 	}
 	deviceMemory := "s.device_total_memory"
 	if source.eventType == event.TypeMemoryUsageAbs {
-		// iOS does not yet populate the shared device-memory attribute.
+		// Older iOS SDKs did not populate the shared device-memory attribute.
 		// Use RAM from matching samples and always apply foreground thresholds.
 		deviceMemory = "max(" + source.deviceMemoryKB + ")"
 		appImportance = "foreground"

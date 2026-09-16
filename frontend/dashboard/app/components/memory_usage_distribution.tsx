@@ -37,6 +37,10 @@ export default function MemoryUsageDistribution({
 
   return (
     <section className="w-full font-body">
+      <h2 className="mb-2 font-display text-xl">Memory usage distribution</h2>
+      <p className="mb-4 text-sm text-muted-foreground">
+        Percentage of samples in each memory usage range.
+      </p>
       <div className="flex h-144 w-full items-center justify-center">
         {status === "pending" && <SkeletonPlot />}
         {status === "error" && (
@@ -45,7 +49,7 @@ export default function MemoryUsageDistribution({
             to try again
           </p>
         )}
-        {status === "success" && data?.length === 0 && (
+        {status === "success" && !data?.length && (
           <p className="p-4 text-center text-lg font-display">No Data</p>
         )}
         {status === "success" && data && data.length > 0 && (

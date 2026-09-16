@@ -45,6 +45,39 @@ func (h Handlers) GetMemoryUsagePlot(c *gin.Context) {
 	c.JSON(http.StatusOK, points)
 }
 
+func (h Handlers) GetMemoryUsageBreakdown(c *gin.Context) {
+	deps := h.Deps
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:          filter.SessionsEntity,
+		appScope:        *measure.ScopeAppRead,
+		logRoot:         logcomment.Sessions,
+		logName:         "memory_usage_breakdown",
+		requireTimezone: true,
+	})
+	if !ok {
+		return
+	}
+	if err := app.Populate(ctx, deps.PgPool); err != nil {
+		fmt.Println("failed to populate app", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to populate app"})
+		return
+	}
+
+	breakdown, err := app.GetMemoryUsageBreakdown(ctx, deps.RchPool, &flt, c.Query("app_importance"))
+	if err != nil {
+		if errors.Is(err, measure.ErrInvalidMemoryAppImportance) {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+		}
+		msg := "failed to query memory usage breakdown"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, breakdown)
+}
+
 func (h Handlers) GetMemoryUsageDistribution(c *gin.Context) {
 	deps := h.Deps
 	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{

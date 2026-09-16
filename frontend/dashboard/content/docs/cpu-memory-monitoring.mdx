@@ -4,7 +4,7 @@ seoTitle: "Mobile App CPU and Memory Monitoring"
 description: "Capture CPU and memory usage of Android, iOS, Flutter, and React Native apps."
 ---
 
-CPU and memory usage are captured every 5 seconds while the app is in the foreground. Readings appear in the session replay.
+CPU usage is captured every 5 seconds while the app is in the foreground. Memory collection uses the configured interval (5 seconds by default); Android also collects memory every 10 seconds in the background for sampled sessions. Readings appear in the session replay, and the Memory page summarizes memory samples across sessions.
 
 ## CPU usage
 
@@ -31,7 +31,8 @@ Each reading reports:
 - Max heap size: the most memory the runtime lets the app allocate on the Java heap. Allocating past it throws an `OutOfMemoryError`.
 - Total heap size and free heap size: the heap memory the runtime has reserved so far, and how much of it is still free.
 - RSS (resident set size): the physical memory held by the process, including native code and shared libraries. Shared pages are counted in full, so RSS overstates the app's own usage.
-- Total PSS (proportional set size): physical memory with shared pages divided between the processes using them. PSS is the best value for judging the app's overall memory use.
+- Total PSS (proportional set size): physical memory with shared pages divided between the processes using them.
+- Anonymous RSS and swap: anonymous memory resident in RAM and memory swapped out by the process. The Memory page uses their sum.
 - Native total heap size and native free heap size: total and free memory in the native heap.
 
 The values come from:
@@ -41,7 +42,7 @@ The values come from:
 | Heap sizes | [`Runtime.maxMemory`](https://developer.android.com/reference/java/lang/Runtime#maxMemory()), [`Runtime.totalMemory`](https://developer.android.com/reference/java/lang/Runtime#totalMemory()), [`Runtime.freeMemory`](https://developer.android.com/reference/java/lang/Runtime#freeMemory()) |
 | Total PSS | [`Debug.getMemoryInfo`](https://developer.android.com/reference/android/os/Debug#getMemoryInfo(android.os.Debug.MemoryInfo)) |
 | Native heap sizes | [`Debug.getNativeHeapSize`](https://developer.android.com/reference/android/os/Debug#getNativeHeapSize()), [`Debug.getNativeHeapFreeSize`](https://developer.android.com/reference/android/os/Debug#getNativeHeapFreeSize()) |
-| RSS | [`/proc/self/statm`](https://man7.org/linux/man-pages/man5/proc.5.html) |
+| RSS, anonymous RSS and swap | `/proc/self/status` (`VmRSS`, `RssAnon` and `VmSwap`) |
 
 ### iOS
 
@@ -50,6 +51,23 @@ Each reading reports the app's physical memory footprint: the memory the app is 
 The footprint is read with [`task_info`](https://web.mit.edu/darwin/src/modules/xnu/osfmk/man/task_info.html). When the value is unavailable, the SDK falls back to resident size, which excludes compressed memory and can underreport usage.
 
 [iOS Memory Deep Dive](https://developer.apple.com/videos/play/wwdc2018/416/) explains how Apple defines these values.
+
+## Memory page
+
+The Memory page shows four views for the selected app, date range and session filters:
+
+- **Memory usage by app version:** a full-width time-series chart with one line per app version and build. Each time bucket pools samples across device memory tiers. Select p50, p90, p95 or p99; p90 is selected by default.
+- **Breakdown by device total memory:** a table with p50, p90 and p95 memory usage, distinct session counts and sample counts for each device memory tier. Each percentile is calculated from samples across the whole selected date range and matching app versions.
+- **Memory usage distribution:** the percentage of samples in 100 MB ranges, from 0–100 MB through 800–900 MB, with a final 900 MB+ range. Hover to see sample counts.
+- **Sessions with high memory usage:** sessions whose p90 usage exceeds the configured target for their device memory tier and process state. Rows show p90 usage, the percentage of the target, and the session start time. Open a row to inspect its replay.
+
+On Android, all four views use anonymous RSS + swap. The **App importance** selector offers Foreground (the default), User service and Background. Samples from older SDKs with no process-state label are included in Foreground. On iOS and iPadOS, the views use the reported physical footprint (or its resident-size fallback); there is no App importance selector, and high-memory sessions use the foreground targets.
+
+Percentiles are computed from individual positive memory samples, not averages of session percentiles or tier percentiles. A session with more samples contributes more observations. The chart's percentile selector changes only the trend; the table always shows p50, p90 and p95. KB, MB and GB use factors of 1024.
+
+Device memory tiers use the current filter ranges: 0–4 GB, 5–6 GB, 7–8 GB, 9–12 GB, 13–16 GB, 16–32 GB, 32 GB+ and Unknown. The table derives tiers from device RAM reported with each sample. The device-memory session filter uses the session attribute; older iOS sessions missing that attribute match Unknown in that filter even when their samples report RAM for the table. Devices with unknown RAM are excluded from the high-memory sessions list because they have no target.
+
+The trend, tier table and distribution summarize usage; they do not establish that an app experienced memory pressure or was terminated.
 
 ## Flutter and React Native
 

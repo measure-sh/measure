@@ -35,6 +35,8 @@ tags:
     description: Error groups, error details and error plots.
   - name: Sessions
     description: Session listing, session plots and session replays.
+  - name: Memory
+    description: Memory trends by app version, device-tier percentiles, distributions and high-memory sessions.
   - name: Traces
     description: Root spans, span listings and traces.
   - name: Bug Reports
@@ -1907,6 +1909,19 @@ paths:
                           type: number
                         rss:
                           type: number
+                        anon_rss:
+                          type: number
+                          description: Anonymous resident memory in KB (1024 bytes).
+                        swap:
+                          type: number
+                          description: Swapped-out memory in KB (1024 bytes).
+                        dynamic_memory:
+                          type: number
+                          description: Anonymous RSS + swap in KB (1024 bytes), also used by the Memory page.
+                        app_importance:
+                          type: string
+                          description: Process state at collection time; empty for older samples.
+                          enum: ["", foreground, user_service, background]
                         native_total_heap:
                           type: number
                         native_free_heap:
@@ -1915,6 +1930,24 @@ paths:
                           type: number
                         timestamp:
                           type: string
+                  memory_usage_absolute:
+                    type: [array, "null"]
+                    description: iOS/iPadOS memory readings; used_memory is also used by the Memory page.
+                    items:
+                      type: object
+                      properties:
+                        max_memory:
+                          type: number
+                          description: Total device RAM in KB (1024 bytes).
+                        used_memory:
+                          type: number
+                          description: Physical footprint (or resident-size fallback) in KB (1024 bytes).
+                        interval:
+                          type: number
+                          description: Collection interval in milliseconds.
+                        timestamp:
+                          type: string
+                          format: date-time
                   threads:
                     type: object
                     description: Session events grouped by thread name. Each event carries an `event_type` and type-specific fields.
@@ -2510,6 +2543,263 @@ paths:
           description: Rate limit of the requester has crossed maximum limits.
         "500":
           description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/memory/plots/usage:
+    get:
+      operationId: getMemoryUsagePlot
+      tags:
+        - Memory
+      summary: Fetch memory usage by app version
+      description: >-
+        Returns one point per app version/build and time bucket, pooling device memory
+        tiers. The full-width trend selects p50, p90 (the default), p95 or p99 from each
+        point. Version labels use "version (build)". Buckets with no samples are omitted.
+
+
+        Memory is measured in KB (1024 bytes): anonymous RSS + swap on Android, and reported
+        used memory (physical footprint or its resident-size fallback) on iOS/iPadOS. Only
+        positive samples in the selected date range and matching sessions contribute.
+        Percentiles use individual samples, not averages of session or tier percentiles.
+        Unsupported platforms return no data.
+      parameters:
+        - &a1
+          name: id
+          in: path
+          required: true
+          description: App's UUID.
+          schema:
+            type: string
+            format: uuid
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/Timezone"
+        - $ref: "#/components/parameters/MemoryAppImportance"
+        - $ref: "#/components/parameters/PlotTimeGroup"
+      responses:
+        "200":
+          description: Memory data for the selected app, date range and session filters.
+          content:
+            application/json:
+              schema:
+                type:
+                  - array
+                  - "null"
+                description: No matching samples may be returned as null or an empty array.
+                items:
+                  $ref: "#/components/schemas/MemoryUsagePlotPoint"
+              example:
+                - version: 1.2.3 (42)
+                  datetime: 2026-09-10
+                  p50: 102400
+                  p90: 204800
+                  p95: 307200
+                  p99: 409600
+                  sample_count: 1200
+        "400":
+          description: Invalid app importance, date range, time group, pagination or session filter
+            expression, or a missing required timezone.
+        "401":
+          description: Authentication is required.
+        "403":
+          description: The requester does not have read access to this app.
+        "429":
+          description: Rate limit exceeded.
+        "500":
+          description: The server could not query memory data.
+  /apps/{id}/memory/plots/breakdown:
+    get:
+      operationId: getMemoryUsageBreakdown
+      tags:
+        - Memory
+      summary: Fetch memory usage by device tier
+      description: >-
+        Returns the tier table: p50, p90 and p95 across the entire selected date range and
+        matching app versions, plus distinct session counts and sample counts. Rows are
+        ordered from the smallest device tier to the largest, followed by Unknown; tiers
+        without samples are omitted. Tiers use device RAM on Android and the memory sample's
+        max_memory on iOS/iPadOS. The device-memory session filter uses the session
+        attribute; older iOS sessions missing that attribute match Unknown even when samples
+        report RAM.
+
+
+        Memory is measured in KB (1024 bytes): anonymous RSS + swap on Android, and reported
+        used memory (physical footprint or its resident-size fallback) on iOS/iPadOS. Only
+        positive samples in the selected date range and matching sessions contribute.
+        Percentiles use individual samples, not averages of session or tier percentiles.
+        Unsupported platforms return no data.
+      parameters:
+        - *a1
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/Timezone"
+        - $ref: "#/components/parameters/MemoryAppImportance"
+      responses:
+        "200":
+          description: Memory data for the selected app, date range and session filters.
+          content:
+            application/json:
+              schema:
+                type:
+                  - array
+                  - "null"
+                description: No matching samples may be returned as null or an empty array.
+                items:
+                  $ref: "#/components/schemas/MemoryUsageBreakdownRow"
+              example:
+                - device_total_memory_tier: 5-6gb
+                  p50: 102400
+                  p90: 204800
+                  p95: 307200
+                  session_count: 30
+                  sample_count: 1200
+        "400":
+          description: Invalid app importance, date range, time group, pagination or session filter
+            expression, or a missing required timezone.
+        "401":
+          description: Authentication is required.
+        "403":
+          description: The requester does not have read access to this app.
+        "429":
+          description: Rate limit exceeded.
+        "500":
+          description: The server could not query memory data.
+  /apps/{id}/memory/plots/distribution:
+    get:
+      operationId: getMemoryUsageDistribution
+      tags:
+        - Memory
+      summary: Fetch memory usage distribution
+      description: >-
+        Returns the percentage and count of samples in each 100 MB range across matching app
+        versions and device tiers. Ranges include their lower bound and exclude their upper
+        bound; 900+ includes all samples at or above 900 MB. MB uses 1024 KB. Empty buckets
+        are omitted by the API and rendered as zero by the dashboard.
+
+
+        Memory is measured in KB (1024 bytes): anonymous RSS + swap on Android, and reported
+        used memory (physical footprint or its resident-size fallback) on iOS/iPadOS. Only
+        positive samples in the selected date range and matching sessions contribute.
+        Percentiles use individual samples, not averages of session or tier percentiles.
+        Unsupported platforms return no data.
+      parameters:
+        - *a1
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/Timezone"
+        - $ref: "#/components/parameters/MemoryAppImportance"
+      responses:
+        "200":
+          description: Memory data for the selected app, date range and session filters.
+          content:
+            application/json:
+              schema:
+                type:
+                  - array
+                  - "null"
+                description: No matching samples may be returned as null or an empty array.
+                items:
+                  $ref: "#/components/schemas/MemoryUsageDistributionPoint"
+              example:
+                - bucket: 100-200
+                  percentage: 75
+                  sample_count: 900
+                - bucket: 200-300
+                  percentage: 25
+                  sample_count: 300
+        "400":
+          description: Invalid app importance, date range, time group, pagination or session filter
+            expression, or a missing required timezone.
+        "401":
+          description: Authentication is required.
+        "403":
+          description: The requester does not have read access to this app.
+        "429":
+          description: Rate limit exceeded.
+        "500":
+          description: The server could not query memory data.
+  /apps/{id}/memory/sessions/high-usage:
+    get:
+      operationId: getHighMemoryUsageSessions
+      tags:
+        - Memory
+      summary: Fetch sessions with high memory usage
+      description: >-
+        Returns sessions whose p90 of matching samples is strictly above the configured
+        target for the device memory tier and process state. iOS/iPadOS always uses
+        foreground targets. Unknown device RAM has no target and is excluded. Results are
+        ordered by percentage of target descending, then session end time descending and
+        session ID descending. Session start and end times describe the session, while p90
+        is calculated only from samples within the selected date range. The dashboard
+        displays five sessions per page.
+
+
+        Memory is measured in KB (1024 bytes): anonymous RSS + swap on Android, and reported
+        used memory (physical footprint or its resident-size fallback) on iOS/iPadOS. Only
+        positive samples in the selected date range and matching sessions contribute.
+        Percentiles use individual samples, not averages of session or tier percentiles.
+        Unsupported platforms return no data.
+      parameters:
+        - *a1
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/MemoryAppImportance"
+        - name: limit
+          in: query
+          description: Maximum sessions to return. The dashboard requests 5.
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 1000
+        - name: offset
+          in: query
+          description: Number of sessions to skip.
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        "200":
+          description: Memory data for the selected app, date range and session filters.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HighMemoryUsageSessionsResponse"
+              example:
+                results:
+                  - session_id: 8d5a6d39-4c76-43d3-aecd-650e2c36f9c2
+                    app_id: 2b7ddad4-40a6-42a7-9e21-a90577e08263
+                    first_event_time: 2026-09-10T10:00:00Z
+                    last_event_time: 2026-09-10T10:05:00Z
+                    p90_memory_kb: 3145728
+                    target_memory_kb: 2359296
+                    percent_of_target: 133.33333333333334
+                    attribute:
+                      app_version: 1.2.3
+                      app_build: "42"
+                      device_name: Pixel
+                      device_model: Pixel
+                      device_manufacturer: Google
+                      device_total_memory: 6291456
+                      os_name: android
+                      os_version: "15"
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Invalid app importance, date range, time group, pagination or session filter
+            expression, or a missing required timezone.
+        "401":
+          description: Authentication is required.
+        "403":
+          description: The requester does not have read access to this app.
+        "429":
+          description: Rate limit exceeded.
+        "500":
+          description: The server could not query memory data.
   /apps/{id}/spans/plots/metrics:
     get:
       operationId: getMetricsPlotForSpanName
@@ -5568,6 +5858,22 @@ paths:
           description: Measure server encountered an unfortunate error. Report this to your server administrator.
 components:
   parameters:
+    MemoryAppImportance:
+      name: app_importance
+      in: query
+      required: false
+      description: Android process-state filter. Omitted or empty includes all states; the
+        dashboard sends foreground by default. Foreground also includes samples with an empty
+        state label. Valid values are accepted but ignored on iOS/iPadOS, which always uses
+        foreground high-memory targets. When omitted on Android, the high-memory endpoint
+        pools all states and uses foreground targets.
+      schema:
+        type: string
+        enum:
+          - ""
+          - foreground
+          - user_service
+          - background
     From:
       name: from
       in: query
@@ -5624,6 +5930,185 @@ components:
         schema:
           type: string
   schemas:
+    MemoryUsageKB:
+      type:
+        - number
+        - "null"
+      description: Memory usage in KB (1024 bytes).
+    DeviceTotalMemoryTier:
+      type: string
+      description: Device RAM tier. The numeric ranges in GB are (0,5), [5,7), [7,9), [9,13),
+        [13,16), [16,32), and [32,infinity). Zero or unreported RAM is unknown. GB uses 1024 *
+        1024 KB.
+      enum:
+        - 0-4gb
+        - 5-6gb
+        - 7-8gb
+        - 9-12gb
+        - 13-16gb
+        - 16-32gb
+        - 32gb+
+        - unknown
+    MemoryUsagePlotPoint:
+      type: object
+      required:
+        - version
+        - datetime
+        - p50
+        - p90
+        - p95
+        - p99
+        - sample_count
+      properties:
+        version:
+          type: string
+          description: App version and build formatted as "version (build)".
+        datetime:
+          type: string
+          description: Time bucket formatted in the requested timezone and plot_time_group.
+        p50:
+          $ref: "#/components/schemas/MemoryUsageKB"
+        p90:
+          $ref: "#/components/schemas/MemoryUsageKB"
+        p95:
+          $ref: "#/components/schemas/MemoryUsageKB"
+        p99:
+          $ref: "#/components/schemas/MemoryUsageKB"
+        sample_count:
+          type: integer
+          minimum: 0
+          description: Samples for this version/build and time bucket, across device tiers.
+    MemoryUsageBreakdownRow:
+      type: object
+      required:
+        - device_total_memory_tier
+        - p50
+        - p90
+        - p95
+        - session_count
+        - sample_count
+      properties:
+        device_total_memory_tier:
+          $ref: "#/components/schemas/DeviceTotalMemoryTier"
+        p50:
+          $ref: "#/components/schemas/MemoryUsageKB"
+        p90:
+          $ref: "#/components/schemas/MemoryUsageKB"
+        p95:
+          $ref: "#/components/schemas/MemoryUsageKB"
+        session_count:
+          type: integer
+          minimum: 0
+          description: Distinct sessions contributing samples to this tier.
+        sample_count:
+          type: integer
+          minimum: 0
+          description: Samples contributing to this tier across the whole date range and matching
+            versions.
+    MemoryUsageDistributionPoint:
+      type: object
+      required:
+        - bucket
+        - percentage
+        - sample_count
+      properties:
+        bucket:
+          type: string
+          enum:
+            - 0-100
+            - 100-200
+            - 200-300
+            - 300-400
+            - 400-500
+            - 500-600
+            - 600-700
+            - 700-800
+            - 800-900
+            - 900+
+        percentage:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: Percentage of all matching samples, not sessions.
+        sample_count:
+          type: integer
+          minimum: 0
+    HighMemoryUsageSession:
+      type: object
+      required:
+        - session_id
+        - app_id
+        - attribute
+        - first_event_time
+        - last_event_time
+        - p90_memory_kb
+        - target_memory_kb
+        - percent_of_target
+      properties:
+        session_id:
+          type: string
+          format: uuid
+        app_id:
+          type: string
+          format: uuid
+        first_event_time:
+          type: string
+          format: date-time
+        last_event_time:
+          type: string
+          format: date-time
+        p90_memory_kb:
+          type: integer
+          description: Session p90 of matching samples, rounded to the nearest KB (1024 bytes).
+        target_memory_kb:
+          type: integer
+          description: Configured target in KB for the device tier and process state.
+        percent_of_target:
+          type: number
+          description: 100 * p90 memory / target, calculated before rounding p90 to integer KB.
+        attribute:
+          type: object
+          additionalProperties: true
+          properties:
+            app_version:
+              type: string
+            app_build:
+              type: string
+            device_name:
+              type: string
+            device_model:
+              type: string
+            device_manufacturer:
+              type: string
+            os_name:
+              type: string
+            os_version:
+              type: string
+            device_total_memory:
+              type: integer
+              description: Device RAM in KB (1024 bytes).
+    HighMemoryUsageSessionsResponse:
+      type: object
+      required:
+        - results
+        - meta
+      properties:
+        results:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/HighMemoryUsageSession"
+        meta:
+          type: object
+          required:
+            - next
+            - previous
+          properties:
+            next:
+              type: boolean
+            previous:
+              type: boolean
     FilterKey:
       type: object
       description: One thing an entity can be filtered by.

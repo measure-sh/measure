@@ -6,6 +6,7 @@ import DropdownSelect, {
 import FilterBar from "@/app/components/filter_bar/filter_bar";
 import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import HighMemoryUsageSessions from "@/app/components/high_memory_usage_sessions";
+import MemoryUsageBreakdown from "@/app/components/memory_usage_breakdown";
 import MemoryUsagePlot from "@/app/components/memory_usage_plot";
 import MemoryUsageDistribution from "@/app/components/memory_usage_distribution";
 import type { MemoryAppImportance } from "@/app/api/api_calls";
@@ -13,6 +14,7 @@ import {
   paginationOffsetUrlKey,
   useHighMemoryUsageSessionsQuery,
   useMemoryUsageDistributionQuery,
+  useMemoryUsageBreakdownQuery,
   useMemoryUsagePlotQuery,
 } from "@/app/query/hooks";
 import { use, useState } from "react";
@@ -57,6 +59,10 @@ export default function MemoryPage({ params }: PageProps) {
       ? importanceSelection.value
       : "foreground";
   const memoryPlotQuery = useMemoryUsagePlotQuery(
+    filter.filterParams,
+    isAndroidApp ? appImportance : undefined,
+  );
+  const memoryBreakdownQuery = useMemoryUsageBreakdownQuery(
     filter.filterParams,
     isAndroidApp ? appImportance : undefined,
   );
@@ -107,15 +113,18 @@ export default function MemoryPage({ params }: PageProps) {
       <div className="py-4" />
       {readyValue !== null && (
         <>
-          <div className="flex w-full flex-col md:flex-row">
-            <div className="w-full md:w-1/2">
+          <div className="flex w-full flex-col">
+            <div className="w-full">
               <MemoryUsagePlot
                 startDate={readyValue.date.startDate}
                 endDate={readyValue.date.endDate}
                 query={memoryPlotQuery}
               />
             </div>
-            <div className="w-full md:w-1/2">
+            <div className="w-full py-8">
+              <MemoryUsageBreakdown query={memoryBreakdownQuery} />
+            </div>
+            <div className="w-full">
               <MemoryUsageDistribution query={memoryDistributionQuery} />
             </div>
           </div>

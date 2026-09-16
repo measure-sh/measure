@@ -5,6 +5,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 const mockUseFilterPage = jest.fn();
 const mockUseMemoryUsagePlotQuery = jest.fn();
 const mockUseMemoryUsageDistributionQuery = jest.fn();
+const mockUseMemoryUsageBreakdownQuery = jest.fn();
 const mockUseHighMemoryUsageSessionsQuery = jest.fn();
 
 jest.mock("@/app/components/filter_bar/use_filter_page", () => ({
@@ -14,6 +15,8 @@ jest.mock("@/app/query/hooks", () => ({
   paginationOffsetUrlKey: "po",
   useMemoryUsagePlotQuery: (...args: unknown[]) =>
     mockUseMemoryUsagePlotQuery(...args),
+  useMemoryUsageBreakdownQuery: (...args: unknown[]) =>
+    mockUseMemoryUsageBreakdownQuery(...args),
   useMemoryUsageDistributionQuery: (...args: unknown[]) =>
     mockUseMemoryUsageDistributionQuery(...args),
   useHighMemoryUsageSessionsQuery: (...args: unknown[]) =>
@@ -22,6 +25,9 @@ jest.mock("@/app/query/hooks", () => ({
 jest.mock("@/app/components/filter_bar/filter_bar", () => () => null);
 jest.mock("@/app/components/memory_usage_plot", () => () => (
   <div data-testid="memory-plot" />
+));
+jest.mock("@/app/components/memory_usage_breakdown", () => () => (
+  <div data-testid="memory-breakdown" />
 ));
 jest.mock("@/app/components/memory_usage_distribution", () => () => (
   <div data-testid="memory-distribution" />
@@ -76,16 +82,21 @@ describe("MemoryPage", () => {
   });
 
   it.each(["iOS", "ipados"])(
-    "reuses all three views without process-state filtering for %s",
+    "reuses all four views without process-state filtering for %s",
     (osName) => {
       const filterParams = setApp("apple-app", osName);
       render(<MemoryPage params={params} />);
 
       expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
       expect(screen.getByTestId("memory-plot")).toBeInTheDocument();
+      expect(screen.getByTestId("memory-breakdown")).toBeInTheDocument();
       expect(screen.getByTestId("memory-distribution")).toBeInTheDocument();
       expect(screen.getByTestId("high-memory-sessions")).toBeInTheDocument();
       expect(mockUseMemoryUsagePlotQuery).toHaveBeenLastCalledWith(
+        filterParams,
+        undefined,
+      );
+      expect(mockUseMemoryUsageBreakdownQuery).toHaveBeenLastCalledWith(
         filterParams,
         undefined,
       );
@@ -110,6 +121,10 @@ describe("MemoryPage", () => {
       target: { value: "Background" },
     });
     expect(setPageUrlKey).toHaveBeenCalledWith("po", "0");
+    expect(mockUseMemoryUsageBreakdownQuery).toHaveBeenLastCalledWith(
+      androidParams,
+      "background",
+    );
     expect(mockUseHighMemoryUsageSessionsQuery).toHaveBeenLastCalledWith(
       androidParams,
       "background",
@@ -120,6 +135,10 @@ describe("MemoryPage", () => {
     rerender(<MemoryPage params={params} />);
     expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
     expect(mockUseMemoryUsagePlotQuery).toHaveBeenLastCalledWith(
+      appleParams,
+      undefined,
+    );
+    expect(mockUseMemoryUsageBreakdownQuery).toHaveBeenLastCalledWith(
       appleParams,
       undefined,
     );
@@ -136,6 +155,10 @@ describe("MemoryPage", () => {
     setApp("android-app", "android");
     rerender(<MemoryPage params={params} />);
     expect(screen.getByRole("combobox")).toHaveValue("Background");
+    expect(mockUseMemoryUsageBreakdownQuery).toHaveBeenLastCalledWith(
+      androidParams,
+      "background",
+    );
     expect(mockUseHighMemoryUsageSessionsQuery).toHaveBeenLastCalledWith(
       androidParams,
       "background",

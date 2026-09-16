@@ -56,6 +56,7 @@ func TestMemoryHandlers(t *testing.T) {
 				}{
 					{"plots/usage", h.GetMemoryUsagePlot},
 					{"plots/distribution", h.GetMemoryUsageDistribution},
+					{"plots/breakdown", h.GetMemoryUsageBreakdown},
 					{"sessions/high-usage", h.GetHighMemoryUsageSessions},
 				} {
 					t.Run(endpoint.path+"/"+expr, func(t *testing.T) {
@@ -72,8 +73,16 @@ func TestMemoryHandlers(t *testing.T) {
 							if err := json.Unmarshal(w.Body.Bytes(), &points); err != nil {
 								t.Fatal(err)
 							}
-							if len(points) != 1 || points[0].SampleCount != 1 || points[0].DeviceTotalMemoryTier != "5-6gb" || points[0].P90 == nil || *points[0].P90 != 3*kbPerGB {
+							if len(points) != 1 || points[0].SampleCount != 1 || points[0].Version != "v1 (1)" || points[0].P90 == nil || *points[0].P90 != 3*kbPerGB {
 								t.Fatalf("unexpected plot: %s", w.Body.String())
+							}
+						case "plots/breakdown":
+							var points []measure.MemoryUsageBreakdownRow
+							if err := json.Unmarshal(w.Body.Bytes(), &points); err != nil {
+								t.Fatal(err)
+							}
+							if len(points) != 1 || points[0].SampleCount != 1 || points[0].SessionCount != 1 || points[0].DeviceTotalMemoryTier != "5-6gb" || points[0].P90 == nil || *points[0].P90 != 3*kbPerGB {
+								t.Fatalf("unexpected breakdown: %s", w.Body.String())
 							}
 						case "plots/distribution":
 							var points []measure.MemoryUsageDistributionPoint

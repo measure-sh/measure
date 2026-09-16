@@ -1200,8 +1200,8 @@ paths:
                       memory_usage:
                         type: object
                         description: >
-                          Use the `memory_usage` type for memory usage of JVM
-                          applications.
+                          Use the `memory_usage` type for Android process memory
+                          readings. The Memory page uses anonymous RSS + swap.
                         required:
                           - java_max_heap
                           - java_total_heap
@@ -1235,9 +1235,19 @@ paths:
                           rss:
                             type: integer
                             description: >
-                              Resident set size of the Java process, the amount of
-                              physical memory currently used by the Java application.
+                              Resident set size of the Android process, the amount of
+                              physical memory currently held by the process.
                               Measured in kB.
+                          anon_rss:
+                            type: [integer, "null"]
+                            description: Anonymous resident memory from RssAnon in /proc/self/status, in KB (1024 bytes).
+                          swap:
+                            type: [integer, "null"]
+                            description: Swapped-out memory from VmSwap in /proc/self/status, in KB (1024 bytes).
+                          app_importance:
+                            type: string
+                            enum: [foreground, user_service, background]
+                            description: Process state at collection time. Optional for older SDKs.
                           native_total_heap:
                             type: integer
                             description: >
@@ -1267,8 +1277,8 @@ paths:
                           max_memory:
                             type: integer
                             description: >
-                              Maximum size of memory available to the application, in
-                              kB.
+                              Total physical RAM of the device, in KB (1024 bytes).
+                              Used to group iOS/iPadOS samples into device memory tiers.
                           used_memory:
                             type: integer
                             description: Memory used by the application, in kB.
@@ -1318,8 +1328,8 @@ paths:
                           rss:
                             type: integer
                             description: >
-                              Resident set size of the Java process, the amount of
-                              physical memory currently used by the Java application.
+                              Resident set size of the Android process, the amount of
+                              physical memory currently held by the process.
                               Measured in kB.
                           native_total_heap:
                             type: integer

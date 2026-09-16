@@ -35,8 +35,10 @@ import {
   fetchHighMemoryUsageSessionsFromServer,
   fetchMemoryUsagePlotFromServer,
   fetchMemoryUsageDistributionFromServer,
+  fetchMemoryUsageBreakdownFromServer,
   type MemoryAppImportance,
   type MemoryUsageDistributionPoint,
+  type MemoryUsageBreakdownRow,
   type MemoryUsagePlotPoint,
   type HighMemoryUsageSessionsResponse,
   fetchNetworkEndpointsFromServer,
@@ -307,30 +309,17 @@ export function transformMemoryUsagePlotData(
   quantile: MemoryUsageQuantile,
 ) {
   if (rawData === null) return null;
-  const tierOrder = [
-    "0-4gb",
-    "5-6gb",
-    "7-8gb",
-    "9-12gb",
-    "13-16gb",
-    "16-32gb",
-    "32gb+",
-    "unknown",
-  ];
-  const pointsByTier = new Map<string, any[]>();
+  const pointsByVersion = new Map<string, any[]>();
   for (const point of rawData) {
-    const tier = point.device_total_memory_tier;
-    const data = pointsByTier.get(tier) ?? [];
+    const data = pointsByVersion.get(point.version) ?? [];
     data.push({
-      id: `${tier}.${data.length}`,
+      id: `${point.version}.${data.length}`,
       x: point.datetime,
       y: point[quantile],
     });
-    pointsByTier.set(tier, data);
+    pointsByVersion.set(point.version, data);
   }
-  return Array.from(pointsByTier, ([id, data]) => ({ id, data })).sort(
-    (a, b) => tierOrder.indexOf(a.id) - tierOrder.indexOf(b.id),
-  );
+  return Array.from(pointsByVersion, ([id, data]) => ({ id, data }));
 }
 
 /** Distribution plot: parse attribute/value pairs with OS version formatting */
@@ -750,11 +739,37 @@ export function useMemoryUsagePlotQuery(
   });
 }
 
+export function useMemoryUsageBreakdownQuery(
+  params: FilterParams | null,
+  appImportance?: MemoryAppImportance,
+) {
+  return useQuery<MemoryUsageBreakdownRow[] | null>({
+    queryKey: [
+      "memoryUsageBreakdown",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+      appImportance,
+    ] as const,
+    queryFn: () =>
+      fetchMemoryUsageBreakdownFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+        appImportance,
+      ),
+    enabled: params !== null,
+    retry: false,
+  });
+}
+
 export function useMemoryUsageDistributionQuery(
   params: FilterParams | null,
   appImportance?: MemoryAppImportance,
 ) {
-  return useQuery<MemoryUsageDistributionPoint[]>({
+  return useQuery<MemoryUsageDistributionPoint[] | null>({
     queryKey: [
       "memoryUsageDistribution",
       params?.appId,

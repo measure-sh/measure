@@ -198,6 +198,10 @@ func TestMemoryUsageQueries(t *testing.T) {
 					if err != nil {
 						t.Fatalf("memory plot: %v", err)
 					}
+					breakdown, err := f.app.GetMemoryUsageBreakdown(f.ctx, deps.RchPool, flt, importance)
+					if err != nil {
+						t.Fatalf("memory breakdown: %v", err)
+					}
 					distribution, err := f.app.GetMemoryUsageDistribution(f.ctx, deps.RchPool, flt, importance)
 					if err != nil {
 						t.Fatalf("memory distribution: %v", err)
@@ -206,23 +210,31 @@ func TestMemoryUsageQueries(t *testing.T) {
 					if err != nil {
 						t.Fatalf("high-memory sessions: %v", err)
 					}
-					// Device-memory filters still use session attributes. Until iOS
-					// fills that attribute, its sessions intentionally match unknown.
+					// This fixture models older iOS SDKs without the device-memory
+					// session attribute, whose sessions match unknown in filters.
 					excluded := filterName == "excluded" ||
 						(filterName == "device-memory-known" && osName != opsys.Android) ||
 						(filterName == "device-memory-unknown" && osName == opsys.Android)
 					if excluded {
-						if len(plot) != 0 || len(distribution) != 0 || len(sessions) != 0 || next || previous {
+						if len(breakdown) != 0 || len(plot) != 0 || len(distribution) != 0 || len(sessions) != 0 || next || previous {
 							t.Fatalf("excluded session returned data: %v / %v / %v", plot, distribution, sessions)
 						}
 						return
 					}
-					if len(plot) != 1 || plot[0].DeviceTotalMemoryTier != "5-6gb" || plot[0].SampleCount != 3 {
-						t.Fatalf("plot = %#v, want one 5-6gb point with three samples", plot)
+					if len(plot) != 1 || plot[0].Version != "v1 (1)" || plot[0].SampleCount != 3 {
+						t.Fatalf("plot = %#v, want one v1 (1) point with three samples", plot)
 					}
 					for _, quantile := range []*float64{plot[0].P50, plot[0].P90, plot[0].P95, plot[0].P99} {
 						if quantile == nil || *quantile != float64(3*memoryKBPerGB) {
 							t.Fatalf("quantile = %v, want 3 GiB in KiB", quantile)
+						}
+					}
+					if len(breakdown) != 1 || breakdown[0].DeviceTotalMemoryTier != "5-6gb" || breakdown[0].SampleCount != 3 || breakdown[0].SessionCount != 1 {
+						t.Fatalf("breakdown = %#v", breakdown)
+					}
+					for _, quantile := range []*float64{breakdown[0].P50, breakdown[0].P90, breakdown[0].P95} {
+						if quantile == nil || *quantile != float64(3*memoryKBPerGB) {
+							t.Fatalf("breakdown quantile = %v, want 3 GiB in KiB", quantile)
 						}
 					}
 					if len(distribution) != 1 || distribution[0].Bucket != "900+" || distribution[0].SampleCount != 3 || distribution[0].Percentage != 100 {
@@ -275,6 +287,10 @@ func TestMemoryUsageUnknownPlatform(t *testing.T) {
 	if err != nil || len(plot) != 0 {
 		t.Fatalf("plot = %v, err = %v", plot, err)
 	}
+	breakdown, err := app.GetMemoryUsageBreakdown(t.Context(), nil, flt, "")
+	if err != nil || len(breakdown) != 0 {
+		t.Fatalf("breakdown = %v, err = %v", breakdown, err)
+	}
 	distribution, err := app.GetMemoryUsageDistribution(t.Context(), nil, flt, "")
 	if err != nil || len(distribution) != 0 {
 		t.Fatalf("distribution = %v, err = %v", distribution, err)
@@ -320,8 +336,15 @@ func TestMemoryUsageIOSForegroundThresholds(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
+		if len(plot) != 1 || plot[0].Version != "v1 (1)" || plot[0].SampleCount != 4 {
+			t.Fatalf("importance %q: plot = %#v", importance, plot)
+		}
+		breakdown, err := f.app.GetMemoryUsageBreakdown(f.ctx, deps.RchPool, flt, importance)
+		if err != nil {
+			t.Fatal(err)
+		}
 		tiers := map[string]uint64{}
-		for _, point := range plot {
+		for _, point := range breakdown {
 			tiers[point.DeviceTotalMemoryTier] += point.SampleCount
 		}
 		if len(tiers) != 3 || tiers["32gb+"] != 2 || tiers["5-6gb"] != 1 || tiers["unknown"] != 1 {
@@ -331,5 +354,76 @@ func TestMemoryUsageIOSForegroundThresholds(t *testing.T) {
 		if err != nil || len(distribution) != 1 || distribution[0].SampleCount != 4 {
 			t.Fatalf("importance %q: distribution = %v, err = %v", importance, distribution, err)
 		}
+	}
+}
+
+// The trend pools tiers within a version/time bucket, while the table pools
+// versions and time buckets within a tier. Uneven sample counts ensure neither
+// view is computed by averaging already-aggregated percentiles.
+func TestMemoryUsageVersionTrendAndTierBreakdown(t *testing.T) {
+	for _, osName := range []string{opsys.Android, opsys.IOS} {
+		t.Run(osName, func(t *testing.T) {
+			f := newPlotFixture(t)
+			f.app.OSNames = []string{osName}
+			base := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
+			firstSession := uuid.New()
+			seed := func(id uuid.UUID, at time.Time, version, build string, ram, usage uint64, count int, importance string) {
+				t.Helper()
+				row := testinfra.EventRow{
+					Type: "memory_usage_absolute", SessionID: id.String(), Timestamp: at,
+					OSName: osName, AppVersion: version, AppBuild: build,
+					MemoryMax: ram, MemoryUsed: usage,
+				}
+				if osName == opsys.Android {
+					row.Type = "memory_usage"
+					row.DeviceTotalMemory = ram
+					row.MemoryAnonRSS = usage
+					row.MemoryAppImportance = importance
+				}
+				th.SeedEventRows(f.ctx, t, f.teamID.String(), f.appID.String(), count, row)
+			}
+			seed(firstSession, base, "1.2.3", "1", 4*memoryKBPerGB, 100*1024, 9, "foreground")
+			seed(firstSession, base.Add(time.Hour), "1.2.3", "1", 4*memoryKBPerGB, 1000*1024, 1, "foreground")
+			seed(uuid.New(), base, "1.2.3", "1", 6*memoryKBPerGB, 200*1024, 1, "foreground")
+			seed(uuid.New(), base, "1.2.3", "2", 6*memoryKBPerGB, 300*1024, 1, "foreground")
+			seed(uuid.New(), base, "2.0.0", "3", 6*memoryKBPerGB, 400*1024, 1, "foreground")
+			seed(uuid.New(), base.Add(-24*time.Hour), "old", "0", 4*memoryKBPerGB, 900*1024, 20, "foreground")
+			if osName == opsys.Android {
+				seed(uuid.New(), base, "background", "0", 4*memoryKBPerGB, 900*1024, 20, "background")
+			}
+			flt := f.sessionFilter(base.Add(-time.Minute), base.Add(2*time.Hour), "UTC", "")
+			flt.PlotTimeGroup = filter.PlotTimeGroupHours
+			plot, err := f.app.GetMemoryUsagePlot(f.ctx, deps.RchPool, flt, "foreground")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(plot) != 4 {
+				t.Fatalf("plot = %#v, want four version/time buckets", plot)
+			}
+			counts := map[string]uint64{}
+			for _, point := range plot {
+				counts[point.Version] += point.SampleCount
+				if point.SampleCount == 10 && (point.P50 == nil || *point.P50 != 100*1024) {
+					t.Fatalf("pooled median = %v, want 100 MB", point.P50)
+				}
+			}
+			if counts["1.2.3 (1)"] != 11 || counts["1.2.3 (2)"] != 1 || counts["2.0.0 (3)"] != 1 {
+				t.Fatalf("version sample counts = %v", counts)
+			}
+			breakdown, err := f.app.GetMemoryUsageBreakdown(f.ctx, deps.RchPool, flt, "foreground")
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(breakdown) != 2 {
+				t.Fatalf("breakdown = %#v, want two tiers", breakdown)
+			}
+			low, high := breakdown[0], breakdown[1]
+			if low.DeviceTotalMemoryTier != "0-4gb" || low.SampleCount != 10 || low.SessionCount != 1 || low.P50 == nil || *low.P50 != 100*1024 {
+				t.Fatalf("low-memory tier = %#v, want 10 samples from one session with a 100 MB median", low)
+			}
+			if high.DeviceTotalMemoryTier != "5-6gb" || high.SampleCount != 3 || high.SessionCount != 3 || high.P50 == nil || *high.P50 != 300*1024 {
+				t.Fatalf("high-memory tier = %#v, want samples across all three versions with a 300 MB median", high)
+			}
+		})
 	}
 }
