@@ -28,12 +28,7 @@ export default function MemoryUsageBreakdown({
 
   return (
     <section className="w-full font-body">
-      <h2 className="mb-2 font-display text-xl">
-        Breakdown by device total memory
-      </h2>
-      <p className="mb-4 text-sm text-muted-foreground">
-        Memory usage percentiles across samples in the selected date range.
-      </p>
+      <h2 className="mb-2 font-display text-xl">Breakdown</h2>
       {status === "pending" && <LoadingBar />}
       {status === "error" && (
         <p className="text-sm text-muted-foreground">
@@ -49,13 +44,12 @@ export default function MemoryUsageBreakdown({
               <TableHead className="text-right">P90</TableHead>
               <TableHead className="text-right">P95</TableHead>
               <TableHead className="text-right">Sessions</TableHead>
-              <TableHead className="text-right">Samples</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="font-body tabular-nums">
             {!data?.length ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-36 text-center text-sm">
+                <TableCell colSpan={5} className="h-36 text-center text-sm">
                   No memory samples found.
                 </TableCell>
               </TableRow>
@@ -76,9 +70,6 @@ export default function MemoryUsageBreakdown({
                   </TableCell>
                   <TableCell className="text-right">
                     {row.session_count.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {row.sample_count.toLocaleString()}
                   </TableCell>
                 </TableRow>
               ))

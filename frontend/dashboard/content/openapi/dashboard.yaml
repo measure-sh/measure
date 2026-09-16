@@ -2613,8 +2613,9 @@ paths:
         - Memory
       summary: Fetch memory usage by device tier
       description: >-
-        Returns the tier table: p50, p90 and p95 across the entire selected date range and
-        matching app versions, plus distinct session counts and sample counts. Rows are
+        Returns p50, p90 and p95 across the entire selected date range and matching app
+        versions, plus distinct session counts and sample counts. The dashboard table
+        displays the percentiles and session counts. Rows are
         ordered from the smallest device tier to the largest, followed by Unknown; tiers
         without samples are omitted. Tiers use device RAM on Android and the memory sample's
         max_memory on iOS/iPadOS. The device-memory session filter uses the session

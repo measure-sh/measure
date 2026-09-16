@@ -57,11 +57,6 @@ export default function MemoryUsagePlot({
 
   return (
     <section className="w-full font-body">
-      <h2 className="mb-2 font-display text-xl">Memory usage by app version</h2>
-      <p className="mb-4 text-sm text-muted-foreground">
-        Sample percentiles over time, grouped by app version and build across
-        device memory tiers.
-      </p>
       <div className="flex items-center justify-center w-full h-144">
         {status === "pending" && <SkeletonPlot />}
         {status === "error" && (

@@ -57,8 +57,8 @@ The footprint is read with [`task_info`](https://web.mit.edu/darwin/src/modules/
 The Memory page shows four views for the selected app, date range and session filters:
 
 - **Memory usage by app version:** a full-width time-series chart with one line per app version and build. Each time bucket pools samples across device memory tiers. Select p50, p90, p95 or p99; p90 is selected by default.
-- **Breakdown by device total memory:** a table with p50, p90 and p95 memory usage, distinct session counts and sample counts for each device memory tier. Each percentile is calculated from samples across the whole selected date range and matching app versions.
-- **Memory usage distribution:** the percentage of samples in 100 MB ranges, from 0–100 MB through 800–900 MB, with a final 900 MB+ range. Hover to see sample counts.
+- **Breakdown:** a table with p50, p90 and p95 memory usage and distinct session counts for each device memory tier. Each percentile is calculated from samples across the whole selected date range and matching app versions.
+- **Distribution:** the percentage of samples in 100 MB ranges, from 0–100 MB through 800–900 MB, with a final 900 MB+ range. Hover to see sample counts.
 - **Sessions with high memory usage:** sessions whose p90 usage exceeds the configured target for their device memory tier and process state. Rows show p90 usage, the percentage of the target, and the session start time. Open a row to inspect its replay.
 
 On Android, all four views use anonymous RSS + swap. The **App importance** selector offers Foreground (the default), User service and Background. Samples from older SDKs with no process-state label are included in Foreground. On iOS and iPadOS, the views use the reported physical footprint (or its resident-size fallback); there is no App importance selector, and high-memory sessions use the foreground targets.

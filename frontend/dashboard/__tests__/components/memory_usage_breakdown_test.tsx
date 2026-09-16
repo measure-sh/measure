@@ -2,7 +2,7 @@ import "@testing-library/jest-dom";
 import { render, screen, within } from "@testing-library/react";
 import MemoryUsageBreakdown from "@/app/components/memory_usage_breakdown";
 
-it("shows tier percentiles and sample/session counts, including unknown memory", () => {
+it("shows tier percentiles and session counts, including unknown memory", () => {
   render(
     <MemoryUsageBreakdown
       query={
@@ -35,7 +35,9 @@ it("shows tier percentiles and sample/session counts, including unknown memory",
   expect(within(row).getByText("200 MB")).toBeInTheDocument();
   expect(within(row).getByText("2.00 GB")).toBeInTheDocument();
   expect(within(row).getByText("2")).toBeInTheDocument();
-  expect(within(row).getByText("1,200")).toBeInTheDocument();
+  expect(
+    screen.queryByRole("columnheader", { name: "Samples" }),
+  ).not.toBeInTheDocument();
   const unknown = screen.getByText("Unknown").closest("tr")!;
   expect(within(unknown).getAllByText("—")).toHaveLength(3);
 });
