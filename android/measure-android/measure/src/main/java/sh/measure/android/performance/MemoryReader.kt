@@ -1,9 +1,11 @@
 package sh.measure.android.performance
 
+import android.os.Build
 import android.os.Debug
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.DebugProvider
+import sh.measure.android.utils.OsVersionProvider
 import sh.measure.android.utils.ProcProvider
 import sh.measure.android.utils.RuntimeProvider
 
@@ -59,6 +61,7 @@ internal class DefaultMemoryReader(
     private val debugProvider: DebugProvider,
     private val runtimeProvider: RuntimeProvider,
     private val procProvider: ProcProvider,
+    private val osVersionProvider: OsVersionProvider,
 ) : MemoryReader {
     override fun maxHeapSize() = runtimeProvider.maxMemory() / BYTES_TO_KB_FACTOR
 
@@ -80,16 +83,22 @@ internal class DefaultMemoryReader(
             lines.forEach { line ->
                 when (line.substringBefore(':')) {
                     "VmRSS" -> rss = parseStatusMemoryKB(line)
-                    "RssAnon" -> anonRss = parseStatusMemoryKB(line)
+                    "RssAnon" -> if (collectsAnonRss()) anonRss = parseStatusMemoryKB(line)
                     "VmSwap" -> swap = parseStatusMemoryKB(line)
                 }
             }
         }
-        ProcStatusMemory(rss, anonRss, swap)
+        if (anonRss == null || swap == null) {
+            ProcStatusMemory(rss = rss)
+        } else {
+            ProcStatusMemory(rss = rss, anonRss = anonRss, swap = swap)
+        }
     } catch (e: Exception) {
         logger.log(LogLevel.Debug, "Failed to read memory from /proc/self/status", e)
         ProcStatusMemory()
     }
+
+    private fun collectsAnonRss(): Boolean = osVersionProvider.sdkInt >= Build.VERSION_CODES.P
 
     private fun parseStatusMemoryKB(line: String): Long? {
         // Linux reports these fields in kB, where 1 kB is 1024 bytes.

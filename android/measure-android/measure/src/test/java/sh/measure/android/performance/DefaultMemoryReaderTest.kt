@@ -1,11 +1,13 @@
 package sh.measure.android.performance
 
+import android.os.Build
 import android.os.Debug
 import org.junit.Assert
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TemporaryFolder
 import sh.measure.android.fakes.FakeDebugProvider
+import sh.measure.android.fakes.FakeOsVersionProvider
 import sh.measure.android.fakes.FakeProcProvider
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.utils.DefaultRuntimeProvider
@@ -17,11 +19,14 @@ internal class DefaultMemoryReaderTest {
     // Using the real implementation of RuntimeProvider as it is available in tests.
     private val runtimeProvider = DefaultRuntimeProvider()
 
+    private val osVersionProvider = FakeOsVersionProvider()
+
     private val memoryReader = DefaultMemoryReader(
         logger = NoopLogger(),
         debugProvider = debugProvider,
         runtimeProvider = runtimeProvider,
         procProvider = procProvider,
+        osVersionProvider = osVersionProvider,
     )
 
     @get:Rule
@@ -66,10 +71,10 @@ internal class DefaultMemoryReaderTest {
     }
 
     @Test
-    fun `missing fields are unavailable while zero swap is valid`() {
+    fun `missing anonymous RSS leaves swap unavailable too`() {
         procProvider.statusContent = "VmRSS: 5000 kB\nVmSwap: 0 kB"
 
-        Assert.assertEquals(ProcStatusMemory(rss = 5000, swap = 0), memoryReader.readProcStatus())
+        Assert.assertEquals(ProcStatusMemory(rss = 5000), memoryReader.readProcStatus())
     }
 
     @Test
@@ -77,8 +82,16 @@ internal class DefaultMemoryReaderTest {
         for (invalid in listOf("broken kB", "-1 kB", "9223372036854775808 kB", "123 MB", "123", "")) {
             procProvider.statusContent = "VmRSS: 5000 kB\nRssAnon: $invalid\nVmSwap: 200 kB"
 
-            Assert.assertEquals(ProcStatusMemory(rss = 5000, swap = 200), memoryReader.readProcStatus())
+            Assert.assertEquals(ProcStatusMemory(rss = 5000), memoryReader.readProcStatus())
         }
+    }
+
+    @Test
+    fun `anonymous RSS and swap are not collected below android 9`() {
+        osVersionProvider.sdkInt = Build.VERSION_CODES.O_MR1
+        procProvider.statusContent = "VmRSS: 5000 kB\nRssAnon: 4000 kB\nVmSwap: 200 kB"
+
+        Assert.assertEquals(ProcStatusMemory(rss = 5000), memoryReader.readProcStatus())
     }
 
     @Test
