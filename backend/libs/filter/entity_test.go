@@ -1210,14 +1210,14 @@ func TestDeviceTotalMemoryBindsRanges(t *testing.T) {
 	stmt, err := bindColumn(SessionsEntity.Columns, Condition{
 		KeyName:  "device_total_memory",
 		Operator: OperatorIn,
-		Values:   []Value{{Text: "16-32gb"}},
+		Values:   []Value{{Text: "17-31gb"}},
 	})
 	if err != nil {
 		t.Fatalf("bind device memory: %v", err)
 	}
 	defer stmt.Close()
 
-	want := "(device_total_memory >= 16777216 and device_total_memory < 33554432)"
+	want := "(device_total_memory >= 17825792 and device_total_memory < 33554432)"
 	if got := stmt.String(); got != want {
 		t.Errorf("want %s, got %s", want, got)
 	}

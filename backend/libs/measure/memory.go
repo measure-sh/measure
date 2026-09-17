@@ -233,7 +233,7 @@ func (a App) GetMemoryUsageBreakdown(ctx context.Context, rch driver.Conn, flt *
 		Select("uniqExact(e.session_id) AS session_count").
 		Select("count() AS sample_count").
 		GroupBy("device_total_memory_tier").
-		OrderBy("indexOf(['0-4gb', '5-6gb', '7-8gb', '9-12gb', '13-16gb', '16-32gb', '32gb+', 'unknown'], device_total_memory_tier)")
+		OrderBy("indexOf(['0-4gb', '5-6gb', '7-8gb', '9-12gb', '13-16gb', '17-31gb', '32gb+', 'unknown'], device_total_memory_tier)")
 	defer stmt.Close()
 
 	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
@@ -515,8 +515,8 @@ func memoryTierExpression(column string) string {
 		column + " < 7340032, '5-6gb', " +
 		column + " < 9437184, '7-8gb', " +
 		column + " < 13631488, '9-12gb', " +
-		column + " < 16777216, '13-16gb', " +
-		column + " < 33554432, '16-32gb', " +
+		column + " < 17825792, '13-16gb', " +
+		column + " < 33554432, '17-31gb', " +
 		"'32gb+')"
 }
 

@@ -17,8 +17,8 @@ var deviceMemoryRanges = []struct {
 	{"5-6gb", 5 * memoryKBPerGB, 7 * memoryKBPerGB},
 	{"7-8gb", 7 * memoryKBPerGB, 9 * memoryKBPerGB},
 	{"9-12gb", 9 * memoryKBPerGB, 13 * memoryKBPerGB},
-	{"13-16gb", 13 * memoryKBPerGB, 16 * memoryKBPerGB},
-	{"16-32gb", 16 * memoryKBPerGB, 32 * memoryKBPerGB},
+	{"13-16gb", 13 * memoryKBPerGB, 17 * memoryKBPerGB},
+	{"17-31gb", 17 * memoryKBPerGB, 32 * memoryKBPerGB},
 	{"32gb+", 32 * memoryKBPerGB, 0},
 }
 

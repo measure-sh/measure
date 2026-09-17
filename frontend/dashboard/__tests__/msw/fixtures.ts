@@ -1505,7 +1505,7 @@ export function makeSessionsFilterKeysFixture(
           "7-8gb",
           "9-12gb",
           "13-16gb",
-          "16-32gb",
+          "17-31gb",
           "32gb+",
           "unknown",
         ],
