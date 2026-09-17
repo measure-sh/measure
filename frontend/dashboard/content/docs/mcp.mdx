@@ -10,26 +10,189 @@ Measure exposes a [Model Context Protocol](https://modelcontextprotocol.io) (MCP
 
 The [Model Context Protocol](https://modelcontextprotocol.io) is an open standard that allows AI tools to interact with external data sources through a consistent interface. With Measure's MCP server, you can ask AI assistants to look up crashes, analyze error trends and inspect stack traces without leaving your editor.
 
-## Connecting to MCP via Coding Agents
+## Setup
 
-You can connect your favorite coding agents to Measure as a remote MCP server.
+You can connect Measure's remote MCP server to any client with the endpoint:
 
-The MCP endpoint is available at:
+| Version     | Endpoint                                  |
+| ----------- | ----------------------------------------- |
+| Cloud       | `https://agent.measure.sh/mcp`            |
+| Self Hosted | `https://[your-measure-agent-domain]/mcp` |
 
-| Version     | Endpoint                                      |
-| ----------- | --------------------------------------------- |
-| Cloud       | `https://agent.measure.sh/mcp`                |
-| Self Hosted | `https://[your-measure-agent-domain]/mcp`     |
+The examples below use the cloud endpoint. If you self-host Measure, replace it with your own agent domain.
 
-Refer to your coding agent's documentation for the specific steps to add a remote MCP server. A few popular agent docs are linked here:
-- [**Claude Code**](https://code.claude.com/docs/en/mcp)
-- [**OpenAI Codex**](https://developers.openai.com/codex/mcp/)
-- [**Google Antigravity**](https://antigravity.google/docs/mcp)
-- [**Android Studio**](https://developer.android.com/studio/gemini/add-mcp-server)
-- [**VS Code**](https://code.visualstudio.com/docs/agent-customization/mcp-servers)
-- [**Cursor**](https://cursor.com/docs/context/mcp)
+<Tabs items={["Claude Code", "Codex", "Cursor", "VS Code", "Claude Desktop", "Android Studio", "Antigravity", "Zed", "opencode", "Other"]}>
 
-When you first use a Measure tool, your coding agent will open a browser window for you to sign in to Measure. After authenticating subsequent requests will work automatically.
+<Tab value="Claude Code">
+
+Add the server from the terminal:
+
+```sh
+claude mcp add --transport http measure https://agent.measure.sh/mcp
+```
+
+Or add it to `.mcp.json` in your project:
+
+```json
+{
+  "mcpServers": {
+    "measure": {
+      "type": "http",
+      "url": "https://agent.measure.sh/mcp"
+    }
+  }
+}
+```
+
+</Tab>
+
+<Tab value="Codex">
+
+Add the server from the terminal:
+
+```sh
+codex mcp add measure --url https://agent.measure.sh/mcp
+```
+
+Or add it to `~/.codex/config.toml`:
+
+```toml
+[mcp_servers.measure]
+url = "https://agent.measure.sh/mcp"
+```
+
+</Tab>
+
+<Tab value="Cursor">
+
+Add the server to `~/.cursor/mcp.json` to use it everywhere, or to `.cursor/mcp.json` to scope it to one project:
+
+```json
+{
+  "mcpServers": {
+    "measure": {
+      "url": "https://agent.measure.sh/mcp"
+    }
+  }
+}
+```
+
+</Tab>
+
+<Tab value="VS Code">
+
+Add the server to `.vscode/mcp.json` in your workspace, or open your user config with the **MCP: Open User Configuration** command and add it there:
+
+```json
+{
+  "servers": {
+    "measure": {
+      "type": "http",
+      "url": "https://agent.measure.sh/mcp"
+    }
+  }
+}
+```
+
+</Tab>
+
+<Tab value="Claude Desktop">
+
+Open **Settings > Connectors**, click **Add custom connector**, name it `measure` and enter `https://agent.measure.sh/mcp` as the remote MCP server URL.
+
+</Tab>
+
+<Tab value="Android Studio">
+
+Go to **Settings > Tools > AI > MCP Servers**, select **Enable MCP Servers** and add:
+
+```json
+{
+  "mcpServers": {
+    "measure": {
+      "httpUrl": "https://agent.measure.sh/mcp"
+    }
+  }
+}
+```
+
+</Tab>
+
+<Tab value="Antigravity">
+
+Open **Settings > Customizations > Installed MCP Servers**, click **Manage MCP Servers**, then **View raw config** and add:
+
+```json
+{
+  "mcpServers": {
+    "measure": {
+      "serverUrl": "https://agent.measure.sh/mcp"
+    }
+  }
+}
+```
+
+Antigravity requires the `serverUrl` field for remote servers; `url` and `httpUrl` are not supported.
+
+</Tab>
+
+<Tab value="Zed">
+
+Open **Settings > AI > MCP Servers**, click **Add Server** and choose **Add Remote Server**, or add the entry to your `settings.json` directly:
+
+```json
+{
+  "context_servers": {
+    "measure": {
+      "url": "https://agent.measure.sh/mcp"
+    }
+  }
+}
+```
+
+</Tab>
+
+<Tab value="opencode">
+
+Add the server to `opencode.json`:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "measure": {
+      "type": "remote",
+      "url": "https://agent.measure.sh/mcp",
+      "enabled": true
+    }
+  }
+}
+```
+
+</Tab>
+
+<Tab value="Other">
+
+Any client that supports remote MCP servers over streamable HTTP can connect by pointing at `https://agent.measure.sh/mcp`. Check your client's documentation for where its MCP config lives and which field name it uses for the URL.
+
+If your client only supports local MCP servers, bridge to the remote one with [`mcp-remote`](https://www.npmjs.com/package/mcp-remote):
+
+```json
+{
+  "mcpServers": {
+    "measure": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://agent.measure.sh/mcp"]
+    }
+  }
+}
+```
+
+</Tab>
+
+</Tabs>
+
+When you first use a Measure tool, your client opens a browser window for you to sign in to Measure. Subsequent requests work automatically.
 
 ## Available Tools
 
