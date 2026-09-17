@@ -30,13 +30,17 @@ func TestMemoryHandlers(t *testing.T) {
 			}
 			const kbPerGB = 1024 * 1024
 			available := uint64(kbPerGB)
+			anonRSS := uint64(3 * kbPerGB)
+			backgroundAnonRSS := uint64(4 * kbPerGB)
+			noSwap := uint64(0)
 			row := testinfra.EventRow{
 				Type: "memory_usage_absolute", SessionID: sessionID.String(), Timestamp: base,
 				OSName: osName, MemoryUsed: 3 * kbPerGB, MemoryMax: 5 * kbPerGB, MemoryAvailable: &available,
 			}
 			if osName == "android" {
 				row.Type = "memory_usage"
-				row.MemoryAnonRSS = 3 * kbPerGB
+				row.MemoryAnonRSS = &anonRSS
+				row.MemorySwap = &noSwap
 				row.DeviceTotalMemory = 5 * kbPerGB
 				row.MemoryAppImportance = "foreground"
 			}
@@ -46,7 +50,7 @@ func TestMemoryHandlers(t *testing.T) {
 				background := row
 				background.SessionID = uuid.NewString()
 				background.MemoryAppImportance = "background"
-				background.MemoryAnonRSS = 4 * kbPerGB
+				background.MemoryAnonRSS = &backgroundAnonRSS
 				seedEventRows(ctx, t, teamID.String(), appID.String(), 1, background)
 			}
 

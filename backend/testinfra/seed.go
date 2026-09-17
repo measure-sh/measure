@@ -309,8 +309,8 @@ type EventRow struct {
 	PatchVersion      string
 
 	// Memory usage values are written only for memory_usage events.
-	MemoryAnonRSS       uint64
-	MemorySwap          uint64
+	MemoryAnonRSS       *uint64
+	MemorySwap          *uint64
 	MemoryAppImportance string
 
 	// Absolute memory values are written only for memory_usage_absolute events.
@@ -472,10 +472,16 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 		vals = append(vals, strconv.FormatUint(row.DeviceTotalMemory, 10))
 	}
 	if row.Type == "memory_usage" {
-		cols = append(cols,
-			"`memory_usage.anon_rss`", "`memory_usage.swap`", "`memory_usage.app_importance`")
-		vals = append(vals,
-			strconv.FormatUint(row.MemoryAnonRSS, 10), strconv.FormatUint(row.MemorySwap, 10), quote(row.MemoryAppImportance))
+		cols = append(cols, "`memory_usage.app_importance`")
+		vals = append(vals, quote(row.MemoryAppImportance))
+		if row.MemoryAnonRSS != nil {
+			cols = append(cols, "`memory_usage.anon_rss`")
+			vals = append(vals, strconv.FormatUint(*row.MemoryAnonRSS, 10))
+		}
+		if row.MemorySwap != nil {
+			cols = append(cols, "`memory_usage.swap`")
+			vals = append(vals, strconv.FormatUint(*row.MemorySwap, 10))
+		}
 	}
 	if row.Type == "memory_usage_absolute" {
 		cols = append(cols, "`memory_usage_absolute.used_memory`", "`memory_usage_absolute.max_memory`")

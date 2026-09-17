@@ -134,7 +134,8 @@ func TestGetHighMemoryUsageSessionsUsesP90AndProcessState(t *testing.T) {
 			SessionID:           sessionID.String(),
 			Timestamp:           timestamp,
 			DeviceTotalMemory:   deviceMemory,
-			MemoryAnonRSS:       anonRSS,
+			MemoryAnonRSS:       memoryKB(anonRSS),
+			MemorySwap:          memoryKB(0),
 			MemoryAppImportance: importance,
 		})
 	}
@@ -187,22 +188,28 @@ func TestMemoryUsageQueries(t *testing.T) {
 			if osName == opsys.Android {
 				row.Type = "memory_usage"
 				row.DeviceTotalMemory = 5 * memoryKBPerGB
-				row.MemoryAnonRSS = 2 * memoryKBPerGB
-				row.MemorySwap = memoryKBPerGB
+				row.MemoryAnonRSS = memoryKB(2 * memoryKBPerGB)
+				row.MemorySwap = memoryKB(memoryKBPerGB)
 				row.MemoryAppImportance = "foreground"
 			}
 			th.SeedEventRows(f.ctx, t, f.teamID.String(), f.appID.String(), 3, row)
 
-			// Neither zero-usage samples nor the other platform's event may count.
+			// Zero-usage samples, samples the device could not measure, and the other
+			// platform's event may not count.
 			zero := row
-			zero.MemoryUsed, zero.MemoryAnonRSS, zero.MemorySwap = 0, 0, 0
+			zero.MemoryUsed, zero.MemoryAnonRSS, zero.MemorySwap = 0, memoryKB(0), memoryKB(0)
 			th.SeedEventRows(f.ctx, t, f.teamID.String(), f.appID.String(), 1, zero)
+			if osName == opsys.Android {
+				unavailable := row
+				unavailable.MemoryAnonRSS, unavailable.MemorySwap = nil, nil
+				th.SeedEventRows(f.ctx, t, f.teamID.String(), f.appID.String(), 1, unavailable)
+			}
 			other := row
 			other.Type = "memory_usage"
 			if osName == opsys.Android {
 				other.Type = "memory_usage_absolute"
 			}
-			other.MemoryAnonRSS = 10 * memoryKBPerGB
+			other.MemoryAnonRSS = memoryKB(10 * memoryKBPerGB)
 			other.MemoryUsed = 10 * memoryKBPerGB
 			th.SeedEventRows(f.ctx, t, f.teamID.String(), f.appID.String(), 1, other)
 
@@ -521,7 +528,8 @@ func TestMemoryUsageVersionTrendAndTierBreakdown(t *testing.T) {
 				if osName == opsys.Android {
 					row.Type = "memory_usage"
 					row.DeviceTotalMemory = ram
-					row.MemoryAnonRSS = usage
+					row.MemoryAnonRSS = memoryKB(usage)
+					row.MemorySwap = memoryKB(0)
 					row.MemoryAppImportance = importance
 				}
 				th.SeedEventRows(f.ctx, t, f.teamID.String(), f.appID.String(), count, row)
@@ -573,6 +581,10 @@ func TestMemoryUsageVersionTrendAndTierBreakdown(t *testing.T) {
 }
 
 func memoryHeadroom(kb uint64) *uint64 {
+	return &kb
+}
+
+func memoryKB(kb uint64) *uint64 {
 	return &kb
 }
 

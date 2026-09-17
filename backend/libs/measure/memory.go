@@ -297,9 +297,14 @@ func (a App) GetMemoryUsageDistribution(ctx context.Context, rch driver.Conn, fl
 	var counts []bucketCount
 	for rows.Next() {
 		var item bucketCount
-		if err := rows.Scan(&item.bucket, &item.count); err != nil {
+		var bucket *uint64
+		if err := rows.Scan(&bucket, &item.count); err != nil {
 			return nil, err
 		}
+		if bucket == nil {
+			continue
+		}
+		item.bucket = *bucket
 		counts = append(counts, item)
 		total += item.count
 	}
@@ -417,13 +422,15 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 	defer rows.Close()
 	for rows.Next() {
 		var session HighMemoryUsageSession
-		var p90Memory float64
+		var p90Memory *float64
 		session.AppID = flt.AppID
 		session.Attribute = new(event.Attribute)
 		if err := rows.Scan(&session.SessionID, &session.Attribute.AppVersion, &session.Attribute.AppBuild, &session.Attribute.OSName, &session.Attribute.OSVersion, &session.Attribute.DeviceName, &session.Attribute.DeviceModel, &session.Attribute.DeviceManufacturer, &session.FirstEventTime, &session.LastEventTime, &p90Memory, &session.Attribute.DeviceTotalMemory, &session.TargetMemoryKB, &session.PercentOfTarget, &session.P90MemoryLimitUtilization); err != nil {
 			return nil, false, false, err
 		}
-		session.P90MemoryKB = uint64(math.Round(p90Memory))
+		if p90Memory != nil {
+			session.P90MemoryKB = uint64(math.Round(*p90Memory))
+		}
 		sessions = append(sessions, session)
 	}
 	if err := rows.Err(); err != nil {

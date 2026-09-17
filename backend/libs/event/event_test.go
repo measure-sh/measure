@@ -297,8 +297,8 @@ func TestMemoryUsageFields(t *testing.T) {
 		panic(err)
 	}
 
-	if memoryUsage.AnonRSS != 1234 || memoryUsage.Swap != 56 {
-		t.Errorf("Expected anon_rss=1234 and swap=56, but got anon_rss=%d and swap=%d", memoryUsage.AnonRSS, memoryUsage.Swap)
+	if memoryUsage.AnonRSS == nil || *memoryUsage.AnonRSS != 1234 || memoryUsage.Swap == nil || *memoryUsage.Swap != 56 {
+		t.Errorf("Expected anon_rss=1234 and swap=56, but got anon_rss=%v and swap=%v", memoryUsage.AnonRSS, memoryUsage.Swap)
 	}
 }
 
