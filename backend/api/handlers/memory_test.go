@@ -29,9 +29,10 @@ func TestMemoryHandlers(t *testing.T) {
 				t.Fatal(err)
 			}
 			const kbPerGB = 1024 * 1024
+			available := uint64(kbPerGB)
 			row := testinfra.EventRow{
 				Type: "memory_usage_absolute", SessionID: sessionID.String(), Timestamp: base,
-				OSName: osName, MemoryUsed: 3 * kbPerGB, MemoryMax: 5 * kbPerGB,
+				OSName: osName, MemoryUsed: 3 * kbPerGB, MemoryMax: 5 * kbPerGB, MemoryAvailable: &available,
 			}
 			if osName == "android" {
 				row.Type = "memory_usage"
@@ -41,14 +42,32 @@ func TestMemoryHandlers(t *testing.T) {
 			}
 			seedEventRows(ctx, t, teamID.String(), appID.String(), 1, row)
 
-			for _, expr := range []string{"", "version_name:not_in:v2 AND os_name:in:" + osName} {
+			if osName == "android" {
+				background := row
+				background.SessionID = uuid.NewString()
+				background.MemoryAppImportance = "background"
+				background.MemoryAnonRSS = 4 * kbPerGB
+				seedEventRows(ctx, t, teamID.String(), appID.String(), 1, background)
+			}
+
+			// An omitted or empty Android filter must exclude the background sample,
+			// exactly as an explicit foreground filter does, on all four endpoints.
+			for _, request := range []struct {
+				name   string
+				params url.Values
+			}{
+				{name: "omitted importance"},
+				{name: "empty importance", params: url.Values{"app_importance": {""}}},
+				{name: "foreground", params: url.Values{"app_importance": {"foreground"}}},
+				{name: "session filter", params: url.Values{"filter_expr": {"version_name:not_in:v2 AND os_name:in:" + osName}}},
+			} {
 				params := url.Values{
 					"from":     {base.Add(-time.Minute).Format("2006-01-02T15:04:05.000Z")},
 					"to":       {base.Add(time.Minute).Format("2006-01-02T15:04:05.000Z")},
 					"timezone": {"UTC"},
 				}
-				if expr != "" {
-					params.Set("filter_expr", expr)
+				for key, values := range request.params {
+					params[key] = values
 				}
 				for _, endpoint := range []struct {
 					path   string
@@ -59,7 +78,7 @@ func TestMemoryHandlers(t *testing.T) {
 					{"plots/breakdown", h.GetMemoryUsageBreakdown},
 					{"sessions/high-usage", h.GetHighMemoryUsageSessions},
 				} {
-					t.Run(endpoint.path+"/"+expr, func(t *testing.T) {
+					t.Run(endpoint.path+"/"+request.name, func(t *testing.T) {
 						c, w := newTestGinContext("GET", "/apps/"+appID.String()+"/memory/"+endpoint.path+"?"+params.Encode(), nil)
 						c.Set("userId", ownerID)
 						c.Params = gin.Params{{Key: "id", Value: appID.String()}}
@@ -99,8 +118,33 @@ func TestMemoryHandlers(t *testing.T) {
 							if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
 								t.Fatal(err)
 							}
-							if len(result.Results) != 1 || result.Results[0].SessionID != sessionID || result.Results[0].TargetMemoryKB != 9*kbPerGB/4 {
+							if len(result.Results) != 1 || result.Results[0].SessionID != sessionID {
 								t.Fatalf("unexpected sessions: %s", w.Body.String())
+							}
+							session := result.Results[0]
+							if osName == "android" {
+								if session.TargetMemoryKB == nil {
+									t.Fatal("missing Android memory target")
+								}
+								if got := *session.TargetMemoryKB; got != 9*kbPerGB/4 {
+									t.Errorf("Android target = %d KiB, want %d", got, 9*kbPerGB/4)
+								}
+								if session.P90MemoryLimitUtilization != nil {
+									t.Errorf("Android process-limit utilization = %v, want omitted", *session.P90MemoryLimitUtilization)
+								}
+							} else {
+								if session.P90MemoryLimitUtilization == nil {
+									t.Fatal("missing iOS process-limit utilization")
+								}
+								if got := *session.P90MemoryLimitUtilization; got != 0.75 {
+									t.Errorf("iOS process-limit utilization = %v, want 0.75", got)
+								}
+								if session.TargetMemoryKB != nil {
+									t.Errorf("iOS target_memory_kb = %d, want omitted", *session.TargetMemoryKB)
+								}
+								if session.PercentOfTarget != nil {
+									t.Errorf("iOS percent_of_target = %v, want omitted", *session.PercentOfTarget)
+								}
 							}
 						}
 					})

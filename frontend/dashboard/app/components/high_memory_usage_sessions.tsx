@@ -145,11 +145,9 @@ export default function HighMemoryUsageSessions({
                         <div className="pointer-events-none p-4">
                           <p>{formatMemory(session.p90_memory_kb)} used</p>
                           <p className="text-xs text-muted-foreground">
-                            of{" "}
-                            {formatMemory(
-                              session.attribute.device_total_memory,
-                            )}{" "}
-                            total
+                            {session.attribute.device_total_memory > 0
+                              ? `of ${formatMemory(session.attribute.device_total_memory)} total`
+                              : "Total RAM unavailable"}
                           </p>
                         </div>
                       </TableCell>

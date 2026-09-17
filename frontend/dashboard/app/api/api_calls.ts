@@ -90,8 +90,9 @@ export type HighMemoryUsageSession = {
   first_event_time: string;
   last_event_time: string;
   p90_memory_kb: number;
-  target_memory_kb: number;
-  percent_of_target: number;
+  target_memory_kb?: number;
+  percent_of_target?: number;
+  p90_memory_limit_utilization?: number;
   attribute: {
     app_version: string;
     app_build: string;

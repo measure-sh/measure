@@ -1282,6 +1282,15 @@ paths:
                           used_memory:
                             type: integer
                             description: Memory used by the application, in kB.
+                          available_memory:
+                            type: integer
+                            minimum: 0
+                            description: >
+                              Remaining process allocation headroom reported by
+                              os_proc_available_memory(), in KB (1024 bytes).
+                              Optional; omitted when unavailable, including Simulator
+                              and resident-size fallback samples. Zero means no remaining
+                              headroom. This advisory value can change during a session.
                           interval:
                             type: integer
                             description: >

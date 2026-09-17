@@ -2478,6 +2478,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			`lifecycle_swift_ui.class_name`,
 			`memory_usage_absolute.max_memory`,
 			`memory_usage_absolute.used_memory`,
+			`memory_usage_absolute.available_memory`,
 			`memory_usage_absolute.interval`,
 		}...)
 	}
@@ -2805,6 +2806,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 				&lifecycleSwiftUI.ClassName,
 				&memoryUsageAbs.MaxMemory,
 				&memoryUsageAbs.UsedMemory,
+				&memoryUsageAbs.AvailableMemory,
 				&memoryUsageAbs.Interval,
 			}...)
 		}

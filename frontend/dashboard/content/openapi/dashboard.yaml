@@ -1942,6 +1942,10 @@ paths:
                         used_memory:
                           type: number
                           description: Physical footprint (or resident-size fallback) in KB (1024 bytes).
+                        available_memory:
+                          type: integer
+                          minimum: 0
+                          description: Remaining process allocation headroom in KB (1024 bytes). Omitted when unavailable; zero means exhausted headroom.
                         interval:
                           type: number
                           description: Collection interval in milliseconds.
@@ -2727,13 +2731,17 @@ paths:
         - Memory
       summary: Fetch sessions with high memory usage
       description: >-
-        Returns sessions whose p90 of matching samples is strictly above the configured
-        target for the device memory tier and process state. iOS/iPadOS always uses
-        foreground targets. Unknown device RAM has no target and is excluded. Results are
-        ordered by percentage of target descending, then session end time descending and
-        session ID descending. Session start and end times describe the session, while p90
-        is calculated only from samples within the selected date range. The dashboard
-        displays five sessions per page.
+        On Android, returns sessions whose p90 usage is strictly above the configured
+        device-RAM and process-state target; unknown RAM has no target. On iOS/iPadOS,
+        returns sessions whose p90 of per-sample used_memory / (used_memory + available_memory)
+        is at least 0.75. Only iOS samples with reported headroom participate; zero headroom
+        is valid, whereas missing headroom is excluded. Device RAM does not set the iOS limit.
+        Results are ordered by percentage of target on Android or p90 process-limit utilization
+        on iOS, descending, then session end time and session ID descending. Session start
+        and end times describe the session, while percentiles use only matching samples
+        within the selected date range. The dashboard displays five sessions per page.
+        The iOS cutoff follows KSCrash's critical memory level and is a monitoring heuristic,
+        not a guarantee of OS termination.
 
 
         Memory is measured in KB (1024 bytes): anonymous RSS + swap on Android, and reported
@@ -5863,15 +5871,14 @@ components:
       name: app_importance
       in: query
       required: false
-      description: Android process-state filter. Omitted or empty includes all states; the
-        dashboard sends foreground by default. Foreground also includes samples with an empty
-        state label. Valid values are accepted but ignored on iOS/iPadOS, which always uses
-        foreground high-memory targets. When omitted on Android, the high-memory endpoint
-        pools all states and uses foreground targets.
+      description: Android process-state filter. Omitted or empty defaults to foreground
+        on all memory endpoints, matching the dashboard. Foreground also includes samples
+        from older SDKs with an empty state label. This parameter is ignored on iOS/iPadOS,
+        which uses process-limit utilization for high-memory selection.
       schema:
         type: string
+        default: foreground
         enum:
-          - ""
           - foreground
           - user_service
           - background
@@ -6043,8 +6050,6 @@ components:
         - first_event_time
         - last_event_time
         - p90_memory_kb
-        - target_memory_kb
-        - percent_of_target
       properties:
         session_id:
           type: string
@@ -6063,10 +6068,15 @@ components:
           description: Session p90 of matching samples, rounded to the nearest KB (1024 bytes).
         target_memory_kb:
           type: integer
-          description: Configured target in KB for the device tier and process state.
+          description: Android-only configured target in KB for the device tier and process state. Omitted on iOS/iPadOS.
         percent_of_target:
           type: number
-          description: 100 * p90 memory / target, calculated before rounding p90 to integer KB.
+          description: Android-only 100 * p90 memory / target, calculated before rounding p90 to integer KB. Omitted on iOS/iPadOS.
+        p90_memory_limit_utilization:
+          type: number
+          minimum: 0
+          maximum: 1
+          description: iOS/iPadOS-only p90 of per-sample footprint / (footprint + remaining headroom), as a ratio from 0 to 1. Omitted on Android.
         attribute:
           type: object
           additionalProperties: true

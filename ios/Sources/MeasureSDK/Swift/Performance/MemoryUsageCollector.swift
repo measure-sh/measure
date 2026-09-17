@@ -95,15 +95,16 @@ final class BaseMemoryUsageCollector: MemoryUsageCollector {
         isTrackingInProgress = true
         defer { isTrackingInProgress = false }
 
-        guard let usedMemory = memoryUsageCalculator.getCurrentMemoryUsage() else {
+        guard let memory = memoryUsageCalculator.getCurrentMemoryUsage() else {
             logger.internalLog(level: .error, message: "Could not get memory usage data.", error: nil, data: nil)
             return
         }
 
         let intervalMs: UnsignedNumber = UnsignedNumber(configProvider.memoryUsageInterval * 1000)
         let data = MemoryUsageData(maxMemory: sysCtl.getMaximumAvailableRam(),
-                                   usedMemory: usedMemory,
-                                   interval: intervalMs)
+                                   usedMemory: memory.usedMemory,
+                                   interval: intervalMs,
+                                   availableMemory: memory.availableMemory)
         signalProcessor.track(data: data,
                               timestamp: timeProvider.now(),
                               type: .memoryUsageAbsolute,

@@ -628,9 +628,10 @@ type MemoryUsage struct {
 }
 
 type MemoryUsageAbs struct {
-	MaxMemory  uint64 `json:"max_memory" binding:"required"`
-	UsedMemory uint64 `json:"used_memory" binding:"required"`
-	Interval   uint64 `json:"interval" binding:"required"`
+	MaxMemory       uint64  `json:"max_memory" binding:"required"`
+	UsedMemory      uint64  `json:"used_memory" binding:"required"`
+	Interval        uint64  `json:"interval" binding:"required"`
+	AvailableMemory *uint64 `json:"available_memory,omitempty"` // Process headroom in KiB; nil is unknown, zero is exhausted.
 }
 
 type LowMemory struct {
