@@ -38,8 +38,8 @@ func DeleteStaleData(ctx context.Context) {
 	// delete stale mcp auth codes
 	deleteStaleMCPAuthCodes(ctx)
 
-	// delete stale mcp access tokens
-	deleteStaleMCPAccessTokens(ctx)
+	// delete stale mcp auth sessions
+	deleteStaleMCPAuthSessions(ctx)
 
 	// delete stale invites
 	deleteStaleInvites(ctx)
@@ -144,22 +144,22 @@ func deleteStaleMCPAuthCodes(ctx context.Context) {
 	fmt.Printf("Successfully deleted stale mcp auth codes\n")
 }
 
-// deleteStaleMCPAccessTokens deletes MCP access tokens that have expired
-// or been revoked
-func deleteStaleMCPAccessTokens(ctx context.Context) {
+// deleteStaleMCPAuthSessions deletes MCP sessions that have passed the
+// expiry time of their refresh token
+func deleteStaleMCPAuthSessions(ctx context.Context) {
 	threshold := time.Now()
-	stmt := sqlf.PostgreSQL.DeleteFrom("mcp_access_tokens").
-		Where("(expires_at < ? or revoked)", threshold)
+	stmt := sqlf.PostgreSQL.DeleteFrom("mcp_auth_sessions").
+		Where("rt_expiry_at < ?", threshold)
 
 	defer stmt.Close()
 
 	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
-		fmt.Printf("Failed to delete stale mcp access tokens: %v\n", err)
+		fmt.Printf("Failed to delete stale mcp auth sessions: %v\n", err)
 		return
 	}
 
-	fmt.Printf("Successfully deleted stale mcp access tokens\n")
+	fmt.Printf("Successfully deleted stale mcp auth sessions\n")
 }
 
 // deleteStaleInvites deletes stale invites that

@@ -13,6 +13,11 @@ import (
 	"github.com/leporo/sqlf"
 )
 
+// AudienceMCP marks a token as issued for the MCP endpoint. The dashboard and
+// the agent sign with the same key, so this is used to differentiate between
+// them.
+const AudienceMCP = "mcp"
+
 const accessTokenExpiryDuration = 30 * time.Minute
 const refreshTokenExpiryDuration = 7 * 24 * time.Hour
 
@@ -29,14 +34,17 @@ type AuthSession struct {
 	CreatedAt            time.Time
 }
 
-// createAccessToken creates a new access token.
-func createAccessToken(jti, userId uuid.UUID, secret []byte, expiry time.Time) (token string, err error) {
+func CreateAccessToken(secret []byte, jti, sessionID, userId uuid.UUID, expiry time.Time, audience string) (token string, err error) {
 	claims := jwt.MapClaims{
 		"iat": time.Now().Unix(),
 		"sub": userId.String(),
 		"jti": jti.String(),
+		"sid": sessionID.String(),
 		"exp": expiry.Unix(),
 		"iss": "measure",
+	}
+	if audience != "" {
+		claims["aud"] = audience
 	}
 
 	tokenCursor := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -48,11 +56,14 @@ func createAccessToken(jti, userId uuid.UUID, secret []byte, expiry time.Time) (
 	return
 }
 
-// createRefreshToken creates a new refresh token.
-func createRefreshToken(secret []byte, jti uuid.UUID, expiry time.Time) (token string, err error) {
+func CreateRefreshToken(secret []byte, jti, sessionID uuid.UUID, expiry time.Time, audience string) (token string, err error) {
 	claims := jwt.MapClaims{
 		"jti": jti.String(),
+		"sid": sessionID.String(),
 		"exp": expiry.Unix(),
+	}
+	if audience != "" {
+		claims["aud"] = audience
 	}
 
 	tokenCursor := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
@@ -81,14 +92,14 @@ func NewAuthSession(accessSecret, refreshSecret []byte, userId uuid.UUID, provid
 	atSecret := accessSecret
 	atExpiryAt := now.Add(accessTokenExpiryDuration)
 
-	accessToken, err := createAccessToken(authSession.ID, userId, atSecret, atExpiryAt)
+	accessToken, err := CreateAccessToken(atSecret, authSession.ID, authSession.ID, userId, atExpiryAt, "")
 	if err != nil {
 		return
 	}
 
 	rtSecret := refreshSecret
 	rtExpiryAt := now.Add(refreshTokenExpiryDuration)
-	refreshToken, err := createRefreshToken(rtSecret, authSession.ID, rtExpiryAt)
+	refreshToken, err := CreateRefreshToken(rtSecret, authSession.ID, authSession.ID, rtExpiryAt, "")
 	if err != nil {
 		return
 	}

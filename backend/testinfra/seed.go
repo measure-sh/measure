@@ -2,8 +2,6 @@ package testinfra
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"fmt"
 	"strconv"
 	"strings"
@@ -1389,13 +1387,12 @@ func (h *TestHelper) SeedSpan(
 
 // SeedMCPClient inserts a row into measure.mcp_clients.
 // The clientSecret is stored as a sha256 hex hash of rawSecret.
-func (h *TestHelper) SeedMCPClient(ctx context.Context, t *testing.T, clientID, clientName string, redirectURIs []string, rawSecret string) {
+func (h *TestHelper) SeedMCPClient(ctx context.Context, t *testing.T, clientID, clientName string, redirectURIs []string) {
 	t.Helper()
-	hash := sha256HexTestinfra(rawSecret)
 	_, err := h.PgPool.Exec(ctx,
-		`INSERT INTO measure.mcp_clients (client_id, client_secret, client_name, redirect_uris)
-		 VALUES ($1, $2, $3, $4)`,
-		clientID, hash, clientName, redirectURIs)
+		`INSERT INTO measure.mcp_clients (client_id, client_name, redirect_uris)
+		 VALUES ($1, $2, $3)`,
+		clientID, clientName, redirectURIs)
 	if err != nil {
 		t.Fatalf("seed mcp_client: %v", err)
 	}
@@ -1421,31 +1418,28 @@ func (h *TestHelper) SeedMCPAuthCode(ctx context.Context, t *testing.T, code, us
 	}
 }
 
-// SeedMCPAccessToken hashes rawToken and inserts a row into measure.mcp_access_tokens.
-// When providerToken is non-empty, provider and provider_token_checked_at are also set.
-// If provider is empty and providerToken is non-empty, defaults to "github".
-func (h *TestHelper) SeedMCPAccessToken(ctx context.Context, t *testing.T, rawToken, userID, clientID string, expiresAt time.Time, providerToken, provider string) {
+// SeedMCPAuthSession inserts a row into measure.mcp_auth_sessions under the
+// given session id. When providerToken is non-empty, provider and
+// provider_token_checked_at are also set, and an empty provider defaults to
+// "github".
+func (h *TestHelper) SeedMCPAuthSession(ctx context.Context, t *testing.T, sessionID, userID, clientID, refreshTokenID string, atExpiry, rtExpiry time.Time, providerToken, provider string) {
 	t.Helper()
-	hash := sha256HexTestinfra(rawToken)
+	if providerToken != "" && provider == "" {
+		provider = "github"
+	}
+	var (
+		prov *string
+		pt   *string
+	)
 	if providerToken != "" {
-		if provider == "" {
-			provider = "github"
-		}
-		_, err := h.PgPool.Exec(ctx,
-			`INSERT INTO measure.mcp_access_tokens (token_hash, user_id, client_id, expires_at, provider, provider_token, provider_token_checked_at)
-			 VALUES ($1, $2, $3, $4, $5, $6, now())`,
-			hash, userID, clientID, expiresAt, provider, providerToken)
-		if err != nil {
-			t.Fatalf("seed mcp_access_token: %v", err)
-		}
-	} else {
-		_, err := h.PgPool.Exec(ctx,
-			`INSERT INTO measure.mcp_access_tokens (token_hash, user_id, client_id, expires_at)
-			 VALUES ($1, $2, $3, $4)`,
-			hash, userID, clientID, expiresAt)
-		if err != nil {
-			t.Fatalf("seed mcp_access_token: %v", err)
-		}
+		prov, pt = &provider, &providerToken
+	}
+	_, err := h.PgPool.Exec(ctx,
+		`INSERT INTO measure.mcp_auth_sessions (id, user_id, client_id, provider, provider_token, provider_token_checked_at, rt_jti, at_expiry_at, rt_expiry_at)
+		 VALUES ($1, $2, $3, $4, $5, now(), $6, $7, $8)`,
+		sessionID, userID, clientID, prov, pt, refreshTokenID, atExpiry, rtExpiry)
+	if err != nil {
+		t.Fatalf("seed mcp_auth_session: %v", err)
 	}
 }
 
@@ -1488,10 +1482,4 @@ func (h *TestHelper) SeedUrlPattern(
 	if err := h.ChConn.Exec(ctx, query); err != nil {
 		t.Fatalf("seed url_patterns: %v", err)
 	}
-}
-
-// sha256HexTestinfra returns the hex-encoded SHA-256 hash of s.
-func sha256HexTestinfra(s string) string {
-	h := sha256.Sum256([]byte(s))
-	return hex.EncodeToString(h[:])
 }

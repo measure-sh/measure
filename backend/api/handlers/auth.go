@@ -44,6 +44,18 @@ func extractToken(c *gin.Context) (token string) {
 	return
 }
 
+// rejectMCPToken ends the request when the caller presents a token the agent
+// created for MCP.
+func rejectMCPToken(c *gin.Context, claims jwt.MapClaims) bool {
+	if aud, _ := claims["aud"].(string); aud != authsession.AudienceMCP {
+		return false
+	}
+	c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+		"error": "this token is not valid for the dashboard API",
+	})
+	return true
+}
+
 // extractRefreshToken extracts the refresh token
 // from the cookie or Authorization header
 func extractRefreshToken(c *gin.Context) (token string) {
@@ -121,6 +133,10 @@ func (h Handlers) ValidateAccessToken() gin.HandlerFunc {
 		}
 
 		if claims, ok := accessToken.Claims.(jwt.MapClaims); ok {
+			if rejectMCPToken(c, claims) {
+				return
+			}
+
 			sessionId := claims["jti"]
 			c.Set("sessionId", sessionId)
 
@@ -173,6 +189,10 @@ func (h Handlers) ValidateRefreshToken() gin.HandlerFunc {
 		}
 
 		if claims, ok := refreshToken.Claims.(jwt.MapClaims); ok {
+			if rejectMCPToken(c, claims) {
+				return
+			}
+
 			jti := claims["jti"]
 			c.Set("jti", jti.(string))
 		} else {

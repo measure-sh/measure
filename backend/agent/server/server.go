@@ -278,7 +278,7 @@ func NewConfig() *Config {
 		log.Printf("failed to read SESSION_ACCESS_SECRET: %v", atErr)
 	}
 	if atSecret == "" {
-		log.Println("SESSION_ACCESS_SECRET env var is not set, dashboard authn won't work")
+		log.Println("SESSION_ACCESS_SECRET env var is not set, MCP sign-in won't work")
 	}
 
 	rtSecret, secErr := secret.FromEnvOrFile("SESSION_REFRESH_SECRET")
@@ -286,7 +286,7 @@ func NewConfig() *Config {
 		log.Printf("failed to read SESSION_REFRESH_SECRET: %v", secErr)
 	}
 	if rtSecret == "" {
-		log.Println("SESSION_REFRESH_SECRET env var is not set, dashboard authn won't work")
+		log.Println("SESSION_REFRESH_SECRET env var is not set, MCP sign-in won't work")
 	}
 
 	postgresDSN, secErr := secret.FromEnvOrFile("POSTGRES_DSN")

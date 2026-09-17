@@ -200,6 +200,8 @@ services:
       - oauth-google-secret
       - oauth-github-secret
       - llm-agent-key
+      - session-access-secret
+      - session-refresh-secret
     environment:
       - AGENT_ENABLED=${AGENT_ENABLED}
       - BILLING_ENABLED=${BILLING_ENABLED}
@@ -225,6 +227,8 @@ services:
       - OAUTH_GOOGLE_SECRET_FILE=/run/secrets/oauth-google-secret
       - OAUTH_GITHUB_KEY=${OAUTH_GITHUB_KEY}
       - OAUTH_GITHUB_SECRET_FILE=/run/secrets/oauth-github-secret
+      - SESSION_ACCESS_SECRET_FILE=/run/secrets/session-access-secret
+      - SESSION_REFRESH_SECRET_FILE=/run/secrets/session-refresh-secret
       - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
       - POSTHOG_HOST=${POSTHOG_HOST:-}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}

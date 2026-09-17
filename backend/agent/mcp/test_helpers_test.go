@@ -4,6 +4,7 @@ package mcp
 
 import (
 	"backend/agent/server"
+	"backend/libs/authsession"
 	"backend/libs/autumn"
 	"backend/testinfra"
 	"context"
@@ -43,8 +44,10 @@ func TestMain(m *testing.M) {
 		RchPool: chConn,
 		VK:      vk,
 		Config: &server.Config{
-			BillingEnabled: true,
-			AgentEnabled:   true,
+			BillingEnabled:     true,
+			AgentEnabled:       true,
+			AccessTokenSecret:  []byte("test-access-secret-at-least-32-characters"),
+			RefreshTokenSecret: []byte("test-refresh-secret-at-least-32-character"),
 		},
 	}
 	h = NewHandlers(deps)
@@ -213,8 +216,8 @@ func newTestGinContext(method, path string, body io.Reader) (*gin.Context, *http
 // MCP seed / read helpers
 // --------------------------------------------------------------------------
 
-func seedMCPClient(ctx context.Context, t *testing.T, clientID, clientName string, redirectURIs []string, rawSecret string) {
-	th.SeedMCPClient(ctx, t, clientID, clientName, redirectURIs, rawSecret)
+func seedMCPClient(ctx context.Context, t *testing.T, clientID, clientName string, redirectURIs []string) {
+	th.SeedMCPClient(ctx, t, clientID, clientName, redirectURIs)
 }
 
 func seedMCPAuthCode(ctx context.Context, t *testing.T, code, userID, clientID, redirectURI, codeChallenge string, expiresAt time.Time) {
@@ -225,34 +228,85 @@ func seedMCPAuthCodeWithProvider(ctx context.Context, t *testing.T, code, userID
 	th.SeedMCPAuthCode(ctx, t, code, userID, clientID, redirectURI, codeChallenge, expiresAt, providerToken, provider)
 }
 
-func seedMCPAccessToken(ctx context.Context, t *testing.T, rawToken, userID, clientID string, expiresAt time.Time) {
-	th.SeedMCPAccessToken(ctx, t, rawToken, userID, clientID, expiresAt, "", "")
+// seedMCPSession opens a session and returns a signed access token for it.
+func seedMCPSession(ctx context.Context, t *testing.T, userID, clientID string, expiresAt time.Time) string {
+	return seedMCPSessionWithProvider(ctx, t, userID, clientID, expiresAt, "", "")
 }
 
-func seedMCPAccessTokenWithProvider(ctx context.Context, t *testing.T, rawToken, userID, clientID string, expiresAt time.Time, providerToken, provider string) {
-	th.SeedMCPAccessToken(ctx, t, rawToken, userID, clientID, expiresAt, providerToken, provider)
+func seedMCPSessionWithProvider(ctx context.Context, t *testing.T, userID, clientID string, expiresAt time.Time, providerToken, provider string) string {
+	t.Helper()
+	sessionID := uuid.New()
+	th.SeedMCPAuthSession(ctx, t, sessionID.String(), userID, clientID, sessionID.String(), expiresAt, time.Now().Add(mcpRefreshTokenExpiry), providerToken, provider)
+	token, err := authsession.CreateAccessToken(deps.Config.AccessTokenSecret, sessionID, sessionID, uuid.MustParse(userID), expiresAt, authsession.AudienceMCP)
+	if err != nil {
+		t.Fatalf("sign access token: %v", err)
+	}
+	return token
 }
 
-type mcpAccessTokenRow struct {
+func seedMCPRefreshToken(t *testing.T, sessionID uuid.UUID, expiresAt time.Time) string {
+	return seedMCPRefreshTokenWithID(t, sessionID, sessionID, expiresAt)
+}
+
+func seedMCPRefreshTokenWithID(t *testing.T, sessionID, tokenID uuid.UUID, expiresAt time.Time) string {
+	t.Helper()
+	token, err := authsession.CreateRefreshToken(deps.Config.RefreshTokenSecret, tokenID, sessionID, expiresAt, authsession.AudienceMCP)
+	if err != nil {
+		t.Fatalf("sign refresh token: %v", err)
+	}
+	return token
+}
+
+// ageProviderCheck backdates a session's provider check so the next refresh
+// re-validates it.
+func ageProviderCheck(ctx context.Context, t *testing.T, sessionID uuid.UUID) {
+	t.Helper()
+	if _, err := th.PgPool.Exec(ctx,
+		`UPDATE measure.mcp_auth_sessions SET provider_token_checked_at = now() - interval '2 hours' WHERE id = $1`,
+		sessionID); err != nil {
+		t.Fatalf("age provider check: %v", err)
+	}
+}
+
+func sessionIDOf(t *testing.T, rawToken string) uuid.UUID {
+	t.Helper()
+	claims, err := mcpParseSignedToken(rawToken, deps.Config.AccessTokenSecret)
+	if err != nil {
+		claims, err = mcpParseSignedToken(rawToken, deps.Config.RefreshTokenSecret)
+	}
+	if err != nil {
+		t.Fatalf("parse token: %v", err)
+	}
+	claim := "jti"
+	if _, ok := claims["sid"]; ok {
+		claim = "sid"
+	}
+	id, idErr := mcpClaimUUID(claims, claim)
+	if idErr != nil {
+		t.Fatalf("read %s: %v", claim, idErr)
+	}
+	return id
+}
+
+type mcpSessionRow struct {
 	ID                     uuid.UUID
-	TokenHash              string
 	UserID                 uuid.UUID
 	ClientID               string
-	ExpiresAt              time.Time
 	Provider               *string
 	ProviderToken          *string
 	ProviderTokenCheckedAt *time.Time
-	LastUsedAt             *time.Time
-	Revoked                bool
+	RefreshTokenID         uuid.UUID
+	AccessExpiresAt        time.Time
+	RefreshExpiresAt       time.Time
 }
 
-func getMCPAccessToken(ctx context.Context, t *testing.T, tokenHash string) *mcpAccessTokenRow {
+func getMCPSession(ctx context.Context, t *testing.T, sessionID uuid.UUID) *mcpSessionRow {
 	t.Helper()
-	var r mcpAccessTokenRow
+	var r mcpSessionRow
 	err := th.PgPool.QueryRow(ctx,
-		`SELECT id, token_hash, user_id, client_id, expires_at, provider, provider_token, provider_token_checked_at, last_used_at, revoked
-		 FROM measure.mcp_access_tokens WHERE token_hash = $1`, tokenHash).
-		Scan(&r.ID, &r.TokenHash, &r.UserID, &r.ClientID, &r.ExpiresAt, &r.Provider, &r.ProviderToken, &r.ProviderTokenCheckedAt, &r.LastUsedAt, &r.Revoked)
+		`SELECT id, user_id, client_id, provider, provider_token, provider_token_checked_at, rt_jti, at_expiry_at, rt_expiry_at
+		 FROM measure.mcp_auth_sessions WHERE id = $1`, sessionID).
+		Scan(&r.ID, &r.UserID, &r.ClientID, &r.Provider, &r.ProviderToken, &r.ProviderTokenCheckedAt, &r.RefreshTokenID, &r.AccessExpiresAt, &r.RefreshExpiresAt)
 	if err != nil {
 		return nil
 	}

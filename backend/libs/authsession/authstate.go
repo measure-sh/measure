@@ -10,6 +10,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -22,6 +23,11 @@ var ErrInvalidOAuthCode = errors.New("invalid oauth code")
 
 // errBodyLimit caps how much of a provider's response body ends up in an error.
 const errBodyLimit = 256
+
+// providerClient bounds every call to GitHub and Google. The MCP token
+// endpoint waits on one of these inline, so a provider that accepts a
+// connection and never answers would otherwise hold a request open.
+var providerClient = &http.Client{Timeout: 10 * time.Second}
 
 // AuthState represents temporary state
 // to store code and other details during
@@ -132,12 +138,16 @@ func doGitHub(path, token string) (body []byte, err error) {
 
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", token))
 
-	client := &http.Client{}
-	resp, err := client.Do(req)
+	resp, err := providerClient.Do(req)
 	if err != nil {
 		return
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusUnauthorized {
+		err = fmt.Errorf("github rejected the token: %w", ErrProviderAccessRevoked)
+		return
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		err = fmt.Errorf(`failed to retrieve github oauth primary email, status code: %d`, resp.StatusCode)
@@ -151,6 +161,11 @@ func doGitHub(path, token string) (body []byte, err error) {
 
 	return
 }
+
+// ErrProviderAccessRevoked is returned only for a definite rejection. A
+// GitHub 403 lockout, a Google 401 for our own bad credentials, a timeout or
+// a 5xx say nothing about the token and must not be treated as a revocation.
+var ErrProviderAccessRevoked = errors.New("provider access revoked")
 
 // GetGitHubUser fetches user info from GitHub.
 func GetGitHubUser(token string) (user GitHubUser, err error) {
@@ -213,7 +228,7 @@ func ExchangeGitHubCodeForToken(code, redirectURI, clientID, clientSecret string
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	req.Header.Set("Accept", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	resp, err := providerClient.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -273,7 +288,7 @@ func ExchangeGoogleCode(code, redirectURI, clientID, clientSecret string) (refre
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, doErr := http.DefaultClient.Do(req)
+	resp, doErr := providerClient.Do(req)
 	if doErr != nil {
 		return "", "", doErr
 	}
@@ -378,11 +393,21 @@ func ValidateGoogleRefreshToken(refreshToken, clientID, clientSecret string) err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 
-	resp, doErr := http.DefaultClient.Do(req)
+	resp, doErr := providerClient.Do(req)
 	if doErr != nil {
 		return doErr
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusBadRequest {
+		var body struct {
+			Error string `json:"error"`
+		}
+		if decErr := json.NewDecoder(resp.Body).Decode(&body); decErr == nil && body.Error == "invalid_grant" {
+			return fmt.Errorf("google rejected the refresh token: %w", ErrProviderAccessRevoked)
+		}
+		return fmt.Errorf("Google refresh token validation failed: HTTP %d", resp.StatusCode)
+	}
 
 	if resp.StatusCode != http.StatusOK {
 		return fmt.Errorf("Google refresh token validation failed: HTTP %d", resp.StatusCode)

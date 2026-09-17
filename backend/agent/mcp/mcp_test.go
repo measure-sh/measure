@@ -10,7 +10,6 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
-	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -29,7 +28,7 @@ import (
 )
 
 // ==========================================================================
-// Unit tests (ported from backend/api/mcp/oauth_test.go and token_test.go)
+// Unit tests
 // ==========================================================================
 
 func TestMCPOAuthMetadataFields(t *testing.T) {
@@ -49,6 +48,24 @@ func TestMCPOAuthMetadataFields(t *testing.T) {
 			if _, ok := m[f]; !ok {
 				t.Errorf("missing required field %q", f)
 			}
+		}
+	})
+
+	t.Run("advertises client id metadata documents, iss, and public clients", func(t *testing.T) {
+		m := mcpOAuthMetadata("https://api.example.com")
+		if m["client_id_metadata_document_supported"] != true {
+			t.Error("client_id_metadata_document_supported should be true")
+		}
+		if m["authorization_response_iss_parameter_supported"] != true {
+			t.Error("authorization_response_iss_parameter_supported should be true")
+		}
+		methods, _ := m["token_endpoint_auth_methods_supported"].([]string)
+		if !slices.Contains(methods, "none") {
+			t.Errorf("token_endpoint_auth_methods_supported = %v, want to include none", methods)
+		}
+		grants, _ := m["grant_types_supported"].([]string)
+		if !slices.Contains(grants, "refresh_token") {
+			t.Errorf("grant_types_supported = %v, want to include refresh_token", grants)
 		}
 	})
 
@@ -74,22 +91,120 @@ func TestMCPOAuthMetadataFields(t *testing.T) {
 	})
 }
 
-func TestMCPSHA256Hex(t *testing.T) {
-	t.Run("returns correct hex digest for known input", func(t *testing.T) {
-		h := sha256.Sum256([]byte("hello"))
-		want := hex.EncodeToString(h[:])
-		got := mcpSHA256Hex("hello")
-		if got != want {
-			t.Errorf("mcpSHA256Hex(\"hello\") = %s, want %s", got, want)
-		}
-	})
+func TestMCPProtectedResourceMetadataFields(t *testing.T) {
+	m := mcpProtectedResourceMetadata("https://api.example.com", "https://api.example.com/mcp")
+	if m["resource"] != "https://api.example.com/mcp" {
+		t.Errorf("resource = %v, want https://api.example.com/mcp", m["resource"])
+	}
+	servers, _ := m["authorization_servers"].([]string)
+	if !slices.Equal(servers, []string{"https://api.example.com"}) {
+		t.Errorf("authorization_servers = %v, want [https://api.example.com]", servers)
+	}
+}
 
-	t.Run("returns different digests for different inputs", func(t *testing.T) {
-		if mcpSHA256Hex("a") == mcpSHA256Hex("b") {
-			t.Error("expected different digests for different inputs")
+func TestMCPValidateResource(t *testing.T) {
+	origin := "https://api.example.com"
+	for _, tc := range []struct {
+		resource string
+		ok       bool
+	}{
+		{"", true},
+		{"https://api.example.com/mcp", true},
+		{"https://api.example.com/mcp/", true},
+		{"https://api.example.com", true},
+		{"https://api.example.com/", true},
+		{"https://other.example.com/mcp", false},
+		{"https://api.example.com/other", false},
+	} {
+		err := mcpValidateResource(origin, tc.resource)
+		if (err == nil) != tc.ok {
+			t.Errorf("mcpValidateResource(%q) error = %v, want ok=%v", tc.resource, err, tc.ok)
 		}
-	})
+	}
+}
 
+func TestMCPRedirectURIAllowed(t *testing.T) {
+	registered := []string{"https://claude.ai/api/mcp/auth_callback", "http://localhost/callback", "http://127.0.0.1/callback"}
+	for _, tc := range []struct {
+		requested string
+		ok        bool
+	}{
+		{"https://claude.ai/api/mcp/auth_callback", true},
+		{"http://localhost/callback", true},
+		{"http://localhost:3118/callback", true},
+		{"http://127.0.0.1:52000/callback", true},
+		{"http://localhost:3118/other", false},
+		{"http://localhost:3118/callback?nonce=7", false},
+		{"http://localhost:3118/callback#frag", false},
+		{"http://user:pw@localhost:3118/callback", false},
+		{"https://localhost:3118/callback", false},
+		{"https://claude.ai:8443/api/mcp/auth_callback", false},
+		{"https://evil.example.com/callback", false},
+	} {
+		if got := mcpRedirectURIAllowed(tc.requested, registered); got != tc.ok {
+			t.Errorf("mcpRedirectURIAllowed(%q) = %v, want %v", tc.requested, got, tc.ok)
+		}
+	}
+}
+
+func TestMCPRefuseNonPublicDial(t *testing.T) {
+	for _, tc := range []struct {
+		address string
+		ok      bool
+	}{
+		{"93.184.216.34:443", true},
+		{"[2606:2800:220:1:248:1893:25c8:1946]:443", true},
+		{"127.0.0.1:443", false},
+		{"[::1]:443", false},
+		{"10.0.0.5:8443", false},
+		{"172.16.3.4:443", false},
+		{"192.168.1.1:443", false},
+		{"169.254.169.254:80", false},
+		{"[fe80::1]:443", false},
+		{"[fc00::1]:443", false},
+		{"0.0.0.0:443", false},
+		{"0.0.0.1:443", false},
+		{"100.64.0.1:443", false},
+		{"100.100.100.200:80", false},
+		{"192.0.0.8:443", false},
+		{"198.18.0.1:443", false},
+		{"240.0.0.1:443", false},
+		{"255.255.255.255:443", false},
+		{"[fec0::1]:443", false},
+		{"[64:ff9b::a00:1]:443", false},
+		{"[2002:a00:1::1]:443", false},
+		{"[2001::1]:443", false},
+		{"[::ffff:100.64.0.1]:443", false},
+		{"[::ffff:93.184.216.34]:443", true},
+	} {
+		err := mcpRefuseNonPublicDial("tcp", tc.address, nil)
+		if (err == nil) != tc.ok {
+			t.Errorf("mcpRefuseNonPublicDial(%q) error = %v, want ok=%v", tc.address, err, tc.ok)
+		}
+	}
+}
+
+func TestMCPAppendRedirectParams(t *testing.T) {
+	params := url.Values{"code": {"abc"}, "state": {"s"}}
+	got, err := mcpAppendRedirectParams("http://127.0.0.1:52000/callback?nonce=7", params)
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, _ := url.Parse(got)
+	if u.Query().Get("nonce") != "7" || u.Query().Get("code") != "abc" || u.Query().Get("state") != "s" {
+		t.Errorf("redirect %q should keep the registered query and add the response parameters", got)
+	}
+}
+
+func TestMCPBearerChallenge(t *testing.T) {
+	want := `Bearer resource_metadata="https://api.example.com/.well-known/oauth-protected-resource/mcp"`
+	if got := mcpBearerChallenge("https://api.example.com", false); got != want {
+		t.Errorf("challenge without token = %q, want %q", got, want)
+	}
+	want = `Bearer error="invalid_token", resource_metadata="https://api.example.com/.well-known/oauth-protected-resource/mcp"`
+	if got := mcpBearerChallenge("https://api.example.com", true); got != want {
+		t.Errorf("challenge with token = %q, want %q", got, want)
+	}
 }
 
 func TestMCPVerifyPKCES256(t *testing.T) {
@@ -187,7 +302,7 @@ func TestMCPWithUserIDContext(t *testing.T) {
 }
 
 // ==========================================================================
-// OAuth integration tests (ported from mcp_oauth_test.go)
+// OAuth integration tests
 // ==========================================================================
 
 func TestMCPOAuthMetadata(t *testing.T) {
@@ -222,6 +337,48 @@ func TestMCPOAuthMetadata(t *testing.T) {
 	}
 }
 
+func TestMCPProtectedResourceMetadata(t *testing.T) {
+	setConfig(t, func(c *server.Config) {
+		c.AgentOrigin = "https://api.example.com"
+	})
+
+	c, w := newTestGinContext("GET", "/.well-known/oauth-protected-resource/mcp", nil)
+	h.MCPEndpointProtectedResourceMetadata(c)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("want 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var body map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if body["resource"] != "https://api.example.com/mcp" {
+		t.Errorf("resource = %v, want https://api.example.com/mcp", body["resource"])
+	}
+	servers, _ := body["authorization_servers"].([]any)
+	if len(servers) != 1 || servers[0] != "https://api.example.com" {
+		t.Errorf("authorization_servers = %v, want [https://api.example.com]", servers)
+	}
+}
+
+func TestMCPProtectedResourceMetadataAtRoot(t *testing.T) {
+	setConfig(t, func(c *server.Config) {
+		c.AgentOrigin = "https://api.example.com"
+	})
+
+	c, w := newTestGinContext("GET", "/.well-known/oauth-protected-resource", nil)
+	h.MCPProtectedResourceMetadata(c)
+
+	var body map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if body["resource"] != "https://api.example.com" {
+		t.Errorf("resource = %v, want the origin for the root document", body["resource"])
+	}
+}
+
 func TestMCPRegisterClient(t *testing.T) {
 	ctx := context.Background()
 
@@ -245,8 +402,8 @@ func TestMCPRegisterClient(t *testing.T) {
 		if !strings.HasPrefix(clientID, "msr_client_") {
 			t.Errorf("client_id %q missing prefix", clientID)
 		}
-		if _, ok := resp["client_secret"]; !ok {
-			t.Error("missing client_secret in response")
+		if _, ok := resp["client_secret"]; ok {
+			t.Error("a public client should not be issued a secret")
 		}
 		uris, _ := resp["redirect_uris"].([]any)
 		if len(uris) == 0 {
@@ -364,34 +521,225 @@ func TestMCPAuthorize(t *testing.T) {
 		}
 	})
 
-	t.Run("unknown client_id", func(t *testing.T) {
+	t.Run("metadata URL without a path returns 400", func(t *testing.T) {
 		cleanupAll(ctx, t)
 
 		params := url.Values{
-			"response_type": {"code"},
-			"client_id":     {"unknown"},
-			"redirect_uri":  {"http://localhost/cb"},
-			"state":         {"s"},
-			"provider":      {"github"},
+			"response_type":  {"code"},
+			"client_id":      {"https://claude.ai/"},
+			"redirect_uri":   {"http://localhost/cb"},
+			"state":          {"s"},
+			"code_challenge": {"abc123"},
+			"provider":       {"github"},
 		}
 		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
 		h.MCPAuthorize(c)
 
-		if w.Code != http.StatusBadRequest {
-			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "https URL") {
+			t.Fatalf("want 400 naming the URL requirement, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("unknown registered client_id returns 400", func(t *testing.T) {
+		cleanupAll(ctx, t)
+
+		params := url.Values{
+			"response_type":  {"code"},
+			"client_id":      {"msr_client_0123456789abcdef"},
+			"redirect_uri":   {"http://localhost/cb"},
+			"state":          {"s"},
+			"code_challenge": {"abc123"},
+			"provider":       {"github"},
+		}
+		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
+		h.MCPAuthorize(c)
+
+		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "unknown client_id") {
+			t.Fatalf("want 400 for the unknown client, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("registered client redirects to the provider", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		setConfig(t, func(c *server.Config) {
+			c.OAuthGitHubKey = "test_gh_key"
+			c.AgentOrigin = "https://api.example.com"
+			c.SiteOrigin = "https://app.example.com"
+		})
+		seedMCPClient(ctx, t, "msr_client_registered", "Cursor", []string{"https://www.cursor.com/agents/mcp/oauth/callback"})
+
+		params := url.Values{
+			"response_type":  {"code"},
+			"client_id":      {"msr_client_registered"},
+			"redirect_uri":   {"https://www.cursor.com/agents/mcp/oauth/callback"},
+			"state":          {"mystate"},
+			"code_challenge": {"abc123"},
+			"provider":       {"github"},
+		}
+		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
+		h.MCPAuthorize(c)
+
+		if w.Code != http.StatusFound || !strings.Contains(w.Header().Get("Location"), "github.com/login/oauth/authorize") {
+			t.Fatalf("want 302 to GitHub, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("registered client with another redirect_uri returns 400", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		seedMCPClient(ctx, t, "msr_client_registered2", "Cursor", []string{"https://www.cursor.com/agents/mcp/oauth/callback"})
+
+		params := url.Values{
+			"response_type":  {"code"},
+			"client_id":      {"msr_client_registered2"},
+			"redirect_uri":   {"https://evil.example.com/cb"},
+			"state":          {"mystate"},
+			"code_challenge": {"abc123"},
+			"provider":       {"github"},
+		}
+		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
+		h.MCPAuthorize(c)
+
+		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "redirect_uri not registered") {
+			t.Fatalf("want 400 for the redirect_uri, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("client metadata problems are rejected by reason", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		for _, tc := range []struct {
+			name   string
+			serve  func(w http.ResponseWriter, selfURL string)
+			reason string
+		}{
+			{"not found", func(w http.ResponseWriter, _ string) { w.WriteHeader(http.StatusNotFound) }, "did not return 200"},
+			{"redirect", func(w http.ResponseWriter, _ string) {
+				w.Header().Set("Location", "https://claude.ai/oauth/claude-code-client-metadata")
+				w.WriteHeader(http.StatusMovedPermanently)
+			}, "did not return 200"},
+			{"invalid json", func(w http.ResponseWriter, _ string) { w.Write([]byte("{not json")) }, "not valid JSON"},
+			{"oversized", func(w http.ResponseWriter, _ string) { w.Write(bytes.Repeat([]byte(" "), mcpClientMetadataMaxBytes+1)) }, "failed to read"},
+			{"no redirect uris", func(w http.ResponseWriter, selfURL string) {
+				json.NewEncoder(w).Encode(map[string]any{"client_id": selfURL, "redirect_uris": []string{}})
+			}, "no redirect_uris"},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				clientID := newTestClientMetadataServerWith(t, func(w http.ResponseWriter, selfURL string) { tc.serve(w, selfURL) })
+				params := url.Values{
+					"response_type":  {"code"},
+					"client_id":      {clientID},
+					"redirect_uri":   {"http://localhost/cb"},
+					"state":          {"s"},
+					"code_challenge": {"abc123"},
+					"provider":       {"github"},
+				}
+				c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
+				h.MCPAuthorize(c)
+				if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), tc.reason) {
+					t.Fatalf("want 400 with %q, got %d: %s", tc.reason, w.Code, w.Body.String())
+				}
+			})
+		}
+	})
+
+	t.Run("the production fetcher refuses a loopback metadata URL", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		requests := 0
+		srv := httptest.NewTLSServer(http.HandlerFunc(func(http.ResponseWriter, *http.Request) { requests++ }))
+		t.Cleanup(srv.Close)
+
+		_, err := mcpFetchClientMetadata(ctx, srv.URL+"/client-metadata.json")
+		if err == nil || !strings.Contains(err.Error(), "failed to fetch") {
+			t.Fatalf("want a fetch failure from the dial guard, got %v", err)
+		}
+		if requests != 0 {
+			t.Error("the loopback server must never be reached")
+		}
+	})
+
+	t.Run("client metadata whose client_id differs from its URL returns 400", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		clientID := newTestClientMetadataServer(t, []string{"http://localhost/cb"}, func(doc map[string]any) {
+			doc["client_id"] = "https://other.example.com/client-metadata.json"
+		})
+
+		params := url.Values{
+			"response_type":  {"code"},
+			"client_id":      {clientID},
+			"redirect_uri":   {"http://localhost/cb"},
+			"state":          {"s"},
+			"code_challenge": {"abc123"},
+			"provider":       {"github"},
+		}
+		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
+		h.MCPAuthorize(c)
+
+		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "does not match its URL") {
+			t.Fatalf("want 400 for the client_id mismatch, got %d: %s", w.Code, w.Body.String())
 		}
 	})
 
 	t.Run("redirect_uri not registered", func(t *testing.T) {
 		cleanupAll(ctx, t)
-		seedMCPClient(ctx, t, "client1", "MyApp", []string{"http://allowed.example.com/cb"}, "secret")
+		clientID := newTestClientMetadataServer(t, []string{"http://allowed.example.com/cb"}, nil)
 
 		params := url.Values{
-			"response_type": {"code"},
-			"client_id":     {"client1"},
-			"redirect_uri":  {"http://evil.example.com/cb"},
-			"state":         {"mystate"},
-			"provider":      {"github"},
+			"response_type":  {"code"},
+			"client_id":      {clientID},
+			"redirect_uri":   {"http://evil.example.com/cb"},
+			"state":          {"mystate"},
+			"code_challenge": {"abc123"},
+			"provider":       {"github"},
+		}
+		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
+		h.MCPAuthorize(c)
+
+		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "redirect_uri not registered") {
+			t.Fatalf("want 400 for the redirect_uri, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("loopback redirect_uri matches with any port", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		setConfig(t, func(c *server.Config) {
+			c.OAuthGitHubKey = "test_gh_key"
+			c.AgentOrigin = "https://api.example.com"
+			c.SiteOrigin = "https://app.example.com"
+		})
+		clientID := newTestClientMetadataServer(t, []string{"http://localhost/callback", "http://127.0.0.1/callback"}, nil)
+
+		params := url.Values{
+			"response_type":  {"code"},
+			"client_id":      {clientID},
+			"redirect_uri":   {"http://localhost:3118/callback"},
+			"state":          {"mystate"},
+			"code_challenge": {"abc123"},
+			"provider":       {"github"},
+		}
+		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
+		h.MCPAuthorize(c)
+
+		if w.Code != http.StatusFound {
+			t.Fatalf("want 302, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("resource naming another server returns 400", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		setConfig(t, func(c *server.Config) {
+			c.OAuthGitHubKey = "test_gh_key"
+			c.AgentOrigin = "https://api.example.com"
+			c.SiteOrigin = "https://app.example.com"
+		})
+		clientID := newTestClientMetadataServer(t, []string{"http://localhost:9999/cb"}, nil)
+
+		params := url.Values{
+			"response_type":  {"code"},
+			"client_id":      {clientID},
+			"redirect_uri":   {"http://localhost:9999/cb"},
+			"state":          {"mystate"},
+			"code_challenge": {"abc123"},
+			"resource":       {"https://other.example.com/mcp"},
+			"provider":       {"github"},
 		}
 		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
 		h.MCPAuthorize(c)
@@ -407,14 +755,51 @@ func TestMCPAuthorize(t *testing.T) {
 			c.OAuthGitHubKey = "test_gh_key"
 			c.AgentOrigin = "https://api.example.com"
 		})
-		seedMCPClient(ctx, t, "client_pkce", "MyApp", []string{"http://localhost:9999/cb"}, "secret")
+		clientID := newTestClientMetadataServer(t, []string{"http://localhost:9999/cb"}, nil)
 
 		params := url.Values{
 			"response_type": {"code"},
-			"client_id":     {"client_pkce"},
+			"client_id":     {clientID},
 			"redirect_uri":  {"http://localhost:9999/cb"},
 			"state":         {"mystate"},
 			"provider":      {"github"},
+		}
+		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
+		h.MCPAuthorize(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("no provider with a malformed metadata URL returns 400 before the login page", func(t *testing.T) {
+		cleanupAll(ctx, t)
+
+		params := url.Values{
+			"response_type":  {"code"},
+			"client_id":      {"https://claude.ai/"},
+			"redirect_uri":   {"http://localhost:9999/cb"},
+			"state":          {"mystate"},
+			"code_challenge": {"abc123"},
+		}
+		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
+		h.MCPAuthorize(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("no provider with an unregistered redirect_uri returns 400 before the login page", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		clientID := newTestClientMetadataServer(t, []string{"http://localhost:9999/cb"}, nil)
+
+		params := url.Values{
+			"response_type":  {"code"},
+			"client_id":      {clientID},
+			"redirect_uri":   {"https://evil.example.com/cb"},
+			"state":          {"mystate"},
+			"code_challenge": {"abc123"},
 		}
 		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
 		h.MCPAuthorize(c)
@@ -429,10 +814,11 @@ func TestMCPAuthorize(t *testing.T) {
 		setConfig(t, func(c *server.Config) {
 			c.SiteOrigin = "https://app.example.com"
 		})
+		clientID := newTestClientMetadataServer(t, []string{"http://localhost:9999/cb"}, nil)
 
 		params := url.Values{
 			"response_type":  {"code"},
-			"client_id":      {"client_html"},
+			"client_id":      {clientID},
 			"redirect_uri":   {"http://localhost:9999/cb"},
 			"state":          {"mystate"},
 			"code_challenge": {"abc123"},
@@ -465,8 +851,8 @@ func TestMCPAuthorize(t *testing.T) {
 		if q.Get("response_type") != "code" {
 			t.Errorf("response_type = %q, want code", q.Get("response_type"))
 		}
-		if q.Get("client_id") != "client_html" {
-			t.Errorf("client_id = %q, want client_html", q.Get("client_id"))
+		if q.Get("client_id") != clientID {
+			t.Errorf("client_id = %q, want %q", q.Get("client_id"), clientID)
 		}
 		if q.Get("redirect_uri") != "http://localhost:9999/cb" {
 			t.Errorf("redirect_uri = %q, want http://localhost:9999/cb", q.Get("redirect_uri"))
@@ -479,6 +865,79 @@ func TestMCPAuthorize(t *testing.T) {
 		}
 	})
 
+	t.Run("a failure after the redirect_uri check goes back to the client", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		setConfig(t, func(c *server.Config) {
+			c.AgentOrigin = "https://api.example.com"
+			c.SiteOrigin = "https://app.example.com"
+		})
+		clientID := newTestClientMetadataServer(t, []string{"http://localhost:9999/cb"}, nil)
+
+		params := url.Values{
+			"response_type":  {"code"},
+			"client_id":      {clientID},
+			"redirect_uri":   {"http://localhost:9999/cb"},
+			"state":          {"mystate"},
+			"code_challenge": {"abc123"},
+			"provider":       {"myspace"},
+		}
+		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
+		h.MCPAuthorize(c)
+
+		if w.Code != http.StatusFound {
+			t.Fatalf("want 302, got %d: %s", w.Code, w.Body.String())
+		}
+		loc, parseErr := url.Parse(w.Header().Get("Location"))
+		if parseErr != nil {
+			t.Fatalf("parse redirect location: %v", parseErr)
+		}
+		if got := loc.Scheme + "://" + loc.Host + loc.Path; got != "http://localhost:9999/cb" {
+			t.Errorf("sent to %q, want the client's redirect_uri", got)
+		}
+		q := loc.Query()
+		if q.Get("error") != "invalid_request" {
+			t.Errorf("error = %q, want invalid_request", q.Get("error"))
+		}
+		if q.Get("error_description") != "unsupported provider" {
+			t.Errorf("error_description = %q, want unsupported provider", q.Get("error_description"))
+		}
+		if q.Get("state") != "mystate" {
+			t.Errorf("state = %q, want mystate", q.Get("state"))
+		}
+		if q.Get("iss") != "https://api.example.com" {
+			t.Errorf("iss = %q, want https://api.example.com", q.Get("iss"))
+		}
+		if q.Get("code") != "" {
+			t.Error("an error response must not carry a code")
+		}
+	})
+
+	t.Run("a failure before the redirect_uri check stays in the browser", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		setConfig(t, func(c *server.Config) {
+			c.AgentOrigin = "https://api.example.com"
+		})
+		clientID := newTestClientMetadataServer(t, []string{"http://localhost:9999/cb"}, nil)
+
+		params := url.Values{
+			"response_type":  {"code"},
+			"client_id":      {clientID},
+			"redirect_uri":   {"http://localhost:9999/not-registered"},
+			"state":          {"mystate"},
+			"code_challenge": {"abc123"},
+			"provider":       {"myspace"},
+		}
+		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
+		h.MCPAuthorize(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+		}
+		if loc := w.Header().Get("Location"); loc != "" {
+			t.Errorf("an unchecked address must not be redirected to, got %q", loc)
+		}
+	})
+
 	t.Run("provider=github redirects to GitHub OAuth with unified callback and mcp_ prefix", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		setConfig(t, func(c *server.Config) {
@@ -486,15 +945,16 @@ func TestMCPAuthorize(t *testing.T) {
 			c.AgentOrigin = "https://api.example.com"
 			c.SiteOrigin = "https://app.example.com"
 		})
-		seedMCPClient(ctx, t, "client2", "MyApp", []string{"http://localhost:9999/cb"}, "secret")
+		clientID := newTestClientMetadataServer(t, []string{"http://localhost:9999/cb"}, nil)
 
 		params := url.Values{
 			"response_type":         {"code"},
-			"client_id":             {"client2"},
+			"client_id":             {clientID},
 			"redirect_uri":          {"http://localhost:9999/cb"},
 			"state":                 {"mystate"},
 			"code_challenge":        {"abc123"},
 			"code_challenge_method": {"S256"},
+			"resource":              {"https://api.example.com/mcp"},
 			"provider":              {"github"},
 		}
 		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
@@ -534,14 +994,15 @@ func TestMCPAuthorize(t *testing.T) {
 			c.AgentOrigin = "https://api.example.com"
 			c.SiteOrigin = "https://app.example.com"
 		})
-		seedMCPClient(ctx, t, "client_google", "MyApp", []string{"http://localhost:9999/cb"}, "secret")
+		clientID := newTestClientMetadataServer(t, []string{"http://localhost:9999/cb"}, nil)
 
 		params := url.Values{
 			"response_type":  {"code"},
-			"client_id":      {"client_google"},
+			"client_id":      {clientID},
 			"redirect_uri":   {"http://localhost:9999/cb"},
 			"state":          {"mystate"},
 			"code_challenge": {"abc123"},
+			"resource":       {"https://api.example.com"},
 			"provider":       {"google"},
 		}
 		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
@@ -645,7 +1106,6 @@ func TestMCPCallbackExchange(t *testing.T) {
 
 		clientID := "clientCB1"
 		redirectURI := "http://localhost:9999/cb"
-		seedMCPClient(ctx, t, clientID, "App", []string{redirectURI}, "secret")
 		storeTestStateWithProvider(ctx, t, "cbstate_gh", clientID, redirectURI, "challenge123", "mcpstate2", "github")
 
 		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "ghcode", "state": "cbstate_gh"})
@@ -669,6 +1129,9 @@ func TestMCPCallbackExchange(t *testing.T) {
 		}
 		if parsedLoc.Query().Get("state") != "mcpstate2" {
 			t.Errorf("expected state=mcpstate2, got %q", parsedLoc.Query().Get("state"))
+		}
+		if iss := parsedLoc.Query().Get("iss"); iss != deps.Config.AgentOrigin {
+			t.Errorf("expected iss=%q, got %q", deps.Config.AgentOrigin, iss)
 		}
 
 		row := getMCPAuthCode(ctx, t, authCode)
@@ -698,7 +1161,6 @@ func TestMCPCallbackExchange(t *testing.T) {
 
 		clientID := "clientCB2"
 		redirectURI := "http://localhost:9999/cb"
-		seedMCPClient(ctx, t, clientID, "App", []string{redirectURI}, "secret")
 		storeTestStateWithProvider(ctx, t, "cbstate_google", clientID, redirectURI, "challenge123", "mcpstate3", "google")
 
 		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "googlecode", "state": "cbstate_google"})
@@ -742,7 +1204,6 @@ func TestMCPCallbackExchange(t *testing.T) {
 
 		clientID := "clientCBFail"
 		redirectURI := "http://localhost:9999/cb"
-		seedMCPClient(ctx, t, clientID, "App", []string{redirectURI}, "secret")
 		storeTestStateWithProvider(ctx, t, "cbstate_ghfail", clientID, redirectURI, "challenge", "mcpstate_fail", "github")
 
 		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "ghcode", "state": "cbstate_ghfail"})
@@ -762,7 +1223,6 @@ func TestMCPCallbackExchange(t *testing.T) {
 
 		clientID := "clientCBBadCode"
 		redirectURI := "http://localhost:9999/cb"
-		seedMCPClient(ctx, t, clientID, "App", []string{redirectURI}, "secret")
 		storeTestStateWithProvider(ctx, t, "cbstate_ghbadcode", clientID, redirectURI, "challenge", "mcpstate_badcode", "github")
 
 		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "usedcode", "state": "cbstate_ghbadcode"})
@@ -782,7 +1242,6 @@ func TestMCPCallbackExchange(t *testing.T) {
 
 		clientID := "clientCBGFail"
 		redirectURI := "http://localhost:9999/cb"
-		seedMCPClient(ctx, t, clientID, "App", []string{redirectURI}, "secret")
 		storeTestStateWithProvider(ctx, t, "cbstate_gfail", clientID, redirectURI, "challenge", "mcpstate_gfail", "google")
 
 		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "googlecode", "state": "cbstate_gfail"})
@@ -802,7 +1261,6 @@ func TestMCPCallbackExchange(t *testing.T) {
 
 		clientID := "clientCBGBadCode"
 		redirectURI := "http://localhost:9999/cb"
-		seedMCPClient(ctx, t, clientID, "App", []string{redirectURI}, "secret")
 		storeTestStateWithProvider(ctx, t, "cbstate_gbadcode", clientID, redirectURI, "challenge", "mcpstate_gbadcode", "google")
 
 		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "usedcode", "state": "cbstate_gbadcode"})
@@ -829,7 +1287,6 @@ func TestMCPCallbackExchange(t *testing.T) {
 
 		clientID := "clientCBReplay"
 		redirectURI := "http://localhost:9999/cb"
-		seedMCPClient(ctx, t, clientID, "App", []string{redirectURI}, "secret")
 		storeTestStateWithProvider(ctx, t, "cbstate_replay", clientID, redirectURI, "challenge", "mcpstate_replay", "github")
 
 		body := map[string]any{"code": "ghcode", "state": "cbstate_replay"}
@@ -872,7 +1329,6 @@ func TestMCPCallbackExchange(t *testing.T) {
 
 		clientID := "clientCB3"
 		redirectURI := "http://localhost:8888/cb"
-		seedMCPClient(ctx, t, clientID, "App", []string{redirectURI}, "secret")
 		storeTestStateWithProvider(ctx, t, "cbstate_existing", clientID, redirectURI, "", "mcpstate4", "github")
 
 		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "ghcode", "state": "cbstate_existing"})
@@ -922,7 +1378,6 @@ func TestMCPToken(t *testing.T) {
 		code := "validcode123"
 		clientID := "clientD"
 		redirectURI := "http://localhost/cb"
-		seedMCPClient(ctx, t, clientID, "App", []string{redirectURI}, "secret")
 		seedMCPAuthCodeWithProvider(ctx, t, code, userID.String(), clientID, redirectURI, challenge, time.Now().Add(10*time.Minute), "ghtoken_for_test", "github")
 
 		form := url.Values{
@@ -942,11 +1397,15 @@ func TestMCPToken(t *testing.T) {
 		var resp map[string]any
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		rawToken, _ := resp["access_token"].(string)
-		if !strings.HasPrefix(rawToken, "msr_") {
-			t.Errorf("access_token %q should start with msr_", rawToken)
-		}
 		if resp["token_type"] != "Bearer" {
 			t.Errorf("token_type = %v, want Bearer", resp["token_type"])
+		}
+		if expiresIn, _ := resp["expires_in"].(float64); int(expiresIn) != int(mcpTokenExpiry.Seconds()) {
+			t.Errorf("expires_in = %v, want %d", resp["expires_in"], int(mcpTokenExpiry.Seconds()))
+		}
+		refreshToken, _ := resp["refresh_token"].(string)
+		if sessionIDOf(t, refreshToken) != sessionIDOf(t, rawToken) {
+			t.Error("both tokens should name the same session")
 		}
 
 		// Verify code is now marked used
@@ -955,14 +1414,15 @@ func TestMCPToken(t *testing.T) {
 			t.Error("code should be marked used after exchange")
 		}
 
-		// Verify token row in DB
-		tokenHash := mcpSHA256Hex(rawToken)
-		tokenRow := getMCPAccessToken(ctx, t, tokenHash)
+		tokenRow := getMCPSession(ctx, t, sessionIDOf(t, rawToken))
 		if tokenRow == nil {
-			t.Fatal("token not found in DB")
+			t.Fatal("session not found in DB")
 		}
 		if tokenRow.UserID != userID {
-			t.Errorf("token user_id = %s, want %s", tokenRow.UserID, userID)
+			t.Errorf("session user_id = %s, want %s", tokenRow.UserID, userID)
+		}
+		if tokenRow.RefreshExpiresAt.Before(time.Now().Add(89 * 24 * time.Hour)) {
+			t.Errorf("rt_expiry_at = %v, want about 90 days out", tokenRow.RefreshExpiresAt)
 		}
 		// Session binding: verify provider info is propagated
 		if tokenRow.Provider == nil || *tokenRow.Provider != "github" {
@@ -986,7 +1446,6 @@ func TestMCPToken(t *testing.T) {
 		code := "validgooglecode"
 		clientID := "clientDG"
 		redirectURI := "http://localhost/cb"
-		seedMCPClient(ctx, t, clientID, "App", []string{redirectURI}, "secret")
 		seedMCPAuthCodeWithProvider(ctx, t, code, userID.String(), clientID, redirectURI, challenge, time.Now().Add(10*time.Minute), "google_refresh_token_test", "google")
 
 		form := url.Values{
@@ -1006,18 +1465,13 @@ func TestMCPToken(t *testing.T) {
 		var resp map[string]any
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		rawToken, _ := resp["access_token"].(string)
-		if !strings.HasPrefix(rawToken, "msr_") {
-			t.Errorf("access_token %q should start with msr_", rawToken)
-		}
 
-		// Verify token row in DB has google provider
-		tokenHash := mcpSHA256Hex(rawToken)
-		tokenRow := getMCPAccessToken(ctx, t, tokenHash)
+		tokenRow := getMCPSession(ctx, t, sessionIDOf(t, rawToken))
 		if tokenRow == nil {
-			t.Fatal("token not found in DB")
+			t.Fatal("session not found in DB")
 		}
 		if tokenRow.UserID != userID {
-			t.Errorf("token user_id = %s, want %s", tokenRow.UserID, userID)
+			t.Errorf("session user_id = %s, want %s", tokenRow.UserID, userID)
 		}
 		if tokenRow.Provider == nil || *tokenRow.Provider != "google" {
 			t.Errorf("token provider = %v, want google", tokenRow.Provider)
@@ -1059,6 +1513,71 @@ func TestMCPToken(t *testing.T) {
 		}
 	})
 
+	t.Run("resource naming this server is accepted", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		setConfig(t, func(c *server.Config) {
+			c.AgentOrigin = "https://api.example.com"
+		})
+
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "resource@example.com")
+
+		verifier, challenge := makeVerifier()
+		code := "resourcecode"
+		clientID := "https://claude.ai/oauth/claude-code-client-metadata"
+		redirectURI := "http://localhost:3118/callback"
+		seedMCPAuthCodeWithProvider(ctx, t, code, userID.String(), clientID, redirectURI, challenge, time.Now().Add(10*time.Minute), "ghtoken_resource", "github")
+
+		form := url.Values{
+			"grant_type":    {"authorization_code"},
+			"code":          {code},
+			"redirect_uri":  {redirectURI},
+			"client_id":     {clientID},
+			"code_verifier": {verifier},
+			"resource":      {"https://api.example.com/mcp"},
+		}
+		c, w := newTestGinContextForm("POST", "/oauth/token", form)
+		h.MCPToken(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("want 200, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("resource naming another server returns 400", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		setConfig(t, func(c *server.Config) {
+			c.AgentOrigin = "https://api.example.com"
+		})
+
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "badresource@example.com")
+
+		verifier, challenge := makeVerifier()
+		code := "badresourcecode"
+		clientID := "https://claude.ai/oauth/claude-code-client-metadata"
+		redirectURI := "http://localhost:3118/callback"
+		seedMCPAuthCodeWithProvider(ctx, t, code, userID.String(), clientID, redirectURI, challenge, time.Now().Add(10*time.Minute), "ghtoken_badresource", "github")
+
+		form := url.Values{
+			"grant_type":    {"authorization_code"},
+			"code":          {code},
+			"redirect_uri":  {redirectURI},
+			"client_id":     {clientID},
+			"code_verifier": {verifier},
+			"resource":      {"https://other.example.com/mcp"},
+		}
+		c, w := newTestGinContextForm("POST", "/oauth/token", form)
+		h.MCPToken(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+		}
+		if codeRow := getMCPAuthCode(ctx, t, code); codeRow.Used {
+			t.Error("code should stay unused when the resource is rejected")
+		}
+	})
+
 	t.Run("valid exchange via JSON body", func(t *testing.T) {
 		cleanupAll(ctx, t)
 
@@ -1069,7 +1588,6 @@ func TestMCPToken(t *testing.T) {
 		code := "jsoncode123"
 		clientID := "clientJSON"
 		redirectURI := "http://localhost/cb"
-		seedMCPClient(ctx, t, clientID, "App", []string{redirectURI}, "secret")
 		seedMCPAuthCodeWithProvider(ctx, t, code, userID.String(), clientID, redirectURI, challenge, time.Now().Add(10*time.Minute), "ghtoken_json", "github")
 
 		jsonBody := map[string]any{
@@ -1089,8 +1607,8 @@ func TestMCPToken(t *testing.T) {
 		var resp map[string]any
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		rawToken, _ := resp["access_token"].(string)
-		if !strings.HasPrefix(rawToken, "msr_") {
-			t.Errorf("access_token %q should start with msr_", rawToken)
+		if getMCPSession(ctx, t, sessionIDOf(t, rawToken)) == nil {
+			t.Error("the issued token should name a session")
 		}
 	})
 
@@ -1103,7 +1621,6 @@ func TestMCPToken(t *testing.T) {
 		code := "nopkcecode"
 		clientID := "clientNoPKCE"
 		redirectURI := "http://localhost/cb"
-		seedMCPClient(ctx, t, clientID, "App", []string{redirectURI}, "secret")
 		// Store auth code with empty code_challenge
 		seedMCPAuthCodeWithProvider(ctx, t, code, userID.String(), clientID, redirectURI, "", time.Now().Add(10*time.Minute), "ghtoken_nopkce", "github")
 
@@ -1123,8 +1640,8 @@ func TestMCPToken(t *testing.T) {
 		var resp map[string]any
 		json.Unmarshal(w.Body.Bytes(), &resp)
 		rawToken, _ := resp["access_token"].(string)
-		if !strings.HasPrefix(rawToken, "msr_") {
-			t.Errorf("access_token %q should start with msr_", rawToken)
+		if getMCPSession(ctx, t, sessionIDOf(t, rawToken)) == nil {
+			t.Error("the issued token should name a session")
 		}
 	})
 
@@ -1166,6 +1683,11 @@ func TestMCPToken(t *testing.T) {
 		if w.Code != http.StatusBadRequest {
 			t.Fatalf("want 400, got %d", w.Code)
 		}
+		var resp map[string]any
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		if resp["error"] != "invalid_grant" {
+			t.Errorf("error = %v, want invalid_grant", resp["error"])
+		}
 	})
 
 	t.Run("expired code", func(t *testing.T) {
@@ -1185,6 +1707,11 @@ func TestMCPToken(t *testing.T) {
 
 		if w.Code != http.StatusBadRequest {
 			t.Fatalf("want 400, got %d", w.Code)
+		}
+		var resp map[string]any
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		if resp["error"] != "invalid_grant" {
+			t.Errorf("error = %v, want invalid_grant", resp["error"])
 		}
 	})
 
@@ -1254,18 +1781,297 @@ func TestMCPToken(t *testing.T) {
 }
 
 // ==========================================================================
-// Middleware & tool integration tests (ported from mcp_tools_test.go)
+// Middleware & tool integration tests
 // ==========================================================================
+
+func issueTestTokenPair(ctx context.Context, t *testing.T, userID uuid.UUID, clientID string) mcpTokenPair {
+	t.Helper()
+	code := "code_" + uuid.NewString()
+	seedMCPAuthCodeWithProvider(ctx, t, code, userID.String(), clientID, "http://localhost/cb", "", time.Now().Add(10*time.Minute), "ghtoken_"+code, "github")
+	form := url.Values{
+		"grant_type":   {"authorization_code"},
+		"code":         {code},
+		"redirect_uri": {"http://localhost/cb"},
+		"client_id":    {clientID},
+	}
+	c, w := newTestGinContextForm("POST", "/oauth/token", form)
+	h.MCPToken(c)
+	if w.Code != http.StatusOK {
+		t.Fatalf("issue token pair: want 200, got %d: %s", w.Code, w.Body.String())
+	}
+	var resp struct {
+		AccessToken  string `json:"access_token"`
+		RefreshToken string `json:"refresh_token"`
+	}
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("decode token response: %v", err)
+	}
+	return mcpTokenPair{AccessToken: resp.AccessToken, RefreshToken: resp.RefreshToken}
+}
+
+func refreshTestToken(refreshToken, clientID string) *httptest.ResponseRecorder {
+	form := url.Values{
+		"grant_type":    {"refresh_token"},
+		"refresh_token": {refreshToken},
+	}
+	if clientID != "" {
+		form.Set("client_id", clientID)
+	}
+	c, w := newTestGinContextForm("POST", "/oauth/token", form)
+	h.MCPToken(c)
+	return w
+}
+
+func TestMCPRefreshToken(t *testing.T) {
+	ctx := context.Background()
+	clientID := "https://claude.ai/oauth/claude-code-client-metadata"
+
+	oauthError := func(t *testing.T, w *httptest.ResponseRecorder) string {
+		t.Helper()
+		var resp map[string]any
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("decode error response: %v", err)
+		}
+		e, _ := resp["error"].(string)
+		return e
+	}
+
+	t.Run("a refresh token presented twice ends the session", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "reuse@example.com")
+		first := issueTestTokenPair(ctx, t, userID, clientID)
+		sessionID := sessionIDOf(t, first.AccessToken)
+
+		if w := refreshTestToken(first.RefreshToken, clientID); w.Code != http.StatusOK {
+			t.Fatalf("first refresh: want 200, got %d: %s", w.Code, w.Body.String())
+		}
+
+		w := refreshTestToken(first.RefreshToken, clientID)
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("second use: want 400, got %d: %s", w.Code, w.Body.String())
+		}
+		if getMCPSession(ctx, t, sessionID) != nil {
+			t.Error("reusing a refresh token should end the session")
+		}
+	})
+
+	t.Run("a refresh token the session never issued ends it", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "forged-rt@example.com")
+		first := issueTestTokenPair(ctx, t, userID, clientID)
+		sessionID := sessionIDOf(t, first.AccessToken)
+
+		stray := seedMCPRefreshTokenWithID(t, sessionID, uuid.New(), time.Now().Add(mcpRefreshTokenExpiry))
+		w := refreshTestToken(stray, clientID)
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+		}
+		if getMCPSession(ctx, t, sessionID) != nil {
+			t.Error("a refresh token the session never issued should end it")
+		}
+	})
+
+	t.Run("valid refresh replaces the pair", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "refresh@example.com")
+		first := issueTestTokenPair(ctx, t, userID, clientID)
+		sessionID := sessionIDOf(t, first.AccessToken)
+		oldRefreshTokenID := getMCPSession(ctx, t, sessionID).RefreshTokenID
+
+		w := refreshTestToken(first.RefreshToken, clientID)
+		if w.Code != http.StatusOK {
+			t.Fatalf("want 200, got %d: %s", w.Code, w.Body.String())
+		}
+		var resp map[string]any
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		newAccess, _ := resp["access_token"].(string)
+		newRefresh, _ := resp["refresh_token"].(string)
+		if newAccess == "" || newRefresh == "" {
+			t.Fatalf("response should carry a new pair: %s", w.Body.String())
+		}
+		if newAccess == first.AccessToken || newRefresh == first.RefreshToken {
+			t.Error("refresh should issue different tokens")
+		}
+
+		if sessionIDOf(t, newAccess) != sessionID {
+			t.Error("a refresh should stay on the same session")
+		}
+		newRow := getMCPSession(ctx, t, sessionID)
+		if newRow == nil {
+			t.Fatal("the session row should outlive a refresh")
+		}
+		if newRow.RefreshTokenID == oldRefreshTokenID {
+			t.Error("the row should record the new refresh token")
+		}
+		if newRow.UserID != userID || newRow.ClientID != clientID {
+			t.Error("the new pair should keep the user and client")
+		}
+		if newRow.ProviderToken == nil || *newRow.ProviderToken == "" {
+			t.Error("the new pair should carry the provider token forward")
+		}
+
+		// The old access token is signed and not looked up, so it keeps
+		// working until its own expiry. Only the refresh token dies at once.
+		c, w2 := newTestGinContext("POST", "/mcp", nil)
+		c.Request.Header.Set("Authorization", "Bearer "+first.AccessToken)
+		h.ValidateMCPToken()(c)
+		if w2.Code != http.StatusOK {
+			t.Errorf("old access token before its expiry: want 200, got %d", w2.Code)
+		}
+		c, w3 := newTestGinContext("POST", "/mcp", nil)
+		c.Request.Header.Set("Authorization", "Bearer "+newAccess)
+		h.ValidateMCPToken()(c)
+		if w3.Code != http.StatusOK {
+			t.Errorf("new access token: want 200, got %d: %s", w3.Code, w3.Body.String())
+		}
+
+		w = refreshTestToken(first.RefreshToken, clientID)
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("old refresh token: want 400, got %d: %s", w.Code, w.Body.String())
+		}
+		if got := oauthError(t, w); got != "invalid_grant" {
+			t.Errorf("error = %q, want invalid_grant", got)
+		}
+	})
+
+	t.Run("expired refresh token returns invalid_grant", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "expiredrefresh@example.com")
+		pair := issueTestTokenPair(ctx, t, userID, clientID)
+		if _, err := deps.PgPool.Exec(ctx,
+			`UPDATE measure.mcp_auth_sessions SET rt_expiry_at = now() - interval '1 minute' WHERE id = $1`,
+			sessionIDOf(t, pair.RefreshToken)); err != nil {
+			t.Fatalf("expire refresh token: %v", err)
+		}
+
+		w := refreshTestToken(pair.RefreshToken, clientID)
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+		}
+		if got := oauthError(t, w); got != "invalid_grant" {
+			t.Errorf("error = %q, want invalid_grant", got)
+		}
+	})
+
+	t.Run("unknown refresh token returns invalid_grant", func(t *testing.T) {
+		cleanupAll(ctx, t)
+
+		w := refreshTestToken("msr_nosuchrefreshtoken", clientID)
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+		}
+		if got := oauthError(t, w); got != "invalid_grant" {
+			t.Errorf("error = %q, want invalid_grant", got)
+		}
+	})
+
+	t.Run("ended session cannot be refreshed", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "endedrefresh@example.com")
+		pair := issueTestTokenPair(ctx, t, userID, clientID)
+		if err := mcpEndSession(ctx, deps, sessionIDOf(t, pair.AccessToken)); err != nil {
+			t.Fatal(err)
+		}
+
+		w := refreshTestToken(pair.RefreshToken, clientID)
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+		}
+		if got := oauthError(t, w); got != "invalid_grant" {
+			t.Errorf("error = %q, want invalid_grant", got)
+		}
+	})
+
+	t.Run("client_id mismatch returns invalid_grant", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "wrongclient@example.com")
+		pair := issueTestTokenPair(ctx, t, userID, clientID)
+
+		w := refreshTestToken(pair.RefreshToken, "https://other.example.com/client-metadata.json")
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+		}
+		if got := oauthError(t, w); got != "invalid_grant" {
+			t.Errorf("error = %q, want invalid_grant", got)
+		}
+		if getMCPSession(ctx, t, sessionIDOf(t, pair.AccessToken)) == nil {
+			t.Error("a rejected refresh must leave the pair in place")
+		}
+	})
+
+	t.Run("an access token is not accepted as a refresh token", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "atasrt@example.com")
+		pair := issueTestTokenPair(ctx, t, userID, clientID)
+		sessionID := sessionIDOf(t, pair.AccessToken)
+
+		// Separate signing secrets would reject the access token before its
+		// jti is ever read, so both are set to one value here, leaving the
+		// jti as the only thing that tells the two tokens apart.
+		setConfig(t, func(c *server.Config) { c.RefreshTokenSecret = c.AccessTokenSecret })
+
+		w := refreshTestToken(pair.AccessToken, clientID)
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+		}
+		if got := oauthError(t, w); got != "invalid_grant" {
+			t.Errorf("error = %q, want invalid_grant", got)
+		}
+		if getMCPSession(ctx, t, sessionID) != nil {
+			t.Error("presenting an access token as a refresh token should end the session")
+		}
+	})
+
+	t.Run("missing refresh_token returns 400", func(t *testing.T) {
+		cleanupAll(ctx, t)
+
+		w := refreshTestToken("", clientID)
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("refresh via JSON body", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "jsonrefresh@example.com")
+		pair := issueTestTokenPair(ctx, t, userID, clientID)
+
+		c, w := newTestGinContextJSON("POST", "/oauth/token", map[string]any{
+			"grant_type":    "refresh_token",
+			"refresh_token": pair.RefreshToken,
+			"client_id":     clientID,
+		})
+		h.MCPToken(c)
+		if w.Code != http.StatusOK {
+			t.Fatalf("want 200, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+}
 
 func TestValidateMCPToken(t *testing.T) {
 	ctx := context.Background()
 
 	t.Run("no Authorization header", func(t *testing.T) {
 		cleanupAll(ctx, t)
-		c, w := newTestGinContext("GET", "/mcp", nil)
+		setConfig(t, func(c *server.Config) {
+			c.AgentOrigin = "https://api.example.com"
+		})
+		c, w := newTestGinContext("POST", "/mcp", nil)
 		h.ValidateMCPToken()(c)
 		if w.Code != http.StatusUnauthorized {
 			t.Fatalf("want 401, got %d", w.Code)
+		}
+		want := `Bearer resource_metadata="https://api.example.com/.well-known/oauth-protected-resource/mcp"`
+		if got := w.Header().Get("WWW-Authenticate"); got != want {
+			t.Errorf("WWW-Authenticate = %q, want %q", got, want)
 		}
 	})
 
@@ -1281,11 +2087,18 @@ func TestValidateMCPToken(t *testing.T) {
 
 	t.Run("token not in DB", func(t *testing.T) {
 		cleanupAll(ctx, t)
-		c, w := newTestGinContext("GET", "/mcp", nil)
+		setConfig(t, func(c *server.Config) {
+			c.AgentOrigin = "https://api.example.com"
+		})
+		c, w := newTestGinContext("POST", "/mcp", nil)
 		c.Request.Header.Set("Authorization", "Bearer msr_doesnotexist")
 		h.ValidateMCPToken()(c)
 		if w.Code != http.StatusUnauthorized {
 			t.Fatalf("want 401, got %d", w.Code)
+		}
+		want := `Bearer error="invalid_token", resource_metadata="https://api.example.com/.well-known/oauth-protected-resource/mcp"`
+		if got := w.Header().Get("WWW-Authenticate"); got != want {
+			t.Errorf("WWW-Authenticate = %q, want %q", got, want)
 		}
 	})
 
@@ -1293,8 +2106,7 @@ func TestValidateMCPToken(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "exp@mcp.test")
-		rawToken := "msr_expiredtoken"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "client1", time.Now().Add(-1*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "client1", time.Now().Add(-1*time.Hour))
 
 		c, w := newTestGinContext("GET", "/mcp", nil)
 		c.Request.Header.Set("Authorization", "Bearer "+rawToken)
@@ -1304,20 +2116,33 @@ func TestValidateMCPToken(t *testing.T) {
 		}
 	})
 
-	t.Run("revoked token", func(t *testing.T) {
+	t.Run("a dashboard token is not accepted", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "revoked@mcp.test")
-		rawToken := "msr_revokedtoken"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "client1", time.Now().Add(1*time.Hour))
-		_, err := th.PgPool.Exec(ctx,
-			`UPDATE measure.mcp_access_tokens SET revoked = true WHERE token_hash = $1`,
-			mcpSHA256Hex(rawToken))
+		seedUser(ctx, t, userID.String(), "dashtoken@mcp.test")
+		// The dashboard issues tokens on this key with no audience.
+		dashboard, err := authsession.CreateAccessToken(deps.Config.AccessTokenSecret, uuid.New(), uuid.New(), userID, time.Now().Add(time.Hour), "")
 		if err != nil {
-			t.Fatalf("mark revoked: %v", err)
+			t.Fatal(err)
 		}
 
-		c, w := newTestGinContext("GET", "/mcp", nil)
+		c, w := newTestGinContext("POST", "/mcp", nil)
+		c.Request.Header.Set("Authorization", "Bearer "+dashboard)
+		h.ValidateMCPToken()(c)
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("want 401, got %d", w.Code)
+		}
+	})
+
+	t.Run("tokens are refused while the signing secret is missing", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "nosecret@mcp.test")
+		rawToken := seedMCPSession(ctx, t, userID.String(), "client1", time.Now().Add(time.Hour))
+
+		setConfig(t, func(c *server.Config) { c.AccessTokenSecret = nil })
+
+		c, w := newTestGinContext("POST", "/mcp", nil)
 		c.Request.Header.Set("Authorization", "Bearer "+rawToken)
 		h.ValidateMCPToken()(c)
 		if w.Code != http.StatusUnauthorized {
@@ -1325,113 +2150,120 @@ func TestValidateMCPToken(t *testing.T) {
 		}
 	})
 
-	t.Run("session binding: revokes token when provider token is invalid", func(t *testing.T) {
+	t.Run("token signed with another secret", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "forged@mcp.test")
+		forged, err := authsession.CreateAccessToken([]byte("not-our-secret"), uuid.New(), uuid.New(), userID, time.Now().Add(time.Hour), authsession.AudienceMCP)
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		c, w := newTestGinContext("POST", "/mcp", nil)
+		c.Request.Header.Set("Authorization", "Bearer "+forged)
+		h.ValidateMCPToken()(c)
+		if w.Code != http.StatusUnauthorized {
+			t.Fatalf("want 401, got %d", w.Code)
+		}
+	})
+
+	t.Run("session binding: ends the session when the provider token is rejected", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "sbrevoke@mcp.test")
-		rawToken := "msr_revokebysbtoken"
-		seedMCPAccessTokenWithProvider(ctx, t, rawToken, userID.String(), "client1", time.Now().Add(90*24*time.Hour), "bad_github_token", "github")
+		accessToken := seedMCPSessionWithProvider(ctx, t, userID.String(), "client1", time.Now().Add(time.Hour), "bad_github_token", "github")
+		sessionID := sessionIDOf(t, accessToken)
 
 		origFn := mcpValidateProviderTokenFn
 		callCount := 0
 		mcpValidateProviderTokenFn = func(provider, token, _, _ string) error {
 			callCount++
-			return fmt.Errorf("token revoked")
+			return fmt.Errorf("github rejected the token: %w", authsession.ErrProviderAccessRevoked)
 		}
 		t.Cleanup(func() { mcpValidateProviderTokenFn = origFn })
 
-		// Set provider_token_checked_at to the past to trigger revalidation
-		_, _ = th.PgPool.Exec(ctx,
-			`UPDATE measure.mcp_access_tokens SET provider_token_checked_at = now() - interval '2 hours' WHERE token_hash = $1`,
-			mcpSHA256Hex(rawToken))
+		ageProviderCheck(ctx, t, sessionID)
 
-		gin.SetMode(gin.TestMode)
-		r := gin.New()
-		r.GET("/mcp", h.ValidateMCPToken(), func(c *gin.Context) {
-			c.Status(http.StatusOK)
-		})
-
-		req := httptest.NewRequest("GET", "/mcp", nil)
-		req.Header.Set("Authorization", "Bearer "+rawToken)
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		// The request itself should succeed (revocation is async)
-		if w.Code == http.StatusUnauthorized {
-			t.Fatalf("want pass-through, got 401: %s", w.Body.String())
+		w := refreshTestToken(seedMCPRefreshToken(t, sessionID, time.Now().Add(mcpRefreshTokenExpiry)), "client1")
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
 		}
-
-		time.Sleep(100 * time.Millisecond)
-
 		if callCount == 0 {
-			t.Error("expected ValidateProviderToken to be called")
+			t.Error("expected the provider token to be checked")
 		}
-
-		tokenRow := getMCPAccessToken(ctx, t, mcpSHA256Hex(rawToken))
-		if tokenRow == nil {
-			t.Fatal("token not found")
-		}
-		if !tokenRow.Revoked {
-			t.Error("token should be revoked after failed provider validation")
+		if getMCPSession(ctx, t, sessionID) != nil {
+			t.Error("the session should be gone after a failed provider check")
 		}
 	})
 
-	t.Run("session binding: updates checked_at when provider token is valid", func(t *testing.T) {
+	t.Run("session binding: carries a fresh check time when the provider token is good", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "sbvalid@mcp.test")
-		rawToken := "msr_sbvalidtoken"
-		seedMCPAccessTokenWithProvider(ctx, t, rawToken, userID.String(), "client1", time.Now().Add(90*24*time.Hour), "good_github_token", "github")
+		accessToken := seedMCPSessionWithProvider(ctx, t, userID.String(), "client1", time.Now().Add(time.Hour), "good_github_token", "github")
+		sessionID := sessionIDOf(t, accessToken)
 
 		origFn := mcpValidateProviderTokenFn
-		mcpValidateProviderTokenFn = func(provider, token, _, _ string) error {
-			return nil // valid
-		}
+		mcpValidateProviderTokenFn = func(provider, token, _, _ string) error { return nil }
 		t.Cleanup(func() { mcpValidateProviderTokenFn = origFn })
 
-		// Set provider_token_checked_at to the past to trigger revalidation
-		_, _ = th.PgPool.Exec(ctx,
-			`UPDATE measure.mcp_access_tokens SET provider_token_checked_at = now() - interval '2 hours' WHERE token_hash = $1`,
-			mcpSHA256Hex(rawToken))
+		ageProviderCheck(ctx, t, sessionID)
 
-		var oldCheckedAt *time.Time
-		_ = th.PgPool.QueryRow(ctx,
-			`SELECT provider_token_checked_at FROM measure.mcp_access_tokens WHERE token_hash = $1`,
-			mcpSHA256Hex(rawToken)).Scan(&oldCheckedAt)
-
-		gin.SetMode(gin.TestMode)
-		r := gin.New()
-		r.GET("/mcp", h.ValidateMCPToken(), func(c *gin.Context) {
-			c.Status(http.StatusOK)
-		})
-
-		req := httptest.NewRequest("GET", "/mcp", nil)
-		req.Header.Set("Authorization", "Bearer "+rawToken)
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		time.Sleep(100 * time.Millisecond)
-
-		tokenRow := getMCPAccessToken(ctx, t, mcpSHA256Hex(rawToken))
-		if tokenRow == nil {
-			t.Fatal("token not found")
+		w := refreshTestToken(seedMCPRefreshToken(t, sessionID, time.Now().Add(mcpRefreshTokenExpiry)), "client1")
+		if w.Code != http.StatusOK {
+			t.Fatalf("want 200, got %d: %s", w.Code, w.Body.String())
 		}
-		if tokenRow.Revoked {
-			t.Error("token should not be revoked")
+		var resp map[string]any
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		newAccess, _ := resp["access_token"].(string)
+
+		newRow := getMCPSession(ctx, t, sessionIDOf(t, newAccess))
+		if newRow == nil {
+			t.Fatal("the refreshed session should exist")
 		}
-		if tokenRow.ProviderTokenCheckedAt == nil {
-			t.Error("provider_token_checked_at should be set")
-		} else if oldCheckedAt != nil && !tokenRow.ProviderTokenCheckedAt.After(*oldCheckedAt) {
-			t.Error("provider_token_checked_at should have been updated")
+		if newRow.ProviderTokenCheckedAt == nil || time.Since(*newRow.ProviderTokenCheckedAt) > time.Minute {
+			t.Errorf("provider_token_checked_at = %v, want just now", newRow.ProviderTokenCheckedAt)
 		}
 	})
 
-	t.Run("session binding: skips check when recently validated", func(t *testing.T) {
+	t.Run("session binding: keeps the session when the provider cannot be reached", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "sbdown@mcp.test")
+		accessToken := seedMCPSessionWithProvider(ctx, t, userID.String(), "client1", time.Now().Add(time.Hour), "github_token", "github")
+		sessionID := sessionIDOf(t, accessToken)
+
+		origFn := mcpValidateProviderTokenFn
+		mcpValidateProviderTokenFn = func(provider, token, _, _ string) error {
+			return fmt.Errorf("github is having a bad day: HTTP 503")
+		}
+		t.Cleanup(func() { mcpValidateProviderTokenFn = origFn })
+
+		ageProviderCheck(ctx, t, sessionID)
+
+		w := refreshTestToken(seedMCPRefreshToken(t, sessionID, time.Now().Add(mcpRefreshTokenExpiry)), "client1")
+		if w.Code != http.StatusOK {
+			t.Fatalf("want 200, got %d: %s", w.Code, w.Body.String())
+		}
+		var resp map[string]any
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		newAccess, _ := resp["access_token"].(string)
+
+		newRow := getMCPSession(ctx, t, sessionIDOf(t, newAccess))
+		if newRow == nil {
+			t.Fatal("the session should survive a provider outage")
+		}
+		if newRow.ProviderTokenCheckedAt == nil || time.Since(*newRow.ProviderTokenCheckedAt) < time.Hour {
+			t.Error("the check time should be left alone so the next refresh retries")
+		}
+	})
+
+	t.Run("session binding: skips the check when it ran recently", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "sbskip@mcp.test")
-		rawToken := "msr_sbskiptoken"
-		seedMCPAccessTokenWithProvider(ctx, t, rawToken, userID.String(), "client1", time.Now().Add(90*24*time.Hour), "still_valid_token", "github")
+		accessToken := seedMCPSessionWithProvider(ctx, t, userID.String(), "client1", time.Now().Add(time.Hour), "still_valid_token", "github")
+		sessionID := sessionIDOf(t, accessToken)
 
 		origFn := mcpValidateProviderTokenFn
 		callCount := 0
@@ -1441,32 +2273,21 @@ func TestValidateMCPToken(t *testing.T) {
 		}
 		t.Cleanup(func() { mcpValidateProviderTokenFn = origFn })
 
-		// provider_token_checked_at is already set to now() by the seed (recent)
-
-		gin.SetMode(gin.TestMode)
-		r := gin.New()
-		r.GET("/mcp", h.ValidateMCPToken(), func(c *gin.Context) {
-			c.Status(http.StatusOK)
-		})
-
-		req := httptest.NewRequest("GET", "/mcp", nil)
-		req.Header.Set("Authorization", "Bearer "+rawToken)
-		w := httptest.NewRecorder()
-		r.ServeHTTP(w, req)
-
-		time.Sleep(100 * time.Millisecond)
-
+		// The seed already set provider_token_checked_at to the current time.
+		w := refreshTestToken(seedMCPRefreshToken(t, sessionID, time.Now().Add(mcpRefreshTokenExpiry)), "client1")
+		if w.Code != http.StatusOK {
+			t.Fatalf("want 200, got %d: %s", w.Code, w.Body.String())
+		}
 		if callCount != 0 {
-			t.Errorf("expected no ValidateProviderToken calls, got %d", callCount)
+			t.Errorf("expected no provider checks, got %d", callCount)
 		}
 	})
 
-	t.Run("valid token sets userId and updates last_used_at", func(t *testing.T) {
+	t.Run("valid token sets userId", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "valid@mcp.test")
-		rawToken := "msr_validtoken123"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "client1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "client1", time.Now().Add(90*24*time.Hour))
 
 		// Use a gin router so we can test the full middleware + next chain
 		gin.SetMode(gin.TestMode)
@@ -1489,37 +2310,23 @@ func TestValidateMCPToken(t *testing.T) {
 			t.Errorf("userId in context = %q, want %q", capturedUserID, userID.String())
 		}
 
-		// Give background goroutine a moment to update last_used_at
-		time.Sleep(50 * time.Millisecond)
-
-		tokenRow := getMCPAccessToken(ctx, t, mcpSHA256Hex(rawToken))
-		if tokenRow == nil {
-			t.Fatal("token not found")
-		}
-		// last_used_at may still be nil if the background goroutine hasn't run
-		// but we at least verify the token exists and is not revoked
-		if tokenRow.Revoked {
-			t.Error("token should not be revoked")
+		if getMCPSession(ctx, t, sessionIDOf(t, rawToken)) == nil {
+			t.Error("the token should still name a live session")
 		}
 	})
 }
 
-func TestMCPInitialize(t *testing.T) {
+func TestMCPDiscover(t *testing.T) {
 	ctx := context.Background()
 	cleanupAll(ctx, t)
 
 	userID := uuid.New()
-	seedUser(ctx, t, userID.String(), "init@mcp.test")
-	rawToken := "msr_inittoken"
-	seedMCPAccessToken(ctx, t, rawToken, userID.String(), "client1", time.Now().Add(90*24*time.Hour))
+	seedUser(ctx, t, userID.String(), "discover@mcp.test")
+	rawToken := seedMCPSession(ctx, t, userID.String(), "client1", time.Now().Add(90*24*time.Hour))
 
 	handler := buildMCPTestRouter()
 
-	body := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1"}}}`
-	req := httptest.NewRequest("POST", "/mcp", strings.NewReader(body))
-	req.Header.Set("Authorization", "Bearer "+rawToken)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json, text/event-stream")
+	req := newMCPRequest(rawToken, "server/discover", "", mcpRequestBody(1, "server/discover", nil))
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
@@ -1529,9 +2336,96 @@ func TestMCPInitialize(t *testing.T) {
 
 	resp := parseSSEData(t, w.Body.String())
 	result, _ := resp["result"].(map[string]any)
+	versions, _ := result["supportedVersions"].([]any)
+	if !slices.Contains(versions, any("2026-07-28")) {
+		t.Errorf("supportedVersions = %v, want to include 2026-07-28", versions)
+	}
+	meta, _ := result["_meta"].(map[string]any)
+	serverInfo, _ := meta["io.modelcontextprotocol/serverInfo"].(map[string]any)
+	if serverInfo["name"] != "Measure" {
+		t.Errorf("serverInfo.name = %v, want Measure", serverInfo["name"])
+	}
+}
+
+func TestMCPGetStream(t *testing.T) {
+	ctx := context.Background()
+	cleanupAll(ctx, t)
+	setConfig(t, func(c *server.Config) {
+		c.AgentOrigin = "https://api.example.com"
+	})
+
+	userID := uuid.New()
+	seedUser(ctx, t, userID.String(), "getstream@mcp.test")
+	rawToken := seedMCPSession(ctx, t, userID.String(), "client1", time.Now().Add(time.Hour))
+
+	handler := buildMCPTestRouter()
+
+	req := httptest.NewRequest("GET", "/mcp", nil)
+	req.Header.Set("Authorization", "Bearer "+rawToken)
+	req.Header.Set("Accept", "text/event-stream")
+	w := httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Errorf("authenticated GET: want 405, got %d: %s", w.Code, w.Body.String())
+	}
+
+	req = httptest.NewRequest("GET", "/mcp", nil)
+	req.Header.Set("Accept", "text/event-stream")
+	w = httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	if w.Code != http.StatusUnauthorized || !strings.Contains(w.Header().Get("WWW-Authenticate"), "resource_metadata=") {
+		t.Errorf("unauthenticated GET: want 401 with a bearer challenge, got %d %q", w.Code, w.Header().Get("WWW-Authenticate"))
+	}
+
+	req = httptest.NewRequest("DELETE", "/mcp", nil)
+	req.Header.Set("Authorization", "Bearer "+rawToken)
+	w = httptest.NewRecorder()
+	handler.ServeHTTP(w, req)
+	if w.Code != http.StatusMethodNotAllowed {
+		t.Errorf("authenticated DELETE: want 405, got %d: %s", w.Code, w.Body.String())
+	}
+}
+
+// TestMCPLegacyProtocol pins the initialize-based flow that clients on
+// protocol revisions before 2026-07-28 still use.
+func TestMCPLegacyProtocol(t *testing.T) {
+	ctx := context.Background()
+	cleanupAll(ctx, t)
+
+	userID := uuid.New()
+	seedUser(ctx, t, userID.String(), "legacy@mcp.test")
+	rawToken := seedMCPSession(ctx, t, userID.String(), "client1", time.Now().Add(time.Hour))
+
+	handler := buildMCPTestRouter()
+	send := func(version, body string) *httptest.ResponseRecorder {
+		req := httptest.NewRequest("POST", "/mcp", strings.NewReader(body))
+		req.Header.Set("Authorization", "Bearer "+rawToken)
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("Accept", "application/json, text/event-stream")
+		if version != "" {
+			req.Header.Set("Mcp-Protocol-Version", version)
+		}
+		w := httptest.NewRecorder()
+		handler.ServeHTTP(w, req)
+		return w
+	}
+
+	w := send("", `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1"}}}`)
+	if w.Code != http.StatusOK {
+		t.Fatalf("initialize at 2024-11-05: want 200, got %d: %s", w.Code, w.Body.String())
+	}
+	result, _ := parseSSEData(t, w.Body.String())["result"].(map[string]any)
 	serverInfo, _ := result["serverInfo"].(map[string]any)
 	if serverInfo["name"] != "Measure" {
 		t.Errorf("serverInfo.name = %v, want Measure", serverInfo["name"])
+	}
+
+	w = send("2025-06-18", `{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"list_apps","arguments":{}}}`)
+	if w.Code != http.StatusOK {
+		t.Fatalf("tools/call at 2025-06-18: want 200, got %d: %s", w.Code, w.Body.String())
+	}
+	if isToolError(parseSSEData(t, w.Body.String())) {
+		t.Errorf("tools/call at 2025-06-18 should succeed: %s", w.Body.String())
 	}
 }
 
@@ -1541,40 +2435,11 @@ func TestMCPToolsList(t *testing.T) {
 
 	userID := uuid.New()
 	seedUser(ctx, t, userID.String(), "tools@mcp.test")
-	rawToken := "msr_toolstoken"
-	seedMCPAccessToken(ctx, t, rawToken, userID.String(), "client1", time.Now().Add(90*24*time.Hour))
+	rawToken := seedMCPSession(ctx, t, userID.String(), "client1", time.Now().Add(90*24*time.Hour))
 
 	handler := buildMCPTestRouter()
 
-	// First initialize
-	initBody := `{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1"}}}`
-	initReq := httptest.NewRequest("POST", "/mcp", strings.NewReader(initBody))
-	initReq.Header.Set("Authorization", "Bearer "+rawToken)
-	initReq.Header.Set("Content-Type", "application/json")
-	initReq.Header.Set("Accept", "application/json, text/event-stream")
-	w1 := httptest.NewRecorder()
-	handler.ServeHTTP(w1, initReq)
-
-	// Extract session cookie if any
-	var sessionCookie string
-	for _, cookie := range w1.Result().Cookies() {
-		if cookie.Name == "mcp-session-id" {
-			sessionCookie = cookie.Value
-		}
-	}
-
-	body := `{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}`
-	req := httptest.NewRequest("POST", "/mcp", strings.NewReader(body))
-	req.Header.Set("Authorization", "Bearer "+rawToken)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json, text/event-stream")
-	if sessionCookie != "" {
-		req.AddCookie(&http.Cookie{Name: "mcp-session-id", Value: sessionCookie})
-	}
-	// Also use the Mcp-Session-Id header from the init response
-	if sid := w1.Header().Get("Mcp-Session-Id"); sid != "" {
-		req.Header.Set("Mcp-Session-Id", sid)
-	}
+	req := newMCPRequest(rawToken, "tools/list", "", mcpRequestBody(2, "tools/list", nil))
 	w := httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
 
@@ -1650,8 +2515,7 @@ func TestMCPAskQuestionAgentDisabled(t *testing.T) {
 
 	userID := uuid.New()
 	seedUser(ctx, t, userID.String(), "agentoff@mcp.test")
-	rawToken := "msr_agentofftoken"
-	seedMCPAccessToken(ctx, t, rawToken, userID.String(), "client1", time.Now().Add(90*24*time.Hour))
+	rawToken := seedMCPSession(ctx, t, userID.String(), "client1", time.Now().Add(90*24*time.Hour))
 
 	setConfig(t, func(c *server.Config) {
 		c.AgentEnabled = false
@@ -1684,8 +2548,7 @@ func TestMCPListApps(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "noapps@mcp.test")
-		rawToken := "msr_noappstoken"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "client1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "client1", time.Now().Add(90*24*time.Hour))
 
 		resp := callMCPTool(t, rawToken, "list_apps", nil)
 		content := extractTextContent(t, resp)
@@ -1710,8 +2573,7 @@ func TestMCPListApps(t *testing.T) {
 		seedApp(ctx, t, app1ID, teamID, 30)
 		seedApp(ctx, t, app2ID, teamID, 30)
 
-		rawToken := "msr_twoappstoken"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "client1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "client1", time.Now().Add(90*24*time.Hour))
 
 		resp := callMCPTool(t, rawToken, "list_apps", nil)
 		content := extractTextContent(t, resp)
@@ -1762,8 +2624,7 @@ func TestMCPListApps(t *testing.T) {
 		appB := uuid.New()
 		seedApp(ctx, t, appB, teamB, 30)
 
-		rawToken := "msr_useratokenonly"
-		seedMCPAccessToken(ctx, t, rawToken, userA.String(), "client1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userA.String(), "client1", time.Now().Add(90*24*time.Hour))
 
 		resp := callMCPTool(t, rawToken, "list_apps", nil)
 		content := extractTextContent(t, resp)
@@ -1802,8 +2663,7 @@ func TestMCPListApps(t *testing.T) {
 		app2 := uuid.New()
 		seedApp(ctx, t, app2, team2, 30)
 
-		rawToken := "msr_multiteamtoken"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "client1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "client1", time.Now().Add(90*24*time.Hour))
 
 		resp := callMCPTool(t, rawToken, "list_apps", nil)
 		content := extractTextContent(t, resp)
@@ -1841,8 +2701,7 @@ func TestMCPGetAppHealthOverTime(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_healthnotz"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_app_health_over_time", map[string]any{"app_id": appID.String()})
 		if !isToolError(resp) {
@@ -1854,8 +2713,7 @@ func TestMCPGetAppHealthOverTime(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "healthnoapp@mcp.test")
-		rawToken := "msr_healthnoapp"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_app_health_over_time", map[string]any{"timezone": "UTC"})
 		if !isToolError(resp) {
@@ -1878,8 +2736,7 @@ func TestMCPGetAppHealthOverTime(t *testing.T) {
 		// 5 plain sessions, 2 crash sessions (legacy fatal), 1 ANR session.
 		seedAppMetrics(ctx, t, teamID.String(), appID.String(), ts, 5, 2, 1)
 
-		rawToken := "msr_healthtoken"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_app_health_over_time", map[string]any{
 			"app_id":      appID.String(),
@@ -1934,8 +2791,7 @@ func TestMCPGetAppHealthOverTime(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_healthbadexpr"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_app_health_over_time", map[string]any{
 			"app_id":      appID.String(),
@@ -1964,8 +2820,7 @@ func TestMCPGetAppHealthOverTime(t *testing.T) {
 		// The seed helpers tag every event with app_version v1 / build 1.
 		seedAppMetrics(ctx, t, teamID.String(), appID.String(), now.Add(-time.Hour), 5, 2, 1)
 
-		rawToken := "msr_healthnarrow"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_app_health_over_time", map[string]any{
 			"app_id":      appID.String(),
@@ -2000,8 +2855,7 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "u@mcp.test")
-		rawToken := "msr_tok1"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{})
 		if !isToolError(resp) {
@@ -2018,8 +2872,7 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_tok2"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
 			"filter_expr": "bogus_key:in:x",
@@ -2042,8 +2895,7 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_tok3"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
 			"filter_expr": "error_type:in:crash",
@@ -2070,8 +2922,7 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 		th.SeedFatalExceptionGroupWithCustomFlag(ctx, t, teamID.String(), appID.String(), fingerprint, false)
 		th.SeedIssueEventWithSeverity(ctx, t, teamID.String(), appID.String(), fingerprint, "fatal", time.Now().Add(-1*time.Hour))
 
-		rawToken := "msr_crashtoken"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		now := time.Now().UTC()
 		from := now.Add(-7 * 24 * time.Hour)
@@ -2103,8 +2954,7 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_errlim0"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
@@ -2127,8 +2977,7 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_errlimmax"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
@@ -2163,8 +3012,7 @@ func TestMCPGetErrors_ANR(t *testing.T) {
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
 
-		rawToken := "msr_anrtoken"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_errors", map[string]any{
@@ -2191,8 +3039,7 @@ func TestMCPGetError_Crash(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "u@mcp.test")
-		rawToken := "msr_tok3"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_error", map[string]any{
 			"app_id": uuid.New().String(),
@@ -2215,8 +3062,7 @@ func TestMCPGetError_Crash(t *testing.T) {
 		fingerprint := "fp-detail-1"
 		th.SeedFatalExceptionGroupWithCustomFlag(ctx, t, teamID.String(), appID.String(), fingerprint, false)
 
-		rawToken := "msr_dettoken"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_error", map[string]any{
@@ -2245,8 +3091,7 @@ func TestMCPGetError_Crash(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_dettype"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_error", map[string]any{
 			"app_id":         appID.String(),
@@ -2270,8 +3115,7 @@ func TestMCPGetError_Crash(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_detlim0"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_error", map[string]any{
@@ -2295,8 +3139,7 @@ func TestMCPGetError_Crash(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_detlimmax"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_error", map[string]any{
@@ -2319,8 +3162,7 @@ func TestMCPGetError_ANR(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "anrdet@mcp.test")
-		rawToken := "msr_tok4"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_error", map[string]any{
 			"app_id": uuid.New().String(),
@@ -2343,8 +3185,7 @@ func TestMCPGetError_ANR(t *testing.T) {
 		fingerprint := "fp-anr-detail-1"
 		th.SeedAnrGroup(ctx, t, teamID.String(), appID.String(), fingerprint)
 
-		rawToken := "msr_anrdettoken"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_error", map[string]any{
@@ -2375,8 +3216,7 @@ func TestMCPGetFilterKeys(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, rawToken
 	}
 
@@ -2467,8 +3307,7 @@ func TestMCPGetFilterKeys(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_fkeys3@mcp.test"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		seedSpanUDAttr(ctx, t, teamID.String(), appID.String(), testinfra.SpanUDAttrRow{Key: "plan", Value: "pro"})
 
@@ -2518,8 +3357,7 @@ func TestMCPGetFilterKeys(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_fkeys4@mcp.test"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		seedSpanUDAttr(ctx, t, teamID.String(), appID.String(), testinfra.SpanUDAttrRow{Key: "plan", Value: "pro"})
 
@@ -2571,8 +3409,7 @@ func TestMCPGetFilterValues(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, teamID, rawToken
 	}
 	now := time.Now().UTC()
@@ -2726,7 +3563,7 @@ func TestMCPGetFilterValues(t *testing.T) {
 func TestMCPGetMetrics(t *testing.T) {
 	ctx := context.Background()
 
-	setupMetricsApp := func(t *testing.T, email, token string) (uuid.UUID, uuid.UUID, string) {
+	setupMetricsApp := func(t *testing.T, email string) (uuid.UUID, uuid.UUID, string) {
 		t.Helper()
 		cleanupAll(ctx, t)
 		userID := uuid.New()
@@ -2736,7 +3573,7 @@ func TestMCPGetMetrics(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		seedMCPAccessToken(ctx, t, token, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		token := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 		return teamID, appID, token
 	}
 
@@ -2744,8 +3581,7 @@ func TestMCPGetMetrics(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "metrics@mcp.test")
-		rawToken := "msr_metricstok1"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_metrics", nil)
 		if !isToolError(resp) {
@@ -2754,7 +3590,7 @@ func TestMCPGetMetrics(t *testing.T) {
 	})
 
 	t.Run("malformed from date", func(t *testing.T) {
-		_, appID, rawToken := setupMetricsApp(t, "metbad@mcp.test", "msr_metbadtok")
+		_, appID, rawToken := setupMetricsApp(t, "metbad@mcp.test")
 
 		resp := callMCPTool(t, rawToken, "get_metrics", map[string]any{
 			"app_id": appID.String(),
@@ -2766,7 +3602,7 @@ func TestMCPGetMetrics(t *testing.T) {
 	})
 
 	t.Run("malformed to date", func(t *testing.T) {
-		_, appID, rawToken := setupMetricsApp(t, "metbad2@mcp.test", "msr_metbad2tok")
+		_, appID, rawToken := setupMetricsApp(t, "metbad2@mcp.test")
 
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_metrics", map[string]any{
@@ -2780,7 +3616,7 @@ func TestMCPGetMetrics(t *testing.T) {
 	})
 
 	t.Run("invalid filter_expr returns the issue", func(t *testing.T) {
-		_, appID, rawToken := setupMetricsApp(t, "metbadexpr@mcp.test", "msr_metbadexpr")
+		_, appID, rawToken := setupMetricsApp(t, "metbadexpr@mcp.test")
 
 		resp := callMCPTool(t, rawToken, "get_metrics", map[string]any{
 			"app_id":      appID.String(),
@@ -2795,7 +3631,7 @@ func TestMCPGetMetrics(t *testing.T) {
 	})
 
 	t.Run("no filter expression covers every version", func(t *testing.T) {
-		teamID, appID, rawToken := setupMetricsApp(t, "metall@mcp.test", "msr_metalltok")
+		teamID, appID, rawToken := setupMetricsApp(t, "metall@mcp.test")
 
 		now := time.Now().UTC()
 		ts := now.Add(-time.Hour)
@@ -2832,7 +3668,7 @@ func TestMCPGetMetrics(t *testing.T) {
 	})
 
 	t.Run("a filter expression narrows the metrics", func(t *testing.T) {
-		teamID, appID, rawToken := setupMetricsApp(t, "metnarrow@mcp.test", "msr_metnarrowtok")
+		teamID, appID, rawToken := setupMetricsApp(t, "metnarrow@mcp.test")
 
 		now := time.Now().UTC()
 		ts := now.Add(-time.Hour)
@@ -2884,8 +3720,7 @@ func TestMCPGetErrorOverviewPlot(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, rawToken
 	}
 
@@ -2943,8 +3778,7 @@ func TestMCPGetErrorDetailPlot(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, rawToken
 	}
 
@@ -2983,8 +3817,7 @@ func TestMCPGetErrorDistribution(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, rawToken
 	}
 
@@ -3024,8 +3857,7 @@ func TestMCPGetSessions(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, teamID, rawToken
 	}
 	setupToolTest := func(t *testing.T, email string) (uuid.UUID, string) {
@@ -3040,8 +3872,7 @@ func TestMCPGetSessions(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "sess@mcp.test")
-		rawToken := "msr_sesstok1"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 		resp := callMCPTool(t, rawToken, "get_sessions", nil)
 		if !isToolError(resp) {
 			t.Error("want tool error for missing app_id")
@@ -3113,8 +3944,7 @@ func TestMCPGetSessionsOverTime(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, rawToken
 	}
 
@@ -3165,8 +3995,7 @@ func TestMCPGetSession(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, teamID, rawToken
 	}
 
@@ -3181,8 +4010,7 @@ func TestMCPGetSession(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "sdet2@mcp.test")
-		rawToken := "msr_sdettok2"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 		resp := callMCPTool(t, rawToken, "get_session", map[string]any{"session_id": uuid.New().String()})
 		if !isToolError(resp) {
 			t.Error("want tool error for missing app_id")
@@ -3215,8 +4043,7 @@ func TestMCPGetBugReports(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, teamID, rawToken
 	}
 	now := time.Now().UTC()
@@ -3227,8 +4054,7 @@ func TestMCPGetBugReports(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "br@mcp.test")
-		rawToken := "msr_brtok1"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 		resp := callMCPTool(t, rawToken, "get_bug_reports", nil)
 		if !isToolError(resp) {
 			t.Error("want tool error for missing app_id")
@@ -3388,8 +4214,7 @@ func TestMCPGetBugReportsPlot(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, rawToken
 	}
 
@@ -3448,8 +4273,7 @@ func TestMCPGetBugReport(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, teamID, rawToken
 	}
 
@@ -3487,8 +4311,7 @@ func TestMCPGetRootSpanNames(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, rawToken
 	}
 
@@ -3496,8 +4319,7 @@ func TestMCPGetRootSpanNames(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "spans@mcp.test")
-		rawToken := "msr_spanstok1"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 		resp := callMCPTool(t, rawToken, "get_root_span_names", nil)
 		if !isToolError(resp) {
 			t.Error("want tool error for missing app_id")
@@ -3528,8 +4350,7 @@ func TestMCPGetSpanInstances(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, teamID, rawToken
 	}
 	now := time.Now().UTC()
@@ -3686,8 +4507,7 @@ func TestMCPGetSpanMetricsPlot(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, rawToken
 	}
 
@@ -3730,8 +4550,7 @@ func TestMCPGetSpanMetricsPlot(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_smplot6@mcp.test"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		// The metrics plot reads the span_metrics rollup, not the spans table.
 		now := time.Now().UTC()
@@ -3771,8 +4590,7 @@ func TestMCPGetTrace(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, teamID, rawToken
 	}
 
@@ -3809,8 +4627,7 @@ func TestMCPGetAlerts(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, rawToken
 	}
 	now := time.Now().UTC()
@@ -3821,8 +4638,7 @@ func TestMCPGetAlerts(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "alerts@mcp.test")
-		rawToken := "msr_alertstok1"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 		resp := callMCPTool(t, rawToken, "get_alerts", nil)
 		if !isToolError(resp) {
 			t.Error("want tool error for missing app_id")
@@ -3848,8 +4664,7 @@ func TestMCPGetJourney(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, teamID, rawToken
 	}
 	now := time.Now().UTC()
@@ -3860,8 +4675,7 @@ func TestMCPGetJourney(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "journey@mcp.test")
-		rawToken := "msr_journeytok1"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 		resp := callMCPTool(t, rawToken, "get_journey", nil)
 		if !isToolError(resp) {
 			t.Error("want tool error for missing app_id")
@@ -3944,12 +4758,11 @@ func TestMCPNetworkSelectionScopes(t *testing.T) {
 	userID := uuid.New()
 	teamID := uuid.New()
 	appID := uuid.New()
-	rawToken := "msr_networkscopes"
 	seedUser(ctx, t, userID.String(), "networkscopes@mcp.test")
 	seedTeam(ctx, t, teamID, "network scopes team")
 	seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 	seedApp(ctx, t, appID, teamID, 30)
-	seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+	rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 
 	now := time.Now().UTC().Truncate(15 * time.Minute)
 	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://a.example.com/one", "GET", 200, 5, now)
@@ -4061,12 +4874,11 @@ func TestMCPNetworkFilterExpr(t *testing.T) {
 	userID := uuid.New()
 	teamID := uuid.New()
 	appID := uuid.New()
-	rawToken := "msr_networkexpr"
 	seedUser(ctx, t, userID.String(), "networkexpr@mcp.test")
 	seedTeam(ctx, t, teamID, "network expr team")
 	seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 	seedApp(ctx, t, appID, teamID, 30)
-	seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+	rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 
 	now := time.Now().UTC().Truncate(15 * time.Minute)
 	seedHttpEvent(ctx, t, teamID.String(), appID.String(), "https://a.example.com/one", "GET", 200, 5, now)
@@ -4170,8 +4982,7 @@ func TestMCPGetNetworkTrends(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, rawToken
 	}
 
@@ -4203,8 +5014,7 @@ func TestMCPGetNetworkOverviewStatusOverTime(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, rawToken
 	}
 
@@ -4236,8 +5046,7 @@ func TestMCPGetNetworkDetailLatencyOverTime(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, rawToken
 	}
 
@@ -4269,8 +5078,7 @@ func TestMCPGetNetworkTimeline(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, rawToken
 	}
 
@@ -4302,8 +5110,7 @@ func TestMCPGetNetworkEndpointTimeline(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, rawToken
 	}
 
@@ -4345,8 +5152,7 @@ func TestMCPAccessControl(t *testing.T) {
 	seedApp(ctx, t, appB, teamB, 30)
 	_ = appB
 
-	rawToken := "msr_acltoken"
-	seedMCPAccessToken(ctx, t, rawToken, userB.String(), "c1", time.Now().Add(90*24*time.Hour))
+	rawToken := seedMCPSession(ctx, t, userB.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 	now := time.Now().UTC()
 	from := now.Add(-7 * 24 * time.Hour).Format(time.RFC3339)
@@ -4395,8 +5201,7 @@ func TestMCPInvalidAppIDFormat(t *testing.T) {
 
 	userID := uuid.New()
 	seedUser(ctx, t, userID.String(), "baduuid@mcp.test")
-	rawToken := "msr_baduuidtok"
-	seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+	rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 	tools := []struct {
 		name string
@@ -4434,12 +5239,24 @@ func TestMCPUnknownTool(t *testing.T) {
 
 	userID := uuid.New()
 	seedUser(ctx, t, userID.String(), "unknown@mcp.test")
-	rawToken := "msr_unknowntok"
-	seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+	rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
-	resp := callMCPTool(t, rawToken, "nonexistent_tool", nil)
-	if !isToolError(resp) {
-		t.Error("calling a nonexistent tool should return an error")
+	req := newMCPRequest(rawToken, "tools/call", "nonexistent_tool", mcpRequestBody(1, "tools/call", map[string]any{
+		"name":      "nonexistent_tool",
+		"arguments": map[string]any{},
+	}))
+	w := httptest.NewRecorder()
+	buildMCPTestRouter().ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+	}
+	var resp map[string]any
+	if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+	if _, ok := resp["error"]; !ok {
+		t.Errorf("want a JSON-RPC error, got %s", w.Body.String())
 	}
 }
 
@@ -4450,8 +5267,7 @@ func TestMCPGetErrorCommonPath(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "cp3@mcp.test")
-		rawToken := "msr_cptok3"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_error_common_path", map[string]any{"app_id": uuid.New().String()})
 		if !isToolError(resp) {
@@ -4470,8 +5286,7 @@ func TestMCPGetErrorCommonPath(t *testing.T) {
 		seedApp(ctx, t, appID, teamID, 30)
 		fingerprint := "fp-cp-crash-1"
 		th.SeedFatalExceptionGroupWithCustomFlag(ctx, t, teamID.String(), appID.String(), fingerprint, false)
-		rawToken := "msr_cptok6"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_error_common_path", map[string]any{"app_id": appID.String(), "error_group_id": fingerprint})
 		if isToolError(resp) {
@@ -4501,8 +5316,7 @@ func TestMCPGetErrorCommonPath(t *testing.T) {
 		seedApp(ctx, t, appID, teamID, 30)
 		fingerprint := "fp-cp-anr-1"
 		th.SeedAnrGroup(ctx, t, teamID.String(), appID.String(), fingerprint)
-		rawToken := "msr_cptok7"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
 		resp := callMCPTool(t, rawToken, "get_error_common_path", map[string]any{"app_id": appID.String(), "error_group_id": fingerprint})
 		if isToolError(resp) {
@@ -4533,8 +5347,7 @@ func TestMCPUpdateBugReportStatus(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_" + email
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		return appID, teamID, rawToken
 	}
 
@@ -4607,8 +5420,7 @@ func TestMCPUpdateBugReportStatus(t *testing.T) {
 		seedTeamMembership(ctx, t, teamID, userID.String(), "viewer")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
-		rawToken := "msr_ubrviewer"
-		seedMCPAccessToken(ctx, t, rawToken, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 		bugReportID := uuid.New().String()
 		seedBugReport(ctx, t, teamID.String(), appID.String(), bugReportID, "viewer test bug", time.Now().UTC())
 
@@ -4693,12 +5505,45 @@ func buildMCPTestRouter() http.Handler {
 	mcpHandler := NewMCPHandler(agent.MCPTools(cfg))
 	r.POST("/mcp", h.ValidateMCPToken(), gin.WrapH(mcpHandler))
 	r.GET("/mcp", h.ValidateMCPToken(), gin.WrapH(mcpHandler))
+	r.DELETE("/mcp", h.ValidateMCPToken(), gin.WrapH(mcpHandler))
 	return r
 }
 
-// callMCPTool performs a direct tool handler call without going through HTTP.
-// It sets up the context with a valid user session and calls the underlying
-// tool handler directly via the Gin route.
+// mcpRequestBody encodes a JSON-RPC request at protocol version 2026-07-28, in
+// which every request states its own protocol version and client capabilities.
+func mcpRequestBody(id int, method string, params map[string]any) []byte {
+	if params == nil {
+		params = map[string]any{}
+	}
+	params["_meta"] = map[string]any{
+		"io.modelcontextprotocol/protocolVersion":    "2026-07-28",
+		"io.modelcontextprotocol/clientCapabilities": map[string]any{},
+	}
+	b, _ := json.Marshal(map[string]any{
+		"jsonrpc": "2.0",
+		"id":      id,
+		"method":  method,
+		"params":  params,
+	})
+	return b
+}
+
+// newMCPRequest sets the headers that protocol version 2026-07-28 requires
+// alongside the JSON-RPC body.
+func newMCPRequest(rawToken, method, name string, body []byte) *http.Request {
+	req := httptest.NewRequest("POST", "/mcp", bytes.NewReader(body))
+	req.Header.Set("Authorization", "Bearer "+rawToken)
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json, text/event-stream")
+	req.Header.Set("Mcp-Protocol-Version", "2026-07-28")
+	req.Header.Set("Mcp-Method", method)
+	if name != "" {
+		req.Header.Set("Mcp-Name", name)
+	}
+	return req
+}
+
+// callMCPTool sends one tools/call request and returns the decoded response.
 func callMCPTool(t *testing.T, rawToken, toolName string, args map[string]any) map[string]any {
 	t.Helper()
 
@@ -4706,51 +5551,66 @@ func callMCPTool(t *testing.T, rawToken, toolName string, args map[string]any) m
 		args = map[string]any{}
 	}
 
-	body := map[string]any{
-		"jsonrpc": "2.0",
-		"id":      1,
-		"method":  "tools/call",
-		"params": map[string]any{
-			"name":      toolName,
-			"arguments": args,
-		},
-	}
-
-	b, _ := json.Marshal(body)
-
-	gin.SetMode(gin.TestMode)
-	r := gin.New()
-	cfg := agent.NewConfig()
-	cfg.Deps = deps
-	mcpHandler := NewMCPHandler(agent.MCPTools(cfg))
-	r.POST("/mcp", h.ValidateMCPToken(), gin.WrapH(mcpHandler))
-
-	// First do initialize to get session
-	initBody := `{"jsonrpc":"2.0","id":0,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"test","version":"1"}}}`
-	initReq := httptest.NewRequest("POST", "/mcp", strings.NewReader(initBody))
-	initReq.Header.Set("Authorization", "Bearer "+rawToken)
-	initReq.Header.Set("Content-Type", "application/json")
-	initReq.Header.Set("Accept", "application/json, text/event-stream")
-	initW := httptest.NewRecorder()
-	r.ServeHTTP(initW, initReq)
-
-	req := httptest.NewRequest("POST", "/mcp", bytes.NewReader(b))
-	req.Header.Set("Authorization", "Bearer "+rawToken)
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("Accept", "application/json, text/event-stream")
-	// Forward session ID header
-	if sid := initW.Header().Get("Mcp-Session-Id"); sid != "" {
-		req.Header.Set("Mcp-Session-Id", sid)
-	}
-
+	req := newMCPRequest(rawToken, "tools/call", toolName, mcpRequestBody(1, "tools/call", map[string]any{
+		"name":      toolName,
+		"arguments": args,
+	}))
 	w := httptest.NewRecorder()
-	r.ServeHTTP(w, req)
+	buildMCPTestRouter().ServeHTTP(w, req)
 
 	if w.Code != http.StatusOK {
 		t.Fatalf("MCP tool call %q: want 200, got %d: %s", toolName, w.Code, w.Body.String())
 	}
 
 	return parseSSEData(t, w.Body.String())
+}
+
+// newTestClientMetadataServer serves a Client ID Metadata Document over TLS
+// and returns its URL, which is the client_id to send. mutate lets a test
+// serve an invalid document.
+func newTestClientMetadataServer(t *testing.T, redirectURIs []string, mutate func(doc map[string]any)) string {
+	t.Helper()
+	var srv *httptest.Server
+	srv = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/client-metadata.json" {
+			http.NotFound(w, r)
+			return
+		}
+		doc := map[string]any{
+			"client_id":     srv.URL + "/client-metadata.json",
+			"client_name":   "Test Client",
+			"redirect_uris": redirectURIs,
+		}
+		if mutate != nil {
+			mutate(doc)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(doc)
+	}))
+	orig := mcpClientMetadataHTTPClient
+	mcpClientMetadataHTTPClient = mcpNewClientMetadataHTTPClient(nil, srv.Client().Transport.(*http.Transport).TLSClientConfig)
+	t.Cleanup(func() {
+		mcpClientMetadataHTTPClient = orig
+		srv.Close()
+	})
+	return srv.URL + "/client-metadata.json"
+}
+
+// newTestClientMetadataServerWith lets the test write the whole response,
+// rather than serving a valid metadata document.
+func newTestClientMetadataServerWith(t *testing.T, serve func(w http.ResponseWriter, selfURL string)) string {
+	t.Helper()
+	var srv *httptest.Server
+	srv = httptest.NewTLSServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		serve(w, srv.URL+"/client-metadata.json")
+	}))
+	orig := mcpClientMetadataHTTPClient
+	mcpClientMetadataHTTPClient = mcpNewClientMetadataHTTPClient(nil, srv.Client().Transport.(*http.Transport).TLSClientConfig)
+	t.Cleanup(func() {
+		mcpClientMetadataHTTPClient = orig
+		srv.Close()
+	})
+	return srv.URL + "/client-metadata.json"
 }
 
 // parseSSEData extracts the JSON data from an SSE response body.
