@@ -313,7 +313,7 @@ var (
 		ValueType:           ValueTypeEnum,
 		Operators:           []Operator{OperatorIn, OperatorNotIn},
 		ValueSuggestionMode: ValueSuggestionModeFullList,
-		EnumValues:          []string{"0-4gb", "5-6gb", "7-8gb", "9-12gb", "13-16gb", "17-31gb", "32gb+", "unknown"},
+		EnumValues:          DeviceMemoryTiers(),
 	}
 
 	userID = Key{

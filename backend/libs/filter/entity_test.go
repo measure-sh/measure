@@ -1266,3 +1266,41 @@ func TestDeviceTotalMemoryValuesUseReadableNames(t *testing.T) {
 		t.Errorf("unexpected display values: first=%q last=%q", values[0].Text, values[len(values)-1].Text)
 	}
 }
+
+// TestDeviceMemoryTiersClaimShippingSizes pins the tier a real device lands in.
+// Apple reports exact physical memory, so a bound resting on a shipping size
+// pushes those devices into the tier above the one named for them.
+func TestDeviceMemoryTiersClaimShippingSizes(t *testing.T) {
+	const kbPerGB uint64 = 1024 * 1024
+	tests := []struct {
+		name   string
+		sizeGB uint64
+		want   string
+	}{
+		{"4 gb", 4, "0-4gb"},
+		{"6 gb", 6, "5-6gb"},
+		{"8 gb", 8, "7-8gb"},
+		{"12 gb", 12, "9-12gb"},
+		{"16 gb", 16, "13-16gb"},
+		{"18 gb", 18, "17-31gb"},
+		{"24 gb", 24, "17-31gb"},
+		{"32 gb", 32, "32gb+"},
+		{"64 gb", 64, "32gb+"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reported := tt.sizeGB * kbPerGB
+			got := DeviceMemoryTierUnknown
+			for _, r := range DeviceMemoryRanges {
+				if reported >= r.LowerKB && (r.UpperKB == 0 || reported < r.UpperKB) {
+					got = r.Name
+					break
+				}
+			}
+			if got != tt.want {
+				t.Errorf("a %d GB device lands in tier %q, want %q", tt.sizeGB, got, tt.want)
+			}
+		})
+	}
+}

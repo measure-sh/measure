@@ -233,7 +233,7 @@ func (a App) GetMemoryUsageBreakdown(ctx context.Context, rch driver.Conn, flt *
 		Select("uniqExact(e.session_id) AS session_count").
 		Select("count() AS sample_count").
 		GroupBy("device_total_memory_tier").
-		OrderBy("indexOf(['0-4gb', '5-6gb', '7-8gb', '9-12gb', '13-16gb', '17-31gb', '32gb+', 'unknown'], device_total_memory_tier)")
+		OrderBy(memoryTierOrderExpression("device_total_memory_tier"))
 	defer stmt.Close()
 
 	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
@@ -509,15 +509,36 @@ func applyMemoryAppImportance(stmt *sqlf.Stmt, appImportance string) {
 	}
 }
 
+// memoryTierExpression buckets a device memory column into the shared tiers.
+// multiIf evaluates its arms in order, so each tier only needs to test its own
+// upper bound, and the unbounded tier is the fallback.
 func memoryTierExpression(column string) string {
-	return "multiIf(" + column + " = 0, 'unknown', " +
-		column + " > 0 AND " + column + " < 5242880, '0-4gb', " +
-		column + " < 7340032, '5-6gb', " +
-		column + " < 9437184, '7-8gb', " +
-		column + " < 13631488, '9-12gb', " +
-		column + " < 17825792, '13-16gb', " +
-		column + " < 33554432, '17-31gb', " +
-		"'32gb+')"
+	parts := make([]string, 0, len(filter.DeviceMemoryRanges)+1)
+	parts = append(parts, fmt.Sprintf("%s = 0, '%s'", column, filter.DeviceMemoryTierUnknown))
+	for i, r := range filter.DeviceMemoryRanges {
+		if r.UpperKB == 0 {
+			parts = append(parts, fmt.Sprintf("'%s'", r.Name))
+			continue
+		}
+		condition := fmt.Sprintf("%s < %d", column, r.UpperKB)
+		if i == 0 {
+			condition = fmt.Sprintf("%s > 0 AND %s", column, condition)
+		}
+		parts = append(parts, fmt.Sprintf("%s, '%s'", condition, r.Name))
+	}
+	return "multiIf(" + strings.Join(parts, ", ") + ")"
+}
+
+// memoryTierOrderExpression sorts breakdown rows by ascending device memory.
+// indexOf returns zero for a name absent from the array, so deriving the array
+// from the shared tiers keeps a renamed tier from silently sorting first.
+func memoryTierOrderExpression(column string) string {
+	tiers := filter.DeviceMemoryTiers()
+	quoted := make([]string, 0, len(tiers))
+	for _, tier := range tiers {
+		quoted = append(quoted, "'"+tier+"'")
+	}
+	return "indexOf([" + strings.Join(quoted, ", ") + "], " + column + ")"
 }
 
 // resolveMemoryAppImportance handles the optional filter before query construction.
