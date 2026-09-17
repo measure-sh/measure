@@ -36,6 +36,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Migrate mcp to 2.0 (#4478) by @anupcowkur in #4478
 - (**backend**): Trace filter key and value reads by @anupcowkur
 - (**backend**): Order filter keys the same way in every entity by @anupcowkur
 - (**backend**): Simplify filters by @anupcowkur
