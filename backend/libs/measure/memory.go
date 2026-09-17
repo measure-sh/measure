@@ -340,9 +340,16 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 	// Reduce samples to one row per session before attaching display metadata.
 	// Joining first repeats that metadata for every sample and makes the
 	// percentile aggregation carry a much wider grouping key.
+	//
+	// Restrict to the filtered sessions here rather than leaning on the join.
+	// The join drops unwanted sessions only after a percentile has been
+	// computed for every session in the app. The version predicate stays
+	// alongside it for pruning, since version/build precede time in the
+	// events key while session_id follows it.
 	memory := memoryUsageEvents(nil, a, flt, source, appImportance).
 		Select("e.session_id").
 		Select("toFloat64(quantileTDigest(0.90)(" + source.usageKB + ")) AS p90_memory_kb").
+		Where("e.session_id IN (SELECT session_id FROM session_rows)").
 		Where("(e.attribute.app_version, e.attribute.app_build) IN (SELECT app_version FROM session_rows)").
 		GroupBy("e.session_id")
 	if isIOS {
