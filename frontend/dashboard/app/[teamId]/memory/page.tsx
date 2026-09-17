@@ -8,12 +8,10 @@ import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import HighMemoryUsageSessions from "@/app/components/high_memory_usage_sessions";
 import MemoryUsageBreakdown from "@/app/components/memory_usage_breakdown";
 import MemoryUsagePlot from "@/app/components/memory_usage_plot";
-import MemoryUsageDistribution from "@/app/components/memory_usage_distribution";
 import type { MemoryAppImportance } from "@/app/api/api_calls";
 import {
   paginationOffsetUrlKey,
   useHighMemoryUsageSessionsQuery,
-  useMemoryUsageDistributionQuery,
   useMemoryUsageBreakdownQuery,
   useMemoryUsagePlotQuery,
 } from "@/app/query/hooks";
@@ -66,10 +64,6 @@ export default function MemoryPage({ params }: PageProps) {
     filter.filterParams,
     isAndroidApp ? appImportance : undefined,
   );
-  const memoryDistributionQuery = useMemoryUsageDistributionQuery(
-    filter.filterParams,
-    isAndroidApp ? appImportance : undefined,
-  );
   const highMemorySessionsQuery = useHighMemoryUsageSessionsQuery(
     filter.filterParams,
     isAndroidApp ? appImportance : undefined,
@@ -112,30 +106,20 @@ export default function MemoryPage({ params }: PageProps) {
       )}
       <div className="py-4" />
       {readyValue !== null && (
-        <>
-          <div className="flex w-full flex-col">
-            <div className="w-full">
-              <MemoryUsagePlot
-                startDate={readyValue.date.startDate}
-                endDate={readyValue.date.endDate}
-                query={memoryPlotQuery}
-              />
-            </div>
-            <div className="w-full py-8">
-              <MemoryUsageBreakdown query={memoryBreakdownQuery} />
-            </div>
-            <div className="w-full">
-              <MemoryUsageDistribution query={memoryDistributionQuery} />
-            </div>
-          </div>
-          <div className="py-8" />
+        <div className="flex w-full flex-col gap-16">
+          <MemoryUsagePlot
+            startDate={readyValue.date.startDate}
+            endDate={readyValue.date.endDate}
+            query={memoryPlotQuery}
+          />
+          <MemoryUsageBreakdown query={memoryBreakdownQuery} />
           <HighMemoryUsageSessions
             teamId={teamId}
             query={highMemorySessionsQuery}
             onNext={filter.nextPage}
             onPrev={filter.prevPage}
           />
-        </>
+        </div>
       )}
     </div>
   );

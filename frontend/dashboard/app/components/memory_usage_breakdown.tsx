@@ -2,7 +2,7 @@
 
 import type { useMemoryUsageBreakdownQuery } from "@/app/query/hooks";
 import { formatDeviceMemoryTier } from "../utils/device_memory_tiers";
-import LoadingBar from "./loading_bar";
+import { SkeletonTable } from "./skeleton";
 import {
   Table,
   TableBody,
@@ -28,8 +28,11 @@ export default function MemoryUsageBreakdown({
 
   return (
     <section className="w-full font-body">
-      <h2 className="mb-2 font-display text-xl">Breakdown</h2>
-      {status === "pending" && <LoadingBar />}
+      {status === "pending" && (
+        <div role="status" aria-label="Loading memory breakdown">
+          <SkeletonTable rows={4} columns={5} />
+        </div>
+      )}
       {status === "error" && (
         <p className="text-sm text-muted-foreground">
           Unable to load memory breakdown.

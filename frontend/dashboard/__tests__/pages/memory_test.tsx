@@ -4,7 +4,6 @@ import { fireEvent, render, screen } from "@testing-library/react";
 
 const mockUseFilterPage = jest.fn();
 const mockUseMemoryUsagePlotQuery = jest.fn();
-const mockUseMemoryUsageDistributionQuery = jest.fn();
 const mockUseMemoryUsageBreakdownQuery = jest.fn();
 const mockUseHighMemoryUsageSessionsQuery = jest.fn();
 
@@ -17,8 +16,6 @@ jest.mock("@/app/query/hooks", () => ({
     mockUseMemoryUsagePlotQuery(...args),
   useMemoryUsageBreakdownQuery: (...args: unknown[]) =>
     mockUseMemoryUsageBreakdownQuery(...args),
-  useMemoryUsageDistributionQuery: (...args: unknown[]) =>
-    mockUseMemoryUsageDistributionQuery(...args),
   useHighMemoryUsageSessionsQuery: (...args: unknown[]) =>
     mockUseHighMemoryUsageSessionsQuery(...args),
 }));
@@ -28,9 +25,6 @@ jest.mock("@/app/components/memory_usage_plot", () => () => (
 ));
 jest.mock("@/app/components/memory_usage_breakdown", () => () => (
   <div data-testid="memory-breakdown" />
-));
-jest.mock("@/app/components/memory_usage_distribution", () => () => (
-  <div data-testid="memory-distribution" />
 ));
 jest.mock("@/app/components/high_memory_usage_sessions", () => () => (
   <div data-testid="high-memory-sessions" />
@@ -82,7 +76,7 @@ describe("MemoryPage", () => {
   });
 
   it.each(["iOS", "ipados"])(
-    "reuses all four views without process-state filtering for %s",
+    "shows memory views without process-state filtering for %s",
     (osName) => {
       const filterParams = setApp("apple-app", osName);
       render(<MemoryPage params={params} />);
@@ -90,17 +84,12 @@ describe("MemoryPage", () => {
       expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
       expect(screen.getByTestId("memory-plot")).toBeInTheDocument();
       expect(screen.getByTestId("memory-breakdown")).toBeInTheDocument();
-      expect(screen.getByTestId("memory-distribution")).toBeInTheDocument();
       expect(screen.getByTestId("high-memory-sessions")).toBeInTheDocument();
       expect(mockUseMemoryUsagePlotQuery).toHaveBeenLastCalledWith(
         filterParams,
         undefined,
       );
       expect(mockUseMemoryUsageBreakdownQuery).toHaveBeenLastCalledWith(
-        filterParams,
-        undefined,
-      );
-      expect(mockUseMemoryUsageDistributionQuery).toHaveBeenLastCalledWith(
         filterParams,
         undefined,
       );
@@ -139,10 +128,6 @@ describe("MemoryPage", () => {
       undefined,
     );
     expect(mockUseMemoryUsageBreakdownQuery).toHaveBeenLastCalledWith(
-      appleParams,
-      undefined,
-    );
-    expect(mockUseMemoryUsageDistributionQuery).toHaveBeenLastCalledWith(
       appleParams,
       undefined,
     );

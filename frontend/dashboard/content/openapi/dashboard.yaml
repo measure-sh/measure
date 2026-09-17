@@ -36,7 +36,7 @@ tags:
   - name: Sessions
     description: Session listing, session plots and session replays.
   - name: Memory
-    description: Memory trends by app version, device-tier percentiles, distributions and high-memory sessions.
+    description: Memory trends by app version, device-tier percentiles and high-memory sessions.
   - name: Traces
     description: Root spans, span listings and traces.
   - name: Bug Reports
@@ -2658,61 +2658,6 @@ paths:
                   p95: 307200
                   session_count: 30
                   sample_count: 1200
-        "400":
-          description: Invalid app importance, date range, time group, pagination or session filter
-            expression, or a missing required timezone.
-        "401":
-          description: Authentication is required.
-        "403":
-          description: The requester does not have read access to this app.
-        "429":
-          description: Rate limit exceeded.
-        "500":
-          description: The server could not query memory data.
-  /apps/{id}/memory/plots/distribution:
-    get:
-      operationId: getMemoryUsageDistribution
-      tags:
-        - Memory
-      summary: Fetch memory usage distribution
-      description: >-
-        Returns the percentage and count of samples in each 100 MB range across matching app
-        versions and device tiers. Ranges include their lower bound and exclude their upper
-        bound; 900+ includes all samples at or above 900 MB. MB uses 1024 KB. Empty buckets
-        are omitted by the API and rendered as zero by the dashboard.
-
-
-        Memory is measured in KB (1024 bytes): anonymous RSS + swap on Android, and reported
-        used memory (physical footprint or its resident-size fallback) on iOS/iPadOS. Only
-        positive samples in the selected date range and matching sessions contribute.
-        Percentiles use individual samples, not averages of session or tier percentiles.
-        Unsupported platforms return no data.
-      parameters:
-        - *a1
-        - $ref: "#/components/parameters/From"
-        - $ref: "#/components/parameters/To"
-        - $ref: "#/components/parameters/FilterExpr"
-        - $ref: "#/components/parameters/Timezone"
-        - $ref: "#/components/parameters/MemoryAppImportance"
-      responses:
-        "200":
-          description: Memory data for the selected app, date range and session filters.
-          content:
-            application/json:
-              schema:
-                type:
-                  - array
-                  - "null"
-                description: No matching samples may be returned as null or an empty array.
-                items:
-                  $ref: "#/components/schemas/MemoryUsageDistributionPoint"
-              example:
-                - bucket: 100-200
-                  percentage: 75
-                  sample_count: 900
-                - bucket: 200-300
-                  percentage: 25
-                  sample_count: 300
         "400":
           description: Invalid app importance, date range, time group, pagination or session filter
             expression, or a missing required timezone.
@@ -6013,34 +5958,6 @@ components:
           minimum: 0
           description: Samples contributing to this tier across the whole date range and matching
             versions.
-    MemoryUsageDistributionPoint:
-      type: object
-      required:
-        - bucket
-        - percentage
-        - sample_count
-      properties:
-        bucket:
-          type: string
-          enum:
-            - 0-100
-            - 100-200
-            - 200-300
-            - 300-400
-            - 400-500
-            - 500-600
-            - 600-700
-            - 700-800
-            - 800-900
-            - 900+
-        percentage:
-          type: number
-          minimum: 0
-          maximum: 100
-          description: Percentage of all matching samples, not sessions.
-        sample_count:
-          type: integer
-          minimum: 0
     HighMemoryUsageSession:
       type: object
       required:

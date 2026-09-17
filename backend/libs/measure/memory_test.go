@@ -38,26 +38,6 @@ func TestValidMemoryAppImportance(t *testing.T) {
 	}
 }
 
-func TestMemoryDistributionBucketLabel(t *testing.T) {
-	tests := []struct {
-		bucket uint64
-		want   string
-	}{
-		{bucket: 0, want: "0-100"},
-		{bucket: 8, want: "800-900"},
-		{bucket: 9, want: "900+"},
-		{bucket: 20, want: "900+"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.want, func(t *testing.T) {
-			if got := memoryDistributionBucketLabel(tt.bucket); got != tt.want {
-				t.Fatalf("memoryDistributionBucketLabel(%d) = %q, want %q", tt.bucket, got, tt.want)
-			}
-		})
-	}
-}
-
 func TestMemoryThresholdExpression(t *testing.T) {
 	foreground := memoryThresholdExpression("device_memory", "foreground")
 	if !strings.Contains(foreground, "device_memory >= 5242880 AND device_memory < 7340032, 2359296") {
@@ -245,10 +225,6 @@ func TestMemoryUsageQueries(t *testing.T) {
 					if err != nil {
 						t.Fatalf("memory breakdown: %v", err)
 					}
-					distribution, err := f.app.GetMemoryUsageDistribution(f.ctx, deps.RchPool, flt, importance)
-					if err != nil {
-						t.Fatalf("memory distribution: %v", err)
-					}
 					sessions, next, previous, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt, importance)
 					if err != nil {
 						t.Fatalf("high-memory sessions: %v", err)
@@ -259,8 +235,8 @@ func TestMemoryUsageQueries(t *testing.T) {
 						(filterName == "device-memory-known" && osName != opsys.Android) ||
 						(filterName == "device-memory-unknown" && osName == opsys.Android)
 					if excluded {
-						if len(breakdown) != 0 || len(plot) != 0 || len(distribution) != 0 || len(sessions) != 0 || next || previous {
-							t.Fatalf("excluded session returned data: %v / %v / %v", plot, distribution, sessions)
+						if len(breakdown) != 0 || len(plot) != 0 || len(sessions) != 0 || next || previous {
+							t.Fatalf("excluded session returned data: %v / %v / %v", plot, breakdown, sessions)
 						}
 						return
 					}
@@ -279,9 +255,6 @@ func TestMemoryUsageQueries(t *testing.T) {
 						if quantile == nil || *quantile != float64(3*memoryKBPerGB) {
 							t.Fatalf("breakdown quantile = %v, want 3 GiB in KiB", quantile)
 						}
-					}
-					if len(distribution) != 1 || distribution[0].Bucket != "900+" || distribution[0].SampleCount != 3 || distribution[0].Percentage != 100 {
-						t.Fatalf("distribution = %#v", distribution)
 					}
 					if len(sessions) != 1 || sessions[0].SessionID != sessionID || next || previous {
 						t.Fatalf("sessions = %#v, next/previous = %v/%v", sessions, next, previous)
@@ -349,10 +322,6 @@ func TestMemoryUsageUnknownPlatform(t *testing.T) {
 	breakdown, err := app.GetMemoryUsageBreakdown(t.Context(), nil, flt, "")
 	if err != nil || len(breakdown) != 0 {
 		t.Fatalf("breakdown = %v, err = %v", breakdown, err)
-	}
-	distribution, err := app.GetMemoryUsageDistribution(t.Context(), nil, flt, "")
-	if err != nil || len(distribution) != 0 {
-		t.Fatalf("distribution = %v, err = %v", distribution, err)
 	}
 	sessions, next, previous, err := app.GetHighMemoryUsageSessions(t.Context(), nil, flt, "")
 	if err != nil || len(sessions) != 0 || next || previous {
@@ -495,14 +464,6 @@ func TestMemoryUsageIOSLegacySamplesRemainInCharts(t *testing.T) {
 			}
 			if len(tiers) != 3 || tiers["32gb+"] != 1 || tiers["5-6gb"] != 1 || tiers["unknown"] != 1 {
 				t.Fatalf("memory tiers = %v, want one sample each in 32gb+, 5-6gb and unknown", tiers)
-			}
-
-			distribution, err := f.app.GetMemoryUsageDistribution(f.ctx, deps.RchPool, flt, importance)
-			if err != nil {
-				t.Fatalf("memory distribution: %v", err)
-			}
-			if len(distribution) != 1 || distribution[0].SampleCount != 3 {
-				t.Fatalf("distribution = %#v, want one bucket with three samples", distribution)
 			}
 		})
 	}

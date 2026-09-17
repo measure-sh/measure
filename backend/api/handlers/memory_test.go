@@ -55,7 +55,7 @@ func TestMemoryHandlers(t *testing.T) {
 			}
 
 			// An omitted or empty Android filter must exclude the background sample,
-			// exactly as an explicit foreground filter does, on all four endpoints.
+			// exactly as an explicit foreground filter does, on all memory endpoints.
 			for _, request := range []struct {
 				name   string
 				params url.Values
@@ -78,7 +78,6 @@ func TestMemoryHandlers(t *testing.T) {
 					handle gin.HandlerFunc
 				}{
 					{"plots/usage", h.GetMemoryUsagePlot},
-					{"plots/distribution", h.GetMemoryUsageDistribution},
 					{"plots/breakdown", h.GetMemoryUsageBreakdown},
 					{"sessions/high-usage", h.GetHighMemoryUsageSessions},
 				} {
@@ -106,14 +105,6 @@ func TestMemoryHandlers(t *testing.T) {
 							}
 							if len(points) != 1 || points[0].SampleCount != 1 || points[0].SessionCount != 1 || points[0].DeviceTotalMemoryTier != "5-6gb" || points[0].P90 == nil || *points[0].P90 != 3*kbPerGB {
 								t.Fatalf("unexpected breakdown: %s", w.Body.String())
-							}
-						case "plots/distribution":
-							var points []measure.MemoryUsageDistributionPoint
-							if err := json.Unmarshal(w.Body.Bytes(), &points); err != nil {
-								t.Fatal(err)
-							}
-							if len(points) != 1 || points[0].SampleCount != 1 || points[0].Percentage != 100 {
-								t.Fatalf("unexpected distribution: %s", w.Body.String())
 							}
 						case "sessions/high-usage":
 							var result struct {

@@ -34,10 +34,8 @@ import {
   fetchMetricsFromServer,
   fetchHighMemoryUsageSessionsFromServer,
   fetchMemoryUsagePlotFromServer,
-  fetchMemoryUsageDistributionFromServer,
   fetchMemoryUsageBreakdownFromServer,
   type MemoryAppImportance,
-  type MemoryUsageDistributionPoint,
   type MemoryUsageBreakdownRow,
   type MemoryUsagePlotPoint,
   type HighMemoryUsageSessionsResponse,
@@ -754,32 +752,6 @@ export function useMemoryUsageBreakdownQuery(
     ] as const,
     queryFn: () =>
       fetchMemoryUsageBreakdownFromServer(
-        params!.appId,
-        params!.startDate,
-        params!.endDate,
-        params!.filterExpr,
-        appImportance,
-      ),
-    enabled: params !== null,
-    retry: false,
-  });
-}
-
-export function useMemoryUsageDistributionQuery(
-  params: FilterParams | null,
-  appImportance?: MemoryAppImportance,
-) {
-  return useQuery<MemoryUsageDistributionPoint[] | null>({
-    queryKey: [
-      "memoryUsageDistribution",
-      params?.appId,
-      params?.startDate,
-      params?.endDate,
-      params?.filterExpr,
-      appImportance,
-    ] as const,
-    queryFn: () =>
-      fetchMemoryUsageDistributionFromServer(
         params!.appId,
         params!.startDate,
         params!.endDate,

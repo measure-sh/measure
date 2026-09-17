@@ -77,13 +77,6 @@ export type MemoryUsageBreakdownRow = {
   sample_count: number;
 };
 
-// Percentage of samples in each 100 MB bucket, with 900+ as the final bucket.
-export type MemoryUsageDistributionPoint = {
-  bucket: string;
-  percentage: number;
-  sample_count: number;
-};
-
 export type HighMemoryUsageSession = {
   session_id: string;
   app_id: string;
@@ -1632,27 +1625,6 @@ export const fetchMemoryUsageBreakdownFromServer = async (
   return await request(
     `/api/apps/${appId}/memory/plots/breakdown?${params.toString()}`,
     { failsWith: "Failed to fetch memory usage breakdown" },
-  );
-};
-
-export const fetchMemoryUsageDistributionFromServer = async (
-  appId: string,
-  startDate: string,
-  endDate: string,
-  filterExpr: string | null,
-  appImportance?: MemoryAppImportance,
-): Promise<MemoryUsageDistributionPoint[] | null> => {
-  const params = new URLSearchParams({
-    from: formatUserInputDateToServerFormat(startDate),
-    to: formatUserInputDateToServerFormat(endDate),
-    timezone: getTimeZoneForServer(),
-  });
-  if (filterExpr) params.set("filter_expr", filterExpr);
-  if (appImportance) params.set("app_importance", appImportance);
-
-  return await request(
-    `/api/apps/${appId}/memory/plots/distribution?${params.toString()}`,
-    { failsWith: "Failed to fetch memory usage distribution" },
   );
 };
 

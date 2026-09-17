@@ -14,12 +14,10 @@ jest.mock("posthog-js", () => ({
 import {
   fetchMemoryUsagePlotFromServer,
   fetchMemoryUsageBreakdownFromServer,
-  fetchMemoryUsageDistributionFromServer,
   fetchHighMemoryUsageSessionsFromServer,
   type MemoryAppImportance,
   type MemoryUsagePlotPoint,
   type MemoryUsageBreakdownRow,
-  type MemoryUsageDistributionPoint,
 } from "@/app/api/api_calls";
 
 const spec = parse(fs.readFileSync("content/openapi/dashboard.yaml", "utf8"));
@@ -47,11 +45,6 @@ const tier: MemoryUsageBreakdownRow = {
   session_count: 30,
   sample_count: 1200,
 };
-const bucket: MemoryUsageDistributionPoint = {
-  bucket: "100-200",
-  percentage: 100,
-  sample_count: 1200,
-};
 const panels = [
   {
     route: "plots/usage",
@@ -66,13 +59,6 @@ const panels = [
     fetch: fetchMemoryUsageBreakdownFromServer,
     body: [tier],
     schema: "MemoryUsageBreakdownRow",
-  },
-  {
-    route: "plots/distribution",
-    handler: "GetMemoryUsageDistribution",
-    fetch: fetchMemoryUsageDistributionFromServer,
-    body: [bucket],
-    schema: "MemoryUsageDistributionPoint",
   },
 ];
 

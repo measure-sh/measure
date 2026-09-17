@@ -41,13 +41,6 @@ type MemoryUsageBreakdownRow struct {
 	SampleCount           uint64   `json:"sample_count"`
 }
 
-// MemoryUsageDistributionPoint contains the percentage of samples in a memory bucket.
-type MemoryUsageDistributionPoint struct {
-	Bucket      string  `json:"bucket"`
-	Percentage  float64 `json:"percentage"`
-	SampleCount uint64  `json:"sample_count"`
-}
-
 // HighMemoryUsageSession describes sustained high usage: Android uses a RAM-tier
 // target, while iOS uses the P90 of per-sample process-limit utilization.
 type HighMemoryUsageSession struct {
@@ -251,79 +244,6 @@ func (a App) GetMemoryUsageBreakdown(ctx context.Context, rch driver.Conn, flt *
 	return breakdown, rows.Err()
 }
 
-// GetMemoryUsageDistribution returns the
-// distribution of individual memory samples.
-func (a App) GetMemoryUsageDistribution(ctx context.Context, rch driver.Conn, flt *filter.Filter, appImportance string) (points []MemoryUsageDistributionPoint, err error) {
-	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	if flt.Timezone == "" {
-		return nil, errors.New("missing timezone filter")
-	}
-	appImportance, err = a.resolveMemoryAppImportance(appImportance)
-	if err != nil {
-		return nil, err
-	}
-	source, ok := a.memorySource()
-	if !ok {
-		return []MemoryUsageDistributionPoint{}, nil
-	}
-
-	var filteredSessions *sqlf.Stmt
-	if flt.HasFilterExpr() {
-		filteredSessions, err = a.memoryFilteredSessions(flt)
-		if err != nil {
-			return nil, err
-		}
-	}
-	const bucketSizeKB = 100 * 1024
-	bucketExpr := "least(intDiv(toUInt64(" + source.usageKB + "), ?), 9)"
-	stmt := memoryUsageEvents(filteredSessions, a, flt, source, appImportance).
-		Select(bucketExpr+" AS bucket", bucketSizeKB).
-		Select("count() AS sample_count").
-		GroupBy("bucket").
-		OrderBy("bucket")
-	defer stmt.Close()
-
-	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	var total uint64
-	type bucketCount struct {
-		bucket uint64
-		count  uint64
-	}
-	var counts []bucketCount
-	for rows.Next() {
-		var item bucketCount
-		var bucket *uint64
-		if err := rows.Scan(&bucket, &item.count); err != nil {
-			return nil, err
-		}
-		if bucket == nil {
-			continue
-		}
-		item.bucket = *bucket
-		counts = append(counts, item)
-		total += item.count
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	if total == 0 {
-		return []MemoryUsageDistributionPoint{}, nil
-	}
-	for _, item := range counts {
-		points = append(points, MemoryUsageDistributionPoint{
-			Bucket:      memoryDistributionBucketLabel(item.bucket),
-			Percentage:  float64(item.count) * 100 / float64(total),
-			SampleCount: item.count,
-		})
-	}
-	return points, nil
-}
-
 // GetHighMemoryUsageSessions selects Android sessions above their RAM-tier target
 // and iOS sessions with P90 process-limit utilization of at least 75%.
 func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, flt *filter.Filter, appImportance string) (sessions []HighMemoryUsageSession, next, previous bool, err error) {
@@ -441,13 +361,6 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 		next = true
 	}
 	return sessions, next, flt.Offset > 0, nil
-}
-
-func memoryDistributionBucketLabel(bucket uint64) string {
-	if bucket >= 9 {
-		return "900+"
-	}
-	return fmt.Sprintf("%d-%d", bucket*100, (bucket+1)*100)
 }
 
 func (a App) memoryFilteredSessions(flt *filter.Filter) (*sqlf.Stmt, error) {

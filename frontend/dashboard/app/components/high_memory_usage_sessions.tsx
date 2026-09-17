@@ -10,6 +10,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import LoadingBar from "./loading_bar";
 import Paginator from "./paginator";
+import { SkeletonTable } from "./skeleton";
 import {
   Table,
   TableBody,
@@ -57,7 +58,11 @@ export default function HighMemoryUsageSessions({
 
   return (
     <section className="w-full font-body">
-      {status === "pending" && <LoadingBar />}
+      {status === "pending" && (
+        <div role="status" aria-label="Loading high memory usage sessions">
+          <SkeletonTable rows={5} columns={3} />
+        </div>
+      )}
       {status === "error" && (
         <p className="text-sm text-muted-foreground">
           Unable to load high memory usage sessions.
@@ -75,7 +80,7 @@ export default function HighMemoryUsageSessions({
             />
           </div>
           <div
-            className={`w-full py-1 ${isFetching ? "visible" : "invisible"}`}
+            className={`w-full py-3 ${isFetching ? "visible" : "invisible"}`}
           >
             <LoadingBar />
           </div>
