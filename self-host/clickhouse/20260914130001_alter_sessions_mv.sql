@@ -129,6 +129,8 @@ select
     maxSimpleState(timestamp) as last_event_timestamp,
     (attribute.app_version, attribute.app_build) as app_version,
     (attribute.os_name, attribute.os_version) as os_version,
+    maxSimpleState(attribute.patch_version) as patch_version,
+    maxSimpleState(attribute.patch_id) as patch_id,
     groupUniqArrayArraySimpleState(if(inet.country_code != '', [inet.country_code], [])) as country_codes,
     groupUniqArrayArraySimpleState(if(attribute.network_provider != '', [attribute.network_provider], [])) as network_providers,
     groupUniqArrayArraySimpleState(if(attribute.network_type != '', [attribute.network_type], [])) as network_types,
@@ -144,6 +146,8 @@ select
     groupUniqArrayArraySimpleState(if(`log.body` != '', [`log.body`], [])) as unique_logs,
     groupUniqArrayArraySimpleState(if((type = 'lifecycle_activity') and (lifecycle_activity.class_name != ''), [lifecycle_activity.class_name], [])) as unique_view_classnames,
     groupUniqArrayArraySimpleState(if((type = 'lifecycle_fragment') and (lifecycle_fragment.class_name != ''), [lifecycle_fragment.class_name], [])) as unique_subview_classnames,
+    groupUniqArrayArraySimpleState(if((type = 'screen_view') and (screen_view.name != ''), [screen_view.name], [])) as unique_screen_view_names,
+    groupUniqArrayArraySimpleState(if((type = 'lifecycle_view_controller') and (lifecycle_view_controller.class_name != ''), [lifecycle_view_controller.class_name], [])) as unique_view_controller_classnames,
     -- fatal: severity='fatal' or (severity='' and handled=0)
     groupUniqArrayArraySimpleState(if(
         type = 'exception' and (

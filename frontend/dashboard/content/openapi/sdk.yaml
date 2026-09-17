@@ -1243,7 +1243,7 @@ paths:
                             description: Anonymous resident memory from RssAnon in /proc/self/status, in KB (1024 bytes).
                           swap:
                             type: [integer, "null"]
-                            description: Swapped-out memory from VmSwap in /proc/self/status, in KB (1024 bytes).
+                            description: Private anonymous memory swapped out before compression, from VmSwap in /proc/self/status, in KB (1024 bytes).
                           app_importance:
                             type: string
                             enum: [foreground, user_service, background]
@@ -2424,7 +2424,7 @@ paths:
                     type: number
                     minimum: 0
                     maximum: 100
-                    description: Percentage of sessions that collect memory usage.
+                    description: Percentage of Android sessions that collect memory usage. Does not affect iOS/iPadOS collection.
                   error_fatal_take_screenshot:
                     type: boolean
                     description: Whether to take screenshot on fatal error.

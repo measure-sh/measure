@@ -10,8 +10,7 @@ import sh.measure.android.utils.ProcProvider
 import sh.measure.android.utils.RuntimeProvider
 
 /**
- * A utility clas to read memory information from difference sources such as runtime, debug, and
- * proc.
+ * Reads process memory information from the runtime, Android debug APIs, and proc.
  */
 internal interface MemoryReader {
     /**

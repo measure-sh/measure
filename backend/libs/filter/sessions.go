@@ -35,8 +35,8 @@ var DeviceMemoryRanges = []DeviceMemoryRange{
 	{"7-8gb", 7 * memoryKBPerGB, 9 * memoryKBPerGB},
 	{"9-12gb", 9 * memoryKBPerGB, 13 * memoryKBPerGB},
 	{"13-16gb", 13 * memoryKBPerGB, 17 * memoryKBPerGB},
-	{"17-31gb", 17 * memoryKBPerGB, 32 * memoryKBPerGB},
-	{"32gb+", 32 * memoryKBPerGB, 0},
+	{"17-32gb", 17 * memoryKBPerGB, 33 * memoryKBPerGB},
+	{"33gb+", 33 * memoryKBPerGB, 0},
 }
 
 // DeviceMemoryTiers returns every tier name in ascending order of device

@@ -11,6 +11,7 @@ jest.mock("@/app/components/filter_bar/use_filter_page", () => ({
   useFilterPage: (...args: unknown[]) => mockUseFilterPage(...args),
 }));
 jest.mock("@/app/query/hooks", () => ({
+  HIGH_MEMORY_USAGE_SESSIONS_LIMIT: 5,
   paginationOffsetUrlKey: "po",
   useMemoryUsagePlotQuery: (...args: unknown[]) =>
     mockUseMemoryUsagePlotQuery(...args),

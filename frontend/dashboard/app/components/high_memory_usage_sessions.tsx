@@ -36,6 +36,9 @@ function sessionDetails(session: HighMemoryUsageSession) {
     `${attribute.app_version} (${attribute.app_build})`,
     `${attribute.os_name} ${attribute.os_version}`.trim(),
     device,
+    attribute.device_total_memory > 0
+      ? `${formatMemory(attribute.device_total_memory)} RAM`
+      : null,
   ]
     .filter(Boolean)
     .join(", ");
@@ -91,7 +94,7 @@ export default function HighMemoryUsageSessions({
                   Sessions with high memory usage
                 </TableHead>
                 <TableHead className="w-[22%] text-center">
-                  Memory usage (p90)
+                  Peak memory usage
                 </TableHead>
                 <TableHead className="w-[20%] text-center">
                   Start time
@@ -148,11 +151,14 @@ export default function HighMemoryUsageSessions({
                           aria-hidden="true"
                         />
                         <div className="pointer-events-none p-4">
-                          <p>{formatMemory(session.p90_memory_kb)} used</p>
+                          <p>{formatMemory(session.peak_memory_kb)}</p>
                           <p className="text-xs text-muted-foreground">
-                            {session.attribute.device_total_memory > 0
-                              ? `of ${formatMemory(session.attribute.device_total_memory)} total`
-                              : "Total RAM unavailable"}
+                            {session.percent_of_target != null &&
+                            session.target_memory_kb != null
+                              ? `${Math.round(session.percent_of_target)}% of ${formatMemory(session.target_memory_kb)} target`
+                              : session.peak_memory_limit_utilization != null
+                                ? `${Math.round(session.peak_memory_limit_utilization * 100)}% of app limit (peak)`
+                                : "Threshold unavailable"}
                           </p>
                         </div>
                       </TableCell>

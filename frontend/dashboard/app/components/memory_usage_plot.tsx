@@ -48,7 +48,6 @@ export default function MemoryUsagePlot({
   const plot = useMemo(() => {
     if (!rawData) return rawData;
     const transformed = transformMemoryUsagePlotData(rawData, quantile);
-    if (transformed === null) return null;
     return embedSiblingPoints(
       transformed,
       (_, index) => colors[index % colors.length],

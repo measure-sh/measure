@@ -10,6 +10,7 @@ import MemoryUsageBreakdown from "@/app/components/memory_usage_breakdown";
 import MemoryUsagePlot from "@/app/components/memory_usage_plot";
 import type { MemoryAppImportance } from "@/app/api/api_calls";
 import {
+  HIGH_MEMORY_USAGE_SESSIONS_LIMIT,
   paginationOffsetUrlKey,
   useHighMemoryUsageSessionsQuery,
   useMemoryUsageBreakdownQuery,
@@ -41,7 +42,7 @@ export default function MemoryPage({ params }: PageProps) {
   const filter = useFilterPage({
     teamId,
     entity: "sessions",
-    paginationLimit: 5,
+    paginationLimit: HIGH_MEMORY_USAGE_SESSIONS_LIMIT,
   });
   const readyValue = filter.status.kind === "ready" ? filter.value : null;
   const [importanceSelection, setImportanceSelection] = useState<{

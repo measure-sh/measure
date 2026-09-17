@@ -1210,14 +1210,14 @@ func TestDeviceTotalMemoryBindsRanges(t *testing.T) {
 	stmt, err := bindColumn(SessionsEntity.Columns, Condition{
 		KeyName:  "device_total_memory",
 		Operator: OperatorIn,
-		Values:   []Value{{Text: "17-31gb"}},
+		Values:   []Value{{Text: "17-32gb"}},
 	})
 	if err != nil {
 		t.Fatalf("bind device memory: %v", err)
 	}
 	defer stmt.Close()
 
-	want := "(device_total_memory >= 17825792 and device_total_memory < 33554432)"
+	want := "(device_total_memory >= 17825792 and device_total_memory < 34603008)"
 	if got := stmt.String(); got != want {
 		t.Errorf("want %s, got %s", want, got)
 	}
@@ -1282,10 +1282,11 @@ func TestDeviceMemoryTiersClaimShippingSizes(t *testing.T) {
 		{"8 gb", 8, "7-8gb"},
 		{"12 gb", 12, "9-12gb"},
 		{"16 gb", 16, "13-16gb"},
-		{"18 gb", 18, "17-31gb"},
-		{"24 gb", 24, "17-31gb"},
-		{"32 gb", 32, "32gb+"},
-		{"64 gb", 64, "32gb+"},
+		{"18 gb", 18, "17-32gb"},
+		{"24 gb", 24, "17-32gb"},
+		{"32 gb", 32, "17-32gb"},
+		{"33 gb", 33, "33gb+"},
+		{"64 gb", 64, "33gb+"},
 	}
 
 	for _, tt := range tests {

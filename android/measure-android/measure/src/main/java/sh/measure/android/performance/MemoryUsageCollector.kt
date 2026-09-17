@@ -35,9 +35,6 @@ internal class MemoryUsageCollector(
     var future: Future<*>? = null
 
     @VisibleForTesting
-    internal var previousMemoryUsage: MemoryUsageData? = null
-
-    @VisibleForTesting
     internal var previousMemoryUsageReadTimeMs = 0L
 
     fun register() {
@@ -119,7 +116,6 @@ internal class MemoryUsageCollector(
             type = EventType.MEMORY_USAGE,
             data = data,
         )
-        previousMemoryUsage = data
     }
 
     private fun processImportance(): String = when (processInfo.getProcessImportance()) {

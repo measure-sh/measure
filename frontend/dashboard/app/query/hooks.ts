@@ -303,11 +303,13 @@ export function transformSpanMetricsPlotData(
 }
 
 export function transformMemoryUsagePlotData(
-  rawData: MemoryUsagePlotPoint[] | null,
+  rawData: MemoryUsagePlotPoint[],
   quantile: MemoryUsageQuantile,
 ) {
-  if (rawData === null) return null;
-  const pointsByVersion = new Map<string, any[]>();
+  const pointsByVersion = new Map<
+    string,
+    { id: string; x: string; y: number | null }[]
+  >();
   for (const point of rawData) {
     const data = pointsByVersion.get(point.version) ?? [];
     data.push({
@@ -763,7 +765,7 @@ export function useMemoryUsageBreakdownQuery(
   });
 }
 
-const HIGH_MEMORY_USAGE_SESSIONS_LIMIT = 5;
+export const HIGH_MEMORY_USAGE_SESSIONS_LIMIT = 5;
 
 export function useHighMemoryUsageSessionsQuery(
   params: FilterParams | null,

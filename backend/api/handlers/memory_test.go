@@ -124,14 +124,14 @@ func TestMemoryHandlers(t *testing.T) {
 								if got := *session.TargetMemoryKB; got != 9*kbPerGB/4 {
 									t.Errorf("Android target = %d KiB, want %d", got, 9*kbPerGB/4)
 								}
-								if session.P90MemoryLimitUtilization != nil {
-									t.Errorf("Android process-limit utilization = %v, want omitted", *session.P90MemoryLimitUtilization)
+								if session.PeakMemoryLimitUtilization != nil {
+									t.Errorf("Android process-limit utilization = %v, want omitted", *session.PeakMemoryLimitUtilization)
 								}
 							} else {
-								if session.P90MemoryLimitUtilization == nil {
+								if session.PeakMemoryLimitUtilization == nil {
 									t.Fatal("missing iOS process-limit utilization")
 								}
-								if got := *session.P90MemoryLimitUtilization; got != 0.75 {
+								if got := *session.PeakMemoryLimitUtilization; got != 0.75 {
 									t.Errorf("iOS process-limit utilization = %v, want 0.75", got)
 								}
 								if session.TargetMemoryKB != nil {

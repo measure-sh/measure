@@ -18,6 +18,7 @@ import {
   type MemoryAppImportance,
   type MemoryUsagePlotPoint,
   type MemoryUsageBreakdownRow,
+  type HighMemoryUsageSession,
 } from "@/app/api/api_calls";
 
 const spec = parse(fs.readFileSync("content/openapi/dashboard.yaml", "utf8"));
@@ -121,13 +122,37 @@ it.each(panels)(
 );
 
 it("keeps high-memory sessions pagination and defaults aligned with the API", async () => {
+  const session: HighMemoryUsageSession = {
+    session_id: "session-a",
+    app_id: "app-a",
+    first_event_time: from,
+    last_event_time: to,
+    peak_memory_kb: 1769472,
+    target_memory_kb: 2359296,
+    percent_of_target: 75,
+    attribute: {
+      app_version: "1.2.3",
+      app_build: "42",
+      device_name: "device",
+      device_model: "model",
+      device_manufacturer: "manufacturer",
+      device_total_memory: 5 * 1024 * 1024,
+      os_name: "android",
+      os_version: "16",
+    },
+  };
+  const schema = spec.components.schemas.HighMemoryUsageSession;
+  expect(schema.required).toContain("peak_memory_kb");
+  expect(Object.keys(schema.properties).sort()).toEqual(
+    [...Object.keys(session), "peak_memory_limit_utilization"].sort(),
+  );
   for (const importance of [
     undefined,
     "foreground",
     "user_service",
     "background",
   ] as (MemoryAppImportance | undefined)[]) {
-    const body = { results: null, meta: { next: false, previous: false } };
+    const body = { results: [session], meta: { next: false, previous: false } };
     respond(body);
     expect(
       await fetchHighMemoryUsageSessionsFromServer(

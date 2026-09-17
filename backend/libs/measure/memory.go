@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"math"
 	"strings"
 	"time"
 
@@ -41,26 +40,27 @@ type MemoryUsageBreakdownRow struct {
 	SampleCount           uint64   `json:"sample_count"`
 }
 
-// HighMemoryUsageSession describes sustained high usage: Android uses a RAM-tier
-// target, while iOS uses the P90 of per-sample process-limit utilization.
+// HighMemoryUsageSession describes peak high usage: Android uses a RAM-tier
+// target, while iOS uses the maximum per-sample process-limit utilization.
 type HighMemoryUsageSession struct {
-	SessionID                 uuid.UUID        `json:"session_id"`
-	AppID                     uuid.UUID        `json:"app_id"`
-	Attribute                 *event.Attribute `json:"attribute"`
-	FirstEventTime            *time.Time       `json:"first_event_time"`
-	LastEventTime             *time.Time       `json:"last_event_time"`
-	P90MemoryKB               uint64           `json:"p90_memory_kb"`
-	TargetMemoryKB            *uint64          `json:"target_memory_kb,omitempty"`
-	PercentOfTarget           *float64         `json:"percent_of_target,omitempty"`
-	P90MemoryLimitUtilization *float64         `json:"p90_memory_limit_utilization,omitempty"` // iOS ratio, 0–1.
+	SessionID                  uuid.UUID        `json:"session_id"`
+	AppID                      uuid.UUID        `json:"app_id"`
+	Attribute                  *event.Attribute `json:"attribute"`
+	FirstEventTime             *time.Time       `json:"first_event_time"`
+	LastEventTime              *time.Time       `json:"last_event_time"`
+	PeakMemoryKB               uint64           `json:"peak_memory_kb"`
+	TargetMemoryKB             *uint64          `json:"target_memory_kb,omitempty"`
+	PercentOfTarget            *float64         `json:"percent_of_target,omitempty"`
+	PeakMemoryLimitUtilization *float64         `json:"peak_memory_limit_utilization,omitempty"` // iOS ratio, 0–1.
 }
 
 const memoryKBPerGB uint64 = 1024 * 1024
 
 // KSCrash classifies footprint / (footprint + headroom) >= 0.75 as critical.
-// This is a monitoring heuristic, not an OS guarantee of termination.
+// Use the same warning ratio for Android RAM-tier targets.
+// These are monitoring heuristics, not OS guarantees of termination.
 // https://github.com/kstenerud/KSCrash/blob/8649e0727ef4506f3cf910453eb0f2481321e8ab/Sources/KSCrashRecording/KSCrashAppMemory.m#L32-L39
-const iosHighMemoryUtilization = 0.75
+const highMemoryUtilizationThreshold = 0.75
 
 // memorySource contains the platform-specific fields shared by all memory queries.
 type memorySource struct {
@@ -90,47 +90,46 @@ func (a App) memorySource() (memorySource, bool) {
 
 var ErrInvalidMemoryAppImportance = errors.New("invalid app importance")
 
-type memoryThresholdRange struct {
-	lowerKB     uint64
-	upperKB     uint64
+type androidMemoryTarget struct {
 	foreground  uint64
 	userService uint64
 	background  uint64
 }
 
-// Android memory usage thresholds by device
-// total memory and process state.
-var memoryThresholdRanges = []memoryThresholdRange{
-	{0, 5 * memoryKBPerGB, 2 * memoryKBPerGB, 1 * memoryKBPerGB, 1 * memoryKBPerGB},
-	{5 * memoryKBPerGB, 7 * memoryKBPerGB, 9 * memoryKBPerGB / 4, 5 * memoryKBPerGB / 4, 5 * memoryKBPerGB / 4},
-	{7 * memoryKBPerGB, 9 * memoryKBPerGB, 9 * memoryKBPerGB / 4, 3 * memoryKBPerGB / 2, 3 * memoryKBPerGB / 2},
-	{9 * memoryKBPerGB, 13 * memoryKBPerGB, 13 * memoryKBPerGB / 4, 7 * memoryKBPerGB / 4, 7 * memoryKBPerGB / 4},
-	{13 * memoryKBPerGB, 16 * memoryKBPerGB, 17 * memoryKBPerGB / 4, 2 * memoryKBPerGB, 2 * memoryKBPerGB},
-	{16 * memoryKBPerGB, 32 * memoryKBPerGB, 6 * memoryKBPerGB, 4 * memoryKBPerGB, 4 * memoryKBPerGB},
-	{32 * memoryKBPerGB, 0, 10 * memoryKBPerGB, 6 * memoryKBPerGB, 6 * memoryKBPerGB},
+// Android app memory targets in KiB, keyed by the shared device RAM tiers.
+// Range boundaries come from filter.DeviceMemoryRanges, as they do for the
+// session filter and memory breakdown.
+var androidMemoryTargets = map[string]androidMemoryTarget{
+	"0-4gb":   {2 * memoryKBPerGB, memoryKBPerGB, memoryKBPerGB},
+	"5-6gb":   {9 * memoryKBPerGB / 4, 5 * memoryKBPerGB / 4, 5 * memoryKBPerGB / 4},
+	"7-8gb":   {9 * memoryKBPerGB / 4, 3 * memoryKBPerGB / 2, 3 * memoryKBPerGB / 2},
+	"9-12gb":  {13 * memoryKBPerGB / 4, 7 * memoryKBPerGB / 4, 7 * memoryKBPerGB / 4},
+	"13-16gb": {17 * memoryKBPerGB / 4, 2 * memoryKBPerGB, 2 * memoryKBPerGB},
+	"17-32gb": {6 * memoryKBPerGB, 4 * memoryKBPerGB, 4 * memoryKBPerGB},
+	"33gb+":   {10 * memoryKBPerGB, 6 * memoryKBPerGB, 6 * memoryKBPerGB},
 }
 
-func memoryThresholdExpression(deviceMemory, appImportance string) string {
-	var threshold func(memoryThresholdRange) uint64
+func androidMemoryTargetExpression(deviceMemory, appImportance string) string {
+	var targetKB func(androidMemoryTarget) uint64
 	switch appImportance {
 	case "user_service":
-		threshold = func(r memoryThresholdRange) uint64 { return r.userService }
+		targetKB = func(target androidMemoryTarget) uint64 { return target.userService }
 	case "background":
-		threshold = func(r memoryThresholdRange) uint64 { return r.background }
+		targetKB = func(target androidMemoryTarget) uint64 { return target.background }
 	default:
-		threshold = func(r memoryThresholdRange) uint64 { return r.foreground }
+		targetKB = func(target androidMemoryTarget) uint64 { return target.foreground }
 	}
 
-	parts := make([]string, 0, len(memoryThresholdRanges)*2+1)
-	for _, r := range memoryThresholdRanges {
-		condition := fmt.Sprintf("%s >= %d", deviceMemory, r.lowerKB)
-		if r.lowerKB == 0 {
+	parts := make([]string, 0, len(filter.DeviceMemoryRanges)*2+1)
+	for _, r := range filter.DeviceMemoryRanges {
+		condition := fmt.Sprintf("%s >= %d", deviceMemory, r.LowerKB)
+		if r.LowerKB == 0 {
 			condition = fmt.Sprintf("%s > 0", deviceMemory)
 		}
-		if r.upperKB != 0 {
-			condition += fmt.Sprintf(" AND %s < %d", deviceMemory, r.upperKB)
+		if r.UpperKB != 0 {
+			condition += fmt.Sprintf(" AND %s < %d", deviceMemory, r.UpperKB)
 		}
-		parts = append(parts, fmt.Sprintf("%s, %d", condition, threshold(r)))
+		parts = append(parts, fmt.Sprintf("%s, %d", condition, targetKB(androidMemoryTargets[r.Name])))
 	}
 	parts = append(parts, "0")
 	return "toUInt64(multiIf(" + strings.Join(parts, ", ") + "))"
@@ -244,8 +243,8 @@ func (a App) GetMemoryUsageBreakdown(ctx context.Context, rch driver.Conn, flt *
 	return breakdown, rows.Err()
 }
 
-// GetHighMemoryUsageSessions selects Android sessions above their RAM-tier target
-// and iOS sessions with P90 process-limit utilization of at least 75%.
+// GetHighMemoryUsageSessions selects Android sessions with peak usage at or above 75% of their RAM-tier target
+// and iOS sessions with peak process-limit utilization of at least 75%.
 func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, flt *filter.Filter, appImportance string) (sessions []HighMemoryUsageSession, next, previous bool, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	appImportance, err = a.resolveMemoryAppImportance(appImportance)
@@ -264,16 +263,16 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 	isIOS := source.eventType == event.TypeMemoryUsageAbs
 	// Reduce samples to one row per session before attaching display metadata.
 	// Joining first repeats that metadata for every sample and makes the
-	// percentile aggregation carry a much wider grouping key.
+	// aggregation carry a much wider grouping key.
 	//
 	// Restrict to the filtered sessions here rather than leaning on the join.
-	// The join drops unwanted sessions only after a percentile has been
+	// The join drops unwanted sessions only after a peak has been
 	// computed for every session in the app. The version predicate stays
 	// alongside it for pruning, since version/build precede time in the
 	// events key while session_id follows it.
 	memory := memoryUsageEvents(nil, a, flt, source, appImportance).
 		Select("e.session_id").
-		Select("toFloat64(quantileTDigest(0.90)(" + source.usageKB + ")) AS p90_memory_kb").
+		Select("max(" + source.usageKB + ") AS peak_memory_kb").
 		Where("e.session_id IN (SELECT session_id FROM session_rows)").
 		Where("(e.attribute.app_version, e.attribute.app_build) IN (SELECT app_version FROM session_rows)").
 		GroupBy("e.session_id")
@@ -284,9 +283,9 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 		available := "e.memory_usage_absolute.available_memory"
 		utilization := usage + " / (" + usage + " + toFloat64(" + available + "))"
 		memory.Select("max("+source.deviceMemoryKB+") AS device_total_memory").
-			Select("toFloat64(quantileTDigest(0.90)("+utilization+")) AS p90_memory_limit_utilization").
+			Select("max("+utilization+") AS peak_memory_limit_utilization").
 			Where(available+" IS NOT NULL").
-			Having("p90_memory_limit_utilization >= ?", iosHighMemoryUtilization)
+			Having("peak_memory_limit_utilization >= ?", highMemoryUtilizationThreshold)
 	}
 
 	deviceMemory := "s.device_total_memory"
@@ -309,20 +308,20 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 		Select("s.device_manufacturer").
 		Select("s.start_time").
 		Select("s.end_time").
-		Select("m.p90_memory_kb AS p90_memory_kb").
+		Select("m.peak_memory_kb AS peak_memory_kb").
 		Select(deviceMemory + " AS device_total_memory")
 	if isIOS {
 		stmt.Select("CAST(NULL AS Nullable(UInt64)) AS target_memory_kb").
 			Select("CAST(NULL AS Nullable(Float64)) AS percent_of_target").
-			Select("m.p90_memory_limit_utilization AS p90_memory_limit_utilization").
-			OrderBy("p90_memory_limit_utilization DESC")
+			Select("m.peak_memory_limit_utilization AS peak_memory_limit_utilization").
+			OrderBy("peak_memory_limit_utilization DESC")
 	} else {
-		threshold := memoryThresholdExpression(deviceMemory, appImportance)
-		stmt.Select(threshold + " AS target_memory_kb").
-			Select("toFloat64(p90_memory_kb) * 100 / target_memory_kb AS percent_of_target").
-			Select("CAST(NULL AS Nullable(Float64)) AS p90_memory_limit_utilization").
+		target := androidMemoryTargetExpression(deviceMemory, appImportance)
+		stmt.Select(target+" AS target_memory_kb").
+			Select("toFloat64(peak_memory_kb) * 100 / target_memory_kb AS percent_of_target").
+			Select("CAST(NULL AS Nullable(Float64)) AS peak_memory_limit_utilization").
 			Where("target_memory_kb > 0").
-			Where("p90_memory_kb > target_memory_kb").
+			Where("percent_of_target >= ?", highMemoryUtilizationThreshold*100).
 			OrderBy("percent_of_target DESC")
 	}
 	stmt.OrderBy("end_time DESC").OrderBy("s.session_id DESC")
@@ -342,21 +341,17 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 	defer rows.Close()
 	for rows.Next() {
 		var session HighMemoryUsageSession
-		var p90Memory *float64
 		session.AppID = flt.AppID
 		session.Attribute = new(event.Attribute)
-		if err := rows.Scan(&session.SessionID, &session.Attribute.AppVersion, &session.Attribute.AppBuild, &session.Attribute.OSName, &session.Attribute.OSVersion, &session.Attribute.DeviceName, &session.Attribute.DeviceModel, &session.Attribute.DeviceManufacturer, &session.FirstEventTime, &session.LastEventTime, &p90Memory, &session.Attribute.DeviceTotalMemory, &session.TargetMemoryKB, &session.PercentOfTarget, &session.P90MemoryLimitUtilization); err != nil {
+		if err := rows.Scan(&session.SessionID, &session.Attribute.AppVersion, &session.Attribute.AppBuild, &session.Attribute.OSName, &session.Attribute.OSVersion, &session.Attribute.DeviceName, &session.Attribute.DeviceModel, &session.Attribute.DeviceManufacturer, &session.FirstEventTime, &session.LastEventTime, &session.PeakMemoryKB, &session.Attribute.DeviceTotalMemory, &session.TargetMemoryKB, &session.PercentOfTarget, &session.PeakMemoryLimitUtilization); err != nil {
 			return nil, false, false, err
-		}
-		if p90Memory != nil {
-			session.P90MemoryKB = uint64(math.Round(*p90Memory))
 		}
 		sessions = append(sessions, session)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, false, false, err
 	}
-	if len(sessions) > flt.Limit {
+	if flt.Limit > 0 && len(sessions) > flt.Limit {
 		sessions = sessions[:len(sessions)-1]
 		next = true
 	}

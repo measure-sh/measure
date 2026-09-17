@@ -8,6 +8,11 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
+import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.eq
+import org.mockito.kotlin.isNull
+import org.mockito.kotlin.times
 import org.mockito.kotlin.whenever
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
@@ -76,8 +81,9 @@ internal class MemoryUsageCollectorTest {
 
         collector.register()
 
-        assertNull(collector.previousMemoryUsage!!.anon_rss)
-        assertNull(collector.previousMemoryUsage!!.swap)
+        val sample = recordedMemorySamples().single()
+        assertNull(sample.anon_rss)
+        assertNull(sample.swap)
     }
 
     @Test
@@ -88,13 +94,13 @@ internal class MemoryUsageCollectorTest {
             RunningAppProcessInfo.IMPORTANCE_SERVICE to APP_IMPORTANCE_BACKGROUND,
         )
 
-        cases.forEach { (importance, expected) ->
+        cases.forEach { (importance, _) ->
             processInfo.importance = importance
             memoryUsageCollector.register()
 
-            assertEquals(expected, memoryUsageCollector.previousMemoryUsage?.app_importance)
             memoryUsageCollector.unregister()
         }
+        assertEquals(cases.map { it.second }, recordedMemorySamples(cases.size).map { it.app_importance })
     }
 
     @Test
@@ -105,7 +111,7 @@ internal class MemoryUsageCollectorTest {
     }
 
     @Test
-    fun `continues collecting in background at a 30 second interval`() {
+    fun `continues collecting in background at a 10 second interval`() {
         memoryUsageCollector.register()
 
         memoryUsageCollector.onAppBackground()
@@ -148,16 +154,6 @@ internal class MemoryUsageCollectorTest {
     fun `calculates interval between two events dynamically`() {
         val initialTimeMillis = timeProvider.elapsedRealtime
         memoryUsageCollector.previousMemoryUsageReadTimeMs = initialTimeMillis
-        memoryUsageCollector.previousMemoryUsage = MemoryUsageData(
-            java_max_heap = 0,
-            java_total_heap = 0,
-            java_free_heap = 0,
-            total_pss = 0,
-            rss = 0,
-            native_total_heap = 0,
-            native_free_heap = 0,
-            interval = 0,
-        )
 
         val advancedTime = Duration.ofMillis(15000)
         clock.advance(advancedTime)
@@ -180,5 +176,22 @@ internal class MemoryUsageCollectorTest {
                 interval = advancedTime.toMillis(),
             ),
         )
+    }
+
+    private fun recordedMemorySamples(count: Int = 1): List<MemoryUsageData> {
+        val captor = argumentCaptor<MemoryUsageData>()
+        verify(signalProcessor, times(count)).track(
+            data = captor.capture(),
+            timestamp = any(),
+            type = eq(EventType.MEMORY_USAGE),
+            attributes = any(),
+            userDefinedAttributes = any(),
+            attachments = any(),
+            threadName = isNull(),
+            sessionId = isNull(),
+            userTriggered = eq(false),
+            isSampled = eq(false),
+        )
+        return captor.allValues
     }
 }

@@ -2676,14 +2676,14 @@ paths:
         - Memory
       summary: Fetch sessions with high memory usage
       description: >-
-        On Android, returns sessions whose p90 usage is strictly above the configured
+        On Android, returns sessions whose peak usage is at least 75% of the configured
         device-RAM and process-state target; unknown RAM has no target. On iOS/iPadOS,
-        returns sessions whose p90 of per-sample used_memory / (used_memory + available_memory)
+        returns sessions whose maximum per-sample used_memory / (used_memory + available_memory)
         is at least 0.75. Only iOS samples with reported headroom participate; zero headroom
         is valid, whereas missing headroom is excluded. Device RAM does not set the iOS limit.
-        Results are ordered by percentage of target on Android or p90 process-limit utilization
+        Results are ordered by percentage of target on Android or peak process-limit utilization
         on iOS, descending, then session end time and session ID descending. Session start
-        and end times describe the session, while percentiles use only matching samples
+        and end times describe the session, while peaks use only matching samples
         within the selected date range. The dashboard displays five sessions per page.
         The iOS cutoff follows KSCrash's critical memory level and is a monitoring heuristic,
         not a guarantee of OS termination.
@@ -2692,7 +2692,7 @@ paths:
         Memory is measured in KB (1024 bytes): anonymous RSS + swap on Android, and reported
         used memory (physical footprint or its resident-size fallback) on iOS/iPadOS. Only
         positive samples in the selected date range and matching sessions contribute.
-        Percentiles use individual samples, not averages of session or tier percentiles.
+        Peaks use individual samples, so a single sample reaching the cutoff qualifies the session.
         Unsupported platforms return no data.
       parameters:
         - *a1
@@ -2728,7 +2728,7 @@ paths:
                     app_id: 2b7ddad4-40a6-42a7-9e21-a90577e08263
                     first_event_time: 2026-09-10T10:00:00Z
                     last_event_time: 2026-09-10T10:05:00Z
-                    p90_memory_kb: 3145728
+                    peak_memory_kb: 3145728
                     target_memory_kb: 2359296
                     percent_of_target: 133.33333333333334
                     attribute:
@@ -3739,7 +3739,7 @@ paths:
                     type: number
                     minimum: 0
                     maximum: 100
-                    description: Percentage of sessions that collect memory usage.
+                    description: Percentage of Android sessions that collect memory usage. Does not affect iOS/iPadOS collection.
                   error_fatal_take_screenshot:
                     type: boolean
                   error_fatal_replay_enabled:
@@ -5891,7 +5891,7 @@ components:
     DeviceTotalMemoryTier:
       type: string
       description: Device RAM tier. The numeric ranges in GB are (0,5), [5,7), [7,9), [9,13),
-        [13,16), [16,32), and [32,infinity). Zero or unreported RAM is unknown. GB uses 1024 *
+        [13,17), [17,33), and [33,infinity). Zero or unreported RAM is unknown. GB uses 1024 *
         1024 KB.
       enum:
         - 0-4gb
@@ -5899,8 +5899,8 @@ components:
         - 7-8gb
         - 9-12gb
         - 13-16gb
-        - 16-32gb
-        - 32gb+
+        - 17-32gb
+        - 33gb+
         - unknown
     MemoryUsagePlotPoint:
       type: object
@@ -5966,7 +5966,7 @@ components:
         - attribute
         - first_event_time
         - last_event_time
-        - p90_memory_kb
+        - peak_memory_kb
       properties:
         session_id:
           type: string
@@ -5980,20 +5980,20 @@ components:
         last_event_time:
           type: string
           format: date-time
-        p90_memory_kb:
+        peak_memory_kb:
           type: integer
-          description: Session p90 of matching samples, rounded to the nearest KB (1024 bytes).
+          description: Session maximum memory usage across matching samples, in KB (1024 bytes).
         target_memory_kb:
           type: integer
           description: Android-only configured target in KB for the device tier and process state. Omitted on iOS/iPadOS.
         percent_of_target:
           type: number
-          description: Android-only 100 * p90 memory / target, calculated before rounding p90 to integer KB. Omitted on iOS/iPadOS.
-        p90_memory_limit_utilization:
+          description: Android-only 100 * peak memory / target. Omitted on iOS/iPadOS.
+        peak_memory_limit_utilization:
           type: number
           minimum: 0
           maximum: 1
-          description: iOS/iPadOS-only p90 of per-sample footprint / (footprint + remaining headroom), as a ratio from 0 to 1. Omitted on Android.
+          description: iOS/iPadOS-only maximum per-sample footprint / (footprint + remaining headroom), as a ratio from 0 to 1. Omitted on Android.
         attribute:
           type: object
           additionalProperties: true
