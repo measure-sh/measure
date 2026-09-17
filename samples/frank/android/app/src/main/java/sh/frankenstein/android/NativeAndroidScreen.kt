@@ -30,12 +30,16 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import sh.measure.android.Measure
 import sh.measure.android.attributes.AttributesBuilder
 import sh.measure.android.bugreport.MsrShakeListener
@@ -54,6 +58,7 @@ private enum class DemoCategory(val label: String) {
     NAVIGATION("Navigation"),
     SCREENSHOTS("Screenshots"),
     LOGS("Logs"),
+    MEMORY("Memory"),
     MISC("Misc"),
 }
 
@@ -61,6 +66,7 @@ private data class DemoItem(
     val title: String,
     val description: String,
     val category: DemoCategory,
+    val enabled: Boolean = true,
     val action: () -> Unit,
 )
 
@@ -76,6 +82,8 @@ fun NativeAndroidScreen() {
     var shakeEnabled by remember { mutableStateOf(false) }
     var heavyMediaEnabled by remember { mutableStateOf(AssetPrefetcher.enabled) }
     var backgroundMemoryEnabled by remember { mutableStateOf(false) }
+    var nativeMemoryBusy by remember { mutableStateOf(false) }
+    val scope = rememberCoroutineScope()
 
     DisposableEffect(Unit) {
         onDispose {
@@ -157,9 +165,9 @@ fun NativeAndroidScreen() {
             },
         ),
         DemoItem(
-            title = "Out of Memory",
-            description = "Allocates memory until OOM",
-            category = DemoCategory.CRASHES,
+            title = "Java Out of Memory",
+            description = "Allocates Java arrays until OOM",
+            category = DemoCategory.MEMORY,
 
             action = {
                 val list = mutableListOf<ByteArray>()
@@ -171,7 +179,7 @@ fun NativeAndroidScreen() {
         DemoItem(
             title = "Stack Overflow",
             description = "Infinite recursion",
-            category = DemoCategory.CRASHES,
+            category = DemoCategory.MEMORY,
 
             action = {
                 fun recurse(): Unit = recurse()
@@ -308,9 +316,50 @@ fun NativeAndroidScreen() {
             },
         ),
         DemoItem(
-            title = "Hold 50 MB",
-            description = "Adds 50 MB to memory each time it is pressed, until the process exits",
-            category = DemoCategory.MISC,
+            title = "Hold 100 MB Native",
+            description = if (nativeMemoryBusy) "Working…" else "Adds 100 MB to native memory per tap",
+            category = DemoCategory.MEMORY,
+            enabled = !nativeMemoryBusy,
+            action = {
+                nativeMemoryBusy = true
+                scope.launch {
+                    try {
+                        val total = withContext(Dispatchers.Default) {
+                            NativeMemory.allocate100Mb()
+                        }
+                        val message = if (total >= 0) {
+                            "$total MB native memory held"
+                        } else {
+                            "Could not allocate another 100 MB"
+                        }
+                        Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+                    } finally {
+                        nativeMemoryBusy = false
+                    }
+                }
+            },
+        ),
+        DemoItem(
+            title = "Release Native Memory",
+            description = "Frees the held native allocations",
+            category = DemoCategory.MEMORY,
+            enabled = !nativeMemoryBusy,
+            action = {
+                nativeMemoryBusy = true
+                scope.launch {
+                    try {
+                        withContext(Dispatchers.Default) { NativeMemory.release() }
+                        Toast.makeText(context, "Native memory released", Toast.LENGTH_SHORT).show()
+                    } finally {
+                        nativeMemoryBusy = false
+                    }
+                }
+            },
+        ),
+        DemoItem(
+            title = "Hold 50 MB Java",
+            description = "Adds 50 MB to the Java heap per tap",
+            category = DemoCategory.MEMORY,
             action = {
                 try {
                     val allocation = ByteArray(50 * 1024 * 1024)
@@ -324,6 +373,15 @@ fun NativeAndroidScreen() {
                 } catch (_: OutOfMemoryError) {
                     Toast.makeText(context, "Could not allocate another 50 MB", Toast.LENGTH_SHORT).show()
                 }
+            },
+        ),
+        DemoItem(
+            title = "Release Held Java Memory",
+            description = "Releases the held Java arrays",
+            category = DemoCategory.MEMORY,
+            action = {
+                HeldMemory.allocations.clear()
+                Toast.makeText(context, "Held Java arrays released", Toast.LENGTH_SHORT).show()
             },
         ),
     )
@@ -348,11 +406,11 @@ fun NativeAndroidScreen() {
             items(categoryItems, key = { it.title }) { demo ->
                 DemoCard(demo)
             }
-            if (category == DemoCategory.CRASHES) {
+            if (category == DemoCategory.MEMORY) {
                 item(key = "slow_memory_leak_toggle") {
                     ToggleCard(
                         title = "Slow Memory Leak",
-                        description = "Fills the heap as you navigate until an unrelated allocation fails",
+                        description = "Gradually fills the Java heap as you navigate",
                         enabled = heavyMediaEnabled,
                         onToggle = { enabled ->
                             heavyMediaEnabled = enabled
@@ -364,12 +422,10 @@ fun NativeAndroidScreen() {
                         },
                     )
                 }
-            }
-            if (category == DemoCategory.MISC) {
                 item(key = "background_memory_toggle") {
                     ToggleCard(
                         title = "Background Memory Work",
-                        description = "Runs a foreground service and allocates up to 150 MB every 5 seconds",
+                        description = "Allocates up to 150 MB in a foreground service",
                         enabled = backgroundMemoryEnabled,
                         onToggle = { enabled ->
                             backgroundMemoryEnabled = enabled
@@ -458,7 +514,7 @@ private fun DemoCard(demo: DemoItem) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { demo.action() },
+            .clickable(enabled = demo.enabled) { demo.action() },
         shape = MaterialTheme.shapes.medium,
         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
         contentColor = MaterialTheme.colorScheme.onSurface,
