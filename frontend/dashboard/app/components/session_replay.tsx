@@ -2453,7 +2453,7 @@ const laneHeight = 34;
 const plotWidth = 1000;
 const plotHeight = 100;
 
-type Series = { label: string; color: string; values: number[] };
+type Series = { label: string; color: string; values: (number | null)[] };
 
 type MetricStrip = {
   key: string;
@@ -2482,7 +2482,9 @@ type StripSpec = {
   title: string;
   unit: string;
   samples: any[] | null;
-  read: (sample: any) => { label: string; color: string; value: number }[];
+  read: (
+    sample: any,
+  ) => { label: string; color: string; value: number | null }[];
   max?: number;
 };
 
@@ -2496,7 +2498,7 @@ function buildStrip(
   }
 
   const times: MetricStrip["times"] = [];
-  const columns: number[][] = [];
+  const columns: (number | null)[][] = [];
   let labels: { label: string; color: string }[] = [];
   let peak = 0;
 
@@ -2514,7 +2516,7 @@ function buildStrip(
     times.push({ absMs, iso: sample.timestamp });
     columns.push(readings.map((reading) => reading.value));
     readings.forEach((reading) => {
-      peak = Math.max(peak, reading.value);
+      if (reading.value !== null) peak = Math.max(peak, reading.value);
     });
   });
 
@@ -2559,7 +2561,9 @@ function useSessionMetricStrips(
         fields.map(([label, color, field]) => ({
           label,
           color,
-          value: kilobytesToMegabytes(sample[field]),
+          value: Number.isFinite(sample[field])
+            ? kilobytesToMegabytes(sample[field])
+            : null,
         }));
 
     const androidMemoryFields: [string, string, string][] = [
@@ -2608,10 +2612,18 @@ function useSessionMetricStrips(
         title: "Memory",
         unit: "MB",
         samples: session.memory_usage_absolute,
-        read: megabytes([
-          ["Max Memory", chartColor.violet, "max_memory"],
-          ["Used Memory", chartColor.red, "used_memory"],
-        ]),
+        read: (sample) =>
+          megabytes([
+            ["Available Memory", chartColor.violet, "available_memory"],
+            ["Max Memory", chartColor.violet, "max_memory"],
+            ["Used Memory", chartColor.red, "used_memory"],
+          ])({
+            ...sample,
+            // Keep the fallback under its own label: device RAM is not available memory.
+            max_memory: Number.isFinite(sample.available_memory)
+              ? null
+              : sample.max_memory,
+          }),
       },
     ];
     return specs
@@ -2676,21 +2688,31 @@ const SessionReplayMetrics = memo(function SessionReplayMetrics({
       new Map(
         strips.map((strip) => [
           strip.key,
-          strip.series.map((series) => (
-            <polyline
-              key={series.label}
-              fill="none"
-              stroke={series.color}
-              strokeWidth={1}
-              vectorEffect="non-scaling-stroke"
-              points={series.values
-                .map(
-                  (value, index) =>
-                    `${xFor(strip.times[index].absMs)},${plotHeight - (Math.min(value, strip.max) / strip.max) * plotHeight}`,
-                )
-                .join(" ")}
-            />
-          )),
+          strip.series.flatMap((series) => {
+            // Missing available memory is unknown, not zero. Break the line at gaps.
+            const segments: string[][] = [];
+            let segment: string[] = [];
+            series.values.forEach((value, index) => {
+              if (value === null) {
+                segment = [];
+                return;
+              }
+              if (segment.length === 0) segments.push(segment);
+              segment.push(
+                `${xFor(strip.times[index].absMs)},${plotHeight - (Math.min(value, strip.max) / strip.max) * plotHeight}`,
+              );
+            });
+            return segments.map((points, index) => (
+              <polyline
+                key={`${series.label}-${index}`}
+                fill="none"
+                stroke={series.color}
+                strokeWidth={1}
+                vectorEffect="non-scaling-stroke"
+                points={points.join(" ")}
+              />
+            ));
+          }),
         ]),
       ),
     [strips, xFor],
@@ -2797,19 +2819,21 @@ const SessionReplayMetrics = memo(function SessionReplayMetrics({
                       ),
                     )}
                   </p>
-                  {strip.series.map((series) => (
-                    <div
-                      key={series.label}
-                      className="flex flex-row items-center gap-2 mt-2"
-                    >
-                      <PlotTooltipSwatch color={series.color} />
-                      <p>
-                        {series.label}:{" "}
-                        {series.values[hovered.index].toFixed(2)}
-                        {strip.unit === "%" ? "%" : ` ${strip.unit}`}
-                      </p>
-                    </div>
-                  ))}
+                  {strip.series
+                    .filter((series) => series.values[hovered.index] !== null)
+                    .map((series) => (
+                      <div
+                        key={series.label}
+                        className="flex flex-row items-center gap-2 mt-2"
+                      >
+                        <PlotTooltipSwatch color={series.color} />
+                        <p>
+                          {series.label}:{" "}
+                          {series.values[hovered.index]!.toFixed(2)}
+                          {strip.unit === "%" ? "%" : ` ${strip.unit}`}
+                        </p>
+                      </div>
+                    ))}
                 </PlotTooltipShell>
               </div>
             )}

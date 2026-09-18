@@ -1945,7 +1945,7 @@ paths:
                         available_memory:
                           type: integer
                           minimum: 0
-                          description: Remaining process allocation headroom in KB (1024 bytes). Omitted when unavailable; zero means exhausted headroom.
+                          description: Memory available to the app in KB (1024 bytes). Omitted when unavailable; zero means no memory available for additional allocation.
                         interval:
                           type: number
                           description: Collection interval in milliseconds.
@@ -2679,8 +2679,8 @@ paths:
         On Android, returns sessions whose peak usage is at least 75% of the configured
         device-RAM and process-state target; unknown RAM has no target. On iOS/iPadOS,
         returns sessions whose maximum per-sample used_memory / (used_memory + available_memory)
-        is at least 0.75. Only iOS samples with reported headroom participate; zero headroom
-        is valid, whereas missing headroom is excluded. Device RAM does not set the iOS limit.
+        is at least 0.75. Only iOS samples with reported available memory participate; zero available memory
+        is valid, whereas missing available memory is excluded. Device RAM does not set the iOS limit.
         Results are ordered by percentage of target on Android or peak process-limit utilization
         on iOS, descending, then session end time and session ID descending. Session start
         and end times describe the session, while peaks use only matching samples
@@ -5993,7 +5993,11 @@ components:
           type: number
           minimum: 0
           maximum: 1
-          description: iOS/iPadOS-only maximum per-sample footprint / (footprint + remaining headroom), as a ratio from 0 to 1. Omitted on Android.
+          description: iOS/iPadOS-only maximum per-sample footprint / (footprint + available memory), as a ratio from 0 to 1. Omitted on Android.
+        available_memory_at_peak_utilization_kb:
+          type: integer
+          minimum: 0
+          description: iOS/iPadOS-only memory available to the app at the sample with peak utilization, in KB (1024 bytes). If multiple samples share the peak utilization, uses the latest timestamp. Zero means no memory available for additional allocation. This may differ from available memory at peak memory usage. Omitted on Android.
         attribute:
           type: object
           additionalProperties: true

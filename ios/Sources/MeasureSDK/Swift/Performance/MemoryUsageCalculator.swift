@@ -34,13 +34,13 @@ final class BaseMemoryUsageCalculator: MemoryUsageCalculator {
             return MemoryUsageSnapshot(usedMemory: info.phys_footprint / 1024,
                                        availableMemory: availableMemory().map { $0 / 1024 })
         }
-        // Remaining process headroom is defined relative to footprint, not RSS.
+        // Remaining available app memory is defined relative to footprint, not RSS.
         return MemoryUsageSnapshot(usedMemory: info.resident_size / 1024, availableMemory: nil)
     }
 
     private static func readAvailableMemory() -> UnsignedNumber? {
         #if os(iOS) && !targetEnvironment(simulator) && !targetEnvironment(macCatalyst)
-        // Advisory headroom changes during execution. Sample it with every footprint reading.
+        // Advisory available memory changes during execution. Sample it with every footprint reading.
         return UnsignedNumber(os_proc_available_memory())
         #else
         return nil

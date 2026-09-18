@@ -21,8 +21,10 @@ function formatMemory(value: number | null) {
 
 export default function MemoryUsageBreakdown({
   query,
+  isAndroidApp = false,
 }: {
   query: ReturnType<typeof useMemoryUsageBreakdownQuery>;
+  isAndroidApp?: boolean;
 }) {
   const { data, status } = query;
 
@@ -42,7 +44,11 @@ export default function MemoryUsageBreakdown({
         <Table className="font-display">
           <TableHeader>
             <TableRow>
-              <TableHead>Device total memory</TableHead>
+              <TableHead>
+                {isAndroidApp
+                  ? "Device total memory"
+                  : "Device available memory"}
+              </TableHead>
               <TableHead className="text-right">p50</TableHead>
               <TableHead className="text-right">p90</TableHead>
               <TableHead className="text-right">p95</TableHead>

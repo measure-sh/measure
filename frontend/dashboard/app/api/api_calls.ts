@@ -86,6 +86,7 @@ export type HighMemoryUsageSession = {
   target_memory_kb?: number;
   percent_of_target?: number;
   peak_memory_limit_utilization?: number;
+  available_memory_at_peak_utilization_kb?: number;
   attribute: {
     app_version: string;
     app_build: string;

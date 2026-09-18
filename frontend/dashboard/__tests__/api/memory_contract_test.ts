@@ -144,7 +144,11 @@ it("keeps high-memory sessions pagination and defaults aligned with the API", as
   const schema = spec.components.schemas.HighMemoryUsageSession;
   expect(schema.required).toContain("peak_memory_kb");
   expect(Object.keys(schema.properties).sort()).toEqual(
-    [...Object.keys(session), "peak_memory_limit_utilization"].sort(),
+    [
+      ...Object.keys(session),
+      "peak_memory_limit_utilization",
+      "available_memory_at_peak_utilization_kb",
+    ].sort(),
   );
   for (const importance of [
     undefined,

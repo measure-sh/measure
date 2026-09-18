@@ -113,7 +113,10 @@ export default function MemoryPage({ params }: PageProps) {
             endDate={readyValue.date.endDate}
             query={memoryPlotQuery}
           />
-          <MemoryUsageBreakdown query={memoryBreakdownQuery} />
+          <MemoryUsageBreakdown
+            query={memoryBreakdownQuery}
+            isAndroidApp={isAndroidApp}
+          />
           <HighMemoryUsageSessions
             teamId={teamId}
             query={highMemorySessionsQuery}

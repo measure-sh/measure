@@ -43,20 +43,21 @@ type MemoryUsageBreakdownRow struct {
 // HighMemoryUsageSession describes peak high usage: Android uses a RAM-tier
 // target, while iOS uses the maximum per-sample process-limit utilization.
 type HighMemoryUsageSession struct {
-	SessionID                  uuid.UUID        `json:"session_id"`
-	AppID                      uuid.UUID        `json:"app_id"`
-	Attribute                  *event.Attribute `json:"attribute"`
-	FirstEventTime             *time.Time       `json:"first_event_time"`
-	LastEventTime              *time.Time       `json:"last_event_time"`
-	PeakMemoryKB               uint64           `json:"peak_memory_kb"`
-	TargetMemoryKB             *uint64          `json:"target_memory_kb,omitempty"`
-	PercentOfTarget            *float64         `json:"percent_of_target,omitempty"`
-	PeakMemoryLimitUtilization *float64         `json:"peak_memory_limit_utilization,omitempty"` // iOS ratio, 0–1.
+	SessionID                          uuid.UUID        `json:"session_id"`
+	AppID                              uuid.UUID        `json:"app_id"`
+	Attribute                          *event.Attribute `json:"attribute"`
+	FirstEventTime                     *time.Time       `json:"first_event_time"`
+	LastEventTime                      *time.Time       `json:"last_event_time"`
+	PeakMemoryKB                       uint64           `json:"peak_memory_kb"`
+	TargetMemoryKB                     *uint64          `json:"target_memory_kb,omitempty"`
+	PercentOfTarget                    *float64         `json:"percent_of_target,omitempty"`
+	PeakMemoryLimitUtilization         *float64         `json:"peak_memory_limit_utilization,omitempty"`           // iOS ratio, 0–1.
+	AvailableMemoryAtPeakUtilizationKB *uint64          `json:"available_memory_at_peak_utilization_kb,omitempty"` // iOS available memory at the sample with peak utilization.
 }
 
 const memoryKBPerGB uint64 = 1024 * 1024
 
-// KSCrash classifies footprint / (footprint + headroom) >= 0.75 as critical.
+// KSCrash classifies footprint / (footprint + available memory) >= 0.75 as critical.
 // Use the same warning ratio for Android RAM-tier targets.
 // These are monitoring heuristics, not OS guarantees of termination.
 // https://github.com/kstenerud/KSCrash/blob/8649e0727ef4506f3cf910453eb0f2481321e8ab/Sources/KSCrashRecording/KSCrashAppMemory.m#L32-L39
@@ -277,13 +278,14 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 		Where("(e.attribute.app_version, e.attribute.app_build) IN (SELECT app_version FROM session_rows)").
 		GroupBy("e.session_id")
 	if isIOS {
-		// Convert before adding: UInt64 footprint + headroom could overflow.
-		// Missing headroom must not be interpreted as an exhausted budget (zero).
+		// Convert before adding: UInt64 footprint + available memory could overflow.
+		// Missing available memory must not be interpreted as an exhausted budget (zero).
 		usage := "toFloat64(" + source.usageKB + ")"
 		available := "e.memory_usage_absolute.available_memory"
 		utilization := usage + " / (" + usage + " + toFloat64(" + available + "))"
 		memory.Select("max("+source.deviceMemoryKB+") AS device_total_memory").
 			Select("max("+utilization+") AS peak_memory_limit_utilization").
+			Select("argMax("+available+", tuple("+utilization+", e.timestamp)) AS available_memory_at_peak_utilization_kb").
 			Where(available+" IS NOT NULL").
 			Having("peak_memory_limit_utilization >= ?", highMemoryUtilizationThreshold)
 	}
@@ -291,7 +293,7 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 	deviceMemory := "s.device_total_memory"
 	if isIOS {
 		// Older iOS SDKs did not populate the shared device-memory attribute.
-		// RAM is display context only; iOS selection uses process headroom.
+		// RAM is display context only; iOS selection uses available app memory.
 		deviceMemory = "m.device_total_memory"
 	}
 	stmt := sqlf.With("session_rows", base).
@@ -314,12 +316,14 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 		stmt.Select("CAST(NULL AS Nullable(UInt64)) AS target_memory_kb").
 			Select("CAST(NULL AS Nullable(Float64)) AS percent_of_target").
 			Select("m.peak_memory_limit_utilization AS peak_memory_limit_utilization").
+			Select("m.available_memory_at_peak_utilization_kb AS available_memory_at_peak_utilization_kb").
 			OrderBy("peak_memory_limit_utilization DESC")
 	} else {
 		target := androidMemoryTargetExpression(deviceMemory, appImportance)
 		stmt.Select(target+" AS target_memory_kb").
 			Select("toFloat64(peak_memory_kb) * 100 / target_memory_kb AS percent_of_target").
 			Select("CAST(NULL AS Nullable(Float64)) AS peak_memory_limit_utilization").
+			Select("CAST(NULL AS Nullable(UInt64)) AS available_memory_at_peak_utilization_kb").
 			Where("target_memory_kb > 0").
 			Where("percent_of_target >= ?", highMemoryUtilizationThreshold*100).
 			OrderBy("percent_of_target DESC")
@@ -343,7 +347,7 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 		var session HighMemoryUsageSession
 		session.AppID = flt.AppID
 		session.Attribute = new(event.Attribute)
-		if err := rows.Scan(&session.SessionID, &session.Attribute.AppVersion, &session.Attribute.AppBuild, &session.Attribute.OSName, &session.Attribute.OSVersion, &session.Attribute.DeviceName, &session.Attribute.DeviceModel, &session.Attribute.DeviceManufacturer, &session.FirstEventTime, &session.LastEventTime, &session.PeakMemoryKB, &session.Attribute.DeviceTotalMemory, &session.TargetMemoryKB, &session.PercentOfTarget, &session.PeakMemoryLimitUtilization); err != nil {
+		if err := rows.Scan(&session.SessionID, &session.Attribute.AppVersion, &session.Attribute.AppBuild, &session.Attribute.OSName, &session.Attribute.OSVersion, &session.Attribute.DeviceName, &session.Attribute.DeviceModel, &session.Attribute.DeviceManufacturer, &session.FirstEventTime, &session.LastEventTime, &session.PeakMemoryKB, &session.Attribute.DeviceTotalMemory, &session.TargetMemoryKB, &session.PercentOfTarget, &session.PeakMemoryLimitUtilization, &session.AvailableMemoryAtPeakUtilizationKB); err != nil {
 			return nil, false, false, err
 		}
 		sessions = append(sessions, session)

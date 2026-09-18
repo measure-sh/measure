@@ -36,7 +36,7 @@ function sessionDetails(session: HighMemoryUsageSession) {
     `${attribute.app_version} (${attribute.app_build})`,
     `${attribute.os_name} ${attribute.os_version}`.trim(),
     device,
-    attribute.device_total_memory > 0
+    session.target_memory_kb != null && attribute.device_total_memory > 0
       ? `${formatMemory(attribute.device_total_memory)} RAM`
       : null,
   ]
@@ -152,12 +152,21 @@ export default function HighMemoryUsageSessions({
                         />
                         <div className="pointer-events-none p-4">
                           <p>{formatMemory(session.peak_memory_kb)}</p>
+                          {session.available_memory_at_peak_utilization_kb !=
+                            null && (
+                            <p className="text-xs text-muted-foreground">
+                              {formatMemory(
+                                session.available_memory_at_peak_utilization_kb,
+                              )}{" "}
+                              available at peak utilization
+                            </p>
+                          )}
                           <p className="text-xs text-muted-foreground">
                             {session.percent_of_target != null &&
                             session.target_memory_kb != null
                               ? `${Math.round(session.percent_of_target)}% of ${formatMemory(session.target_memory_kb)} target`
                               : session.peak_memory_limit_utilization != null
-                                ? `${Math.round(session.peak_memory_limit_utilization * 100)}% of app limit (peak)`
+                                ? `${Math.round(session.peak_memory_limit_utilization * 100)}% of estimated app limit (peak)`
                                 : "Threshold unavailable"}
                           </p>
                         </div>

@@ -442,11 +442,12 @@ func TestMemoryUsageIOSProcessLimit(t *testing.T) {
 		deviceMemoryKB  uint64
 		wantUtilization float64 // Zero means the session must not qualify.
 		wantPeakKB      uint64
+		wantAvailableKB uint64
 	}{
 		{
 			name:    "single spike reaches 75 percent with lower memory usage",
 			samples: singleSpike, deviceMemoryKB: 8 * memoryKBPerGB,
-			wantUtilization: 0.75, wantPeakKB: 1000,
+			wantUtilization: 0.75, wantPeakKB: 1000, wantAvailableKB: 100,
 		},
 		{
 			name:           "exhausted headroom",
@@ -457,6 +458,7 @@ func TestMemoryUsageIOSProcessLimit(t *testing.T) {
 			name:           "exactly 75 percent",
 			samples:        []memorySample{{usedKB: 300, availableKB: memoryHeadroom(100)}},
 			deviceMemoryKB: 8 * memoryKBPerGB, wantUtilization: 0.75,
+			wantAvailableKB: 100,
 		},
 		{
 			name:           "below 75 percent",
@@ -482,6 +484,23 @@ func TestMemoryUsageIOSProcessLimit(t *testing.T) {
 			name:           "unknown RAM still qualifies",
 			samples:        []memorySample{{usedKB: 300, availableKB: memoryHeadroom(100)}},
 			deviceMemoryKB: 0, wantUtilization: 0.75,
+			wantAvailableKB: 100,
+		},
+		{
+			name: "headroom is paired with peak utilization rather than minimum headroom",
+			samples: []memorySample{
+				{usedKB: 100, availableKB: memoryHeadroom(100)},
+				{usedKB: 900, availableKB: memoryHeadroom(300)},
+			},
+			deviceMemoryKB: 8 * memoryKBPerGB, wantUtilization: 0.75, wantAvailableKB: 300,
+		},
+		{
+			name: "latest sample breaks ties in peak utilization",
+			samples: []memorySample{
+				{usedKB: 900, availableKB: memoryHeadroom(300)},
+				{usedKB: 300, availableKB: memoryHeadroom(100)},
+			},
+			deviceMemoryKB: 8 * memoryKBPerGB, wantUtilization: 0.75, wantPeakKB: 900, wantAvailableKB: 100,
 		},
 		{
 			name: "legacy samples do not affect classification",
@@ -534,6 +553,10 @@ func TestMemoryUsageIOSProcessLimit(t *testing.T) {
 						t.Fatalf("sessions = %#v, want only %s", sessions, sessionID)
 					}
 					assertIOSMemoryUtilization(t, sessions[0], tt.wantUtilization)
+					available := sessions[0].AvailableMemoryAtPeakUtilizationKB
+					if available == nil || *available != tt.wantAvailableKB {
+						t.Errorf("available memory at peak utilization = %v, want %d", available, tt.wantAvailableKB)
+					}
 					if tt.wantPeakKB > 0 && sessions[0].PeakMemoryKB != tt.wantPeakKB {
 						t.Errorf("peak memory = %d, want %d", sessions[0].PeakMemoryKB, tt.wantPeakKB)
 					}
