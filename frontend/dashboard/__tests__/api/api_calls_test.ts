@@ -52,7 +52,10 @@ import {
   fetchErrorsOverviewPlotFromServer,
   fetchCheckoutSessionFromServer,
   fetchCustomerPortalUrlFromServer,
+  fetchHighMemoryUsageSessionsFromServer,
   fetchJourneyFromServer,
+  fetchMemoryUsageBreakdownFromServer,
+  fetchMemoryUsagePlotFromServer,
   fetchMetricsFromServer,
   fetchNetworkEndpointStatusCodesPlotFromServer,
   fetchNetworkLatencyPlotFromServer,
@@ -801,6 +804,128 @@ describe("network endpoint fetches", () => {
 });
 
 // ========================================================================
+// Memory fetches
+// ========================================================================
+describe("memory fetches", () => {
+  const filterExpr = "version_name:in:1.2.3 AND device_total_memory:in:5-6gb";
+
+  it("fetchMemoryUsagePlotFromServer sends the filters and time group and returns the points", async () => {
+    const data = [
+      { version: "1.2.3 (42)", datetime: "2026-04-01", p90: 204800 },
+    ];
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(data));
+
+    const result = await fetchMemoryUsagePlotFromServer(
+      "app-a",
+      isoFrom,
+      isoTo,
+      filterExpr,
+      "background",
+    );
+
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/memory/plots/usage");
+    expect(url.searchParams.get("from")).toBe(isoFrom);
+    expect(url.searchParams.get("to")).toBe(isoTo);
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    expect(url.searchParams.get("plot_time_group")).toBe("days");
+    expect(url.searchParams.get("filter_expr")).toBe(filterExpr);
+    expect(url.searchParams.get("app_importance")).toBe("background");
+    expect(result).toEqual(data);
+  });
+
+  it("fetchMemoryUsageBreakdownFromServer sends the filters and returns the tiers", async () => {
+    const data = [
+      { device_total_memory_tier: "5-6gb", p90: 204800, session_count: 30 },
+    ];
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(data));
+
+    const result = await fetchMemoryUsageBreakdownFromServer(
+      "app-a",
+      isoFrom,
+      isoTo,
+      filterExpr,
+      "background",
+    );
+
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/memory/plots/breakdown");
+    expect(url.searchParams.get("from")).toBe(isoFrom);
+    expect(url.searchParams.get("to")).toBe(isoTo);
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    expect(url.searchParams.has("plot_time_group")).toBe(false);
+    expect(url.searchParams.get("filter_expr")).toBe(filterExpr);
+    expect(url.searchParams.get("app_importance")).toBe("background");
+    expect(result).toEqual(data);
+  });
+
+  const plots: Array<[string, () => Promise<unknown>]> = [
+    [
+      "fetchMemoryUsagePlotFromServer",
+      () => fetchMemoryUsagePlotFromServer("app-a", isoFrom, isoTo, null),
+    ],
+    [
+      "fetchMemoryUsageBreakdownFromServer",
+      () => fetchMemoryUsageBreakdownFromServer("app-a", isoFrom, isoTo, null),
+    ],
+  ];
+
+  it.each(plots)(
+    "%s omits optional filters and preserves null responses",
+    async (_name, fetchPlot) => {
+      mockApiClientFetch.mockResolvedValueOnce(successResponse(null));
+
+      const result = await fetchPlot();
+
+      const url = new URL(lastFetchUrl(), "http://localhost");
+      expect(url.searchParams.has("filter_expr")).toBe(false);
+      expect(url.searchParams.has("app_importance")).toBe(false);
+      expect(result).toBeNull();
+    },
+  );
+
+  it.each(plots)("%s preserves empty responses", async (_name, fetchPlot) => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse([]));
+
+    expect(await fetchPlot()).toEqual([]);
+  });
+
+  it.each([undefined, "foreground", "user_service", "background"] as const)(
+    "fetchHighMemoryUsageSessionsFromServer sends pagination and app importance %s",
+    async (appImportance) => {
+      const data = {
+        results: [{ session_id: "session-a", peak_memory_kb: 1769472 }],
+        meta: { next: true, previous: true },
+      };
+      mockApiClientFetch.mockResolvedValueOnce(successResponse(data));
+
+      const result = await fetchHighMemoryUsageSessionsFromServer(
+        "app-a",
+        isoFrom,
+        isoTo,
+        filterExpr,
+        5,
+        10,
+        appImportance,
+      );
+
+      const url = new URL(lastFetchUrl(), "http://localhost");
+      expect(url.pathname).toBe("/api/apps/app-a/memory/sessions/high-usage");
+      expect(url.searchParams.get("from")).toBe(isoFrom);
+      expect(url.searchParams.get("to")).toBe(isoTo);
+      expect(url.searchParams.get("filter_expr")).toBe(filterExpr);
+      expect(url.searchParams.get("app_importance")).toBe(
+        appImportance ?? null,
+      );
+      expect(url.searchParams.get("limit")).toBe("5");
+      expect(url.searchParams.get("offset")).toBe("10");
+      expect(url.searchParams.has("plot_time_group")).toBe(false);
+      expect(result).toEqual(data);
+    },
+  );
+});
+
+// ========================================================================
 // Sessions / bug reports / alerts
 // ========================================================================
 describe("sessions, bug reports, alerts", () => {
@@ -1418,6 +1543,19 @@ describe("fetchBugReportsOverviewPlotFromServer", () => {
 // ========================================================================
 describe("fetch functions: failure paths", () => {
   const cases: Array<[string, () => Promise<unknown>]> = [
+    [
+      "fetchMemoryUsagePlotFromServer",
+      () => fetchMemoryUsagePlotFromServer("a", isoFrom, isoTo, null),
+    ],
+    [
+      "fetchMemoryUsageBreakdownFromServer",
+      () => fetchMemoryUsageBreakdownFromServer("a", isoFrom, isoTo, null),
+    ],
+    [
+      "fetchHighMemoryUsageSessionsFromServer",
+      () =>
+        fetchHighMemoryUsageSessionsFromServer("a", isoFrom, isoTo, null, 5, 0),
+    ],
     [
       "fetchJourneyFromServer",
       () =>
