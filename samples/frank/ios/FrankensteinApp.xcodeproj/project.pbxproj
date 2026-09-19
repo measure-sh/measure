@@ -251,7 +251,7 @@
 			name = "[CP-User] Upload dSYMs and RN sourcemap to Measure";
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/sh;
-			shellScript = "set -e\nif [[ -z \"$MEASURE_API_KEY\" || -z \"$MEASURE_API_URL\" ]]; then\n  echo \"warning: MEASURE_API_KEY or MEASURE_API_URL not set, skipping Measure upload\"\n  exit 0\nfi\n\n# Debug builds use DEBUG_INFORMATION_FORMAT=dwarf and produce no dSYMs, so\n# the folder may be missing. Create it so the upload script can still run\n# and ship the JS sourcemap (it uploads JS-only when no dSYMs are present).\nDSYM_FOLDER=\"${DWARF_DSYM_FOLDER_PATH}\"\nmkdir -p \"$DSYM_FOLDER\"\n\nDEST_DIR=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\nJS_BUNDLE=\"$DEST_DIR/main.jsbundle\"\nJS_SOURCEMAP=\"$DEST_DIR/main.jsbundle.map\"\n\nVERSION_NAME=\"${MARKETING_VERSION}\"\nVERSION_CODE=\"${CURRENT_PROJECT_VERSION}\"\nAPP_ID=\"${PRODUCT_BUNDLE_IDENTIFIER}\"\nBUILD_SIZE=$(stat -f%z \"${BUILT_PRODUCTS_DIR}/${EXECUTABLE_PATH}\" 2>/dev/null || echo \"0\")\n\nUPLOAD_SCRIPT=\"$SRCROOT/Scripts/upload_to_measure.sh\"\nif [[ ! -f \"$UPLOAD_SCRIPT\" ]]; then\n  echo \"error: upload_to_measure.sh not found at $UPLOAD_SCRIPT\"\n  exit 1\nfi\n\nJS_ARGS=()\nif [[ -f \"$JS_BUNDLE\" ]]; then\n  JS_ARGS+=(--bundle \"$JS_BUNDLE\")\nfi\nif [[ -f \"$JS_SOURCEMAP\" ]]; then\n  JS_ARGS+=(--mapping \"$JS_SOURCEMAP\")\nfi\n\nbash \"$UPLOAD_SCRIPT\"   \"$DSYM_FOLDER\"   \"$MEASURE_API_URL\"   \"$MEASURE_API_KEY\"   \"$VERSION_NAME\"   \"$VERSION_CODE\"   \"$APP_ID\"   \"$BUILD_SIZE\"   \"${JS_ARGS[@]}\"\n";
+			shellScript = "set -e\nif [[ -z \"$MEASURE_API_KEY\" || -z \"$MEASURE_API_URL\" ]]; then\n  echo \"warning: MEASURE_API_KEY or MEASURE_API_URL not set, skipping Measure upload\"\n  exit 0\nfi\n\n# The folder may be missing when a build produces no dSYMs. Create it so the\n# upload script can still run and ship the JS sourcemap (it uploads JS-only\n# when no dSYMs are present).\nDSYM_FOLDER=\"${DWARF_DSYM_FOLDER_PATH}\"\nmkdir -p \"$DSYM_FOLDER\"\n\nDEST_DIR=\"${BUILT_PRODUCTS_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}\"\nJS_BUNDLE=\"$DEST_DIR/main.jsbundle\"\nJS_SOURCEMAP=\"$DEST_DIR/main.jsbundle.map\"\n\nVERSION_NAME=\"${MARKETING_VERSION}\"\nVERSION_CODE=\"${CURRENT_PROJECT_VERSION}\"\nAPP_ID=\"${PRODUCT_BUNDLE_IDENTIFIER}\"\nBUILD_SIZE=$(stat -f%z \"${BUILT_PRODUCTS_DIR}/${EXECUTABLE_PATH}\" 2>/dev/null || echo \"0\")\n\nUPLOAD_SCRIPT=\"$SRCROOT/Scripts/upload_to_measure.sh\"\nif [[ ! -f \"$UPLOAD_SCRIPT\" ]]; then\n  echo \"error: upload_to_measure.sh not found at $UPLOAD_SCRIPT\"\n  exit 1\nfi\n\nJS_ARGS=()\nif [[ -f \"$JS_BUNDLE\" ]]; then\n  JS_ARGS+=(--bundle \"$JS_BUNDLE\")\nfi\nif [[ -f \"$JS_SOURCEMAP\" ]]; then\n  JS_ARGS+=(--mapping \"$JS_SOURCEMAP\")\nfi\n\nbash \"$UPLOAD_SCRIPT\"   \"$DSYM_FOLDER\"   \"$MEASURE_API_URL\"   \"$MEASURE_API_KEY\"   \"$VERSION_NAME\"   \"$VERSION_CODE\"   \"$APP_ID\"   \"$BUILD_SIZE\"   \"${JS_ARGS[@]}\"\n";
 		};
 		6FDDDBB1E19272F994356C88 /* [CP] Embed Pods Frameworks */ = {
 			isa = PBXShellScriptBuildPhase;
@@ -382,7 +382,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				CXX = "";
-				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_OPTIMIZATION_LEVEL = 0;
