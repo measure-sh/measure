@@ -122,6 +122,9 @@ type Attribute struct {
 	// DeviceDensity is the density of the device.
 	DeviceDensity float32 `json:"device_density"`
 
+	// DeviceTotalMemory is the total device memory in KiB.
+	DeviceTotalMemory uint64 `json:"device_total_memory"`
+
 	// DeviceLocale is the rfc 5646 based locale
 	// identifier.
 	DeviceLocale string `json:"device_locale"`

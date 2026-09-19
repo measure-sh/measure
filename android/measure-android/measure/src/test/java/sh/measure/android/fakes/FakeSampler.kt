@@ -17,6 +17,8 @@ internal class FakeSampler : Sampler {
     override fun shouldSampleTrace(traceId: String): Boolean = isTraceSampled
     override fun shouldSampleLaunchEvent(): Boolean = isLaunchEventSampled
     override fun shouldTrackJourneyForSession(sessionId: String): Boolean = trackJourneyForSession
+    var trackMemoryUsageForSession = true
+    override fun shouldTrackMemoryUsageForSession(sessionId: String): Boolean = trackMemoryUsageForSession
     override fun shouldSampleHttpEvent(): Boolean = isHttpEventSampled
     override fun shouldSampleProfile(): Boolean = isProfileSampled
     override fun shouldSampleError(severity: ExceptionSeverity): Boolean = severity in sampledErrorSeverities

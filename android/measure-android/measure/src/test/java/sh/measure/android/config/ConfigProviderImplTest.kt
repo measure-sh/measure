@@ -18,6 +18,30 @@ class ConfigProviderImplTest {
     }
 
     @Test
+    fun `memory settings use defaults before dynamic config loads`() {
+        assertEquals(100f, configProvider.memoryUsageSessionSamplingRate)
+    }
+
+    @Test
+    fun `memory settings reflect dynamic config updates`() {
+        configProvider.setDynamicConfig(
+            DynamicConfig(
+                memoryUsageSessionSamplingRate = 25.5f,
+            ),
+        )
+
+        assertEquals(25.5f, configProvider.memoryUsageSessionSamplingRate)
+
+        configProvider.setDynamicConfig(
+            DynamicConfig(
+                memoryUsageSessionSamplingRate = 0f,
+            ),
+        )
+
+        assertEquals(0f, configProvider.memoryUsageSessionSamplingRate)
+    }
+
+    @Test
     fun `shouldTrackHttpEvent returns true when no URLs are blocked`() {
         assertTrue(configProvider.shouldTrackHttpEvent("https://api.example.com/data"))
     }

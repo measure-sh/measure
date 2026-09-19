@@ -101,6 +101,8 @@ import sh.measure.android.utils.ManifestReader
 import sh.measure.android.utils.ManifestReaderImpl
 import sh.measure.android.utils.OsSysConfProvider
 import sh.measure.android.utils.OsSysConfProviderImpl
+import sh.measure.android.utils.OsVersionProvider
+import sh.measure.android.utils.OsVersionProviderImpl
 import sh.measure.android.utils.PackageInfoProviderImpl
 import sh.measure.android.utils.ProcProvider
 import sh.measure.android.utils.ProcProviderImpl
@@ -180,16 +182,16 @@ internal class MeasureInitializerImpl(
     private val debugProvider: DebugProvider = DefaultDebugProvider(),
     private val runtimeProvider: RuntimeProvider = DefaultRuntimeProvider(),
     private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
+    private val osVersionProvider: OsVersionProvider = OsVersionProviderImpl(),
+    private val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(application),
     private val memoryReader: MemoryReader = DefaultMemoryReader(
         logger = logger,
-        processInfo = processInfoProvider,
         procProvider = procProvider,
         debugProvider = debugProvider,
         runtimeProvider = runtimeProvider,
-        osSysConfProvider = osSysConfProvider,
+        osVersionProvider = osVersionProvider,
     ),
     private val localeProvider: LocaleProvider = LocaleProviderImpl(),
-    private val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(application),
     private val initialNetworkStateProvider: InitialNetworkStateProvider = InitialNetworkStateProviderImpl(
         context = application,
         logger = logger,
@@ -213,6 +215,7 @@ internal class MeasureInitializerImpl(
         context = application,
         localeProvider = localeProvider,
         osSysConfProvider = osSysConfProvider,
+        systemServiceProvider = systemServiceProvider,
     ),
     private val appAttributeProcessor: AppAttributeProcessor = AppAttributeProcessor(
         context = application,

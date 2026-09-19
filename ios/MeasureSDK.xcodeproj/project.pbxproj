@@ -162,6 +162,7 @@
 		52B7F16D2D757F81001498BC /* MockUserPermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1212D757F81001498BC /* MockUserPermissionManager.swift */; };
 		52B7F16F2D757F81001498BC /* CpuUsageCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1242D757F81001498BC /* CpuUsageCollectorTests.swift */; };
 		52B7F1712D757F81001498BC /* MemoryUsageCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1262D757F81001498BC /* MemoryUsageCollectorTests.swift */; };
+		8D3CAB13D3324A00A12DDD3C /* MemoryUsageCalculatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DACD51439624F8FB636EB6D /* MemoryUsageCalculatorTests.swift */; };
 		52B7F1732D757F81001498BC /* LifecycleObserverTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F12A2D757F81001498BC /* LifecycleObserverTests.swift */; };
 		52B7F1742D757F81001498BC /* TimeProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F12B2D757F81001498BC /* TimeProviderTests.swift */; };
 		52B7F1752D757F81001498BC /* SessionManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F12D2D757F81001498BC /* SessionManagerTests.swift */; };
@@ -309,6 +310,9 @@
 		CFD88D792DAFDA530095115E /* MockSpanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD88D782DAFDA530095115E /* MockSpanStore.swift */; };
 		CFD9D88C2F97513600EE8E21 /* WebPEncoder.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD9D88B2F97513600EE8E21 /* WebPEncoder.swift */; };
 		CFE1A0022FD000010000AA02 /* ExpoAttributeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFE1A0012FD000010000AA01 /* ExpoAttributeTests.swift */; };
+		CFE1A0042FD000010000AA04 /* DeviceAttributeProcessorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFE1A0032FD000010000AA03 /* DeviceAttributeProcessorTests.swift */; };
+		CFE1A0062FD000010000AA06 /* AttributesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFE1A0052FD000010000AA05 /* AttributesTests.swift */; };
+		CFE1A0082FD000010000AA08 /* CrashDataPersistenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFE1A0072FD000010000AA07 /* CrashDataPersistenceTests.swift */; };
 		CFE1DD4F2F62C668003BD29B /* abort.json in Resources */ = {isa = PBXBuildFile; fileRef = CFE1DD482F62C668003BD29B /* abort.json */; };
 		CFE1DD502F62C668003BD29B /* backgroundThreadException.json in Resources */ = {isa = PBXBuildFile; fileRef = CFE1DD4A2F62C668003BD29B /* backgroundThreadException.json */; };
 		CFE1DD522F62E201003BD29B /* CrashDataFormatterTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFE1DD512F62E201003BD29B /* CrashDataFormatterTests.swift */; };
@@ -580,6 +584,7 @@
 		52B7F1212D757F81001498BC /* MockUserPermissionManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockUserPermissionManager.swift; sourceTree = "<group>"; };
 		52B7F1242D757F81001498BC /* CpuUsageCollectorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CpuUsageCollectorTests.swift; sourceTree = "<group>"; };
 		52B7F1262D757F81001498BC /* MemoryUsageCollectorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MemoryUsageCollectorTests.swift; sourceTree = "<group>"; };
+		7DACD51439624F8FB636EB6D /* MemoryUsageCalculatorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MemoryUsageCalculatorTests.swift; sourceTree = "<group>"; };
 		52B7F12A2D757F81001498BC /* LifecycleObserverTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LifecycleObserverTests.swift; sourceTree = "<group>"; };
 		52B7F12B2D757F81001498BC /* TimeProviderTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TimeProviderTests.swift; sourceTree = "<group>"; };
 		52B7F12D2D757F81001498BC /* SessionManagerTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SessionManagerTests.swift; sourceTree = "<group>"; };
@@ -724,6 +729,9 @@
 		CFD88D782DAFDA530095115E /* MockSpanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MockSpanStore.swift; sourceTree = "<group>"; };
 		CFD9D88B2F97513600EE8E21 /* WebPEncoder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebPEncoder.swift; sourceTree = "<group>"; };
 		CFE1A0012FD000010000AA01 /* ExpoAttributeTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ExpoAttributeTests.swift; sourceTree = "<group>"; };
+		CFE1A0032FD000010000AA03 /* DeviceAttributeProcessorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DeviceAttributeProcessorTests.swift; sourceTree = "<group>"; };
+		CFE1A0052FD000010000AA05 /* AttributesTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AttributesTests.swift; sourceTree = "<group>"; };
+		CFE1A0072FD000010000AA07 /* CrashDataPersistenceTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CrashDataPersistenceTests.swift; sourceTree = "<group>"; };
 		CFE1DD482F62C668003BD29B /* abort.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = abort.json; sourceTree = "<group>"; };
 		CFE1DD4A2F62C668003BD29B /* backgroundThreadException.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = backgroundThreadException.json; sourceTree = "<group>"; };
 		CFE1DD512F62E201003BD29B /* CrashDataFormatterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CrashDataFormatterTests.swift; sourceTree = "<group>"; };
@@ -1212,6 +1220,8 @@
 				CF123F872FAA11FE0053856F /* BaseAttributeTransformerTests.swift */,
 				52B7F0DF2D757F81001498BC /* ComputeOnceAttributeProcessorTests.swift */,
 				CFE1A0012FD000010000AA01 /* ExpoAttributeTests.swift */,
+				CFE1A0032FD000010000AA03 /* DeviceAttributeProcessorTests.swift */,
+				CFE1A0052FD000010000AA05 /* AttributesTests.swift */,
 				52B7F0E02D757F81001498BC /* InstallationIdAttributeProcessorTests.swift */,
 				3F0D5BA19C6004B5314C8314 /* PatchAttributeProcessorTests.swift */,
 				52B7F0E12D757F81001498BC /* UserAttributeProcessorTests.swift */,
@@ -1247,6 +1257,7 @@
 			isa = PBXGroup;
 			children = (
 				CFE1DD512F62E201003BD29B /* CrashDataFormatterTests.swift */,
+				CFE1A0072FD000010000AA07 /* CrashDataPersistenceTests.swift */,
 				CFE1DD532F62EC6C003BD29B /* CrashReportManagerTests.swift */,
 				CFE1DD4C2F62C668003BD29B /* CrashReports */,
 			);
@@ -1343,6 +1354,7 @@
 			children = (
 				52B7F1242D757F81001498BC /* CpuUsageCollectorTests.swift */,
 				52B7F1262D757F81001498BC /* MemoryUsageCollectorTests.swift */,
+				7DACD51439624F8FB636EB6D /* MemoryUsageCalculatorTests.swift */,
 			);
 			path = Performance;
 			sourceTree = "<group>";
@@ -2126,6 +2138,7 @@
 				CF1BB5022DDF362900588506 /* AccelerometerShakeDetectorTests.swift in Sources */,
 				52B7F13C2D757F81001498BC /* SessionStoreTests.swift in Sources */,
 				52B7F1712D757F81001498BC /* MemoryUsageCollectorTests.swift in Sources */,
+				8D3CAB13D3324A00A12DDD3C /* MemoryUsageCalculatorTests.swift in Sources */,
 				CF1BB5042DDF669800588506 /* BugReportCollectorTests.swift in Sources */,
 				52B7F15C2D757F81001498BC /* MockExporter.swift in Sources */,
 				52B7F1562D757F81001498BC /* MockBatchStore.swift in Sources */,
@@ -2200,6 +2213,9 @@
 				CF1A2B3D2FC0000100564FDA /* URLSessionTaskInterceptorTests.swift in Sources */,
 				52B7F1342D757F81001498BC /* AttributeProcessorTests.swift in Sources */,
 				CFE1A0022FD000010000AA02 /* ExpoAttributeTests.swift in Sources */,
+				CFE1A0042FD000010000AA04 /* DeviceAttributeProcessorTests.swift in Sources */,
+				CFE1A0062FD000010000AA06 /* AttributesTests.swift in Sources */,
+				CFE1A0082FD000010000AA08 /* CrashDataPersistenceTests.swift in Sources */,
 				CFB838212DAFEF780023592B /* SpanProcessorTests.swift in Sources */,
 				038104471FED9378F3009FF4 /* MockLayoutSnapshotCollector.swift in Sources */,
 			);

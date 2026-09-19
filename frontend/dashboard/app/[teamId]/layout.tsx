@@ -111,6 +111,12 @@ function buildInitNavData(): { navMain: NavSection[] } {
             isActive: false,
             external: false,
           },
+          {
+            title: "Memory",
+            url: "memory",
+            isActive: false,
+            external: false,
+          },
         ],
       },
       {

@@ -642,13 +642,34 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
         }
     }
 
-    func testEventEntity_MemoryUsageDataSerialization() {
+    func testEventEntity_MemoryUsageDataSerialization() throws {
+        let memory = try serializeMemoryUsage(availableMemory: nil)
+
+        XCTAssertEqual(memory["interval"] as? UnsignedNumber, 100)
+        XCTAssertEqual(memory["used_memory"] as? UnsignedNumber, 2048)
+        XCTAssertEqual(memory["max_memory"] as? UnsignedNumber, 4096)
+        XCTAssertNil(memory["available_memory"])
+    }
+
+    func testMemoryUsageSerializationPreservesZeroHeadroom() throws {
+        let memory = try serializeMemoryUsage(availableMemory: 0)
+
+        XCTAssertEqual(memory["available_memory"] as? UnsignedNumber, 0)
+    }
+
+    func testMemoryUsageSerializationPreservesAvailableHeadroom() throws {
+        let memory = try serializeMemoryUsage(availableMemory: 1024)
+
+        XCTAssertEqual(memory["available_memory"] as? UnsignedNumber, 1024)
+    }
+
+    private func serializeMemoryUsage(availableMemory: UnsignedNumber?) throws -> [String: Any] {
         let memoryUsageData = MemoryUsageData(
             maxMemory: 4096,
             usedMemory: 2048,
-            interval: 100
+            interval: 100,
+            availableMemory: availableMemory
         )
-
         let event = Event(
             id: "memoryUsageEventId",
             sessionId: "sessionId",
@@ -660,27 +681,18 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             attributes: TestDataGenerator.generateAttributes(),
             userTriggered: false
         )
-
         let eventEntity = EventEntity(event, needsReporting: true)
 
-        guard let jsonData = eventSerializer.getSerialisedEvent(for: eventEntity) else {
-            XCTFail("getSerialisedEvent cannot be nil")
-            return
-        }
+        let jsonData = try XCTUnwrap(eventSerializer.getSerialisedEvent(for: eventEntity))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: jsonData) as? [String: Any])
+        return try XCTUnwrap(json["memory_usage_absolute"] as? [String: Any])
+    }
 
-        do {
-            let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: Any]
-
-            if let memoryUsageDataDict = jsonDict?["memory_usage_absolute"] as? [String: Any] {
-                XCTAssertEqual(memoryUsageDataDict["interval"] as? UnsignedNumber, 100)
-                XCTAssertEqual(memoryUsageDataDict["used_memory"] as? UnsignedNumber, 2048)
-                XCTAssertEqual(memoryUsageDataDict["max_memory"] as? UnsignedNumber, 4096)
-            } else {
-                XCTFail("Memory usage data is not present in the serialized event.")
-            }
-        } catch {
-            XCTFail("Invalid JSON object: \(error.localizedDescription)")
-        }
+    func testOldMemoryPayloadDecodesWithoutHeadroom() throws {
+        let json = Data(#"{"max_memory":4096,"used_memory":2048,"interval":5000}"#.utf8)
+        let memory = try JSONDecoder().decode(MemoryUsageData.self, from: json)
+        XCTAssertEqual(memory.usedMemory, 2048)
+        XCTAssertNil(memory.availableMemory)
     }
 
     func testHotLaunchDataSerialization() {

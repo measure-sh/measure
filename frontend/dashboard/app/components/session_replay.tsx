@@ -2453,7 +2453,7 @@ const laneHeight = 34;
 const plotWidth = 1000;
 const plotHeight = 100;
 
-type Series = { label: string; color: string; values: number[] };
+type Series = { label: string; color: string; values: (number | null)[] };
 
 type MetricStrip = {
   key: string;
@@ -2482,7 +2482,9 @@ type StripSpec = {
   title: string;
   unit: string;
   samples: any[] | null;
-  read: (sample: any) => { label: string; color: string; value: number }[];
+  read: (
+    sample: any,
+  ) => { label: string; color: string; value: number | null }[];
   max?: number;
 };
 
@@ -2496,7 +2498,7 @@ function buildStrip(
   }
 
   const times: MetricStrip["times"] = [];
-  const columns: number[][] = [];
+  const columns: (number | null)[][] = [];
   let labels: { label: string; color: string }[] = [];
   let peak = 0;
 
@@ -2514,7 +2516,7 @@ function buildStrip(
     times.push({ absMs, iso: sample.timestamp });
     columns.push(readings.map((reading) => reading.value));
     readings.forEach((reading) => {
-      peak = Math.max(peak, reading.value);
+      if (reading.value !== null) peak = Math.max(peak, reading.value);
     });
   });
 
@@ -2559,8 +2561,33 @@ function useSessionMetricStrips(
         fields.map(([label, color, field]) => ({
           label,
           color,
-          value: kilobytesToMegabytes(sample[field]),
+          value: Number.isFinite(sample[field])
+            ? kilobytesToMegabytes(sample[field])
+            : null,
         }));
+
+    const androidMemoryFields: [string, string, string][] = [
+      ["Java Free Heap", chartColor.violet, "java_free_heap"],
+      ["Java Max Heap", chartColor.red, "java_max_heap"],
+      ["Java Total Heap", chartColor.yellow, "java_total_heap"],
+      ["Native Free Heap", chartColor.amber, "native_free_heap"],
+      ["Native Total Heap", chartColor.teal, "native_total_heap"],
+      ["RSS", chartColor.green, "rss"],
+      ["Total PSS", chartColor.pink, "total_pss"],
+    ];
+    // Older API responses can lack this field. Only plot a complete series.
+    if (
+      Array.isArray(session.memory_usage) &&
+      session.memory_usage.every((sample: any) =>
+        Number.isFinite(sample.dynamic_memory),
+      )
+    ) {
+      androidMemoryFields.push([
+        "Dynamic Memory",
+        chartColor.blue,
+        "dynamic_memory",
+      ]);
+    }
 
     const specs: StripSpec[] = [
       {
@@ -2578,25 +2605,25 @@ function useSessionMetricStrips(
         title: "Memory",
         unit: "MB",
         samples: session.memory_usage,
-        read: megabytes([
-          ["Java Free Heap", chartColor.violet, "java_free_heap"],
-          ["Java Max Heap", chartColor.red, "java_max_heap"],
-          ["Java Total Heap", chartColor.yellow, "java_total_heap"],
-          ["Native Free Heap", chartColor.amber, "native_free_heap"],
-          ["Native Total Heap", chartColor.teal, "native_total_heap"],
-          ["RSS", chartColor.green, "rss"],
-          ["Total PSS", chartColor.pink, "total_pss"],
-        ]),
+        read: megabytes(androidMemoryFields),
       },
       {
         key: "memory-absolute",
         title: "Memory",
         unit: "MB",
         samples: session.memory_usage_absolute,
-        read: megabytes([
-          ["Max Memory", chartColor.violet, "max_memory"],
-          ["Used Memory", chartColor.red, "used_memory"],
-        ]),
+        read: (sample) =>
+          megabytes([
+            ["Available Memory", chartColor.violet, "available_memory"],
+            ["Max Memory", chartColor.violet, "max_memory"],
+            ["Used Memory", chartColor.red, "used_memory"],
+          ])({
+            ...sample,
+            // Keep the fallback under its own label: device RAM is not available memory.
+            max_memory: Number.isFinite(sample.available_memory)
+              ? null
+              : sample.max_memory,
+          }),
       },
     ];
     return specs
@@ -2661,21 +2688,31 @@ const SessionReplayMetrics = memo(function SessionReplayMetrics({
       new Map(
         strips.map((strip) => [
           strip.key,
-          strip.series.map((series) => (
-            <polyline
-              key={series.label}
-              fill="none"
-              stroke={series.color}
-              strokeWidth={1}
-              vectorEffect="non-scaling-stroke"
-              points={series.values
-                .map(
-                  (value, index) =>
-                    `${xFor(strip.times[index].absMs)},${plotHeight - (Math.min(value, strip.max) / strip.max) * plotHeight}`,
-                )
-                .join(" ")}
-            />
-          )),
+          strip.series.flatMap((series) => {
+            // Missing available memory is unknown, not zero. Break the line at gaps.
+            const segments: string[][] = [];
+            let segment: string[] = [];
+            series.values.forEach((value, index) => {
+              if (value === null) {
+                segment = [];
+                return;
+              }
+              if (segment.length === 0) segments.push(segment);
+              segment.push(
+                `${xFor(strip.times[index].absMs)},${plotHeight - (Math.min(value, strip.max) / strip.max) * plotHeight}`,
+              );
+            });
+            return segments.map((points, index) => (
+              <polyline
+                key={`${series.label}-${index}`}
+                fill="none"
+                stroke={series.color}
+                strokeWidth={1}
+                vectorEffect="non-scaling-stroke"
+                points={points.join(" ")}
+              />
+            ));
+          }),
         ]),
       ),
     [strips, xFor],
@@ -2782,19 +2819,21 @@ const SessionReplayMetrics = memo(function SessionReplayMetrics({
                       ),
                     )}
                   </p>
-                  {strip.series.map((series) => (
-                    <div
-                      key={series.label}
-                      className="flex flex-row items-center gap-2 mt-2"
-                    >
-                      <PlotTooltipSwatch color={series.color} />
-                      <p>
-                        {series.label}:{" "}
-                        {series.values[hovered.index].toFixed(2)}
-                        {strip.unit === "%" ? "%" : ` ${strip.unit}`}
-                      </p>
-                    </div>
-                  ))}
+                  {strip.series
+                    .filter((series) => series.values[hovered.index] !== null)
+                    .map((series) => (
+                      <div
+                        key={series.label}
+                        className="flex flex-row items-center gap-2 mt-2"
+                      >
+                        <PlotTooltipSwatch color={series.color} />
+                        <p>
+                          {series.label}:{" "}
+                          {series.values[hovered.index]!.toFixed(2)}
+                          {strip.unit === "%" ? "%" : ` ${strip.unit}`}
+                        </p>
+                      </div>
+                    ))}
                 </PlotTooltipShell>
               </div>
             )}
@@ -3035,6 +3074,9 @@ export const demoSession = {
       java_free_heap: 259685,
       total_pss: 10846,
       rss: 105040,
+      anon_rss: 49152,
+      swap: 0,
+      dynamic_memory: 49152,
       native_total_heap: 12612,
       native_free_heap: 1170,
       interval: 0,
@@ -3046,6 +3088,9 @@ export const demoSession = {
       java_free_heap: 58687,
       total_pss: 57496,
       rss: 135104,
+      anon_rss: 61440,
+      swap: 4096,
+      dynamic_memory: 65536,
       native_total_heap: 17752,
       native_free_heap: 1259,
       interval: 2056,
@@ -3060,6 +3105,9 @@ export const demoSession = {
       java_free_heap: 58391,
       total_pss: 57572,
       rss: 135240,
+      anon_rss: 65536,
+      swap: 8192,
+      dynamic_memory: 73728,
       native_total_heap: 17752,
       native_free_heap: 1229,
       interval: 2043,
@@ -3074,6 +3122,9 @@ export const demoSession = {
       java_free_heap: 57931,
       total_pss: 59015,
       rss: 136396,
+      anon_rss: 67584,
+      swap: 8192,
+      dynamic_memory: 75776,
       native_total_heap: 18520,
       native_free_heap: 1314,
       interval: 2055,
@@ -3088,6 +3139,9 @@ export const demoSession = {
       java_free_heap: 57162,
       total_pss: 59904,
       rss: 137996,
+      anon_rss: 69632,
+      swap: 10240,
+      dynamic_memory: 79872,
       native_total_heap: 19544,
       native_free_heap: 1307,
       interval: 2032,

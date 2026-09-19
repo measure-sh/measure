@@ -300,10 +300,21 @@ type EventRow struct {
 	// Attributes written individually only when set, leaving ClickHouse
 	// column defaults otherwise. PatchID and PatchVersion identify an OTA
 	// patch the app was running; both stay unwritten for an unpatched app.
-	UserID       string
-	DeviceModel  string
-	PatchID      uuid.UUID
-	PatchVersion string
+	UserID            string
+	DeviceModel       string
+	DeviceTotalMemory uint64
+	PatchID           uuid.UUID
+	PatchVersion      string
+
+	// Memory usage values are written only for memory_usage events.
+	MemoryAnonRSS       *uint64
+	MemorySwap          *uint64
+	MemoryAppImportance string
+
+	// Absolute memory values are written only for memory_usage_absolute events.
+	MemoryUsed      uint64
+	MemoryMax       uint64
+	MemoryAvailable *uint64
 }
 
 func (r EventRow) filled() EventRow {
@@ -453,6 +464,30 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 	if row.DeviceModel != "" {
 		cols = append(cols, "`attribute.device_model`")
 		vals = append(vals, quote(row.DeviceModel))
+	}
+	if row.DeviceTotalMemory > 0 {
+		cols = append(cols, "`attribute.device_total_memory`")
+		vals = append(vals, strconv.FormatUint(row.DeviceTotalMemory, 10))
+	}
+	if row.Type == "memory_usage" {
+		cols = append(cols, "`memory_usage.app_importance`")
+		vals = append(vals, quote(row.MemoryAppImportance))
+		if row.MemoryAnonRSS != nil {
+			cols = append(cols, "`memory_usage.anon_rss`")
+			vals = append(vals, strconv.FormatUint(*row.MemoryAnonRSS, 10))
+		}
+		if row.MemorySwap != nil {
+			cols = append(cols, "`memory_usage.swap`")
+			vals = append(vals, strconv.FormatUint(*row.MemorySwap, 10))
+		}
+	}
+	if row.Type == "memory_usage_absolute" {
+		cols = append(cols, "`memory_usage_absolute.used_memory`", "`memory_usage_absolute.max_memory`")
+		vals = append(vals, strconv.FormatUint(row.MemoryUsed, 10), strconv.FormatUint(row.MemoryMax, 10))
+		if row.MemoryAvailable != nil {
+			cols = append(cols, "`memory_usage_absolute.available_memory`")
+			vals = append(vals, strconv.FormatUint(*row.MemoryAvailable, 10))
+		}
 	}
 	if row.PatchID != uuid.Nil {
 		cols = append(cols, "`attribute.patch_id`")

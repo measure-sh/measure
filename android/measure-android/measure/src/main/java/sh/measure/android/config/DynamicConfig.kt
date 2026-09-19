@@ -70,6 +70,12 @@ internal interface IDynamicConfig {
     val memoryUsageInterval: Long
 
     /**
+     * Sampling rate in percentage for sessions that should track all memory usage events.
+     * Defaults to 100%.
+     */
+    val memoryUsageSessionSamplingRate: Float
+
+    /**
      * Whether to take a screenshot when a fatal error occurs. Defaults to true.
      */
     val errorFatalScreenshotEnabled: Boolean
@@ -216,6 +222,9 @@ internal data class DynamicConfig(
 
     @SerialName("memory_usage_interval")
     override val memoryUsageInterval: Long = 5,
+
+    @SerialName("memory_usage_session_sampling_rate")
+    override val memoryUsageSessionSamplingRate: Float = 100f,
 
     @SerialName("error_fatal_take_screenshot")
     val errorFatalTakeScreenshot: Boolean? = null,

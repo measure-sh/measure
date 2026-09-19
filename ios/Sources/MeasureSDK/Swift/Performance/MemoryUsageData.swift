@@ -11,10 +11,12 @@ struct MemoryUsageData: Codable {
     let maxMemory: UnsignedNumber
     let usedMemory: UnsignedNumber
     let interval: UnsignedNumber
+    var availableMemory: UnsignedNumber?
 
     enum CodingKeys: String, CodingKey {
         case maxMemory = "max_memory"
         case usedMemory = "used_memory"
+        case availableMemory = "available_memory"
         case interval
     }
 }

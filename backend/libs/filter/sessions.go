@@ -1,9 +1,69 @@
 package filter
 
 import (
+	"fmt"
 	"slices"
 	"strings"
 )
+
+const memoryKBPerGB uint64 = 1024 * 1024
+
+// DeviceMemoryTierUnknown labels devices that never reported their memory.
+const DeviceMemoryTierUnknown = "unknown"
+
+// DeviceMemoryRange is one device memory tier, in KiB. UpperKB is exclusive
+// and zero means unbounded.
+type DeviceMemoryRange struct {
+	Name    string
+	LowerKB uint64
+	UpperKB uint64
+}
+
+// DeviceMemoryRanges is the one definition of the device memory tiers. It
+// drives the session filter predicates, the filter's enum values and the
+// memory breakdown's tier expression and row ordering, so those cannot drift
+// apart.
+//
+// Each bound sits in the gap between two device classes rather than on one.
+// Android reports below its nominal size because the kernel reservation is
+// excluded, while Apple reports exact physical memory, so a bound placed on a
+// shipping size would put Apple devices in the tier above the one named for
+// them.
+var DeviceMemoryRanges = []DeviceMemoryRange{
+	{"0-4gb", 0, 5 * memoryKBPerGB},
+	{"5-6gb", 5 * memoryKBPerGB, 7 * memoryKBPerGB},
+	{"7-8gb", 7 * memoryKBPerGB, 9 * memoryKBPerGB},
+	{"9-12gb", 9 * memoryKBPerGB, 13 * memoryKBPerGB},
+	{"13-16gb", 13 * memoryKBPerGB, 17 * memoryKBPerGB},
+	{"17-32gb", 17 * memoryKBPerGB, 33 * memoryKBPerGB},
+	{"33gb+", 33 * memoryKBPerGB, 0},
+}
+
+// DeviceMemoryTiers returns every tier name in ascending order of device
+// memory, followed by the unknown tier.
+func DeviceMemoryTiers() []string {
+	tiers := make([]string, 0, len(DeviceMemoryRanges)+1)
+	for _, r := range DeviceMemoryRanges {
+		tiers = append(tiers, r.Name)
+	}
+	return append(tiers, DeviceMemoryTierUnknown)
+}
+
+func memoryRangePredicates(column string) map[string]string {
+	predicates := make(map[string]string, len(DeviceMemoryRanges)+1)
+	for _, r := range DeviceMemoryRanges {
+		switch {
+		case r.UpperKB == 0:
+			predicates[r.Name] = fmt.Sprintf("%s >= %d", column, r.LowerKB)
+		case r.LowerKB == 0:
+			predicates[r.Name] = fmt.Sprintf("%s > 0 and %s < %d", column, column, r.UpperKB)
+		default:
+			predicates[r.Name] = fmt.Sprintf("%s >= %d and %s < %d", column, r.LowerKB, column, r.UpperKB)
+		}
+	}
+	predicates[DeviceMemoryTierUnknown] = fmt.Sprintf("%s = 0", column)
+	return predicates
+}
 
 var SessionsEntity = Entity{
 	Name:            "sessions",
@@ -16,6 +76,7 @@ var SessionsEntity = Entity{
 var sessionsKeys = []Key{
 	sessionEvents,
 	sessionForegroundBackground,
+	deviceTotalMemory,
 	sessionCustomEvent,
 	sessionLog,
 	sessionScreen,
@@ -111,6 +172,7 @@ func sessionsColumnsWith(wrap func(aggregate, column string) string) *Columns {
 			"foreground": anyCountPresent(foregroundEventCounts),
 			"background": wrap("sum", "background_count") + " >= 1",
 		}},
+		deviceTotalMemory.Name:  {kind: columnPredicates, predicates: memoryRangePredicates(wrap("max", "device_total_memory"))},
 		sessionCustomEvent.Name: {expr: uniqueArray("unique_custom_type_names"), kind: columnTextArray},
 		sessionLog.Name: {expr: arrayConcat(
 			uniqueArray("unique_logs"),

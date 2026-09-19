@@ -7,6 +7,7 @@ internal interface Sampler {
     fun shouldSampleTrace(traceId: String): Boolean
     fun shouldSampleLaunchEvent(): Boolean
     fun shouldTrackJourneyForSession(sessionId: String): Boolean
+    fun shouldTrackMemoryUsageForSession(sessionId: String): Boolean
     fun shouldSampleHttpEvent(): Boolean
     fun shouldSampleError(severity: ExceptionSeverity): Boolean
     fun shouldSampleProfile(): Boolean
@@ -55,6 +56,13 @@ internal class SamplerImpl(
         }
 
         return stableSamplingValue(sessionId) < samplingRate
+    }
+
+    override fun shouldTrackMemoryUsageForSession(sessionId: String): Boolean {
+        val rate = configProvider.memoryUsageSessionSamplingRate
+        if (!rate.isFinite() || rate <= 0f) return false
+        if (rate >= 100f) return true
+        return stableSamplingValue(sessionId) < rate / 100
     }
 
     override fun shouldSampleError(severity: ExceptionSeverity): Boolean {

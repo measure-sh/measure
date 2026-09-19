@@ -52,6 +52,58 @@ export type PendingInvite = {
   valid_until: string;
 };
 
+export type MemoryAppImportance = "foreground" | "user_service" | "background";
+
+// Sample percentiles per time bucket and app version/build, across device tiers.
+// Memory values use KB (1024 bytes); version is formatted as "version (build)".
+export type MemoryUsagePlotPoint = {
+  version: string;
+  datetime: string;
+  p50: number | null;
+  p90: number | null;
+  p95: number | null;
+  p99: number | null;
+  sample_count: number;
+};
+
+// One table row per device tier over the entire selected date range.
+// Percentiles are computed from samples, and memory values use KB (1024 bytes).
+export type MemoryUsageBreakdownRow = {
+  device_total_memory_tier: string;
+  p50: number | null;
+  p90: number | null;
+  p95: number | null;
+  session_count: number;
+  sample_count: number;
+};
+
+export type HighMemoryUsageSession = {
+  session_id: string;
+  app_id: string;
+  first_event_time: string;
+  last_event_time: string;
+  peak_memory_kb: number;
+  target_memory_kb?: number;
+  percent_of_target?: number;
+  peak_memory_limit_utilization?: number;
+  available_memory_at_peak_utilization_kb?: number;
+  attribute: {
+    app_version: string;
+    app_build: string;
+    device_name: string;
+    device_model: string;
+    device_manufacturer: string;
+    device_total_memory: number;
+    os_name: string;
+    os_version: string;
+  };
+};
+
+export type HighMemoryUsageSessionsResponse = {
+  meta: { next: boolean; previous: boolean };
+  results: HighMemoryUsageSession[] | null;
+};
+
 export type App = {
   id: string;
   team_id: string;
@@ -560,6 +612,8 @@ export type SdkConfig = {
   http_blocked_headers: string[];
   screenshot_mask_level: string;
   profile_sampling_rate: number;
+  memory_usage_interval: number;
+  memory_usage_session_sampling_rate: number;
   log_autocollect_enabled: boolean;
   log_min_severity: number;
   log_ignore_patterns: string[];
@@ -1532,6 +1586,71 @@ export const fetchSpanMetricsPlotFromServer = async (
   );
 };
 
+export const fetchMemoryUsagePlotFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  appImportance?: MemoryAppImportance,
+): Promise<MemoryUsagePlotPoint[] | null> => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    plot_time_group: getPlotTimeGroupForRange(startDate, endDate),
+  });
+  if (filterExpr) params.set("filter_expr", filterExpr);
+  if (appImportance) params.set("app_importance", appImportance);
+
+  return await request(
+    `/api/apps/${appId}/memory/plots/usage?${params.toString()}`,
+    { failsWith: "Failed to fetch memory usage plot" },
+  );
+};
+
+export const fetchMemoryUsageBreakdownFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  appImportance?: MemoryAppImportance,
+): Promise<MemoryUsageBreakdownRow[] | null> => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+  });
+  if (filterExpr) params.set("filter_expr", filterExpr);
+  if (appImportance) params.set("app_importance", appImportance);
+
+  return await request(
+    `/api/apps/${appId}/memory/plots/breakdown?${params.toString()}`,
+    { failsWith: "Failed to fetch memory usage breakdown" },
+  );
+};
+
+export const fetchHighMemoryUsageSessionsFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  limit: number,
+  offset: number,
+  appImportance?: MemoryAppImportance,
+): Promise<HighMemoryUsageSessionsResponse> => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    limit: String(limit),
+    offset: String(offset),
+  });
+  if (filterExpr) params.set("filter_expr", filterExpr);
+  if (appImportance) params.set("app_importance", appImportance);
+  return await request(
+    `/api/apps/${appId}/memory/sessions/high-usage?${params.toString()}`,
+    { failsWith: "Failed to fetch high memory usage sessions" },
+  );
+};
 export const fetchAlertsOverviewFromServer = async (
   appId: string,
   startDate: string,

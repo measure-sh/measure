@@ -1,5 +1,6 @@
 package sh.measure.android.performance
 
+import android.app.ActivityManager.RunningAppProcessInfo
 import androidx.annotation.VisibleForTesting
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.EventType
@@ -14,6 +15,10 @@ import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.TimeUnit
 
 internal const val BYTES_TO_KB_FACTOR = 1024
+private const val BACKGROUND_MEMORY_USAGE_INTERVAL_SECONDS = 10L
+internal const val APP_IMPORTANCE_FOREGROUND = "foreground"
+internal const val APP_IMPORTANCE_USER_SERVICE = "user_service"
+internal const val APP_IMPORTANCE_BACKGROUND = "background"
 
 internal class MemoryUsageCollector(
     private val logger: Logger,
@@ -24,11 +29,10 @@ internal class MemoryUsageCollector(
     private val processInfo: ProcessInfoProvider,
     private val configProvider: ConfigProvider,
 ) {
-    @VisibleForTesting
-    var future: Future<*>? = null
+    private var isInForeground = true
 
     @VisibleForTesting
-    internal var previousMemoryUsage: MemoryUsageData? = null
+    var future: Future<*>? = null
 
     @VisibleForTesting
     internal var previousMemoryUsageReadTimeMs = 0L
@@ -36,19 +40,18 @@ internal class MemoryUsageCollector(
     fun register() {
         if (!processInfo.isForegroundProcess()) return
         if (future != null) return
-        future = try {
-            defaultExecutor.scheduleAtFixedRate(
-                {
-                    trackMemoryUsage()
-                },
-                0,
-                configProvider.memoryUsageInterval,
-                TimeUnit.SECONDS,
-            )
-        } catch (e: RejectedExecutionException) {
-            logger.log(LogLevel.Debug, "Failed to start MemoryUsageCollector", e)
-            null
-        }
+        isInForeground = true
+        schedule()
+    }
+
+    fun onAppForeground() {
+        isInForeground = true
+        if (future == null) register() else reschedule()
+    }
+
+    fun onAppBackground() {
+        isInForeground = false
+        if (future != null) reschedule()
     }
 
     fun unregister() {
@@ -59,18 +62,39 @@ internal class MemoryUsageCollector(
     fun onConfigLoaded() {
         // re-register to reflect updated interval
         if (future == null) return
-        unregister()
-        register()
+        reschedule()
+    }
+
+    private fun reschedule() {
+        future?.cancel(false)
+        future = null
+        schedule()
+    }
+
+    private fun schedule() {
+        future = try {
+            defaultExecutor.scheduleAtFixedRate(
+                { trackMemoryUsage() },
+                0,
+                if (isInForeground) configProvider.memoryUsageInterval else BACKGROUND_MEMORY_USAGE_INTERVAL_SECONDS,
+                TimeUnit.SECONDS,
+            )
+        } catch (e: RejectedExecutionException) {
+            logger.log(LogLevel.Debug, "Failed to start MemoryUsageCollector", e)
+            null
+        }
     }
 
     private fun trackMemoryUsage() {
+        if (!isInForeground && !signalProcessor.shouldTrackMemoryUsage()) return
         val interval = getInterval()
         previousMemoryUsageReadTimeMs = timeProvider.elapsedRealtime
         val maxHeapSize = sanitizeNegativeValue(memoryReader.maxHeapSize())
         val totalHeapSize = sanitizeNegativeValue(memoryReader.totalHeapSize())
         val freeHeapSize = sanitizeNegativeValue(memoryReader.freeHeapSize())
         val totalPss = sanitizeNegativeValue(memoryReader.totalPss())
-        val rss = sanitizeNegativeValue(memoryReader.rss() ?: 0)
+        val procStatus = memoryReader.readProcStatus()
+        val rss = sanitizeNegativeValue(procStatus.rss ?: 0)
         val nativeTotalHeapSize = sanitizeNegativeValue(memoryReader.nativeTotalHeapSize())
         val nativeFreeHeap = sanitizeNegativeValue(memoryReader.nativeFreeHeapSize())
 
@@ -83,13 +107,21 @@ internal class MemoryUsageCollector(
             native_total_heap = nativeTotalHeapSize,
             native_free_heap = nativeFreeHeap,
             interval = interval,
+            anon_rss = procStatus.anonRss?.let { sanitizeNegativeValue(it) },
+            swap = procStatus.swap?.let { sanitizeNegativeValue(it) },
+            app_importance = processImportance(),
         )
         signalProcessor.track(
             timestamp = timeProvider.now(),
             type = EventType.MEMORY_USAGE,
             data = data,
         )
-        previousMemoryUsage = data
+    }
+
+    private fun processImportance(): String = when (processInfo.getProcessImportance()) {
+        RunningAppProcessInfo.IMPORTANCE_FOREGROUND -> APP_IMPORTANCE_FOREGROUND
+        RunningAppProcessInfo.IMPORTANCE_FOREGROUND_SERVICE -> APP_IMPORTANCE_USER_SERVICE
+        else -> APP_IMPORTANCE_BACKGROUND
     }
 
     private fun getInterval(): Long {

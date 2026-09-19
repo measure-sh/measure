@@ -32,6 +32,9 @@ import java.util.concurrent.RejectedExecutionException
  * them to the server.
  */
 internal interface SignalProcessor {
+    /** Returns whether memory should be collected for the current session. */
+    fun shouldTrackMemoryUsage(): Boolean
+
     /**
      * Tracks an event with the given data, timestamp and type.
      *
@@ -141,6 +144,10 @@ internal class SignalProcessorImpl(
     private val configProvider: ConfigProvider,
     private val sampler: Sampler,
 ) : SignalProcessor {
+    override fun shouldTrackMemoryUsage(): Boolean {
+        if (configProvider.enableFullCollectionMode) return true
+        return sampler.shouldTrackMemoryUsageForSession(sessionManager.getSessionId())
+    }
 
     override fun <T> trackUserTriggered(
         data: T,
@@ -487,6 +494,10 @@ internal class SignalProcessorImpl(
         isSampled: Boolean,
     ): Boolean = when {
         configProvider.enableFullCollectionMode -> true
+        eventType == EventType.MEMORY_USAGE -> {
+            sampler.shouldTrackMemoryUsageForSession(sessionId)
+        }
+
         eventType == EventType.HTTP -> {
             sampler.shouldSampleHttpEvent()
         }

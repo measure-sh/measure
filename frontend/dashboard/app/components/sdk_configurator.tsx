@@ -65,6 +65,7 @@ export default function SdkConfigurator({
     http: "idle",
     masking: "idle",
     logs: "idle",
+    memory: "idle",
   });
 
   // TanStack Query mutation
@@ -82,6 +83,7 @@ export default function SdkConfigurator({
   const [httpConfirmOpen, setHttpConfirmOpen] = useState(false);
   const [maskingConfirmOpen, setMaskingConfirmOpen] = useState(false);
   const [logsConfirmOpen, setLogsConfirmOpen] = useState(false);
+  const [memoryConfirmOpen, setMemoryConfirmOpen] = useState(false);
 
   // Sync initialConfig prop into local state when it changes.
   const [prevInitialConfig, setPrevInitialConfig] = useState(initialConfig);
@@ -169,6 +171,13 @@ export default function SdkConfigurator({
         originalSdkConfig.log_autocollect_enabled ||
       JSON.stringify(sdkConfig.log_ignore_patterns) !==
         JSON.stringify(originalSdkConfig.log_ignore_patterns));
+  const memoryChanged =
+    !!sdkConfig &&
+    !!originalSdkConfig &&
+    (sdkConfig.memory_usage_interval !==
+      originalSdkConfig.memory_usage_interval ||
+      sdkConfig.memory_usage_session_sampling_rate !==
+        originalSdkConfig.memory_usage_session_sampling_rate);
 
   if (!sdkConfig || !originalSdkConfig) {
     return null;
@@ -282,6 +291,13 @@ export default function SdkConfigurator({
       log_ignore_patterns: sdkConfig.log_ignore_patterns.filter(
         (pattern) => pattern.trim() !== "",
       ),
+    });
+  };
+  const handleSaveMemory = () => {
+    saveSection("memory", {
+      memory_usage_interval: sdkConfig.memory_usage_interval,
+      memory_usage_session_sampling_rate:
+        sdkConfig.memory_usage_session_sampling_rate,
     });
   };
 
@@ -633,6 +649,44 @@ export default function SdkConfigurator({
           </li>
         </ul>
         <p className="mt-4">These changes will apply to all new sessions.</p>
+      </div>
+    );
+  };
+
+  const getMemoryConfirmBody = () => {
+    return (
+      <div className="font-body">
+        <p>
+          Are you sure you want to update{" "}
+          <span className="font-display font-bold">Memory settings</span> for
+          app <span className="font-display font-bold">{appName}</span>?
+        </p>
+        <p className="mt-4">The following changes will be applied:</p>
+        <ul className="mt-2 space-y-1 list-disc list-inside">
+          <li>
+            Collection interval:{" "}
+            <span className="font-display font-bold">
+              {originalSdkConfig.memory_usage_interval} seconds
+            </span>{" "}
+            →{" "}
+            <span className="font-display font-bold">
+              {sdkConfig.memory_usage_interval} seconds
+            </span>
+          </li>
+          <li>
+            Session sampling rate:{" "}
+            <span className="font-display font-bold">
+              {originalSdkConfig.memory_usage_session_sampling_rate}%
+            </span>{" "}
+            →{" "}
+            <span className="font-display font-bold">
+              {sdkConfig.memory_usage_session_sampling_rate}%
+            </span>
+          </li>
+        </ul>
+        <p className="mt-4">
+          These changes will apply to new memory usage sessions.
+        </p>
       </div>
     );
   };
@@ -1457,6 +1511,68 @@ export default function SdkConfigurator({
             </AccordionContent>
           </AccordionItem>
 
+          {/* Memory Accordion */}
+          <AccordionItem value="memory" className="mt-2">
+            <AccordionTrigger className="font-body text-base">
+              Memory
+            </AccordionTrigger>
+            <AccordionContent className={accordionContentStyle}>
+              <div className="mt-2 space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-body text-sm">
+                    Collect memory usage every
+                  </span>
+                  <SdkConfigNumericInput
+                    testId="memory-usage-interval-input"
+                    value={sdkConfig.memory_usage_interval}
+                    minValue={1}
+                    maxValue={3600}
+                    step={1}
+                    type="integer"
+                    onChange={(value) =>
+                      updateSdkConfig({ memory_usage_interval: value })
+                    }
+                    disabled={!currentUserCanChangeAppSettings}
+                  />
+                  <span className="font-body text-sm">seconds</span>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-body text-sm">
+                    Collect memory usage for
+                  </span>
+                  <SdkConfigNumericInput
+                    testId="memory-usage-session-sampling-rate-input"
+                    value={sdkConfig.memory_usage_session_sampling_rate}
+                    minValue={0}
+                    maxValue={100}
+                    step={0.01}
+                    type="float"
+                    onChange={(value) =>
+                      updateSdkConfig({
+                        memory_usage_session_sampling_rate: value,
+                      })
+                    }
+                    disabled={!currentUserCanChangeAppSettings}
+                  />
+                  <span className="font-body text-sm">% of sessions</span>
+                </div>
+                <div className="flex justify-end mt-2">
+                  <Button
+                    data-testid="memory-save-button"
+                    variant="outline"
+                    disabled={
+                      !currentUserCanChangeAppSettings || !memoryChanged
+                    }
+                    loading={sectionStatuses.memory === "saving"}
+                    onClick={() => setMemoryConfirmOpen(true)}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
           {/* Logs Accordion */}
           <AccordionItem value="logs" className="mt-2">
             <AccordionTrigger className="font-body text-base">
@@ -1626,6 +1742,18 @@ export default function SdkConfigurator({
           handleSaveJourney();
         }}
         onCancelAction={() => setJourneyConfirmOpen(false)}
+      />
+
+      <DangerConfirmationDialog
+        body={getMemoryConfirmBody()}
+        open={memoryConfirmOpen}
+        affirmativeText="Yes, I'm sure"
+        cancelText="Cancel"
+        onAffirmativeAction={() => {
+          setMemoryConfirmOpen(false);
+          handleSaveMemory();
+        }}
+        onCancelAction={() => setMemoryConfirmOpen(false)}
       />
 
       <DangerConfirmationDialog
