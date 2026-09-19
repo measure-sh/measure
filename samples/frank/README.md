@@ -106,24 +106,6 @@ open the **workspace** (`ios/FrankensteinApp.xcworkspace`), not the
 
 The Gradle build handles Flutter and KMP module integration automatically.
 
-#### Memory demos
-
-Open **Native Android → Memory** for the native allocation control, Java OOM,
-stack overflow, held Java arrays, slow memory leak, and background memory work.
-
-**Hold 100 MB Native** retains a native `malloc` allocation and writes
-to every page so it contributes to anonymous RSS. Allocation runs off the UI
-thread and is independent of the Java heap limit. The toast total is the
-amount retained by this demo, not the process's total memory usage. Allocations
-survive navigation; **Release Native Memory** frees them. MB uses 1024 × 1024 bytes.
-
-To exercise the high-memory sessions list, add native memory and leave it held
-for at least one memory sampling interval. The list uses peak anonymous RSS +
-swap: any recorded sample reaching 75% of the device-RAM-tier target qualifies.
-The OS can kill the process before it reaches that threshold. **Hold 50 MB Java** instead
-exercises the Java heap; its companion release action drops the retained arrays
-for garbage collection.
-
 ### iOS
 
 Open `ios/FrankensteinApp.xcworkspace` in Xcode and build the `FrankensteinApp` scheme.

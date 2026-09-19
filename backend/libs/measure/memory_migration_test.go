@@ -10,7 +10,7 @@ import (
 )
 
 func TestMemorySessionMigrationRollbackPreservesExistingFields(t *testing.T) {
-	migration, err := os.ReadFile("../../../self-host/clickhouse/20260914130001_alter_sessions_mv.sql")
+	migration, err := os.ReadFile("../../../self-host/clickhouse/20260919040525_alter_sessions_mv.sql")
 	if err != nil {
 		t.Fatal(err)
 	}
