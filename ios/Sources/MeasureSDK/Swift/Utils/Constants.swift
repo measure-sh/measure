@@ -72,6 +72,7 @@ struct CrashDataKeys {
     static let deviceWidthPx = "device_width_px"
     static let deviceHeightPx = "device_height_px"
     static let deviceDensity = "device_density"
+    static let deviceTotalMemory = "device_total_memory"
     static let deviceLocale = "device_locale"
     static let osName = "os_name"
     static let osVersion = "os_version"

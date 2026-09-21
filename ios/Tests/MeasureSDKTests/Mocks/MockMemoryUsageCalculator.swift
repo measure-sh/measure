@@ -10,8 +10,9 @@ import Foundation
 
 final class MockMemoryUsageCalculator: MemoryUsageCalculator {
     var mockMemoryUsage: UnsignedNumber?
+    var mockAvailableMemory: UnsignedNumber?
 
-    func getCurrentMemoryUsage() -> UnsignedNumber? {
-        return mockMemoryUsage
+    func getCurrentMemoryUsage() -> MemoryUsageSnapshot? {
+        return mockMemoryUsage.map { MemoryUsageSnapshot(usedMemory: $0, availableMemory: mockAvailableMemory) }
     }
 }

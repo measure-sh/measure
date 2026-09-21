@@ -64,6 +64,7 @@ final class MockConfigProvider: ConfigProvider {
     var logIgnorePatterns: [String]
     var cpuUsageInterval: Number
     var memoryUsageInterval: Number
+    var memoryUsageSessionSamplingRate: Float = DefaultConfig.memoryUsageSessionSamplingRate
     var errorFatalTakeScreenshot: Bool
     var errorFatalReplayEnabled: Bool
     var errorUnhandledReplayEnabled: Bool

@@ -11,6 +11,7 @@ import UIKit
 
 /// Generates the device attributes such as device name, model, manufacturer, and more. These attributes are expected to be constant during the session and are computed once.
 final class DeviceAttributeProcessor: BaseComputeOnceAttributeProcessor {
+    private let sysCtl: SysCtl
     private var isComputed = false
     private var deviceName: String?
     private var deviceModel: String?
@@ -22,10 +23,15 @@ final class DeviceAttributeProcessor: BaseComputeOnceAttributeProcessor {
     private var deviceWidthPx: Number?
     private var deviceHeightPx: Number?
     private var deviceDensity: Number?
+    private var deviceTotalMemory: UnsignedNumber?
     private var deviceLocale: String?
     private var osName: String?
     private var osVersion: String?
     private var deviceCpuArch: String?
+
+    init(sysCtl: SysCtl) {
+        self.sysCtl = sysCtl
+    }
 
     override func updateAttribute(_ attribute: Attributes) {
         attribute.deviceName = deviceName
@@ -38,6 +44,7 @@ final class DeviceAttributeProcessor: BaseComputeOnceAttributeProcessor {
         attribute.deviceWidthPx = deviceWidthPx
         attribute.deviceHeightPx = deviceHeightPx
         attribute.deviceDensity = deviceDensity
+        attribute.deviceTotalMemory = deviceTotalMemory
         attribute.deviceLocale = deviceLocale
         attribute.osName = osName
         attribute.osVersion = osVersion
@@ -59,6 +66,7 @@ final class DeviceAttributeProcessor: BaseComputeOnceAttributeProcessor {
         deviceWidthPx = Number(UIScreen.main.bounds.width * UIScreen.main.scale)
         deviceHeightPx = Number(UIScreen.main.bounds.height * UIScreen.main.scale)
         deviceDensity = Number(UIScreen.main.scale)
+        deviceTotalMemory = sysCtl.getMaximumAvailableRam()
         deviceLocale = Locale.current.identifier
         osName = UIDevice.current.systemName.lowercased()
         osVersion = UIDevice.current.systemVersion

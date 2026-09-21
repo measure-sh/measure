@@ -149,7 +149,7 @@ final class ConfigLoaderTests: XCTestCase {
     func testLoadConfig_success_updatesFileAndPrefs() throws {
         setupCacheExpired()
 
-        let config = BaseDynamicConfig()
+        let config = BaseDynamicConfig(memoryUsageSessionSamplingRate: 37.5)
         let eTag = "new-etag"
         let cache: Number = 3600
 
@@ -298,6 +298,7 @@ final class ConfigLoaderTests: XCTestCase {
         XCTAssertEqual(actual.screenshotMaskLevel, expected.screenshotMaskLevel, file: file, line: line)
         XCTAssertEqual(actual.cpuUsageInterval, expected.cpuUsageInterval, file: file, line: line)
         XCTAssertEqual(actual.memoryUsageInterval, expected.memoryUsageInterval, file: file, line: line)
+        XCTAssertEqual(actual.memoryUsageSessionSamplingRate, expected.memoryUsageSessionSamplingRate, file: file, line: line)
         XCTAssertEqual(actual.errorFatalTakeScreenshot, expected.errorFatalTakeScreenshot, file: file, line: line)
         XCTAssertEqual(actual.anrTakeScreenshot, expected.anrTakeScreenshot, file: file, line: line)
         XCTAssertEqual(actual.launchSamplingRate, expected.launchSamplingRate, file: file, line: line)
