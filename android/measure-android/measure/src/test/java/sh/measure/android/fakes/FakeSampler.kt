@@ -9,6 +9,7 @@ internal class FakeSampler : Sampler {
     var isAnrTimelineSampled: Boolean = true
     var isCrashTimelineSampled: Boolean = true
     var trackJourneyForSession: Boolean = true
+    var trackMemoryUsageForSession: Boolean = true
     var isHttpEventSampled: Boolean = true
     var isProfileSampled: Boolean = true
     var sampledErrorSeverities: Set<ExceptionSeverity> =
@@ -17,6 +18,7 @@ internal class FakeSampler : Sampler {
     override fun shouldSampleTrace(traceId: String): Boolean = isTraceSampled
     override fun shouldSampleLaunchEvent(): Boolean = isLaunchEventSampled
     override fun shouldTrackJourneyForSession(sessionId: String): Boolean = trackJourneyForSession
+    override fun shouldTrackMemoryUsageForSession(sessionId: String): Boolean = trackMemoryUsageForSession
     override fun shouldSampleHttpEvent(): Boolean = isHttpEventSampled
     override fun shouldSampleProfile(): Boolean = isProfileSampled
     override fun shouldSampleError(severity: ExceptionSeverity): Boolean = severity in sampledErrorSeverities

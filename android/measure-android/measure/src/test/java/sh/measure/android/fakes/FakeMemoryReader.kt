@@ -1,6 +1,7 @@
 package sh.measure.android.fakes
 
 import sh.measure.android.performance.MemoryReader
+import sh.measure.android.performance.ProcStatusMemory
 
 internal class FakeMemoryReader(
     private val maxHeapSize: Long = 500,
@@ -8,6 +9,8 @@ internal class FakeMemoryReader(
     private val freeHeapSize: Long = 300,
     private val totalPss: Int = 400,
     private val rss: Long = 1000,
+    private val anonRss: Long? = 800,
+    private val swap: Long? = 100,
     private val nativeTotalHeapSize: Long = 600,
     private val nativeFreeHeapSize: Long = 250,
 ) : MemoryReader {
@@ -19,7 +22,13 @@ internal class FakeMemoryReader(
 
     override fun totalPss(): Int = totalPss
 
-    override fun rss(): Long = rss
+    var procStatusReadCount = 0
+        private set
+
+    override fun readProcStatus(): ProcStatusMemory {
+        procStatusReadCount++
+        return ProcStatusMemory(rss, anonRss, swap)
+    }
 
     override fun nativeTotalHeapSize(): Long = nativeTotalHeapSize
 

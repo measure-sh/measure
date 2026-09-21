@@ -132,6 +132,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.sessionManager.onAppForeground()
         if (isStarted) {
             resumeCollectorsOnForeground()
+            measure.memoryUsageCollector.onAppForeground()
             measure.exporter.flush()
         }
     }
@@ -140,6 +141,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.sessionManager.onAppBackground()
         if (isStarted) {
             measure.periodicSignalStoreScheduler.onAppBackground()
+            measure.memoryUsageCollector.onAppBackground()
             pauseCollectorsOnBackground()
             measure.exporter.export()
             measure.dataCleanupService.cleanup()
@@ -437,12 +439,10 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
 
     private fun pauseCollectorsOnBackground() {
         measure.cpuUsageCollector.unregister()
-        measure.memoryUsageCollector.unregister()
     }
 
     private fun resumeCollectorsOnForeground() {
         measure.cpuUsageCollector.register()
-        measure.memoryUsageCollector.register()
     }
 
     private fun enableCrashTracking() {

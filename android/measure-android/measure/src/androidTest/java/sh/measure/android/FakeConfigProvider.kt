@@ -51,6 +51,8 @@ internal class FakeConfigProvider : ConfigProvider {
     override val bugReportTimelineDurationSeconds: Int = 300
     override val cpuUsageInterval: Long = 3000
     override val memoryUsageInterval: Long = 3000
+    override val memoryUsageBackgroundInterval: Long = 10000
+    override val memoryUsageSessionSamplingRate: Float = 100f
     override val errorFatalScreenshotEnabled: Boolean = true
     override val errorFatalReplayEnabled: Boolean = true
     override val errorUnhandledReplayEnabled: Boolean = false

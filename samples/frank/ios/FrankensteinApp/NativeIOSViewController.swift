@@ -37,6 +37,7 @@ private enum DemoCategory: String, CaseIterable {
     case crashes = "Crashes"
     case bugReports = "Bug Reports"
     case http = "HTTP"
+    case memory = "Memory"
     case misc = "Misc"
 }
 
@@ -49,6 +50,8 @@ private enum DemoAction: String {
     case launchBugReport, trackBugReport, shakeToReport
     // HTTP
     case httpGet200, httpPost201, httpPut400, httpGetError, httpGetNonJson
+    // Memory
+    case holdMemory, releaseMemory, slowMemoryLeak, exhaustMemory
     // Misc
     case customEvent, openLogs, trackError, createSpan, setUserId, clearUserId
 }
@@ -59,7 +62,6 @@ private struct DemoItem: Identifiable {
     let description: String
     let category: DemoCategory
     let action: DemoAction
-    var isToggle: Bool { action == .shakeToReport }
 }
 
 private let demos: [DemoItem] = [
@@ -88,6 +90,11 @@ private let demos: [DemoItem] = [
     DemoItem(id: "http-put-400", title: "PUT — 400 Client Error", description: "Client error response", category: .http, action: .httpPut400),
     DemoItem(id: "http-get-error", title: "GET — Network Error", description: "Request timeout error", category: .http, action: .httpGetError),
     DemoItem(id: "http-get-nonjson", title: "GET — Non-JSON Response", description: "HTML content type response", category: .http, action: .httpGetNonJson),
+    // Memory
+    DemoItem(id: "hold-memory", title: "Hold 100 MB", description: "Allocates and touches 100 MB per tap", category: .memory, action: .holdMemory),
+    DemoItem(id: "release-memory", title: "Release Held Memory", description: "Frees every held allocation", category: .memory, action: .releaseMemory),
+    DemoItem(id: "slow-memory-leak", title: "Slow Memory Leak", description: "Holds 10 MB more every 2 seconds", category: .memory, action: .slowMemoryLeak),
+    DemoItem(id: "exhaust-memory", title: "Exhaust Memory", description: "Allocates until the system terminates the app", category: .memory, action: .exhaustMemory),
     // Misc
     DemoItem(id: "custom-event", title: "Custom Event", description: "Tracks an event with attributes", category: .misc, action: .customEvent),
     DemoItem(id: "logs", title: "Track Logs", description: "Enter a body, pick a severity, and send", category: .misc, action: .openLogs),
@@ -96,6 +103,33 @@ private let demos: [DemoItem] = [
     DemoItem(id: "set-user", title: "Set User ID", description: "Sets a dummy user ID on the SDK", category: .misc, action: .setUserId),
     DemoItem(id: "clear-user", title: "Clear User ID", description: "Clears the current user ID", category: .misc, action: .clearUserId),
 ]
+
+// MARK: - Held memory
+
+private enum HeldMemory {
+    private static var blocks: [(pointer: UnsafeMutableRawPointer, bytes: Int)] = []
+
+    static var heldMb: Int {
+        blocks.reduce(0) { $0 + $1.bytes } / (1024 * 1024)
+    }
+
+    @discardableResult
+    static func hold(megabytes: Int) -> Bool {
+        let bytes = megabytes * 1024 * 1024
+        guard let pointer = malloc(bytes) else { return false }
+        // Writing to every page keeps the allocation resident, so it lands in memory readings.
+        memset(pointer, 1, bytes)
+        blocks.append((pointer, bytes))
+        return true
+    }
+
+    static func releaseAll() {
+        for block in blocks {
+            free(block.pointer)
+        }
+        blocks.removeAll()
+    }
+}
 
 // MARK: - Crash triggers
 
@@ -160,6 +194,9 @@ private struct NativeIOSScreen: View {
     @Environment(\.colorScheme) private var colorScheme
     @ObservedObject var holder: ViewControllerHolder
     @State private var shakeEnabled = false
+    @State private var leakEnabled = false
+    @State private var leakTimer: Timer?
+    @State private var heldMb = 0
 
     private var colors: NativeScreenColors {
         colorScheme == .dark ? .dark : .light
@@ -178,9 +215,12 @@ private struct NativeIOSScreen: View {
                 ForEach(grouped, id: \.0) { category, items in
                     sectionHeader(category.rawValue)
                     ForEach(items) { item in
-                        if item.isToggle {
-                            toggleCard(item)
-                        } else {
+                        switch item.action {
+                        case .shakeToReport:
+                            toggleCard(item, isOn: $shakeEnabled)
+                        case .slowMemoryLeak:
+                            toggleCard(item, isOn: $leakEnabled)
+                        default:
                             demoCard(item)
                         }
                     }
@@ -189,11 +229,34 @@ private struct NativeIOSScreen: View {
             .padding(16)
         }
         .background(colors.background.ignoresSafeArea())
-.onDisappear {
+        .onChange(of: shakeEnabled) { enabled in
+            if enabled {
+                Measure.onShake {
+                    Measure.launchBugReport(takeScreenshot: true)
+                }
+            } else {
+                Measure.onShake(nil)
+            }
+        }
+        .onChange(of: leakEnabled) { enabled in
+            if enabled {
+                leakTimer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { _ in
+                    HeldMemory.hold(megabytes: 10)
+                    heldMb = HeldMemory.heldMb
+                }
+            } else {
+                leakTimer?.invalidate()
+                leakTimer = nil
+            }
+        }
+        .onDisappear {
             if shakeEnabled {
                 Measure.onShake(nil)
                 shakeEnabled = false
             }
+            leakTimer?.invalidate()
+            leakTimer = nil
+            leakEnabled = false
         }
     }
 
@@ -215,7 +278,7 @@ private struct NativeIOSScreen: View {
                 Text(item.title)
                     .font(.body.weight(.medium))
                     .foregroundStyle(colors.onSurface)
-                Text(item.description)
+                Text(description(for: item))
                     .font(.caption)
                     .foregroundStyle(colors.onSurfaceVariant)
             }
@@ -228,34 +291,34 @@ private struct NativeIOSScreen: View {
         }
     }
 
-    private func toggleCard(_ item: DemoItem) -> some View {
+    private func toggleCard(_ item: DemoItem, isOn: Binding<Bool>) -> some View {
         HStack {
             VStack(alignment: .leading, spacing: 2) {
                 Text(item.title)
                     .font(.body.weight(.medium))
                     .foregroundStyle(colors.onSurface)
-                Text(item.description)
+                Text(description(for: item))
                     .font(.caption)
                     .foregroundStyle(colors.onSurfaceVariant)
             }
             Spacer()
-            Toggle("", isOn: $shakeEnabled)
+            Toggle("", isOn: isOn)
                 .labelsHidden()
-                .onChange(of: shakeEnabled) { enabled in
-                    if enabled {
-                        Measure.onShake {
-                            Measure.launchBugReport(takeScreenshot: true)
-                        }
-                    } else {
-                        Measure.onShake(nil)
-                    }
-                }
         }
         .padding(16)
         .background(
             RoundedRectangle(cornerRadius: 12)
                 .fill(colors.surface.opacity(0.6))
         )
+    }
+
+    private func description(for item: DemoItem) -> String {
+        switch item.action {
+        case .holdMemory, .releaseMemory, .slowMemoryLeak:
+            return heldMb == 0 ? item.description : "\(item.description) (\(heldMb) MB held)"
+        default:
+            return item.description
+        }
     }
 
     // MARK: Actions
@@ -343,6 +406,19 @@ private struct NativeIOSScreen: View {
                 responseHeaders: ["Content-Type": "text/html"],
                 responseBody: "<html>ignored</html>"
             )
+
+        // Memory
+        case .holdMemory:
+            HeldMemory.hold(megabytes: 100)
+            heldMb = HeldMemory.heldMb
+        case .releaseMemory:
+            HeldMemory.releaseAll()
+            heldMb = HeldMemory.heldMb
+        case .exhaustMemory:
+            while HeldMemory.hold(megabytes: 100) {}
+            heldMb = HeldMemory.heldMb
+        case .slowMemoryLeak:
+            break // handled by toggle
 
         // Misc
         case .customEvent:

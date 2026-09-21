@@ -487,6 +487,10 @@ internal class SignalProcessorImpl(
         isSampled: Boolean,
     ): Boolean = when {
         configProvider.enableFullCollectionMode -> true
+        eventType == EventType.MEMORY_USAGE -> {
+            sampler.shouldTrackMemoryUsageForSession(sessionId)
+        }
+
         eventType == EventType.HTTP -> {
             sampler.shouldSampleHttpEvent()
         }

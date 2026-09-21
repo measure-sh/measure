@@ -12,6 +12,7 @@ import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.DeviceAttributeProcessor
 import sh.measure.android.attributes.InstallationIdAttributeProcessor
 import sh.measure.android.attributes.NetworkStateAttributeProcessor
+import sh.measure.android.attributes.PatchAttributeProcessor
 import sh.measure.android.attributes.PowerStateAttributeProcessor
 import sh.measure.android.attributes.UserAttributeProcessor
 import sh.measure.android.bugreport.AccelerometerShakeDetector
@@ -94,6 +95,8 @@ import sh.measure.android.utils.LowMemoryCheck
 import sh.measure.android.utils.ManifestReaderImpl
 import sh.measure.android.utils.OsSysConfProvider
 import sh.measure.android.utils.OsSysConfProviderImpl
+import sh.measure.android.utils.OsVersionProvider
+import sh.measure.android.utils.OsVersionProviderImpl
 import sh.measure.android.utils.PackageInfoProvider
 import sh.measure.android.utils.PackageInfoProviderImpl
 import sh.measure.android.utils.ProcProvider
@@ -162,16 +165,16 @@ internal class TestMeasureInitializer(
     private val debugProvider: DebugProvider = DefaultDebugProvider(),
     private val runtimeProvider: RuntimeProvider = DefaultRuntimeProvider(),
     private val osSysConfProvider: OsSysConfProvider = OsSysConfProviderImpl(),
+    private val osVersionProvider: OsVersionProvider = OsVersionProviderImpl(),
+    private val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(application),
     private val memoryReader: MemoryReader = DefaultMemoryReader(
         logger = logger,
-        processInfo = processInfoProvider,
         procProvider = procProvider,
         debugProvider = debugProvider,
         runtimeProvider = runtimeProvider,
-        osSysConfProvider = osSysConfProvider,
+        osVersionProvider = osVersionProvider,
     ),
     private val localeProvider: LocaleProvider = LocaleProviderImpl(),
-    private val systemServiceProvider: SystemServiceProvider = SystemServiceProviderImpl(application),
     private val initialNetworkStateProvider: InitialNetworkStateProvider = InitialNetworkStateProviderImpl(
         context = application,
         logger = logger,
@@ -185,10 +188,12 @@ internal class TestMeasureInitializer(
         prefsStorage,
         executorServiceRegistry.ioExecutor(),
     ),
+    override val patchAttributeProcessor: PatchAttributeProcessor = PatchAttributeProcessor(),
     private val deviceAttributeProcessor: DeviceAttributeProcessor = DeviceAttributeProcessor(
         context = application,
         localeProvider = localeProvider,
         osSysConfProvider = osSysConfProvider,
+        systemServiceProvider = systemServiceProvider,
     ),
     private val appAttributeProcessor: AppAttributeProcessor = AppAttributeProcessor(
         context = application,
@@ -321,6 +326,8 @@ internal class TestMeasureInitializer(
         configProvider = configProvider,
         memoryReader = memoryReader,
         processInfo = processInfoProvider,
+        sessionManager = sessionManager,
+        sampler = sampler,
     ),
     override val componentCallbacksCollector: ComponentCallbacksCollector = ComponentCallbacksCollector(
         application = application,

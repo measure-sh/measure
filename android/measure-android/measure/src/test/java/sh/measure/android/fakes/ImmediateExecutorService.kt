@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit
  * A [MeasureExecutorService] which executes all tasks immediately for tests.
  */
 internal class ImmediateExecutorService(private val resolvableFuture: ResolvableFuture<Any?>) : MeasureExecutorService {
+    var lastScheduledDelayMillis: Long? = null
 
     override fun execute(command: Runnable) {
         command.run()
@@ -48,6 +49,7 @@ internal class ImmediateExecutorService(private val resolvableFuture: Resolvable
         delayMillis: Long,
         delayUnit: TimeUnit,
     ): Future<*> {
+        lastScheduledDelayMillis = delayUnit.toMillis(delayMillis)
         DirectExecutor.INSTANCE.execute(runnable)
         return resolvableFuture
     }
