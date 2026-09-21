@@ -3,9 +3,28 @@ import "@testing-library/jest-dom";
 import { render } from "@testing-library/react";
 
 import {
+  embedSiblingPoints,
   PlotTooltipShell,
   PlotTooltipSwatch,
 } from "@/app/components/plot_tooltip";
+
+describe("embedSiblingPoints", () => {
+  it("preserves chart gaps while omitting missing values from tooltip rows", () => {
+    const plot = embedSiblingPoints(
+      [
+        { id: "missing", data: [{ x: "2026-09-17", y: null }] },
+        { id: "zero", data: [{ x: "2026-09-17", y: 0 }] },
+        { id: "measured", data: [{ x: "2026-09-17", y: 1024 }] },
+      ],
+      () => "red",
+    );
+    expect(plot[0].data[0].y).toBeNull();
+    expect(plot[2].data[0].siblings).toEqual([
+      { id: "zero", y: 0, color: "red" },
+      { id: "measured", y: 1024, color: "red" },
+    ]);
+  });
+});
 
 describe("PlotTooltipShell", () => {
   it("renders children inside the shared tooltip panel", () => {

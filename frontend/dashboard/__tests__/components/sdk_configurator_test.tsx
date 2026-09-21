@@ -125,6 +125,9 @@ const mockInitialConfig = {
   http_blocked_headers: [],
   screenshot_mask_level: "sensitive_fields_only",
   profile_sampling_rate: 100,
+  memory_usage_interval: 5,
+  memory_usage_background_interval: 10,
+  memory_usage_session_sampling_rate: 100,
   log_autocollect_enabled: true,
   log_min_severity: 12,
   log_ignore_patterns: [],
@@ -177,6 +180,7 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByText("User Journeys")).toBeInTheDocument();
     expect(screen.getByText("HTTP")).toBeInTheDocument();
     expect(screen.getByText("Screenshot Masking")).toBeInTheDocument();
+    expect(screen.getByText("Memory")).toBeInTheDocument();
     expect(screen.getByText("Logs")).toBeInTheDocument();
   });
 
@@ -223,6 +227,40 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByText("ANRs")).toBeInTheDocument();
   });
 
+  it.each([
+    { platform: "iOS", osNames: ["ios"], showBackgroundInterval: false },
+    { platform: "Android", osNames: ["android"], showBackgroundInterval: true },
+    { platform: "unknown OS", osNames: null, showBackgroundInterval: true },
+  ])(
+    "shows the supported memory settings for $platform",
+    ({ osNames, showBackgroundInterval }) => {
+      render(
+        <SdkConfigurator
+          appId="test-app-id"
+          appName="Test App"
+          initialConfig={mockInitialConfig}
+          currentUserCanChangeAppSettings={true}
+          osNames={osNames}
+        />,
+      );
+
+      expect(
+        screen.getByTestId("memory-usage-interval-input"),
+      ).toBeInTheDocument();
+      expect(
+        screen.getByTestId("memory-usage-session-sampling-rate-input"),
+      ).toBeInTheDocument();
+      const backgroundInterval = screen.queryByTestId(
+        "memory-usage-background-interval-input",
+      );
+      if (showBackgroundInterval) {
+        expect(backgroundInterval).toBeInTheDocument();
+      } else {
+        expect(backgroundInterval).not.toBeInTheDocument();
+      }
+    },
+  );
+
   it("initializes with correct config values and all save buttons disabled", () => {
     render(
       <SdkConfigurator
@@ -241,6 +279,7 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByTestId("traces-save-button")).toBeDisabled();
     expect(screen.getByTestId("launch-save-button")).toBeDisabled();
     expect(screen.getByTestId("journey-save-button")).toBeDisabled();
+    expect(screen.getByTestId("memory-save-button")).toBeDisabled();
     expect(screen.getByTestId("http-save-button")).toBeDisabled();
     expect(screen.getByTestId("masking-save-button")).toBeDisabled();
   });
@@ -279,6 +318,10 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByTestId("trace-sampling-rate-input")).toBeDisabled();
     expect(screen.getByTestId("launch-sampling-rate-input")).toBeDisabled();
     expect(screen.getByTestId("journey-sampling-rate-input")).toBeDisabled();
+    expect(screen.getByTestId("memory-usage-interval-input")).toBeDisabled();
+    expect(
+      screen.getByTestId("memory-usage-session-sampling-rate-input"),
+    ).toBeDisabled();
 
     // Check that textareas are disabled
     expect(screen.getByTestId("http-sampling-rate-input")).toBeDisabled();
@@ -1446,6 +1489,75 @@ describe("SdkConfigurator Component", () => {
       );
     });
   });
+
+  it.each([
+    { platform: "Android", osNames: ["android"], backgroundInterval: 30 },
+    { platform: "iOS", osNames: ["ios"], backgroundInterval: 10 },
+  ])(
+    "saves memory config on confirmation for $platform",
+    async ({ osNames, backgroundInterval }) => {
+      simulateMutateSuccess();
+
+      render(
+        <SdkConfigurator
+          appId="test-app-id"
+          appName="Test App"
+          initialConfig={mockInitialConfig}
+          currentUserCanChangeAppSettings={true}
+          osNames={osNames}
+        />,
+      );
+
+      await act(async () => {
+        fireEvent.change(screen.getByTestId("memory-usage-interval-input"), {
+          target: { value: "10" },
+        });
+        fireEvent.blur(screen.getByTestId("memory-usage-interval-input"));
+        if (osNames.includes("android")) {
+          fireEvent.change(
+            screen.getByTestId("memory-usage-background-interval-input"),
+            { target: { value: "30" } },
+          );
+          fireEvent.blur(
+            screen.getByTestId("memory-usage-background-interval-input"),
+          );
+        }
+        fireEvent.change(
+          screen.getByTestId("memory-usage-session-sampling-rate-input"),
+          { target: { value: "50" } },
+        );
+        fireEvent.blur(
+          screen.getByTestId("memory-usage-session-sampling-rate-input"),
+        );
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("memory-save-button"));
+      });
+
+      expect(
+        screen.getByTestId("danger-confirmation-dialog"),
+      ).toBeInTheDocument();
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("dialog-affirmative-button"));
+      });
+
+      await waitFor(() => {
+        expect(mockMutate).toHaveBeenCalledWith(
+          {
+            appId: "test-app-id",
+            config: {
+              memory_usage_interval: 10,
+              memory_usage_background_interval: backgroundInterval,
+              memory_usage_session_sampling_rate: 50,
+            },
+          },
+          expect.any(Object),
+        );
+      });
+    },
+  );
 
   it("saves HTTP config on confirmation", async () => {
     simulateMutateSuccess();

@@ -1,5 +1,6 @@
 import {
   formatBytesSI,
+  formatMemoryKilobytes,
   kilobytesToMegabytes,
   numberToKMB,
   toKiloBytes,
@@ -8,6 +9,19 @@ import {
 import { describe, expect, it } from "@jest/globals";
 
 describe("number_utils", () => {
+  describe("formatMemoryKilobytes", () => {
+    it.each([
+      { kilobytes: null, expected: "—" },
+      { kilobytes: 0, expected: "0 KB" },
+      { kilobytes: 512, expected: "512 KB" },
+      { kilobytes: 1024, expected: "1.0 MB" },
+      { kilobytes: 1536, expected: "1.5 MB" },
+      { kilobytes: 1048576, expected: "1.0 GB" },
+    ])("formats $kilobytes KB as $expected", ({ kilobytes, expected }) => {
+      expect(formatMemoryKilobytes(kilobytes)).toBe(expected);
+    });
+  });
+
   describe("kilobytesToMegabytes", () => {
     it("should convert kilobytes to megabytes", () => {
       expect(kilobytesToMegabytes(10485760)).toBe(10240);

@@ -17,7 +17,7 @@ import {
   expect,
   it,
 } from "@jest/globals";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { http, HttpResponse } from "msw";
 
 // --- External dependency mocks ---
@@ -106,6 +106,38 @@ function renderWithProviders(ui: React.ReactElement) {
 
 describe("Session Replay Details (MSW integration)", () => {
   describe("page load", () => {
+    it("displays dynamic memory from the session API in the replay tooltip", async () => {
+      server.use(
+        http.get("*/api/apps/:appId/sessions/:sessionId", () => {
+          const fixture = makeSessionReplayFixture();
+          return HttpResponse.json({
+            ...fixture,
+            // The UI must use the response field, not recalculate from raw values.
+            memory_usage: [
+              { ...fixture.memory_usage[0], dynamic_memory: 98304 },
+            ],
+            memory_usage_absolute: [],
+          });
+        }),
+      );
+      renderWithProviders(
+        <SessionDetail
+          params={promiseParams({
+            teamId: "test-team",
+            appId: "app-1",
+            sessionId: "sess-001",
+          })}
+        />,
+      );
+
+      const lane = await screen.findByRole("img", { name: "Memory usage" });
+      fireEvent(
+        lane,
+        new MouseEvent("pointermove", { bubbles: true, clientX: 0 }),
+      );
+      expect(screen.getByText("Dynamic Memory: 96.00 MB")).toBeTruthy();
+    });
+
     it("shows error state when session API returns 500", async () => {
       server.use(
         http.get("*/api/apps/:appId/sessions/:sessionId", () => {

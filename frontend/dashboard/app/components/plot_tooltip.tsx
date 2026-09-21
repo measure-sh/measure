@@ -39,9 +39,9 @@ export interface SiblingPoint {
 // Canvas line charts have no x-slice tooltip, only a nearest-point one, so
 // each datum carries the values of every series at its x position for the
 // tooltip to list the full breakdown. Series are matched by their x value;
-// a series with no datum at that x is absent from the list.
+// a series with no datum or a null value at that x is absent from the list.
 export function embedSiblingPoints<
-  D extends { x: string; y: number },
+  D extends { x: string; y: number | null },
   S extends { id: string; data: D[] },
 >(
   plot: S[],
@@ -51,6 +51,7 @@ export function embedSiblingPoints<
   plot.forEach((series, index) => {
     const color = colorFor(series.id, index);
     for (const d of series.data) {
+      if (d.y === null) continue;
       let list = byX.get(d.x);
       if (!list) {
         list = [];
