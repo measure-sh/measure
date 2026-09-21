@@ -76,17 +76,15 @@ func TestAppHealthValues(t *testing.T) {
 		return out
 	}
 
-	t.Run("version names come from the rollup, once each", func(t *testing.T) {
-		// Both versions appear in the same month, so the alphabetical
-		// tiebreak orders them.
-		if got := list(t, "version_name", ValueRequest{}); len(got) != 2 || got[0] != "1.1.0" || got[1] != "1.2.0" {
-			t.Errorf("want [1.1.0 1.2.0], got %v", got)
+	t.Run("version names come from the rollup, once each, newest first", func(t *testing.T) {
+		if got := list(t, "version_name", ValueRequest{}); len(got) != 2 || got[0] != "1.2.0" || got[1] != "1.1.0" {
+			t.Errorf("want [1.2.0 1.1.0], got %v", got)
 		}
 	})
 
-	t.Run("version codes are read from the version tuple", func(t *testing.T) {
-		if got := list(t, "version_code", ValueRequest{}); len(got) != 2 || got[0] != "110" || got[1] != "120" {
-			t.Errorf("want [110 120], got %v", got)
+	t.Run("version codes are read from the version tuple, newest first", func(t *testing.T) {
+		if got := list(t, "version_code", ValueRequest{}); len(got) != 2 || got[0] != "120" || got[1] != "110" {
+			t.Errorf("want [120 110], got %v", got)
 		}
 	})
 

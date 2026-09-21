@@ -86,9 +86,15 @@ func TestSessionValues(t *testing.T) {
 		return texts
 	}
 
-	t.Run("version names come from the rollup, once each", func(t *testing.T) {
-		if got := list(t, "version_name", ValueRequest{}); !slices.Equal(got, []string{"1.1.0", "1.2.0", "1.0.0"}) {
-			t.Errorf("want [1.1.0 1.2.0 1.0.0], got %v", got)
+	t.Run("version names come from the rollup, once each, newest first", func(t *testing.T) {
+		if got := list(t, "version_name", ValueRequest{}); !slices.Equal(got, []string{"1.2.0", "1.1.0", "1.0.0"}) {
+			t.Errorf("want [1.2.0 1.1.0 1.0.0], got %v", got)
+		}
+	})
+
+	t.Run("version codes come from the rollup, newest first", func(t *testing.T) {
+		if got := list(t, "version_code", ValueRequest{}); !slices.Equal(got, []string{"120", "110", "100"}) {
+			t.Errorf("want [120 110 100], got %v", got)
 		}
 	})
 
