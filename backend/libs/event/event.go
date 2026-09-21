@@ -614,20 +614,24 @@ type Http struct {
 }
 
 type MemoryUsage struct {
-	JavaMaxHeap     uint64 `json:"java_max_heap" binding:"required"`
-	JavaTotalHeap   uint64 `json:"java_total_heap" binding:"required"`
-	JavaFreeHeap    uint64 `json:"java_free_heap" binding:"required"`
-	TotalPSS        uint64 `json:"total_pss" binding:"required"`
-	RSS             uint64 `json:"rss"`
-	NativeTotalHeap uint64 `json:"native_total_heap" binding:"required"`
-	NativeFreeHeap  uint64 `json:"native_free_heap" binding:"required"`
-	Interval        uint64 `json:"interval" binding:"required"`
+	JavaMaxHeap     uint64  `json:"java_max_heap" binding:"required"`
+	JavaTotalHeap   uint64  `json:"java_total_heap" binding:"required"`
+	JavaFreeHeap    uint64  `json:"java_free_heap" binding:"required"`
+	TotalPSS        uint64  `json:"total_pss" binding:"required"`
+	RSS             uint64  `json:"rss"`
+	AnonRSS         *uint64 `json:"anon_rss,omitempty"`
+	Swap            *uint64 `json:"swap,omitempty"`
+	AppImportance   string  `json:"app_importance"`
+	NativeTotalHeap uint64  `json:"native_total_heap" binding:"required"`
+	NativeFreeHeap  uint64  `json:"native_free_heap" binding:"required"`
+	Interval        uint64  `json:"interval" binding:"required"`
 }
 
 type MemoryUsageAbs struct {
-	MaxMemory  uint64 `json:"max_memory" binding:"required"`
-	UsedMemory uint64 `json:"used_memory" binding:"required"`
-	Interval   uint64 `json:"interval" binding:"required"`
+	MaxMemory       uint64  `json:"max_memory" binding:"required"`
+	UsedMemory      uint64  `json:"used_memory" binding:"required"`
+	Interval        uint64  `json:"interval" binding:"required"`
+	AvailableMemory *uint64 `json:"available_memory,omitempty"` // Process headroom in KiB; nil is unknown, zero is exhausted.
 }
 
 type LowMemory struct {

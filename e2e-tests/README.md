@@ -14,6 +14,10 @@ Tests are organized by spec (e.g. `errors`, `bug_report`,
 `android` or `ios`, with a Playwright dashboard test (`playwright/specs/<spec>/`); 
 the runner derives both paths from the spec name. 
 
+If a Maestro flow fails, the runner skips that spec's Playwright tests because
+their event data may be incomplete, records the failure, and continues with the
+next spec.
+
 ## Setup
 
 One-time host setup: install tools, install Node deps, then write the config.

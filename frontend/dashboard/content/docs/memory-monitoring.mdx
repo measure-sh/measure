@@ -1,0 +1,117 @@
+---
+title: "Memory Monitoring"
+seoTitle: "Android and iOS App Memory Monitoring"
+description: "Track memory usage in Android and iOS apps and find sessions with high memory usage."
+---
+
+Measure tracks your app's memory usage over time. You can see individual readings in [session replay](/docs/session-replay), or compare usage across app versions on the **Memory** page in the dashboard.
+
+The new **Device total memory** filter refers to the device's RAM.
+
+<Callout type="info">
+
+The Memory page is in beta. Requires Measure Android SDK **0.21.0** or later, or Measure iOS SDK **0.14.0** or later.
+
+</Callout>
+
+## Android
+
+Memory is collected every 5 seconds in the foreground and every 10 seconds in the background for sampled sessions. Change the intervals and sampling rate using [Adaptive Capture](/docs/adaptive-capture#memory).
+
+### Memory usage
+
+The Memory page tracks **dynamic memory**, the memory metric used by Android vitals. It's the sum of:
+
+- **Anonymous RSS**: memory held in RAM by the process that isn't backed by a file, such as heap and stack allocations.
+- **Swap**: memory compressed in RAM using zRAM. We can only read its uncompressed size, so adding it to anonymous RSS can give a total larger than the device's RAM.
+
+Both values are read from `/proc/self/status`.
+
+The SDK also records these values for each reading:
+
+| Value | Description | Source |
+| --- | --- | --- |
+| Max heap size | Maximum Java heap size. Allocating beyond it throws an `OutOfMemoryError`. | `Runtime.maxMemory` |
+| Total and free heap size | Java heap memory reserved by the runtime, and how much of it is free. | `Runtime.totalMemory`, `Runtime.freeMemory` |
+| RSS | Physical memory held by the process. Shared pages are counted in full. | `/proc/self/status` |
+| Total PSS | Physical memory with shared pages divided between the processes using them. | `Debug.getMemoryInfo` |
+| Native total and free heap size | Total and free memory in the native heap. | `Debug.getNativeHeapSize`, `Debug.getNativeHeapFreeSize` |
+
+Older SDKs don't collect anonymous RSS and swap, so their readings aren't included on the Memory page.
+
+### App importance
+
+Each reading includes **App importance**, which groups Android's [process importance levels](https://developer.android.com/reference/android/app/ActivityManager.RunningAppProcessInfo#importance) into three categories:
+
+- **Foreground**: the process is running the foreground UI or is visible to the user, such as an activity behind a translucent dialog.
+- **User service**: the process is running a foreground service or other work perceptible to the user, such as music playback while the user is in another app.
+- **Background**: the process is running a background service.
+
+Measure collects readings only for these importance levels. Other levels, including cached processes and the foreground UI while the device is asleep, are skipped. These categories approximate Android vitals using the public process importance API.
+
+### High memory sessions
+
+A session is flagged for high memory usage when any reading reaches 75% of the memory budget below. The budget depends on **Device total memory** and app importance.
+
+| Device total memory | Foreground | User service / background |
+| --- | --- | --- |
+| 0–4 GB | 2 GB | 1 GB |
+| 5–6 GB | 2.25 GB | 1.25 GB |
+| 7–8 GB | 2.25 GB | 1.5 GB |
+| 9–12 GB | 3.25 GB | 1.75 GB |
+| 13–16 GB | 4.25 GB | 2 GB |
+| 17–32 GB | 6 GB | 4 GB |
+| 33 GB+ | 10 GB | 6 GB |
+
+These budgets are used by Measure for monitoring. Android doesn't enforce them. High memory usage can't be determined for devices with unknown **Device total memory**.
+
+### Further reading
+
+- [Android vitals: memory usage](https://developer.android.com/topic/performance/vitals/memory-usage)
+- [Android memory management](https://developer.android.com/topic/performance/memory-management)
+
+## iOS
+
+On iOS and iPadOS, memory is collected every 5 seconds while the app is in the foreground. Change the interval using [Adaptive Capture](/docs/adaptive-capture#memory). Collection pauses in the background.
+
+### Memory usage
+
+The Memory page uses the app's **physical memory footprint**: memory the app is responsible for, including memory compressed by the system. iOS uses this value when deciding which apps to terminate under memory pressure.
+
+The SDK reads the footprint using [`task_info`](https://web.mit.edu/darwin/src/modules/xnu/osfmk/man/task_info.html). If it isn't available, the SDK falls back to resident size. Resident size excludes compressed memory and can underreport usage.
+
+On physical iOS and iPadOS devices, the SDK also records **available memory** using [`os_proc_available_memory()`](https://developer.apple.com/documentation/os/os_proc_available_memory). This is an estimate of how much more memory the app can allocate. It changes as the app runs. The system returns zero when it has no limit to report for the process, so those readings are recorded as unknown rather than as exhausted memory.
+
+Available memory isn't recorded on Simulator, Mac Catalyst, or when the SDK falls back to resident size.
+
+### High memory sessions
+
+Measure flags a session when any reading uses at least **75% of the app's estimated memory limit**. For each reading, Measure estimates this limit by adding the app's physical memory footprint to the additional memory iOS reports as available to it:
+
+```
+estimated memory limit = physical memory footprint + available memory
+utilization = physical memory footprint / estimated memory limit
+```
+
+For example, a reading with a 600 MB footprint and 200 MB available memory has an estimated limit of 800 MB. Its utilization is 75%, so the session is flagged.
+
+Each reading is evaluated using its own available-memory value. A single reading at or above 75% is enough to flag the session. Readings with unknown available memory still appear in usage charts, but aren't used to flag high memory sessions.
+
+### Further reading
+
+- [iOS Memory Deep Dive](https://developer.apple.com/videos/play/wwdc2018/416/)
+
+## Configuration options
+
+Control memory collection from the dashboard using [Adaptive Capture](/docs/adaptive-capture#memory), without making an app release.
+
+### Android
+
+- **Collection interval**: how often memory is collected in the foreground. Defaults to 5 seconds.
+- **Background collection interval**: how often memory is collected in the background. Defaults to 10 seconds.
+- **Session sampling rate**: the percentage of sessions whose memory readings are reported. Defaults to 100%.
+
+### iOS
+
+- **Collection interval**: how often memory is collected in the foreground. Defaults to 5 seconds.
+- **Session sampling rate**: the percentage of sessions whose memory readings are reported. Defaults to 100%.

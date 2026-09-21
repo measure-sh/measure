@@ -528,6 +528,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			Set(`attribute.device_width_px`, e.events[i].Attribute.DeviceWidthPX).
 			Set(`attribute.device_height_px`, e.events[i].Attribute.DeviceHeightPX).
 			Set(`attribute.device_density`, e.events[i].Attribute.DeviceDensity).
+			Set(`attribute.device_total_memory`, e.events[i].Attribute.DeviceTotalMemory).
 			Set(`attribute.device_locale`, e.events[i].Attribute.DeviceLocale).
 			Set(`attribute.device_low_power_mode`, e.events[i].Attribute.DeviceLowPowerMode).
 			Set(`attribute.device_thermal_throttling_enabled`, e.events[i].Attribute.DeviceThermalThrottlingEnabled).
@@ -904,6 +905,9 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`memory_usage.java_free_heap`, e.events[i].MemoryUsage.JavaFreeHeap).
 				Set(`memory_usage.total_pss`, e.events[i].MemoryUsage.TotalPSS).
 				Set(`memory_usage.rss`, e.events[i].MemoryUsage.RSS).
+				Set(`memory_usage.anon_rss`, e.events[i].MemoryUsage.AnonRSS).
+				Set(`memory_usage.swap`, e.events[i].MemoryUsage.Swap).
+				Set(`memory_usage.app_importance`, e.events[i].MemoryUsage.AppImportance).
 				Set(`memory_usage.native_total_heap`, e.events[i].MemoryUsage.NativeTotalHeap).
 				Set(`memory_usage.native_free_heap`, e.events[i].MemoryUsage.NativeFreeHeap).
 				Set(`memory_usage.interval`, e.events[i].MemoryUsage.Interval)
@@ -914,6 +918,9 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`memory_usage.java_free_heap`, nil).
 				Set(`memory_usage.total_pss`, nil).
 				Set(`memory_usage.rss`, nil).
+				Set(`memory_usage.anon_rss`, nil).
+				Set(`memory_usage.swap`, nil).
+				Set(`memory_usage.app_importance`, nil).
 				Set(`memory_usage.native_total_heap`, nil).
 				Set(`memory_usage.native_free_heap`, nil).
 				Set(`memory_usage.interval`, nil)
@@ -924,11 +931,13 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			row.
 				Set(`memory_usage_absolute.max_memory`, e.events[i].MemoryUsageAbs.MaxMemory).
 				Set(`memory_usage_absolute.used_memory`, e.events[i].MemoryUsageAbs.UsedMemory).
+				Set(`memory_usage_absolute.available_memory`, e.events[i].MemoryUsageAbs.AvailableMemory).
 				Set(`memory_usage_absolute.interval`, e.events[i].MemoryUsageAbs.Interval)
 		} else {
 			row.
 				Set(`memory_usage_absolute.max_memory`, nil).
 				Set(`memory_usage_absolute.used_memory`, nil).
+				Set(`memory_usage_absolute.available_memory`, nil).
 				Set(`memory_usage_absolute.interval`, nil)
 		}
 

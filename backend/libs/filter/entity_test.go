@@ -629,7 +629,7 @@ func TestSessionsEntityOffersEverySessionKey(t *testing.T) {
 
 	wanted := []string{
 		"version_name", "version_code", "patch_version", "patch_id",
-		"session_events", "session_foreground_background", "session_custom_event", "session_log", "session_screen", "session_error_text",
+		"session_events", "session_foreground_background", "device_total_memory", "session_custom_event", "session_log", "session_screen", "session_error_text",
 		"session_id", "user_id",
 		"os_name", "os_version",
 		"device_name", "device_manufacturer", "locale",
@@ -1203,5 +1203,105 @@ func TestFindByName(t *testing.T) {
 
 	if _, err := FindByName("nowhere"); err == nil {
 		t.Error("want an unknown entity name refused")
+	}
+}
+
+func TestDeviceTotalMemoryBindsRanges(t *testing.T) {
+	stmt, err := bindColumn(SessionsEntity.Columns, Condition{
+		KeyName:  "device_total_memory",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "17-32gb"}},
+	})
+	if err != nil {
+		t.Fatalf("bind device memory: %v", err)
+	}
+	defer stmt.Close()
+
+	want := "(device_total_memory >= 17825792 and device_total_memory < 34603008)"
+	if got := stmt.String(); got != want {
+		t.Errorf("want %s, got %s", want, got)
+	}
+}
+
+func TestDeviceTotalMemoryUnderFourGBExcludesMissingValues(t *testing.T) {
+	stmt, err := bindColumn(SessionsEntity.Columns, Condition{
+		KeyName:  "device_total_memory",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "0-4gb"}},
+	})
+	if err != nil {
+		t.Fatalf("bind device memory: %v", err)
+	}
+	defer stmt.Close()
+
+	want := "(device_total_memory > 0 and device_total_memory < 5242880)"
+	if got := stmt.String(); got != want {
+		t.Errorf("want %s, got %s", want, got)
+	}
+}
+
+func TestDeviceTotalMemoryUnknownMatchesMissingValues(t *testing.T) {
+	stmt, err := bindColumn(SessionsEntity.Columns, Condition{
+		KeyName:  "device_total_memory",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "unknown"}},
+	})
+	if err != nil {
+		t.Fatalf("bind device memory: %v", err)
+	}
+	defer stmt.Close()
+
+	want := "(device_total_memory = 0)"
+	if got := stmt.String(); got != want {
+		t.Errorf("want %s, got %s", want, got)
+	}
+}
+
+func TestDeviceTotalMemoryValuesUseReadableNames(t *testing.T) {
+	values := narrowEnumValues(deviceTotalMemory, ValueRequest{}).Values
+	if len(values) != len(deviceTotalMemory.EnumValues) {
+		t.Fatalf("want all memory values, got %d", len(values))
+	}
+	if values[0].Text != "0-4gb" || values[len(values)-1].Text != "unknown" {
+		t.Errorf("unexpected display values: first=%q last=%q", values[0].Text, values[len(values)-1].Text)
+	}
+}
+
+// TestDeviceMemoryTiersClaimShippingSizes pins the tier a real device lands in.
+// Apple reports exact physical memory, so a bound resting on a shipping size
+// pushes those devices into the tier above the one named for them.
+func TestDeviceMemoryTiersClaimShippingSizes(t *testing.T) {
+	const kbPerGB uint64 = 1024 * 1024
+	tests := []struct {
+		name   string
+		sizeGB uint64
+		want   string
+	}{
+		{"4 gb", 4, "0-4gb"},
+		{"6 gb", 6, "5-6gb"},
+		{"8 gb", 8, "7-8gb"},
+		{"12 gb", 12, "9-12gb"},
+		{"16 gb", 16, "13-16gb"},
+		{"18 gb", 18, "17-32gb"},
+		{"24 gb", 24, "17-32gb"},
+		{"32 gb", 32, "17-32gb"},
+		{"33 gb", 33, "33gb+"},
+		{"64 gb", 64, "33gb+"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			reported := tt.sizeGB * kbPerGB
+			got := DeviceMemoryTierUnknown
+			for _, r := range DeviceMemoryRanges {
+				if reported >= r.LowerKB && (r.UpperKB == 0 || reported < r.UpperKB) {
+					got = r.Name
+					break
+				}
+			}
+			if got != tt.want {
+				t.Errorf("a %d GB device lands in tier %q, want %q", tt.sizeGB, got, tt.want)
+			}
+		})
 	}
 }

@@ -33,6 +33,12 @@ export class SessionReplayPage {
     return this.page.getByText(`User ID: ${userId}`);
   }
 
+  // Metric charts, e.g. "CPU" and "Memory", render only when the session
+  // carries samples for them.
+  selectMetricChart(title: string): Locator {
+    return this.page.getByRole("img", { name: `${title} usage` });
+  }
+
   selectEvent(type: string, title?: RegExp): Locator {
     const events = this.eventsList.locator(`[data-event-type="${type}"]`);
     return title ? events.filter({ hasText: title }) : events;

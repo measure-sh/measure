@@ -17,9 +17,16 @@ appId: ${APP_ID}
     when:
       platform: iOS
     commands:
-      - launchApp:
-          stopApp: false
-      - assertNotVisible: "Unhandled Exception"
+      # The Kotlin crash can finish after simctl launch returns. Retry recovery
+      # without stopping the process so the crash handler can finish its report.
+      - retry:
+          maxRetries: 3
+          commands:
+            - launchApp:
+                stopApp: false
+            - extendedWaitUntil:
+                visible: "Native iOS"
+                timeout: 10000
 - runFlow:
     when:
       platform: Android

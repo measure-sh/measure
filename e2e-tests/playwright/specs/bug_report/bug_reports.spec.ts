@@ -13,6 +13,10 @@ test.describe("bug reports", () => {
   test.beforeEach(async ({ page, appId, teamId }) => {
     overview = new BugReportsOverviewPage(page, teamId);
     await overview.goto(appId);
+  });
+
+  test("overview lists the bug reports", async () => {
+    await expect(overview.bugReportsPlot).toBeVisible();
     await expect(
       overview.selectBugReportRowByDescription(NATIVE_DESCRIPTION).first(),
     ).toBeVisible();
@@ -22,10 +26,6 @@ test.describe("bug reports", () => {
     await expect(
       overview.selectBugReportRowByDescription(RN_DESCRIPTION).first(),
     ).toBeVisible();
-  });
-
-  test("overview lists the bug reports", async () => {
-    await expect(overview.bugReportsPlot).toBeVisible();
   });
 
   test.describe("native", () => {
