@@ -7,6 +7,9 @@ on:
       - backend/migrator/**/*.go
       - backend/migrator/**/*.mod
       - backend/migrator/**/*.sum
+      - backend/libs/**/*.go
+      - backend/libs/**/*.mod
+      - backend/libs/**/*.sum
   push:
     branches:
       - "main"
@@ -16,6 +19,9 @@ on:
       - backend/migrator/**/*.go
       - backend/migrator/**/*.mod
       - backend/migrator/**/*.sum
+      - backend/libs/**/*.go
+      - backend/libs/**/*.mod
+      - backend/libs/**/*.sum
     tags:
       - "v*"
 
