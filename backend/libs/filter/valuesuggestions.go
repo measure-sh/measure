@@ -195,9 +195,17 @@ func readSuggestedValues(rows suggestedValueRows, key Key, limit int) (ValueList
 		return ValueList{}, fmt.Errorf("Failed to read the values of key %q: %w", key.Name, err)
 	}
 
-	if len(values) > limit {
-		return ValueList{Values: values[:limit], Truncated: true}, nil
+	truncated := len(values) > limit
+	if truncated {
+		values = values[:limit]
 	}
 
-	return ValueList{Values: values}, nil
+	// Version keys list the latest release first. The page is cut to the
+	// limit before it is reordered so the row past the limit is dropped by
+	// recency, as for every other key, and not by version.
+	if isVersionKey(key.Name) {
+		sortVersionValues(values)
+	}
+
+	return ValueList{Values: values, Truncated: truncated}, nil
 }

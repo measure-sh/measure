@@ -78,9 +78,9 @@ func TestNetworkValues(t *testing.T) {
 		return texts
 	}
 
-	t.Run("version names come from the rollup, once each", func(t *testing.T) {
-		if got := list(t, "version_name", ValueRequest{}); len(got) != 2 || got[0] != "1.1.0" || got[1] != "1.2.0" {
-			t.Errorf("want [1.1.0 1.2.0], got %v", got)
+	t.Run("version names come from the rollup, once each, newest first", func(t *testing.T) {
+		if got := list(t, "version_name", ValueRequest{}); len(got) != 2 || got[0] != "1.2.0" || got[1] != "1.1.0" {
+			t.Errorf("want [1.2.0 1.1.0], got %v", got)
 		}
 	})
 
