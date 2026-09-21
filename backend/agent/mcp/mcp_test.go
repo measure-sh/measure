@@ -3472,11 +3472,9 @@ func TestMCPGetFilterValues(t *testing.T) {
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
 		}
-		// Both versions appear in the same month, so the alphabetical
-		// tiebreak orders them.
 		texts := valueTexts(t, resp)
-		if !reflect.DeepEqual(texts, []string{"v1", "v2"}) {
-			t.Errorf("want versions [v1 v2], got %v", texts)
+		if !reflect.DeepEqual(texts, []string{"v2", "v1"}) {
+			t.Errorf("want versions [v2 v1], got %v", texts)
 		}
 	})
 	t.Run("search narrows values", func(t *testing.T) {
