@@ -11,7 +11,8 @@ import (
 // events suitable for session timeline.
 type MemoryUsage struct {
 	*event.MemoryUsage
-	Timestamp time.Time `json:"timestamp"`
+	DynamicMemory *uint64   `json:"dynamic_memory"` // AnonRSS + Swap, in KB; nil when either is unavailable.
+	Timestamp     time.Time `json:"timestamp"`
 }
 
 // MemoryUsageAbs represents absolute
@@ -69,9 +70,15 @@ func (lm LowMemory) GetTimestamp() time.Time {
 // for session timeline.
 func ComputeMemoryUsage(events []event.EventField) (result []MemoryUsage) {
 	for _, event := range events {
+		var dynamicMemory *uint64
+		if event.MemoryUsage.AnonRSS != nil && event.MemoryUsage.Swap != nil {
+			total := *event.MemoryUsage.AnonRSS + *event.MemoryUsage.Swap
+			dynamicMemory = &total
+		}
 		usage := MemoryUsage{
-			event.MemoryUsage,
-			event.Timestamp,
+			MemoryUsage:   event.MemoryUsage,
+			DynamicMemory: dynamicMemory,
+			Timestamp:     event.Timestamp,
 		}
 
 		result = append(result, usage)

@@ -1,0 +1,45 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Native Android"
+    timeout: 10000
+- tapOn: "Native Android"
+
+- scrollUntilVisible:
+    element:
+      text: "Set User ID"
+- tapOn: "Set User ID"
+
+- scrollUntilVisible:
+    direction: UP
+    element:
+      text: "Hold 100 MB Native"
+# The SDK samples memory every 5s in the foreground. Hold each allocation
+# across a few of those samples so the usage it reports rises.
+- tapOn: "Hold 100 MB Native"
+- extendedWaitUntil:
+    visible:
+      text: "__memory_sample_settle__"
+    timeout: 12000
+    optional: true
+
+- tapOn: "Hold 50 MB Java"
+- extendedWaitUntil:
+    visible:
+      text: "__memory_sample_settle__"
+    timeout: 12000
+    optional: true
+
+- tapOn: "Release Held Java Memory"
+- tapOn: "Release Native Memory"
+
+# The SDK keeps sampling after the app leaves the foreground, at its longer
+# background interval. Stay backgrounded across a few of those samples so the
+# background app importance is represented too.
+- pressKey: "Home"
+- extendedWaitUntil:
+    visible:
+      text: "__background_sample_settle__"
+    timeout: 30000
+    optional: true

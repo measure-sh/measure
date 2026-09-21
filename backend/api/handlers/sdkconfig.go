@@ -24,6 +24,7 @@ const configColumns = `max_events_in_batch, error_replay_duration, anr_timeline_
 	bug_report_timeline_duration, trace_sampling_rate, journey_sampling_rate,
 	screenshot_mask_level, log_autocollect_enabled, log_min_severity,
 	log_ignore_patterns, cpu_usage_interval, memory_usage_interval,
+	memory_usage_background_interval, memory_usage_session_sampling_rate,
 	error_fatal_take_screenshot, error_fatal_replay_enabled,
 	error_unhandled_replay_enabled, error_handled_replay_enabled,
 	error_fatal_sampling_rate, error_unhandled_sampling_rate, error_handled_sampling_rate,
@@ -90,6 +91,15 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 	}
 	if patch.MemoryUsageInterval != nil {
 		stmt.Set("memory_usage_interval", *patch.MemoryUsageInterval)
+	}
+	if patch.MemoryUsageBackgroundInterval != nil {
+		stmt.Set("memory_usage_background_interval", *patch.MemoryUsageBackgroundInterval)
+	}
+	if patch.MemoryUsageSessionSamplingRate != nil {
+		if *patch.MemoryUsageSessionSamplingRate < 0 || *patch.MemoryUsageSessionSamplingRate > 100 {
+			return fmt.Errorf("memory_usage_session_sampling_rate must be between 0-100")
+		}
+		stmt.Set("memory_usage_session_sampling_rate", *patch.MemoryUsageSessionSamplingRate)
 	}
 	if patch.ErrorFatalTakeScreenshot != nil {
 		stmt.Set("error_fatal_take_screenshot", *patch.ErrorFatalTakeScreenshot)
@@ -182,6 +192,8 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		&config.LogIgnorePatterns,
 		&config.CPUUsageInterval,
 		&config.MemoryUsageInterval,
+		&config.MemoryUsageBackgroundInterval,
+		&config.MemoryUsageSessionSamplingRate,
 		&config.ErrorFatalTakeScreenshot,
 		&config.ErrorFatalReplayEnabled,
 		&config.ErrorUnhandledReplayEnabled,

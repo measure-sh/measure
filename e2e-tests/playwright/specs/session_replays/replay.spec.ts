@@ -32,8 +32,7 @@ test.describe("session replay", () => {
 
   test.beforeEach(async ({ page, appId, teamId }) => {
     const overview = new SessionReplayOverviewPage(page, teamId);
-    await overview.goto(appId);
-    await overview.search(USER_ID);
+    await overview.goto(appId, `user_id:in:${USER_ID}`);
     await expect(overview.sessionRow.first()).toBeVisible();
     await overview.openSession();
     replay = new SessionReplayPage(page, teamId);

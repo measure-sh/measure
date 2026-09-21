@@ -2314,6 +2314,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 		`attribute.device_width_px`,
 		`attribute.device_height_px`,
 		`attribute.device_density`,
+		`attribute.device_total_memory`,
 		`attribute.device_locale`,
 		`attribute.os_name`,
 		`attribute.os_version`,
@@ -2449,6 +2450,9 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			`memory_usage.java_free_heap`,
 			`memory_usage.total_pss`,
 			`memory_usage.rss`,
+			`memory_usage.anon_rss`,
+			`memory_usage.swap`,
+			`memory_usage.app_importance`,
 			`memory_usage.native_total_heap`,
 			`memory_usage.native_free_heap`,
 			`memory_usage.interval`,
@@ -2475,6 +2479,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			`lifecycle_swift_ui.class_name`,
 			`memory_usage_absolute.max_memory`,
 			`memory_usage_absolute.used_memory`,
+			`memory_usage_absolute.available_memory`,
 			`memory_usage_absolute.interval`,
 		}...)
 	}
@@ -2587,6 +2592,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			&ev.Attribute.DeviceWidthPX,
 			&ev.Attribute.DeviceHeightPX,
 			&ev.Attribute.DeviceDensity,
+			&ev.Attribute.DeviceTotalMemory,
 			&ev.Attribute.DeviceLocale,
 			&ev.Attribute.OSName,
 			&ev.Attribute.OSVersion,
@@ -2765,6 +2771,9 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 				&memoryUsage.JavaFreeHeap,
 				&memoryUsage.TotalPSS,
 				&memoryUsage.RSS,
+				&memoryUsage.AnonRSS,
+				&memoryUsage.Swap,
+				&memoryUsage.AppImportance,
 				&memoryUsage.NativeTotalHeap,
 				&memoryUsage.NativeFreeHeap,
 				&memoryUsage.Interval,
@@ -2799,6 +2808,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 				&lifecycleSwiftUI.ClassName,
 				&memoryUsageAbs.MaxMemory,
 				&memoryUsageAbs.UsedMemory,
+				&memoryUsageAbs.AvailableMemory,
 				&memoryUsageAbs.Interval,
 			}...)
 		}

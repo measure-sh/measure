@@ -36,23 +36,26 @@ export class ErrorsOverviewPage {
   }
 
   async gotoFatalErrors(appId: string) {
-    await this.page.goto(`/${this.teamId}/errors?a=${appId}&et=error&sv=fatal`);
+    await this.goto(appId, "Crash");
   }
 
   async gotoHandledErrors(appId: string) {
-    await this.page.goto(
-      `/${this.teamId}/errors?a=${appId}&et=error&sv=handled`,
-    );
+    await this.goto(appId, "Handled Error");
   }
 
   async gotoUnhandledErrors(appId: string) {
-    await this.page.goto(
-      `/${this.teamId}/errors?a=${appId}&et=error&sv=unhandled`,
-    );
+    await this.goto(appId, "Unhandled Error");
   }
 
   async gotoAnrs(appId: string) {
-    await this.page.goto(`/${this.teamId}/errors?a=${appId}&et=anr`);
+    await this.goto(appId, "ANR");
+  }
+
+  private async goto(appId: string, errorType: string) {
+    const filter = encodeURIComponent(`error_type:in:"${errorType}"`);
+    await this.page.goto(
+      `/${this.teamId}/errors?a=${appId}&filter_expr=${filter}`,
+    );
   }
 
   async openErrorGroup(row: Locator) {

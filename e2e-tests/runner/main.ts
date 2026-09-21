@@ -161,7 +161,13 @@ async function runSpecsForTarget(
   const failures: string[] = [];
   let web: WebResult | undefined;
   for (const spec of specs) {
-    await runMaestro(target, spec, repoRoot, failures);
+    const maestroPassed = await runMaestro(target, spec, repoRoot, failures);
+    if (!maestroPassed) {
+      log.scope(`web: ${target.device}:${spec}`).info(
+        "skipping Playwright tests because the Maestro flow failed",
+      );
+      continue;
+    }
     const result = await runPlaywright(target, spec, repoRoot, flags, failures);
     if (result) web = addWebResult(web, result);
   }
@@ -312,10 +318,10 @@ async function runMaestro(
   spec: string,
   repoRoot: string,
   failures: string[],
-): Promise<void> {
+): Promise<boolean> {
   const device = target.device;
   const flowPath = `${repoRoot}/e2e-tests/maestro/specs/${spec}/${device}/main.yaml`;
-  if (!existsSync(flowPath)) return;
+  if (!existsSync(flowPath)) return true;
   const label = `maestro: ${device}:${spec}`;
   const logger = log.scope(label);
   logger.info("running flow");
@@ -329,6 +335,7 @@ async function runMaestro(
     logger.fail(`flow failed (${dur})`);
     failures.push(label);
   }
+  return ok;
 }
 
 async function runPlaywright(

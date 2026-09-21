@@ -303,12 +303,17 @@ const nextConfig = {
       },
       {
         source: "/docs/features/feature-cpu-monitoring",
-        destination: "/docs/cpu-memory-monitoring#cpu-usage",
+        destination: "/docs/cpu-monitoring#cpu-usage",
+        permanent: true,
+      },
+      {
+        source: "/docs/cpu-memory-monitoring",
+        destination: "/docs/cpu-monitoring",
         permanent: true,
       },
       {
         source: "/docs/features/feature-memory-monitoring",
-        destination: "/docs/cpu-memory-monitoring#memory-usage",
+        destination: "/docs/memory-monitoring",
         permanent: true,
       },
       {

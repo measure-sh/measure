@@ -3,38 +3,38 @@ import { type Locator, type Page } from "@playwright/test";
 export class SessionReplayOverviewPage {
   readonly page: Page;
   readonly teamId: string;
-  readonly freeText: Locator;
+  readonly editAsTextButton: Locator;
+  readonly filterText: Locator;
   readonly sessionRow: Locator;
-  readonly matchedBadge: Locator;
-  readonly moreFiltersButton: Locator;
-  readonly saveFiltersButton: Locator;
 
   constructor(page: Page, teamId: string) {
     this.page = page;
     this.teamId = teamId;
-    this.freeText = page.locator("#free-text");
+    this.editAsTextButton = page.getByTestId("filter-toggle-text");
+    this.filterText = page.getByTestId("filter-text");
     this.sessionRow = page.getByRole("link", { name: /^Session ID: / });
-    this.matchedBadge = page.getByText(/^Matched /);
-    this.moreFiltersButton = page.getByRole("button", { name: "More filters" });
-    this.saveFiltersButton = page.getByRole("button", { name: "Save" });
   }
 
-  async goto(appId: string) {
-    await this.page.goto(`/${this.teamId}/session_replays?a=${appId}`);
+  async goto(appId: string, filterExpr?: string) {
+    const filter = filterExpr
+      ? `&filter_expr=${encodeURIComponent(filterExpr)}`
+      : "";
+    await this.page.goto(`/${this.teamId}/session_replays?a=${appId}${filter}`);
   }
 
-  // Wait for the debounced query to reach the URL before asserting on results.
-  async search(term: string) {
-    await this.freeText.fill(term);
-    await this.page.waitForURL((url) => url.href.includes(term));
-  }
-
-  async filterBySessionType(sessionType: string) {
-    await this.moreFiltersButton.click();
-    await this.page
-      .getByRole("checkbox", { name: sessionType, exact: true })
-      .click();
-    await this.saveFiltersButton.click();
+  // Writes the expression into the filter bar's text editor, where Enter
+  // applies it. The bar stays in text mode afterwards, so a later filter only
+  // switches when it is not already there. Wait for the applied filter to
+  // reach the URL before asserting on results.
+  async filter(filterExpr: string) {
+    const editingAsText =
+      await this.editAsTextButton.getAttribute("aria-pressed");
+    if (editingAsText !== "true") await this.editAsTextButton.click();
+    await this.filterText.fill(filterExpr);
+    await this.filterText.press("Enter");
+    await this.page.waitForURL(
+      (url) => url.searchParams.get("filter_expr") === filterExpr,
+    );
   }
 
   async openSession() {

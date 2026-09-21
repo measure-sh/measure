@@ -1,0 +1,38 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Native iOS"
+    timeout: 5000
+- tapOn: "Native iOS"
+
+- scrollUntilVisible:
+    element:
+      text: "Set User ID"
+- tapOn: "Set User ID"
+
+- scrollUntilVisible:
+    direction: UP
+    element:
+      text: "Hold 100 MB"
+# The SDK samples memory every 5s. Hold each allocation across a few of those
+# samples so the usage it reports rises.
+- repeat:
+    times: 2
+    commands:
+      # Updating the held-memory count can reset the iOS scroll position.
+      - scrollUntilVisible:
+          element:
+            text: "Hold 100 MB"
+      - tapOn: "Hold 100 MB"
+      - extendedWaitUntil:
+          visible:
+            text: "__memory_sample_settle__"
+          timeout: 12000
+          optional: true
+
+- scrollUntilVisible:
+    element:
+      text: "Release Held Memory"
+- tapOn: "Release Held Memory"
+- tapOn: "Back"

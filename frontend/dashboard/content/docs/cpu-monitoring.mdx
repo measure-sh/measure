@@ -1,0 +1,27 @@
+---
+title: "CPU Monitoring"
+seoTitle: "Mobile App CPU Monitoring"
+description: "Capture CPU usage of Android, iOS, Flutter, and React Native apps."
+---
+
+CPU usage is captured every 5 seconds while the app is in the foreground. Readings appear in the [session replay](/docs/session-replay).
+
+## CPU usage
+
+A reading shows how much CPU the app is using. Sustained high usage drains the battery and heats up the device.
+
+### Android
+
+Each reading is the average CPU usage since the previous one, across all cores: 100% means every core was fully busy. It's calculated from [`/proc/self/stat`](https://man7.org/linux/man-pages/man5/proc.5.html), where the OS records the clock ticks the process has spent on the CPU:
+
+```
+%CPU = 100 × ticks consumed / (clock tick rate × interval × number of cores)
+```
+
+### iOS
+
+Each reading is the combined usage of all the app's non-idle threads, where 100% equals one fully busy core. On a device with multiple cores the value can go above 100%. The thread list comes from [`task_threads`](https://web.mit.edu/darwin/src/modules/xnu/osfmk/man/task_info.html) and each thread's usage from [`thread_info`](https://web.mit.edu/darwin/src/modules/xnu/osfmk/man/thread_info.html).
+
+## Flutter and React Native
+
+Flutter and React Native apps don't collect CPU usage themselves. The native Android or iOS SDK collects it using the APIs described above.

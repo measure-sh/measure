@@ -27,6 +27,15 @@ func readANR(path string) (anr ANR, err error) {
 	return
 }
 
+func readMemoryUsage(path string) (memoryUsage MemoryUsage, err error) {
+	bytes, err := os.ReadFile(path)
+	if err != nil {
+		return
+	}
+	_ = json.Unmarshal(bytes, &memoryUsage)
+	return
+}
+
 func readStacktrace(path string) (stacktrace string, err error) {
 	bytes, err := os.ReadFile(path)
 	if err != nil {
@@ -279,6 +288,17 @@ func TestHasError(t *testing.T) {
 		if expected != got {
 			t.Errorf("Expected %v, but got %v", expected, got)
 		}
+	}
+}
+
+func TestMemoryUsageFields(t *testing.T) {
+	memoryUsage, err := readMemoryUsage("./testdata/memory_usage_one.json")
+	if err != nil {
+		panic(err)
+	}
+
+	if memoryUsage.AnonRSS == nil || *memoryUsage.AnonRSS != 1234 || memoryUsage.Swap == nil || *memoryUsage.Swap != 56 {
+		t.Errorf("Expected anon_rss=1234 and swap=56, but got anon_rss=%v and swap=%v", memoryUsage.AnonRSS, memoryUsage.Swap)
 	}
 }
 

@@ -233,6 +233,14 @@ paths:
                           device_density:
                             type: number
                             description: Device density.
+                          device_total_memory:
+                            type: integer
+                            minimum: 0
+                            description: >
+                              Total device RAM in KB (1024 bytes), reported by Android
+                              and iOS/iPadOS. Used for device-memory session filtering.
+                              Optional for older SDKs or when unavailable; zero or
+                              unreported RAM is treated as unknown.
                           device_locale:
                             type: string
                             description: Locale based on RFC 5646, for example en-US.
@@ -1200,8 +1208,8 @@ paths:
                       memory_usage:
                         type: object
                         description: >
-                          Use the `memory_usage` type for memory usage of JVM
-                          applications.
+                          Use the `memory_usage` type for Android process memory
+                          readings. The Memory page uses anonymous RSS + swap.
                         required:
                           - java_max_heap
                           - java_total_heap
@@ -1235,9 +1243,19 @@ paths:
                           rss:
                             type: integer
                             description: >
-                              Resident set size of the Java process, the amount of
-                              physical memory currently used by the Java application.
+                              Resident set size of the Android process, the amount of
+                              physical memory currently held by the process.
                               Measured in kB.
+                          anon_rss:
+                            type: [integer, "null"]
+                            description: Anonymous resident memory from RssAnon in /proc/self/status, in KB (1024 bytes).
+                          swap:
+                            type: [integer, "null"]
+                            description: Private anonymous memory swapped out before compression, from VmSwap in /proc/self/status, in KB (1024 bytes).
+                          app_importance:
+                            type: string
+                            enum: [foreground, user_service, background]
+                            description: Process state at collection time. Optional for older SDKs.
                           native_total_heap:
                             type: integer
                             description: >
@@ -1267,11 +1285,21 @@ paths:
                           max_memory:
                             type: integer
                             description: >
-                              Maximum size of memory available to the application, in
-                              kB.
+                              Total physical RAM of the device, in KB (1024 bytes).
+                              Used to group iOS/iPadOS samples into device memory tiers.
                           used_memory:
                             type: integer
                             description: Memory used by the application, in kB.
+                          available_memory:
+                            type: integer
+                            minimum: 1
+                            description: >
+                              Memory available to the app reported by
+                              os_proc_available_memory(), in KB (1024 bytes).
+                              Optional; omitted when unavailable, including Simulator,
+                              resident-size fallback samples, and when the system reports
+                              no limit for the process. This advisory value can change
+                              during a session.
                           interval:
                             type: integer
                             description: >
@@ -1318,8 +1346,8 @@ paths:
                           rss:
                             type: integer
                             description: >
-                              Resident set size of the Java process, the amount of
-                              physical memory currently used by the Java application.
+                              Resident set size of the Android process, the amount of
+                              physical memory currently held by the process.
                               Measured in kB.
                           native_total_heap:
                             type: integer
@@ -2400,7 +2428,21 @@ paths:
                     description: CPU usage measurement interval.
                   memory_usage_interval:
                     type: integer
-                    description: Memory usage measurement interval.
+                    default: 5
+                    description: Memory usage measurement interval in seconds while the app is in the foreground.
+                  memory_usage_background_interval:
+                    type: integer
+                    default: 10
+                    description: >
+                      Memory usage measurement interval in seconds while the app is in the
+                      background. Android only, iOS/iPadOS stops collecting in
+                      the background.
+                  memory_usage_session_sampling_rate:
+                    type: number
+                    default: 100
+                    minimum: 0
+                    maximum: 100
+                    description: Percentage of sessions that report memory usage on Android and iOS/iPadOS.
                   error_fatal_take_screenshot:
                     type: boolean
                     description: Whether to take screenshot on fatal error.
@@ -2504,6 +2546,8 @@ paths:
                 log_ignore_patterns: []
                 cpu_usage_interval: 5
                 memory_usage_interval: 5
+                memory_usage_background_interval: 10
+                memory_usage_session_sampling_rate: 100
                 error_fatal_take_screenshot: true
                 error_fatal_replay_enabled: true
                 error_unhandled_replay_enabled: false

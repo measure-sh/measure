@@ -32,6 +32,9 @@ Every app starts with these defaults:
 | Trace sampling rate                  | 100%                                                                                |
 | Journey sampling rate                | 100%                                                                                |
 | Launch metrics sampling rate         | 100%                                                                                |
+| Memory collection interval           | 5 seconds                                                                           |
+| Memory background collection interval (Android) | 10 seconds                                                                |
+| Memory session sampling rate          | 100%                                                                                |
 | Disable HTTP event for URLs          | (empty)                                                                             |
 | Track HTTP request body for URLs     | (empty)                                                                             |
 | Track HTTP response body for URLs    | (empty)                                                                             |
@@ -120,6 +123,29 @@ Journey events power the Journey view in the dashboard. They cover screen view e
 platforms, activity and fragment lifecycle events on Android, and view controller lifecycle
 events on iOS. Set a sampling rate to control how many sessions collect them. Every session
 collects journey events by default, and you can lower the rate to 0.001%.
+
+## Memory
+
+These settings control [memory collection](/docs/memory-monitoring). Find them under **Memory** in the app's Adaptive Capture settings.
+
+### Collection interval
+
+Choose how often the SDK collects memory while the app is in the foreground. The default is
+5 seconds on Android and iOS. Set an interval from 1 to 3600 seconds.
+
+### Background collection interval
+
+_Applies only to Android._
+
+Choose how often memory is collected while the app is in the background. The default is
+10 seconds. Set an interval from 1 to 3600 seconds. iOS pauses memory collection in the background.
+
+### Session sampling rate
+
+Choose the percentage of sessions whose memory readings are reported, from 0% to 100%. The default
+is 100% on Android and iOS. Sampling selects whole sessions. Foreground readings are still
+collected for session replays regardless of this setting. On Android, background readings are
+collected only for sampled sessions.
 
 ## HTTP events
 

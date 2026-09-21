@@ -14,7 +14,7 @@ test.describe("errors", () => {
 
     test.describe("android", { tag: "@android" }, () => {
       const subtitle = /^java\.lang\.IllegalAccessException/;
-      const errorPill = "Error";
+      const errorPill = "Crash";
       const fatalPill = "Fatal";
 
       test.beforeEach(() =>
@@ -94,7 +94,7 @@ test.describe("errors", () => {
     });
 
     test.describe("ios", { tag: "@ios" }, () => {
-      const errorPill = "Error";
+      const errorPill = "Crash";
       const fatalPill = "Fatal";
 
       const selectRow = () =>
@@ -177,7 +177,7 @@ test.describe("errors", () => {
     test.describe("kmp android", { tag: "@android" }, () => {
       const subtitle =
         /^java\.lang\.IllegalStateException:Crash from shared Kotlin code/;
-      const errorPill = "Error";
+      const errorPill = "Crash";
       const fatalPill = "Fatal";
 
       test.beforeEach(() =>
@@ -253,7 +253,7 @@ test.describe("errors", () => {
     });
 
     test.describe("kmp ios", { tag: "@ios" }, () => {
-      const errorPill = "Error";
+      const errorPill = "Crash";
       const fatalPill = "Fatal";
 
       const title = /CmpScreen\.kt/;
@@ -333,7 +333,7 @@ test.describe("errors", () => {
 
     test.describe("react native", () => {
       const subtitle = /^Error:Simulated JavaScript exception/;
-      const errorPill = "Error";
+      const errorPill = "Crash";
       const fatalPill = "Fatal";
 
       test.beforeEach(() =>
