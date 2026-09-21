@@ -250,7 +250,7 @@ export default function DashboardLayout({
   return (
     <SidebarProvider>
       <Sidebar variant="sidebar" className="select-none">
-        <SidebarHeader>
+        <SidebarHeader className="p-4 pb-2">
           <SidebarMenu>
             <SidebarMenuItem>
               <TeamSwitcher
@@ -267,18 +267,21 @@ export default function DashboardLayout({
           </SidebarMenu>
         </SidebarHeader>
         <SidebarContent>
-          <SidebarGroup>
-            <SidebarMenu className="gap-2">
+          <SidebarGroup className="p-4">
+            <SidebarMenu className="gap-0.5">
               {teamsStatus === "pending" &&
                 navData.navMain.map((section) => (
-                  <SidebarMenuItem key={section.title}>
-                    <Skeleton className="h-7 w-24 mb-2" />
-                    <SidebarMenuSub className="ml-0 border-l-0 px-1.5 gap-3">
+                  <SidebarMenuItem
+                    key={section.title}
+                    className="mt-6 first:mt-0"
+                  >
+                    <Skeleton className="h-5 w-24 mx-2 mb-1" />
+                    <SidebarMenuSub className="mx-0 border-l-0 px-0 py-0 gap-0.5">
                       {section.items.map((item) => (
                         <SidebarMenuSubItem key={item.title}>
-                          <SidebarMenuSubButton asChild>
+                          <div className="flex h-9 items-center p-2">
                             <Skeleton className="h-5 w-full" />
-                          </SidebarMenuSubButton>
+                          </div>
                         </SidebarMenuSubItem>
                       ))}
                     </SidebarMenuSub>
@@ -291,15 +294,18 @@ export default function DashboardLayout({
               )}
               {teamsStatus === "success" &&
                 navData.navMain.map((item) => (
-                  <SidebarMenuItem key={item.title}>
-                    <p className="text-lg font-display">{item.title}</p>
+                  <SidebarMenuItem key={item.title} className="mt-6 first:mt-0">
+                    <p className="px-2 mb-1 text-sm font-display">
+                      {item.title}
+                    </p>
                     {item.items?.length ? (
-                      <SidebarMenuSub className="ml-0 border-l-0 px-1.5">
+                      <SidebarMenuSub className="mx-0 border-l-0 px-0 py-0 gap-0.5">
                         {item.items.map((item) => (
                           <SidebarMenuSubItem key={item.title}>
                             <SidebarMenuSubButton
                               asChild
                               isActive={item.isActive}
+                              className="h-auto font-body rounded-lg p-2 text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground"
                             >
                               <a
                                 href={
@@ -307,7 +313,6 @@ export default function DashboardLayout({
                                     ? `${item.url}`
                                     : `/${selectedTeam?.id}/${item.url}${item.queryString ?? ""}`
                                 }
-                                className="font-body"
                                 onClick={(e) => {
                                   if (!item.external) {
                                     e.preventDefault();
@@ -330,7 +335,7 @@ export default function DashboardLayout({
             </SidebarMenu>
           </SidebarGroup>
         </SidebarContent>
-        <SidebarFooter>
+        <SidebarFooter className="p-4 pt-2">
           <SidebarMenu>
             <SidebarMenuItem>
               {teamsStatus === "pending" ? (
