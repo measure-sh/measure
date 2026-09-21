@@ -55,6 +55,9 @@ protocol DynamicConfig {
     /// Defaults to 5 seconds.
     var memoryUsageInterval: Number { get }
 
+    /// Percentage of sessions whose memory readings are reported. Defaults to 100%.
+    var memoryUsageSessionSamplingRate: Float { get }
+
     /// Whether to take a screenshot on a fatal error.
     /// Defaults to true.
     var errorFatalTakeScreenshot: Bool { get }
@@ -122,6 +125,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
     let logIgnorePatterns: [String]
     let cpuUsageInterval: Number
     let memoryUsageInterval: Number
+    let memoryUsageSessionSamplingRate: Float
     let errorFatalTakeScreenshot: Bool
     let errorFatalReplayEnabled: Bool
     let errorUnhandledReplayEnabled: Bool
@@ -150,6 +154,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
          logIgnorePatterns: [String] = DefaultConfig.logIgnorePatterns,
          cpuUsageInterval: Number = DefaultConfig.cpuUsageInterval,
          memoryUsageInterval: Number = DefaultConfig.memoryUsageInterval,
+         memoryUsageSessionSamplingRate: Float = DefaultConfig.memoryUsageSessionSamplingRate,
          errorFatalTakeScreenshot: Bool = DefaultConfig.errorFatalTakeScreenshot,
          errorFatalReplayEnabled: Bool = DefaultConfig.errorFatalReplayEnabled,
          errorUnhandledReplayEnabled: Bool = DefaultConfig.errorUnhandledReplayEnabled,
@@ -178,6 +183,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         self.logIgnorePatterns = logIgnorePatterns
         self.cpuUsageInterval = cpuUsageInterval
         self.memoryUsageInterval = memoryUsageInterval
+        self.memoryUsageSessionSamplingRate = memoryUsageSessionSamplingRate
         self.errorFatalTakeScreenshot = errorFatalTakeScreenshot
         self.errorFatalReplayEnabled = errorFatalReplayEnabled
         self.errorUnhandledReplayEnabled = errorUnhandledReplayEnabled
@@ -212,6 +218,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         logIgnorePatterns = try c.decodeIfPresent([String].self, forKey: .logIgnorePatterns) ?? DefaultConfig.logIgnorePatterns
         cpuUsageInterval = try c.decodeIfPresent(Number.self, forKey: .cpuUsageInterval) ?? DefaultConfig.cpuUsageInterval
         memoryUsageInterval = try c.decodeIfPresent(Number.self, forKey: .memoryUsageInterval) ?? DefaultConfig.memoryUsageInterval
+        memoryUsageSessionSamplingRate = try c.decodeIfPresent(Float.self, forKey: .memoryUsageSessionSamplingRate) ?? DefaultConfig.memoryUsageSessionSamplingRate
         errorFatalTakeScreenshot = try c.decodeIfPresent(Bool.self, forKey: .errorFatalTakeScreenshot)
             ?? c.decodeIfPresent(Bool.self, forKey: .crashTakeScreenshot)
             ?? DefaultConfig.errorFatalTakeScreenshot
@@ -249,6 +256,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         try c.encode(logIgnorePatterns, forKey: .logIgnorePatterns)
         try c.encode(cpuUsageInterval, forKey: .cpuUsageInterval)
         try c.encode(memoryUsageInterval, forKey: .memoryUsageInterval)
+        try c.encode(memoryUsageSessionSamplingRate, forKey: .memoryUsageSessionSamplingRate)
         try c.encode(errorFatalTakeScreenshot, forKey: .errorFatalTakeScreenshot)
         try c.encode(errorFatalTakeScreenshot, forKey: .crashTakeScreenshot)
         try c.encode(errorFatalReplayEnabled, forKey: .errorFatalReplayEnabled)
@@ -283,6 +291,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         case logIgnorePatterns = "log_ignore_patterns"
         case cpuUsageInterval = "cpu_usage_interval"
         case memoryUsageInterval = "memory_usage_interval"
+        case memoryUsageSessionSamplingRate = "memory_usage_session_sampling_rate"
         case errorFatalTakeScreenshot = "error_fatal_take_screenshot"
         // The key this setting used before it was renamed to error_fatal_take_screenshot.
         // Remove once every supported backend and Flutter SDK use the newer key.

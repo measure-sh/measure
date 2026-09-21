@@ -140,6 +140,7 @@ final class BaseConfigProvider: ConfigProvider {
     var logIgnorePatterns: [String] { dynamicConfig.logIgnorePatterns }
     var cpuUsageInterval: Number { dynamicConfig.cpuUsageInterval }
     var memoryUsageInterval: Number { dynamicConfig.memoryUsageInterval }
+    var memoryUsageSessionSamplingRate: Float { dynamicConfig.memoryUsageSessionSamplingRate }
     var errorFatalTakeScreenshot: Bool { dynamicConfig.errorFatalTakeScreenshot }
     var errorFatalReplayEnabled: Bool { dynamicConfig.errorFatalReplayEnabled }
     var errorUnhandledReplayEnabled: Bool { dynamicConfig.errorUnhandledReplayEnabled }

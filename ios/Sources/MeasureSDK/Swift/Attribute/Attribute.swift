@@ -40,6 +40,7 @@ class Attributes: Codable {
     var deviceWidthPx: Number?
     var deviceHeightPx: Number?
     var deviceDensity: Number?
+    var deviceTotalMemory: UnsignedNumber?
     var deviceLocale: String?
     var osName: String?
     var osVersion: String?
@@ -81,6 +82,7 @@ class Attributes: Codable {
         case deviceWidthPx = "device_width_px"
         case deviceHeightPx = "device_height_px"
         case deviceDensity = "device_density"
+        case deviceTotalMemory = "device_total_memory"
         case deviceLocale = "device_locale"
         case osName = "os_name"
         case osVersion = "os_version"
@@ -123,6 +125,7 @@ class Attributes: Codable {
         deviceWidthPx: Number? = nil,
         deviceHeightPx: Number? = nil,
         deviceDensity: Number? = nil,
+        deviceTotalMemory: UnsignedNumber? = nil,
         deviceLocale: String? = nil,
         osName: String? = nil,
         osVersion: String? = nil,
@@ -162,6 +165,7 @@ class Attributes: Codable {
            self.deviceWidthPx = deviceWidthPx
            self.deviceHeightPx = deviceHeightPx
            self.deviceDensity = deviceDensity
+           self.deviceTotalMemory = deviceTotalMemory
            self.deviceLocale = deviceLocale
            self.osName = osName
            self.osVersion = osVersion
@@ -204,6 +208,7 @@ class Attributes: Codable {
         self.deviceWidthPx = dict["device_width_px"] as? Number
         self.deviceHeightPx = dict["device_height_px"] as? Number
         self.deviceDensity = dict["device_density"] as? Number
+        self.deviceTotalMemory = dict["device_total_memory"] as? UnsignedNumber
         self.deviceLocale = dict["device_locale"] as? String
         self.osName = dict["os_name"] as? String
         self.osVersion = dict["os_version"] as? String

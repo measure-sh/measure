@@ -11,6 +11,7 @@ protocol SignalSampler {
     func shouldTrackLaunchEvents() -> Bool
     func shouldSampleTrace(_ traceId: String) -> Bool
     func shouldTrackJourneyForSession(sessionId: String) -> Bool
+    func shouldTrackMemoryUsageForSession(sessionId: String) -> Bool
     func shouldSampleHttpEvent() -> Bool
     func shouldSampleError(_ severity: ExceptionSeverity) -> Bool
 }
@@ -70,6 +71,20 @@ final class BaseSignalSampler: SignalSampler {
         }
 
         return stableSamplingValue(sessionId: sessionId) < samplingRate
+    }
+
+    func shouldTrackMemoryUsageForSession(sessionId: String) -> Bool {
+        if configProvider.enableFullCollectionMode {
+            return true
+        }
+
+        let rate = configProvider.memoryUsageSessionSamplingRate
+        guard rate.isFinite, rate > 0 else { return false }
+        if rate >= 100 {
+            return true
+        }
+
+        return stableSamplingValue(sessionId: sessionId) < rate / 100
     }
 
     func shouldSampleHttpEvent() -> Bool {

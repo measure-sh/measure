@@ -39,6 +39,52 @@ final class EventStoreTests: XCTestCase {
         XCTAssertEqual(events.first?.sessionId, event.sessionId)
     }
 
+    func testPersistenceAndExportOmitMissingMemoryHeadroom() throws {
+        let memory = try persistAndExportMemoryUsage(availableMemory: nil)
+
+        XCTAssertNil(memory["available_memory"])
+        XCTAssertEqual(memory["used_memory"] as? UnsignedNumber, 3072)
+    }
+
+    func testPersistenceAndExportPreserveZeroMemoryHeadroom() throws {
+        let memory = try persistAndExportMemoryUsage(availableMemory: 0)
+
+        XCTAssertEqual(memory["available_memory"] as? UnsignedNumber, 0)
+    }
+
+    func testPersistenceAndExportPreserveAvailableMemoryHeadroom() throws {
+        let memory = try persistAndExportMemoryUsage(availableMemory: 1024)
+
+        XCTAssertEqual(memory["available_memory"] as? UnsignedNumber, 1024)
+    }
+
+    private func persistAndExportMemoryUsage(availableMemory: UnsignedNumber?) throws -> [String: Any] {
+        let memoryUsageData = MemoryUsageData(
+            maxMemory: 8192,
+            usedMemory: 3072,
+            interval: 5000,
+            availableMemory: availableMemory
+        )
+        let event = Event(
+            id: "memoryEventId",
+            sessionId: "session1",
+            timestamp: "2026-09-17T00:00:00Z",
+            timestampInMillis: 1,
+            type: .memoryUsageAbsolute,
+            data: memoryUsageData,
+            attachments: [],
+            attributes: TestDataGenerator.generateAttributes(),
+            userTriggered: false
+        )
+
+        eventStore.insertEvent(event: EventEntity(event, needsReporting: true))
+
+        let savedEvent = try XCTUnwrap(eventStore.getEvents(eventIds: [event.id])?.first)
+        let jsonData = try XCTUnwrap(EventSerializer().getSerialisedEvent(for: savedEvent))
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: jsonData) as? [String: Any])
+        return try XCTUnwrap(json["memory_usage_absolute"] as? [String: Any])
+    }
+
     func testGetEventsByIds() {
         let event1 = TestDataGenerator.generateEvents(id: "1")
         let event2 = TestDataGenerator.generateEvents(id: "2")

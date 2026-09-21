@@ -179,8 +179,16 @@ final class BaseSignalProcessor: SignalProcessor {
 
             self.appendAttributes(event: event, threadName: resolvedThreadName.isEmpty ? "unknown" : resolvedThreadName)
 
-            self.signalStore.store(event,
-                                   needsReporting: configProvider.enableFullCollectionMode ? true : needsReporting ?? false)
+            let resolvedNeedsReporting: Bool
+            if configProvider.enableFullCollectionMode {
+                resolvedNeedsReporting = true
+            } else if event.type == .memoryUsageAbsolute {
+                // Keep unsampled readings locally for session replays, as on Android.
+                resolvedNeedsReporting = signalSampler.shouldTrackMemoryUsageForSession(sessionId: event.sessionId)
+            } else {
+                resolvedNeedsReporting = needsReporting ?? false
+            }
+            self.signalStore.store(event, needsReporting: resolvedNeedsReporting)
             self.sessionManager.onEventTracked(event)
             if event.type == .bugReport {
                 self.exporter.export()

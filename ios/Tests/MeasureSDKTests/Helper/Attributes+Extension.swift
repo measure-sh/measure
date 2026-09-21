@@ -21,6 +21,7 @@ extension Attributes: Equatable {
             lhs.deviceWidthPx == rhs.deviceWidthPx &&
             lhs.deviceHeightPx == rhs.deviceHeightPx &&
             lhs.deviceDensity == rhs.deviceDensity &&
+            lhs.deviceTotalMemory == rhs.deviceTotalMemory &&
             lhs.deviceLocale == rhs.deviceLocale &&
             lhs.osName == rhs.osName &&
             lhs.osVersion == rhs.osVersion &&

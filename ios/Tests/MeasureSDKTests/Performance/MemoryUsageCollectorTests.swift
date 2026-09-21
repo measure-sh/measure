@@ -70,6 +70,7 @@ final class MemoryUsageCollectorTests: XCTestCase {
 
     func testTrackMemoryUsageValidData() {
         mockMemoryUsageCalculator.mockMemoryUsage = 1024
+        mockMemoryUsageCalculator.mockAvailableMemory = 512
         mockSysCtl.mockMaximumAvailableRam = 4096
         mockConfigProvider.memoryUsageInterval = 2000
         mockTimeProvider.current = 1_000_000
@@ -81,6 +82,7 @@ final class MemoryUsageCollectorTests: XCTestCase {
         if let memoryUsageData = mockSignalProcessor.data as? MemoryUsageData {
             XCTAssertEqual(memoryUsageData.maxMemory, 4096)
             XCTAssertEqual(memoryUsageData.usedMemory, 1024)
+            XCTAssertEqual(memoryUsageData.availableMemory, 512)
         } else {
             XCTFail("Data should be of type MemoryUsageData.")
         }
