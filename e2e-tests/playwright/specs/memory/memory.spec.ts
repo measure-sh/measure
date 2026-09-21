@@ -30,6 +30,12 @@ test.describe("memory", () => {
     }
   });
 
+  test("breakdown is keyed by device total memory", async () => {
+    await expect(
+      memory.selectBreakdownHeader("Device total memory"),
+    ).toBeVisible();
+  });
+
   test("breakdown renders a device memory tier with its percentiles", async () => {
     const row = memory.breakdownRow.first();
     await expect(row).toBeVisible();
@@ -65,12 +71,6 @@ test.describe("memory", () => {
   });
 
   test.describe("android", { tag: "@android" }, () => {
-    test("breakdown is keyed by device total memory", async () => {
-      await expect(
-        memory.selectBreakdownHeader("Device total memory"),
-      ).toBeVisible();
-    });
-
     test("app importance defaults to foreground", async () => {
       await expect(memory.appImportanceSelect).toHaveText("Foreground");
     });
@@ -85,12 +85,6 @@ test.describe("memory", () => {
   });
 
   test.describe("ios", { tag: "@ios" }, () => {
-    test("breakdown is keyed by device available memory", async () => {
-      await expect(
-        memory.selectBreakdownHeader("Device available memory"),
-      ).toBeVisible();
-    });
-
     test("app importance is not selectable", async () => {
       await expect(memory.appImportanceSelect).toHaveCount(0);
     });

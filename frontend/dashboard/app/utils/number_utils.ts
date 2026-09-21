@@ -26,6 +26,15 @@ export function kilobytesToMegabytes(bytes: number): number {
   return bytes / 1024;
 }
 
+// Memory API values use binary kilobytes (1024 bytes).
+export function formatMemoryKilobytes(kilobytes: number | null): string {
+  if (kilobytes === null) return "—";
+  if (kilobytes < 1024) return `${Math.round(kilobytes)} KB`;
+  const megabytes = kilobytesToMegabytes(kilobytes);
+  if (megabytes < 1024) return `${megabytes.toFixed(1)} MB`;
+  return `${(megabytes / 1024).toFixed(1)} GB`;
+}
+
 export function toKiloBytes(bytes: number): number {
   return bytes / 1024;
 }
