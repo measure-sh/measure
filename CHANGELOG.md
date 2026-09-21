@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Ingest and query memory monitoring data (#4477) by @abhaysood
+- (**frontend**): Add memory monitoring dashboard and controls (#4477) by @abhaysood in #4477
 - (**frontend**): Add error session replay and sampling adaptive config (#4355) by @abhaysood in #4355
 
 ### :bug: Bug fixes
