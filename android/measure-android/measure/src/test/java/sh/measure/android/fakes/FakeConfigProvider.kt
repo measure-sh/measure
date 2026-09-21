@@ -51,6 +51,8 @@ internal class FakeConfigProvider : ConfigProvider {
     override var logIgnorePatterns: List<String> = emptyList()
     override var cpuUsageInterval: Long = 3
     override var memoryUsageInterval: Long = 3
+    override var memoryUsageBackgroundInterval: Long = 10
+    override var memoryUsageSessionSamplingRate: Float = 100f
     override var errorFatalScreenshotEnabled: Boolean = true
     override var errorFatalReplayEnabled: Boolean = true
     override var errorUnhandledReplayEnabled: Boolean = false

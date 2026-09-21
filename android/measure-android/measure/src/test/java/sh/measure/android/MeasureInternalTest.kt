@@ -134,7 +134,7 @@ class MeasureInternalTest {
     }
 
     @Test
-    fun `onAppBackground unregisters CPU and Memory usage collectors`() {
+    fun `onAppBackground unregisters CPU usage and reschedules Memory usage collection`() {
         val initializer = mockMeasureInitializer()
         val manifest = ManifestMetadata("https://api.measure.sh", "msrsh_123")
         whenever(initializer.manifestReader.load()).thenReturn(manifest)
@@ -145,7 +145,8 @@ class MeasureInternalTest {
         measureInternal.onAppBackground()
 
         verify(initializer.cpuUsageCollector).unregister()
-        verify(initializer.memoryUsageCollector).unregister()
+        verify(initializer.memoryUsageCollector).onAppBackground()
+        verify(initializer.memoryUsageCollector, never()).unregister()
     }
 
     @Test

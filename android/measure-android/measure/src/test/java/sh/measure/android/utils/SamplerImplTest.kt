@@ -100,6 +100,30 @@ internal class SamplerImplTest {
     }
 
     @Test
+    fun `full collection mode always tracks memory usage`() {
+        configProvider.enableFullCollectionMode = true
+        configProvider.memoryUsageSessionSamplingRate = 0f
+
+        assertTrue(sampler.shouldTrackMemoryUsageForSession("1be7987d-2f06-4dab-b950-18163af2d012"))
+    }
+
+    @Test
+    fun `memory usage - uses stable whole session sampling`() {
+        val sessionId = "1be7987d-2f06-4dab-b950-18163af2d012"
+        configProvider.memoryUsageSessionSamplingRate = 100f
+        assertTrue(sampler.shouldTrackMemoryUsageForSession(sessionId))
+
+        configProvider.memoryUsageSessionSamplingRate = 0f
+        assertFalse(sampler.shouldTrackMemoryUsageForSession(sessionId))
+
+        configProvider.memoryUsageSessionSamplingRate = 50f
+        assertTrue(
+            sampler.shouldTrackMemoryUsageForSession(sessionId) ==
+                sampler.shouldTrackMemoryUsageForSession(sessionId),
+        )
+    }
+
+    @Test
     fun `error - each severity reads its own rate`() {
         configProvider.errorFatalSamplingRate = 100f
         configProvider.errorUnhandledSamplingRate = 0f
