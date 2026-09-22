@@ -38,6 +38,13 @@ interface ErrorsOverviewProps {
   teamId: string;
 }
 
+function groupTitle(fileName: string, methodName: string): string {
+  const file = fileName !== "" ? fileName : "unknown_file";
+  const method = methodName !== "" ? methodName : "unknown_method";
+  const complete = method.endsWith(")") || method.endsWith("]");
+  return `${file}: ${method}${complete ? "" : "()"}`;
+}
+
 export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -195,17 +202,12 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                             href={href}
                             className="absolute inset-0 z-10 cursor-pointer"
                             tabIndex={-1}
-                            aria-label={`${file_name !== "" ? file_name : "unknown_file"}: ${method_name !== "" ? method_name : "unknown_method"}()`}
+                            aria-label={groupTitle(file_name, method_name)}
                             style={{ display: "block" }}
                           />
                           <div className="pointer-events-none p-4">
                             <p className="truncate select-none">
-                              {(file_name !== "" ? file_name : "unknown_file") +
-                                ": " +
-                                (method_name !== ""
-                                  ? method_name
-                                  : "unknown_method") +
-                                "()"}
+                              {groupTitle(file_name, method_name)}
                             </p>
 
                             <p
