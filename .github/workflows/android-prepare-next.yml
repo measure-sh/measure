@@ -64,8 +64,7 @@ jobs:
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          sed -i "s|compileOnly(\"sh.measure:measure-android:[^\"]*\")|compileOnly(\"sh.measure:measure-android:$VERSION\")|" ../../react-native/android/build.gradle.kts
-          sed -i "s|implementation(\"sh.measure:measure-android:[^\"]*\")|implementation(\"sh.measure:measure-android:$VERSION\")|" ../../react-native/example/rnExample/android/app/build.gradle
+          sed -i "s|api(\"sh.measure:measure-android:[^\"]*\")|api(\"sh.measure:measure-android:$VERSION\")|" ../../react-native/android/build.gradle.kts
 
       - name: Update measure-android version in Flutter SDK
         env:
@@ -93,7 +92,7 @@ jobs:
             **Changes:**
             - Updated version to `${{ inputs.version }}` in gradle.properties
             - Updated version to `${{ inputs.version }}` in libs.versions.toml
-            - Updated measure-android to `${{ inputs.version }}` in React Native SDK (android/build.gradle.kts and example app)
+            - Updated measure-android to `${{ inputs.version }}` in React Native SDK (android/build.gradle.kts)
             - Updated measure-android to `${{ inputs.version }}` in Flutter SDK (measure_flutter/android/build.gradle)
 
             **Version:** ${{ inputs.version }}
@@ -104,5 +103,4 @@ jobs:
             android/measure-android/gradle.properties
             android/measure-gradle-plugin/gradle/libs.versions.toml
             react-native/android/build.gradle.kts
-            react-native/example/rnExample/android/app/build.gradle
             flutter/packages/measure_flutter/android/build.gradle
