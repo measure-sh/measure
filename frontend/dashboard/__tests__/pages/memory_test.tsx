@@ -50,6 +50,7 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => ({
   ),
 }));
 jest.mock("@/app/components/skeleton", () => ({
+  ...jest.requireActual("@/app/components/skeleton"),
   SkeletonListPage: () => <div data-testid="skeleton-list-page-mock" />,
 }));
 jest.mock("@/app/components/memory_usage_plot", () => () => (
@@ -111,15 +112,15 @@ describe("MemoryPage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseMemoryUsagePlotQuery.mockReturnValue({
-      status: "pending",
+      status: "success",
       error: null,
     });
     mockUseMemoryUsageBreakdownQuery.mockReturnValue({
-      status: "pending",
+      status: "success",
       error: null,
     });
     mockUseHighMemoryUsageSessionsQuery.mockReturnValue({
-      status: "pending",
+      status: "success",
       error: null,
     });
   });
@@ -150,6 +151,35 @@ describe("MemoryPage", () => {
     render(<MemoryPage params={params} />);
     expect(screen.getByText("Unable to load apps")).toBeInTheDocument();
   });
+
+  it.each([
+    { name: "plot", query: mockUseMemoryUsagePlotQuery },
+    { name: "breakdown", query: mockUseMemoryUsageBreakdownQuery },
+    { name: "sessions", query: mockUseHighMemoryUsageSessionsQuery },
+  ])(
+    "shows a placeholder while $name loads and preserves the selection",
+    ({ query }) => {
+      setApp("android-app", "android");
+      const { rerender } = render(<MemoryPage params={params} />);
+      fireEvent.change(screen.getByRole("combobox"), {
+        target: { value: "Background" },
+      });
+
+      query.mockReturnValue({ status: "pending", error: null });
+      rerender(<MemoryPage params={params} />);
+      expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+      expect(
+        screen.getByRole("status", { name: "Loading app importance" }),
+      ).toBeInTheDocument();
+
+      query.mockReturnValue({ status: "success", error: null });
+      rerender(<MemoryPage params={params} />);
+      expect(screen.getByRole("combobox")).toHaveValue("Background");
+      expect(
+        screen.queryByRole("status", { name: "Loading app importance" }),
+      ).not.toBeInTheDocument();
+    },
+  );
 
   it.each([
     { name: "plot", query: mockUseMemoryUsagePlotQuery },

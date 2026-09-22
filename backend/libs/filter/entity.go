@@ -308,7 +308,7 @@ var (
 	deviceTotalMemory = Key{
 		Name:                "device_total_memory",
 		Label:               "Device total memory",
-		Description:         "The total memory of the device, grouped by whole GB.",
+		Description:         "The total memory of the device.",
 		KeyGroup:            KeyGroupDevice,
 		ValueType:           ValueTypeEnum,
 		Operators:           []Operator{OperatorIn, OperatorNotIn},
