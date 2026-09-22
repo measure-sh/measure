@@ -9,28 +9,45 @@ import {
   useSaveNotifPrefsMutation,
 } from "@/app/query/hooks";
 import { toastNegative, toastPositive } from "@/app/components/toast";
-import { useState } from "react";
+import { isSandboxTeamId } from "@/app/utils/sandbox";
+import { use, useState } from "react";
 
 type NotifPrefs = typeof emptyNotifPrefs;
 
 interface NotifRowProps {
   rowTitle: string;
   checked: boolean;
+  disabled: boolean;
   handleChange: () => void;
 }
 
-function NotifRow({ rowTitle, checked, handleChange }: NotifRowProps) {
+function NotifRow({
+  rowTitle,
+  checked,
+  disabled,
+  handleChange,
+}: NotifRowProps) {
   return (
     <div className="table-row-group">
       <div className="table-cell py-2">{rowTitle}</div>
       <div className="table-cell px-12 py-2">
-        <Checkbox checked={checked} onCheckedChange={handleChange} />
+        <Checkbox
+          checked={checked}
+          disabled={disabled}
+          onCheckedChange={handleChange}
+        />
       </div>
     </div>
   );
 }
 
-export default function Notifications() {
+interface PageProps {
+  params: Promise<{ teamId: string }>;
+}
+
+export default function Notifications({ params }: PageProps) {
+  const { teamId } = use(params);
+  const readOnly = isSandboxTeamId(teamId);
   const notifPrefsQuery = useNotifPrefsQuery();
   const saveNotifPrefsMutation = useSaveNotifPrefsMutation();
 
@@ -121,28 +138,34 @@ export default function Notifications() {
             <NotifRow
               rowTitle="Crash Spike email"
               checked={updatedNotifPrefs.error_spike}
+              disabled={readOnly}
               handleChange={() => togglePref("error_spike")}
             />
             <NotifRow
               rowTitle="ANR spike email"
               checked={updatedNotifPrefs.app_hang_spike}
+              disabled={readOnly}
               handleChange={() => togglePref("app_hang_spike")}
             />
             <NotifRow
               rowTitle="Bug Reports"
               checked={updatedNotifPrefs.bug_report}
+              disabled={readOnly}
               handleChange={() => togglePref("bug_report")}
             />
             <NotifRow
               rowTitle="Daily Summary"
               checked={updatedNotifPrefs.daily_summary}
+              disabled={readOnly}
               handleChange={() => togglePref("daily_summary")}
             />
           </div>
           <div className="py-4" />
           <Button
             variant="outline"
-            disabled={areNotifPrefsSame || saveNotifPrefsMutation.isPending}
+            disabled={
+              readOnly || areNotifPrefsSame || saveNotifPrefsMutation.isPending
+            }
             className="flex justify-center font-display border border-black select-none"
             onClick={handleSave}
           >

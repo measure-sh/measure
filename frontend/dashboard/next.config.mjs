@@ -20,6 +20,15 @@ const NOINDEX_SOURCES = [
   "/docs/api/sdk/:path*",
 ];
 
+// The sandbox is left out of robots.txt's disallow list on purpose. A
+// disallowed URL is never fetched, so the crawler would not see this noindex
+// header and could still list the URL the landing page links to.
+const SANDBOX_SOURCES = [
+  "/sandbox",
+  "/sandbox/:path*",
+  "/sandbox-attachments/:path*",
+];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   // Standalone output exists for the self-hosted Docker image, which copies
@@ -460,6 +469,15 @@ const nextConfig = {
           {
             key: "X-Robots-Tag",
             value: "noindex",
+          },
+        ],
+      })),
+      ...SANDBOX_SOURCES.map((source) => ({
+        source,
+        headers: [
+          {
+            key: "X-Robots-Tag",
+            value: "noindex, nofollow",
           },
         ],
       })),

@@ -237,6 +237,15 @@ export default function LandingFooter() {
               Pricing
             </Link>
             <Link
+              href="/sandbox/overview"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit justify-start",
+              )}
+            >
+              Interactive Demo
+            </Link>
+            <Link
               href="/docs"
               className={cn(
                 buttonVariants({ variant: "ghost" }),

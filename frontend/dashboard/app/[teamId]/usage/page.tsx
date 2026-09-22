@@ -27,6 +27,7 @@ import {
   PRICE_PER_GB_MONTH,
   PRO_RETENTION_DAYS,
 } from "@/app/utils/pricing_constants";
+import { isSandboxTeamId } from "@/app/utils/sandbox";
 import {
   chartTheme,
   underlineLinkStyle,
@@ -126,6 +127,7 @@ function parseUsageForMonth(usage: any[], month: string): AppMonthlyUsage[] {
 
 export default function Usage(props: { params: Promise<{ teamId: string }> }) {
   const params = use(props.params);
+  const showBilling = isBillingEnabled() && !isSandboxTeamId(params.teamId);
   const { theme } = useTheme();
   const chartColors = useChartColors();
 
@@ -146,10 +148,10 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
 
   const { data: usageData, status: usageStatus } = useUsageQuery(params.teamId);
   const { data: permissions } = useUsagePermissionsQuery(
-    isBillingEnabled() ? params.teamId : undefined,
+    showBilling ? params.teamId : undefined,
   );
   const { data: billingInfo, status: billingInfoStatus } = useBillingInfoQuery(
-    isBillingEnabled() ? params.teamId : undefined,
+    showBilling ? params.teamId : undefined,
     {
       refetchInterval: awaitingProConfirmation
         ? (q) => (q.state.data?.plan === "pro" ? false : 1000)
@@ -440,7 +442,7 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
         </div>
       )}
 
-      {isBillingEnabled() && (
+      {showBilling && (
         <div className="flex flex-col items-start py-4 w-full">
           <div className="py-4" />
           <p className="font-display text-3xl max-w-6xl text-center">Billing</p>

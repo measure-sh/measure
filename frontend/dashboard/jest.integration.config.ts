@@ -27,6 +27,7 @@ const integrationJestConfig = async () => {
     globals: {
       fetch: () => {},
       Request: function () {},
+      __JEST_INTEGRATION__: true,
     },
   })();
 
@@ -46,7 +47,7 @@ const integrationJestConfig = async () => {
     // Polyfill Fetch API globals (Response, Request, etc.) after jsdom
     // initializes but before test modules load. `setupFiles` runs too
     // early (before jsdom), so we use `setupFilesAfterEnv`.
-    setupFilesAfterEnv: ["<rootDir>/__tests__/msw/jest-polyfills.ts"],
+    setupFilesAfterEnv: ["<rootDir>/__tests__/helpers/fetch_polyfill.ts"],
     // Don't collect coverage — integration tests measure behavior, not lines
     collectCoverage: false,
     // TanStack Query integration tests need slightly longer for async chains

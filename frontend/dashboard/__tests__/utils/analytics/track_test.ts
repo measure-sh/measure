@@ -24,6 +24,7 @@ beforeEach(() => {
 
 afterEach(() => {
   captureSpy.mockClear();
+  window.history.replaceState(null, "", "/");
 });
 
 describe("track", () => {
@@ -59,6 +60,16 @@ describe("track", () => {
   it("handles missing props object", () => {
     track("no_props_event", undefined);
     expect(captureSpy).toHaveBeenCalledWith("no_props_event", {
+      schema_version: "v1",
+    });
+  });
+
+  it("adds sandbox: true on a /sandbox/ path", () => {
+    window.history.replaceState(null, "", "/sandbox/overview");
+    track("clicked_button", { button: "signup" });
+    expect(captureSpy).toHaveBeenCalledWith("clicked_button", {
+      button: "signup",
+      sandbox: true,
       schema_version: "v1",
     });
   });

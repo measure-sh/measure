@@ -28,12 +28,14 @@ export default function BuildsResults({
   filterExprHasIssues,
   onNextPage,
   onPrevPage,
+  downloadsDisabled = false,
 }: {
   status: FilterStatus;
   query: ReturnType<typeof useBuildsQuery>;
   filterExprHasIssues: boolean;
   onNextPage: () => void;
   onPrevPage: () => void;
+  downloadsDisabled?: boolean;
 }) {
   const builds = query.data ?? emptyBuildsResponse;
 
@@ -70,14 +72,23 @@ export default function BuildsResults({
             <LoadingBar />
           </div>
           <div className="py-4" />
-          <BuildsTable builds={builds.results} />
+          <BuildsTable
+            builds={builds.results}
+            downloadsDisabled={downloadsDisabled}
+          />
         </div>
       )}
     </>
   );
 }
 
-function BuildsTable({ builds }: { builds: Build[] }) {
+function BuildsTable({
+  builds,
+  downloadsDisabled,
+}: {
+  builds: Build[];
+  downloadsDisabled: boolean;
+}) {
   return (
     <Table className="font-display select-none">
       <TableHeader>
@@ -88,14 +99,24 @@ function BuildsTable({ builds }: { builds: Build[] }) {
       </TableHeader>
       <TableBody>
         {builds?.map((build) => (
-          <BuildRow key={buildKey(build)} build={build} />
+          <BuildRow
+            key={buildKey(build)}
+            build={build}
+            downloadsDisabled={downloadsDisabled}
+          />
         ))}
       </TableBody>
     </Table>
   );
 }
 
-function BuildRow({ build }: { build: Build }) {
+function BuildRow({
+  build,
+  downloadsDisabled,
+}: {
+  build: Build;
+  downloadsDisabled: boolean;
+}) {
   const { title, subtitle } = describeBuild(build);
 
   return (
@@ -114,7 +135,7 @@ function BuildRow({ build }: { build: Build }) {
       <TableCell className="w-[40%] align-top">
         <div className="flex flex-col items-end gap-2">
           {build.files?.map((file) => (
-            <FileRow key={file.id} file={file} />
+            <FileRow key={file.id} file={file} disabled={downloadsDisabled} />
           ))}
         </div>
       </TableCell>
@@ -122,7 +143,7 @@ function BuildRow({ build }: { build: Build }) {
   );
 }
 
-function FileRow({ file }: { file: BuildFile }) {
+function FileRow({ file, disabled }: { file: BuildFile; disabled: boolean }) {
   const url = `/api${file.download_url}`;
 
   return (
@@ -135,18 +156,24 @@ function FileRow({ file }: { file: BuildFile }) {
           {formatDateToHumanReadableDateTime(file.last_updated)}
         </p>
       </div>
-      <Button variant="outline" asChild>
-        <a
-          href={url}
-          download
-          onClick={(e) => {
-            e.preventDefault();
-            downloadBuildFile(url);
-          }}
-        >
+      {disabled ? (
+        <Button variant="outline" disabled>
           Download
-        </a>
-      </Button>
+        </Button>
+      ) : (
+        <Button variant="outline" asChild>
+          <a
+            href={url}
+            download
+            onClick={(e) => {
+              e.preventDefault();
+              downloadBuildFile(url);
+            }}
+          >
+            Download
+          </a>
+        </Button>
+      )}
     </div>
   );
 }

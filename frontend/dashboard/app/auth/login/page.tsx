@@ -3,9 +3,9 @@
 import { validateInvitesFromServer } from "@/app/api/api_calls";
 import { ApiError } from "@/app/api/api_error";
 import { fetchCurrentSession, type Session } from "@/app/query/hooks";
-import { queryClient } from "@/app/query/query_client";
 import { useMeasureStoreRegistry } from "@/app/stores/provider";
 import { resetAllStores } from "@/app/stores/reset_all";
+import { useQueryClient } from "@tanstack/react-query";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -111,6 +111,7 @@ export default function Login(props: {
   }, [inviteId, isMcp]);
 
   const registry = useMeasureStoreRegistry();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     if (isMcp) {
@@ -118,8 +119,7 @@ export default function Login(props: {
     }
 
     // Clear any leftover state from a previous user so the next sign-in starts fresh
-    resetAllStores(registry);
-    queryClient.clear();
+    resetAllStores(registry, queryClient);
   }, [isMcp]);
 
   useEffect(() => {

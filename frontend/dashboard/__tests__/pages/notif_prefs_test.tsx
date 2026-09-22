@@ -1,4 +1,5 @@
 import Notifications from "@/app/[teamId]/notif_prefs/page";
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -92,14 +93,14 @@ describe("Notifications page", () => {
 
   it("renders loading state initially", () => {
     mockNotifPrefsStatus = "pending";
-    render(<Notifications />);
+    render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
     expect(screen.getAllByTestId("skeleton-mock").length).toBeGreaterThan(0);
   });
 
   it("renders four notification checkboxes with correct labels", () => {
     mockNotifPrefsStatus = "success";
     mockNotifPrefsData = defaultNotifPrefs;
-    render(<Notifications />);
+    render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
 
     expect(screen.getByText("Crash Spike email")).toBeInTheDocument();
     expect(screen.getByText("ANR spike email")).toBeInTheDocument();
@@ -116,7 +117,7 @@ describe("Notifications page", () => {
   it("renders table headers", () => {
     mockNotifPrefsStatus = "success";
     mockNotifPrefsData = defaultNotifPrefs;
-    render(<Notifications />);
+    render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
 
     expect(screen.getByText("Alert type")).toBeInTheDocument();
     expect(screen.getByText("Email")).toBeInTheDocument();
@@ -125,7 +126,7 @@ describe("Notifications page", () => {
   it("renders description text", () => {
     mockNotifPrefsStatus = "success";
     mockNotifPrefsData = defaultNotifPrefs;
-    render(<Notifications />);
+    render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
 
     expect(
       screen.getByText(/Choose which email notifications you want to receive/),
@@ -135,7 +136,7 @@ describe("Notifications page", () => {
   it("save button is disabled when no changes", () => {
     mockNotifPrefsStatus = "success";
     mockNotifPrefsData = defaultNotifPrefs;
-    render(<Notifications />);
+    render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
 
     expect(screen.getByText("Crash Spike email")).toBeInTheDocument();
 
@@ -146,7 +147,7 @@ describe("Notifications page", () => {
   it("toggling a checkbox enables save button", () => {
     mockNotifPrefsStatus = "success";
     mockNotifPrefsData = defaultNotifPrefs;
-    render(<Notifications />);
+    render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
 
     expect(screen.getByText("Crash Spike email")).toBeInTheDocument();
 
@@ -161,7 +162,7 @@ describe("Notifications page", () => {
     mockNotifPrefsStatus = "success";
     mockNotifPrefsData = defaultNotifPrefs;
     mockMutateAsync.mockResolvedValue(undefined);
-    render(<Notifications />);
+    render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
 
     expect(screen.getByText("Crash Spike email")).toBeInTheDocument();
 
@@ -187,7 +188,7 @@ describe("Notifications page", () => {
     mockNotifPrefsStatus = "success";
     mockNotifPrefsData = defaultNotifPrefs;
     mockMutateAsync.mockResolvedValue(undefined);
-    render(<Notifications />);
+    render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
 
     expect(screen.getByText("Crash Spike email")).toBeInTheDocument();
 
@@ -208,7 +209,7 @@ describe("Notifications page", () => {
     mockNotifPrefsStatus = "success";
     mockNotifPrefsData = defaultNotifPrefs;
     mockMutateAsync.mockRejectedValue(new Error("something went wrong"));
-    render(<Notifications />);
+    render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
 
     expect(screen.getByText("Crash Spike email")).toBeInTheDocument();
 
@@ -229,14 +230,14 @@ describe("Notifications page", () => {
   it("renders team-scoped disclaimer", () => {
     mockNotifPrefsStatus = "success";
     mockNotifPrefsData = defaultNotifPrefs;
-    render(<Notifications />);
+    render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
 
     expect(screen.getByText(/does not affect your team/)).toBeInTheDocument();
   });
 
   it("shows error when fetch fails", () => {
     mockNotifPrefsStatus = "error";
-    render(<Notifications />);
+    render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
 
     expect(
       screen.getByText(/Failed to fetch notification preferences/),

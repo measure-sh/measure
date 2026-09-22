@@ -49,7 +49,10 @@ const platformLinks = [
   { href: "/for/kmp", label: "Kotlin Multiplatform" },
 ];
 
-const learnLinks = [{ href: "/why-measure", label: "Why Measure?" }];
+const exploreLinks = [
+  { href: "/why-measure", label: "Why Measure?" },
+  { href: "/sandbox/overview", label: "Interactive Demo" },
+];
 
 const companyLinks = [
   { href: "/about", label: "About" },
@@ -357,8 +360,8 @@ export default function LandingHeader({
             </Link>
             <NavDropdown label="Resources" onOpenChange={setIsDropdownOpen}>
               <div className="flex flex-col gap-3 min-w-48">
-                <NavDropdownSection title="Learn">
-                  {learnLinks.map((link) => (
+                <NavDropdownSection title="Explore">
+                  {exploreLinks.map((link) => (
                     <NavDropdownLink key={link.href} {...link} />
                   ))}
                 </NavDropdownSection>
@@ -541,8 +544,8 @@ export default function LandingHeader({
                   Resources
                 </AccordionTrigger>
                 <AccordionContent className="flex flex-col gap-4">
-                  <p className={navSectionTitleClassName}>Learn</p>
-                  {learnLinks.map((link) =>
+                  <p className={navSectionTitleClassName}>Explore</p>
+                  {exploreLinks.map((link) =>
                     link.href === githubUrl ? (
                       <TrackGithubLink
                         key={link.href}

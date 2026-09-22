@@ -29,6 +29,16 @@ jest.mock("@/app/utils/navigation", () => ({
   reloadPage: jest.fn(),
 }));
 
+const sandboxResponse = new Response(JSON.stringify({ ok: true }), {
+  status: 200,
+  headers: { "content-type": "application/json" },
+});
+const handleSandboxRequest = jest.fn().mockResolvedValue(sandboxResponse);
+
+jest.mock("@/app/sandbox/handlers", () => ({
+  handleSandboxRequest: (...args: unknown[]) => handleSandboxRequest(...args),
+}));
+
 import { ApiClient, apiClient } from "@/app/api/api_client";
 import { navigateTo } from "@/app/utils/navigation";
 import posthog from "posthog-js";
@@ -484,6 +494,48 @@ describe("ApiClient", () => {
   describe("apiClient singleton", () => {
     it("exports a default ApiClient instance", () => {
       expect(apiClient).toBeInstanceOf(ApiClient);
+    });
+  });
+
+  describe("fetch sandbox routing", () => {
+    // jsdom only lets tests change window.location through the history API.
+    function setPathname(pathname: string) {
+      window.history.replaceState(null, "", pathname);
+    }
+
+    beforeEach(() => {
+      handleSandboxRequest.mockClear();
+      setPathname("/");
+    });
+
+    afterEach(() => {
+      setPathname("/");
+    });
+
+    it("routes to the sandbox handler and never calls global fetch on a sandbox path", async () => {
+      setPathname("/sandbox/overview");
+
+      const result = await client.fetch("/api/teams");
+
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(handleSandboxRequest).toHaveBeenCalledWith(
+        "/api/teams",
+        expect.objectContaining({}),
+      );
+      expect(result).toBe(sandboxResponse);
+    });
+
+    it("still calls global fetch on a normal, non-sandbox path", async () => {
+      setPathname("/team-001/overview");
+      mockFetch.mockResolvedValueOnce({ ok: true, status: 200 });
+
+      await client.fetch("/api/teams");
+
+      expect(handleSandboxRequest).not.toHaveBeenCalled();
+      expect(mockFetch).toHaveBeenCalledWith(
+        "/api/teams",
+        expect.objectContaining({ credentials: "include" }),
+      );
     });
   });
 });

@@ -157,7 +157,10 @@ const config: Config = {
   // setupFiles: [],
 
   // A list of paths to modules that run some code to configure or set up the testing framework before each test
-  setupFilesAfterEnv: ["<rootDir>/__tests__/helpers/text_encoding.ts"],
+  setupFilesAfterEnv: [
+    "<rootDir>/__tests__/helpers/text_encoding.ts",
+    "<rootDir>/__tests__/helpers/fetch_polyfill.ts",
+  ],
 
   // The number of seconds after which a test is considered as slow and reported as such in the results.
   // slowTestThreshold: 5,

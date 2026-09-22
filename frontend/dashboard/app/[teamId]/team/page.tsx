@@ -44,6 +44,7 @@ import {
 } from "@/app/utils/shared_styles";
 import { formatToCamelCase } from "@/app/utils/string_utils";
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
+import { isSandboxTeamId } from "@/app/utils/sandbox";
 import { toastNegative, toastPositive } from "@/app/components/toast";
 import Image from "next/image";
 import { reloadPage } from "@/app/utils/navigation";
@@ -444,7 +445,9 @@ export default function TeamOverview(props: {
     <div className="flex flex-col items-start">
       <div className="flex w-full justify-end">
         <CreateTeam
-          disabled={teamsQuery.status === "pending"}
+          disabled={
+            teamsQuery.status === "pending" || isSandboxTeamId(params.teamId)
+          }
           onSuccess={(teamId) => router.push(`/${teamId}/team`)}
         />
       </div>
@@ -721,6 +724,7 @@ export default function TeamOverview(props: {
               className="m-4"
               disabled={
                 authz.can_invite_roles.length === 0 ||
+                isSandboxTeamId(params.teamId) ||
                 inviteMemberMutation.isPending ||
                 inviteMemberEmail === ""
               }

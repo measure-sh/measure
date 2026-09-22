@@ -1,3 +1,4 @@
+import { isSandboxPath } from "@/app/utils/sandbox";
 import { navigateTo } from "@/app/utils/navigation";
 import { AppRouterInstance } from "next/dist/shared/lib/app-router-context.shared-runtime";
 import posthog from "posthog-js";
@@ -70,6 +71,14 @@ export class ApiClient {
     config: RequestInit = {},
     redirectToLogin: boolean = true,
   ): Promise<Response> {
+    if (
+      typeof window !== "undefined" &&
+      isSandboxPath(window.location.pathname)
+    ) {
+      const { handleSandboxRequest } = await import("@/app/sandbox/handlers");
+      return handleSandboxRequest(resource, config);
+    }
+
     const getEndpoint = (res: string | Request | URL): string => {
       let urlStr: string;
       if (res instanceof Request) {

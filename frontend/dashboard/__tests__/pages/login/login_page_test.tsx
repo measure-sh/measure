@@ -23,8 +23,8 @@ jest.mock("@/app/stores/provider", () => ({
   useMeasureStoreRegistry: () => ({}),
 }));
 
-jest.mock("@/app/query/query_client", () => ({
-  queryClient: { clear: jest.fn() },
+jest.mock("@tanstack/react-query", () => ({
+  useQueryClient: () => ({ clear: jest.fn() }),
 }));
 
 jest.mock("@/app/stores/reset_all", () => ({

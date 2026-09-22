@@ -27,6 +27,7 @@ describe("robots", () => {
     expect(rule.disallow).toContain("/auth/");
     expect(rule.disallow).toContain("/api/");
     expect(rule.disallow).toContain("/yrtmlt/");
+    expect(rule.disallow).not.toContain("/sandbox/");
     expect(r.sitemap).toBe("https://measure.sh/sitemap.xml");
     expect(r.host).toBe("https://measure.sh");
   });

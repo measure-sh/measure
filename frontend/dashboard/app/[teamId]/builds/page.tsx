@@ -4,6 +4,7 @@ import FilterBar from "@/app/components/filter_bar/filter_bar";
 import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import { filterExprIssuesIn } from "@/app/api/api_error";
 import { useBuildsQuery } from "@/app/query/hooks";
+import { isSandboxTeamId } from "@/app/utils/sandbox";
 import { use } from "react";
 import BuildsResults from "./builds_results";
 
@@ -58,6 +59,7 @@ export default function Builds(props: { params: Promise<{ teamId: string }> }) {
         status={status}
         query={buildsQuery}
         filterExprHasIssues={filterExprIssues !== null}
+        downloadsDisabled={isSandboxTeamId(params.teamId)}
         onNextPage={nextPage}
         onPrevPage={prevPage}
       />
