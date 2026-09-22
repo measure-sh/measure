@@ -14,25 +14,25 @@ tags:
 
 ![Illustration of RAM modules with green memory blocks](/blog/assets/android-memory-monitoring-hero.png)
 
-Your Android app uses 200 MB of memory. Is that a lot?
+Your Android app uses 1 GB of memory. Is that a lot?
 
-Before answering, we need another question: 200 MB of what? Java heap? Native memory? RAM? Each of these measures something different, so we need to understand what they count before deciding whether 200 MB is a lot.
+Before answering, we need another question: 1 GB of what? Java heap? Native memory? RAM? Each of these measures something different, so we need to first understand what they actually mean. We'll then look at what the new Google Play memory thresholds use and how you can monitor and diagnose memory usage of your app using Measure.
 
-Let’s use an image gallery app as an example and see how its memory usage changes as someone browses photos and switches to another app.
+Imagine using an image gallery app as an example and see how its memory usage changes as someone browses photos, switches to another app or uploads a new photo in background.
 
 ## Java heap and native memory
 
-When someone opens the gallery app, it creates Java and Kotlin objects for the screen’s UI, the list of photos, and state such as the selected album. These objects live on the **Java heap**, which Android Runtime manages through garbage collection.
+When someone opens the app, it creates Java and Kotlin objects for the screen’s UI, the list of photos and state such as the selected album. These objects live on the **Java heap**, which Android Runtime manages through garbage collection.
 
 To see how much of the heap is in use and how much it can grow, we look at its **total**, **free**, and **max** memory:
 
 | Reading | Meaning |
 |---|---|
 | **Total** | The heap memory currently available to your app’s process, including used and free space. |
-| **Free** | The unused space inside that current capacity. |
+| **Free** | The unused space from the current capacity. |
 | **Max** | The maximum heap size the runtime will attempt to use. |
 
-For example, a total heap of 128 MB with 48 MB free has **80 MB in use** and room for more objects. If max is 256 MB, the heap can grow to that size as needed. This limit applies only to the Java heap, so the app’s overall memory usage can be higher.
+For example, a total heap of 128 MB with 48 MB free has **80 MB in use** and room for more objects. If max is 256 MB, the total heap can grow to that size if needed. This max limit applies only to the Java heap, so the app’s overall memory usage can be higher.
 
 The **native heap** holds allocations made by native code, including the Android libraries your app calls. Those libraries use native memory even if you haven’t written any C++. For example, on Android 8.0 and later, a bitmap’s pixel data lives in native memory, while the Java object representing it lives on the managed heap.
 
@@ -46,11 +46,11 @@ Alongside those objects and image buffers, the app needs memory for the code it 
 
 **RSS**, or Resident Set Size, is the amount of physical RAM currently used by your app’s process. Android measures this in blocks called **pages**, adding up the size of every page currently in RAM for that process.
 
-As the user scrolls through the gallery and more image buffers occupy RAM, those pages contribute to RSS alongside the rest of the process. This gives us a view of the app’s resident memory beyond what the heap readings alone can tell us.
+As the user scrolls through the gallery and more image buffers occupy RAM, those pages contribute to RSS alongside the rest of the process. RSS measures memory across the process, including memory outside the heaps.
 
 ### Memory shared with other apps
 
-The gallery also uses system libraries. Android can keep one copy of a library’s read-only code in RAM and make it accessible to three app processes. RSS counts those pages for each app, even though only one copy occupies RAM.
+The gallery app can decode a photo using `BitmapFactory`, which calls into Skia, a graphics library included with Android. A messaging app can use the same library to decode an attachment. Android can share the library’s read-only code pages between the two processes. RSS counts those shared pages in full for each app, even though they occupy RAM only once.
 
 **PSS**, or Proportional Set Size, counts private pages in full but divides shared pages among the processes using them. RSS and PSS describe the same physical memory using different accounting rules.
 
@@ -61,25 +61,25 @@ Suppose your process has 90 MB of private resident memory and shares another 30 
 | **RSS** | 90 MB + all 30 MB shared | 120 MB |
 | **PSS** | 90 MB + one-third of 30 MB shared | 100 MB |
 
-PSS is useful for dividing the cost of shared RAM, but its value can change when other processes start or stop sharing those pages. Both RSS and PSS describe resident memory at a particular moment. Their readings also depend on how Android manages those pages when the device runs low on RAM.
+PSS is useful for dividing the cost of shared RAM, but its value can change when other processes start or stop sharing those pages. Both RSS and PSS describe resident memory at a particular moment.
 
 ### Memory moved into swap
 
-Someone leaves the gallery to open the camera. Android may reclaim some of the gallery’s RAM while keeping its process alive.
+You leave the gallery app to open the camera. Android may free up some of the RAM used by the gallery while keeping its process alive.
 
-Android can discard pages of library code whose contents still match the file on storage, because it can reload those pages when needed. This memory is stored in **file-backed pages**.
+For example, it can reclaim RAM occupied by Skia’s image-decoding code. That code was loaded from files on the phone into **file-backed pages**. As long as a page hasn’t been modified, Android can discard it because the original file still holds the same contents. It can reload the page when the app needs that code again.
 
-The objects holding the gallery’s screen state have no exact copy in a file, so Android must preserve their contents. They belong to **anonymous memory**, which includes heap allocations and thread stacks.
+The objects tracking your selected album and scroll position are different. They were created while you used the app and live in **anonymous memory**, along with other heap allocations and thread stacks. There’s no file containing a copy of those pages, so Android needs to preserve their contents.
 
-Android can preserve this memory by moving it into **swap**, typically compressing it in **zRAM**. The compressed data still uses device RAM, but Android counts it as swap instead of including it in the gallery’s RSS.
+To keep those contents while using less RAM, Android can move the pages into **swap**. This usually means compressing them in **zRAM**, a compressed area of the phone’s RAM. These pages now count as swap and no longer contribute to the gallery app’s RSS.
 
-Discarding file-backed pages and moving anonymous pages into swap can both lower RSS without the app freeing any memory.
+So the gallery app’s RSS can fall even though it still holds the same objects and image buffers.
 
 ![Diagram of device RAM showing the app’s resident memory, compressed swap in zRAM, other processes, and free space.](/blog/assets/android-memory-swap-illustration.webp)
 
 ### Dynamic memory
 
-If we’re comparing gallery releases, we want to know whether our changes reduced the memory held by the app. A lower RSS could instead reflect Android discarding library code or compressing the same allocations.
+If we’re comparing gallery releases, we want to know whether our changes reduced the memory held by the app. But RSS can fall because Android has discarded code pages or moved memory into swap, even though the app still holds the same objects and image buffers.
 
 **Dynamic memory** focuses on anonymous memory, such as heaps and stacks, and includes the portion moved into swap. It combines two readings:
 
@@ -173,4 +173,4 @@ If native heap usage grew while the user loaded photos, image allocations are wo
 
 After shipping an improvement, return to the release comparison and keep the RAM group, app importance, and percentile the same. This lets you check whether memory usage has fallen for the group you were investigating. You can then open any sessions that are still flagged to see where usage remains high.
 
-If you need more frequent readings or want to change how many sessions are sampled, you can adjust both through **Adaptive Capture** without shipping another app release. The [Android memory monitoring guide](/docs/memory-monitoring#android) explains how to get started.
+If you need more frequent readings or want to change how many sessions are sampled, you can adjust both through **[Adaptive Capture](/product/adaptive-capture)** without shipping another app release. The [Android memory monitoring guide](/docs/memory-monitoring#android) explains how to get started.
