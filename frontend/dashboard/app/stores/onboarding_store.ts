@@ -1,4 +1,5 @@
 import { createStore } from "zustand/vanilla";
+import { isSandboxPath } from "@/app/utils/sandbox";
 
 // Where the user is in the onboarding flow.
 export type WizardStep = "create" | "integrate" | "verify" | "verified";
@@ -76,9 +77,15 @@ function isOnboardingAppState(parsed: unknown): parsed is OnboardingAppState {
   );
 }
 
+function storageEnabled(): boolean {
+  return (
+    typeof window !== "undefined" && !isSandboxPath(window.location.pathname)
+  );
+}
+
 function readOnboardingFromStorage(): Record<string, OnboardingAppState> {
   const result: Record<string, OnboardingAppState> = {};
-  if (typeof window === "undefined") {
+  if (!storageEnabled()) {
     return result;
   }
   try {
@@ -111,7 +118,7 @@ function writeOnboardingToStorage(
   appId: string,
   state: OnboardingAppState,
 ): void {
-  if (typeof window === "undefined") {
+  if (!storageEnabled()) {
     return;
   }
   try {
@@ -125,7 +132,7 @@ function writeOnboardingToStorage(
 }
 
 function removeOnboardingFromStorage(appId: string): void {
-  if (typeof window === "undefined") {
+  if (!storageEnabled()) {
     return;
   }
   try {

@@ -65,6 +65,7 @@ afterAll(() => server.close());
 
 // --- Store/component imports ---
 import Notifications from "@/app/[teamId]/notif_prefs/page";
+import { promiseParams } from "@/__tests__/helpers/promise_params";
 import { queryClient } from "@/app/query/query_client";
 import { QueryClientProvider } from "@tanstack/react-query";
 
@@ -94,7 +95,9 @@ describe("Notification Preferences (MSW integration)", () => {
         return new HttpResponse(null, { status: 500 });
       }),
     );
-    renderWithProviders(<Notifications />);
+    renderWithProviders(
+      <Notifications params={promiseParams({ teamId: "team-001" })} />,
+    );
     await waitFor(
       () => {
         expect(
@@ -111,7 +114,9 @@ describe("Notification Preferences (MSW integration)", () => {
 // ====================================================================
 describe("Notification Preferences — mutations", () => {
   async function renderAndWaitForData() {
-    renderWithProviders(<Notifications />);
+    renderWithProviders(
+      <Notifications params={promiseParams({ teamId: "team-001" })} />,
+    );
     await waitFor(
       () => {
         expect(screen.getByText("Crash Spike email")).toBeTruthy();

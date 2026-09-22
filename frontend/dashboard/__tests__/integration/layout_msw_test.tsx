@@ -44,13 +44,16 @@ if (typeof window.matchMedia === "undefined") {
 
 // --- External dependency mocks ---
 
+const mockPosthogGroup = jest.fn();
 jest.mock("posthog-js", () => ({
   __esModule: true,
   default: {
     reset: jest.fn(),
     capture: jest.fn(),
     init: jest.fn(),
-    group: jest.fn(),
+    group: (...args: any[]) => mockPosthogGroup(...args),
+    register: jest.fn(),
+    unregister: jest.fn(),
   },
 }));
 
@@ -107,6 +110,7 @@ afterEach(() => {
   mockRouterReplace.mockClear();
   mockRouterPush.mockClear();
   mockNotFound.mockClear();
+  mockPosthogGroup.mockClear();
   mockUsePathname.mockReturnValue("/team-001/overview");
 });
 afterAll(() => server.close());
@@ -190,5 +194,31 @@ describe("Dashboard Layout — unknown team in URL", () => {
       expect(screen.getByText(/Error fetching teams/)).toBeTruthy();
     });
     expect(mockNotFound).not.toHaveBeenCalled();
+  });
+});
+
+describe("Dashboard Layout — PostHog team group", () => {
+  it("groups events by the real team once teams resolve", async () => {
+    renderLayout();
+
+    await screen.findByText("Test Team");
+    await waitFor(() => {
+      expect(mockPosthogGroup).toHaveBeenCalledWith("team", "team-001", {
+        name: "Test Team",
+      });
+    });
+  });
+
+  it("does not group events for the sandbox team", async () => {
+    server.use(
+      http.get("*/api/teams", () =>
+        HttpResponse.json([{ id: "sandbox", name: "Acme Team" }]),
+      ),
+    );
+    mockUsePathname.mockReturnValue("/sandbox/overview");
+    renderLayout();
+
+    await screen.findByText("Acme Team");
+    expect(mockPosthogGroup).not.toHaveBeenCalled();
   });
 });

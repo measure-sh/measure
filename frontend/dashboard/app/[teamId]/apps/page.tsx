@@ -32,6 +32,7 @@ import SdkConfigNumericInput from "@/app/components/sdk_config_numeric_input";
 import SdkConfigurator from "@/app/components/sdk_configurator";
 import { Skeleton } from "@/app/components/skeleton";
 import { isCloud } from "@/app/utils/env_utils";
+import { isSandboxTeamId } from "@/app/utils/sandbox";
 import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
 import { toastNegative, toastPositive } from "@/app/components/toast";
@@ -66,7 +67,8 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
   const updateThresholdPrefsMutation = useUpdateAppThresholdPrefsMutation();
 
   // Derive permissions from authz query data
-  const canCreateApp = authzAndMembers?.can_create_app === true;
+  const canCreateApp =
+    authzAndMembers?.can_create_app === true && !isSandboxTeamId(params.teamId);
   const canRenameApp = authzAndMembers?.can_rename_app === true;
   const canChangeRetention = authzAndMembers?.can_change_retention === true;
   const canRotateApiKey = authzAndMembers?.can_rotate_api_key === true;

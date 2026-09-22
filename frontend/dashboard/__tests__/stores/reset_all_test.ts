@@ -4,13 +4,12 @@ import { createFiltersStore } from "@/app/stores/filters_store";
 import { createOnboardingStore } from "@/app/stores/onboarding_store";
 import type { MeasureStoreRegistry } from "@/app/stores/registry";
 import { resetAllStores } from "@/app/stores/reset_all";
+import type { QueryClient } from "@tanstack/react-query";
 
 const mockQueryClientClear = jest.fn();
-jest.mock("@/app/query/query_client", () => ({
-  queryClient: {
-    clear: () => mockQueryClientClear(),
-  },
-}));
+const testQueryClient = {
+  clear: () => mockQueryClientClear(),
+} as unknown as QueryClient;
 
 function createTestRegistry(): MeasureStoreRegistry {
   return {
@@ -37,7 +36,7 @@ describe("resetAllStores", () => {
       spy: jest.spyOn(registry[name].getState(), "reset"),
     }));
 
-    resetAllStores(registry);
+    resetAllStores(registry, testQueryClient);
 
     for (const { name, spy } of spies) {
       expect(spy).toHaveBeenCalled();
@@ -45,9 +44,9 @@ describe("resetAllStores", () => {
     }
   });
 
-  it("calls queryClient.clear()", () => {
+  it("clears the query client it is given", () => {
     const registry = createTestRegistry();
-    resetAllStores(registry);
+    resetAllStores(registry, testQueryClient);
     expect(mockQueryClientClear).toHaveBeenCalled();
   });
 

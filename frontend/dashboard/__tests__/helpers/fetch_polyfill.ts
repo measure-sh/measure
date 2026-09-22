@@ -1,15 +1,8 @@
-/**
- * Polyfills for MSW v2 in jsdom. The `jest-environment-jsdom` replaces
- * Node's Fetch API globals with undefined. We must restore them before
- * MSW's module code executes.
- *
- * Uses inline require() + Object.defineProperties to avoid declaring
- * local names that conflict with lib.dom.d.ts globals (TS6200).
- *
- * See: https://mswjs.io/docs/integrations/node#jest
- */
-
-// These must be set BEFORE requiring undici (which needs TextEncoder)
+// jest-environment-jsdom replaces Node's Fetch API globals with placeholders
+// that throw on `new Response()` and `instanceof Request`, so undici's classes
+// go in instead. A live fetch is installed only for the integration suite
+// because the unit suite mocks fetch and an unmocked call there would reach
+// the network.
 Object.defineProperties(globalThis, {
   TextDecoder: {
     value: require("node:util").TextDecoder,
@@ -43,26 +36,27 @@ Object.defineProperties(globalThis, {
   },
 });
 
-// Now safe to require undici for Fetch API globals
 const undici = require("undici");
+
 Object.defineProperties(globalThis, {
-  fetch: { value: undici.fetch, writable: true, configurable: true },
   Headers: { value: undici.Headers, writable: true, configurable: true },
   Request: { value: undici.Request, writable: true, configurable: true },
   Response: { value: undici.Response, writable: true, configurable: true },
 });
 
-// Radix UI tooltip/popover content measures its arrow via ResizeObserver,
-// which jsdom doesn't implement. A no-op lets tests reveal tooltip content
-// (e.g. hovering/focusing an InfoTooltip) without throwing.
-Object.defineProperties(globalThis, {
-  ResizeObserver: {
-    value: class {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
+if ((globalThis as any).__JEST_INTEGRATION__) {
+  Object.defineProperties(globalThis, {
+    fetch: { value: undici.fetch, writable: true, configurable: true },
+    ResizeObserver: {
+      value: class {
+        observe() {}
+        unobserve() {}
+        disconnect() {}
+      },
+      writable: true,
+      configurable: true,
     },
-    writable: true,
-    configurable: true,
-  },
-});
+  });
+}
+
+export {};

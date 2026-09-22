@@ -23,6 +23,7 @@ import posthog from "posthog-js";
 import React, { useEffect, useMemo, useState } from "react";
 import { Team } from "../api/api_calls";
 import { apiClient } from "../api/api_client";
+import SandboxBanner from "../components/sandbox_banner";
 import { Skeleton } from "../components/skeleton";
 import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher";
 import { ThemeToggle } from "../components/theme_toggle";
@@ -30,6 +31,7 @@ import UsageThresholdBanner from "../components/usage_threshold_banner";
 import UserAvatar from "../components/user_avatar";
 import { useMeasureStoreRegistry } from "../stores/provider";
 import { isCloud } from "../utils/env_utils";
+import { isSandboxTeamId } from "../utils/sandbox";
 
 type NavItem = {
   title: string;
@@ -176,13 +178,14 @@ export default function DashboardLayout({
   const pathName = usePathname();
   const router = useRouter();
 
+  const teamId = pathName.split("/")[1];
+
   const selectedTeam = useMemo(() => {
     if (!teams) {
       return null;
     }
-    const teamId = pathName.split("/")[1];
     return teams.find((e) => e.id === teamId) ?? null;
-  }, [teams, pathName]);
+  }, [teams, teamId]);
 
   // When teams have loaded and none matches the URL teamId, the id is either
   // malformed or names a team this user isn't a member of. Render the 404
@@ -199,11 +202,11 @@ export default function DashboardLayout({
   // Group subsequent events by team so PostHog can attribute engagement to
   // a team, not just an individual user.
   useEffect(() => {
-    if (!selectedTeam) {
+    if (isSandboxTeamId(teamId) || !selectedTeam) {
       return;
     }
     posthog.group("team", selectedTeam.id, { name: selectedTeam.name });
-  }, [selectedTeam?.id, selectedTeam?.name]);
+  }, [teamId, selectedTeam?.id, selectedTeam?.name]);
 
   // Mark the active nav item from the current path. prevPathName starts null so
   // this runs on first render too (buildInitNavData starts every item inactive).
@@ -353,7 +356,11 @@ export default function DashboardLayout({
                   </div>
                 </div>
               ) : (
-                <UserAvatar onLogoutClick={() => logoutUser()} />
+                <UserAvatar
+                  onLogoutClick={
+                    isSandboxTeamId(teamId) ? undefined : () => logoutUser()
+                  }
+                />
               )}
             </SidebarMenuItem>
           </SidebarMenu>
@@ -373,7 +380,11 @@ export default function DashboardLayout({
             </div>
           </header>
 
-          {selectedTeam && <UsageThresholdBanner teamId={selectedTeam.id} />}
+          {isSandboxTeamId(teamId) ? (
+            <SandboxBanner />
+          ) : (
+            selectedTeam && <UsageThresholdBanner teamId={selectedTeam.id} />
+          )}
         </div>
 
         <main className="flex justify-center">

@@ -53,17 +53,21 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ onLogoutClick }) => {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger asChild className="w-full">
+      <DropdownMenuTrigger
+        asChild
+        className="w-full"
+        disabled={onLogoutClick === undefined}
+      >
         <Button
           variant="outline"
           size={"lg"}
-          className="flex flex-row items-center w-full p-1 font-display"
-          disabled={isLoading}
+          className="flex flex-row items-center w-full p-1 font-display disabled:opacity-100"
+          disabled={isLoading || onLogoutClick === undefined}
         >
           <div className="aspect-square w-12 rounded-full">
             {session !== null && !sessionError && (
               <div className="relative w-full h-full rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
-                {!imageError ? (
+                {!imageError && session.user.avatar_url !== "" ? (
                   <Image
                     src={session.user.avatar_url}
                     fill
@@ -98,9 +102,11 @@ const UserAvatar: React.FC<UserAvatarProps> = ({ onLogoutClick }) => {
         className="select-none"
         onCloseAutoFocus={(e) => e.preventDefault()}
       >
-        <DropdownMenuItem onClick={handleLogoutClick} className="font-body">
-          Logout
-        </DropdownMenuItem>
+        {onLogoutClick !== undefined && (
+          <DropdownMenuItem onClick={handleLogoutClick} className="font-body">
+            Logout
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

@@ -286,6 +286,31 @@ describe("onboarding_store", () => {
     });
   });
 
+  describe("sandbox mode", () => {
+    afterEach(() => {
+      window.history.replaceState({}, "", "/");
+    });
+
+    it("neither reads nor writes localStorage while on a sandbox path", () => {
+      window.localStorage.setItem(
+        key("app-1"),
+        JSON.stringify({
+          step: "verify",
+          platform: "Android",
+          nativeTargets: {},
+        }),
+      );
+      window.history.replaceState({}, "", "/sandbox/overview");
+
+      const store = createOnboardingStore();
+      expect(store.getState().onboarding).toEqual({});
+
+      store.getState().setOnboardingStep("sandbox-app", "verify");
+      expect(store.getState().onboarding["sandbox-app"].step).toBe("verify");
+      expect(window.localStorage.getItem(key("sandbox-app"))).toBeNull();
+    });
+  });
+
   describe("reset", () => {
     it("wipes all in-memory onboarding entries", () => {
       const store = createOnboardingStore();

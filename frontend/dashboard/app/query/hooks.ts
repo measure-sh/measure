@@ -81,7 +81,6 @@ import {
 import type { FilterKeysResponse } from "@/app/api/filter_types";
 import { ApiError } from "@/app/api/api_error";
 import { apiClient } from "@/app/api/api_client";
-import { queryClient } from "@/app/query/query_client";
 import {
   Query,
   keepPreviousData,
@@ -1163,6 +1162,7 @@ export function useBugReportQuery(appId: string, bugReportId: string) {
 }
 
 export function useToggleBugReportStatusMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: {
       appId: string;
@@ -1194,6 +1194,7 @@ export function useNotifPrefsQuery() {
 }
 
 export function useSaveNotifPrefsMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { notifPrefs: typeof emptyNotifPrefs }) => {
       try {
@@ -1230,6 +1231,7 @@ export function useCreateAppMutation() {
 // ─── Create Team ────────────────────────────────────────────────────────
 
 export function useCreateTeamMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { teamName: string }) => {
       const result = await createTeamFromServer(params.teamName);
@@ -1292,6 +1294,7 @@ export function useBillingInfoQuery(
 // ─── Apps Store: Mutations ──────────────────────────────────────────────
 
 export function useUpdateAppRetentionMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: {
       appId: string;
@@ -1338,6 +1341,7 @@ export function useChangeAppApiKeyMutation() {
 }
 
 export function useUpdateAppThresholdPrefsMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: {
       appId: string;
@@ -1356,6 +1360,7 @@ export function useUpdateAppThresholdPrefsMutation() {
 // ─── SDK Configurator ───────────────────────────────────────────────────
 
 export function useSaveSdkConfigMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: { appId: string; config: Partial<SdkConfig> }) =>
       updateSdkConfigFromServer(params.appId, params.config),
@@ -1402,6 +1407,7 @@ export function useTeamSlackStatusQuery(teamId: string | undefined) {
 // ─── Team Page: Mutations ───────────────────────────────────────────────
 
 export function useChangeTeamNameMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { teamId: string; newName: string }) => {
       await changeTeamNameFromServer(params.teamId, params.newName);
@@ -1413,6 +1419,7 @@ export function useChangeTeamNameMutation() {
 }
 
 export function useInviteMemberMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: {
       teamId: string;
@@ -1433,6 +1440,7 @@ export function useInviteMemberMutation() {
 }
 
 export function useRemoveMemberMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { teamId: string; memberId: string }) => {
       await removeMemberFromServer(params.teamId, params.memberId);
@@ -1446,6 +1454,7 @@ export function useRemoveMemberMutation() {
 }
 
 export function useResendPendingInviteMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { teamId: string; inviteId: string }) => {
       await resendPendingInviteFromServer(params.teamId, params.inviteId);
@@ -1459,6 +1468,7 @@ export function useResendPendingInviteMutation() {
 }
 
 export function useRemovePendingInviteMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { teamId: string; inviteId: string }) => {
       await removePendingInviteFromServer(params.teamId, params.inviteId);
@@ -1472,6 +1482,7 @@ export function useRemovePendingInviteMutation() {
 }
 
 export function useChangeRoleMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: {
       teamId: string;
@@ -1493,6 +1504,7 @@ export function useChangeRoleMutation() {
 }
 
 export function useUpdateSlackStatusMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { teamId: string; status: boolean }) => {
       await updateTeamSlackStatusFromServer(params.teamId, params.status);
@@ -1506,6 +1518,7 @@ export function useUpdateSlackStatusMutation() {
 }
 
 export function useRemoveTeamSlackMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (params: { teamId: string }) => {
       await removeTeamSlackFromServer(params.teamId);
@@ -1554,6 +1567,7 @@ export function useUsagePermissionsQuery(teamId: string | undefined) {
 // ─── Usage Store: Mutations ─────────────────────────────────────────────
 
 export function useHandleUpgradeMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: { teamId: string; successUrl: string }) =>
       fetchCheckoutSessionFromServer(params.teamId, params.successUrl),
@@ -1566,6 +1580,7 @@ export function useHandleUpgradeMutation() {
 }
 
 export function useDowngradeToFreeMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: { teamId: string }) =>
       downgradeToFreeFromServer(params.teamId),
@@ -1578,6 +1593,7 @@ export function useDowngradeToFreeMutation() {
 }
 
 export function useUndoDowngradeMutation() {
+  const queryClient = useQueryClient();
   return useMutation({
     mutationFn: (params: { teamId: string }) =>
       undoDowngradeFromServer(params.teamId),

@@ -98,22 +98,6 @@ jest.mock("next/link", () => ({
   ),
 }));
 
-jest.mock("luxon", () => ({
-  DateTime: {
-    now: () => ({
-      toUTC: () => ({
-        minus: () => ({
-          plus: () => ({
-            toISO: () => "2024-01-01T00:00:00.000Z",
-          }),
-          toISO: () => "2024-01-01T00:00:00.000Z",
-        }),
-        toISO: () => "2024-01-01T00:00:00.000Z",
-      }),
-    }),
-  },
-}));
-
 import TraceDetails from "@/app/components/trace/details";
 
 function mockTraceDataObj() {
