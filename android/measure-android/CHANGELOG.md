@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [android-v0.21.0] - 2026-09-22
+
+### :sparkles: New features
+
+- (**android**): Collect and sample memory usage (#4477) by @abhaysood
+- (**android**): Attach layout snapshots to lifecycle and screen views (#4418) by @abhaysood in #4418
+
+### :hammer: Misc
+
+- (**android**): Prepare next development version 0.21.0-SNAPSHOT (#4365) by @abhaysood in #4365
+
 ## [android-v0.20.0] - 2026-09-02
 
 ### :bug: Bug fixes
@@ -13,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**android**): Prepare sdk release 0.20.0 (#4363) by @abhaysood in #4363
 - (**android**): Support AGP 9 and lower the androidx deps versions (#4236) by @abhaysood in #4236
 - (**android**): Prepare next development version 0.20.0-SNAPSHOT by @abhaysood in #4118
 
@@ -944,6 +956,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Add missing links to readme by @abhaysood
 - (**android**): Create a template for Android SDK documentation by @abhaysood
 
+[android-v0.21.0]: https://github.com/measure-sh/measure/compare/android-v0.20.0..android-v0.21.0
 [android-v0.20.0]: https://github.com/measure-sh/measure/compare/android-v0.19.0..android-v0.20.0
 [android-v0.19.0]: https://github.com/measure-sh/measure/compare/android-v0.18.0..android-v0.19.0
 [android-v0.18.0]: https://github.com/measure-sh/measure/compare/android-v0.17.0..android-v0.18.0
