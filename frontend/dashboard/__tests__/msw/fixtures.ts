@@ -1194,7 +1194,7 @@ export function makeSdkConfigFixture(overrides: Record<string, any> = {}) {
     screenshot_mask_level: "all_text_and_media",
     memory_usage_interval: 5,
     memory_usage_background_interval: 10,
-    memory_usage_session_sampling_rate: 100,
+    memory_usage_session_sampling_rate: 0.01,
     log_autocollect_enabled: true,
     log_min_severity: 12,
     log_ignore_patterns: [],

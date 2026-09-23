@@ -2439,7 +2439,7 @@ paths:
                       the background.
                   memory_usage_session_sampling_rate:
                     type: number
-                    default: 100
+                    default: 0.01
                     minimum: 0
                     maximum: 100
                     description: Percentage of sessions that report memory usage on Android and iOS/iPadOS.
@@ -2547,7 +2547,7 @@ paths:
                 cpu_usage_interval: 5
                 memory_usage_interval: 5
                 memory_usage_background_interval: 10
-                memory_usage_session_sampling_rate: 100
+                memory_usage_session_sampling_rate: 0.01
                 error_fatal_take_screenshot: true
                 error_fatal_replay_enabled: true
                 error_unhandled_replay_enabled: false
