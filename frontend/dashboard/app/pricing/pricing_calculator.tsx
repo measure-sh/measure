@@ -311,7 +311,7 @@ export default function PricingCalculator() {
               "text-xl px-8 py-6 w-full text-center",
             )}
           >
-            Get Started For Free
+            Get Started
           </TrackCtaLink>
 
           <p

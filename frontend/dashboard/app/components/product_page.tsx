@@ -141,7 +141,7 @@ export default function ProductPage({
             "text-2xl px-8 py-8",
           )}
         >
-          Get Started For Free
+          Get Started
         </TrackCtaLink>
         <div className="py-16" />
       </div>
