@@ -14,6 +14,7 @@ import Measure
     enum TableSection: Int, CaseIterable {
         case crashes = 0
         case httpEvents = 1
+        case appHangs = 2
 
         var title: String {
             switch self {
@@ -21,6 +22,8 @@ import Measure
                 return "Crash Types"
             case .httpEvents:
                 return "HTTP Events"
+            case .appHangs:
+                return "App Hangs"
             }
         }
     }
@@ -50,6 +53,8 @@ import Measure
                           "PUT – 400 Client Error",
                           "GET – Network Error",
                           "GET – Non-JSON Response"]
+
+    let appHangTypes = ["Block Main Thread"]
 
     private let tableView = UITableView(frame: .zero, style: .plain)
 
@@ -203,7 +208,14 @@ import Measure
     func tableView(_ tableView: UITableView,
                    numberOfRowsInSection section: Int) -> Int {
         guard let sectionType = TableSection(rawValue: section) else { return 0 }
-        return sectionType == .crashes ? crashTypes.count : httpEventTypes.count
+        switch sectionType {
+        case .crashes:
+            return crashTypes.count
+        case .httpEvents:
+            return httpEventTypes.count
+        case .appHangs:
+            return appHangTypes.count
+        }
     }
 
     func tableView(_ tableView: UITableView,
@@ -220,6 +232,10 @@ import Measure
         case .httpEvents:
             cell.textLabel?.text = httpEventTypes[indexPath.row]
             cell.textLabel?.textColor = .systemBlue
+
+        case .appHangs:
+            cell.textLabel?.text = appHangTypes[indexPath.row]
+            cell.textLabel?.textColor = .systemOrange
         }
 
         return cell
@@ -238,7 +254,52 @@ import Measure
             triggerCrash(type: crashTypes[indexPath.row])
         case .httpEvents:
             triggerHttpEvent(type: httpEventTypes[indexPath.row])
+        case .appHangs:
+            presentAppHangOptions(from: tableView.cellForRow(at: indexPath))
         }
+    }
+
+    // MARK: - App Hangs
+
+    private func presentAppHangOptions(from sourceView: UIView?) {
+        let alert = UIAlertController(title: "Block Main Thread",
+                                      message: "Blocks the main thread for the selected duration.",
+                                      preferredStyle: .actionSheet)
+
+        // 1 second sits below the 2000ms detection threshold, so it should not be reported.
+        let durations: [(String, TimeInterval)] = [("1 second (below threshold)", 1.0),
+                                                   ("2.5 seconds", 2.5),
+                                                   ("5 seconds", 5.0),
+                                                   ("10 seconds", 10.0)]
+
+        for (title, duration) in durations {
+            alert.addAction(UIAlertAction(title: title, style: .default) { _ in
+                Thread.sleep(forTimeInterval: duration)
+            })
+        }
+
+        // Many short blocks rather than one long one. The ping detector measures main queue
+        // drain latency, so it reports this even though no single work item is slow — which is
+        // the point: the app is just as unresponsive either way.
+        alert.addAction(UIAlertAction(title: "100 micro hangs (100 × 50ms)", style: .default) { _ in
+            // 100 separate work items queued at once, so the app is unresponsive for ~5s but no
+            // single item takes longer than 50ms. Sleeping 100 times in this handler instead
+            // would be one continuous 5s block, which is the case the other options already cover.
+            for _ in 0..<100 {
+                DispatchQueue.main.async {
+                    Thread.sleep(forTimeInterval: 0.05)
+                }
+            }
+        })
+
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = sourceView ?? view
+            popover.sourceRect = (sourceView ?? view).bounds
+        }
+
+        present(alert, animated: true)
     }
 
     // MARK: - HTTP Tracking

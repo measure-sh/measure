@@ -182,4 +182,121 @@ final class EventStoreTests: XCTestCase {
         let count = eventStore.getEventsCount()
         XCTAssertEqual(count, 2)
     }
+    // MARK: - App Hang
+
+    private func appHangPayload(state: AppHangState, duration: Number) -> Data {
+        let detail = AppHangDetail(threadName: "main", threadSequence: 0, osBuildNumber: "22D72", frames: [])
+        let appHang = AppHang(exceptions: [detail],
+                              duration: duration,
+                              state: state,
+                              framework: Framework.apple,
+                              foreground: true,
+                              binaryImages: nil)
+        return try! JSONEncoder().encode(appHang) // swiftlint:disable:this force_try
+    }
+
+    func testAppHangPayloadRoundTrips() {
+        let payload = appHangPayload(state: .killed, duration: 2000)
+        let event = TestDataGenerator.generateEvents(id: "1", type: "app_hang", appHang: payload, pendingResolution: true)
+
+        eventStore.insertEvent(event: event)
+
+        guard let stored = eventStore.getEvents(eventIds: ["1"])?.first else {
+            XCTFail("Expected the app hang event to be stored.")
+            return
+        }
+        XCTAssertEqual(stored.appHang, payload)
+        XCTAssertTrue(stored.pendingResolution)
+        XCTAssertEqual(stored.payloadData, payload, "payloadData must resolve app_hang to the appHang column.")
+
+        let decoded = try? JSONDecoder().decode(AppHang.self, from: stored.appHang ?? Data())
+        XCTAssertEqual(decoded?.state, .killed)
+        XCTAssertEqual(decoded?.duration, 2000)
+    }
+
+    /// An app hang is written the moment it is detected, before its outcome is known. Until it
+    /// resolves it must stay out of every export query, even though `needsReporting` is set.
+    func testUnresolvedAppHangIsNotExported() {
+        let hang = TestDataGenerator.generateEvents(id: "1",
+                                                    type: "app_hang",
+                                                    appHang: appHangPayload(state: .killed, duration: 2000),
+                                                    needsReporting: true,
+                                                    pendingResolution: true)
+        let other = TestDataGenerator.generateEvents(id: "2", needsReporting: true)
+
+        eventStore.insertEvent(event: hang)
+        eventStore.insertEvent(event: other)
+
+        let unBatched = eventStore.getUnBatchedEvents(eventCount: 10, ascending: true, sessionId: nil)
+        XCTAssertEqual(unBatched, ["2"], "An unresolved app hang must not be picked up for export.")
+    }
+
+    func testResolveAppHangMakesEventExportable() {
+        let hang = TestDataGenerator.generateEvents(id: "1",
+                                                    type: "app_hang",
+                                                    appHang: appHangPayload(state: .killed, duration: 2000),
+                                                    needsReporting: false,
+                                                    pendingResolution: true)
+        eventStore.insertEvent(event: hang)
+
+        let resolved = appHangPayload(state: .recovered, duration: 3184)
+        eventStore.resolveAppHang(eventId: "1", payload: resolved, needsReporting: true)
+
+        guard let stored = eventStore.getEvents(eventIds: ["1"])?.first else {
+            XCTFail("Expected the app hang event to be stored.")
+            return
+        }
+        XCTAssertFalse(stored.pendingResolution)
+        XCTAssertTrue(stored.needsReporting)
+        XCTAssertEqual(stored.appHang, resolved)
+
+        let decoded = try? JSONDecoder().decode(AppHang.self, from: stored.appHang ?? Data())
+        XCTAssertEqual(decoded?.state, .recovered)
+        XCTAssertEqual(decoded?.duration, 3184)
+
+        let unBatched = eventStore.getUnBatchedEvents(eventCount: 10, ascending: true, sessionId: nil)
+        XCTAssertEqual(unBatched, ["1"])
+    }
+
+    func testResolveAppHangIgnoresUnknownEventId() {
+        eventStore.resolveAppHang(eventId: "missing", payload: appHangPayload(state: .recovered, duration: 1), needsReporting: true)
+
+        XCTAssertEqual(eventStore.getEventsCount(), 0)
+    }
+
+    /// `markTimelineForReporting` sweeps a whole time window. An unresolved app hang sitting in
+    /// that window must not be dragged into an export by an unrelated error.
+    func testMarkTimelineForReportingSkipsUnresolvedAppHang() {
+        let hang = TestDataGenerator.generateEvents(id: "1",
+                                                    type: "app_hang",
+                                                    timestampInMillis: 1_000_000,
+                                                    appHang: appHangPayload(state: .killed, duration: 2000),
+                                                    needsReporting: false,
+                                                    pendingResolution: true)
+        let other = TestDataGenerator.generateEvents(id: "2", timestampInMillis: 1_000_000, needsReporting: false)
+
+        eventStore.insertEvent(event: hang)
+        eventStore.insertEvent(event: other)
+
+        eventStore.markTimelineForReporting(eventTimestampMillis: 1_000_500, durationSeconds: 300, sessionId: "session1")
+
+        let events = eventStore.getEvents(eventIds: ["1", "2"]) ?? []
+        XCTAssertEqual(events.first(where: { $0.id == "1" })?.needsReporting, false)
+        XCTAssertEqual(events.first(where: { $0.id == "2" })?.needsReporting, true)
+    }
+
+    func testUnresolvedAppHangIsNotASessionWithUnBatchedEvents() {
+        let hang = TestDataGenerator.generateEvents(id: "1",
+                                                    type: "app_hang",
+                                                    appHang: appHangPayload(state: .killed, duration: 2000),
+                                                    needsReporting: true,
+                                                    pendingResolution: true)
+        eventStore.insertEvent(event: hang)
+
+        XCTAssertTrue(eventStore.getSessionIdsWithUnBatchedEvents().isEmpty)
+
+        eventStore.resolveAppHang(eventId: "1", payload: appHangPayload(state: .recovered, duration: 3184), needsReporting: true)
+
+        XCTAssertEqual(eventStore.getSessionIdsWithUnBatchedEvents(), ["session1"])
+    }
 }

@@ -87,6 +87,26 @@ protocol DynamicConfig {
     /// Defaults to true.
     var anrTakeScreenshot: Bool { get }
 
+    /// How long the main thread must be unresponsive before it is reported as an app hang,
+    /// in milliseconds. Defaults to 2000.
+    ///
+    /// Read this through `ConfigProvider`, which clamps it to a supported minimum.
+    var appHangThresholdMillis: Number { get }
+
+    /// Duration of session timeline collected with an app hang, in seconds.
+    /// Defaults to 300 seconds.
+    var appHangTimelineDurationSeconds: Number { get }
+
+    /// Sampling rate for app hangs. Defaults to 100.
+    ///
+    /// Evaluated when a hang is first detected, before any stack is captured, so this thins
+    /// detection and not just reporting. A hang that is sampled out is never recorded at all,
+    /// including one that goes on to kill the app.
+    var appHangSamplingRate: Float { get }
+
+    /// Whether to collect a session replay with app hangs. Defaults to true.
+    var appHangReplayEnabled: Bool { get }
+
     /// Sampling rate for launch metrics.
     /// Defaults to 100%.
     var launchSamplingRate: Float { get }
@@ -134,6 +154,10 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
     let errorUnhandledSamplingRate: Float
     let errorHandledSamplingRate: Float
     let anrTakeScreenshot: Bool
+    let appHangThresholdMillis: Number
+    let appHangTimelineDurationSeconds: Number
+    let appHangSamplingRate: Float
+    let appHangReplayEnabled: Bool
     let launchSamplingRate: Float
     let gestureClickTakeSnapshot: Bool
     let httpSamplingRate: Float
@@ -163,6 +187,10 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
          errorUnhandledSamplingRate: Float = DefaultConfig.errorUnhandledSamplingRate,
          errorHandledSamplingRate: Float = DefaultConfig.errorHandledSamplingRate,
          anrTakeScreenshot: Bool = DefaultConfig.anrTakeScreenshot,
+         appHangThresholdMillis: Number = DefaultConfig.appHangThresholdMillis,
+         appHangTimelineDurationSeconds: Number = DefaultConfig.appHangTimelineDurationSeconds,
+         appHangSamplingRate: Float = DefaultConfig.appHangSamplingRate,
+         appHangReplayEnabled: Bool = DefaultConfig.appHangReplayEnabled,
          launchSamplingRate: Float = DefaultConfig.launchSamplingRate,
          gestureClickTakeSnapshot: Bool = DefaultConfig.gestureClickTakeSnapshot,
          httpSamplingRate: Float = DefaultConfig.httpSamplingRate,
@@ -192,6 +220,10 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         self.errorUnhandledSamplingRate = errorUnhandledSamplingRate
         self.errorHandledSamplingRate = errorHandledSamplingRate
         self.anrTakeScreenshot = anrTakeScreenshot
+        self.appHangThresholdMillis = appHangThresholdMillis
+        self.appHangTimelineDurationSeconds = appHangTimelineDurationSeconds
+        self.appHangSamplingRate = appHangSamplingRate
+        self.appHangReplayEnabled = appHangReplayEnabled
         self.launchSamplingRate = launchSamplingRate
         self.gestureClickTakeSnapshot = gestureClickTakeSnapshot
         self.httpSamplingRate = httpSamplingRate
@@ -229,6 +261,10 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         errorUnhandledSamplingRate = try c.decodeIfPresent(Float.self, forKey: .errorUnhandledSamplingRate) ?? DefaultConfig.errorUnhandledSamplingRate
         errorHandledSamplingRate = try c.decodeIfPresent(Float.self, forKey: .errorHandledSamplingRate) ?? DefaultConfig.errorHandledSamplingRate
         anrTakeScreenshot = try c.decodeIfPresent(Bool.self, forKey: .anrTakeScreenshot) ?? DefaultConfig.anrTakeScreenshot
+        appHangThresholdMillis = try c.decodeIfPresent(Number.self, forKey: .appHangThresholdMillis) ?? DefaultConfig.appHangThresholdMillis
+        appHangTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .appHangTimelineDurationSeconds) ?? DefaultConfig.appHangTimelineDurationSeconds
+        appHangSamplingRate = try c.decodeIfPresent(Float.self, forKey: .appHangSamplingRate) ?? DefaultConfig.appHangSamplingRate
+        appHangReplayEnabled = try c.decodeIfPresent(Bool.self, forKey: .appHangReplayEnabled) ?? DefaultConfig.appHangReplayEnabled
         launchSamplingRate = try c.decodeIfPresent(Float.self, forKey: .launchSamplingRate) ?? DefaultConfig.launchSamplingRate
         gestureClickTakeSnapshot = try c.decodeIfPresent(Bool.self, forKey: .gestureClickTakeSnapshot) ?? DefaultConfig.gestureClickTakeSnapshot
         httpSamplingRate = try c.decodeIfPresent(Float.self, forKey: .httpSamplingRate) ?? DefaultConfig.httpSamplingRate
@@ -266,6 +302,10 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         try c.encode(errorUnhandledSamplingRate, forKey: .errorUnhandledSamplingRate)
         try c.encode(errorHandledSamplingRate, forKey: .errorHandledSamplingRate)
         try c.encode(anrTakeScreenshot, forKey: .anrTakeScreenshot)
+        try c.encode(appHangThresholdMillis, forKey: .appHangThresholdMillis)
+        try c.encode(appHangTimelineDurationSeconds, forKey: .appHangTimelineDurationSeconds)
+        try c.encode(appHangSamplingRate, forKey: .appHangSamplingRate)
+        try c.encode(appHangReplayEnabled, forKey: .appHangReplayEnabled)
         try c.encode(launchSamplingRate, forKey: .launchSamplingRate)
         try c.encode(gestureClickTakeSnapshot, forKey: .gestureClickTakeSnapshot)
         try c.encode(httpSamplingRate, forKey: .httpSamplingRate)
@@ -303,6 +343,10 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         case errorUnhandledSamplingRate = "error_unhandled_sampling_rate"
         case errorHandledSamplingRate = "error_handled_sampling_rate"
         case anrTakeScreenshot = "anr_take_screenshot"
+        case appHangThresholdMillis = "app_hang_threshold_millis"
+        case appHangTimelineDurationSeconds = "app_hang_timeline_duration"
+        case appHangSamplingRate = "app_hang_sampling_rate"
+        case appHangReplayEnabled = "app_hang_replay_enabled"
         case launchSamplingRate = "launch_sampling_rate"
         case gestureClickTakeSnapshot = "gesture_click_take_snapshot"
         case httpSamplingRate = "http_sampling_rate"

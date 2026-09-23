@@ -14,6 +14,13 @@ protocol SignalSampler {
     func shouldTrackMemoryUsageForSession(sessionId: String) -> Bool
     func shouldSampleHttpEvent() -> Bool
     func shouldSampleError(_ severity: ExceptionSeverity) -> Bool
+
+    /// Whether this app hang should be recorded.
+    ///
+    /// Evaluated the moment the threshold is crossed, before any stack is captured, so a hang
+    /// that samples out costs nothing. That also means sampling thins *detection*: a hang dropped
+    /// here is never recorded, including one that goes on to kill the app.
+    func shouldSampleAppHang() -> Bool
 }
 
 final class BaseSignalSampler: SignalSampler {
@@ -110,6 +117,13 @@ final class BaseSignalSampler: SignalSampler {
         }
 
         return shouldTrack(samplingRate / 100)
+    }
+
+    func shouldSampleAppHang() -> Bool {
+        if configProvider.enableFullCollectionMode {
+            return true
+        }
+        return shouldTrack(configProvider.appHangSamplingRate / 100)
     }
 
     /// Generates a stable sampling value in [0, 1] from a session ID.

@@ -35,7 +35,24 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
             Measure.launchBugReport(takeScreenshot: true, bugReportConfig: BugReportConfig.default, attributes: nil)
         }
 
+        scheduleLaunchHangIfRequested()
+
         return true
+    }
+
+    /// Blocks the main thread shortly after launch when `MSR_DEMO_HANG_SECONDS` is set, so app hang
+    /// detection can be exercised without driving the UI. The simulator cannot be tapped from the
+    /// command line, which makes this the only way to verify a hang end to end from a script.
+    private func scheduleLaunchHangIfRequested() {
+        guard let value = ProcessInfo.processInfo.environment["MSR_DEMO_HANG_SECONDS"],
+              let seconds = TimeInterval(value), seconds > 0 else {
+            return
+        }
+
+        // Deferred so the SDK has finished starting and the detector is already polling.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+            Thread.sleep(forTimeInterval: seconds)
+        }
     }
 
     // MARK: UISceneSession Lifecycle

@@ -34,6 +34,15 @@ protocol SignalProcessor {
         threadName: String?,
         needsReporting: Bool?)
 
+    /// Tracks an app hang detected on the main thread, returning the id of the stored event.
+    ///
+    /// Unlike every other event, an app hang is written before its outcome is known, so that a
+    /// hang the process does not survive is still on disk at the next launch. The event is stored
+    /// unreportable until `EventStore.resolveAppHang` rewrites it, and the returned id is what
+    /// identifies it then. Stores synchronously: the process may die at any moment while the main
+    /// thread is blocked.
+    func trackAppHang(_ appHang: AppHang, timestamp: Number, attributes: Attributes?, sessionId: String?) -> String
+
     func trackSpan(_ spanData: SpanData)
 }
 
@@ -127,6 +136,28 @@ final class BaseSignalProcessor: SignalProcessor {
         }
     }
 
+    func trackAppHang(_ appHang: AppHang, timestamp: Number, attributes: Attributes?, sessionId: String?) -> String {
+        let eventId = idProvider.uuid()
+
+        SignPost.trace(subcategory: "Event", label: "trackAppHang") {
+            track(data: appHang,
+                  timestamp: timestamp,
+                  type: .appHang,
+                  attributes: attributes,
+                  userTriggered: false,
+                  attachments: nil,
+                  sessionId: sessionId,
+                  userDefinedAttributes: nil,
+                  threadName: nil,
+                  needsReporting: false,
+                  synchronous: true,
+                  eventId: eventId,
+                  pendingResolution: true)
+        }
+
+        return eventId
+    }
+
     func trackSpan(_ spanData: SpanData) {
         SignPost.trace(subcategory: "Span", label: "trackSpanTriggered") {
             trackSpanData(spanData)
@@ -159,7 +190,9 @@ final class BaseSignalProcessor: SignalProcessor {
         userDefinedAttributes: String?,
         threadName: String?,
         needsReporting: Bool?,
-        synchronous: Bool
+        synchronous: Bool,
+        eventId: String? = nil,
+        pendingResolution: Bool = false
     ) {
         let resolvedThreadName = threadName ?? OperationQueue.current?.underlyingQueue?.label ?? "unknown"
 
@@ -174,13 +207,19 @@ final class BaseSignalProcessor: SignalProcessor {
                 attributes: attributes ?? Attributes(),
                 userTriggered: userTriggered,
                 sessionId: sessionId,
-                userDefinedAttributes: userDefinedAttributes
+                userDefinedAttributes: userDefinedAttributes,
+                eventId: eventId
             )
 
             self.appendAttributes(event: event, threadName: resolvedThreadName.isEmpty ? "unknown" : resolvedThreadName)
 
             let resolvedNeedsReporting: Bool
-            if configProvider.enableFullCollectionMode {
+            if pendingResolution {
+                // An unresolved app hang stays unreportable even in full collection mode: its
+                // state still reads `killed` and its duration is only the threshold. Checked
+                // first so it wins over every other reason to report.
+                resolvedNeedsReporting = false
+            } else if configProvider.enableFullCollectionMode {
                 resolvedNeedsReporting = true
             } else if event.type == .memoryUsageAbsolute {
                 // Keep unsampled readings locally for session replays, as on Android.
@@ -188,7 +227,7 @@ final class BaseSignalProcessor: SignalProcessor {
             } else {
                 resolvedNeedsReporting = needsReporting ?? false
             }
-            self.signalStore.store(event, needsReporting: resolvedNeedsReporting)
+            self.signalStore.store(event, needsReporting: resolvedNeedsReporting, pendingResolution: pendingResolution)
             self.sessionManager.onEventTracked(event)
             if event.type == .bugReport {
                 self.exporter.export()
@@ -222,9 +261,10 @@ final class BaseSignalProcessor: SignalProcessor {
         attributes: Attributes?,
         userTriggered: Bool,
         sessionId: String?,
-        userDefinedAttributes: String?
+        userDefinedAttributes: String?,
+        eventId: String? = nil
     ) -> Event<T> {
-        let id = idProvider.uuid()
+        let id = eventId ?? idProvider.uuid()
         let resolvedSessionId = sessionId ?? sessionManager.sessionId
         return Event(
             id: id,

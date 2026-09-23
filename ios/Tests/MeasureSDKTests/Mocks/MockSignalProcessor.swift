@@ -21,6 +21,11 @@ final class MockSignalProcessor: SignalProcessor {
     var trackSpanCallCount = 0
     var trackEventCallCount = 0
     var synchronous: Bool?
+    var trackedAppHang: AppHang?
+    var trackedAppHangTimestamp: Number?
+    var trackedAppHangSessionId: String?
+    var trackedAppHangEventId: String?
+    var trackAppHangCallCount = 0
 
     func track<T>(data: T, // swiftlint:disable:this function_parameter_count
                   timestamp: Number,
@@ -61,6 +66,18 @@ final class MockSignalProcessor: SignalProcessor {
         self.attachments = attachments
         self.userDefinedAttributes = userDefinedAttributes
         self.needsReporting = needsReporting
+    }
+
+    func trackAppHang(_ appHang: AppHang, timestamp: Number, attributes: Attributes?, sessionId: String?) -> String {
+        trackAppHangCallCount += 1
+        trackedAppHang = appHang
+        trackedAppHangTimestamp = timestamp
+        trackedAppHangSessionId = sessionId
+        self.attributes = attributes
+
+        let eventId = UUID().uuidString
+        trackedAppHangEventId = eventId
+        return eventId
     }
 
     func trackSpan(_ spanData: SpanData) {

@@ -134,6 +134,50 @@ final class ConfigLoaderTests: XCTestCase {
         XCTAssertEqual(json["crash_take_screenshot"] as? Bool, false)
     }
 
+    func testLoadDynamicConfig_readsAppHangKeys() throws {
+        let json = """
+        {
+            "app_hang_threshold_millis": 3000,
+            "app_hang_timeline_duration": 120,
+            "app_hang_sampling_rate": 25,
+            "app_hang_replay_enabled": false
+        }
+        """
+
+        let config = try loadConfig(fromJson: json)
+
+        XCTAssertEqual(config?.appHangThresholdMillis, 3000)
+        XCTAssertEqual(config?.appHangTimelineDurationSeconds, 120)
+        XCTAssertEqual(config?.appHangSamplingRate, 25)
+        XCTAssertEqual(config?.appHangReplayEnabled, false)
+    }
+
+    // A config written by a backend that does not serve the app hang keys yet must fall back to
+    // defaults rather than disabling detection.
+    func testLoadDynamicConfig_appHangKeysFallBackToDefaults_whenAbsent() throws {
+        let config = try loadConfig(fromJson: #"{ "max_events_in_batch": 500 }"#)
+
+        XCTAssertEqual(config?.appHangThresholdMillis, DefaultConfig.appHangThresholdMillis)
+        XCTAssertEqual(config?.appHangTimelineDurationSeconds, DefaultConfig.appHangTimelineDurationSeconds)
+        XCTAssertEqual(config?.appHangSamplingRate, DefaultConfig.appHangSamplingRate)
+        XCTAssertEqual(config?.appHangReplayEnabled, DefaultConfig.appHangReplayEnabled)
+    }
+
+    func testEncode_writesAppHangKeys() throws {
+        let config = BaseDynamicConfig(appHangThresholdMillis: 3000,
+                                       appHangTimelineDurationSeconds: 120,
+                                       appHangSamplingRate: 25,
+                                       appHangReplayEnabled: false)
+
+        let data = try JSONEncoder().encode(config)
+        let json = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
+
+        XCTAssertEqual(json["app_hang_threshold_millis"] as? Int, 3000)
+        XCTAssertEqual(json["app_hang_timeline_duration"] as? Int, 120)
+        XCTAssertEqual(json["app_hang_sampling_rate"] as? Float, 25)
+        XCTAssertEqual(json["app_hang_replay_enabled"] as? Bool, false)
+    }
+
     // MARK: - Cache + network
 
     func testLoadConfig_fetchesConfig_whenCacheExpired() {
@@ -301,6 +345,10 @@ final class ConfigLoaderTests: XCTestCase {
         XCTAssertEqual(actual.memoryUsageSessionSamplingRate, expected.memoryUsageSessionSamplingRate, file: file, line: line)
         XCTAssertEqual(actual.errorFatalTakeScreenshot, expected.errorFatalTakeScreenshot, file: file, line: line)
         XCTAssertEqual(actual.anrTakeScreenshot, expected.anrTakeScreenshot, file: file, line: line)
+        XCTAssertEqual(actual.appHangThresholdMillis, expected.appHangThresholdMillis, file: file, line: line)
+        XCTAssertEqual(actual.appHangTimelineDurationSeconds, expected.appHangTimelineDurationSeconds, file: file, line: line)
+        XCTAssertEqual(actual.appHangSamplingRate, expected.appHangSamplingRate, file: file, line: line)
+        XCTAssertEqual(actual.appHangReplayEnabled, expected.appHangReplayEnabled, file: file, line: line)
         XCTAssertEqual(actual.launchSamplingRate, expected.launchSamplingRate, file: file, line: line)
         XCTAssertEqual(actual.gestureClickTakeSnapshot, expected.gestureClickTakeSnapshot, file: file, line: line)
         XCTAssertEqual(actual.httpDisableEventForUrls, expected.httpDisableEventForUrls, file: file, line: line)

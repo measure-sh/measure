@@ -15,8 +15,8 @@ final class MockSignalStore: SignalStore {
     private(set) var storedSpans: [SpanEntity] = []
     var onStoreSpan: ((SpanEntity) -> Void)?
 
-    func store<T>(_ event: Event<T>, needsReporting: Bool) where T: Codable {
-        let eventEntity = EventEntity(event, needsReporting: needsReporting)
+    func store<T>(_ event: Event<T>, needsReporting: Bool, pendingResolution: Bool = false) where T: Codable {
+        let eventEntity = EventEntity(event, needsReporting: needsReporting, pendingResolution: pendingResolution)
         storedEvents.append(eventEntity)
 
         onStoreEvent?(eventEntity)

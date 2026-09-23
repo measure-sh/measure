@@ -149,6 +149,13 @@ final class BaseConfigProvider: ConfigProvider {
     var errorUnhandledSamplingRate: Float { dynamicConfig.errorUnhandledSamplingRate }
     var errorHandledSamplingRate: Float { dynamicConfig.errorHandledSamplingRate }
     var anrTakeScreenshot: Bool { dynamicConfig.anrTakeScreenshot }
+
+    /// Clamped here rather than at the point of use so every consumer sees a usable threshold,
+    /// however low a value the server sends.
+    var appHangThresholdMillis: Number { max(dynamicConfig.appHangThresholdMillis, DefaultConfig.minAppHangThresholdMillis) }
+    var appHangTimelineDurationSeconds: Number { dynamicConfig.appHangTimelineDurationSeconds }
+    var appHangSamplingRate: Float { dynamicConfig.appHangSamplingRate }
+    var appHangReplayEnabled: Bool { dynamicConfig.appHangReplayEnabled }
     var launchSamplingRate: Float { dynamicConfig.launchSamplingRate }
     var gestureClickTakeSnapshot: Bool { dynamicConfig.gestureClickTakeSnapshot }
     var httpSamplingRate: Float { dynamicConfig.httpSamplingRate }

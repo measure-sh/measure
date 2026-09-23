@@ -31,7 +31,11 @@ final class MockSessionStore: SessionStore {
         sessions[sessionId] = session
     }
 
+    /// Records every call, including for sessions this mock never held.
+    private(set) var updatedNeedsReporting: [String: Bool] = [:]
+
     func updateNeedsReporting(sessionId: String, needsReporting: Bool) {
+        updatedNeedsReporting[sessionId] = needsReporting
         guard var session = sessions[sessionId] else { return }
         session = SessionEntity(
             sessionId: session.sessionId,

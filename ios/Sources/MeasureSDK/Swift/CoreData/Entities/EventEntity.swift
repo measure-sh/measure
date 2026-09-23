@@ -38,6 +38,16 @@ struct EventEntity {
     let bugReport: Data?
     let sessionStartData: Data?
     let log: Data?
+    var appHang: Data?
+
+    /// `true` while an app hang has been detected but its outcome is not yet known.
+    ///
+    /// The event is written the moment the hang is detected, so that a hang the process does not
+    /// survive is still on disk at the next launch. Until it resolves it must not be exported:
+    /// its `state` still reads `killed` and its `duration` is only the threshold. The export
+    /// queries exclude it, which also stops `markTimelineForReporting` from sweeping it up when an
+    /// unrelated error lands in the same window.
+    var pendingResolution: Bool
 
     private static let encoder = JSONEncoder()
     private static func encode<V: Encodable>(_ value: V?) -> Data? {
@@ -59,7 +69,7 @@ struct EventEntity {
         }
     }
 
-    init<T: Codable>(_ event: Event<T>, needsReporting: Bool) {
+    init<T: Codable>(_ event: Event<T>, needsReporting: Bool, pendingResolution: Bool = false) {
         self.id = event.id
         self.sessionId = event.sessionId
         self.timestamp = event.timestamp
@@ -69,6 +79,7 @@ struct EventEntity {
         self.batchId = nil
         self.userDefinedAttributes = event.userDefinedAttributes
         self.needsReporting = needsReporting
+        self.pendingResolution = pendingResolution
         self.attachments = event.attachments
 
         self.exception = Self.encode(event.exception)
@@ -91,6 +102,7 @@ struct EventEntity {
         self.bugReport = Self.encode(event.bugReport)
         self.sessionStartData = event.type == .sessionStart ? Self.encode(SessionStartData()) : nil
         self.log = Self.encode(event.log)
+        self.appHang = Self.encode(event.appHang)
     }
 
     init(id: String,
@@ -122,7 +134,9 @@ struct EventEntity {
          bugReport: Data?,
          sessionStartData: Data?,
          log: Data?,
-         needsReporting: Bool) {
+         appHang: Data?,
+         needsReporting: Bool,
+         pendingResolution: Bool) {
         self.id = id
         self.sessionId = sessionId
         self.timestamp = timestamp
@@ -153,6 +167,8 @@ struct EventEntity {
         self.bugReport = bugReport
         self.sessionStartData = sessionStartData
         self.log = log
+        self.appHang = appHang
+        self.pendingResolution = pendingResolution
     }
 
     /// Returns the encoded payload `Data` for the event's `type`, or `nil` for an unknown type.
@@ -177,6 +193,7 @@ struct EventEntity {
         case .screenView: return screenView
         case .bugReport: return bugReport
         case .sessionStart: return sessionStartData
+        case .appHang: return appHang
         case nil: return nil
         }
     }

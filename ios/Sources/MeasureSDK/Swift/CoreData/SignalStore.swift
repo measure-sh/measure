@@ -8,7 +8,7 @@
 import Foundation
 
 protocol SignalStore {
-    func store<T: Codable>(_ event: Event<T>, needsReporting: Bool)
+    func store<T: Codable>(_ event: Event<T>, needsReporting: Bool, pendingResolution: Bool)
     func store(_ span: SpanEntity)
 }
 
@@ -31,8 +31,8 @@ final class BaseSignalStore: SignalStore {
         self.config = config
     }
 
-    func store<T: Codable>(_ event: Event<T>, needsReporting: Bool) {
-        let eventEntity = EventEntity(event, needsReporting: needsReporting)
+    func store<T: Codable>(_ event: Event<T>, needsReporting: Bool, pendingResolution: Bool = false) {
+        let eventEntity = EventEntity(event, needsReporting: needsReporting, pendingResolution: pendingResolution)
 
         var isErrorEvent = false
         var collectErrorTimeline = false

@@ -44,6 +44,18 @@ struct DefaultConfig {
     static let errorUnhandledSamplingRate: Float = 100
     static let errorHandledSamplingRate: Float = 0
     static let anrTakeScreenshot: Bool = true
+    static let appHangThresholdMillis: Number = 2_000
+    static let appHangTimelineDurationSeconds: Number = 300
+    static let appHangSamplingRate: Float = 100
+    static let appHangReplayEnabled: Bool = true
+
+    // swiftlint:disable:next todo
+    // TODO: this floor is provisional, revisit once idle-energy measurements are in.
+    /// Lower bound applied to `appHangThresholdMillis`, whatever the server sends.
+    ///
+    /// The ping detector derives its idle interval from the threshold (threshold * 0.025), so a
+    /// 1s threshold costs ~40 main-queue wake-ups per second against ~20 at the 2s default.
+    static let minAppHangThresholdMillis: Number = 1_000
     static let launchSamplingRate: Float = 100
     static let gestureClickTakeSnapshot: Bool = true
     static let httpSamplingRate: Float = 100

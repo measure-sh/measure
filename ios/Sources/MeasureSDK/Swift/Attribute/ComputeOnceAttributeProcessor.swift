@@ -10,6 +10,14 @@ import Foundation
 protocol ComputeOnceAttributeProcessor {
     func computeAttributes()
     func updateAttribute(_ attribute: Attributes)
+
+    /// Computes and caches now instead of on the first event.
+    ///
+    /// Device attributes read `UIScreen` and `UIDevice`, which are main thread APIs. Computing
+    /// them lazily means whichever thread tracks the first event pays that cost off the main
+    /// thread — and if that first event is an app hang, the main thread is blocked at exactly
+    /// that moment, so the write could stall until the hang resolved.
+    func warmUp()
 }
 
 /// Generates the attributes once and then caches them. Subsequent calls to [appendAttributes] will return the cached attributes.
@@ -21,11 +29,14 @@ class BaseComputeOnceAttributeProcessor: AttributeProcessor, ComputeOnceAttribut
     private var isComputed = false
 
     func appendAttributes(_ attribute: Attributes) {
-        if !isComputed {
-            computeAttributes()
-            isComputed = true
-        }
+        warmUp()
         updateAttribute(attribute)
+    }
+
+    func warmUp() {
+        guard !isComputed else { return }
+        computeAttributes()
+        isComputed = true
     }
 
     func updateAttribute(_ attribute: Attributes) {

@@ -240,4 +240,24 @@ final class MeasureInternalTests: XCTestCase {
         XCTAssertFalse(logger.logs.contains("CpuUsageCollector enabled."), "collectors should not be re-enabled when SDK is stopped")
         XCTAssertFalse(logger.logs.contains("LifecycleCollector enabled."), "collectors should not be re-enabled when SDK is stopped")
     }
+    // MARK: - App hang wiring
+
+    /// Detection is invisible in the logs when it is simply never enabled, so these assert the
+    /// wiring directly. A regression here silently turns app hang detection off for everyone.
+    func testStart_enablesAppHangCollector() throws {
+        let collector = try XCTUnwrap(mockMeasureInitializer.appHangCollector as? MockAppHangCollector)
+
+        measureInternal.start()
+
+        XCTAssertEqual(collector.enableCallCount, 1)
+    }
+
+    func testStop_disablesAppHangCollector() throws {
+        let collector = try XCTUnwrap(mockMeasureInitializer.appHangCollector as? MockAppHangCollector)
+
+        measureInternal.start()
+        measureInternal.stop()
+
+        XCTAssertEqual(collector.disableCallCount, 1)
+    }
 }

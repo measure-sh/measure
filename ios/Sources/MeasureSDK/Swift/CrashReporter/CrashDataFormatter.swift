@@ -212,29 +212,10 @@ final class CrashDataFormatter {
         return true // default to 64-bit
     }
 
-    func resolveArch(_ img: [String: Any]) -> String { // swiftlint:disable:this cyclomatic_complexity
+    func resolveArch(_ img: [String: Any]) -> String {
         guard let cpuType = img["cpu_type"] as? UInt64 else { return "???" }
-        let cpuSubtype = Int32((img["cpu_subtype"] as? UInt64 ?? 0) & ~UInt64(CPU_SUBTYPE_MASK))
-        switch Int32(cpuType) {
-        case CPU_TYPE_ARM:
-            switch cpuSubtype {
-            case CPU_SUBTYPE_ARM_V6:  return "armv6"
-            case CPU_SUBTYPE_ARM_V7:  return "armv7"
-            case CPU_SUBTYPE_ARM_V7S: return "armv7s"
-            default:                  return "arm-unknown"
-            }
-        case CPU_TYPE_ARM64:
-            switch cpuSubtype {
-            case CPU_SUBTYPE_ARM64_ALL: return "arm64"
-            case CPU_SUBTYPE_ARM64_V8:  return "armv8"
-            case CPU_SUBTYPE_ARM64E:    return "arm64e"
-            default:                    return "arm64-unknown"
-            }
-        case CPU_TYPE_X86:     return "i386"
-        case CPU_TYPE_X86_64:  return "x86_64"
-        case CPU_TYPE_POWERPC: return "powerpc"
-        default:               return "???"
-        }
+        let cpuSubtype = Int32(truncatingIfNeeded: img["cpu_subtype"] as? UInt64 ?? 0)
+        return MachOArch.resolve(cpuType: Int32(truncatingIfNeeded: cpuType), cpuSubType: cpuSubtype)
     }
 
     private func hasMeasureBinaryImage() -> Bool {

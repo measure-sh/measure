@@ -17,6 +17,7 @@ extension EventOb {
         return NSFetchRequest<EventOb>(entityName: "EventOb")
     }
 
+    @NSManaged var appHang: Data?
     @NSManaged var attributes: Data?
     @NSManaged var batchId: String?
     @NSManaged var bugReport: Data?
@@ -37,6 +38,7 @@ extension EventOb {
     @NSManaged var memoryUsage: Data?
     @NSManaged var needsReporting: Bool
     @NSManaged var networkChange: Data?
+    @NSManaged var pendingResolution: Bool
     @NSManaged var screenView: Data?
     @NSManaged var sessionId: String?
     @NSManaged var timestamp: String?

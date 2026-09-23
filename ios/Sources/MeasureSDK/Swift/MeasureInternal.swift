@@ -144,6 +144,9 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var shakeBugReportCollector: ShakeBugReportCollector {
         return measureInitializer.shakeBugReportCollector
     }
+    private var appHangCollector: AppHangCollector {
+        return measureInitializer.appHangCollector
+    }
     private var shakeDetector: ShakeDetector {
         return measureInitializer.shakeDetector
     }
@@ -235,6 +238,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             self.appLaunchCollector.onConfigLoaded()
             self.cpuUsageCollector.onConfigLoaded()
             self.memoryUsageCollector.onConfigLoaded()
+            self.appHangCollector.onConfigLoaded()
             group.leave()
         }
         group.notify(queue: .main) { [weak self] in
@@ -543,6 +547,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleCollector.enable()
         self.spanCollector.enable()
         self.internalSignalCollector.enable()
+        self.appHangCollector.enable()
         do {
             try systemCrashReporter.enable()
         } catch {
@@ -567,6 +572,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleCollector.disable()
         self.spanCollector.disabled()
         self.internalSignalCollector.disable()
+        self.appHangCollector.disable()
     }
 
     private func registerAlwaysOnCollectors() {
