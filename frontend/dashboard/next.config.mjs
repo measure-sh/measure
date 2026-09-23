@@ -2,10 +2,7 @@ import { createMDX } from "fumadocs-mdx/next";
 import { withPostHogConfig } from "@posthog/nextjs-config";
 
 const NOINDEX_SOURCES = [
-  "/docs.md",
-  "/docs/:path*.md",
-  "/blog.md",
-  "/blog/:path*.md",
+  "/:path*.md",
   "/llms.docs",
   "/llms.docs/:path*",
   "/llms.blog",
@@ -59,34 +56,11 @@ const nextConfig = {
   outputFileTracingRoot: import.meta.dirname,
   // The /page-md/[...path] route handler reads the marketing page.md twins
   // at runtime. Next's tracer can't infer these dynamic reads, so include
-  // them explicitly in the standalone output. Without this, agents
-  // requesting Accept:text/markdown would get 406 in production. Docs
+  // them explicitly in the standalone output. Without this, the markdown
+  // representation of marketing pages would return 406 in production. Docs
   // markdown doesn't need tracing: the /llms.docs route is fully static.
   outputFileTracingIncludes: {
     "/page-md/[...path]": ["./app/**/page.md"],
-  },
-  // Docs and blog pages are also served as processed markdown at their
-  // URL plus a .md suffix, handled by the static /llms.docs and /llms.blog
-  // routes.
-  async rewrites() {
-    return [
-      {
-        source: "/docs.md",
-        destination: "/llms.docs",
-      },
-      {
-        source: "/docs/:path*.md",
-        destination: "/llms.docs/:path*",
-      },
-      {
-        source: "/blog.md",
-        destination: "/llms.blog",
-      },
-      {
-        source: "/blog/:path*.md",
-        destination: "/llms.blog/:path*",
-      },
-    ];
   },
   images: {
     // Next 16 blocks optimizing images served from local/private IPs by default.

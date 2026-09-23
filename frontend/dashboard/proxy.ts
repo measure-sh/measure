@@ -1,44 +1,22 @@
 /**
- * Reverse proxies (`/api`, `/yrtmlt`) and markdown content negotiation
- * for marketing/docs pages.
+ * Reverse proxies (`/api`, `/yrtmlt`) and markdown content negotiation.
  *
- * Marketing page markdown twins:
- *   Each public marketing route (homepage, /about, /pricing, /why-measure,
- *   /security, /crashlytics-alternative, /sentry-alternative,
- *   /bugsnag-alternative, /embrace-alternative, /luciq-alternative,
- *   /datadog-alternative, /new-relic-alternative, /for/*, /product/*) has
- *   a hand-authored `page.md` colocated with its `page.tsx`:
+ * Docs pages, blog posts and the marketing pages with a hand-authored
+ * `page.md` next to their `page.tsx` are also served as markdown, to
+ * agents that prefer it in the Accept header or add `.md` to the URL.
+ * `/privacy-policy` and `/terms-of-service` have no `page.md` on purpose.
  *
- *     app/about/page.tsx        ← React component (HTML)
- *     app/about/page.md         ← markdown twin for agents
- *
- *   When a request arrives with `Accept: text/markdown`, the matcher
- *   below fires and the function rewrites to `/page-md/<path>` (or
- *   `/page-md/index` for the homepage). The route handler at
- *   `app/page-md/[...path]/route.ts` reads `app/<segments>/page.md` and
- *   returns it with `Content-Type: text/markdown`.
- *
- *   `/privacy-policy` and `/terms-of-service` deliberately have no
- *   markdown twin; agents requesting them get 406.
- *
- *   **Sync rule:** if you change a marketing `page.tsx`, update the
- *   sibling `page.md` in the same change. Visual-only components
- *   (calculators, demos, icons, CTA buttons, layout chrome) are
- *   intentionally omitted from the markdown; keep copy, prices, links,
- *   and definitions aligned and drop the chrome.
- *
- *   `app/utils/llms/marketing_pages.ts` walks `app/` for folders containing both `page.tsx`
- *   and `page.md` (no skip list; the dual-file check is the filter) and
- *   emits the `## Pages` section in `llms.txt` plus the marketing
- *   portion of `llms-full.txt`.
- *
- * Docs and blog pages are negotiated separately: they rewrite to the
- * static `/llms.docs` and `/llms.blog` routes, which serve the fumadocs
- * processed markdown also exposed at the public `/docs/<path>.md` and
- * `/blog/<slug>.md` URLs.
+ * **Sync rule:** if you change a marketing `page.tsx`, update the
+ * sibling `page.md` in the same change. Visual-only components
+ * (calculators, demos, icons, CTA buttons, layout chrome) are
+ * intentionally omitted from the markdown; keep copy, prices, links,
+ * and definitions aligned and drop the chrome. A new or removed
+ * `page.md` also goes in `app/utils/llms/markdown_twins.ts`.
  */
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+import { negotiate } from "@/app/utils/llms/content_negotiation";
+import { MARKDOWN_TWIN_PATHS } from "@/app/utils/llms/markdown_twins";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -83,63 +61,97 @@ export function proxy(request: NextRequest) {
     return NextResponse.rewrite(url);
   }
 
-  // Content negotiation: the third matcher entry below (with `has`)
-  // only fires when Accept asks for text/markdown, so reaching this
-  // point means the agent wants markdown for a non-/api, non-/yrtmlt
-  // path.
-  const url = request.nextUrl.clone();
+  return negotiateRepresentation(request);
+}
 
-  // Docs pages: serve the processed markdown from the static /llms.docs
-  // route. The path after /docs carries over unchanged, so these three
-  // requests return the same document:
-  //
-  //   /docs/network-monitoring/endpoint-patterns.md    (public .md URL)
-  //   /docs/network-monitoring/endpoint-patterns  + this Accept header
-  //   /llms.docs/network-monitoring/endpoint-patterns  (rewrite target)
-  //
-  // An explicit .md suffix is stripped so /docs/foo.md and /docs.md with
-  // Accept: text/markdown resolve the same pages as their suffix-free
-  // forms rather than double-suffixing.
+function markdownRoute(pagePath: string): string | null {
+  if (pagePath === "/docs" || pagePath.startsWith("/docs/")) {
+    return `/llms.docs${pagePath.slice("/docs".length)}`;
+  }
+  // Blog tag pages are post lists rendered by HTML components and have no
+  // markdown source.
   if (
-    pathname === "/docs" ||
-    pathname === "/docs.md" ||
-    pathname.startsWith("/docs/")
+    pagePath === "/blog" ||
+    (pagePath.startsWith("/blog/") && !pagePath.startsWith("/blog/tags/"))
   ) {
-    const docPath = pathname.slice("/docs".length).replace(/\.md$/, "");
-    url.pathname = `/llms.docs${docPath}`;
+    return `/llms.blog${pagePath.slice("/blog".length)}`;
+  }
+  if (MARKDOWN_TWIN_PATHS.has(pagePath)) {
+    return `/page-md${pagePath === "/" ? "/index" : pagePath}`;
+  }
+  return null;
+}
+
+function withVaryAccept(response: NextResponse): NextResponse {
+  response.headers.append("Vary", "Accept");
+  return response;
+}
+
+function negotiateRepresentation(request: NextRequest): NextResponse {
+  const { pathname } = request.nextUrl;
+  const explicitMarkdown = pathname.endsWith(".md");
+
+  let pagePath = pathname.replace(/\.md$/, "").replace(/\/$/, "");
+  // /index.md is the homepage's .md URL.
+  if (explicitMarkdown && pagePath === "/index") {
+    pagePath = "";
+  }
+  pagePath = pagePath || "/";
+
+  const route = markdownRoute(pagePath);
+  const rewriteToMarkdown = () => {
+    const url = request.nextUrl.clone();
+    url.pathname = route!;
     return NextResponse.rewrite(url);
+  };
+
+  // A .md URL asks for markdown whatever the Accept header says. Without a
+  // markdown route, Next.js returns its 404 page.
+  if (explicitMarkdown) {
+    return route ? rewriteToMarkdown() : NextResponse.next();
   }
 
-  // Blog posts: the same contract as docs, served from the static
-  // /llms.blog route. The bare /blog path returns a markdown index of
-  // all posts.
-  if (
-    pathname === "/blog" ||
-    pathname === "/blog.md" ||
-    pathname.startsWith("/blog/")
-  ) {
-    const blogPath = pathname.slice("/blog".length).replace(/\.md$/, "");
-    url.pathname = `/llms.blog${blogPath}`;
-    return NextResponse.rewrite(url);
+  // Server actions POST to page URLs with Accept: text/x-component, and
+  // negotiating them as documents would return 406.
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    return NextResponse.next();
   }
 
-  // Marketing pages: rewrite to the internal /page-md/* route which
-  // resolves the colocated page.md twin on disk.
-  url.pathname = `/page-md${pathname === "/" ? "/index" : pathname}`;
-  return NextResponse.rewrite(url);
+  // HTML is listed first so that a client which weights both equally,
+  // such as a browser sending only */*, gets the HTML page.
+  const offered = route ? ["text/html", "text/markdown"] : ["text/html"];
+  const chosen = negotiate(request.headers.get("accept"), offered);
+
+  if (chosen === null) {
+    return withVaryAccept(
+      new NextResponse(
+        `Not Acceptable. Available representations: ${offered.join(", ")}\n`,
+        {
+          status: 406,
+          headers: { "Content-Type": "text/plain; charset=utf-8" },
+        },
+      ),
+    );
+  }
+  if (chosen === "text/markdown") {
+    return withVaryAccept(rewriteToMarkdown());
+  }
+  // Next.js replaces the Vary header of App Router page responses with its
+  // own list, so a Vary: Accept set here would not reach the client. A
+  // shared cache added in front of the app needs to vary HTML pages on
+  // Accept itself.
+  return NextResponse.next();
 }
 
 export const config = {
   matcher: [
     "/api/:path*",
     "/yrtmlt/:path*",
-    {
-      // llms is a prefix exclusion covering /llms.txt, /llms-full.txt and
-      // /llms.docs/*: they already serve text, so markdown-preferring
-      // requests pass straight through. Any future route starting with
-      // "llms" is excluded with them.
-      source: "/((?!_next|page-md|llms|api|yrtmlt|favicon\\.ico).*)",
-      has: [{ type: "header", key: "accept", value: ".*text/markdown.*" }],
-    },
+    // Route handlers and files in public/ are skipped, because negotiating
+    // them as pages would return 406 to fetches that accept only JSON,
+    // feeds or images. Docs slugs can contain dots
+    // (/docs/hosting/migration-guides/v0.4.x), so the file extension check
+    // does not apply under /docs and /blog.
+    "/((?!_next|page-md|llms|api|yrtmlt|sandbox-attachments|auth/(?:callback|logout|refresh)(?:/|$)|docs/(?:assets|chat|search)(?:/|$)|blog/(?:assets/|rss\\.xml$))(?!(?!docs/|blog/).*\\.(?!md$)[^/.]+$).*)",
   ],
 };

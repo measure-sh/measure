@@ -4,8 +4,8 @@ import { renderPageMarkdown } from "@/app/utils/llms/page_markdown";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://measure.sh";
 
 // Public URLs are the post URL with a .md suffix (/blog/foo.md).
-// next.config rewrites them to this route. The proxy also sends
-// markdown-preferring requests for /blog/* here. The bare URL (public
+// The proxy rewrites them to this route, along with requests for /blog/*
+// whose Accept header prefers markdown. The bare URL (public
 // /blog.md) returns a markdown index, because the blog index page has no
 // markdown source of its own. The post list is fixed at build time. With
 // dynamicParams off, an unknown slug returns 404 without running the
