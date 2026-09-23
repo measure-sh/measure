@@ -248,8 +248,8 @@ func TestGetErrorPlotInstancesGroupsByVersion(t *testing.T) {
 		t.Fatalf("instances = %d, want 1, items=%+v", got, items)
 	}
 	for _, it := range items {
-		if it.Version != "v1(1)" {
-			t.Fatalf("expected only v1(1) version bucket, got %q", it.Version)
+		if it.Version != "v1 (1)" {
+			t.Fatalf("expected only v1 (1) version bucket, got %q", it.Version)
 		}
 	}
 }

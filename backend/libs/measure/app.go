@@ -409,7 +409,7 @@ func (a App) GetErrorPlotInstances(ctx context.Context, rch driver.Conn, flt *fi
 		From("events final").
 		Select(groupExpr.BucketExpr+" as datetime_bucket", flt.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
-		Select("concat(`attribute.app_version`, '', '(', `attribute.app_build`, ')') as app_version").
+		Select("concat(`attribute.app_version`, ' ', '(', `attribute.app_build`, ')') as app_version").
 		Select("count() as total").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
