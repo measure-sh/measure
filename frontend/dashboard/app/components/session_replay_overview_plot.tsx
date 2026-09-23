@@ -134,10 +134,10 @@ const SessionReplayOverviewPlot: React.FC<{
                       key={sibling.id}
                     >
                       <PlotTooltipSwatch color={sibling.color} />
-                      <div className="px-2" />
-                      <p>{sibling.id} - </p>
-                      <div className="px-2" />
-                      <p>{sibling.y.toLocaleString()} session replays</p>
+                      <span className="px-2">
+                        {sibling.id} - {sibling.y.toLocaleString()} session
+                        replays
+                      </span>
                     </div>
                   ))}
                 </PlotTooltipShell>

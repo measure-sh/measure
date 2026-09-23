@@ -159,12 +159,10 @@ const SpanMetricsPlot: React.FC<{
                         key={sibling.id}
                       >
                         <PlotTooltipSwatch color={sibling.color} />
-                        <div className="px-2" />
-                        <p>{sibling.id} - </p>
-                        <div className="px-2" />
-                        <p>
+                        <span className="px-2">
+                          {sibling.id} -{" "}
                           {formatMillisToHumanReadable(sibling.y)} ({quantile})
-                        </p>
+                        </span>
                       </div>
                     ))}
                   </PlotTooltipShell>

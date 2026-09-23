@@ -265,12 +265,10 @@ const AppHealthPlot: React.FC<AppHealthPlotProps> = ({
                     return (
                       <div className="flex flex-row items-center p-2" key={key}>
                         <PlotTooltipSwatch color={sibling.color} />
-                        <div className="px-2" />
-                        <p>{labelMap[key]} - </p>
-                        <div className="px-2" />
-                        <p>
-                          {sibling.y.toLocaleString()} {labelMap[key]}
-                        </p>
+                        <span className="px-2">
+                          {labelMap[key]} - {sibling.y.toLocaleString()}{" "}
+                          {labelMap[key]}
+                        </span>
                       </div>
                     );
                   })}
