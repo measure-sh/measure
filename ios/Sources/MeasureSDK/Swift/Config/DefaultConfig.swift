@@ -35,7 +35,7 @@ struct DefaultConfig {
     static let logIgnorePatterns: [String] = []
     static let cpuUsageInterval: Number = 5
     static let memoryUsageInterval: Number = 5
-    static let memoryUsageSessionSamplingRate: Float = 100
+    static let memoryUsageSessionSamplingRate: Float = 0.01
     static let errorFatalTakeScreenshot: Bool = true
     static let errorFatalReplayEnabled: Bool = true
     static let errorUnhandledReplayEnabled: Bool = false
