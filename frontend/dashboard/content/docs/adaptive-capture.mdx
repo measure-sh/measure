@@ -34,7 +34,7 @@ Every app starts with these defaults:
 | Launch metrics sampling rate         | 100%                                                                                |
 | Memory collection interval           | 5 seconds                                                                           |
 | Memory background collection interval (Android) | 10 seconds                                                                |
-| Memory session sampling rate          | 100%                                                                                |
+| Memory session sampling rate          | 0.01%                                                                              |
 | Disable HTTP event for URLs          | (empty)                                                                             |
 | Track HTTP request body for URLs     | (empty)                                                                             |
 | Track HTTP response body for URLs    | (empty)                                                                             |
@@ -143,7 +143,7 @@ Choose how often memory is collected while the app is in the background. The def
 ### Session sampling rate
 
 Choose the percentage of sessions whose memory readings are reported, from 0% to 100%. The default
-is 100% on Android and iOS. Sampling selects whole sessions. Foreground readings are still
+is 0.01% on Android and iOS. Sampling selects whole sessions. Foreground readings are still
 collected for session replays regardless of this setting. On Android, background readings are
 collected only for sampled sessions.
 

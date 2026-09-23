@@ -177,7 +177,7 @@ func createDefaultConfig() SdkConfig {
 		CPUUsageInterval:               5,
 		MemoryUsageInterval:            5,
 		MemoryUsageBackgroundInterval:  10,
-		MemoryUsageSessionSamplingRate: 100,
+		MemoryUsageSessionSamplingRate: 0.01,
 		ErrorFatalTakeScreenshot:       true,
 		ErrorFatalReplayEnabled:        true,
 		ErrorUnhandledReplayEnabled:    false,
