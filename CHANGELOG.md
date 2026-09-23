@@ -70,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump lodash from 4.17.21 to 4.18.1 in /frontend/dashboard (#4394) by @dependabot[bot] in #4394
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
+- (**frontend**): Noindex auth pages instead of disallowing them by @anupcowkur in #4503
 - (**frontend**): Change "Get Started For Free" to "Get Started" in CTAs by @anupcowkur in #4501
 - (**frontend**): Update memory loading state and attr description (#4488) by @abhaysood in #4488
 - (**frontend**): Refine Android memory blog explanations by @abhaysood in #4485
