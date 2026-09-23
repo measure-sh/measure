@@ -15,7 +15,7 @@ internal class DynamicConfigTest {
             """{"memory_usage_interval":10,"journey_sampling_rate":0}""",
         )
 
-        assertEquals(100f, config.memoryUsageSessionSamplingRate)
+        assertEquals(0.01f, config.memoryUsageSessionSamplingRate)
         assertEquals(10L, config.memoryUsageInterval)
         assertEquals(10L, config.memoryUsageBackgroundInterval)
         assertEquals(0f, config.journeySamplingRate)

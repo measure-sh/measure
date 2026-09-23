@@ -19,7 +19,7 @@ class ConfigProviderImplTest {
 
     @Test
     fun `memory settings use defaults before dynamic config loads`() {
-        assertEquals(100f, configProvider.memoryUsageSessionSamplingRate)
+        assertEquals(0.01f, configProvider.memoryUsageSessionSamplingRate)
         assertEquals(10L, configProvider.memoryUsageBackgroundInterval)
     }
 
