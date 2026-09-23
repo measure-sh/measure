@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Expand session arrays with an ARRAY JOIN clause by @anupcowkur
 - (**backend**): Bind the suggestion window start as a query parameter by @anupcowkur in #4464
 - (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
+- (**frontend**): Remove extra gap after hyphen in plot tooltips by @anupcowkur in #4502
 - (**frontend**): Remove extra braces and brackets in errors overview list by @anupcowkur in #4487
 - (**frontend**): Keep a filter chip when its operator or key is changed first by @anupcowkur in #4445
 - (**frontend**): Keep focus in the value input after changing an operator by @anupcowkur in #4442
@@ -69,6 +70,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump lodash from 4.17.21 to 4.18.1 in /frontend/dashboard (#4394) by @dependabot[bot] in #4394
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
+- (**frontend**): Change "Get Started For Free" to "Get Started" in CTAs by @anupcowkur in #4501
 - (**frontend**): Update memory loading state and attr description (#4488) by @abhaysood in #4488
 - (**frontend**): Refine Android memory blog explanations by @abhaysood in #4485
 - (**frontend**): Add Android memory monitoring blog by @abhaysood
