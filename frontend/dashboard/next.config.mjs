@@ -20,10 +20,11 @@ const NOINDEX_SOURCES = [
   "/docs/api/sdk/:path*",
 ];
 
-// The sandbox is left out of robots.txt's disallow list on purpose. A
-// disallowed URL is never fetched, so the crawler would not see this noindex
-// header and could still list the URL the landing page links to.
-const SANDBOX_SOURCES = [
+// The sandbox and auth pages are left out of robots.txt's disallow list on
+// purpose. A disallowed URL is never fetched, so the crawler would not see this
+// noindex header and could still list the URLs the landing page links to.
+const LINKED_NOINDEX_SOURCES = [
+  "/auth/:path*",
   "/sandbox",
   "/sandbox/:path*",
   "/sandbox-attachments/:path*",
@@ -472,7 +473,7 @@ const nextConfig = {
           },
         ],
       })),
-      ...SANDBOX_SOURCES.map((source) => ({
+      ...LINKED_NOINDEX_SOURCES.map((source) => ({
         source,
         headers: [
           {
