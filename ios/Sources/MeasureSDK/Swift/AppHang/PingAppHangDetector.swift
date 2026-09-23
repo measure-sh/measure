@@ -115,7 +115,7 @@ final class PingAppHangDetector: AppHangDetector {
             }
 
             if semaphore.wait(timeout: waitStart + .milliseconds(Int(thresholdMs))) == .success {
-                Thread.sleep(forTimeInterval: thresholdMs * AppHangConstants.idleIntervalFactor / 1000)
+                Thread.sleep(forTimeInterval: AppHangConstants.idleIntervalMs(forThresholdMs: thresholdMs) / 1000)
                 continue
             }
 

@@ -49,12 +49,15 @@ struct DefaultConfig {
     static let appHangSamplingRate: Float = 100
     static let appHangReplayEnabled: Bool = true
 
-    // swiftlint:disable:next todo
-    // TODO: this floor is provisional, revisit once idle-energy measurements are in.
     /// Lower bound applied to `appHangThresholdMillis`, whatever the server sends.
     ///
-    /// The ping detector derives its idle interval from the threshold (threshold * 0.025), so a
-    /// 1s threshold costs ~40 main-queue wake-ups per second against ~20 at the 2s default.
+    /// Measured on an idle iPhone 17: detection costs +18.4 interrupt wake-ups per second at the
+    /// 2s default and +34.1 at 1s, against a 1.6/s baseline. Below 1s the cost climbs steeply —
+    /// Apple's 250ms "micro hang" tier would extrapolate to roughly 85x an idle app's baseline,
+    /// which is not defensible for an always-on SDK.
+    ///
+    /// `AppHangConstants.minIdleIntervalMs` caps the polling cost separately, so a threshold at
+    /// this floor now polls no faster than the default does.
     static let minAppHangThresholdMillis: Number = 1_000
     static let launchSamplingRate: Float = 100
     static let gestureClickTakeSnapshot: Bool = true

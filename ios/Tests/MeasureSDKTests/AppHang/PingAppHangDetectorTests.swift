@@ -201,4 +201,27 @@ final class PingAppHangDetectorTests: XCTestCase {
         XCTAssertEqual(stackCapture.captureCount, 0)
         XCTAssertEqual(callbacks.startedCount, 0)
     }
+    // MARK: - Idle interval
+
+    /// The probe rate is `1 / idleInterval`, so this is what governs the detector's idle cost.
+    /// Deriving it from the threshold alone makes a more sensitive threshold proportionally more
+    /// expensive, which is what the floor exists to stop.
+    func testIdleIntervalIsDerivedFromThreshold_aboveTheFloor() {
+        XCTAssertEqual(AppHangConstants.idleIntervalMs(forThresholdMs: 2_000), 50, accuracy: 0.001)
+        XCTAssertEqual(AppHangConstants.idleIntervalMs(forThresholdMs: 10_000), 250, accuracy: 0.001)
+    }
+
+    /// At the 2s default the derived value already equals the floor, so the floor changes nothing
+    /// about what ships and only bites below it.
+    func testIdleIntervalFloorDoesNotAffectTheDefault() {
+        XCTAssertEqual(AppHangConstants.idleIntervalMs(forThresholdMs: 2_000),
+                       AppHangConstants.minIdleIntervalMs,
+                       accuracy: 0.001)
+    }
+
+    func testIdleIntervalIsClamped_belowTheFloor() {
+        // 1000 * 0.025 = 25ms, which would double the poll rate.
+        XCTAssertEqual(AppHangConstants.idleIntervalMs(forThresholdMs: 1_000), 50, accuracy: 0.001)
+        XCTAssertEqual(AppHangConstants.idleIntervalMs(forThresholdMs: 250), 50, accuracy: 0.001)
+    }
 }

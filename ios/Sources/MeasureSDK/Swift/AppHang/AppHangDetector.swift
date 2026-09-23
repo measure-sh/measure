@@ -80,6 +80,23 @@ enum AppHangConstants {
     /// spins at ~100% CPU.
     static let idleIntervalFactor: Double = 0.025
 
+    /// Floor on the gap between polls, and the SDK's real cost rail.
+    ///
+    /// The probe rate is `1 / idleInterval`, so cost depends on this and not on the threshold —
+    /// the threshold only sets the timeout. Deriving the interval from the threshold alone would
+    /// make a more sensitive threshold proportionally more expensive; this caps that. It is the
+    /// value the 2s default already produces, so it changes nothing at the default and only bites
+    /// for thresholds below 2s.
+    static let minIdleIntervalMs: Double = 50
+
+    /// How long to sleep between polls for a given threshold.
+    ///
+    /// The cost of a lower threshold is paid in duration accuracy rather than wake-ups: a hang is
+    /// noticed up to one interval late, so its reported duration undershoots by up to that much.
+    static func idleIntervalMs(forThresholdMs thresholdMs: Double) -> Double {
+        max(thresholdMs * idleIntervalFactor, minIdleIntervalMs)
+    }
+
     /// Maximum frames captured from the blocked main thread.
     static let maxFrames = 128
 
