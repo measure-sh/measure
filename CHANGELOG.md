@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Add missing version label space in errors overview plot by @anupcowkur in #4495
 - (**backend**): Expect descending version order in mcp filter values test by @anupcowkur in #4484
 - (**backend**): Restart containers when the Iggy client loses its session by @anupcowkur in #4476
 - (**backend**): Round the suggestion window start down to the hour by @anupcowkur in #4466
