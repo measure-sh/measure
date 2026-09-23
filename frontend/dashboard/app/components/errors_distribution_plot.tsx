@@ -188,13 +188,10 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
                   <PlotTooltipShell>
                     <div className="flex flex-row items-center p-2">
                       <PlotTooltipSwatch color={color} />
-                      <div className="px-2" />
-                      <p>{id} - </p>
-                      <div className="px-2" />
-                      <p>
-                        {numberToKMB(value)}{" "}
+                      <span className="px-2">
+                        {id} - {numberToKMB(value)}{" "}
                         {value > 1 ? "instances" : "instance"}
-                      </p>
+                      </span>
                     </div>
                   </PlotTooltipShell>
                 );
