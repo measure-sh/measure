@@ -637,7 +637,7 @@ export default function CrashlyticsAlternative() {
             "text-2xl px-8 py-8",
           )}
         >
-          Get Started For Free
+          Get Started
         </TrackCtaLink>
         <p className="text-center text-sm px-4 mt-4">
           or checkout the{" "}
