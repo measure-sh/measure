@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.14.1] - 2026-09-23
+
+### :hammer: Misc
+
+
+- (**ios**): Default memory sampling to 0.01% by @abhaysood in #4494
+
 ## [ios-v0.14.0] - 2026-09-22
+
+### :hammer: Misc
+
+
+- (**ios**): Prepare sdk release 0.14.0 (#4490) by @abhaysood in #4490
 
 ### :sparkles: New features
 
@@ -509,6 +521,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677) by @adwinross in #1677
 - (**ios**): Initial project setup  (#1034) by @adwinross in #1034
 
+[ios-v0.14.1]: https://github.com/measure-sh/measure/compare/ios-v0.14.0..ios-v0.14.1
 [ios-v0.14.0]: https://github.com/measure-sh/measure/compare/ios-v0.13.2..ios-v0.14.0
 [ios-v0.13.2]: https://github.com/measure-sh/measure/compare/ios-v0.13.1..ios-v0.13.2
 [ios-v0.13.1]: https://github.com/measure-sh/measure/compare/ios-v0.13.0..ios-v0.13.1
