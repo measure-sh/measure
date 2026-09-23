@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
+- (**rn**): Prepare release 0.4.0 (#4491) by @abhaysood in #4491
 - (**rn**): Remove unused dev dependencies (#4463) by @adwinross in #4463
 - (**rn**): Bump vulnerable transitive deps (#4449) by @adwinross in #4449
 - (**rn**): Add patch attributes to native events (#4404) by @adwinross in #4404

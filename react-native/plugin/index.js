@@ -292,7 +292,7 @@ function withMeasureAppBuildGradle(config) {
     // Add measure-android dependency
     mod.modResults.contents = mergeContents({
       src: mod.modResults.contents,
-      newSrc: '    implementation("sh.measure:measure-android:0.21.0")',
+      newSrc: '    implementation("sh.measure:measure-android:0.21.1")',
       tag: 'measure-dependency',
       anchor: /dependencies\s*\{/,
       offset: 1,
