@@ -31,9 +31,13 @@ final class MemorySessionSamplingTests: XCTestCase {
         )
     }
 
-    func testMemoryReadingsAreReportedByDefault() {
-        trackMemory()
-        XCTAssertEqual(signalStore.storedEvents.first?.needsReporting, true)
+    func testDefaultMemorySamplingUsesPointZeroOnePercentThreshold() {
+        XCTAssertEqual(config.memoryUsageSessionSamplingRate, 0.01)
+        // FNV-1a sampling values are approximately 0.000037 and 0.4852.
+        let sampledSession = "00002f2d-0000-0000-0000-000000000001"
+        trackMemory(sessionId: sampledSession)
+        trackMemory(sessionId: includedSession)
+        XCTAssertEqual(signalStore.storedEvents.map(\.needsReporting), [true, false])
     }
 
     func testZeroRateRetainsReadingsForReplayWithoutReporting() {
@@ -116,10 +120,10 @@ final class MemorySessionSamplingTests: XCTestCase {
         XCTAssertEqual(restored.memoryUsageSessionSamplingRate, 37.5)
     }
 
-    func testLegacyConfigDefaultsToReportingAllMemorySessions() throws {
+    func testLegacyConfigUsesDefaultMemorySamplingRate() throws {
         for json in ["{}", #"{"memory_usage_session_sampling_rate": null}"#] {
             let decoded = try JSONDecoder().decode(BaseDynamicConfig.self, from: Data(json.utf8))
-            XCTAssertEqual(decoded.memoryUsageSessionSamplingRate, 100)
+            XCTAssertEqual(decoded.memoryUsageSessionSamplingRate, 0.01)
         }
     }
 

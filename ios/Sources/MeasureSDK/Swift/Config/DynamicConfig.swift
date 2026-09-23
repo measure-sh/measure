@@ -55,7 +55,7 @@ protocol DynamicConfig {
     /// Defaults to 5 seconds.
     var memoryUsageInterval: Number { get }
 
-    /// Percentage of sessions whose memory readings are reported. Defaults to 100%.
+    /// Percentage of sessions whose memory readings are reported. Defaults to 0.01%.
     var memoryUsageSessionSamplingRate: Float { get }
 
     /// Whether to take a screenshot on a fatal error.
