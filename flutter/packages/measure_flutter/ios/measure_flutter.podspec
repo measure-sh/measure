@@ -4,7 +4,7 @@
 #
 Pod::Spec.new do |s|
   s.name             = 'measure_flutter'
-  s.version          = '0.7.0'
+  s.version          = '0.8.0'
   s.summary          = 'Measure Flutter iOS Plugin'
   s.description      = <<-DESC
 Measure Flutter iOS Plugin.
@@ -16,7 +16,7 @@ Measure Flutter iOS Plugin.
   s.source_files = 'measure_flutter/Sources/measure_flutter/**/*.swift'
   s.resource_bundles = { 'measure_flutter_privacy' => ['measure_flutter/Sources/measure_flutter/PrivacyInfo.xcprivacy'] }
   s.dependency 'Flutter'
-  s.dependency 'measure-sh', '~> 0.13.1'
+  s.dependency 'measure-sh', '~> 0.14.1'
   s.platform = :ios, '13.0'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES', 'EXCLUDED_ARCHS[sdk=iphonesimulator*]' => 'i386' }
   s.swift_version = '5.10'
