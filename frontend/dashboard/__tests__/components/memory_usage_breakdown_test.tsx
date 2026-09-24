@@ -51,7 +51,7 @@ describe("MemoryUsageBreakdown", () => {
     expect(
       screen.getByRole("columnheader", { name: "p95" }),
     ).toBeInTheDocument();
-    const row = screen.getByRole("row", { name: /5–6 GB/ });
+    const row = screen.getByRole("row", { name: /5-6gb/ });
     expect(within(row).getByText("100.0 MB")).toBeInTheDocument();
     expect(within(row).getByText("200.0 MB")).toBeInTheDocument();
     expect(within(row).getByText("2.0 GB")).toBeInTheDocument();
@@ -59,7 +59,7 @@ describe("MemoryUsageBreakdown", () => {
     expect(
       screen.queryByRole("columnheader", { name: "Samples" }),
     ).not.toBeInTheDocument();
-    const unknown = screen.getByRole("row", { name: /Unknown/ });
+    const unknown = screen.getByRole("row", { name: /unknown/ });
     expect(within(unknown).getAllByText("—")).toHaveLength(3);
   });
 

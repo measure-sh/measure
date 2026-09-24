@@ -2842,6 +2842,25 @@ export const androidNativeScenario: PlatformScenario = {
       network_generation: "5g",
       network_provider: "T-Mobile",
     },
+    {
+      device_name: "a14",
+      device_model: "SM-A145F",
+      device_manufacturer: "samsung",
+      device_type: "phone",
+      os_version: "34",
+      device_width_px: 1080,
+      device_height_px: 2408,
+      device_density_dpi: 400,
+      device_density: 2.5,
+      device_cpu_arch: "",
+      device_is_foldable: false,
+      device_low_power_mode: false,
+      device_thermal_throttling_enabled: false,
+      os_page_size: 4,
+      network_type: "cellular",
+      network_generation: "4g",
+      network_provider: "T-Mobile",
+    },
   ],
 
   users: [
@@ -2850,7 +2869,7 @@ export const androidNativeScenario: PlatformScenario = {
     { person: 2, device: 2, locale: "en-US" },
     { person: 3, device: 3, locale: "en-US" },
     { person: 4, device: 4, locale: "en-US" },
-    { person: 5, device: 0, locale: "en-US" },
+    { person: 5, device: 5, locale: "en-US" },
   ],
 
   http: [

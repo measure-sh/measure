@@ -820,7 +820,6 @@ describe("memory fetches", () => {
       isoFrom,
       isoTo,
       filterExpr,
-      "background",
     );
 
     const url = new URL(lastFetchUrl(), "http://localhost");
@@ -830,7 +829,6 @@ describe("memory fetches", () => {
     expect(url.searchParams.get("timezone")).toBeTruthy();
     expect(url.searchParams.get("plot_time_group")).toBe("days");
     expect(url.searchParams.get("filter_expr")).toBe(filterExpr);
-    expect(url.searchParams.get("app_importance")).toBe("background");
     expect(result).toEqual(data);
   });
 
@@ -845,7 +843,6 @@ describe("memory fetches", () => {
       isoFrom,
       isoTo,
       filterExpr,
-      "background",
     );
 
     const url = new URL(lastFetchUrl(), "http://localhost");
@@ -855,7 +852,6 @@ describe("memory fetches", () => {
     expect(url.searchParams.has("timezone")).toBe(false);
     expect(url.searchParams.has("plot_time_group")).toBe(false);
     expect(url.searchParams.get("filter_expr")).toBe(filterExpr);
-    expect(url.searchParams.get("app_importance")).toBe("background");
     expect(result).toEqual(data);
   });
 
@@ -879,7 +875,6 @@ describe("memory fetches", () => {
 
       const url = new URL(lastFetchUrl(), "http://localhost");
       expect(url.searchParams.has("filter_expr")).toBe(false);
-      expect(url.searchParams.has("app_importance")).toBe(false);
       expect(result).toBeNull();
     },
   );
@@ -890,39 +885,32 @@ describe("memory fetches", () => {
     expect(await fetchPlot()).toEqual([]);
   });
 
-  it.each([undefined, "foreground", "user_service", "background"] as const)(
-    "fetchHighMemoryUsageSessionsFromServer sends pagination and app importance %s",
-    async (appImportance) => {
-      const data = {
-        results: [{ session_id: "session-a", peak_memory_kb: 1769472 }],
-        meta: { next: true, previous: true },
-      };
-      mockApiClientFetch.mockResolvedValueOnce(successResponse(data));
+  it("fetchHighMemoryUsageSessionsFromServer sends the filters and pagination", async () => {
+    const data = {
+      results: [{ session_id: "session-a", peak_memory_kb: 1769472 }],
+      meta: { next: true, previous: true },
+    };
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(data));
 
-      const result = await fetchHighMemoryUsageSessionsFromServer(
-        "app-a",
-        isoFrom,
-        isoTo,
-        filterExpr,
-        5,
-        10,
-        appImportance,
-      );
+    const result = await fetchHighMemoryUsageSessionsFromServer(
+      "app-a",
+      isoFrom,
+      isoTo,
+      filterExpr,
+      5,
+      10,
+    );
 
-      const url = new URL(lastFetchUrl(), "http://localhost");
-      expect(url.pathname).toBe("/api/apps/app-a/memory/sessions/high-usage");
-      expect(url.searchParams.get("from")).toBe(isoFrom);
-      expect(url.searchParams.get("to")).toBe(isoTo);
-      expect(url.searchParams.get("filter_expr")).toBe(filterExpr);
-      expect(url.searchParams.get("app_importance")).toBe(
-        appImportance ?? null,
-      );
-      expect(url.searchParams.get("limit")).toBe("5");
-      expect(url.searchParams.get("offset")).toBe("10");
-      expect(url.searchParams.has("plot_time_group")).toBe(false);
-      expect(result).toEqual(data);
-    },
-  );
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/memory/sessions/highUsage");
+    expect(url.searchParams.get("from")).toBe(isoFrom);
+    expect(url.searchParams.get("to")).toBe(isoTo);
+    expect(url.searchParams.get("filter_expr")).toBe(filterExpr);
+    expect(url.searchParams.get("limit")).toBe("5");
+    expect(url.searchParams.get("offset")).toBe("10");
+    expect(url.searchParams.has("plot_time_group")).toBe(false);
+    expect(result).toEqual(data);
+  });
 });
 
 // ========================================================================

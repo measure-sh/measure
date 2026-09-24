@@ -56,7 +56,7 @@ function breakdownPath(bundle: AppBundle, extra: Record<string, string> = {}) {
 }
 
 function highUsagePath(bundle: AppBundle, extra: Record<string, string> = {}) {
-  return `/api/apps/${bundle.app.id}/memory/sessions/high-usage?${weekParams({
+  return `/api/apps/${bundle.app.id}/memory/sessions/highUsage?${weekParams({
     limit: "50",
     offset: "0",
     ...extra,
@@ -209,7 +209,7 @@ describe.each([
     expect(await get(`${base}/plots/usage?${EMPTY_RANGE}`)).toEqual([]);
     expect(await get(`${base}/plots/breakdown?${EMPTY_RANGE}`)).toEqual([]);
     expect(
-      await get(`${base}/sessions/high-usage?${EMPTY_RANGE}&limit=5&offset=0`),
+      await get(`${base}/sessions/highUsage?${EMPTY_RANGE}&limit=5&offset=0`),
     ).toEqual(emptyPage);
   });
 
@@ -235,25 +235,25 @@ describe.each([
   });
 });
 
-describe("app_importance", () => {
+describe("app_state", () => {
   it("returns smaller but non-empty user_service and background data for the android app", async () => {
-    const foreground = await get<MemoryUsagePlotPoint[]>(plotPath(android));
+    const all = await get<MemoryUsagePlotPoint[]>(plotPath(android));
     const allRows = await get<MemoryUsageBreakdownRow[]>(
       breakdownPath(android),
     );
-    const foregroundPage = await get<HighMemoryUsageSessionsResponse>(
+    const allPage = await get<HighMemoryUsageSessionsResponse>(
       highUsagePath(android),
     );
     const mean = (rows: MemoryUsagePlotPoint[]) =>
       rows.reduce((sum, p) => sum + p.p50!, 0) / rows.length;
-    for (const importance of ["user_service", "background"]) {
-      const extra = { app_importance: importance };
+    for (const appState of ["user_service", "background"]) {
+      const extra = { filter_expr: `app_state:eq:${appState}` };
       const points = await get<MemoryUsagePlotPoint[]>(
         plotPath(android, extra),
       );
-      expect(points.length).toBe(foreground.length);
+      expect(points.length).toBe(all.length);
       expect(mean(points)).toBeGreaterThan(0);
-      expect(mean(points)).toBeLessThan(mean(foreground));
+      expect(mean(points)).toBeLessThan(mean(all));
 
       const rows = await get<MemoryUsageBreakdownRow[]>(
         breakdownPath(android, extra),
@@ -270,20 +270,38 @@ describe("app_importance", () => {
       for (const row of page.results!) {
         expectSessionRow(android, row);
         expect(row.percent_of_target).toBeGreaterThanOrEqual(75);
-        const inForeground = foregroundPage.results!.find(
+        const inAll = allPage.results!.find(
           (r) => r.session_id === row.session_id,
         );
-        expect(inForeground).toBeDefined();
-        expect(row.target_memory_kb).toBeLessThan(
-          inForeground!.target_memory_kb!,
-        );
-        expect(row.peak_memory_kb).toBeLessThan(inForeground!.peak_memory_kb);
+        expect(inAll).toBeDefined();
+        expect(row.target_memory_kb).toBeLessThan(inAll!.target_memory_kb!);
+        expect(row.peak_memory_kb).toBeLessThan(inAll!.peak_memory_kb);
       }
     }
   });
 
+  it("counts every app state for the android app without a filter", async () => {
+    const sessionCount = (rows: MemoryUsageBreakdownRow[]) =>
+      rows.reduce((sum, r) => sum + r.session_count, 0);
+    const all = await get<MemoryUsageBreakdownRow[]>(breakdownPath(android));
+    const foreground = await get<MemoryUsageBreakdownRow[]>(
+      breakdownPath(android, { filter_expr: "app_state:eq:foreground" }),
+    );
+    expect(sessionCount(foreground)).toBeGreaterThan(0);
+    expect(sessionCount(foreground)).toBeLessThan(sessionCount(all));
+  });
+
+  it("counts every app state when app state is joined with OR", async () => {
+    const extra = {
+      filter_expr: "app_state:eq:background OR os_name:in:android",
+    };
+    expect(await get(breakdownPath(android, extra))).toEqual(
+      await get(breakdownPath(android)),
+    );
+  });
+
   it("is ignored for the ios app", async () => {
-    const extra = { app_importance: "background" };
+    const extra = { filter_expr: "app_state:eq:background" };
     expect(await get(plotPath(ios, extra))).toEqual(await get(plotPath(ios)));
     expect(await get(breakdownPath(ios, extra))).toEqual(
       await get(breakdownPath(ios)),

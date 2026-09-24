@@ -13,7 +13,6 @@ export class MemoryPage {
   readonly breakdownRow: Locator;
   readonly breakdownNoData: Locator;
   readonly highMemorySessions: Locator;
-  readonly appImportanceSelect: Locator;
 
   constructor(page: Page, teamId: string) {
     this.page = page;
@@ -24,14 +23,13 @@ export class MemoryPage {
     this.breakdownRow = page.getByTestId("memory-breakdown-row");
     this.breakdownNoData = page.getByText("No memory samples found.");
     this.highMemorySessions = page.getByTestId("high-memory-sessions");
-    // The selector shows the selected importance, so it is named after it.
-    this.appImportanceSelect = page.getByRole("button", {
-      name: /^(Foreground|User service|Background)$/,
-    });
   }
 
-  async goto(appId: string) {
-    await this.page.goto(`/${this.teamId}/memory?a=${appId}`);
+  async goto(appId: string, filterExpr?: string) {
+    const filter = filterExpr
+      ? `&filter_expr=${encodeURIComponent(filterExpr)}`
+      : "";
+    await this.page.goto(`/${this.teamId}/memory?a=${appId}${filter}`);
   }
 
   selectBreakdownHeader(label: string): Locator {
@@ -48,13 +46,6 @@ export class MemoryPage {
   async selectPercentile(percentile: string) {
     await this.page
       .getByRole("button", { name: percentile, exact: true })
-      .click();
-  }
-
-  async selectAppImportance(importance: string) {
-    await this.appImportanceSelect.click();
-    await this.page
-      .getByRole("option", { name: importance, exact: true })
       .click();
   }
 }

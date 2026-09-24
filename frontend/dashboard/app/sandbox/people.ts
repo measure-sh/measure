@@ -328,6 +328,26 @@ export const PEOPLE: Person[] = [
     ["3012 W San Nicholas St", "33629"],
     ["100 N Tampa St, Suite 2600", "33602"],
   ),
+  person(
+    "usr_402117",
+    "Marcus",
+    "Reed",
+    "marcus.reed@example.com",
+    "Denver",
+    "CO",
+    ["1845 S Pearl St", "80210"],
+    ["1600 Stout St, Suite 1100", "80202"],
+  ),
+  person(
+    "usr_415830",
+    "Claire",
+    "Whitaker",
+    "claire.whitaker@example.com",
+    "Raleigh",
+    "NC",
+    ["2413 Wade Ave", "27607"],
+    ["150 Fayetteville St, Suite 900", "27601"],
+  ),
 ];
 
 export function fullName(p: Person): string {

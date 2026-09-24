@@ -1,81 +1,40 @@
 "use client";
 
-import type { MemoryAppImportance } from "@/app/api/api_calls";
 import { filterExprIssuesIn } from "@/app/api/api_error";
-import DropdownSelect, {
-  DropdownSelectType,
-} from "@/app/components/dropdown_select";
 import FilterBar from "@/app/components/filter_bar/filter_bar";
 import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import HighMemoryUsageSessions from "@/app/components/high_memory_usage_sessions";
 import MemoryUsageBreakdown from "@/app/components/memory_usage_breakdown";
 import MemoryUsagePlot from "@/app/components/memory_usage_plot";
-import { Skeleton, SkeletonListPage } from "@/app/components/skeleton";
+import { SkeletonListPage } from "@/app/components/skeleton";
 import {
   HIGH_MEMORY_USAGE_SESSIONS_LIMIT,
-  paginationOffsetUrlKey,
   useHighMemoryUsageSessionsQuery,
   useMemoryUsageBreakdownQuery,
   useMemoryUsagePlotQuery,
 } from "@/app/query/hooks";
-import { use, useState } from "react";
+import { use } from "react";
 
 interface PageProps {
   params: Promise<{ teamId: string }>;
 }
 
-const APP_IMPORTANCE_OPTIONS: {
-  label: string;
-  value: MemoryAppImportance;
-}[] = [
-  { label: "Foreground", value: "foreground" },
-  { label: "User service", value: "user_service" },
-  { label: "Background", value: "background" },
-];
-const APP_IMPORTANCE_LABELS = Object.fromEntries(
-  APP_IMPORTANCE_OPTIONS.map(({ label, value }) => [value, label]),
-) as Record<MemoryAppImportance, string>;
-const APP_IMPORTANCE_VALUES = Object.fromEntries(
-  APP_IMPORTANCE_OPTIONS.map(({ label, value }) => [label, value]),
-) as Record<string, MemoryAppImportance>;
-
 export default function MemoryPage({ params }: PageProps) {
   const { teamId } = use(params);
   const filter = useFilterPage({
     teamId,
-    entity: "sessions",
+    entity: "memory",
     paginationLimit: HIGH_MEMORY_USAGE_SESSIONS_LIMIT,
   });
   const readyValue = filter.status.kind === "ready" ? filter.value : null;
-  const [importanceSelection, setImportanceSelection] = useState<{
-    appId: string | null;
-    value: MemoryAppImportance;
-  }>({ appId: null, value: "foreground" });
-  const isAndroidApp =
-    readyValue?.app.os_names?.some(
-      (name) => name.toLowerCase() === "android",
-    ) ?? false;
-  const appImportance =
-    importanceSelection.appId === readyValue?.app.id
-      ? importanceSelection.value
-      : "foreground";
-  const memoryPlotQuery = useMemoryUsagePlotQuery(
-    filter.filterParams,
-    isAndroidApp ? appImportance : undefined,
-  );
+  const memoryPlotQuery = useMemoryUsagePlotQuery(filter.filterParams);
   const memoryBreakdownQuery = useMemoryUsageBreakdownQuery(
     filter.filterParams,
-    isAndroidApp ? appImportance : undefined,
   );
   const highMemorySessionsQuery = useHighMemoryUsageSessionsQuery(
     filter.filterParams,
-    isAndroidApp ? appImportance : undefined,
     filter.paginationOffset,
   );
-  const isMemoryLoading =
-    memoryPlotQuery.status === "pending" ||
-    memoryBreakdownQuery.status === "pending" ||
-    highMemorySessionsQuery.status === "pending";
   const filterExprIssues =
     filterExprIssuesIn(memoryPlotQuery.error) ??
     filterExprIssuesIn(memoryBreakdownQuery.error) ??
@@ -87,8 +46,8 @@ export default function MemoryPage({ params }: PageProps) {
       <FilterBar
         teamId={teamId}
         status={filter.status}
-        entity="sessions"
-        placeholder="Filter sessions…"
+        entity="memory"
+        placeholder="Filter by device memory or app state…"
         value={filter.value}
         apps={filter.apps}
         keys={filter.keys}
@@ -97,33 +56,6 @@ export default function MemoryPage({ params }: PageProps) {
         filterExprIssues={filterExprIssues}
         onChange={filter.onChange}
       />
-      {isAndroidApp && (
-        <div className="py-4">
-          {isMemoryLoading ? (
-            <Skeleton
-              className="h-9 w-37.5"
-              role="status"
-              aria-label="Loading app importance"
-            />
-          ) : (
-            <DropdownSelect
-              type={DropdownSelectType.SingleString}
-              title="App importance"
-              items={APP_IMPORTANCE_OPTIONS.map(({ label }) => label)}
-              initialSelected={APP_IMPORTANCE_LABELS[appImportance]}
-              onChangeSelected={(item) => {
-                if (typeof item === "string") {
-                  filter.setPageUrlKey(paginationOffsetUrlKey, "0");
-                  setImportanceSelection({
-                    appId: readyValue?.app.id ?? null,
-                    value: APP_IMPORTANCE_VALUES[item],
-                  });
-                }
-              }}
-            />
-          )}
-        </div>
-      )}
       <div className="py-4" />
       {filter.status.kind === "error" && (
         <p className="text-lg font-display">{filter.status.message}</p>

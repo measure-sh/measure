@@ -52,8 +52,6 @@ export type PendingInvite = {
   valid_until: string;
 };
 
-export type MemoryAppImportance = "foreground" | "user_service" | "background";
-
 // Sample percentiles per time bucket and app version/build, across device tiers.
 // Memory values use KB (1024 bytes); version is formatted as "version (build)".
 export type MemoryUsagePlotPoint = {
@@ -1592,7 +1590,6 @@ export const fetchMemoryUsagePlotFromServer = async (
   startDate: string,
   endDate: string,
   filterExpr: string | null,
-  appImportance?: MemoryAppImportance,
 ): Promise<MemoryUsagePlotPoint[] | null> => {
   const params = new URLSearchParams({
     from: formatUserInputDateToServerFormat(startDate),
@@ -1602,9 +1599,6 @@ export const fetchMemoryUsagePlotFromServer = async (
   });
   if (filterExpr) {
     params.set("filter_expr", filterExpr);
-  }
-  if (appImportance) {
-    params.set("app_importance", appImportance);
   }
 
   return await request(
@@ -1618,7 +1612,6 @@ export const fetchMemoryUsageBreakdownFromServer = async (
   startDate: string,
   endDate: string,
   filterExpr: string | null,
-  appImportance?: MemoryAppImportance,
 ): Promise<MemoryUsageBreakdownRow[] | null> => {
   const params = new URLSearchParams({
     from: formatUserInputDateToServerFormat(startDate),
@@ -1626,9 +1619,6 @@ export const fetchMemoryUsageBreakdownFromServer = async (
   });
   if (filterExpr) {
     params.set("filter_expr", filterExpr);
-  }
-  if (appImportance) {
-    params.set("app_importance", appImportance);
   }
 
   return await request(
@@ -1644,7 +1634,6 @@ export const fetchHighMemoryUsageSessionsFromServer = async (
   filterExpr: string | null,
   limit: number,
   offset: number,
-  appImportance?: MemoryAppImportance,
 ): Promise<HighMemoryUsageSessionsResponse> => {
   const params = new URLSearchParams({
     from: formatUserInputDateToServerFormat(startDate),
@@ -1655,12 +1644,9 @@ export const fetchHighMemoryUsageSessionsFromServer = async (
   if (filterExpr) {
     params.set("filter_expr", filterExpr);
   }
-  if (appImportance) {
-    params.set("app_importance", appImportance);
-  }
 
   return await request(
-    `/api/apps/${appId}/memory/sessions/high-usage?${params.toString()}`,
+    `/api/apps/${appId}/memory/sessions/highUsage?${params.toString()}`,
     { failsWith: "Failed to fetch high memory usage sessions" },
   );
 };

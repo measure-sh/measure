@@ -1,7 +1,6 @@
 import { DateTime } from "luxon";
 import type {
   HighMemoryUsageSession,
-  MemoryAppImportance,
   MemoryUsageBreakdownRow,
   MemoryUsagePlotPoint,
 } from "../api/api_calls";
@@ -27,7 +26,9 @@ import {
   DEVICE_MEMORY_TIERS,
   deviceMemoryTier,
   HIGH_MEMORY_UTILIZATION_THRESHOLD,
+  MEMORY_APP_STATES,
 } from "./device_memory";
+import type { MemoryAppState } from "./device_memory";
 
 const REFERENCE_WINDOW_DAYS = 30;
 
@@ -44,29 +45,43 @@ type SessionMemory = {
   high: boolean;
 };
 
-type ImportanceView = {
-  importance: MemoryAppImportance;
+type AppStateView = {
+  appState: MemoryAppState;
   scale: number;
   share: number;
 };
 
-function importanceView(bundle: AppBundle, url: URL): ImportanceView {
-  const requested = url.searchParams.get("app_importance");
-  if (bundle.scenario.app.os === "android") {
-    if (requested === "background") {
-      return { importance: "background", scale: 0.6, share: 0.45 };
-    }
-    if (requested === "user_service") {
-      return { importance: "user_service", scale: 0.7, share: 0.3 };
-    }
+// A filter that leaves more than one app state possible, such as one joined
+// with OR, narrows to none of them.
+function requestedAppState(url: URL): MemoryAppState | null {
+  const filterExpr = url.searchParams.get("filter_expr");
+  const matching = MEMORY_APP_STATES.filter((appState) =>
+    matchesFilterExpr({ app_state: appState }, filterExpr),
+  );
+  return matching.length === 1 ? matching[0] : null;
+}
+
+// Without a filter every app state counts. iOS readings carry no app
+// importance, so the filter does not narrow them.
+function appStateView(bundle: AppBundle, url: URL): AppStateView {
+  const requested =
+    bundle.scenario.app.os === "android" ? requestedAppState(url) : null;
+  if (requested === "foreground") {
+    return { appState: "foreground", scale: 1, share: 0.8 };
   }
-  return { importance: "foreground", scale: 1, share: 1 };
+  if (requested === "user_service") {
+    return { appState: "user_service", scale: 0.7, share: 0.3 };
+  }
+  if (requested === "background") {
+    return { appState: "background", scale: 0.6, share: 0.45 };
+  }
+  return { appState: "foreground", scale: 1, share: 1 };
 }
 
 function sessionMemory(
   bundle: AppBundle,
   session: { list: SessionListEntry; detail: SessionDetail },
-  view: ImportanceView,
+  view: AppStateView,
 ): SessionMemory {
   const { list, detail } = session;
   if (bundle.scenario.app.os === "android") {
@@ -75,7 +90,7 @@ function sessionMemory(
     );
     const peakKb = samples.reduce((max, value) => Math.max(max, value), 0);
     const totalKb = detail.attribute.device_total_memory;
-    const targetKb = androidMemoryTargetKb(totalKb, view.importance);
+    const targetKb = androidMemoryTargetKb(totalKb, view.appState);
     const percentOfTarget = targetKb > 0 ? (peakKb * 100) / targetKb : 0;
     return {
       list,
@@ -122,7 +137,7 @@ function sessionMemory(
 function visibleSessions(
   bundle: AppBundle,
   url: URL,
-  view: ImportanceView,
+  view: AppStateView,
 ): SessionMemory[] {
   const filterExpr = url.searchParams.get("filter_expr");
   return bundle.sessions
@@ -132,11 +147,11 @@ function visibleSessions(
     );
 }
 
-function inView(memory: SessionMemory, view: ImportanceView): boolean {
+function inView(memory: SessionMemory, view: AppStateView): boolean {
   return (
     view.share === 1 ||
     memory.high ||
-    unitInterval(`${memory.list.session_id}:importance:${view.importance}`) <
+    unitInterval(`${memory.list.session_id}:app_state:${view.appState}`) <
       view.share
   );
 }
@@ -181,7 +196,7 @@ function meanSamplesPerSession(sessions: SessionMemory[]): number {
 
 function usagePlot(bundle: AppBundle, url: URL): MemoryUsagePlotPoint[] {
   const range = parseRange(url);
-  const view = importanceView(bundle, url);
+  const view = appStateView(bundle, url);
   const sessions = visibleSessions(bundle, url, view);
   const counted = sessions.filter((memory) => inView(memory, view));
   if (counted.length === 0) {
@@ -197,7 +212,7 @@ function usagePlot(bundle: AppBundle, url: URL): MemoryUsagePlotPoint[] {
   // version would swamp the small step between versions.
   const samples = typicalSamples(sessions, sessions);
   const series = app.versions.map((version, i) => {
-    const seed = `memory:${app.id}:${version.name}:${view.importance}`;
+    const seed = `memory:${app.id}:${version.name}:${view.appState}`;
     return {
       version: `${version.name} (${version.code})`,
       samples,
@@ -254,7 +269,7 @@ function usageBreakdown(
   url: URL,
 ): MemoryUsageBreakdownRow[] {
   const range = parseRange(url);
-  const view = importanceView(bundle, url);
+  const view = appStateView(bundle, url);
   const sessions = visibleSessions(bundle, url, view);
   const counted = sessions.filter((memory) => inView(memory, view));
   const coverage = windowCoverage(range, bundle.dataStart);
@@ -304,7 +319,7 @@ function highUsageSessions(
   url: URL,
 ): { results: HighMemoryUsageSession[]; hasNext: boolean; hasPrev: boolean } {
   const range = parseRange(url);
-  const view = importanceView(bundle, url);
+  const view = appStateView(bundle, url);
   const isAndroid = bundle.scenario.app.os === "android";
   const matching = visibleSessions(bundle, url, view)
     .filter(
@@ -373,7 +388,7 @@ export const memoryRoutes: SandboxRoute[] = [
   },
   {
     method: "GET",
-    path: "/api/apps/:appId/memory/sessions/high-usage",
+    path: "/api/apps/:appId/memory/sessions/highUsage",
     handle: ({ params, url }) => {
       const bundle = catalog().appById.get(params.appId);
       if (!bundle) {
