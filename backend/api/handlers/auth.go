@@ -193,8 +193,16 @@ func (h Handlers) ValidateRefreshToken() gin.HandlerFunc {
 				return
 			}
 
-			jti := claims["jti"]
-			c.Set("jti", jti.(string))
+			jti, _ := claims["jti"].(string)
+			sid, _ := claims["sid"].(string)
+			if jti == "" || sid == "" {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{
+					"error": "invalid or malformed refresh token",
+				})
+				return
+			}
+			c.Set("jti", jti)
+			c.Set("sid", sid)
 		} else {
 			msg := "failed to read claims from refresh token"
 			fmt.Println(msg, err)
@@ -714,9 +722,8 @@ func (h Handlers) ValidateInvite(c *gin.Context) {
 func (h Handlers) RefreshToken(c *gin.Context) {
 	deps := h.Deps
 	ctx := c.Request.Context()
-	id := c.GetString("jti")
 
-	jti, err := uuid.Parse(id)
+	sessionID, err := uuid.Parse(c.GetString("sid"))
 	if err != nil {
 		msg := "failed to parse refresh token"
 		fmt.Println(msg, err)
@@ -726,8 +733,18 @@ func (h Handlers) RefreshToken(c *gin.Context) {
 		return
 	}
 
-	oldSession, err := authsession.GetAuthSession(ctx, deps.PgPool, jti)
-	if errors.Is(err, pgx.ErrNoRows) {
+	tokenID, err := uuid.Parse(c.GetString("jti"))
+	if err != nil {
+		msg := "failed to parse refresh token"
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": msg,
+		})
+		return
+	}
+
+	session, err := authsession.RefreshAuthSession(ctx, deps.PgPool, deps.Config.AccessTokenSecret, deps.Config.RefreshTokenSecret, sessionID, tokenID)
+	if errors.Is(err, pgx.ErrNoRows) || errors.Is(err, authsession.ErrRefreshTokenReused) {
 		msg := "could not verify authenticity of the refresh token"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusUnauthorized, gin.H{
@@ -736,53 +753,7 @@ func (h Handlers) RefreshToken(c *gin.Context) {
 		return
 	}
 	if err != nil {
-		msg := "failed to look up session"
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	msg := `failed to refresh session`
-
-	tx, err := deps.PgPool.Begin(ctx)
-	if err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	defer tx.Rollback(ctx)
-
-	newSession, err := authsession.NewAuthSession(deps.Config.AccessTokenSecret, deps.Config.RefreshTokenSecret, oldSession.UserID, oldSession.OAuthProvider, oldSession.UserMeta)
-	if err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	if err = authsession.RemoveSession(ctx, deps.PgPool, jti, &tx); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	if err = newSession.Save(ctx, deps.PgPool, &tx); err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	if err = tx.Commit(ctx); err != nil {
+		msg := "failed to refresh session"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": msg,
@@ -791,8 +762,8 @@ func (h Handlers) RefreshToken(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"access_token":  newSession.AccessToken,
-		"refresh_token": newSession.RefreshToken,
+		"access_token":  session.AccessToken,
+		"refresh_token": session.RefreshToken,
 	})
 }
 
@@ -911,9 +882,7 @@ func (h Handlers) Signout(c *gin.Context) {
 	deps := h.Deps
 	ctx := c.Request.Context()
 
-	id := c.GetString("jti")
-
-	jti, err := uuid.Parse(id)
+	sessionID, err := uuid.Parse(c.GetString("sid"))
 	if err != nil {
 		msg := "failed to parse refresh token"
 		fmt.Println(msg, err)
@@ -923,7 +892,7 @@ func (h Handlers) Signout(c *gin.Context) {
 		return
 	}
 
-	if err := authsession.RemoveSession(ctx, deps.PgPool, jti, nil); err != nil {
+	if err := authsession.RemoveSession(ctx, deps.PgPool, sessionID, nil); err != nil {
 		msg := "failed to signout"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
