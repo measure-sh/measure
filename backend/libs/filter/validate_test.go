@@ -2,6 +2,7 @@ package filter
 
 import (
 	"errors"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -372,10 +373,10 @@ func TestValidateBounds(t *testing.T) {
 }
 
 func TestAllowedOperatorsFor(t *testing.T) {
-	t.Run("an enum offers only membership", func(t *testing.T) {
+	t.Run("an enum offers membership and a single selection", func(t *testing.T) {
 		operators := AllowedOperatorsFor(ValueTypeEnum)
-		if len(operators) != 2 || operators[0] != OperatorIn || operators[1] != OperatorNotIn {
-			t.Errorf("want in and not_in, got %v", operators)
+		if want := []Operator{OperatorIn, OperatorNotIn, OperatorEq}; !slices.Equal(operators, want) {
+			t.Errorf("want %v, got %v", want, operators)
 		}
 	})
 

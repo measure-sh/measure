@@ -3,7 +3,6 @@
 package measure
 
 import (
-	"errors"
 	"math"
 	"testing"
 	"time"
@@ -16,11 +15,6 @@ import (
 )
 
 func TestGetHighMemoryUsageSessionsAndroidTargets(t *testing.T) {
-	for _, tier := range filter.DeviceMemoryRanges {
-		if _, ok := androidMemoryTargets[tier.Name]; !ok {
-			t.Errorf("device memory tier %q has no Android target", tier.Name)
-		}
-	}
 	for _, importance := range []string{"foreground", "user_service", "background"} {
 		t.Run(importance, func(t *testing.T) {
 			f := newPlotFixture(t)
@@ -61,9 +55,10 @@ func TestGetHighMemoryUsageSessionsAndroidTargets(t *testing.T) {
 					wantTargets[id] = tt.backgroundKB
 				}
 			}
-			flt := f.sessionFilter(base.Add(-time.Minute), base.Add(time.Minute), "UTC", "")
+			flt := f.memoryFilter(base.Add(-time.Minute), base.Add(time.Minute), "UTC", "")
+			setMemoryFilterExpr(t, flt, "app_state:eq:"+importance)
 			flt.Limit = len(wantTargets)
-			sessions, _, _, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt, importance)
+			sessions, _, _, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -83,47 +78,7 @@ func TestGetHighMemoryUsageSessionsAndroidTargets(t *testing.T) {
 	}
 }
 
-func TestResolveMemoryAppImportance(t *testing.T) {
-	tests := []struct {
-		name    string
-		os      string
-		value   string
-		want    string
-		wantErr bool
-	}{
-		{name: "Android defaults to foreground", os: opsys.Android, want: "foreground"},
-		{name: "Android foreground", os: opsys.Android, value: "foreground", want: "foreground"},
-		{name: "Android user service", os: opsys.Android, value: "user_service", want: "user_service"},
-		{name: "Android background", os: opsys.Android, value: "background", want: "background"},
-		{name: "Android rejects invalid state", os: opsys.Android, value: "cached", wantErr: true},
-		{name: "iOS accepts omission", os: opsys.IOS},
-		{name: "iOS ignores Android state", os: opsys.IOS, value: "background"},
-		{name: "iOS rejects invalid state", os: opsys.IOS, value: "unused", wantErr: true},
-		{name: "iPadOS ignores Android state", os: opsys.IPad, value: "foreground"},
-		{name: "iPadOS rejects invalid state", os: opsys.IPad, value: "cached", wantErr: true},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			app := App{OSNames: []string{tt.os}}
-			got, err := app.resolveMemoryAppImportance(tt.value)
-			if tt.wantErr {
-				if !errors.Is(err, ErrInvalidMemoryAppImportance) {
-					t.Fatalf("error = %v, want ErrInvalidMemoryAppImportance", err)
-				}
-				return
-			}
-			if err != nil {
-				t.Fatal(err)
-			}
-			if got != tt.want {
-				t.Errorf("resolved importance = %q, want %q", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestGetHighMemoryUsageSessionsUsesPeakAndProcessState(t *testing.T) {
+func TestGetHighMemoryUsageSessionsUsesPeakAndAppImportance(t *testing.T) {
 	f := newPlotFixture(t)
 	f.app.OSNames = []string{opsys.Android}
 	base := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
@@ -151,8 +106,9 @@ func TestGetHighMemoryUsageSessionsUsesPeakAndProcessState(t *testing.T) {
 		seedMemory(highService, base.Add(time.Duration(i)*time.Minute), 3*memoryKBPerGB/2, "user_service")
 	}
 
-	flt := f.sessionFilter(base.Add(-time.Minute), base.Add(5*time.Minute), "UTC", "")
-	foreground, _, _, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt, "foreground")
+	flt := f.memoryFilter(base.Add(-time.Minute), base.Add(5*time.Minute), "UTC", "")
+	setMemoryFilterExpr(t, flt, "app_state:eq:foreground")
+	foreground, _, _, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("foreground sessions: %v", err)
 	}
@@ -169,7 +125,8 @@ func TestGetHighMemoryUsageSessionsUsesPeakAndProcessState(t *testing.T) {
 		t.Errorf("foreground target = %d KiB, want %d", got, 9*memoryKBPerGB/4)
 	}
 
-	service, _, _, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt, "user_service")
+	setMemoryFilterExpr(t, flt, "app_state:eq:user_service")
+	service, _, _, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("user-service sessions: %v", err)
 	}
@@ -179,7 +136,7 @@ func TestGetHighMemoryUsageSessionsUsesPeakAndProcessState(t *testing.T) {
 }
 
 func TestGetHighMemoryUsageSessionsAndroidTargetCutoff(t *testing.T) {
-	for _, state := range []struct {
+	for _, tt := range []struct {
 		importance string
 		targetKB   uint64
 	}{
@@ -187,11 +144,11 @@ func TestGetHighMemoryUsageSessionsAndroidTargetCutoff(t *testing.T) {
 		{"user_service", 5 * memoryKBPerGB / 4},
 		{"background", 5 * memoryKBPerGB / 4},
 	} {
-		t.Run(state.importance, func(t *testing.T) {
+		t.Run(tt.importance, func(t *testing.T) {
 			f := newPlotFixture(t)
 			f.app.OSNames = []string{opsys.Android}
 			base := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
-			cutoffKB := state.targetKB * 3 / 4
+			cutoffKB := tt.targetKB * 3 / 4
 			atCutoff, atTarget := uuid.New(), uuid.New()
 			for _, sample := range []struct {
 				id       uuid.UUID
@@ -200,30 +157,31 @@ func TestGetHighMemoryUsageSessionsAndroidTargetCutoff(t *testing.T) {
 			}{
 				{uuid.New(), cutoffKB - 1, 5 * memoryKBPerGB},
 				{atCutoff, cutoffKB, 5 * memoryKBPerGB},
-				{atTarget, state.targetKB, 5 * memoryKBPerGB},
-				{uuid.New(), state.targetKB, 0},
+				{atTarget, tt.targetKB, 5 * memoryKBPerGB},
+				{uuid.New(), tt.targetKB, 0},
 			} {
 				// A single spike must qualify even when the session's p90 is low.
 				th.SeedEventRows(f.ctx, t, f.teamID.String(), f.appID.String(), 100, testinfra.EventRow{
 					Type: "memory_usage", SessionID: sample.id.String(), Timestamp: base.Add(-time.Second),
-					DeviceTotalMemory: sample.deviceKB, MemoryAppImportance: state.importance,
+					DeviceTotalMemory: sample.deviceKB, MemoryAppImportance: tt.importance,
 					MemoryAnonRSS: memoryKB(cutoffKB / 2), MemorySwap: memoryKB(0),
 				})
 				th.SeedEventRows(f.ctx, t, f.teamID.String(), f.appID.String(), 1, testinfra.EventRow{
 					Type: "memory_usage", SessionID: sample.id.String(), Timestamp: base,
-					DeviceTotalMemory: sample.deviceKB, MemoryAppImportance: state.importance,
+					DeviceTotalMemory: sample.deviceKB, MemoryAppImportance: tt.importance,
 					MemoryAnonRSS: memoryKB(sample.usageKB / 2),
 					MemorySwap:    memoryKB(sample.usageKB - sample.usageKB/2),
 				})
 				// Peaks outside the selected range must not affect classification or display.
 				th.SeedEventRows(f.ctx, t, f.teamID.String(), f.appID.String(), 1, testinfra.EventRow{
 					Type: "memory_usage", SessionID: sample.id.String(), Timestamp: base.Add(-time.Hour),
-					DeviceTotalMemory: sample.deviceKB, MemoryAppImportance: state.importance,
-					MemoryAnonRSS: memoryKB(2 * state.targetKB), MemorySwap: memoryKB(0),
+					DeviceTotalMemory: sample.deviceKB, MemoryAppImportance: tt.importance,
+					MemoryAnonRSS: memoryKB(2 * tt.targetKB), MemorySwap: memoryKB(0),
 				})
 			}
-			flt := f.sessionFilter(base.Add(-time.Minute), base.Add(time.Minute), "UTC", "")
-			sessions, _, _, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt, state.importance)
+			flt := f.memoryFilter(base.Add(-time.Minute), base.Add(time.Minute), "UTC", "")
+			setMemoryFilterExpr(t, flt, "app_state:eq:"+tt.importance)
+			sessions, _, _, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -231,14 +189,14 @@ func TestGetHighMemoryUsageSessionsAndroidTargetCutoff(t *testing.T) {
 				t.Fatalf("sessions = %#v, want target then exact 75%% cutoff; exclude below cutoff and unknown RAM", sessions)
 			}
 			for i, wantPercent := range []float64{100, 75} {
-				if want := []uint64{state.targetKB, cutoffKB}[i]; sessions[i].PeakMemoryKB != want {
+				if want := []uint64{tt.targetKB, cutoffKB}[i]; sessions[i].PeakMemoryKB != want {
 					t.Errorf("session %d peak = %d, want %d", i, sessions[i].PeakMemoryKB, want)
 				}
 				if sessions[i].PercentOfTarget == nil || *sessions[i].PercentOfTarget != wantPercent {
 					t.Errorf("session %d percentage = %v, want %v", i, sessions[i].PercentOfTarget, wantPercent)
 				}
-				if sessions[i].TargetMemoryKB == nil || *sessions[i].TargetMemoryKB != state.targetKB {
-					t.Errorf("session %d target = %v, want %d", i, sessions[i].TargetMemoryKB, state.targetKB)
+				if sessions[i].TargetMemoryKB == nil || *sessions[i].TargetMemoryKB != tt.targetKB {
+					t.Errorf("session %d target = %v, want %d", i, sessions[i].TargetMemoryKB, tt.targetKB)
 				}
 			}
 		})
@@ -285,13 +243,13 @@ func TestMemoryUsageQueries(t *testing.T) {
 			other.MemoryUsed = 10 * memoryKBPerGB
 			th.SeedEventRows(f.ctx, t, f.teamID.String(), f.appID.String(), 1, other)
 
-			for _, filterName := range []string{"unfiltered", "where", "having", "excluded", "device-memory-known", "device-memory-unknown"} {
+			for _, filterName := range []string{"unfiltered", "version", "version-and-device", "excluded", "device-memory-known", "device-memory-unknown", "app-state"} {
 				t.Run(filterName, func(t *testing.T) {
-					flt := f.sessionFilter(base.Add(-time.Minute), base.Add(time.Minute), "UTC", "")
+					flt := f.memoryFilter(base.Add(-time.Minute), base.Add(time.Minute), "UTC", "")
 					switch filterName {
-					case "where":
+					case "version":
 						flt.ExprTree = &filter.ExprTree{Condition: &filter.Condition{KeyName: "version_name", Operator: filter.OperatorIn, Values: []filter.Value{{Text: "v1"}}}}
-					case "having":
+					case "version-and-device":
 						flt.ExprTree = &filter.ExprTree{Children: []filter.ExprTree{
 							{Condition: &filter.Condition{KeyName: "version_name", Operator: filter.OperatorNotIn, Values: []filter.Value{{Text: "v2"}}}},
 							{Condition: &filter.Condition{KeyName: "device_name", Operator: filter.OperatorIn, Values: []filter.Value{{Text: "device"}}}},
@@ -304,28 +262,27 @@ func TestMemoryUsageQueries(t *testing.T) {
 							tier = "unknown"
 						}
 						flt.ExprTree = &filter.ExprTree{Condition: &filter.Condition{KeyName: "device_total_memory", Operator: filter.OperatorIn, Values: []filter.Value{{Text: tier}}}}
+					case "app-state":
+						setMemoryFilterExpr(t, flt, "app_state:eq:background")
 					}
-					importance := "foreground"
-					if osName != opsys.Android {
-						importance = ""
-					}
-					plot, err := f.app.GetMemoryUsagePlot(f.ctx, deps.RchPool, flt, importance)
+					plot, err := f.app.GetMemoryUsagePlot(f.ctx, deps.RchPool, flt)
 					if err != nil {
 						t.Fatalf("memory plot: %v", err)
 					}
-					breakdown, err := f.app.GetMemoryUsageBreakdown(f.ctx, deps.RchPool, flt, importance)
+					breakdown, err := f.app.GetMemoryUsageBreakdown(f.ctx, deps.RchPool, flt)
 					if err != nil {
 						t.Fatalf("memory breakdown: %v", err)
 					}
-					sessions, next, previous, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt, importance)
+					sessions, next, previous, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt)
 					if err != nil {
 						t.Fatalf("high-memory sessions: %v", err)
 					}
-					// This fixture models older iOS SDKs without the device-memory
-					// session attribute, whose sessions match unknown in filters.
+					// The iOS fixture models an older SDK that left the device-memory
+					// attribute unset, so its tier comes from the reading.
 					excluded := filterName == "excluded" ||
-						(filterName == "device-memory-known" && osName != opsys.Android) ||
-						(filterName == "device-memory-unknown" && osName == opsys.Android)
+						filterName == "device-memory-unknown" ||
+						// Only Android readings carry an app importance.
+						(filterName == "app-state" && osName == opsys.Android)
 					if excluded {
 						if len(breakdown) != 0 || len(plot) != 0 || len(sessions) != 0 || next || previous {
 							t.Fatalf("excluded session returned data: %v / %v / %v", plot, breakdown, sessions)
@@ -377,6 +334,60 @@ func TestMemoryUsageQueries(t *testing.T) {
 	}
 }
 
+func TestGetHighMemoryUsageSessionsTargetsEachReadingByItsAppImportance(t *testing.T) {
+	f := newPlotFixture(t)
+	f.app.OSNames = []string{opsys.Android}
+	base := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
+	sessionID := uuid.New()
+	for i, reading := range []struct {
+		usageKB    uint64
+		importance string
+	}{
+		{2 * memoryKBPerGB, "foreground"},
+		{6 * memoryKBPerGB / 5, "background"},
+	} {
+		th.SeedEventRows(f.ctx, t, f.teamID.String(), f.appID.String(), 1, testinfra.EventRow{
+			Type: "memory_usage", SessionID: sessionID.String(), Timestamp: base.Add(time.Duration(i) * time.Minute),
+			DeviceTotalMemory: 5 * memoryKBPerGB, MemoryAppImportance: reading.importance,
+			MemoryAnonRSS: memoryKB(reading.usageKB), MemorySwap: memoryKB(0),
+		})
+	}
+
+	for _, tt := range []struct {
+		name        string
+		filterExpr  string
+		wantPeakKB  uint64
+		wantTarget  uint64
+		wantPercent float64
+	}{
+		{"foreground reading against the foreground target", "app_state:eq:foreground", 2 * memoryKBPerGB, 9 * memoryKBPerGB / 4, 800.0 / 9},
+		{"background reading against the background target", "app_state:eq:background", 6 * memoryKBPerGB / 5, 5 * memoryKBPerGB / 4, 96},
+		{"each reading against its own target without a filter", "", 6 * memoryKBPerGB / 5, 5 * memoryKBPerGB / 4, 96},
+	} {
+		t.Run(tt.name, func(t *testing.T) {
+			flt := f.memoryFilter(base.Add(-time.Minute), base.Add(5*time.Minute), "UTC", "")
+			setMemoryFilterExpr(t, flt, tt.filterExpr)
+			sessions, _, _, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(sessions) != 1 || sessions[0].SessionID != sessionID {
+				t.Fatalf("sessions = %#v, want only %s", sessions, sessionID)
+			}
+			s := sessions[0]
+			if s.PeakMemoryKB != tt.wantPeakKB {
+				t.Errorf("peak = %d KiB, want %d", s.PeakMemoryKB, tt.wantPeakKB)
+			}
+			if s.TargetMemoryKB == nil || *s.TargetMemoryKB != tt.wantTarget {
+				t.Errorf("target = %v, want %d KiB", s.TargetMemoryKB, tt.wantTarget)
+			}
+			if s.PercentOfTarget == nil || math.Abs(*s.PercentOfTarget-tt.wantPercent) > 0.001 {
+				t.Errorf("percent of target = %v, want %v", s.PercentOfTarget, tt.wantPercent)
+			}
+		})
+	}
+}
+
 func TestMemoryUsageIOSSessionPagination(t *testing.T) {
 	f := newPlotFixture(t)
 	f.app.OSNames = []string{opsys.IOS}
@@ -389,11 +400,11 @@ func TestMemoryUsageIOSSessionPagination(t *testing.T) {
 			MemoryUsed: uint64(4-i) * memoryKBPerGB, MemoryAvailable: memoryHeadroom(memoryKBPerGB),
 		})
 	}
-	flt := f.sessionFilter(base.Add(-time.Minute), base.Add(time.Minute), "UTC", "")
+	flt := f.memoryFilter(base.Add(-time.Minute), base.Add(time.Minute), "UTC", "")
 	flt.Limit = 1
 	for offset, id := range ids {
 		flt.Offset = offset
-		sessions, next, previous, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt, "")
+		sessions, next, previous, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -402,7 +413,7 @@ func TestMemoryUsageIOSSessionPagination(t *testing.T) {
 		}
 	}
 	flt.Limit, flt.Offset = 0, 0
-	sessions, next, previous, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt, "")
+	sessions, next, previous, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -415,15 +426,15 @@ func TestMemoryUsageUnknownPlatform(t *testing.T) {
 	app := App{}
 	flt := &filter.Filter{Timezone: "UTC"}
 	// A nil connection also verifies unsupported apps never reach ClickHouse.
-	plot, err := app.GetMemoryUsagePlot(t.Context(), nil, flt, "")
+	plot, err := app.GetMemoryUsagePlot(t.Context(), nil, flt)
 	if err != nil || len(plot) != 0 {
 		t.Fatalf("plot = %v, err = %v", plot, err)
 	}
-	breakdown, err := app.GetMemoryUsageBreakdown(t.Context(), nil, flt, "")
+	breakdown, err := app.GetMemoryUsageBreakdown(t.Context(), nil, flt)
 	if err != nil || len(breakdown) != 0 {
 		t.Fatalf("breakdown = %v, err = %v", breakdown, err)
 	}
-	sessions, next, previous, err := app.GetHighMemoryUsageSessions(t.Context(), nil, flt, "")
+	sessions, next, previous, err := app.GetHighMemoryUsageSessions(t.Context(), nil, flt)
 	if err != nil || len(sessions) != 0 || next || previous {
 		t.Fatalf("sessions = %v, next/previous = %v/%v, err = %v", sessions, next, previous, err)
 	}
@@ -546,32 +557,27 @@ func TestMemoryUsageIOSProcessLimit(t *testing.T) {
 					MemoryMax: tt.deviceMemoryKB, MemoryUsed: sample.usedKB, MemoryAvailable: sample.availableKB,
 				})
 			}
-			flt := f.sessionFilter(base.Add(-time.Minute), base.Add(5*time.Minute), "UTC", "")
-			// Android process-state filters must not affect iOS classification.
-			for _, importance := range []string{"", "foreground", "background", "user_service"} {
-				t.Run("importance="+importance, func(t *testing.T) {
-					sessions, _, _, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt, importance)
-					if err != nil {
-						t.Fatalf("high-memory sessions: %v", err)
-					}
-					if tt.wantUtilization == 0 {
-						if len(sessions) != 0 {
-							t.Fatalf("got %d high-memory sessions, want none", len(sessions))
-						}
-						return
-					}
-					if len(sessions) != 1 || sessions[0].SessionID != sessionID {
-						t.Fatalf("sessions = %#v, want only %s", sessions, sessionID)
-					}
-					assertIOSMemoryUtilization(t, sessions[0], tt.wantUtilization)
-					available := sessions[0].AvailableMemoryAtPeakUtilizationKB
-					if available == nil || *available != tt.wantAvailableKB {
-						t.Errorf("available memory at peak utilization = %v, want %d", available, tt.wantAvailableKB)
-					}
-					if tt.wantPeakKB > 0 && sessions[0].PeakMemoryKB != tt.wantPeakKB {
-						t.Errorf("peak memory = %d, want %d", sessions[0].PeakMemoryKB, tt.wantPeakKB)
-					}
-				})
+			flt := f.memoryFilter(base.Add(-time.Minute), base.Add(5*time.Minute), "UTC", "")
+			sessions, _, _, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt)
+			if err != nil {
+				t.Fatalf("high-memory sessions: %v", err)
+			}
+			if tt.wantUtilization == 0 {
+				if len(sessions) != 0 {
+					t.Fatalf("got %d high-memory sessions, want none", len(sessions))
+				}
+				return
+			}
+			if len(sessions) != 1 || sessions[0].SessionID != sessionID {
+				t.Fatalf("sessions = %#v, want only %s", sessions, sessionID)
+			}
+			assertIOSMemoryUtilization(t, sessions[0], tt.wantUtilization)
+			available := sessions[0].AvailableMemoryAtPeakUtilizationKB
+			if available == nil || *available != tt.wantAvailableKB {
+				t.Errorf("available memory at peak utilization = %v, want %d", available, tt.wantAvailableKB)
+			}
+			if tt.wantPeakKB > 0 && sessions[0].PeakMemoryKB != tt.wantPeakKB {
+				t.Errorf("peak memory = %d, want %d", sessions[0].PeakMemoryKB, tt.wantPeakKB)
 			}
 		})
 	}
@@ -588,29 +594,25 @@ func TestMemoryUsageIOSLegacySamplesRemainInCharts(t *testing.T) {
 			// Legacy events have no MemoryAvailable field.
 		})
 	}
-	flt := f.sessionFilter(base.Add(-time.Minute), base.Add(time.Minute), "UTC", "")
-	for _, importance := range []string{"", "foreground", "background", "user_service"} {
-		t.Run("importance="+importance, func(t *testing.T) {
-			plot, err := f.app.GetMemoryUsagePlot(f.ctx, deps.RchPool, flt, importance)
-			if err != nil {
-				t.Fatalf("memory plot: %v", err)
-			}
-			if len(plot) != 1 || plot[0].SampleCount != 3 {
-				t.Fatalf("plot = %#v, want one point with three samples", plot)
-			}
+	flt := f.memoryFilter(base.Add(-time.Minute), base.Add(time.Minute), "UTC", "")
+	plot, err := f.app.GetMemoryUsagePlot(f.ctx, deps.RchPool, flt)
+	if err != nil {
+		t.Fatalf("memory plot: %v", err)
+	}
+	if len(plot) != 1 || plot[0].SampleCount != 3 {
+		t.Fatalf("plot = %#v, want one point with three samples", plot)
+	}
 
-			breakdown, err := f.app.GetMemoryUsageBreakdown(f.ctx, deps.RchPool, flt, importance)
-			if err != nil {
-				t.Fatalf("memory breakdown: %v", err)
-			}
-			tiers := map[string]uint64{}
-			for _, point := range breakdown {
-				tiers[point.DeviceTotalMemoryTier] += point.SampleCount
-			}
-			if len(tiers) != 3 || tiers["17-32gb"] != 1 || tiers["5-6gb"] != 1 || tiers["unknown"] != 1 {
-				t.Fatalf("memory tiers = %v, want one sample each in 17-32gb, 5-6gb and unknown", tiers)
-			}
-		})
+	breakdown, err := f.app.GetMemoryUsageBreakdown(f.ctx, deps.RchPool, flt)
+	if err != nil {
+		t.Fatalf("memory breakdown: %v", err)
+	}
+	tiers := map[string]uint64{}
+	for _, point := range breakdown {
+		tiers[point.DeviceTotalMemoryTier] += point.SampleCount
+	}
+	if len(tiers) != 3 || tiers["17-32gb"] != 1 || tiers["5-6gb"] != 1 || tiers["unknown"] != 1 {
+		t.Fatalf("memory tiers = %v, want one sample each in 17-32gb, 5-6gb and unknown", tiers)
 	}
 }
 
@@ -649,9 +651,10 @@ func TestMemoryUsageVersionTrendAndTierBreakdown(t *testing.T) {
 			if osName == opsys.Android {
 				seed(uuid.New(), base, "background", "0", 4*memoryKBPerGB, 900*1024, 20, "background")
 			}
-			flt := f.sessionFilter(base.Add(-time.Minute), base.Add(2*time.Hour), "UTC", "")
+			flt := f.memoryFilter(base.Add(-time.Minute), base.Add(2*time.Hour), "UTC", "")
 			flt.PlotTimeGroup = filter.PlotTimeGroupHours
-			plot, err := f.app.GetMemoryUsagePlot(f.ctx, deps.RchPool, flt, "foreground")
+			setMemoryFilterExpr(t, flt, "app_state:eq:foreground")
+			plot, err := f.app.GetMemoryUsagePlot(f.ctx, deps.RchPool, flt)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -668,7 +671,7 @@ func TestMemoryUsageVersionTrendAndTierBreakdown(t *testing.T) {
 			if counts["1.2.3 (1)"] != 11 || counts["1.2.3 (2)"] != 1 || counts["2.0.0 (3)"] != 1 {
 				t.Fatalf("version sample counts = %v", counts)
 			}
-			breakdown, err := f.app.GetMemoryUsageBreakdown(f.ctx, deps.RchPool, flt, "foreground")
+			breakdown, err := f.app.GetMemoryUsageBreakdown(f.ctx, deps.RchPool, flt)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -688,6 +691,14 @@ func TestMemoryUsageVersionTrendAndTierBreakdown(t *testing.T) {
 
 func memoryHeadroom(kb uint64) *uint64 {
 	return &kb
+}
+
+func setMemoryFilterExpr(t *testing.T, flt *filter.Filter, filterExpr string) {
+	t.Helper()
+	flt.FilterExpr = filterExpr
+	if err := flt.BuildExprTree(); err != nil {
+		t.Fatalf("build %q: %v", filterExpr, err)
+	}
 }
 
 func memoryKB(kb uint64) *uint64 {
@@ -715,16 +726,16 @@ func TestGetSessionEventsPreservesMemoryAppImportance(t *testing.T) {
 	f.app.OSNames = []string{opsys.Android}
 	sessionID := uuid.New()
 	base := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
-	states := []string{"foreground", "user_service", "background", ""}
+	importances := []string{"foreground", "user_service", "background", ""}
 
-	for i, state := range states {
+	for i, importance := range importances {
 		th.SeedEventRows(f.ctx, t, f.teamID.String(), f.appID.String(), 1, testinfra.EventRow{
 			Type:                "memory_usage",
 			SessionID:           sessionID.String(),
 			Timestamp:           base.Add(time.Duration(i) * time.Second),
 			MemoryAnonRSS:       memoryKB(65536),
 			MemorySwap:          memoryKB(8192),
-			MemoryAppImportance: state,
+			MemoryAppImportance: importance,
 		})
 	}
 
@@ -732,15 +743,15 @@ func TestGetSessionEventsPreservesMemoryAppImportance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(session.Events) != len(states) {
-		t.Fatalf("got %d events, want %d", len(session.Events), len(states))
+	if len(session.Events) != len(importances) {
+		t.Fatalf("got %d events, want %d", len(session.Events), len(importances))
 	}
 	for i, event := range session.Events {
 		if event.MemoryUsage == nil {
 			t.Fatalf("event %d is missing memory usage", i)
 		}
-		if got := event.MemoryUsage.AppImportance; got != states[i] {
-			t.Errorf("event %d app importance = %q, want %q", i, got, states[i])
+		if got := event.MemoryUsage.AppImportance; got != importances[i] {
+			t.Errorf("event %d app importance = %q, want %q", i, got, importances[i])
 		}
 	}
 }

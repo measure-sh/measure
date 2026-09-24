@@ -67,7 +67,7 @@ var operatorsByValueType = map[ValueType][]Operator{
 		OperatorContains, OperatorNotContains, OperatorStartsWith, OperatorEndsWith,
 		OperatorIsSet, OperatorIsNotSet,
 	},
-	ValueTypeEnum:     {OperatorIn, OperatorNotIn},
+	ValueTypeEnum:     {OperatorIn, OperatorNotIn, OperatorEq},
 	ValueTypeUUID:     {OperatorIn, OperatorNotIn, OperatorIsSet, OperatorIsNotSet},
 	ValueTypeInt32:    numericOperators,
 	ValueTypeInt64:    numericOperators,

@@ -11,7 +11,7 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, SessionsEntity, ErrorsEntity, JourneysEntity, AlertsEntity, NetworkEntity, AppHealthEntity}
+var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, SessionsEntity, ErrorsEntity, JourneysEntity, AlertsEntity, NetworkEntity, AppHealthEntity, MemoryEntity}
 
 func sampleValues(t *testing.T, key Key, operator Operator) []Value {
 	t.Helper()
@@ -1217,7 +1217,7 @@ func TestDeviceTotalMemoryBindsRanges(t *testing.T) {
 	}
 	defer stmt.Close()
 
-	want := "(device_total_memory >= 17825792 and device_total_memory < 34603008)"
+	want := "(ceil(device_total_memory / 1048576) between 17 and 32)"
 	if got := stmt.String(); got != want {
 		t.Errorf("want %s, got %s", want, got)
 	}
@@ -1234,7 +1234,7 @@ func TestDeviceTotalMemoryUnderFourGBExcludesMissingValues(t *testing.T) {
 	}
 	defer stmt.Close()
 
-	want := "(device_total_memory > 0 and device_total_memory < 5242880)"
+	want := "(ceil(device_total_memory / 1048576) between 1 and 4)"
 	if got := stmt.String(); got != want {
 		t.Errorf("want %s, got %s", want, got)
 	}
@@ -1264,44 +1264,5 @@ func TestDeviceTotalMemoryValuesUseReadableNames(t *testing.T) {
 	}
 	if values[0].Text != "0-4gb" || values[len(values)-1].Text != "unknown" {
 		t.Errorf("unexpected display values: first=%q last=%q", values[0].Text, values[len(values)-1].Text)
-	}
-}
-
-// TestDeviceMemoryTiersClaimShippingSizes pins the tier a real device lands in.
-// Apple reports exact physical memory, so a bound resting on a shipping size
-// pushes those devices into the tier above the one named for them.
-func TestDeviceMemoryTiersClaimShippingSizes(t *testing.T) {
-	const kbPerGB uint64 = 1024 * 1024
-	tests := []struct {
-		name   string
-		sizeGB uint64
-		want   string
-	}{
-		{"4 gb", 4, "0-4gb"},
-		{"6 gb", 6, "5-6gb"},
-		{"8 gb", 8, "7-8gb"},
-		{"12 gb", 12, "9-12gb"},
-		{"16 gb", 16, "13-16gb"},
-		{"18 gb", 18, "17-32gb"},
-		{"24 gb", 24, "17-32gb"},
-		{"32 gb", 32, "17-32gb"},
-		{"33 gb", 33, "33gb+"},
-		{"64 gb", 64, "33gb+"},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			reported := tt.sizeGB * kbPerGB
-			got := DeviceMemoryTierUnknown
-			for _, r := range DeviceMemoryRanges {
-				if reported >= r.LowerKB && (r.UpperKB == 0 || reported < r.UpperKB) {
-					got = r.Name
-					break
-				}
-			}
-			if got != tt.want {
-				t.Errorf("a %d GB device lands in tier %q, want %q", tt.sizeGB, got, tt.want)
-			}
-		})
 	}
 }

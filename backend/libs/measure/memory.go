@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"backend/libs/chquery"
+	"backend/libs/devicememory"
 	"backend/libs/event"
 	"backend/libs/filter"
 	"backend/libs/opsys"
@@ -15,7 +16,10 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
 	"github.com/google/uuid"
 	"github.com/leporo/sqlf"
+	"go.opentelemetry.io/otel"
 )
+
+var tracer = otel.Tracer("measure")
 
 // MemoryUsagePlotPoint contains sample
 // percentiles in KB.
@@ -75,10 +79,11 @@ const (
 	highMemoryUtilizationThreshold        = 0.75
 )
 
-var ErrInvalidMemoryAppImportance = errors.New("invalid app importance")
-
 // Android app memory targets in KiB
-// by the shared total device memory.
+// by device memory tier.
+//
+// frontend/dashboard/app/sandbox/device_memory.ts
+// keeps a copy.
 var androidMemoryTargets = map[string]androidMemoryTarget{
 	"0-4gb":   {2 * memoryKBPerGB, memoryKBPerGB, memoryKBPerGB},
 	"5-6gb":   {9 * memoryKBPerGB / 4, 5 * memoryKBPerGB / 4, 5 * memoryKBPerGB / 4},
@@ -94,21 +99,21 @@ func (a App) memorySource() (memorySource, bool) {
 	case opsys.Android:
 		return memorySource{
 			eventType:      event.TypeMemoryUsage,
-			usageKB:        "e.memory_usage.anon_rss + e.memory_usage.swap",
-			deviceMemoryKB: "e.attribute.device_total_memory",
+			usageKB:        "`memory_usage.anon_rss` + `memory_usage.swap`",
+			deviceMemoryKB: "`attribute.device_total_memory`",
 		}, true
 	case opsys.AppleFamily:
 		return memorySource{
 			eventType:      event.TypeMemoryUsageAbs,
-			usageKB:        "e.memory_usage_absolute.used_memory",
-			deviceMemoryKB: "e.memory_usage_absolute.max_memory",
+			usageKB:        "`memory_usage_absolute.used_memory`",
+			deviceMemoryKB: "`memory_usage_absolute.max_memory`",
 		}, true
 	default:
 		return memorySource{}, false
 	}
 }
 
-func (a App) memoryFilteredSessions(flt *filter.Filter) (*sqlf.Stmt, error) {
+func (a App) memorySessions(flt *filter.Filter) *sqlf.Stmt {
 	stmt := sqlf.From("sessions").
 		Select("session_id").
 		Select("app_version").
@@ -118,17 +123,9 @@ func (a App) memoryFilteredSessions(flt *filter.Filter) (*sqlf.Stmt, error) {
 		Select("device_manufacturer").
 		Select("min(first_event_timestamp) AS group_start_time").
 		Select("max(last_event_timestamp) AS group_end_time").
-		Select("max(device_total_memory) AS session_device_total_memory").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
-		Where("last_event_timestamp >= ? AND first_event_timestamp <= ?", flt.From, flt.To)
-	if flt.HasFilterExpr() {
-		if err := applySessionsPredicate(stmt, flt); err != nil {
-			stmt.Close()
-			return nil, err
-		}
-	}
-	stmt.
+		Where("last_event_timestamp >= ? AND first_event_timestamp <= ?", flt.From, flt.To).
 		GroupBy("session_id").
 		GroupBy("app_version").
 		GroupBy("os_version").
@@ -146,66 +143,46 @@ func (a App) memoryFilteredSessions(flt *filter.Filter) (*sqlf.Stmt, error) {
 		Select("argMax(device_manufacturer, group_end_time) AS device_manufacturer").
 		Select("min(group_start_time) AS start_time").
 		Select("max(group_end_time) AS end_time").
-		Select("max(session_device_total_memory) AS device_total_memory").
-		GroupBy("session_id"), nil
+		GroupBy("session_id")
 }
 
-func memoryUsageEvents(filteredSessions *sqlf.Stmt, a App, flt *filter.Filter, source memorySource, appImportance string) *sqlf.Stmt {
-	stmt := sqlf.From("events AS e").
-		Where("e.team_id = toUUID(?)", a.TeamId).
-		Where("e.app_id = toUUID(?)", a.ID).
-		Where("e.type = ?", source.eventType).
-		Where("e.timestamp >= ? AND e.timestamp <= ?", flt.From, flt.To)
-	if filteredSessions != nil {
-		// Charts only need session membership, not a join carrying session rows.
-		// Keep the version predicate: version/build precede time in the events key.
-		stmt.With("filtered_sessions", filteredSessions).
-			Where("e.session_id IN (SELECT session_id FROM filtered_sessions)").
-			Where("(e.attribute.app_version, e.attribute.app_build) IN (SELECT app_version FROM filtered_sessions)")
-	}
-	stmt.
+func memoryUsageEvents(a App, flt *filter.Filter, source memorySource) (*sqlf.Stmt, error) {
+	stmt := sqlf.From("events").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("type = ?", source.eventType).
+		Where("timestamp >= ? AND timestamp <= ?", flt.From, flt.To).
 		Where(source.usageKB + " > 0")
-	if source.eventType == event.TypeMemoryUsage {
-		switch appImportance {
-		case "foreground":
-			// Older Android SDKs omitted the event's state label.
-			stmt.Where("(e.memory_usage.app_importance = '' OR e.memory_usage.app_importance = ?)", appImportance)
-		case "user_service", "background":
-			stmt.Where("e.memory_usage.app_importance = ?", appImportance)
-		}
+	if err := applyMemoryPredicate(stmt, flt); err != nil {
+		stmt.Close()
+		return nil, err
 	}
-	return stmt
+	return stmt, nil
 }
 
-// resolveMemoryAppImportance handles the optional
-// filter before query construction. Applies only
-// to Android.
-func (a App) resolveMemoryAppImportance(value string) (string, error) {
-	switch value {
-	case "", "foreground", "user_service", "background":
-	default:
-		return "", ErrInvalidMemoryAppImportance
+// applyMemoryPredicate adds the filter expression to a memory events query.
+func applyMemoryPredicate(stmt *sqlf.Stmt, flt *filter.Filter) error {
+	if !flt.HasFilterExpr() {
+		return nil
 	}
-	if a.Family() != opsys.Android {
-		return "", nil
+
+	predicate, err := flt.Predicate(nil)
+	if err != nil {
+		return err
 	}
-	if value == "" {
-		return "foreground", nil
-	}
-	return value, nil
+	defer predicate.Close()
+
+	stmt.Where(predicate.String(), predicate.Args()...)
+	return nil
 }
 
 // GetMemoryUsagePlot returns percentiles of
 // memory usage samples grouped by time interval
 // and app version/build, across device memory tiers.
-func (a App) GetMemoryUsagePlot(ctx context.Context, rch driver.Conn, flt *filter.Filter, appImportance string) (points []MemoryUsagePlotPoint, err error) {
+func (a App) GetMemoryUsagePlot(ctx context.Context, rch driver.Conn, flt *filter.Filter) (points []MemoryUsagePlotPoint, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	if flt.Timezone == "" {
 		return nil, errors.New("missing timezone filter")
-	}
-	appImportance, err = a.resolveMemoryAppImportance(appImportance)
-	if err != nil {
-		return nil, err
 	}
 	source, ok := a.memorySource()
 	if !ok {
@@ -213,27 +190,27 @@ func (a App) GetMemoryUsagePlot(ctx context.Context, rch driver.Conn, flt *filte
 	}
 
 	flt.SetDefaultPlotTimeGroupIfUnset()
-	groupExpr, err := GetPlotTimeGroupExpr("e.timestamp", flt.PlotTimeGroup)
+	groupExpr, err := GetPlotTimeGroupExpr("timestamp", flt.PlotTimeGroup)
 	if err != nil {
 		return nil, err
 	}
 
-	var filteredSessions *sqlf.Stmt
-	if flt.HasFilterExpr() {
-		filteredSessions, err = a.memoryFilteredSessions(flt)
-		if err != nil {
-			return nil, err
-		}
+	stmt, err := memoryUsageEvents(a, flt, source)
+	if err != nil {
+		return nil, err
 	}
-	stmt := memoryUsageEvents(filteredSessions, a, flt, source, appImportance).
-		Select("concat(e.attribute.app_version, ' (', e.attribute.app_build, ')') AS version").
+	stmt.
+		Select("concat(`attribute.app_version`, ' (', `attribute.app_build`, ')') AS version").
 		Select(groupExpr.BucketExpr+" AS datetime_bucket", flt.Timezone).
 		Select("formatDateTime(datetime_bucket, ?) AS datetime", groupExpr.DatetimeFormat).
 		Select("CAST(quantilesTDigest(0.50, 0.90, 0.95, 0.99)(" + source.usageKB + ") AS Array(Float64)) AS quantiles").
 		Select("count() AS sample_count").
-		GroupBy("e.attribute.app_version, e.attribute.app_build, datetime_bucket").
-		OrderBy("datetime_bucket, e.attribute.app_build DESC, e.attribute.app_version")
+		GroupBy("`attribute.app_version`, `attribute.app_build`, datetime_bucket").
+		OrderBy("datetime_bucket, `attribute.app_build` DESC, `attribute.app_version`")
 	defer stmt.Close()
+
+	ctx, querySpan := tracer.Start(ctx, "memory.usage_plot")
+	defer querySpan.End()
 
 	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -258,54 +235,42 @@ func (a App) GetMemoryUsagePlot(ctx context.Context, rch driver.Conn, flt *filte
 
 // GetMemoryUsageBreakdown returns percentiles of individual samples grouped by
 // device memory tier over the entire selected date range.
-func (a App) GetMemoryUsageBreakdown(ctx context.Context, rch driver.Conn, flt *filter.Filter, appImportance string) (breakdown []MemoryUsageBreakdownRow, err error) {
+func (a App) GetMemoryUsageBreakdown(ctx context.Context, rch driver.Conn, flt *filter.Filter) (breakdown []MemoryUsageBreakdownRow, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	appImportance, err = a.resolveMemoryAppImportance(appImportance)
-	if err != nil {
-		return nil, err
-	}
 	source, ok := a.memorySource()
 	if !ok {
 		return []MemoryUsageBreakdownRow{}, nil
 	}
-	var filteredSessions *sqlf.Stmt
-	if flt.HasFilterExpr() {
-		filteredSessions, err = a.memoryFilteredSessions(flt)
-		if err != nil {
-			return nil, err
-		}
+	tierPredicates := devicememory.Predicates(source.deviceMemoryKB)
+	tierCases := make([]string, 0, 2*len(devicememory.Tiers)+1)
+	for _, tier := range devicememory.Tiers {
+		tierCases = append(tierCases, tierPredicates[tier.Name], "'"+tier.Name+"'")
 	}
-	// Bucket device memory using the shared tier boundaries.
-	parts := make([]string, 0, len(filter.DeviceMemoryRanges)+1)
-	parts = append(parts, fmt.Sprintf("%s = 0, '%s'", source.deviceMemoryKB, filter.DeviceMemoryTierUnknown))
-	for i, r := range filter.DeviceMemoryRanges {
-		if r.UpperKB == 0 {
-			parts = append(parts, fmt.Sprintf("'%s'", r.Name))
-			continue
-		}
-		condition := fmt.Sprintf("%s < %d", source.deviceMemoryKB, r.UpperKB)
-		if i == 0 {
-			condition = fmt.Sprintf("%s > 0 AND %s", source.deviceMemoryKB, condition)
-		}
-		parts = append(parts, fmt.Sprintf("%s, '%s'", condition, r.Name))
-	}
-	tierExpr := "multiIf(" + strings.Join(parts, ", ") + ")"
+	tierCases = append(tierCases, "'"+devicememory.Unknown+"'")
+	tierExpr := "multiIf(" + strings.Join(tierCases, ", ") + ")"
 
 	// Keep breakdown rows in ascending device-memory order.
-	tiers := filter.DeviceMemoryTiers()
-	quoted := make([]string, 0, len(tiers))
-	for _, tier := range tiers {
-		quoted = append(quoted, "'"+tier+"'")
+	tierNames := devicememory.Names()
+	quoted := make([]string, 0, len(tierNames))
+	for _, name := range tierNames {
+		quoted = append(quoted, "'"+name+"'")
 	}
 	tierOrder := "indexOf([" + strings.Join(quoted, ", ") + "], device_total_memory_tier)"
-	stmt := memoryUsageEvents(filteredSessions, a, flt, source, appImportance).
+	stmt, err := memoryUsageEvents(a, flt, source)
+	if err != nil {
+		return nil, err
+	}
+	stmt.
 		Select(tierExpr + " AS device_total_memory_tier").
 		Select("CAST(quantilesTDigest(0.50, 0.90, 0.95)(" + source.usageKB + ") AS Array(Float64)) AS quantiles").
-		Select("uniqExact(e.session_id) AS session_count").
+		Select("uniqExact(session_id) AS session_count").
 		Select("count() AS sample_count").
 		GroupBy("device_total_memory_tier").
 		OrderBy(tierOrder)
 	defer stmt.Close()
+
+	ctx, querySpan := tracer.Start(ctx, "memory.usage_breakdown")
+	defer querySpan.End()
 
 	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -330,55 +295,51 @@ func (a App) GetMemoryUsageBreakdown(ctx context.Context, rch driver.Conn, flt *
 // with peak usage at or above 75% of their target and
 // iOS sessions with peak process-limit utilization
 // of at least 75%.
-func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, flt *filter.Filter, appImportance string) (sessions []HighMemoryUsageSession, next, previous bool, err error) {
+func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, flt *filter.Filter) (sessions []HighMemoryUsageSession, next, previous bool, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-	appImportance, err = a.resolveMemoryAppImportance(appImportance)
-	if err != nil {
-		return nil, false, false, err
-	}
 	source, ok := a.memorySource()
 	if !ok {
 		return []HighMemoryUsageSession{}, false, false, nil
 	}
 
-	base, err := a.memoryFilteredSessions(flt)
-	if err != nil {
-		return nil, false, false, err
-	}
 	isIOS := source.eventType == event.TypeMemoryUsageAbs
 
 	// Reduce samples to one row per session
 	// before attaching metadata.
-	memory := memoryUsageEvents(nil, a, flt, source, appImportance).
-		Select("e.session_id").
-		Select("max(" + source.usageKB + ") AS peak_memory_kb").
-		Where("e.session_id IN (SELECT session_id FROM filtered_sessions)").
-		Where("(e.attribute.app_version, e.attribute.app_build) IN (SELECT app_version FROM filtered_sessions)").
-		GroupBy("e.session_id")
+	memory, err := memoryUsageEvents(a, flt, source)
+	if err != nil {
+		return nil, false, false, err
+	}
+	memory.
+		Select("session_id").
+		Select("max(" + source.deviceMemoryKB + ") AS device_total_memory").
+		GroupBy("session_id")
 	if isIOS {
 		// Convert before adding: UInt64 footprint + available memory could overflow.
 		// A missing or zero headroom reading means the process limit is unknown, so
 		// those samples cannot produce a utilization figure.
 		usage := "toFloat64(" + source.usageKB + ")"
-		available := "e.memory_usage_absolute.available_memory"
+		available := "`memory_usage_absolute.available_memory`"
 		utilization := usage + " / (" + usage + " + toFloat64(" + available + "))"
-		memory.Select("max("+source.deviceMemoryKB+") AS device_total_memory").
+		memory.Select("max("+source.usageKB+") AS peak_memory_kb").
 			Select("max("+utilization+") AS peak_memory_limit_utilization").
-			Select("argMax("+available+", tuple("+utilization+", e.timestamp)) AS available_memory_at_peak_utilization_kb").
+			Select("argMax("+available+", tuple("+utilization+", timestamp)) AS available_memory_at_peak_utilization_kb").
 			Where(available+" > 0").
 			Having("peak_memory_limit_utilization >= ?", highMemoryUtilizationThreshold)
+	} else {
+		target := androidMemoryTargetKB(source.deviceMemoryKB)
+		percent := "toFloat64(" + source.usageKB + ") * 100 / " + target
+		memory.Select("max("+percent+") AS percent_of_target").
+			Select("argMax("+source.usageKB+", "+percent+") AS peak_memory_kb").
+			Select("argMax("+target+", "+percent+") AS target_memory_kb").
+			Where(target+" > 0").
+			Having("percent_of_target >= ?", highMemoryUtilizationThreshold*100)
 	}
 
-	deviceMemory := "s.device_total_memory"
-	if isIOS {
-		// Older iOS SDKs did not populate the shared device-memory attribute.
-		// RAM is display context only; iOS selection uses available app memory.
-		deviceMemory = "m.device_total_memory"
-	}
-	stmt := sqlf.With("filtered_sessions", base).
+	stmt := sqlf.With("memory_sessions", a.memorySessions(flt)).
 		With("session_memory", memory).
 		From("session_memory AS m").
-		Join("filtered_sessions AS s", "m.session_id = s.session_id").
+		Join("memory_sessions AS s", "m.session_id = s.session_id").
 		Select("s.session_id").
 		Select("tupleElement(s.app_version, 1) AS app_version_major").
 		Select("tupleElement(s.app_version, 2) AS app_version_minor").
@@ -390,7 +351,7 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 		Select("s.start_time").
 		Select("s.end_time").
 		Select("m.peak_memory_kb AS peak_memory_kb").
-		Select(deviceMemory + " AS device_total_memory")
+		Select("m.device_total_memory AS device_total_memory")
 	if isIOS {
 		stmt.Select("CAST(NULL AS Nullable(UInt64)) AS target_memory_kb").
 			Select("CAST(NULL AS Nullable(Float64)) AS percent_of_target").
@@ -398,33 +359,10 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 			Select("m.available_memory_at_peak_utilization_kb AS available_memory_at_peak_utilization_kb").
 			OrderBy("peak_memory_limit_utilization DESC")
 	} else {
-		parts := make([]string, 0, len(filter.DeviceMemoryRanges)*2+1)
-		for _, r := range filter.DeviceMemoryRanges {
-			target := androidMemoryTargets[r.Name]
-			targetKB := target.foreground
-			switch appImportance {
-			case "user_service":
-				targetKB = target.userService
-			case "background":
-				targetKB = target.background
-			}
-			condition := fmt.Sprintf("%s >= %d", deviceMemory, r.LowerKB)
-			if r.LowerKB == 0 {
-				condition = fmt.Sprintf("%s > 0", deviceMemory)
-			}
-			if r.UpperKB != 0 {
-				condition += fmt.Sprintf(" AND %s < %d", deviceMemory, r.UpperKB)
-			}
-			parts = append(parts, fmt.Sprintf("%s, %d", condition, targetKB))
-		}
-		parts = append(parts, "0")
-		target := "toUInt64(multiIf(" + strings.Join(parts, ", ") + "))"
-		stmt.Select(target+" AS target_memory_kb").
-			Select("toFloat64(peak_memory_kb) * 100 / target_memory_kb AS percent_of_target").
+		stmt.Select("m.target_memory_kb AS target_memory_kb").
+			Select("m.percent_of_target AS percent_of_target").
 			Select("CAST(NULL AS Nullable(Float64)) AS peak_memory_limit_utilization").
 			Select("CAST(NULL AS Nullable(UInt64)) AS available_memory_at_peak_utilization_kb").
-			Where("target_memory_kb > 0").
-			Where("percent_of_target >= ?", highMemoryUtilizationThreshold*100).
 			OrderBy("percent_of_target DESC")
 	}
 	stmt.OrderBy("end_time DESC").OrderBy("s.session_id DESC")
@@ -436,6 +374,9 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 	if flt.Offset >= 0 {
 		stmt.Offset(uint64(flt.Offset))
 	}
+
+	ctx, querySpan := tracer.Start(ctx, "memory.high_usage_sessions")
+	defer querySpan.End()
 
 	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
@@ -459,4 +400,20 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 		next = true
 	}
 	return sessions, next, flt.Offset > 0, nil
+}
+
+// androidMemoryTargetKB is the memory target in KiB for the device
+// memory tier and app importance, 0 when device memory is unknown.
+func androidMemoryTargetKB(deviceMemoryKB string) string {
+	importance := "`memory_usage.app_importance`"
+	tierPredicates := devicememory.Predicates(deviceMemoryKB)
+	cases := make([]string, 0, 2*len(devicememory.Tiers)+1)
+	for _, tier := range devicememory.Tiers {
+		target := androidMemoryTargets[tier.Name]
+		targetByImportance := fmt.Sprintf("multiIf(%s = 'user_service', %d, %s = 'background', %d, %d)",
+			importance, target.userService, importance, target.background, target.foreground)
+		cases = append(cases, tierPredicates[tier.Name], targetByImportance)
+	}
+	cases = append(cases, "0")
+	return "toUInt64(multiIf(" + strings.Join(cases, ", ") + "))"
 }

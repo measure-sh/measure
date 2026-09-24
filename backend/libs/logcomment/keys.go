@@ -55,3 +55,7 @@ const Network = "network"
 // Alerts is the root key for the `alerts`
 // logcomment.
 const Alerts = "alerts"
+
+// Memory is the root key for the `memory`
+// logcomment.
+const Memory = "memory"

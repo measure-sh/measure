@@ -1,7 +1,6 @@
 package handlers
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -15,9 +14,9 @@ import (
 func (h Handlers) GetMemoryUsagePlot(c *gin.Context) {
 	deps := h.Deps
 	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
-		entity:          filter.SessionsEntity,
+		entity:          filter.MemoryEntity,
 		appScope:        *measure.ScopeAppRead,
-		logRoot:         logcomment.Sessions,
+		logRoot:         logcomment.Memory,
 		logName:         "memory_usage_plot",
 		requireTimezone: true,
 	})
@@ -30,12 +29,8 @@ func (h Handlers) GetMemoryUsagePlot(c *gin.Context) {
 		return
 	}
 
-	points, err := app.GetMemoryUsagePlot(ctx, deps.RchPool, &flt, c.Query("app_importance"))
+	points, err := app.GetMemoryUsagePlot(ctx, deps.RchPool, &flt)
 	if err != nil {
-		if errors.Is(err, measure.ErrInvalidMemoryAppImportance) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
 		msg := "failed to query memory usage plot"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
@@ -48,9 +43,9 @@ func (h Handlers) GetMemoryUsagePlot(c *gin.Context) {
 func (h Handlers) GetMemoryUsageBreakdown(c *gin.Context) {
 	deps := h.Deps
 	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
-		entity:   filter.SessionsEntity,
+		entity:   filter.MemoryEntity,
 		appScope: *measure.ScopeAppRead,
-		logRoot:  logcomment.Sessions,
+		logRoot:  logcomment.Memory,
 		logName:  "memory_usage_breakdown",
 	})
 	if !ok {
@@ -62,12 +57,8 @@ func (h Handlers) GetMemoryUsageBreakdown(c *gin.Context) {
 		return
 	}
 
-	breakdown, err := app.GetMemoryUsageBreakdown(ctx, deps.RchPool, &flt, c.Query("app_importance"))
+	breakdown, err := app.GetMemoryUsageBreakdown(ctx, deps.RchPool, &flt)
 	if err != nil {
-		if errors.Is(err, measure.ErrInvalidMemoryAppImportance) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
 		msg := "failed to query memory usage breakdown"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
@@ -80,9 +71,9 @@ func (h Handlers) GetMemoryUsageBreakdown(c *gin.Context) {
 func (h Handlers) GetHighMemoryUsageSessions(c *gin.Context) {
 	deps := h.Deps
 	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
-		entity:   filter.SessionsEntity,
+		entity:   filter.MemoryEntity,
 		appScope: *measure.ScopeAppRead,
-		logRoot:  logcomment.Sessions,
+		logRoot:  logcomment.Memory,
 		logName:  "high_memory_usage_sessions",
 	})
 	if !ok {
@@ -94,12 +85,8 @@ func (h Handlers) GetHighMemoryUsageSessions(c *gin.Context) {
 		return
 	}
 
-	sessions, next, previous, err := app.GetHighMemoryUsageSessions(ctx, deps.RchPool, &flt, c.Query("app_importance"))
+	sessions, next, previous, err := app.GetHighMemoryUsageSessions(ctx, deps.RchPool, &flt)
 	if err != nil {
-		if errors.Is(err, measure.ErrInvalidMemoryAppImportance) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
 		msg := "failed to query high memory usage sessions"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})

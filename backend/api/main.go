@@ -130,7 +130,7 @@ func main() {
 		// memory
 		apps.GET(":id/memory/plots/usage", hdl.GetMemoryUsagePlot)
 		apps.GET(":id/memory/plots/breakdown", hdl.GetMemoryUsageBreakdown)
-		apps.GET(":id/memory/sessions/high-usage", hdl.GetHighMemoryUsageSessions)
+		apps.GET(":id/memory/sessions/highUsage", hdl.GetHighMemoryUsageSessions)
 
 		// spans & traces
 		apps.GET(":id/spans/roots/names", hdl.GetRootSpanNames)
