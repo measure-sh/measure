@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add agent evals for answers and compaction by @anupcowkur in #4512
 - (**backend**): Remove redundant backend gitignore which is already covered by project one by @anupcowkur in #4511
 - (**backend**): Default memory sampling to 0.01% by @abhaysood
 - (**backend**): Sort version filter suggestions in descending order by @anupcowkur in #4482
