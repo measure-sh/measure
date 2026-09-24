@@ -258,8 +258,8 @@ OAUTH_GOOGLE_KEY=$OAUTH_GOOGLE_KEY
 OAUTH_GOOGLE_SECRET=$OAUTH_GOOGLE_SECRET
 OAUTH_GITHUB_KEY=$OAUTH_GITHUB_KEY
 OAUTH_GITHUB_SECRET=$OAUTH_GITHUB_SECRET
-SESSION_ACCESS_SECRET=super-secret-for-jwt-token-with-at-least-32-characters
-SESSION_REFRESH_SECRET=super-secret-for-jwt-token-with-at-least-32-characters
+SESSION_ACCESS_SECRET=super-secret-for-jwt-access-token-with-at-least-32-characters
+SESSION_REFRESH_SECRET=super-secret-for-jwt-refresh-token-with-at-least-32-characters
 
 #########
 # Email #

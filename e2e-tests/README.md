@@ -50,8 +50,8 @@ npx playwright install chromium
 ```
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
-SESSION_ACCESS_SECRET=super-secret-for-jwt-token-with-at-least-32-characters
-SESSION_REFRESH_SECRET=super-secret-for-jwt-token-with-at-least-32-characters
+SESSION_ACCESS_SECRET=super-secret-for-jwt-access-token-with-at-least-32-characters
+SESSION_REFRESH_SECRET=super-secret-for-jwt-refresh-token-with-at-least-32-characters
 ```
 
 `e2e-tests/.env` (git-ignored; copy `.env.example`) sets which device the runner

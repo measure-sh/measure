@@ -37,9 +37,9 @@ import {
 const POSTGRES_DSN =
   "postgresql://postgres:postgres@localhost:5432/measure?search_path=measure";
 const SESSION_ACCESS_SECRET =
-  "super-secret-for-jwt-token-with-at-least-32-characters";
+  "super-secret-for-jwt-access-token-with-at-least-32-characters";
 const SESSION_REFRESH_SECRET =
-  "super-secret-for-jwt-token-with-at-least-32-characters";
+  "super-secret-for-jwt-refresh-token-with-at-least-32-characters";
 const TOKEN_SECRETS = {
   accessTokenSecret: SESSION_ACCESS_SECRET,
   refreshTokenSecret: SESSION_REFRESH_SECRET,
