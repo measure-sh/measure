@@ -29,6 +29,10 @@ protocol AppHangCollector {
 ///
 /// A record still pending at the next launch means the process died while hung, and is reported
 /// as a fatal hang once the config has loaded.
+///
+/// Sampling decides only whether the hang is reported as an issue, exactly as it does for errors.
+/// A hang that samples out is still captured and stored, so it appears in the session timeline of
+/// whatever else gets reported — it simply never exports on its own.
 final class BaseAppHangCollector: AppHangCollector, AppHangCallbacks {
     private let logger: Logger
     private let detector: AppHangDetector
@@ -47,6 +51,7 @@ final class BaseAppHangCollector: AppHangCollector, AppHangCallbacks {
     private var pendingEventId: String?
     private var pendingEvent: AppHang?
     private var pendingTimestamp: Number?
+    private var pendingNeedsReporting = false
 
     init(logger: Logger,
          detector: AppHangDetector,
@@ -113,10 +118,6 @@ final class BaseAppHangCollector: AppHangCollector, AppHangCallbacks {
 
     // MARK: - AppHangCallbacks
 
-    func shouldReportAppHang() -> Bool {
-        signalSampler.shouldSampleAppHang()
-    }
-
     func onAppHangStarted(stack: AppHangStack?, thresholdMs: Number, timestamp: Number) {
         let appHang = AppHang(exceptions: [makeDetail(stack: stack)],
                               duration: thresholdMs,
@@ -125,16 +126,20 @@ final class BaseAppHangCollector: AppHangCollector, AppHangCallbacks {
                               foreground: crashDataPersistence.isForeground,
                               binaryImages: stack?.binaryImages)
 
+        let needsReporting = signalSampler.shouldSampleAppHang()
+
         // Stored synchronously: after this returns the process may die at any moment, and an event
         // that never reached disk is a hang nobody hears about.
         let eventId = signalProcessor.trackAppHang(appHang,
                                                    timestamp: timestamp,
                                                    attributes: crashDataPersistence.attribute,
-                                                   sessionId: crashDataPersistence.sessionId)
+                                                   sessionId: crashDataPersistence.sessionId,
+                                                   needsReporting: needsReporting)
 
         pendingEventId = eventId
         pendingEvent = appHang
         pendingTimestamp = timestamp
+        pendingNeedsReporting = needsReporting
     }
 
     func onAppHangHeartbeat(elapsedMs: Number) {
@@ -161,9 +166,10 @@ final class BaseAppHangCollector: AppHangCollector, AppHangCallbacks {
             return
         }
 
-        eventStore.resolveAppHang(eventId: eventId, payload: payload, needsReporting: true)
+        eventStore.resolveAppHang(eventId: eventId, payload: payload)
 
-        if configProvider.appHangReplayEnabled {
+        // A hang that is not being reported must not drag a replay window into an export with it.
+        if pendingNeedsReporting && configProvider.appHangReplayEnabled {
             eventStore.markTimelineForReporting(eventTimestampMillis: timestamp,
                                                 durationSeconds: configProvider.appHangTimelineDurationSeconds,
                                                 sessionId: crashDataPersistence.sessionId ?? "")
@@ -198,6 +204,7 @@ final class BaseAppHangCollector: AppHangCollector, AppHangCallbacks {
         pendingEventId = nil
         pendingEvent = nil
         pendingTimestamp = nil
+        pendingNeedsReporting = false
     }
 
     // MARK: - Previous launch
@@ -228,7 +235,15 @@ final class BaseAppHangCollector: AppHangCollector, AppHangCallbacks {
             return
         }
 
-        eventStore.resolveAppHang(eventId: event.id, payload: payload, needsReporting: true)
+        // The payload goes back unchanged; this only releases the row from `pendingResolution`.
+        // Its `needsReporting` still carries the sampling decision made when the hang was detected.
+        eventStore.resolveAppHang(eventId: event.id, payload: payload)
+
+        guard event.needsReporting else {
+            logger.log(level: .debug, message: "AppHang: a fatal hang from a previous launch was sampled out.", error: nil, data: nil)
+            return
+        }
+
         sessionStore.updateNeedsReporting(sessionId: event.sessionId, needsReporting: true)
 
         if configProvider.appHangReplayEnabled {

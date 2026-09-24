@@ -164,27 +164,6 @@ final class PingAppHangDetectorTests: XCTestCase {
         XCTAssertGreaterThan(try XCTUnwrap(callbacks.lastHeartbeatMs), 1_000, "The heartbeat reports elapsed time, not the threshold.")
     }
 
-    /// Sampling is asked before the stack is walked, so a hang that samples out costs nothing
-    /// beyond the detection itself.
-    func testSampledOutHangIsNotCapturedOrReported() {
-        configProvider.appHangThresholdMillis = 1_000
-        callbacks.shouldReport = false
-        let detector = makeDetector()
-
-        detector.enable()
-        defer { detector.disable() }
-
-        Thread.sleep(forTimeInterval: 1.6)
-
-        let settled = expectation(description: "detector settled")
-        DispatchQueue.global().asyncAfter(deadline: .now() + 0.8) { settled.fulfill() }
-        wait(for: [settled], timeout: 5)
-
-        XCTAssertEqual(stackCapture.captureCount, 0, "A sampled out hang must not pay the capture cost.")
-        XCTAssertEqual(callbacks.startedCount, 0)
-        XCTAssertEqual(callbacks.endedCount, 0, "Nothing was recorded, so there is nothing to resolve.")
-    }
-
     func testNoHangIsReported_whenMainThreadIsResponsive() {
         configProvider.appHangThresholdMillis = 1_000
         let detector = makeDetector()

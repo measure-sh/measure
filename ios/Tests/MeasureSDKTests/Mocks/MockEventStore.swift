@@ -12,7 +12,7 @@ final class MockEventStore: EventStore {
     private var events: [String: EventEntity] = [:]
     private let lock = NSLock()
     private(set) var lastMarkTimelineDurationSeconds: Int64?
-    private(set) var resolvedAppHangs: [String: (payload: Data, needsReporting: Bool)] = [:]
+    private(set) var resolvedAppHangs: [String: Data] = [:]
 
     func insertEvent(event: EventEntity) {
         lock.lock()
@@ -159,16 +159,15 @@ final class MockEventStore: EventStore {
         return Array(Set(sessionIds))
     }
 
-    func resolveAppHang(eventId: String, payload: Data, needsReporting: Bool) {
+    func resolveAppHang(eventId: String, payload: Data) {
         lock.lock()
         defer { lock.unlock() }
 
-        resolvedAppHangs[eventId] = (payload, needsReporting)
+        resolvedAppHangs[eventId] = payload
 
         guard var event = events[eventId] else { return }
 
         event.appHang = payload
-        event.needsReporting = needsReporting
         event.pendingResolution = false
         events[eventId] = event
     }

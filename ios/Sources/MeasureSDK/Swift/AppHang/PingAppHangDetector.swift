@@ -127,7 +127,7 @@ final class PingAppHangDetector: AppHangDetector {
                 continue
             }
 
-            let reported = onHangStarted(thresholdMs: thresholdMs)
+            onHangStarted(thresholdMs: thresholdMs)
 
             // No overall timeout, so the reported duration is the real one. The wait is sliced
             // only so the elapsed time can be written to disk while the thread is still blocked.
@@ -139,16 +139,12 @@ final class PingAppHangDetector: AppHangDetector {
                     cancelled = true
                     break
                 }
-                if reported {
-                    callbacks?.onAppHangHeartbeat(elapsedMs: Number(elapsedMs(since: waitStart)))
-                }
+                callbacks?.onAppHangHeartbeat(elapsedMs: Number(elapsedMs(since: waitStart)))
             }
 
             if cancelled { return }
 
             let durationMs = elapsedMs(since: waitStart)
-
-            guard reported else { continue }
 
             if durationMs >= AppHangConstants.falsePositiveCeilingMs {
                 let reason = "duration \(Int(durationMs))ms reached the \(Int(AppHangConstants.falsePositiveCeilingMs))ms ceiling"
@@ -161,15 +157,8 @@ final class PingAppHangDetector: AppHangDetector {
         }
     }
 
-    /// Returns `false` when the hang was not recorded, so the caller can skip the resolution half.
-    private func onHangStarted(thresholdMs: Double) -> Bool {
-        guard let callbacks else { return false }
-
-        // Sampling is decided before the capture, so a hang that samples out costs nothing.
-        guard callbacks.shouldReportAppHang() else {
-            logger.log(level: .debug, message: "AppHang: hang detected but not sampled.", error: nil, data: nil)
-            return false
-        }
+    private func onHangStarted(thresholdMs: Double) {
+        guard let callbacks else { return }
 
         // The timestamp is the moment the threshold was crossed, taken before the capture so the
         // cost of walking the stack does not push the event later than the hang it describes.
@@ -182,7 +171,6 @@ final class PingAppHangDetector: AppHangDetector {
                    data: nil)
 
         callbacks.onAppHangStarted(stack: stack, thresholdMs: Number(thresholdMs), timestamp: timestamp)
-        return true
     }
 
     private func onHangEnded(durationMs: Double) {

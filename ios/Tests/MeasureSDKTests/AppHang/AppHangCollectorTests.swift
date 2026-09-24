@@ -87,6 +87,7 @@ final class AppHangCollectorTests: XCTestCase {
                                           storedDurationMs: Number = 9_000,
                                           sessionId: String = "previous-session",
                                           pendingResolution: Bool = true,
+                                          needsReporting: Bool = true,
                                           timestampInMillis: Number = 1_000_000) -> String {
         let detail = AppHangDetail(threadName: "main", threadSequence: 0, osBuildNumber: "22D72", frames: [])
         let appHang = AppHang(exceptions: [detail],
@@ -101,14 +102,14 @@ final class AppHangCollectorTests: XCTestCase {
                                                                        type: "app_hang",
                                                                        timestampInMillis: timestampInMillis,
                                                                        appHang: try? JSONEncoder().encode(appHang),
-                                                                       needsReporting: false,
+                                                                       needsReporting: needsReporting,
                                                                        pendingResolution: pendingResolution))
 
         return eventId
     }
 
     private func resolvedPayload(_ eventId: String) -> AppHang? {
-        guard let data = eventStore.resolvedAppHangs[eventId]?.payload else { return nil }
+        guard let data = eventStore.resolvedAppHangs[eventId] else { return nil }
         return try? JSONDecoder().decode(AppHang.self, from: data)
     }
 
@@ -135,12 +136,34 @@ final class AppHangCollectorTests: XCTestCase {
 
     // MARK: - Sampling
 
-    func testShouldReportFollowsTheSampler() {
+    /// Sampling decides reportability, not whether the hang is recorded — matching how
+    /// `error_*_sampling_rate` behaves, so a sampled out hang still appears in session timelines.
+    func testSampledOutHangIsStillStored() throws {
         signalSampler.shouldSampleAppHangReturnValue = false
-        XCTAssertFalse(collector.shouldReportAppHang())
 
+        startHang()
+
+        XCTAssertNotNil(trackedAppHang, "A sampled out hang must still be captured and stored.")
+        XCTAssertEqual(signalProcessor.trackedAppHangNeedsReporting, false)
+    }
+
+    func testSampledInHangIsMarkedForReporting() {
         signalSampler.shouldSampleAppHangReturnValue = true
-        XCTAssertTrue(collector.shouldReportAppHang())
+
+        startHang()
+
+        XCTAssertEqual(signalProcessor.trackedAppHangNeedsReporting, true)
+    }
+
+    /// A hang that is not being reported must not drag a replay window into an export with it.
+    func testSampledOutHangDoesNotMarkTheTimeline() {
+        signalSampler.shouldSampleAppHangReturnValue = false
+        configProvider.appHangReplayEnabled = true
+        startHang()
+
+        collector.onAppHangEnded(durationMs: 3_184)
+
+        XCTAssertNil(eventStore.lastMarkTimelineDurationSeconds)
     }
 
     // MARK: - Hang start
@@ -227,11 +250,9 @@ final class AppHangCollectorTests: XCTestCase {
 
         collector.onAppHangEnded(durationMs: 3_184)
 
-        let resolved = try XCTUnwrap(eventStore.resolvedAppHangs[eventId])
-        let payload = try JSONDecoder().decode(AppHang.self, from: resolved.payload)
+        let payload = try XCTUnwrap(resolvedPayload(eventId))
         XCTAssertEqual(payload.state, .recovered)
         XCTAssertEqual(payload.duration, 3_184)
-        XCTAssertTrue(resolved.needsReporting, "A resolved hang must become exportable.")
     }
 
     func testRecoveryMarksTheTimeline() {
@@ -327,17 +348,30 @@ final class AppHangCollectorTests: XCTestCase {
         let payload = try XCTUnwrap(resolvedPayload(eventId))
         XCTAssertEqual(payload.state, .killed, "It was written killed and stayed killed.")
         XCTAssertEqual(payload.duration, 9_000, "The heartbeat value beats the stored threshold.")
-        XCTAssertTrue(try XCTUnwrap(eventStore.resolvedAppHangs[eventId]).needsReporting)
     }
 
-    /// Sampling already happened when the hang was detected.
-    func testFatalHangIsReported_evenWhenSamplingIsOff() throws {
+    /// Sampling was decided when the hang was detected and is carried on the row, so the
+    /// sampler's current answer is irrelevant at resolution time.
+    func testFatalHangResolutionIgnoresTheCurrentSamplerState() throws {
         signalSampler.shouldSampleAppHangReturnValue = false
-        let eventId = seedPreviousLaunchRecord()
+        let eventId = seedPreviousLaunchRecord(needsReporting: true)
 
         collector.onConfigLoaded()
 
         XCTAssertNotNil(resolvedPayload(eventId))
+        XCTAssertTrue(sessionStore.updatedNeedsReporting["previous-session"] ?? false)
+    }
+
+    /// A fatal hang that sampled out is still released from `pendingResolution` so it can appear
+    /// in a timeline, but it does not pull its session into an export.
+    func testSampledOutFatalHangIsResolvedButNotReported() throws {
+        let eventId = seedPreviousLaunchRecord(needsReporting: false)
+
+        collector.onConfigLoaded()
+
+        XCTAssertNotNil(resolvedPayload(eventId), "It must stop being pending or it is stuck forever.")
+        XCTAssertNil(sessionStore.updatedNeedsReporting["previous-session"])
+        XCTAssertNil(eventStore.lastMarkTimelineDurationSeconds)
     }
 
     /// Without this the session is deleted by cleanup and the event goes with it.

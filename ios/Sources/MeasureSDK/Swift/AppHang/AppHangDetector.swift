@@ -39,10 +39,6 @@ protocol AppHangDetector: AnyObject {
 /// Receives hangs from the detector thread. Kept separate so the detector stays about timing and
 /// knows nothing about events, sessions or storage.
 protocol AppHangCallbacks: AnyObject {
-    /// Whether this hang should be recorded. Asked before the stack is captured, so that a hang
-    /// which samples out costs nothing beyond the detection itself.
-    func shouldReportAppHang() -> Bool
-
     /// The main thread has been blocked for longer than the threshold. Called from the detector
     /// thread while the thread is still blocked, and must not return until the hang is durably
     /// recorded: the process can die at any point after this.

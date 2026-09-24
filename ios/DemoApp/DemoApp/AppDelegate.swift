@@ -43,15 +43,23 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     /// Blocks the main thread shortly after launch when `MSR_DEMO_HANG_SECONDS` is set, so app hang
     /// detection can be exercised without driving the UI. The simulator cannot be tapped from the
     /// command line, which makes this the only way to verify a hang end to end from a script.
+    ///
+    /// `MSR_DEMO_ALLOC_HANG_SECONDS` does the same but holds every malloc zone lock while it
+    /// blocks, so any other thread that allocates blocks with it.
     private func scheduleLaunchHangIfRequested() {
-        guard let value = ProcessInfo.processInfo.environment["MSR_DEMO_HANG_SECONDS"],
-              let seconds = TimeInterval(value), seconds > 0 else {
-            return
+        let environment = ProcessInfo.processInfo.environment
+
+        if let value = environment["MSR_DEMO_HANG_SECONDS"], let seconds = TimeInterval(value), seconds > 0 {
+            // Deferred so the SDK has finished starting and the detector is already polling.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                Thread.sleep(forTimeInterval: seconds)
+            }
         }
 
-        // Deferred so the SDK has finished starting and the detector is already polling.
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-            Thread.sleep(forTimeInterval: seconds)
+        if let value = environment["MSR_DEMO_ALLOC_HANG_SECONDS"], let seconds = Int(value), seconds > 0 {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                ViewController.hangHoldingAllocatorLock(seconds: seconds)
+            }
         }
     }
 

@@ -37,11 +37,11 @@ protocol SignalProcessor {
     /// Tracks an app hang detected on the main thread, returning the id of the stored event.
     ///
     /// Unlike every other event, an app hang is written before its outcome is known, so that a
-    /// hang the process does not survive is still on disk at the next launch. The event is stored
-    /// unreportable until `EventStore.resolveAppHang` rewrites it, and the returned id is what
-    /// identifies it then. Stores synchronously: the process may die at any moment while the main
-    /// thread is blocked.
-    func trackAppHang(_ appHang: AppHang, timestamp: Number, attributes: Attributes?, sessionId: String?) -> String
+    /// hang the process does not survive is still on disk at the next launch. It is held out of
+    /// every export query by `pendingResolution` until `EventStore.resolveAppHang` clears that,
+    /// and the returned id is what identifies it then. Stores synchronously: the process may die
+    /// at any moment while the main thread is blocked.
+    func trackAppHang(_ appHang: AppHang, timestamp: Number, attributes: Attributes?, sessionId: String?, needsReporting: Bool) -> String
 
     func trackSpan(_ spanData: SpanData)
 }
@@ -136,7 +136,7 @@ final class BaseSignalProcessor: SignalProcessor {
         }
     }
 
-    func trackAppHang(_ appHang: AppHang, timestamp: Number, attributes: Attributes?, sessionId: String?) -> String {
+    func trackAppHang(_ appHang: AppHang, timestamp: Number, attributes: Attributes?, sessionId: String?, needsReporting: Bool) -> String {
         let eventId = idProvider.uuid()
 
         SignPost.trace(subcategory: "Event", label: "trackAppHang") {
@@ -149,7 +149,7 @@ final class BaseSignalProcessor: SignalProcessor {
                   sessionId: sessionId,
                   userDefinedAttributes: nil,
                   threadName: nil,
-                  needsReporting: false,
+                  needsReporting: needsReporting,
                   synchronous: true,
                   eventId: eventId,
                   pendingResolution: true)
@@ -213,13 +213,10 @@ final class BaseSignalProcessor: SignalProcessor {
 
             self.appendAttributes(event: event, threadName: resolvedThreadName.isEmpty ? "unknown" : resolvedThreadName)
 
+            // An unresolved app hang keeps its sampling decision here; `pendingResolution` is
+            // what holds it out of every export query until the outcome is known.
             let resolvedNeedsReporting: Bool
-            if pendingResolution {
-                // An unresolved app hang stays unreportable even in full collection mode: its
-                // state still reads `killed` and its duration is only the threshold. Checked
-                // first so it wins over every other reason to report.
-                resolvedNeedsReporting = false
-            } else if configProvider.enableFullCollectionMode {
+            if configProvider.enableFullCollectionMode {
                 resolvedNeedsReporting = true
             } else if event.type == .memoryUsageAbsolute {
                 // Keep unsampled readings locally for session replays, as on Android.

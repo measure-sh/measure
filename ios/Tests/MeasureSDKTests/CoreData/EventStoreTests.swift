@@ -232,15 +232,17 @@ final class EventStoreTests: XCTestCase {
     }
 
     func testResolveAppHangMakesEventExportable() {
+        // `needsReporting` carries the sampling decision from detection; resolving releases the
+        // row from `pendingResolution` without revisiting it.
         let hang = TestDataGenerator.generateEvents(id: "1",
                                                     type: "app_hang",
                                                     appHang: appHangPayload(state: .killed, duration: 2000),
-                                                    needsReporting: false,
+                                                    needsReporting: true,
                                                     pendingResolution: true)
         eventStore.insertEvent(event: hang)
 
         let resolved = appHangPayload(state: .recovered, duration: 3184)
-        eventStore.resolveAppHang(eventId: "1", payload: resolved, needsReporting: true)
+        eventStore.resolveAppHang(eventId: "1", payload: resolved)
 
         guard let stored = eventStore.getEvents(eventIds: ["1"])?.first else {
             XCTFail("Expected the app hang event to be stored.")
@@ -258,8 +260,24 @@ final class EventStoreTests: XCTestCase {
         XCTAssertEqual(unBatched, ["1"])
     }
 
+    func testResolveAppHangPreservesASampledOutDecision() {
+        let hang = TestDataGenerator.generateEvents(id: "1",
+                                                    type: "app_hang",
+                                                    appHang: appHangPayload(state: .killed, duration: 2000),
+                                                    needsReporting: false,
+                                                    pendingResolution: true)
+        eventStore.insertEvent(event: hang)
+
+        eventStore.resolveAppHang(eventId: "1", payload: appHangPayload(state: .recovered, duration: 3184))
+
+        let stored = eventStore.getEvents(eventIds: ["1"])?.first
+        XCTAssertFalse(stored?.pendingResolution ?? true, "It must stop being pending or it is stuck forever.")
+        XCTAssertFalse(stored?.needsReporting ?? true, "Sampling decided this one is not reported.")
+        XCTAssertTrue(eventStore.getUnBatchedEvents(eventCount: 10, ascending: true, sessionId: nil).isEmpty)
+    }
+
     func testResolveAppHangIgnoresUnknownEventId() {
-        eventStore.resolveAppHang(eventId: "missing", payload: appHangPayload(state: .recovered, duration: 1), needsReporting: true)
+        eventStore.resolveAppHang(eventId: "missing", payload: appHangPayload(state: .recovered, duration: 1))
 
         XCTAssertEqual(eventStore.getEventsCount(), 0)
     }
@@ -295,7 +313,7 @@ final class EventStoreTests: XCTestCase {
 
         XCTAssertTrue(eventStore.getSessionIdsWithUnBatchedEvents().isEmpty)
 
-        eventStore.resolveAppHang(eventId: "1", payload: appHangPayload(state: .recovered, duration: 3184), needsReporting: true)
+        eventStore.resolveAppHang(eventId: "1", payload: appHangPayload(state: .recovered, duration: 3184))
 
         XCTAssertEqual(eventStore.getSessionIdsWithUnBatchedEvents(), ["session1"])
     }

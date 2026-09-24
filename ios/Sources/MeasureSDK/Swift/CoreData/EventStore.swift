@@ -21,9 +21,12 @@ protocol EventStore {
     func getEventCount(forSessionId sessionId: String) -> Int
     func markTimelineForReporting(eventTimestampMillis: Int64, durationSeconds: Int64, sessionId: String)
 
-    /// Rewrites the payload of an app hang event once its outcome is known, clearing
-    /// `pendingResolution` so it becomes eligible for export.
-    func resolveAppHang(eventId: String, payload: Data, needsReporting: Bool)
+    /// Rewrites the payload of an app hang event once its outcome is known and clears
+    /// `pendingResolution`, releasing it to the export queries.
+    ///
+    /// `needsReporting` is left as stored: it carries the sampling decision made when the hang was
+    /// first detected, and resolving an outcome does not revisit that.
+    func resolveAppHang(eventId: String, payload: Data)
 
     /// Rewrites the payload of an app hang that is still in progress, leaving it unresolved.
     ///
@@ -356,7 +359,7 @@ final class BaseEventStore: EventStore { // swiftlint:disable:this type_body_len
         }
     }
 
-    func resolveAppHang(eventId: String, payload: Data, needsReporting: Bool) {
+    func resolveAppHang(eventId: String, payload: Data) {
         guard let context = coreDataManager.backgroundContext else {
             logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
             return
@@ -374,7 +377,6 @@ final class BaseEventStore: EventStore { // swiftlint:disable:this type_body_len
                 }
 
                 eventOb.appHang = payload
-                eventOb.needsReporting = needsReporting
                 eventOb.pendingResolution = false
                 try context.saveIfNeeded()
             } catch {

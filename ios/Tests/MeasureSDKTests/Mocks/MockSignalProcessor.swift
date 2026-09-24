@@ -68,11 +68,14 @@ final class MockSignalProcessor: SignalProcessor {
         self.needsReporting = needsReporting
     }
 
-    func trackAppHang(_ appHang: AppHang, timestamp: Number, attributes: Attributes?, sessionId: String?) -> String {
+    var trackedAppHangNeedsReporting: Bool?
+
+    func trackAppHang(_ appHang: AppHang, timestamp: Number, attributes: Attributes?, sessionId: String?, needsReporting: Bool) -> String {
         trackAppHangCallCount += 1
         trackedAppHang = appHang
         trackedAppHangTimestamp = timestamp
         trackedAppHangSessionId = sessionId
+        trackedAppHangNeedsReporting = needsReporting
         self.attributes = attributes
 
         let eventId = UUID().uuidString

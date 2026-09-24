@@ -11,8 +11,6 @@ import Foundation
 final class MockAppHangCallbacks: AppHangCallbacks {
     private let lock = NSLock()
 
-    var shouldReport = true
-
     private var started = 0
     private var ended = 0
     private var discarded = 0
@@ -29,10 +27,6 @@ final class MockAppHangCallbacks: AppHangCallbacks {
         lock.lock()
         defer { lock.unlock() }
         return body()
-    }
-
-    func shouldReportAppHang() -> Bool {
-        withLock { shouldReport }
     }
 
     func onAppHangStarted(stack: AppHangStack?, thresholdMs: Number, timestamp: Number) {

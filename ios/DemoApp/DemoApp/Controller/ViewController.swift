@@ -54,7 +54,7 @@ import Measure
                           "GET – Network Error",
                           "GET – Non-JSON Response"]
 
-    let appHangTypes = ["Block Main Thread"]
+    let appHangTypes = ["Block Main Thread", "Block Allocator Lock"]
 
     private let tableView = UITableView(frame: .zero, style: .plain)
 
@@ -255,7 +255,11 @@ import Measure
         case .httpEvents:
             triggerHttpEvent(type: httpEventTypes[indexPath.row])
         case .appHangs:
-            presentAppHangOptions(from: tableView.cellForRow(at: indexPath))
+            if indexPath.row == 0 {
+                presentAppHangOptions(from: tableView.cellForRow(at: indexPath))
+            } else {
+                presentAllocatorHangOptions(from: tableView.cellForRow(at: indexPath))
+            }
         }
     }
 
@@ -300,6 +304,60 @@ import Measure
         }
 
         present(alert, animated: true)
+    }
+
+    // MARK: - Allocator Lock
+
+    /// `fork()` quiesces the allocator by locking every malloc zone before duplicating the
+    /// process. Calling that handler directly, without forking, holds those locks for as long as
+    /// we like — which is the one deterministic way to make *another* thread block inside `malloc`.
+    ///
+    /// Resolved once, up front: after the locks are taken this thread cannot allocate either, so
+    /// everything the trigger needs must already exist.
+    private static let mallocForkPrepare: (@convention(c) () -> Void)? = {
+        guard let symbol = dlsym(dlopen(nil, RTLD_NOW), "_malloc_fork_prepare") else { return nil }
+        return unsafeBitCast(symbol, to: (@convention(c) () -> Void).self)
+    }()
+
+    private static let mallocForkParent: (@convention(c) () -> Void)? = {
+        guard let symbol = dlsym(dlopen(nil, RTLD_NOW), "_malloc_fork_parent") else { return nil }
+        return unsafeBitCast(symbol, to: (@convention(c) () -> Void).self)
+    }()
+
+    private func presentAllocatorHangOptions(from sourceView: UIView?) {
+        let alert = UIAlertController(title: "Block Allocator Lock",
+                                      message: "Blocks the main thread while holding every malloc zone lock, so any other thread that allocates blocks too.",
+                                      preferredStyle: .actionSheet)
+
+        for seconds in [5, 10, 20] {
+            alert.addAction(UIAlertAction(title: "\(seconds) seconds", style: .destructive) { _ in
+                Self.hangHoldingAllocatorLock(seconds: seconds)
+            })
+        }
+
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = sourceView ?? view
+            popover.sourceRect = (sourceView ?? view).bounds
+        }
+
+        present(alert, animated: true)
+    }
+
+    /// Nothing between `prepare()` and `parent()` may allocate — not logging, not string
+    /// interpolation, not `Thread.sleep`. `usleep` is a bare syscall and is safe here.
+    static func hangHoldingAllocatorLock(seconds: Int) {
+        guard let prepare = mallocForkPrepare, let parent = mallocForkParent else {
+            NSLog("DemoApp: malloc fork handlers unavailable, cannot hold the allocator lock.")
+            return
+        }
+
+        NSLog("DemoApp: locking all malloc zones for %d seconds", seconds)
+        prepare()
+        usleep(useconds_t(seconds) * 1_000_000)
+        parent()
+        NSLog("DemoApp: malloc zones unlocked")
     }
 
     // MARK: - HTTP Tracking
