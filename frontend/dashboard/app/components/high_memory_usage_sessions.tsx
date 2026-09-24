@@ -162,7 +162,7 @@ export default function HighMemoryUsageSessions({
                               ? `${Math.round(session.percent_of_target)}% of ${formatMemoryKilobytes(session.target_memory_kb)} target`
                               : session.peak_memory_limit_utilization != null
                                 ? `${Math.round(session.peak_memory_limit_utilization * 100)}% of estimated app limit (peak)`
-                                : "Threshold unavailable"}
+                                : "Target unavailable"}
                           </p>
                         </div>
                       </TableCell>

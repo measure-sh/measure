@@ -116,6 +116,7 @@ function buildInitNavData(): { navMain: NavSection[] } {
           {
             title: "Memory",
             url: "memory",
+            queryString: "?filter_expr=app_state:eq:foreground",
             isActive: false,
             external: false,
           },

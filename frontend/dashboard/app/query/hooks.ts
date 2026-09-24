@@ -68,7 +68,6 @@ import {
   updateNotifPrefsFromServer,
   updateSdkConfigFromServer,
   updateTeamSlackStatusFromServer,
-  type MemoryAppImportance,
   type MemoryUsagePlotPoint,
 } from "@/app/api/api_calls";
 import {
@@ -710,10 +709,7 @@ export function useSpanMetricsPlotQuery(
   });
 }
 
-export function useMemoryUsagePlotQuery(
-  params: FilterParams | null,
-  appImportance?: MemoryAppImportance,
-) {
+export function useMemoryUsagePlotQuery(params: FilterParams | null) {
   return useQuery({
     queryKey: [
       "memoryUsagePlot",
@@ -721,7 +717,6 @@ export function useMemoryUsagePlotQuery(
       params?.startDate,
       params?.endDate,
       params?.filterExpr,
-      appImportance,
     ] as const,
     queryFn: () =>
       fetchMemoryUsagePlotFromServer(
@@ -729,17 +724,13 @@ export function useMemoryUsagePlotQuery(
         params!.startDate,
         params!.endDate,
         params!.filterExpr,
-        appImportance,
       ),
     enabled: params !== null,
     retry: false,
   });
 }
 
-export function useMemoryUsageBreakdownQuery(
-  params: FilterParams | null,
-  appImportance?: MemoryAppImportance,
-) {
+export function useMemoryUsageBreakdownQuery(params: FilterParams | null) {
   return useQuery({
     queryKey: [
       "memoryUsageBreakdown",
@@ -747,7 +738,6 @@ export function useMemoryUsageBreakdownQuery(
       params?.startDate,
       params?.endDate,
       params?.filterExpr,
-      appImportance,
     ] as const,
     queryFn: () =>
       fetchMemoryUsageBreakdownFromServer(
@@ -755,7 +745,6 @@ export function useMemoryUsageBreakdownQuery(
         params!.startDate,
         params!.endDate,
         params!.filterExpr,
-        appImportance,
       ),
     enabled: params !== null,
     retry: false,
@@ -766,7 +755,6 @@ export const HIGH_MEMORY_USAGE_SESSIONS_LIMIT = 5;
 
 export function useHighMemoryUsageSessionsQuery(
   params: FilterParams | null,
-  appImportance: MemoryAppImportance | undefined,
   paginationOffset: number,
 ) {
   return useQuery({
@@ -776,7 +764,6 @@ export function useHighMemoryUsageSessionsQuery(
       params?.startDate,
       params?.endDate,
       params?.filterExpr,
-      appImportance,
       paginationOffset,
     ] as const,
     queryFn: () =>
@@ -787,7 +774,6 @@ export function useHighMemoryUsageSessionsQuery(
         params!.filterExpr,
         HIGH_MEMORY_USAGE_SESSIONS_LIMIT,
         paginationOffset,
-        appImportance,
       ),
     enabled: params !== null,
     placeholderData: keepPreviousData,

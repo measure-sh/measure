@@ -39,21 +39,21 @@ The SDK also records these values for each reading:
 
 Older SDKs don't collect anonymous RSS and swap, so their readings aren't included on the Memory page.
 
-### App importance
+### App state
 
-Each reading includes **App importance**, which groups Android's [process importance levels](https://developer.android.com/reference/android/app/ActivityManager.RunningAppProcessInfo#importance) into three categories:
+Each reading includes an **App state**, which groups Android's [process importance levels](https://developer.android.com/reference/android/app/ActivityManager.RunningAppProcessInfo#importance) into three values:
 
-- **Foreground**: the process is running the foreground UI or is visible to the user, such as an activity behind a translucent dialog.
-- **User service**: the process is running a foreground service or other work perceptible to the user, such as music playback while the user is in another app.
-- **Background**: the process is running a background service.
+- `foreground`: the process is running the foreground UI or is visible to the user, such as an activity behind a translucent dialog.
+- `user_service` (User-perceived services): the process is running a foreground service or other work perceptible to the user, such as music playback while the user is in another app.
+- `background`: the process is running a background service.
 
-Measure collects readings only for these importance levels. Other levels, including cached processes and the foreground UI while the device is asleep, are skipped. These categories approximate Android vitals using the public process importance API.
+Measure collects readings only in these states. Readings at other importance levels, such as a cached process or the foreground UI while the device is asleep, are skipped. These states approximate the ones in Android vitals using the public process importance API.
 
 ### High memory sessions
 
-A session is flagged for high memory usage when any reading reaches 75% of the memory budget below. The budget depends on **Device total memory** and app importance.
+A session is flagged for high memory usage when any reading reaches 75% of the memory target below. The target depends on **Device total memory** and the reading's app state, so readings from different states are each held to their own target.
 
-| Device total memory | Foreground | User service / background |
+| Device total memory | `foreground` | `user_service` / `background` |
 | --- | --- | --- |
 | 0–4 GB | 2 GB | 1 GB |
 | 5–6 GB | 2.25 GB | 1.25 GB |
@@ -62,8 +62,6 @@ A session is flagged for high memory usage when any reading reaches 75% of the m
 | 13–16 GB | 4.25 GB | 2 GB |
 | 17–32 GB | 6 GB | 4 GB |
 | 33 GB+ | 10 GB | 6 GB |
-
-These budgets are used by Measure for monitoring. Android doesn't enforce them. High memory usage can't be determined for devices with unknown **Device total memory**.
 
 ### Further reading
 
@@ -82,7 +80,7 @@ The SDK reads the footprint using [`task_info`](https://web.mit.edu/darwin/src/m
 
 On physical iOS and iPadOS devices, the SDK also records **available memory** using [`os_proc_available_memory()`](https://developer.apple.com/documentation/os/os_proc_available_memory). This is an estimate of how much more memory the app can allocate. It changes as the app runs. The system returns zero when it has no limit to report for the process, so those readings are recorded as unknown rather than as exhausted memory.
 
-Available memory isn't recorded on Simulator, Mac Catalyst, or when the SDK falls back to resident size.
+Available memory isn't recorded on Simulator or Mac Catalyst.
 
 ### High memory sessions
 

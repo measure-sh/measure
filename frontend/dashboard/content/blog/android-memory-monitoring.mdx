@@ -100,21 +100,21 @@ For example, suppose the gallery holds 200 MB of anonymous memory in RAM before 
 
 ## Google Play’s memory thresholds
 
-Google Play evaluates dynamic memory usage against thresholds that depend on the device’s RAM and what the app is doing. For the gallery, browsing photos and continuing an upload after the user leaves fall into different process states.
+Google Play evaluates dynamic memory usage against thresholds that depend on the device’s RAM and what the app is doing. For the gallery, browsing photos and continuing an upload after the user leaves fall into different app states.
 
 [Android vitals](https://developer.android.com/topic/performance/vitals/memory-usage) groups readings by these states:
 
 | State | What it means for the gallery |
 |---|---|
 | **Foreground** | The gallery is visible while the user browses photos. |
-| **User-perceived service** | The gallery continues an upload through a foreground service after the user leaves. |
+| **User-perceived services** | The gallery continues an upload through a foreground service after the user leaves. |
 | **Background** | The gallery is running a background service without a visible screen. |
 
 Google Play applies lower thresholds to user-perceived services and background work than to a visible app. It evaluates usage using **p90** readings and the last **28 days** of data. A p90 of 1.7 GB means that roughly 90% of sampled readings are at or below 1.7 GB.
 
 As of September 2026, Google Play has announced the following **app** thresholds, which are scheduled to take effect in February 2027. [Google Play’s requirements](https://support.google.com/googleplay/android-developer/answer/17492799?hl=en#reduced_memory_usage) include the exact RAM-tier boundaries, exceptions, and separate thresholds for games.
 
-| Play RAM tier | Foreground p90 | User-perceived service / background p90 |
+| Play RAM tier | Foreground p90 | User-perceived services / background p90 |
 |---|---|---|
 | 4 GB | 2 GB | 1 GB |
 | 6 GB | 2.25 GB | 1.25 GB |
@@ -132,13 +132,13 @@ We’ve added Android memory monitoring to Measure to connect these measurements
 
 Suppose the gallery’s latest release appears to use more memory. Start on the **Memory** page by comparing app versions at **p50, p90, or p95**, then use the **Device total memory** breakdown to see which RAM groups are affected.
 
-Use **App importance** to compare **Foreground**, **User service**, and **Background** readings, then focus on the state where the increase appears.
+Use the **App state** filter to compare `foreground`, `user_service` (User-perceived services), and `background` readings, then focus on the state where the increase appears.
 
 ![Measure’s Android memory dashboard showing p90 foreground memory usage, device RAM filters, and an app version tooltip.](/blog/assets/android-memory-dashboard.webp)
 
 ### Find sessions with high memory usage
 
-Measure flags a session when **any sampled reading reaches at least 75% of its monitoring target** for the device RAM group and app importance.
+Measure flags a session when **any sampled reading reaches at least 75% of its monitoring target** for the device RAM group and app state.
 
 For example, in Measure’s **0–4 GB** device group, the foreground target is **2 GB**, so a reading of **1.5 GB** is enough to flag the session.
 
@@ -171,6 +171,6 @@ If native heap usage grew while the user loaded photos, image allocations are wo
 
 ### Check whether the change helped
 
-After shipping an improvement, return to the release comparison and keep the RAM group, app importance, and percentile the same. This lets you check whether memory usage has fallen for the group you were investigating. You can then open any sessions that are still flagged to see where usage remains high.
+After shipping an improvement, return to the release comparison and keep the RAM group, app state, and percentile the same. This lets you check whether memory usage has fallen for the group you were investigating. You can then open any sessions that are still flagged to see where usage remains high.
 
 If you need more frequent readings or want to change how many sessions are sampled, you can adjust both through **[Adaptive Capture](/product/adaptive-capture)** without shipping another app release. The [Android memory monitoring guide](/docs/memory-monitoring#android) explains how to get started.

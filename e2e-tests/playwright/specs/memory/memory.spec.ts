@@ -71,22 +71,10 @@ test.describe("memory", () => {
   });
 
   test.describe("android", { tag: "@android" }, () => {
-    test("app importance defaults to foreground", async () => {
-      await expect(memory.appImportanceSelect).toHaveText("Foreground");
-    });
-
-    // The flow leaves the app in the background for long enough to be sampled
-    // at the background interval.
-    test("memory sampled in the background renders", async () => {
-      await memory.selectAppImportance("Background");
+    test("memory usage plot renders background samples", async ({ appId }) => {
+      await memory.goto(appId, "app_state:eq:background");
       await expect(memory.plot).toBeVisible();
       await expect(memory.plotNoData).not.toBeVisible();
-    });
-  });
-
-  test.describe("ios", { tag: "@ios" }, () => {
-    test("app importance is not selectable", async () => {
-      await expect(memory.appImportanceSelect).toHaveCount(0);
     });
   });
 });

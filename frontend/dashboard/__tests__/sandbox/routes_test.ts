@@ -212,6 +212,15 @@ const FILTER_KEYS: Record<string, string[]> = {
     "user_id",
     ...DEVICE_KEYS,
   ],
+  memory: [
+    "app_state",
+    ...VERSION_KEYS,
+    "os_name",
+    "os_version",
+    "device_name",
+    "device_manufacturer",
+    "device_total_memory",
+  ],
   network: ["http_method", ...VERSION_KEYS, ...DEVICE_KEYS],
   builds: ["mapping_type", ...VERSION_KEYS],
   spans: ["span_status", ...VERSION_KEYS, ...DEVICE_KEYS],
@@ -442,7 +451,7 @@ const sessionsCases: Case[] = [
     },
   },
   {
-    name: "narrows the sessions list, and the memory high-usage list, to exactly the sessions carrying a session key's value",
+    name: "narrows the sessions list, and the high memory usage list, to exactly the sessions carrying a session key's value",
     path: `/api/apps/${APP_ID}/filters/values?entity=sessions&key_name=device_total_memory`,
     status: 200,
     check: async (data) => {
@@ -520,7 +529,7 @@ const sessionsCases: Case[] = [
       }
       const highUsage = (extra: Record<string, string>) =>
         fetchJson(
-          `/api/apps/${keyed.app.id}/memory/sessions/high-usage?${wideRangeParams({ limit: "50", offset: "0", ...extra })}`,
+          `/api/apps/${keyed.app.id}/memory/sessions/highUsage?${wideRangeParams({ limit: "50", offset: "0", ...extra })}`,
         );
       const { json: high } = await highUsage({});
       const highTier = deviceMemoryTier(

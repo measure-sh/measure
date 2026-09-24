@@ -1,7 +1,6 @@
 "use client";
 
 import type { useMemoryUsageBreakdownQuery } from "@/app/query/hooks";
-import { formatDeviceMemoryTier } from "../utils/device_memory_tiers";
 import { formatMemoryKilobytes } from "../utils/number_utils";
 import { SkeletonTable } from "./skeleton";
 import {
@@ -56,9 +55,7 @@ export default function MemoryUsageBreakdown({
                   data-testid="memory-breakdown-row"
                   key={row.device_total_memory_tier}
                 >
-                  <TableCell>
-                    {formatDeviceMemoryTier(row.device_total_memory_tier)}
-                  </TableCell>
+                  <TableCell>{row.device_total_memory_tier}</TableCell>
                   <TableCell className="text-right">
                     {formatMemoryKilobytes(row.p50)}
                   </TableCell>

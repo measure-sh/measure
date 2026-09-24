@@ -11,7 +11,7 @@ import { jsonResponse, parseRange, SandboxRoute } from "./query";
 import type { SandboxRange } from "./query";
 import { countryOf, sessionAttributeBag } from "./filter";
 import { derivedSeries, scaledSeries } from "./aggregate";
-import { DEVICE_MEMORY_TIERS } from "./device_memory";
+import { DEVICE_MEMORY_TIERS, MEMORY_APP_STATES } from "./device_memory";
 
 const K = {
   versionName: key(
@@ -147,6 +147,15 @@ const K = {
     "Session",
     "enum",
     ["in", "not_in"],
+    "full_list",
+  ),
+  appState: key(
+    "app_state",
+    "App state",
+    "Whether the app was in the foreground, running a user-perceived service, or in the background. Android only.",
+    "Memory",
+    "enum",
+    ["eq"],
     "full_list",
   ),
   deviceTotalMemory: key(
@@ -291,6 +300,7 @@ const KEY_GROUP_ORDER = [
   "Error",
   "Bug Report",
   "Session",
+  "Memory",
   "Span",
   "Request",
   "Build",
@@ -333,6 +343,15 @@ const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
     ...versionKeys,
     K.userId,
     ...deviceTailKeys,
+  ],
+  memory: [
+    K.appState,
+    ...versionKeys,
+    K.osName,
+    K.osVersion,
+    K.deviceName,
+    K.deviceManufacturer,
+    K.deviceTotalMemory,
   ],
   network: [K.httpMethod, ...versionKeys, ...deviceTailKeys],
   builds: [K.mappingType, ...versionKeys],
@@ -468,6 +487,7 @@ const STATIC_VALUES_BY_KEY: Record<string, FilterValue[]> = {
   ]),
   session_foreground_background: values(["foreground", "background"]),
   device_total_memory: values(DEVICE_MEMORY_TIERS),
+  app_state: values([...MEMORY_APP_STATES]),
 };
 
 // The backend builds the node and link slices only from sessions in range,
