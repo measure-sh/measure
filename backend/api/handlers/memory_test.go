@@ -54,16 +54,12 @@ func TestMemoryHandlers(t *testing.T) {
 				seedEventRows(ctx, t, teamID.String(), appID.String(), 1, background)
 			}
 
-			// An omitted or empty Android filter must exclude the background sample,
-			// exactly as an explicit foreground filter does, on all memory endpoints.
 			for _, request := range []struct {
 				name   string
 				params url.Values
 			}{
-				{name: "omitted importance"},
-				{name: "empty importance", params: url.Values{"app_importance": {""}}},
-				{name: "foreground", params: url.Values{"app_importance": {"foreground"}}},
-				{name: "session filter", params: url.Values{"filter_expr": {"version_name:not_in:v2 AND os_name:in:" + osName}}},
+				{name: "app state", params: url.Values{"filter_expr": {"app_state:eq:foreground"}}},
+				{name: "app state and attributes", params: url.Values{"filter_expr": {"app_state:eq:foreground AND version_name:not_in:v2 AND os_name:in:" + osName}}},
 			} {
 				params := url.Values{
 					"from":     {base.Add(-time.Minute).Format("2006-01-02T15:04:05.000Z")},
@@ -79,7 +75,7 @@ func TestMemoryHandlers(t *testing.T) {
 				}{
 					{"plots/usage", h.GetMemoryUsagePlot},
 					{"plots/breakdown", h.GetMemoryUsageBreakdown},
-					{"sessions/high-usage", h.GetHighMemoryUsageSessions},
+					{"sessions/highUsage", h.GetHighMemoryUsageSessions},
 				} {
 					t.Run(endpoint.path+"/"+request.name, func(t *testing.T) {
 						c, w := newTestGinContext("GET", "/apps/"+appID.String()+"/memory/"+endpoint.path+"?"+params.Encode(), nil)
@@ -106,7 +102,7 @@ func TestMemoryHandlers(t *testing.T) {
 							if len(points) != 1 || points[0].SampleCount != 1 || points[0].SessionCount != 1 || points[0].DeviceTotalMemoryTier != "5-6gb" || points[0].P90 == nil || *points[0].P90 != 3*kbPerGB {
 								t.Fatalf("unexpected breakdown: %s", w.Body.String())
 							}
-						case "sessions/high-usage":
+						case "sessions/highUsage":
 							var result struct {
 								Results []measure.HighMemoryUsageSession `json:"results"`
 							}

@@ -261,7 +261,7 @@ func bindPredicatesColumn(col column, condition Condition) (*sqlf.Stmt, error) {
 
 	anyMatch := "(" + strings.Join(exprs, " or ") + ")"
 	switch condition.Operator {
-	case OperatorIn:
+	case OperatorIn, OperatorEq:
 		return sqlf.New(anyMatch), nil
 	case OperatorNotIn:
 		return sqlf.New("not " + anyMatch), nil

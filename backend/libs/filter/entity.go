@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"backend/libs/devicememory"
 	"backend/libs/symbol"
 
 	"github.com/google/uuid"
@@ -74,6 +75,8 @@ func FindByName(name string) (Entity, error) {
 		return ErrorGroupEventsEntity, nil
 	case AppHealthEntity.Name:
 		return AppHealthEntity, nil
+	case MemoryEntity.Name:
+		return MemoryEntity, nil
 	}
 
 	return Entity{}, fmt.Errorf("Unknown filter entity %q", name)
@@ -87,6 +90,7 @@ const (
 	KeyGroupRequest   KeyGroup = "Request"
 	KeyGroupBugReport KeyGroup = "Bug Report"
 	KeyGroupSession   KeyGroup = "Session"
+	KeyGroupMemory    KeyGroup = "Memory"
 	KeyGroupUser      KeyGroup = "User"
 	KeyGroupOS        KeyGroup = "OS"
 	KeyGroupDevice    KeyGroup = "Device"
@@ -97,7 +101,7 @@ const (
 
 // keyGroupOrder is the order the filter bar shows groups in.
 var keyGroupOrder = []KeyGroup{
-	KeyGroupError, KeyGroupBugReport, KeyGroupSession, KeyGroupSpan, KeyGroupRequest, KeyGroupBuild,
+	KeyGroupError, KeyGroupBugReport, KeyGroupSession, KeyGroupMemory, KeyGroupSpan, KeyGroupRequest, KeyGroupBuild,
 	KeyGroupVersion, KeyGroupUser, KeyGroupOS, KeyGroupDevice, KeyGroupNetwork, KeyGroupLocation,
 	KeyGroupCustom,
 }
@@ -305,6 +309,17 @@ var (
 		EnumValues:          []string{"foreground", "background"},
 	}
 
+	appState = Key{
+		Name:                "app_state",
+		Label:               "App state",
+		Description:         "Whether the app was in the foreground, running a user-perceived service, or in the background. Android only, ignored for iOS.",
+		KeyGroup:            KeyGroupMemory,
+		ValueType:           ValueTypeEnum,
+		Operators:           []Operator{OperatorEq},
+		ValueSuggestionMode: ValueSuggestionModeFullList,
+		EnumValues:          []string{"foreground", "user_service", "background"},
+	}
+
 	deviceTotalMemory = Key{
 		Name:                "device_total_memory",
 		Label:               "Device total memory",
@@ -313,7 +328,7 @@ var (
 		ValueType:           ValueTypeEnum,
 		Operators:           []Operator{OperatorIn, OperatorNotIn},
 		ValueSuggestionMode: ValueSuggestionModeFullList,
-		EnumValues:          DeviceMemoryTiers(),
+		EnumValues:          devicememory.Names(),
 	}
 
 	userID = Key{

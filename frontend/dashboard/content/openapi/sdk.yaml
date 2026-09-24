@@ -1255,7 +1255,7 @@ paths:
                           app_importance:
                             type: string
                             enum: [foreground, user_service, background]
-                            description: Process state at collection time. Optional for older SDKs.
+                            description: App importance at collection time. Optional for older SDKs.
                           native_total_heap:
                             type: integer
                             description: >

@@ -1920,7 +1920,7 @@ paths:
                           description: Anonymous RSS + swap in KB (1024 bytes), also used by the Memory page. Null when either value is unavailable, including samples from older SDKs.
                         app_importance:
                           type: string
-                          description: Process state at collection time; empty for older samples.
+                          description: App importance at collection time; empty for older samples.
                           enum: ["", foreground, user_service, background]
                         native_total_heap:
                           type: number
@@ -2553,17 +2553,13 @@ paths:
       tags:
         - Memory
       summary: Fetch memory usage by app version
-      description: >-
-        Returns one point per app version/build and time bucket, pooling device memory
-        tiers. The full-width trend selects p50, p90 (the default), p95 or p99 from each
-        point. Version labels use "version (build)". Buckets with no samples are omitted.
+      description: |
+        Returns memory usage percentiles (p50, p90, p95 and p99) for each app version and time bucket.
 
-
-        Memory is measured in KB (1024 bytes): anonymous RSS + swap on Android, and reported
-        used memory (physical footprint or its resident-size fallback) on iOS/iPadOS. Only
-        positive samples in the selected date range and matching sessions contribute.
-        Percentiles use individual samples, not averages of session or tier percentiles.
-        Unsupported platforms return no data.
+        - Values are in KB (1024 bytes). Android reports anonymous RSS plus swap, and iOS and iPadOS report used memory.
+        - Percentiles are calculated from individual samples.
+        - Buckets without samples are left out.
+        - Filter by app state with `app_state:eq:<value>`. It applies to Android samples only. Without it, samples of every app state are included.
       parameters:
         - &a1
           name: id
@@ -2577,11 +2573,10 @@ paths:
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/FilterExpr"
         - $ref: "#/components/parameters/Timezone"
-        - $ref: "#/components/parameters/MemoryAppImportance"
         - $ref: "#/components/parameters/PlotTimeGroup"
       responses:
         "200":
-          description: Memory data for the selected app, date range and session filters.
+          description: Successful response, no errors.
           content:
             application/json:
               schema:
@@ -2600,47 +2595,36 @@ paths:
                   p99: 409600
                   sample_count: 1200
         "400":
-          description: Invalid app importance, date range, time group, pagination or session filter
-            expression, or a missing required timezone.
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
-          description: Authentication is required.
+          description: Either the user's access token is invalid or has expired.
         "403":
-          description: The requester does not have read access to this app.
+          description: Requester does not have access to this resource.
         "429":
-          description: Rate limit exceeded.
+          description: Rate limit of the requester has crossed maximum limits.
         "500":
-          description: The server could not query memory data.
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
   /apps/{id}/memory/plots/breakdown:
     get:
       operationId: getMemoryUsageBreakdown
       tags:
         - Memory
       summary: Fetch memory usage by device tier
-      description: >-
-        Returns p50, p90 and p95 across the entire selected date range and matching app
-        versions, plus distinct session counts and sample counts. The dashboard table
-        displays the percentiles and session counts. Rows are
-        ordered from the smallest device tier to the largest, followed by Unknown; tiers
-        without samples are omitted. Tiers use device RAM on Android and the memory sample's
-        max_memory on iOS/iPadOS. The device-memory session filter uses the session
-        attribute; older iOS sessions missing that attribute match Unknown even when samples
-        report RAM.
+      description: |
+        Returns memory usage percentiles (p50, p90 and p95) for each device memory tier across the date range, with the number of sessions and samples in each tier.
 
-
-        Memory is measured in KB (1024 bytes): anonymous RSS + swap on Android, and reported
-        used memory (physical footprint or its resident-size fallback) on iOS/iPadOS. Only
-        positive samples in the selected date range and matching sessions contribute.
-        Percentiles use individual samples, not averages of session or tier percentiles.
-        Unsupported platforms return no data.
+        - Values are in KB (1024 bytes). Android reports anonymous RSS plus swap, and iOS and iPadOS report used memory.
+        - Tiers are ordered from smallest to largest, followed by `unknown`. Tiers without samples are left out.
+        - Android tiers use the device's RAM, and iOS and iPadOS tiers use the sample's `max_memory`.
+        - Filter by app state with `app_state:eq:<value>`. It applies to Android samples only. Without it, samples of every app state are included.
       parameters:
         - *a1
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/FilterExpr"
-        - $ref: "#/components/parameters/MemoryAppImportance"
       responses:
         "200":
-          description: Memory data for the selected app, date range and session filters.
+          description: Successful response, no errors.
           content:
             application/json:
               schema:
@@ -2658,47 +2642,33 @@ paths:
                   session_count: 30
                   sample_count: 1200
         "400":
-          description: Invalid app importance, date range, pagination or session filter
-            expression.
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
-          description: Authentication is required.
+          description: Either the user's access token is invalid or has expired.
         "403":
-          description: The requester does not have read access to this app.
+          description: Requester does not have access to this resource.
         "429":
-          description: Rate limit exceeded.
+          description: Rate limit of the requester has crossed maximum limits.
         "500":
-          description: The server could not query memory data.
-  /apps/{id}/memory/sessions/high-usage:
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/memory/sessions/highUsage:
     get:
       operationId: getHighMemoryUsageSessions
       tags:
         - Memory
       summary: Fetch sessions with high memory usage
-      description: >-
-        On Android, returns sessions whose peak usage is at least 75% of the configured
-        device-RAM and process-state target; unknown RAM has no target. On iOS/iPadOS,
-        returns sessions whose maximum per-sample used_memory / (used_memory + available_memory)
-        is at least 0.75. Only iOS samples with reported available memory participate; zero available memory
-        is valid, whereas missing available memory is excluded. Device RAM does not set the iOS limit.
-        Results are ordered by percentage of target on Android or peak process-limit utilization
-        on iOS, descending, then session end time and session ID descending. Session start
-        and end times describe the session, while peaks use only matching samples
-        within the selected date range. The dashboard displays five sessions per page.
-        The iOS cutoff follows KSCrash's critical memory level and is a monitoring heuristic,
-        not a guarantee of OS termination.
+      description: |
+        Returns sessions with at least one sample close to the app's memory limit, highest usage first.
 
-
-        Memory is measured in KB (1024 bytes): anonymous RSS + swap on Android, and reported
-        used memory (physical footprint or its resident-size fallback) on iOS/iPadOS. Only
-        positive samples in the selected date range and matching sessions contribute.
-        Peaks use individual samples, so a single sample reaching the cutoff qualifies the session.
-        Unsupported platforms return no data.
+        - On Android, a sample qualifies when it reaches 75% of its memory target. The target depends on the device's RAM and the sample's app importance. `peak_memory_kb`, `target_memory_kb` and `percent_of_target` describe the sample with the highest percentage of its target. Sessions are ordered by `percent_of_target`.
+        - On iOS and iPadOS, a sample qualifies when it uses 75% or more of the memory available to the app, `used_memory / (used_memory + available_memory)`. Samples without available memory are ignored. Sessions are ordered by `peak_memory_limit_utilization`.
+        - Values are in KB (1024 bytes). Android reports anonymous RSS plus swap, and iOS and iPadOS report used memory.
+        - Filter by app state with `app_state:eq:<value>`. It applies to Android samples only. Without it, samples of every app state are included.
       parameters:
         - *a1
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/FilterExpr"
-        - $ref: "#/components/parameters/MemoryAppImportance"
         - name: limit
           in: query
           description: Maximum sessions to return. The dashboard requests 5.
@@ -2716,7 +2686,7 @@ paths:
             minimum: 0
       responses:
         "200":
-          description: Memory data for the selected app, date range and session filters.
+          description: Successful response, no errors.
           content:
             application/json:
               schema:
@@ -2743,16 +2713,15 @@ paths:
                   next: false
                   previous: false
         "400":
-          description: Invalid app importance, date range, time group, pagination or session filter
-            expression, or a missing required timezone.
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
-          description: Authentication is required.
+          description: Either the user's access token is invalid or has expired.
         "403":
-          description: The requester does not have read access to this app.
+          description: Requester does not have access to this resource.
         "429":
-          description: Rate limit exceeded.
+          description: Rate limit of the requester has crossed maximum limits.
         "500":
-          description: The server could not query memory data.
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
   /apps/{id}/spans/plots/metrics:
     get:
       operationId: getMetricsPlotForSpanName
@@ -5819,21 +5788,6 @@ paths:
           description: Measure server encountered an unfortunate error. Report this to your server administrator.
 components:
   parameters:
-    MemoryAppImportance:
-      name: app_importance
-      in: query
-      required: false
-      description: Android process-state filter. Omitted or empty defaults to foreground
-        on all memory endpoints, matching the dashboard. Foreground also includes samples
-        from older SDKs with an empty state label. This parameter is ignored on iOS/iPadOS,
-        which uses process-limit utilization for high-memory selection.
-      schema:
-        type: string
-        default: foreground
-        enum:
-          - foreground
-          - user_service
-          - background
     From:
       name: from
       in: query
@@ -5897,9 +5851,9 @@ components:
       description: Memory usage in KB (1024 bytes).
     DeviceTotalMemoryTier:
       type: string
-      description: Device RAM tier. The numeric ranges in GB are (0,5), [5,7), [7,9), [9,13),
-        [13,17), [17,33), and [33,infinity). Zero or unreported RAM is unknown. GB uses 1024 *
-        1024 KB.
+      description: Device RAM tier, from the device's RAM rounded up to a whole GB. Each tier
+        includes both ends of its range. Zero or unreported RAM is unknown. GB uses 1024 * 1024
+        KB.
       enum:
         - 0-4gb
         - 5-6gb
@@ -5992,7 +5946,7 @@ components:
           description: Session maximum memory usage across matching samples, in KB (1024 bytes).
         target_memory_kb:
           type: integer
-          description: Android-only configured target in KB for the device tier and process state. Omitted on iOS/iPadOS.
+          description: Android-only configured target in KB for the device tier and app importance. Omitted on iOS/iPadOS.
         percent_of_target:
           type: number
           description: Android-only 100 * peak memory / target. Omitted on iOS/iPadOS.
