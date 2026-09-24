@@ -43,6 +43,10 @@ const (
 	mcpTokenExpiry = 30 * time.Minute
 	// mcpRefreshTokenExpiry is how long a refresh token stays valid once issued
 	mcpRefreshTokenExpiry = 90 * 24 * time.Hour
+	// mcpRefreshReuseWindow is how long the refresh token replaced by a
+	// rotation still returns the current pair, so a client sending several
+	// refreshes with the same token at once doesn't end its own session.
+	mcpRefreshReuseWindow = 10 * time.Second
 	// mcpValkeyStateTTL is the Valkey TTL for OAuth state.
 	mcpValkeyStateTTL = 600 * time.Second
 	// mcpProviderTokenCheckInterval is how often a refresh re-validates the
@@ -111,6 +115,9 @@ type mcpSession struct {
 	ProviderToken          *string
 	ProviderTokenCheckedAt *time.Time
 	RefreshTokenID         uuid.UUID
+	PrevRefreshTokenID     *uuid.UUID
+	RotatedAt              *time.Time
+	AccessExpiresAt        time.Time
 	RefreshExpiresAt       time.Time
 }
 
@@ -714,6 +721,8 @@ func mcpRotateSession(ctx context.Context, deps *server.Deps, grant mcpTokenGran
 	stmt := sqlf.PostgreSQL.
 		Update("mcp_auth_sessions").
 		Set("rt_jti", refreshTokenID).
+		Set("prev_rt_jti", presentedTokenID).
+		Set("rt_rotated_at", now).
 		Set("provider_token_checked_at", checkedAt).
 		Set("at_expiry_at", atExpiry).
 		Set("rt_expiry_at", rtExpiry).
@@ -727,10 +736,60 @@ func mcpRotateSession(ctx context.Context, deps *server.Deps, grant mcpTokenGran
 		return mcpTokenPair{}, &mcpHTTPError{Status: http.StatusInternalServerError, Message: "failed to replace refresh_token"}
 	}
 	if tag.RowsAffected() == 0 {
+		session, lookupErr := mcpLoadSession(ctx, deps, grantID)
+		if lookupErr != nil {
+			return mcpTokenPair{}, lookupErr
+		}
+		// This request saw the presented token as current when it loaded the
+		// session, so a rotation away from that token is a concurrent refresh.
+		// The reuse window is not checked because the provider recheck can
+		// hold this request for longer than the window.
+		if session.PrevRefreshTokenID != nil && *session.PrevRefreshTokenID == presentedTokenID {
+			return mcpSignTokenPair(deps, session.ID, session.RefreshTokenID, session.UserID, session.AccessExpiresAt, session.RefreshExpiresAt)
+		}
 		return mcpTokenPair{}, mcpEndReusedSession(ctx, deps, grantID)
 	}
 
 	return pair, nil
+}
+
+func mcpRecentlyReplaced(session mcpSession, tokenID uuid.UUID) bool {
+	if session.PrevRefreshTokenID == nil || session.RotatedAt == nil {
+		return false
+	}
+	return *session.PrevRefreshTokenID == tokenID && time.Since(*session.RotatedAt) <= mcpRefreshReuseWindow
+}
+
+func mcpLoadSession(ctx context.Context, deps *server.Deps, grantID uuid.UUID) (mcpSession, error) {
+	var session mcpSession
+	lookup := sqlf.PostgreSQL.
+		From("mcp_auth_sessions").
+		Select("id").
+		Select("user_id").
+		Select("client_id").
+		Select("provider").
+		Select("provider_token").
+		Select("provider_token_checked_at").
+		Select("rt_jti").
+		Select("prev_rt_jti").
+		Select("rt_rotated_at").
+		Select("at_expiry_at").
+		Select("rt_expiry_at").
+		Where("id = ?", grantID)
+	defer lookup.Close()
+
+	dbErr := deps.PgPool.QueryRow(ctx, lookup.String(), lookup.Args()...).
+		Scan(&session.ID, &session.UserID, &session.ClientID, &session.Provider, &session.ProviderToken,
+			&session.ProviderTokenCheckedAt, &session.RefreshTokenID, &session.PrevRefreshTokenID, &session.RotatedAt,
+			&session.AccessExpiresAt, &session.RefreshExpiresAt)
+	if errors.Is(dbErr, pgx.ErrNoRows) {
+		return mcpSession{}, mcpInvalidGrant("invalid or expired refresh_token")
+	}
+	if dbErr != nil {
+		fmt.Printf("mcp: failed to look up session: %v\n", dbErr)
+		return mcpSession{}, &mcpHTTPError{Status: http.StatusInternalServerError, Message: "failed to look up refresh_token"}
+	}
+	return session, nil
 }
 
 func mcpEndReusedSession(ctx context.Context, deps *server.Deps, grantID uuid.UUID) error {
@@ -787,11 +846,10 @@ func mcpClaimUUID(claims jwt.MapClaims, key string) (uuid.UUID, error) {
 	return id, nil
 }
 
-// mcpRefresh exchanges a refresh token for a new pair. The presented pair's
-// row is deleted, so both of its tokens stop working at once.
+// mcpRefresh exchanges a refresh token for a new pair on the same session.
+// The presented refresh token stops working once the reuse window passes,
+// and the access token issued with it keeps working until its own expiry.
 func mcpRefresh(ctx context.Context, deps *server.Deps, refreshToken, clientID, resource string) (mcpTokenPair, error) {
-	pgPool := deps.PgPool
-
 	if resErr := mcpValidateResource(deps.Config.AgentOrigin, resource); resErr != nil {
 		return mcpTokenPair{}, resErr
 	}
@@ -809,32 +867,13 @@ func mcpRefresh(ctx context.Context, deps *server.Deps, refreshToken, clientID, 
 		return mcpTokenPair{}, mcpInvalidGrant("invalid or expired refresh_token")
 	}
 
-	var session mcpSession
-	lookup := sqlf.PostgreSQL.
-		From("mcp_auth_sessions").
-		Select("id").
-		Select("user_id").
-		Select("client_id").
-		Select("provider").
-		Select("provider_token").
-		Select("provider_token_checked_at").
-		Select("rt_jti").
-		Select("rt_expiry_at").
-		Where("id = ?", grantID)
-	defer lookup.Close()
-
-	dbErr := pgPool.QueryRow(ctx, lookup.String(), lookup.Args()...).
-		Scan(&session.ID, &session.UserID, &session.ClientID, &session.Provider, &session.ProviderToken,
-			&session.ProviderTokenCheckedAt, &session.RefreshTokenID, &session.RefreshExpiresAt)
-	if errors.Is(dbErr, pgx.ErrNoRows) {
-		return mcpTokenPair{}, mcpInvalidGrant("invalid or expired refresh_token")
-	}
-	if dbErr != nil {
-		fmt.Printf("mcp: failed to look up session: %v\n", dbErr)
-		return mcpTokenPair{}, &mcpHTTPError{Status: http.StatusInternalServerError, Message: "failed to look up refresh_token"}
+	session, lookupErr := mcpLoadSession(ctx, deps, grantID)
+	if lookupErr != nil {
+		return mcpTokenPair{}, lookupErr
 	}
 
-	if session.RefreshTokenID != tokenID {
+	isCurrent := session.RefreshTokenID == tokenID
+	if !isCurrent && !mcpRecentlyReplaced(session, tokenID) {
 		return mcpTokenPair{}, mcpEndReusedSession(ctx, deps, grantID)
 	}
 	if clientID != "" && clientID != session.ClientID {
@@ -842,6 +881,9 @@ func mcpRefresh(ctx context.Context, deps *server.Deps, refreshToken, clientID, 
 	}
 	if time.Now().After(session.RefreshExpiresAt) {
 		return mcpTokenPair{}, mcpInvalidGrant("refresh_token has expired")
+	}
+	if !isCurrent {
+		return mcpSignTokenPair(deps, session.ID, session.RefreshTokenID, session.UserID, session.AccessExpiresAt, session.RefreshExpiresAt)
 	}
 
 	// Access tokens are never looked up, so a refresh is the only moment a

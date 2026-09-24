@@ -18,6 +18,8 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -1836,7 +1838,17 @@ func TestMCPRefreshToken(t *testing.T) {
 		return e
 	}
 
-	t.Run("a refresh token presented twice ends the session", func(t *testing.T) {
+	refreshTokenOf := func(t *testing.T, w *httptest.ResponseRecorder) string {
+		t.Helper()
+		var resp map[string]any
+		if err := json.Unmarshal(w.Body.Bytes(), &resp); err != nil {
+			t.Fatalf("decode token response: %v", err)
+		}
+		rt, _ := resp["refresh_token"].(string)
+		return rt
+	}
+
+	t.Run("a refresh token presented twice after the reuse window ends the session", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), "reuse@example.com")
@@ -1846,6 +1858,7 @@ func TestMCPRefreshToken(t *testing.T) {
 		if w := refreshTestToken(first.RefreshToken, clientID); w.Code != http.StatusOK {
 			t.Fatalf("first refresh: want 200, got %d: %s", w.Code, w.Body.String())
 		}
+		ageRotation(ctx, t, sessionID)
 
 		w := refreshTestToken(first.RefreshToken, clientID)
 		if w.Code != http.StatusBadRequest {
@@ -1853,6 +1866,146 @@ func TestMCPRefreshToken(t *testing.T) {
 		}
 		if getMCPSession(ctx, t, sessionID) != nil {
 			t.Error("reusing a refresh token should end the session")
+		}
+	})
+
+	t.Run("a refresh token presented twice within the reuse window returns the current pair", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "reuse-window@example.com")
+		first := issueTestTokenPair(ctx, t, userID, clientID)
+		sessionID := sessionIDOf(t, first.AccessToken)
+
+		w := refreshTestToken(first.RefreshToken, clientID)
+		if w.Code != http.StatusOK {
+			t.Fatalf("first refresh: want 200, got %d: %s", w.Code, w.Body.String())
+		}
+		current := refreshTokenOf(t, w)
+		currentID := getMCPSession(ctx, t, sessionID).RefreshTokenID
+
+		w = refreshTestToken(first.RefreshToken, clientID)
+		if w.Code != http.StatusOK {
+			t.Fatalf("second use: want 200, got %d: %s", w.Code, w.Body.String())
+		}
+		if got := refreshTokenOf(t, w); got != current {
+			t.Error("a repeat within the window should return the current refresh token")
+		}
+		row := getMCPSession(ctx, t, sessionID)
+		if row == nil {
+			t.Fatal("a repeat within the window should keep the session")
+		}
+		if row.RefreshTokenID != currentID {
+			t.Error("a repeat within the window should not rotate the session")
+		}
+
+		if w := refreshTestToken(current, clientID); w.Code != http.StatusOK {
+			t.Errorf("current refresh token: want 200, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("concurrent refreshes with one token all get the same pair", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "concurrent@example.com")
+		first := issueTestTokenPair(ctx, t, userID, clientID)
+		sessionID := sessionIDOf(t, first.AccessToken)
+
+		const n = 5
+		results := make([]*httptest.ResponseRecorder, n)
+		var wg sync.WaitGroup
+		for i := range n {
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				results[i] = refreshTestToken(first.RefreshToken, clientID)
+			}()
+		}
+		wg.Wait()
+
+		var want string
+		for i, w := range results {
+			if w.Code != http.StatusOK {
+				t.Fatalf("refresh %d: want 200, got %d: %s", i, w.Code, w.Body.String())
+			}
+			got := refreshTokenOf(t, w)
+			if want == "" {
+				want = got
+			}
+			if got != want {
+				t.Errorf("refresh %d returned a different refresh token", i)
+			}
+		}
+		if getMCPSession(ctx, t, sessionID) == nil {
+			t.Error("concurrent refreshes should keep the session")
+		}
+	})
+
+	t.Run("a refresh that loses the rotation race after a slow provider check gets the current pair", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "slow-provider@example.com")
+		first := issueTestTokenPair(ctx, t, userID, clientID)
+		sessionID := sessionIDOf(t, first.AccessToken)
+		ageProviderCheck(ctx, t, sessionID)
+
+		entered := make(chan struct{})
+		release := make(chan struct{})
+		var calls atomic.Int32
+		origFn := mcpValidateProviderTokenFn
+		mcpValidateProviderTokenFn = func(provider, token, _, _ string) error {
+			if calls.Add(1) == 1 {
+				close(entered)
+				<-release
+			}
+			return nil
+		}
+		t.Cleanup(func() { mcpValidateProviderTokenFn = origFn })
+
+		slow := make(chan *httptest.ResponseRecorder)
+		go func() { slow <- refreshTestToken(first.RefreshToken, clientID) }()
+		<-entered
+
+		w := refreshTestToken(first.RefreshToken, clientID)
+		if w.Code != http.StatusOK {
+			t.Fatalf("fast refresh: want 200, got %d: %s", w.Code, w.Body.String())
+		}
+		current := refreshTokenOf(t, w)
+		ageRotation(ctx, t, sessionID)
+
+		close(release)
+		w = <-slow
+		if w.Code != http.StatusOK {
+			t.Fatalf("slow refresh: want 200, got %d: %s", w.Code, w.Body.String())
+		}
+		if got := refreshTokenOf(t, w); got != current {
+			t.Error("the slow refresh should return the current refresh token")
+		}
+		if getMCPSession(ctx, t, sessionID) == nil {
+			t.Error("the slow refresh should keep the session")
+		}
+	})
+
+	t.Run("a refresh token older than the last rotation ends the session within the reuse window", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "reuse-older@example.com")
+		first := issueTestTokenPair(ctx, t, userID, clientID)
+		sessionID := sessionIDOf(t, first.AccessToken)
+
+		w := refreshTestToken(first.RefreshToken, clientID)
+		if w.Code != http.StatusOK {
+			t.Fatalf("first refresh: want 200, got %d: %s", w.Code, w.Body.String())
+		}
+		if w := refreshTestToken(refreshTokenOf(t, w), clientID); w.Code != http.StatusOK {
+			t.Fatalf("second refresh: want 200, got %d: %s", w.Code, w.Body.String())
+		}
+
+		w = refreshTestToken(first.RefreshToken, clientID)
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("oldest token: want 400, got %d: %s", w.Code, w.Body.String())
+		}
+		if getMCPSession(ctx, t, sessionID) != nil {
+			t.Error("a token older than the last rotation should end the session")
 		}
 	})
 
@@ -1928,6 +2081,7 @@ func TestMCPRefreshToken(t *testing.T) {
 			t.Errorf("new access token: want 200, got %d: %s", w3.Code, w3.Body.String())
 		}
 
+		ageRotation(ctx, t, sessionID)
 		w = refreshTestToken(first.RefreshToken, clientID)
 		if w.Code != http.StatusBadRequest {
 			t.Fatalf("old refresh token: want 400, got %d: %s", w.Code, w.Body.String())
