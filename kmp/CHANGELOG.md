@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**kmp**): Prepare sdk release 0.2.0 (#4376) by @abhaysood in #4376
 - (**kmp**): Make log severity shorthands members of Measure by @abhaysood in #4151
 
 ## [kmp-v0.1.0] - 2026-06-22
