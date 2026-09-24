@@ -168,6 +168,46 @@ xcodebuild test \
     ONLY_ACTIVE_ARCH=YES
 ```
 
+### Agent evals
+
+The agent evals run Measure Agent against models through [OpenRouter](https://openrouter.ai/) and grade the results with code. Use them to check how a model change or a prompt change affects the agent. They spend real tokens, so they only run with `eval` build tag and do not run with the other tests.
+
+There are two evals, one for each model the agent uses:
+
+- `TestEvalAnswers` asks a fixed set of questions and grades each answer and the tool calls behind it. This is the job of the medium model.
+- `TestEvalCompaction` has the agent summarize long conversations, as it does when a conversation grows too large, and checks that each summary keeps the key facts and numbers, notes the open question, invents no numbers and stays short. This is the job of the small model.
+
+Use this to run the answer evals:
+
+```sh
+cd backend/agent
+LLM_AGENT_KEY=<openrouter-key> \
+EVAL_MODELS=deepseek/deepseek-v4-pro@azure/us,deepseek/deepseek-v4-pro-0813@deepseek \
+EVAL_TRIALS=3 \
+go test -tags eval -run 'TestEvalAnswers$' -parallel 8 -timeout 60m -v -count=1 ./agent/
+```
+
+And this to run the compaction evals:
+
+```sh
+cd backend/agent
+LLM_AGENT_KEY=<openrouter-key> \
+EVAL_MODELS=deepseek/deepseek-v4-flash@deepinfra/fp8 \
+EVAL_TRIALS=5 \
+go test -tags eval -run 'TestEvalCompaction$' -parallel 8 -timeout 20m -v -count=1 ./agent/
+```
+
+| Variable | Description |
+| --- | --- |
+| `LLM_AGENT_KEY` | OpenRouter API key. The evals are skipped when it is not set. |
+| `EVAL_MODELS` | Comma-separated OpenRouter model ids to compare. Defaults to `LLM_AGENT_MODEL_MEDIUM` for the answer evals and `LLM_AGENT_MODEL_SMALL` for the compaction evals. Append `@provider`, using a tag from the model's OpenRouter provider list such as `deepinfra/fp8`, to have only that provider serve the model. Without it, OpenRouter picks a provider for each call, and cost and latency vary between runs. |
+| `EVAL_TRIALS` | How many times each case runs. Defaults to 1. Use 3 or more when comparing models, since answers vary between runs. |
+| `EVAL_SURFACES` | Answer evals only. `mcp`, `slack` or both, comma-separated. Defaults to both. MCP runs send the app ids a caller would; Slack runs are thread mentions, where the model picks the apps itself and can draw charts. Cases with follow-up questions run on Slack only. |
+
+Trials run in parallel up to the `-parallel` limit. A pinned provider may answer a high limit with rate limit errors, which show up as failed trials.
+
+Each run prints a summary and writes an HTML report to `backend/agent/evals/results/`, named after the eval, the run's start time and the models compared.
+
 ## Code formatting
 
 The dashboard uses [Prettier](https://prettier.io/) to keep TypeScript and JavaScript formatting consistent regardless of which editor you use. The configuration lives in [`frontend/dashboard/.prettierrc.json`](frontend/dashboard/.prettierrc.json).

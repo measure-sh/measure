@@ -58,6 +58,24 @@ type chatRequest struct {
 	// the same provider, keeping that provider's prompt cache warm across a
 	// conversation's turns. We pass the conversation id.
 	SessionID string `json:"session_id,omitempty"`
+	// Config.sampling is nil outside the eval harness, and a nil embedded
+	// pointer adds no fields to the request body.
+	*chatSampling
+}
+
+// chatSampling fixes the temperature, seed and serving provider of every call
+// so that repeated runs of one model differ as little as the provider allows.
+type chatSampling struct {
+	Temperature *float64      `json:"temperature,omitempty"`
+	Seed        *int          `json:"seed,omitempty"`
+	Provider    *chatProvider `json:"provider,omitempty"`
+}
+
+// chatProvider is OpenRouter's provider routing object. With AllowFallbacks
+// false, a call that none of the providers in Order can serve fails.
+type chatProvider struct {
+	Order          []string `json:"order"`
+	AllowFallbacks bool     `json:"allow_fallbacks"`
 }
 
 type chatUsage struct {
@@ -156,11 +174,12 @@ func (c *Config) chat(ctx context.Context, model string, messages []chatMessage,
 
 	conversationID, _ := conversationIDFromContext(ctx)
 	body, err := json.Marshal(chatRequest{
-		Model:      model,
-		Messages:   messages,
-		Tools:      tools,
-		ToolChoice: toolChoice,
-		SessionID:  conversationID,
+		Model:        model,
+		Messages:     messages,
+		Tools:        tools,
+		ToolChoice:   toolChoice,
+		SessionID:    conversationID,
+		chatSampling: c.sampling,
 	})
 	if err != nil {
 		return nil, err

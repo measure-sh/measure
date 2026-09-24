@@ -42,3 +42,6 @@ xcuserdata/
 android/**/build/
 android/**/.cxx/
 android/**/.externalNativeBuild/
+
+# agent eval reports
+backend/agent/evals/results/
