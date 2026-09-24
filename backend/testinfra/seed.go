@@ -974,6 +974,8 @@ type GroupRow struct {
 	AppBuild    string
 	Type        string
 	Message     string
+	MethodName  string
+	FileName    string
 	Handled     bool
 	IsCustom    bool
 }
@@ -991,6 +993,12 @@ func (r GroupRow) filled() GroupRow {
 	if r.Message == "" {
 		r.Message = "Test error"
 	}
+	if r.MethodName == "" {
+		r.MethodName = "testMethod"
+	}
+	if r.FileName == "" {
+		r.FileName = "TestFile.java"
+	}
 	return r
 }
 
@@ -1001,7 +1009,7 @@ func (h *TestHelper) SeedGroupRow(ctx context.Context, t *testing.T, teamID, app
 	t.Helper()
 	row = row.filled()
 
-	flagCols, flagVals, args := "", "", []any{teamID, appID, row.Fingerprint, row.AppVersion, row.AppBuild, row.Type, row.Message}
+	flagCols, flagVals, args := "", "", []any{teamID, appID, row.Fingerprint, row.AppVersion, row.AppBuild, row.Type, row.Message, row.MethodName, row.FileName}
 	if row.Table != "anr_groups" {
 		flagCols = "handled, is_custom, "
 		flagVals = "?, ?, "
@@ -1018,8 +1026,8 @@ func (h *TestHelper) SeedGroupRow(ctx context.Context, t *testing.T, teamID, app
 			(?, ?),
 			?,
 			?,
-			'testMethod',
-			'TestFile.java',
+			?,
+			?,
 			42,
 			` + flagVals + `
 			groupUniqArrayState(tuple('android', '33')),

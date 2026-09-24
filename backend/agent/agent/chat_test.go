@@ -170,3 +170,42 @@ func TestChatSendsSessionID(t *testing.T) {
 		}
 	})
 }
+
+// TestChatSendsSampling checks that chat sends the configured temperature,
+// seed and provider routing, and sends none of them when sampling is unset.
+func TestChatSendsSampling(t *testing.T) {
+	var gotBody []byte
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		gotBody, _ = io.ReadAll(r.Body)
+		w.Write([]byte(`{"choices":[{"message":{"role":"assistant","content":"ok"}}],"usage":{}}`))
+	}))
+	t.Cleanup(srv.Close)
+
+	t.Run("sent when set", func(t *testing.T) {
+		temperature, seed := 0.0, 7
+		c := &Config{BaseURL: srv.URL, APIKey: "test-key", sampling: &chatSampling{
+			Temperature: &temperature,
+			Seed:        &seed,
+			Provider:    &chatProvider{Order: []string{"anthropic"}},
+		}}
+		if _, err := c.chat(context.Background(), "test-model", nil, nil, ""); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		want := `"temperature":0,"seed":7,"provider":{"order":["anthropic"],"allow_fallbacks":false}`
+		if !strings.Contains(string(gotBody), want) {
+			t.Errorf("body = %s, want it to contain %s", gotBody, want)
+		}
+	})
+
+	t.Run("omitted when unset", func(t *testing.T) {
+		c := &Config{BaseURL: srv.URL, APIKey: "test-key"}
+		if _, err := c.chat(context.Background(), "test-model", nil, nil, ""); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		for _, key := range []string{"temperature", "seed", "provider"} {
+			if strings.Contains(string(gotBody), `"`+key+`"`) {
+				t.Errorf("body = %s, want no %s", gotBody, key)
+			}
+		}
+	})
+}

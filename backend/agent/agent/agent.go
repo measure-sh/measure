@@ -143,6 +143,8 @@ type Config struct {
 	ModelMedium string
 	ModelLarge  string
 
+	sampling *chatSampling
+
 	// The tools offered to the model and the name lookup dispatch uses for
 	// the common ones: the agent's own SQL tools plus every common tool, so
 	// the model picks the purpose-built tool when one fits and drops to SQL
@@ -150,6 +152,8 @@ type Config struct {
 	modelTools      []chatTool
 	commonToolIndex map[string]Tool
 }
+
+const openRouterURL = "https://openrouter.ai/api/v1"
 
 // NewConfig reads the agent configuration from the environment.
 func NewConfig() *Config {
@@ -172,7 +176,7 @@ func NewConfig() *Config {
 	}
 
 	cfg := &Config{
-		BaseURL:     "https://openrouter.ai/api/v1",
+		BaseURL:     openRouterURL,
 		APIKey:      apiKey,
 		ModelSmall:  modelSmall,
 		ModelMedium: modelMedium,
