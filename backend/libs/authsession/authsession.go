@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -21,6 +22,15 @@ const AudienceMCP = "mcp"
 const accessTokenExpiryDuration = 30 * time.Minute
 const refreshTokenExpiryDuration = 7 * 24 * time.Hour
 
+// refreshReuseWindow is how long the refresh token replaced by a rotation
+// still returns the current pair, so the dashboard sending several refreshes
+// with the same cookie at once doesn't end its own session.
+const refreshReuseWindow = 10 * time.Second
+
+// ErrRefreshTokenReused is returned when a refresh is attempted with a
+// refresh token the session no longer accepts, after the session is removed.
+var ErrRefreshTokenReused = errors.New("refresh token reused")
+
 // AuthSession represents authentication session.
 type AuthSession struct {
 	ID                   uuid.UUID
@@ -31,6 +41,9 @@ type AuthSession struct {
 	RefreshToken         string
 	AccessTokenExpiryAt  time.Time
 	RefreshTokenExpiryAt time.Time
+	RefreshTokenID       uuid.UUID
+	PrevRefreshTokenID   *uuid.UUID
+	RotatedAt            *time.Time
 	CreatedAt            time.Time
 }
 
@@ -89,27 +102,97 @@ func NewAuthSession(accessSecret, refreshSecret []byte, userId uuid.UUID, provid
 	authSession.UserMeta = meta
 
 	now := time.Now()
-	atSecret := accessSecret
-	atExpiryAt := now.Add(accessTokenExpiryDuration)
+	authSession.RefreshTokenID = uuid.New()
+	authSession.AccessTokenExpiryAt = now.Add(accessTokenExpiryDuration)
+	authSession.RefreshTokenExpiryAt = now.Add(refreshTokenExpiryDuration)
 
-	accessToken, err := CreateAccessToken(atSecret, authSession.ID, authSession.ID, userId, atExpiryAt, "")
-	if err != nil {
-		return
-	}
-
-	rtSecret := refreshSecret
-	rtExpiryAt := now.Add(refreshTokenExpiryDuration)
-	refreshToken, err := CreateRefreshToken(rtSecret, authSession.ID, authSession.ID, rtExpiryAt, "")
-	if err != nil {
-		return
-	}
-
-	authSession.AccessToken = accessToken
-	authSession.RefreshToken = refreshToken
-	authSession.AccessTokenExpiryAt = atExpiryAt
-	authSession.RefreshTokenExpiryAt = rtExpiryAt
+	err = authSession.sign(accessSecret, refreshSecret)
 
 	return
+}
+
+func (au *AuthSession) sign(accessSecret, refreshSecret []byte) (err error) {
+	au.AccessToken, err = CreateAccessToken(accessSecret, au.ID, au.ID, au.UserID, au.AccessTokenExpiryAt, "")
+	if err != nil {
+		return
+	}
+
+	au.RefreshToken, err = CreateRefreshToken(refreshSecret, au.RefreshTokenID, au.ID, au.RefreshTokenExpiryAt, "")
+
+	return
+}
+
+func (au *AuthSession) recentlyReplaced(tokenID uuid.UUID) bool {
+	if au.PrevRefreshTokenID == nil || au.RotatedAt == nil {
+		return false
+	}
+	return *au.PrevRefreshTokenID == tokenID && time.Since(*au.RotatedAt) <= refreshReuseWindow
+}
+
+// RefreshAuthSession exchanges a session's refresh token for a new pair.
+func RefreshAuthSession(ctx context.Context, pg *pgxpool.Pool, accessSecret, refreshSecret []byte, sessionID, tokenID uuid.UUID) (authSession AuthSession, err error) {
+	authSession, err = GetAuthSession(ctx, pg, sessionID)
+	if err != nil {
+		return
+	}
+
+	isCurrent := authSession.RefreshTokenID == tokenID
+	if !isCurrent && !authSession.recentlyReplaced(tokenID) {
+		return AuthSession{}, removeReusedSession(ctx, pg, sessionID)
+	}
+	if !isCurrent {
+		err = authSession.sign(accessSecret, refreshSecret)
+		return
+	}
+
+	now := time.Now()
+	authSession.RefreshTokenID = uuid.New()
+	authSession.AccessTokenExpiryAt = now.Add(accessTokenExpiryDuration)
+	authSession.RefreshTokenExpiryAt = now.Add(refreshTokenExpiryDuration)
+	if err = authSession.sign(accessSecret, refreshSecret); err != nil {
+		return AuthSession{}, err
+	}
+
+	stmt := sqlf.PostgreSQL.
+		Update("auth_sessions").
+		Set("rt_jti", authSession.RefreshTokenID).
+		Set("prev_rt_jti", tokenID).
+		Set("rt_rotated_at", now).
+		Set("at_expiry_at", authSession.AccessTokenExpiryAt).
+		Set("rt_expiry_at", authSession.RefreshTokenExpiryAt).
+		Where("id = ?", sessionID).
+		Where("rt_jti = ?", tokenID)
+
+	defer stmt.Close()
+
+	tag, err := pg.Exec(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return AuthSession{}, err
+	}
+	if tag.RowsAffected() == 1 {
+		return authSession, nil
+	}
+
+	// This request saw the presented token as current when it loaded the
+	// session, so the rotation away from that token was made by a concurrent
+	// refresh with the same token.
+	authSession, err = GetAuthSession(ctx, pg, sessionID)
+	if err != nil {
+		return AuthSession{}, err
+	}
+	if authSession.PrevRefreshTokenID == nil || *authSession.PrevRefreshTokenID != tokenID {
+		return AuthSession{}, removeReusedSession(ctx, pg, sessionID)
+	}
+	err = authSession.sign(accessSecret, refreshSecret)
+
+	return
+}
+
+func removeReusedSession(ctx context.Context, pg *pgxpool.Pool, sessionID uuid.UUID) error {
+	if err := RemoveSession(ctx, pg, sessionID, nil); err != nil {
+		return fmt.Errorf("remove reused session: %w", err)
+	}
+	return ErrRefreshTokenReused
 }
 
 // RemoveSession removes session from database.
@@ -140,11 +223,14 @@ func GetAuthSession(ctx context.Context, pg *pgxpool.Pool, id uuid.UUID) (authSe
 		Select("user_metadata").
 		Select("at_expiry_at").
 		Select("rt_expiry_at").
+		Select("rt_jti").
+		Select("prev_rt_jti").
+		Select("rt_rotated_at").
 		Where("id = ?", id)
 
 	defer stmt.Close()
 
-	err = pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&authSession.ID, &authSession.UserID, &authSession.OAuthProvider, &authSession.UserMeta, &authSession.AccessTokenExpiryAt, &authSession.RefreshTokenExpiryAt)
+	err = pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&authSession.ID, &authSession.UserID, &authSession.OAuthProvider, &authSession.UserMeta, &authSession.AccessTokenExpiryAt, &authSession.RefreshTokenExpiryAt, &authSession.RefreshTokenID, &authSession.PrevRefreshTokenID, &authSession.RotatedAt)
 
 	return
 }
@@ -158,7 +244,8 @@ func (au *AuthSession) Save(ctx context.Context, pg *pgxpool.Pool, tx *pgx.Tx) (
 		Set("oauth_provider", au.OAuthProvider).
 		Set("user_metadata", au.UserMeta).
 		Set("at_expiry_at", au.AccessTokenExpiryAt).
-		Set("rt_expiry_at", au.RefreshTokenExpiryAt)
+		Set("rt_expiry_at", au.RefreshTokenExpiryAt).
+		Set("rt_jti", au.RefreshTokenID)
 
 	defer stmt.Clone()
 
