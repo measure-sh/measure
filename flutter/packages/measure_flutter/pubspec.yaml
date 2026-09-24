@@ -4,7 +4,7 @@ issue_tracker: https://github.com/measure-sh/measure/issues
 documentation: https://measure.sh/docs
 description: Flutter SDK to track crashes, bug reports, performance traces and more using measure.sh, an
   open-source monitoring tool.
-version: 0.8.0
+version: 0.9.0
 
 environment:
   sdk: '>=3.5.0 <4.0.0'

@@ -47,7 +47,7 @@ android {
     }
 
     dependencies {
-        api("sh.measure:measure-android:0.21.1")
+        api("sh.measure:measure-android:0.21.1-SNAPSHOT")
         testImplementation("org.jetbrains.kotlin:kotlin-test")
     }
 
