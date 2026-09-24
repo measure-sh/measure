@@ -17,6 +17,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Use different dev secrets for access and refresh tokens by @anupcowkur in #4510
 - (**backend**): Detect dashboard refresh token reuse by @anupcowkur in #4509
 - (**backend**): Allow mcp refresh token reuse within a short window by @anupcowkur
 - (**backend**): Add missing version label space in errors overview plot by @anupcowkur in #4495
