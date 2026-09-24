@@ -83,6 +83,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Replace the legacy filter bar on the apps page by @anupcowkur in #4468
 - (**frontend**): Drop unused initConfig prop from Onboarding by @anupcowkur
 - (**frontend**): Keep touch indicators on the correct replay screen (#4436) by @abhaysood in #4436
+- (**kmp**): Prepare sdk release 0.3.0 by @abhaysood in #4506
 - Fix android next-version workflow (#4492) by @abhaysood in #4492
 - Drop the expr qualifier from the filter code by @anupcowkur in #4473
 - Migrate overview to expression filters by @anupcowkur in #4470
