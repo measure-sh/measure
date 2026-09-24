@@ -268,6 +268,15 @@ func ageProviderCheck(ctx context.Context, t *testing.T, sessionID uuid.UUID) {
 	}
 }
 
+func ageRotation(ctx context.Context, t *testing.T, sessionID uuid.UUID) {
+	t.Helper()
+	if _, err := th.PgPool.Exec(ctx,
+		`UPDATE measure.mcp_auth_sessions SET rt_rotated_at = now() - interval '1 minute' WHERE id = $1`,
+		sessionID); err != nil {
+		t.Fatalf("age rotation: %v", err)
+	}
+}
+
 func sessionIDOf(t *testing.T, rawToken string) uuid.UUID {
 	t.Helper()
 	claims, err := mcpParseSignedToken(rawToken, deps.Config.AccessTokenSecret)
