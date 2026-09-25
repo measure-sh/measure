@@ -399,8 +399,8 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
               <p className={STYLES.text.mainValue}> N/A</p>
               <div className={STYLES.layout.spacer} />
               <p className={`text-xs font-body`}>
-                App size metric is only available when a single app version is
-                selected
+                Current filters match data from multiple app versions. App size
+                is only shown for a single version.
               </p>
             </>
           );

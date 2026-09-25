@@ -205,6 +205,7 @@ export function makeMetricsFixture(overrides: Record<string, any> = {}) {
       selected_app_size: 48234496,
       delta: -0.08,
       no_data: false,
+      multiple_versions: false,
     },
     crash_free_sessions: {
       crash_free_sessions: 99.1,

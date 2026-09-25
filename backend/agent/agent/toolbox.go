@@ -428,7 +428,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_metrics
 		newTool(&mcpsdk.Tool{
 			Name:        "get_metrics",
-			Description: "Get app metrics including adoption, crash-free/ANR-free sessions, launch performance (cold/warm/hot p95) and app size. Covers every app version unless filter_expr narrows it; each metric is reported for the selected versions and for the rest, and adoption is only meaningful against a specific version, so narrow to one with its version_code when reading it. App size is reported only when the filter selects a single version name, as the size of that version's most recent build. " + mcpFilterExprToolsHint(filter.AppHealthEntity) + ".",
+			Description: "Get app metrics including adoption, crash-free/ANR-free sessions, launch performance (cold/warm/hot p95) and app size. Covers every app version unless filter_expr narrows it; each metric is reported for the selected versions and for the rest, and adoption is only meaningful against a specific version, so narrow to one with its version_code when reading it. App size is reported only when the versions with data in the range share a single version name, as the size of that version's most recent build; otherwise sizes has multiple_versions or no_data set. " + mcpFilterExprToolsHint(filter.AppHealthEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetMetricsInput](mcpAppHealthFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetMetricsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetMetrics(ctx, in)
@@ -1294,9 +1294,7 @@ func (c *Config) mcpGetMetrics(ctx context.Context, in mcpGetMetricsInput) (*mcp
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch size metrics: %w", err)
 	}
-	if sizes != nil {
-		result["sizes"] = sizes
-	}
+	result["sizes"] = sizes
 
 	data, _ := json.Marshal(result)
 	return mcpTextResult(string(data)), nil, nil

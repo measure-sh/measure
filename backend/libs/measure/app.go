@@ -800,19 +800,24 @@ type versionPair struct {
 
 // splitVersions lists the app versions the filter matches, most recently seen
 // first, and the ones it leaves out, reading the version dimension of the
-// app_metrics rollup. Builds active in the same fifteen-minute bucket tie on
-// last activity, and the version tuple decides between them.
+// app_metrics rollup. Without a filter expression every version matches.
+// Builds active in the same fifteen-minute bucket tie on last activity, and
+// the version tuple decides between them.
 func (a App) splitVersions(ctx context.Context, rch driver.Conn, flt *filter.Filter) (selected, unselected []versionPair, err error) {
-	predicate, err := flt.Predicate(nil)
-	if err != nil {
-		return nil, nil, err
+	matched, matchedArgs := "true", []any(nil)
+	if flt.HasFilterExpr() {
+		predicate, err := flt.Predicate(nil)
+		if err != nil {
+			return nil, nil, err
+		}
+		defer predicate.Close()
+		matched, matchedArgs = predicate.String(), predicate.Args()
 	}
-	defer predicate.Close()
 
 	stmt := sqlf.From(config.AppMetricsTable).
 		Select("tupleElement(app_version, 1) as version_name").
 		Select("tupleElement(app_version, 2) as version_code").
-		Select("("+predicate.String()+") as matched", predicate.Args()...).
+		Select("("+matched+") as matched", matchedArgs...).
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", flt.AppID).
 		Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To).
@@ -844,17 +849,14 @@ func (a App) splitVersions(ctx context.Context, rch driver.Conn, flt *filter.Fil
 
 // GetSizeMetrics computes the download size of the app version the filter
 // selects and its difference from the average size of the app's other builds.
-// A size belongs to a single build, so nothing is returned unless the filter
-// narrows the app to one version name; a version with several builds in the
-// range reports its most recently seen build. When no other build exists, the
-// average covers every build of the app.
+// A size belongs to a single build, so it is reported only when the versions
+// with data in the range share one version name, and then for that version's
+// most recently seen build. When no other build exists, the average covers
+// every build of the app.
 func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, rch driver.Conn, flt *filter.Filter) (size *metrics.SizeMetric, err error) {
-	if !flt.HasFilterExpr() {
-		return nil, nil
-	}
+	size = &metrics.SizeMetric{}
 
 	if !a.Onboarded {
-		size = &metrics.SizeMetric{}
 		size.SetNoData()
 		return size, nil
 	}
@@ -866,11 +868,13 @@ func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, rch driver.Co
 		return nil, err
 	}
 	if len(selected) == 0 {
-		return nil, nil
+		size.SetNoData()
+		return size, nil
 	}
 	for _, pair := range selected[1:] {
 		if pair.name != selected[0].name {
-			return nil, nil
+			size.MultipleVersions = true
+			return size, nil
 		}
 	}
 	shown := selected[0]
@@ -903,10 +907,10 @@ func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, rch driver.Co
 
 	defer sizeStmt.Close()
 
-	size = &metrics.SizeMetric{}
 	if err := pg.QueryRow(ctx, sizeStmt.String(), sizeStmt.Args()...).Scan(&size.AverageAppSize, &size.SelectedAppSize, &size.Delta); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return nil, nil
+			size.SetNoData()
+			return size, nil
 		}
 		return nil, err
 	}

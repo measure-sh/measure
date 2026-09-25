@@ -682,7 +682,7 @@ describe("MetricsCard", () => {
       expect(screen.getByText("N/A")).toBeInTheDocument();
       expect(
         screen.getByText(
-          "App size metric is only available when a single app version is selected",
+          "Current filters match data from multiple app versions. App size is only shown for a single version.",
         ),
       ).toBeInTheDocument();
     });

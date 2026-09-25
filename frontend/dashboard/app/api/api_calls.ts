@@ -200,6 +200,7 @@ export const emptyMetrics = {
     selected_app_size: 0,
     delta: 0,
     no_data: false,
+    multiple_versions: false,
   },
   warm_launch: {
     p95: 0,
