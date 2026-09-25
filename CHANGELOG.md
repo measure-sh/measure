@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :sparkles: New features
 
 - (**backend**): Ingest and query memory monitoring data (#4477) by @abhaysood
+- (**frontend**): Query common path only on user request by @anupcowkur in #4522
 - (**frontend**): Rework markdown content negotiation for agents by @anupcowkur in #4505
 - (**frontend**): Add sandbox by @anupcowkur in #4497
 - (**frontend**): Add memory monitoring dashboard and controls (#4477) by @abhaysood in #4477
@@ -76,6 +77,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump lodash from 4.17.21 to 4.18.1 in /frontend/dashboard (#4394) by @dependabot[bot] in #4394
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
+- (**frontend**): Move common path after stacktraces by @anupcowkur
 - (**frontend**): Noindex auth pages instead of disallowing them by @anupcowkur in #4503
 - (**frontend**): Change "Get Started For Free" to "Get Started" in CTAs by @anupcowkur in #4501
 - (**frontend**): Update memory loading state and attr description (#4488) by @abhaysood in #4488
