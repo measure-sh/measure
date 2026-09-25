@@ -9,7 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Add memory filters and share device memory tiers by @abhaysood
 - (**backend**): Ingest and query memory monitoring data (#4477) by @abhaysood
+- (**frontend**): Use info icon for memory breadcrumb by @abhaysood
+- (**frontend**): Move memory app state into the filter bar by @abhaysood
 - (**frontend**): Query common path only on user request by @anupcowkur in #4522
 - (**frontend**): Rework markdown content negotiation for agents by @anupcowkur in #4505
 - (**frontend**): Add sandbox by @anupcowkur in #4497
@@ -79,6 +82,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump lodash from 4.17.21 to 4.18.1 in /frontend/dashboard (#4394) by @dependabot[bot] in #4394
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
+- (**frontend**): Remove unused beta badge popup by @abhaysood in #4508
 - (**frontend**): Update common path request copy by @anupcowkur in #4524
 - (**frontend**): Hide divider under expanded stack traces by @anupcowkur in #4523
 - (**frontend**): Move common path after stacktraces by @anupcowkur
