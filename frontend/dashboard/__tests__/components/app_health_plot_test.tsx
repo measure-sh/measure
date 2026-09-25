@@ -38,7 +38,7 @@ describe("AppHealthPlot", () => {
 
   it("renders no data state", () => {
     render(<AppHealthPlot {...plotDates} status="success" plot={null} />);
-    expect(screen.getByText("No Data")).toBeInTheDocument();
+    expect(screen.getByText("No sessions found")).toBeInTheDocument();
   });
 
   it("renders data and minute precision axis for sub-12h range", () => {

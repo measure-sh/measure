@@ -396,9 +396,7 @@ describe("NetworkOverview page", () => {
     });
     renderPage();
 
-    expect(
-      screen.getAllByText("No data available for the selected filters"),
-    ).toHaveLength(2);
+    expect(screen.getAllByText("No requests found")).toHaveLength(2);
   });
 
   describe("a filter it could not settle", () => {

@@ -7,8 +7,10 @@ import {
   formatDateToHumanReadableDate,
   formatDateToHumanReadableTime,
 } from "@/app/utils/time_utils";
+import { Video } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import EmptyState from "./empty_state";
 import LoadingBar from "./loading_bar";
 import Paginator from "./paginator";
 import { SkeletonTable } from "./skeleton";
@@ -53,9 +55,12 @@ export default function HighMemoryUsageSessions({
   const router = useRouter();
   const { data, status, isFetching } = query;
   const results = data?.results ?? [];
+  const listEmpty = results.length === 0 && !data?.meta.previous;
 
   return (
     <section data-testid="high-memory-sessions" className="w-full font-body">
+      <p className="font-display text-xl">High Memory Sessions</p>
+      <div className="py-2" />
       {status === "pending" && (
         <div role="status" aria-label="Loading high memory usage sessions">
           <SkeletonTable rows={5} columns={3} />
@@ -66,7 +71,15 @@ export default function HighMemoryUsageSessions({
           Unable to load high memory usage sessions.
         </p>
       )}
-      {status === "success" && (
+      {status === "success" && listEmpty && (
+        <EmptyState
+          icon={Video}
+          title="No high memory sessions found"
+          description="Try a wider time range or different filters"
+          className="h-48"
+        />
+      )}
+      {status === "success" && !listEmpty && (
         <>
           <div className="mb-2 flex justify-end">
             <Paginator
@@ -85,10 +98,10 @@ export default function HighMemoryUsageSessions({
           <Table className="font-display select-none">
             <TableHeader>
               <TableRow>
-                <TableHead className="w-[58%]">
+                <TableHead className="w-[50%]">
                   Sessions with high memory usage
                 </TableHead>
-                <TableHead className="w-[22%] text-center">
+                <TableHead className="w-[30%] text-center">
                   Peak memory usage
                 </TableHead>
                 <TableHead className="w-[20%] text-center">
@@ -99,11 +112,13 @@ export default function HighMemoryUsageSessions({
             <TableBody>
               {results.length === 0 ? (
                 <TableRow className="hover:bg-transparent">
-                  <TableCell
-                    colSpan={3}
-                    className="h-36 text-center text-sm text-muted-foreground"
-                  >
-                    No sessions found with high memory usage.
+                  <TableCell colSpan={3} className="p-0 pt-4">
+                    <EmptyState
+                      icon={Video}
+                      title="No high memory sessions found"
+                      description="Try a wider time range or different filters"
+                      className="h-48"
+                    />
                   </TableCell>
                 </TableRow>
               ) : (
@@ -121,7 +136,7 @@ export default function HighMemoryUsageSessions({
                         }
                       }}
                     >
-                      <TableCell className="relative w-[58%] p-0">
+                      <TableCell className="relative w-[50%] p-0">
                         <Link
                           href={href}
                           className="absolute inset-0 z-10 cursor-pointer"
@@ -138,7 +153,7 @@ export default function HighMemoryUsageSessions({
                           </p>
                         </div>
                       </TableCell>
-                      <TableCell className="relative w-[22%] p-0 text-center">
+                      <TableCell className="relative w-[30%] p-0 text-center">
                         <Link
                           href={href}
                           className="absolute inset-0 z-10 cursor-pointer"
@@ -147,6 +162,7 @@ export default function HighMemoryUsageSessions({
                         />
                         <div className="pointer-events-none p-4">
                           <p>{formatMemoryKilobytes(session.peak_memory_kb)}</p>
+                          <div className="py-1" />
                           {session.available_memory_at_peak_utilization_kb !=
                             null && (
                             <p className="text-xs text-muted-foreground">

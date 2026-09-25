@@ -173,7 +173,7 @@ describe("NetworkTrends", () => {
         render(<NetworkTrends filterParams={filterParams} />);
       });
       await waitFor(() => {
-        expect(screen.getByText(/No data available/)).toBeInTheDocument();
+        expect(screen.getByText("No endpoints found")).toBeInTheDocument();
       });
     });
   });

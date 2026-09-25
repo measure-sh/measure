@@ -52,7 +52,7 @@ describe("BugReportsOverviewPlot", () => {
         query={queryWith({ data: null, status: "success" })}
       />,
     );
-    expect(await screen.findByText("No Data")).toBeInTheDocument();
+    expect(await screen.findByText("No bug reports found")).toBeInTheDocument();
     expect(screen.getByTestId("bug-reports-plot-no-data")).toBeInTheDocument();
   });
 

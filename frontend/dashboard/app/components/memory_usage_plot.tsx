@@ -6,6 +6,7 @@ import {
   type useMemoryUsagePlotQuery,
 } from "@/app/query/hooks";
 import { ResponsiveLineCanvas } from "@nivo/line";
+import { MemoryStick } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useMemo, useState } from "react";
 import { formatMemoryKilobytes } from "../utils/number_utils";
@@ -21,6 +22,7 @@ import {
   PlotTooltipSwatch,
   type SiblingPoint,
 } from "./plot_tooltip";
+import EmptyState from "./empty_state";
 import { SkeletonPlot } from "./skeleton";
 import TabSelect from "./tab_select";
 
@@ -51,6 +53,8 @@ export default function MemoryUsagePlot({
 
   return (
     <section className="w-full font-body">
+      <p className="font-display text-xl">Memory Usage</p>
+      <div className="py-2" />
       <div className="flex items-center justify-center w-full h-144">
         {status === "pending" && <SkeletonPlot />}
         {status === "error" && (
@@ -60,12 +64,14 @@ export default function MemoryUsagePlot({
           </p>
         )}
         {status === "success" && (!plot || plot.length === 0) && (
-          <p
-            data-testid="memory-usage-plot-no-data"
-            className="text-lg font-display text-center p-4"
-          >
-            No Data
-          </p>
+          <div data-testid="memory-usage-plot-no-data" className="size-full">
+            <EmptyState
+              icon={MemoryStick}
+              title="No memory usage found"
+              description="Try a wider time range or different filters"
+              className="h-full"
+            />
+          </div>
         )}
         {status === "success" && plot && plot.length > 0 && (
           <div

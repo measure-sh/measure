@@ -379,12 +379,12 @@ describe("TracesOverview page", () => {
     },
   );
 
-  it("renders an empty table when no spans match", () => {
+  it("hides the table and paginator when the first page is empty", () => {
     spansLoaded({ results: [], meta: { previous: false, next: false } });
     renderPage();
 
-    expect(screen.getByText("Trace")).toBeInTheDocument();
-    expect(screen.queryByText(/ID:/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Trace")).not.toBeInTheDocument();
+    expect(screen.queryByText("Next")).not.toBeInTheDocument();
   });
 
   it("shows an error message when the spans request fails", () => {

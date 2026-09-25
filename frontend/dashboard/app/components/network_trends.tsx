@@ -1,5 +1,6 @@
 "use client";
 
+import EmptyState from "@/app/components/empty_state";
 import InfoTooltip from "@/app/components/info_tooltip";
 import Link from "next/link";
 import LoadingBar from "@/app/components/loading_bar";
@@ -19,6 +20,7 @@ import {
 import { numberToKMB } from "@/app/utils/number_utils";
 import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import { formatMillisToHumanReadable } from "@/app/utils/time_utils";
+import { Globe } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
 
@@ -311,9 +313,12 @@ export default function NetworkTrends({
 
       {(effectiveStatus === "nodata" ||
         (effectiveStatus === "success" && activeTabData.length === 0)) && (
-        <p className="font-body text-sm mt-4">
-          No data available for the selected filters
-        </p>
+        <EmptyState
+          icon={Globe}
+          title="No endpoints found"
+          description="Try a wider time range or different filters"
+          className="mt-4 h-48"
+        />
       )}
 
       {effectiveStatus === "error" && (

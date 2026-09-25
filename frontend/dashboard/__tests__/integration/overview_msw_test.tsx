@@ -291,7 +291,7 @@ describe("Overview page (MSW integration)", () => {
       renderPage();
       await waitForData();
 
-      expect(screen.getByText("No Data")).toBeTruthy();
+      expect(screen.getByText("No sessions found")).toBeTruthy();
     });
   });
 });

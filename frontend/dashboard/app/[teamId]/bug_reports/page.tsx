@@ -71,6 +71,10 @@ export default function BugReportsOverview(props: {
     status,
     isFetching,
   } = bugReportsQuery;
+  const listEmpty =
+    status === "success" &&
+    paginationOffset === 0 &&
+    (bugReportsOverview.results?.length ?? 0) === 0;
 
   return (
     <div className="flex flex-col items-start">
@@ -114,141 +118,151 @@ export default function BugReportsOverview(props: {
               endDate={readyValue.date.endDate}
               query={bugReportsPlotQuery}
             />
-            <div className="self-end">
-              <Paginator
-                prevEnabled={
-                  isFetching ? false : bugReportsOverview.meta.previous
-                }
-                nextEnabled={isFetching ? false : bugReportsOverview.meta.next}
-                displayText=""
-                onNext={nextPage}
-                onPrev={prevPage}
-              />
-            </div>
+            {!listEmpty && (
+              <>
+                <div className="self-end">
+                  <Paginator
+                    prevEnabled={
+                      isFetching ? false : bugReportsOverview.meta.previous
+                    }
+                    nextEnabled={
+                      isFetching ? false : bugReportsOverview.meta.next
+                    }
+                    displayText=""
+                    onNext={nextPage}
+                    onPrev={prevPage}
+                  />
+                </div>
 
-            <div
-              className={`py-4 w-full ${isFetching ? "visible" : "invisible"}`}
-            >
-              <LoadingBar />
-            </div>
-            <Table className="font-display select-none">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[60%]">Bug Report</TableHead>
-                  <TableHead className="w-[20%] text-center">Time</TableHead>
-                  <TableHead className="w-[20%] text-center">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {bugReportsOverview.results?.map(
-                  (
-                    {
-                      event_id,
-                      description,
-                      status,
-                      app_id,
-                      timestamp,
-                      attribute,
-                    }: any,
-                    idx: number,
-                  ) => {
-                    const bugReportHref = `/${params.teamId}/bug_reports/${app_id}/${event_id}`;
-                    return (
-                      <TableRow
-                        key={`${idx}-${event_id}`}
-                        data-testid="bug-report-row"
-                        className="font-body"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            router.push(bugReportHref);
-                          }
-                        }}
-                      >
-                        <TableCell className="w-[60%] relative p-0">
-                          <Link
-                            href={bugReportHref}
-                            className="absolute inset-0 z-10 cursor-pointer"
-                            tabIndex={-1}
-                            aria-label={`ID: ${event_id}`}
-                            style={{ display: "block" }}
-                          />
-                          <div className="pointer-events-none p-4">
-                            <p className="truncate text-xs text-muted-foreground select-none">
-                              ID: {event_id}
-                            </p>
-                            <div className="py-1" />
-                            <p
-                              data-testid="bug-report-row-description"
-                              className="truncate select-none"
-                            >
-                              {description ? description : "No Description"}
-                            </p>
-                            <div className="py-1" />
-                            <p className="text-xs truncate text-muted-foreground select-none">
-                              {attribute.app_version +
-                                "(" +
-                                attribute.app_build +
-                                "), " +
-                                (attribute.os_name === "android"
-                                  ? "Android API Level"
-                                  : attribute.os_name === "ios"
-                                    ? "iOS"
-                                    : attribute.os_name === "ipados"
-                                      ? "iPadOS"
-                                      : attribute.os_name) +
-                                " " +
-                                attribute.os_version +
-                                ", " +
-                                attribute.device_manufacturer +
-                                " " +
-                                attribute.device_model}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="w-[20%] text-center relative p-0">
-                          <Link
-                            href={bugReportHref}
-                            className="absolute inset-0 z-10 cursor-pointer"
-                            tabIndex={-1}
-                            aria-hidden="true"
-                            style={{ display: "block" }}
-                          />
-                          <div className="pointer-events-none p-4">
-                            <p className="truncate select-none">
-                              {formatDateToHumanReadableDate(timestamp)}
-                            </p>
-                            <div className="py-1" />
-                            <p className="text-xs truncate select-none">
-                              {formatDateToHumanReadableTime(timestamp)}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="w-[20%] text-center relative p-0">
-                          <Link
-                            href={bugReportHref}
-                            className="absolute inset-0 z-10 cursor-pointer"
-                            tabIndex={-1}
-                            aria-hidden="true"
-                            style={{ display: "block" }}
-                          />
-                          <div className="pointer-events-none p-4 items-center flex justify-center">
-                            <Pill
-                              type={
-                                status === 0
-                                  ? PillType.OpenStatus
-                                  : PillType.ClosedStatus
+                <div
+                  className={`py-4 w-full ${isFetching ? "visible" : "invisible"}`}
+                >
+                  <LoadingBar />
+                </div>
+                <Table className="font-display select-none">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[60%]">Bug Report</TableHead>
+                      <TableHead className="w-[20%] text-center">
+                        Time
+                      </TableHead>
+                      <TableHead className="w-[20%] text-center">
+                        Status
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {bugReportsOverview.results?.map(
+                      (
+                        {
+                          event_id,
+                          description,
+                          status,
+                          app_id,
+                          timestamp,
+                          attribute,
+                        }: any,
+                        idx: number,
+                      ) => {
+                        const bugReportHref = `/${params.teamId}/bug_reports/${app_id}/${event_id}`;
+                        return (
+                          <TableRow
+                            key={`${idx}-${event_id}`}
+                            data-testid="bug-report-row"
+                            className="font-body"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                router.push(bugReportHref);
                               }
-                            />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  },
-                )}
-              </TableBody>
-            </Table>
+                            }}
+                          >
+                            <TableCell className="w-[60%] relative p-0">
+                              <Link
+                                href={bugReportHref}
+                                className="absolute inset-0 z-10 cursor-pointer"
+                                tabIndex={-1}
+                                aria-label={`ID: ${event_id}`}
+                                style={{ display: "block" }}
+                              />
+                              <div className="pointer-events-none p-4">
+                                <p className="truncate text-xs text-muted-foreground select-none">
+                                  ID: {event_id}
+                                </p>
+                                <div className="py-1" />
+                                <p
+                                  data-testid="bug-report-row-description"
+                                  className="truncate select-none"
+                                >
+                                  {description ? description : "No Description"}
+                                </p>
+                                <div className="py-1" />
+                                <p className="text-xs truncate text-muted-foreground select-none">
+                                  {attribute.app_version +
+                                    "(" +
+                                    attribute.app_build +
+                                    "), " +
+                                    (attribute.os_name === "android"
+                                      ? "Android API Level"
+                                      : attribute.os_name === "ios"
+                                        ? "iOS"
+                                        : attribute.os_name === "ipados"
+                                          ? "iPadOS"
+                                          : attribute.os_name) +
+                                    " " +
+                                    attribute.os_version +
+                                    ", " +
+                                    attribute.device_manufacturer +
+                                    " " +
+                                    attribute.device_model}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="w-[20%] text-center relative p-0">
+                              <Link
+                                href={bugReportHref}
+                                className="absolute inset-0 z-10 cursor-pointer"
+                                tabIndex={-1}
+                                aria-hidden="true"
+                                style={{ display: "block" }}
+                              />
+                              <div className="pointer-events-none p-4">
+                                <p className="truncate select-none">
+                                  {formatDateToHumanReadableDate(timestamp)}
+                                </p>
+                                <div className="py-1" />
+                                <p className="text-xs truncate select-none">
+                                  {formatDateToHumanReadableTime(timestamp)}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="w-[20%] text-center relative p-0">
+                              <Link
+                                href={bugReportHref}
+                                className="absolute inset-0 z-10 cursor-pointer"
+                                tabIndex={-1}
+                                aria-hidden="true"
+                                style={{ display: "block" }}
+                              />
+                              <div className="pointer-events-none p-4 items-center flex justify-center">
+                                <Pill
+                                  type={
+                                    status === 0
+                                      ? PillType.OpenStatus
+                                      : PillType.ClosedStatus
+                                  }
+                                />
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      },
+                    )}
+                  </TableBody>
+                </Table>
+              </>
+            )}
           </div>
         )}
     </div>

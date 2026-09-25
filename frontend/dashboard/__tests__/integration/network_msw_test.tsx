@@ -364,10 +364,9 @@ describe("Network overview (MSW integration)", () => {
       renderPage();
 
       await waitFor(() =>
-        expect(
-          screen.getAllByText("No data available for the selected filters")
-            .length,
-        ).toBeGreaterThan(0),
+        expect(screen.getAllByText("No requests found").length).toBeGreaterThan(
+          0,
+        ),
       );
       expect(screen.queryByTestId("nivo-heatmap")).toBeNull();
     });

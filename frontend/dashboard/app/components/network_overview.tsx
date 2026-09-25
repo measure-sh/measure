@@ -1,6 +1,7 @@
 "use client";
 
 import { filterExprIssuesIn } from "@/app/api/api_error";
+import EmptyState from "@/app/components/empty_state";
 import FilterBar from "@/app/components/filter_bar/filter_bar";
 import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import InfoTooltip from "@/app/components/info_tooltip";
@@ -18,6 +19,7 @@ import {
 } from "@/app/query/hooks";
 import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import { getPlotTimeGroupForRange } from "@/app/utils/time_utils";
+import { ChartColumn, ChartGantt } from "lucide-react";
 import { DateTime } from "luxon";
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
@@ -376,9 +378,12 @@ function NetworkOverviewSections({
             />
           )}
           {statusPlotStatus === "nodata" && (
-            <p className="font-body text-sm">
-              No data available for the selected filters
-            </p>
+            <EmptyState
+              icon={ChartColumn}
+              title="No requests found"
+              description="Try a wider time range or different filters"
+              className="h-full"
+            />
           )}
           {statusPlotStatus === "error" && (
             <p className="font-body text-sm">
@@ -406,13 +411,16 @@ function NetworkOverviewSections({
           </div>
         )}
         {!shouldRenderTimeline && (
-          <div className="flex font-body items-center justify-center w-full h-144">
+          <div className="flex font-body items-center justify-center w-full h-144 mt-4">
             {timelinePlotStatus === "pending" && <SkeletonPlot />}
             {(timelinePlotStatus === "nodata" ||
               timelinePlotStatus === "success") && (
-              <p className="font-body text-sm">
-                No data available for the selected filters
-              </p>
+              <EmptyState
+                icon={ChartGantt}
+                title="No requests found"
+                description="Try a wider time range or different filters"
+                className="h-full"
+              />
             )}
             {timelinePlotStatus === "error" && (
               <p className="font-body text-sm">

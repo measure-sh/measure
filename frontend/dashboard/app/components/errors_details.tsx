@@ -11,6 +11,7 @@ import {
   useErrorsDistributionPlotQuery,
 } from "@/app/query/hooks";
 import { DateTime } from "luxon";
+import { FileCode } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
@@ -27,6 +28,7 @@ import {
 import { buttonVariants } from "./button_variants";
 import CodeBlock, { CODE_BLOCK_CARD_CLASS } from "./code_block";
 import CopyAgentPrompt from "./copy_agent_prompt";
+import EmptyState from "./empty_state";
 import ErrorGroupCommonPath from "./error_group_common_path";
 import ErrorsDetailsPlot from "./errors_details_plot";
 import ErrorsDistributionPlot from "./errors_distribution_plot";
@@ -246,6 +248,11 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
   };
 
   const firstResult = data.results?.[0];
+  const noStackTraces =
+    status === "success" &&
+    !isFetching &&
+    firstResult === undefined &&
+    !data.meta.previous;
   const stacktrace =
     firstResult?.exception?.stacktrace ?? firstResult?.anr?.stacktrace ?? "";
 
@@ -334,13 +341,15 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
             <div className="flex flex-col md:flex-row md:items-center w-full">
               <p className="font-body text-3xl"> Stack traces</p>
               <div className="grow" />
-              <Paginator
-                prevEnabled={isFetching ? false : data.meta.previous}
-                nextEnabled={isFetching ? false : data.meta.next}
-                displayText=""
-                onNext={onNext}
-                onPrev={onPrev}
-              />
+              {!noStackTraces && (
+                <Paginator
+                  prevEnabled={isFetching ? false : data.meta.previous}
+                  nextEnabled={isFetching ? false : data.meta.next}
+                  displayText=""
+                  onNext={onNext}
+                  onPrev={onPrev}
+                />
+              )}
             </div>
 
             <div className="py-2" />
@@ -353,6 +362,15 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
                 <Skeleton className="h-4 w-2/3" />
                 <Skeleton className="h-4 w-full" />
               </div>
+            )}
+
+            {noStackTraces && (
+              <EmptyState
+                icon={FileCode}
+                title="No stack traces found"
+                description="Try a wider time range or different filters"
+                className="mt-4 h-48"
+              />
             )}
 
             {firstResult && (

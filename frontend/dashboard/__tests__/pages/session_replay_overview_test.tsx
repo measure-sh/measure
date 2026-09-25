@@ -402,15 +402,15 @@ describe("SessionReplayOverview page", () => {
     expect(screen.getByText("N/A")).toBeInTheDocument();
   });
 
-  it("renders table headers but no rows when results are empty", () => {
+  it("hides the table and paginator when the first page is empty", () => {
     sessionsLoaded({
       results: [],
       meta: { previous: false, next: false },
     });
     renderPage();
 
-    expect(screen.getByText("Session Replay")).toBeInTheDocument();
-    expect(screen.queryByText("Session ID: session1")).not.toBeInTheDocument();
+    expect(screen.queryByText("Session Replay")).not.toBeInTheDocument();
+    expect(screen.queryByText("Next")).not.toBeInTheDocument();
   });
 
   it("shows an error message when the sessions request fails", () => {

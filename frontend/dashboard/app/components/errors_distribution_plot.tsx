@@ -2,10 +2,12 @@
 
 import { type useErrorsDistributionPlotQuery } from "@/app/query/hooks";
 import { ResponsiveBar } from "@nivo/bar";
+import { ChartColumn } from "lucide-react";
 import React from "react";
 import { numberToKMB } from "../utils/number_utils";
 import { chartTheme, useChartColors } from "../utils/shared_styles";
 import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
+import EmptyState from "./empty_state";
 import { SkeletonPlot } from "./skeleton";
 
 const demoDistribution: any = {
@@ -140,12 +142,17 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
         </p>
       )}
       {effectiveStatus === "success" && query?.data === null && !demo && (
-        <p
+        <div
           data-testid="exception-distribution-plot-no-data"
-          className="text-lg font-display text-center p-4"
+          className="size-full pt-2 md:pt-0 md:pl-2"
         >
-          No Data
-        </p>
+          <EmptyState
+            icon={ChartColumn}
+            title="No distribution data found"
+            description="Try a wider time range or different filters"
+            className="h-full"
+          />
+        </div>
       )}
       {effectiveStatus === "success" &&
         plot !== undefined &&

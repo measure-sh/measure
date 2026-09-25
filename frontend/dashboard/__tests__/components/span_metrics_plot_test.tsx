@@ -83,7 +83,7 @@ describe("SpanMetricsPlot", () => {
       />,
     );
 
-    expect(screen.getByText("No Data")).toBeInTheDocument();
+    expect(screen.getByText("No traces found")).toBeInTheDocument();
   });
 
   it("renders error state", async () => {

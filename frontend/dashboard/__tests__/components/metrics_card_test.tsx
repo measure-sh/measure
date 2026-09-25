@@ -214,7 +214,7 @@ describe("MetricsCard", () => {
       const props = createCrashFreeSessionsProps({ noData: true });
       render(<MetricsCard {...props} />);
 
-      expect(screen.getByText("No data")).toBeInTheDocument();
+      expect(screen.getByText("--")).toBeInTheDocument();
       expect(screen.getByText("Crash free sessions")).toBeInTheDocument();
     });
   });

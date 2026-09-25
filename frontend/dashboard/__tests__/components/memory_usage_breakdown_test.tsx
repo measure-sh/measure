@@ -67,7 +67,7 @@ describe("MemoryUsageBreakdown", () => {
     render(
       <MemoryUsageBreakdown query={queryWith({ status: "success", data })} />,
     );
-    expect(screen.getByText("No memory samples found.")).toBeInTheDocument();
+    expect(screen.getByText("No memory samples found")).toBeInTheDocument();
   });
 
   it("renders error state", () => {

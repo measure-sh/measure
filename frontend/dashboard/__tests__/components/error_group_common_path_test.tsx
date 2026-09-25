@@ -116,6 +116,17 @@ describe("ErrorGroupCommonPath", () => {
     expect(screen.getByText(/Error fetching common path/)).toBeInTheDocument();
   });
 
+  it("renders the no common path state when the analysis returns no steps", () => {
+    mockUseErrorGroupCommonPathQuery.mockReturnValue({
+      data: { sessions_analyzed: 0, steps: [] },
+      status: "success",
+      error: null,
+    });
+    renderRequested();
+    expect(screen.getByText("No common path found")).toBeInTheDocument();
+    expect(screen.queryByRole("slider")).not.toBeInTheDocument();
+  });
+
   it("renders empty-state message when no steps meet threshold", () => {
     mockUseErrorGroupCommonPathQuery.mockReturnValue({
       data: {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Route } from "lucide-react";
+import { Route, SlidersHorizontal } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import {
   type ExceptionGroupCommonPath,
@@ -9,6 +9,7 @@ import {
 import BetaBadge from "./beta_badge";
 import { Button } from "./button";
 import CodeBlock from "./code_block";
+import EmptyState from "./empty_state";
 import { Skeleton } from "./skeleton";
 import { Slider } from "./slider";
 
@@ -101,6 +102,8 @@ const ErrorGroupCommonPath: React.FC<ErrorGroupCommonPathProps> = ({
     );
   }, [errorGroupCommonPath, confidenceThreshold]);
 
+  const noCommonPath = (errorGroupCommonPath?.steps.length ?? 0) === 0;
+
   return (
     <div
       data-testid="exception-detail-common-path"
@@ -143,7 +146,15 @@ const ErrorGroupCommonPath: React.FC<ErrorGroupCommonPathProps> = ({
           Error fetching common path, please refresh page to try again
         </p>
       )}
-      {commonPathStatus === "success" && (
+      {commonPathStatus === "success" && noCommonPath && (
+        <EmptyState
+          icon={Route}
+          title="No common path found"
+          description="No sessions with this error have enough events to analyze"
+          className="mt-4 h-48"
+        />
+      )}
+      {commonPathStatus === "success" && !noCommonPath && (
         <div className="flex flex-col w-full">
           {/* Confidence Filter */}
           <div className="py-3" />
@@ -171,13 +182,15 @@ const ErrorGroupCommonPath: React.FC<ErrorGroupCommonPathProps> = ({
           </div>
 
           <div className="py-4" />
-          <div className="w-full border border-border rounded-sm h-96 overflow-y-auto p-4">
-            {filteredSteps.length === 0 ? (
-              <p className="text-center text-sm w-full py-24 text-muted-foreground">
-                No events are common in at least {confidenceThreshold}% of
-                analyzed sessions
-              </p>
-            ) : (
+          {filteredSteps.length === 0 ? (
+            <EmptyState
+              icon={SlidersHorizontal}
+              title={`No events are common in at least ${confidenceThreshold}% of analyzed sessions`}
+              description="Lower the threshold to see less common events"
+              className="h-96"
+            />
+          ) : (
+            <div className="w-full border border-dashed border-border rounded-sm h-96 overflow-y-auto p-4">
               <ol className="list-decimal list-outside space-y-6 ml-6 marker:text-muted-foreground">
                 {filteredSteps.map((stepInfo, index) => (
                   <li key={index}>
@@ -194,8 +207,8 @@ const ErrorGroupCommonPath: React.FC<ErrorGroupCommonPathProps> = ({
                   </li>
                 ))}
               </ol>
-            )}
-          </div>
+            </div>
+          )}
         </div>
       )}
     </div>

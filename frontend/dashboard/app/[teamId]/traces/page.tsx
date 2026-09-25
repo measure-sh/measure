@@ -72,6 +72,10 @@ export default function TracesOverview(props: {
     filterExprIssuesIn(spanMetricsPlotQuery.error);
 
   const { data: spans = emptySpansResponse, status, isFetching } = spansQuery;
+  const listEmpty =
+    status === "success" &&
+    paginationOffset === 0 &&
+    (spans.results?.length ?? 0) === 0;
 
   return (
     <div className="flex flex-col items-start">
@@ -123,141 +127,149 @@ export default function TracesOverview(props: {
               endDate={readyValue.date.endDate}
               query={spanMetricsPlotQuery}
             />
-            <div className="self-end">
-              <Paginator
-                prevEnabled={isFetching ? false : spans.meta.previous}
-                nextEnabled={isFetching ? false : spans.meta.next}
-                displayText=""
-                onNext={nextPage}
-                onPrev={prevPage}
-              />
-            </div>
+            {!listEmpty && (
+              <>
+                <div className="self-end">
+                  <Paginator
+                    prevEnabled={isFetching ? false : spans.meta.previous}
+                    nextEnabled={isFetching ? false : spans.meta.next}
+                    displayText=""
+                    onNext={nextPage}
+                    onPrev={prevPage}
+                  />
+                </div>
 
-            <div
-              className={`py-4 w-full ${isFetching ? "visible" : "invisible"}`}
-            >
-              <LoadingBar />
-            </div>
-            <Table className="font-display select-none">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[60%]">Trace</TableHead>
-                  <TableHead className="w-[20%] text-center">
-                    Start Time
-                  </TableHead>
-                  <TableHead className="w-[10%] text-center">
-                    Duration
-                  </TableHead>
-                  <TableHead className="w-[10%] text-center">Status</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody className="font-body">
-                {spans.results?.map(
-                  (
-                    {
-                      app_id,
-                      span_name,
-                      span_id,
-                      trace_id,
-                      status,
-                      start_time,
-                      duration,
-                      app_version,
-                      app_build,
-                      os_name,
-                      os_version,
-                      device_manufacturer,
-                      device_model,
-                    }: any,
-                    idx: number,
-                  ) => {
-                    const traceHref = `/${params.teamId}/traces/${app_id}/${trace_id}`;
-                    return (
-                      <TableRow
-                        key={`${idx}-${span_id}`}
-                        className="font-body select-none"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            router.push(traceHref);
-                          }
-                        }}
-                      >
-                        <TableCell className="w-[60%] relative p-0">
-                          <Link
-                            href={traceHref}
-                            className="absolute inset-0 z-10 cursor-pointer"
-                            tabIndex={-1}
-                            aria-label={`ID: ${trace_id}`}
-                            style={{ display: "block" }}
-                          />
-                          <div className="pointer-events-none p-4">
-                            <p className="text-xs truncate text-muted-foreground select-none">
-                              ID: {trace_id}
-                            </p>
-                            <div className="py-1" />
-                            <p className="truncate select-none">{span_name}</p>
-                            <div className="py-1" />
-                            <p className="text-xs truncate text-muted-foreground select-none">{`${app_version}(${app_build}), ${os_name === "android" ? "Android API Level" : os_name === "ios" ? "iOS" : os_name === "ipados" ? "iPadOS" : os_name} ${os_version}, ${device_manufacturer} ${device_model}`}</p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="w-[20%] text-center relative p-0">
-                          <Link
-                            href={traceHref}
-                            className="absolute inset-0 z-10 cursor-pointer"
-                            tabIndex={-1}
-                            aria-hidden="true"
-                            style={{ display: "block" }}
-                          />
-                          <div className="pointer-events-none p-4">
-                            <p className="truncate select-none">
-                              {formatDateToHumanReadableDate(start_time)}
-                            </p>
-                            <div className="py-1" />
-                            <p className="text-xs truncate select-none">
-                              {formatDateToHumanReadableTime(start_time)}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="w-[10%] text-center truncate select-none relative p-0">
-                          <Link
-                            href={traceHref}
-                            className="absolute inset-0 z-10 cursor-pointer"
-                            tabIndex={-1}
-                            aria-hidden="true"
-                            style={{ display: "block" }}
-                          />
-                          <div className="pointer-events-none p-4">
-                            {formatMillisToHumanReadable(duration)}
-                          </div>
-                        </TableCell>
-                        <TableCell className="w-[10%] text-center truncate select-none relative p-0">
-                          <Link
-                            href={traceHref}
-                            className="absolute inset-0 z-10 cursor-pointer"
-                            tabIndex={-1}
-                            aria-hidden="true"
-                            style={{ display: "block" }}
-                          />
-                          <div className="pointer-events-none p-4 flex justify-center">
-                            <Pill
-                              type={
-                                status === 1
-                                  ? PillType.StatusOkay
-                                  : status === 2
-                                    ? PillType.StatusError
-                                    : PillType.StatusUnset
+                <div
+                  className={`py-4 w-full ${isFetching ? "visible" : "invisible"}`}
+                >
+                  <LoadingBar />
+                </div>
+                <Table className="font-display select-none">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[60%]">Trace</TableHead>
+                      <TableHead className="w-[20%] text-center">
+                        Start Time
+                      </TableHead>
+                      <TableHead className="w-[10%] text-center">
+                        Duration
+                      </TableHead>
+                      <TableHead className="w-[10%] text-center">
+                        Status
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody className="font-body">
+                    {spans.results?.map(
+                      (
+                        {
+                          app_id,
+                          span_name,
+                          span_id,
+                          trace_id,
+                          status,
+                          start_time,
+                          duration,
+                          app_version,
+                          app_build,
+                          os_name,
+                          os_version,
+                          device_manufacturer,
+                          device_model,
+                        }: any,
+                        idx: number,
+                      ) => {
+                        const traceHref = `/${params.teamId}/traces/${app_id}/${trace_id}`;
+                        return (
+                          <TableRow
+                            key={`${idx}-${span_id}`}
+                            className="font-body select-none"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                router.push(traceHref);
                               }
-                            />
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  },
-                )}
-              </TableBody>
-            </Table>
+                            }}
+                          >
+                            <TableCell className="w-[60%] relative p-0">
+                              <Link
+                                href={traceHref}
+                                className="absolute inset-0 z-10 cursor-pointer"
+                                tabIndex={-1}
+                                aria-label={`ID: ${trace_id}`}
+                                style={{ display: "block" }}
+                              />
+                              <div className="pointer-events-none p-4">
+                                <p className="text-xs truncate text-muted-foreground select-none">
+                                  ID: {trace_id}
+                                </p>
+                                <div className="py-1" />
+                                <p className="truncate select-none">
+                                  {span_name}
+                                </p>
+                                <div className="py-1" />
+                                <p className="text-xs truncate text-muted-foreground select-none">{`${app_version}(${app_build}), ${os_name === "android" ? "Android API Level" : os_name === "ios" ? "iOS" : os_name === "ipados" ? "iPadOS" : os_name} ${os_version}, ${device_manufacturer} ${device_model}`}</p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="w-[20%] text-center relative p-0">
+                              <Link
+                                href={traceHref}
+                                className="absolute inset-0 z-10 cursor-pointer"
+                                tabIndex={-1}
+                                aria-hidden="true"
+                                style={{ display: "block" }}
+                              />
+                              <div className="pointer-events-none p-4">
+                                <p className="truncate select-none">
+                                  {formatDateToHumanReadableDate(start_time)}
+                                </p>
+                                <div className="py-1" />
+                                <p className="text-xs truncate select-none">
+                                  {formatDateToHumanReadableTime(start_time)}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="w-[10%] text-center truncate select-none relative p-0">
+                              <Link
+                                href={traceHref}
+                                className="absolute inset-0 z-10 cursor-pointer"
+                                tabIndex={-1}
+                                aria-hidden="true"
+                                style={{ display: "block" }}
+                              />
+                              <div className="pointer-events-none p-4">
+                                {formatMillisToHumanReadable(duration)}
+                              </div>
+                            </TableCell>
+                            <TableCell className="w-[10%] text-center truncate select-none relative p-0">
+                              <Link
+                                href={traceHref}
+                                className="absolute inset-0 z-10 cursor-pointer"
+                                tabIndex={-1}
+                                aria-hidden="true"
+                                style={{ display: "block" }}
+                              />
+                              <div className="pointer-events-none p-4 flex justify-center">
+                                <Pill
+                                  type={
+                                    status === 1
+                                      ? PillType.StatusOkay
+                                      : status === 2
+                                        ? PillType.StatusError
+                                        : PillType.StatusUnset
+                                  }
+                                />
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      },
+                    )}
+                  </TableBody>
+                </Table>
+              </>
+            )}
           </div>
         )}
     </div>

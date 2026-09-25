@@ -50,14 +50,14 @@ describe("ErrorsOverviewPlot", () => {
     expect(screen.getByText(/Error fetching plot/)).toBeInTheDocument();
   });
 
-  it("renders No Data state when query returns null", () => {
+  it("renders empty state when query returns null", () => {
     render(
       <ErrorsOverviewPlot
         {...plotDates}
         query={queryWith({ data: null, status: "success" })}
       />,
     );
-    expect(screen.getByText("No Data")).toBeInTheDocument();
+    expect(screen.getByText("No errors found")).toBeInTheDocument();
   });
 
   it("renders chart with provided data on success", () => {

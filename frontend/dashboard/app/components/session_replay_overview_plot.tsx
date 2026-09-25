@@ -2,6 +2,7 @@
 
 import { type useSessionReplayOverviewPlotQuery } from "@/app/query/hooks";
 import { ResponsiveLineCanvas } from "@nivo/line";
+import { Video } from "lucide-react";
 import { useTheme } from "next-themes";
 import React, { useMemo } from "react";
 import { useChartCanvasTheme, useChartColors } from "../utils/shared_styles";
@@ -16,6 +17,7 @@ import {
   PlotTooltipSwatch,
   SiblingPoint,
 } from "./plot_tooltip";
+import EmptyState from "./empty_state";
 import { SkeletonPlot } from "./skeleton";
 
 const SessionReplayOverviewPlot: React.FC<{
@@ -53,12 +55,14 @@ const SessionReplayOverviewPlot: React.FC<{
         </p>
       )}
       {status === "success" && plot === null && (
-        <p
-          data-testid="sessions-plot-no-data"
-          className="text-lg font-display text-center p-4"
-        >
-          No Data
-        </p>
+        <div data-testid="sessions-plot-no-data" className="size-full">
+          <EmptyState
+            icon={Video}
+            title="No sessions found"
+            description="Try a wider time range or different filters"
+            className="h-full"
+          />
+        </div>
       )}
       {status === "success" && plot !== null && plot !== undefined && (
         <div data-testid="sessions-plot-data" className="size-full">

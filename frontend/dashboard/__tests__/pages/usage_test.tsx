@@ -445,9 +445,7 @@ describe("Usage Page", () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
-    expect(
-      screen.getByText("No data yet. Send your first event!"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("No usage found")).toBeInTheDocument();
     // Settings pages (team, notif prefs, usage, etc.) don't drive the
     // user toward onboarding — only the apps page does that.
     expect(
@@ -456,6 +454,32 @@ describe("Usage Page", () => {
     expect(
       screen.queryByText("creating your first app!"),
     ).not.toBeInTheDocument();
+  });
+
+  it("shows the empty state in place of the pie for a month with no usage", async () => {
+    useUsageStore.setState({
+      usageState: "loaded",
+      months: ["2025-01", "2025-02"],
+      selectedMonth: "2025-02",
+      selectedMonthUsage: [
+        {
+          id: "app1",
+          label: "My App",
+          value: 0,
+          events: 0,
+          spans: 0,
+          bytes_in: 0,
+        },
+      ],
+    });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    expect(screen.getByText("No usage found")).toBeInTheDocument();
+    expect(screen.getByTestId("dropdown-mock")).toBeInTheDocument();
+    expect(screen.queryByTestId("pie-chart-mock")).not.toBeInTheDocument();
   });
 
   it("renders pie chart and month dropdown on success", async () => {

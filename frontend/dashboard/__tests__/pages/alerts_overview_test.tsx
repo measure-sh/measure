@@ -321,14 +321,13 @@ describe("AlertsOverview page", () => {
     expect(pushMock).toHaveBeenCalledWith("http://example.com/alert1");
   });
 
-  it("renders the table shell with paging off when there are no alerts", () => {
+  it("shows the empty state in place of the table when there are no alerts", () => {
     alertsLoaded({ results: [], meta: { previous: false, next: false } });
     renderPage();
 
-    expect(screen.getByText("Alert")).toBeInTheDocument();
-    expect(screen.queryByText(/ID:/)).not.toBeInTheDocument();
-    expect(screen.getByTestId("prev-button")).toBeDisabled();
-    expect(screen.getByTestId("next-button")).toBeDisabled();
+    expect(screen.getByText("No alerts found")).toBeInTheDocument();
+    expect(screen.queryByText("Alert")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("next-button")).not.toBeInTheDocument();
   });
 
   describe("pagination", () => {

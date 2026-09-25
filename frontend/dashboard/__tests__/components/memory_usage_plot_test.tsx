@@ -123,7 +123,7 @@ describe("MemoryUsagePlot", () => {
         query={queryWith({ status: "success", data })}
       />,
     );
-    expect(screen.getByText("No Data")).toBeInTheDocument();
+    expect(screen.getByText("No memory usage found")).toBeInTheDocument();
   });
 
   it("renders loading state before the request resolves", () => {

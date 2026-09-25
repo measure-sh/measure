@@ -7,6 +7,7 @@ import {
   emptyBuildsResponse,
 } from "@/app/api/api_calls";
 import { Button } from "@/app/components/button";
+import EmptyState from "@/app/components/empty_state";
 import type { FilterStatus } from "@/app/components/filter_bar/use_filter_page";
 import LoadingBar from "@/app/components/loading_bar";
 import Paginator from "@/app/components/paginator";
@@ -20,6 +21,7 @@ import {
   TableRow,
 } from "@/app/components/table";
 import type { useBuildsQuery } from "@/app/query/hooks";
+import { Package } from "lucide-react";
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
 
 export default function BuildsResults({
@@ -38,6 +40,8 @@ export default function BuildsResults({
   downloadsDisabled?: boolean;
 }) {
   const builds = query.data ?? emptyBuildsResponse;
+  const listEmpty =
+    (builds.results?.length ?? 0) === 0 && !builds.meta.previous;
 
   return (
     <>
@@ -55,7 +59,16 @@ export default function BuildsResults({
         </p>
       )}
 
-      {query.status === "success" && (
+      {query.status === "success" && listEmpty && (
+        <EmptyState
+          icon={Package}
+          title="No builds found"
+          description="Try a wider time range or different filters"
+          className="h-144"
+        />
+      )}
+
+      {query.status === "success" && !listEmpty && (
         <div className="flex flex-col items-center w-full">
           <div className="self-end">
             <Paginator

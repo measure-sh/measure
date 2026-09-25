@@ -1,6 +1,7 @@
 "use client";
 
 import { filterExprIssuesIn } from "@/app/api/api_error";
+import EmptyState from "@/app/components/empty_state";
 import FilterBar from "@/app/components/filter_bar/filter_bar";
 import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import InfoTooltip from "@/app/components/info_tooltip";
@@ -15,6 +16,7 @@ import {
 } from "@/app/query/hooks";
 import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import { getPlotTimeGroupForRange } from "@/app/utils/time_utils";
+import { ChartColumn, ChartGantt, ChartLine } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -73,10 +75,6 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
   const shouldRenderLatencyPlot = latencyStatus === "success";
   const shouldRenderStatusCodesPlot = statusCodesStatus === "success";
   const shouldRenderTimelinePlot = timelineStatus === "success";
-  const hasNoData =
-    latencyStatus === "nodata" &&
-    statusCodesStatus === "nodata" &&
-    timelineStatus === "nodata";
 
   return (
     <div className="flex flex-col items-start w-full">
@@ -113,109 +111,107 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
       {readyValue !== null && (
         <>
           <div className="py-4" />
-          {hasNoData ? (
-            <div className="flex min-h-144 w-full items-center justify-center">
-              <p className="font-body text-sm">
-                No data available for the selected filters
-              </p>
+          <div className="w-full">
+            <p className="font-display text-xl">Latency</p>
+            <div className="py-2" />
+            <div className="flex font-body items-center justify-center w-full h-144">
+              {latencyStatus === "pending" && <SkeletonPlot />}
+              {shouldRenderLatencyPlot && (
+                <NetworkLatencyPlot
+                  data={latencyQuery.data!}
+                  plotTimeGroup={plotTimeGroup}
+                />
+              )}
+              {latencyStatus === "nodata" && (
+                <EmptyState
+                  icon={ChartLine}
+                  title="No requests found"
+                  description="Try a wider time range or different filters"
+                  className="h-full"
+                />
+              )}
+              {latencyStatus === "error" && (
+                <p className="font-body text-sm">
+                  Error fetching latency, please change filters & try again
+                </p>
+              )}
             </div>
-          ) : (
-            <>
-              <div className="w-full">
-                <p className="font-display text-xl">Latency</p>
-                <div className="py-2" />
-                <div className="flex font-body items-center justify-center w-full h-144">
-                  {latencyStatus === "pending" && <SkeletonPlot />}
-                  {shouldRenderLatencyPlot && (
-                    <NetworkLatencyPlot
-                      data={latencyQuery.data!}
-                      plotTimeGroup={plotTimeGroup}
-                    />
-                  )}
-                  {latencyStatus === "nodata" && (
-                    <p className="font-body text-sm">
-                      No data available for the selected filters
-                    </p>
-                  )}
-                  {latencyStatus === "error" && (
-                    <p className="font-body text-sm">
-                      Error fetching latency, please change filters & try again
-                    </p>
-                  )}
-                </div>
-              </div>
+          </div>
 
-              <div className="py-8" />
-              <div className="w-full">
-                <p className="font-display text-xl">Status Codes</p>
-                <div className="py-2" />
-                <div className="flex font-body items-center justify-center w-full h-144">
-                  {statusCodesStatus === "pending" && <SkeletonPlot />}
-                  {shouldRenderStatusCodesPlot && (
-                    <NetworkEndpointStatusCodesPlot
-                      statusCodes={statusCodesQuery.data!.status_codes}
-                      data={statusCodesQuery.data!.data_points}
-                      plotTimeGroup={plotTimeGroup}
-                    />
-                  )}
-                  {statusCodesStatus === "nodata" && (
-                    <p className="font-body text-sm">
-                      No data available for the selected filters
-                    </p>
-                  )}
-                  {statusCodesStatus === "error" && (
-                    <p className="font-body text-sm">
-                      Error fetching status distribution, please change filters
-                      & try again
-                    </p>
-                  )}
-                </div>
-              </div>
+          <div className="py-8" />
+          <div className="w-full">
+            <p className="font-display text-xl">Status Codes</p>
+            <div className="py-2" />
+            <div className="flex font-body items-center justify-center w-full h-144">
+              {statusCodesStatus === "pending" && <SkeletonPlot />}
+              {shouldRenderStatusCodesPlot && (
+                <NetworkEndpointStatusCodesPlot
+                  statusCodes={statusCodesQuery.data!.status_codes}
+                  data={statusCodesQuery.data!.data_points}
+                  plotTimeGroup={plotTimeGroup}
+                />
+              )}
+              {statusCodesStatus === "nodata" && (
+                <EmptyState
+                  icon={ChartColumn}
+                  title="No requests found"
+                  description="Try a wider time range or different filters"
+                  className="h-full"
+                />
+              )}
+              {statusCodesStatus === "error" && (
+                <p className="font-body text-sm">
+                  Error fetching status distribution, please change filters &
+                  try again
+                </p>
+              )}
+            </div>
+          </div>
 
-              <div className="py-8" />
-              <div className="w-full">
-                <div className="flex items-center gap-2">
-                  <p className="font-display text-xl">Timeline</p>
-                  <InfoTooltip
-                    content={
-                      <>
-                        Distribution of when this endpoint is typically called
-                        in a session.{" "}
-                        <Link
-                          href="/docs/network-monitoring/endpoint-patterns#request-timeline"
-                          className={underlineLinkStyle}
-                        >
-                          Learn more
-                        </Link>{" "}
-                        about how the timeline is generated.
-                      </>
-                    }
+          <div className="py-8" />
+          <div className="w-full">
+            <div className="flex items-center gap-2">
+              <p className="font-display text-xl">Timeline</p>
+              <InfoTooltip
+                content={
+                  <>
+                    Distribution of when this endpoint is typically called in a
+                    session.{" "}
+                    <Link
+                      href="/docs/network-monitoring/endpoint-patterns#request-timeline"
+                      className={underlineLinkStyle}
+                    >
+                      Learn more
+                    </Link>{" "}
+                    about how the timeline is generated.
+                  </>
+                }
+              />
+            </div>
+            {shouldRenderTimelinePlot && (
+              <div className="py-8">
+                <NetworkTimelinePlot data={timelineQuery.data!} />
+              </div>
+            )}
+            {!shouldRenderTimelinePlot && (
+              <div className="flex font-body items-center justify-center w-full h-144 mt-4">
+                {timelineStatus === "pending" && <SkeletonPlot />}
+                {timelineStatus === "nodata" && (
+                  <EmptyState
+                    icon={ChartGantt}
+                    title="No requests found"
+                    description="Try a wider time range or different filters"
+                    className="h-full"
                   />
-                </div>
-                {shouldRenderTimelinePlot && (
-                  <div className="py-8">
-                    <NetworkTimelinePlot data={timelineQuery.data!} />
-                  </div>
                 )}
-                {!shouldRenderTimelinePlot && (
-                  <div className="flex font-body items-center justify-center w-full h-144">
-                    {timelineStatus === "pending" && <SkeletonPlot />}
-                    {timelineStatus === "nodata" && (
-                      <p className="font-body text-sm">
-                        No data available for the selected filters
-                      </p>
-                    )}
-                    {timelineStatus === "error" && (
-                      <p className="font-body text-sm">
-                        Error fetching timeline, please change filters & try
-                        again
-                      </p>
-                    )}
-                  </div>
+                {timelineStatus === "error" && (
+                  <p className="font-body text-sm">
+                    Error fetching timeline, please change filters & try again
+                  </p>
                 )}
               </div>
-            </>
-          )}
+            )}
+          </div>
         </>
       )}
     </div>

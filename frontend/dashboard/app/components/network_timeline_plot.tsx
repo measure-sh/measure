@@ -158,14 +158,6 @@ const NetworkTimelinePlot: React.FC<Props> = ({ data }) => {
     Math.max(200, filteredHeatmapData.length * 40 + 160),
   );
 
-  if (filteredHeatmapData.length === 0) {
-    return (
-      <div className="flex font-body items-center justify-center w-full h-144">
-        <p className="text-lg font-display text-center p-4">No Data</p>
-      </div>
-    );
-  }
-
   // Show every Nth tick label to avoid crowding
   const totalBuckets = filteredHeatmapData[0]?.data.length ?? 0;
   const tickInterval = Math.max(1, Math.ceil(totalBuckets / 20));
