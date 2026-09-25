@@ -512,6 +512,7 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
 
         <div className="py-8" />
         <ErrorGroupCommonPath
+          key={errorGroupId}
           appId={appId}
           groupId={errorGroupId}
           demo={demo}
@@ -625,10 +626,7 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
 
           <div className="py-8" />
           <Skeleton className="h-8 w-40" />
-          <div className="py-4">
-            <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-96 w-full rounded-sm mt-3" />
-          </div>
+          <Skeleton className="h-22 w-full rounded-sm mt-4" />
         </div>
       )}
 
