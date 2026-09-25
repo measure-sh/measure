@@ -9,6 +9,7 @@ import sh.measure.kmp.tracing.toKmp
 import sh.measure.kmp.tracing.unwrap
 import sh.measure.android.Measure as AndroidMeasure
 import sh.measure.android.MsrAttachment as AndroidMsrAttachment
+import sh.measure.android.bugreport.MsrShakeListener as AndroidMsrShakeListener
 import sh.measure.android.logs.LogSeverity as AndroidLogSeverity
 
 actual object Measure {
@@ -75,6 +76,16 @@ actual object Measure {
         AndroidMeasure.launchBugReportActivity(
             takeScreenshot = takeScreenshot,
             attributes = attributes.toAndroid().toMutableMap(),
+        )
+    }
+
+    actual fun setShakeListener(listener: (() -> Unit)?) {
+        AndroidMeasure.setShakeListener(
+            listener?.let {
+                object : AndroidMsrShakeListener {
+                    override fun onShake() = it()
+                }
+            },
         )
     }
 

@@ -18,6 +18,7 @@ import sh.measure.ios.bindings.getTraceParentHeaderKey
 import sh.measure.ios.bindings.getTraceParentHeaderValueForSpan
 import sh.measure.ios.bindings.launchBugReportWithTakeScreenshot
 import sh.measure.ios.bindings.log
+import sh.measure.ios.bindings.onShake
 import sh.measure.ios.bindings.setUserId
 import sh.measure.ios.bindings.start
 import sh.measure.ios.bindings.startSpanWithName
@@ -126,6 +127,8 @@ actual object Measure {
             attributes = attributes.toNative(),
         )
     }
+
+    actual fun setShakeListener(listener: (() -> Unit)?) = IosMeasure.onShake(listener)
 
     actual fun trackBugReport(
         description: String,

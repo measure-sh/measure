@@ -145,6 +145,14 @@ expect object Measure {
     )
 
     /**
+     * Sets a handler to call when the user shakes their device, typically used to open
+     * [launchBugReport].
+     *
+     * A non-null handler starts shake detection and a null handler stops it.
+     */
+    fun setShakeListener(listener: (() -> Unit)?)
+
+    /**
      * Tracks a custom bug report.
      */
     fun trackBugReport(

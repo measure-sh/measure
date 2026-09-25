@@ -22,6 +22,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -33,6 +34,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
@@ -78,6 +80,13 @@ private data class ActionDemo(
     override val title: String,
     override val description: String,
     val action: (Notify) -> Unit,
+) : DemoItem
+
+private data class ToggleDemo(
+    override val title: String,
+    override val description: String,
+    val isEnabled: () -> Boolean,
+    val onToggle: (Boolean) -> Unit,
 ) : DemoItem
 
 private typealias Notify = (String) -> Unit
@@ -142,6 +151,7 @@ private fun DemoListScreen(onOpenHttp: () -> Unit, onOpenLog: () -> Unit, onClos
                 items(demos(onOpenHttp, onOpenLog), key = { it.title }) { demo ->
                     when (demo) {
                         is ActionDemo -> ActionCard(demo, notify)
+                        is ToggleDemo -> ToggleCard(demo)
                     }
                 }
             }
@@ -177,6 +187,35 @@ private fun ActionCard(demo: ActionDemo, notify: Notify) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+        }
+    }
+}
+
+@Composable
+private fun ToggleCard(demo: ToggleDemo) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        Row(
+            modifier = Modifier.padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = demo.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = demo.description,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Switch(checked = demo.isEnabled(), onCheckedChange = demo.onToggle)
         }
     }
 }
@@ -243,6 +282,8 @@ private fun LogScreen(onBack: () -> Unit) {
         }
     }
 }
+
+private var shakeEnabled by mutableStateOf(false)
 
 private fun demos(onOpenHttp: () -> Unit, onOpenLog: () -> Unit): List<DemoItem> = listOf(
     ActionDemo(
@@ -330,6 +371,18 @@ private fun demos(onOpenHttp: () -> Unit, onOpenLog: () -> Unit): List<DemoItem>
         title = "Launch Bug Report",
         description = "Opens the SDK's built-in bug report screen",
     ) { _ -> Measure.launchBugReport() },
+    ToggleDemo(
+        title = "Shake to Report",
+        description = "Shake device to open bug report",
+        isEnabled = { shakeEnabled },
+    ) { enabled ->
+        shakeEnabled = enabled
+        if (enabled) {
+            Measure.setShakeListener { Measure.launchBugReport() }
+        } else {
+            Measure.setShakeListener(null)
+        }
+    },
     ActionDemo(
         title = "HTTP Client",
         description = "Open a screen to send HTTP requests against a sample endpoint",
