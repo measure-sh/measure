@@ -120,6 +120,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- Add next steps section to getting started guide by @abhaysood in #4529
 - Update MCP docs with tabbed instructions for popular clients by @anupcowkur in #4480
 - Point documentation links at website (#4439) by @abhaysood in #4439
 - Add new badges on readme (#4411) by @detj in #4411
