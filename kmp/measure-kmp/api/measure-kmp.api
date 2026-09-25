@@ -27,6 +27,7 @@ public final class sh/measure/kmp/Measure {
 	public static synthetic fun logInfo$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
 	public final fun logWarning (Ljava/lang/String;Ljava/util/Map;)V
 	public static synthetic fun logWarning$default (Lsh/measure/kmp/Measure;Ljava/lang/String;Ljava/util/Map;ILjava/lang/Object;)V
+	public final fun setShakeListener (Lkotlin/jvm/functions/Function0;)V
 	public final fun setUserId (Ljava/lang/String;)V
 	public final fun start ()V
 	public final fun startSpan (Ljava/lang/String;)Lsh/measure/kmp/tracing/Span;

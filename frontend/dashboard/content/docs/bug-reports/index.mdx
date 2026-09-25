@@ -157,7 +157,13 @@ Measure.onShake({ handler: () => {
 </Tab>
 <Tab value="Kotlin Multiplatform">
 
-Shake to report isn't part of Kotlin Multiplatform's shared API.
+```kotlin
+import sh.measure.kmp.Measure
+
+Measure.setShakeListener {
+    Measure.launchBugReport()
+}
+```
 
 </Tab>
 </Tabs>
