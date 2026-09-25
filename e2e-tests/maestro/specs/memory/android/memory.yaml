@@ -34,12 +34,31 @@ appId: ${APP_ID}
 - tapOn: "Release Held Java Memory"
 - tapOn: "Release Native Memory"
 
-# The SDK keeps sampling after the app leaves the foreground, at its longer
-# background interval. Stay backgrounded across a few of those samples so the
-# background app importance is represented too.
+# In the background the SDK samples every 10s, and only while a service keeps
+# the process active. A started service reports the background app state and
+# a foreground service reports user_service. Stay backgrounded across a few
+# samples for each.
+- scrollUntilVisible:
+    element:
+      text: "Background Service Memory"
+- tapOn: "Background Service Memory"
 - pressKey: "Home"
 - extendedWaitUntil:
     visible:
       text: "__background_sample_settle__"
-    timeout: 30000
+    timeout: 25000
     optional: true
+- launchApp:
+    stopApp: false
+- tapOn: "Background Service Memory"
+
+- tapOn: "Foreground Service Memory"
+- pressKey: "Home"
+- extendedWaitUntil:
+    visible:
+      text: "__background_sample_settle__"
+    timeout: 25000
+    optional: true
+- launchApp:
+    stopApp: false
+- tapOn: "Foreground Service Memory"

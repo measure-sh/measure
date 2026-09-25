@@ -28,9 +28,12 @@
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize" />
         <service
-            android:name=".BackgroundMemoryService"
+            android:name=".ForegroundMemoryService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+        <service
+            android:name=".BackgroundMemoryService"
+            android:exported="false" />
         <activity
             android:name=".ComposeScreenshotActivity"
             android:theme="@style/Theme.FrankensteinApp" />
