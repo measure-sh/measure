@@ -1,6 +1,5 @@
 "use client";
 
-import BetaBadge from "@/app/components/beta_badge";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -45,8 +44,6 @@ const subrouteTitles: Record<string, string> = {
 };
 
 // Helper text shown as an info tooltip beside section titles in the breadcrumb.
-const betaSections = new Set(["memory"]);
-
 const sectionInfo: Record<string, ReactNode> = {
   session_replays: (
     <>
@@ -69,9 +66,7 @@ const sectionInfo: Record<string, ReactNode> = {
   ),
   memory: (
     <>
-      Monitor memory usage across app versions and device memory tiers, and find
-      sessions with high memory usage. Requires Measure Android SDK 0.21.0+ or
-      iOS SDK 0.14.0+.{" "}
+      Requires Measure Android SDK 0.21.0+ or iOS SDK 0.14.0+.{" "}
       <Link href="/docs/memory-monitoring" className={underlineLinkStyle}>
         Learn more
       </Link>
@@ -118,9 +113,7 @@ export default function AppBreadcrumbs() {
             <BreadcrumbPage className="font-display">
               {sectionTitle}
             </BreadcrumbPage>
-            {betaSections.has(sectionSlug) ? (
-              <BetaBadge popup={sectionInfo[sectionSlug]} />
-            ) : sectionInfo[sectionSlug] ? (
+            {sectionInfo[sectionSlug] ? (
               <InfoTooltip
                 className="h-3.5 w-3.5 text-foreground"
                 content={sectionInfo[sectionSlug]}
