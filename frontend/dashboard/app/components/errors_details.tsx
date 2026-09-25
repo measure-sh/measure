@@ -321,12 +321,6 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
         </div>
 
         <div className="py-8" />
-        <ErrorGroupCommonPath
-          appId={appId}
-          groupId={errorGroupId}
-          demo={demo}
-        />
-        <div className="py-12" />
 
         {status === "error" && filterExprIssues === null && (
           <p className="font-body text-sm">
@@ -515,6 +509,13 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
             )}
           </div>
         )}
+
+        <div className="py-8" />
+        <ErrorGroupCommonPath
+          appId={appId}
+          groupId={errorGroupId}
+          demo={demo}
+        />
       </div>
     </div>
   );
@@ -613,13 +614,6 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
           </div>
 
           <div className="py-8" />
-          <Skeleton className="h-8 w-40" />
-          <div className="py-4">
-            <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-96 w-full rounded-sm mt-3" />
-          </div>
-
-          <div className="py-12" />
           <Skeleton className="h-8 w-32" />
           <div className="flex flex-col gap-3 w-full py-4">
             <Skeleton className="h-4 w-full" />
@@ -627,6 +621,13 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-2/3" />
             <Skeleton className="h-4 w-full" />
+          </div>
+
+          <div className="py-8" />
+          <Skeleton className="h-8 w-40" />
+          <div className="py-4">
+            <Skeleton className="h-4 w-48" />
+            <Skeleton className="h-96 w-full rounded-sm mt-3" />
           </div>
         </div>
       )}
