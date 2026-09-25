@@ -626,6 +626,7 @@ export type AppSize = {
   selected_app_size: number;
   delta: number;
   no_data: boolean;
+  multiple_versions: boolean;
 };
 
 export type Usage = {
@@ -3549,9 +3550,16 @@ export function percentile(sorted: number[], p: number): number {
 export function sizesFor(
   bundle: AppBundle,
   selectedVersionNames: string[],
-): AppSize | null {
-  if (selectedVersionNames.length !== 1) {
-    return null;
+): AppSize {
+  const names = new Set(selectedVersionNames);
+  if (names.size !== 1) {
+    return {
+      average_app_size: 0,
+      selected_app_size: 0,
+      delta: 0,
+      no_data: names.size === 0,
+      multiple_versions: names.size > 1,
+    };
   }
   const sizes = Object.values(bundle.appSizeByVersion);
   const average = Math.round(
@@ -3563,6 +3571,7 @@ export function sizesFor(
     selected_app_size: selected,
     delta: selected - average,
     no_data: false,
+    multiple_versions: false,
   };
 }
 

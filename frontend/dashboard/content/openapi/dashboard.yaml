@@ -597,8 +597,7 @@ paths:
                         type: boolean
                   sizes:
                     type: object
-                    nullable: true
-                    description: Null unless the filter expression selects a single app version name; a version with several builds reports its most recent build.
+                    description: Reports a size only when the app versions with data in the range share a single version name; a version with several builds reports its most recent build.
                     properties:
                       average_app_size:
                         type: number
@@ -608,6 +607,9 @@ paths:
                         type: number
                       no_data:
                         type: boolean
+                      multiple_versions:
+                        type: boolean
+                        description: True when the app versions with data in the range span more than one version name.
                   warm_launch:
                     type: object
                     properties:
@@ -662,6 +664,7 @@ paths:
                       selected_app_size: 25887094
                       delta: -411607
                       no_data: false
+                      multiple_versions: false
                     warm_launch:
                       p95: 407
                       unselected_p95: 415

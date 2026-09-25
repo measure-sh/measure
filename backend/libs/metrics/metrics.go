@@ -16,10 +16,11 @@ type SessionAdoption struct {
 // SizeMetric represents compute result of an app's
 // build sizes.
 type SizeMetric struct {
-	AverageAppSize  float64 `json:"average_app_size"`
-	SelectedAppSize uint64  `json:"selected_app_size"`
-	Delta           float64 `json:"delta"`
-	NoData          bool    `json:"no_data"`
+	AverageAppSize   float64 `json:"average_app_size"`
+	SelectedAppSize  uint64  `json:"selected_app_size"`
+	Delta            float64 `json:"delta"`
+	NoData           bool    `json:"no_data"`
+	MultipleVersions bool    `json:"multiple_versions"`
 }
 
 // CrashFreeSesssion represents compute result of an app's

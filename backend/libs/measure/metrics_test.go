@@ -146,9 +146,9 @@ func TestGetAdoptionMetrics(t *testing.T) {
 	})
 }
 
-// App size is a property of one build, so it is reported only when the filter
-// narrows the app to a single version name, and then for that version's most
-// recent build.
+// App size is a property of one build, so it is reported only when the
+// versions with data in the range share a single version name, and then for
+// that version's most recent build.
 func TestGetSizeMetrics(t *testing.T) {
 	f := newPlotFixture(t)
 	ts := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
@@ -166,30 +166,31 @@ func TestGetSizeMetrics(t *testing.T) {
 	seedBuildSize(f.ctx, t, f.appID, "v2", "2", 2000)
 	seedBuildSize(f.ctx, t, f.appID, "v3", "3", 4000)
 
-	size := func(t *testing.T, filterExpr string) *metrics.SizeMetric {
+	sizeIn := func(t *testing.T, from, to time.Time, filterExpr string) *metrics.SizeMetric {
 		t.Helper()
-		flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, filterExpr)
+		flt := f.appHealthFilter(t, from, to, "UTC", filter.PlotTimeGroupDays, filterExpr)
 		size, err := onboarded.GetSizeMetrics(f.ctx, deps.PgPool, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetSizeMetrics: %v", err)
 		}
 		return size
 	}
+	size := func(t *testing.T, filterExpr string) *metrics.SizeMetric {
+		t.Helper()
+		return sizeIn(t, ts.Add(-time.Hour), ts.Add(time.Hour), filterExpr)
+	}
 
 	t.Run("one selected version is compared against the rest", func(t *testing.T) {
 		got := size(t, "version_name:in:v1 AND version_code:in:1")
-		if got == nil {
-			t.Fatal("want a size for a single selected version")
-		}
 		// v2 and v3 average 3000.
-		if got.SelectedAppSize != 1000 || got.AverageAppSize != 3000 || got.Delta != -2000 {
+		if got.NoData || got.MultipleVersions || got.SelectedAppSize != 1000 || got.AverageAppSize != 3000 || got.Delta != -2000 {
 			t.Errorf("size = %+v, want 1000 against an average of 3000", got)
 		}
 	})
 
-	t.Run("more than one selected version name has no size", func(t *testing.T) {
-		if got := size(t, "version_name:in:[v1,v2]"); got != nil {
-			t.Errorf("size = %+v, want none for two selected version names", got)
+	t.Run("more than one selected version name is marked as multiple versions", func(t *testing.T) {
+		if got := size(t, "version_name:in:[v1,v2]"); !got.MultipleVersions || got.NoData {
+			t.Errorf("size = %+v, want multiple versions for two selected version names", got)
 		}
 	})
 
@@ -198,24 +199,47 @@ func TestGetSizeMetrics(t *testing.T) {
 		seedBuildSize(f.ctx, t, f.appID, "v1", "2", 1500)
 
 		got := size(t, "version_name:in:v1")
-		if got == nil {
-			t.Fatal("want a size for a single selected version name")
-		}
 		// The older v1 build joins v2 and v3 in the average: (1000 + 2000 + 4000) / 3.
 		if got.SelectedAppSize != 1500 || got.AverageAppSize != 2333 || got.Delta != -833 {
 			t.Errorf("size = %+v, want 1500 against an average of 2333", got)
 		}
 	})
 
-	t.Run("no filter expression has no size", func(t *testing.T) {
-		if got := size(t, ""); got != nil {
-			t.Errorf("size = %+v, want none without a filter expression", got)
+	t.Run("no filter expression over several version names is marked as multiple versions", func(t *testing.T) {
+		if got := size(t, ""); !got.MultipleVersions || got.NoData {
+			t.Errorf("size = %+v, want multiple versions without a filter expression", got)
 		}
 	})
 
-	t.Run("a version with no rows has no size", func(t *testing.T) {
-		if got := size(t, "version_name:in:v9"); got != nil {
-			t.Errorf("size = %+v, want none for an unknown version", got)
+	t.Run("no filter expression over a single version name reports its size", func(t *testing.T) {
+		later := ts.Add(48 * time.Hour)
+		seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{AppVersion: "v4", AppBuild: "4", Timestamp: later})
+		seedBuildSize(f.ctx, t, f.appID, "v4", "4", 3000)
+
+		got := sizeIn(t, later.Add(-time.Hour), later.Add(time.Hour), "")
+		if got.NoData || got.MultipleVersions || got.SelectedAppSize != 3000 {
+			t.Errorf("size = %+v, want the size of v4", got)
+		}
+	})
+
+	t.Run("no filter expression over a range without data has no data", func(t *testing.T) {
+		empty := ts.Add(100 * time.Hour)
+		if got := sizeIn(t, empty.Add(-time.Hour), empty.Add(time.Hour), ""); !got.NoData || got.MultipleVersions {
+			t.Errorf("size = %+v, want no data for a range without events", got)
+		}
+	})
+
+	t.Run("a version with no rows has no data", func(t *testing.T) {
+		if got := size(t, "version_name:in:v9"); !got.NoData || got.MultipleVersions {
+			t.Errorf("size = %+v, want no data for a version without events", got)
+		}
+	})
+
+	t.Run("a version without a recorded build size has no data", func(t *testing.T) {
+		seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{AppVersion: "v5", AppBuild: "5", Timestamp: ts})
+
+		if got := size(t, "version_name:in:v5"); !got.NoData || got.MultipleVersions {
+			t.Errorf("size = %+v, want no data for a version without a build size", got)
 		}
 	})
 }

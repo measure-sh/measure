@@ -3805,7 +3805,9 @@ func TestMCPGetMetrics(t *testing.T) {
 				SelectedVersion uint64  `json:"selected_version"`
 				Adoption        float64 `json:"adoption"`
 			} `json:"adoption"`
-			Sizes any `json:"sizes"`
+			Sizes struct {
+				MultipleVersions bool `json:"multiple_versions"`
+			} `json:"sizes"`
 		}
 		content := extractTextContent(t, resp)
 		if err := json.Unmarshal([]byte(content), &result); err != nil {
@@ -3814,8 +3816,8 @@ func TestMCPGetMetrics(t *testing.T) {
 		if result.Adoption.SelectedVersion != 4 || result.Adoption.AllVersions != 4 || result.Adoption.Adoption != 100 {
 			t.Errorf("adoption = %+v, want 4 of 4 at 100%%", result.Adoption)
 		}
-		if result.Sizes != nil {
-			t.Errorf("sizes = %v, want none without a filter expression", result.Sizes)
+		if !result.Sizes.MultipleVersions {
+			t.Errorf("sizes = %+v, want multiple versions without a filter expression", result.Sizes)
 		}
 	})
 

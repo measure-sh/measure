@@ -88,6 +88,7 @@ function mockMetricsData() {
       selected_app_size: 23345678,
       delta: -345678,
       no_data: false,
+      multiple_versions: false,
     },
   };
 }
@@ -131,7 +132,13 @@ const emptyMetrics = {
     no_data: true,
     unselected_no_data: true,
   },
-  sizes: null,
+  sizes: {
+    average_app_size: 0,
+    selected_app_size: 0,
+    delta: 0,
+    no_data: true,
+    multiple_versions: false,
+  },
 };
 
 describe("MetricsOverview", () => {
@@ -213,9 +220,9 @@ describe("MetricsOverview", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("marks the app size card multi-version when sizes is null", () => {
+  it("marks the app size card multi-version when sizes reports multiple versions", () => {
     const data = mockMetricsData();
-    (data as any).sizes = null;
+    data.sizes.multiple_versions = true;
     render(
       <MetricsOverview
         status="success"

@@ -52,6 +52,7 @@ export const demoMetrics = {
     selected_app_size: 23345678,
     delta: -345678,
     no_data: false,
+    multiple_versions: false,
   },
   warm_launch: {
     p95: 503,
@@ -180,10 +181,10 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({
       <MetricsCard
         type="app_size"
         status={status}
-        multiVersion={metrics.sizes === null}
-        noData={metrics.sizes?.no_data ?? false}
-        valueInBytes={metrics.sizes?.selected_app_size ?? 0}
-        deltaInBytes={metrics.sizes?.delta ?? 0}
+        multiVersion={metrics.sizes.multiple_versions}
+        noData={metrics.sizes.no_data}
+        valueInBytes={metrics.sizes.selected_app_size}
+        deltaInBytes={metrics.sizes.delta}
       />
     </div>
   );

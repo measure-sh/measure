@@ -244,7 +244,7 @@ const overviewCases: Case[] = [
         expect.any(Number),
       );
       expect(data.cold_launch.p95).toEqual(expect.any(Number));
-      expect(data.sizes).toBeNull();
+      expect(data.sizes.multiple_versions).toBe(true);
     },
   },
   {

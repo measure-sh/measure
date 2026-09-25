@@ -25,10 +25,12 @@ type appMetricsResp struct {
 		SelectedVersion uint64  `json:"selected_version"`
 		Adoption        float64 `json:"adoption"`
 	} `json:"adoption"`
-	Sizes *struct {
-		AverageAppSize  float64 `json:"average_app_size"`
-		SelectedAppSize uint64  `json:"selected_app_size"`
-		Delta           float64 `json:"delta"`
+	Sizes struct {
+		AverageAppSize   float64 `json:"average_app_size"`
+		SelectedAppSize  uint64  `json:"selected_app_size"`
+		Delta            float64 `json:"delta"`
+		NoData           bool    `json:"no_data"`
+		MultipleVersions bool    `json:"multiple_versions"`
 	} `json:"sizes"`
 	CrashFreeSessions struct {
 		CrashFreeSessions float64 `json:"crash_free_sessions"`
@@ -87,9 +89,6 @@ func TestGetAppMetrics(t *testing.T) {
 	t.Run("a single selected version carries its size", func(t *testing.T) {
 		body := read(t, versionFilter("v1", "1"))
 
-		if body.Sizes == nil {
-			t.Fatal("want a size for a single selected version")
-		}
 		if body.Sizes.SelectedAppSize != 1000 || body.Sizes.AverageAppSize != 3000 {
 			t.Errorf("sizes = %+v, want 1000 against an average of 3000", body.Sizes)
 		}
@@ -101,20 +100,17 @@ func TestGetAppMetrics(t *testing.T) {
 		}
 	})
 
-	t.Run("more than one selected version name has no size", func(t *testing.T) {
+	t.Run("more than one selected version name is marked as multiple versions", func(t *testing.T) {
 		body := read(t, "filter_expr="+url.QueryEscape("version_name:in:[v1,v2]"))
 
-		if body.Sizes != nil {
-			t.Errorf("sizes = %+v, want none for two selected version names", body.Sizes)
+		if !body.Sizes.MultipleVersions {
+			t.Errorf("sizes = %+v, want multiple versions for two selected version names", body.Sizes)
 		}
 	})
 
 	t.Run("a selected version name alone carries the size of its build", func(t *testing.T) {
 		body := read(t, "filter_expr="+url.QueryEscape("version_name:in:v1"))
 
-		if body.Sizes == nil {
-			t.Fatal("want a size for a single selected version name")
-		}
 		if body.Sizes.SelectedAppSize != 1000 || body.Sizes.AverageAppSize != 3000 {
 			t.Errorf("sizes = %+v, want 1000 against an average of 3000", body.Sizes)
 		}
@@ -123,8 +119,8 @@ func TestGetAppMetrics(t *testing.T) {
 	t.Run("no filter expression covers the app and leaves nothing unselected", func(t *testing.T) {
 		body := read(t, "")
 
-		if body.Sizes != nil {
-			t.Errorf("sizes = %+v, want none without a filter expression", body.Sizes)
+		if !body.Sizes.MultipleVersions {
+			t.Errorf("sizes = %+v, want multiple versions without a filter expression", body.Sizes)
 		}
 		if body.Adoption.Adoption != 100 {
 			t.Errorf("adoption = %+v, want 100%%", body.Adoption)
