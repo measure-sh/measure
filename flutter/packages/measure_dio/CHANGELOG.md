@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [measure_dio-v0.8.0] - 2026-09-25
+
+### :sparkles: New features
+
+- (**flutter**): Attach layout snapshots to screen view events (#4419) by @abhaysood in #4419
+
+### :hammer: Misc
+
+- (**flutter**): Prepare next measure_dio version 0.8.0 (#4379) by @abhaysood in #4379
+
 ## [measure_dio-v0.7.0] - 2026-09-03
 
 ### :sparkles: New features
@@ -13,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**flutter**): Prepare measure_dio release 0.7.0 (#4378) by @abhaysood in #4378
 - (**flutter**): Prepare next measure_dio version 0.7.0 (#3892) by @abhaysood in #3892
 
 ## [measure_dio-v0.6.0] - 2026-06-11

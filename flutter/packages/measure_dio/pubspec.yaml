@@ -13,7 +13,7 @@ dependencies:
   flutter:
     sdk: flutter
   dio: ^5.3.4
-  measure_flutter: ^0.7.0
+  measure_flutter: ^0.8.0
 
 dev_dependencies:
   flutter_test:
@@ -24,6 +24,3 @@ dev_dependencies:
 
 
 
-dependency_overrides:
-  measure_flutter:
-    path: ../measure_flutter
