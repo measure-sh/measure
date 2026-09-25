@@ -272,7 +272,7 @@ describe("NetworkDetails", () => {
     });
   });
 
-  it("shows one empty state when the endpoint has no data", () => {
+  it("shows an empty state under each section when the endpoint has no data", () => {
     mockUseNetworkLatencyQuery.mockReturnValue({
       data: [],
       status: "success",
@@ -280,12 +280,10 @@ describe("NetworkDetails", () => {
     });
     renderDetails();
 
-    expect(
-      screen.getAllByText("No data available for the selected filters"),
-    ).toHaveLength(1);
-    expect(screen.queryByText("Latency")).not.toBeInTheDocument();
-    expect(screen.queryByText("Status Codes")).not.toBeInTheDocument();
-    expect(screen.queryByText("Timeline")).not.toBeInTheDocument();
+    expect(screen.getAllByText("No requests found")).toHaveLength(3);
+    expect(screen.getByText("Latency")).toBeInTheDocument();
+    expect(screen.getByText("Status Codes")).toBeInTheDocument();
+    expect(screen.getByText("Timeline")).toBeInTheDocument();
   });
 
   it("hands a refused filter's issues to the bar", () => {

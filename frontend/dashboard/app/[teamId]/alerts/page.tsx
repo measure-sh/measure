@@ -3,6 +3,7 @@
 import { emptyAlertsOverviewResponse } from "@/app/api/api_calls";
 import FilterBar from "@/app/components/filter_bar/filter_bar";
 import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
+import EmptyState from "@/app/components/empty_state";
 import LoadingBar from "@/app/components/loading_bar";
 import Paginator from "@/app/components/paginator";
 import { SkeletonListPage } from "@/app/components/skeleton";
@@ -19,6 +20,7 @@ import {
   formatDateToHumanReadableDate,
   formatDateToHumanReadableTime,
 } from "@/app/utils/time_utils";
+import { Bell } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { use } from "react";
@@ -55,6 +57,10 @@ export default function AlertsOverview(props: {
     status,
     isFetching,
   } = useAlertsOverviewQuery(filterParams, paginationOffset);
+  const listEmpty =
+    status === "success" &&
+    paginationOffset === 0 &&
+    (alertsOverview.results?.length ?? 0) === 0;
 
   return (
     <div className="flex flex-col items-start">
@@ -89,7 +95,16 @@ export default function AlertsOverview(props: {
         </p>
       )}
 
-      {readyValue !== null && status !== "error" && (
+      {readyValue !== null && listEmpty && (
+        <EmptyState
+          icon={Bell}
+          title="No alerts found"
+          description="Try a wider time range"
+          className="h-144"
+        />
+      )}
+
+      {readyValue !== null && status !== "error" && !listEmpty && (
         <div className="flex flex-col items-center w-full">
           <div className="self-end">
             <Paginator

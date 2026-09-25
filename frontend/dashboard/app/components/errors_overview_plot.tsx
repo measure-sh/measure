@@ -2,6 +2,7 @@
 
 import { type useErrorsOverviewPlotQuery } from "@/app/query/hooks";
 import { ResponsiveLineCanvas } from "@nivo/line";
+import { CircleCheck } from "lucide-react";
 import { useTheme } from "next-themes";
 import React, { useMemo } from "react";
 import { useChartCanvasTheme, useChartColors } from "../utils/shared_styles";
@@ -16,6 +17,7 @@ import {
   PlotTooltipSwatch,
   SiblingPoint,
 } from "./plot_tooltip";
+import EmptyState from "./empty_state";
 import { SkeletonPlot } from "./skeleton";
 
 const ErrorsOverviewPlot: React.FC<{
@@ -57,12 +59,14 @@ const ErrorsOverviewPlot: React.FC<{
         </p>
       )}
       {status === "success" && plot === null && (
-        <p
-          data-testid="exceptions-plot-no-data"
-          className="text-lg font-display text-center p-4"
-        >
-          No Data
-        </p>
+        <div data-testid="exceptions-plot-no-data" className="size-full">
+          <EmptyState
+            icon={CircleCheck}
+            title="No errors found"
+            description="Try a wider time range or different filters"
+            className="h-full"
+          />
+        </div>
       )}
       {status === "success" && plot !== null && plot !== undefined && (
         <div data-testid="exceptions-plot-data" className="size-full">

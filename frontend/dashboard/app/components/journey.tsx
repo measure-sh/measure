@@ -2,13 +2,14 @@
 
 import { type useJourneyQuery } from "@/app/query/hooks";
 import { ResponsiveSankey } from "@nivo/sankey";
-import { X } from "lucide-react";
+import { Waypoints, X } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { JourneyType, emptyJourney } from "../api/api_calls";
 import { numberToKMB } from "../utils/number_utils";
 import { useChartColor, useChartColors } from "../utils/shared_styles";
+import EmptyState from "./empty_state";
 import { PlotTooltipShell } from "./plot_tooltip";
 import { SkeletonPlot } from "./skeleton";
 import TabSelect from "./tab_select";
@@ -670,7 +671,12 @@ const Journey: React.FC<JourneyProps> = ({
         </p>
       )}
       {effectiveStatus === "nodata" && (
-        <p className="text-lg font-display text-center p-4">No journey data</p>
+        <EmptyState
+          icon={Waypoints}
+          title="No journeys found"
+          description="Try a wider time range or different filters"
+          className="h-144"
+        />
       )}
       {effectiveStatus === "success" && (
         <div className="relative w-full h-full">

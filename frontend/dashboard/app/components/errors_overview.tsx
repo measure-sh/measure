@@ -80,6 +80,10 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
     status,
     isFetching,
   } = errorsQuery;
+  const listEmpty =
+    status === "success" &&
+    paginationOffset === 0 &&
+    (errorsOverview.results?.length ?? 0) === 0;
 
   // Detail links keep the date range the list was read under.
   const d = searchParams.get(dateRangeUrlKey);
@@ -135,145 +139,151 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
               endDate={readyValue.date.endDate}
               query={errorsPlotQuery}
             />
-            <div className="self-end">
-              <Paginator
-                prevEnabled={isFetching ? false : errorsOverview.meta.previous}
-                nextEnabled={isFetching ? false : errorsOverview.meta.next}
-                displayText=""
-                onNext={nextPage}
-                onPrev={prevPage}
-              />
-            </div>
-            <div
-              className={`py-1 w-full ${isFetching ? "visible" : "invisible"}`}
-            >
-              <LoadingBar />
-            </div>
-            <div className="py-4" />
-            <Table className="font-display select-none">
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[60%]">Error</TableHead>
-                  <TableHead className="w-[20%] text-center">
-                    Instances
-                  </TableHead>
-                  <TableHead className="w-[20%] text-center">
-                    Percentage contribution
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {errorsOverview.results?.map(
-                  (
-                    {
-                      id,
-                      type,
-                      error_type,
-                      severity,
-                      message,
-                      method_name,
-                      file_name,
-                      count,
-                      percentage_contribution,
-                    }: any,
-                    idx: number,
-                  ) => {
-                    const groupName =
-                      type + (file_name !== "" ? "@" + file_name : "");
-                    const basePath = `/${teamId}/errors/${readyValue.app.id}/${id}/${encodeURIComponent(groupName)}`;
-                    const href = detailQuery
-                      ? `${basePath}?${detailQuery}`
-                      : basePath;
-                    return (
-                      <TableRow
-                        key={`${idx}-${id}`}
-                        data-testid="exception-row"
-                        className="font-body"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            router.push(href);
-                          }
-                        }}
-                      >
-                        <TableCell className="w-[60%] relative p-0">
-                          <Link
-                            href={href}
-                            className="absolute inset-0 z-10 cursor-pointer"
-                            tabIndex={-1}
-                            aria-label={groupTitle(file_name, method_name)}
-                            style={{ display: "block" }}
-                          />
-                          <div className="pointer-events-none p-4">
-                            <p className="truncate select-none">
-                              {groupTitle(file_name, method_name)}
-                            </p>
-
-                            <p
-                              data-testid="exception-row-type"
-                              className="text-xs truncate text-muted-foreground mt-0.5 select-none"
-                            >
-                              {`${type}${message ? `:${message}` : ""}`}
-                            </p>
-                            <div className="flex flex-wrap gap-1.5 pt-3">
-                              {error_type === "anr" && (
-                                <Pill type={PillType.Anr} />
-                              )}
-                              {error_type === "exception" && (
-                                <Pill
-                                  type={
-                                    severity === "fatal"
-                                      ? PillType.Crash
-                                      : PillType.Error
-                                  }
-                                />
-                              )}
-                              {severity === "fatal" && (
-                                <Pill type={PillType.Fatal} />
-                              )}
-                              {severity === "unhandled" && (
-                                <Pill type={PillType.Unhandled} />
-                              )}
-                              {severity === "handled" && (
-                                <Pill type={PillType.Handled} />
-                              )}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="w-[20%] text-center truncate select-none relative p-0">
-                          <Link
-                            href={href}
-                            className="absolute inset-0 z-10 cursor-pointer"
-                            tabIndex={-1}
-                            aria-hidden="true"
-                            style={{ display: "block" }}
-                          />
-                          <div
-                            data-testid="exception-row-instances"
-                            className="pointer-events-none p-4"
+            {!listEmpty && (
+              <>
+                <div className="self-end">
+                  <Paginator
+                    prevEnabled={
+                      isFetching ? false : errorsOverview.meta.previous
+                    }
+                    nextEnabled={isFetching ? false : errorsOverview.meta.next}
+                    displayText=""
+                    onNext={nextPage}
+                    onPrev={prevPage}
+                  />
+                </div>
+                <div
+                  className={`py-1 w-full ${isFetching ? "visible" : "invisible"}`}
+                >
+                  <LoadingBar />
+                </div>
+                <div className="py-4" />
+                <Table className="font-display select-none">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[60%]">Error</TableHead>
+                      <TableHead className="w-[20%] text-center">
+                        Instances
+                      </TableHead>
+                      <TableHead className="w-[20%] text-center">
+                        Percentage contribution
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {errorsOverview.results?.map(
+                      (
+                        {
+                          id,
+                          type,
+                          error_type,
+                          severity,
+                          message,
+                          method_name,
+                          file_name,
+                          count,
+                          percentage_contribution,
+                        }: any,
+                        idx: number,
+                      ) => {
+                        const groupName =
+                          type + (file_name !== "" ? "@" + file_name : "");
+                        const basePath = `/${teamId}/errors/${readyValue.app.id}/${id}/${encodeURIComponent(groupName)}`;
+                        const href = detailQuery
+                          ? `${basePath}?${detailQuery}`
+                          : basePath;
+                        return (
+                          <TableRow
+                            key={`${idx}-${id}`}
+                            data-testid="exception-row"
+                            className="font-body"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                router.push(href);
+                              }
+                            }}
                           >
-                            {count}
-                          </div>
-                        </TableCell>
-                        <TableCell className="w-[20%] text-center truncate select-none relative p-0">
-                          <Link
-                            href={href}
-                            className="absolute inset-0 z-10 cursor-pointer"
-                            tabIndex={-1}
-                            aria-hidden="true"
-                            style={{ display: "block" }}
-                          />
-                          <div className="pointer-events-none p-4">
-                            {percentage_contribution}%
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  },
-                )}
-              </TableBody>
-            </Table>
+                            <TableCell className="w-[60%] relative p-0">
+                              <Link
+                                href={href}
+                                className="absolute inset-0 z-10 cursor-pointer"
+                                tabIndex={-1}
+                                aria-label={groupTitle(file_name, method_name)}
+                                style={{ display: "block" }}
+                              />
+                              <div className="pointer-events-none p-4">
+                                <p className="truncate select-none">
+                                  {groupTitle(file_name, method_name)}
+                                </p>
+
+                                <p
+                                  data-testid="exception-row-type"
+                                  className="text-xs truncate text-muted-foreground mt-0.5 select-none"
+                                >
+                                  {`${type}${message ? `:${message}` : ""}`}
+                                </p>
+                                <div className="flex flex-wrap gap-1.5 pt-3">
+                                  {error_type === "anr" && (
+                                    <Pill type={PillType.Anr} />
+                                  )}
+                                  {error_type === "exception" && (
+                                    <Pill
+                                      type={
+                                        severity === "fatal"
+                                          ? PillType.Crash
+                                          : PillType.Error
+                                      }
+                                    />
+                                  )}
+                                  {severity === "fatal" && (
+                                    <Pill type={PillType.Fatal} />
+                                  )}
+                                  {severity === "unhandled" && (
+                                    <Pill type={PillType.Unhandled} />
+                                  )}
+                                  {severity === "handled" && (
+                                    <Pill type={PillType.Handled} />
+                                  )}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell className="w-[20%] text-center truncate select-none relative p-0">
+                              <Link
+                                href={href}
+                                className="absolute inset-0 z-10 cursor-pointer"
+                                tabIndex={-1}
+                                aria-hidden="true"
+                                style={{ display: "block" }}
+                              />
+                              <div
+                                data-testid="exception-row-instances"
+                                className="pointer-events-none p-4"
+                              >
+                                {count}
+                              </div>
+                            </TableCell>
+                            <TableCell className="w-[20%] text-center truncate select-none relative p-0">
+                              <Link
+                                href={href}
+                                className="absolute inset-0 z-10 cursor-pointer"
+                                tabIndex={-1}
+                                aria-hidden="true"
+                                style={{ display: "block" }}
+                              />
+                              <div className="pointer-events-none p-4">
+                                {percentage_contribution}%
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      },
+                    )}
+                  </TableBody>
+                </Table>
+              </>
+            )}
           </div>
         )}
     </div>

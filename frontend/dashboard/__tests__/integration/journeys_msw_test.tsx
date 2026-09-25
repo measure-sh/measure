@@ -296,7 +296,7 @@ describe("Journeys page (MSW integration)", () => {
       );
       renderPage();
 
-      expect(await screen.findByText("No journey data")).toBeTruthy();
+      expect(await screen.findByText("No journeys found")).toBeTruthy();
       expect(screen.queryByTestId("nivo-sankey")).toBeNull();
     });
   });

@@ -158,9 +158,7 @@ describe("Usage Page (MSW integration)", () => {
       );
       await waitFor(
         () => {
-          expect(
-            screen.getByText("No data yet. Send your first event!"),
-          ).toBeTruthy();
+          expect(screen.getByText("No usage found")).toBeTruthy();
         },
         { timeout: 5000 },
       );

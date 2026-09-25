@@ -62,7 +62,7 @@ export default function MemoryPage({ params }: PageProps) {
       )}
       {filter.status.kind === "loading" && <SkeletonListPage />}
       {readyValue !== null && (
-        <div className="flex w-full flex-col gap-16">
+        <div className="flex w-full flex-col gap-16 pt-8">
           <MemoryUsagePlot
             startDate={readyValue.date.startDate}
             endDate={readyValue.date.endDate}

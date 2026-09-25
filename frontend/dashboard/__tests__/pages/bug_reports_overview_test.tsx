@@ -392,15 +392,15 @@ describe("BugReportsOverview page", () => {
     expect(screen.getByText("No Description")).toBeInTheDocument();
   });
 
-  it("renders table headers but no rows when results are empty", () => {
+  it("hides the table and paginator when the first page is empty", () => {
     bugReportsLoaded({
       results: [],
       meta: { previous: false, next: false },
     });
     renderPage();
 
-    expect(screen.getByText("Bug Report")).toBeInTheDocument();
-    expect(screen.queryByText("ID: bug1")).not.toBeInTheDocument();
+    expect(screen.queryByText("Bug Report")).not.toBeInTheDocument();
+    expect(screen.queryByText("Next")).not.toBeInTheDocument();
   });
 
   it("shows an error message when the bug reports request fails", () => {

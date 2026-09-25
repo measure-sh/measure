@@ -1,6 +1,7 @@
 "use client";
 
 import { ResponsiveLineCanvas } from "@nivo/line";
+import { Activity } from "lucide-react";
 import { DateTime } from "luxon";
 import { useTheme } from "next-themes";
 import React, { useMemo } from "react";
@@ -17,6 +18,7 @@ import {
   PlotTooltipSwatch,
   SiblingPoint,
 } from "./plot_tooltip";
+import EmptyState from "./empty_state";
 import { SkeletonPlot } from "./skeleton";
 
 export type AppHealthPlotData = {
@@ -191,7 +193,12 @@ const AppHealthPlot: React.FC<AppHealthPlotProps> = ({
         </p>
       )}
       {status === "success" && (plot === null || plot === undefined) && (
-        <p className="text-lg font-display text-center p-4">No Data</p>
+        <EmptyState
+          icon={Activity}
+          title="No sessions found"
+          description="Try a wider time range or different filters"
+          className="h-full"
+        />
       )}
       {status === "success" && plot !== null && plot !== undefined && (
         <div className="size-full">

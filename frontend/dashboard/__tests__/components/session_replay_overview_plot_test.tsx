@@ -46,7 +46,7 @@ describe("SessionReplayOverviewPlot", () => {
       />,
     );
 
-    expect(await screen.findByText("No Data")).toBeInTheDocument();
+    expect(await screen.findByText("No sessions found")).toBeInTheDocument();
     expect(screen.getByTestId("sessions-plot-no-data")).toBeInTheDocument();
   });
 

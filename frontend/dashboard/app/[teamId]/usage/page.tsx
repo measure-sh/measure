@@ -3,6 +3,7 @@
 import { Button } from "@/app/components/button";
 import { buttonVariants } from "@/app/components/button_variants";
 import { Card } from "@/app/components/card";
+import EmptyState from "@/app/components/empty_state";
 import DropdownSelect, {
   DropdownSelectType,
 } from "@/app/components/dropdown_select";
@@ -40,6 +41,7 @@ import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialo
 import { Progress } from "@/app/components/progress";
 import { navigateTo } from "@/app/utils/navigation";
 import { toastNegative, toastPositive } from "@/app/components/toast";
+import { ChartPie } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
 import { use, useEffect, useState } from "react";
@@ -347,6 +349,10 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
   const usageIsLoading = usageStatus === "pending";
   const usageHasNoData = usageStatus === "success" && usageData === null;
   const usageIsSuccess = usageStatus === "success" && usageData !== null;
+  const monthHasNoUsage = selectedMonthUsage.every(
+    (appUsage) =>
+      appUsage.value === 0 && appUsage.events === 0 && appUsage.spans === 0,
+  );
 
   return (
     <div className="flex flex-col items-start">
@@ -359,11 +365,12 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
         </p>
       )}
       {usageHasNoData && (
-        <div className="w-full h-144 flex items-center justify-center">
-          <p className="text-lg font-display text-center p-4">
-            No data yet. Send your first event!
-          </p>
-        </div>
+        <EmptyState
+          icon={ChartPie}
+          title="No usage found"
+          description="Usage shows up here once your apps send events"
+          className="h-144"
+        />
       )}
 
       {/* Main UI */}
@@ -386,59 +393,69 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
             onChangeSelected={(item) => setSelectedMonth(item as string)}
           />
           <div className="py-4" />
-          <div className="w-full h-144">
-            <ResponsivePie
-              data={selectedMonthUsage}
-              theme={chartTheme}
-              animate
-              margin={{ top: 40, right: 80, bottom: 80, left: 80 }}
-              innerRadius={0.7}
-              enableArcLabels={false}
-              arcLinkLabel={(d) => `${d.label}`}
-              padAngle={0.7}
-              cornerRadius={3}
-              activeOuterRadiusOffset={8}
-              colors={chartColors}
-              arcLinkLabelsSkipAngle={10}
-              arcLinkLabelsThickness={2}
-              arcLinkLabelsColor={{ from: "color" }}
-              tooltip={({ datum: { id, label, value, color } }) => {
-                return (
-                  <PlotTooltipShell>
-                    <p
-                      className="text-sm font-semibold"
-                      style={{
-                        color:
-                          theme === "dark"
-                            ? color
-                            : `color-mix(in oklch, ${color} 80%, black)`,
-                      }}
-                    >
-                      {label}
-                    </p>
-                    <div className="py-0.5" />
-                    <p className="text-xs">Sessions: {value}</p>
-                    <p className="text-xs">
-                      Events:{" "}
-                      {selectedMonthUsage?.find((i) => i.id === id)!.events!}
-                    </p>
-                    <p className="text-xs">
-                      Spans:{" "}
-                      {selectedMonthUsage?.find((i) => i.id === id)!.spans}
-                    </p>
-                  </PlotTooltipShell>
-                );
-              }}
-              legends={[]}
-              layers={[
-                "arcs",
-                "arcLabels",
-                "arcLinkLabels",
-                "legends",
-                CenteredMetric,
-              ]}
+          {monthHasNoUsage && (
+            <EmptyState
+              icon={ChartPie}
+              title="No usage found"
+              description="Try a different month"
+              className="h-144"
             />
-          </div>
+          )}
+          {!monthHasNoUsage && (
+            <div className="w-full h-144 border border-dashed border-border rounded-sm">
+              <ResponsivePie
+                data={selectedMonthUsage}
+                theme={chartTheme}
+                animate
+                margin={{ top: 80, right: 80, bottom: 80, left: 80 }}
+                innerRadius={0.7}
+                enableArcLabels={false}
+                arcLinkLabel={(d) => `${d.label}`}
+                padAngle={0.7}
+                cornerRadius={3}
+                activeOuterRadiusOffset={8}
+                colors={chartColors}
+                arcLinkLabelsSkipAngle={10}
+                arcLinkLabelsThickness={2}
+                arcLinkLabelsColor={{ from: "color" }}
+                tooltip={({ datum: { id, label, value, color } }) => {
+                  return (
+                    <PlotTooltipShell>
+                      <p
+                        className="text-sm font-semibold"
+                        style={{
+                          color:
+                            theme === "dark"
+                              ? color
+                              : `color-mix(in oklch, ${color} 80%, black)`,
+                        }}
+                      >
+                        {label}
+                      </p>
+                      <div className="py-0.5" />
+                      <p className="text-xs">Sessions: {value}</p>
+                      <p className="text-xs">
+                        Events:{" "}
+                        {selectedMonthUsage?.find((i) => i.id === id)!.events!}
+                      </p>
+                      <p className="text-xs">
+                        Spans:{" "}
+                        {selectedMonthUsage?.find((i) => i.id === id)!.spans}
+                      </p>
+                    </PlotTooltipShell>
+                  );
+                }}
+                legends={[]}
+                layers={[
+                  "arcs",
+                  "arcLabels",
+                  "arcLinkLabels",
+                  "legends",
+                  CenteredMetric,
+                ]}
+              />
+            </div>
+          )}
         </div>
       )}
 

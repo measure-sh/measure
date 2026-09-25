@@ -37,19 +37,6 @@ describe("NetworkEndpointStatusCodesPlot", () => {
     chartProps = undefined;
   });
 
-  it("shows an empty state without status-code data", () => {
-    render(
-      <NetworkEndpointStatusCodesPlot
-        statusCodes={[]}
-        data={[]}
-        plotTimeGroup={"days" as any}
-      />,
-    );
-
-    expect(screen.getByText("No Data")).toBeInTheDocument();
-    expect(screen.queryByTestId("status-codes-chart")).toBeNull();
-  });
-
   it("maps exact status-code counts into canvas series", () => {
     render(
       <NetworkEndpointStatusCodesPlot

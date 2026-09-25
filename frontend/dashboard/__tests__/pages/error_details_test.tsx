@@ -330,6 +330,14 @@ describe("ErrorGroupDetails page", () => {
     expect(screen.getByText(/Network type: wifi/)).toBeInTheDocument();
   });
 
+  it("shows the stack traces empty state and hides the paginator when there are no events", () => {
+    detailsLoaded({ results: [], meta: { previous: false, next: false } });
+    renderPage();
+
+    expect(screen.getByText("No stack traces found")).toBeInTheDocument();
+    expect(screen.queryByText("Next")).not.toBeInTheDocument();
+  });
+
   it("renders a View Session Replay link with teamId/appId/sessionId", () => {
     detailsLoaded();
     renderPage();

@@ -6,6 +6,7 @@ import {
   type useSpanMetricsPlotQuery,
 } from "@/app/query/hooks";
 import { ResponsiveLineCanvas } from "@nivo/line";
+import { ChartGantt } from "lucide-react";
 import { useTheme } from "next-themes";
 import React, { useMemo, useState } from "react";
 import { useChartCanvasTheme, useChartColors } from "../utils/shared_styles";
@@ -21,6 +22,7 @@ import {
   PlotTooltipSwatch,
   SiblingPoint,
 } from "./plot_tooltip";
+import EmptyState from "./empty_state";
 import { SkeletonPlot } from "./skeleton";
 import TabSelect from "./tab_select";
 
@@ -74,7 +76,12 @@ const SpanMetricsPlot: React.FC<{
         </p>
       )}
       {status === "success" && plot === null && (
-        <p className="text-lg font-display text-center p-4">No Data</p>
+        <EmptyState
+          icon={ChartGantt}
+          title="No traces found"
+          description="Try a wider time range or different filters"
+          className="h-full"
+        />
       )}
       {status === "success" && plot !== null && plot !== undefined && (
         <div className="flex flex-col w-full h-full">

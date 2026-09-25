@@ -47,10 +47,6 @@ const NetworkEndpointStatusCodesPlot: React.FC<
     bucketColors[Math.floor(code / 100)] || "#888";
 
   const plot = useMemo(() => {
-    if (data.length === 0 || statusCodes.length === 0) {
-      return undefined;
-    }
-
     return statusCodes.map((code) => ({
       id: String(code),
       data: data.map((dataPoint) => ({
@@ -61,14 +57,6 @@ const NetworkEndpointStatusCodesPlot: React.FC<
       })),
     }));
   }, [data, statusCodes]);
-
-  if (!plot || plot.length === 0 || plot[0].data.length === 0) {
-    return (
-      <div className="flex font-body items-center justify-center w-full h-144">
-        <p className="text-lg font-display text-center p-4">No Data</p>
-      </div>
-    );
-  }
 
   return (
     <div className="flex font-body items-center justify-center w-full h-144">

@@ -71,6 +71,10 @@ export default function SessionReplayOverview(props: {
     status,
     isFetching,
   } = sessionsQuery;
+  const listEmpty =
+    status === "success" &&
+    paginationOffset === 0 &&
+    (sessionsOverview.results?.length ?? 0) === 0;
 
   return (
     <div className="flex flex-col items-start">
@@ -114,134 +118,144 @@ export default function SessionReplayOverview(props: {
               endDate={readyValue.date.endDate}
               query={sessionsPlotQuery}
             />
-            <div className="self-end">
-              <Paginator
-                prevEnabled={
-                  isFetching ? false : sessionsOverview.meta.previous
-                }
-                nextEnabled={isFetching ? false : sessionsOverview.meta.next}
-                displayText=""
-                onNext={nextPage}
-                onPrev={prevPage}
-              />
-            </div>
-            <div
-              className={`py-1 w-full ${isFetching ? "visible" : "invisible"}`}
-            >
-              <LoadingBar />
-            </div>
-            <div className="py-4" />
-            <Table className="font-display select-none">
-              <TableHeader className="hover:bg-muted/50">
-                <TableRow className="hover:bg-transparent">
-                  <TableHead className="w-[60%]">Session Replay</TableHead>
-                  <TableHead className="w-[20%] text-center">
-                    Start Time
-                  </TableHead>
-                  <TableHead className="w-[20%] text-center">
-                    Duration
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sessionsOverview.results?.map(
-                  (
-                    {
-                      session_id,
-                      app_id,
-                      first_event_time,
-                      duration,
-                      attribute,
-                    }: any,
-                    idx: number,
-                  ) => {
-                    const sessionHref = `/${params.teamId}/session_replays/${app_id}/${session_id}`;
-                    return (
-                      <TableRow
-                        key={`${idx}-${session_id}`}
-                        className="font-body"
-                        tabIndex={0}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            router.push(sessionHref);
-                          }
-                        }}
-                      >
-                        <TableCell className="w-[60%] relative p-0">
-                          <Link
-                            href={sessionHref}
-                            className="absolute inset-0 z-10 cursor-pointer"
-                            tabIndex={-1}
-                            aria-label={`Session ID: ${session_id}`}
-                            style={{ display: "block" }}
-                          />
-                          <div className="pointer-events-none p-4">
-                            <p className="truncate select-none">
-                              Session ID: {session_id}
-                            </p>
-                            <div className="py-1" />
-                            <p className="text-xs truncate text-muted-foreground select-none">
-                              {attribute.app_version +
-                                "(" +
-                                attribute.app_build +
-                                "), " +
-                                (attribute.os_name === "android"
-                                  ? "Android API Level"
-                                  : attribute.os_name === "ios"
-                                    ? "iOS"
-                                    : attribute.os_name === "ipados"
-                                      ? "iPadOS"
-                                      : attribute.os_name) +
-                                " " +
-                                attribute.os_version +
-                                ", " +
-                                attribute.device_manufacturer +
-                                " " +
-                                attribute.device_model}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="w-[20%] text-center relative p-0">
-                          <Link
-                            href={sessionHref}
-                            className="absolute inset-0 z-10 cursor-pointer"
-                            tabIndex={-1}
-                            aria-hidden="true"
-                            style={{ display: "block" }}
-                          />
-                          <div className="pointer-events-none p-4">
-                            <p className="truncate select-none">
-                              {formatDateToHumanReadableDate(first_event_time)}
-                            </p>
-                            <div className="py-1" />
-                            <p className="text-xs truncate select-none">
-                              {formatDateToHumanReadableTime(first_event_time)}
-                            </p>
-                          </div>
-                        </TableCell>
-                        <TableCell className="w-[20%] text-center truncate select-none relative p-0">
-                          <Link
-                            href={sessionHref}
-                            className="absolute inset-0 z-10 cursor-pointer"
-                            tabIndex={-1}
-                            aria-hidden="true"
-                            style={{ display: "block" }}
-                          />
-                          <div className="pointer-events-none p-4">
-                            {(duration as unknown as number) === 0
-                              ? "N/A"
-                              : formatMillisToHumanReadable(
-                                  duration as unknown as number,
-                                )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  },
-                )}
-              </TableBody>
-            </Table>
+            {!listEmpty && (
+              <>
+                <div className="self-end">
+                  <Paginator
+                    prevEnabled={
+                      isFetching ? false : sessionsOverview.meta.previous
+                    }
+                    nextEnabled={
+                      isFetching ? false : sessionsOverview.meta.next
+                    }
+                    displayText=""
+                    onNext={nextPage}
+                    onPrev={prevPage}
+                  />
+                </div>
+                <div
+                  className={`py-1 w-full ${isFetching ? "visible" : "invisible"}`}
+                >
+                  <LoadingBar />
+                </div>
+                <div className="py-4" />
+                <Table className="font-display select-none">
+                  <TableHeader className="hover:bg-muted/50">
+                    <TableRow className="hover:bg-transparent">
+                      <TableHead className="w-[60%]">Session Replay</TableHead>
+                      <TableHead className="w-[20%] text-center">
+                        Start Time
+                      </TableHead>
+                      <TableHead className="w-[20%] text-center">
+                        Duration
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sessionsOverview.results?.map(
+                      (
+                        {
+                          session_id,
+                          app_id,
+                          first_event_time,
+                          duration,
+                          attribute,
+                        }: any,
+                        idx: number,
+                      ) => {
+                        const sessionHref = `/${params.teamId}/session_replays/${app_id}/${session_id}`;
+                        return (
+                          <TableRow
+                            key={`${idx}-${session_id}`}
+                            className="font-body"
+                            tabIndex={0}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                router.push(sessionHref);
+                              }
+                            }}
+                          >
+                            <TableCell className="w-[60%] relative p-0">
+                              <Link
+                                href={sessionHref}
+                                className="absolute inset-0 z-10 cursor-pointer"
+                                tabIndex={-1}
+                                aria-label={`Session ID: ${session_id}`}
+                                style={{ display: "block" }}
+                              />
+                              <div className="pointer-events-none p-4">
+                                <p className="truncate select-none">
+                                  Session ID: {session_id}
+                                </p>
+                                <div className="py-1" />
+                                <p className="text-xs truncate text-muted-foreground select-none">
+                                  {attribute.app_version +
+                                    "(" +
+                                    attribute.app_build +
+                                    "), " +
+                                    (attribute.os_name === "android"
+                                      ? "Android API Level"
+                                      : attribute.os_name === "ios"
+                                        ? "iOS"
+                                        : attribute.os_name === "ipados"
+                                          ? "iPadOS"
+                                          : attribute.os_name) +
+                                    " " +
+                                    attribute.os_version +
+                                    ", " +
+                                    attribute.device_manufacturer +
+                                    " " +
+                                    attribute.device_model}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="w-[20%] text-center relative p-0">
+                              <Link
+                                href={sessionHref}
+                                className="absolute inset-0 z-10 cursor-pointer"
+                                tabIndex={-1}
+                                aria-hidden="true"
+                                style={{ display: "block" }}
+                              />
+                              <div className="pointer-events-none p-4">
+                                <p className="truncate select-none">
+                                  {formatDateToHumanReadableDate(
+                                    first_event_time,
+                                  )}
+                                </p>
+                                <div className="py-1" />
+                                <p className="text-xs truncate select-none">
+                                  {formatDateToHumanReadableTime(
+                                    first_event_time,
+                                  )}
+                                </p>
+                              </div>
+                            </TableCell>
+                            <TableCell className="w-[20%] text-center truncate select-none relative p-0">
+                              <Link
+                                href={sessionHref}
+                                className="absolute inset-0 z-10 cursor-pointer"
+                                tabIndex={-1}
+                                aria-hidden="true"
+                                style={{ display: "block" }}
+                              />
+                              <div className="pointer-events-none p-4">
+                                {(duration as unknown as number) === 0
+                                  ? "N/A"
+                                  : formatMillisToHumanReadable(
+                                      duration as unknown as number,
+                                    )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      },
+                    )}
+                  </TableBody>
+                </Table>
+              </>
+            )}
           </div>
         )}
     </div>

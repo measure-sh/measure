@@ -92,7 +92,7 @@ describe("HighMemoryUsageSessions", () => {
       />,
     );
     expect(
-      screen.getByText("No sessions found with high memory usage."),
+      screen.getByText("No high memory sessions found"),
     ).toBeInTheDocument();
   });
 

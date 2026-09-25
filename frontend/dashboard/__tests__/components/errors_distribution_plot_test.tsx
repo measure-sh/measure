@@ -44,13 +44,13 @@ describe("ErrorsDistributionPlot", () => {
     expect(screen.getByText(/Error fetching plot/)).toBeInTheDocument();
   });
 
-  it("renders No Data state when data is null", () => {
+  it("renders empty state when data is null", () => {
     render(
       <ErrorsDistributionPlot
         query={queryWith({ data: null, status: "success" })}
       />,
     );
-    expect(screen.getByText("No Data")).toBeInTheDocument();
+    expect(screen.getByText("No distribution data found")).toBeInTheDocument();
   });
 
   it("renders bar chart with parsed plot and keys on success", () => {

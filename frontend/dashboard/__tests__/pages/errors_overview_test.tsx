@@ -300,14 +300,12 @@ describe("ErrorsOverview page", () => {
     expect(screen.getByText("45.2%")).toBeInTheDocument();
   });
 
-  it("renders table headers without rows for an empty result set", () => {
+  it("hides the table and paginator when the first page is empty", () => {
     errorsLoaded({ results: [], meta: { previous: false, next: false } });
     renderPage();
 
-    expect(screen.getByText("Error")).toBeInTheDocument();
-    expect(
-      screen.queryByText("CheckoutActivity.kt: onClick()"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Instances")).not.toBeInTheDocument();
+    expect(screen.queryByText("Next")).not.toBeInTheDocument();
   });
 
   it("shows an error message when the errors request fails", () => {

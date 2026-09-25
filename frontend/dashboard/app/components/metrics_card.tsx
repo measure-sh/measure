@@ -348,7 +348,11 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
     }
 
     if (noData) {
-      return <p className={STYLES.text.mainValue}> No data</p>;
+      return (
+        <p className="font-code font-semibold text-3xl text-muted-foreground">
+          --
+        </p>
+      );
     }
 
     switch (type) {

@@ -2,6 +2,7 @@
 
 import { type useErrorsDetailsPlotQuery } from "@/app/query/hooks";
 import { ResponsiveLineCanvas } from "@nivo/line";
+import { ChartLine } from "lucide-react";
 import { DateTime } from "luxon";
 import { useTheme } from "next-themes";
 import React, { useMemo } from "react";
@@ -18,6 +19,7 @@ import {
   PlotTooltipSwatch,
   SiblingPoint,
 } from "./plot_tooltip";
+import EmptyState from "./empty_state";
 import { SkeletonPlot } from "./skeleton";
 
 const demoDataDate = DateTime.now();
@@ -142,12 +144,17 @@ const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
         </p>
       )}
       {effectiveStatus === "success" && plot === null && (
-        <p
+        <div
           data-testid="exception-detail-plot-no-data"
-          className="text-lg font-display text-center p-4"
+          className="size-full pb-2 md:pb-0 md:pr-2"
         >
-          No Data
-        </p>
+          <EmptyState
+            icon={ChartLine}
+            title="No instances found"
+            description="Try a wider time range or different filters"
+            className="h-full"
+          />
+        </div>
       )}
       {effectiveStatus === "success" && plot !== null && plot !== undefined && (
         <div data-testid="exception-detail-plot-data" className="size-full">

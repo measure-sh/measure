@@ -399,14 +399,15 @@ describe("Builds page", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders an empty table when the server sends no results", () => {
+  it("shows the empty state in place of the table when the server sends no results", () => {
     loaded({ results: null, meta: { previous: false, next: false } });
     renderPage();
 
+    expect(screen.getByText("No builds found")).toBeInTheDocument();
     expect(
-      screen.getByRole("columnheader", { name: "Build" }),
-    ).toBeInTheDocument();
-    expect(screen.queryAllByTestId("build-row")).toHaveLength(0);
+      screen.queryByRole("columnheader", { name: "Build" }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("Next")).not.toBeInTheDocument();
   });
 
   it("shows an error when the builds request fails", () => {

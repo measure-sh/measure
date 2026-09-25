@@ -234,13 +234,13 @@ describe("Journey — chart rendering", () => {
     expect(screen.getByTestId("sankey-link-2")).toBeInTheDocument();
   });
 
-  it('shows "No journey data" when the journey has no nodes', () => {
+  it("shows the empty state when the journey has no nodes", () => {
     journeyQuery = {
       status: "success",
       data: { nodes: [], links: [], totalIssues: 0 },
     };
     renderJourney();
-    expect(screen.getByText("No journey data")).toBeInTheDocument();
+    expect(screen.getByText("No journeys found")).toBeInTheDocument();
     expect(screen.queryByTestId("nivo-sankey")).not.toBeInTheDocument();
   });
 
