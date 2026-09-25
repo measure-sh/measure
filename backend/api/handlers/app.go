@@ -934,7 +934,6 @@ func (h Handlers) GetSession(c *gin.Context) {
 		event.TypeLifecycleSwiftUI,
 		event.TypeLifecycleApp,
 		event.TypeTrimMemory,
-		event.TypeLowMemory,
 		event.TypeAppExit,
 		event.TypeException,
 		event.TypeANR,
@@ -1086,13 +1085,6 @@ func (h Handlers) GetSession(c *gin.Context) {
 		trimMemories := timeline.ComputeTrimMemories(trimMemoryEvents)
 		threadedTrimMemories := timeline.GroupByThreads(trimMemories)
 		threads.Organize(event.TypeTrimMemory, threadedTrimMemories)
-	}
-
-	lowMemoryEvents := eventMap[event.TypeLowMemory]
-	if len(lowMemoryEvents) > 0 {
-		lowMemories := timeline.ComputeLowMemories(lowMemoryEvents)
-		threadedLowMemories := timeline.GroupByThreads(lowMemories)
-		threads.Organize(event.TypeLowMemory, threadedLowMemories)
 	}
 
 	appExitEvents := eventMap[event.TypeAppExit]

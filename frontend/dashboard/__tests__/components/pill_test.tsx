@@ -116,7 +116,6 @@ describe("Pill", () => {
       [PillType.SessionEventColdLaunch, "Cold Launch", /border-indigo-400/],
       [PillType.SessionEventWarmLaunch, "Warm Launch", /border-indigo-400/],
       [PillType.SessionEventHotLaunch, "Hot Launch", /border-indigo-400/],
-      [PillType.SessionEventLowMemory, "Low Memory", /border-indigo-400/],
       [PillType.SessionEventTrimMemory, "Trim Memory", /border-indigo-400/],
       [PillType.SessionEventTrace, "Trace", /border-pink-400/],
       [PillType.SessionEventCustom, "Custom", /border-purple-400/],

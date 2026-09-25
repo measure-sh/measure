@@ -99,7 +99,6 @@ const TypeNetworkChange = "network_change"
 const TypeHttp = "http"
 const TypeMemoryUsage = "memory_usage"
 const TypeMemoryUsageAbs = "memory_usage_absolute"
-const TypeLowMemory = "low_memory"
 const TypeTrimMemory = "trim_memory"
 const TypeCPUUsage = "cpu_usage"
 const TypeNavigation = "navigation"
@@ -168,7 +167,7 @@ var androidValidTypes = []string{
 	TypeLifecycleApp,
 	TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch,
 	TypeNetworkChange, TypeHttp,
-	TypeMemoryUsage, TypeMemoryUsageAbs, TypeLowMemory, TypeTrimMemory,
+	TypeMemoryUsage, TypeMemoryUsageAbs, TypeTrimMemory,
 	TypeCPUUsage, TypeNavigation, TypeScreenView,
 	TypeString,
 	TypeLog,
@@ -634,16 +633,6 @@ type MemoryUsageAbs struct {
 	AvailableMemory *uint64 `json:"available_memory,omitempty"` // Process headroom in KiB; nil is unknown, zero is exhausted.
 }
 
-type LowMemory struct {
-	JavaMaxHeap     uint64 `json:"java_max_heap" binding:"required"`
-	JavaTotalHeap   uint64 `json:"java_total_heap" binding:"required"`
-	JavaFreeHeap    uint64 `json:"java_free_heap" binding:"required"`
-	TotalPSS        uint64 `json:"total_pss" binding:"required"`
-	RSS             uint64 `json:"rss"`
-	NativeTotalHeap uint64 `json:"native_total_heap" binding:"required"`
-	NativeFreeHeap  uint64 `json:"native_free_heap" binding:"required"`
-}
-
 type TrimMemory struct {
 	Level string `json:"level" binding:"required"`
 }
@@ -721,7 +710,6 @@ type EventField struct {
 	Http                    *Http                    `json:"http,omitempty"`
 	MemoryUsage             *MemoryUsage             `json:"memory_usage,omitempty"`
 	MemoryUsageAbs          *MemoryUsageAbs          `json:"memory_usage_absolute,omitempty"`
-	LowMemory               *LowMemory               `json:"low_memory,omitempty"`
 	TrimMemory              *TrimMemory              `json:"trim_memory,omitempty"`
 	CPUUsage                *CPUUsage                `json:"cpu_usage,omitempty"`
 	Navigation              *Navigation              `json:"navigation,omitempty"`
@@ -1417,12 +1405,6 @@ func (e EventField) IsTrimMemory() bool {
 // event.
 func (e EventField) IsCPUUsage() bool {
 	return e.Type == TypeCPUUsage
-}
-
-// IsLowMemory returns true for low
-// memory event.
-func (e EventField) IsLowMemory() bool {
-	return e.Type == TypeLowMemory
 }
 
 // IsNavigation returns true for navigation

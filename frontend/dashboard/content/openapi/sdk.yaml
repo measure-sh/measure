@@ -144,7 +144,7 @@ paths:
                           `lifecycle_view_controller`, `lifecycle_swift_ui`,
                           `lifecycle_app`, `cold_launch`, `warm_launch`, `hot_launch`,
                           `cpu_usage`, `memory_usage`, `memory_usage_absolute`,
-                          `low_memory`, `trim_memory`, `navigation`, `screen_view`,
+                          `trim_memory`, `navigation`, `screen_view`,
                           `custom`, `session_start`, `profile`.
                       session_id:
                         type: string
@@ -1305,61 +1305,6 @@ paths:
                             description: >
                               The interval between two consecutive readings. Measured
                               in ms.
-                      low_memory:
-                        type: object
-                        description: >
-                          Use the `low_memory` type for a low memory event from the
-                          system. This event is no longer tracked. The callback is
-                          deprecated and the general guidance is to rely on
-                          trim_memory events instead. Removed in Android SDK version
-                          0.8.0.
-                        deprecated: true
-                        required:
-                          - java_max_heap
-                          - java_total_heap
-                          - java_free_heap
-                          - total_pss
-                          - native_total_heap
-                          - native_free_heap
-                        properties:
-                          java_max_heap:
-                            type: integer
-                            description: >
-                              Maximum size of the Java heap allocated to the
-                              application. Measured in kB.
-                          java_total_heap:
-                            type: integer
-                            description: >
-                              Total size of the Java heap available for memory
-                              allocation. Measured in kB.
-                          java_free_heap:
-                            type: integer
-                            description: >
-                              Amount of free memory available in the Java heap.
-                              Measured in kB.
-                          total_pss:
-                            type: integer
-                            description: >
-                              Total proportional set size, the amount of memory used
-                              by the process, including shared memory and code.
-                              Measured in kB.
-                          rss:
-                            type: integer
-                            description: >
-                              Resident set size of the Android process, the amount of
-                              physical memory currently held by the process.
-                              Measured in kB.
-                          native_total_heap:
-                            type: integer
-                            description: >
-                              Total size of the native heap (memory outside of Java's
-                              control) available for memory allocation. Measured in
-                              kB.
-                          native_free_heap:
-                            type: integer
-                            description: >
-                              Amount of free memory available in the native heap.
-                              Measured in kB.
                       trim_memory:
                         type: object
                         description: >

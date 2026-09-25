@@ -941,27 +941,6 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`memory_usage_absolute.interval`, nil)
 		}
 
-		// low memory
-		if e.events[i].IsLowMemory() {
-			row.
-				Set(`low_memory.java_max_heap`, e.events[i].LowMemory.JavaMaxHeap).
-				Set(`low_memory.java_total_heap`, e.events[i].LowMemory.JavaTotalHeap).
-				Set(`low_memory.java_free_heap`, e.events[i].LowMemory.JavaFreeHeap).
-				Set(`low_memory.total_pss`, e.events[i].LowMemory.TotalPSS).
-				Set(`low_memory.rss`, e.events[i].LowMemory.RSS).
-				Set(`low_memory.native_total_heap`, e.events[i].LowMemory.NativeTotalHeap).
-				Set(`low_memory.native_free_heap`, e.events[i].LowMemory.NativeFreeHeap)
-		} else {
-			row.
-				Set(`low_memory.java_max_heap`, nil).
-				Set(`low_memory.java_total_heap`, nil).
-				Set(`low_memory.java_free_heap`, nil).
-				Set(`low_memory.total_pss`, nil).
-				Set(`low_memory.rss`, nil).
-				Set(`low_memory.native_total_heap`, nil).
-				Set(`low_memory.native_free_heap`, nil)
-		}
-
 		// trim memory
 		if e.events[i].IsTrimMemory() {
 			row.

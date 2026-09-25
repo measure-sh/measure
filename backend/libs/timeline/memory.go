@@ -44,28 +44,6 @@ func (tm TrimMemory) GetTimestamp() time.Time {
 	return tm.Timestamp
 }
 
-// LowMemory represents low memory events
-// suitable for session timeline.
-type LowMemory struct {
-	EventType   string              `json:"event_type"`
-	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
-	ThreadName  string              `json:"thread_name"`
-	*event.LowMemory
-	Timestamp time.Time `json:"timestamp"`
-}
-
-// GetThreadName provides the name of the thread
-// where low memory event took place.
-func (lm LowMemory) GetThreadName() string {
-	return lm.ThreadName
-}
-
-// GetTimestamp provides the timestamp of
-// the low memory event.
-func (lm LowMemory) GetTimestamp() time.Time {
-	return lm.Timestamp
-}
-
 // ComputeMemoryUsage computes memory usage events
 // for session timeline.
 func ComputeMemoryUsage(events []event.EventField) (result []MemoryUsage) {
@@ -112,23 +90,6 @@ func ComputeTrimMemories(events []event.EventField) (result []ThreadGrouper) {
 			event.Timestamp,
 		}
 		result = append(result, memories)
-	}
-
-	return
-}
-
-// ComputeLowMemories computes low memory events
-// for session timeline.
-func ComputeLowMemories(events []event.EventField) (result []ThreadGrouper) {
-	for _, event := range events {
-		lowMemories := LowMemory{
-			event.Type,
-			&event.UserDefinedAttribute,
-			event.Attribute.ThreadName,
-			event.LowMemory,
-			event.Timestamp,
-		}
-		result = append(result, lowMemories)
 	}
 
 	return
