@@ -474,6 +474,7 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
                   {stacktrace && (
                     <AccordionItem
                       value={"Thread: " + firstResult.attribute.thread_name}
+                      className="data-[state=open]:border-b-0"
                     >
                       <AccordionTrigger className="font-display">
                         {"Thread: " + firstResult.attribute.thread_name}
@@ -491,6 +492,7 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
                     <AccordionItem
                       value={`${e.name}-${index}`}
                       key={`${e.name}-${index}`}
+                      className="data-[state=open]:border-b-0"
                     >
                       <AccordionTrigger className="font-display">
                         {"Thread: " + e.name}
