@@ -1264,6 +1264,16 @@ describe("useErrorGroupCommonPathQuery", () => {
     expect(mockFetchErrorGroupCommonPath).not.toHaveBeenCalled();
   });
 
+  it("is disabled until requested", () => {
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useErrorGroupCommonPathQuery("app-1", "group-1", false),
+      { wrapper },
+    );
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchErrorGroupCommonPath).not.toHaveBeenCalled();
+  });
+
   it("returns success with data", async () => {
     mockFetchErrorGroupCommonPath.mockResolvedValueOnce({
       sessions_analyzed: 7,

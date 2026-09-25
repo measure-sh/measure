@@ -1102,6 +1102,7 @@ export function useErrorsDistributionPlotQuery(
 export function useErrorGroupCommonPathQuery(
   appId: string,
   errorGroupId: string,
+  enabled = true,
 ) {
   return useQuery<ExceptionGroupCommonPath>({
     queryKey: ["errorGroupCommonPath", appId, errorGroupId] as const,
@@ -1112,7 +1113,7 @@ export function useErrorGroupCommonPathQuery(
       );
       return result as ExceptionGroupCommonPath;
     },
-    enabled: !!appId && !!errorGroupId,
+    enabled: enabled && !!appId && !!errorGroupId,
   });
 }
 

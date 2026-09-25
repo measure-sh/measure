@@ -1,6 +1,6 @@
 import ErrorGroupCommonPath from "@/app/components/error_group_common_path";
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 jest.mock("@/app/components/beta_badge", () => ({
   __esModule: true,
@@ -35,7 +35,7 @@ jest.mock("@/app/components/slider", () => ({
 }));
 
 const mockUseErrorGroupCommonPathQuery = jest.fn(
-  (): { data: any; status: string; error: Error | null } => ({
+  (..._args: any[]): { data: any; status: string; error: Error | null } => ({
     data: undefined,
     status: "pending",
     error: null,
@@ -44,8 +44,14 @@ const mockUseErrorGroupCommonPathQuery = jest.fn(
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
-  useErrorGroupCommonPathQuery: () => mockUseErrorGroupCommonPathQuery(),
+  useErrorGroupCommonPathQuery: (...args: any[]) =>
+    mockUseErrorGroupCommonPathQuery(...args),
 }));
+
+function renderRequested() {
+  render(<ErrorGroupCommonPath appId="app-1" groupId="g1" />);
+  fireEvent.click(screen.getByRole("button", { name: "Find Common Path" }));
+}
 
 describe("ErrorGroupCommonPath", () => {
   beforeEach(() => {
@@ -63,7 +69,29 @@ describe("ErrorGroupCommonPath", () => {
       error: null,
     });
     render(<ErrorGroupCommonPath appId="app-1" groupId="g1" />);
-    expect(screen.getByText(/Common Path/)).toBeInTheDocument();
+    expect(screen.getByText(/^Common Path/)).toBeInTheDocument();
+  });
+
+  it("does not fetch the common path until the user requests it", () => {
+    render(<ErrorGroupCommonPath appId="app-1" groupId="g1" />);
+
+    expect(mockUseErrorGroupCommonPathQuery).toHaveBeenLastCalledWith(
+      "app-1",
+      "g1",
+      false,
+    );
+    expect(screen.queryAllByTestId("skeleton-mock").length).toBe(0);
+
+    fireEvent.click(screen.getByRole("button", { name: "Find Common Path" }));
+
+    expect(mockUseErrorGroupCommonPathQuery).toHaveBeenLastCalledWith(
+      "app-1",
+      "g1",
+      true,
+    );
+    expect(
+      screen.queryByRole("button", { name: "Find Common Path" }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders loading skeleton while query is pending", () => {
@@ -72,7 +100,7 @@ describe("ErrorGroupCommonPath", () => {
       status: "pending",
       error: null,
     });
-    render(<ErrorGroupCommonPath appId="app-1" groupId="g1" />);
+    renderRequested();
     expect(screen.getAllByTestId("skeleton-mock").length).toBeGreaterThan(0);
   });
 
@@ -82,7 +110,7 @@ describe("ErrorGroupCommonPath", () => {
       status: "error",
       error: new Error("boom"),
     });
-    render(<ErrorGroupCommonPath appId="app-1" groupId="g1" />);
+    renderRequested();
     expect(screen.getByText(/Error fetching common path/)).toBeInTheDocument();
   });
 
@@ -101,7 +129,7 @@ describe("ErrorGroupCommonPath", () => {
       status: "success",
       error: null,
     });
-    render(<ErrorGroupCommonPath appId="app-1" groupId="g1" />);
+    renderRequested();
     expect(
       screen.getByText(
         /No events are common in at least 80% of analyzed sessions/,
@@ -121,7 +149,7 @@ describe("ErrorGroupCommonPath", () => {
       status: "success",
       error: null,
     });
-    render(<ErrorGroupCommonPath appId="app-1" groupId="g1" />);
+    renderRequested();
 
     expect(screen.getByText("High step")).toBeInTheDocument();
     expect(screen.queryByText("Low step")).not.toBeInTheDocument();
@@ -143,7 +171,7 @@ describe("ErrorGroupCommonPath", () => {
       status: "success",
       error: null,
     });
-    render(<ErrorGroupCommonPath appId="app-1" groupId="g1" />);
+    renderRequested();
 
     expect(
       screen.getByText(/Thread: okhttp \| Occurs in 92% of analyzed sessions/),

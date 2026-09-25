@@ -1,11 +1,13 @@
 "use client";
 
+import { Route } from "lucide-react";
 import React, { useMemo, useState } from "react";
 import {
   type ExceptionGroupCommonPath,
   useErrorGroupCommonPathQuery,
 } from "../query/hooks";
 import BetaBadge from "./beta_badge";
+import { Button } from "./button";
 import CodeBlock from "./code_block";
 import { Skeleton } from "./skeleton";
 import { Slider } from "./slider";
@@ -73,12 +75,18 @@ const ErrorGroupCommonPath: React.FC<ErrorGroupCommonPathProps> = ({
   groupId,
   demo = false,
 }) => {
+  // Query common path only on user request
+  const [requested, setRequested] = useState<boolean>(demo);
   const { data: queryCommonPath, status: queryStatus } =
-    useErrorGroupCommonPathQuery(demo ? "" : appId, demo ? "" : groupId);
+    useErrorGroupCommonPathQuery(
+      demo ? "" : appId,
+      demo ? "" : groupId,
+      requested,
+    );
 
   const [confidenceThreshold, setConfidenceThreshold] = useState<number>(80);
 
-  const commonPathStatus = demo ? "success" : queryStatus;
+  const commonPathStatus = demo ? "success" : requested ? queryStatus : "idle";
   const errorGroupCommonPath = demo
     ? demoErrorGroupCommonPath
     : queryCommonPath;
@@ -101,6 +109,29 @@ const ErrorGroupCommonPath: React.FC<ErrorGroupCommonPathProps> = ({
       <p className="text-3xl">
         Common Path <BetaBadge />
       </p>
+      {commonPathStatus === "idle" && (
+        <div className="mt-4 flex flex-col md:flex-row md:items-center gap-4 w-full border border-dashed border-border rounded-sm p-6">
+          <Route className="size-6 shrink-0 text-muted-foreground" />
+          <div className="flex flex-col gap-1">
+            <p className="text-sm">
+              Find the sequence of events that most sessions share before this
+              error occurs.
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Analyzes the latest sessions with this error, which can take a few
+              seconds.
+            </p>
+          </div>
+          <div className="grow" />
+          <Button
+            variant="outline"
+            className="w-fit"
+            onClick={() => setRequested(true)}
+          >
+            Find Common Path
+          </Button>
+        </div>
+      )}
       {commonPathStatus === "pending" && (
         <div className="py-4 flex flex-col gap-3 w-full">
           <Skeleton className="h-4 w-48" />
