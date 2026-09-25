@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Add sandbox by @anupcowkur in #4497
 - (**frontend**): Add memory monitoring dashboard and controls (#4477) by @abhaysood in #4477
 - (**frontend**): Add error session replay and sampling adaptive config (#4355) by @abhaysood in #4355
+- (**kmp**): Add shake to report API by @abhaysood in #4525
 
 ### :bug: Bug fixes
 
@@ -48,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Remove deprecated low_memory event by @abhaysood in #4528
 - (**backend**): Add agent evals for answers and compaction by @anupcowkur in #4512
 - (**backend**): Remove redundant backend gitignore which is already covered by project one by @anupcowkur in #4511
 - (**backend**): Default memory sampling to 0.01% by @abhaysood
