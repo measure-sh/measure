@@ -76,5 +76,13 @@ test.describe("memory", () => {
       await expect(memory.plot).toBeVisible();
       await expect(memory.plotNoData).not.toBeVisible();
     });
+
+    test("memory usage plot renders user service samples", async ({
+      appId,
+    }) => {
+      await memory.goto(appId, "app_state:eq:user_service");
+      await expect(memory.plot).toBeVisible();
+      await expect(memory.plotNoData).not.toBeVisible();
+    });
   });
 });

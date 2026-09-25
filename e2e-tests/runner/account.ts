@@ -30,6 +30,7 @@ export async function createAccount(
     const userId = randomUUID();
     const teamId = randomUUID();
     const authSessionId = randomUUID();
+    const refreshTokenId = randomUUID();
     const now = new Date();
 
     await client.query(
@@ -67,13 +68,14 @@ export async function createAccount(
       e2e: "true",
     };
     await client.query(
-      `INSERT INTO auth_sessions (id, user_id, oauth_provider, user_metadata, at_expiry_at, rt_expiry_at)
-       VALUES ($1, $2, $3, $4, $5, $6)`,
+      `INSERT INTO auth_sessions (id, user_id, oauth_provider, user_metadata, rt_jti, at_expiry_at, rt_expiry_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7)`,
       [
         authSessionId,
         userId,
         "google",
         JSON.stringify(userMeta),
+        refreshTokenId,
         accessExpiry,
         refreshExpiry,
       ],
@@ -84,6 +86,7 @@ export async function createAccount(
     const { accessToken, refreshToken } = createSessionTokens(
       userId,
       authSessionId,
+      refreshTokenId,
       secrets,
     );
     return { userId, teamId, authSessionId, accessToken, refreshToken };
@@ -98,6 +101,7 @@ export async function createAccount(
 export function createSessionTokens(
   userId: string,
   authSessionId: string,
+  refreshTokenId: string,
   secrets: TokenSecrets,
 ): { accessToken: string; refreshToken: string } {
   const nowSec = Math.floor(Date.now() / 1000);
@@ -106,6 +110,7 @@ export function createSessionTokens(
       iat: nowSec,
       sub: userId,
       jti: authSessionId,
+      sid: authSessionId,
       exp: nowSec + ACCESS_TOKEN_TTL_SECS,
       iss: "measure",
     },
@@ -114,7 +119,8 @@ export function createSessionTokens(
   );
   const refreshToken = jwt.sign(
     {
-      jti: authSessionId,
+      jti: refreshTokenId,
+      sid: authSessionId,
       exp: nowSec + REFRESH_TOKEN_TTL_SECS,
     },
     secrets.refreshTokenSecret,
