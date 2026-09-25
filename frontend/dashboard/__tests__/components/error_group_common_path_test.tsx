@@ -50,7 +50,7 @@ jest.mock("@/app/query/hooks", () => ({
 
 function renderRequested() {
   render(<ErrorGroupCommonPath appId="app-1" groupId="g1" />);
-  fireEvent.click(screen.getByRole("button", { name: "Find Common Path" }));
+  fireEvent.click(screen.getByRole("button", { name: "Analyze Common Path" }));
 }
 
 describe("ErrorGroupCommonPath", () => {
@@ -82,7 +82,9 @@ describe("ErrorGroupCommonPath", () => {
     );
     expect(screen.queryAllByTestId("skeleton-mock").length).toBe(0);
 
-    fireEvent.click(screen.getByRole("button", { name: "Find Common Path" }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "Analyze Common Path" }),
+    );
 
     expect(mockUseErrorGroupCommonPathQuery).toHaveBeenLastCalledWith(
       "app-1",
@@ -90,7 +92,7 @@ describe("ErrorGroupCommonPath", () => {
       true,
     );
     expect(
-      screen.queryByRole("button", { name: "Find Common Path" }),
+      screen.queryByRole("button", { name: "Analyze Common Path" }),
     ).not.toBeInTheDocument();
   });
 

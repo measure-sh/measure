@@ -114,12 +114,12 @@ const ErrorGroupCommonPath: React.FC<ErrorGroupCommonPathProps> = ({
           <Route className="size-6 shrink-0 text-muted-foreground" />
           <div className="flex flex-col gap-1">
             <p className="text-sm">
-              Find the sequence of events that most sessions share before this
-              error occurs.
+              Analyze the sequence of events that most sessions share before
+              this error occurs.
             </p>
             <p className="text-xs text-muted-foreground">
-              Analyzes the latest sessions with this error, which can take a few
-              seconds.
+              Searches through the latest sessions with this error, which can
+              take a few seconds.
             </p>
           </div>
           <div className="grow" />
@@ -128,7 +128,7 @@ const ErrorGroupCommonPath: React.FC<ErrorGroupCommonPathProps> = ({
             className="w-fit"
             onClick={() => setRequested(true)}
           >
-            Find Common Path
+            Analyze Common Path
           </Button>
         </div>
       )}
