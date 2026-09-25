@@ -2456,13 +2456,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			`memory_usage.native_total_heap`,
 			`memory_usage.native_free_heap`,
 			`memory_usage.interval`,
-			`low_memory.java_max_heap`,
-			`low_memory.java_total_heap`,
-			`low_memory.java_free_heap`,
-			`low_memory.total_pss`,
-			`low_memory.rss`,
-			`low_memory.native_total_heap`,
-			`low_memory.native_free_heap`,
 			`trim_memory.level`,
 			`navigation.to`,
 			`navigation.from`,
@@ -2541,7 +2534,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 		var networkChange event.NetworkChange
 		var http event.Http
 		var memoryUsage event.MemoryUsage
-		var lowMemory event.LowMemory
 		var trimMemory event.TrimMemory
 		var cpuUsage event.CPUUsage
 		var navigation event.Navigation
@@ -2778,15 +2770,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 				&memoryUsage.NativeFreeHeap,
 				&memoryUsage.Interval,
 
-				// low memory
-				&lowMemory.JavaMaxHeap,
-				&lowMemory.JavaTotalHeap,
-				&lowMemory.JavaFreeHeap,
-				&lowMemory.TotalPSS,
-				&lowMemory.RSS,
-				&lowMemory.NativeTotalHeap,
-				&lowMemory.NativeFreeHeap,
-
 				// trim memory
 				&trimMemory.Level,
 
@@ -2951,9 +2934,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			session.Events = append(session.Events, ev)
 		case event.TypeMemoryUsage:
 			ev.MemoryUsage = &memoryUsage
-			session.Events = append(session.Events, ev)
-		case event.TypeLowMemory:
-			ev.LowMemory = &lowMemory
 			session.Events = append(session.Events, ev)
 		case event.TypeTrimMemory:
 			ev.TrimMemory = &trimMemory

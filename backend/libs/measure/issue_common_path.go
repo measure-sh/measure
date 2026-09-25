@@ -328,7 +328,6 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
                 e.type = 'network_change', concat('Network changed from ', coalesce(e.network_change.previous_network_type, 'unknown'), if(e.network_change.previous_network_generation != '', concat(' (', e.network_change.previous_network_generation, ')'), ''), ' to ', coalesce(e.network_change.network_type, 'unknown'), if(e.network_change.network_generation != '', concat(' (', e.network_change.network_generation, ')'), '')),
                 e.type = 'http', concat('HTTP ', coalesce(e.http.method, 'REQUEST'), ' to ', coalesce(e.http.url, 'unknown URL'), if(e.http.status_code > 0, concat(' (status: ', toString(e.http.status_code), ')'), '')),
                 e.type = 'memory_usage_absolute', 'Memory usage recorded',
-                e.type = 'low_memory', 'Low memory warning received from system',
                 e.type = 'trim_memory', concat('System requested memory trim (level: ', coalesce(e.trim_memory.level, 'unknown'), ')'),
                 e.type = 'custom', concat('Custom event: ', coalesce(e.custom.name, 'unknown')),
                 e.type = 'string', concat('Log [', coalesce(e.string.severity_text, 'INFO'), ']: ', substring(coalesce(e.string.string, ''), 1, 80)),

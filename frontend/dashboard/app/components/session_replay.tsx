@@ -1982,7 +1982,6 @@ const eventPillTypes: Record<string, PillType> = {
   cold_launch: PillType.SessionEventColdLaunch,
   warm_launch: PillType.SessionEventWarmLaunch,
   hot_launch: PillType.SessionEventHotLaunch,
-  low_memory: PillType.SessionEventLowMemory,
   trim_memory: PillType.SessionEventTrimMemory,
   trace: PillType.SessionEventTrace,
   custom: PillType.SessionEventCustom,

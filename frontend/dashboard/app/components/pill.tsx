@@ -49,7 +49,6 @@ export enum PillType {
   SessionEventColdLaunch = "session_event_cold_launch",
   SessionEventWarmLaunch = "session_event_warm_launch",
   SessionEventHotLaunch = "session_event_hot_launch",
-  SessionEventLowMemory = "session_event_low_memory",
   SessionEventTrimMemory = "session_event_trim_memory",
   SessionEventTrace = "session_event_trace",
   SessionEventCustom = "session_event_custom",
@@ -213,10 +212,6 @@ const pillDefaults: Record<PillType, { label?: string; tint: string }> = {
   },
   [PillType.SessionEventHotLaunch]: {
     label: "Hot Launch",
-    tint: sessionIndigo,
-  },
-  [PillType.SessionEventLowMemory]: {
-    label: "Low Memory",
     tint: sessionIndigo,
   },
   [PillType.SessionEventTrimMemory]: {
