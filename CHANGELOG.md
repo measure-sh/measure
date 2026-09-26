@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Add memory filters and share device memory tiers by @abhaysood
 - (**backend**): Ingest and query memory monitoring data (#4477) by @abhaysood
+- (**frontend**): Show Dashboard in marketing CTAs when signed in by @anupcowkur in #4533
 - (**frontend**): Add empty states across dashboard pages by @anupcowkur in #4530
 - (**frontend**): Use info icon for memory breadcrumb by @abhaysood
 - (**frontend**): Move memory app state into the filter bar by @abhaysood
