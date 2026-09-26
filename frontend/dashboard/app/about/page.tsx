@@ -5,7 +5,7 @@ import LandingHeader from "../components/landing_header";
 
 import { buttonVariants } from "../components/button_variants";
 import LandingFooter from "../components/landing_footer";
-import TrackCtaLink from "../components/analytics/track_cta_link";
+import GetStartedLink from "../components/get_started_link";
 import JsonLd from "../components/json_ld";
 import { webPageJsonLd } from "../utils/json_ld";
 import { pageMetadata } from "../utils/metadata";
@@ -224,17 +224,13 @@ export default function About() {
 
         {/* CTA */}
         <div className="mt-24" />
-        <TrackCtaLink
+        <GetStartedLink
           location="about"
-          destination="signup"
-          href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
             "text-2xl px-8 py-8",
           )}
-        >
-          Get Started
-        </TrackCtaLink>
+        />
         <div className="py-16" />
       </div>
       <LandingFooter />

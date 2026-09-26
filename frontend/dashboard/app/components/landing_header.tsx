@@ -21,7 +21,9 @@ import {
   DropdownMenuTrigger,
 } from "./dropdown_menu";
 import { ThemeToggle } from "./theme_toggle";
+import { useAuthStatusQuery } from "../query/auth_status";
 import TrackCtaLink from "./analytics/track_cta_link";
+import GetStartedLink from "./get_started_link";
 import TrackGithubLink from "./analytics/track_github_link";
 
 const capabilityLinks = [
@@ -242,6 +244,30 @@ function NavDropdownLink({
   );
 }
 
+function SignInLink({
+  className,
+  onClick,
+}: {
+  className: string;
+  onClick?: () => void;
+}) {
+  const { data: signedIn } = useAuthStatusQuery();
+  if (signedIn) {
+    return null;
+  }
+  return (
+    <TrackCtaLink
+      location="header"
+      destination="signup"
+      href="/auth/login"
+      className={className}
+      onClick={onClick}
+    >
+      Sign In
+    </TrackCtaLink>
+  );
+}
+
 interface LandingHeaderProps {
   /** Middle nav links (Product, Resources, Docs, Pricing). */
   showNavLinks?: boolean;
@@ -449,24 +475,16 @@ export default function LandingHeader({
           </TrackGithubLink>
           {showCtas && (
             <>
-              <div className="px-1" />
-              <TrackCtaLink
+              <SignInLink
+                className={cn(
+                  buttonVariants({ variant: "ghost" }),
+                  "px-4 ml-2",
+                )}
+              />
+              <GetStartedLink
                 location="header"
-                destination="signup"
-                href="/auth/login"
-                className={cn(buttonVariants({ variant: "ghost" }), "px-4")}
-              >
-                Sign In
-              </TrackCtaLink>
-              <div className="px-1" />
-              <TrackCtaLink
-                location="header"
-                destination="signup"
-                href="/auth/login"
-                className={cn(buttonVariants({ variant: "default" }))}
-              >
-                Get Started
-              </TrackCtaLink>
+                className={cn(buttonVariants({ variant: "default" }), "ml-2")}
+              />
             </>
           )}
         </div>
@@ -671,24 +689,15 @@ export default function LandingHeader({
         </div>
         {showCtas && (
           <div className="w-full pt-4 flex flex-col px-4 items-center gap-4">
-            <TrackCtaLink
-              location="header"
-              destination="signup"
-              href="/auth/login"
+            <SignInLink
               className={cn(buttonVariants({ variant: "outline" }), "w-full")}
               onClick={closeMobileMenu}
-            >
-              Sign In
-            </TrackCtaLink>
-            <TrackCtaLink
+            />
+            <GetStartedLink
               location="header"
-              destination="signup"
-              href="/auth/login"
               className={cn(buttonVariants({ variant: "default" }), "w-full")}
               onClick={closeMobileMenu}
-            >
-              Get Started
-            </TrackCtaLink>
+            />
           </div>
         )}
       </div>

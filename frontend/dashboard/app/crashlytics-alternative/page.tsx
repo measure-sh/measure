@@ -21,7 +21,7 @@ import {
   type AlternativeComparisonRow,
   ComparisonCell,
 } from "../components/alternative_page";
-import TrackCtaLink from "../components/analytics/track_cta_link";
+import GetStartedLink from "../components/get_started_link";
 import TrackGithubLink from "../components/analytics/track_github_link";
 import { buttonVariants } from "../components/button_variants";
 import JsonLd from "../components/json_ld";
@@ -628,17 +628,13 @@ export default function CrashlyticsAlternative() {
 
         {/* CTA */}
         <div className="mt-24" />
-        <TrackCtaLink
+        <GetStartedLink
           location="crashlytics_alternative"
-          destination="signup"
-          href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
             "text-2xl px-8 py-8",
           )}
-        >
-          Get Started
-        </TrackCtaLink>
+        />
         <p className="text-center text-sm px-4 mt-4">
           or checkout the{" "}
           <Link href="/docs" className={underlineLinkStyle}>

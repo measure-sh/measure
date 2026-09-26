@@ -152,6 +152,6 @@ export const config = {
     // feeds or images. Docs slugs can contain dots
     // (/docs/hosting/migration-guides/v0.4.x), so the file extension check
     // does not apply under /docs and /blog.
-    "/((?!_next|page-md|llms|api|yrtmlt|sandbox-attachments|auth/(?:callback|logout|refresh)(?:/|$)|docs/(?:assets|chat|search)(?:/|$)|blog/(?:assets/|rss\\.xml$))(?!(?!docs/|blog/).*\\.(?!md$)[^/.]+$).*)",
+    "/((?!_next|page-md|llms|api|yrtmlt|sandbox-attachments|auth/(?:callback|logout|refresh|status)(?:/|$)|docs/(?:assets|chat|search)(?:/|$)|blog/(?:assets/|rss\\.xml$))(?!(?!docs/|blog/).*\\.(?!md$)[^/.]+$).*)",
   ],
 };

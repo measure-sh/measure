@@ -13,7 +13,7 @@ import LandingHeader from "./components/landing_header";
 import LandingHeroAnimation from "./components/landing_hero_animation";
 import AIDemoCarousel from "./components/ai_demo_carousel";
 import Testimonials from "./components/testimonials";
-import TrackCtaLink from "./components/analytics/track_cta_link";
+import GetStartedLink from "./components/get_started_link";
 import TrackGithubLink from "./components/analytics/track_github_link";
 import JsonLd from "./components/json_ld";
 import {
@@ -92,17 +92,13 @@ export default function Home() {
 
         {/* CTA 1 */}
         <div className="py-4 md:py-8" />
-        <TrackCtaLink
+        <GetStartedLink
           location="hero"
-          destination="signup"
-          href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
             "text-2xl px-8 py-8",
           )}
-        >
-          Get Started
-        </TrackCtaLink>
+        />
 
         {/* Trusted By */}
         <div className="py-12 md:py-16" />
@@ -409,17 +405,13 @@ export default function Home() {
 
         {/* CTA 2 */}
         <div className="py-8 md:py-12" />
-        <TrackCtaLink
+        <GetStartedLink
           location="landing_bottom"
-          destination="signup"
-          href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
             "text-2xl px-8 py-8",
           )}
-        >
-          Get Started
-        </TrackCtaLink>
+        />
         <div className="py-12 md:py-18" />
       </div>
       <LandingFooter />

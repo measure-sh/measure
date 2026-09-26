@@ -24,6 +24,12 @@ jest.mock("@/app/components/landing_footer", () => ({
   __esModule: true,
   default: () => <div data-testid="landing-footer" />,
 }));
+// The CTA calls /auth/status through TanStack Query, and these tests render
+// without a QueryClientProvider.
+jest.mock("@/app/components/get_started_link", () => ({
+  __esModule: true,
+  default: () => <a href="/auth/login">Get Started</a>,
+}));
 
 // Imported after the mocks so they take effect (next/jest only applies
 // jest.mock to modules imported below the mock calls).
