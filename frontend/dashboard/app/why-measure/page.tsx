@@ -13,7 +13,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
-import TrackCtaLink from "../components/analytics/track_cta_link";
+import GetStartedLink from "../components/get_started_link";
 import TrackGithubLink from "../components/analytics/track_github_link";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
@@ -165,17 +165,13 @@ export default function WhyMeasure() {
 
         {/* CTA */}
         <div className="mt-24" />
-        <TrackCtaLink
+        <GetStartedLink
           location="why_measure"
-          destination="signup"
-          href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
             "text-2xl px-8 py-8",
           )}
-        >
-          Get Started
-        </TrackCtaLink>
+        />
         <div className="py-16" />
       </div>
 

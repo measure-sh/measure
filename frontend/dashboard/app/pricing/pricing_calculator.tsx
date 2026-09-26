@@ -10,7 +10,7 @@ import {
   CollapsibleTrigger,
 } from "../components/collapsible";
 import { SyncedInputSlider } from "../components/synced_input_slider";
-import TrackCtaLink from "../components/analytics/track_cta_link";
+import GetStartedLink from "../components/get_started_link";
 import { calculate } from "../utils/pricing_calculator";
 import {
   FREE_GB,
@@ -302,17 +302,13 @@ export default function PricingCalculator() {
             </div>
           )}
 
-          <TrackCtaLink
+          <GetStartedLink
             location="pricing"
-            destination="signup"
-            href={"/auth/login"}
             className={cn(
               buttonVariants({ variant: "default" }),
               "text-xl px-8 py-6 w-full text-center",
             )}
-          >
-            Get Started
-          </TrackCtaLink>
+          />
 
           <p
             className={`text-sm text-card-foreground font-body mt-4 p-4 w-full text-center`}

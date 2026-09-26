@@ -4,7 +4,7 @@ import { codingAgents } from "../utils/coding_agents";
 import { webPageJsonLd } from "../utils/json_ld";
 import type { PageSeo } from "../utils/metadata";
 import { cn } from "../utils/shadcn_utils";
-import TrackCtaLink from "./analytics/track_cta_link";
+import GetStartedLink from "./get_started_link";
 import { buttonVariants } from "./button_variants";
 import JsonLd from "./json_ld";
 import LandingFooter from "./landing_footer";
@@ -132,17 +132,13 @@ export default function ProductPage({
 
         {/* CTA */}
         <div className="mt-24" />
-        <TrackCtaLink
+        <GetStartedLink
           location={ctaLocation}
-          destination="signup"
-          href="/auth/login"
           className={cn(
             buttonVariants({ variant: "default" }),
             "text-2xl px-8 py-8",
           )}
-        >
-          Get Started
-        </TrackCtaLink>
+        />
         <div className="py-16" />
       </div>
       <LandingFooter />
