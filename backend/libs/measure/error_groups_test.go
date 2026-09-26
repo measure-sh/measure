@@ -414,6 +414,9 @@ func TestGetErrorGroupsWithFilterSharedFingerprintCounts(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
 	}
+	if err := f.app.FillErrorGroupTrends(f.ctx, deps.RchPool, flt, groups); err != nil {
+		t.Fatalf("FillErrorGroupTrends: %v", err)
+	}
 	if len(groups) != 2 {
 		t.Fatalf("want one row per severity class, got %d: %+v", len(groups), groups)
 	}
@@ -430,6 +433,9 @@ func TestGetErrorGroupsWithFilterSharedFingerprintCounts(t *testing.T) {
 		}
 		if g.Count != wantCount {
 			t.Errorf("severity %s: count = %d, want %d", severity, g.Count, wantCount)
+		}
+		if got := trendTotal(g.Trend); got != wantCount {
+			t.Errorf("severity %s: trend total = %d, want %d", severity, got, wantCount)
 		}
 	}
 }
@@ -487,5 +493,196 @@ func TestGetErrorGroupsWithFilterIsCustomPopulated(t *testing.T) {
 		if g.IsCustom != wantCustom {
 			t.Errorf("row %s: is_custom = %t, want %t", id, g.IsCustom, wantCustom)
 		}
+	}
+}
+
+func trendTotal(trend []group.TrendPoint) uint64 {
+	var total uint64
+	for _, point := range trend {
+		total += point.Instances
+	}
+	return total
+}
+
+const fpAggregates = "0000000000000000000000000000c040"
+
+func TestGetErrorGroupsWithFilterLeavesOutTrend(t *testing.T) {
+	f := newPlotFixture(t)
+	teamID, appID := f.teamIDStr(), f.appIDStr()
+	ts := time.Now().UTC()
+
+	seedExceptionGroup(f.ctx, t, teamID, appID, fpAggregates)
+	seedEventRows(f.ctx, t, teamID, appID, 1, testinfra.EventRow{
+		Type: "exception", Fingerprint: fpAggregates, Severity: "fatal", Timestamp: ts,
+	})
+
+	flt := f.errorFilter(ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", "")
+	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, flt)
+	if err != nil {
+		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
+	}
+	g := findErrorGroup(groups, fpAggregates)
+	if g == nil {
+		t.Fatalf("missing row for %s", fpAggregates)
+	}
+	if g.Trend != nil || flt.PlotTimeGroup != "" {
+		t.Errorf("want no trend and no plot time group, got %+v and %q", g.Trend, flt.PlotTimeGroup)
+	}
+}
+
+func TestGetErrorGroupsWithFilterAggregates(t *testing.T) {
+	f := newPlotFixture(t)
+	teamID, appID := f.teamIDStr(), f.appIDStr()
+	ts := time.Now().UTC().Truncate(time.Hour).Add(-2 * time.Hour)
+
+	seedExceptionGroup(f.ctx, t, teamID, appID, fpAggregates)
+	crash := func(row testinfra.EventRow) testinfra.EventRow {
+		row.Type = "exception"
+		row.Fingerprint = fpAggregates
+		row.Severity = "fatal"
+		return row
+	}
+	sessionID := uuid.NewString()
+	seedEventRows(f.ctx, t, teamID, appID, 2, crash(testinfra.EventRow{Timestamp: ts, SessionID: sessionID, UserID: "ana"}))
+	seedEventRows(f.ctx, t, teamID, appID, 1, crash(testinfra.EventRow{Timestamp: ts.Add(30 * time.Minute), UserID: "bob"}))
+	lastSeen := ts.Add(90 * time.Minute)
+	seedEventRows(f.ctx, t, teamID, appID, 1, crash(testinfra.EventRow{Timestamp: lastSeen}))
+
+	flt := f.errorFilter(ts.Add(-time.Hour), ts.Add(3*time.Hour), "UTC", "")
+	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, flt)
+	if err != nil {
+		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
+	}
+	if err := f.app.FillErrorGroupTrends(f.ctx, deps.RchPool, flt, groups); err != nil {
+		t.Fatalf("FillErrorGroupTrends: %v", err)
+	}
+	g := findErrorGroup(groups, fpAggregates)
+	if g == nil {
+		t.Fatalf("missing row for %s: %+v", fpAggregates, groups)
+	}
+
+	if g.Count != 4 {
+		t.Errorf("count = %d, want 4", g.Count)
+	}
+	// The event with no user id is left out of the users.
+	if g.Users != 2 {
+		t.Errorf("users = %d, want 2", g.Users)
+	}
+	if g.Sessions != 3 {
+		t.Errorf("sessions = %d, want 3", g.Sessions)
+	}
+	if !g.LastSeen.Equal(lastSeen) {
+		t.Errorf("last_seen = %v, want %v", g.LastSeen, lastSeen)
+	}
+
+	if flt.PlotTimeGroup != filter.PlotTimeGroupHours {
+		t.Errorf("plot time group = %q, want %q", flt.PlotTimeGroup, filter.PlotTimeGroupHours)
+	}
+	var want []group.TrendPoint
+	for i, instances := range []uint64{0, 3, 1, 0, 0} {
+		want = append(want, group.TrendPoint{
+			DateTime:  ts.Add(time.Duration(i-1) * time.Hour).Format("2006-01-02T15:04:05"),
+			Instances: instances,
+		})
+	}
+	if !slices.Equal(g.Trend, want) {
+		t.Errorf("trend = %+v, want %+v", g.Trend, want)
+	}
+}
+
+const fpTrend = "0000000000000000000000000000c041"
+
+func TestGetErrorGroupsWithFilterTrendTimeGroup(t *testing.T) {
+	f := newPlotFixture(t)
+	teamID, appID := f.teamIDStr(), f.appIDStr()
+	ts := time.Now().UTC().Add(-time.Hour)
+
+	seedExceptionGroup(f.ctx, t, teamID, appID, fpTrend)
+	seedEventRows(f.ctx, t, teamID, appID, 1, testinfra.EventRow{
+		Type: "exception", Fingerprint: fpTrend, Severity: "fatal", Timestamp: ts,
+	})
+
+	tests := []struct {
+		span        time.Duration
+		want        string
+		wantBuckets int
+	}{
+		{span: 48 * time.Hour, want: filter.PlotTimeGroupHours, wantBuckets: 49},
+		{span: 30 * 24 * time.Hour, want: filter.PlotTimeGroupDays, wantBuckets: 31},
+		{span: 180 * 24 * time.Hour, want: filter.PlotTimeGroupDays, wantBuckets: 181},
+		{span: 365 * 24 * time.Hour, want: filter.PlotTimeGroupMonths, wantBuckets: 13},
+	}
+
+	for _, test := range tests {
+		t.Run(test.span.String(), func(t *testing.T) {
+			// The list drops a group whose group row timestamp is outside the
+			// range, and seeding stamps the row with the current time, so the
+			// range ends after now. It ends midway through an hour, so its
+			// first and last buckets are both partial.
+			to := time.Now().UTC().Truncate(time.Hour).Add(90 * time.Minute)
+			flt := f.errorFilter(to.Add(-test.span), to, "UTC", "")
+			groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, flt)
+			if err != nil {
+				t.Fatalf("GetErrorGroupsWithFilter: %v", err)
+			}
+			if err := f.app.FillErrorGroupTrends(f.ctx, deps.RchPool, flt, groups); err != nil {
+				t.Fatalf("FillErrorGroupTrends: %v", err)
+			}
+			g := findErrorGroup(groups, fpTrend)
+			if g == nil {
+				t.Fatalf("missing row for %s", fpTrend)
+			}
+			if flt.PlotTimeGroup != test.want {
+				t.Errorf("plot time group = %q, want %q", flt.PlotTimeGroup, test.want)
+			}
+			if len(g.Trend) != test.wantBuckets {
+				t.Errorf("trend has %d buckets, want %d", len(g.Trend), test.wantBuckets)
+			}
+			if got := trendTotal(g.Trend); got != 1 {
+				t.Errorf("trend total = %d, want 1", got)
+			}
+		})
+	}
+}
+
+func TestGetErrorGroupsWithFilterTrendTimezone(t *testing.T) {
+	f := newPlotFixture(t)
+	teamID, appID := f.teamIDStr(), f.appIDStr()
+	// 20:00 UTC is 01:30 the next day in Asia/Kolkata.
+	ts := time.Now().UTC().Truncate(24 * time.Hour).Add(-2*24*time.Hour + 20*time.Hour)
+
+	seedExceptionGroup(f.ctx, t, teamID, appID, fpTrend)
+	seedEventRows(f.ctx, t, teamID, appID, 1, testinfra.EventRow{
+		Type: "exception", Fingerprint: fpTrend, Severity: "fatal", Timestamp: ts,
+	})
+
+	// The list drops a group whose group row timestamp is outside the range,
+	// and seeding stamps the row with the current time, so the range ends
+	// after now.
+	flt := f.errorFilter(ts.Add(-3*24*time.Hour), time.Now().UTC().Add(time.Hour), "Asia/Kolkata", "")
+	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, flt)
+	if err != nil {
+		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
+	}
+	if err := f.app.FillErrorGroupTrends(f.ctx, deps.RchPool, flt, groups); err != nil {
+		t.Fatalf("FillErrorGroupTrends: %v", err)
+	}
+	g := findErrorGroup(groups, fpTrend)
+	if g == nil {
+		t.Fatalf("missing row for %s", fpTrend)
+	}
+
+	wantDay := ts.AddDate(0, 0, 1).Format("2006-01-02")
+	for _, point := range g.Trend {
+		want := uint64(0)
+		if point.DateTime == wantDay {
+			want = 1
+		}
+		if point.Instances != want {
+			t.Errorf("bucket %s: instances = %d, want %d", point.DateTime, point.Instances, want)
+		}
+	}
+	if got := trendTotal(g.Trend); got != 1 {
+		t.Errorf("trend total = %d, want 1: %+v", got, g.Trend)
 	}
 }

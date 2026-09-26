@@ -446,7 +446,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_errors
 		newTool(&mcpsdk.Tool{
 			Name:        "get_errors",
-			Description: "Get error groups (crashes, non-fatal errors and ANRs) for an app. Covers every error unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorsEntity) + ".",
+			Description: "Get error groups (crashes, non-fatal errors and ANRs) for an app, sorted by instance count. Each group has its instance count, unique users and sessions affected and the time it was last seen, all within the requested time range and filter. include_trend adds each group's instances per time bucket. Covers every error unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorsInput](mcpErrorsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrors(ctx, in)
@@ -762,12 +762,13 @@ type mcpGetAppHealthOverTimeInput struct {
 	Timezone   string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
 }
 type mcpGetErrorsInput struct {
-	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
-	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
-	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
-	FilterExpr string `json:"filter_expr,omitempty"`
-	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of groups to return (default: 10, max: 30)"`
-	Offset     int    `json:"offset,omitempty" jsonschema:"Number of groups to skip for pagination (default: 0)"`
+	AppID        string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From         string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To           string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr   string `json:"filter_expr,omitempty"`
+	Limit        int    `json:"limit,omitempty" jsonschema:"Maximum number of groups to return (default: 10, max: 30)"`
+	Offset       int    `json:"offset,omitempty" jsonschema:"Number of groups to skip for pagination (default: 0)"`
+	IncludeTrend bool   `json:"include_trend,omitempty" jsonschema:"Add each group's instances per time bucket (default: false). Use it to compare how several groups change over time, such as spotting new or rising errors. The bucket size follows the time range: hourly up to 48 hours, daily up to 180 days and monthly beyond that, so a group can carry up to 181 points. Set limit to 5 or fewer with it, and use get_error_over_time to look at one group's trend"`
 }
 type mcpGetErrorInput struct {
 	AppID        string `json:"app_id" jsonschema:"UUID of the app to query"`
@@ -1361,6 +1362,11 @@ func (c *Config) mcpGetErrors(ctx context.Context, in mcpGetErrorsInput) (*mcpsd
 	groups, _, _, groupErr := app.GetErrorGroupsWithFilter(ctx, deps.RchPool, flt)
 	if groupErr != nil {
 		return nil, nil, fmt.Errorf("failed to get error groups: %v", groupErr)
+	}
+	if in.IncludeTrend {
+		if err := app.FillErrorGroupTrends(ctx, deps.RchPool, flt, groups); err != nil {
+			return nil, nil, fmt.Errorf("failed to get error group trends: %v", err)
+		}
 	}
 	data, _ := json.Marshal(groups)
 

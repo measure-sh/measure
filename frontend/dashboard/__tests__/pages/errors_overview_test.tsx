@@ -20,6 +20,13 @@ jest.mock("@/app/components/toast", () => ({
   toastNegative: (text: string) => mockToastNegative(text),
 }));
 
+jest.mock("@nivo/bar", () => ({
+  __esModule: true,
+  ResponsiveBarCanvas: ({ data }: any) => (
+    <div data-testid="nivo-bar-canvas">{data?.length ?? 0} bars</div>
+  ),
+}));
+
 jest.mock("@/app/api/api_calls", () => ({
   __esModule: true,
   emptyErrorsOverviewResponse: {
@@ -158,7 +165,13 @@ const sampleErrorGroup = {
   method_name: "onClick",
   file_name: "CheckoutActivity.kt",
   count: 1523,
-  percentage_contribution: 45.2,
+  users: 611,
+  sessions: 1204,
+  last_seen: "2026-04-10T12:00:00Z",
+  trend: [
+    { datetime: "2026-04-09", instances: 700 },
+    { datetime: "2026-04-10", instances: 823 },
+  ],
 };
 
 const sampleErrorsOverview = {
@@ -282,8 +295,11 @@ describe("ErrorsOverview page", () => {
     ).toBeInTheDocument();
     expect(await screen.findByTestId("paginator-mock")).toBeInTheDocument();
     expect(screen.getByText("Error")).toBeInTheDocument();
+    expect(screen.getByText("Trend")).toBeInTheDocument();
+    expect(screen.getByText("Last seen")).toBeInTheDocument();
     expect(screen.getByText("Instances")).toBeInTheDocument();
-    expect(screen.getByText("Percentage contribution")).toBeInTheDocument();
+    expect(screen.getByText("Users")).toBeInTheDocument();
+    expect(screen.getByText("Sessions")).toBeInTheDocument();
   });
 
   it("renders error group data rows from the query result", () => {
@@ -296,8 +312,44 @@ describe("ErrorsOverview page", () => {
     expect(
       screen.getByText("java.lang.NullPointerException:something went wrong"),
     ).toBeInTheDocument();
-    expect(screen.getByText("1523")).toBeInTheDocument();
-    expect(screen.getByText("45.2%")).toBeInTheDocument();
+    expect(screen.getByTestId("exception-row-instances")).toHaveTextContent(
+      "1.52K",
+    );
+    expect(screen.getByTestId("exception-row-users")).toHaveTextContent("611");
+    expect(screen.getByTestId("exception-row-sessions")).toHaveTextContent(
+      "1.2K",
+    );
+    expect(screen.getByTestId("exception-row-last-seen")).toHaveTextContent(
+      /ago$/,
+    );
+    expect(screen.getByTestId("nivo-bar-canvas")).toHaveTextContent("2 bars");
+  });
+
+  it("shows a dash when no event of the group has a user id", () => {
+    errorsLoaded({
+      ...sampleErrorsOverview,
+      results: [{ ...sampleErrorGroup, users: 0 }],
+    });
+    renderPage();
+
+    expect(screen.getByTestId("exception-row-users")).toHaveTextContent("–");
+  });
+
+  it("shows just now for a last seen time ahead of the browser clock", () => {
+    errorsLoaded({
+      ...sampleErrorsOverview,
+      results: [
+        {
+          ...sampleErrorGroup,
+          last_seen: new Date(Date.now() + 60_000).toISOString(),
+        },
+      ],
+    });
+    renderPage();
+
+    expect(screen.getByTestId("exception-row-last-seen")).toHaveTextContent(
+      "just now",
+    );
   });
 
   it("hides the table and paginator when the first page is empty", () => {

@@ -620,7 +620,7 @@ const errorsCases: Case[] = [
   {
     name: "narrows the errorGroups list with filter_expr",
     path: withFilter(
-      `${ERROR_GROUPS_BASE}?limit=200&offset=0`,
+      `${ERROR_GROUPS_BASE}?limit=200&offset=0&include_trend=true`,
       "error_type:in:ANR",
     ),
     status: 200,
@@ -630,11 +630,23 @@ const errorsCases: Case[] = [
         data,
         (g) => expect(g.error_type).toBe("anr"),
       );
-      const contribution = data.results.reduce(
-        (sum: number, g: any) => sum + g.percentage_contribution,
-        0,
-      );
-      expect(contribution).toBeCloseTo(100, 0);
+      for (const g of data.results) {
+        expect(
+          g.trend.reduce((sum: number, p: any) => sum + p.instances, 0),
+        ).toBe(g.count);
+      }
+    },
+  },
+  {
+    name: "leaves the trend out of the errorGroups list unless asked for",
+    path: `${ERROR_GROUPS_BASE}?limit=200&offset=0`,
+    status: 200,
+    check: (data) => {
+      expect(data.results.length).toBeGreaterThan(0);
+      expect(data.meta.plot_time_group).toBeUndefined();
+      for (const g of data.results) {
+        expect(g.trend).toBeUndefined();
+      }
     },
   },
   {

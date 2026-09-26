@@ -83,6 +83,9 @@ jest.mock("@nivo/line", () => {
 
 jest.mock("@nivo/bar", () => ({
   __esModule: true,
+  ResponsiveBarCanvas: ({ data }: any) => (
+    <div data-testid="nivo-bar-canvas">{data?.length ?? 0} bars</div>
+  ),
   ResponsiveBar: ({ keys }: any) => (
     <div data-testid="nivo-bar-chart">
       {keys?.map((k: string) => (

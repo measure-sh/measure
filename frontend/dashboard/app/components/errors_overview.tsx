@@ -9,13 +9,19 @@ import {
   useErrorsOverviewQuery,
 } from "@/app/query/hooks";
 import { urlFiltersKeyMap } from "@/app/stores/filters_store";
+import { numberToKMB } from "@/app/utils/number_utils";
+import { ResponsiveBarCanvas } from "@nivo/bar";
+import { DateTime } from "luxon";
+import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import React from "react";
+import { formatPlotTooltipDate, PlotTimeGroup } from "../utils/time_utils";
 import ErrorsOverviewPlot from "./errors_overview_plot";
 import LoadingBar from "./loading_bar";
 import Paginator from "./paginator";
 import Pill, { PillType } from "./pill";
+import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
 import { SkeletonListPage } from "./skeleton";
 import {
   Table,
@@ -45,9 +51,28 @@ function groupTitle(fileName: string, methodName: string): string {
   return `${file}: ${method}${complete ? "" : "()"}`;
 }
 
+const RowLinkCell: React.FC<{
+  href: string;
+  className: string;
+  children: React.ReactNode;
+}> = ({ href, className, children }) => (
+  <TableCell className={`${className} select-none relative p-0`}>
+    <Link
+      href={href}
+      className="absolute inset-0 z-10 cursor-pointer"
+      tabIndex={-1}
+      aria-hidden="true"
+      style={{ display: "block" }}
+    />
+    <div className="pointer-events-none p-4">{children}</div>
+  </TableCell>
+);
+
 export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { theme } = useTheme();
+  const trendColor = theme === "dark" ? "#a1a1a1" : "#a3a3a3";
 
   const {
     value,
@@ -161,12 +186,21 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                 <Table className="font-display select-none">
                   <TableHeader>
                     <TableRow>
-                      <TableHead className="w-[60%]">Error</TableHead>
-                      <TableHead className="w-[20%] text-center">
+                      <TableHead className="w-[40%]">Error</TableHead>
+                      <TableHead className="w-[12%] text-center">
+                        Last seen
+                      </TableHead>
+                      <TableHead className="w-[18%] text-center">
+                        Trend
+                      </TableHead>
+                      <TableHead className="w-[10%] text-center">
                         Instances
                       </TableHead>
-                      <TableHead className="w-[20%] text-center">
-                        Percentage contribution
+                      <TableHead className="w-[10%] text-center">
+                        Sessions
+                      </TableHead>
+                      <TableHead className="w-[10%] text-center">
+                        Users
                       </TableHead>
                     </TableRow>
                   </TableHeader>
@@ -182,7 +216,10 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                           method_name,
                           file_name,
                           count,
-                          percentage_contribution,
+                          users,
+                          sessions,
+                          last_seen,
+                          trend,
                         }: any,
                         idx: number,
                       ) => {
@@ -205,7 +242,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                               }
                             }}
                           >
-                            <TableCell className="w-[60%] relative p-0">
+                            <TableCell className="w-[40%] relative p-0">
                               <Link
                                 href={href}
                                 className="absolute inset-0 z-10 cursor-pointer"
@@ -249,33 +286,92 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell className="w-[20%] text-center truncate select-none relative p-0">
-                              <Link
-                                href={href}
-                                className="absolute inset-0 z-10 cursor-pointer"
-                                tabIndex={-1}
-                                aria-hidden="true"
-                                style={{ display: "block" }}
-                              />
+                            <RowLinkCell
+                              href={href}
+                              className="w-[12%] text-center truncate"
+                            >
+                              <span data-testid="exception-row-last-seen">
+                                {DateTime.fromISO(last_seen) >= DateTime.now()
+                                  ? "just now"
+                                  : DateTime.fromISO(last_seen).toRelative()}
+                              </span>
+                            </RowLinkCell>
+                            <RowLinkCell href={href} className="w-[18%]">
+                              {/* The chart is raised above the row link so hovering a
+                                  bar shows its tooltip, and a click on it opens the
+                                  error like the rest of the row. */}
                               <div
-                                data-testid="exception-row-instances"
-                                className="pointer-events-none p-4"
+                                data-testid="exception-row-trend"
+                                className="relative z-20 pointer-events-auto cursor-pointer w-full h-4 border-b border-border"
+                                onClick={() => router.push(href)}
                               >
-                                {count}
+                                <ResponsiveBarCanvas
+                                  data={trend ?? []}
+                                  keys={["instances"]}
+                                  indexBy="datetime"
+                                  colors={[trendColor]}
+                                  margin={{
+                                    top: 0,
+                                    right: 0,
+                                    bottom: 0,
+                                    left: 0,
+                                  }}
+                                  padding={0.2}
+                                  valueScale={{ type: "linear", min: 0 }}
+                                  axisTop={null}
+                                  axisRight={null}
+                                  axisBottom={null}
+                                  axisLeft={null}
+                                  enableGridY={false}
+                                  enableLabel={false}
+                                  tooltip={({ data }) => (
+                                    <PlotTooltipShell>
+                                      <p className="p-2">
+                                        Date:{" "}
+                                        {formatPlotTooltipDate(
+                                          data.datetime.toString(),
+                                          errorsOverview.meta
+                                            .plot_time_group as PlotTimeGroup,
+                                        )}
+                                      </p>
+                                      <div className="flex flex-row items-center p-2">
+                                        <PlotTooltipSwatch color={trendColor} />
+                                        <span className="px-2">
+                                          {data.instances.toLocaleString()}{" "}
+                                          {data.instances === 1
+                                            ? "instance"
+                                            : "instances"}
+                                        </span>
+                                      </div>
+                                    </PlotTooltipShell>
+                                  )}
+                                />
                               </div>
-                            </TableCell>
-                            <TableCell className="w-[20%] text-center truncate select-none relative p-0">
-                              <Link
-                                href={href}
-                                className="absolute inset-0 z-10 cursor-pointer"
-                                tabIndex={-1}
-                                aria-hidden="true"
-                                style={{ display: "block" }}
-                              />
-                              <div className="pointer-events-none p-4">
-                                {percentage_contribution}%
-                              </div>
-                            </TableCell>
+                            </RowLinkCell>
+                            <RowLinkCell
+                              href={href}
+                              className="w-[10%] text-center truncate"
+                            >
+                              <span data-testid="exception-row-instances">
+                                {numberToKMB(count)}
+                              </span>
+                            </RowLinkCell>
+                            <RowLinkCell
+                              href={href}
+                              className="w-[10%] text-center truncate"
+                            >
+                              <span data-testid="exception-row-sessions">
+                                {numberToKMB(sessions)}
+                              </span>
+                            </RowLinkCell>
+                            <RowLinkCell
+                              href={href}
+                              className="w-[10%] text-center truncate"
+                            >
+                              <span data-testid="exception-row-users">
+                                {users === 0 ? "–" : numberToKMB(users)}
+                              </span>
+                            </RowLinkCell>
                           </TableRow>
                         );
                       },

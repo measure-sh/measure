@@ -88,8 +88,16 @@ type ErrorGroup struct {
 	FileName   string         `json:"file_name"`
 	LineNumber int32          `json:"line_number"`
 	Count      uint64         `json:"count"`
-	Percentage float64        `json:"percentage_contribution"`
+	Users      uint64         `json:"users"`
+	Sessions   uint64         `json:"sessions"`
+	LastSeen   time.Time      `json:"last_seen"`
+	Trend      []TrendPoint   `json:"trend,omitempty"`
 	UpdatedAt  time.Time      `json:"updated_at"`
+}
+
+type TrendPoint struct {
+	DateTime  string `json:"datetime"`
+	Instances uint64 `json:"instances"`
 }
 
 // unique deduplicates the source slice of

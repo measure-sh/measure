@@ -1885,6 +1885,7 @@ describe("fetchErrorsOverviewFromServer", () => {
     expect(url.searchParams.get("timezone")).toBeTruthy();
     expect(url.searchParams.get("limit")).toBe("5");
     expect(url.searchParams.get("offset")).toBe("0");
+    expect(url.searchParams.get("include_trend")).toBe("true");
     expect(url.searchParams.has("filter_expr")).toBe(false);
   });
 

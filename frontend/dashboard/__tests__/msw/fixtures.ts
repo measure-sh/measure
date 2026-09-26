@@ -378,7 +378,7 @@ export function makeExceptionsOverviewFixture(
   overrides: Record<string, any> = {},
 ) {
   return {
-    meta: { next: true, previous: false },
+    meta: { next: true, previous: false, plot_time_group: "days" },
     results: [
       {
         id: "crash-group-001",
@@ -389,7 +389,16 @@ export function makeExceptionsOverviewFixture(
         file_name: "CheckoutActivity.kt",
         line_number: 42,
         count: 1523,
-        percentage_contribution: 45.2,
+        users: 611,
+        sessions: 1204,
+        last_seen: "2026-04-10T12:00:00Z",
+        trend: [
+          { datetime: "2026-04-06", instances: 280 },
+          { datetime: "2026-04-07", instances: 301 },
+          { datetime: "2026-04-08", instances: 297 },
+          { datetime: "2026-04-09", instances: 322 },
+          { datetime: "2026-04-10", instances: 323 },
+        ],
         updated_at: "2026-04-10T12:00:00Z",
       },
       {
@@ -401,7 +410,16 @@ export function makeExceptionsOverviewFixture(
         file_name: "ProductFragment.kt",
         line_number: 88,
         count: 847,
-        percentage_contribution: 25.1,
+        users: 402,
+        sessions: 655,
+        last_seen: "2026-04-09T18:00:00Z",
+        trend: [
+          { datetime: "2026-04-06", instances: 160 },
+          { datetime: "2026-04-07", instances: 172 },
+          { datetime: "2026-04-08", instances: 181 },
+          { datetime: "2026-04-09", instances: 199 },
+          { datetime: "2026-04-10", instances: 135 },
+        ],
         updated_at: "2026-04-09T18:00:00Z",
       },
     ],
@@ -411,7 +429,7 @@ export function makeExceptionsOverviewFixture(
 
 export function makeExceptionsOverviewPage2Fixture() {
   return {
-    meta: { next: false, previous: true },
+    meta: { next: false, previous: true, plot_time_group: "days" },
     results: [
       {
         id: "crash-group-003",
@@ -422,7 +440,16 @@ export function makeExceptionsOverviewPage2Fixture() {
         file_name: "CartActivity.kt",
         line_number: 12,
         count: 91,
-        percentage_contribution: 2.7,
+        users: 0,
+        sessions: 64,
+        last_seen: "2026-04-08T10:00:00Z",
+        trend: [
+          { datetime: "2026-04-06", instances: 30 },
+          { datetime: "2026-04-07", instances: 33 },
+          { datetime: "2026-04-08", instances: 28 },
+          { datetime: "2026-04-09", instances: 0 },
+          { datetime: "2026-04-10", instances: 0 },
+        ],
         updated_at: "2026-04-08T10:00:00Z",
       },
     ],

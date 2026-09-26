@@ -404,8 +404,11 @@ export const errorsRoutes: SandboxRoute[] = [
       const bundle = catalog().appById.get(params.appId);
       const range = parseRange(url);
       const filterExpr = url.searchParams.get("filter_expr");
-      const counted = (bundle?.errorGroups ?? [])
-        .filter((g) => groupMatches(g, range, filterExpr))
+      const includeTrend = url.searchParams.get("include_trend") === "true";
+      const matching = (bundle?.errorGroups ?? []).filter((g) =>
+        groupMatches(g, range, filterExpr),
+      );
+      const items = matching
         .map((g) => summaryOf(g, groupCount(bundle!, g, range, filterExpr)))
         .sort(
           (a, b) =>
@@ -413,16 +416,72 @@ export const errorsRoutes: SandboxRoute[] = [
             b.updated_at.localeCompare(a.updated_at) ||
             a.id.localeCompare(b.id),
         );
-      const total = counted.reduce((sum, g) => sum + g.count, 0);
-      const items = counted.map((g) => ({
-        ...g,
-        percentage_contribution:
-          total === 0 ? 0 : Math.round((g.count * 10000) / total) / 100,
-      }));
       const { items: page, hasNext, hasPrev } = paginate(items, url);
+
+      // The backend's FillErrorGroupTrends picks the trend's time group from
+      // the range length with these same thresholds.
+      const spanHours = range.to.diff(range.from, "hours").hours;
+      const trendRange: SandboxRange = {
+        ...range,
+        group:
+          spanHours <= 48 ? "hours" : spanHours <= 180 * 24 ? "days" : "months",
+      };
+
+      const results = page.map((summary) => {
+        const group = matching.find((g) => g.id === summary.id)!;
+        const lastSeen = group.instances
+          .filter(
+            (instance) =>
+              isWithinRange(instance.timestamp, range) &&
+              matchesFilterExpr(
+                instanceAttributes(group, instance),
+                filterExpr,
+              ),
+          )
+          .map((instance) => instance.timestamp)
+          .sort()
+          .slice(-1)[0];
+        const sessions = Math.max(
+          1,
+          Math.round(
+            summary.count *
+              (0.55 + 0.35 * unitInterval(`sessions:${group.id}`)),
+          ),
+        );
+        const users = Math.max(
+          1,
+          Math.round(
+            sessions * (0.4 + 0.45 * unitInterval(`users:${group.id}`)),
+          ),
+        );
+        const row = { ...summary, users, sessions, last_seen: lastSeen };
+        if (!includeTrend) {
+          return row;
+        }
+        const series = versionCounts(bundle!, group, range, filterExpr).map(
+          (version) =>
+            seriesFor(
+              bundle!,
+              trendRange,
+              version.count,
+              `errorgroup:${group.id}:${version.name}`,
+              version.name,
+            ),
+        );
+        const trend = (series[0] ?? []).map((point, i) => ({
+          datetime: point.datetime,
+          instances: series.reduce((sum, s) => sum + s[i].instances, 0),
+        }));
+        return { ...row, trend };
+      });
+
       return jsonResponse({
-        meta: { next: hasNext, previous: hasPrev },
-        results: page,
+        meta: {
+          next: hasNext,
+          previous: hasPrev,
+          ...(includeTrend ? { plot_time_group: trendRange.group } : {}),
+        },
+        results,
       });
     },
   },

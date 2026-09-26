@@ -388,12 +388,26 @@ func (h Handlers) GetErrorOverview(c *gin.Context) {
 		return
 	}
 
+	meta := gin.H{
+		"next":     next,
+		"previous": previous,
+	}
+
+	if includeTrend, _ := strconv.ParseBool(c.Query("include_trend")); includeTrend {
+		if err := app.FillErrorGroupTrends(ctx, deps.RchPool, &flt, errGroups); err != nil {
+			msg := "failed to get app's error group trends"
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+		meta["plot_time_group"] = flt.PlotTimeGroup
+	}
+
 	c.JSON(http.StatusOK, gin.H{
 		"results": errGroups,
-		"meta": gin.H{
-			"next":     next,
-			"previous": previous,
-		},
+		"meta":    meta,
 	})
 }
 

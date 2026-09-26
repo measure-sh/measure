@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"backend/libs/filter"
 	"backend/testinfra"
 
 	"github.com/gin-gonic/gin"
@@ -123,6 +124,72 @@ func TestGetErrorOverview(t *testing.T) {
 		got := groupIDs(t, errorsOverviewTimeRangeQuery())
 		if len(got) != 2 {
 			t.Fatalf("results = %v, want both error groups", got)
+		}
+	})
+
+	t.Run("each row has its aggregates and, when asked, its trend", func(t *testing.T) {
+		c, w := newErrorsOverviewContext(ownerID, appID, errorsOverviewTimeRangeQuery()+"&timezone=UTC&include_trend=true")
+		h.GetErrorOverview(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+		}
+
+		var body struct {
+			Results []struct {
+				Count    uint64    `json:"count"`
+				Sessions uint64    `json:"sessions"`
+				LastSeen time.Time `json:"last_seen"`
+				Trend    []struct {
+					Instances uint64 `json:"instances"`
+				} `json:"trend"`
+			} `json:"results"`
+			Meta struct {
+				PlotTimeGroup string `json:"plot_time_group"`
+			} `json:"meta"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+			t.Fatalf("unmarshal response: %v", err)
+		}
+		if body.Meta.PlotTimeGroup != filter.PlotTimeGroupHours {
+			t.Errorf("plot_time_group = %q, want %q", body.Meta.PlotTimeGroup, filter.PlotTimeGroupHours)
+		}
+		for _, r := range body.Results {
+			if r.Count != 1 || r.Sessions != 1 || r.LastSeen.IsZero() {
+				t.Errorf("want one instance in one session with a last seen time, got %+v", r)
+			}
+			var total uint64
+			for _, point := range r.Trend {
+				total += point.Instances
+			}
+			if total != r.Count {
+				t.Errorf("trend total = %d, want the count %d", total, r.Count)
+			}
+		}
+	})
+
+	t.Run("the trend is left out unless asked for", func(t *testing.T) {
+		c, w := newErrorsOverviewContext(ownerID, appID, errorsOverviewTimeRangeQuery())
+		h.GetErrorOverview(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+		}
+
+		var body struct {
+			Results []map[string]any `json:"results"`
+			Meta    map[string]any   `json:"meta"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+			t.Fatalf("unmarshal response: %v", err)
+		}
+		if _, ok := body.Meta["plot_time_group"]; ok {
+			t.Errorf("meta has plot_time_group: %s", w.Body.String())
+		}
+		for _, r := range body.Results {
+			if _, ok := r["trend"]; ok {
+				t.Errorf("row has a trend: %s", w.Body.String())
+			}
 		}
 	})
 

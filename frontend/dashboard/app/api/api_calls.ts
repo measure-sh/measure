@@ -269,7 +269,10 @@ export const emptyErrorGroup = {
   file_name: "",
   line_number: 0,
   count: 0,
-  percentage_contribution: 0,
+  users: 0,
+  sessions: 0,
+  last_seen: "",
+  trend: [] as { datetime: string; instances: number }[],
   updated_at: "",
 };
 
@@ -277,6 +280,7 @@ export const emptyErrorsOverviewResponse = {
   meta: {
     next: false,
     previous: false,
+    plot_time_group: "",
   },
   results: [] as (typeof emptyErrorGroup)[],
 };
@@ -923,6 +927,7 @@ export const fetchErrorsOverviewFromServer = async (
     to: formatUserInputDateToServerFormat(endDate),
     timezone: getTimeZoneForServer(),
     limit: String(limit),
+    include_trend: "true",
     offset: String(offset),
   });
   if (filterExpr) {

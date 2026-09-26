@@ -992,9 +992,20 @@ paths:
         Pass `limit` and `offset` values to paginate results.
 
         In the response, `meta.next` / `meta.previous` are booleans indicating
-        whether more pages exist in the respective direction. `count` is the
-        number of matching events in the group and `percentage_contribution`
-        its share of the matching events on the page.
+        whether more pages exist in the respective direction, and
+        `meta.plot_time_group` names the bucket size of each group's `trend`
+        when `include_trend=true`. Groups are sorted by `count`, the number of
+        matching events in the group. `users` and `sessions` are the unique
+        users and sessions those events came from, where events without a user
+        id are not counted as users, and `last_seen` is the time of the latest
+        matching event.
+
+        With `include_trend=true`, each group also has a `trend`: its matching
+        events per time bucket, covering every bucket in the time range with a
+        zero for buckets without events. The bucket size is picked from the
+        length of the time range, hourly up to 48 hours, daily up to 180 days
+        and monthly beyond that. Buckets follow the `timezone` parameter, or
+        UTC when it is not set.
 
         The `error_type` filter key takes the values `Crash`, `ANR`,
         `Handled Error` and `Unhandled Error`. A value holding a space is
@@ -1010,6 +1021,18 @@ paths:
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/FilterExpr"
+        - name: include_trend
+          in: query
+          required: false
+          description: Set to `true` to add each group's `trend` and `meta.plot_time_group`. Off by default.
+          schema:
+            type: boolean
+        - name: timezone
+          in: query
+          required: false
+          description: "IANA timezone the trend buckets follow. Defaults to UTC. Example: `Asia/Kolkata`."
+          schema:
+            type: string
         - name: offset
           in: query
           required: false
@@ -1037,6 +1060,9 @@ paths:
                         type: boolean
                       previous:
                         type: boolean
+                      plot_time_group:
+                        type: string
+                        description: "Bucket size of each group's `trend`: `hours`, `days` or `months`. Present only with `include_trend=true`, and empty when there are no results."
                   results:
                     type: array
                     items:
@@ -1066,8 +1092,22 @@ paths:
                           type: number
                         count:
                           type: number
-                        percentage_contribution:
+                        users:
                           type: number
+                        sessions:
+                          type: number
+                        last_seen:
+                          type: string
+                        trend:
+                          type: array
+                          description: Present only with `include_trend=true`.
+                          items:
+                            type: object
+                            properties:
+                              datetime:
+                                type: string
+                              instances:
+                                type: number
                         updated_at:
                           type: string
               examples:
@@ -1076,6 +1116,7 @@ paths:
                     meta:
                       next: false
                       previous: false
+                      plot_time_group: days
                     results:
                       - app_id: 19e26d60-2ad8-4ef7-8aab-333e1f5377fc
                         id: 0a674646a76ebe4aa378b8e1aaa49d61
@@ -1088,7 +1129,16 @@ paths:
                         file_name: MainActivity.kt
                         line_number: 42
                         count: 11
-                        percentage_contribution: 36.67
+                        users: 6
+                        sessions: 9
+                        last_seen: "2025-06-13T14:08:58.228Z"
+                        trend:
+                          - datetime: "2025-06-11"
+                            instances: 2
+                          - datetime: "2025-06-12"
+                            instances: 0
+                          - datetime: "2025-06-13"
+                            instances: 9
                         updated_at: "2025-06-13T14:08:58.228662166Z"
                       - app_id: 19e26d60-2ad8-4ef7-8aab-333e1f5377fc
                         id: c4ee2ff2e2496be30848cf500300be56
@@ -1101,7 +1151,16 @@ paths:
                         file_name: CheckoutActivity.kt
                         line_number: 88
                         count: 3
-                        percentage_contribution: 10
+                        users: 0
+                        sessions: 3
+                        last_seen: "2025-06-13T14:08:57.940Z"
+                        trend:
+                          - datetime: "2025-06-11"
+                            instances: 0
+                          - datetime: "2025-06-12"
+                            instances: 1
+                          - datetime: "2025-06-13"
+                            instances: 2
                         updated_at: "2025-06-13T14:08:57.940485305Z"
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
