@@ -15,6 +15,7 @@ const NOINDEX_SOURCES = [
   "/page-md/:path*",
   "/docs/api/dashboard/:path*",
   "/docs/api/sdk/:path*",
+  "/api/:path*",
 ];
 
 // The sandbox and auth pages are left out of robots.txt's disallow list on
