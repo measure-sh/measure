@@ -231,8 +231,40 @@ func applyErrorPredicate(stmt *sqlf.Stmt, flt *filter.Filter) error {
 	return nil
 }
 
+// errorGroupEventsStmt selects the error events matching the filter, grouped
+// by the error group each belongs to. A group is identified by fingerprint,
+// source type and severity class together, because the same exception can
+// be reported as a crash and as a handled error, and ingest stores those as
+// two groups with the same fingerprint. severity_class applies the rule
+// ingest uses to pick a group table: a fatal exception goes to
+// fatal_exception_groups, any other exception to nonfatal_exception_groups,
+// and an ANR is always fatal.
+func (a App) errorGroupEventsStmt(flt *filter.Filter) (*sqlf.Stmt, error) {
+	stmt := sqlf.
+		From("events").
+		Select(errorFingerprintExpr+" as fingerprint").
+		Select("if(type = 'anr', 'anr', 'exception') as source_type").
+		Select("multiIf(type = 'anr', 'fatal', `exception.severity` = 'fatal' or (`exception.severity` = '' and `exception.handled` = false), 'fatal', 'nonfatal') as severity_class").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("timestamp >= toDateTime64(?, 3, 'UTC')", flt.From).
+		Where("timestamp <= toDateTime64(?, 3, 'UTC')", flt.To).
+		Where("type in ?", errorEventTypes).
+		GroupBy("fingerprint").
+		GroupBy("source_type").
+		GroupBy("severity_class")
+
+	if err := applyErrorPredicate(stmt, flt); err != nil {
+		stmt.Close()
+		return nil, err
+	}
+
+	return stmt, nil
+}
+
 // GetErrorGroupsWithFilter lists the app's error groups with the number of
-// matching events in each. The filter runs on events, so a group with no
+// matching events, users and sessions in each and the time of the latest
+// one. The filter runs on events, so a group with no
 // matching events is dropped by the join; the group tables only describe
 // the groups.
 func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt *filter.Filter) (groups []group.ErrorGroup, next, previous bool, err error) {
@@ -280,32 +312,20 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt 
 		newGroupsBranch("nonfatal_exception_groups final", "exception", "nonfatal", "if(argMax(handled, timestamp), 'handled', 'unhandled')", "argMax(is_custom, timestamp)"),
 	})
 
-	// severity_class mirrors how ingest picked the group table: a fatal
-	// exception went to fatal_exception_groups, any other exception to
-	// nonfatal_exception_groups, and an ANR is always fatal.
-	countsCTE := sqlf.
-		From("events").
-		Select("team_id").
-		Select("app_id").
-		Select(errorFingerprintExpr+" as fingerprint").
-		Select("if(type = 'anr', 'anr', 'exception') as source_type").
-		Select("multiIf(type = 'anr', 'fatal', `exception.severity` = 'fatal' or (`exception.severity` = '' and `exception.handled` = false), 'fatal', 'nonfatal') as severity_class").
-		Select("count() as event_count").
-		Where("team_id = toUUID(?)", a.TeamId).
-		Where("app_id = toUUID(?)", a.ID).
-		Where("timestamp >= toDateTime64(?, 3, 'UTC')", flt.From).
-		Where("timestamp <= toDateTime64(?, 3, 'UTC')", flt.To).
-		Where("type in ?", errorEventTypes).
-		Where(errorFingerprintExpr + " != ''").
-		GroupBy("team_id").
-		GroupBy("app_id").
-		GroupBy("fingerprint").
-		GroupBy("source_type").
-		GroupBy("severity_class")
-
-	if err = applyErrorPredicate(countsCTE, flt); err != nil {
+	countsCTE, err := a.errorGroupEventsStmt(flt)
+	if err != nil {
 		return
 	}
+	countsCTE.
+		Select("team_id").
+		Select("app_id").
+		Select("count() as event_count").
+		Select("max(timestamp) as last_seen").
+		Select("uniqIf(`attribute.user_id`, `attribute.user_id` != '') as users").
+		Select("uniq(session_id) as sessions").
+		Where(errorFingerprintExpr + " != ''").
+		GroupBy("team_id").
+		GroupBy("app_id")
 
 	stmt := sqlf.
 		With("groups", groupsCTE).
@@ -322,7 +342,9 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt 
 		Select("g.line_number").
 		Select("g.last_occurrence").
 		Select("c.event_count as event_count").
-		Select("round((event_count * 100.0) / sum(event_count) over (), 2) as contribution").
+		Select("c.users").
+		Select("c.sessions").
+		Select("c.last_seen").
 		From("groups as g").
 		LeftJoin("counts as c", "c.team_id = g.team_id and c.app_id = g.app_id and c.fingerprint = g.id and c.source_type = g.source_type and c.severity_class = g.severity_class").
 		Where("c.event_count > 0").
@@ -367,7 +389,9 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt 
 			&g.LineNumber,
 			&g.UpdatedAt,
 			&g.Count,
-			&g.Percentage,
+			&g.Users,
+			&g.Sessions,
+			&g.LastSeen,
 		); err != nil {
 			return
 		}
@@ -388,6 +412,120 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt 
 	}
 
 	return
+}
+
+// FillErrorGroupTrends sets each group's instance counts per time bucket
+// over the filter's range, and sets the filter's PlotTimeGroup to the bucket
+// size it picked. It reads only the events of the groups passed in, so
+// callers pass the page GetErrorGroupsWithFilter returned.
+func (a App) FillErrorGroupTrends(ctx context.Context, rch driver.Conn, flt *filter.Filter, groups []group.ErrorGroup) error {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
+	if len(groups) == 0 {
+		return nil
+	}
+
+	timezone := flt.Timezone
+	if timezone == "" {
+		timezone = "UTC"
+	}
+
+	// Unlike the other plots, the caller does not pick the time group and it
+	// is decided by the backend itself. WITH FILL returns a row for every
+	// bucket of every group on the page, even buckets with no events, so a
+	// fine time group over a long range would build a very large result.
+	// Picking it from the range keeps the number of buckets small.
+	var interval string
+	switch span := flt.To.Sub(flt.From); {
+	case span <= 48*time.Hour:
+		flt.PlotTimeGroup, interval = filter.PlotTimeGroupHours, "INTERVAL 1 HOUR"
+	case span <= 180*24*time.Hour:
+		flt.PlotTimeGroup, interval = filter.PlotTimeGroupDays, "INTERVAL 1 DAY"
+	default:
+		flt.PlotTimeGroup, interval = filter.PlotTimeGroupMonths, "INTERVAL 1 MONTH"
+	}
+
+	groupExpr, err := GetPlotTimeGroupExpr("timestamp", flt.PlotTimeGroup)
+	if err != nil {
+		return err
+	}
+	rangeExpr, err := GetPlotTimeGroupExpr("toDateTime64(?, 3, 'UTC')", flt.PlotTimeGroup)
+	if err != nil {
+		return err
+	}
+
+	fingerprints := make([]string, 0, len(groups))
+	for i := range groups {
+		fingerprints = append(fingerprints, groups[i].ID)
+	}
+
+	bucketsCTE, err := a.errorGroupEventsStmt(flt)
+	if err != nil {
+		return err
+	}
+
+	// WITH FILL adds a zero row for each bucket with no events, separately for
+	// each group, so the frontend's bar chart spaces its bars evenly in time.
+	// The rows it adds hold empty values in every column outside the ORDER BY,
+	// so the outer query formats the bucket's date after the fill.
+	bucketsCTE.
+		Select(groupExpr.BucketExpr+" as datetime_bucket", timezone).
+		Select("count() as instances").
+		Where(errorFingerprintExpr+" in ?", fingerprints).
+		GroupBy("datetime_bucket").
+		OrderBy("fingerprint", "source_type", "severity_class", "datetime_bucket").
+		Clause(
+			"WITH FILL FROM "+rangeExpr.BucketExpr+" TO "+rangeExpr.BucketExpr+" + "+interval+" STEP "+interval,
+			flt.From, timezone, flt.To, timezone,
+		)
+
+	stmt := sqlf.
+		With("buckets", bucketsCTE).
+		From("buckets").
+		Select("fingerprint").
+		Select("source_type").
+		Select("severity_class").
+		Select("formatDateTime(datetime_bucket, ?)", groupExpr.DatetimeFormat).
+		Select("instances").
+		OrderBy("fingerprint", "source_type", "severity_class", "datetime_bucket")
+
+	defer stmt.Close()
+
+	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return err
+	}
+
+	defer rows.Close()
+
+	type groupKey struct {
+		fingerprint, sourceType, severityClass string
+	}
+	trends := map[groupKey][]group.TrendPoint{}
+
+	for rows.Next() {
+		var (
+			key   groupKey
+			point group.TrendPoint
+		)
+		if err := rows.Scan(&key.fingerprint, &key.sourceType, &key.severityClass, &point.DateTime, &point.Instances); err != nil {
+			return err
+		}
+		trends[key] = append(trends[key], point)
+	}
+
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
+	for i := range groups {
+		severityClass := "nonfatal"
+		if groups[i].Severity == event.SeverityFatal {
+			severityClass = "fatal"
+		}
+		groups[i].Trend = trends[groupKey{groups[i].ID, groups[i].ErrorType, severityClass}]
+	}
+
+	return nil
 }
 
 // GetErrorPlotInstances buckets the matching error events by time and app

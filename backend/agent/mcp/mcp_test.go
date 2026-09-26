@@ -3095,7 +3095,47 @@ func TestMCPGetErrors_Crash(t *testing.T) {
 			t.Fatalf("response is not JSON array: %v\ncontent: %s", err, content)
 		}
 		if len(groups) != 1 || groups[0]["id"] != fingerprint {
-			t.Errorf("want only the crash group %q, got %s", fingerprint, content)
+			t.Fatalf("want only the crash group %q, got %s", fingerprint, content)
+		}
+		for _, field := range []string{"users", "sessions", "last_seen"} {
+			if _, ok := groups[0][field]; !ok {
+				t.Errorf("group is missing %q: %s", field, content)
+			}
+		}
+		for _, field := range []string{"trend", "percentage_contribution"} {
+			if _, ok := groups[0][field]; ok {
+				t.Errorf("group has %q: %s", field, content)
+			}
+		}
+
+		resp = callMCPTool(t, rawToken, "get_errors", map[string]any{
+			"app_id":        appID.String(),
+			"from":          from.Format(time.RFC3339),
+			"to":            now.Add(time.Hour).Format(time.RFC3339),
+			"include_trend": true,
+		})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		content = extractTextContent(t, resp)
+		var withTrend []struct {
+			Count uint64 `json:"count"`
+			Trend []struct {
+				Instances uint64 `json:"instances"`
+			} `json:"trend"`
+		}
+		if err := json.Unmarshal([]byte(content), &withTrend); err != nil {
+			t.Fatalf("response is not JSON array: %v\ncontent: %s", err, content)
+		}
+		if len(withTrend) != 1 {
+			t.Fatalf("want the crash group, got %s", content)
+		}
+		var total uint64
+		for _, point := range withTrend[0].Trend {
+			total += point.Instances
+		}
+		if total != withTrend[0].Count {
+			t.Errorf("trend total = %d, want the count %d: %s", total, withTrend[0].Count, content)
 		}
 	})
 

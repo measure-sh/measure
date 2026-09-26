@@ -784,7 +784,7 @@ describe.each(apps)("sandbox routes agree: $app.name", (bundle) => {
         `/api/apps/${appId}/health/plots/instances?${query(range)}`,
       );
       const errors = await get(
-        `/api/apps/${appId}/errorGroups?${query(range, { limit: "50", offset: "0" })}`,
+        `/api/apps/${appId}/errorGroups?${query(range, { limit: "50", offset: "0", include_trend: "true" })}`,
       );
       expect(errors.results.length).toBeGreaterThan(0);
       const counts = errors.results.map((g: any) => g.count);
@@ -796,11 +796,11 @@ describe.each(apps)("sandbox routes agree: $app.name", (bundle) => {
         Math.abs(idTotal(health, "crashes") - crashTotal(errors.results)),
       ).toBeLessThanOrEqual(2);
       expect(Math.abs(idTotal(health, "anrs") - anrs)).toBeLessThanOrEqual(2);
-      const contribution = errors.results.reduce(
-        (sum: number, g: any) => sum + g.percentage_contribution,
-        0,
-      );
-      expect(Math.abs(contribution - 100)).toBeLessThan(0.5);
+      for (const g of errors.results) {
+        expect(
+          g.trend.reduce((sum: number, p: any) => sum + p.instances, 0),
+        ).toBe(g.count);
+      }
       const plot = await get(
         `/api/apps/${appId}/errorGroups/plots/instances?${query(range)}`,
       );

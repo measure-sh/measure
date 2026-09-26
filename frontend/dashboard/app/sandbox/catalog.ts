@@ -494,7 +494,6 @@ export type ErrorGroup = {
   file_name: string;
   line_number: number;
   count: number;
-  percentage_contribution: number;
   updated_at: string;
   instances: ErrorInstance[];
   screen: string;
@@ -2978,14 +2977,11 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
     ...scaledCountsFor(handledKeys, handledTotal),
     ...scaledCountsFor(unhandledKeys, unhandledTotal),
   ]);
-  const overallTotal = crashTotal + anrTotal + handledTotal + unhandledTotal;
 
   const errorGroups: ErrorGroup[] = [...groupsByKey.entries()].map(
     ([key, g]) => {
       const id = stableUuid(`errorgroup:${app.id}:${key}`);
       const count = countByKey.get(key) ?? 0;
-      const percentage =
-        overallTotal === 0 ? 0 : Math.round((count / overallTotal) * 1000) / 10;
       const updatedAt = [...g.instances.map((i) => i.timestamp)]
         .sort()
         .slice(-1)[0];
@@ -3048,7 +3044,6 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
         file_name: g.spec.file_name,
         line_number: g.spec.line_number,
         count,
-        percentage_contribution: percentage,
         updated_at: updatedAt,
         instances,
         screen,
