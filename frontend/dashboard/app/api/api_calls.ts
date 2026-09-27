@@ -152,6 +152,47 @@ export const emptyJourney = {
   totalIssues: 0,
 };
 
+export type JourneyMapCount = { label: string; count: number };
+
+// A layout snapshot drawn as boxes in paint order, each box being
+// [x, y, width, height, isText] in the snapshot's own coordinates.
+export type JourneyMapWireframe = {
+  width: number;
+  height: number;
+  boxes: [number, number, number, number, number][];
+};
+
+export type JourneyMapVariant = {
+  visits: number;
+  loading: boolean;
+  inbound: JourneyMapCount[];
+  taps: JourneyMapCount[];
+  wireframe: JourneyMapWireframe;
+};
+
+export type JourneyMapScreen = {
+  key: string;
+  host: string;
+  screen: string;
+  visits: number;
+  entries: number;
+  snapshot_visits: number;
+  // Most seen first. The first variant is the screen's picture.
+  variants: JourneyMapVariant[];
+};
+
+export type JourneyMapTransition = {
+  from: string;
+  to: string;
+  count: number;
+  triggers: JourneyMapCount[];
+};
+
+export type JourneyMap = {
+  screens: JourneyMapScreen[];
+  transitions: JourneyMapTransition[];
+};
+
 export const emptyMetrics = {
   adoption: {
     all_versions: 0,
@@ -841,6 +882,12 @@ export const fetchJourneyFromServer = async (
 
   return await request(`/api/apps/${appId}/journey?${params.toString()}`, {
     failsWith: "Failed to fetch journey",
+  });
+};
+
+export const fetchJourneyMapFromServer = async (appId: string) => {
+  return await request<JourneyMap>(`/api/apps/${appId}/journeyMap`, {
+    failsWith: "Failed to fetch journey map",
   });
 };
 

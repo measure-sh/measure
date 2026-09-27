@@ -38,6 +38,16 @@ type UploadConfig struct {
 	AttachmentsSecretAccessKey string
 }
 
+// ReaderConfig is the storage configuration NewAttachmentReader needs.
+type ReaderConfig struct {
+	IsCloud                    bool
+	AWSEndpoint                string
+	AttachmentsBucket          string
+	AttachmentsBucketRegion    string
+	AttachmentsAccessKey       string
+	AttachmentsSecretAccessKey string
+}
+
 // PreSignConfig is the storage configuration PreSignURL needs to build a
 // presigned (or proxied) attachment URL.
 type PreSignConfig struct {
@@ -67,9 +77,9 @@ const (
 	// drawn as an SVG on some SDKs & a raster on others.
 	attachmentTypeLayoutSnapshot = "layout_snapshot"
 
-	// attachmentTypeLayoutSnapshotJSON is the view hierarchy as gzipped JSON,
+	// AttachmentTypeLayoutSnapshotJSON is the view hierarchy as gzipped JSON,
 	// replayed as a wireframe in the dashboard.
-	attachmentTypeLayoutSnapshotJSON = "layout_snapshot_json"
+	AttachmentTypeLayoutSnapshotJSON = "layout_snapshot_json"
 
 	// attachmentTypePerfettoTrace is a protobuf trace of system & app
 	// activity, written by the OS profiler.
@@ -92,7 +102,7 @@ var attachmentTypes = []string{
 	attachmentTypeScreenshot,
 	attachmentTypeAndroidMethodTrace,
 	attachmentTypeLayoutSnapshot,
-	attachmentTypeLayoutSnapshotJSON,
+	AttachmentTypeLayoutSnapshotJSON,
 	attachmentTypePerfettoTrace,
 	attachmentTypeHeapDump,
 	attachmentTypeHeapProfile,
@@ -192,7 +202,7 @@ func sniffBody(r io.Reader) (head []byte, encoding string, err error) {
 // fixedContentTypes maps attachment types whose mime type the bytes can't
 // reveal. Compressed payloads report their wrapper & traces are opaque.
 var fixedContentTypes = map[string]string{
-	attachmentTypeLayoutSnapshotJSON: "application/json",
+	AttachmentTypeLayoutSnapshotJSON: "application/json",
 	attachmentTypePerfettoTrace:      contentTypeBinary,
 	attachmentTypeHeapDump:           contentTypeBinary,
 	attachmentTypeHeapProfile:        contentTypeBinary,
@@ -399,4 +409,60 @@ func (a *Attachment) PreSignURL(ctx context.Context, config PreSignConfig) (err 
 	a.Location = urlStr
 
 	return
+}
+
+// AttachmentReader reads attachment objects from storage, sharing one client
+// across reads.
+type AttachmentReader struct {
+	bucket string
+	s3     *s3.Client
+	gcs    *storage.Client
+}
+
+// NewAttachmentReader creates a reader for the attachments bucket. Close it
+// when done.
+func NewAttachmentReader(ctx context.Context, config ReaderConfig) (*AttachmentReader, error) {
+	r := &AttachmentReader{bucket: config.AttachmentsBucket}
+	if config.IsCloud {
+		client, err := storage.NewClient(ctx)
+		if err != nil {
+			return nil, err
+		}
+		r.gcs = client
+		return r, nil
+	}
+	r.s3 = objstore.CreateS3Client(ctx, config.AttachmentsAccessKey, config.AttachmentsSecretAccessKey, config.AttachmentsBucketRegion, config.AWSEndpoint)
+	return r, nil
+}
+
+// Read returns the object stored at key. GCS decompresses a gzip encoded
+// object on read while S3 returns the stored bytes, so the result may or may
+// not be gzipped.
+func (r *AttachmentReader) Read(ctx context.Context, key string) ([]byte, error) {
+	if r.gcs != nil {
+		reader, err := r.gcs.Bucket(r.bucket).Object(key).NewReader(ctx)
+		if err != nil {
+			return nil, err
+		}
+		defer reader.Close()
+		return io.ReadAll(reader)
+	}
+
+	out, err := r.s3.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(r.bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, err
+	}
+	defer out.Body.Close()
+	return io.ReadAll(out.Body)
+}
+
+// Close releases the storage client.
+func (r *AttachmentReader) Close() error {
+	if r.gcs != nil {
+		return r.gcs.Close()
+	}
+	return nil
 }

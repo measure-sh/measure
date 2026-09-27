@@ -32,6 +32,7 @@ import {
   fetchErrorsOverviewPlotFromServer,
   fetchHighMemoryUsageSessionsFromServer,
   fetchJourneyFromServer,
+  fetchJourneyMapFromServer,
   fetchMemoryUsageBreakdownFromServer,
   fetchMemoryUsagePlotFromServer,
   fetchMetricsFromServer,
@@ -429,6 +430,15 @@ export function useJourneyQuery(params: FilterParams | null) {
         params!.filterExpr,
       ),
     enabled: params !== null,
+    retry: false,
+  });
+}
+
+export function useJourneyMapQuery(appId: string | undefined) {
+  return useQuery({
+    queryKey: ["journeyMap", appId] as const,
+    queryFn: () => fetchJourneyMapFromServer(appId!),
+    enabled: !!appId,
     retry: false,
   });
 }

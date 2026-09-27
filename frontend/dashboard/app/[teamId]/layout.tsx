@@ -72,6 +72,12 @@ function buildInitNavData(): { navMain: NavSection[] } {
             isActive: false,
             external: false,
           },
+          {
+            title: "Journey Map",
+            url: "journey_map",
+            isActive: false,
+            external: false,
+          },
         ],
       },
       {

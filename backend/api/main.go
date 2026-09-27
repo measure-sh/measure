@@ -111,6 +111,7 @@ func main() {
 	apps := r.Group("/apps", hdl.ValidateAccessToken())
 	{
 		apps.GET(":id/journey", hdl.GetAppJourney)
+		apps.GET(":id/journeyMap", hdl.GetAppJourneyMap)
 		apps.GET(":id/metrics", hdl.GetAppMetrics)
 		apps.GET(":id/health/plots/instances", hdl.GetHealthOverviewPlotInstances)
 

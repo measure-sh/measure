@@ -19,6 +19,7 @@ const sectionTitles: Record<string, string> = {
   overview: "Overview",
   session_replays: "Session Replays",
   journeys: "Journeys",
+  journey_map: "Journey Map",
   errors: "Errors",
   bug_reports: "Bug Reports",
   alerts: "Alerts",
