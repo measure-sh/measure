@@ -206,7 +206,7 @@ List all apps the authenticated user has access to.
 
 ### `get_filter_keys`
 
-List the filter keys of an entity (spans, bug_reports, journeys, network or builds): the vocabulary a filter expression is written with.
+List the filter keys of an entity (spans, bug_reports, journeys, network, memory or builds): the vocabulary a filter expression is written with.
 
 ### `get_filter_values`
 
@@ -255,6 +255,18 @@ Get time-series of session counts.
 ### `get_session`
 
 Get full session with all events.
+
+### `get_memory_usage_over_time`
+
+Get aggregate memory usage over time. Use it to compare shifts in app's memory profile. Returns p50/p90/p95/p99 in KiB by app version/build and time bucket.
+
+### `get_memory_usage_by_device_tier`
+
+Get a breakdown of memory usage by different device memory tiers. Returns p50/p90/p95 in KiB along with sampled-session and sample counts.
+
+### `get_high_memory_sessions`
+
+Get a paginated list of sessions with high memory usage. Use `get_session` to connect a returned session ID to user actions, screens, and errors.
 
 ### `get_bug_reports`
 

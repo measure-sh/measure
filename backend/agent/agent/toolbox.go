@@ -410,7 +410,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_filter_keys
 		newTool(&mcpsdk.Tool{
 			Name:        "get_filter_keys",
-			Description: "List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
+			Description: "List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
 			InputSchema: mcpMustInferSchema[mcpGetFilterKeysInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFilterKeysInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetFilterKeys(ctx, in)
@@ -522,6 +522,33 @@ func commonTools(cfg *Config) []Tool {
 			InputSchema: mcpMustInferSchema[mcpGetSessionInput](),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSessionInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSession(ctx, in)
+		}),
+
+		// get_memory_usage_over_time
+		newTool(&mcpsdk.Tool{
+			Name:        "get_memory_usage_over_time",
+			Description: "Get aggregate memory usage over time. Use it to compare shifts in app's memory profile. Returns p50/p90/p95/p99 in KiB by app version/build and time bucket. " + mcpFilterExprToolsHint(filter.MemoryEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetMemoryUsageOverTimeInput](mcpMemoryFilterExprGrammar),
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetMemoryUsageOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetMemoryUsageOverTime(ctx, in)
+		}),
+
+		// get_memory_usage_by_device_tier
+		newTool(&mcpsdk.Tool{
+			Name:        "get_memory_usage_by_device_tier",
+			Description: "Get a breakdown of memory usage by different device memory tiers. Returns p50/p90/p95 in KiB along with sampled-session and sample counts. " + mcpFilterExprToolsHint(filter.MemoryEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetMemoryUsageByDeviceTierInput](mcpMemoryFilterExprGrammar),
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetMemoryUsageByDeviceTierInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetMemoryUsageByDeviceTier(ctx, in)
+		}),
+
+		// get_high_memory_sessions
+		newTool(&mcpsdk.Tool{
+			Name:        "get_high_memory_sessions",
+			Description: "Get a paginated list of sessions with high memory usage. Use get_session to connect a returned session_id to user actions, screens, and errors. " + mcpFilterExprToolsHint(filter.MemoryEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetHighMemorySessionsInput](mcpMemoryFilterExprGrammar),
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetHighMemorySessionsInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetHighMemorySessions(ctx, in)
 		}),
 
 		// get_bug_reports
@@ -694,6 +721,7 @@ var (
 	mcpErrorsFilterExprGrammar           = mcpFilterExprGrammar(filter.ErrorsEntity, `error_type:in:[Crash, ANR] AND os_name:in:[android]`)
 	mcpErrorGroupEventsFilterExprGrammar = mcpFilterExprGrammar(filter.ErrorGroupEventsEntity, "version_name:in:[1.2.0] AND os_name:in:[android]")
 	mcpAppHealthFilterExprGrammar        = mcpFilterExprGrammar(filter.AppHealthEntity, "version_name:in:[1.2.0] AND version_code:in:[120]")
+	mcpMemoryFilterExprGrammar           = mcpFilterExprGrammar(filter.MemoryEntity, "version_name:in:[1.2.0] AND app_state:eq:foreground")
 )
 
 // mcpMustInferFilterExprSchema infers a JSON schema from a Go type and sets
@@ -738,12 +766,12 @@ func mcpMustInferSchema[T any]() json.RawMessage {
 type mcpListAppsInput struct{}
 type mcpGetFilterKeysInput struct {
 	AppID  string   `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health or builds"`
+	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory or builds"`
 	Keys   []string `json:"keys,omitempty" jsonschema:"Key names you already know, for example from the user's request, to include in the result even when the listing is truncated"`
 }
 type mcpGetFilterValuesInput struct {
 	AppID   string `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health or builds"`
+	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory or builds"`
 	KeyName string `json:"key_name" jsonschema:"Name of the filter key to list values for, as get_filter_keys returns it"`
 	Search  string `json:"search,omitempty" jsonschema:"Return only values containing this text"`
 	Limit   int    `json:"limit,omitempty" jsonschema:"Maximum number of values to return (default: 50, max: 200)"`
@@ -818,6 +846,28 @@ type mcpGetSessionsOverTimeInput struct {
 type mcpGetSessionInput struct {
 	AppID     string `json:"app_id" jsonschema:"UUID of the app"`
 	SessionID string `json:"session_id" jsonschema:"UUID of the session"`
+}
+type mcpGetMemoryUsageOverTimeInput struct {
+	AppID         string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From          string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string `json:"filter_expr,omitempty"`
+	Timezone      string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
+	PlotTimeGroup string `json:"plot_time_group,omitempty" jsonschema:"Time bucket: minutes, hours, days or months (default: days)"`
+}
+type mcpGetMemoryUsageByDeviceTierInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+}
+type mcpGetHighMemorySessionsInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum sessions to return (default: 10, max: 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of sessions to skip for pagination (default: 0)"`
 }
 type mcpGetBugReportsInput struct {
 	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
@@ -1542,6 +1592,84 @@ func (c *Config) mcpGetSession(ctx context.Context, in mcpGetSessionInput) (*mcp
 		return nil, nil, fmt.Errorf("failed to get session details: %v", sessErr)
 	}
 	data, _ := json.Marshal(session)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetMemoryUsageOverTime(ctx context.Context, in mcpGetMemoryUsageOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
+	if in.Timezone == "" {
+		return nil, nil, fmt.Errorf("timezone is required for over time tools")
+	}
+
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.MemoryEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		flt.Timezone = in.Timezone
+		flt.PlotTimeGroup = in.PlotTimeGroup
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	app := &measure.App{ID: &appID, TeamId: teamID}
+	if err := app.Populate(ctx, c.Deps.PgPool); err != nil {
+		return nil, nil, fmt.Errorf("failed to populate app: %w", err)
+	}
+	points, err := app.GetMemoryUsagePlot(ctx, c.Deps.RchPool, flt)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to fetch memory usage over time: %w", err)
+	}
+	data, _ := json.Marshal(points)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetMemoryUsageByDeviceTier(ctx context.Context, in mcpGetMemoryUsageByDeviceTierInput) (*mcpsdk.CallToolResult, any, error) {
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.MemoryEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	app := &measure.App{ID: &appID, TeamId: teamID}
+	if err := app.Populate(ctx, c.Deps.PgPool); err != nil {
+		return nil, nil, fmt.Errorf("failed to populate app: %w", err)
+	}
+	breakdown, err := app.GetMemoryUsageBreakdown(ctx, c.Deps.RchPool, flt)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to fetch memory usage by device tier: %w", err)
+	}
+	data, _ := json.Marshal(breakdown)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetHighMemorySessions(ctx context.Context, in mcpGetHighMemorySessionsInput) (*mcpsdk.CallToolResult, any, error) {
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.MemoryEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		limit := in.Limit
+		if limit <= 0 {
+			limit = 10
+		}
+		if limit > 30 {
+			limit = 30
+		}
+		flt.Limit = limit
+		flt.Offset = in.Offset
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	app := &measure.App{ID: &appID, TeamId: teamID}
+	if err := app.Populate(ctx, c.Deps.PgPool); err != nil {
+		return nil, nil, fmt.Errorf("failed to populate app: %w", err)
+	}
+	sessions, next, previous, err := app.GetHighMemoryUsageSessions(ctx, c.Deps.RchPool, flt)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to fetch high memory sessions: %w", err)
+	}
+	result := map[string]any{
+		"results": sessions,
+		"meta": map[string]bool{
+			"next":     next,
+			"previous": previous,
+		},
+	}
+	data, _ := json.Marshal(result)
 	return mcpTextResult(string(data)), nil, nil
 }
 
