@@ -82,6 +82,10 @@ type SdkConfig struct {
 	ErrorUnhandledSamplingRate     float64             `json:"error_unhandled_sampling_rate"`
 	ErrorHandledSamplingRate       float64             `json:"error_handled_sampling_rate"`
 	ANRTakeScreenshot              bool                `json:"anr_take_screenshot"`
+	AppHangThresholdMillis         int                 `json:"app_hang_threshold_millis"`
+	AppHangTimelineDuration        int                 `json:"app_hang_timeline_duration"`
+	AppHangSamplingRate            float64             `json:"app_hang_sampling_rate"`
+	AppHangReplayEnabled           bool                `json:"app_hang_replay_enabled"`
 	LaunchSamplingRate             float64             `json:"launch_sampling_rate"`
 	GestureClickTakeSnapshot       bool                `json:"gesture_click_take_snapshot"`
 	HTTPSamplingRate               float64             `json:"http_sampling_rate"`
@@ -139,6 +143,10 @@ type ConfigPatch struct {
 	ErrorUnhandledSamplingRate     *float64             `json:"error_unhandled_sampling_rate,omitempty"`
 	ErrorHandledSamplingRate       *float64             `json:"error_handled_sampling_rate,omitempty"`
 	ANRTakeScreenshot              *bool                `json:"anr_take_screenshot,omitempty"`
+	AppHangThresholdMillis         *int                 `json:"app_hang_threshold_millis,omitempty"`
+	AppHangTimelineDuration        *int                 `json:"app_hang_timeline_duration,omitempty"`
+	AppHangSamplingRate            *float64             `json:"app_hang_sampling_rate,omitempty"`
+	AppHangReplayEnabled           *bool                `json:"app_hang_replay_enabled,omitempty"`
 	LaunchSamplingRate             *float64             `json:"launch_sampling_rate,omitempty"`
 	GestureClickSnapshot           *bool                `json:"gesture_click_take_snapshot,omitempty"`
 	HTTPSamplingRate               *float64             `json:"http_sampling_rate,omitempty"`
@@ -186,6 +194,10 @@ func createDefaultConfig() SdkConfig {
 		ErrorUnhandledSamplingRate:     100,
 		ErrorHandledSamplingRate:       0,
 		ANRTakeScreenshot:              true,
+		AppHangThresholdMillis:         2000,
+		AppHangTimelineDuration:        300,
+		AppHangSamplingRate:            100,
+		AppHangReplayEnabled:           true,
 		LaunchSamplingRate:             100,
 		GestureClickTakeSnapshot:       true,
 		HTTPSamplingRate:               100,
@@ -321,6 +333,10 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 		Select("error_unhandled_sampling_rate").
 		Select("error_handled_sampling_rate").
 		Select("anr_take_screenshot").
+		Select("app_hang_threshold_millis").
+		Select("app_hang_timeline_duration").
+		Select("app_hang_sampling_rate").
+		Select("app_hang_replay_enabled").
 		Select("launch_sampling_rate").
 		Select("gesture_click_take_snapshot").
 		Select("http_sampling_rate").
@@ -361,6 +377,10 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 		&sdkConfig.ErrorUnhandledSamplingRate,
 		&sdkConfig.ErrorHandledSamplingRate,
 		&sdkConfig.ANRTakeScreenshot,
+		&sdkConfig.AppHangThresholdMillis,
+		&sdkConfig.AppHangTimelineDuration,
+		&sdkConfig.AppHangSamplingRate,
+		&sdkConfig.AppHangReplayEnabled,
 		&sdkConfig.LaunchSamplingRate,
 		&sdkConfig.GestureClickTakeSnapshot,
 		&sdkConfig.HTTPSamplingRate,
@@ -423,6 +443,10 @@ func CreateConfig(ctx context.Context, tx pgx.Tx, teamID, appID uuid.UUID, creat
 		Set("error_unhandled_sampling_rate", config.ErrorUnhandledSamplingRate).
 		Set("error_handled_sampling_rate", config.ErrorHandledSamplingRate).
 		Set("anr_take_screenshot", config.ANRTakeScreenshot).
+		Set("app_hang_threshold_millis", config.AppHangThresholdMillis).
+		Set("app_hang_timeline_duration", config.AppHangTimelineDuration).
+		Set("app_hang_sampling_rate", config.AppHangSamplingRate).
+		Set("app_hang_replay_enabled", config.AppHangReplayEnabled).
 		Set("launch_sampling_rate", config.LaunchSamplingRate).
 		Set("gesture_click_take_snapshot", config.GestureClickTakeSnapshot).
 		Set("http_sampling_rate", config.HTTPSamplingRate).

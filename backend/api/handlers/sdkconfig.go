@@ -28,7 +28,8 @@ const configColumns = `max_events_in_batch, error_replay_duration, anr_timeline_
 	error_fatal_take_screenshot, error_fatal_replay_enabled,
 	error_unhandled_replay_enabled, error_handled_replay_enabled,
 	error_fatal_sampling_rate, error_unhandled_sampling_rate, error_handled_sampling_rate,
-	anr_take_screenshot, launch_sampling_rate,
+	anr_take_screenshot, app_hang_threshold_millis, app_hang_timeline_duration,
+	app_hang_sampling_rate, app_hang_replay_enabled, launch_sampling_rate,
 	gesture_click_take_snapshot, http_sampling_rate, http_disable_event_for_urls,
 	http_track_request_for_urls, http_track_response_for_urls, http_blocked_headers,
 	profile_sampling_rate, updated_at, updated_by`
@@ -134,6 +135,21 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 	if patch.ANRTakeScreenshot != nil {
 		stmt.Set("anr_take_screenshot", *patch.ANRTakeScreenshot)
 	}
+	if patch.AppHangThresholdMillis != nil {
+		stmt.Set("app_hang_threshold_millis", *patch.AppHangThresholdMillis)
+	}
+	if patch.AppHangTimelineDuration != nil {
+		stmt.Set("app_hang_timeline_duration", *patch.AppHangTimelineDuration)
+	}
+	if patch.AppHangSamplingRate != nil {
+		if *patch.AppHangSamplingRate < 0 || *patch.AppHangSamplingRate > 100 {
+			return fmt.Errorf("app_hang_sampling_rate must be between 0-100")
+		}
+		stmt.Set("app_hang_sampling_rate", *patch.AppHangSamplingRate)
+	}
+	if patch.AppHangReplayEnabled != nil {
+		stmt.Set("app_hang_replay_enabled", *patch.AppHangReplayEnabled)
+	}
 	if patch.LaunchSamplingRate != nil {
 		if *patch.LaunchSamplingRate < 0 || *patch.LaunchSamplingRate > 100 {
 			return fmt.Errorf("launch_sampling_rate must be between 0-100")
@@ -202,6 +218,10 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		&config.ErrorUnhandledSamplingRate,
 		&config.ErrorHandledSamplingRate,
 		&config.ANRTakeScreenshot,
+		&config.AppHangThresholdMillis,
+		&config.AppHangTimelineDuration,
+		&config.AppHangSamplingRate,
+		&config.AppHangReplayEnabled,
 		&config.LaunchSamplingRate,
 		&config.GestureClickTakeSnapshot,
 		&config.HTTPSamplingRate,

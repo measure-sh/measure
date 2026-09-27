@@ -3799,6 +3799,16 @@ paths:
                     maximum: 100
                   anr_take_screenshot:
                     type: boolean
+                  app_hang_threshold_millis:
+                    type: integer
+                  app_hang_timeline_duration:
+                    type: integer
+                  app_hang_sampling_rate:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+                  app_hang_replay_enabled:
+                    type: boolean
                   launch_sampling_rate:
                     type: number
                     minimum: 0
@@ -3854,6 +3864,10 @@ paths:
                     error_unhandled_sampling_rate: 100
                     error_handled_sampling_rate: 0
                     anr_take_screenshot: true
+                    app_hang_threshold_millis: 2000
+                    app_hang_timeline_duration: 300
+                    app_hang_sampling_rate: 100
+                    app_hang_replay_enabled: true
                     launch_sampling_rate: 1
                     gesture_click_take_snapshot: true
                     http_sampling_rate: 100
