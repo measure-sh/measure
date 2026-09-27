@@ -2623,6 +2623,7 @@ func TestMCPToolsList(t *testing.T) {
 		"get_errors_over_time", "get_error_over_time", "get_error_distribution",
 		"get_error_common_path",
 		"get_sessions", "get_sessions_over_time", "get_session",
+		"get_memory_usage_over_time", "get_memory_usage_by_device_tier", "get_high_memory_sessions",
 		"get_bug_reports", "get_bug_reports_over_time", "get_bug_report",
 		"update_bug_report_status",
 		"get_root_span_names", "get_span_instances", "get_span_metrics_over_time",
@@ -2998,6 +2999,123 @@ func TestMCPGetAppHealthOverTime(t *testing.T) {
 			if len(result[series]) != 0 {
 				t.Errorf("%s = %v, want nothing for an unseeded version", series, result[series])
 			}
+		}
+	})
+}
+
+func TestMCPMemoryTools(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("memory usage over time requires timezone", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "memorynotz@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "memorynotz team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
+
+		resp := callMCPTool(t, rawToken, "get_memory_usage_over_time", map[string]any{"app_id": appID.String()})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for missing timezone")
+		}
+	})
+
+	t.Run("returns the existing memory queries", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "memory@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "memory team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+
+		base := time.Now().UTC().Add(-time.Hour).Truncate(time.Second)
+		sessionID := uuid.New()
+		anonRSS := uint64(2 * 1024 * 1024)
+		swap := uint64(512 * 1024)
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+			Type:                "memory_usage",
+			SessionID:           sessionID.String(),
+			Timestamp:           base,
+			AppVersion:          "v2",
+			AppBuild:            "2",
+			DeviceTotalMemory:   5 * 1024 * 1024,
+			MemoryAnonRSS:       &anonRSS,
+			MemorySwap:          &swap,
+			MemoryAppImportance: "foreground",
+		})
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		args := map[string]any{
+			"app_id":      appID.String(),
+			"from":        base.Add(-time.Minute).Format(time.RFC3339),
+			"to":          base.Add(time.Minute).Format(time.RFC3339),
+			"filter_expr": "app_state:eq:foreground",
+		}
+
+		plotArgs := make(map[string]any, len(args)+1)
+		for key, value := range args {
+			plotArgs[key] = value
+		}
+		plotArgs["timezone"] = "UTC"
+		plot := callMCPTool(t, rawToken, "get_memory_usage_over_time", plotArgs)
+		if isToolError(plot) {
+			t.Fatalf("memory plot returned an error: %s", extractTextContent(t, plot))
+		}
+		var points []struct {
+			Version     string   `json:"version"`
+			P95         *float64 `json:"p95"`
+			SampleCount uint64   `json:"sample_count"`
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, plot)), &points); err != nil {
+			t.Fatalf("unmarshal memory plot: %v", err)
+		}
+		if len(points) != 1 || points[0].Version != "v2 (2)" || points[0].P95 == nil || *points[0].P95 != float64(anonRSS+swap) || points[0].SampleCount != 1 {
+			t.Fatalf("memory plot = %#v, want one 2.5 GiB sample for v2 (2)", points)
+		}
+
+		breakdown := callMCPTool(t, rawToken, "get_memory_usage_by_device_tier", args)
+		if isToolError(breakdown) {
+			t.Fatalf("memory breakdown returned an error: %s", extractTextContent(t, breakdown))
+		}
+		var tiers []struct {
+			Tier         string   `json:"device_total_memory_tier"`
+			P95          *float64 `json:"p95"`
+			SessionCount uint64   `json:"session_count"`
+			SampleCount  uint64   `json:"sample_count"`
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, breakdown)), &tiers); err != nil {
+			t.Fatalf("unmarshal memory breakdown: %v", err)
+		}
+		if len(tiers) != 1 || tiers[0].Tier != "5-6gb" || tiers[0].P95 == nil || *tiers[0].P95 != float64(anonRSS+swap) || tiers[0].SessionCount != 1 || tiers[0].SampleCount != 1 {
+			t.Fatalf("memory breakdown = %#v, want one 5-6gb session", tiers)
+		}
+
+		high := callMCPTool(t, rawToken, "get_high_memory_sessions", args)
+		if isToolError(high) {
+			t.Fatalf("high memory sessions returned an error: %s", extractTextContent(t, high))
+		}
+		var highResult struct {
+			Results []struct {
+				SessionID       string   `json:"session_id"`
+				PeakMemoryKB    uint64   `json:"peak_memory_kb"`
+				PercentOfTarget *float64 `json:"percent_of_target"`
+			} `json:"results"`
+			Meta map[string]bool `json:"meta"`
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, high)), &highResult); err != nil {
+			t.Fatalf("unmarshal high memory sessions: %v", err)
+		}
+		if len(highResult.Results) != 1 || highResult.Results[0].SessionID != sessionID.String() || highResult.Results[0].PeakMemoryKB != anonRSS+swap || highResult.Results[0].PercentOfTarget == nil || *highResult.Results[0].PercentOfTarget < 100 || highResult.Meta["next"] || highResult.Meta["previous"] {
+			t.Fatalf("high memory sessions = %#v, want the qualifying session", highResult)
+		}
+
+		keys := callMCPTool(t, rawToken, "get_filter_keys", map[string]any{"app_id": appID.String(), "entity": "memory"})
+		if isToolError(keys) || !strings.Contains(extractTextContent(t, keys), `"name":"app_state"`) {
+			t.Fatalf("memory filter keys = %s, want app_state", extractTextContent(t, keys))
 		}
 	})
 }
