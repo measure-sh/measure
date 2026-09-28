@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Use installation id for errors user count by @anupcowkur in #4538
 - (**backend**): Add memory MCP tools (#4535) by @abhaysood in #4535
 - (**backend**): Remove deprecated low_memory event by @abhaysood in #4528
 - (**backend**): Add agent evals for answers and compaction by @anupcowkur in #4512
