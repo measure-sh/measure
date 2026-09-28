@@ -543,8 +543,8 @@ func TestGetErrorGroupsWithFilterAggregates(t *testing.T) {
 		return row
 	}
 	sessionID := uuid.NewString()
-	seedEventRows(f.ctx, t, teamID, appID, 2, crash(testinfra.EventRow{Timestamp: ts, SessionID: sessionID, UserID: "ana"}))
-	seedEventRows(f.ctx, t, teamID, appID, 1, crash(testinfra.EventRow{Timestamp: ts.Add(30 * time.Minute), UserID: "bob"}))
+	seedEventRows(f.ctx, t, teamID, appID, 2, crash(testinfra.EventRow{Timestamp: ts, SessionID: sessionID, InstallationID: uuid.NewString()}))
+	seedEventRows(f.ctx, t, teamID, appID, 1, crash(testinfra.EventRow{Timestamp: ts.Add(30 * time.Minute)}))
 	lastSeen := ts.Add(90 * time.Minute)
 	seedEventRows(f.ctx, t, teamID, appID, 1, crash(testinfra.EventRow{Timestamp: lastSeen}))
 
@@ -564,9 +564,8 @@ func TestGetErrorGroupsWithFilterAggregates(t *testing.T) {
 	if g.Count != 4 {
 		t.Errorf("count = %d, want 4", g.Count)
 	}
-	// The event with no user id is left out of the users.
-	if g.Users != 2 {
-		t.Errorf("users = %d, want 2", g.Users)
+	if g.Users != 3 {
+		t.Errorf("users = %d, want 3", g.Users)
 	}
 	if g.Sessions != 3 {
 		t.Errorf("sessions = %d, want 3", g.Sessions)

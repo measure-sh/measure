@@ -235,14 +235,15 @@ func (h *TestHelper) SeedIngestionUsage(ctx context.Context, t *testing.T, teamI
 //   - Type:       "test"
 //   - AppVersion: "v1", AppBuild: "1"
 //   - Timestamp:  time.Now().UTC()
-//   - EventID, SessionID: a fresh UUID per inserted row
+//   - EventID, SessionID, InstallationID: a fresh UUID per inserted row
 type EventRow struct {
-	Type       string
-	EventID    string
-	SessionID  string
-	Timestamp  time.Time
-	AppVersion string
-	AppBuild   string
+	Type           string
+	EventID        string
+	SessionID      string
+	InstallationID string
+	Timestamp      time.Time
+	AppVersion     string
+	AppBuild       string
 
 	InsertedAt time.Time
 
@@ -334,9 +335,10 @@ func (r EventRow) filled() EventRow {
 }
 
 // SeedEventRows inserts count rows described by row into the events table using
-// a single bulk INSERT ... SELECT FROM numbers(count). Each row gets a fresh id
-// and installation id; the session id is fresh per row unless row.SessionID
-// pins it, so a batch of generic events represents distinct sessions. Issue
+// a single bulk INSERT ... SELECT FROM numbers(count). Each row gets a fresh id;
+// the session and installation ids are fresh per row unless row.SessionID or
+// row.InstallationID pins them, so a batch of generic events represents
+// distinct sessions on distinct installations. Issue
 // payload columns are emitted only for exception/anr events.
 func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, appID string, count int, row EventRow) {
 	t.Helper()
@@ -365,6 +367,10 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 	if row.SessionID != "" {
 		sessionExpr = quote(row.SessionID)
 	}
+	installationExpr := "generateUUIDv4()"
+	if row.InstallationID != "" {
+		installationExpr = quote(row.InstallationID)
+	}
 
 	cols := []string{
 		"id", "type", "session_id", "app_id", "team_id", "timestamp", "user_triggered",
@@ -373,7 +379,7 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 	}
 	vals := []string{
 		idExpr, quote(row.Type), sessionExpr, quote(appID), quote(teamID),
-		quote(ts), "false", "generateUUIDv4()",
+		quote(ts), "false", installationExpr,
 		quote(row.AppVersion), quote(row.AppBuild), "'com.test'", "'0.1'",
 	}
 

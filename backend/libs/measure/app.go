@@ -321,7 +321,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt 
 		Select("app_id").
 		Select("count() as event_count").
 		Select("max(timestamp) as last_seen").
-		Select("uniqIf(`attribute.user_id`, `attribute.user_id` != '') as users").
+		Select("uniq(`attribute.installation_id`) as users").
 		Select("uniq(session_id) as sessions").
 		Where(errorFingerprintExpr + " != ''").
 		GroupBy("team_id").
