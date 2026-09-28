@@ -24,7 +24,10 @@ function renderLink() {
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <GetStartedLink location="hero" />
+      <GetStartedLink
+        location="hero"
+        onClick={(event) => event.preventDefault()}
+      />
     </QueryClientProvider>,
   );
   return queryClient;
