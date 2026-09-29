@@ -44,6 +44,10 @@ const mockUseErrorsDetailsPlotQuery = jest.fn(
 const mockUseErrorsDistributionPlotQuery = jest.fn(
   (_filter: any, _errorGroupId: string) => pendingQueryState(),
 );
+const mockUseErrorsAttributeDistributionPlotQuery = jest.fn(
+  (_filter: any, _errorGroupId: string, _attribute: any, _placeholder: any) =>
+    pendingQueryState(),
+);
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
@@ -65,6 +69,18 @@ jest.mock("@/app/query/hooks", () => ({
     mockUseErrorsDetailsPlotQuery(filter, errorGroupId),
   useErrorsDistributionPlotQuery: (filter: any, errorGroupId: string) =>
     mockUseErrorsDistributionPlotQuery(filter, errorGroupId),
+  useErrorsAttributeDistributionPlotQuery: (
+    filter: any,
+    errorGroupId: string,
+    attribute: any,
+    placeholder: any,
+  ) =>
+    mockUseErrorsAttributeDistributionPlotQuery(
+      filter,
+      errorGroupId,
+      attribute,
+      placeholder,
+    ),
 }));
 
 jest.mock("@/app/components/filter_bar/filter_bar", () => ({
@@ -106,9 +122,11 @@ jest.mock("@/app/components/errors_details_plot", () => ({
 
 jest.mock("@/app/components/errors_distribution_plot", () => ({
   __esModule: true,
-  default: () => (
+  default: (props: any) => (
     <div data-testid="errors-distribution-plot-mock">
       ErrorsDistributionPlot Rendered
+      <span data-testid="distribution-selected">{String(props.selected)}</span>
+      <button onClick={() => props.onSelect("device")}>select device</button>
     </div>
   ),
 }));
@@ -258,6 +276,10 @@ describe("ErrorGroupDetails page", () => {
     mockUseErrorsDetailsPlotQuery.mockReturnValue(pendingQueryState());
     mockUseErrorsDistributionPlotQuery.mockReset();
     mockUseErrorsDistributionPlotQuery.mockReturnValue(pendingQueryState());
+    mockUseErrorsAttributeDistributionPlotQuery.mockReset();
+    mockUseErrorsAttributeDistributionPlotQuery.mockReturnValue(
+      pendingQueryState(),
+    );
   });
 
   it("renders the filter bar fixed to the route's app, with no app select", () => {
@@ -317,6 +339,40 @@ describe("ErrorGroupDetails page", () => {
     expect(
       await screen.findByTestId("error-group-common-path-mock"),
     ).toBeInTheDocument();
+  });
+
+  it("fetches the distribution attribute the plot selects", () => {
+    const deviceSummary = { attribute: "device", values: [] };
+    mockUseErrorsDistributionPlotQuery.mockReturnValue({
+      ...pendingQueryState(),
+      status: "success",
+      data: [deviceSummary],
+    });
+    detailsLoaded();
+    renderPage();
+
+    expect(
+      mockUseErrorsAttributeDistributionPlotQuery,
+    ).toHaveBeenLastCalledWith(
+      expect.objectContaining({ appId: "app-1" }),
+      "g1",
+      null,
+      undefined,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "select device" }));
+
+    expect(screen.getByTestId("distribution-selected")).toHaveTextContent(
+      "device",
+    );
+    expect(
+      mockUseErrorsAttributeDistributionPlotQuery,
+    ).toHaveBeenLastCalledWith(
+      expect.objectContaining({ appId: "app-1" }),
+      "g1",
+      "device",
+      deviceSummary,
+    );
   });
 
   it("renders Stack traces heading and event details when the query succeeds", () => {

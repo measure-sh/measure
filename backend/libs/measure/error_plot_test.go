@@ -3,6 +3,9 @@
 package measure
 
 import (
+	"fmt"
+	"reflect"
+	"slices"
 	"testing"
 	"time"
 
@@ -266,22 +269,195 @@ func TestGetErrorGroupAttributesDistribution(t *testing.T) {
 		if err != nil {
 			t.Fatalf("GetErrorGroupAttributesDistribution: %v", err)
 		}
-		if got := distribution.Country["US"]; got != 1 {
-			t.Errorf("country US = %d, want 1", got)
+		want := []event.AttributeValueCount{{Value: "US", Count: 1}}
+		if got := distribution["country"].Values; !slices.Equal(got, want) {
+			t.Errorf("country = %v, want %v", got, want)
 		}
-		if got := distribution.AppVersion["1.1.0 (110)"]; got != 1 {
-			t.Errorf("app version 1.1.0 (110) = %d, want 1", got)
+		want = []event.AttributeValueCount{{Value: "1.1.0 (110)", Count: 1}}
+		if got := distribution["app_version"].Values; !slices.Equal(got, want) {
+			t.Errorf("app version = %v, want %v", got, want)
 		}
 	})
 
-	t.Run("a filter the error does not match empties the distribution", func(t *testing.T) {
+	t.Run("a filter the error does not match empties every attribute", func(t *testing.T) {
 		exprTree := leaf("os_name", filter.OperatorIn, "ios")
 		distribution, err := f.app.GetErrorGroupAttributesDistribution(f.ctx, deps.RchPool, fpANR, f.newFilter(&exprTree))
 		if err != nil {
 			t.Fatalf("GetErrorGroupAttributesDistribution: %v", err)
 		}
-		if len(distribution.Country) != 0 {
-			t.Errorf("want no countries, got %v", distribution.Country)
+		if len(distribution) != 6 {
+			t.Fatalf("want 6 attributes, got %v", distribution)
+		}
+		for attribute, attributeDistribution := range distribution {
+			if len(attributeDistribution.Values) != 0 || attributeDistribution.OtherCount != 0 || attributeDistribution.DistinctCount != 0 {
+				t.Errorf("%s = %+v, want empty", attribute, attributeDistribution)
+			}
+		}
+	})
+}
+
+func TestGetErrorGroupDistributionKeepsMostFrequentValues(t *testing.T) {
+	f := newErrorKindsFixture(t)
+
+	// Device i carries i instances, so the five most frequent are 7 down to 3
+	// and devices 1 and 2 add up to the 3 other instances.
+	const fingerprint = "0000000000000000000000000000c0d1"
+	for i := 1; i <= 7; i++ {
+		seedEventRows(f.ctx, t, f.teamIDStr(), f.appIDStr(), i, testinfra.EventRow{
+			Type: "exception", Fingerprint: fingerprint, Severity: "fatal",
+			ExceptionsJSON: `[{"type":"java.lang.RuntimeException","message":"Test error","frames":[]}]`,
+			Timestamp:      f.ts, AppVersion: "1.1.0", AppBuild: "110",
+			OSName: "android", OSVersion: "14", CountryCode: "US", NetworkType: "wifi",
+			DeviceLocale: "en-US", DeviceManufacturer: "TestCo", DeviceName: fmt.Sprintf("device-%d", i),
+		})
+	}
+
+	deviceCounts := func(from, to int) []event.AttributeValueCount {
+		counts := []event.AttributeValueCount{}
+		for i := from; i >= to; i-- {
+			counts = append(counts, event.AttributeValueCount{Value: fmt.Sprintf("TestCo - device-%d", i), Count: uint64(i)})
+		}
+		return counts
+	}
+
+	t.Run("every attribute keeps its five most frequent values", func(t *testing.T) {
+		distribution, err := f.app.GetErrorGroupAttributesDistribution(f.ctx, deps.RchPool, fingerprint, f.newFilter(nil))
+		if err != nil {
+			t.Fatalf("GetErrorGroupAttributesDistribution: %v", err)
+		}
+		device := distribution["device"]
+		if want := deviceCounts(7, 3); !slices.Equal(device.Values, want) {
+			t.Errorf("device values = %v, want %v", device.Values, want)
+		}
+		if device.OtherCount != 3 {
+			t.Errorf("device other count = %d, want 3", device.OtherCount)
+		}
+		if device.DistinctCount != 7 {
+			t.Errorf("device distinct count = %d, want 7", device.DistinctCount)
+		}
+		country := distribution["country"]
+		want := []event.AttributeValueCount{{Value: "US", Count: 28}}
+		if !slices.Equal(country.Values, want) || country.OtherCount != 0 || country.DistinctCount != 1 {
+			t.Errorf("country = %+v, want only US with 28 instances", country)
+		}
+	})
+
+	t.Run("one attribute keeps every value under its limit", func(t *testing.T) {
+		device, err := f.app.GetErrorGroupSingleAttributeDistribution(f.ctx, deps.RchPool, fingerprint, "device", f.newFilter(nil))
+		if err != nil {
+			t.Fatalf("GetErrorGroupSingleAttributeDistribution: %v", err)
+		}
+		if want := deviceCounts(7, 1); !slices.Equal(device.Values, want) {
+			t.Errorf("device values = %v, want %v", device.Values, want)
+		}
+		if device.OtherCount != 0 || device.DistinctCount != 7 {
+			t.Errorf("device other count = %d, distinct count = %d, want 0 and 7", device.OtherCount, device.DistinctCount)
+		}
+	})
+
+	t.Run("an unknown attribute is an error", func(t *testing.T) {
+		if _, err := f.app.GetErrorGroupSingleAttributeDistribution(f.ctx, deps.RchPool, fingerprint, "battery", f.newFilter(nil)); err == nil {
+			t.Fatal("want an error for an unknown attribute")
+		}
+	})
+}
+
+func TestGetErrorGroupSingleAttributeDistributionKeeps25Values(t *testing.T) {
+	f := newErrorKindsFixture(t)
+
+	// Device i carries i instances, so the 25 most frequent are 27 down to 3
+	// and devices 1 and 2 add up to the 3 other instances.
+	const fingerprint = "0000000000000000000000000000c0d2"
+	for i := 1; i <= 27; i++ {
+		seedEventRows(f.ctx, t, f.teamIDStr(), f.appIDStr(), i, testinfra.EventRow{
+			Type: "exception", Fingerprint: fingerprint, Severity: "fatal",
+			ExceptionsJSON: `[{"type":"java.lang.RuntimeException","message":"Test error","frames":[]}]`,
+			Timestamp:      f.ts, OSName: "android", OSVersion: "14",
+			DeviceManufacturer: "TestCo", DeviceName: fmt.Sprintf("device-%02d", i),
+		})
+	}
+
+	device, err := f.app.GetErrorGroupSingleAttributeDistribution(f.ctx, deps.RchPool, fingerprint, "device", f.newFilter(nil))
+	if err != nil {
+		t.Fatalf("GetErrorGroupSingleAttributeDistribution: %v", err)
+	}
+
+	want := []event.AttributeValueCount{}
+	for i := 27; i >= 3; i-- {
+		want = append(want, event.AttributeValueCount{Value: fmt.Sprintf("TestCo - device-%02d", i), Count: uint64(i)})
+	}
+	if !slices.Equal(device.Values, want) {
+		t.Errorf("device values = %v, want %v", device.Values, want)
+	}
+	if device.OtherCount != 3 || device.DistinctCount != 27 {
+		t.Errorf("device other count = %d, distinct count = %d, want 3 and 27", device.OtherCount, device.DistinctCount)
+	}
+}
+
+func TestGetErrorGroupDistributionMissingJoinedValues(t *testing.T) {
+	f := newErrorKindsFixture(t)
+
+	const fingerprint = "0000000000000000000000000000c0d3"
+	seedEventRows(f.ctx, t, f.teamIDStr(), f.appIDStr(), 1, testinfra.EventRow{
+		Type: "exception", Fingerprint: fingerprint, Severity: "fatal",
+		ExceptionsJSON: `[{"type":"java.lang.RuntimeException","message":"Test error","frames":[]}]`,
+		Timestamp:      f.ts,
+	})
+
+	distribution, err := f.app.GetErrorGroupAttributesDistribution(f.ctx, deps.RchPool, fingerprint, f.newFilter(nil))
+	if err != nil {
+		t.Fatalf("GetErrorGroupAttributesDistribution: %v", err)
+	}
+	for _, attribute := range []string{"os_version", "device"} {
+		want := []event.AttributeValueCount{{Value: "", Count: 1}}
+		if got := distribution[attribute].Values; !slices.Equal(got, want) {
+			t.Errorf("%s = %v, want %v", attribute, got, want)
+		}
+	}
+}
+
+func TestTopAttributeValues(t *testing.T) {
+	counts := map[string]uint64{"b": 5, "a": 5, "c": 9, "d": 1, "e": 2}
+
+	tests := []struct {
+		name  string
+		limit int
+		want  event.AttributeDistribution
+	}{
+		{
+			name:  "keeps the most frequent values with ties in value order and totals the rest",
+			limit: 3,
+			want: event.AttributeDistribution{
+				Values:        []event.AttributeValueCount{{Value: "c", Count: 9}, {Value: "a", Count: 5}, {Value: "b", Count: 5}},
+				OtherCount:    3,
+				DistinctCount: 5,
+			},
+		},
+		{
+			name:  "a limit above the value count keeps every value",
+			limit: 100,
+			want: event.AttributeDistribution{
+				Values: []event.AttributeValueCount{
+					{Value: "c", Count: 9}, {Value: "a", Count: 5}, {Value: "b", Count: 5}, {Value: "e", Count: 2}, {Value: "d", Count: 1},
+				},
+				OtherCount:    0,
+				DistinctCount: 5,
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := topAttributeValues(counts, test.limit); !reflect.DeepEqual(got, test.want) {
+				t.Errorf("topAttributeValues = %+v, want %+v", got, test.want)
+			}
+		})
+	}
+
+	t.Run("no values gives an empty list", func(t *testing.T) {
+		got := topAttributeValues(map[string]uint64{}, 5)
+		if got.Values == nil || len(got.Values) != 0 || got.OtherCount != 0 || got.DistinctCount != 0 {
+			t.Errorf("topAttributeValues = %+v, want an empty, non-nil list", got)
 		}
 	})
 }

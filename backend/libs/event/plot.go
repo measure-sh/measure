@@ -9,14 +9,17 @@ type IssueInstance struct {
 	IssueFreeSessions *float64 `json:"issue_free_sessions"`
 }
 
-// IssueDistribution represents an entity
-// for plotting attribute distribution of crash
-// or ANR instances.
-type IssueDistribution struct {
-	AppVersion  map[string]uint64 `json:"app_version"`
-	OSVersion   map[string]uint64 `json:"os_version"`
-	Country     map[string]uint64 `json:"country"`
-	NetworkType map[string]uint64 `json:"network_type"`
-	Locale      map[string]uint64 `json:"locale"`
-	Device      map[string]uint64 `json:"device"`
+type AttributeValueCount struct {
+	Value string `json:"value"`
+	Count uint64 `json:"count"`
 }
+
+// OtherCount totals the instances of the values
+// not listed in Values.
+type AttributeDistribution struct {
+	Values        []AttributeValueCount `json:"values"`
+	OtherCount    uint64                `json:"other_count"`
+	DistinctCount uint64                `json:"distinct_count"`
+}
+
+type IssueDistribution map[string]AttributeDistribution

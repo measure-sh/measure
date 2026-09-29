@@ -75,6 +75,18 @@ export type MemoryUsageBreakdownRow = {
   sample_count: number;
 };
 
+// other_count totals the occurrences of the values not listed in values.
+export type AttributeDistributionResponse = {
+  values: { value: string; count: number }[];
+  other_count: number;
+  distinct_count: number;
+};
+
+export type ErrorDistributionResponse = Record<
+  string,
+  AttributeDistributionResponse
+>;
+
 export type HighMemoryUsageSession = {
   session_id: string;
   app_id: string;
@@ -1025,7 +1037,7 @@ export const fetchErrorsDistributionPlotFromServer = async (
   endDate: string,
   filterExpr: string | null,
   errorGroupId: string,
-) => {
+): Promise<ErrorDistributionResponse | null> => {
   const params = new URLSearchParams({
     from: formatUserInputDateToServerFormat(startDate),
     to: formatUserInputDateToServerFormat(endDate),
@@ -1035,24 +1047,39 @@ export const fetchErrorsDistributionPlotFromServer = async (
     params.set("filter_expr", filterExpr);
   }
 
-  const data = await request(
+  const data = await request<ErrorDistributionResponse | null>(
     `/api/apps/${appId}/errorGroups/${errorGroupId}/plots/distribution?${params.toString()}`,
     { failsWith: "Failed to fetch errors distribution plot" },
   );
 
-  if (
-    data === null ||
-    Object.values(data).every(
-      (value) =>
-        typeof value === "object" &&
-        value !== null &&
-        Object.keys(value).length === 0,
-    )
-  ) {
+  if (!data || Object.values(data).every(({ values }) => values.length === 0)) {
     return null;
   }
 
   return data;
+};
+
+export const fetchErrorsAttributeDistributionPlotFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  errorGroupId: string,
+  attribute: string,
+): Promise<AttributeDistributionResponse> => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+
+  return await request(
+    `/api/apps/${appId}/errorGroups/${errorGroupId}/plots/distribution/${attribute}?${params.toString()}`,
+    { failsWith: "Failed to fetch error attribute distribution" },
+  );
 };
 
 export const fetchAuthzAndMembersFromServer = async (teamId: string) => {

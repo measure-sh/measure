@@ -316,7 +316,7 @@ function byRoster(values: string[], total: number): Record<string, number> {
   );
 }
 
-function distributionFor(
+function attributeCountsFor(
   bundle: AppBundle,
   group: ErrorGroup,
   range: SandboxRange,
@@ -362,6 +362,22 @@ function distributionFor(
       pool((d) => `${d.device_manufacturer} - ${d.device_name}`),
       attrs.map((a) => `${a.device_manufacturer} - ${a.device_name}`),
     ),
+  };
+}
+
+const distributionSummaryLimit = 5;
+const distributionAttributeLimit = 25;
+
+function limitedDistribution(counts: Record<string, number>, limit: number) {
+  const sorted = Object.entries(counts)
+    .filter(([, count]) => count > 0)
+    .sort(([a, countA], [b, countB]) =>
+      countA !== countB ? countB - countA : a < b ? -1 : a > b ? 1 : 0,
+    );
+  return {
+    values: sorted.slice(0, limit).map(([value, count]) => ({ value, count })),
+    other_count: sorted.slice(limit).reduce((sum, [, count]) => sum + count, 0),
+    distinct_count: sorted.length,
   };
 }
 
@@ -584,12 +600,47 @@ export const errorsRoutes: SandboxRoute[] = [
         return jsonResponse({ error: "Error group not found" }, 404);
       }
       const bundle = catalog().appById.get(params.appId)!;
+      const counts = attributeCountsFor(
+        bundle,
+        group,
+        parseRange(url),
+        url.searchParams.get("filter_expr"),
+      );
       return jsonResponse(
-        distributionFor(
-          bundle,
-          group,
-          parseRange(url),
-          url.searchParams.get("filter_expr"),
+        Object.fromEntries(
+          Object.entries(counts).map(([attribute, attributeCounts]) => [
+            attribute,
+            limitedDistribution(attributeCounts, distributionSummaryLimit),
+          ]),
+        ),
+      );
+    },
+  },
+  {
+    method: "GET",
+    path: "/api/apps/:appId/errorGroups/:id/plots/distribution/:attribute",
+    handle: ({ params, url }) => {
+      const group = findGroup(params.appId, params.id);
+      if (!group) {
+        return jsonResponse({ error: "Error group not found" }, 404);
+      }
+      const bundle = catalog().appById.get(params.appId)!;
+      const counts: Record<string, Record<string, number>> = attributeCountsFor(
+        bundle,
+        group,
+        parseRange(url),
+        url.searchParams.get("filter_expr"),
+      );
+      if (!Object.hasOwn(counts, params.attribute)) {
+        return jsonResponse(
+          { error: "distribution attribute is invalid" },
+          400,
+        );
+      }
+      return jsonResponse(
+        limitedDistribution(
+          counts[params.attribute],
+          distributionAttributeLimit,
         ),
       );
     },

@@ -482,7 +482,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_error_distribution
 		newTool(&mcpsdk.Tool{
 			Name:        "get_error_distribution",
-			Description: "Get attribute distribution (OS, device, version, country) for a specific error group. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorGroupEventsEntity) + ".",
+			Description: "Get attribute distribution (app version, OS, country, network type, locale, device) for a specific error group: the 5 most frequent values of each attribute, the count of instances with any other value, and the number of distinct values. Pass attribute to list up to 25 values of one attribute. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorGroupEventsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorDistributionInput](mcpErrorGroupEventsFilterExprGrammar),
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorDistributionInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrorDistribution(ctx, in)
@@ -828,6 +828,7 @@ type mcpGetErrorDistributionInput struct {
 	To           string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
 	FilterExpr   string `json:"filter_expr,omitempty"`
 	ErrorGroupID string `json:"error_group_id" jsonschema:"Fingerprint/ID of the error group"`
+	Attribute    string `json:"attribute,omitempty" jsonschema:"Attribute to list up to 25 values of: app_version, os_version, country, network_type, locale or device (default: the 5 most frequent values of every attribute)"`
 }
 type mcpGetSessionsInput struct {
 	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
@@ -1518,6 +1519,20 @@ func (c *Config) mcpGetErrorDistribution(ctx context.Context, in mcpGetErrorDist
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
 	distCtx := ambient.WithTeamId(ctx, teamID)
+
+	if in.Attribute != "" {
+		if !measure.IsErrorDistributionAttribute(in.Attribute) {
+			return nil, nil, fmt.Errorf("attribute must be one of app_version, os_version, country, network_type, locale or device")
+		}
+		distribution, distErr := app.GetErrorGroupSingleAttributeDistribution(distCtx, deps.RchPool, in.ErrorGroupID, in.Attribute, flt)
+		if distErr != nil {
+			return nil, nil, fmt.Errorf("failed to get error distribution: %v", distErr)
+		}
+		data, _ := json.Marshal(distribution)
+
+		return mcpTextResult(string(data)), nil, nil
+	}
+
 	distribution, distErr := app.GetErrorGroupAttributesDistribution(distCtx, deps.RchPool, in.ErrorGroupID, flt)
 	if distErr != nil {
 		return nil, nil, fmt.Errorf("failed to get error distribution: %v", distErr)

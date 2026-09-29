@@ -27,6 +27,7 @@ import {
   makeCrashPlotFixture,
   makeErrorGroupEventsFilterKeysFixture,
   makeErrorsFilterKeysFixture,
+  makeAttributeDistributionFixture,
   makeExceptionDistributionFixture,
   makeExceptionInstanceFixture,
   makeExceptionsOverviewFixture,
@@ -134,10 +135,17 @@ export const handlers = [
     return HttpResponse.json(makeCrashPlotFixture());
   }),
 
-  // 15. GET /api/apps/:appId/errorGroups/:id/plots/distribution
+  // 15. GET /api/apps/:appId/errorGroups/:id/plots/distribution and
+  // /plots/distribution/:attribute
   http.get("*/api/apps/:appId/errorGroups/:groupId/plots/distribution", () => {
     return HttpResponse.json(makeExceptionDistributionFixture());
   }),
+  http.get(
+    "*/api/apps/:appId/errorGroups/:groupId/plots/distribution/:attribute",
+    () => {
+      return HttpResponse.json(makeAttributeDistributionFixture());
+    },
+  ),
 
   // 16. GET /api/apps/:appId/errorGroups/:id/path (common path)
   http.get("*/api/apps/:appId/errorGroups/:groupId/path", () => {

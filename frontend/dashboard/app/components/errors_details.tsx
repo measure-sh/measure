@@ -6,6 +6,8 @@ import FilterBar from "@/app/components/filter_bar/filter_bar";
 import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import Paginator from "@/app/components/paginator";
 import {
+  type DistributionAttribute,
+  useErrorsAttributeDistributionPlotQuery,
   useErrorsDetailsPlotQuery,
   useErrorsDetailsQuery,
   useErrorsDistributionPlotQuery,
@@ -216,6 +218,13 @@ interface ErrorsDetailsViewProps {
   onPrev?: () => void;
   detailsPlotQuery?: ReturnType<typeof useErrorsDetailsPlotQuery>;
   distributionPlotQuery?: ReturnType<typeof useErrorsDistributionPlotQuery>;
+  attributeDistributionPlotQuery?: ReturnType<
+    typeof useErrorsAttributeDistributionPlotQuery
+  >;
+  distributionAttribute?: DistributionAttribute | null;
+  onDistributionAttributeChange?: (
+    attribute: DistributionAttribute | null,
+  ) => void;
   demo?: boolean;
   hideDemoTitle?: boolean;
 }
@@ -236,6 +245,9 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
   onPrev = () => {},
   detailsPlotQuery,
   distributionPlotQuery,
+  attributeDistributionPlotQuery,
+  distributionAttribute = null,
+  onDistributionAttributeChange = () => {},
   demo = false,
   hideDemoTitle = false,
 }) => {
@@ -324,7 +336,13 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
             query={detailsPlotQuery}
             demo={demo}
           />
-          <ErrorsDistributionPlot query={distributionPlotQuery} demo={demo} />
+          <ErrorsDistributionPlot
+            query={distributionPlotQuery}
+            attributeQuery={attributeDistributionPlotQuery}
+            selected={distributionAttribute}
+            onSelect={onDistributionAttributeChange}
+            demo={demo}
+          />
         </div>
 
         <div className="py-8" />
@@ -587,11 +605,23 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
     filterParams,
     errorGroupId,
   );
+  const [distributionAttribute, setDistributionAttribute] =
+    useState<DistributionAttribute | null>(null);
+  const attributeDistributionPlotQuery =
+    useErrorsAttributeDistributionPlotQuery(
+      filterParams,
+      errorGroupId,
+      distributionAttribute,
+      distributionPlotQuery.data?.find(
+        (distribution) => distribution.attribute === distributionAttribute,
+      ),
+    );
 
   const filterExprIssues =
     filterExprIssuesIn(detailsQuery.error) ??
     filterExprIssuesIn(detailsPlotQuery.error) ??
-    filterExprIssuesIn(distributionPlotQuery.error);
+    filterExprIssuesIn(distributionPlotQuery.error) ??
+    filterExprIssuesIn(attributeDistributionPlotQuery.error);
 
   const {
     data: errorsDetails = emptyErrorGroupDetails,
@@ -666,6 +696,9 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
           onPrev={prevPage}
           detailsPlotQuery={detailsPlotQuery}
           distributionPlotQuery={distributionPlotQuery}
+          attributeDistributionPlotQuery={attributeDistributionPlotQuery}
+          distributionAttribute={distributionAttribute}
+          onDistributionAttributeChange={setDistributionAttribute}
         />
       )}
     </div>

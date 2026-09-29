@@ -24,6 +24,7 @@ import {
   fetchBuildsFromServer,
   fetchCheckoutSessionFromServer,
   fetchCustomerPortalUrlFromServer,
+  fetchErrorsAttributeDistributionPlotFromServer,
   fetchErrorGroupCommonPathFromServer,
   fetchErrorsDetailsFromServer,
   fetchErrorsDetailsPlotFromServer,
@@ -68,6 +69,8 @@ import {
   updateNotifPrefsFromServer,
   updateSdkConfigFromServer,
   updateTeamSlackStatusFromServer,
+  type AttributeDistributionResponse,
+  type ErrorDistributionResponse,
   type MemoryUsagePlotPoint,
 } from "@/app/api/api_calls";
 import {
@@ -318,16 +321,34 @@ export function transformMemoryUsagePlotData(
   return Array.from(pointsByVersion, ([id, data]) => ({ id, data }));
 }
 
-/** Distribution plot: parse attribute/value pairs with OS version formatting */
-function formatAttribute(str: string, hasAndroidData: boolean = false): string {
-  if (str === "os_version" && hasAndroidData) {
-    return "API Level";
-  }
-  return str
-    .split("_")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+export const distributionAttributes = [
+  "app_version",
+  "os_version",
+  "country",
+  "network_type",
+  "locale",
+  "device",
+] as const;
+
+export type DistributionAttribute = (typeof distributionAttributes)[number];
+
+export interface AttributeDistribution {
+  attribute: DistributionAttribute;
+  label: string;
+  values: { label: string; count: number }[];
+  otherCount: number;
+  distinctCount: number;
+  total: number;
 }
+
+const distributionAttributeLabels: Record<DistributionAttribute, string> = {
+  app_version: "App Version",
+  os_version: "OS Version",
+  country: "Country",
+  network_type: "Network Type",
+  locale: "Locale",
+  device: "Device",
+};
 
 function formatOsVersionKey(key: string): string {
   const parts = key.toLowerCase().split(" ");
@@ -347,36 +368,45 @@ function formatOsVersionKey(key: string): string {
   return key;
 }
 
-function parseDistributionPlot(resultData: any) {
-  if (resultData === null) {
+export function parseAttributeDistribution(
+  attribute: DistributionAttribute,
+  response: AttributeDistributionResponse,
+): AttributeDistribution {
+  const values = response.values.map(({ value, count }) => ({
+    label:
+      value === ""
+        ? "Unknown"
+        : attribute === "os_version"
+          ? formatOsVersionKey(value)
+          : value,
+    count,
+  }));
+  const hasAndroidData =
+    attribute === "os_version" &&
+    response.values.some(({ value }) =>
+      value.toLowerCase().startsWith("android"),
+    );
+  return {
+    attribute,
+    label: hasAndroidData
+      ? "API Level"
+      : distributionAttributeLabels[attribute],
+    values,
+    otherCount: response.other_count,
+    distinctCount: response.distinct_count,
+    total: values.reduce((sum, { count }) => sum + count, response.other_count),
+  };
+}
+
+function parseDistributionPlot(
+  response: ErrorDistributionResponse | null,
+): AttributeDistribution[] | null {
+  if (response === null) {
     return null;
   }
-  const plotKeys: string[] = [];
-  const plot = Object.entries(resultData).map(([attribute, values]) => {
-    const transformedValues: { [key: string]: number } = {};
-    let hasAndroidData = false;
-    Object.entries(values as { [key: string]: number }).forEach(
-      ([key, value]) => {
-        if (
-          attribute === "os_version" &&
-          key.toLowerCase().startsWith("android")
-        ) {
-          hasAndroidData = true;
-        }
-        const transformedKey =
-          attribute === "os_version" ? formatOsVersionKey(key) : key;
-        transformedValues[transformedKey] = value;
-        if (!plotKeys.includes(transformedKey)) {
-          plotKeys.push(transformedKey);
-        }
-      },
-    );
-    return {
-      attribute: formatAttribute(attribute, hasAndroidData),
-      ...transformedValues,
-    };
-  });
-  return { plot, plotKeys };
+  return distributionAttributes.map((attribute) =>
+    parseAttributeDistribution(attribute, response[attribute]),
+  );
 }
 
 // ─── Metrics ─────────────────────────────────────────────────────────────
@@ -1081,6 +1111,39 @@ export function useErrorsDistributionPlotQuery(
       return parseDistributionPlot(result);
     },
     enabled: params !== null && errorGroupId !== "",
+    retry: false,
+  });
+}
+
+export function useErrorsAttributeDistributionPlotQuery(
+  params: FilterParams | null,
+  errorGroupId: string,
+  attribute: DistributionAttribute | null,
+  placeholder?: AttributeDistribution,
+) {
+  return useQuery({
+    queryKey: [
+      "errorsAttributeDistributionPlot",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+      errorGroupId,
+      attribute,
+    ] as const,
+    queryFn: async () => {
+      const result = await fetchErrorsAttributeDistributionPlotFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+        errorGroupId,
+        attribute!,
+      );
+      return parseAttributeDistribution(attribute!, result);
+    },
+    enabled: params !== null && errorGroupId !== "" && attribute !== null,
+    placeholderData: placeholder,
     retry: false,
   });
 }

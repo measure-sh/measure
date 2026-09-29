@@ -1,5 +1,6 @@
 import { describe, expect, it } from "@jest/globals";
 import { DateTime } from "luxon";
+import type { AttributeDistributionResponse } from "@/app/api/api_calls";
 import { catalog, computeMetrics } from "@/app/sandbox/catalog";
 import type { GeneratedEvent } from "@/app/sandbox/catalog";
 import { decodeToken, orderTotals, parseState } from "@/app/sandbox/layouts";
@@ -872,14 +873,22 @@ describe.each(apps)("sandbox routes agree: $app.name", (bundle) => {
           "network_type",
           "os_version",
         ]);
-        for (const dimension of Object.values(distribution) as Record<
-          string,
-          number
-        >[]) {
-          const parts = Object.values(dimension);
-          expect(parts.length).toBeGreaterThan(0);
-          expect(parts.reduce((a, b) => a + b, 0)).toBe(group.count);
+        for (const dimension of Object.values(
+          distribution,
+        ) as AttributeDistributionResponse[]) {
+          const counts = dimension.values.map(({ count }) => count);
+          expect(counts.length).toBeGreaterThan(0);
+          expect(counts.length).toBeLessThanOrEqual(5);
+          expect(counts).toEqual([...counts].sort((a, b) => b - a));
+          expect(
+            counts.reduce((a, b) => a + b, 0) + dimension.other_count,
+          ).toBe(group.count);
         }
+        const devices = await get(
+          `/api/apps/${appId}/errorGroups/${group.id}/plots/distribution/device?${query(range)}`,
+        );
+        expect(devices.values.slice(0, 5)).toEqual(distribution.device.values);
+        expect(devices.distinct_count).toBe(distribution.device.distinct_count);
         const path = await get(
           `/api/apps/${appId}/errorGroups/${group.id}/path`,
         );
