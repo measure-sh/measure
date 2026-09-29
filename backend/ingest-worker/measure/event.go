@@ -424,6 +424,9 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		binaryImages := "[]"
 		errorMeta := "{}"
 		var numCode int32
+		anonRSS := int64(-1)
+		swap := int64(-1)
+		availableMemory := int64(-1)
 
 		if e.events[i].IsANR() {
 			marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
@@ -899,14 +902,20 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 
 		// memory usage
 		if e.events[i].IsMemoryUsage() {
+			if e.events[i].MemoryUsage.AnonRSS != nil {
+				anonRSS = int64(*e.events[i].MemoryUsage.AnonRSS)
+			}
+			if e.events[i].MemoryUsage.Swap != nil {
+				swap = int64(*e.events[i].MemoryUsage.Swap)
+			}
 			row.
 				Set(`memory_usage.java_max_heap`, e.events[i].MemoryUsage.JavaMaxHeap).
 				Set(`memory_usage.java_total_heap`, e.events[i].MemoryUsage.JavaTotalHeap).
 				Set(`memory_usage.java_free_heap`, e.events[i].MemoryUsage.JavaFreeHeap).
 				Set(`memory_usage.total_pss`, e.events[i].MemoryUsage.TotalPSS).
 				Set(`memory_usage.rss`, e.events[i].MemoryUsage.RSS).
-				Set(`memory_usage.anon_rss`, e.events[i].MemoryUsage.AnonRSS).
-				Set(`memory_usage.swap`, e.events[i].MemoryUsage.Swap).
+				Set(`memory_usage.anon_rss`, anonRSS).
+				Set(`memory_usage.swap`, swap).
 				Set(`memory_usage.app_importance`, e.events[i].MemoryUsage.AppImportance).
 				Set(`memory_usage.native_total_heap`, e.events[i].MemoryUsage.NativeTotalHeap).
 				Set(`memory_usage.native_free_heap`, e.events[i].MemoryUsage.NativeFreeHeap).
@@ -928,10 +937,13 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 
 		// memory usage absolute
 		if e.events[i].IsMemoryUsageAbs() {
+			if e.events[i].MemoryUsageAbs.AvailableMemory != nil {
+				availableMemory = int64(*e.events[i].MemoryUsageAbs.AvailableMemory)
+			}
 			row.
 				Set(`memory_usage_absolute.max_memory`, e.events[i].MemoryUsageAbs.MaxMemory).
 				Set(`memory_usage_absolute.used_memory`, e.events[i].MemoryUsageAbs.UsedMemory).
-				Set(`memory_usage_absolute.available_memory`, e.events[i].MemoryUsageAbs.AvailableMemory).
+				Set(`memory_usage_absolute.available_memory`, availableMemory).
 				Set(`memory_usage_absolute.interval`, e.events[i].MemoryUsageAbs.Interval)
 		} else {
 			row.

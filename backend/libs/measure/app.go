@@ -2592,8 +2592,8 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			`memory_usage.java_free_heap`,
 			`memory_usage.total_pss`,
 			`memory_usage.rss`,
-			`memory_usage.anon_rss`,
-			`memory_usage.swap`,
+			"toUInt64(nullIf(`memory_usage.anon_rss`, -1)) as anon_rss",
+			"toUInt64(nullIf(`memory_usage.swap`, -1)) as swap",
 			`memory_usage.app_importance`,
 			`memory_usage.native_total_heap`,
 			`memory_usage.native_free_heap`,
@@ -2614,7 +2614,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			`lifecycle_swift_ui.class_name`,
 			`memory_usage_absolute.max_memory`,
 			`memory_usage_absolute.used_memory`,
-			`memory_usage_absolute.available_memory`,
+			"toUInt64(nullIf(`memory_usage_absolute.available_memory`, -1)) as available_memory",
 			`memory_usage_absolute.interval`,
 		}...)
 	}

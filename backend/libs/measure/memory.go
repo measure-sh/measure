@@ -65,6 +65,7 @@ type HighMemoryUsageSession struct {
 type memorySource struct {
 	eventType      string
 	usageKB        string
+	usageKnown     string
 	deviceMemoryKB string
 }
 
@@ -99,7 +100,8 @@ func (a App) memorySource() (memorySource, bool) {
 	case opsys.Android:
 		return memorySource{
 			eventType:      event.TypeMemoryUsage,
-			usageKB:        "`memory_usage.anon_rss` + `memory_usage.swap`",
+			usageKB:        "toUInt64(`memory_usage.anon_rss` + `memory_usage.swap`)",
+			usageKnown:     "`memory_usage.anon_rss` >= 0 AND `memory_usage.swap` >= 0",
 			deviceMemoryKB: "`attribute.device_total_memory`",
 		}, true
 	case opsys.AppleFamily:
@@ -153,6 +155,9 @@ func memoryUsageEvents(a App, flt *filter.Filter, source memorySource) (*sqlf.St
 		Where("type = ?", source.eventType).
 		Where("timestamp >= ? AND timestamp <= ?", flt.From, flt.To).
 		Where(source.usageKB + " > 0")
+	if source.usageKnown != "" {
+		stmt.Where(source.usageKnown)
+	}
 	if err := applyMemoryPredicate(stmt, flt); err != nil {
 		stmt.Close()
 		return nil, err
@@ -323,7 +328,7 @@ func (a App) GetHighMemoryUsageSessions(ctx context.Context, rch driver.Conn, fl
 		utilization := usage + " / (" + usage + " + toFloat64(" + available + "))"
 		memory.Select("max("+source.usageKB+") AS peak_memory_kb").
 			Select("max("+utilization+") AS peak_memory_limit_utilization").
-			Select("argMax("+available+", tuple("+utilization+", timestamp)) AS available_memory_at_peak_utilization_kb").
+			Select("toUInt64(argMax("+available+", tuple("+utilization+", timestamp))) AS available_memory_at_peak_utilization_kb").
 			Where(available+" > 0").
 			Having("peak_memory_limit_utilization >= ?", highMemoryUtilizationThreshold)
 	} else {
