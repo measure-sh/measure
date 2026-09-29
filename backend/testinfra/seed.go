@@ -356,6 +356,12 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 		}
 		return "false"
 	}
+	optionalKBLit := func(kb *uint64) string {
+		if kb == nil {
+			return "-1"
+		}
+		return strconv.FormatUint(*kb, 10)
+	}
 
 	// generateUUIDv4() is evaluated per row by ClickHouse, so id, installation
 	// id and (unpinned) event and session ids are unique across the batch.
@@ -478,22 +484,14 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 	if row.Type == "memory_usage" {
 		cols = append(cols, "`memory_usage.app_importance`")
 		vals = append(vals, quote(row.MemoryAppImportance))
-		if row.MemoryAnonRSS != nil {
-			cols = append(cols, "`memory_usage.anon_rss`")
-			vals = append(vals, strconv.FormatUint(*row.MemoryAnonRSS, 10))
-		}
-		if row.MemorySwap != nil {
-			cols = append(cols, "`memory_usage.swap`")
-			vals = append(vals, strconv.FormatUint(*row.MemorySwap, 10))
-		}
+		cols = append(cols, "`memory_usage.anon_rss`", "`memory_usage.swap`")
+		vals = append(vals, optionalKBLit(row.MemoryAnonRSS), optionalKBLit(row.MemorySwap))
 	}
 	if row.Type == "memory_usage_absolute" {
 		cols = append(cols, "`memory_usage_absolute.used_memory`", "`memory_usage_absolute.max_memory`")
 		vals = append(vals, strconv.FormatUint(row.MemoryUsed, 10), strconv.FormatUint(row.MemoryMax, 10))
-		if row.MemoryAvailable != nil {
-			cols = append(cols, "`memory_usage_absolute.available_memory`")
-			vals = append(vals, strconv.FormatUint(*row.MemoryAvailable, 10))
-		}
+		cols = append(cols, "`memory_usage_absolute.available_memory`")
+		vals = append(vals, optionalKBLit(row.MemoryAvailable))
 	}
 	if row.PatchID != uuid.Nil {
 		cols = append(cols, "`attribute.patch_id`")
