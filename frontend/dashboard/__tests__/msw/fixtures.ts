@@ -539,12 +539,47 @@ export function makeExceptionInstanceFixture(
 
 // --- Exception Distribution Plot ---
 
+function attributeDistributionFixture(values: [string, number][]) {
+  return {
+    values: values.map(([value, count]) => ({ value, count })),
+    other_count: 0,
+    distinct_count: values.length,
+  };
+}
+
 export function makeExceptionDistributionFixture() {
   return {
-    os_version: { "android 14": 800, "android 13": 400 },
-    device_manufacturer: { Google: 600, Samsung: 400, OnePlus: 200 },
-    country: { US: 700, IN: 300, DE: 200 },
+    app_version: attributeDistributionFixture([
+      ["1.2.0 (120)", 900],
+      ["1.1.0 (110)", 300],
+    ]),
+    os_version: attributeDistributionFixture([
+      ["android 14", 800],
+      ["android 13", 400],
+    ]),
+    country: attributeDistributionFixture([
+      ["US", 700],
+      ["IN", 300],
+      ["DE", 200],
+    ]),
+    network_type: attributeDistributionFixture([
+      ["wifi", 900],
+      ["cellular", 300],
+    ]),
+    locale: attributeDistributionFixture([
+      ["en-US", 800],
+      ["en-IN", 400],
+    ]),
+    device: attributeDistributionFixture([
+      ["Google - Pixel 8", 600],
+      ["Samsung - Galaxy S23", 400],
+      ["OnePlus - 11", 200],
+    ]),
   };
+}
+
+export function makeAttributeDistributionFixture() {
+  return makeExceptionDistributionFixture().device;
 }
 
 // --- Common Path ---

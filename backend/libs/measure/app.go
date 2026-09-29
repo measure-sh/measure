@@ -1,11 +1,13 @@
 package measure
 
 import (
+	"cmp"
 	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"math"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -644,6 +646,42 @@ func (a App) GetErrorGroupPlotInstances(ctx context.Context, rch driver.Conn, fi
 	return
 }
 
+var errorDistributionExprs = map[string]string{
+	"app_version":  "if(`attribute.app_version` = '' and `attribute.app_build` = '', '', concat(`attribute.app_version`, ' (', `attribute.app_build`, ')'))",
+	"os_version":   "if(`attribute.os_name` = '' and `attribute.os_version` = '', '', concat(`attribute.os_name`, ' ', `attribute.os_version`))",
+	"country":      "`inet.country_code`",
+	"network_type": "`attribute.network_type`",
+	"locale":       "`attribute.device_locale`",
+	"device":       "if(`attribute.device_manufacturer` = '' and `attribute.device_name` = '', '', concat(`attribute.device_manufacturer`, ' - ', `attribute.device_name`))",
+}
+
+func IsErrorDistributionAttribute(name string) bool {
+	_, ok := errorDistributionExprs[name]
+	return ok
+}
+
+func topAttributeValues(counts map[string]uint64, limit int) event.AttributeDistribution {
+	values := make([]event.AttributeValueCount, 0, len(counts))
+	for value, count := range counts {
+		values = append(values, event.AttributeValueCount{Value: value, Count: count})
+	}
+	slices.SortFunc(values, func(a, b event.AttributeValueCount) int {
+		if a.Count != b.Count {
+			return cmp.Compare(b.Count, a.Count)
+		}
+		return strings.Compare(a.Value, b.Value)
+	})
+
+	distribution := event.AttributeDistribution{
+		Values:        values[:min(limit, len(values))],
+		DistinctCount: uint64(len(values)),
+	}
+	for _, value := range values[len(distribution.Values):] {
+		distribution.OtherCount += value.Count
+	}
+	return distribution
+}
+
 // GetErrorGroupAttributesDistribution counts one error group's matching
 // events per attribute value.
 func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, rch driver.Conn, fingerprint string, flt *filter.Filter) (distribution event.IssueDistribution, err error) {
@@ -651,12 +689,12 @@ func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, rch driver
 
 	stmt := sqlf.
 		From("events").
-		Select("concat(`attribute.app_version`, ' (', `attribute.app_build`, ')') as app_version").
-		Select("concat(`attribute.os_name`, ' ', `attribute.os_version`) as os_version").
-		Select("`inet.country_code` as country").
-		Select("`attribute.network_type` as network_type").
-		Select("`attribute.device_locale` as locale").
-		Select("concat(`attribute.device_manufacturer`, ' - ', `attribute.device_name`) as device").
+		Select(errorDistributionExprs["app_version"]+" as app_version").
+		Select(errorDistributionExprs["os_version"]+" as os_version").
+		Select(errorDistributionExprs["country"]+" as country").
+		Select(errorDistributionExprs["network_type"]+" as network_type").
+		Select(errorDistributionExprs["locale"]+" as locale").
+		Select(errorDistributionExprs["device"]+" as device").
 		Select("count(id) as count").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
@@ -683,12 +721,12 @@ func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, rch driver
 
 	defer rows.Close()
 
-	distribution.AppVersion = make(map[string]uint64)
-	distribution.OSVersion = make(map[string]uint64)
-	distribution.Country = make(map[string]uint64)
-	distribution.NetworkType = make(map[string]uint64)
-	distribution.Locale = make(map[string]uint64)
-	distribution.Device = make(map[string]uint64)
+	appVersions := map[string]uint64{}
+	osVersions := map[string]uint64{}
+	countries := map[string]uint64{}
+	networkTypes := map[string]uint64{}
+	locales := map[string]uint64{}
+	devices := map[string]uint64{}
 
 	for rows.Next() {
 		var (
@@ -705,15 +743,100 @@ func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, rch driver
 			return
 		}
 
-		distribution.AppVersion[appVersion] += count
-		distribution.OSVersion[osVersion] += count
-		distribution.Country[country] += count
-		distribution.NetworkType[networkType] += count
-		distribution.Locale[locale] += count
-		distribution.Device[device] += count
+		appVersions[appVersion] += count
+		osVersions[osVersion] += count
+		countries[country] += count
+		networkTypes[networkType] += count
+		locales[locale] += count
+		devices[device] += count
 	}
 
-	err = rows.Err()
+	if err = rows.Err(); err != nil {
+		return
+	}
+
+	const limit = 5
+	distribution = event.IssueDistribution{
+		"app_version":  topAttributeValues(appVersions, limit),
+		"os_version":   topAttributeValues(osVersions, limit),
+		"country":      topAttributeValues(countries, limit),
+		"network_type": topAttributeValues(networkTypes, limit),
+		"locale":       topAttributeValues(locales, limit),
+		"device":       topAttributeValues(devices, limit),
+	}
+
+	return
+}
+
+// GetErrorGroupSingleAttributeDistribution counts one error group's matching
+// events per value of one attribute.
+func (a App) GetErrorGroupSingleAttributeDistribution(ctx context.Context, rch driver.Conn, fingerprint, attribute string, flt *filter.Filter) (distribution event.AttributeDistribution, err error) {
+	expr, ok := errorDistributionExprs[attribute]
+	if !ok {
+		err = fmt.Errorf("unknown distribution attribute %q", attribute)
+		return
+	}
+
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
+
+	valueCountsStmt := sqlf.
+		From("events").
+		Select(expr+" as attribute_value").
+		Select("count(id) as count").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To).
+		Where("type in ?", errorEventTypes).
+		Where(errorFingerprintMatch, fingerprint, fingerprint).
+		GroupBy("attribute_value")
+
+	defer valueCountsStmt.Close()
+
+	if err = applyErrorPredicate(valueCountsStmt, flt); err != nil {
+		return
+	}
+
+	// The window functions run before LIMIT, so distinct_count and total
+	// include the values that LIMIT leaves out.
+	stmt := sqlf.New(`
+		SELECT
+		  attribute_value,
+		  count,
+		  count() OVER () AS distinct_count,
+		  sum(count) OVER () AS total
+		FROM (`+valueCountsStmt.String()+`)
+		ORDER BY count DESC, attribute_value
+		LIMIT 25`, valueCountsStmt.Args()...)
+
+	defer stmt.Close()
+
+	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+
+	defer rows.Close()
+
+	distribution.Values = []event.AttributeValueCount{}
+	var total uint64
+	for rows.Next() {
+		var valueCount event.AttributeValueCount
+
+		if err = rows.Scan(&valueCount.Value, &valueCount.Count, &distribution.DistinctCount, &total); err != nil {
+			return
+		}
+
+		distribution.Values = append(distribution.Values, valueCount)
+	}
+
+	if err = rows.Err(); err != nil {
+		return
+	}
+
+	distribution.OtherCount = total
+	for _, valueCount := range distribution.Values {
+		distribution.OtherCount -= valueCount.Count
+	}
 
 	return
 }

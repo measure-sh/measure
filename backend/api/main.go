@@ -121,6 +121,7 @@ func main() {
 		apps.GET(":id/errorGroups/:errorGroupId/path", hdl.GetErrorGroupCommonPath)
 		apps.GET(":id/errorGroups/:errorGroupId/plots/instances", hdl.GetErrorDetailPlotInstances)
 		apps.GET(":id/errorGroups/:errorGroupId/plots/distribution", hdl.GetErrorDetailAttributeDistribution)
+		apps.GET(":id/errorGroups/:errorGroupId/plots/distribution/:attribute", hdl.GetErrorDetailSingleAttributeDistribution)
 
 		// sessions
 		apps.GET(":id/sessions", hdl.GetSessionsOverview)

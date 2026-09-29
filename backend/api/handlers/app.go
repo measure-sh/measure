@@ -603,6 +603,40 @@ func (h Handlers) GetErrorDetailAttributeDistribution(c *gin.Context) {
 	c.JSON(http.StatusOK, distribution)
 }
 
+func (h Handlers) GetErrorDetailSingleAttributeDistribution(c *gin.Context) {
+	deps := h.Deps
+	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
+		entity:   filter.ErrorGroupEventsEntity,
+		appScope: *measure.ScopeAppRead,
+		logRoot:  logcomment.Errors,
+		logName:  "plots_distribution_attribute",
+	})
+	if !ok {
+		return
+	}
+
+	errorGroupId, ok := errorGroupIDParam(c)
+	if !ok {
+		return
+	}
+
+	attribute := c.Param("attribute")
+	if !measure.IsErrorDistributionAttribute(attribute) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": `distribution attribute is invalid`})
+		return
+	}
+
+	distribution, err := app.GetErrorGroupSingleAttributeDistribution(ctx, deps.RchPool, errorGroupId, attribute, &flt)
+	if err != nil {
+		msg := `failed to query data for error attribute distribution plot`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, distribution)
+}
+
 func (h Handlers) CreateApp(c *gin.Context) {
 	deps := h.Deps
 	userId := c.GetString("userId")

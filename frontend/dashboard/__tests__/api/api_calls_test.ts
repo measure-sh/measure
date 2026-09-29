@@ -47,6 +47,7 @@ import {
   fetchErrorGroupCommonPathFromServer,
   fetchErrorsDetailsFromServer,
   fetchErrorsDetailsPlotFromServer,
+  fetchErrorsAttributeDistributionPlotFromServer,
   fetchErrorsDistributionPlotFromServer,
   fetchErrorsOverviewFromServer,
   fetchErrorsOverviewPlotFromServer,
@@ -2123,10 +2124,16 @@ describe("fetchErrorsDistributionPlotFromServer", () => {
       "group-1",
     );
 
+  const distribution = {
+    os_version: {
+      values: [{ value: "android 13", count: 5 }],
+      other_count: 0,
+      distinct_count: 1,
+    },
+  };
+
   it("hits /apps/:id/errorGroups/:id/plots/distribution with the range and timezone, no time group", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ os_version: { "android 13": 5 } }),
-    );
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(distribution));
     await call();
     const url = new URL(lastFetchUrl(), "http://localhost");
     expect(url.pathname).toBe(
@@ -2140,19 +2147,15 @@ describe("fetchErrorsDistributionPlotFromServer", () => {
   });
 
   it("sends the filter expression when one is given", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ os_version: { "android 13": 5 } }),
-    );
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(distribution));
     await call("network_type:eq:wifi");
     const url = new URL(lastFetchUrl(), "http://localhost");
     expect(url.searchParams.get("filter_expr")).toBe("network_type:eq:wifi");
   });
 
   it("returns the body when it is non-empty", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ os_version: { "android 13": 5 } }),
-    );
-    expect(await call()).toEqual({ os_version: { "android 13": 5 } });
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(distribution));
+    expect(await call()).toEqual(distribution);
   });
 
   it("returns null on a null body", async () => {
@@ -2162,7 +2165,10 @@ describe("fetchErrorsDistributionPlotFromServer", () => {
 
   it("returns null on a body where every attribute is empty", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ os_version: {}, country: {} }),
+      successResponse({
+        os_version: { values: [], other_count: 0, distinct_count: 0 },
+        country: { values: [], other_count: 0, distinct_count: 0 },
+      }),
     );
     expect(await call()).toBeNull();
   });
@@ -2175,6 +2181,54 @@ describe("fetchErrorsDistributionPlotFromServer", () => {
   it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
     await expect(call()).rejects.toThrow(RequestError);
+  });
+});
+
+describe("fetchErrorsAttributeDistributionPlotFromServer", () => {
+  const call = (filterExpr: string | null = null) =>
+    fetchErrorsAttributeDistributionPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      filterExpr,
+      "group-1",
+      "device",
+    );
+
+  const distribution = {
+    values: [{ value: "Google - Pixel 8", count: 5 }],
+    other_count: 0,
+    distinct_count: 1,
+  };
+
+  it("hits /apps/:id/errorGroups/:id/plots/distribution/:attribute with the range and timezone", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(distribution));
+    await call();
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe(
+      "/api/apps/app-a/errorGroups/group-1/plots/distribution/device",
+    );
+    expect(url.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    expect(url.searchParams.has("filter_expr")).toBe(false);
+  });
+
+  it("sends the filter expression when one is given", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(distribution));
+    await call("network_type:eq:wifi");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.get("filter_expr")).toBe("network_type:eq:wifi");
+  });
+
+  it("returns the body", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(distribution));
+    expect(await call()).toEqual(distribution);
+  });
+
+  it("throws on non-ok", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(errorResponse());
+    await expect(call()).rejects.toThrow(ApiError);
   });
 });
 

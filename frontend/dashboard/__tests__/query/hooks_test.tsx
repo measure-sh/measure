@@ -22,6 +22,7 @@ jest.mock("@/app/api/api_calls", () => {
     fetchErrorsDetailsFromServer: jest.fn(),
     fetchErrorsDetailsPlotFromServer: jest.fn(),
     fetchErrorsDistributionPlotFromServer: jest.fn(),
+    fetchErrorsAttributeDistributionPlotFromServer: jest.fn(),
     fetchErrorGroupCommonPathFromServer: jest.fn(),
   };
 });
@@ -59,6 +60,7 @@ import {
   fetchErrorsDetailsFromServer,
   fetchErrorsDetailsPlotFromServer,
   fetchErrorsDistributionPlotFromServer,
+  fetchErrorsAttributeDistributionPlotFromServer,
   fetchErrorsOverviewFromServer,
   fetchErrorsOverviewPlotFromServer,
   fetchFilterKeys,
@@ -78,6 +80,7 @@ import {
   useErrorsDetailsPlotQuery,
   useErrorsDetailsQuery,
   useErrorsDistributionPlotQuery,
+  useErrorsAttributeDistributionPlotQuery,
   useErrorsOverviewPlotQuery,
   useErrorsOverviewQuery,
   useFilterKeysQuery,
@@ -105,6 +108,8 @@ const mockFetchErrorsDetailsPlot =
   fetchErrorsDetailsPlotFromServer as jest.Mock;
 const mockFetchErrorsDistributionPlot =
   fetchErrorsDistributionPlotFromServer as jest.Mock;
+const mockFetchErrorsAttributeDistributionPlot =
+  fetchErrorsAttributeDistributionPlotFromServer as jest.Mock;
 const mockFetchErrorGroupCommonPath =
   fetchErrorGroupCommonPathFromServer as jest.Mock;
 const mockApiClientFetch = apiClient.fetch as jest.Mock;
@@ -1190,9 +1195,22 @@ describe("useErrorsDistributionPlotQuery", () => {
   });
 
   it("returns parsed distribution data on success", async () => {
+    const empty = { values: [], other_count: 0, distinct_count: 0 };
     mockFetchErrorsDistributionPlot.mockResolvedValueOnce({
-      os_version: { "android 13": 5 },
-      country: { US: 3 },
+      app_version: empty,
+      os_version: {
+        values: [{ value: "android 13", count: 5 }],
+        other_count: 2,
+        distinct_count: 3,
+      },
+      country: {
+        values: [{ value: "US", count: 7 }],
+        other_count: 0,
+        distinct_count: 1,
+      },
+      network_type: empty,
+      locale: empty,
+      device: empty,
     });
 
     const { wrapper } = makeWrapper();
@@ -1209,9 +1227,26 @@ describe("useErrorsDistributionPlotQuery", () => {
       null,
       "group-1",
     );
-    expect(result.current.data).toMatchObject({
-      plot: expect.any(Array),
-      plotKeys: expect.any(Array),
+    expect(result.current.data?.map((d) => d.attribute)).toEqual([
+      "app_version",
+      "os_version",
+      "country",
+      "network_type",
+      "locale",
+      "device",
+    ]);
+    expect(result.current.data?.[1]).toEqual({
+      attribute: "os_version",
+      label: "API Level",
+      values: [{ label: "Android API Level 13", count: 5 }],
+      otherCount: 2,
+      distinctCount: 3,
+      total: 7,
+    });
+    expect(result.current.data?.[0]).toMatchObject({
+      label: "App Version",
+      values: [],
+      total: 0,
     });
   });
 
@@ -1240,6 +1275,102 @@ describe("useErrorsDistributionPlotQuery", () => {
 
     await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.error).toBe(failure);
+  });
+});
+
+describe("useErrorsAttributeDistributionPlotQuery", () => {
+  const filteredBy = (filterExpr: string | null) => ({
+    appId: "app-1",
+    startDate: "2026-01-01T00:00:00Z",
+    endDate: "2026-01-02T00:00:00Z",
+    filterExpr,
+  });
+
+  it("does not fetch until an attribute is selected", () => {
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () =>
+        useErrorsAttributeDistributionPlotQuery(
+          filteredBy(null),
+          "group-1",
+          null,
+        ),
+      { wrapper },
+    );
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchErrorsAttributeDistributionPlot).not.toHaveBeenCalled();
+  });
+
+  it("fetches and parses the selected attribute", async () => {
+    mockFetchErrorsAttributeDistributionPlot.mockResolvedValueOnce({
+      values: [
+        { value: "Google - Pixel 8", count: 5 },
+        { value: "", count: 1 },
+      ],
+      other_count: 0,
+      distinct_count: 2,
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () =>
+        useErrorsAttributeDistributionPlotQuery(
+          filteredBy("network_type:eq:wifi"),
+          "group-1",
+          "device",
+        ),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    expect(mockFetchErrorsAttributeDistributionPlot).toHaveBeenCalledWith(
+      "app-1",
+      "2026-01-01T00:00:00Z",
+      "2026-01-02T00:00:00Z",
+      "network_type:eq:wifi",
+      "group-1",
+      "device",
+    );
+    expect(result.current.data).toEqual({
+      attribute: "device",
+      label: "Device",
+      values: [
+        { label: "Google - Pixel 8", count: 5 },
+        { label: "Unknown", count: 1 },
+      ],
+      otherCount: 0,
+      distinctCount: 2,
+      total: 6,
+    });
+  });
+
+  it("shows the placeholder while the attribute loads", () => {
+    mockFetchErrorsAttributeDistributionPlot.mockReturnValueOnce(
+      new Promise(() => {}),
+    );
+    const placeholder = {
+      attribute: "device" as const,
+      label: "Device",
+      values: [{ label: "Google - Pixel 8", count: 5 }],
+      otherCount: 3,
+      distinctCount: 4,
+      total: 8,
+    };
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () =>
+        useErrorsAttributeDistributionPlotQuery(
+          filteredBy(null),
+          "group-1",
+          "device",
+          placeholder,
+        ),
+      { wrapper },
+    );
+
+    expect(result.current.isPlaceholderData).toBe(true);
+    expect(result.current.data).toBe(placeholder);
   });
 });
 

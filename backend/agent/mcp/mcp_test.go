@@ -4120,7 +4120,7 @@ func TestMCPGetErrorDetailPlot(t *testing.T) {
 
 func TestMCPGetErrorDistribution(t *testing.T) {
 	ctx := context.Background()
-	setupToolTest := func(t *testing.T, email string) (uuid.UUID, string) {
+	setupToolTest := func(t *testing.T, email string) (uuid.UUID, uuid.UUID, string) {
 		cleanupAll(ctx, t)
 		userID := uuid.New()
 		seedUser(ctx, t, userID.String(), email)
@@ -4130,18 +4130,18 @@ func TestMCPGetErrorDistribution(t *testing.T) {
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
 		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
-		return appID, rawToken
+		return appID, teamID, rawToken
 	}
 
 	t.Run("missing error_group_id", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "edistnofp@mcp.test")
+		appID, _, rawToken := setupToolTest(t, "edistnofp@mcp.test")
 		resp := callMCPTool(t, rawToken, "get_error_distribution", map[string]any{"app_id": appID.String()})
 		if !isToolError(resp) {
 			t.Error("want tool error for missing error_group_id")
 		}
 	})
 	t.Run("valid crash distribution", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "edist2@mcp.test")
+		appID, _, rawToken := setupToolTest(t, "edist2@mcp.test")
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_error_distribution", map[string]any{"app_id": appID.String(), "error_group_id": "fp-test-dist-1", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
 		if isToolError(resp) {
@@ -4149,11 +4149,101 @@ func TestMCPGetErrorDistribution(t *testing.T) {
 		}
 	})
 	t.Run("valid anr distribution", func(t *testing.T) {
-		appID, rawToken := setupToolTest(t, "edist3@mcp.test")
+		appID, _, rawToken := setupToolTest(t, "edist3@mcp.test")
 		now := time.Now().UTC()
 		resp := callMCPTool(t, rawToken, "get_error_distribution", map[string]any{"app_id": appID.String(), "error_group_id": "fp-test-dist-2", "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)})
 		if isToolError(resp) {
 			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+	})
+	t.Run("attribute lists up to 25 values of one attribute", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "edist4@mcp.test")
+		now := time.Now().UTC()
+		const fingerprint = "0000000000000000000000000000d157"
+		for i := 1; i <= 7; i++ {
+			th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+				Type: "exception", Fingerprint: fingerprint, Severity: "fatal",
+				Timestamp: now.Add(-time.Hour), OSName: "android", OSVersion: "14",
+				DeviceManufacturer: "TestCo", DeviceName: fmt.Sprintf("device-%d", i),
+			})
+		}
+		args := map[string]any{"app_id": appID.String(), "error_group_id": fingerprint, "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)}
+
+		resp := callMCPTool(t, rawToken, "get_error_distribution", args)
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		var summary map[string]struct {
+			Values []any `json:"values"`
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &summary); err != nil {
+			t.Fatalf("decode summary: %v", err)
+		}
+		if got := len(summary["device"].Values); got != 5 {
+			t.Errorf("summary devices = %d, want 5", got)
+		}
+
+		args["attribute"] = "device"
+		resp = callMCPTool(t, rawToken, "get_error_distribution", args)
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		var device struct {
+			Values []any `json:"values"`
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &device); err != nil {
+			t.Fatalf("decode device: %v", err)
+		}
+		if got := len(device.Values); got != 7 {
+			t.Errorf("device values = %d, want 7", got)
+		}
+	})
+	t.Run("attribute with filter_expr lists only the matching values", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "edist6@mcp.test")
+		now := time.Now().UTC()
+		const fingerprint = "0000000000000000000000000000d158"
+		seed := func(count int, osName, deviceName string) {
+			th.SeedEventRows(ctx, t, teamID.String(), appID.String(), count, testinfra.EventRow{
+				Type: "exception", Fingerprint: fingerprint, Severity: "fatal",
+				Timestamp: now.Add(-time.Hour), OSName: osName, OSVersion: "1",
+				DeviceManufacturer: "TestCo", DeviceName: deviceName,
+			})
+		}
+		seed(3, "android", "pixel")
+		seed(2, "ios", "iphone")
+
+		resp := callMCPTool(t, rawToken, "get_error_distribution", map[string]any{"app_id": appID.String(), "error_group_id": fingerprint, "attribute": "device", "filter_expr": "os_name:in:[ios]"})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		var device struct {
+			Values []struct {
+				Value string `json:"value"`
+				Count uint64 `json:"count"`
+			} `json:"values"`
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &device); err != nil {
+			t.Fatalf("decode device: %v", err)
+		}
+		if len(device.Values) != 1 || device.Values[0].Value != "TestCo - iphone" || device.Values[0].Count != 2 {
+			t.Errorf("device values = %+v, want only TestCo - iphone with 2", device.Values)
+		}
+	})
+	t.Run("attribute of a group with no events is an empty list", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "edist7@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_error_distribution", map[string]any{"app_id": appID.String(), "error_group_id": "0000000000000000000000000000d159", "attribute": "device"})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		if got := extractTextContent(t, resp); got != `{"values":[],"other_count":0,"distinct_count":0}` {
+			t.Errorf("response = %s, want an empty list", got)
+		}
+	})
+	t.Run("unknown attribute", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "edist5@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_error_distribution", map[string]any{"app_id": appID.String(), "error_group_id": "fp-test-dist-1", "attribute": "battery"})
+		if !isToolError(resp) {
+			t.Error("want tool error for an unknown attribute")
 		}
 	})
 }

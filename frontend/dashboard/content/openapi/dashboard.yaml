@@ -1634,6 +1634,10 @@ paths:
         down by app version, OS, country, network type, locale, and device,
         optionally narrowed by a filter expression.
 
+        Each attribute lists its 5 most frequent values, most frequent first.
+        `other_count` totals the occurrences of the remaining values and
+        `distinct_count` counts every value the attribute took.
+
         The filter is written against the `error_group_events` entity, whose keys
         are those of `errors` without `error_type`: one group holds one kind
         of error.
@@ -1661,46 +1665,159 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - app_version
+                  - os_version
+                  - country
+                  - network_type
+                  - locale
+                  - device
                 properties:
                   app_version:
-                    type: object
-                    additionalProperties: true
+                    $ref: "#/components/schemas/AttributeDistribution"
                   os_version:
-                    type: object
-                    additionalProperties: true
+                    $ref: "#/components/schemas/AttributeDistribution"
                   country:
-                    type: object
-                    additionalProperties: true
+                    $ref: "#/components/schemas/AttributeDistribution"
                   network_type:
-                    type: object
-                    additionalProperties: true
+                    $ref: "#/components/schemas/AttributeDistribution"
                   locale:
-                    type: object
-                    additionalProperties: true
+                    $ref: "#/components/schemas/AttributeDistribution"
                   device:
-                    type: object
-                    additionalProperties: true
+                    $ref: "#/components/schemas/AttributeDistribution"
               examples:
                 response:
                   value:
                     app_version:
-                      1.0.0 (100): 11
-                      0.9.5 (95): 3
+                      values:
+                        - value: 1.0.0 (100)
+                          count: 11
+                        - value: 0.9.5 (95)
+                          count: 3
+                      other_count: 0
+                      distinct_count: 2
                     os_version:
-                      Android 13: 8
-                      Android 12: 6
+                      values:
+                        - value: android 33
+                          count: 8
+                        - value: android 32
+                          count: 6
+                      other_count: 0
+                      distinct_count: 2
                     country:
-                      US: 10
-                      IN: 4
+                      values:
+                        - value: US
+                          count: 10
+                        - value: IN
+                          count: 4
+                      other_count: 0
+                      distinct_count: 2
                     network_type:
-                      wifi: 9
-                      cellular: 5
+                      values:
+                        - value: wifi
+                          count: 9
+                        - value: cellular
+                          count: 5
+                      other_count: 0
+                      distinct_count: 2
                     locale:
-                      en-US: 12
-                      en-IN: 2
+                      values:
+                        - value: en-US
+                          count: 12
+                        - value: en-IN
+                          count: 2
+                      other_count: 0
+                      distinct_count: 2
                     device:
-                      Google - Pixel 7: 7
-                      Samsung - Galaxy S23: 7
+                      values:
+                        - value: Google - Pixel 7
+                          count: 5
+                        - value: Samsung - Galaxy S23
+                          count: 4
+                        - value: Google - Pixel 6
+                          count: 2
+                        - value: Samsung - Galaxy S22
+                          count: 1
+                        - value: Motorola - Razr
+                          count: 1
+                      other_count: 1
+                      distinct_count: 6
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/errorGroups/{errorGroupId}/plots/distribution/{attribute}:
+    get:
+      operationId: getErrorDetailSingleAttributeDistribution
+      tags:
+        - Errors
+      summary: Fetch the distribution of one attribute of an error group
+      description: |
+        Fetch the occurrence counts of an error group broken down by one
+        attribute, optionally narrowed by a filter expression.
+
+        Lists up to 25 values, most frequent first. `other_count` totals the
+        occurrences of the remaining values and `distinct_count` counts every
+        value the attribute took.
+
+        The filter is written against the `error_group_events` entity, whose keys
+        are those of `errors` without `error_type`: one group holds one kind
+        of error.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: App's UUID.
+          schema:
+            type: string
+            format: uuid
+        - name: errorGroupId
+          in: path
+          required: true
+          description: Error group fingerprint.
+          schema:
+            type: string
+        - name: attribute
+          in: path
+          required: true
+          description: Attribute to break the occurrences down by.
+          schema:
+            type: string
+            enum:
+              - app_version
+              - os_version
+              - country
+              - network_type
+              - locale
+              - device
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttributeDistribution"
+              examples:
+                response:
+                  value:
+                    values:
+                      - value: Google - Pixel 7
+                        count: 5
+                      - value: Samsung - Galaxy S23
+                        count: 4
+                      - value: Google - Pixel 6
+                        count: 2
+                    other_count: 0
+                    distinct_count: 3
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
@@ -5906,6 +6023,32 @@ components:
         schema:
           type: string
   schemas:
+    AttributeDistribution:
+      type: object
+      required:
+        - values
+        - other_count
+        - distinct_count
+      properties:
+        values:
+          type: array
+          description: The attribute's most frequent values, most frequent first.
+          items:
+            type: object
+            required:
+              - value
+              - count
+            properties:
+              value:
+                type: string
+              count:
+                type: integer
+        other_count:
+          type: integer
+          description: Occurrences of the values not listed.
+        distinct_count:
+          type: integer
+          description: Number of values the attribute took.
     MemoryUsageKB:
       type:
         - number
