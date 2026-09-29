@@ -24,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Store unknown memory readings as -1 instead of null (#4541) by @abhaysood in #4541
 - (**backend**): Use different dev secrets for access and refresh tokens by @anupcowkur in #4510
 - (**backend**): Detect dashboard refresh token reuse by @anupcowkur in #4509
 - (**backend**): Allow mcp refresh token reuse within a short window by @anupcowkur
