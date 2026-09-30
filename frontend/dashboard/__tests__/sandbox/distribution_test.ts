@@ -135,16 +135,30 @@ function expectDrift(series: Series): void {
   }
 }
 
+// Each span's plot adds its own random jitter to every bucket, which on a
+// short range can hide one plot's drift, so the span plots are held to
+// drifting on average.
+function expectDriftOnAverage(label: string, all: Series[]): void {
+  const long = all.filter((series) => series.values.length >= 20);
+  if (long.length === 0) {
+    return;
+  }
+  const drift = mean(long.map((series) => autocorrelation(series.values)));
+  expect([label, drift > 0]).toEqual([label, true]);
+  if (long.every((series) => series.values.length >= 100)) {
+    expect([label, drift > 0.4]).toEqual([label, true]);
+  }
+}
+
 describe.each(apps)("plots read as telemetry: $app.name", (bundle) => {
   const appId = bundle.app.id;
   const endpoint = Array.from(bundle.networkEndpoints.values())[0];
-  const spanName = bundle.rootSpanNames[0];
 
   describe.each(ranges)("over the last $name", (range) => {
     const params = query(range);
     let counted: Series[];
     let latency: any;
-    let spanMetrics: any;
+    let spanMetrics: any[];
 
     beforeAll(async () => {
       const groupList = await get(
@@ -159,8 +173,12 @@ describe.each(apps)("plots read as telemetry: $app.name", (bundle) => {
       const statusCodes = await get(
         `/api/apps/${appId}/networkRequests/plots/statusCodes?${params}`,
       );
-      spanMetrics = await get(
-        `/api/apps/${appId}/spans/plots/metrics?${query(range, { span_name: spanName })}`,
+      spanMetrics = await Promise.all(
+        bundle.rootSpanNames.map((spanName) =>
+          get(
+            `/api/apps/${appId}/spans/plots/metrics?${query(range, { span_name: spanName })}`,
+          ),
+        ),
       );
       counted = [
         ...instancesOf(
@@ -209,10 +227,20 @@ describe.each(apps)("plots read as telemetry: $app.name", (bundle) => {
       for (const series of [
         seriesOf("latency p50", latency, (point) => point.p50),
         seriesOf("latency p95", latency, (point) => point.p95),
-        seriesOf("span p50", spanMetrics[0].data, (point: any) => point.p50),
-        seriesOf("span p99", spanMetrics[0].data, (point: any) => point.p99),
       ]) {
         expectDrift(series);
+      }
+      for (const percentile of ["p50", "p99"]) {
+        expectDriftOnAverage(
+          `span ${percentile}`,
+          spanMetrics.map((plot, i) =>
+            seriesOf(
+              `span ${bundle.rootSpanNames[i]} ${percentile}`,
+              plot[0].data,
+              (point: any) => point[percentile],
+            ),
+          ),
+        );
       }
     });
 
@@ -225,7 +253,7 @@ describe.each(apps)("plots read as telemetry: $app.name", (bundle) => {
           /^(health|sessions|latency count|status codes total)/.test(s.label),
         ),
         seriesOf("latency p50", latency, (point) => point.p50),
-        seriesOf("span p95", spanMetrics[0].data, (point: any) => point.p95),
+        seriesOf("span p95", spanMetrics[0][0].data, (point: any) => point.p95),
       ]) {
         if (mean(series.values) <= 60) {
           continue;

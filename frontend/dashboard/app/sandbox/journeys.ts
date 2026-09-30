@@ -1,3 +1,4 @@
+import { PRODUCTS } from "./layouts";
 import type { ScreenKey } from "./layouts";
 import type { FlowSpec, SpanSpec, StepSpec } from "./scenario";
 
@@ -17,6 +18,8 @@ export type JourneyBindings = {
     payment_methods?: string;
   };
   span: {
+    app_launch: string;
+    app_launch_signed_out: string;
     product_load: string;
     checkout_flow: string;
     search_query: string;
@@ -48,7 +51,17 @@ export function shopSpans(t: {
   worker: string;
   network: string;
   decode: string;
+  launch: {
+    atSessionStart: boolean;
+    sessionStore: string;
+    database: string;
+    // Kotlin coroutines run each parallel init_app span on its own pool
+    // thread, while an iOS queue, a Dart isolate or the JS thread reports one
+    // name for all of them.
+    initThreads?: { auth: string; cart: string; flags: string };
+  };
   requests: {
+    feed: string;
     detail: string;
     reviews: string;
     image: string;
@@ -93,7 +106,113 @@ export function shopSpans(t: {
       attributes: { payment_method: "{payment_method}", provider: "stripe" },
     },
   ];
+  const initApp: SpanSpec = {
+    key: "launch_init_app",
+    name: "init_app",
+    thread: t.worker,
+    durationMs: [0, 0],
+    startAfterMs: [2, 8],
+    parallel: true,
+    children: [
+      {
+        key: "launch_check_auth",
+        name: "check_auth",
+        thread: t.launch.initThreads?.auth,
+        durationMs: [15, 50],
+        startAfterMs: [1, 4],
+        checkpoint: "auth_checked",
+        attributes: { store: t.launch.sessionStore },
+      },
+      {
+        key: "launch_restore_cart",
+        name: "restore_cart",
+        thread: t.launch.initThreads?.cart,
+        durationMs: [20, 70],
+        startAfterMs: [2, 6],
+        attributes: { database: t.launch.database },
+      },
+      {
+        key: "launch_fetch_feature_flags",
+        name: "fetch_feature_flags",
+        thread: t.launch.initThreads?.flags,
+        durationMs: [10, 35],
+        startAfterMs: [1, 4],
+        attributes: { source: "disk_cache" },
+      },
+    ],
+  };
   return [
+    {
+      key: "app_launch",
+      name: "app_launch",
+      durationMs: [0, 0],
+      atSessionStart: t.launch.atSessionStart,
+      attributes: { first_screen: "home" },
+      children: [
+        initApp,
+        {
+          key: "launch_fetch_home_feed",
+          name: "fetch_home_feed",
+          thread: t.network,
+          http: r.feed,
+          durationMs: [0, 0],
+          startAfterMs: [5, 15],
+          checkpoint: "feed_loaded",
+          attributes: { page: "1", page_size: "20" },
+        },
+        {
+          key: "launch_decode_banner",
+          name: "decode_banner_image",
+          thread: t.decode,
+          durationMs: [40, 120],
+          startAfterMs: [2, 10],
+          attributes: t.image,
+        },
+        {
+          key: "launch_render_home_feed",
+          name: "render_home_feed",
+          thread: "main",
+          durationMs: [10, 20],
+          startAfterMs: [2, 10],
+          afterFirstFrame: true,
+          checkpoint: "home_rendered",
+          children: [
+            {
+              key: "launch_bind_feed_items",
+              name: "bind_feed_items",
+              durationMs: [20, 60],
+              startAfterMs: [1, 4],
+              attributes: { item_count: String(PRODUCTS.length) },
+            },
+            {
+              key: "launch_layout_home",
+              name: "layout_home",
+              durationMs: [30, 90],
+              startAfterMs: [1, 4],
+            },
+          ],
+        },
+      ],
+    },
+    {
+      key: "app_launch_signed_out",
+      name: "app_launch",
+      durationMs: [0, 0],
+      atSessionStart: t.launch.atSessionStart,
+      attributes: { first_screen: "login" },
+      children: [
+        initApp,
+        {
+          key: "launch_render_login",
+          name: "render_login",
+          thread: "main",
+          durationMs: [30, 80],
+          startAfterMs: [2, 10],
+          afterFirstFrame: true,
+          checkpoint: "login_rendered",
+        },
+      ],
+    },
     {
       key: "product_load",
       name: "product_load",
@@ -435,12 +554,23 @@ export class Journey {
   }
 
   open(): this {
-    return this.screen("home").startupEvent().http("products");
+    return this.screen("home")
+      .startupEvent()
+      .add({
+        kind: "span",
+        span: this.b.span.app_launch,
+        startup: { otherwise: [{ kind: "http", http: this.b.http.products }] },
+      });
   }
 
   login(): this {
     return this.screen("login")
       .startupEvent()
+      .add({
+        kind: "span",
+        span: this.b.span.app_launch_signed_out,
+        startup: { otherwise: [] },
+      })
       .tap("field_email")
       .tap("field_password")
       .tap("btn_login")

@@ -447,7 +447,13 @@ function buildSpans(t: {
     worker: t.js,
     network: t.network,
     decode: t.decode,
+    launch: {
+      atSessionStart: false,
+      sessionStore: "react_native_keychain",
+      database: "watermelondb",
+    },
     requests: {
+      feed: "product_list",
       detail: "product_detail",
       reviews: "product_reviews",
       image: "product_image",
@@ -2998,6 +3004,8 @@ const bindings = {
     payment_methods: "payment_methods",
   },
   span: {
+    app_launch: "app_launch",
+    app_launch_signed_out: "app_launch_signed_out",
     product_load: "product_load",
     checkout_flow: "checkout_flow",
     search_query: "search_query",
