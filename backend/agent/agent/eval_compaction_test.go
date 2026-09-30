@@ -386,7 +386,7 @@ func checkoutLatency() compactionCase {
 		assistantMsg(`Including the {{.Unavailable}} burst on {{day .RolloutDay}}, {{number .SuccessRate}}% of the {{number .Requests}} {{.Method}} {{.Endpoint}} requests on iOS this week returned a 2xx response. Excluding it, the rate is {{number .SuccessRateWithoutBurst}}%. Most of the other failures are {{.Conflict}} responses, {{.Conflicts}} in total, which the app gets when the cart changed between validation and checkout.`),
 		userMsg("Draw me the daily p95 for checkout on iOS."),
 		toolCallMsg("call_7", "render_chart", `{"title":"iOS {{.Method}} {{.Endpoint}} p95 (ms)","kind":"line","labels":[{{range $i, $d := .DailyP95}}{{if $i}},{{end}}"{{day $d.Day}}"{{end}}],"series":[{"name":"p95","values":[{{range $i, $d := .DailyP95}}{{if $i}},{{end}}{{$d.Count}}{{end}}]}]}`),
-		toolResultMsg("call_7", `Chart "iOS {{.Method}} {{.Endpoint}} p95 (ms)" rendered. It is posted below this reply: mention it as the chart below, never as an image above, and don't repeat every value from it.`),
+		toolResultMsg("call_7", `Chart "iOS {{.Method}} {{.Endpoint}} p95 (ms)" rendered. It is posted below this reply: mention it as the chart below, never as an image above. A chart never replaces the numbers: always state the numbers the question asks for, such as totals, in your reply, and don't list every point the chart plots.`),
 		assistantMsg(`The chart below shows the daily p95 of {{.Method}} {{.Endpoint}} on iOS. It stays near {{number .BaselineP95}} ms until {{day .DayBeforeRollout}}, then climbs from {{day .RolloutDay}} as more users move to {{.NewVersion}}.`),
 		userMsg(`Can you show me the slowest sessions from {{.NewVersion}}?`),
 	})

@@ -251,7 +251,7 @@ Rules:
 - Tools cover all app versions unless a filter_expr narrows them. When a question is about a specific release, look up its exact version_name and version_code with get_filter_values, passing the entity of the tool you are about to call, and filter on them explicitly; never conclude there is little or no data while a version filter narrows the query.
 - Timestamps are UTC.
 - If a query fails, read the error and fix the query.
-- Answer concisely: lead with the concrete numbers, then a line or two on what was measured (data, filters, time range). If the data can't answer the question, say so plainly.
+- Answer concisely: lead with the concrete numbers, even when a chart shows them, then a line or two on what was measured (data, filters, time range). If the data can't answer the question, say so plainly.
 - Describe how you computed things in product terms only. Severity (for example "fatal" crashes) is fine to mention. Never mention internals: no table or column names, no SQL, no tool names, no filter keys or filter expressions (describe filters in words, such as "crashes only"), no raw ids, and never bring up the legacy handled-flag fallback. Refer to apps by their names; when two of the team's apps share a name, add the unique identifier to tell them apart.`
 
 // mcpMethodRule joins the system rules on MCP turns only. The MCP caller
@@ -761,7 +761,7 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, chartsOut 
 					result = errText
 				} else {
 					charts = append(charts, chart)
-					result = fmt.Sprintf("Chart %q rendered. It is posted below this reply: mention it as the chart below, never as an image above, and don't repeat every value from it.", chart.title)
+					result = fmt.Sprintf("Chart %q rendered. It is posted below this reply: mention it as the chart below, never as an image above. A chart never replaces the numbers: always state the numbers the question asks for, such as totals, in your reply, and don't list every point the chart plots.", chart.title)
 				}
 			} else {
 				result = c.dispatchTool(ctx, tc, t.teamID, apps)
