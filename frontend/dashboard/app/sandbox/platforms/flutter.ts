@@ -213,7 +213,13 @@ function buildSpans(t: { decode: string; worker: string }): SpanSpec[] {
     worker: t.worker,
     network: t.worker,
     decode: t.decode,
+    launch: {
+      atSessionStart: false,
+      sessionStore: "flutter_secure_storage",
+      database: "sqflite",
+    },
     requests: {
+      feed: "products_list",
       detail: "product_detail",
       reviews: "product_reviews",
       image: "product_image",
@@ -2893,6 +2899,8 @@ const bindings = {
     preferences: "preferences_patch",
   },
   span: {
+    app_launch: "app_launch",
+    app_launch_signed_out: "app_launch_signed_out",
     product_load: "product_load",
     checkout_flow: "checkout_flow",
     search_query: "search_query",

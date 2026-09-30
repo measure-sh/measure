@@ -166,6 +166,11 @@ export type SpanSpec = {
   // and fails when the request fails.
   http?: string;
   onlyWith?: "coupon";
+  // A native app can start a span in Application.onCreate or
+  // didFinishLaunching, before its first screen, so the span begins when the
+  // session does.
+  atSessionStart?: boolean;
+  afterFirstFrame?: boolean;
   children?: SpanSpec[];
 };
 
@@ -210,6 +215,9 @@ export type StepSpec =
       // The app stops before this child span starts, so only the requests
       // before it complete and the unfinished trace is never reported.
       abortBefore?: string;
+      // Started once when the process starts, so only a cold launch records
+      // it, and a warm or hot launch runs these steps in its place.
+      startup?: { otherwise: StepSpec[] };
     }
   | { kind: "exception"; exception: string }
   | { kind: "bug_report"; description: string }

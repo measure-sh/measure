@@ -3086,7 +3086,18 @@ export const androidNativeScenario: PlatformScenario = {
     worker: "DefaultDispatcher-worker-2",
     network: "network",
     decode: "glide-source-thread-1",
+    launch: {
+      atSessionStart: true,
+      sessionStore: "encrypted_shared_preferences",
+      database: "room",
+      initThreads: {
+        auth: "DefaultDispatcher-worker-1",
+        cart: "DefaultDispatcher-worker-2",
+        flags: "DefaultDispatcher-worker-3",
+      },
+    },
     requests: {
+      feed: "get_products",
       detail: "get_product_detail",
       reviews: "get_product_reviews",
       image: "get_cdn_hero_image",
@@ -3128,6 +3139,8 @@ export const androidNativeScenario: PlatformScenario = {
         preferences: "patch_preferences",
       },
       span: {
+        app_launch: "app_launch",
+        app_launch_signed_out: "app_launch_signed_out",
         product_load: "product_load",
         checkout_flow: "checkout_flow",
         search_query: "search_query",

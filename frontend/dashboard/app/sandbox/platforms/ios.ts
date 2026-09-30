@@ -1756,7 +1756,13 @@ export const iosNativeScenario: PlatformScenario = {
     worker: "com.apple.root.default-qos",
     network: "com.apple.NSURLSession-work",
     decode: "com.acme.shop.image-decode",
+    launch: {
+      atSessionStart: true,
+      sessionStore: "keychain",
+      database: "core_data",
+    },
     requests: {
+      feed: "products_list",
       detail: "product_detail",
       reviews: "product_reviews",
       image: "product_image",
@@ -1796,6 +1802,8 @@ export const iosNativeScenario: PlatformScenario = {
         preferences: "update_preferences",
       },
       span: {
+        app_launch: "app_launch",
+        app_launch_signed_out: "app_launch_signed_out",
         product_load: "product_load",
         checkout_flow: "checkout_flow",
         search_query: "search_query",

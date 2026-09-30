@@ -116,6 +116,9 @@ export function validateScenario(s: PlatformScenario): string[] {
       if (step.kind === "span" && !spanKeys.has(step.span)) {
         problems.push(`${context} references unknown span ${step.span}`);
       }
+      if (step.kind === "span" && step.startup) {
+        checkSteps(step.startup.otherwise, context);
+      }
       if (step.kind === "exception") {
         if (!exceptionKeys.has(step.exception)) {
           problems.push(
@@ -817,6 +820,7 @@ type SpanRun = {
     start: DateTime,
   ) => { durationMs: number; ok: boolean };
   fill: (value: string) => string;
+  firstFrameAt: DateTime | null;
   checkpoints: { name: string; timestamp: string }[];
   abortedAt: DateTime | null;
 };
@@ -838,7 +842,7 @@ function buildSpanTree(
   }
   const spanId = stableHex(`span:${seedPrefix}`, 16);
   const threadName = resolveThread(spec.thread, inheritedThread, threadNames);
-  const start = spec.startAfterMs
+  let start = spec.startAfterMs
     ? earliest.plus({
         milliseconds: stableInt(
           `${seedPrefix}:gap`,
@@ -847,6 +851,9 @@ function buildSpanTree(
         ),
       })
     : earliest;
+  if (spec.afterFirstFrame && run.firstFrameAt && run.firstFrameAt > start) {
+    start = run.firstFrameAt;
+  }
   if (spec.key === run.abortBefore) {
     run.abortedAt = start;
     return { end: start, failed: false };
@@ -996,6 +1003,11 @@ function gapAfter(
 ): [number, number] {
   if (next === undefined) {
     return ACTION_GAP;
+  }
+  // A Flutter or React Native app starts its launch trace in the same
+  // function that initializes the SDK.
+  if (next.kind === "span" && next.startup && step.kind === "custom") {
+    return [1, 4];
   }
   switch (next.kind) {
     case "http":
@@ -1543,6 +1555,7 @@ function buildSession(
         : launchDuration,
   });
   let launching = true;
+  let firstFrameAt: DateTime | null = null;
 
   function paceLaunch(): void {
     if (!launching) {
@@ -1572,6 +1585,7 @@ function buildSession(
       intent_data: "",
       timestamp: drawnAt.toISO()!,
     });
+    firstFrameAt = drawnAt;
     cursor = drawnAt;
     advance(`${sessionId}:launch-gap`, 20, 60);
   }
@@ -1906,8 +1920,13 @@ function buildSession(
       : named;
   }
 
+  const steps = flow.steps.flatMap((step) =>
+    step.kind === "span" && step.startup && script.launch !== "cold"
+      ? step.startup.otherwise
+      : [step],
+  );
   let stepIndex = 0;
-  for (const step of flow.steps) {
+  for (const step of steps) {
     if (ended) {
       break;
     }
@@ -2073,7 +2092,7 @@ function buildSession(
         throw new Error(`${app.name}: unknown span ${step.span}`);
       }
       const flat: SpanRecord[] = [];
-      const rootStart = cursor;
+      const rootStart = spec.atSessionStart ? start : cursor;
       const traceId = stableHex(`trace:${seed}:${spec.key}`, 32);
       const values = currentValues();
       const run: SpanRun = {
@@ -2099,6 +2118,7 @@ function buildSession(
           };
         },
         fill: (value) => fillTemplate(value, values),
+        firstFrameAt,
         checkpoints: [],
         abortedAt: null,
       };
@@ -2146,8 +2166,13 @@ function buildSession(
           duration: root.duration,
         });
         // Without setZone the reparse would adopt the machine's local zone
-        // and drop the offset the ISO string carries.
-        cursor = DateTime.fromISO(root.end_time, { setZone: true });
+        // and drop the offset the ISO string carries. A trace that began at
+        // session start can end before steps that ran after it, and the
+        // cursor stays with the later of the two.
+        cursor = DateTime.max(
+          cursor,
+          DateTime.fromISO(root.end_time, { setZone: true }),
+        );
       }
     } else if (step.kind === "exception") {
       const spec = scenario.exceptions.find((e) => e.key === step.exception);
@@ -2281,7 +2306,7 @@ function buildSession(
     }
 
     if (!ended) {
-      const [minGap, maxGap] = gapAfter(step, flow.steps[stepIndex]);
+      const [minGap, maxGap] = gapAfter(step, steps[stepIndex]);
       advance(`${seed}:gap`, minGap, maxGap);
     }
   }
