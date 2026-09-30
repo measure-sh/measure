@@ -24,6 +24,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): State the requested numbers in agent replies with charts by @anupcowkur in #4546
+- (**backend**): Keep filter keys and crash fallback out of agent answers by @anupcowkur
+- (**backend**): Leave metrics without data out of get_metrics by @anupcowkur
 - (**backend**): Store unknown memory readings as -1 instead of null (#4541) by @abhaysood in #4541
 - (**backend**): Use different dev secrets for access and refresh tokens by @anupcowkur in #4510
 - (**backend**): Detect dashboard refresh token reuse by @anupcowkur in #4509
@@ -55,6 +58,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Grade agent eval claims with an llm judge by @anupcowkur
 - (**backend**): Use installation id for errors user count by @anupcowkur in #4538
 - (**backend**): Add memory MCP tools (#4535) by @abhaysood in #4535
 - (**backend**): Remove deprecated low_memory event by @abhaysood in #4528
