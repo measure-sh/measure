@@ -1316,40 +1316,63 @@ func (c *Config) mcpGetMetrics(ctx context.Context, in mcpGetMetricsInput) (*mcp
 		return nil, nil, fmt.Errorf("failed to fetch launch metrics: %w", err)
 	}
 
+	adoptionResult := map[string]any{"no_data": true}
+	if !adoption.NoData {
+		adoptionResult = map[string]any{
+			"all_versions":     adoption.AllVersions,
+			"selected_version": adoption.SelectedVersion,
+			"adoption":         adoption.Adoption,
+		}
+	}
 	result := map[string]any{
-		"adoption":                      adoption,
-		"crash_free_sessions":           crashFree,
-		"perceived_crash_free_sessions": perceivedCrashFree,
-		"anr_free_sessions":             anrFree,
-		"perceived_anr_free_sessions":   perceivedANRFree,
-		"cold_launch": map[string]any{
-			"p95":                launch.ColdLaunchP95,
-			"unselected_p95":     launch.UnselectedColdLaunchP95,
-			"no_data":            launch.ColdNoData,
-			"unselected_no_data": launch.UnselectedColdNoData,
-		},
-		"warm_launch": map[string]any{
-			"p95":                launch.WarmLaunchP95,
-			"unselected_p95":     launch.UnselectedWarmLaunchP95,
-			"no_data":            launch.WarmNoData,
-			"unselected_no_data": launch.UnselectedWarmNoData,
-		},
-		"hot_launch": map[string]any{
-			"p95":                launch.HotLaunchP95,
-			"unselected_p95":     launch.UnselectedHotLaunchP95,
-			"no_data":            launch.HotNoData,
-			"unselected_no_data": launch.UnselectedHotNoData,
-		},
+		"adoption": adoptionResult,
+		"crash_free_sessions": metricResult("crash_free_sessions", crashFree.CrashFreeSessions, crashFree.NoData,
+			crashFree.UnselectedCrashFreeSessions, crashFree.UnselectedNoData),
+		"perceived_crash_free_sessions": metricResult("perceived_crash_free_sessions", perceivedCrashFree.CrashFreeSessions, perceivedCrashFree.NoData,
+			perceivedCrashFree.UnselectedCrashFreeSessions, perceivedCrashFree.UnselectedNoData),
+		"cold_launch": metricResult("p95", launch.ColdLaunchP95, launch.ColdNoData, launch.UnselectedColdLaunchP95, launch.UnselectedColdNoData),
+		"warm_launch": metricResult("p95", launch.WarmLaunchP95, launch.WarmNoData, launch.UnselectedWarmLaunchP95, launch.UnselectedWarmNoData),
+		"hot_launch":  metricResult("p95", launch.HotLaunchP95, launch.HotNoData, launch.UnselectedHotLaunchP95, launch.UnselectedHotNoData),
+	}
+	// Apps that do not run on Android have no ANR metrics.
+	if anrFree != nil {
+		result["anr_free_sessions"] = metricResult("anr_free_sessions", anrFree.ANRFreeSessions, anrFree.NoData,
+			anrFree.UnselectedANRFreeSessions, anrFree.UnselectedNoData)
+		result["perceived_anr_free_sessions"] = metricResult("perceived_anr_free_sessions", perceivedANRFree.ANRFreeSessions, perceivedANRFree.NoData,
+			perceivedANRFree.UnselectedANRFreeSessions, perceivedANRFree.UnselectedNoData)
 	}
 
 	sizes, err := app.GetSizeMetrics(ctx, deps.PgPool, deps.RchPool, flt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch size metrics: %w", err)
 	}
-	result["sizes"] = sizes
+	switch {
+	case sizes.NoData:
+		result["sizes"] = map[string]any{"no_data": true}
+	case sizes.MultipleVersions:
+		result["sizes"] = map[string]any{"multiple_versions": true}
+	default:
+		result["sizes"] = sizes
+	}
 
 	data, _ := json.Marshal(result)
 	return mcpTextResult(string(data)), nil, nil
+}
+
+// metricResult leaves out a value with no data behind it, which is a
+// placeholder zero the model would otherwise report as a real value. The
+// unselected value is the metric for the app versions the filter leaves out.
+func metricResult(name string, value float64, noData bool, unselectedValue float64, unselectedNoData bool) map[string]any {
+	if noData {
+		return map[string]any{"no_data": true}
+	}
+	result := map[string]any{name: value}
+	if unselectedNoData {
+		result["unselected_no_data"] = true
+	} else {
+		result["unselected_"+name] = unselectedValue
+	}
+	return result
 }
 
 func (c *Config) mcpGetAppHealthOverTime(ctx context.Context, in mcpGetAppHealthOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
