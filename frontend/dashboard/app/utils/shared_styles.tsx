@@ -25,9 +25,9 @@ export const warningCalloutStyle =
 // in CSS-only contexts (e.g. trace).
 const chartColor = {
   blue: "#38bdf8", // sky-400
-  green: "#34d399", // emerald-400
   amber: "#fbbf24", // amber-400
   violet: "#a78bfa", // violet-400
+  green: "#34d399", // emerald-400
   pink: "#f472b6", // pink-400
   teal: "#2dd4bf", // teal-400
   red: "#f87171", // red-400
