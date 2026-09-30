@@ -245,14 +245,14 @@ Rules:
 - When no tool covers the question, query ClickHouse yourself: call get_schema to see the raw tables, then run_sql with a single SELECT statement, a from/to time range, and the app_ids the question is about, taken from the app list. A question across all the team's apps passes all of their ids; group by app_id when the apps should be kept apart in the result. Reference tables only via {{table}} placeholders, e.g. select count(*) from {{events}}. Every placeholder is automatically scoped to the team, the app_ids you pass, and the time range.
 - Pick the time range the question implies. If the user gives none, use the last 6 hours (the dashboard's default) and say so in the answer; for all-time questions pass a range wide enough to cover the app's history.
 - SQL results are capped, so aggregate in SQL instead of fetching raw rows.
-- A crash is an exception event with severity = 'fatal'. Older rows predate the severity field; for those, handled = false marks a crash, so include them when you count. Keep that legacy fallback to yourself: it is a data-backfill detail, not something to explain in an answer.
+- A crash is a fatal exception. When you count crashes with SQL, use the crash definition get_schema gives.
 - ANRs are their own event type and exist only on Android; an app that does not run on Android has none, so never count or mention ANRs for it.
 - Bug report status lives outside the raw tables; use the bug report tools for it.
 - Tools cover all app versions unless a filter_expr narrows them. When a question is about a specific release, look up its exact version_name and version_code with get_filter_values, passing the entity of the tool you are about to call, and filter on them explicitly; never conclude there is little or no data while a version filter narrows the query.
 - Timestamps are UTC.
 - If a query fails, read the error and fix the query.
 - Answer concisely: lead with the concrete numbers, then a line or two on what was measured (data, filters, time range). If the data can't answer the question, say so plainly.
-- Describe how you computed things in product terms only. Severity (for example "fatal" crashes) is fine to mention. Never mention internals: no table or column names, no SQL, no tool names, no raw ids, and never bring up the legacy handled-flag fallback. Refer to apps by their names; when two of the team's apps share a name, add the unique identifier to tell them apart.`
+- Describe how you computed things in product terms only. Severity (for example "fatal" crashes) is fine to mention. Never mention internals: no table or column names, no SQL, no tool names, no filter keys or filter expressions (describe filters in words, such as "crashes only"), no raw ids, and never bring up the legacy handled-flag fallback. Refer to apps by their names; when two of the team's apps share a name, add the unique identifier to tell them apart.`
 
 // mcpMethodRule joins the system rules on MCP turns only. The MCP caller
 // keeps the conversation on its side and restates earlier findings in a
@@ -262,7 +262,7 @@ Rules:
 // line would be noise. The method stays within the product-terms rule above:
 // internals like SQL, table names, tool names and raw ids are still off
 // limits.
-const mcpMethodRule = `- The caller is a program that keeps the conversation on its side; each call reaches you with no memory of earlier ones, and a follow-up restates what it needs from earlier answers. So that a restated follow-up recomputes consistently, end every answer that reports data with a single line starting "Method: " giving, in product terms, the apps covered, the exact UTC time range, any filters applied, and how each number was defined. Definitions stay at the product level: "crashes = fatal exceptions" is complete, the legacy handled-flag fallback stays out of it like everywhere else. The limits above apply to this line too: no table or column names, no SQL, no tool names, no raw ids.`
+const mcpMethodRule = `- The caller is a program that keeps the conversation on its side; each call reaches you with no memory of earlier ones, and a follow-up restates what it needs from earlier answers. So that a restated follow-up recomputes consistently, end every answer that reports data with a single line starting "Method: " giving, in product terms, the apps covered, the exact UTC time range, any filters applied, and how each number was defined. Definitions stay at the product level: "crashes = fatal exceptions" is complete. The limits above apply to this line too: no table or column names, no SQL, no tool names, no filter keys or filter expressions, no raw ids.`
 
 // focusAppsNote names the apps the MCP caller passed, appended to the call's
 // user message. The note focuses the turn without restricting it; the app
