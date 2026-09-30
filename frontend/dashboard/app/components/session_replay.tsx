@@ -2860,7 +2860,7 @@ const stageHeight = 600;
 
 const minimumPlayerHeight = 420;
 
-const viewportBottomGap = 8;
+const viewportBottomGap = 16;
 
 const touchRingRatio = 0.13;
 
