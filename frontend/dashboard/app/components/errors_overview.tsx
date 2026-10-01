@@ -183,7 +183,14 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                   <LoadingBar />
                 </div>
                 <div className="py-4" />
-                <Table className="font-display select-none">
+                {/* overflow-visible: a chart tooltip is briefly laid out below the cursor
+                    before Nivo measures it. In the last row that overflowed the
+                    default overflow-auto wrapper, toggling its scrollbar and
+                    resizing the charts in a flicker loop. */}
+                <Table
+                  className="font-display select-none"
+                  wrapperClassName="overflow-visible"
+                >
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[40%]">Error</TableHead>

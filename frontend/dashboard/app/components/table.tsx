@@ -3,9 +3,13 @@ import { cn } from "../utils/shadcn_utils";
 
 const Table = React.forwardRef<
   HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
+  React.HTMLAttributes<HTMLTableElement> & {
+    // Extra classes for the scroll wrapper around the <table>, e.g.
+    // "overflow-visible" to let cell content such as chart tooltips escape it.
+    wrapperClassName?: string;
+  }
+>(({ className, wrapperClassName, ...props }, ref) => (
+  <div className={cn("relative w-full overflow-auto", wrapperClassName)}>
     <table
       ref={ref}
       className={cn("w-full table-fixed caption-bottom text-sm", className)}
