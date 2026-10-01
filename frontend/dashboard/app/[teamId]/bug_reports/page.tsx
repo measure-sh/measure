@@ -113,11 +113,13 @@ export default function BugReportsOverview(props: {
       {readyValue !== null &&
         (status === "success" || status === "pending") && (
           <div className="flex flex-col items-center w-full">
+            <div className="py-2" />
             <BugReportsOverviewPlot
               startDate={readyValue.date.startDate}
               endDate={readyValue.date.endDate}
               query={bugReportsPlotQuery}
             />
+            <div className="py-4" />
             {!listEmpty && (
               <>
                 <div className="self-end">

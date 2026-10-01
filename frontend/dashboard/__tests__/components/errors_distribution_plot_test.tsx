@@ -151,7 +151,7 @@ describe("ErrorsDistributionPlot", () => {
         value: 30,
         color: "#111",
       }),
-    ).toContain("Samsung - Galaxy S23 - 30 instances (30%)");
+    ).toContain("Samsung - Galaxy S23 - 30 instances (30.0%)");
     expect(
       renderTooltip({
         id: "other",
@@ -159,7 +159,7 @@ describe("ErrorsDistributionPlot", () => {
         value: 20,
         color: "#111",
       }),
-    ).toContain("Other (5 values) - 20 instances (20%)");
+    ).toContain("Other (5 values) - 20 instances (20.0%)");
   });
 
   it("selects the clicked attribute", () => {
@@ -204,7 +204,7 @@ describe("ErrorsDistributionPlot", () => {
         value: 20,
         color: "#111",
       }),
-    ).toContain("Motorola - Razr - 20 instances (20%)");
+    ).toContain("Motorola - Razr - 20 instances (20.0%)");
   });
 
   it("goes back to all attributes", () => {

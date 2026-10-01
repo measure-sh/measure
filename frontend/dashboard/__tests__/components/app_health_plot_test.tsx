@@ -101,19 +101,18 @@ describe("AppHealthPlot", () => {
         plot={plot}
       />,
     );
-    expect(lastLineProps.axisBottom.format).toBe("%d %b, %Y");
+    expect(lastLineProps.xScale.precision).toBe("month");
   });
 
-  it("renders tooltip in Sessions, Crashes, ANRs order", () => {
+  it("shows every series at the hovered date in the tooltip", () => {
     render(
       <AppHealthPlot
         {...plotDates}
         status="success"
         plot={[
-          { id: "ANRs", data: [{ id: "a1", x: "2026-02-01T01:00:00", y: 1 }] },
           {
             id: "Sessions",
-            data: [{ id: "s1", x: "2026-02-01T01:00:00", y: 10 }],
+            data: [{ id: "s1", x: "2026-02-01T01:00:00", y: 1200 }],
           },
           {
             id: "Crashes",
@@ -122,44 +121,21 @@ describe("AppHealthPlot", () => {
         ]}
       />,
     );
-    expect(screen.getByTestId("line-mock")).toBeInTheDocument();
 
-    const datum = lastLineProps.data[0].data[0];
     const tooltip = lastLineProps.tooltip({
-      point: { data: { ...datum, xFormatted: "2026-02-01T01:00:00" } },
+      point: {
+        seriesId: "Sessions",
+        seriesColor: "#111",
+        data: {
+          ...lastLineProps.data[0].data[0],
+          xFormatted: "2026-02-01T01:00:00",
+        },
+      },
     });
 
     const { container } = render(tooltip);
-    const text = container.textContent || "";
-    expect(text.indexOf("Sessions")).toBeLessThan(text.indexOf("Crashes"));
-    expect(text.indexOf("Crashes")).toBeLessThan(text.indexOf("ANRs"));
-  });
-
-  it("skips missing tooltip series and keeps known ordering", () => {
-    render(
-      <AppHealthPlot
-        {...plotDates}
-        status="success"
-        plot={[
-          {
-            id: "Sessions",
-            data: [{ id: "s1", x: "2026-02-01T01:00:00", y: 10 }],
-          },
-          { id: "ANRs", data: [{ id: "a1", x: "2026-02-01T01:00:00", y: 1 }] },
-        ]}
-      />,
-    );
-
-    const datum = lastLineProps.data[0].data[0];
-    const tooltip = lastLineProps.tooltip({
-      point: { data: { ...datum, xFormatted: "2026-02-01T01:00:00" } },
-    });
-
-    const { container } = render(tooltip);
-    const text = container.textContent || "";
-    expect(text).toContain("Sessions");
-    expect(text).not.toContain("Crashes");
-    expect(text).toContain("ANRs");
+    expect(container.textContent).toContain("Sessions - 1,200");
+    expect(container.textContent).toContain("Crashes - 2");
   });
 
   it("uses fallback color for unknown series id", () => {
@@ -177,9 +153,6 @@ describe("AppHealthPlot", () => {
     );
 
     expect(lastLineProps.colors({ id: "Unknown" })).toBe("#888");
-    expect(lastLineProps.pointBorderColor({ seriesId: "Unknown" })).toBe(
-      "#888",
-    );
   });
 
   it("hides stale chart while new range data is loading", () => {

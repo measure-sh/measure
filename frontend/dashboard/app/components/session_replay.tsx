@@ -23,7 +23,7 @@ import { useActorRef, useSelector } from "@xstate/react";
 import { kilobytesToMegabytes } from "../utils/number_utils";
 import { openTraceInPerfetto } from "../utils/perfetto_utils";
 import { cn } from "../utils/shadcn_utils";
-import { useChartColor, useChartColors } from "../utils/shared_styles";
+import { useChartColor, useChartColors } from "../utils/chart_utils";
 import { formatToCamelCase } from "../utils/string_utils";
 import {
   formatChartFormatTimestampToHumanReadable,
@@ -2807,7 +2807,7 @@ const SessionReplayMetrics = memo(function SessionReplayMetrics({
                   translate: "-50% -100%",
                 }}
               >
-                <PlotTooltipShell className="py-2 mb-3">
+                <PlotTooltipShell className="px-4 py-2 mb-3">
                   <p>
                     Time:{" "}
                     {formatChartFormatTimestampToHumanReadable(

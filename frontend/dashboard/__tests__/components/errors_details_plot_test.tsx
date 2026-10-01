@@ -115,7 +115,11 @@ describe("ErrorsDetailsPlot", () => {
           data: [
             {
               id: "3.1.0",
-              data: [{ id: "p1", x: "2026-02-01T01:00:00", y: 5 }],
+              data: [{ id: "3.1.0.p", x: "2026-02-01T01:00:00", y: 5 }],
+            },
+            {
+              id: "3.0.0",
+              data: [{ id: "3.0.0.p", x: "2026-02-01T01:00:00", y: 1 }],
             },
           ],
           status: "success",
@@ -123,24 +127,17 @@ describe("ErrorsDetailsPlot", () => {
       />,
     );
 
-    const many = lastLineProps.tooltip({
-      point: {
-        data: {
-          xFormatted: "2026-02-01T01:00:00",
-          siblings: [{ id: "3.1.0", y: 5, color: "#111" }],
+    const datum = lastLineProps.data[0].data[0];
+    const { getByText } = render(
+      lastLineProps.tooltip({
+        point: {
+          seriesId: lastLineProps.data[0].id,
+          seriesColor: "#111",
+          data: { ...datum, xFormatted: "2026-02-01T01:00:00" },
         },
-      },
-    });
-    const one = lastLineProps.tooltip({
-      point: {
-        data: {
-          xFormatted: "2026-02-01T01:00:00",
-          siblings: [{ id: "3.1.0", y: 1, color: "#111" }],
-        },
-      },
-    });
-
-    expect(render(many).container.textContent).toContain("instances");
-    expect(render(one).container.textContent).toContain("instance");
+      }),
+    );
+    expect(getByText("3.1.0 - 5 instances")).toBeInTheDocument();
+    expect(getByText("3.0.0 - 1 instance")).toBeInTheDocument();
   });
 });

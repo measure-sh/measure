@@ -95,20 +95,20 @@ describe("MemoryUsagePlot", () => {
     expect(lastLineProps.data[0].data[0].y).toBe(100 * 1024);
   });
 
-  it("renders tooltip values for every build at the hovered time", () => {
+  it("renders every build's memory usage at the hovered time", () => {
     render(
       <MemoryUsagePlot
         {...plotDates}
         query={queryWith({ status: "success", data: rawPlotData })}
       />,
     );
+    const datum = lastLineProps.data[0].data[0];
     render(
       lastLineProps.tooltip({
         point: {
-          data: {
-            ...lastLineProps.data[0].data[0],
-            xFormatted: mockPlotPoint.datetime,
-          },
+          seriesId: lastLineProps.data[0].id,
+          seriesColor: "#111",
+          data: { ...datum, xFormatted: mockPlotPoint.datetime },
         },
       }),
     );

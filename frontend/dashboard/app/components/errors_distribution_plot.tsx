@@ -9,12 +9,28 @@ import {
   type useErrorsAttributeDistributionPlotQuery,
   type useErrorsDistributionPlotQuery,
 } from "@/app/query/hooks";
-import { ResponsiveBar } from "@nivo/bar";
+import {
+  type BarCustomLayerProps,
+  type BarDatum,
+  ResponsiveBar,
+} from "@nivo/bar";
 import { ArrowLeft, ChartColumn } from "lucide-react";
 import React from "react";
 import { numberToKMB } from "../utils/number_utils";
 import { cn } from "../utils/shadcn_utils";
-import { chartTheme, useChartColors } from "../utils/shared_styles";
+import {
+  CHART_GRID_DOT_SIZE,
+  CHART_TEXT_SIZE,
+  CHART_TICK_PADDING,
+  CHART_TICK_SIZE,
+  CHART_VALUE_TICK_COUNT,
+  chartAxisMargin,
+  chartTheme,
+  COUNT_TICK_LABEL_WIDTH,
+  gridDotPositions,
+  useChartColors,
+  useChartGridOpacity,
+} from "../utils/chart_utils";
 import { Button } from "./button";
 import EmptyState from "./empty_state";
 import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
@@ -78,13 +94,13 @@ const demoSummary = distributionAttributes.map((attribute) => {
 
 function formatShare(count: number, total: number): string {
   if (total === 0) {
-    return "0%";
+    return "0.0%";
   }
   const share = (count / total) * 100;
   if (share > 0 && share < 0.1) {
     return "<0.1%";
   }
-  return `${share.toFixed(share < 10 ? 1 : 0)}%`;
+  return `${share.toFixed(1)}%`;
 }
 
 function otherLabel(distribution: AttributeDistribution): string {
@@ -100,7 +116,9 @@ function truncateLabel(label: string): string {
 
 // Both charts share these margins so their axes stay in place when the user
 // switches between them.
-const chartMargin = { top: 40, right: 20, bottom: 180, left: 60 };
+const yAxisMargin = chartAxisMargin(COUNT_TICK_LABEL_WIDTH, true);
+
+const chartMargin = { top: 40, right: 20, bottom: 180, left: yAxisMargin };
 
 const summaryPadding = 0.6;
 
@@ -115,14 +133,47 @@ function attributeChartPadding(values: number): number {
 }
 
 const errorInstancesAxis = {
-  tickSize: 1,
-  tickPadding: 5,
+  tickSize: CHART_TICK_SIZE,
+  tickPadding: CHART_TICK_PADDING,
+  tickValues: CHART_VALUE_TICK_COUNT,
   format: (value: number) =>
     Number.isInteger(value) ? numberToKMB(value) : "",
   legend: "Error instances",
-  legendOffset: -50,
+  legendOffset: -(yAxisMargin - CHART_TEXT_SIZE / 2),
   legendPosition: "middle" as const,
 };
+
+// Bars have no positions along the x axis for the grid to follow, so the dots
+// repeat the row spacing across the chart.
+function DotGrid<Datum extends BarDatum>({
+  yScale,
+  innerWidth,
+  innerHeight,
+}: BarCustomLayerProps<Datum>) {
+  const gridOpacity = useChartGridOpacity();
+  const scale = yScale as unknown as {
+    (value: number): number;
+    ticks: (count: number) => number[];
+  };
+  const ys = gridDotPositions(
+    scale.ticks(CHART_VALUE_TICK_COUNT).filter(Number.isInteger).map(scale),
+    innerHeight,
+  );
+  const step = ys.length < 2 ? 0 : Math.abs(ys[1] - ys[0]);
+  const xs: number[] = [];
+  for (let x = 0; step > 0 && x <= innerWidth; x += step) {
+    xs.push(x);
+  }
+  return (
+    <g fill="var(--muted-foreground)" opacity={gridOpacity}>
+      {xs.flatMap((x) =>
+        ys.map((y) => (
+          <circle key={`${x}-${y}`} cx={x} cy={y} r={CHART_GRID_DOT_SIZE / 2} />
+        )),
+      )}
+    </g>
+  );
+}
 
 interface DistributionTooltipProps {
   label: string;
@@ -137,7 +188,7 @@ const DistributionTooltip: React.FC<DistributionTooltipProps> = ({
   total,
   color,
 }) => (
-  <PlotTooltipShell>
+  <PlotTooltipShell className="px-4 py-2">
     <div className="flex flex-row items-center p-2">
       <PlotTooltipSwatch color={color} />
       <span className="px-2">
@@ -156,16 +207,11 @@ function valueKey(rank: number): string {
 
 interface SummaryChartProps {
   summary: AttributeDistribution[];
-  demo: boolean;
   onSelect: (attribute: DistributionAttribute) => void;
 }
 
 // Keys are value ranks, since every attribute has different values.
-const SummaryChart: React.FC<SummaryChartProps> = ({
-  summary,
-  demo,
-  onSelect,
-}) => {
+const SummaryChart: React.FC<SummaryChartProps> = ({ summary, onSelect }) => {
   const chartColors = useChartColors();
   const ranks = Math.max(
     ...summary.map((distribution) => distribution.values.length),
@@ -201,15 +247,16 @@ const SummaryChart: React.FC<SummaryChartProps> = ({
       axisBottom={{
         legend: "Attributes",
         tickPadding: 10,
-        legendOffset: 100,
+        legendOffset: 96,
         tickRotation: 60,
         legendPosition: "middle",
         format: (attribute) => byAttribute.get(attribute)?.label ?? "",
       }}
-      axisLeft={{ ...errorInstancesAxis, legendOffset: demo ? -55 : -50 }}
+      axisLeft={errorInstancesAxis}
       enableLabel={false}
       enableGridX={false}
       enableGridY={false}
+      layers={[DotGrid, "axes", "bars"]}
       onClick={({ indexValue }) =>
         onSelect(indexValue as DistributionAttribute)
       }
@@ -263,7 +310,7 @@ const AttributeChart: React.FC<AttributeChartProps> = ({ distribution }) => {
       axisBottom={{
         legend: distribution.label,
         tickPadding: 10,
-        legendOffset: 100,
+        legendOffset: 96,
         tickRotation: 60,
         legendPosition: "middle",
         format: (id) => truncateLabel(data[Number(id)].label),
@@ -272,6 +319,7 @@ const AttributeChart: React.FC<AttributeChartProps> = ({ distribution }) => {
       enableLabel={false}
       enableGridX={false}
       enableGridY={false}
+      layers={[DotGrid, "axes", "bars"]}
       tooltip={({ data: datum, value, color }) => (
         <DistributionTooltip
           label={datum.label}
@@ -336,7 +384,7 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
           data-testid="exception-distribution-plot-data"
           className="size-full"
         >
-          <SummaryChart summary={summary} demo={demo} onSelect={onSelect} />
+          <SummaryChart summary={summary} onSelect={onSelect} />
         </div>
       )}
       {effectiveStatus === "success" && selectedSummary && attributeQuery && (

@@ -95,7 +95,6 @@ describe("BugReportsOverviewPlot", () => {
     await waitFor(() =>
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
-    expect(lastLineProps.axisBottom.format).toBe("%d %b, %Y");
   });
 
   it("uses minute/day configs for shorter ranges", async () => {
@@ -146,35 +145,31 @@ describe("BugReportsOverviewPlot", () => {
       <BugReportsOverviewPlot
         {...plotDates}
         query={queryWith({
-          data: [{ id: "v1", data: [{ id: "v1.0", x: "2025-02-01", y: 2 }] }],
+          data: [
+            { id: "v1", data: [{ id: "v1.p", x: "2025-02-01", y: 3 }] },
+            { id: "v2", data: [{ id: "v2.p", x: "2025-02-01", y: 1 }] },
+          ],
           status: "success",
         })}
       />,
     );
+
     await waitFor(() =>
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
 
-    const one = lastLineProps.tooltip({
-      point: {
-        data: {
-          xFormatted: "2025-02-01",
-          siblings: [{ id: "v1", y: 1, color: "#111" }],
+    const datum = lastLineProps.data[0].data[0];
+    const { getByText } = render(
+      lastLineProps.tooltip({
+        point: {
+          seriesId: lastLineProps.data[0].id,
+          seriesColor: "#111",
+          data: { ...datum, xFormatted: "2025-02-01" },
         },
-      },
-    });
-    const many = lastLineProps.tooltip({
-      point: {
-        data: {
-          xFormatted: "2025-02-01",
-          siblings: [{ id: "v1", y: 3, color: "#111" }],
-        },
-      },
-    });
-    const r1 = render(one);
-    const r2 = render(many);
-    expect(r1.container.textContent).toContain("Bug Report");
-    expect(r2.container.textContent).toContain("Bug Reports");
+      }),
+    );
+    expect(getByText("v1 - 3 bug reports")).toBeInTheDocument();
+    expect(getByText("v2 - 1 bug report")).toBeInTheDocument();
   });
 
   it("hides stale chart while new range data is loading", async () => {

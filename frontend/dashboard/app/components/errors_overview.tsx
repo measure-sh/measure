@@ -159,11 +159,13 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
       {readyValue !== null &&
         (status === "success" || status === "pending") && (
           <div className="flex flex-col items-center w-full">
+            <div className="py-2" />
             <ErrorsOverviewPlot
               startDate={readyValue.date.startDate}
               endDate={readyValue.date.endDate}
               query={errorsPlotQuery}
             />
+            <div className="py-4" />
             {!listEmpty && (
               <>
                 <div className="self-end">
@@ -337,7 +339,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                                   enableGridY={false}
                                   enableLabel={false}
                                   tooltip={({ data }) => (
-                                    <PlotTooltipShell>
+                                    <PlotTooltipShell className="px-4 py-2">
                                       <p className="p-2">
                                         Date:{" "}
                                         {formatPlotTooltipDate(

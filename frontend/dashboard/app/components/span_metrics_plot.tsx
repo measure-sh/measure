@@ -5,26 +5,19 @@ import {
   transformSpanMetricsPlotData,
   type useSpanMetricsPlotQuery,
 } from "@/app/query/hooks";
-import { ResponsiveLineCanvas } from "@nivo/line";
 import { ChartGantt } from "lucide-react";
-import { useTheme } from "next-themes";
 import React, { useMemo, useState } from "react";
-import { useChartCanvasTheme, useChartColors } from "../utils/shared_styles";
 import {
   formatMillisToHumanReadable,
-  formatPlotTooltipDate,
   getPlotTimeGroupForRange,
-  getPlotTimeGroupNivoConfig,
 } from "../utils/time_utils";
-import {
-  embedSiblingPoints,
-  PlotTooltipShell,
-  PlotTooltipSwatch,
-  SiblingPoint,
-} from "./plot_tooltip";
 import EmptyState from "./empty_state";
 import { SkeletonPlot } from "./skeleton";
 import TabSelect from "./tab_select";
+import TimeSeriesPlot, {
+  DURATION_TICK_LABEL_WIDTH,
+  formatDurationTick,
+} from "./time_series_plot";
 
 const SpanMetricsPlot: React.FC<{
   startDate: string;
@@ -35,21 +28,12 @@ const SpanMetricsPlot: React.FC<{
     RootSpanMetricsQuantile.p50,
   );
   const { data: rawData, status } = query;
-  const { theme } = useTheme();
-  const chartColors = useChartColors();
-  const canvasTheme = useChartCanvasTheme();
   const plotTimeGroup = getPlotTimeGroupForRange(startDate, endDate);
-  const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
 
-  const plot = useMemo(() => {
-    if (!rawData) {
-      return rawData;
-    }
-    return embedSiblingPoints(
-      transformSpanMetricsPlotData(rawData, quantile),
-      (_: string, index: number) => chartColors[index % chartColors.length],
-    );
-  }, [rawData, quantile, chartColors]);
+  const plot = useMemo(
+    () => rawData && transformSpanMetricsPlotData(rawData, quantile),
+    [rawData, quantile],
+  );
 
   function mapQuantileStringToQuantile(quantile: string) {
     switch (quantile) {
@@ -95,86 +79,19 @@ const SpanMetricsPlot: React.FC<{
             />
           </div>
           <div className="size-full">
-            <ResponsiveLineCanvas
+            <TimeSeriesPlot
               data={plot}
-              curve="monotoneX"
-              theme={canvasTheme}
-              enableArea={true}
-              areaOpacity={0.1}
-              colors={chartColors}
-              margin={{ top: 20, right: 40, bottom: 140, left: 100 }}
-              xFormat={timeConfig.xFormat}
-              xScale={{
-                format: timeConfig.xScaleFormat,
-                precision: timeConfig.xScalePrecision,
-                type: "time",
-                useUTC: false,
-              }}
-              yScale={{
-                type: "linear",
-                min: 0,
-                max: "auto",
-              }}
-              yFormat=".2f"
-              axisTop={null}
-              axisRight={null}
-              axisBottom={{
-                legend: "Date",
-                tickPadding: 10,
-                legendOffset: 100,
-                format: timeConfig.axisBottomFormat,
-                tickRotation: 45,
-                legendPosition: "middle",
-              }}
-              axisLeft={{
-                tickSize: 1,
-                tickPadding: 5,
-                legend: `Duration (${quantile})`,
-                legendOffset: -80,
-                legendPosition: "middle",
-              }}
-              pointSize={6}
-              pointBorderWidth={1.5}
-              pointColor={
-                theme === "dark"
-                  ? "rgba(0, 0, 0, 255)"
-                  : "rgba(255, 255, 255, 255)"
+              plotTimeGroup={plotTimeGroup}
+              formatTick={formatDurationTick}
+              tickLabelWidth={DURATION_TICK_LABEL_WIDTH}
+              startDate={startDate}
+              endDate={endDate}
+              xAxisTitle="Date"
+              yAxisTitle={`Duration (${quantile})`}
+              showAllSeriesInTooltip
+              formatTooltip={(seriesId, datum) =>
+                `${seriesId} - ${formatMillisToHumanReadable(Number(datum.y))} (${quantile})`
               }
-              pointBorderColor={{
-                from: "seriesColor",
-                modifiers: [["darker", 0.3]],
-              }}
-              enableGridX={false}
-              enableGridY={false}
-              tooltip={({ point }) => {
-                const pointData = point.data as unknown as {
-                  xFormatted: string;
-                  siblings: SiblingPoint[];
-                };
-                return (
-                  <PlotTooltipShell>
-                    <p className="p-2">
-                      Date:{" "}
-                      {formatPlotTooltipDate(
-                        pointData.xFormatted.toString(),
-                        plotTimeGroup,
-                      )}
-                    </p>
-                    {pointData.siblings.map((sibling) => (
-                      <div
-                        className="flex flex-row items-center p-2"
-                        key={sibling.id}
-                      >
-                        <PlotTooltipSwatch color={sibling.color} />
-                        <span className="px-2">
-                          {sibling.id} -{" "}
-                          {formatMillisToHumanReadable(sibling.y)} ({quantile})
-                        </span>
-                      </div>
-                    ))}
-                  </PlotTooltipShell>
-                );
-              }}
             />
           </div>
         </div>

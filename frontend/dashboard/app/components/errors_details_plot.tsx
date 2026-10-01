@@ -1,26 +1,14 @@
 "use client";
 
 import { type useErrorsDetailsPlotQuery } from "@/app/query/hooks";
-import { ResponsiveLineCanvas } from "@nivo/line";
 import { ChartLine } from "lucide-react";
 import { DateTime } from "luxon";
-import { useTheme } from "next-themes";
-import React, { useMemo } from "react";
+import React from "react";
 import { numberToKMB } from "../utils/number_utils";
-import { useChartCanvasTheme, useChartColors } from "../utils/shared_styles";
-import {
-  formatPlotTooltipDate,
-  getPlotTimeGroupForRange,
-  getPlotTimeGroupNivoConfig,
-} from "../utils/time_utils";
-import {
-  embedSiblingPoints,
-  PlotTooltipShell,
-  PlotTooltipSwatch,
-  SiblingPoint,
-} from "./plot_tooltip";
+import { getPlotTimeGroupForRange } from "../utils/time_utils";
 import EmptyState from "./empty_state";
 import { SkeletonPlot } from "./skeleton";
+import TimeSeriesPlot, { formatCount } from "./time_series_plot";
 
 const demoDataDate = DateTime.now();
 const demoData = [
@@ -112,24 +100,9 @@ const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
   query,
   demo = false,
 }) => {
-  const { theme } = useTheme();
-  const chartColors = useChartColors();
-  const canvasTheme = useChartCanvasTheme();
   const plotTimeGroup = getPlotTimeGroupForRange(startDate, endDate);
-  const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
-
   const effectiveStatus = demo ? "success" : (query?.status ?? "pending");
-  const rawPlot = demo ? demoPlot : query?.data;
-
-  const plot = useMemo(() => {
-    if (!rawPlot) {
-      return rawPlot;
-    }
-    return embedSiblingPoints(
-      rawPlot,
-      (_, index) => chartColors[index % chartColors.length],
-    );
-  }, [rawPlot, chartColors]);
+  const plot = demo ? demoPlot : query?.data;
 
   return (
     <div
@@ -157,89 +130,24 @@ const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
         </div>
       )}
       {effectiveStatus === "success" && plot !== null && plot !== undefined && (
-        <div data-testid="exception-detail-plot-data" className="size-full">
-          <ResponsiveLineCanvas
+        <div
+          data-testid="exception-detail-plot-data"
+          className="size-full pt-6 pb-[79px]"
+        >
+          <TimeSeriesPlot
             data={plot}
-            curve="monotoneX"
-            theme={canvasTheme}
-            enableArea={true}
-            areaOpacity={0.1}
-            colors={chartColors}
-            margin={{ top: 40, right: 60, bottom: 180, left: 50 }}
-            xFormat={timeConfig.xFormat}
-            xScale={{
-              format: timeConfig.xScaleFormat,
-              precision: timeConfig.xScalePrecision,
-              type: "time",
-              useUTC: false,
-            }}
-            yScale={{
-              type: "linear",
-              min: 0,
-              max: "auto",
-            }}
-            yFormat=" >-.2f"
-            axisTop={null}
-            axisRight={null}
-            axisBottom={{
-              legend: "Date",
-              tickPadding: 10,
-              legendOffset: 100,
-              format: timeConfig.axisBottomFormat,
-              tickRotation: 60,
-              legendPosition: "middle",
-            }}
-            axisLeft={{
-              tickSize: 1,
-              tickPadding: 5,
-              format: (value) =>
-                Number.isInteger(value) ? numberToKMB(value) : "",
-              legend: "Error instances",
-              legendOffset: demo ? -45 : -40,
-              legendPosition: "middle",
-            }}
-            pointSize={6}
-            pointBorderWidth={1.5}
-            pointColor={
-              theme === "dark"
-                ? "rgba(0, 0, 0, 255)"
-                : "rgba(255, 255, 255, 255)"
+            plotTimeGroup={plotTimeGroup}
+            formatTick={numberToKMB}
+            startDate={startDate}
+            endDate={endDate}
+            xAxisTitle="Date"
+            yAxisTitle="Error instances"
+            integerTicks
+            xTickRotation={60}
+            showAllSeriesInTooltip
+            formatTooltip={(seriesId, datum) =>
+              `${seriesId} - ${formatCount(Number(datum.y), "instance", "instances")}`
             }
-            pointBorderColor={{
-              from: "seriesColor",
-              modifiers: [["darker", 0.3]],
-            }}
-            enableGridX={false}
-            enableGridY={false}
-            tooltip={({ point }) => {
-              const pointData = point.data as unknown as {
-                xFormatted: string;
-                siblings: SiblingPoint[];
-              };
-              return (
-                <PlotTooltipShell>
-                  <p className="p-2">
-                    Date:{" "}
-                    {formatPlotTooltipDate(
-                      pointData.xFormatted.toString(),
-                      plotTimeGroup,
-                    )}
-                  </p>
-                  {pointData.siblings.map((sibling) => (
-                    <div
-                      className="flex flex-row items-center p-2"
-                      key={sibling.id}
-                    >
-                      <PlotTooltipSwatch color={sibling.color} />
-                      <span className="px-2">
-                        {sibling.id} - {sibling.y.toLocaleString()}{" "}
-                        {sibling.y > 1 ? "instances" : "instance"}
-                      </span>
-                    </div>
-                  ))}
-                </PlotTooltipShell>
-              );
-            }}
           />
         </div>
       )}
