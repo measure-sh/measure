@@ -1,25 +1,14 @@
 "use client";
 
-import { ResponsiveLineCanvas } from "@nivo/line";
 import { Activity } from "lucide-react";
 import { DateTime } from "luxon";
-import { useTheme } from "next-themes";
 import React, { useMemo } from "react";
 import { numberToKMB } from "../utils/number_utils";
-import { useChartCanvasTheme, useChartColor } from "../utils/shared_styles";
-import {
-  formatPlotTooltipDate,
-  getPlotTimeGroupForRange,
-  getPlotTimeGroupNivoConfig,
-} from "../utils/time_utils";
-import {
-  embedSiblingPoints,
-  PlotTooltipShell,
-  PlotTooltipSwatch,
-  SiblingPoint,
-} from "./plot_tooltip";
+import { useChartColor } from "../utils/chart_utils";
+import { getPlotTimeGroupForRange } from "../utils/time_utils";
 import EmptyState from "./empty_state";
 import { SkeletonPlot } from "./skeleton";
+import TimeSeriesPlot from "./time_series_plot";
 
 export type AppHealthPlotData = {
   id: string;
@@ -147,14 +136,12 @@ interface AppHealthPlotProps {
 
 const AppHealthPlot: React.FC<AppHealthPlotProps> = ({
   status,
-  plot: rawPlot,
+  plot,
   startDate,
   endDate,
 }) => {
-  const { theme } = useTheme();
   const chartColor = useChartColor();
   const plotTimeGroup = getPlotTimeGroupForRange(startDate, endDate);
-  const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
 
   const colorMap = useMemo(
     () =>
@@ -165,23 +152,6 @@ const AppHealthPlot: React.FC<AppHealthPlotProps> = ({
       }) as const,
     [chartColor],
   );
-
-  const canvasTheme = useChartCanvasTheme();
-  const plot = useMemo(() => {
-    if (!rawPlot) {
-      return rawPlot;
-    }
-    return embedSiblingPoints(
-      rawPlot,
-      (id) => colorMap[id as keyof typeof colorMap] || "#888",
-    );
-  }, [rawPlot, colorMap]);
-
-  const labelMap = {
-    Sessions: "Sessions",
-    Crashes: "Crashes",
-    ANRs: "ANRs",
-  } as const;
 
   return (
     <div className="flex font-body items-center justify-center w-full h-96">
@@ -202,86 +172,18 @@ const AppHealthPlot: React.FC<AppHealthPlotProps> = ({
       )}
       {status === "success" && plot !== null && plot !== undefined && (
         <div className="size-full">
-          <ResponsiveLineCanvas
+          <TimeSeriesPlot
             data={plot}
-            curve="monotoneX"
-            theme={canvasTheme}
-            enableArea={true}
-            areaOpacity={0.05}
-            colors={({ id }) => colorMap[id as keyof typeof colorMap] || "#888"}
-            margin={{ top: 40, right: 40, bottom: 80, left: 40 }}
-            xFormat={timeConfig.xFormat}
-            xScale={{
-              format: timeConfig.xScaleFormat,
-              precision: timeConfig.xScalePrecision,
-              type: "time",
-              useUTC: false,
-            }}
-            yScale={{
-              type: "linear",
-              min: 0,
-              max: "auto",
-            }}
-            yFormat="d"
-            axisTop={null}
-            axisRight={null}
-            axisBottom={{
-              tickPadding: 16,
-              format: timeConfig.axisBottomFormat,
-              legendPosition: "middle",
-              tickRotation: 55,
-            }}
-            axisLeft={{
-              tickSize: 1,
-              tickPadding: 5,
-              format: (value) =>
-                Number.isInteger(value) ? numberToKMB(value) : "",
-            }}
-            pointSize={6}
-            pointBorderWidth={1.5}
-            pointColor={
-              theme === "dark"
-                ? "rgba(0, 0, 0, 255)"
-                : "rgba(255, 255, 255, 255)"
+            plotTimeGroup={plotTimeGroup}
+            formatTick={numberToKMB}
+            startDate={startDate}
+            endDate={endDate}
+            showAllSeriesInTooltip
+            integerTicks
+            colors={(id) => colorMap[id as keyof typeof colorMap] || "#888"}
+            formatTooltip={(seriesId, datum) =>
+              `${seriesId} - ${Number(datum.y).toLocaleString()}`
             }
-            pointBorderColor={({ seriesId }: { seriesId: string }) =>
-              colorMap[seriesId as keyof typeof colorMap] || "#888"
-            }
-            enableGridX={false}
-            enableGridY={false}
-            tooltip={({ point }) => {
-              const pointData = point.data as unknown as {
-                xFormatted: string;
-                siblings: SiblingPoint[];
-              };
-              const order = ["Sessions", "Crashes", "ANRs"] as const;
-              const siblingsById: Record<string, SiblingPoint> =
-                Object.fromEntries(pointData.siblings.map((s) => [s.id, s]));
-              return (
-                <PlotTooltipShell>
-                  <p className="p-2">
-                    Date:{" "}
-                    {formatPlotTooltipDate(
-                      pointData.xFormatted.toString(),
-                      plotTimeGroup,
-                    )}
-                  </p>
-                  {order.map((key) => {
-                    const sibling = siblingsById[key];
-                    if (!sibling) return null;
-                    return (
-                      <div className="flex flex-row items-center p-2" key={key}>
-                        <PlotTooltipSwatch color={sibling.color} />
-                        <span className="px-2">
-                          {labelMap[key]} - {sibling.y.toLocaleString()}{" "}
-                          {labelMap[key]}
-                        </span>
-                      </div>
-                    );
-                  })}
-                </PlotTooltipShell>
-              );
-            }}
           />
         </div>
       )}

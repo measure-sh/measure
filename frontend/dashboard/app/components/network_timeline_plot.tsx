@@ -1,7 +1,7 @@
 "use client";
 
 import { Slider } from "@/app/components/slider";
-import { useChartCanvasTheme } from "@/app/utils/shared_styles";
+import { useChartCanvasTheme } from "@/app/utils/chart_utils";
 import { formatMillisToHumanReadable } from "@/app/utils/time_utils";
 import { PlotTooltipShell } from "@/app/components/plot_tooltip";
 import { ResponsiveHeatMapCanvas } from "@nivo/heatmap";
@@ -225,7 +225,7 @@ const NetworkTimelinePlot: React.FC<Props> = ({ data }) => {
             if (cell.value === null) return null;
             const rangeLabel = (cell.data as any).rangeLabel as string;
             return (
-              <PlotTooltipShell>
+              <PlotTooltipShell className="px-4 py-2">
                 <p className="font-semibold">{cell.serieId}</p>
                 <p className="mt-1">{rangeLabel}</p>
                 <p className="mt-0.5">

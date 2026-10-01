@@ -78,7 +78,6 @@ describe("ErrorsOverviewPlot", () => {
     expect(screen.getByTestId("line-mock")).toBeInTheDocument();
     expect(lastLineProps.data[0].id).toBe("3.1.0");
     expect(lastLineProps.data[0].data[0].y).toBe(5);
-    expect(lastLineProps.axisLeft.legend).toBe("Error instances");
   });
 
   it("uses minute axis precision for short ranges", () => {
@@ -134,7 +133,11 @@ describe("ErrorsOverviewPlot", () => {
           data: [
             {
               id: "3.1.0",
-              data: [{ id: "p1", x: "2026-02-01T01:00:00", y: 5 }],
+              data: [{ id: "3.1.0.p", x: "2026-02-01T01:00:00", y: 5 }],
+            },
+            {
+              id: "3.0.0",
+              data: [{ id: "3.0.0.p", x: "2026-02-01T01:00:00", y: 1 }],
             },
           ],
           status: "success",
@@ -142,26 +145,17 @@ describe("ErrorsOverviewPlot", () => {
       />,
     );
 
-    const many = lastLineProps.tooltip({
-      point: {
-        data: {
-          xFormatted: "2026-02-01T01:00:00",
-          siblings: [{ id: "3.1.0", y: 5, color: "#111" }],
+    const datum = lastLineProps.data[0].data[0];
+    const { getByText } = render(
+      lastLineProps.tooltip({
+        point: {
+          seriesId: lastLineProps.data[0].id,
+          seriesColor: "#111",
+          data: { ...datum, xFormatted: "2026-02-01T01:00:00" },
         },
-      },
-    });
-    const one = lastLineProps.tooltip({
-      point: {
-        data: {
-          xFormatted: "2026-02-01T01:00:00",
-          siblings: [{ id: "3.1.0", y: 1, color: "#111" }],
-        },
-      },
-    });
-
-    const manyRendered = render(many);
-    const oneRendered = render(one);
-    expect(manyRendered.container.textContent).toContain("instances");
-    expect(oneRendered.container.textContent).toContain("instance");
+      }),
+    );
+    expect(getByText("3.1.0 - 5 instances")).toBeInTheDocument();
+    expect(getByText("3.0.0 - 1 instance")).toBeInTheDocument();
   });
 });

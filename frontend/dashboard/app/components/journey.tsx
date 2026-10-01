@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { JourneyType, emptyJourney } from "../api/api_calls";
 import { numberToKMB } from "../utils/number_utils";
-import { useChartColor, useChartColors } from "../utils/shared_styles";
+import { useChartColor, useChartColors } from "../utils/chart_utils";
 import EmptyState from "./empty_state";
 import { PlotTooltipShell } from "./plot_tooltip";
 import { SkeletonPlot } from "./skeleton";
@@ -730,7 +730,7 @@ const Journey: React.FC<JourneyProps> = ({
                 : undefined
             }
             linkTooltip={({ link }) => (
-              <PlotTooltipShell>
+              <PlotTooltipShell className="px-4 py-2">
                 <p className="p-2">
                   {link.source.id.split(".").pop()} →{" "}
                   {link.target.id.split(".").pop()}:{" "}
@@ -741,7 +741,7 @@ const Journey: React.FC<JourneyProps> = ({
               </PlotTooltipShell>
             )}
             nodeTooltip={({ node }) => (
-              <PlotTooltipShell>
+              <PlotTooltipShell className="px-4 py-2">
                 <p className="p-2">{node.id}</p>
 
                 {journeyType === JourneyType.Exceptions &&

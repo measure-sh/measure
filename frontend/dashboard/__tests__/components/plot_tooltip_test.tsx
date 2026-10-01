@@ -3,28 +3,9 @@ import "@testing-library/jest-dom";
 import { render } from "@testing-library/react";
 
 import {
-  embedSiblingPoints,
   PlotTooltipShell,
   PlotTooltipSwatch,
 } from "@/app/components/plot_tooltip";
-
-describe("embedSiblingPoints", () => {
-  it("preserves chart gaps while omitting missing values from tooltip rows", () => {
-    const plot = embedSiblingPoints(
-      [
-        { id: "missing", data: [{ x: "2026-09-17", y: null }] },
-        { id: "zero", data: [{ x: "2026-09-17", y: 0 }] },
-        { id: "measured", data: [{ x: "2026-09-17", y: 1024 }] },
-      ],
-      () => "red",
-    );
-    expect(plot[0].data[0].y).toBeNull();
-    expect(plot[2].data[0].siblings).toEqual([
-      { id: "zero", y: 0, color: "red" },
-      { id: "measured", y: 1024, color: "red" },
-    ]);
-  });
-});
 
 describe("PlotTooltipShell", () => {
   it("renders children inside the shared tooltip panel", () => {
@@ -39,11 +20,9 @@ describe("PlotTooltipShell", () => {
     expect(shell.className).toContain("rounded-md");
     expect(shell.className).toContain("font-body");
     expect(shell.className).toContain("text-xs");
-    expect(shell.className).toContain("px-4");
-    expect(shell.className).toContain("py-2");
   });
 
-  it("overrides the default padding via className", () => {
+  it("adds the className it is given", () => {
     const { container } = render(
       <PlotTooltipShell className="py-4">
         <p>body</p>
@@ -51,10 +30,6 @@ describe("PlotTooltipShell", () => {
     );
     const shell = container.firstChild as HTMLElement;
     expect(shell.className).toContain("py-4");
-    // twMerge drops the conflicting default so vertical padding isn't doubled,
-    // while the unrelated horizontal default is kept.
-    expect(shell.className).not.toContain("py-2");
-    expect(shell.className).toContain("px-4");
   });
 });
 

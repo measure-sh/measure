@@ -29,11 +29,8 @@ import {
   PRO_RETENTION_DAYS,
 } from "@/app/utils/pricing_constants";
 import { isSandboxTeamId } from "@/app/utils/sandbox";
-import {
-  chartTheme,
-  underlineLinkStyle,
-  useChartColors,
-} from "@/app/utils/shared_styles";
+import { chartTheme, useChartColors } from "@/app/utils/chart_utils";
+import { underlineLinkStyle } from "@/app/utils/shared_styles";
 import { PlotTooltipShell } from "@/app/components/plot_tooltip";
 import { ResponsivePie } from "@nivo/pie";
 
@@ -420,7 +417,7 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
                 arcLinkLabelsColor={{ from: "color" }}
                 tooltip={({ datum: { id, label, value, color } }) => {
                   return (
-                    <PlotTooltipShell>
+                    <PlotTooltipShell className="px-4 py-2">
                       <p
                         className="text-sm font-semibold"
                         style={{

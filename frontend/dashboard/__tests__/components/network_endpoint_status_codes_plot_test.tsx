@@ -13,25 +13,6 @@ jest.mock("@nivo/line", () => ({
 
 jest.mock("next-themes", () => ({ useTheme: () => ({ theme: "light" }) }));
 
-jest.mock("@/app/utils/time_utils", () => ({
-  getPlotTimeGroupNivoConfig: () => ({
-    xFormat: "time:%Y-%m-%d",
-    xScaleFormat: "%Y-%m-%d",
-    xScalePrecision: "day",
-    axisBottomFormat: "%b %d",
-  }),
-}));
-
-jest.mock("@/app/utils/shared_styles", () => ({
-  useChartCanvasTheme: () => ({}),
-  useChartColor: () => ({
-    blue: "#38bdf8",
-    green: "#34d399",
-    amber: "#fbbf24",
-    red: "#f87171",
-  }),
-}));
-
 describe("NetworkEndpointStatusCodesPlot", () => {
   beforeEach(() => {
     chartProps = undefined;

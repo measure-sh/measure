@@ -306,6 +306,8 @@ export default function NetworkOverview({
             statusPlotStatus={statusPlotStatus}
             statusPlotData={statusPlotData}
             plotTimeGroup={plotTimeGroup}
+            startDate={readyValue?.date.startDate}
+            endDate={readyValue?.date.endDate}
             trends={
               <NetworkTrends
                 teamId={teamId}
@@ -339,6 +341,8 @@ function NetworkOverviewSections({
   statusPlotStatus,
   statusPlotData,
   plotTimeGroup,
+  startDate,
+  endDate,
   trends,
   timelinePlotStatus,
   timelinePlotData,
@@ -349,6 +353,8 @@ function NetworkOverviewSections({
   plotTimeGroup: ComponentProps<
     typeof NetworkStatusDistributionPlot
   >["plotTimeGroup"];
+  startDate?: string;
+  endDate?: string;
   trends: ReactNode;
   timelinePlotStatus: PlotStatus;
   timelinePlotData: NetworkTimelineData | null;
@@ -375,6 +381,8 @@ function NetworkOverviewSections({
             <NetworkStatusDistributionPlot
               data={statusPlotData}
               plotTimeGroup={plotTimeGroup}
+              startDate={startDate}
+              endDate={endDate}
             />
           )}
           {statusPlotStatus === "nodata" && (

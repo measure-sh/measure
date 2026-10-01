@@ -120,6 +120,8 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
                 <NetworkLatencyPlot
                   data={latencyQuery.data!}
                   plotTimeGroup={plotTimeGroup}
+                  startDate={readyValue?.date.startDate}
+                  endDate={readyValue?.date.endDate}
                 />
               )}
               {latencyStatus === "nodata" && (
@@ -149,6 +151,8 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
                   statusCodes={statusCodesQuery.data!.status_codes}
                   data={statusCodesQuery.data!.data_points}
                   plotTimeGroup={plotTimeGroup}
+                  startDate={readyValue?.date.startDate}
+                  endDate={readyValue?.date.endDate}
                 />
               )}
               {statusCodesStatus === "nodata" && (

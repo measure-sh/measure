@@ -5,26 +5,17 @@ import {
   transformMemoryUsagePlotData,
   type useMemoryUsagePlotQuery,
 } from "@/app/query/hooks";
-import { ResponsiveLineCanvas } from "@nivo/line";
 import { MemoryStick } from "lucide-react";
-import { useTheme } from "next-themes";
 import { useMemo, useState } from "react";
 import { formatMemoryKilobytes } from "../utils/number_utils";
-import { useChartCanvasTheme, useChartColors } from "../utils/shared_styles";
-import {
-  formatPlotTooltipDate,
-  getPlotTimeGroupForRange,
-  getPlotTimeGroupNivoConfig,
-} from "../utils/time_utils";
-import {
-  embedSiblingPoints,
-  PlotTooltipShell,
-  PlotTooltipSwatch,
-  type SiblingPoint,
-} from "./plot_tooltip";
+import { getPlotTimeGroupForRange } from "../utils/time_utils";
 import EmptyState from "./empty_state";
 import { SkeletonPlot } from "./skeleton";
 import TabSelect from "./tab_select";
+import TimeSeriesPlot from "./time_series_plot";
+
+// Fits a memory label like "512.0 MB".
+const MEMORY_TICK_LABEL_WIDTH = 46;
 
 export default function MemoryUsagePlot({
   startDate,
@@ -37,19 +28,11 @@ export default function MemoryUsagePlot({
 }) {
   const [quantile, setQuantile] = useState(MemoryUsageQuantile.p90);
   const { data: rawData, status } = query;
-  const { theme } = useTheme();
-  const chartColors = useChartColors();
-  const canvasTheme = useChartCanvasTheme();
   const plotTimeGroup = getPlotTimeGroupForRange(startDate, endDate);
-  const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
-  const plot = useMemo(() => {
-    if (!rawData) return rawData;
-    const transformed = transformMemoryUsagePlotData(rawData, quantile);
-    return embedSiblingPoints(
-      transformed,
-      (_, index) => chartColors[index % chartColors.length],
-    );
-  }, [rawData, quantile, chartColors]);
+  const plot = useMemo(
+    () => rawData && transformMemoryUsagePlotData(rawData, quantile),
+    [rawData, quantile],
+  );
 
   return (
     <section className="w-full font-body">
@@ -88,82 +71,19 @@ export default function MemoryUsagePlot({
               />
             </div>
             <div className="flex-1 min-h-0">
-              <ResponsiveLineCanvas
+              <TimeSeriesPlot
                 data={plot}
-                curve="monotoneX"
-                theme={canvasTheme}
-                enableArea
-                areaOpacity={0.1}
-                colors={chartColors}
-                margin={{ top: 20, right: 40, bottom: 140, left: 100 }}
-                xFormat={timeConfig.xFormat}
-                xScale={{
-                  format: timeConfig.xScaleFormat,
-                  precision: timeConfig.xScalePrecision,
-                  type: "time",
-                  useUTC: false,
-                }}
-                yScale={{ type: "linear", min: 0, max: "auto" }}
-                yFormat=".2f"
-                axisTop={null}
-                axisRight={null}
-                axisBottom={{
-                  legend: "Date",
-                  tickPadding: 10,
-                  legendOffset: 100,
-                  format: timeConfig.axisBottomFormat,
-                  tickRotation: 45,
-                  legendPosition: "middle",
-                }}
-                axisLeft={{
-                  tickSize: 1,
-                  tickPadding: 5,
-                  format: (value) => formatMemoryKilobytes(Number(value)),
-                  legend: "Memory usage",
-                  legendOffset: -80,
-                  legendPosition: "middle",
-                }}
-                pointSize={6}
-                pointBorderWidth={1.5}
-                pointColor={
-                  theme === "dark"
-                    ? "rgba(0, 0, 0, 255)"
-                    : "rgba(255, 255, 255, 255)"
+                plotTimeGroup={plotTimeGroup}
+                startDate={startDate}
+                endDate={endDate}
+                xAxisTitle="Date"
+                yAxisTitle="Memory usage"
+                formatTick={formatMemoryKilobytes}
+                tickLabelWidth={MEMORY_TICK_LABEL_WIDTH}
+                showAllSeriesInTooltip
+                formatTooltip={(seriesId, datum) =>
+                  `${seriesId} - ${formatMemoryKilobytes(Number(datum.y))}`
                 }
-                pointBorderColor={{
-                  from: "seriesColor",
-                  modifiers: [["darker", 0.3]],
-                }}
-                enableGridX={false}
-                enableGridY={false}
-                tooltip={({ point }) => {
-                  const pointData = point.data as unknown as {
-                    xFormatted: string;
-                    siblings: SiblingPoint[];
-                  };
-                  return (
-                    <PlotTooltipShell>
-                      <p className="p-2">
-                        Date:{" "}
-                        {formatPlotTooltipDate(
-                          pointData.xFormatted,
-                          plotTimeGroup,
-                        )}
-                      </p>
-                      <p className="px-2 pb-1 text-muted-foreground">
-                        App version (build) - Memory usage
-                      </p>
-                      {pointData.siblings.map((sibling) => (
-                        <div className="flex items-center p-2" key={sibling.id}>
-                          <PlotTooltipSwatch color={sibling.color} />
-                          <span className="px-2">
-                            {sibling.id} - {formatMemoryKilobytes(sibling.y)}
-                          </span>
-                        </div>
-                      ))}
-                    </PlotTooltipShell>
-                  );
-                }}
               />
             </div>
           </div>

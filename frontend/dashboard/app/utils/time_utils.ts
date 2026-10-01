@@ -154,8 +154,7 @@ export type PlotTimeGroup = "minutes" | "hours" | "days" | "months";
 type PlotTimeGroupNivoConfig = {
   xFormat: string;
   xScaleFormat: string;
-  xScalePrecision: "minute" | "hour" | "day";
-  axisBottomFormat: string;
+  xScalePrecision: "minute" | "hour" | "day" | "month";
 };
 
 export function getPlotTimeGroupForRange(
@@ -196,21 +195,18 @@ export function getPlotTimeGroupNivoConfig(
         xFormat: "time:%Y-%m-%dT%H:%M:%S",
         xScaleFormat: "%Y-%m-%dT%H:%M:%S",
         xScalePrecision: "minute",
-        axisBottomFormat: "%b %d, %H:%M",
       };
     case "hours":
       return {
         xFormat: "time:%Y-%m-%dT%H:%M:%S",
         xScaleFormat: "%Y-%m-%dT%H:%M:%S",
         xScalePrecision: "hour",
-        axisBottomFormat: "%b %d, %H:%M",
       };
     case "months":
       return {
         xFormat: "time:%Y-%m-%d",
         xScaleFormat: "%Y-%m-%d",
-        xScalePrecision: "day",
-        axisBottomFormat: "%d %b, %Y",
+        xScalePrecision: "month",
       };
     case "days":
     default:
@@ -218,7 +214,6 @@ export function getPlotTimeGroupNivoConfig(
         xFormat: "time:%Y-%m-%d",
         xScaleFormat: "%Y-%m-%d",
         xScalePrecision: "day",
-        axisBottomFormat: "%b %d, %Y",
       };
   }
 }

@@ -87,7 +87,6 @@ describe("SessionReplayOverviewPlot", () => {
     );
     expect(screen.getByTestId("sessions-plot-data")).toBeInTheDocument();
     expect(lastLineProps.xScale.precision).toBe("minute");
-    expect(lastLineProps.axisBottom.format).toBe("%b %d, %H:%M");
     expect(lastLineProps.axisLeft.legend).toBe("Session Replay");
     expect(lastLineProps.data[0].data[0].y).toBe(2);
   });
@@ -133,7 +132,6 @@ describe("SessionReplayOverviewPlot", () => {
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
     expect(lastLineProps.xScale.precision).toBe("day");
-    expect(lastLineProps.axisBottom.format).toBe("%b %d, %Y");
   });
 
   it("uses month formatting for long range", async () => {
@@ -153,7 +151,6 @@ describe("SessionReplayOverviewPlot", () => {
     await waitFor(() =>
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
-    expect(lastLineProps.axisBottom.format).toBe("%d %b, %Y");
   });
 
   it("renders tooltip with expected labels", async () => {
@@ -164,7 +161,11 @@ describe("SessionReplayOverviewPlot", () => {
           data: [
             {
               id: "1.0.0",
-              data: [{ id: "1.0.0.0", x: "2026-02-23T01:00:00", y: 2 }],
+              data: [{ id: "1.0.0.p", x: "2026-02-23T01:00:00", y: 2 }],
+            },
+            {
+              id: "2.0.0",
+              data: [{ id: "2.0.0.p", x: "2026-02-23T01:00:00", y: 1 }],
             },
           ],
           status: "success",
@@ -176,17 +177,19 @@ describe("SessionReplayOverviewPlot", () => {
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
 
-    const tooltip = lastLineProps.tooltip({
-      point: {
-        data: {
-          xFormatted: "2026-02-23T01:00:00",
-          siblings: [{ id: "1.0.0", y: 2, color: "#111" }],
+    const datum = lastLineProps.data[0].data[0];
+    const { container, getByText } = render(
+      lastLineProps.tooltip({
+        point: {
+          seriesId: lastLineProps.data[0].id,
+          seriesColor: "#111",
+          data: { ...datum, xFormatted: "2026-02-23T01:00:00" },
         },
-      },
-    });
-    const { container } = render(tooltip);
+      }),
+    );
+    expect(getByText("1.0.0 - 2 session replays")).toBeInTheDocument();
+    expect(getByText("2.0.0 - 1 session replay")).toBeInTheDocument();
     expect(container.textContent).toContain("Date:");
-    expect(container.textContent).toContain("session replays");
   });
 
   it("hides stale chart while new range data is loading", async () => {

@@ -136,9 +136,11 @@ describe("SpanMetricsPlot", () => {
 
     const tooltip = lastLineProps.tooltip({
       point: {
+        seriesId: "v1",
+        seriesColor: "#111",
         data: {
+          ...lastLineProps.data[0].data[0],
           xFormatted: "2026-02-01T01:00:00",
-          siblings: [{ id: "v1", y: 30, color: "#111" }],
         },
       },
     });
@@ -198,7 +200,6 @@ describe("SpanMetricsPlot", () => {
     await waitFor(() =>
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
-    expect(lastLineProps.axisBottom.format).toBe("%d %b, %Y");
   });
 
   it("throws for invalid quantile selection", async () => {

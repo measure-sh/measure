@@ -1,17 +1,15 @@
 "use client";
 
-import { ResponsiveLineCanvas } from "@nivo/line";
-import { useTheme } from "next-themes";
 import React, { useMemo, useState } from "react";
-import { useChartCanvasTheme, useChartColors } from "../utils/shared_styles";
-import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
 import {
   formatMillisToHumanReadable,
-  formatPlotTooltipDate,
-  getPlotTimeGroupNivoConfig,
   PlotTimeGroup,
 } from "../utils/time_utils";
 import TabSelect from "./tab_select";
+import TimeSeriesPlot, {
+  DURATION_TICK_LABEL_WIDTH,
+  formatDurationTick,
+} from "./time_series_plot";
 
 interface LatencyDataPoint {
   datetime: string;
@@ -25,6 +23,8 @@ interface LatencyDataPoint {
 interface NetworkLatencyPlotProps {
   data: LatencyDataPoint[];
   plotTimeGroup: PlotTimeGroup;
+  startDate?: string;
+  endDate?: string;
 }
 
 type PlotData = {
@@ -47,13 +47,10 @@ enum Quantile {
 const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({
   data,
   plotTimeGroup,
+  startDate,
+  endDate,
 }) => {
   const [quantile, setQuantile] = useState(Quantile.p95);
-  const { theme } = useTheme();
-  const chartColors = useChartColors();
-  const timeConfig = getPlotTimeGroupNivoConfig(plotTimeGroup);
-
-  const canvasTheme = useChartCanvasTheme();
 
   const plot = useMemo<PlotData>(() => {
     return [
@@ -80,87 +77,18 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({
           />
         </div>
         <div className="size-full">
-          <ResponsiveLineCanvas
+          <TimeSeriesPlot
             data={plot}
-            curve="monotoneX"
-            theme={canvasTheme}
-            enableArea={true}
-            areaOpacity={0.1}
-            colors={chartColors}
-            margin={{ top: 20, right: 80, bottom: 140, left: 100 }}
-            xFormat={timeConfig.xFormat}
-            xScale={{
-              format: timeConfig.xScaleFormat,
-              precision: timeConfig.xScalePrecision,
-              type: "time",
-              useUTC: false,
-            }}
-            yScale={{
-              type: "linear",
-              min: 0,
-              max: "auto",
-            }}
-            yFormat=".2f"
-            axisTop={null}
-            axisRight={null}
-            axisBottom={{
-              legend: "Date",
-              tickPadding: 10,
-              legendOffset: 100,
-              format: timeConfig.axisBottomFormat,
-              tickRotation: 45,
-              legendPosition: "middle",
-            }}
-            axisLeft={{
-              tickSize: 1,
-              tickPadding: 5,
-              legend: `Duration (${quantile})`,
-              legendOffset: -80,
-              legendPosition: "middle",
-            }}
-            pointSize={6}
-            pointBorderWidth={1.5}
-            pointColor={
-              theme === "dark"
-                ? "rgba(0, 0, 0, 255)"
-                : "rgba(255, 255, 255, 255)"
+            plotTimeGroup={plotTimeGroup}
+            formatTick={formatDurationTick}
+            tickLabelWidth={DURATION_TICK_LABEL_WIDTH}
+            startDate={startDate}
+            endDate={endDate}
+            xAxisTitle="Date"
+            yAxisTitle={`Duration (${quantile})`}
+            formatTooltip={(_, datum) =>
+              `${quantile}: ${formatMillisToHumanReadable(Number(datum.y))} (${datum.count.toLocaleString()} requests)`
             }
-            pointBorderColor={{
-              from: "seriesColor",
-              modifiers: [["darker", 0.3]],
-            }}
-            enableGridX={false}
-            enableGridY={false}
-            tooltip={({ point }) => {
-              const pointData = point.data as unknown as {
-                xFormatted: string;
-                yFormatted: string;
-                count: number;
-              };
-              return (
-                <PlotTooltipShell>
-                  <p className="p-2 font-semibold">
-                    {formatPlotTooltipDate(
-                      pointData.xFormatted.toString(),
-                      plotTimeGroup,
-                    )}
-                  </p>
-                  <p className="px-2 pb-1">
-                    Requests: {(pointData.count ?? 0).toLocaleString()}
-                  </p>
-                  <div className="flex flex-row items-center px-2 py-0.5">
-                    <PlotTooltipSwatch color={point.seriesColor} />
-                    <div className="px-1" />
-                    <p>
-                      {quantile}:{" "}
-                      {formatMillisToHumanReadable(
-                        Number(pointData.yFormatted),
-                      )}
-                    </p>
-                  </div>
-                </PlotTooltipShell>
-              );
-            }}
           />
         </div>
       </div>

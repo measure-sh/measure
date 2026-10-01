@@ -353,12 +353,8 @@ describe("plot time group utils", () => {
       "minute",
     );
     expect(getPlotTimeGroupNivoConfig("hours").xScalePrecision).toBe("hour");
-    expect(getPlotTimeGroupNivoConfig("days").axisBottomFormat).toBe(
-      "%b %d, %Y",
-    );
-    expect(getPlotTimeGroupNivoConfig("months").axisBottomFormat).toBe(
-      "%d %b, %Y",
-    );
+    expect(getPlotTimeGroupNivoConfig("days").xScalePrecision).toBe("day");
+    expect(getPlotTimeGroupNivoConfig("months").xScalePrecision).toBe("month");
   });
 
   it("formats tooltip dates for minutes and hours groups", () => {
