@@ -183,7 +183,14 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                   <LoadingBar />
                 </div>
                 <div className="py-4" />
-                <Table className="font-display select-none">
+                {/* When a trend tooltip opens on the last row, it extends below
+                    the table for one frame before it moves above the cursor.
+                    Without the clip, Table's scrollable container shows a
+                    vertical scrollbar for that frame and the columns shift
+                    left to make room for it. This is only visible when the
+                    browser draws scrollbars that take up width; overlay
+                    scrollbars stay hidden. */}
+                <Table className="font-display select-none overflow-hidden">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[40%]">Error</TableHead>
