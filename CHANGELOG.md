@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Expand session arrays with an ARRAY JOIN clause by @anupcowkur
 - (**backend**): Bind the suggestion window start as a query parameter by @anupcowkur in #4464
 - (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
+- (**frontend**): Stop scrollbar flashing on errors table trend hover by @anupcowkur in #4553
 - (**frontend**): Put amber second in the chart palette by @anupcowkur in #4548
 - (**frontend**): Remove extra gap after hyphen in plot tooltips by @anupcowkur in #4502
 - (**frontend**): Remove extra braces and brackets in errors overview list by @anupcowkur in #4487
