@@ -190,6 +190,27 @@ fun NativeAndroidScreen() {
             },
         ),
         DemoItem(
+            title = "Broadcast Timeout",
+            description = "Blocks a receiver on a held lock, don't touch the screen until the app is killed",
+            category = DemoCategory.ANRS,
+
+            action = { AnrBroadcastReceiver.trigger(context) },
+        ),
+        DemoItem(
+            title = "Service Timeout",
+            description = "Blocks a service's onStartCommand, don't touch the screen until the app is killed",
+            category = DemoCategory.ANRS,
+
+            action = { AnrService.trigger(context) },
+        ),
+        DemoItem(
+            title = "Job Timeout",
+            description = "Blocks a job's onStartJob on Android 14+, don't touch the screen until the app is killed",
+            category = DemoCategory.ANRS,
+
+            action = { AnrJobService.trigger(context) },
+        ),
+        DemoItem(
             title = "Infinite Loop",
             description = "Blocks the main thread forever",
             category = DemoCategory.ANRS,
