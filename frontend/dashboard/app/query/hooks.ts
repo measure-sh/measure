@@ -44,6 +44,7 @@ import {
   fetchNetworkTrendsFromServer,
   fetchNotifPrefsFromServer,
   fetchPendingInvitesFromServer,
+  fetchProfilesFromServer,
   fetchSdkConfigFromServer,
   fetchSessionReplayFromServer,
   fetchSessionReplayOverviewFromServer,
@@ -803,6 +804,38 @@ export function useHighMemoryUsageSessionsQuery(
         params!.endDate,
         params!.filterExpr,
         HIGH_MEMORY_USAGE_SESSIONS_LIMIT,
+        paginationOffset,
+      ),
+    enabled: params !== null,
+    placeholderData: keepPreviousData,
+    retry: false,
+  });
+}
+
+// ─── Paginated: Profiles ─────────────────────────────────────────────────
+
+export const PROFILES_LIMIT = 10;
+
+export function useProfilesQuery(
+  params: FilterParams | null,
+  paginationOffset: number,
+) {
+  return useQuery({
+    queryKey: [
+      "profiles",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+      paginationOffset,
+    ] as const,
+    queryFn: () =>
+      fetchProfilesFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+        PROFILES_LIMIT,
         paginationOffset,
       ),
     enabled: params !== null,
