@@ -14,6 +14,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"backend/libs/artdump"
 	"backend/libs/ingest"
 	"backend/libs/opsys"
 	"backend/libs/udattr"
@@ -74,6 +75,8 @@ const (
 	maxLayoutElementLabelChars                = 512
 	maxBugReportDescChars                     = 4000
 	maxErrorMetaBytes                         = 4096 // Maximum size for marshaled Error.Meta in bytes
+	maxANRThreadDumpBytes                     = 1024 * 1024
+	maxANRSubjectBytes                        = 1024
 	maxEventAttachments                       = 5
 	customNameKeyPattern                      = "^[a-zA-Z0-9_-]+$"
 )
@@ -256,6 +259,45 @@ var ValidNetworkGenerations = []string{
 	NetworkGenerationUnknown,
 }
 
+// anrSubjectCategories contains a fixed phrase for each kind of ANR
+// subject coming from an artdump.
+var anrSubjectCategories = []string{
+	"Input dispatching timed out",
+	"Broadcast of Intent",
+	"executing service",
+	"ContentProvider not responding",
+	"Context.startForegroundService() did not then call Service.startForeground()",
+	"App requested",
+	"No response to onStartJob",
+	"No response to onStopJob",
+	"Timed out while trying to bind",
+	"failed to complete startup",
+}
+
+var (
+	// Example: "Broadcast of Intent { flg=0x10000010 cmp=sh.foo/.Receiver }"
+	anrIntentComponentRE = regexp.MustCompile(`\bcmp=([^\s}]+)`)
+
+	// Example: "Broadcast of Intent { act=android.intent.action.SCREEN_ON flg=0x50200010 }"
+	anrIntentActionRE = regexp.MustCompile(`\bact=([^\s}]+)`)
+
+	// Examples:
+	// executing service sh.foo/.SyncService
+	// Input dispatching timed out (7e1b6d2 sh.foo/sh.foo.MainActivity is not responding...)
+	// Input dispatching timed out (ActivityRecord{e0dd1e0 u0 sh.foo/.MainActivity t12}, ...)
+	anrComponentRE = regexp.MustCompile(`\b[A-Za-z]\w*(?:\.\w+)+/[\w$]*\.[\w.$]+`)
+)
+
+// validLogSeverities maps the allowed log severity_text values to their
+// OTel severity_number.
+var validLogSeverities = map[string]int32{
+	"debug":   8,
+	"info":    12,
+	"warning": 16,
+	"error":   20,
+	"fatal":   24,
+}
+
 // getValidLifecycleAppTypes defines valid
 // `lifecycle_app.type` values according
 // to the OS.
@@ -359,11 +401,14 @@ type Thread struct {
 type Threads []Thread
 
 type ANR struct {
-	Handled     bool           `json:"handled"`
-	Exceptions  ExceptionUnits `json:"exceptions" binding:"required"`
-	Threads     Threads        `json:"threads" binding:"required"`
-	Fingerprint string         `json:"fingerprint"`
-	Foreground  bool           `json:"foreground" binding:"required"`
+	Handled       bool           `json:"handled"`
+	Exceptions    ExceptionUnits `json:"exceptions"`
+	Threads       Threads        `json:"threads"`
+	RawThreadDump string         `json:"art_thread_dump"`
+	Subject       string         `json:"subject"`
+	Foreground    bool           `json:"foreground" binding:"required"`
+	ThreadDump    *artdump.Dump  `json:"-"`
+	Fingerprint   string         `json:"fingerprint"`
 }
 
 type Exception struct {
@@ -477,16 +522,6 @@ type Log struct {
 	SeverityText   string `json:"severity_text"`
 	SeverityNumber int32  `json:"severity_number"`
 	Body           string `json:"body" binding:"required"`
-}
-
-// validLogSeverities maps the allowed log severity_text values to their
-// OTel severity_number.
-var validLogSeverities = map[string]int32{
-	"debug":   8,
-	"info":    12,
-	"warning": 16,
-	"error":   20,
-	"fatal":   24,
 }
 
 type GestureLongClick struct {
@@ -780,8 +815,19 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsANR() {
-		if len(e.ANR.Exceptions) < 1 || len(e.ANR.Threads) < 1 {
-			return fmt.Errorf(`%q must contain at least one anr & thread`, `anr`)
+		hasStacktrace := len(e.ANR.Exceptions) > 0 && len(e.ANR.Threads) > 0
+		hasThreadDump := e.ANR.RawThreadDump != ""
+		if !hasStacktrace && !hasThreadDump {
+			return fmt.Errorf(`%q must contain an art thread dump or at least one stacktrace`, `anr`)
+		}
+		if len(e.ANR.RawThreadDump) > maxANRThreadDumpBytes {
+			return fmt.Errorf(`%q size (%d bytes) exceeds maximum allowed (%d bytes)`, `anr.art_thread_dump`, len(e.ANR.RawThreadDump), maxANRThreadDumpBytes)
+		}
+		if hasThreadDump && !artdump.Parse(e.ANR.RawThreadDump).HasMainFrame() {
+			return fmt.Errorf(`%q must contain a main thread with at least one frame`, `anr.art_thread_dump`)
+		}
+		if len(e.ANR.Subject) > maxANRSubjectBytes {
+			return fmt.Errorf(`%q size (%d bytes) exceeds maximum allowed (%d bytes)`, `anr.subject`, len(e.ANR.Subject), maxANRSubjectBytes)
 		}
 	}
 
@@ -2035,6 +2081,10 @@ func (a ANR) IsNested() bool {
 	return len(a.Exceptions) > 1
 }
 
+// hasExceptions reports whether the ANR is read from its exceptions
+// rather than its thread dump.
+func (a ANR) hasExceptions() bool { return len(a.Exceptions) > 0 }
+
 // HasNoFrames returns true if the ANR
 // does not have any frame.
 //
@@ -2042,7 +2092,11 @@ func (a ANR) IsNested() bool {
 // for certain OutOfMemory stacktraces in
 // Android.
 func (a ANR) HasNoFrames() bool {
-	return len(a.Exceptions[len(a.Exceptions)-1].Frames) == 0
+	if a.hasExceptions() {
+		return len(a.innermostException().Frames) == 0
+	}
+
+	return a.groupingFrame().ClassName == ""
 }
 
 // GetTitle provides the combined
@@ -2052,54 +2106,213 @@ func (a ANR) GetTitle() string {
 	return makeTitle(a.GetType(), a.GetMessage())
 }
 
-// GetType provides the type of
-// the ANR.
+// GetType returns the innermost exception's
+// type fo ANRs traced as exceptions, or the
+// cause found in the art thread dump.
 func (a ANR) GetType() string {
-	return a.Exceptions[len(a.Exceptions)-1].Type
-}
-
-// GetMessage provides the message of
-// the ANR.
-func (a ANR) GetMessage() string {
-	return a.Exceptions[len(a.Exceptions)-1].Message
-}
-
-// GetFileName provides the file name of
-// the ANR.
-func (a ANR) GetFileName() string {
-	if a.HasNoFrames() {
+	if a.hasExceptions() {
+		return a.innermostException().Type
+	}
+	if a.ThreadDump == nil {
 		return ""
 	}
-	return a.Exceptions[len(a.Exceptions)-1].Frames[0].FileName
+
+	return a.ThreadDump.Cause
 }
 
-// GetLineNumber provides the line number of
-// the ANR.
+// GetMessage provides the message of the ANR.
+func (a ANR) GetMessage() string {
+	if a.hasExceptions() {
+		return a.innermostException().Message
+	}
+
+	return a.Subject
+}
+
+// GetFileName provides the file name of the ANR.
+func (a ANR) GetFileName() string {
+	if a.hasExceptions() {
+		if a.HasNoFrames() {
+			return ""
+		}
+		return a.innermostException().Frames[0].FileName
+	}
+
+	return a.groupingFrame().FileName
+}
+
+// GetLineNumber provides the line number of the ANR.
 func (a ANR) GetLineNumber() int32 {
-	if a.HasNoFrames() {
+	if a.hasExceptions() {
+		if a.HasNoFrames() {
+			return int32(0)
+		}
+		return int32(a.innermostException().Frames[0].LineNum)
+	}
+
+	frame := a.groupingFrame()
+	if frame.LineNum == artdump.NoLineNum {
 		return int32(0)
 	}
-	return int32(a.Exceptions[len(a.Exceptions)-1].Frames[0].LineNum)
+
+	return int32(frame.LineNum)
 }
 
-// GetMethodName provides the method name of
-// the ANR.
+// GetMethodName provides the method name of the ANR.
 func (a ANR) GetMethodName() string {
-	if a.HasNoFrames() {
-		return ""
+	if a.hasExceptions() {
+		if a.HasNoFrames() {
+			return ""
+		}
+		return a.innermostException().Frames[0].MethodName
 	}
-	return a.Exceptions[len(a.Exceptions)-1].Frames[0].MethodName
+
+	return a.groupingFrame().MethodName
 }
 
 // GetDisplayTitle provides a user friendly display
 // name for the ANR.
 func (a ANR) GetDisplayTitle() string {
-	return a.GetType() + "@" + a.GetFileName()
+	return ANRDisplayTitle(a.GetType(), a.GetFileName())
 }
 
-// Stacktrace writes a formatted stacktrace
-// from the ANR.
+// ANRDisplayTitle joins an ANR's type and file name.
+func ANRDisplayTitle(anrType, fileName string) string {
+	if anrType == "" {
+		return fileName
+	}
+	if fileName == "" {
+		return anrType
+	}
+
+	return anrType + "@" + fileName
+}
+
+// Stacktrace writes a formatted stacktrace from the ANR.
 func (a ANR) Stacktrace() string {
+	if a.hasExceptions() {
+		return a.exceptionStacktrace()
+	}
+
+	return a.dumpStacktrace()
+}
+
+// ComputeFingerprint computes a fingerprint
+// from the ANR data.
+func (a *ANR) ComputeFingerprint() (err error) {
+	a.Fingerprint = ""
+
+	var fingerprintData string
+
+	switch {
+	case a.hasExceptions():
+		fingerprintData = a.exceptionFingerprintData()
+	case a.ThreadDump != nil:
+		fingerprintData = a.dumpFingerprintData()
+		if fingerprintData == "" {
+			return errors.New("error computing anr fingerprint: no frame found in thread dump")
+		}
+	default:
+		return errors.New("error computing anr fingerprint: no exceptions or thread dump found")
+	}
+
+	hash := md5.Sum([]byte(fingerprintData))
+	a.Fingerprint = hex.EncodeToString(hash[:])
+
+	return nil
+}
+
+func (a ANR) exceptionFingerprintData() string {
+	// Get the innermost exception
+	innermostException := a.Exceptions[len(a.Exceptions)-1]
+
+	// Initialize fingerprint data with the exception type
+	fingerprintData := innermostException.Type
+
+	// Get the method name and file name from the first frame of the innermost exception
+	if len(innermostException.Frames) > 0 {
+		methodName := innermostException.Frames[0].MethodName
+		fileName := innermostException.Frames[0].FileName
+
+		// Include any non-empty information
+		if methodName != "" {
+			fingerprintData += ":" + methodName
+		}
+		if fileName != "" {
+			fingerprintData += ":" + fileName
+		}
+	}
+
+	return fingerprintData
+}
+
+func (a ANR) dumpFingerprintData() string {
+	frame := a.ThreadDump.GroupingFrame
+
+	var parts []string
+
+	if !frame.InApp {
+		for _, category := range anrSubjectCategories {
+			if strings.Contains(a.Subject, category) {
+				parts = append(parts, category)
+				break
+			}
+		}
+		if m := anrIntentComponentRE.FindStringSubmatch(a.Subject); m != nil {
+			parts = append(parts, m[1])
+		} else if m := anrIntentActionRE.FindStringSubmatch(a.Subject); m != nil {
+			parts = append(parts, m[1])
+		} else if component := anrComponentRE.FindString(a.Subject); component != "" {
+			parts = append(parts, component)
+		}
+	}
+	if frame.ClassName != "" {
+		parts = append(parts, frame.ClassName)
+	}
+	if frame.MethodName != "" {
+		parts = append(parts, frame.MethodName)
+	}
+	if frame.FileName != "" {
+		parts = append(parts, frame.FileName)
+	}
+
+	if len(parts) == 0 {
+		return ""
+	}
+
+	// The prefix keeps these keys apart from the ones built from
+	// exceptions. A class name cannot contain "#".
+	return "art#" + strings.Join(parts, ":")
+}
+
+func (a ANR) innermostException() ExceptionUnit {
+	return a.Exceptions[len(a.Exceptions)-1]
+}
+
+// groupingFrame is the frame the dump is grouped and titled on, or the
+// zero frame when the dump was never fetched.
+func (a ANR) groupingFrame() artdump.Frame {
+	if a.ThreadDump == nil {
+		return artdump.Frame{}
+	}
+
+	return a.ThreadDump.GroupingFrame
+}
+
+func (a ANR) dumpStacktrace() string {
+	if a.ThreadDump == nil || len(a.ThreadDump.Threads) == 0 {
+		return ""
+	}
+
+	// Ingest sorts the thread the ANR is blamed on first.
+	thread := a.ThreadDump.Threads[0]
+	lines := append([]string{thread.Header}, thread.RenderStack()...)
+
+	return strings.Join(lines, "\n")
+}
+
+func (a ANR) exceptionStacktrace() string {
+
 	var b strings.Builder
 
 	for i := len(a.Exceptions) - 1; i >= 0; i-- {
@@ -2135,43 +2348,6 @@ func (a ANR) Stacktrace() string {
 	}
 
 	return b.String()
-}
-
-// ComputeFingerprint computes a fingerprint
-// from the ANR data.
-func (a *ANR) ComputeFingerprint() (err error) {
-	if len(a.Exceptions) == 0 {
-		return fmt.Errorf("error computing ANR fingerprint: no exceptions found")
-	}
-
-	// Get the innermost exception
-	innermostException := a.Exceptions[len(a.Exceptions)-1]
-
-	// Get the exception type
-	exceptionType := innermostException.Type
-
-	// Initialize fingerprint data with the exception type
-	fingerprintData := exceptionType
-
-	// Get the method name and file name from the first frame of the innermost exception
-	if len(innermostException.Frames) > 0 {
-		methodName := innermostException.Frames[0].MethodName
-		fileName := innermostException.Frames[0].FileName
-
-		// Include any non-empty information
-		if methodName != "" {
-			fingerprintData += ":" + methodName
-		}
-		if fileName != "" {
-			fingerprintData += ":" + fileName
-		}
-	}
-
-	// Compute the fingerprint
-	hash := md5.Sum([]byte(fingerprintData))
-	a.Fingerprint = hex.EncodeToString(hash[:])
-
-	return nil
 }
 
 // Compute computes the most accurate cold launch timing

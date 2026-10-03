@@ -3,10 +3,19 @@
 package measure
 
 import (
+	"context"
+	"encoding/json"
+	"os"
+	"reflect"
 	"testing"
+	"time"
 
+	"backend/ingest-worker/server"
+	"backend/libs/artdump"
 	"backend/libs/event"
 	"backend/libs/span"
+
+	"github.com/google/uuid"
 )
 
 func TestEventReqOnboardable(t *testing.T) {
@@ -166,5 +175,214 @@ func TestEventReqGetOSName(t *testing.T) {
 		if appUniqueID != "sh.measure.test" {
 			t.Errorf("Expected app unique id to be 'sh.measure.test', got '%s'", appUniqueID)
 		}
+	}
+}
+
+// artDumpFixture is the parser package's real API 36 capture, trimmed
+// to the thread section exactly as the SDK trims it.
+const artDumpFixture = "../../libs/artdump/testdata/api36_deadlock.txt"
+
+func makeANRThreadDumpRequest(t *testing.T, appID, teamID uuid.UUID) (eventreq, uuid.UUID, string) {
+	t.Helper()
+
+	raw, err := os.ReadFile(artDumpFixture)
+	if err != nil {
+		t.Fatalf("read art dump fixture: %v", err)
+	}
+	dump := string(raw)
+
+	eventID := uuid.New()
+	ev := event.EventField{
+		ID:        eventID,
+		AppID:     appID,
+		SessionID: uuid.New(),
+		Timestamp: time.Now(),
+		Type:      event.TypeANR,
+		Attribute: event.Attribute{
+			InstallationID:    uuid.New(),
+			AppVersion:        "0.0.1",
+			AppBuild:          "1",
+			AppUniqueID:       "sh.measure.android.flutter",
+			MeasureSDKVersion: "0.1.0",
+			OSName:            "android",
+			ThreadName:        "main",
+		},
+		ANR: &event.ANR{
+			Subject:       "user request after error: Input dispatching timed out",
+			RawThreadDump: dump,
+			Foreground:    true,
+		},
+	}
+
+	return eventreq{
+		id:     uuid.New(),
+		appId:  appID,
+		teamId: teamID,
+		osName: "android",
+		events: []event.EventField{ev},
+		anrIds: []int{0},
+	}, eventID, dump
+}
+
+func readANRColumns(ctx context.Context, t *testing.T, eventID uuid.UUID) (subject, threadDump, exceptions, fingerprint string) {
+	t.Helper()
+
+	stmt := "select `anr.subject`, `anr.thread_dump`, `anr.exceptions`, `anr.fingerprint` from events where id = ?"
+	if err := server.Server.ChPool.QueryRow(ctx, stmt, eventID).Scan(&subject, &threadDump, &exceptions, &fingerprint); err != nil {
+		t.Fatalf("read back the anr row: %v", err)
+	}
+	return
+}
+
+func TestParseANRThreadDumpsDropsTheKillReason(t *testing.T) {
+	tests := []struct {
+		name    string
+		subject string
+		want    string
+	}{
+		{
+			"Drops the reason AOSP puts before the subject",
+			"user request after error: Input dispatching timed out (Application does not have a focused window)",
+			"Input dispatching timed out (Application does not have a focused window)",
+		},
+		{
+			"Drops the reason ColorOS joins without a space",
+			"user request after error:Broadcast of Intent { flg=0x10080010 cmp=sh.foo/.Receiver }",
+			"Broadcast of Intent { flg=0x10080010 cmp=sh.foo/.Receiver }",
+		},
+		{"Drops the reason for a background ANR", "bg anr: No response to onStartJob", "No response to onStartJob"},
+		// AOSP 11 and 12 describe the kill by its reason alone.
+		{"Leaves no subject for a bare reason", "user request after error", ""},
+		{"Keeps a subject read from the trace", "executing service sh.foo/.SyncService", "executing service sh.foo/.SyncService"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := eventreq{
+				events: []event.EventField{{Type: event.TypeANR, ANR: &event.ANR{Subject: tt.subject}}},
+				anrIds: []int{0},
+			}
+			e.parseANRThreadDumps()
+
+			if got := e.events[0].ANR.Subject; got != tt.want {
+				t.Errorf("Expected subject %q, but got %q", tt.want, got)
+			}
+		})
+	}
+}
+
+func TestIngestANRThreadDump(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	teamID := uuid.New()
+	appID := uuid.New()
+	seedTeam(ctx, t, teamID, "art-dump-team")
+	seedApp(ctx, t, appID, teamID, 30)
+
+	eventReq, eventID, dump := makeANRThreadDumpRequest(t, appID, teamID)
+	eventReq.parseANRThreadDumps()
+
+	if err := eventReq.ingestEvents(ctx); err != nil {
+		t.Fatalf("ingestEvents failed: %v", err)
+	}
+
+	subject, threadDump, exceptions, fingerprint := readANRColumns(ctx, t, eventID)
+
+	t.Run("Stores the subject without the kill reason", func(t *testing.T) {
+		if want := "Input dispatching timed out"; subject != want {
+			t.Errorf("Expected subject %q, but got %q", want, subject)
+		}
+	})
+
+	t.Run("Leaves the exception columns as an empty array", func(t *testing.T) {
+		if exceptions != "[]" {
+			t.Errorf("Expected empty exceptions, but got %q", exceptions)
+		}
+
+		var threads string
+		stmt := "select `anr.threads` from events where id = ?"
+		if err := server.Server.ChPool.QueryRow(ctx, stmt, eventID).Scan(&threads); err != nil {
+			t.Fatalf("read back anr.threads: %v", err)
+		}
+		if threads != "[]" {
+			t.Errorf("Expected empty threads, but got %q", threads)
+		}
+	})
+
+	t.Run("Stores the populated dump", func(t *testing.T) {
+		var stored artdump.Dump
+		if err := json.Unmarshal([]byte(threadDump), &stored); err != nil {
+			t.Fatalf("stored thread dump is not valid json: %v", err)
+		}
+		want := artdump.Parse(dump)
+		want.Populate()
+		if !reflect.DeepEqual(&stored, want) {
+			t.Error("the stored dump is not what ingest populated")
+		}
+	})
+
+	t.Run("Fingerprints on the grouping frame", func(t *testing.T) {
+		if fingerprint == "" {
+			t.Fatal("Expected a fingerprint, but got none")
+		}
+
+		var stored artdump.Dump
+		if err := json.Unmarshal([]byte(threadDump), &stored); err != nil {
+			t.Fatalf("stored thread dump is not valid json: %v", err)
+		}
+		expected := event.ANR{
+			Subject:    "Input dispatching timed out",
+			ThreadDump: &stored,
+		}
+		if err := expected.ComputeFingerprint(); err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
+		if fingerprint != expected.Fingerprint {
+			t.Errorf("Expected fingerprint %q, but got %q", expected.Fingerprint, fingerprint)
+		}
+	})
+}
+
+func TestIngestStacktraceANRStoresNoThreadDump(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	teamID := uuid.New()
+	appID := uuid.New()
+	seedTeam(ctx, t, teamID, "stacktrace-anr-team")
+	seedApp(ctx, t, appID, teamID, 30)
+
+	eventReq, eventID, _ := makeANRThreadDumpRequest(t, appID, teamID)
+	eventReq.events[0].ANR = &event.ANR{
+		Exceptions: event.ExceptionUnits{
+			{
+				Type:    "AppNotResponding",
+				Message: "ANR detected",
+				Frames:  event.Frames{{MethodName: "blockerMethod", FileName: "MainActivity.java", LineNum: 42}},
+			},
+		},
+		Threads:    event.Threads{{Name: "main", Frames: event.Frames{{MethodName: "blockerMethod", FileName: "MainActivity.java"}}}},
+		Foreground: true,
+	}
+	eventReq.parseANRThreadDumps()
+
+	if err := eventReq.ingestEvents(ctx); err != nil {
+		t.Fatalf("ingestEvents failed: %v", err)
+	}
+
+	subject, threadDump, exceptions, fingerprint := readANRColumns(ctx, t, eventID)
+
+	if subject != "" {
+		t.Errorf("Expected no subject, but got %q", subject)
+	}
+	if threadDump != "" {
+		t.Errorf("Expected no thread dump, but got %q", threadDump)
+	}
+	if exceptions == "[]" {
+		t.Error("Expected the exceptions to be stored")
+	}
+	if fingerprint == "" {
+		t.Error("Expected a fingerprint")
 	}
 }

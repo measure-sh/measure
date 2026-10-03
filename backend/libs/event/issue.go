@@ -5,6 +5,7 @@ import (
 	"strings"
 	"text/tabwriter"
 
+	"backend/libs/artdump"
 	"backend/libs/chrono"
 	"backend/libs/udattr"
 
@@ -33,6 +34,13 @@ type ANRView struct {
 	Title      string `json:"title"`
 	Stacktrace string `json:"stacktrace"`
 	Message    string `json:"message"`
+	Subject    string `json:"subject"`
+	// Cause is read from the thread dump, empty for an ANR that carries
+	// no thread dump.
+	Cause string `json:"cause"`
+	// BlamedThread is the ART header of the thread Stacktrace was taken
+	// from, empty for an ANR that carries no thread dump.
+	BlamedThread string `json:"blamed_thread"`
 }
 
 type EventException struct {
@@ -65,6 +73,21 @@ func (e *EventANR) ComputeView() {
 		Title:      e.ANR.GetDisplayTitle(),
 		Stacktrace: e.ANR.Stacktrace(),
 		Message:    e.ANR.GetMessage(),
+		Subject:    e.ANR.Subject,
+	}
+
+	if e.ANR.ThreadDump != nil {
+		e.ANRView.Cause = e.ANR.ThreadDump.Cause
+
+		// Ingest sorts the thread the ANR is blamed on first, and the
+		// stacktrace already shows it.
+		threads := e.ANR.ThreadDump.Threads
+		e.Threads = []ThreadView{}
+		if len(threads) > 0 {
+			e.ANRView.BlamedThread = threads[0].Header
+			e.Threads = threadViews(threads[1:])
+		}
+		return
 	}
 
 	e.Threads = []ThreadView{}
@@ -76,6 +99,20 @@ func (e *EventANR) ComputeView() {
 		}
 		e.Threads = append(e.Threads, tv)
 	}
+}
+
+// threadViews renders ART threads into the thread shape the dashboard
+// already draws.
+func threadViews(threads []artdump.Thread) []ThreadView {
+	views := make([]ThreadView, 0, len(threads))
+	for _, thread := range threads {
+		views = append(views, ThreadView{
+			Name:   thread.Header,
+			Frames: thread.RenderStack(),
+		})
+	}
+
+	return views
 }
 
 // ComputeView computes a consumer friendly

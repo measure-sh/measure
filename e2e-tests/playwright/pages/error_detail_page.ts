@@ -16,6 +16,9 @@ export class ErrorDetailPage {
   readonly copyAgentPromptButton: Locator;
   readonly userDefinedAttribute: Locator;
   readonly screenshot: Locator;
+  readonly threadHeaders: Locator;
+  readonly subject: Locator;
+  readonly cause: Locator;
 
   constructor(page: Page, teamId: string) {
     this.page = page;
@@ -43,6 +46,26 @@ export class ErrorDetailPage {
       .getByTestId("exception-detail-attribute")
       .filter({ hasText: "user_defined_attribute" });
     this.screenshot = page.getByAltText(/^Screenshot/);
+    this.threadHeaders = page.getByRole("button", { name: /^Thread:/ });
+    this.subject = page
+      .getByTestId("exception-detail-attribute")
+      .filter({ hasText: "subject" });
+    this.cause = page
+      .getByTestId("exception-detail-attribute")
+      .filter({ has: page.getByText("cause", { exact: true }) });
+  }
+
+  selectThread(name: string | RegExp): Locator {
+    return this.page.getByRole("button", { name, exact: true });
+  }
+
+  async threadRank(name: RegExp): Promise<number> {
+    const names = await this.threadHeaders.allTextContents();
+    return names.findIndex((text) => name.test(text));
+  }
+
+  selectThreadStacktrace(name: string | RegExp): Locator {
+    return this.page.getByRole("region", { name, exact: true });
   }
 
   selectErrorPill(label: string): Locator {
