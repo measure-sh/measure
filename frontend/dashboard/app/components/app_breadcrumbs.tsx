@@ -25,6 +25,7 @@ const sectionTitles: Record<string, string> = {
   traces: "Traces",
   network: "Network",
   memory: "Memory",
+  profiles: "Profiles",
   apps: "Apps",
   builds: "Builds",
   team: "Team",

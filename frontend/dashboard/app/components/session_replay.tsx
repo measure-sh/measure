@@ -2125,7 +2125,7 @@ function sessionEventTitle(eventType: string, eventDetails: any): string {
     return String(eventDetails?.trace_name ?? "");
   }
   if (eventType === "profile") {
-    return String(eventDetails?.reason ?? "");
+    return String(eventDetails?.trigger ?? "");
   }
   return "";
 }
@@ -2308,7 +2308,7 @@ function ReplayEventDetails({
         <div className="flex flex-wrap gap-3">
           {attachments.map((attachment: any) => (
             <div key={attachment.key} className="flex flex-wrap gap-3">
-              {attachment.type === "perfetto_trace" &&
+              {attachment.type.startsWith("perfetto_") &&
                 (demo ? (
                   <div className={detailLinkClass}>Open in Perfetto</div>
                 ) : (

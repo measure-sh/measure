@@ -176,7 +176,7 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByText("Bug Reports")).toBeInTheDocument();
     expect(screen.getByText("Traces")).toBeInTheDocument();
     expect(screen.getByText("Launch Metrics")).toBeInTheDocument();
-    expect(screen.getByText("Profiling")).toBeInTheDocument();
+    expect(screen.getByText("Profiles")).toBeInTheDocument();
     expect(screen.getByText("User Journeys")).toBeInTheDocument();
     expect(screen.getByText("HTTP")).toBeInTheDocument();
     expect(screen.getByText("Screenshot Masking")).toBeInTheDocument();

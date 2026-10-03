@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import type { FilterKey, FilterValue } from "../api/filter_types";
-import type { App } from "../api/api_calls";
+import type { App, Profile } from "../api/api_calls";
 import { SANDBOX_TEAM_ID } from "../utils/sandbox";
 import { androidNativeScenario } from "./platforms/android";
 import {
@@ -669,6 +669,7 @@ export type AppBundle = {
   alerts: Alert[];
   builds: Build[];
   usage: Usage;
+  profiles: Profile[];
 };
 
 export type Catalog = {
@@ -3493,6 +3494,8 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
     ]),
   );
 
+  const profiles = attachProfiles(app, sessions, scenario.threadNames.main);
+
   return {
     app: appEntry,
     scenario,
@@ -3512,7 +3515,80 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
     alerts,
     builds,
     usage,
+    profiles,
   };
+}
+
+const profileTriggers = [
+  { trigger: "anr", firedBy: "anr" },
+  { trigger: "app_fully_drawn", firedBy: "cold_launch" },
+];
+
+function attachProfiles(
+  app: AppSpec,
+  sessions: AppBundle["sessions"],
+  mainThread: string,
+): Profile[] {
+  if (app.os !== "android") {
+    return [];
+  }
+  const profiles: Profile[] = [];
+  for (const { trigger, firedBy } of profileTriggers) {
+    const fired = sessions
+      .map((session) => ({
+        session,
+        event: Object.values(session.detail.threads)
+          .flat()
+          .find((event) => event.event_type === firedBy),
+      }))
+      .find(({ event }) => event !== undefined);
+    if (!fired?.event) {
+      continue;
+    }
+    const { session, event } = fired;
+    const fileName = `${trigger}.perfetto-trace.gz`;
+    const attachments = [
+      {
+        id: stableUuid(`profile-attachment:${app.id}:${trigger}`),
+        name: fileName,
+        type: "perfetto_trace",
+        key: fileName,
+        location: `/sandbox-profiles/${fileName}`,
+      },
+    ];
+    const timeline = (session.detail.threads[mainThread] ??= []);
+    const at = timeline.findIndex(
+      (existing) => existing.timestamp > event.timestamp,
+    );
+    timeline.splice(at === -1 ? timeline.length : at, 0, {
+      event_type: "profile",
+      user_defined_attribute: null,
+      thread_name: mainThread,
+      trigger,
+      format: "perfetto_trace",
+      attachments,
+      timestamp: event.timestamp,
+    });
+    const { attribute } = session.list;
+    profiles.push({
+      id: stableUuid(`profile:${app.id}:${trigger}`),
+      app_id: app.id,
+      session_id: session.list.session_id,
+      timestamp: event.timestamp,
+      trigger,
+      format: "perfetto_trace",
+      attribute: {
+        app_version: attribute.app_version,
+        app_build: attribute.app_build,
+        os_name: attribute.os_name,
+        os_version: attribute.os_version,
+        device_manufacturer: attribute.device_manufacturer,
+        device_model: attribute.device_model,
+      },
+      attachments,
+    });
+  }
+  return profiles.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 }
 
 let cached: Catalog | null = null;

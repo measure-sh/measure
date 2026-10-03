@@ -158,6 +158,15 @@ const K = {
     ["eq"],
     "full_list",
   ),
+  profileTrigger: key(
+    "profile_trigger",
+    "Profile trigger",
+    "The Android profiling trigger (Android 16 and above), such as an ANR or app fully drawn.",
+    "Profile",
+    "string",
+    ["in", "not_in"],
+    "sample",
+  ),
   deviceTotalMemory: key(
     "device_total_memory",
     "Device total memory",
@@ -301,6 +310,7 @@ const KEY_GROUP_ORDER = [
   "Bug Report",
   "Session",
   "Memory",
+  "Profile",
   "Span",
   "Request",
   "Build",
@@ -352,6 +362,14 @@ const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
     K.deviceName,
     K.deviceManufacturer,
     K.deviceTotalMemory,
+  ],
+  profiles: [
+    K.profileTrigger,
+    ...versionKeys,
+    K.userId,
+    K.osVersion,
+    K.deviceName,
+    K.deviceManufacturer,
   ],
   network: [K.httpMethod, ...versionKeys, ...deviceTailKeys],
   builds: [K.mappingType, ...versionKeys],
@@ -454,6 +472,17 @@ function actualValuesFor(
         return distinct(reports.map((a) => a.user_id));
     }
     return null;
+  }
+  if (entity === "profiles") {
+    const profileSessions = bundle.sessions.filter((s) =>
+      bundle.profiles.some((p) => p.session_id === s.list.session_id),
+    );
+    switch (keyName) {
+      case "profile_trigger":
+        return distinct(bundle.profiles.map((p) => p.trigger));
+      case "user_id":
+        return distinct(profileSessions.map((s) => s.detail.attribute.user_id));
+    }
   }
   if (
     entity === "sessions" &&

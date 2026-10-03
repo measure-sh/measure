@@ -37,6 +37,8 @@ tags:
     description: Session listing, session plots and session replays.
   - name: Memory
     description: Memory trends by app version, device-tier percentiles and high-memory sessions.
+  - name: Profiles
+    description: Profiles captured on Android by trigger-based profiling.
   - name: Traces
     description: Root spans, span listings and traces.
   - name: Bug Reports
@@ -798,6 +800,8 @@ paths:
               - errors
               - error_group_events
               - app_health
+              - memory
+              - profiles
         - name: key
           in: query
           required: false
@@ -927,6 +931,8 @@ paths:
               - errors
               - error_group_events
               - app_health
+              - memory
+              - profiles
         - name: key_name
           in: query
           required: true
@@ -2888,6 +2894,78 @@ paths:
                       device_total_memory: 6291456
                       os_name: android
                       os_version: "15"
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/profiles:
+    get:
+      operationId: getProfiles
+      tags:
+        - Profiles
+      summary: Fetch profiles
+      description: |
+        Returns the app's profiles, newest first. A profile is captured on Android 16 and above when a profiling trigger fires, such as an ANR or the app being fully drawn.
+
+        - Each attachment's `location` is a signed URL for the profile's trace or heap dump. The file uploads separately from the event, so it can be missing for a short while after the profile appears.
+        - Filter by trigger with `profile_trigger:in:<value>`.
+      parameters:
+        - *a1
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - name: limit
+          in: query
+          description: Maximum profiles to return. The dashboard requests 10.
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 1000
+        - name: offset
+          in: query
+          description: Number of profiles to skip.
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProfilesResponse"
+              example:
+                results:
+                  - id: 5f1c3b0e-8a7d-4f1e-9c2b-6d4e8a1f3c70
+                    app_id: 2b7ddad4-40a6-42a7-9e21-a90577e08263
+                    session_id: 8d5a6d39-4c76-43d3-aecd-650e2c36f9c2
+                    timestamp: 2026-09-30T16:22:39Z
+                    trigger: anr
+                    format: perfetto_trace
+                    attribute:
+                      app_version: 1.2.3
+                      app_build: "42"
+                      os_name: android
+                      os_version: "36"
+                      device_manufacturer: Google
+                      device_model: Pixel 9
+                    attachments:
+                      - id: 66b50d91-f120-4f2f-941c-6a7c33129ef0
+                        name: profile_trigger-type-2_2026-09-30-21-52-39-964_uid-10243.perfetto-trace
+                        type: perfetto_trace
+                        key: 66b50d91-f120-4f2f-941c-6a7c33129ef0.perfetto-trace
+                        location: http://localhost:9111/msr-attachments-sandbox/66b50d91-f120-4f2f-941c-6a7c33129ef0.perfetto-trace
                 meta:
                   next: false
                   previous: false
@@ -6197,6 +6275,90 @@ components:
             - "null"
           items:
             $ref: "#/components/schemas/HighMemoryUsageSession"
+        meta:
+          type: object
+          required:
+            - next
+            - previous
+          properties:
+            next:
+              type: boolean
+            previous:
+              type: boolean
+    Profile:
+      type: object
+      required:
+        - id
+        - app_id
+        - session_id
+        - timestamp
+        - trigger
+        - format
+        - attribute
+        - attachments
+      properties:
+        id:
+          type: string
+          format: uuid
+        app_id:
+          type: string
+          format: uuid
+        session_id:
+          type: string
+          format: uuid
+        timestamp:
+          type: string
+          format: date-time
+          description: When the profile was captured. An ANR profile carries the time of its ANR.
+        trigger:
+          type: string
+          description: The Android profiling trigger that captured the profile, such as `anr`, `app_fully_drawn`, `oom` or `cold_start`.
+        format:
+          type: string
+          description: Format of the profile artifact, such as `perfetto_trace`, `perfetto_java_heap_dump`, `perfetto_heap_profile` or `perfetto_stack_sample`.
+        attribute:
+          type: object
+          properties:
+            app_version:
+              type: string
+            app_build:
+              type: string
+            os_name:
+              type: string
+            os_version:
+              type: string
+            device_manufacturer:
+              type: string
+            device_model:
+              type: string
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              name:
+                type: string
+              type:
+                type: string
+              key:
+                type: string
+              location:
+                type: string
+                description: Signed URL to the profile artifact.
+    ProfilesResponse:
+      type: object
+      required:
+        - results
+        - meta
+      properties:
+        results:
+          type:
+            - array
+            - "null"
+          items:
+            $ref: "#/components/schemas/Profile"
         meta:
           type: object
           required:
