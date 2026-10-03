@@ -71,17 +71,23 @@ const (
 	// replayed as a wireframe in the dashboard.
 	attachmentTypeLayoutSnapshotJSON = "layout_snapshot_json"
 
-	// attachmentTypePerfettoTrace is a protobuf trace of system & app
-	// activity, written by the OS profiler.
+	// The profile types are all Perfetto protobuf traces, named after the
+	// file Android's ProfilingManager writes.
+
+	// attachmentTypePerfettoTrace is a system trace of system & app activity.
 	attachmentTypePerfettoTrace = "perfetto_trace"
 
-	// attachmentTypeHeapDump is a snapshot of every live object on the Java
-	// heap, in HPROF binary format.
-	attachmentTypeHeapDump = "heap_dump"
+	// attachmentTypePerfettoJavaHeapDump is a graph of every live object on
+	// the Java heap.
+	attachmentTypePerfettoJavaHeapDump = "perfetto_java_heap_dump"
 
-	// attachmentTypeHeapProfile is a sample of native & Java allocations,
-	// carried in a protobuf trace.
-	attachmentTypeHeapProfile = "heap_profile"
+	// attachmentTypePerfettoHeapProfile is a sample of native & Java
+	// allocations.
+	attachmentTypePerfettoHeapProfile = "perfetto_heap_profile"
+
+	// attachmentTypePerfettoStackSample is a sample of the app's call
+	// stacks over time.
+	attachmentTypePerfettoStackSample = "perfetto_stack_sample"
 )
 
 // contentTypeBinary is the fallback for opaque or unrecognized bytes.
@@ -94,8 +100,9 @@ var attachmentTypes = []string{
 	attachmentTypeLayoutSnapshot,
 	attachmentTypeLayoutSnapshotJSON,
 	attachmentTypePerfettoTrace,
-	attachmentTypeHeapDump,
-	attachmentTypeHeapProfile,
+	attachmentTypePerfettoJavaHeapDump,
+	attachmentTypePerfettoHeapProfile,
+	attachmentTypePerfettoStackSample,
 }
 
 // isNotFound checks if error is a googleapi
@@ -192,11 +199,12 @@ func sniffBody(r io.Reader) (head []byte, encoding string, err error) {
 // fixedContentTypes maps attachment types whose mime type the bytes can't
 // reveal. Compressed payloads report their wrapper & traces are opaque.
 var fixedContentTypes = map[string]string{
-	attachmentTypeLayoutSnapshotJSON: "application/json",
-	attachmentTypePerfettoTrace:      contentTypeBinary,
-	attachmentTypeHeapDump:           contentTypeBinary,
-	attachmentTypeHeapProfile:        contentTypeBinary,
-	attachmentTypeAndroidMethodTrace: contentTypeBinary,
+	attachmentTypeLayoutSnapshotJSON:   "application/json",
+	attachmentTypePerfettoTrace:        contentTypeBinary,
+	attachmentTypePerfettoJavaHeapDump: contentTypeBinary,
+	attachmentTypePerfettoHeapProfile:  contentTypeBinary,
+	attachmentTypePerfettoStackSample:  contentTypeBinary,
+	attachmentTypeAndroidMethodTrace:   contentTypeBinary,
 }
 
 // contentTypeFor resolves the mime type from the attachment type, falling back

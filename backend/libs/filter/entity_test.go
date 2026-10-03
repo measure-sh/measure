@@ -11,7 +11,7 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, SessionsEntity, ErrorsEntity, JourneysEntity, AlertsEntity, NetworkEntity, AppHealthEntity, MemoryEntity}
+var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, SessionsEntity, ErrorsEntity, JourneysEntity, AlertsEntity, NetworkEntity, AppHealthEntity, MemoryEntity, ProfilesEntity}
 
 func sampleValues(t *testing.T, key Key, operator Operator) []Value {
 	t.Helper()
