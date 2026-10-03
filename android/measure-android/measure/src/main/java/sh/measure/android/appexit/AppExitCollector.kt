@@ -3,10 +3,13 @@ package sh.measure.android.appexit
 import android.os.Build
 import androidx.annotation.RequiresApi
 import sh.measure.android.SessionManager
-import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.exceptions.ExceptionData
+import sh.measure.android.logger.LogLevel
+import sh.measure.android.logger.Logger
 
 internal class AppExitCollector(
+    private val logger: Logger,
     private val appExitProvider: AppExitProvider,
     private val signalProcessor: SignalProcessor,
     private val sessionManager: SessionManager,
@@ -20,31 +23,49 @@ internal class AppExitCollector(
     @RequiresApi(Build.VERSION_CODES.R)
     private fun trackANRFromAppExit() {
         val appExitsMap: Map<Int, AppExit> = appExitProvider.get() ?: return
-        appExitsMap.forEach {
-            val pid = it.key
-            val appExit = it.value
-            val session = sessionManager.getSessionForAppExit(pid)
-            // Limiting tracking of app exit events to just
-            // ANRs for now.
-            if (session != null && appExit.isANR()) {
-                signalProcessor.trackAppExit(
-                    appExit,
-                    // Current time is irrelevant for app exit, using
-                    // the time at which the app exit actually occurred instead.
-                    appExit.app_exit_time_ms,
-                    EventType.APP_EXIT,
-                    sessionId = session.id,
-                    sessionStartTime = session.createdAt,
-                    appVersion = session.appVersion,
-                    appBuild = session.appBuild,
-                    threadName = Thread.currentThread().name,
-                    isSampled = true,
-                )
-                // backfills the ANR time for a session where the real-time
-                // detector's write may have been lost to a fast kill.
-                sessionManager.markSessionWithAnr(session.id, appExit.app_exit_time_ms)
+        appExitsMap.forEach { (pid, appExit) ->
+            if (appExit.isANR()) {
+                trackANR(pid, appExit)
             }
         }
         sessionManager.markSessionsAppExitTracked()
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun trackANR(pid: Int, appExit: AppExit) {
+        val session = sessionManager.getSessionForAppExit(pid)
+        if (session == null) {
+            logger.log(
+                LogLevel.Debug,
+                "Discarding ANR exit for pid $pid no matching session found",
+            )
+            return
+        }
+
+        val threadDump = appExit.trace
+        if (threadDump.isNullOrEmpty()) {
+            logger.log(
+                LogLevel.Debug,
+                "Discarding ANR exit for pid $pid, failed to read thread dump",
+            )
+            return
+        }
+
+        signalProcessor.trackAnr(
+            data = ExceptionData(
+                exceptions = emptyList(),
+                threads = emptyList(),
+                foreground = appExit.isForeground(),
+                art_thread_dump = threadDump,
+                subject = appExit.subject,
+            ),
+            timestamp = appExit.app_exit_time_ms,
+            // ANR events are always reported via the main thread
+            threadName = "main",
+            sessionId = session.id,
+            sessionStartTime = session.createdAt,
+            appVersion = session.appVersion,
+            appBuild = session.appBuild,
+        )
     }
 }

@@ -33,6 +33,12 @@ internal data class AppExit(
     val trace: String?,
 
     /**
+     * The `Subject:` line from the ART trace, falling back to
+     * [ApplicationExitInfo.getDescription].
+     */
+    val subject: String?,
+
+    /**
      * @see [ApplicationExitInfo.getProcessName]
      */
     val process_name: String,
@@ -50,4 +56,9 @@ internal data class AppExit(
 ) {
     @RequiresApi(Build.VERSION_CODES.R)
     fun isANR(): Boolean = reasonId == ApplicationExitInfo.REASON_ANR
+
+    /**
+     * Whether the process was perceptible to the user when it was killed.
+     */
+    fun isForeground(): Boolean = importance == "FOREGROUND" || importance == "VISIBLE"
 }

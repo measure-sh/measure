@@ -3,7 +3,9 @@
 package measure
 
 import (
+	"backend/libs/artdump"
 	"backend/libs/group"
+	"backend/testinfra"
 	"context"
 	"encoding/json"
 	"strings"
@@ -440,6 +442,56 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		}
 		if !found {
 			t.Errorf("expected step with 'ANR: ANR - Input dispatching timed out', got steps: %+v", result.Steps)
+		}
+	})
+
+	t.Run("ANR with thread dump shows its cause", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		appID := uuid.New()
+		fingerprint := "fp-anr-dump-123456789012345"
+		th.SeedAnrGroup(ctx, t, teamID.String(), appID.String(), fingerprint)
+
+		sessionID := uuid.New().String()
+		now := time.Now().UTC()
+		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "SettingsScreen", now.Add(-2*time.Second))
+		dump, err := json.Marshal(artdump.Dump{Cause: artdump.CauseBlocked})
+		if err != nil {
+			t.Fatalf("marshal thread dump: %v", err)
+		}
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+			Type:           "anr",
+			SessionID:      sessionID,
+			Fingerprint:    fingerprint,
+			Subject:        "Broadcast of Intent { flg=0x10000010 cmp=sh.foo/.Receiver }",
+			ThreadDumpJSON: string(dump),
+			Timestamp:      now,
+		})
+
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeANR, fingerprint)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		var result struct {
+			Steps []struct {
+				Description string `json:"description"`
+			} `json:"steps"`
+		}
+		if err := json.Unmarshal(data, &result); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+
+		found := false
+		for _, s := range result.Steps {
+			if s.Description == "ANR: "+artdump.CauseBlocked {
+				found = true
+				break
+			}
+		}
+		if !found {
+			t.Errorf("expected step 'ANR: %s', got steps: %+v", artdump.CauseBlocked, result.Steps)
 		}
 	})
 

@@ -4,6 +4,7 @@ import (
 	"backend/ingest-worker/server"
 	"backend/ingest-worker/symbolicator"
 	"backend/libs/ambient"
+	"backend/libs/artdump"
 	"backend/libs/chrono"
 	"backend/libs/event"
 	"backend/libs/group"
@@ -301,6 +302,44 @@ func (e eventreq) bucketExceptions(ctx context.Context) (err error) {
 	return
 }
 
+// anrKillReasons are sometimes present in Android
+// SDKs 30-33 as a prefix to the ANR subject.
+var anrKillReasons = []string{
+	"user request after error",
+	"bg anr",
+	"anr",
+}
+
+// parseANRThreadDumps parses the ART thread
+// dump for symbolication and storage.
+func (e eventreq) parseANRThreadDumps() {
+	for _, i := range e.anrIds {
+		anr := e.events[i].ANR
+		if anr == nil {
+			continue
+		}
+
+		// When the trace has no subject, the SDK sends the exit description
+		// instead: either the kill reason alone or "<reason>: <subject>".
+		for _, reason := range anrKillReasons {
+			if anr.Subject == reason {
+				anr.Subject = ""
+				break
+			}
+			if rest, ok := strings.CutPrefix(anr.Subject, reason+":"); ok {
+				anr.Subject = strings.TrimPrefix(rest, " ")
+				break
+			}
+		}
+
+		if anr.RawThreadDump == "" {
+			continue
+		}
+
+		anr.ThreadDump = artdump.Parse(anr.RawThreadDump)
+	}
+}
+
 // bucketANRs groups ANRs based on similarity.
 func (e eventreq) bucketANRs(ctx context.Context) (err error) {
 	events := e.getANRs()
@@ -418,6 +457,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 	for i := range e.events {
 		anrExceptions := "[]"
 		anrThreads := "[]"
+		anrThreadDump := ""
 		exceptionExceptions := "[]"
 		exceptionThreads := "[]"
 		attachments := "[]"
@@ -429,16 +469,33 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		availableMemory := int64(-1)
 
 		if e.events[i].IsANR() {
-			marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
-			if err != nil {
-				return err
+			// A dump-only ANR has no exceptions or threads. Store
+			// "[]" rather than "null", since the sessions MV checks
+			// for "[]".
+			if len(e.events[i].ANR.Exceptions) > 0 {
+				marshalledExceptions, err := json.Marshal(e.events[i].ANR.Exceptions)
+				if err != nil {
+					return err
+				}
+				anrExceptions = string(marshalledExceptions)
 			}
-			anrExceptions = string(marshalledExceptions)
-			marshalledThreads, err := json.Marshal(e.events[i].ANR.Threads)
-			if err != nil {
-				return err
+			if len(e.events[i].ANR.Threads) > 0 {
+				marshalledThreads, err := json.Marshal(e.events[i].ANR.Threads)
+				if err != nil {
+					return err
+				}
+				anrThreads = string(marshalledThreads)
 			}
-			anrThreads = string(marshalledThreads)
+			if dump := e.events[i].ANR.ThreadDump; dump != nil {
+				dump.Populate()
+
+				marshalledDump, err := json.Marshal(dump)
+				if err != nil {
+					return err
+				}
+				anrThreadDump = string(marshalledDump)
+			}
+
 			if err := e.events[i].ANR.ComputeFingerprint(); err != nil {
 				return err
 			}
@@ -557,14 +614,18 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`anr.fingerprint`, e.events[i].ANR.Fingerprint).
 				Set(`anr.exceptions`, anrExceptions).
 				Set(`anr.threads`, anrThreads).
-				Set(`anr.foreground`, e.events[i].ANR.Foreground)
+				Set(`anr.foreground`, e.events[i].ANR.Foreground).
+				Set(`anr.subject`, e.events[i].ANR.Subject).
+				Set(`anr.thread_dump`, anrThreadDump)
 		} else {
 			row.
 				Set(`anr.handled`, nil).
 				Set(`anr.fingerprint`, nil).
 				Set(`anr.exceptions`, nil).
 				Set(`anr.threads`, nil).
-				Set(`anr.foreground`, nil)
+				Set(`anr.foreground`, nil).
+				Set(`anr.subject`, nil).
+				Set(`anr.thread_dump`, nil)
 		}
 
 		// exception
@@ -1323,6 +1384,10 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		}
 		return nil
 	})
+
+	_, parseANRThreadDumpsSpan := ingestTracer.Start(ingestCtx, "parse-anr-thread-dumps")
+	eventReq.parseANRThreadDumps()
+	parseANRThreadDumpsSpan.End()
 
 	var symbolicationGroup errgroup.Group
 	symbolicationGroup.Go(func() error {

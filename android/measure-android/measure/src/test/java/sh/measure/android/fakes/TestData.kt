@@ -55,11 +55,16 @@ internal object TestData {
         severity: ExceptionSeverity = ExceptionSeverity.Handled,
         thread: Thread = Thread.currentThread(),
         foreground: Boolean = true,
+        artThreadDump: String? = null,
+        subject: String? = null,
     ): ExceptionData = ExceptionFactory.createMeasureException(
         exception,
         severity,
         thread,
         foreground,
+    ).copy(
+        art_thread_dump = artThreadDump,
+        subject = subject,
     )
 
     fun getUnObfuscatedFlutterExceptionData(
@@ -446,11 +451,13 @@ internal object TestData {
         processName: String = "process-name",
         appExitTimeMs: Long = 987654321L,
         pid: String = "123",
+        subject: String? = null,
     ): AppExit = AppExit(
         reasonId = reasonId,
         reason = reason,
         importance = importance,
         trace = trace,
+        subject = subject,
         process_name = processName,
         app_exit_time_ms = appExitTimeMs,
         pid = pid,

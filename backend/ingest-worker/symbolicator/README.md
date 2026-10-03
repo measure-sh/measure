@@ -8,7 +8,7 @@ It communicates with the [Sentry Symbolicator](https://github.com/getsentry/symb
 
 The entry point is `Symbolicate()`, which takes a batch of events, determines which ones need symbolication, and dispatches them to the appropriate platform handler:
 
-- **JVM (Android)** - Sends obfuscated class/method names to `/symbolicate-jvm` with a ProGuard mapping file. Handles inline frame expansion and the lambda workaround for R8 synthetic classes. ProGuard files are fetched via a Sentry source (HTTP from symboloader).
+- **JVM (Android)** - Sends obfuscated class/method names to `/symbolicate-jvm` with a ProGuard mapping file. Handles inline frame expansion and the lambda workaround for R8 synthetic classes. ProGuard files are fetched via a Sentry source (HTTP from symboloader). ANR thread dumps are symbolicated the same way: each thread's managed frames and lock class names are sent, and the result is written back into the thread, leaving native frames as they are.
 - **Apple (iOS)** - Constructs an Apple crash report from binary image addresses and sends it to `/applecrashreport` with dSYM debug symbols. Symbolicated per-event (not batched).
 - **Dart (Flutter)** - Sends instruction addresses to `/symbolicate` with ELF debug symbols. Handles inline frame expansion.
 
@@ -35,6 +35,10 @@ go test -tags integration -v -count=1 -timeout 300s
 - `TestJVMANRSymbolicationBasic` - ANR event with exceptions and threads, negative line number preservation
 - `TestJVMLifecycleSymbolicationBasic` - Batch of lifecycle_activity, lifecycle_fragment, cold_launch, hot_launch, and app_exit events
 
+**ANR thread dump tests** (real dump from `libs/artdump/testdata/api33_idle_main.txt`, an R8 mapping that covers its classes):
+- `TestJVMANRThreadDumpSymbolication` - Resolves mapped frames, unfurls inlined frames, deobfuscates lock class names, and keeps every thread, lock and native frame in place
+- `TestJVMANRThreadDumpWithoutAMapping` - A mapping that covers none of the dump's classes leaves the dump unchanged
+
 **Real-world JVM tests** (production ProGuard mapping, ~350K lines):
 - `TestJVMSingleExceptionReal` - Nested exception with inline frame expansion via R8 line-number-range mapping
 - `TestJVMNestedExceptionReal` - 4 nested exceptions with custom exception type deobfuscation
@@ -56,6 +60,8 @@ Each symbolication test asserts two things:
 
 1. **Frame-level golden** (`*_golden.json`) - Verifies individual frame fields (class_name, method_name, file_name, line_num) match exactly after symbolication.
 2. **Stacktrace string golden** (`*_stacktrace_golden.txt`) - Verifies the final formatted stacktrace string produced by `Exception.Stacktrace()` or `ANR.Stacktrace()` matches exactly.
+
+The ANR thread dump test instead compares the whole symbolicated dump, rendered back to ART's text format, with `jvm_anr_thread_dump_golden.txt`.
 
 ### Updating Golden Files
 
@@ -91,9 +97,11 @@ Fixture files live in `testdata/`:
 |------|-------------|
 | `mapping_basic.txt` | Small synthetic ProGuard mapping for basic JVM tests |
 | `mapping_real.txt` | Production ProGuard mapping (~39MB) for real-world JVM tests |
+| `mapping_artdump.txt` | R8 mapping for the ANR thread dump tests |
 | `DemoApp` | Mach-O arm64 dSYM binary for Apple tests |
 | `app.android-arm64.symbols` | ELF arm64 debug symbols for Dart/Flutter tests |
 | `symbolicator.yml` | Symbolicator service configuration |
 | `*_input.json` | Raw event/exception data loaded by tests |
 | `*_golden.json` | Expected frame-level output after symbolication |
 | `*_stacktrace_golden.txt` | Expected formatted stacktrace strings |
+| `jvm_anr_thread_dump_golden.txt` | Expected ANR thread dump after symbolication |

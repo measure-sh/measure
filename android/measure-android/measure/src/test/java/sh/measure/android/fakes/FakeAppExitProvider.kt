@@ -9,6 +9,7 @@ internal class FakeAppExitProvider : AppExitProvider {
             reason = "REASON_USER_REQUESTED",
             pid = 7654.toString(),
             trace = null,
+            subject = null,
             process_name = "com.example.app",
             importance = "IMPORTANCE_VISIBLE",
         ),

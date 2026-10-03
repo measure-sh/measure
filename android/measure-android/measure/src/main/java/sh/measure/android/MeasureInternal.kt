@@ -454,5 +454,6 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.unhandledExceptionCollector.unregister()
         measure.anrCollector.unregister()
     }
+
     fun getDynamicConfigPath(): String? = measure.fileStorage.getConfigPath()
 }

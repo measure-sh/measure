@@ -539,6 +539,39 @@ describe("ErrorGroupDetails page", () => {
   });
 
   describe("pagination", () => {
+    it("opens the first stack trace for each event after clicking Next", async () => {
+      mockUseErrorsDetailsQuery.mockImplementation(
+        (_filter, _groupId, offset) => ({
+          data: {
+            results: [
+              offset === 0
+                ? sampleErrorEvent
+                : { ...sampleErrorEvent, id: "event-2" },
+            ],
+            meta: { previous: offset > 0, next: offset === 0 },
+          },
+          status: "success",
+          isFetching: false,
+          error: null,
+        }),
+      );
+      renderPage();
+
+      const mainThread = screen.getByRole("button", { name: "Thread: main" });
+      expect(mainThread).toHaveAttribute("data-state", "open");
+      fireEvent.click(mainThread);
+      expect(mainThread).toHaveAttribute("data-state", "closed");
+
+      await act(async () => {
+        fireEvent.click(screen.getByTestId("next-button"));
+      });
+
+      expect(screen.getByText(/Id: event-2/)).toBeInTheDocument();
+      expect(
+        screen.getByRole("button", { name: "Thread: main" }),
+      ).toHaveAttribute("data-state", "open");
+    });
+
     it("Next click increments the pagination offset by 1", async () => {
       detailsLoaded();
       renderPage();

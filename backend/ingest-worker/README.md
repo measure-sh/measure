@@ -20,13 +20,14 @@ flowchart TD
         PUSH["① POST /subscribe/batch<br/>Decode · Deserialize IngestBatch"]
         SEEN{"② Already seen?<br/>checkSeen (idempotency)"}
         GEO["③ IP Geolocation<br/>Infuse country code"]
-        SYM{"④ Symbolication<br/>Required?"}
+        PARSE["④ Parse ANR thread dumps<br/>Clean subject · parse dump"]
+        SYM{"⑤ Symbolication<br/>Required?"}
         SYM_DO["Symbolicate events/spans"]
-        INGEST["⑤ Ingest Events & Spans"]
-        BUCKET["⑥ Bucket Exceptions & ANRs"]
-        METRICS["⑦ Count Metrics"]
-        REMEMBER["⑧ Remember batch"]
-        ONBOARD["⑨ App onboarding<br/>(if applicable)"]
+        INGEST["⑥ Ingest Events & Spans"]
+        BUCKET["⑦ Bucket Exceptions & ANRs"]
+        METRICS["⑧ Count Metrics"]
+        REMEMBER["⑨ Remember batch"]
+        ONBOARD["⑩ App onboarding<br/>(if applicable)"]
     end
 
     CH[("🗃 ClickHouse")]
@@ -41,7 +42,8 @@ flowchart TD
     PULL -->|"valid"| SEEN
     SEEN -->|"yes — skip"| ACK(["✅ Ack / Commit"])
     SEEN -->|"no"| GEO
-    GEO --> SYM
+    GEO --> PARSE
+    PARSE --> SYM
     SYM -->|"yes"| SYM_DO
     SYM_DO --> INGEST
     SYM -->|"no"| INGEST
@@ -62,6 +64,7 @@ flowchart TD
     style PUSH fill:#45475a,stroke:#f38ba8,color:#cdd6f4
     style SEEN fill:#45475a,stroke:#fab387,color:#cdd6f4
     style GEO fill:#45475a,stroke:#f38ba8,color:#cdd6f4
+    style PARSE fill:#45475a,stroke:#f38ba8,color:#cdd6f4
     style SYM fill:#45475a,stroke:#fab387,color:#cdd6f4
     style SYM_DO fill:#45475a,stroke:#fab387,color:#cdd6f4
     style INGEST fill:#45475a,stroke:#f38ba8,color:#cdd6f4
