@@ -1229,14 +1229,12 @@ export default function SdkConfigurator({
           {/* Profiling Accordion */}
           <AccordionItem value="profiling" className="mt-2">
             <AccordionTrigger className="font-body text-base">
-              Profiling
+              Profiles
             </AccordionTrigger>
             <AccordionContent className={accordionContentStyle}>
               <div className="mt-2 space-y-4">
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-body text-sm">
-                    Collect profiling traces at
-                  </span>
+                  <span className="font-body text-sm">Collect profiles at</span>
                   <SdkConfigNumericInput
                     testId="profiling-sampling-rate-input"
                     value={sdkConfig.profile_sampling_rate}
@@ -1252,6 +1250,20 @@ export default function SdkConfigurator({
                     disabled={!currentUserCanChangeAppSettings}
                   />
                   <span className="font-body text-sm">% sampling rate</span>
+                  <InfoTooltip
+                    content={
+                      <>
+                        Profiles are captured on Android using the trigger-based
+                        profiling API for an ANR or the app being fully drawn.{" "}
+                        <Link
+                          href="/docs/performance-tracing/profiling#sampling"
+                          className={underlineLinkStyle}
+                        >
+                          Learn more
+                        </Link>
+                      </>
+                    }
+                  />
                 </div>
                 <div className="flex justify-end mt-2">
                   <Button

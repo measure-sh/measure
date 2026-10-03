@@ -191,6 +191,7 @@ describe("Dashboard Layout — navigation", () => {
     renderLayout();
     expect(screen.getByText("Traces")).toBeInTheDocument();
     expect(screen.getByText("Network")).toBeInTheDocument();
+    expect(screen.getByText("Profiles")).toBeInTheDocument();
   });
 
   it("renders Settings nav items", () => {

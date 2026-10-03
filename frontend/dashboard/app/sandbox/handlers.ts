@@ -4,6 +4,7 @@ import { errorsRoutes } from "./errors";
 import { memoryRoutes } from "./memory";
 import { networkRoutes } from "./network";
 import { overviewRoutes } from "./overview";
+import { profilesRoutes } from "./profiles";
 import { sessionsRoutes } from "./sessions";
 import { settingsRoutes, teamRoutes } from "./settings";
 import { tracesRoutes } from "./traces";
@@ -17,6 +18,7 @@ const routes: SandboxRoute[] = [
   ...tracesRoutes,
   ...networkRoutes,
   ...memoryRoutes,
+  ...profilesRoutes,
   ...settingsRoutes,
 ];
 

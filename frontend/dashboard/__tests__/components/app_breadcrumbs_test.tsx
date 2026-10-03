@@ -68,6 +68,7 @@ describe("AppBreadcrumbs", () => {
       ["alerts", "Alerts"],
       ["traces", "Traces"],
       ["network", "Network"],
+      ["profiles", "Profiles"],
       ["apps", "Apps"],
       ["team", "Team"],
       ["notif_prefs", "Notifications"],
