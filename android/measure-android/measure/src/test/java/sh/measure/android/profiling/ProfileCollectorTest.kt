@@ -1,5 +1,7 @@
 package sh.measure.android.profiling
 
+import android.os.Build
+import android.os.ProfilingManager
 import android.os.ProfilingTrigger
 import androidx.concurrent.futures.ResolvableFuture
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -10,10 +12,15 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.any
+import org.mockito.kotlin.argumentCaptor
+import org.mockito.kotlin.doThrow
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.isNull
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.verifyNoInteractions
+import org.mockito.kotlin.whenever
+import org.robolectric.annotation.Config
+import org.robolectric.util.ReflectionHelpers
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeSampler
@@ -221,5 +228,126 @@ class ProfileCollectorTest {
         profileCollector.handleProfilingResult(file.absolutePath, ProfilingTrigger.TRIGGER_TYPE_ANR)
 
         verifyNoInteractions(signalProcessor)
+    }
+
+    @Test
+    fun `tracks the format of each profile file`() {
+        val formats = mapOf(
+            "perfetto-trace" to "perfetto_trace",
+            "perfetto-java-heap-dump" to "perfetto_java_heap_dump",
+            "perfetto-heap-profile" to "perfetto_heap_profile",
+            "perfetto-stack-sample" to "perfetto_stack_sample",
+        )
+        for ((ending, format) in formats) {
+            val file = File(tempDir, "profile_trigger-type-2_2026-07-05-17-51-56-124_uid-10229.$ending")
+            file.writeText("trace")
+
+            profileCollector.handleProfilingResult(file.absolutePath, ProfilingTrigger.TRIGGER_TYPE_ANR)
+
+            verify(signalProcessor).trackProfile(
+                data = eq(ProfileData(reason = "anr", format = format)),
+                timestamp = any(),
+                type = eq(EventType.PROFILE),
+                attachments = any(),
+                sessionId = any(),
+                sessionStartTime = isNull(),
+                appVersion = isNull(),
+                appBuild = isNull(),
+                isSampled = eq(true),
+            )
+        }
+    }
+
+    @Test
+    fun `discards a profile with an unknown file ending`() {
+        val file = File(tempDir, "profile_trigger-type-7_2026-07-05-17-51-56-124_uid-10229.hprof")
+        file.writeText("heap")
+
+        profileCollector.handleProfilingResult(file.absolutePath, 7)
+
+        verifyNoInteractions(signalProcessor)
+    }
+
+    @Test
+    fun `tracks profiles from android 17 triggers`() {
+        val reasons = mapOf(
+            7 to "oom",
+            9 to "kill_excessive_cpu_usage",
+            10 to "cold_start",
+        )
+        for ((triggerType, reason) in reasons) {
+            val file = File(tempDir, "profile_trigger-type-${triggerType}_2026-07-05-17-51-56-124_uid-10229.perfetto-trace")
+            file.writeText("trace")
+
+            profileCollector.handleProfilingResult(file.absolutePath, triggerType)
+
+            verify(signalProcessor).trackProfile(
+                data = eq(ProfileData(reason = reason, format = "perfetto_trace")),
+                timestamp = any(),
+                type = eq(EventType.PROFILE),
+                attachments = any(),
+                sessionId = any(),
+                sessionStartTime = isNull(),
+                appVersion = isNull(),
+                appBuild = isNull(),
+                isSampled = eq(true),
+            )
+        }
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.BAKLAVA])
+    fun `registers the android 16 triggers`() {
+        val profilingManager = mock<ProfilingManager>()
+        whenever(systemServiceProvider.profilingManager).thenReturn(profilingManager)
+
+        profileCollector.register()
+
+        val triggers = argumentCaptor<List<ProfilingTrigger>>()
+        verify(profilingManager).addProfilingTriggers(triggers.capture())
+        assertEquals(
+            listOf(ProfilingTrigger.TRIGGER_TYPE_APP_FULLY_DRAWN, ProfilingTrigger.TRIGGER_TYPE_ANR),
+            triggers.allValues.flatten().map { it.triggerType },
+        )
+    }
+
+    // Android 16's ProfilingTrigger.Builder rejects every Android 17 trigger type, the same way
+    // Android 17 rejects a trigger whose platform flag is off.
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.BAKLAVA])
+    fun `keeps the android 16 triggers when android 17 triggers are unavailable`() {
+        val profilingManager = mock<ProfilingManager>()
+        whenever(systemServiceProvider.profilingManager).thenReturn(profilingManager)
+        val sdkInt = Build.VERSION.SDK_INT
+        ReflectionHelpers.setStaticField(Build.VERSION::class.java, "SDK_INT", 37)
+        try {
+            profileCollector.register()
+            profileCollector.unregister()
+        } finally {
+            ReflectionHelpers.setStaticField(Build.VERSION::class.java, "SDK_INT", sdkInt)
+        }
+
+        val triggers = argumentCaptor<List<ProfilingTrigger>>()
+        verify(profilingManager).addProfilingTriggers(triggers.capture())
+        assertEquals(
+            listOf(ProfilingTrigger.TRIGGER_TYPE_APP_FULLY_DRAWN, ProfilingTrigger.TRIGGER_TYPE_ANR),
+            triggers.allValues.flatten().map { it.triggerType },
+        )
+        verify(profilingManager).removeProfilingTriggersByType(
+            intArrayOf(ProfilingTrigger.TRIGGER_TYPE_APP_FULLY_DRAWN, ProfilingTrigger.TRIGGER_TYPE_ANR),
+        )
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.BAKLAVA])
+    fun `stops listening for results when the triggers cannot be added`() {
+        val profilingManager = mock<ProfilingManager>()
+        whenever(systemServiceProvider.profilingManager).thenReturn(profilingManager)
+        doThrow(IllegalStateException("profiling service unavailable"))
+            .whenever(profilingManager).addProfilingTriggers(any())
+
+        profileCollector.register()
+
+        verify(profilingManager).unregisterForAllProfilingResults(any())
     }
 }

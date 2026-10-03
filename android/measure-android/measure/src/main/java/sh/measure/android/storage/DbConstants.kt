@@ -485,8 +485,9 @@ internal object Sql {
 
     private val profileTypesList = listOf(
         AttachmentType.PERFETTO_TRACE,
-        AttachmentType.HEAP_DUMP,
-        AttachmentType.HEAP_PROFILE,
+        AttachmentType.PERFETTO_JAVA_HEAP_DUMP,
+        AttachmentType.PERFETTO_HEAP_PROFILE,
+        AttachmentType.PERFETTO_STACK_SAMPLE,
     ).joinToString(", ") { "'$it'" }
 
     val getAttachmentsToUpload: String = """

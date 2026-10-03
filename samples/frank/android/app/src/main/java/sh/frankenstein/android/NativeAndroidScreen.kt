@@ -201,6 +201,12 @@ fun NativeAndroidScreen() {
             },
         ),
         DemoItem(
+            title = "Excessive CPU Usage",
+            description = "Burns CPU in the background until Android kills the app",
+            category = DemoCategory.MISC,
+            action = { burnCpuUntilKilled(context) },
+        ),
+        DemoItem(
             title = "Deadlock",
             description = "Acquires a lock that never releases",
             category = DemoCategory.ANRS,
