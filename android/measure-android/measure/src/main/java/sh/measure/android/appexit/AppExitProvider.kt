@@ -19,6 +19,19 @@ internal interface AppExitProvider {
     fun get(): Map<Int, AppExit>?
 }
 
+internal data class ArtTrace(
+    val threads: String,
+    val subject: String?,
+)
+
+private const val THREAD_SECTION_HEADER = "DALVIK THREADS ("
+private const val SUBJECT_PREFIX = "Subject: "
+private const val SCHEDULER_PREFIX = "  | "
+private const val DUMP_LATENCY_PREFIX = "DumpLatencyMs:"
+private const val MAX_TRACE_BYTES = 256 * 1024
+private val THREAD_HEADER_REGEX = Regex("""^"(.*)" (?:daemon )?prio=\d+(?: tid=(\d+))?""")
+private val MANAGED_FRAME_REGEX = Regex("""^  at [\w$.\-]+\.[\w$\-<>]+\(.*\)$""")
+
 internal class AppExitProviderImpl(
     private val logger: Logger,
     private val systemServiceProvider: SystemServiceProvider,
@@ -38,50 +51,113 @@ internal class AppExitProviderImpl(
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    fun ApplicationExitInfo.toAppExit(): AppExit = AppExit(
-        reason = getReasonName(reason),
-        reasonId = reason,
-        importance = getImportanceName(importance),
-        trace = getTraceString(traceInputStream),
-        process_name = processName,
-        app_exit_time_ms = timestamp,
-        pid = pid.toString(),
-    )
+    fun ApplicationExitInfo.toAppExit(): AppExit {
+        val trace = readTrace(traceInputStream)
+        return AppExit(
+            reason = getReasonName(reason),
+            reasonId = reason,
+            importance = getImportanceName(importance),
+            trace = trace?.threads,
+            subject = trace?.subject ?: description?.takeIf { it.isNotBlank() },
+            process_name = processName,
+            app_exit_time_ms = timestamp,
+            pid = pid.toString(),
+        )
+    }
 
+    /**
+     * Reads the thread blocks and the subject out of an ART trace.
+     */
     @VisibleForTesting
-    internal fun getTraceString(traceInputStream: InputStream?): String? {
+    internal fun readTrace(traceInputStream: InputStream?): ArtTrace? {
         if (traceInputStream == null) {
             return null
         }
-        logger.log(LogLevel.Debug, "Adding AppExit trace")
-        return traceInputStream.extractContent().bufferedReader().useLines { lines ->
-            lines.joinToString("\n")
+        return traceInputStream.source().buffer().use { source ->
+            readTrace(source)
         }
     }
 
-    private fun InputStream.extractContent(): InputStream {
-        val source: BufferedSource = source().buffer()
+    private fun readTrace(source: BufferedSource): ArtTrace? {
         val buffer = Buffer()
+        var subject: String? = null
         var insideSection = false
+
         while (!source.exhausted()) {
             val line = source.readUtf8Line() ?: break
 
-            if (line.startsWith("DALVIK THREADS (")) {
-                insideSection = true
-            } else if (line.startsWith("----- Waiting Channels:")) {
-                insideSection = false
+            if (!insideSection) {
+                if (subject == null && line.startsWith(SUBJECT_PREFIX)) {
+                    subject = line.removePrefix(SUBJECT_PREFIX).trim()
+                }
+                if (line.startsWith(THREAD_SECTION_HEADER)) {
+                    insideSection = true
+                    buffer.writeUtf8(line).writeUtf8("\n")
+                }
+                continue
             }
 
-            if (insideSection) {
-                if (line.startsWith("  | ")) {
-                    continue
+            if (isThreadHeader(line)) {
+                if (buffer.size >= MAX_TRACE_BYTES) {
+                    break
                 }
-                buffer.writeUtf8(line)
-                buffer.writeUtf8("\n")
+            } else if (endsThreadSection(line)) {
+                break
+            }
+
+            if (line.startsWith(SCHEDULER_PREFIX)) {
+                continue
+            }
+
+            buffer.writeUtf8(line).writeUtf8("\n")
+        }
+
+        if (!insideSection) {
+            return null
+        }
+
+        val threads = buffer.readUtf8().trimEnd('\n') + "\n"
+
+        if (!hasMainFrame(threads)) {
+            return null
+        }
+
+        return ArtTrace(threads = threads, subject = subject)
+    }
+
+    /**
+     * Returns true if the main thread, found by name or else by tid 1, has a
+     * managed frame. The server groups the ANR on that frame and rejects a
+     * trace without one.
+     */
+    private fun hasMainFrame(threads: String): Boolean {
+        var foundMain = false
+        var inMain = false
+        var inTid1 = false
+        var mainHasFrame = false
+        var tid1HasFrame = false
+
+        threads.lineSequence().forEach { line ->
+            val header = THREAD_HEADER_REGEX.find(line)
+            if (header != null) {
+                inMain = !foundMain && header.groupValues[1] == "main"
+                foundMain = foundMain || inMain
+                inTid1 = header.groupValues[2] == "1"
+            } else if (MANAGED_FRAME_REGEX.matches(line)) {
+                mainHasFrame = mainHasFrame || inMain
+                tid1HasFrame = tid1HasFrame || inTid1
             }
         }
-        return buffer.inputStream()
+
+        return if (foundMain) mainHasFrame else tid1HasFrame
     }
+
+    private fun isThreadHeader(line: String): Boolean = line.startsWith("\"")
+
+    private fun endsThreadSection(line: String): Boolean = line.isNotEmpty() &&
+        !line.startsWith(" ") &&
+        !isThreadHeader(line) &&
+        !line.startsWith(DUMP_LATENCY_PREFIX)
 
     private fun getImportanceName(importance: Int): String = when (importance) {
         ActivityManager.RunningAppProcessInfo.IMPORTANCE_CACHED -> "CACHED"

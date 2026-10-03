@@ -5,7 +5,9 @@ import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -15,7 +17,6 @@ import org.robolectric.annotation.Config
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.SystemServiceProvider
-import java.io.ByteArrayInputStream
 
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [Build.VERSION_CODES.R])
@@ -62,47 +63,98 @@ class AppExitProviderImplTest {
         assertEquals(
             "CACHED",
             result?.get(2)?.importance,
-        ) // IMPORTANCE_BACKGROUND is not in the getImportanceName method
+        )
     }
 
     @Test
-    fun `getTraceString returns null for null input stream`() {
-        assertNull(appExitProvider.getTraceString(null))
+    fun `readTrace returns null for null input stream`() {
+        assertNull(appExitProvider.readTrace(null))
     }
 
     @Test
-    fun `getTraceString extracts content from trace with just the thread information and stacktrace`() {
-        val sampleTrace = """
-            DALVIK THREADS (6):
-            "main" prio=5 tid=1 Sleeping
-              | group="main" sCount=1 dsCount=0 flags=1 obj=0x74ff9560 self=0x7aaad37000
-              | sysTid=30075 nice=-10 cgrp=default sched=0/0 handle=0x7ab27e1500
-              | state=S schedstat=( 313677631 53881771 473 ) utm=24 stm=7 core=2 HZ=100
-              | stack=0x7ff8479000-0x7ff847b000 stackSize=8188KB
-              | held mutexes=
-              at java.lang.Thread.sleep(Native method)
-              at java.lang.Thread.sleep(Thread.java:373)
-              at java.lang.Thread.sleep(Thread.java:314)
-              at com.example.app.MainActivity.onCreate(MainActivity.kt:15)
-            
-            ----- Waiting Channels: pid 30075 at 2023-04-01 12:34:56 -----
-            Waiting Thread: 4
-        """.trimIndent()
+    fun `readTrace returns null when the trace has no thread section`() {
+        val trace = "Subject: Broadcast of Intent { }\nCmd line: com.example.app\n"
+        assertNull(appExitProvider.readTrace(trace.byteInputStream()))
+    }
 
-        val inputStream = ByteArrayInputStream(sampleTrace.toByteArray())
-        val result = appExitProvider.getTraceString(inputStream)
+    @Test
+    fun `readTrace returns null when the trace has no main thread`() {
+        val trace = "DALVIK THREADS (1):\n\"worker\" prio=5 tid=2 Blocked\n" +
+            "  at com.example.app.Repo.load(Repo.kt:8)\n"
+        assertNull(appExitProvider.readTrace(trace.byteInputStream()))
+    }
 
-        val expected = """
-            DALVIK THREADS (6):
-            "main" prio=5 tid=1 Sleeping
-              at java.lang.Thread.sleep(Native method)
-              at java.lang.Thread.sleep(Thread.java:373)
-              at java.lang.Thread.sleep(Thread.java:314)
-              at com.example.app.MainActivity.onCreate(MainActivity.kt:15)
-            
-        """.trimIndent()
+    @Test
+    fun `readTrace returns null when the main thread has no managed frames`() {
+        val trace = "DALVIK THREADS (1):\n\"main\" prio=5 tid=1 Native\n  (no managed stack frames)\n"
+        assertNull(appExitProvider.readTrace(trace.byteInputStream()))
+    }
 
-        assertEquals(expected, result)
+    @Test
+    fun `readTrace finds the main thread by tid 1 when it is renamed`() {
+        val trace = "DALVIK THREADS (1):\n\"Timber\" prio=5 tid=1 Blocked\n" +
+            "  at com.example.app.Repo.load(Repo.kt:8)\n"
+        assertNotNull(appExitProvider.readTrace(trace.byteInputStream()))
+    }
+
+    @Test
+    fun `readTrace truncates a long trace on a thread boundary`() {
+        val oversized = buildString {
+            append("DALVIK THREADS (400):\n")
+            repeat(400) { index ->
+                append("\"thread-$index\" prio=5 tid=$index Waiting\n")
+                repeat(20) {
+                    append("  at com.example.app.Padding.method$it(Padding.java:$it)\n")
+                }
+                append("\n")
+            }
+        }
+
+        val result = appExitProvider.readTrace(oversized.byteInputStream())!!.threads
+
+        assertTrue(result.length < oversized.length)
+        assertTrue(result.startsWith("DALVIK THREADS (400):\n"))
+
+        val lastLine = result.trimEnd('\n').lines().last()
+        assertTrue("truncated mid-thread on: $lastLine", lastLine.startsWith("  at "))
+    }
+
+    @Test
+    fun `toAppExit prefers the trace subject over the kill description`() {
+        val exitInfo = mockApplicationExitInfo(
+            1,
+            ApplicationExitInfo.REASON_ANR,
+            ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
+        )
+        `when`(exitInfo.traceInputStream).thenReturn(
+            "Subject: Broadcast of Intent { }\nDALVIK THREADS (1):\n\"main\" prio=5 tid=1 Blocked\n  at com.example.app.Repo.load(Repo.kt:8)\n"
+                .byteInputStream(),
+        )
+        `when`(exitInfo.description)
+            .thenReturn("user request after error: Broadcast of Intent { }")
+
+        val appExit = with(appExitProvider) { exitInfo.toAppExit() }
+
+        assertEquals("Broadcast of Intent { }", appExit.subject)
+    }
+
+    @Test
+    fun `toAppExit falls back to the description when the trace has no subject`() {
+        val exitInfo = mockApplicationExitInfo(
+            1,
+            ApplicationExitInfo.REASON_ANR,
+            ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
+        )
+        `when`(exitInfo.traceInputStream)
+            .thenReturn(
+                "DALVIK THREADS (1):\n\"main\" prio=5 tid=1 Blocked\n  at com.example.app.Repo.load(Repo.kt:8)\n"
+                    .byteInputStream(),
+            )
+        `when`(exitInfo.description).thenReturn("user request after error: Input dispatching timed out")
+
+        val appExit = with(appExitProvider) { exitInfo.toAppExit() }
+
+        assertEquals("user request after error: Input dispatching timed out", appExit.subject)
     }
 
     private fun mockApplicationExitInfo(
