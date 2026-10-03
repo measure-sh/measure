@@ -1074,6 +1074,7 @@ paths:
                           type: string
                         type:
                           type: string
+                          description: The exception type. For an ANR with a thread dump, this is the cause found in the dump.
                         error_type:
                           type: string
                           description: "`exception` or `anr`."
@@ -1350,6 +1351,15 @@ paths:
                               type: string
                             message:
                               type: string
+                            subject:
+                              type: string
+                              description: The subject from ApplicationExitInfo thread dump. Empty below Android 11.
+                            cause:
+                              type: string
+                              description: The cause of the ANR from the ApplicationExitInfo thread dump. Empty below Android 11.
+                            blamed_thread:
+                              type: string
+                              description: The header line of the thread the ANR is blamed on. `stacktrace` shows this thread. Empty below Android 11.
                         severity:
                           type: string
                         num_code:
@@ -1386,6 +1396,7 @@ paths:
                                 type: string
                         threads:
                           type: array
+                          description: All other threads at the time of the error. For an ANR with a thread dump, each thread's name is its header line from the dump, and its frames and locks are the dump's lines as written. The main thread comes first. The blamed thread is left out, since `stacktrace` already shows it.
                           items:
                             type: object
                             properties:
@@ -1458,6 +1469,9 @@ paths:
                           title: android.app.RemoteServiceException
                           stacktrace: "android.app.RemoteServiceException: Input dispatching timed out\n\tat com.example.MainActivity.onResume(MainActivity.kt:88)"
                           message: Input dispatching timed out
+                          subject: ""
+                          cause: ""
+                          blamed_thread: ""
                         severity: fatal
                         attachments: []
                         threads:
@@ -1465,6 +1479,31 @@ paths:
                             frames:
                               - com.example.MainActivity.onResume(MainActivity.kt:88)
                               - android.app.Activity.performResume(Activity.java:8121)
+                      - id: d4e5f6a7-b8c9-0123-def0-234567890123
+                        session_id: e5f6a7b8-c9d0-1234-ef01-345678901234
+                        timestamp: "2025-06-13T16:40:02.518Z"
+                        type: anr
+                        attribute:
+                          installation_id: d4e5f6a7-b8c9-0123-abcd-ef4567890123
+                          app_version: 1.0.0
+                          app_build: "100"
+                          app_unique_id: com.example.app
+                          os_name: android
+                          os_version: "15"
+                        anr:
+                          title: Main thread blocked by another thread@Cache.kt
+                          stacktrace: "\"worker\" daemon prio=5 tid=46 Sleeping\n  at java.lang.Thread.sleep(Native method)\n  at com.example.app.Cache.refresh(Cache.kt:24)\n  - locked <0x053dd6df> (a java.lang.Object)"
+                          message: "Broadcast of Intent { flg=0x10000010 cmp=com.example.app/.Receiver }"
+                          subject: "Broadcast of Intent { flg=0x10000010 cmp=com.example.app/.Receiver }"
+                          cause: Main thread blocked by another thread
+                          blamed_thread: "\"worker\" daemon prio=5 tid=46 Sleeping"
+                        severity: fatal
+                        attachments: []
+                        threads:
+                          - name: "\"main\" prio=5 tid=1 Blocked"
+                            frames:
+                              - "  at com.example.app.Receiver.onReceive(Receiver.kt:11)"
+                              - "  - waiting to lock <0x053dd6df> (a java.lang.Object) held by thread 46"
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":

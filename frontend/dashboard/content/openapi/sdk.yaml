@@ -333,8 +333,9 @@ paths:
                         type: object
                         description: >
                           Use the `anr` type for Application Not Responding events.
+                          An ANR must include either `art_thread_dump`, or
+                          non-empty `exceptions` and `threads`.
                         required:
-                          - exceptions
                           - foreground
                         properties:
                           handled:
@@ -342,6 +343,19 @@ paths:
                             deprecated: true
                             description: >
                               Do not use. Retained only for backwards compatibility.
+                          art_thread_dump:
+                            type: string
+                            maxLength: 1048576
+                            description: >
+                              The thread dump from ApplicationExitInfo, with only
+                              the thread blocks kept. Android 11 and above send
+                              this instead of `exceptions` and `threads`.
+                          subject:
+                            type: string
+                            maxLength: 1024
+                            description: >
+                              Android's description of the ANR, which names the
+                              timeout that expired.
                           exceptions:
                             type: array
                             description: Array of exception objects.
