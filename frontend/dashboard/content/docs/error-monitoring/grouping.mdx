@@ -22,6 +22,74 @@ java.lang.NullPointerException: Attempt to invoke virtual method 'void com.examp
     ...
 ```
 
+### ANRs
+
+ANRs on Android 11 and above are tracked using the thread dump from [ApplicationExitInfo](https://developer.android.com/reference/android/app/ApplicationExitInfo). Below Android 11, we use a stack trace collected by intercepting the [SIGQUIT signal](https://measure.sh/blog/what-we-got-wrong-about-anr-detection-before-we-got-it-right).
+
+**Android 11+**
+
+1. Look for the main thread in the thread dump.
+2. Find the first frame that belongs to your app. This is done using a heuristics-based approach, where we assume a frame is from your app's code if it does not belong to any of the following system packages: Android, Java, Kotlin, AndroidX, Flutter, React Native. Libraries bundled with your app, like OkHttp, are treated as your app's code. In case the stack trace contains no frame from your app's code, it simply falls back to the topmost frame in the main thread.
+3. Use the type of ANR from the thread dump if available, but only when no frame from your app's code was found.
+
+For example, in the thread dump below:
+
+```
+"main" prio=5 tid=1 Runnable
+  at android.os.MessageQueue.next(MessageQueue.java:335)
+  at com.example.app.Repo.load(Repo.kt:8)
+```
+
+The grouping will be done on `Repo.kt: load()`.
+
+In case the main thread is waiting on a lock held by another thread, the root cause lies in the holding thread instead of main. For example:
+
+```
+"main" prio=5 tid=1 Blocked
+  at com.example.app.Screen.render(Screen.kt:12)
+  - waiting to lock <0x0cd03f02> held by thread 21
+
+"pool-1-thread-1" prio=5 tid=21 Sleeping
+  at java.lang.Thread.sleep(Native method)
+  at com.example.app.Cache.refresh(Cache.kt:88)
+  - locked <0x0cd03f02>
+```
+
+In this case the grouping will be done using `Cache.kt: refresh()`.
+
+The thread dump also reports what kind of ANR it was, such as an input or broadcast timeout. It's usually one of:
+
+- `Input dispatching timed out`
+- `Broadcast of Intent`
+- `executing service`
+- `ContentProvider not responding`
+- `Context.startForegroundService() did not then call Service.startForeground()`
+- `App requested`
+- `No response to onStartJob`
+- `No response to onStopJob`
+- `Timed out while trying to bind`
+- `failed to complete startup`
+
+When no frame from your app's code is found, ANRs with the same frame, ANR type, and activity, service, or receiver are grouped together.
+
+Line numbers are not used for grouping, so ANRs from the same function stay in the same group even when the code moves around. If the mapping file for a build was not uploaded, the grouping will be done on obfuscated names, and those ANRs end up in a separate group. See [Upload symbols](/docs/error-monitoring/upload-symbols#android).
+
+**Below Android 11**
+
+- Each issue is titled with the file and function at the top of the stack when the ANR happened.
+
+For example, in the stack trace below:
+
+```log
+sh.measure.android.anr.AnrError: Application Not Responding for at least 5s
+    at java.util.regex.Matcher.find(Matcher.java:637)
+    at com.example.app.SearchScreen.highlight(SearchScreen.kt:57)
+    at com.example.app.SearchScreen.onQueryChanged(SearchScreen.kt:31)
+    ...
+```
+
+The grouping will be done on `Matcher.java: find()`, even though the code to fix is in `SearchScreen.kt`. Since the top frame is often from Android or Java, ANRs with different causes can end up in the same group.
+
 ## iOS
 
 Errors are grouped by the signal and the first stack frame that belongs to your app. Operating-system and framework frames at the top of the stack (like `CoreFoundation` and `libobjc`) are skipped, since the code you can fix is in your own binary.
