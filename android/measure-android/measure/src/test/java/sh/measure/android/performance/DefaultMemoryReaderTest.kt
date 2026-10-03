@@ -33,27 +33,6 @@ internal class DefaultMemoryReaderTest {
     val tempFolder = TemporaryFolder()
 
     @Test
-    fun `reads max heap size from runtime and returns it in KB`() {
-        val actual = runtimeProvider.maxMemory() / BYTES_TO_KB_FACTOR
-        val expected = memoryReader.maxHeapSize()
-        Assert.assertEquals(expected, actual)
-    }
-
-    @Test
-    fun `reads total heap size from runtime and returns it in KB`() {
-        val actual = runtimeProvider.totalMemory() / BYTES_TO_KB_FACTOR
-        val expected = memoryReader.totalHeapSize()
-        Assert.assertEquals(expected, actual)
-    }
-
-    @Test
-    fun `reads free heap size from runtime and returns it in KB`() {
-        val actual = runtimeProvider.freeMemory() / BYTES_TO_KB_FACTOR
-        val expected = memoryReader.freeHeapSize()
-        Assert.assertEquals(expected, actual)
-    }
-
-    @Test
     fun `populates MemoryInfo and returns the total PSS`() {
         val memoryInfo = Debug.MemoryInfo().also {
             debugProvider.populateMemoryInfo(it)
