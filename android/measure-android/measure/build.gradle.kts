@@ -93,6 +93,9 @@ android {
             isIncludeAndroidResources = true
             isReturnDefaultValues = true
             execution = "ANDROIDX_TEST_ORCHESTRATOR"
+            all {
+                it.systemProperty("artdump.update", providers.gradleProperty("artdump.update").getOrElse("false"))
+            }
         }
     }
     buildFeatures {

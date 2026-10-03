@@ -87,9 +87,12 @@ In worse case scenarios the following must be ensured:
 
 ## Exceptions and ANRs export
 
-All events except for exceptions and ANRs are sent to the server in batches, periodically, as shown
-above. Exceptions and ANRs however, are attempted to be sent as soon as they occur. This is done to
+All events except for exceptions are sent to the server in batches, periodically, as shown
+above. Exceptions however, are attempted to be sent as soon as they occur. This is done to
 ensure that clients can be notified of issues as soon as possible.
+
+ANRs are read from the app exit info on the next app launch, and are sent with the regular
+batches.
 
 # Thread management
 

@@ -1,6 +1,9 @@
 package sh.measure.android
 
+import android.os.Build
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Test
+import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
 import org.mockito.Mockito.times
@@ -11,12 +14,17 @@ import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
+import org.robolectric.annotation.Config
 import sh.measure.android.config.DynamicConfig
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.utils.ManifestMetadata
 
+@RunWith(AndroidJUnit4::class)
+// Below Android 11 the SIGQUIT collector is the ANR source, which is what
+// the crash tracking assertions below expect.
+@Config(sdk = [Build.VERSION_CODES.Q])
 class MeasureInternalTest {
     private val sessionManager = mock<SessionManager>()
     private val signalProcessor = mock<SignalProcessor>()

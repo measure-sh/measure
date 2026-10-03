@@ -74,6 +74,21 @@ internal interface SignalProcessor {
     )
 
     /**
+     * Tracks an ANR collected using an AppExit from a different session than the
+     * current one.
+     */
+    fun trackAnr(
+        data: ExceptionData,
+        timestamp: Long,
+        threadName: String,
+        sessionId: String,
+        sessionStartTime: Long,
+        appVersion: String?,
+        appBuild: String?,
+        isSampled: Boolean = true,
+    )
+
+    /**
      * Profile events can be delivered by the OS after the session they were captured in has
      * ended. This method is used to track profile events for a specific session with the
      * attributes provided. The session attributes are left untouched when they are unknown.
@@ -238,6 +253,36 @@ internal class SignalProcessorImpl(
                 })
             },
         )
+    }
+
+    override fun trackAnr(
+        data: ExceptionData,
+        timestamp: Long,
+        threadName: String,
+        sessionId: String,
+        sessionStartTime: Long,
+        appVersion: String?,
+        appBuild: String?,
+        isSampled: Boolean,
+    ) {
+        val event = createEvent(
+            data = data,
+            timestamp = timestamp,
+            type = EventType.ANR,
+            attachments = mutableListOf(),
+            attributes = mutableMapOf(),
+            userTriggered = false,
+            userDefinedAttributes = mutableMapOf(),
+            sessionId = sessionId,
+            isSampled = isSampled,
+        ) ?: return
+        applyAttributes(event, threadName)
+        event.updateVersionAttribute(appVersion, appBuild)
+        event.updateSessionStartTimeAttribute(sessionStartTime)
+        // Stamped before the store so a profile can be attributed to this session even
+        // if the event insert fails.
+        sessionManager.markSessionWithAnr(event.sessionId, timestamp)
+        signalStore.store(event)
     }
 
     override fun trackProfile(
