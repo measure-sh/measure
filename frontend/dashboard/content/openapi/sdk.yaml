@@ -327,8 +327,9 @@ paths:
                                 - android_method_trace
                                 - layout_snapshot
                                 - perfetto_trace
-                                - heap_dump
-                                - heap_profile
+                                - perfetto_java_heap_dump
+                                - perfetto_heap_profile
+                                - perfetto_stack_sample
                       anr:
                         type: object
                         description: >
@@ -1386,7 +1387,7 @@ paths:
                         type: object
                         description: >
                           Use the `profile` type for a performance profile captured by
-                          the SDK, such as a Perfetto trace or heap dump. The profile
+                          the SDK, such as a Perfetto trace or Java heap dump. The profile
                           artifact itself is sent as an attachment on the event whose
                           `type` matches the event's `format`.
                         required:
@@ -1398,13 +1399,17 @@ paths:
                             enum:
                               - app_fully_drawn
                               - anr
-                            description: The occasion that produced the profile.
+                              - oom
+                              - kill_excessive_cpu_usage
+                              - cold_start
+                            description: The Android profiling trigger that captured the profile.
                           format:
                             type: string
                             enum:
                               - perfetto_trace
-                              - heap_dump
-                              - heap_profile
+                              - perfetto_java_heap_dump
+                              - perfetto_heap_profile
+                              - perfetto_stack_sample
                             description: >
                               Format of the attached profile artifact, mirroring the
                               attachment `type`.

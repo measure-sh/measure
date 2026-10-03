@@ -66,6 +66,7 @@ import {
   fetchNetworkTrendsFromServer,
   fetchNotifPrefsFromServer,
   fetchPendingInvitesFromServer,
+  fetchProfilesFromServer,
   fetchRootSpanNamesFromServer,
   fetchSdkConfigFromServer,
   fetchAppHealthPlotFromServer,
@@ -910,6 +911,39 @@ describe("memory fetches", () => {
     expect(url.searchParams.get("limit")).toBe("5");
     expect(url.searchParams.get("offset")).toBe("10");
     expect(url.searchParams.has("plot_time_group")).toBe(false);
+    expect(result).toEqual(data);
+  });
+});
+
+// ========================================================================
+// Profiles
+// ========================================================================
+describe("fetchProfilesFromServer", () => {
+  const filterExpr = "profile_trigger:in:anr";
+
+  it("sends the filters and pagination", async () => {
+    const data = {
+      results: [{ id: "profile-a", trigger: "anr" }],
+      meta: { next: true, previous: true },
+    };
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(data));
+
+    const result = await fetchProfilesFromServer(
+      "app-a",
+      isoFrom,
+      isoTo,
+      filterExpr,
+      15,
+      30,
+    );
+
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/profiles");
+    expect(url.searchParams.get("from")).toBe(isoFrom);
+    expect(url.searchParams.get("to")).toBe(isoTo);
+    expect(url.searchParams.get("filter_expr")).toBe(filterExpr);
+    expect(url.searchParams.get("limit")).toBe("15");
+    expect(url.searchParams.get("offset")).toBe("30");
     expect(result).toEqual(data);
   });
 });

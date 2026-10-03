@@ -4,33 +4,27 @@ seoTitle: "Get Perfetto Traces and Heap Dumps from production on Android"
 description: "Auto-capture heap dumps and Perfetto traces from Android apps using the platform's trigger-based profiling APIs."
 ---
 
-Profiling captures a Perfetto system trace or a heap dump at a specific moment, so you can see exactly what the app was doing when it launched slowly or froze.
+Profiling is currently Android only and depends on the platform's trigger-based profiling APIs. It captures a Perfetto system trace or a heap dump when the system provides it.
 
 <Callout type="info">
 
-Profiling is Android only. It needs Android 16 (API level 36) or higher, and is a no-op on older versions.
+Profiling is Android only. It works on Android 16 (API level 36) or higher, and is a no-op on older versions.
 
 </Callout>
 
 ## Enable profiling
 
-Profiling is off by default and turns on when [WorkManager](https://developer.android.com/topic/libraries/architecture/workmanager) is a dependency of your app. Measure needs it because a trace or heap dump is often over 10 MB and has to upload durably in the background, and it leaves WorkManager out of the SDK so apps that don't profile don't carry the dependency.
+Profiling only works when your app depends on [WorkManager](https://developer.android.com/topic/libraries/architecture/workmanager), which is required to upload traces and heap dumps (often over 10 MB) reliably in the background.
 
-Add the [WorkManager dependency](https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started) to your `build.gradle.kts` to switch profiling on. Without it, the collector never registers and nothing is captured.
+The SDK doesn't bundle WorkManager so apps that don't use profiling don't add an unnecessary dependency. You can add the [WorkManager dependency](https://developer.android.com/develop/background-work/background-tasks/persistent/getting-started) to your `build.gradle.kts` to enable profiling.
 
 ## Triggers
 
-A trigger is an occasion when the operating system may capture a profile. Measure registers two.
+A trigger is an occasion when the operating system may capture a profile.
 
-<Callout type="info">
+### App fully drawn
 
-Android 17 (API level 37) adds more triggers, such as out-of-memory, cold start, and excessive CPU usage. Capturing them needs building against `compileSdk 37`, so Measure registers only the two below.
-
-</Callout>
-
-### App fully drawn (`app_fully_drawn`)
-
-Fires once the app reports that its first meaningful content is on screen. This one isn't automatic: call [`Activity.reportFullyDrawn()`](https://developer.android.com/reference/android/app/Activity#reportFullyDrawn()) yourself once the first screen is ready, including any data loaded asynchronously.
+App fully drawn fires once the app reports that its first meaningful content is on screen, on Android 16 (API level 36) and above. This requires you to call [`Activity.reportFullyDrawn()`](https://developer.android.com/reference/android/app/Activity#reportFullyDrawn()) yourself once the first screen is ready.
 
 ```kotlin
 class MainActivity : ComponentActivity() {
@@ -46,21 +40,34 @@ class MainActivity : ComponentActivity() {
 }
 ```
 
-### ANR (`anr`)
+### ANR
 
-Captured when the app stops responding. The operating system detects ANRs itself, so there's nothing to add in your code.
+Captured when the app stops responding, on Android 16 (API level 36) and above. The operating system detects ANRs itself.
 
-The OS rate-limits each trigger, and Measure caps it at one profile per trigger type per hour, so a repeating problem won't flood the session replay with captures.
+### Out of memory
+
+Captures a Java heap dump when the app runs out of memory, on Android 17 (API level 37) and above. It only fires if any custom uncaught exception handler calls through to the default one.
+
+### Cold start
+
+Captures a system trace and a stack sample from the start of a cold launch until the app reports it's fully drawn, or for 5 seconds. It works on Android 17 (API level 37) and above.
+
+### Excessive CPU usage
+
+Captures a system trace when the system kills the app for using too much CPU, on Android 17 (API level 37) and above.
 
 ## Sampling
 
-Profiling is sampled on its own, separate from session sampling. The rate runs from 0 to 100 and defaults to 100, so every profile the OS produces is kept. Keep it high: the OS already rate-limits each trigger to once an hour, so a low client-side rate would collect almost nothing. Set it well above your other sampling rates.
+The OS itself rate-limits each trigger at one profile per trigger type per hour.
+
+On top of that you can apply a sampling rate to reduce the amount of profiles collected. However, given these APIs work only on Android 16 and above, the volume is generally
+very low so it is recommended to keep this sampling rate at 100%.
 
 ## How it works
 
-Measure uses [`android.os.ProfilingManager`](https://developer.android.com/reference/android/os/ProfilingManager), the trigger-based profiling API added in Android 16. The SDK registers the triggers above with the operating system, along with a callback for the results. The OS decides when to run a session, writes the result to a file, and hands it back, and Measure attaches that file to a `profile` event tagged with the trigger that produced it.
+Profiling is built on [`android.os.ProfilingManager`](https://developer.android.com/reference/android/os/ProfilingManager), the trigger-based profiling API added in Android 16. The SDK registers the triggers above with the operating system, along with a callback for the results. The OS decides when to run a session, writes the result to a file, and hands it back, and the SDK attaches that file to a `profile` event tagged with the trigger that produced it.
 
-The artifacts are large, so a dedicated WorkManager worker uploads them in the background once the device has a network, apart from the normal event flow. After upload, you can download a result from the session replay in the dashboard.
+The artifacts are large, so a dedicated WorkManager worker uploads them in the background once the device has a network, apart from the normal event flow. Once uploaded, every profile shows on the Profiles page, where you can filter by profile trigger, open a profile in Perfetto, download it, or open its session replay.
 
 ## Further reading
 

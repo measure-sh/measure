@@ -120,6 +120,12 @@ function buildInitNavData(): { navMain: NavSection[] } {
             isActive: false,
             external: false,
           },
+          {
+            title: "Profiles",
+            url: "profiles",
+            isActive: false,
+            external: false,
+          },
         ],
       },
       {

@@ -114,6 +114,40 @@ export type HighMemoryUsageSessionsResponse = {
   results: HighMemoryUsageSession[] | null;
 };
 
+export type Profile = {
+  id: string;
+  app_id: string;
+  session_id: string;
+  timestamp: string;
+  trigger: string;
+  format: string;
+  attribute: {
+    app_version: string;
+    app_build: string;
+    os_name: string;
+    os_version: string;
+    device_manufacturer: string;
+    device_model: string;
+  };
+  attachments: {
+    id: string;
+    name: string;
+    type: string;
+    key: string;
+    location: string;
+  }[];
+};
+
+export type ProfilesResponse = {
+  meta: { next: boolean; previous: boolean };
+  results: Profile[] | null;
+};
+
+export const emptyProfilesResponse: ProfilesResponse = {
+  meta: { next: false, previous: false },
+  results: [],
+};
+
 export type App = {
   id: string;
   team_id: string;
@@ -1691,6 +1725,29 @@ export const fetchHighMemoryUsageSessionsFromServer = async (
     `/api/apps/${appId}/memory/sessions/highUsage?${params.toString()}`,
     { failsWith: "Failed to fetch high memory usage sessions" },
   );
+};
+
+export const fetchProfilesFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  limit: number,
+  offset: number,
+): Promise<ProfilesResponse> => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    limit: String(limit),
+    offset: String(offset),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+
+  return await request(`/api/apps/${appId}/profiles?${params.toString()}`, {
+    failsWith: "Failed to fetch profiles",
+  });
 };
 
 export const fetchAlertsOverviewFromServer = async (

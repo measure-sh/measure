@@ -6,7 +6,9 @@ import {
   deviceMemoryTier,
 } from "@/app/sandbox/device_memory";
 import { describe, expect, it } from "@jest/globals";
+import { existsSync } from "fs";
 import { DateTime } from "luxon";
+import path from "path";
 
 const world = catalog();
 const TEAM_ID = world.team.id;
@@ -222,6 +224,14 @@ const FILTER_KEYS: Record<string, string[]> = {
     "device_total_memory",
   ],
   network: ["http_method", ...VERSION_KEYS, ...DEVICE_KEYS],
+  profiles: [
+    "profile_trigger",
+    ...VERSION_KEYS,
+    "user_id",
+    "os_version",
+    "device_name",
+    "device_manufacturer",
+  ],
   builds: ["mapping_type", ...VERSION_KEYS],
   spans: ["span_status", ...VERSION_KEYS, ...DEVICE_KEYS],
   alerts: [],
@@ -948,6 +958,95 @@ const mappedApp = world.apps
   .map((a) => world.appById.get(a.id)!)
   .find((b) => b.scenario.app.mappingTypes.length > 1)!;
 
+const iosApp = world.apps
+  .map((a) => world.appById.get(a.id)!)
+  .find((b) => b.scenario.app.os !== "android")!;
+const profilesPath = `/api/apps/${APP_ID}/profiles?${wideRangeParams({ limit: "10", offset: "0" }).toString()}`;
+
+const profilesCases: Case[] = [
+  {
+    name: "lists an Android app's ANR and app fully drawn profiles, newest first",
+    path: profilesPath,
+    status: 200,
+    check: (data) => {
+      expect(data.results.map((p: any) => p.trigger).sort()).toEqual([
+        "anr",
+        "app_fully_drawn",
+      ]);
+      expect(data.results[0].timestamp >= data.results[1].timestamp).toBe(true);
+      const sessionIds = bundle.sessions.map((s) => s.list.session_id);
+      for (const profile of data.results) {
+        expect(sessionIds).toContain(profile.session_id);
+      }
+    },
+  },
+  {
+    name: "serves each profile's trace from the public folder",
+    path: profilesPath,
+    status: 200,
+    check: (data) => {
+      for (const profile of data.results) {
+        const [attachment] = profile.attachments;
+        expect(
+          existsSync(path.join(process.cwd(), "public", attachment.location)),
+        ).toBe(true);
+      }
+    },
+  },
+  {
+    name: "writes each profile into its session's timeline",
+    path: profilesPath,
+    status: 200,
+    check: async (data) => {
+      for (const profile of data.results) {
+        const { json: detail } = await fetchJson(
+          `/api/apps/${APP_ID}/sessions/${profile.session_id}`,
+        );
+        const profileEvents = Object.values(detail.threads)
+          .flat()
+          .filter((event: any) => event.event_type === "profile");
+        expect(profileEvents).toContainEqual(
+          expect.objectContaining({
+            trigger: profile.trigger,
+            timestamp: profile.timestamp,
+          }),
+        );
+      }
+    },
+  },
+  {
+    name: "filters profiles by trigger",
+    path: withFilter(profilesPath, "profile_trigger:in:[anr]"),
+    status: 200,
+    check: (data) => {
+      expect(data.results.map((p: any) => p.trigger)).toEqual(["anr"]);
+    },
+  },
+  {
+    name: "suggests the profile triggers the app has",
+    path: `/api/apps/${APP_ID}/filters/values?entity=profiles&key_name=profile_trigger`,
+    status: 200,
+    check: (data) => {
+      expect(data.values.map((v: any) => v.text).sort()).toEqual([
+        "anr",
+        "app_fully_drawn",
+      ]);
+    },
+  },
+  {
+    name: "lists no profiles for an app that is not on Android",
+    path: `/api/apps/${iosApp.app.id}/profiles?${wideRangeParams({ limit: "10", offset: "0" }).toString()}`,
+    status: 200,
+    check: (data) => expectEmpty(data),
+  },
+  {
+    name: "returns nothing outside the profiles' time span",
+    path: `/api/apps/${APP_ID}/profiles?${EMPTY_RANGE}&limit=10&offset=0`,
+    status: 200,
+    check: (data) => expectEmpty(data),
+  },
+];
+
 const settingsCases: Case[] = [
   {
     name: "lists alerts of the kinds the alerts page renders",
@@ -1174,6 +1273,10 @@ describe("traces sandbox routes", () => {
 
 describe("network sandbox routes", () => {
   it.each(networkCases)("$name", run);
+});
+
+describe("sandbox profiles routes", () => {
+  it.each(profilesCases)("$name", run);
 });
 
 describe("sandbox settings routes", () => {
