@@ -256,6 +256,10 @@ type EventRow struct {
 	ExceptionsJSON string
 	IsCustom       bool
 
+	// ART thread dump payload, written only for anr events.
+	Subject        string
+	ThreadDumpJSON string
+
 	// Payload of a Type "lifecycle_activity" event, written only when the
 	// class name is set.
 	LifecycleActivityType      string
@@ -350,6 +354,13 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 	isIssue := row.Type == "exception" || row.Type == "anr"
 
 	quote := func(s string) string { return "'" + s + "'" }
+	// quoteEscaped is for values that can contain backslashes or quotes
+	// of their own, such as embedded JSON.
+	quoteEscaped := func(s string) string {
+		s = strings.ReplaceAll(s, `\`, `\\`)
+		s = strings.ReplaceAll(s, `'`, `\'`)
+		return "'" + s + "'"
+	}
 	boolLit := func(b bool) string {
 		if b {
 			return "true"
@@ -413,6 +424,14 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 		if row.IsCustom {
 			cols = append(cols, "`exception.is_custom`")
 			vals = append(vals, "true")
+		}
+		if row.Subject != "" {
+			cols = append(cols, "`anr.subject`")
+			vals = append(vals, quoteEscaped(row.Subject))
+		}
+		if row.ThreadDumpJSON != "" {
+			cols = append(cols, "`anr.thread_dump`")
+			vals = append(vals, quoteEscaped(row.ThreadDumpJSON))
 		}
 	}
 

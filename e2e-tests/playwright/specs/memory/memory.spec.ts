@@ -48,10 +48,10 @@ test.describe("memory", () => {
   });
 
   // The frank flows stay far below the high usage threshold, so this only
-  // checks that the section loads.
-  test("high memory usage sessions renders its table", async () => {
+  // checks that the section loads to its empty state.
+  test("high memory usage sessions section loads", async () => {
     await expect(memory.highMemorySessions).toContainText(
-      "Sessions with high memory usage",
+      "No high memory sessions found",
     );
   });
 

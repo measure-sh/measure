@@ -26,9 +26,12 @@ test.describe("errors", () => {
         await expect(row).toBeVisible();
         await expect(overview.selectGroupRowPill(row, errorPill)).toBeVisible();
         await expect(overview.selectGroupRowPill(row, fatalPill)).toBeVisible();
-        await expect(
-          overview.selectGroupRowPercentageContribution(row),
-        ).toBeVisible();
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
       });
 
       test("error details renders the fatal error", async ({
@@ -107,9 +110,12 @@ test.describe("errors", () => {
         await expect(row).toBeVisible();
         await expect(overview.selectGroupRowPill(row, errorPill)).toBeVisible();
         await expect(overview.selectGroupRowPill(row, fatalPill)).toBeVisible();
-        await expect(
-          overview.selectGroupRowPercentageContribution(row),
-        ).toBeVisible();
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
       });
 
       test("error details renders the fatal error", async ({
@@ -189,9 +195,12 @@ test.describe("errors", () => {
         await expect(row).toBeVisible();
         await expect(overview.selectGroupRowPill(row, errorPill)).toBeVisible();
         await expect(overview.selectGroupRowPill(row, fatalPill)).toBeVisible();
-        await expect(
-          overview.selectGroupRowPercentageContribution(row),
-        ).toBeVisible();
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
       });
 
       test("error details renders the fatal error", async ({
@@ -266,9 +275,12 @@ test.describe("errors", () => {
         await expect(row).toBeVisible();
         await expect(overview.selectGroupRowPill(row, errorPill)).toBeVisible();
         await expect(overview.selectGroupRowPill(row, fatalPill)).toBeVisible();
-        await expect(
-          overview.selectGroupRowPercentageContribution(row),
-        ).toBeVisible();
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
       });
 
       test("error details renders the fatal error", async ({
@@ -345,9 +357,12 @@ test.describe("errors", () => {
         await expect(row).toBeVisible();
         await expect(overview.selectGroupRowPill(row, errorPill)).toBeVisible();
         await expect(overview.selectGroupRowPill(row, fatalPill)).toBeVisible();
-        await expect(
-          overview.selectGroupRowPercentageContribution(row),
-        ).toBeVisible();
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
       });
 
       test("error details renders the fatal error", async ({
@@ -410,9 +425,10 @@ test.describe("errors", () => {
     test.describe("anr", { tag: "@android" }, () => {
       const anrPill = "ANR";
       const fatalPill = "Fatal";
+      const cause = "Main thread blocked by another thread";
 
       const selectRow = () =>
-        overview.selectErrorGroupRowByTitle(/NativeAndroidScreen\.kt/);
+        overview.selectErrorGroupRowByTitle(/AnrBroadcastReceiver\.kt/);
 
       test.beforeEach(async ({ appId }) => {
         await overview.gotoAnrs(appId);
@@ -424,9 +440,23 @@ test.describe("errors", () => {
         await expect(row).toBeVisible();
         await expect(overview.selectGroupRowPill(row, anrPill)).toBeVisible();
         await expect(overview.selectGroupRowPill(row, fatalPill)).toBeVisible();
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
+
         await expect(
-          overview.selectGroupRowPercentageContribution(row),
+          overview.selectGroupRowTitle(
+            row,
+            "AnrBroadcastReceiver.kt: trigger$lambda$0()",
+          ),
         ).toBeVisible();
+
+        await expect(overview.selectGroupRowSubtitle(row)).toContainText(
+          cause,
+        );
       });
 
       test("error details renders the anr", async ({ page, teamId }) => {
@@ -448,11 +478,62 @@ test.describe("errors", () => {
         await expect(detail.selectErrorPill(fatalPill)).toBeVisible();
 
         await expect(detail.errorThreadStacktrace).toContainText(
-          "sh.measure.android.anr.AnrError",
+          "AnrBroadcastReceiver$Companion.trigger$lambda$0",
         );
         await expect(detail.errorThreadStacktrace).toContainText(
-          "sh.frankenstein.android.NativeAndroidScreenKt",
+          "sleeping on",
         );
+
+        await expect(detail.screenshot).toHaveCount(0);
+
+        await expect(detail.subject).toContainText("Broadcast of Intent");
+        await expect(detail.cause).toContainText(cause);
+      });
+
+      test("error details renders each thread once", async ({
+        page,
+        teamId,
+      }) => {
+        await overview.openErrorGroup(selectRow());
+        const detail = new ErrorDetailPage(page, teamId);
+
+        await expect(
+          detail.threadHeaders.filter({ hasText: '"APP: Locker"' }),
+        ).toHaveCount(1);
+        await expect(
+          detail.threadHeaders.filter({ hasText: '"main"' }),
+        ).toHaveCount(1);
+      });
+
+      test("error details renders the other threads from the dump", async ({
+        page,
+        teamId,
+      }) => {
+        await overview.openErrorGroup(selectRow());
+        const detail = new ErrorDetailPage(page, teamId);
+
+        const locker = detail.threadHeaders.filter({ hasText: "APP: Locker" });
+        await expect(locker).toHaveCount(1);
+        await expect(locker).toHaveText(
+          /Thread: "APP: Locker" daemon prio=\d+ tid=\d+ Sleeping/,
+        );
+
+        const blamedRank = await detail.threadRank(/Thread: "APP: Locker"/);
+        const stalledRank = await detail.threadRank(/Thread: "main"/);
+        expect(blamedRank).toBe(0);
+        expect(stalledRank).toBe(1);
+
+        await detail.selectThread(/Thread: "main"/).click();
+        const stalled = detail.selectThreadStacktrace(/"main"/);
+        await expect(stalled).toContainText(
+          "sh.frankenstein.android.AnrBroadcastReceiver.onReceive",
+        );
+        await expect(stalled).toContainText(/held by thread \d+/);
+
+        await locker.click();
+        await expect(
+          detail.selectThreadStacktrace(/APP: Locker/),
+        ).toContainText("sleeping on");
       });
 
       test("session replay renders the anr event", async ({
@@ -465,17 +546,15 @@ test.describe("errors", () => {
         const replay = new SessionReplayPage(page, teamId);
 
         await expect(replay.eventsList).toBeVisible();
-        const event = replay.selectAnr(/sh\.measure\.android\.anr\.AnrError/);
+        const event = replay.selectAnr(/Broadcast of Intent/);
         await expect(event).toBeVisible();
         await expect(replay.selectEventPill(event, anrPill)).toBeVisible();
 
         await event.click();
         await expect(replay.eventDetails).toContainText(
-          "sh.measure.android.anr.AnrError",
+          "AnrBroadcastReceiver$Companion.trigger$lambda$0",
         );
-        await expect(replay.eventDetails).toContainText(
-          "sh.frankenstein.android.NativeAndroidScreenKt",
-        );
+        await expect(replay.eventDetails).toContainText(cause);
 
         await replay.openAnrDetails();
         await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
@@ -510,9 +589,12 @@ test.describe("errors", () => {
         await expect(
           overview.selectGroupRowPill(row, unhandledPill),
         ).toBeVisible();
-        await expect(
-          overview.selectGroupRowPercentageContribution(row),
-        ).toBeVisible();
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
       });
 
       test("error details renders the unhandled error", async ({
@@ -591,9 +673,12 @@ test.describe("errors", () => {
         await expect(
           overview.selectGroupRowPill(row, unhandledPill),
         ).toBeVisible();
-        await expect(
-          overview.selectGroupRowPercentageContribution(row),
-        ).toBeVisible();
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
       });
 
       test("error details renders the unhandled error", async ({
@@ -683,9 +768,12 @@ test.describe("errors", () => {
         await expect(
           overview.selectGroupRowPill(row, handledPill),
         ).toBeVisible();
-        await expect(
-          overview.selectGroupRowPercentageContribution(row),
-        ).toBeVisible();
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
       });
 
       test("error details renders the handled error", async ({
@@ -769,9 +857,12 @@ test.describe("errors", () => {
         await expect(
           overview.selectGroupRowPill(row, handledPill),
         ).toBeVisible();
-        await expect(
-          overview.selectGroupRowPercentageContribution(row),
-        ).toBeVisible();
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
       });
 
       test("error details renders the handled error", async ({
@@ -857,9 +948,12 @@ test.describe("errors", () => {
         await expect(
           overview.selectGroupRowPill(row, handledPill),
         ).toBeVisible();
-        await expect(
-          overview.selectGroupRowPercentageContribution(row),
-        ).toBeVisible();
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
       });
 
       test("error details renders the handled error", async ({
@@ -940,9 +1034,12 @@ test.describe("errors", () => {
         await expect(
           overview.selectGroupRowPill(row, handledPill),
         ).toBeVisible();
-        await expect(
-          overview.selectGroupRowPercentageContribution(row),
-        ).toBeVisible();
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
       });
 
       test("error details renders the handled error", async ({
@@ -1019,9 +1116,12 @@ test.describe("errors", () => {
         await expect(
           overview.selectGroupRowPill(row, handledPill),
         ).toBeVisible();
-        await expect(
-          overview.selectGroupRowPercentageContribution(row),
-        ).toBeVisible();
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
       });
 
       test("error details renders the handled error", async ({
@@ -1100,9 +1200,12 @@ test.describe("errors", () => {
         await expect(
           overview.selectGroupRowPill(row, handledPill),
         ).toBeVisible();
-        await expect(
-          overview.selectGroupRowPercentageContribution(row),
-        ).toBeVisible();
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
       });
 
       test("error details renders the handled error", async ({
