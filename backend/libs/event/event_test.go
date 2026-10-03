@@ -3,6 +3,7 @@ package event
 import (
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -1099,6 +1100,151 @@ func TestValidateLogSeverity(t *testing.T) {
 		ev := makeLog("fatal", 20)
 		if err := ev.Validate(); err == nil {
 			t.Error("Expected validation error for mismatched severity_number, got nil")
+		}
+	})
+}
+
+func TestValidateANR(t *testing.T) {
+	makeANR := func(anr ANR) EventField {
+		return EventField{
+			ID:        uuid.New(),
+			AppID:     uuid.New(),
+			Type:      TypeANR,
+			Timestamp: time.Now(),
+			Attribute: Attribute{OSName: "android"},
+			ANR:       &anr,
+		}
+	}
+
+	withExceptions := ANR{
+		Exceptions: ExceptionUnits{
+			{
+				Type: "AppNotResponding",
+				Frames: Frames{
+					{
+						MethodName: "blockerMethod",
+						FileName:   "MainActivity.java",
+					},
+				},
+			},
+		},
+		Threads: Threads{
+			{
+				Name: "main",
+				Frames: Frames{
+					{
+						MethodName: "blockerMethod",
+						FileName:   "MainActivity.java",
+					},
+				},
+			},
+		},
+	}
+
+	withThreadDump := ANR{
+		RawThreadDump: "DALVIK THREADS (1):\n\"main\" prio=5 tid=1 Blocked\n  at sh.foo.Repo.load(Repo.kt:8)\n",
+		Subject:       "Broadcast of Intent { cmp=sh.foo/.Receiver }",
+	}
+
+	t.Run("Accepts an anr with a thread dump and no exceptions", func(t *testing.T) {
+		ev := makeANR(withThreadDump)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for a dump-only anr, got %v", err)
+		}
+	})
+
+	t.Run("Accepts an anr with exceptions and no thread dump", func(t *testing.T) {
+		ev := makeANR(withExceptions)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for a stacktrace anr, got %v", err)
+		}
+	})
+
+	t.Run("Accepts an anr with a thread dump and no subject", func(t *testing.T) {
+		anr := withThreadDump
+		anr.Subject = ""
+		ev := makeANR(anr)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for a dump without a subject, got %v", err)
+		}
+	})
+
+	t.Run("Accepts an anr carrying both representations", func(t *testing.T) {
+		anr := withExceptions
+		anr.RawThreadDump = withThreadDump.RawThreadDump
+		ev := makeANR(anr)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for an anr with both representations, got %v", err)
+		}
+	})
+
+	t.Run("Rejects an anr with exceptions but no threads", func(t *testing.T) {
+		anr := withExceptions
+		anr.Threads = nil
+		ev := makeANR(anr)
+		if err := ev.Validate(); err == nil {
+			t.Error("Expected validation error for a stacktrace anr with no threads, got nil")
+		}
+	})
+
+	t.Run("Rejects an anr with neither a thread dump nor exceptions", func(t *testing.T) {
+		ev := makeANR(ANR{Subject: "Input dispatching timed out"})
+		if err := ev.Validate(); err == nil {
+			t.Error("Expected validation error for an anr carrying only a subject, got nil")
+		}
+	})
+
+	t.Run("Rejects a thread dump without a main thread", func(t *testing.T) {
+		anr := withThreadDump
+		anr.RawThreadDump = "DALVIK THREADS (1):\n\"worker\" prio=5 tid=2 Blocked\n  at sh.foo.Repo.load(Repo.kt:8)\n"
+		ev := makeANR(anr)
+		if err := ev.Validate(); err == nil {
+			t.Error("Expected validation error for a dump without a main thread, got nil")
+		}
+	})
+
+	t.Run("Rejects a thread dump whose main thread has no frames", func(t *testing.T) {
+		anr := withThreadDump
+		anr.RawThreadDump = "DALVIK THREADS (1):\n\"main\" prio=5 tid=1 Native\n  (no managed stack frames)\n"
+		ev := makeANR(anr)
+		if err := ev.Validate(); err == nil {
+			t.Error("Expected validation error for a dump whose main thread has no frames, got nil")
+		}
+	})
+
+	t.Run("Accepts a thread dump at the size limit", func(t *testing.T) {
+		anr := withThreadDump
+		anr.RawThreadDump += strings.Repeat("a", maxANRThreadDumpBytes-len(anr.RawThreadDump))
+		ev := makeANR(anr)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for a dump of %d bytes, got %v", maxANRThreadDumpBytes, err)
+		}
+	})
+
+	t.Run("Rejects a thread dump over the size limit", func(t *testing.T) {
+		anr := withThreadDump
+		anr.RawThreadDump = strings.Repeat("a", maxANRThreadDumpBytes+1)
+		ev := makeANR(anr)
+		if err := ev.Validate(); err == nil {
+			t.Errorf("Expected validation error for a dump of %d bytes, got nil", maxANRThreadDumpBytes+1)
+		}
+	})
+
+	t.Run("Accepts a subject at the size limit", func(t *testing.T) {
+		anr := withThreadDump
+		anr.Subject = strings.Repeat("a", maxANRSubjectBytes)
+		ev := makeANR(anr)
+		if err := ev.Validate(); err != nil {
+			t.Errorf("Expected no validation error for a subject of %d bytes, got %v", maxANRSubjectBytes, err)
+		}
+	})
+
+	t.Run("Rejects a subject over the size limit", func(t *testing.T) {
+		anr := withThreadDump
+		anr.Subject = strings.Repeat("a", maxANRSubjectBytes+1)
+		ev := makeANR(anr)
+		if err := ev.Validate(); err == nil {
+			t.Errorf("Expected validation error for a subject of %d bytes, got nil", maxANRSubjectBytes+1)
 		}
 	})
 }

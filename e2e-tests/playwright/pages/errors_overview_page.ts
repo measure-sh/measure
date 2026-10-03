@@ -27,12 +27,28 @@ export class ErrorsOverviewPage {
     return row.getByText(title, { exact: true });
   }
 
+  selectGroupRowSubtitle(row: Locator): Locator {
+    return row.getByTestId("exception-row-type");
+  }
+
   selectGroupRowPill(row: Locator, label: string): Locator {
     return row.getByText(label, { exact: true });
   }
 
-  selectGroupRowPercentageContribution(row: Locator): Locator {
-    return row.getByRole("cell", { name: /%$/ });
+  selectGroupRowLastSeen(row: Locator): Locator {
+    return row.getByTestId("exception-row-last-seen");
+  }
+
+  selectGroupRowTrend(row: Locator): Locator {
+    return row.getByTestId("exception-row-trend");
+  }
+
+  selectGroupRowInstances(row: Locator): Locator {
+    return row.getByTestId("exception-row-instances");
+  }
+
+  selectGroupRowSessions(row: Locator): Locator {
+    return row.getByTestId("exception-row-sessions");
   }
 
   async gotoFatalErrors(appId: string) {
