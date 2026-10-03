@@ -1,6 +1,7 @@
 package sh.measure.android.profiling
 
 import android.os.Build
+import android.os.ProfilingManager
 import android.os.ProfilingResult
 import android.os.ProfilingTrigger
 import androidx.annotation.RequiresApi
@@ -39,6 +40,7 @@ internal class ProfileCollector(
     private val sessionManager: SessionManager,
 ) {
     private var resultCallback: Consumer<ProfilingResult>? = null
+    private val registeredTriggerTypes = mutableListOf<Int>()
 
     fun register() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.BAKLAVA) {
@@ -68,18 +70,44 @@ internal class ProfileCollector(
         try {
             profilingManager.registerForAllProfilingResults(ioExecutor, callback)
             resultCallback = callback
-            val triggers = triggerTypes().map { type ->
-                ProfilingTrigger.Builder(type)
-                    .setRateLimitingPeriodHours(RATE_LIMITING_PERIOD_HOURS)
-                    .build()
-            }
-            profilingManager.addProfilingTriggers(triggers)
-            logger.log(LogLevel.Debug, "Registered ${triggers.size} profiling triggers")
+            addTriggers(profilingManager, android16TriggerTypes())
         } catch (e: Exception) {
             logger.log(LogLevel.Error, "Failed to register profiling triggers", e)
             resultCallback = null
             runCatching { profilingManager.unregisterForAllProfilingResults(callback) }
+            return
         }
+        if (Build.VERSION.SDK_INT >= ANDROID_17) {
+            registerAndroid17Triggers(profilingManager)
+        }
+        logger.log(LogLevel.Debug, "Registered ${registeredTriggerTypes.size} profiling triggers")
+    }
+
+    @RequiresApi(Build.VERSION_CODES.BAKLAVA)
+    private fun registerAndroid17Triggers(profilingManager: ProfilingManager) {
+        try {
+            addTriggers(profilingManager, ANDROID_17_TRIGGER_TYPES)
+        } catch (e: Exception) {
+            logger.log(LogLevel.Debug, "Failed to add Android 17 profiling triggers together", e)
+            ANDROID_17_TRIGGER_TYPES.forEach { type ->
+                try {
+                    addTriggers(profilingManager, intArrayOf(type))
+                } catch (error: Exception) {
+                    logger.log(LogLevel.Debug, "Profiling trigger $type is unavailable", error)
+                }
+            }
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.BAKLAVA)
+    private fun addTriggers(profilingManager: ProfilingManager, types: IntArray) {
+        val triggers = types.map { type ->
+            ProfilingTrigger.Builder(type)
+                .setRateLimitingPeriodHours(RATE_LIMITING_PERIOD_HOURS)
+                .build()
+        }
+        profilingManager.addProfilingTriggers(triggers)
+        registeredTriggerTypes.addAll(types.toList())
     }
 
     @RequiresApi(Build.VERSION_CODES.BAKLAVA)
@@ -87,17 +115,18 @@ internal class ProfileCollector(
         val callback = resultCallback ?: return
         val profilingManager = systemServiceProvider.profilingManager ?: return
         try {
-            profilingManager.removeProfilingTriggersByType(triggerTypes())
+            profilingManager.removeProfilingTriggersByType(registeredTriggerTypes.toIntArray())
             profilingManager.unregisterForAllProfilingResults(callback)
         } catch (e: Exception) {
             logger.log(LogLevel.Error, "Failed to remove profiling triggers", e)
         } finally {
             resultCallback = null
+            registeredTriggerTypes.clear()
         }
     }
 
     @RequiresApi(Build.VERSION_CODES.BAKLAVA)
-    private fun triggerTypes(): IntArray = intArrayOf(
+    private fun android16TriggerTypes(): IntArray = intArrayOf(
         ProfilingTrigger.TRIGGER_TYPE_APP_FULLY_DRAWN,
         ProfilingTrigger.TRIGGER_TYPE_ANR,
     )
@@ -190,26 +219,46 @@ internal class ProfileCollector(
 
     private fun formatFor(fileName: String): String? = when {
         fileName.endsWith(PERFETTO_TRACE_EXTENSION) -> AttachmentType.PERFETTO_TRACE
-        fileName.endsWith(HEAP_DUMP_EXTENSION) -> AttachmentType.HEAP_DUMP
-        fileName.endsWith(HEAP_PROFILE_EXTENSION) -> AttachmentType.HEAP_PROFILE
+        fileName.endsWith(PERFETTO_JAVA_HEAP_DUMP_EXTENSION) -> AttachmentType.PERFETTO_JAVA_HEAP_DUMP
+        fileName.endsWith(PERFETTO_HEAP_PROFILE_EXTENSION) -> AttachmentType.PERFETTO_HEAP_PROFILE
+        fileName.endsWith(PERFETTO_STACK_SAMPLE_EXTENSION) -> AttachmentType.PERFETTO_STACK_SAMPLE
         else -> null
     }
 
     private fun reasonFor(triggerType: Int): String? = when (triggerType) {
         ProfilingTrigger.TRIGGER_TYPE_APP_FULLY_DRAWN -> REASON_APP_FULLY_DRAWN
         ProfilingTrigger.TRIGGER_TYPE_ANR -> REASON_ANR
+        TRIGGER_TYPE_OOM -> REASON_OOM
+        TRIGGER_TYPE_KILL_EXCESSIVE_CPU_USAGE -> REASON_KILL_EXCESSIVE_CPU_USAGE
+        TRIGGER_TYPE_COLD_START -> REASON_COLD_START
         else -> null
     }
 
     companion object {
         private const val RATE_LIMITING_PERIOD_HOURS = 1
         private const val PERFETTO_TRACE_EXTENSION = ".perfetto-trace"
-        private const val HEAP_DUMP_EXTENSION = ".hprof"
-        private const val HEAP_PROFILE_EXTENSION = ".heapprofd"
+        private const val PERFETTO_JAVA_HEAP_DUMP_EXTENSION = ".perfetto-java-heap-dump"
+        private const val PERFETTO_HEAP_PROFILE_EXTENSION = ".perfetto-heap-profile"
+        private const val PERFETTO_STACK_SAMPLE_EXTENSION = ".perfetto-stack-sample"
         private const val TIMESTAMP_PATTERN = "yyyy-MM-dd-HH-mm-ss"
         private val TIMESTAMP_REGEX = Regex("\\d{4}-\\d{2}-\\d{2}-\\d{2}-\\d{2}-\\d{2}")
         private const val REASON_APP_FULLY_DRAWN = "app_fully_drawn"
         private const val REASON_ANR = "anr"
+        private const val REASON_OOM = "oom"
+        private const val REASON_KILL_EXCESSIVE_CPU_USAGE = "kill_excessive_cpu_usage"
+        private const val REASON_COLD_START = "cold_start"
+
+        // The SDK builds against API 36, which does not define Android 17 or its trigger
+        // types, so their values are copied from android.os.ProfilingTrigger in API 37.
+        private const val ANDROID_17 = 37
+        private const val TRIGGER_TYPE_OOM = 7
+        private const val TRIGGER_TYPE_KILL_EXCESSIVE_CPU_USAGE = 9
+        private const val TRIGGER_TYPE_COLD_START = 10
+        private val ANDROID_17_TRIGGER_TYPES = intArrayOf(
+            TRIGGER_TYPE_OOM,
+            TRIGGER_TYPE_KILL_EXCESSIVE_CPU_USAGE,
+            TRIGGER_TYPE_COLD_START,
+        )
         private const val MAX_ANR_TO_PROFILE_GAP_MS = 3 * 60 * 1000L
     }
 }
