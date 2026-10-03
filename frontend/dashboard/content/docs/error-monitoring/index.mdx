@@ -59,9 +59,10 @@ Thread 0 Crashed:
 
 ## ANR reporting
 
-An [ANR](https://developer.android.com/topic/performance/vitals/anr) (Application Not Responding) happens when the app's main thread is blocked for too long, for example when it can't respond to input within 5 seconds. ANRs are reported automatically.
+An [ANR](https://developer.android.com/topic/performance/vitals/anr) (Application Not Responding) happens when the app's main thread is blocked for too long, for example when it can't respond to input within 5 seconds. ANRs are reported automatically. How an ANR is reported depends on the Android version.
 
-On Android 11 and above, [ApplicationExitInfo](https://developer.android.com/reference/android/app/ApplicationExitInfo) is also collected on the next launch to record why the app exited. ANR exits include the thread dump taken by the OS.
+On Android 11 and above, the ANR is read from [ApplicationExitInfo](https://developer.android.com/reference/android/app/ApplicationExitInfo). Below Android 11, the ANR is caught by intercepting the SIGQUIT signal
+and capturing a stack trace manually when it happens.
 
 ## Track a handled error
 
@@ -193,10 +194,10 @@ By default the replay covers the 5 minutes before the error. A longer window giv
 
 ## Screenshots
 
-Each crash and ANR includes a screenshot of what was on screen when the issue occurred. Sensitive content is masked on the device before the screenshot is uploaded, and the [screenshot mask level](/docs/adaptive-capture#screenshot-mask-level) controls how much is hidden. See [Screenshot masking](/docs/error-monitoring/screenshot-masking) for how masking works on each platform and the APIs to mask specific views.
+Each crash includes a screenshot of what was on screen when it happened, and so does each ANR below Android 11. Sensitive content is masked on the device before the screenshot is uploaded, and the [screenshot mask level](/docs/adaptive-capture#screenshot-mask-level) controls how much is hidden. See [Screenshot masking](/docs/error-monitoring/screenshot-masking) for how masking works on each platform and the APIs to mask specific views.
 
 <Callout type="info">
-Screenshots for crashes aren't supported on iOS.
+Screenshots for crashes aren't supported on iOS. ANRs on Android 11 and above don't have one either.
 </Callout>
 
 ## Alerts
@@ -207,7 +208,7 @@ A spike of crashes or ANRs triggers an alert over email and Slack. Handled error
 
 Errors and ANRs are configured remotely through [Adaptive Capture](/docs/adaptive-capture), so you can change these without shipping a new build:
 
-- **Screenshots**: whether Measure captures a screenshot on each fatal error and ANR. On by default.
+- **Screenshots**: whether a screenshot is captured for fatal errors and for ANRs below Android 11. On by default.
 - **Session replay**: which error severities come with a replay. Only fatal errors do by default.
 - **Session replay duration**: how far back the replay reaches before the error. A longer window gives more context but collects more data. 5 minutes by default.
 - **Sampling**: how many errors of each severity are reported. All fatal and unhandled errors by default, and no handled errors.

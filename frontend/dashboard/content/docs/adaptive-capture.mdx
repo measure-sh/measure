@@ -26,7 +26,6 @@ Every app starts with these defaults:
 | Fatal error sampling rate            | 100%                                                                                |
 | Unhandled error sampling rate        | 100%                                                                                |
 | Handled error sampling rate          | 0%                                                                                  |
-| Take screenshot on ANR               | true                                                                                |
 | ANR session replay duration          | 300 seconds (5 minutes)                                                             |
 | Bug report session replay duration   | 300                                                                                 |
 | Trace sampling rate                  | 100%                                                                                |
@@ -88,11 +87,6 @@ collected for another error.
 ## ANRs
 
 ANRs are collected on Android only.
-
-### Screenshots
-
-Each ANR report includes a screenshot of the screen at the moment it happened. Turn this off if
-you'd rather not capture screenshots.
 
 ### Session replay duration
 
@@ -203,7 +197,7 @@ These headers are never collected, whether or not you list them:
 
 ## Screenshot mask level
 
-Mask screenshots collected with errors and ANRs to keep sensitive information from leaking.
+Mask screenshots collected with errors to keep sensitive information from leaking.
 Pick how much to hide.
 
 <Callout type="info">
