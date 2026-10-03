@@ -1031,11 +1031,11 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		// profile
 		if e.events[i].IsProfile() {
 			row.
-				Set(`profile.reason`, e.events[i].Profile.Reason).
+				Set(`profile.trigger`, e.events[i].Profile.Trigger).
 				Set(`profile.format`, e.events[i].Profile.Format)
 		} else {
 			row.
-				Set(`profile.reason`, nil).
+				Set(`profile.trigger`, nil).
 				Set(`profile.format`, nil)
 		}
 	}

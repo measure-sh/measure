@@ -13,9 +13,10 @@ type Profile struct {
 	EventType   string              `json:"event_type"`
 	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
 	ThreadName  string              `json:"thread_name"`
-	*event.Profile
-	Timestamp   time.Time          `json:"timestamp"`
-	Attachments []event.Attachment `json:"attachments"`
+	Trigger     string              `json:"trigger"`
+	Format      string              `json:"format"`
+	Timestamp   time.Time           `json:"timestamp"`
+	Attachments []event.Attachment  `json:"attachments"`
 }
 
 // GetThreadName provides the name of the thread
@@ -38,7 +39,8 @@ func ComputeProfiles(events []event.EventField) (result []ThreadGrouper) {
 			ev.Type,
 			&ev.UserDefinedAttribute,
 			ev.Attribute.ThreadName,
-			ev.Profile,
+			ev.Profile.Trigger,
+			ev.Profile.Format,
 			ev.Timestamp,
 			ev.Attachments,
 		}

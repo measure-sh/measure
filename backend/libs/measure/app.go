@@ -2725,7 +2725,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			`navigation.to`,
 			`navigation.from`,
 			`navigation.source`,
-			`profile.reason`,
+			`profile.trigger`,
 			`profile.format`,
 		}...)
 	case opsys.AppleFamily:
@@ -3044,7 +3044,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 				&navigation.Source,
 
 				// profile
-				&profile.Reason,
+				&profile.Trigger,
 				&profile.Format,
 			}...)
 		case opsys.AppleFamily:

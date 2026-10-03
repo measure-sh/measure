@@ -59,3 +59,7 @@ const Alerts = "alerts"
 // Memory is the root key for the `memory`
 // logcomment.
 const Memory = "memory"
+
+// Profiles is the root key for the `profiles`
+// logcomment.
+const Profiles = "profiles"

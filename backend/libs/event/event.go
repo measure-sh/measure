@@ -673,8 +673,9 @@ type SessionStart struct {
 }
 
 type Profile struct {
-	Reason string `json:"reason" binding:"required"`
-	Format string `json:"format" binding:"required"`
+	// SDKs send the trigger as reason.
+	Trigger string `json:"reason" binding:"required"`
+	Format  string `json:"format" binding:"required"`
 }
 
 type EventField struct {
