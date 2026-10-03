@@ -285,6 +285,12 @@ type EventRow struct {
 	// would fail on the empty-string column default.
 	Description string
 
+	// ProfileTrigger and ProfileFormat are written only for Type "profile".
+	// For those events the seed also writes '[]' into the attachments column,
+	// because the profiles reader json-decodes that column.
+	ProfileTrigger string
+	ProfileFormat  string
+
 	// Device/network attributes, written only when OSName is non-empty.
 	// app_filters_mv requires all nine of these non-empty to emit a row, so
 	// set every field together when a test needs to reach that view.
@@ -419,6 +425,11 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 	if row.Type == "bug_report" {
 		cols = append(cols, "`bug_report.description`", "attachments")
 		vals = append(vals, quote(row.Description), "'[]'")
+	}
+
+	if row.Type == "profile" {
+		cols = append(cols, "`profile.trigger`", "`profile.format`", "attachments")
+		vals = append(vals, quote(row.ProfileTrigger), quote(row.ProfileFormat), "'[]'")
 	}
 
 	if row.HttpURL != "" {

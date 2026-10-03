@@ -77,6 +77,8 @@ func FindByName(name string) (Entity, error) {
 		return AppHealthEntity, nil
 	case MemoryEntity.Name:
 		return MemoryEntity, nil
+	case ProfilesEntity.Name:
+		return ProfilesEntity, nil
 	}
 
 	return Entity{}, fmt.Errorf("Unknown filter entity %q", name)
@@ -91,6 +93,7 @@ const (
 	KeyGroupBugReport KeyGroup = "Bug Report"
 	KeyGroupSession   KeyGroup = "Session"
 	KeyGroupMemory    KeyGroup = "Memory"
+	KeyGroupProfile   KeyGroup = "Profile"
 	KeyGroupUser      KeyGroup = "User"
 	KeyGroupOS        KeyGroup = "OS"
 	KeyGroupDevice    KeyGroup = "Device"
@@ -101,7 +104,7 @@ const (
 
 // keyGroupOrder is the order the filter bar shows groups in.
 var keyGroupOrder = []KeyGroup{
-	KeyGroupError, KeyGroupBugReport, KeyGroupSession, KeyGroupMemory, KeyGroupSpan, KeyGroupRequest, KeyGroupBuild,
+	KeyGroupError, KeyGroupBugReport, KeyGroupSession, KeyGroupMemory, KeyGroupProfile, KeyGroupSpan, KeyGroupRequest, KeyGroupBuild,
 	KeyGroupVersion, KeyGroupUser, KeyGroupOS, KeyGroupDevice, KeyGroupNetwork, KeyGroupLocation,
 	KeyGroupCustom,
 }
@@ -318,6 +321,16 @@ var (
 		Operators:           []Operator{OperatorEq},
 		ValueSuggestionMode: ValueSuggestionModeFullList,
 		EnumValues:          []string{"foreground", "user_service", "background"},
+	}
+
+	profileTrigger = Key{
+		Name:                "profile_trigger",
+		Label:               "Profile trigger",
+		Description:         "The Android profiling trigger (Android 16 and above), such as an ANR or app fully drawn.",
+		KeyGroup:            KeyGroupProfile,
+		ValueType:           ValueTypeString,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeSample,
 	}
 
 	deviceTotalMemory = Key{

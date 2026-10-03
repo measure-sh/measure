@@ -96,6 +96,17 @@ func (f plotFixture) memoryFilter(from, to time.Time, timezone, plotTimeGroup st
 	}
 }
 
+func (f plotFixture) profileFilter(from, to time.Time) *filter.Filter {
+	return &filter.Filter{
+		AppID:  f.appID,
+		TeamID: f.teamID,
+		Entity: filter.ProfilesEntity,
+		From:   from,
+		To:     to,
+		Limit:  filter.DefaultPaginationLimit,
+	}
+}
+
 func (f plotFixture) bugReportFilter(from, to time.Time, timezone, plotTimeGroup string) *filter.Filter {
 	return &filter.Filter{
 		AppID:         f.appID,
