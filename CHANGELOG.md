@@ -112,6 +112,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps**): Bump fast-uri from 3.1.5 to 3.1.7 in /frontend/dashboard (#4396) by @dependabot[bot] in #4396
 - (**deps**): Bump browserslist in /frontend/dashboard (#4395) by @dependabot[bot] in #4395
 - (**deps**): Bump lodash from 4.17.21 to 4.18.1 in /frontend/dashboard (#4394) by @dependabot[bot] in #4394
+- (**deps-dev**): Bump undici in /frontend/dashboard (#4573) by @dependabot[bot] in #4573
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
 - (**frontend**): Add app_launch trace to the sandbox by @anupcowkur in #4549
