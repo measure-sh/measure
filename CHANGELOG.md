@@ -79,6 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc (#4562) by @dependabot[bot] in #4562
 - (**deps**): Bump go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc (#4563) by @dependabot[bot] in #4563
 - (**deps**): Bump go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp (#4561) by @dependabot[bot] in #4561
 - (**deps**): Bump go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc (#4560) by @dependabot[bot] in #4560
