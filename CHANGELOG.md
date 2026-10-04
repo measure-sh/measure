@@ -79,6 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump fast-uri from 3.1.7 to 3.1.8 in /frontend/dashboard (#4572) by @dependabot[bot] in #4572
 - (**deps**): Bump brace-expansion in /frontend/dashboard (#4571) by @dependabot[bot] in #4571
 - (**deps**): Bump next from 16.3.4 to 16.3.8 in /frontend/dashboard (#4570) by @dependabot[bot] in #4570
 - (**deps**): Bump go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc (#4569) by @dependabot[bot] in #4569
