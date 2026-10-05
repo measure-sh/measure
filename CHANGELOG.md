@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Parse and group ANR thread dumps (#4542) by @abhaysood
 - (**backend**): Add memory filters and share device memory tiers by @abhaysood
 - (**backend**): Ingest and query memory monitoring data (#4477) by @abhaysood
+- (**frontend**): Restyle charts by @anupcowkur in #4576
 - (**frontend**): Add profiles page (#4550) by @abhaysood
 - (**frontend**): Show ANR thread dumps and update docs (#4542) by @abhaysood in #4542
 - (**frontend**): Show Dashboard in marketing CTAs when signed in by @anupcowkur in #4533
