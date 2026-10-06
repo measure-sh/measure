@@ -45,3 +45,4 @@ graph LR
    - Triggers the prepare-next workflow automatically
 5. Go to Releases, review the draft, and publish it.
 6. Review and merge the prepare-next PR.
+7. Make a new RN Expo release with the latest gradle plugin
