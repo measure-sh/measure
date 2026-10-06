@@ -50,7 +50,7 @@ dependencies {
 The plugin instruments your app at build time and uploads ProGuard/R8 mapping files to de-obfuscate crash and ANR stack traces.
 
 ```kotlin
-// In your app/build.gradle.kts
+// In your app/build.gradle.kts, after the existing plugins
 plugins {
     id("sh.measure.android.gradle") version "0.14.0"
 }
