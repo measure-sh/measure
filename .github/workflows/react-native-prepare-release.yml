@@ -100,9 +100,11 @@ jobs:
           VERSION: ${{ inputs.version }}
           ANDROID_SDK_VERSION: ${{ inputs.android_sdk_version }}
           IOS_SDK_VERSION: ${{ inputs.ios_sdk_version }}
+          ANDROID_GRADLE_PLUGIN_VERSION: ${{ inputs.android_gradle_plugin_version }}
         run: |
           GUIDE=frontend/dashboard/content/docs/getting-started/react-native.mdx
           sed -i "s|@measuresh/react-native@[0-9]*\.[0-9]*\.[0-9]*|@measuresh/react-native@$VERSION|g" "$GUIDE"
+          sed -i "s|sh\.measure\.android\.gradle:sh\.measure\.android\.gradle\.gradle\.plugin:[0-9]*\.[0-9]*\.[0-9]*|sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:$ANDROID_GRADLE_PLUGIN_VERSION|g" "$GUIDE"
           sed -i "/^| Measure Android/ s/[0-9]*\.[0-9]*\.[0-9]*/$ANDROID_SDK_VERSION/" "$GUIDE"
           sed -i "/^| Measure iOS/ s/[0-9]*\.[0-9]*\.[0-9]*/$IOS_SDK_VERSION/" "$GUIDE"
 

@@ -70,7 +70,8 @@ jobs:
           cd ../../frontend/dashboard/content/docs
           KOTLIN_PATTERN='id("sh.measure.android.gradle") version ".*"'
           KOTLIN_REPLACEMENT="id(\"sh.measure.android.gradle\") version \"$VERSION\""
-          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" getting-started/android.mdx
+          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" getting-started/android.mdx getting-started/flutter.mdx getting-started/kotlin-multiplatform.mdx
+          sed -i "s|sh\.measure\.android\.gradle:sh\.measure\.android\.gradle\.gradle\.plugin:[0-9]*\.[0-9]*\.[0-9]*|sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:$VERSION|g" getting-started/react-native.mdx
 
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v7
