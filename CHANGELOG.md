@@ -67,6 +67,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Upgrade to clickhouse 26.6 (#4579) by @detj in #4579
 - (**backend**): Grade agent eval claims with an llm judge by @anupcowkur
 - (**backend**): Use installation id for errors user count by @anupcowkur in #4538
 - (**backend**): Add memory MCP tools (#4535) by @abhaysood in #4535
