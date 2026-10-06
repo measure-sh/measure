@@ -55,6 +55,15 @@ Add your credentials to your Android app module's `AndroidManifest.xml`:
 <meta-data android:name="sh.measure.android.API_URL" android:value="YOUR_API_URL" />
 ```
 
+Add the Measure Gradle plugin:
+
+```kotlin
+// In your Android app module's build.gradle.kts, after the existing plugins
+plugins {
+    id("sh.measure.android.gradle") version "0.14.0"
+}
+```
+
 Initialize the SDK in your `Application.onCreate()`. Create an `Application` class and register it with `android:name` in the manifest if your app doesn't have one yet.
 
 ```kotlin

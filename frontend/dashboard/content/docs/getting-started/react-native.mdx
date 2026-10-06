@@ -108,6 +108,23 @@ Add your credentials to `android/app/src/main/AndroidManifest.xml`:
 <meta-data android:name="sh.measure.android.API_URL" android:value="<android-api-url>" />
 ```
 
+Add the Measure Gradle plugin:
+
+```groovy
+// In android/build.gradle
+buildscript {
+    repositories {
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.14.0")
+    }
+}
+
+// At the end of android/app/build.gradle
+apply plugin: "sh.measure.android.gradle"
+```
+
 **iOS**
 
 From the `ios` directory, run `pod install`.
