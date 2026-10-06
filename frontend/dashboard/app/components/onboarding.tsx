@@ -82,6 +82,17 @@ dependencies {
   };
 }
 
+function androidGradlePluginSnippet(buildFile: string): Snippet {
+  return {
+    testId: "snippet-gradle-plugin",
+    language: "kotlin",
+    code: `// In ${buildFile}, after the existing plugins
+plugins {
+    id("sh.measure.android.gradle") version "${SDK_VERSIONS.androidGradlePlugin}"
+}`,
+  };
+}
+
 function androidManifestSnippet(apiKey: string, apiUrl: string): Snippet {
   return {
     testId: "snippet-manifest",
@@ -231,6 +242,25 @@ npm install @measuresh/react-native@${SDK_VERSIONS.reactNative}`,
   };
 }
 
+function reactNativeGradlePluginSnippet(): Snippet {
+  return {
+    testId: "snippet-gradle-plugin",
+    language: "groovy",
+    code: `// In android/build.gradle
+buildscript {
+    repositories {
+        gradlePluginPortal()
+    }
+    dependencies {
+        classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:${SDK_VERSIONS.androidGradlePlugin}")
+    }
+}
+
+// At the end of android/app/build.gradle
+apply plugin: "sh.measure.android.gradle"`,
+  };
+}
+
 function reactNativeInitSnippet(): Snippet {
   return {
     testId: "snippet-init",
@@ -325,6 +355,10 @@ function androidSteps(apiKey: string, apiUrl: string): OnboardingStep[] {
       snippet: androidGradleDepSnippet("snippet-dependency"),
     },
     {
+      title: "Add the Gradle plugin",
+      snippet: androidGradlePluginSnippet("app/build.gradle.kts"),
+    },
+    {
       title: "Add API key to AndroidManifest.xml",
       snippet: androidManifestSnippet(apiKey, apiUrl),
     },
@@ -374,6 +408,10 @@ function flutterSteps(
         snippet: androidManifestSnippet(apiKey, apiUrl),
       },
       {
+        title: "Add the Gradle plugin",
+        snippet: androidGradlePluginSnippet("android/app/build.gradle.kts"),
+      },
+      {
         title: "Initialize the Android native SDK",
         snippet: androidInitSnippet("snippet-android-init"),
       },
@@ -418,6 +456,10 @@ function reactNativeSteps(
       {
         title: "Add API key to AndroidManifest.xml",
         snippet: androidManifestSnippet(apiKey, apiUrl),
+      },
+      {
+        title: "Add the Gradle plugin",
+        snippet: reactNativeGradlePluginSnippet(),
       },
       {
         title: "Initialize the Android native SDK",
@@ -491,6 +533,12 @@ function kmpSteps(
       {
         title: "Add API key to AndroidManifest.xml",
         snippet: androidManifestSnippet(apiKey, apiUrl),
+      },
+      {
+        title: "Add the Gradle plugin",
+        snippet: androidGradlePluginSnippet(
+          "your Android app module's build.gradle.kts",
+        ),
       },
       {
         title: "Initialize the Android native SDK",

@@ -632,9 +632,12 @@ describe("Onboarding — Step 2: Integrate", () => {
       );
     });
 
-    it("renders all four Android snippet blocks", () => {
+    it("renders all five Android snippet blocks", () => {
       renderOnboarding();
       expect(screen.getByTestId("snippet-dependency")).toBeInTheDocument();
+      expect(screen.getByTestId("snippet-gradle-plugin")).toHaveTextContent(
+        'id("sh.measure.android.gradle")',
+      );
       expect(screen.getByTestId("snippet-manifest")).toBeInTheDocument();
       expect(screen.getByTestId("snippet-init")).toBeInTheDocument();
       expect(screen.getByTestId("snippet-crash")).toBeInTheDocument();
@@ -736,6 +739,9 @@ describe("Onboarding — Step 2: Integrate", () => {
       expect(screen.getByTestId("snippet-manifest")).toHaveTextContent(
         "sh.measure.android.API_KEY",
       );
+      expect(screen.getByTestId("snippet-gradle-plugin")).toHaveTextContent(
+        "android/app/build.gradle.kts",
+      );
       expect(screen.getByTestId("snippet-android-init")).toHaveTextContent(
         "MeasureConfig()",
       );
@@ -773,6 +779,9 @@ describe("Onboarding — Step 2: Integrate", () => {
         "Exception('Test crash",
       );
       expect(screen.queryByTestId("snippet-manifest")).not.toBeInTheDocument();
+      expect(
+        screen.queryByTestId("snippet-gradle-plugin"),
+      ).not.toBeInTheDocument();
       expect(
         screen.queryByTestId("snippet-android-init"),
       ).not.toBeInTheDocument();
@@ -932,6 +941,9 @@ describe("Onboarding — Step 2: Integrate", () => {
       expect(screen.getByTestId("snippet-dependency")).toBeInTheDocument();
       expect(screen.getByTestId("snippet-manifest")).toHaveTextContent(
         "msr_rn_key",
+      );
+      expect(screen.getByTestId("snippet-gradle-plugin")).toHaveTextContent(
+        'apply plugin: "sh.measure.android.gradle"',
       );
       expect(screen.getByTestId("snippet-android-init")).toBeInTheDocument();
       expect(screen.getByTestId("snippet-init")).toHaveTextContent(
@@ -1164,6 +1176,9 @@ describe("Onboarding — Step 2: Integrate", () => {
       expect(screen.getByTestId("snippet-manifest")).toHaveTextContent(
         "msr_kmp_key",
       );
+      expect(screen.getByTestId("snippet-gradle-plugin")).toHaveTextContent(
+        'id("sh.measure.android.gradle")',
+      );
       expect(screen.getByTestId("snippet-android-init")).toBeInTheDocument();
       expect(screen.getByTestId("snippet-crash")).toBeInTheDocument();
     });
@@ -1248,7 +1263,7 @@ describe("Onboarding — Step 2: Integrate", () => {
       renderOnboarding();
       fireEvent.click(screen.getByTestId("snippet-init-copy"));
       expect(mockToastPositive).toHaveBeenCalledWith(
-        "3. Initialize the SDK copied to clipboard",
+        "4. Initialize the SDK copied to clipboard",
       );
     });
   });
