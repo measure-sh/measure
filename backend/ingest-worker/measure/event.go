@@ -191,8 +191,7 @@ func (e eventreq) remember(ctx context.Context) (err error) {
 
 	defer stmt.Close()
 
-	asyncCtx := clickhouse.Context(ctx, clickhouse.WithAsync(true))
-	return server.Server.ChPool.Exec(asyncCtx, stmt.String(), stmt.Args()...)
+	return server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...)
 }
 
 // hasExceptions returns true if event payload
@@ -1101,8 +1100,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		}
 	}
 
-	asyncCtx := clickhouse.Context(ctx, clickhouse.WithAsync(true))
-	return server.Server.ChPool.Exec(asyncCtx, stmt.String(), stmt.Args()...)
+	return server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...)
 }
 
 // ingestSpans writes the spans to database.
@@ -1175,8 +1173,7 @@ func (e eventreq) ingestSpans(ctx context.Context) error {
 			Set(`user_defined_attribute`, e.spans[i].UserDefinedAttribute.Parameterize())
 	}
 
-	asyncCtx := clickhouse.Context(ctx, clickhouse.WithAsync(true))
-	return server.Server.ChPool.Exec(asyncCtx, stmt.String(), stmt.Args()...)
+	return server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...)
 }
 
 var gcsCreds struct {
