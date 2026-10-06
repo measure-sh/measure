@@ -572,9 +572,7 @@ func Connect(config *Config) *Deps {
 		// read more: https://clickhouse.com/docs/operations/settings/settings#compatibility
 		compatibility := "26.6"
 		chOpts.Settings = clickhouse.Settings{
-			"wait_for_async_insert":         1,
-			"wait_for_async_insert_timeout": 1000,
-			"compatibility":                 compatibility,
+			"compatibility": compatibility,
 		}
 
 		chOpts.Compression = &clickhouse.Compression{

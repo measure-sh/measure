@@ -332,9 +332,7 @@ func Init(config *ServerConfig) {
 
 	if gin.Mode() == gin.ReleaseMode {
 		chOpts.Settings = clickhouse.Settings{
-			"wait_for_async_insert":         1,
-			"wait_for_async_insert_timeout": 1000,
-			"compatibility":                 "26.6",
+			"compatibility": "26.6",
 		}
 
 		chOpts.Compression = &clickhouse.Compression{
