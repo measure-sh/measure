@@ -33,6 +33,10 @@ const SOURCES = {
     file: "android.mdx",
     pattern: /measure-android:(\d+\.\d+\.\d+)/,
   },
+  androidGradlePlugin: {
+    file: "android.mdx",
+    pattern: /id\("sh\.measure\.android\.gradle"\) version "(\d+\.\d+\.\d+)"/,
+  },
   iosSdk: {
     file: "ios.mdx",
     pattern: /branch:\s*["']ios-v(\d+\.\d+\.\d+)["']/,
@@ -81,6 +85,7 @@ function generate(versions) {
 
 export const SDK_VERSIONS = {
   androidSdk: ${JSON.stringify(versions.androidSdk)},
+  androidGradlePlugin: ${JSON.stringify(versions.androidGradlePlugin)},
   iosSdk: ${JSON.stringify(versions.iosSdk)},
   flutter: ${JSON.stringify(versions.flutter)},
   reactNative: ${JSON.stringify(versions.reactNative)},
