@@ -3971,6 +3971,8 @@ paths:
                 properties:
                   max_events_in_batch:
                     type: integer
+                    readOnly: true
+                    description: Fixed by Measure for every app. Cannot be changed.
                   error_replay_duration:
                     type: integer
                   anr_timeline_duration:
@@ -3997,6 +3999,8 @@ paths:
                       type: string
                   cpu_usage_interval:
                     type: integer
+                    readOnly: true
+                    description: Fixed by Measure for every app. Cannot be changed.
                   memory_usage_interval:
                     type: integer
                     default: 5
@@ -4039,6 +4043,8 @@ paths:
                     maximum: 100
                   gesture_click_take_snapshot:
                     type: boolean
+                    readOnly: true
+                    description: Fixed by Measure for every app. Cannot be changed.
                   http_sampling_rate:
                     type: number
                     minimum: 0
@@ -4130,7 +4136,7 @@ paths:
           application/json:
             schema:
               type: object
-              description: Any subset of the app config fields returned by `GET /apps/{id}/config`.
+              description: Any subset of the app config fields returned by `GET /apps/{id}/config`. Read-only fields are ignored.
               additionalProperties: true
             examples:
               request:

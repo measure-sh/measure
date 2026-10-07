@@ -20,16 +20,16 @@ import (
 )
 
 // configColumns must stay ordered to match the scan in PatchConfigForApp.
-const configColumns = `max_events_in_batch, error_replay_duration, anr_timeline_duration,
+const configColumns = `error_replay_duration, anr_timeline_duration,
 	bug_report_timeline_duration, trace_sampling_rate, journey_sampling_rate,
 	screenshot_mask_level, log_autocollect_enabled, log_min_severity,
-	log_ignore_patterns, cpu_usage_interval, memory_usage_interval,
+	log_ignore_patterns, memory_usage_interval,
 	memory_usage_background_interval, memory_usage_session_sampling_rate,
 	error_fatal_take_screenshot, error_fatal_replay_enabled,
 	error_unhandled_replay_enabled, error_handled_replay_enabled,
 	error_fatal_sampling_rate, error_unhandled_sampling_rate, error_handled_sampling_rate,
 	anr_take_screenshot, launch_sampling_rate,
-	gesture_click_take_snapshot, http_sampling_rate, http_disable_event_for_urls,
+	http_sampling_rate, http_disable_event_for_urls,
 	http_track_request_for_urls, http_track_response_for_urls, http_blocked_headers,
 	profile_sampling_rate, updated_at, updated_by`
 
@@ -47,9 +47,6 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 
 	stmt := sqlf.PostgreSQL.Update("measure.sdk_config")
 
-	if patch.MaxEventsInBatch != nil {
-		stmt.Set("max_events_in_batch", *patch.MaxEventsInBatch)
-	}
 	if patch.ErrorReplayDuration != nil {
 		stmt.Set("error_replay_duration", *patch.ErrorReplayDuration)
 	}
@@ -85,9 +82,6 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 	}
 	if patch.LogIgnorePatterns != nil {
 		stmt.Set("log_ignore_patterns", *patch.LogIgnorePatterns)
-	}
-	if patch.CPUUsageInterval != nil {
-		stmt.Set("cpu_usage_interval", *patch.CPUUsageInterval)
 	}
 	if patch.MemoryUsageInterval != nil {
 		stmt.Set("memory_usage_interval", *patch.MemoryUsageInterval)
@@ -140,9 +134,6 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		}
 		stmt.Set("launch_sampling_rate", *patch.LaunchSamplingRate)
 	}
-	if patch.GestureClickSnapshot != nil {
-		stmt.Set("gesture_click_take_snapshot", *patch.GestureClickSnapshot)
-	}
 	if patch.HTTPSamplingRate != nil {
 		if *patch.HTTPSamplingRate < 0 || *patch.HTTPSamplingRate > 100 {
 			return fmt.Errorf("http_sampling_rate must be between 0-100")
@@ -180,7 +171,6 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 
 	var config sdkconfig.SdkConfig
 	if err := deps.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
-		&config.MaxEventsInBatch,
 		&config.ErrorReplayDuration,
 		&config.ANRTimelineDuration,
 		&config.BugReportTimelineDuration,
@@ -190,7 +180,6 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		&config.LogAutocollectEnabled,
 		&config.LogMinSeverity,
 		&config.LogIgnorePatterns,
-		&config.CPUUsageInterval,
 		&config.MemoryUsageInterval,
 		&config.MemoryUsageBackgroundInterval,
 		&config.MemoryUsageSessionSamplingRate,
@@ -203,7 +192,6 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		&config.ErrorHandledSamplingRate,
 		&config.ANRTakeScreenshot,
 		&config.LaunchSamplingRate,
-		&config.GestureClickTakeSnapshot,
 		&config.HTTPSamplingRate,
 		&config.HTTPDisableEventForURLs,
 		&config.HTTPTrackRequestForURLs,
