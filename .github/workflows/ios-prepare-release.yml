@@ -101,7 +101,7 @@ jobs:
           GITHUB_REPO: ${{ github.repository }}
 
       - name: Create Pull Request
-        uses: peter-evans/create-pull-request@v7
+        uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.SDK_RELEASE }}
           commit-message: "chore(ios): prepare sdk release ${{ inputs.version }}"
