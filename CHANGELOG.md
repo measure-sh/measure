@@ -68,6 +68,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Bump Go to 1.27.1 (#4587) by @detj in #4587
 - (**backend**): Upgrade clickhouse go driver & other deps (#4580) by @detj in #4580
 - (**backend**): Upgrade to clickhouse 26.6 (#4579) by @detj in #4579
 - (**backend**): Grade agent eval claims with an llm judge by @anupcowkur
