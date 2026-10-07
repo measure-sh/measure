@@ -1,6 +1,6 @@
 module symboloader
 
-go 1.25.8
+go 1.27.1
 
 require (
 	backend/libs v0.0.0

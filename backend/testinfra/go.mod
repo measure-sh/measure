@@ -1,6 +1,6 @@
 module backend/testinfra
 
-go 1.25.7
+go 1.27.1
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.48.0
