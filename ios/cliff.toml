@@ -55,6 +55,7 @@ filter_commits_regex = "^.*\\(ios\\):.*$"
 commit_parsers = [
   { message = "^ci\\(ios\\):", skip = true },
   { message = "^docs\\(ios\\):", group = ":books: Documentation", default_scope = "other" },
+  { message = "^chore\\(ios\\): prepare sdk release", skip = true },
   { message = "^chore\\(ios\\):", group = ":hammer: Misc", default_scope = "other" },
   { message = "^feat\\(ios\\):", group = ":sparkles: New features" },
   { message = "^test\\(ios\\):", group = ":test_tube: Testing", skip = true },
@@ -69,7 +70,7 @@ protect_breaking_commits = false
 filter_commits = true
 
 # Only match tags for iOS
-tag_pattern = "^ios-v[0-9]+\\.[0-9]+\\.[0-9]+$"
+tag_pattern = "^ios-v[0-9]+\\.[0-9]+\\.[0-9]+(-(alpha|beta)\\.[0-9]+)?$"
 
 # Ignore non-iOS tags
 ignore_tags = "^(android|backend|frontend|webapp|flutter|rn|kmp|measure_flutter|measure_dio|measure_build)"

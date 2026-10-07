@@ -1,0 +1,56 @@
+name: Release iOS SDK
+
+on:
+  push:
+    tags:
+      - 'ios-v*'
+
+jobs:
+  release-ios:
+    name: Create iOS GitHub Release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Verify tag matches SDK version
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSION="${TAG#ios-v}"
+          if ! grep -q "static let version = \"$VERSION\"" ios/Sources/MeasureSDK/Swift/FrameworkInfo.swift; then
+            echo "::error::Version in FrameworkInfo.swift does not match tag $TAG"
+            exit 1
+          fi
+          if ! grep -Eq "spec\.version[[:space:]]*=[[:space:]]*\"$VERSION\"" measure-sh.podspec; then
+            echo "::error::Version in measure-sh.podspec does not match tag $TAG"
+            exit 1
+          fi
+
+      - name: Generate release notes
+        uses: orhun/git-cliff-action@v4
+        id: release-notes
+        with:
+          config: ios/cliff.toml
+          args: --latest --strip header
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+          NOTES: ${{ steps.release-notes.outputs.content }}
+        run: |
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --draft \
+            ${{ contains(github.ref_name, '-') && '--prerelease' || '' }} \
+            --notes "$NOTES" \
+            --verify-tag
