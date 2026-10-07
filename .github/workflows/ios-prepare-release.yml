@@ -105,7 +105,7 @@ jobs:
         with:
           token: ${{ secrets.SDK_RELEASE }}
           commit-message: "chore(ios): prepare sdk release ${{ inputs.version }}"
-          branch: ios-v${{ inputs.version }}
+          branch: ios-prepare-v${{ inputs.version }}
           delete-branch: false
           title: "chore(ios): prepare sdk release ${{ inputs.version }}"
           body: |

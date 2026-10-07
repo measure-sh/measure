@@ -15,4 +15,4 @@ To release the iOS SDK, follow the below steps.
 4. Run `pod trunk register <email> 'measure.sh' --description='<description>'` to authenticate to the CocoaPods server.
 5. Run `pod spec lint measure-sh.podspec` to check the podspec configuration is correct.
 6. Run `pod trunk push measure-sh.podspec` to push the pod to CocoaPods.
-7. Go to the releases tab and create a new release using the pushed tag.
+7. Pushing the tag triggers the **Release iOS SDK** workflow, which creates a draft GitHub release with generated release notes. Review the draft in the releases tab and publish it.

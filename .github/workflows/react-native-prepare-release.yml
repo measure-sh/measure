@@ -119,7 +119,7 @@ jobs:
         with:
           token: ${{ secrets.SDK_RELEASE }}
           commit-message: "chore(rn): prepare release ${{ inputs.version }}"
-          branch: rn-v${{ inputs.version }}
+          branch: rn-prepare-v${{ inputs.version }}
           delete-branch: false
           title: "chore(rn): prepare release ${{ inputs.version }}"
           body: |
