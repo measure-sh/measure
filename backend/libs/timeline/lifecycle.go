@@ -59,7 +59,7 @@ type LifecycleViewController struct {
 	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
 	ThreadName  string              `json:"thread_name"`
 	*event.LifecycleViewController
-	Timestamp time.Time `json:"timestamp"`
+	Timestamp   time.Time          `json:"timestamp"`
 	Attachments []event.Attachment `json:"attachments"`
 }
 
@@ -82,7 +82,7 @@ type LifecycleSwiftUI struct {
 	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
 	ThreadName  string              `json:"thread_name"`
 	*event.LifecycleSwiftUI
-	Timestamp time.Time `json:"timestamp"`
+	Timestamp   time.Time          `json:"timestamp"`
 	Attachments []event.Attachment `json:"attachments"`
 }
 
