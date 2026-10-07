@@ -1,0 +1,85 @@
+---
+title: "What's new in Measure: September 2026"
+description: "A new filter bar, memory monitoring for Android and iOS, a better errors page, layout snapshots for every screen and more."
+date: "2026-10-07"
+image: /blog/assets/product-update-september-2026-hero-clean.png
+author:
+  name: Abhay Sood
+  avatar: /images/profile_pics/profile_abhay.webp
+tags:
+  - product
+---
+
+![Year calendar with September highlighted](/blog/assets/product-update-september-2026-hero-clean.png)
+
+Here's what we shipped in September.
+
+## See your app's memory usage in production 💾
+
+You can now see how much memory your app uses in production on Android and iOS, and whether it's getting worse. The new Memory page shows memory usage across app versions.
+
+You can study memory usage by the device's total RAM to check whether a particular tier is struggling more than others. You can also filter by device manufacturers and any device too.
+
+![Memory by device table showing p50, p90 and p95 memory and session counts for each device total memory range](/blog/assets/product-update-september-2026-memory-by-device-card.webp)
+
+Sessions with unusually high memory usage are automatically flagged. You can view session replay of such sessions and understand where the problem lies.
+
+Read our post on [understanding memory usage of Android apps](/blog/android-memory-monitoring) for more details.
+
+## A new filter bar on every page 🔎
+
+Filters used to be a few fixed dropdowns plus a "More filters" dialog of checkbox lists. You could only include values from those lists and the UI was a bit clunky.
+
+The new filter bar lets you build the filter you actually have in mind. You can exclude values, match part of a value, filter on custom attributes the same way as any other key, and combine conditions with AND and OR, including groups inside groups. If you prefer typing, you can edit the same filter as text.
+
+Filters are now part of the page URL. If you copy the link and send it to a teammate, they open the same filtered view.
+
+<video
+  controls
+  muted
+  playsInline
+  preload="none"
+  poster="/blog/assets/product-update-september-2026-filters-poster.webp"
+  width={1506}
+  height={1080}
+  className="w-full h-auto rounded-lg border"
+  aria-label="Building a filter with the new filter bar"
+>
+  <source src="/blog/assets/product-update-september-2026-filters.mp4" type="video/mp4" />
+  <a href="/blog/assets/product-update-september-2026-filters.mp4">Watch the filter bar demo</a>
+</video>
+
+## A better errors page ✨
+
+The errors list now shows when each error was last seen, a trend of how often it happens, and how many users and sessions it affected.
+
+![Errors list showing last seen, trend, instances, sessions and users for each error](/blog/assets/product-update-september-2026-errors-list-card.webp)
+
+## See every screen in session replay 📸
+
+Session replay now collects layout snapshots for every screen user visits automatically. Earlier layout snapshots were only collected on clicks. When you open a session to find out why something went wrong, you can now see each screen the user went through.
+
+<video
+  controls
+  muted
+  playsInline
+  preload="none"
+  poster="/blog/assets/product-update-september-2026-session-replay-poster.webp"
+  width={1306}
+  height={1080}
+  className="w-full h-auto rounded-lg border"
+  aria-label="Session replay showing layout snapshots for each screen"
+>
+  <source src="/blog/assets/product-update-september-2026-session-replay.mp4" type="video/mp4" />
+  <a href="/blog/assets/product-update-september-2026-session-replay.mp4">Watch the session replay demo</a>
+</video>
+
+<Callout type="info">
+
+Some of these features are only available with latest SDK versions. Update to Android SDK 0.21.1, iOS SDK 0.14.1, Flutter SDK 0.8.0, React Native SDK 0.4.1 or KMP SDK 0.3.0 or later.
+
+</Callout>
+
+## Tell us what you think
+
+That's all about September. If something doesn't work the way you expect, or there's something you'd like us to build next, come talk to us on [Discord](https://discord.gg/f6zGkBCt42) or open an issue on [GitHub](https://github.com/measure-sh/measure/issues).
