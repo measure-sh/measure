@@ -142,6 +142,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Drop unused initConfig prop from Onboarding by @anupcowkur
 - (**frontend**): Keep touch indicators on the correct replay screen (#4436) by @abhaysood in #4436
 - (**kmp**): Prepare sdk release 0.3.0 by @abhaysood in #4506
+- Update September blog (#4585) by @abhaysood in #4585
 - Record workspace sums for recent dependency bumps by @anupcowkur in #4575
 - Fix android next-version workflow (#4492) by @abhaysood in #4492
 - Drop the expr qualifier from the filter code by @anupcowkur in #4473
