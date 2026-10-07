@@ -85,6 +85,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump github actions to latest majors (#4588) by @detj in #4588
 - (**deps**): Bump dompurify from 3.4.14 to 3.4.16 in /frontend/dashboard (#4574) by @dependabot[bot] in #4574
 - (**deps**): Bump fast-uri from 3.1.7 to 3.1.8 in /frontend/dashboard (#4572) by @dependabot[bot] in #4572
 - (**deps**): Bump brace-expansion in /frontend/dashboard (#4571) by @dependabot[bot] in #4571
