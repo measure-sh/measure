@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Expand session arrays with an ARRAY JOIN clause by @anupcowkur
 - (**backend**): Bind the suggestion window start as a query parameter by @anupcowkur in #4464
 - (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
+- (**frontend**): Match session replay event marks to pill colours by @anupcowkur in #4586
 - (**frontend**): Add gradle plugin step to android onboarding by @anupcowkur
 - (**frontend**): Remove row hover from memory by device table by @anupcowkur in #4554
 - (**frontend**): Stop scrollbar flashing on errors table trend hover by @anupcowkur in #4553
