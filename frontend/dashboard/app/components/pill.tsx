@@ -6,27 +6,25 @@ import { Badge } from "./badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./tooltip";
 
 export enum PillType {
-  // Default — neutral capsule used for free-form context chips
-  // (Time, Device, App version, etc.) and filter chips.
+  // Neutral is for free-form context chips (time, device, app version) and
+  // filter chips.
   Neutral = "neutral",
-  // Errors — type
+  // Error types
   Crash = "crash",
   Error = "error",
   Anr = "anr",
-  // Errors — severity
+  // Error severities
   Fatal = "fatal",
   Unhandled = "unhandled",
   Handled = "handled",
-  // Bug report — status
+  // Bug report statuses
   OpenStatus = "open",
   ClosedStatus = "closed",
-  // Trace / span — status
+  // Trace and span statuses
   StatusUnset = "status-unset",
   StatusOkay = "status-okay",
   StatusError = "status-error",
-  // Session events — one type per event, coloured by family and
-  // (for errors) severity. Square-ish (rounded-sm) to set them apart from the
-  // pill-shaped filter/status chips above.
+  // Session events
   SessionEventFatalError = "session_event_fatal_error",
   SessionEventUnhandledError = "session_event_unhandled_error",
   SessionEventHandledError = "session_event_handled_error",
@@ -75,39 +73,59 @@ interface PillProps {
   "data-testid"?: string;
 }
 
-// Session-event tints. Shared by colour family across the per-event types
-// below, and square-ish (rounded-sm) to override the badge's pill shape.
+// Session event colours. `tint` styles the pill, square-ish (rounded-sm) to
+// override the badge's pill shape, and `mark` is the matching solid colour that
+// session replay uses to draw the same event as a dot or a thin vertical line.
 // Spelled out in full because Tailwind can't see interpolated class names.
-const sessionRed =
-  "rounded-sm border-red-400 text-red-700 bg-red-100 dark:border-red-400 dark:text-red-400 dark:bg-red-950/40";
-const sessionAmber =
-  "rounded-sm border-amber-400 text-amber-700 bg-amber-100 dark:border-amber-400 dark:text-amber-400 dark:bg-amber-950/40";
-const sessionYellow =
-  "rounded-sm border-yellow-400 text-yellow-700 bg-yellow-100 dark:border-yellow-400 dark:text-yellow-400 dark:bg-yellow-950/40";
-const sessionEmerald =
-  "rounded-sm border-emerald-400 text-emerald-700 bg-emerald-100 dark:border-emerald-400 dark:text-emerald-400 dark:bg-emerald-950/40";
-const sessionFuchsia =
-  "rounded-sm border-fuchsia-400 text-fuchsia-700 bg-fuchsia-100 dark:border-fuchsia-400 dark:text-fuchsia-400 dark:bg-fuchsia-950/40";
-const sessionCyan =
-  "rounded-sm border-cyan-400 text-cyan-700 bg-cyan-100 dark:border-cyan-400 dark:text-cyan-400 dark:bg-cyan-950/40";
-const sessionPink =
-  "rounded-sm border-pink-400 text-pink-700 bg-pink-100 dark:border-pink-400 dark:text-pink-400 dark:bg-pink-950/40";
-const sessionPurple =
-  "rounded-sm border-purple-400 text-purple-700 bg-purple-100 dark:border-purple-400 dark:text-purple-400 dark:bg-purple-950/40";
-const sessionTeal =
-  "rounded-sm border-teal-400 text-teal-700 bg-teal-100 dark:border-teal-400 dark:text-teal-400 dark:bg-teal-950/40";
-// Indigo is the catch-all for lifecycle, launches, memory, logs and any
-// otherwise-unmapped event.
-const sessionIndigo =
-  "rounded-sm border-indigo-400 text-indigo-700 bg-indigo-100 dark:border-indigo-400 dark:text-indigo-400 dark:bg-indigo-950/40";
-// Zinc carries the thread an event was recorded on, alongside the event's own
-// colour rather than competing with it.
-const sessionZinc =
-  "rounded-sm border-zinc-400 text-zinc-700 bg-zinc-100 dark:border-zinc-400 dark:text-zinc-300 dark:bg-zinc-800/60";
+const sessionRed = {
+  tint: "rounded-sm border-red-400 text-red-700 bg-red-100 dark:border-red-400 dark:text-red-400 dark:bg-red-950/40",
+  mark: "bg-red-500",
+};
+const sessionAmber = {
+  tint: "rounded-sm border-amber-400 text-amber-700 bg-amber-100 dark:border-amber-400 dark:text-amber-400 dark:bg-amber-950/40",
+  mark: "bg-amber-500",
+};
+const sessionYellow = {
+  tint: "rounded-sm border-yellow-400 text-yellow-700 bg-yellow-100 dark:border-yellow-400 dark:text-yellow-400 dark:bg-yellow-950/40",
+  mark: "bg-yellow-500",
+};
+const sessionEmerald = {
+  tint: "rounded-sm border-emerald-400 text-emerald-700 bg-emerald-100 dark:border-emerald-400 dark:text-emerald-400 dark:bg-emerald-950/40",
+  mark: "bg-emerald-500",
+};
+const sessionFuchsia = {
+  tint: "rounded-sm border-fuchsia-400 text-fuchsia-700 bg-fuchsia-100 dark:border-fuchsia-400 dark:text-fuchsia-400 dark:bg-fuchsia-950/40",
+  mark: "bg-fuchsia-500",
+};
+const sessionCyan = {
+  tint: "rounded-sm border-cyan-400 text-cyan-700 bg-cyan-100 dark:border-cyan-400 dark:text-cyan-400 dark:bg-cyan-950/40",
+  mark: "bg-cyan-500",
+};
+const sessionPink = {
+  tint: "rounded-sm border-pink-400 text-pink-700 bg-pink-100 dark:border-pink-400 dark:text-pink-400 dark:bg-pink-950/40",
+  mark: "bg-pink-500",
+};
+const sessionPurple = {
+  tint: "rounded-sm border-purple-400 text-purple-700 bg-purple-100 dark:border-purple-400 dark:text-purple-400 dark:bg-purple-950/40",
+  mark: "bg-purple-500",
+};
+const sessionTeal = {
+  tint: "rounded-sm border-teal-400 text-teal-700 bg-teal-100 dark:border-teal-400 dark:text-teal-400 dark:bg-teal-950/40",
+  mark: "bg-teal-500",
+};
+const sessionIndigo = {
+  tint: "rounded-sm border-indigo-400 text-indigo-700 bg-indigo-100 dark:border-indigo-400 dark:text-indigo-400 dark:bg-indigo-950/40",
+  mark: "bg-indigo-500",
+};
+const sessionZinc = {
+  tint: "rounded-sm border-zinc-400 text-zinc-700 bg-zinc-100 dark:border-zinc-400 dark:text-zinc-300 dark:bg-zinc-800/60",
+  mark: "bg-zinc-500",
+};
 
-// Typed defaults: each PillType carries its display label (when no children
-// are passed) and its colour tint.
-const pillDefaults: Record<PillType, { label?: string; tint: string }> = {
+const pillDefaults: Record<
+  PillType,
+  { label?: string; tint: string; mark?: string }
+> = {
   [PillType.Neutral]: { tint: "" },
   [PillType.Crash]: {
     label: "Crash",
@@ -150,92 +168,93 @@ const pillDefaults: Record<PillType, { label?: string; tint: string }> = {
     label: "Error",
     tint: "border-red-400 text-red-700 bg-red-100 dark:border-red-400 dark:text-red-400 dark:bg-red-950/40",
   },
-  [PillType.SessionEventFatalError]: { label: "Fatal Error", tint: sessionRed },
+  [PillType.SessionEventFatalError]: { label: "Fatal Error", ...sessionRed },
   [PillType.SessionEventUnhandledError]: {
     label: "Unhandled Error",
-    tint: sessionAmber,
+    ...sessionAmber,
   },
   [PillType.SessionEventHandledError]: {
     label: "Handled Error",
-    tint: sessionYellow,
+    ...sessionYellow,
   },
-  [PillType.SessionEventError]: { label: "Error", tint: sessionRed },
-  [PillType.SessionEventAnr]: { label: "ANR", tint: sessionRed },
-  [PillType.SessionEventBugReport]: { label: "Bug Report", tint: sessionRed },
-  [PillType.SessionEventGestureClick]: { label: "Click", tint: sessionEmerald },
+  [PillType.SessionEventError]: { label: "Error", ...sessionRed },
+  [PillType.SessionEventAnr]: { label: "ANR", ...sessionRed },
+  [PillType.SessionEventBugReport]: { label: "Bug Report", ...sessionRed },
+  [PillType.SessionEventGestureClick]: { label: "Click", ...sessionEmerald },
   [PillType.SessionEventGestureLongClick]: {
     label: "Long Click",
-    tint: sessionEmerald,
+    ...sessionEmerald,
   },
   [PillType.SessionEventGestureScroll]: {
     label: "Scroll",
-    tint: sessionEmerald,
+    ...sessionEmerald,
   },
-  [PillType.SessionEventHttp]: { label: "HTTP", tint: sessionCyan },
+  [PillType.SessionEventHttp]: { label: "HTTP", ...sessionCyan },
   [PillType.SessionEventLifecycleActivity]: {
     label: "Activity",
-    tint: sessionIndigo,
+    ...sessionIndigo,
   },
   [PillType.SessionEventLifecycleFragment]: {
     label: "Fragment",
-    tint: sessionIndigo,
+    ...sessionIndigo,
   },
   [PillType.SessionEventLifecycleViewController]: {
     label: "View Controller",
-    tint: sessionIndigo,
+    ...sessionIndigo,
   },
   [PillType.SessionEventLifecycleSwiftUI]: {
     label: "SwiftUI",
-    tint: sessionIndigo,
+    ...sessionIndigo,
   },
-  [PillType.SessionEventLifecycleApp]: { label: "App", tint: sessionIndigo },
-  [PillType.SessionEventAppExit]: { label: "App Exit", tint: sessionIndigo },
+  [PillType.SessionEventLifecycleApp]: { label: "App", ...sessionIndigo },
+  [PillType.SessionEventAppExit]: { label: "App Exit", ...sessionIndigo },
   [PillType.SessionEventNavigation]: {
     label: "Navigation",
-    tint: sessionFuchsia,
+    ...sessionFuchsia,
   },
   [PillType.SessionEventNetworkChange]: {
     label: "Network Change",
-    tint: sessionCyan,
+    ...sessionCyan,
   },
   [PillType.SessionEventScreenView]: {
     label: "Screen View",
-    tint: sessionFuchsia,
+    ...sessionFuchsia,
   },
   [PillType.SessionEventColdLaunch]: {
     label: "Cold Launch",
-    tint: sessionIndigo,
+    ...sessionIndigo,
   },
   [PillType.SessionEventWarmLaunch]: {
     label: "Warm Launch",
-    tint: sessionIndigo,
+    ...sessionIndigo,
   },
   [PillType.SessionEventHotLaunch]: {
     label: "Hot Launch",
-    tint: sessionIndigo,
+    ...sessionIndigo,
   },
   [PillType.SessionEventTrimMemory]: {
     label: "Trim Memory",
-    tint: sessionIndigo,
+    ...sessionIndigo,
   },
-  [PillType.SessionEventTrace]: { label: "Trace", tint: sessionPink },
-  [PillType.SessionEventCustom]: { label: "Custom", tint: sessionPurple },
-  [PillType.SessionEventLog]: { label: "Log", tint: sessionIndigo },
-  [PillType.SessionEventLogDebug]: { tint: sessionTeal },
-  [PillType.SessionEventLogInfo]: { tint: sessionIndigo },
-  [PillType.SessionEventLogWarning]: { tint: sessionAmber },
-  [PillType.SessionEventLogError]: { tint: sessionRed },
-  [PillType.SessionEventLogFatal]: { tint: sessionRed },
+  [PillType.SessionEventTrace]: { label: "Trace", ...sessionPink },
+  [PillType.SessionEventCustom]: { label: "Custom", ...sessionPurple },
+  [PillType.SessionEventLog]: { label: "Log", ...sessionIndigo },
+  [PillType.SessionEventLogDebug]: { ...sessionTeal },
+  [PillType.SessionEventLogInfo]: { ...sessionIndigo },
+  [PillType.SessionEventLogWarning]: { ...sessionAmber },
+  [PillType.SessionEventLogError]: { ...sessionRed },
+  [PillType.SessionEventLogFatal]: { ...sessionRed },
   [PillType.SessionEventProfile]: {
     label: "Profile",
-    tint: sessionTeal,
+    ...sessionTeal,
   },
-  // No label: the row passes the thread's own name as children.
-  [PillType.SessionEventThread]: { tint: sessionZinc },
-  // No label: the cell passes the raw event type as children for unknown
-  // events, mirroring the old `return eventType` fallback.
-  [PillType.SessionEventDefault]: { tint: sessionIndigo },
+  [PillType.SessionEventThread]: { ...sessionZinc },
+  [PillType.SessionEventDefault]: { ...sessionIndigo },
 };
+
+export function pillMark(type: PillType): string {
+  return pillDefaults[type].mark ?? "";
+}
 
 const tooltipChars = 1000;
 
@@ -256,8 +275,6 @@ const Pill: React.FC<PillProps> = ({
     return null;
   }
 
-  // Resolve the tooltip text. true uses the body when it's a string; explicit
-  // strings always win.
   const tooltipText =
     typeof tooltip === "string"
       ? tooltip
@@ -269,7 +286,6 @@ const Pill: React.FC<PillProps> = ({
       ? tooltipText.slice(0, tooltipChars) + "..."
       : tooltipText;
 
-  // Wraps any element in a tooltip when one was requested.
   const wrapTip = (
     node: React.ReactElement,
     explicitContent?: string,
@@ -306,7 +322,6 @@ const Pill: React.FC<PillProps> = ({
     );
   }
 
-  // Static pill: just a Badge.
   return wrapTip(
     <Badge
       variant="outline"

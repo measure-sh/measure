@@ -34,7 +34,7 @@ import {
 import { toastNegative } from "./toast";
 import { buttonVariants } from "./button_variants";
 import CodeBlock, { CODE_BLOCK_CARD_CLASS } from "./code_block";
-import Pill, { PillType } from "./pill";
+import Pill, { pillMark, PillType } from "./pill";
 import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
 import { Switch } from "./switch";
 
@@ -1118,7 +1118,7 @@ type ReplayRow = {
   pillType: PillType;
   pillText: string | null;
   threadName: string;
-  tintClass: string;
+  markClass: string;
 };
 
 type ReplaySlice = {
@@ -1196,7 +1196,7 @@ function replayRowFrom(event: ReplayEvent, atOffsetMs: number): ReplayRow {
         : pillType === PillType.SessionEventDefault
           ? event.eventType
           : null,
-    tintClass: tintForEvent(event),
+    markClass: pillMark(pillType),
   };
 }
 
@@ -2130,36 +2130,6 @@ function sessionEventTitle(eventType: string, eventDetails: any): string {
   return "";
 }
 
-const eventTint: Record<string, string> = {
-  error: "bg-red-500",
-  anr: "bg-red-500",
-  bug_report: "bg-red-500",
-  gesture_click: "bg-emerald-500",
-  gesture_long_click: "bg-emerald-500",
-  gesture_scroll: "bg-emerald-500",
-  http: "bg-cyan-500",
-  navigation: "bg-fuchsia-500",
-  screen_view: "bg-fuchsia-500",
-  trace: "bg-pink-500",
-  custom: "bg-purple-500",
-  profile: "bg-teal-500",
-};
-
-const logTint: Record<string, string> = {
-  debug: "bg-teal-500",
-  info: "bg-indigo-500",
-  warning: "bg-amber-500",
-  error: "bg-red-500",
-  fatal: "bg-red-500",
-};
-
-function tintForEvent(event: ReplayEvent): string {
-  if (event.eventType === "log" || event.eventType === "string") {
-    return logTint[logSeverity(event.details)] ?? "bg-indigo-500";
-  }
-  return eventTint[event.eventType] ?? "bg-indigo-500";
-}
-
 const detailLinkClass = cn(
   buttonVariants({ variant: "secondary" }),
   "justify-center w-fit",
@@ -2393,7 +2363,7 @@ const ReplayEventRow = memo(function ReplayEventRow({
       >
         <div className="flex flex-row items-center gap-2">
           <span
-            className={cn("size-1.5 rounded-full shrink-0", row.tintClass)}
+            className={cn("size-1.5 rounded-full shrink-0", row.markClass)}
           />
           <span className="text-[11px] font-code text-muted-foreground tabular-nums shrink-0 w-[8ch]">
             {row.atOffsetLabel}
@@ -4229,7 +4199,7 @@ export default function SessionReplay({
           <div
             key={events[index].key}
             title={`${row.atOffsetLabel}  ${events[index].eventType}`}
-            className={cn("absolute top-0 w-px h-full", row.tintClass)}
+            className={cn("absolute top-0 w-px h-full", row.markClass)}
             style={{
               left: `${((events[index].timeAbsMs - startAbsMs) / Math.max(1, durationMs)) * 100}%`,
             }}
