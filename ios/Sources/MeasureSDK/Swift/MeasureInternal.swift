@@ -334,6 +334,13 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     }
 
     func setUserId(_ userId: String) {
+        guard userId.count <= ValidationLimits.userId else {
+            logger.log(level: .error,
+                       message: "MeasureInternal: User ID exceeds the maximum length of \(ValidationLimits.userId) characters and will be ignored",
+                       error: nil,
+                       data: nil)
+            return
+        }
         userAttributeProcessor.setUserId(userId)
     }
 
@@ -342,7 +349,14 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     }
 
     func internalSetPatch(_ patchId: String, patchVersion: String?) {
-        patchAttributeProcessor.setPatch(patchId, patchVersion: patchVersion)
+        guard UUID(uuidString: patchId) != nil else {
+            logger.log(level: .error,
+                       message: "MeasureInternal: Patch ID \(patchId) is not a valid UUID and will be ignored",
+                       error: nil,
+                       data: nil)
+            return
+        }
+        patchAttributeProcessor.setPatch(patchId, patchVersion: patchVersion?.truncated(maxLength: ValidationLimits.patchVersion))
     }
 
     func createSpan(name: String) -> SpanBuilder? {

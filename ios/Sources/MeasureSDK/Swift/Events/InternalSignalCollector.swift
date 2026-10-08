@@ -355,6 +355,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector { // swiftlint:
         for attributeProcessor in attributeProcessors {
             attributeProcessor.appendAttributes(parsedAttributes)
         }
+        parsedAttributes.sanitize()
 
         let spanIsSampled = configProvider.enableFullCollectionMode || isSampled
 

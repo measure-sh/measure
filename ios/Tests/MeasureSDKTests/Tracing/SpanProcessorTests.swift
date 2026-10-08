@@ -167,6 +167,24 @@ final class BaseSpanProcessorTests: XCTestCase {
         XCTAssertEqual(signalProcessor.trackSpanCallCount, 0)
     }
 
+    func test_discardsSpanWhenNameIsEmpty() {
+        let processor = makeProcessor()
+        processor.onConfigLoaded()
+
+        makeSpan(spanProcessor: processor, name: "").end()
+
+        XCTAssertEqual(signalProcessor.trackSpanCallCount, 0)
+    }
+
+    func test_discardsSpanWhenNameIsBlank() {
+        let processor = makeProcessor()
+        processor.onConfigLoaded()
+
+        makeSpan(spanProcessor: processor, name: "   ").end()
+
+        XCTAssertEqual(signalProcessor.trackSpanCallCount, 0)
+    }
+
     func test_sanitizesCheckpoints() {
         let processor = makeProcessor()
         processor.onConfigLoaded()

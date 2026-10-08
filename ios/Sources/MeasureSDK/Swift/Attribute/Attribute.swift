@@ -238,4 +238,16 @@ class Attributes: Codable {
         self.expoSdkVersion = dict["expo_sdk_version"] as? String
         self.expoEasProjectId = dict["expo_eas_project_id"] as? String
     }
+
+    func sanitize() {
+        threadName = threadName?.truncated(maxLength: ValidationLimits.threadName)
+        deviceName = deviceName?.truncated(maxLength: ValidationLimits.deviceName)
+        deviceModel = deviceModel?.truncated(maxLength: ValidationLimits.deviceModel)
+        deviceLocale = deviceLocale?.truncated(maxLength: ValidationLimits.deviceLocale)
+        networkProvider = networkProvider?.truncated(maxLength: ValidationLimits.networkProvider)
+        userId = userId?.truncated(maxLength: ValidationLimits.userId)
+        patchVersion = patchVersion?.truncated(maxLength: ValidationLimits.patchVersion)
+        appVersion = appVersion.truncated(maxLength: ValidationLimits.appVersion)
+        appBuild = appBuild.truncated(maxLength: ValidationLimits.appBuild)
+    }
 }

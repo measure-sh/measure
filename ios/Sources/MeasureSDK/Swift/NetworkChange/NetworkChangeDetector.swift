@@ -116,7 +116,10 @@ final class BaseNetworkChangeDetector: NetworkChangeDetector {
         guard let carrier = networkInfo.serviceSubscriberCellularProviders?.values.first else {
             return AttributeConstants.unknown
         }
-        return carrier.carrierName == "--" ? AttributeConstants.unknown : (carrier.carrierName ?? AttributeConstants.unknown)
+        guard let carrierName = carrier.carrierName, !carrierName.isEmpty, carrierName != "--" else {
+            return AttributeConstants.unknown
+        }
+        return carrierName.truncated(maxLength: ValidationLimits.networkChangeProvider)
     }
 
     private func getNetworkGeneration() -> NetworkGeneration {

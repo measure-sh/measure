@@ -7,9 +7,14 @@
 
 import XCTest
 import UIKit
+import SwiftUI
 @testable import Measure
 
 class MockViewController: UIViewController {}
+
+/// Nested as a generic argument to produce a view controller class name longer than 256 characters.
+struct LifecycleNestedTypeWithALongDescriptiveName<T> {}
+final class LongNamedGenericViewController<T>: UIViewController {}
 
 final class LifecycleCollectorTests: XCTestCase {
     private var lifecycleCollector: BaseLifecycleCollector!
@@ -233,6 +238,55 @@ final class LifecycleCollectorTests: XCTestCase {
             XCTFail("Data should be of type SwiftUILifecycleData")
         }
         XCTAssertEqual(mockSignalProcessor.type, .lifecycleSwiftUI)
+    }
+
+    func testProcessControllerLifecycleEvent_truncatesClassName_whenLongerThanMaxLength() {
+        let viewController = LongNamedGenericViewController<
+            LifecycleNestedTypeWithALongDescriptiveName<
+                LifecycleNestedTypeWithALongDescriptiveName<
+                    LifecycleNestedTypeWithALongDescriptiveName<
+                        LifecycleNestedTypeWithALongDescriptiveName<
+                            LifecycleNestedTypeWithALongDescriptiveName<Int>>>>>>()
+        XCTAssertGreaterThan(String(describing: type(of: viewController)).count, ValidationLimits.viewControllerClassName)
+        lifecycleCollector.enable()
+
+        lifecycleCollector.processControllerLifecycleEvent(.loadView, for: viewController)
+
+        guard let lifecycleData = mockSignalProcessor.data as? VCLifecycleData else {
+            XCTFail("Data should be of type VCLifecycleData")
+            return
+        }
+        XCTAssertEqual(lifecycleData.className.count, ValidationLimits.viewControllerClassName)
+        XCTAssertTrue(lifecycleData.className.hasPrefix("LongNamedGenericViewController"))
+    }
+
+    func testProcessSwiftUILifecycleEvent_truncatesClassName_whenLongerThanMaxLength() {
+        lifecycleCollector.processSwiftUILifecycleEvent(.onDisappear,
+                                                        for: String(repeating: "v", count: ValidationLimits.swiftUIClassName + 1))
+
+        guard let lifecycleData = mockSignalProcessor.data as? SwiftUILifecycleData else {
+            XCTFail("Data should be of type SwiftUILifecycleData")
+            return
+        }
+        XCTAssertEqual(lifecycleData.className.count, ValidationLimits.swiftUIClassName)
+    }
+
+    func testMsrMonitorView_usesViewName_whenProvided() {
+        let view = MsrMonitorView("HomeView") { Text("Home") }
+
+        XCTAssertEqual(view.name, "HomeView")
+    }
+
+    func testMsrMonitorView_fallsBackToContentTypeName_whenViewNameIsEmpty() {
+        let view = MsrMonitorView("") { Text("Home") }
+
+        XCTAssertEqual(view.name, "Text")
+    }
+
+    func testMsrMonitorView_fallsBackToContentTypeName_whenViewNameIsNil() {
+        let view = MsrMonitorView { Text("Home") }
+
+        XCTAssertEqual(view.name, "Text")
     }
 
     func testViewControllerTTIDSpanTracking() {

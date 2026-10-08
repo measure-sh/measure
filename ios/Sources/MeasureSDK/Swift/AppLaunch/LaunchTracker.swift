@@ -175,6 +175,7 @@ final class BaseLaunchTracker: LaunchTracker {
             }
 
             return NSStringFromClass(type(of: topController))
+                .truncated(maxLength: ValidationLimits.launchedActivity)
         }
 
         return "unknown"

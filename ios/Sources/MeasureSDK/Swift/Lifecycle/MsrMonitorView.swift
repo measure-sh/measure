@@ -28,7 +28,11 @@ public struct MsrMonitorView<Content: View>: View {
 
     public init(_ viewName: String? = nil, content: @escaping () -> Content) {
         self.content = content
-        self.name = viewName ?? String(describing: content)
+        if let viewName, !viewName.isEmpty {
+            self.name = viewName
+        } else {
+            self.name = String(describing: Content.self)
+        }
     }
 
     public var body: some View {

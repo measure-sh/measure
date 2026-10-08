@@ -58,4 +58,23 @@ final class UserAttributeProcessorTests: XCTestCase {
 
         XCTAssertEqual("user-id", attributes.userId)
     }
+
+    func testDiscardsUserIdFromUserDefaults_whenLongerThanMaxLength() {
+        userDefaultStorage.setUserId(String(repeating: "u", count: ValidationLimits.userId + 1))
+
+        userAttributeProcessor.appendAttributes(attributes)
+
+        XCTAssertNil(attributes.userId)
+        XCTAssertNil(userAttributeProcessor.getUserId())
+        XCTAssertNil(userDefaultStorage.getUserId())
+    }
+
+    func testKeepsUserIdFromUserDefaults_whenEqualToMaxLength() {
+        let userId = String(repeating: "u", count: ValidationLimits.userId)
+        userDefaultStorage.setUserId(userId)
+
+        userAttributeProcessor.appendAttributes(attributes)
+
+        XCTAssertEqual(userId, attributes.userId)
+    }
 }

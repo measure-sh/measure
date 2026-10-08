@@ -97,17 +97,19 @@ final class BaseLifecycleCollector: LifecycleCollector {
 
         guard !configProvider.lifecycleViewControllerExcludeList.contains(where: { className.contains($0) }) else { return }
 
+        let eventClassName = className.truncated(maxLength: ValidationLimits.viewControllerClassName)
+
         if vcLifecycleType == .viewDidAppear {
             let timestamp = timeProvider.now()
             layoutSnapshotCollector.captureAttachment { [weak self] attachment in
                 guard let self else { return }
-                self.trackEvent(VCLifecycleData(type: vcLifecycleType.stringValue, className: className),
+                self.trackEvent(VCLifecycleData(type: vcLifecycleType.stringValue, className: eventClassName),
                                  type: .lifecycleViewController,
                                  timestamp: timestamp,
                                  attachments: (attachment.map { [$0] } ?? nil))
             }
         } else {
-            trackEvent(VCLifecycleData(type: vcLifecycleType.stringValue, className: className), type: .lifecycleViewController)
+            trackEvent(VCLifecycleData(type: vcLifecycleType.stringValue, className: eventClassName), type: .lifecycleViewController)
         }
 
         switch vcLifecycleType {
@@ -131,18 +133,20 @@ final class BaseLifecycleCollector: LifecycleCollector {
     }
 
     func processSwiftUILifecycleEvent(_ swiftUILifecycleType: SwiftUILifecycleType, for className: String) {
+        let eventClassName = className.truncated(maxLength: ValidationLimits.swiftUIClassName)
+
         if swiftUILifecycleType == .onAppear {
             let timestamp = timeProvider.now()
             layoutSnapshotCollector.captureAttachment { [weak self] attachment in
                 guard let self else { return }
-                self.trackEvent(SwiftUILifecycleData(type: swiftUILifecycleType, className: className),
+                self.trackEvent(SwiftUILifecycleData(type: swiftUILifecycleType, className: eventClassName),
                                  type: .lifecycleSwiftUI,
                                  timestamp: timestamp,
                                  attachments: attachment.map { [$0] })
             }
         } else {
             trackEvent(
-                SwiftUILifecycleData(type: swiftUILifecycleType, className: className),
+                SwiftUILifecycleData(type: swiftUILifecycleType, className: eventClassName),
                 type: .lifecycleSwiftUI
             )
         }

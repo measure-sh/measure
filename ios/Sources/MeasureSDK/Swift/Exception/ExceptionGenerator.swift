@@ -83,11 +83,24 @@ final class BaseExceptionGenerator: ExceptionGenerator {
         }
 
         let formatter = CrashDataFormatter(report.value, sysCtl: sysCtl)
-        var result = formatter.getException(severity: .handled, numCode: numCode, code: code, meta: meta, framesToStrip: framesToStrip)
+        var result = formatter.getException(severity: .handled, numCode: numCode, code: code, meta: sizeLimitedMeta(meta), framesToStrip: framesToStrip)
         result.foreground = crashDataPersistence.isForeground
         store.deleteReport(with: Int64(truncating: reportID))
 
         return result
+    }
+
+    func sizeLimitedMeta(_ meta: [String: CodableValue]?) -> [String: CodableValue]? {
+        guard let meta else { return nil }
+        guard let encoded = try? JSONEncoder().encode(meta),
+              encoded.count <= ValidationLimits.exceptionMetaBytes else {
+            logger.log(level: .warning,
+                       message: "ExceptionGenerator: Exception meta exceeds the maximum size of \(ValidationLimits.exceptionMetaBytes) bytes and will be dropped",
+                       error: nil,
+                       data: nil)
+            return nil
+        }
+        return meta
     }
 
     private func convertToCodableValue(_ dictionary: [String: Any]) -> [String: CodableValue] { // swiftlint:disable:this cyclomatic_complexity

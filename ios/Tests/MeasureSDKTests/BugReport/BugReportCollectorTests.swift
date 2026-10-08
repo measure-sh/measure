@@ -23,7 +23,9 @@ final class BaseBugReportCollectorTests: XCTestCase {
             timeProvider: timeProvider,
             sessionManager: sessionManager,
             idProvider: idProvider,
-            logger: MockLogger()
+            logger: MockLogger(),
+            configProvider: MockConfigProvider(),
+            attributeValueValidator: BaseAttributeValueValidator(configProvider: MockConfigProvider(), logger: MockLogger())
         )
 
         let config = BugReportConfig.default
@@ -47,7 +49,9 @@ final class BaseBugReportCollectorTests: XCTestCase {
             timeProvider: MockTimeProvider(),
             sessionManager: MockSessionManager(),
             idProvider: MockIdProvider(),
-            logger: MockLogger()
+            logger: MockLogger(),
+            configProvider: MockConfigProvider(),
+            attributeValueValidator: BaseAttributeValueValidator(configProvider: MockConfigProvider(), logger: MockLogger())
         )
 
         XCTAssertTrue(collector.validateBugReport(attachments: 1, descriptionLength: 0))
@@ -70,7 +74,9 @@ final class BaseBugReportCollectorTests: XCTestCase {
             timeProvider: timeProvider,
             sessionManager: sessionManager,
             idProvider: idProvider,
-            logger: MockLogger()
+            logger: MockLogger(),
+            configProvider: MockConfigProvider(),
+            attributeValueValidator: BaseAttributeValueValidator(configProvider: MockConfigProvider(), logger: MockLogger())
         )
 
         let attachments = [MsrAttachment(name: "screenshot.png", type: .screenshot, size: 123, id: "attachmentId", bytes: Data("log".utf8), path: nil)]
@@ -91,5 +97,68 @@ final class BaseBugReportCollectorTests: XCTestCase {
         XCTAssertEqual(signalProcessor.attachments, attachments)
         XCTAssertTrue(((signalProcessor.userDefinedAttributes?.contains("key:value")) != nil))
         XCTAssertTrue(sessionManager.isCrashed)
+    }
+
+    private func makeCollector(signalProcessor: MockSignalProcessor) -> BaseBugReportCollector {
+        let configProvider = MockConfigProvider()
+        return BaseBugReportCollector(
+            bugReportManager: MockBugReportManager(),
+            signalProcessor: signalProcessor,
+            timeProvider: MockTimeProvider(),
+            sessionManager: MockSessionManager(),
+            idProvider: MockIdProvider(),
+            logger: MockLogger(),
+            configProvider: configProvider,
+            attributeValueValidator: BaseAttributeValueValidator(configProvider: configProvider, logger: MockLogger())
+        )
+    }
+
+    private func makeAttachment(name: String, id: String) -> MsrAttachment {
+        return MsrAttachment(name: name, type: .screenshot, size: 3, id: id, bytes: Data("png".utf8), path: nil)
+    }
+
+    func test_trackBugReport_truncatesDescription_whenLongerThanMaxLength() {
+        let signalProcessor = MockSignalProcessor()
+        let collector = makeCollector(signalProcessor: signalProcessor)
+        let maxLength = Int(MockConfigProvider().maxDescriptionLengthInBugReport)
+
+        collector.trackBugReport(description: String(repeating: "d", count: maxLength + 1), attachments: [], attributes: nil)
+
+        XCTAssertEqual((signalProcessor.data as? BugReportData)?.description.count, maxLength)
+    }
+
+    func test_trackBugReport_keepsMaxAttachments_whenMoreAreProvided() {
+        let signalProcessor = MockSignalProcessor()
+        let collector = makeCollector(signalProcessor: signalProcessor)
+        let maxAttachments = Int(MockConfigProvider().maxAttachmentsInBugReport)
+        let attachments = (0...maxAttachments).map { makeAttachment(name: "screenshot_\($0).png", id: "id_\($0)") }
+
+        collector.trackBugReport(description: "bug", attachments: attachments, attributes: nil)
+
+        XCTAssertEqual(signalProcessor.attachments?.count, maxAttachments)
+        XCTAssertEqual(signalProcessor.attachments?.first?.id, "id_0")
+    }
+
+    func test_trackBugReport_namesAttachmentAfterId_whenNameIsEmpty() {
+        let signalProcessor = MockSignalProcessor()
+        let collector = makeCollector(signalProcessor: signalProcessor)
+
+        collector.trackBugReport(description: "bug", attachments: [makeAttachment(name: "", id: "attachment-id")], attributes: nil)
+
+        XCTAssertEqual(signalProcessor.attachments?.first?.name, "attachment-id")
+        XCTAssertEqual(signalProcessor.attachments?.first?.id, "attachment-id")
+    }
+
+    func test_trackBugReport_dropsInvalidAttributes_andKeepsValidOnes() {
+        let signalProcessor = MockSignalProcessor()
+        let collector = makeCollector(signalProcessor: signalProcessor)
+
+        collector.trackBugReport(description: "bug",
+                                 attachments: [],
+                                 attributes: ["a.b": .string("invalid"), "valid_key": .string("valid")])
+
+        XCTAssertNotNil(signalProcessor.data as? BugReportData)
+        XCTAssertTrue(signalProcessor.userDefinedAttributes?.contains("valid_key") == true)
+        XCTAssertFalse(signalProcessor.userDefinedAttributes?.contains("a.b") == true)
     }
 }

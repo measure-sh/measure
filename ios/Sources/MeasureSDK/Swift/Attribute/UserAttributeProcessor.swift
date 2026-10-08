@@ -23,6 +23,9 @@ final class UserAttributeProcessor: AttributeProcessor {
     func appendAttributes(_ attributes: Attributes) {
         loadedFromDisk.setTrueIfFalse {
             userId = userDefaultStorage.getUserId()
+            if let storedUserId = userId, storedUserId.count > ValidationLimits.userId {
+                clearUserId()
+            }
         }
         attributes.userId = userId
     }
