@@ -39,6 +39,7 @@ import {
   FREE_RETENTION_DAYS,
   INCLUDED_PRO_GB,
   MINIMUM_PRICE_AFTER_FREE_TIER,
+  PRICE_PER_GB_MONTH,
   PRO_RETENTION_DAYS,
 } from "@/app/utils/pricing_constants";
 
@@ -58,26 +59,22 @@ describe("Pricing page", () => {
 
     it("renders the free plan", () => {
       render(<Pricing />);
-      expect(screen.getByText("FREE")).toBeInTheDocument();
-      expect(screen.getByText("$0 per month")).toBeInTheDocument();
-      expect(screen.getByText(`${FREE_GB} GB per month`)).toBeInTheDocument();
-      expect(
-        screen.getByText(`${FREE_RETENTION_DAYS} days retention`),
-      ).toBeInTheDocument();
+      const plan = screen.getByRole("heading", { name: "Free" }).parentElement!;
+      expect(plan).toHaveTextContent("$0 per month");
+      expect(plan).toHaveTextContent(`${FREE_GB} GB of data`);
+      expect(plan).toHaveTextContent(`${FREE_RETENTION_DAYS} days retention`);
     });
 
     it("renders the pro plan", () => {
       render(<Pricing />);
-      expect(screen.getByText("PRO")).toBeInTheDocument();
-      expect(
-        screen.getByText(`$${MINIMUM_PRICE_AFTER_FREE_TIER} per month`),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(`${INCLUDED_PRO_GB} GB per month included`),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByText(`${PRO_RETENTION_DAYS} days retention`),
-      ).toBeInTheDocument();
+      const plan = screen.getByRole("heading", { name: "Pro" }).parentElement!;
+      expect(plan).toHaveTextContent(
+        `$${MINIMUM_PRICE_AFTER_FREE_TIER} per month`,
+      );
+      expect(plan).toHaveTextContent(
+        `${INCLUDED_PRO_GB} GB of data, then $${PRICE_PER_GB_MONTH.toFixed(2)} per GB`,
+      );
+      expect(plan).toHaveTextContent(`${PRO_RETENTION_DAYS} days retention`);
     });
 
     it("renders the differentiators", () => {
