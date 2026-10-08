@@ -150,8 +150,11 @@ const generalCases: Case[] = [
       expect(data.can_manage_slack).toBe(false);
       expect(data.can_change_billing).toBe(false);
       expect(data.can_invite_roles).toEqual(["developer", "viewer"]);
-      expect(data.members).toHaveLength(1);
-      expect(data.members[0].role).toBe("developer");
+      expect(data.members.map((member: any) => member.role)).toEqual([
+        "developer",
+        "owner",
+        "admin",
+      ]);
     },
   },
   {
@@ -1107,6 +1110,61 @@ const settingsCases: Case[] = [
         log_ignore_patterns: true,
       };
       expect(Object.keys(data).sort()).toEqual(Object.keys(keys).sort());
+    },
+  },
+  {
+    name: "sdk config history GET returns two pages of changes",
+    path: `/api/apps/${APP_ID}/config/history?limit=5&offset=0`,
+    status: 200,
+    check: async (data) => {
+      expectPage(data, { length: 5, next: true, previous: false });
+      const { json } = await fetchJson(
+        `/api/apps/${APP_ID}/config/history?limit=5&offset=5`,
+      );
+      expect(json.results.length).toBeGreaterThan(0);
+      expect(json.meta.next).toBe(false);
+      expect(json.meta.previous).toBe(true);
+    },
+  },
+  {
+    name: "sdk config history of every app is consistent with its config, its owners and admins, and its creation date",
+    path: `/api/teams/${TEAM_ID}/authz`,
+    status: 200,
+    check: async (authz) => {
+      const writers = authz.members
+        .filter((member: any) => ["owner", "admin"].includes(member.role))
+        .map((member: any) => member.email);
+      for (const app of world.apps) {
+        const { json: config } = await fetchJson(`/api/apps/${app.id}/config`);
+        const { json: history } = await fetchJson(
+          `/api/apps/${app.id}/config/history`,
+        );
+        expect(history.results.length).toBeGreaterThanOrEqual(6);
+        expect(history.results.length).toBeLessThanOrEqual(8);
+
+        const oldestFirst = [...history.results].reverse();
+        const current: Record<string, unknown> = {};
+        let previousAt = DateTime.fromISO(app.created_at);
+        for (const change of oldestFirst) {
+          const changedAt = DateTime.fromISO(change.changed_at);
+          expect(changedAt > previousAt).toBe(true);
+          previousAt = changedAt;
+          expect(writers).toContain(change.changed_by_email);
+          for (const [field, { old, new: next }] of Object.entries<any>(
+            change.changes,
+          )) {
+            expect(old).not.toEqual(next);
+            if (field in current) {
+              expect(old).toEqual(current[field]);
+            }
+            current[field] = next;
+          }
+        }
+        expect(previousAt < world.builtAt).toBe(true);
+        for (const [field, value] of Object.entries(current)) {
+          expect(value).toEqual(config[field]);
+        }
+      }
     },
   },
   {

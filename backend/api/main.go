@@ -166,6 +166,7 @@ func main() {
 		// app management
 		apps.GET(":id/config", hdl.GetConfig)
 		apps.PATCH(":id/config", hdl.PatchConfig)
+		apps.GET(":id/config/history", hdl.GetConfigHistory)
 		apps.GET(":id/retention", hdl.GetAppRetention)
 		apps.PATCH(":id/retention", hdl.UpdateAppRetention)
 

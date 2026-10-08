@@ -27,6 +27,21 @@ function memberSinceDays(): number {
   return oldest + 30;
 }
 
+// Only owners and admins can change data collection settings, so the config
+// history of every app is made by these two members.
+const SANDBOX_OWNER = {
+  id: "00000000-0000-4000-8000-000000000002",
+  name: "Sarah Lewis",
+  email: "sarah@acme.shop",
+  role: "owner",
+};
+const SANDBOX_ADMIN = {
+  id: "00000000-0000-4000-8000-000000000003",
+  name: "James Morgan",
+  email: "james@acme.shop",
+  role: "admin",
+};
+
 function sandboxSessionUser() {
   const since = daysAgoIso(memberSinceDays());
   return {
@@ -77,6 +92,15 @@ function sandboxAuthzAndMembers() {
           current_user_can_remove_member: false,
         },
       },
+      ...[SANDBOX_OWNER, SANDBOX_ADMIN].map((member) => ({
+        ...member,
+        last_sign_in_at: daysAgoIso(1),
+        created_at: user.created_at,
+        authz: {
+          current_user_assignable_roles_for_member: [],
+          current_user_can_remove_member: false,
+        },
+      })),
     ],
   };
 }
@@ -146,6 +170,105 @@ const SANDBOX_SDK_CONFIG = {
   log_min_severity: 12,
   log_ignore_patterns: [] as string[],
 };
+
+type SandboxSdkConfig = typeof SANDBOX_SDK_CONFIG;
+
+type ConfigHistoryStep = {
+  by: typeof SANDBOX_OWNER;
+  androidOnly?: boolean;
+  before: Partial<SandboxSdkConfig>;
+};
+
+// Oldest first. A step's new values come from the next step that changes the
+// same setting, or from SANDBOX_SDK_CONFIG for the newest change.
+const CONFIG_HISTORY_STEPS: ConfigHistoryStep[] = [
+  { by: SANDBOX_OWNER, before: { trace_sampling_rate: 10 } },
+  {
+    by: SANDBOX_OWNER,
+    before: { error_handled_sampling_rate: 100, error_replay_duration: 60 },
+  },
+  { by: SANDBOX_ADMIN, before: { http_track_request_for_urls: [] } },
+  {
+    by: SANDBOX_ADMIN,
+    before: { screenshot_mask_level: "sensitive_fields_only" },
+  },
+  {
+    by: SANDBOX_ADMIN,
+    androidOnly: true,
+    before: { anr_take_screenshot: false, anr_timeline_duration: 15 },
+  },
+  {
+    by: SANDBOX_OWNER,
+    before: { trace_sampling_rate: 50, profile_sampling_rate: 1 },
+  },
+  {
+    by: SANDBOX_ADMIN,
+    before: { log_min_severity: 8, log_ignore_patterns: ["^\\[analytics\\]"] },
+  },
+  {
+    by: SANDBOX_ADMIN,
+    before: {
+      http_track_request_for_urls: ["https://api.acme.shop/v2/checkout/*"],
+    },
+  },
+  {
+    by: SANDBOX_OWNER,
+    before: {
+      error_handled_sampling_rate: 25,
+      error_replay_duration: 45,
+      memory_usage_interval: 2,
+    },
+  },
+];
+
+// Younger apps have fewer changes, keeping the most recent steps, and the
+// changes are spread from a few days after the app was created to a few days
+// ago.
+function sandboxConfigHistory(appId: string) {
+  const appIndex = catalog().apps.findIndex((app) => app.id === appId);
+  const bundle = catalog().appById.get(appId);
+  if (!bundle) {
+    return [];
+  }
+  const app = bundle.scenario.app;
+  const count =
+    app.createdDaysAgo >= 200 ? 8 : app.createdDaysAgo >= 170 ? 7 : 6;
+  const steps = CONFIG_HISTORY_STEPS.filter(
+    (step) => !step.androidOnly || app.os === "android",
+  ).slice(-count);
+
+  const firstDaysAgo = app.createdDaysAgo - 3;
+  const lastDaysAgo = 3;
+  const state: SandboxSdkConfig = { ...SANDBOX_SDK_CONFIG };
+  const entries = [];
+  for (let i = steps.length - 1; i >= 0; i--) {
+    const step = steps[i];
+    const changes: Record<string, { old: unknown; new: unknown }> = {};
+    for (const [field, before] of Object.entries(step.before)) {
+      const key = field as keyof SandboxSdkConfig;
+      changes[key] = { old: before, new: state[key] };
+      (state as Record<string, unknown>)[key] = before;
+    }
+    const daysAgo = Math.round(
+      firstDaysAgo - ((firstDaysAgo - lastDaysAgo) * i) / (steps.length - 1),
+    );
+    const changedAt = catalog()
+      .builtAt.minus({ days: daysAgo })
+      .set({
+        hour: 9 + ((i * 5 + appIndex * 3) % 9),
+        minute: (i * 17 + appIndex * 11) % 60,
+        second: 0,
+        millisecond: 0,
+      });
+    entries.push({
+      id: `00000000-0000-4000-9000-${String(appIndex * 100 + i).padStart(12, "0")}`,
+      changed_at: changedAt.toISO()!,
+      changed_by_email: step.by.email,
+      changes,
+    });
+  }
+  return entries;
+}
 
 function sandboxThresholdPrefs(appId: string) {
   return {
@@ -252,6 +375,20 @@ export const settingsRoutes: SandboxRoute[] = [
     method: "PATCH",
     path: "/api/apps/:appId/config",
     handle: notAvailable,
+  },
+  {
+    method: "GET",
+    path: "/api/apps/:appId/config/history",
+    handle: (ctx) => {
+      const { items, hasNext, hasPrev } = paginate(
+        sandboxConfigHistory(ctx.params.appId),
+        ctx.url,
+      );
+      return jsonResponse({
+        meta: { next: hasNext, previous: hasPrev },
+        results: items,
+      });
+    },
   },
 
   {

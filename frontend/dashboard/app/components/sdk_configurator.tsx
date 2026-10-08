@@ -12,14 +12,22 @@ import DropdownSelect, {
   DropdownSelectType,
 } from "@/app/components/dropdown_select";
 import InfoTooltip from "@/app/components/info_tooltip";
+import SdkConfigHistory from "@/app/components/sdk_config_history";
 import SdkConfigNumericInput from "@/app/components/sdk_config_numeric_input";
 import { Switch } from "@/app/components/switch";
 import { useSaveSdkConfigMutation } from "@/app/query/hooks";
 import { track } from "@/app/utils/analytics/track";
 import { toastNegative, toastPositive } from "@/app/components/toast";
+import { ArrowLeft, History } from "lucide-react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import {
+  displayToLogSeverityNumber,
+  displayToMaskLevel,
+  logSeverityNumberToDisplay,
+  maskLevelToDisplay,
+} from "@/app/utils/sdk_config_labels";
 import { underlineLinkStyle } from "../utils/shared_styles";
 import DangerConfirmationDialog from "./danger_confirmation_dialog";
 import { Textarea } from "./textarea";
@@ -67,6 +75,8 @@ export default function SdkConfigurator({
     logs: "idle",
     memory: "idle",
   });
+
+  const [showHistory, setShowHistory] = useState(false);
 
   // TanStack Query mutation
   const saveSdkConfigMutation = useSaveSdkConfigMutation();
@@ -313,54 +323,6 @@ export default function SdkConfigurator({
   const inputToArray = (str: string): string[] => {
     if (!str || str.trim() === "") return [];
     return str.split("\n").map((line) => line.trim());
-  };
-
-  // Convert mask level to display format, must be in sync with displayToMaskLevel.
-  const maskLevelToDisplay = (maskLevel: string): string => {
-    const map: { [key: string]: string } = {
-      all_text_and_media: "All text and media",
-      all_text: "All text",
-      all_text_except_clickable: "All text except clickable",
-      sensitive_fields_only: "Sensitive fields only",
-    };
-    return map[maskLevel];
-  };
-
-  // Convert display format to mask level, must be in sync with maskLevelToDisplay.
-  const displayToMaskLevel = (display: string): string => {
-    const map: { [key: string]: string } = {
-      "All text and media": "all_text_and_media",
-      "All text": "all_text",
-      "All text except clickable": "all_text_except_clickable",
-      "Sensitive fields only": "sensitive_fields_only",
-    };
-    return map[display] || "sensitive_fields_only";
-  };
-
-  // Convert a log severity number to its display label, must be in sync with
-  // displayToLogSeverityNumber.
-  const logSeverityNumberToDisplay = (severityNumber: number): string => {
-    const map: { [key: number]: string } = {
-      8: "Debug",
-      12: "Info",
-      16: "Warning",
-      20: "Error",
-      24: "Fatal",
-    };
-    return map[severityNumber] ?? "Info";
-  };
-
-  // Convert a display label to its log severity number, must be in sync with
-  // logSeverityNumberToDisplay.
-  const displayToLogSeverityNumber = (display: string): number => {
-    const map: { [key: string]: number } = {
-      Debug: 8,
-      Info: 12,
-      Warning: 16,
-      Error: 20,
-      Fatal: 24,
-    };
-    return map[display] ?? 12;
   };
 
   const getUrlPlaceholder = () =>
@@ -835,25 +797,51 @@ export default function SdkConfigurator({
     <div className="w-full">
       <div className="flex items-center gap-2">
         <p className="max-w-6xl font-display text-xl">
-          Configure Data Collection
+          {showHistory
+            ? "Data Collection History"
+            : "Configure Data Collection"}
         </p>
-        <InfoTooltip
-          content={
+        {!showHistory && (
+          <InfoTooltip
+            content={
+              <>
+                See the{" "}
+                <Link
+                  href="/docs/adaptive-capture"
+                  className={underlineLinkStyle}
+                >
+                  docs
+                </Link>{" "}
+                to learn more
+              </>
+            }
+          />
+        )}
+        <Button
+          variant="outline"
+          size="sm"
+          className="ml-auto"
+          onClick={() => setShowHistory((show) => !show)}
+        >
+          {showHistory ? (
             <>
-              See the{" "}
-              <Link
-                href="/docs/adaptive-capture"
-                className={underlineLinkStyle}
-              >
-                docs
-              </Link>{" "}
-              to learn more
+              <ArrowLeft /> Configure Data Collection
             </>
-          }
-        />
+          ) : (
+            <>
+              <History /> History
+            </>
+          )}
+        </Button>
       </div>
 
-      <div className="mt-6">
+      {showHistory && (
+        <div className="mt-6">
+          <SdkConfigHistory key={appId} appId={appId} />
+        </div>
+      )}
+
+      <div className="mt-6" hidden={showHistory}>
         <Accordion type="single" collapsible className="w-full">
           {/* Errors Accordion */}
           <AccordionItem value="errors" className="mt-2">

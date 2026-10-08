@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"hash/fnv"
 	"math/rand"
+	"slices"
 	"strconv"
 	"time"
 
@@ -59,6 +60,11 @@ const (
 type ScreenshotMaskLevel string
 
 // SdkConfig is an app's SDK configuration as served to SDKs.
+//
+// When adding, renaming or removing a field that the dashboard shows, update
+// historyFields too so the config history records changes to it.
+// A migration that renames or drops its column must also rename or remove that
+// key in measure.sdk_config_history.
 type SdkConfig struct {
 	MaxEventsInBatch               int                 `json:"max_events_in_batch"`
 	ErrorReplayDuration            int                 `json:"error_replay_duration"`
@@ -147,6 +153,80 @@ type ConfigPatch struct {
 	HTTPTrackResponseForURLs       *[]string            `json:"http_track_response_for_urls,omitempty"`
 	HTTPBlockedHeaders             *[]string            `json:"http_blocked_headers,omitempty"`
 	ProfileSamplingRate            *float64             `json:"profile_sampling_rate,omitempty"`
+}
+
+// SdkConfigFieldChange is one field's value before & after a config update.
+type SdkConfigFieldChange struct {
+	Old any `json:"old"`
+	New any `json:"new"`
+}
+
+// historyField is one setting recorded in the config history.
+type historyField struct {
+	column string
+	value  func(SdkConfig) any
+}
+
+// historyFields are the settings whose changes are recorded in the config
+// history. Only settings shown in the dashboard are listed.
+var historyFields = []historyField{
+	{"error_fatal_sampling_rate", func(c SdkConfig) any { return c.ErrorFatalSamplingRate }},
+	{"error_unhandled_sampling_rate", func(c SdkConfig) any { return c.ErrorUnhandledSamplingRate }},
+	{"error_handled_sampling_rate", func(c SdkConfig) any { return c.ErrorHandledSamplingRate }},
+	{"error_fatal_take_screenshot", func(c SdkConfig) any { return c.ErrorFatalTakeScreenshot }},
+	{"error_fatal_replay_enabled", func(c SdkConfig) any { return c.ErrorFatalReplayEnabled }},
+	{"error_unhandled_replay_enabled", func(c SdkConfig) any { return c.ErrorUnhandledReplayEnabled }},
+	{"error_handled_replay_enabled", func(c SdkConfig) any { return c.ErrorHandledReplayEnabled }},
+	{"error_replay_duration", func(c SdkConfig) any { return c.ErrorReplayDuration }},
+	{"anr_take_screenshot", func(c SdkConfig) any { return c.ANRTakeScreenshot }},
+	{"anr_timeline_duration", func(c SdkConfig) any { return c.ANRTimelineDuration }},
+	{"bug_report_timeline_duration", func(c SdkConfig) any { return c.BugReportTimelineDuration }},
+	{"trace_sampling_rate", func(c SdkConfig) any { return c.TraceSamplingRate }},
+	{"launch_sampling_rate", func(c SdkConfig) any { return c.LaunchSamplingRate }},
+	{"profile_sampling_rate", func(c SdkConfig) any { return c.ProfileSamplingRate }},
+	{"journey_sampling_rate", func(c SdkConfig) any { return c.JourneySamplingRate }},
+	{"http_sampling_rate", func(c SdkConfig) any { return c.HTTPSamplingRate }},
+	{"http_disable_event_for_urls", func(c SdkConfig) any { return c.HTTPDisableEventForURLs }},
+	{"http_track_request_for_urls", func(c SdkConfig) any { return c.HTTPTrackRequestForURLs }},
+	{"http_track_response_for_urls", func(c SdkConfig) any { return c.HTTPTrackResponseForURLs }},
+	{"http_blocked_headers", func(c SdkConfig) any { return c.HTTPBlockedHeaders }},
+	{"screenshot_mask_level", func(c SdkConfig) any { return c.ScreenshotMaskLevel }},
+	{"memory_usage_interval", func(c SdkConfig) any { return c.MemoryUsageInterval }},
+	{"memory_usage_background_interval", func(c SdkConfig) any { return c.MemoryUsageBackgroundInterval }},
+	{"memory_usage_session_sampling_rate", func(c SdkConfig) any { return c.MemoryUsageSessionSamplingRate }},
+	{"log_autocollect_enabled", func(c SdkConfig) any { return c.LogAutocollectEnabled }},
+	{"log_min_severity", func(c SdkConfig) any { return c.LogMinSeverity }},
+	{"log_ignore_patterns", func(c SdkConfig) any { return c.LogIgnorePatterns }},
+}
+
+// Diff returns the historyFields settings whose values differ between before
+// & after, keyed by column name.
+func Diff(before, after SdkConfig) map[string]SdkConfigFieldChange {
+	changes := map[string]SdkConfigFieldChange{}
+	for _, field := range historyFields {
+		oldValue, newValue := field.value(before), field.value(after)
+		if !equalValues(oldValue, newValue) {
+			changes[field.column] = SdkConfigFieldChange{Old: oldValue, New: newValue}
+		}
+	}
+	return changes
+}
+
+var historyColumns = func() []string {
+	columns := make([]string, len(historyFields))
+	for i, field := range historyFields {
+		columns[i] = field.column
+	}
+	return columns
+}()
+
+// equalValues compares two values read by historyFields, which are either
+// string lists or comparable values.
+func equalValues(a, b any) bool {
+	if aList, ok := a.([]string); ok {
+		return slices.Equal(aList, b.([]string))
+	}
+	return a == b
 }
 
 // IsValid reports whether s is a known screenshot mask level.
@@ -378,6 +458,72 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 	}
 
 	return &sdkConfig, nil
+}
+
+// ConfigChange is one recorded change to an app's SDK config.
+type ConfigChange struct {
+	ID             uuid.UUID                  `json:"id"`
+	ChangedAt      time.Time                  `json:"changed_at"`
+	ChangedByEmail *string                    `json:"changed_by_email"`
+	Changes        map[string]json.RawMessage `json:"changes"`
+}
+
+// GetConfigChangesFromDb returns a page of an app's config changes, newest first.
+func GetConfigChangesFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID, limit, offset int) (changes []ConfigChange, next, previous bool, err error) {
+	q := sqlf.PostgreSQL.
+		Select("sdk_config_history.id").
+		Select("sdk_config_history.changed_at").
+		Select("users.email").
+		Select("sdk_config_history.changes").
+		From("measure.sdk_config_history").
+		LeftJoin("measure.users", "users.id = sdk_config_history.changed_by").
+		Where("sdk_config_history.app_id = ?", appID).
+		// A change whose keys include no historyFields column has nothing to
+		// show, so the query leaves it out before limit and offset apply.
+		Where("exists (select 1 from jsonb_object_keys(sdk_config_history.changes) as key where key = any(?))", historyColumns).
+		OrderBy("sdk_config_history.changed_at desc").
+		// one extra row tells whether another page exists
+		Limit(uint64(limit) + 1).
+		Offset(uint64(offset))
+
+	defer q.Close()
+
+	rows, err := pg.Query(ctx, q.String(), q.Args()...)
+	if err != nil {
+		return nil, false, false, fmt.Errorf("failed to query config changes: %w", err)
+	}
+	defer rows.Close()
+
+	changes = []ConfigChange{}
+	for rows.Next() {
+		var change ConfigChange
+		if err := rows.Scan(&change.ID, &change.ChangedAt, &change.ChangedByEmail, &change.Changes); err != nil {
+			return nil, false, false, fmt.Errorf("failed to scan config change: %w", err)
+		}
+		changes = append(changes, change)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, false, false, fmt.Errorf("failed to read config changes: %w", err)
+	}
+
+	if len(changes) > limit {
+		changes = changes[:limit]
+		next = true
+	}
+
+	// A key that is not a historyFields column was left behind by a migration
+	// that renamed or dropped a sdk_config column without updating
+	// sdk_config_history. It is dropped and logged so migration can be fixed.
+	for _, change := range changes {
+		for key := range change.Changes {
+			if !slices.Contains(historyColumns, key) {
+				fmt.Println("dropping unknown key from sdk config change, change_id:", change.ID, "key:", key)
+				delete(change.Changes, key)
+			}
+		}
+	}
+
+	return changes, next, offset > 0, nil
 }
 
 // InvalidateCache deletes an app's cached config.

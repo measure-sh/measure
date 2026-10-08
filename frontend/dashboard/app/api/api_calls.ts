@@ -1793,6 +1793,29 @@ export const updateSdkConfigFromServer = async (
   return data;
 };
 
+export type SdkConfigChange = {
+  id: string;
+  changed_at: string;
+  changed_by_email: string | null;
+  changes: Partial<Record<keyof SdkConfig, { old: any; new: any }>>;
+};
+
+export const fetchSdkConfigHistoryFromServer = async (
+  appId: string,
+  limit: number,
+  offset: number,
+) => {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+
+  return await request(
+    `/api/apps/${appId}/config/history?${params.toString()}`,
+    { failsWith: "Failed to fetch sdk config history" },
+  );
+};
+
 export type NetworkEndpoint = { domain: string; path_pattern: string };
 
 function networkRequestParams(
