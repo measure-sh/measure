@@ -644,7 +644,7 @@ const cases: SandboxCase[] = [
       ).toBe(true);
       expect(screen.getByText("Invite").closest("button")?.disabled).toBe(true);
       const rolePicker = screen
-        .getAllByText("Viewer")
+        .getAllByText("Developer")
         .map((el) => el.closest("button"))
         .find((button) => button !== null);
       expect(rolePicker?.disabled).toBe(false);
