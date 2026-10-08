@@ -43,6 +43,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Expand session arrays with an ARRAY JOIN clause by @anupcowkur
 - (**backend**): Bind the suggestion window start as a query parameter by @anupcowkur in #4464
 - (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
+- (**frontend**): Match notification prefs save button to other save buttons by @anupcowkur in #4597
 - (**frontend**): Make the sandbox user a developer by @anupcowkur
 - (**frontend**): Match session replay event marks to pill colours by @anupcowkur in #4586
 - (**frontend**): Add gradle plugin step to android onboarding by @anupcowkur
@@ -124,6 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4573) by @dependabot[bot] in #4573
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
+- (**frontend**): Darken light mode accent and muted text by @anupcowkur in #4596
 - (**frontend**): Restyle pricing plan cards by @anupcowkur in #4595
 - (**frontend**): Update pricing calculator for sdk config options by @anupcowkur in #4594
 - (**frontend**): Add September 2026 what's new blog by @abhaysood in #4581
