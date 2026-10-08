@@ -1,7 +1,6 @@
-import { LucideCheckCircle } from "lucide-react";
+import { LucideCheck, LucideCheckCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Card } from "../components/card";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
 import PricingViewed from "./pricing_viewed";
@@ -28,6 +27,15 @@ const seo = {
 
 export const metadata: Metadata = pageMetadata(seo);
 
+function PlanFeature({ children }: { children: React.ReactNode }) {
+  return (
+    <li className="flex gap-3">
+      <LucideCheck className="mt-0.5 h-5 w-5 shrink-0 text-green-700 dark:text-green-400" />
+      <span>{children}</span>
+    </li>
+  );
+}
+
 export default function Pricing() {
   return (
     <main className="flex flex-col items-center justify-between">
@@ -46,50 +54,41 @@ export default function Pricing() {
             just track what you need to get to the root cause faster.
           </p>
         </div>
-        <div className="flex flex-col md:flex-row gap-8 w-full max-w-4xl px-4 md:px-0">
-          <Card className="w-full md:w-1/2">
-            <div className="p-4 md:p-8 flex flex-col items-center">
-              <p className="text-xl font-display">FREE</p>
-              <p className="text-4xl font-display py-2">$0 per month</p>
-              <ul className="list-disc space-y-2 mt-6">
-                <li className="font-body">{FREE_GB} GB per month</li>
-                <li className="font-body">
-                  {FREE_RETENTION_DAYS} days retention
-                </li>
-                <li className="font-body">MCP server</li>
-                <li className="font-body">No credit card needed</li>
-              </ul>
-            </div>
-          </Card>
-          <Card className="w-full md:w-1/2 bg-green-50 dark:bg-card border border-green-400 dark:border-border">
-            <div className="p-4 md:p-8 flex flex-col items-center">
-              <p className="text-xl text-green-900 dark:text-primary font-display">
-                PRO
-              </p>
-              <p className="text-4xl text-green-900 dark:text-primary font-display py-2">
-                ${MINIMUM_PRICE_AFTER_FREE_TIER} per month
-              </p>
-              <ul className="list-disc space-y-2 mt-6 px-2">
-                <li className="font-body text-green-900 dark:text-foreground">
-                  {INCLUDED_PRO_GB} GB per month included
-                </li>
-                <li className="font-body text-green-900 dark:text-foreground">
-                  {PRO_RETENTION_DAYS} days retention
-                </li>
-                <li className="font-body text-green-900 dark:text-foreground">
-                  MCP server and Measure Agent
-                </li>
-                <li className="font-body text-green-900 dark:text-foreground">
-                  Extra data charged at ${PRICE_PER_GB_MONTH.toFixed(2)} per
-                  GB/month
-                </li>
-                <li className="font-body text-green-900 dark:text-foreground">
-                  Agent usage at provider token rates + a percentage markup for
-                  compute
-                </li>
-              </ul>
-            </div>
-          </Card>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl px-4 md:px-0">
+          <section className="flex flex-col rounded-2xl border-2 border-border bg-card text-card-foreground p-8">
+            <h2 className="font-display text-2xl">Free</h2>
+            <p className="mt-6 flex items-baseline gap-2 font-display">
+              <span className="text-6xl">$0</span>{" "}
+              <span className="text-lg text-muted-foreground">per month</span>
+            </p>
+            <p className="mt-2 font-body text-muted-foreground">
+              {FREE_GB} GB of data
+            </p>
+            <ul className="mt-8 pt-8 border-t border-border space-y-3 font-body">
+              <PlanFeature>{FREE_RETENTION_DAYS} days retention</PlanFeature>
+              <PlanFeature>MCP server</PlanFeature>
+              <PlanFeature>No credit card needed</PlanFeature>
+            </ul>
+          </section>
+          <section className="flex flex-col rounded-2xl border-2 border-primary bg-card text-card-foreground p-8">
+            <h2 className="font-display text-2xl">Pro</h2>
+            <p className="mt-6 flex items-baseline gap-2 font-display">
+              <span className="text-6xl">${MINIMUM_PRICE_AFTER_FREE_TIER}</span>{" "}
+              <span className="text-lg text-muted-foreground">per month</span>
+            </p>
+            <p className="mt-2 font-body text-muted-foreground">
+              {INCLUDED_PRO_GB} GB of data, then $
+              {PRICE_PER_GB_MONTH.toFixed(2)} per GB
+            </p>
+            <ul className="mt-8 pt-8 border-t border-border space-y-3 font-body">
+              <PlanFeature>{PRO_RETENTION_DAYS} days retention</PlanFeature>
+              <PlanFeature>MCP server and Measure Agent</PlanFeature>
+              <PlanFeature>
+                Agent usage at provider token rates + a percentage markup for
+                compute
+              </PlanFeature>
+            </ul>
+          </section>
         </div>
 
         <div className="py-12" />
