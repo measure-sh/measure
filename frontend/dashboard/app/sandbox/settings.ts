@@ -53,7 +53,7 @@ function sandboxApps() {
 function sandboxAuthzAndMembers() {
   const user = sandboxSessionUser();
   return {
-    can_invite_roles: ["viewer", "developer", "admin", "owner"],
+    can_invite_roles: ["developer", "viewer"],
     can_update_bug_reports: false,
     can_change_billing: false,
     can_create_app: false,
@@ -69,7 +69,7 @@ function sandboxAuthzAndMembers() {
         id: user.id,
         name: user.name,
         email: user.email,
-        role: "viewer",
+        role: "developer",
         last_sign_in_at: user.last_sign_in_at,
         created_at: user.created_at,
         authz: {

@@ -141,7 +141,7 @@ const generalCases: Case[] = [
     },
   },
   {
-    name: "returns the least-privileged (viewer) authz on GET /api/teams/sandbox/authz",
+    name: "returns developer authz with every write disabled on GET /api/teams/sandbox/authz",
     path: `/api/teams/${TEAM_ID}/authz`,
     status: 200,
     check: (data) => {
@@ -149,14 +149,9 @@ const generalCases: Case[] = [
       expect(data.can_rename_team).toBe(false);
       expect(data.can_manage_slack).toBe(false);
       expect(data.can_change_billing).toBe(false);
-      expect(data.can_invite_roles).toEqual([
-        "viewer",
-        "developer",
-        "admin",
-        "owner",
-      ]);
+      expect(data.can_invite_roles).toEqual(["developer", "viewer"]);
       expect(data.members).toHaveLength(1);
-      expect(data.members[0].role).toBe("viewer");
+      expect(data.members[0].role).toBe("developer");
     },
   },
   {
