@@ -163,10 +163,8 @@ export default function Notifications({ params }: PageProps) {
           <div className="py-4" />
           <Button
             variant="outline"
-            disabled={
-              readOnly || areNotifPrefsSame || saveNotifPrefsMutation.isPending
-            }
-            className="flex justify-center font-display border border-black select-none"
+            disabled={readOnly || areNotifPrefsSame}
+            loading={saveNotifPrefsMutation.isPending}
             onClick={handleSave}
           >
             Save
