@@ -138,9 +138,9 @@
     --secondary: color-mix(in oklab, var(--accent) 50%, transparent);
     --secondary-foreground: #222222;
     --muted: #ededed;
-    --muted-foreground: #6b6b6b;
-    --accent: #ededed;
-    --accent-foreground: #222222;
+    --muted-foreground: #5c5c5c;
+    --accent: #ececec;
+    --accent-foreground: #111111;
     --destructive: oklch(70.4% 0.191 22.216);
     --destructive-foreground: #000000;
     --border: #d8d8d8;
@@ -150,8 +150,8 @@
     --sidebar-foreground: #222222;
     --sidebar-primary: #222222;
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #ededed;
-    --sidebar-accent-foreground: #222222;
+    --sidebar-accent: #ececec;
+    --sidebar-accent-foreground: #111111;
     --sidebar-border: #e7e7e7;
     --sidebar-ring: oklch(79.2% 0.209 151.711);
     --chart-blue: oklch(74.6% 0.16 232.661);
