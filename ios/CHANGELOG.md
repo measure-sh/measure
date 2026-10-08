@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.14.2] - 2026-10-08
+
+### :bug: Bug fixes
+
+
+- (**ios**): Enforce validation limits on event fields (#4592) by @adwinross in #4592
+
+### :hammer: Misc
+
+
+- (**ios**): Automate github release (#4583) by @adwinross in #4583
+
 ## [ios-v0.14.1] - 2026-09-23
 
 ### :hammer: Misc
@@ -13,11 +25,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Default memory sampling to 0.01% by @abhaysood in #4494
 
 ## [ios-v0.14.0] - 2026-09-22
-
-### :hammer: Misc
-
-
-- (**ios**): Prepare sdk release 0.14.0 (#4490) by @abhaysood in #4490
 
 ### :sparkles: New features
 
@@ -34,11 +41,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Avoid objc runtime lock in crash write callback (#4421) by @adwinross in #4421
 - (**ios**): Use dispatch group to prevent core data deadlock (#4423) by @adwinross in #4423
 
-### :hammer: Misc
-
-
-- (**ios**): Prepare sdk release 0.13.2 (#4432) by @abhaysood in #4432
-
 ## [ios-v0.13.1] - 2026-09-02
 
 ### :bug: Bug fixes
@@ -47,11 +49,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Clamp unsafe numeric narrowing conversions (#4337) by @adwinross in #4337
 - (**ios**): Parse cache control header for config refresh window (#4349) by @adwinross in #4349
 - (**ios**): Pause shake detector when app moves background (#4336) by @adwinross in #4336
-
-### :hammer: Misc
-
-
-- (**ios**): Prepare sdk release 0.13.1 (#4358) by @abhaysood in #4358
 
 ## [ios-v0.13.0] - 2026-08-28
 
@@ -65,7 +62,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
-- (**ios**): Prepare sdk release 0.13.0 (#4308) by @abhaysood in #4308
 - (**ios**): Stop dropping crash reports before export (#4298) by @adwinross in #4298
 - (**ios**): Raise minimum deployment target to ios 13 (#4295) by @adwinross in #4295
 - (**ios**): Update json serialisation logic (#4270) by @adwinross in #4270
@@ -85,7 +81,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
-- (**ios**): Prepare sdk release 0.12.1 (#4123) by @adwinross in #4123
 - (**ios**): Update podspec to add proper import for measure webp (#4117) by @adwinross in #4117
 
 ## [ios-v0.12.0] - 2026-07-22
@@ -121,7 +116,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
-- (**ios**): Prepare sdk release 0.11.0 (#3882) by @adwinross in #3882
 - (**ios**): Update exception data json structure (#3694) by @adwinross in #3694
 - (**ios**): Export data once dynamic config is loaded (#3683) by @adwinross in #3683
 - (**ios**): Remove capture layout snapshot api (#3680) by @adwinross in #3680
@@ -152,7 +146,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
-- (**ios**): Prepare sdk release 0.10.0 (#3391) by @adwinross in #3391
 - (**ios**): Send attachment size in the event payload (#3355) by @adwinross in #3355
 - (**ios**): Update sdk integration docs (#3341) by @adwinross in #3341
 - (**ios**): Use correct session start time (#3339) by @adwinross in #3339
@@ -175,7 +168,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
-- (**ios**): Prepare sdk release 0.9.2 (#3264) by @adwinross in #3264
 - (**ios**): Delete expired attachments on cleanup (#3262) by @adwinross in #3262
 - (**ios**): Add session start timestamp to attributes (#3250) by @adwinross in #3250
 - (**ios**): Add http_sampling_rate dynamic config (#3231) by @abhaysood in #3231
@@ -187,11 +179,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**ios**): Make config api call asynchronously (#3202) by @adwinross in #3202
 
-### :hammer: Misc
-
-
-- (**ios**): Prepare sdk release 0.9.1 (#3203) by @adwinross in #3203
-
 ## [ios-v0.9.0] - 2026-02-19
 
 ### :bug: Bug fixes
@@ -202,7 +189,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
-- (**ios**): Prepare sdk release 0.9.0 (#3146) by @adwinross in #3146
 - (**ios**): Enable internal logging based on macro (#3141) by @adwinross in #3141
 - (**ios**): Add cleanup logic for stale attachments (#3135) by @adwinross in #3135
 - (**ios**): Update exporting logic (#3134) by @adwinross in #3134
@@ -223,11 +209,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**ios**): Use correct coding keys for userJourneysSamplingRate (#2939) by @adwinross in #2939
 
-### :hammer: Misc
-
-
-- (**ios**): Prepare sdk release 0.8.1 (#2941) by @adwinross in #2941
-
 ## [ios-v0.8.0] - 2025-11-25
 
 ### :bug: Bug fixes
@@ -238,7 +219,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
-- (**ios**): Prepare sdk release 0.8.0 (#2937) by @adwinross in #2937
 - (**ios**): Update measure config and default event collection by @adwinross in #2935
 
 ## [ios-v0.7.1] - 2025-10-29
@@ -252,7 +232,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
-- (**ios**): Prepare sdk release 0.7.1 (#2858) by @adwinross in #2858
 - (**ios**): Limit http data body size to 256 kb (#2852) by @adwinross in #2852
 
 ## [ios-v0.7.0] - 2025-10-22
@@ -265,7 +244,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
-- (**ios**): Prepare sdk release 0.7.0 (#2799) by @adwinross in #2799
 - (**ios**): Use signed urls to upload dsyms (#2785) by @adwinross in #2785
 - (**ios**): Continue existing attachment export on unregister (#2796) by @adwinross in #2796
 - (**ios**): Update core data model version (#2775) by @adwinross in #2775
@@ -299,7 +277,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
-- (**ios**): Prepare sdk release 0.6.0 (#2606) by @adwinross in #2606
 - (**ios**): Update performance docs (#2605) by @adwinross in #2605
 - (**ios**): Update ios project structure (#2601) by @adwinross in #2601
 - (**ios**): Update package.swift to include objc code (#2599) by @adwinross in #2599
@@ -314,13 +291,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Add user defined attributes to screen view events (#2592) by @adwinross in #2592
 - (**ios**): Provide configurable storage limits (#2470) by @adwinross in #2470
 
-## [ios-v0.5.1] - 2025-07-11
-
-### :hammer: Misc
-
-
-- (**ios**): Prepare sdk release 0.5.1 (#2400) by @adwinross in #2400
-
 ## [ios-v0.5.0] - 2025-07-09
 
 ### :bug: Bug fixes
@@ -334,7 +304,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
-- (**ios**): Prepare sdk release 0.5.0 (#2376) by @adwinross in #2376
 - (**ios**): Update apis to support objc initialisation (#2374) by @adwinross in #2374
 - (**ios**): Update shake detector api (#2365) by @adwinross in #2365
 - (**ios**): Remove shake to launch bug report config (#2358) by @abhaysood in #2358
@@ -367,7 +336,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
-- (**ios**): Prepare sdk release 0.4.0 (#2333) by @adwinross in #2333
 - (**ios**): Add measure api url to http blocklist (#2317) by @adwinross in #2317
 - (**ios**): Add performance data (#2295) by @adwinross in #2295
 
@@ -390,11 +358,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Update core data Initialization logic (#2257) by @adwinross in #2257
 - (**ios**): Replaces uses of TARGET_OS_SIMULATOR (#2244) by @DominatorVbN in #2244
 
-### :hammer: Misc
-
-
-- (**ios**): Prepare sdk release 0.3.1 (#2276) by @adwinross in #2276
-
 ## [ios-v0.3.0] - 2025-05-28
 
 ### :books: Documentation
@@ -406,11 +369,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 
 - (**ios**): Attach crash report to the correct session (#2196) by @adwinross in #2196
-
-### :hammer: Misc
-
-
-- (**ios**): Prepare sdk release 0.3.0 (#2229) by @adwinross in #2229
 
 ### :sparkles: New features
 
@@ -429,7 +387,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
-- (**ios**): Prepare sdk release 0.2.0 (#2099) by @adwinross in #2099
 - (**ios**): Update swizzling logic (#2079) by @adwinross in #2079
 - (**ios**): Update swiftlint config (#2027) by @adwinross in #2027
 - (**ios**): Update json encoding logic (#1959) by @adwinross in #1959
@@ -462,11 +419,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
-- (**ios**): Prepare sdk release 0.1.0 (#2000) by @adwinross in #2000
 - (**ios**): Update release script (#1999) by @adwinross in #1999
 - (**ios**): Update pod name to measure-sh (#1998) by @adwinross in #1998
 - (**ios**): Update heartbeat tests (#1994) by @adwinross in #1994
-- (**ios**): Prepare sdk release 0.1.0 (#1987) by @adwinross in #1987
 - (**ios**): Add http event configurations to measure config (#1980) by @adwinross in #1980
 - (**ios**): Log error messages when upload dsym script fails (#1975) by @adwinross in #1975
 - (**ios**): Create new session if build number or app version is updated (#1972) by @adwinross in #1972
@@ -474,7 +429,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Update plcrashreporter config (#1938) by @adwinross in #1938
 - (**ios**): Remove fatal errors (#1932) by @adwinross in #1932
 - (**ios**): Update cpu frequency generation logic by @adwinross in #1904
-- (**ios**): Prepare sdk release 0.0.1-rc1 (#1877) by @adwinross in #1877
 - (**ios**): Update release scripts (#1876) by @adwinross in #1876
 - (**ios**): Add release scripts (#1869) by @adwinross in #1869
 - (**ios**): Update public apis (#1841) by @adwinross in #1841
@@ -521,6 +475,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677) by @adwinross in #1677
 - (**ios**): Initial project setup  (#1034) by @adwinross in #1034
 
+[ios-v0.14.2]: https://github.com/measure-sh/measure/compare/ios-v0.14.1..ios-v0.14.2
 [ios-v0.14.1]: https://github.com/measure-sh/measure/compare/ios-v0.14.0..ios-v0.14.1
 [ios-v0.14.0]: https://github.com/measure-sh/measure/compare/ios-v0.13.2..ios-v0.14.0
 [ios-v0.13.2]: https://github.com/measure-sh/measure/compare/ios-v0.13.1..ios-v0.13.2
@@ -538,7 +493,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [ios-v0.7.1]: https://github.com/measure-sh/measure/compare/ios-v0.7.0..ios-v0.7.1
 [ios-v0.7.0]: https://github.com/measure-sh/measure/compare/ios-v0.6.0..ios-v0.7.0
 [ios-v0.6.0]: https://github.com/measure-sh/measure/compare/ios-v0.5.1..ios-v0.6.0
-[ios-v0.5.1]: https://github.com/measure-sh/measure/compare/ios-v0.5.0..ios-v0.5.1
 [ios-v0.5.0]: https://github.com/measure-sh/measure/compare/ios-v0.4.0..ios-v0.5.0
 [ios-v0.4.0]: https://github.com/measure-sh/measure/compare/ios-v0.3.1..ios-v0.4.0
 [ios-v0.3.1]: https://github.com/measure-sh/measure/compare/ios-v0.3.0..ios-v0.3.1
