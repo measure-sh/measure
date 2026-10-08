@@ -260,6 +260,14 @@ export const handlers = [
     return HttpResponse.json(makeSdkConfigFixture());
   }),
 
+  // GET /api/apps/:appId/config/history
+  http.get("*/api/apps/:appId/config/history", () => {
+    return HttpResponse.json({
+      meta: { next: false, previous: false },
+      results: [],
+    });
+  }),
+
   // 43. PATCH /api/apps/:appId/thresholdPrefs
   http.patch("*/api/apps/:appId/thresholdPrefs", () => {
     return HttpResponse.json({ ok: true });

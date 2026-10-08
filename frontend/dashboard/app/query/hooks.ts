@@ -46,6 +46,7 @@ import {
   fetchPendingInvitesFromServer,
   fetchProfilesFromServer,
   fetchSdkConfigFromServer,
+  fetchSdkConfigHistoryFromServer,
   fetchSessionReplayFromServer,
   fetchSessionReplayOverviewFromServer,
   fetchSessionReplayOverviewPlotFromServer,
@@ -1352,6 +1353,28 @@ export function useSdkConfigQuery(appId: string | undefined) {
     queryKey: ["sdkConfig", appId] as const,
     queryFn: () => fetchSdkConfigFromServer(appId!),
     enabled: !!appId,
+  });
+}
+
+export const SDK_CONFIG_HISTORY_LIMIT = 5;
+
+export function useSdkConfigHistoryQuery(
+  appId: string,
+  paginationOffset: number,
+) {
+  return useQuery({
+    queryKey: ["sdkConfigHistory", appId, paginationOffset] as const,
+    queryFn: () =>
+      fetchSdkConfigHistoryFromServer(
+        appId,
+        SDK_CONFIG_HISTORY_LIMIT,
+        paginationOffset,
+      ),
+    placeholderData: keepPreviousData,
+    // When the user saves the SDK config, the history gets a new change.
+    // Remove the history from the cache when it is not on the screen, so the
+    // next time it is shown, it includes the new change.
+    gcTime: 0,
   });
 }
 

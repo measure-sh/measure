@@ -651,8 +651,16 @@ const cases: SandboxCase[] = [
       expect(
         screen.getAllByText("Save").at(-1)?.closest("button")?.disabled,
       ).toBe(true);
-      expect(screen.queryByText("Change Role")).toBeNull();
-      expect(screen.getAllByText("Remove")).toHaveLength(1);
+      expect(
+        screen
+          .getAllByText("Change Role")
+          .map((el) => el.closest("button")?.disabled),
+      ).toEqual([true, true]);
+      expect(
+        screen
+          .getAllByText("Remove")
+          .map((el) => el.closest("button")?.disabled),
+      ).toEqual([true, true, true]);
       expect(screen.getByText("Create Team").closest("button")?.disabled).toBe(
         true,
       );

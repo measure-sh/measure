@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"backend/api/server"
+	"backend/libs/filter"
 	"backend/libs/sdkconfig"
 
 	"github.com/gin-gonic/gin"
@@ -19,7 +20,7 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-// configColumns must stay ordered to match the scan in PatchConfigForApp.
+// configColumns must stay ordered to match the scan in scanConfig.
 const configColumns = `max_events_in_batch, error_replay_duration, anr_timeline_duration,
 	bug_report_timeline_duration, trace_sampling_rate, journey_sampling_rate,
 	screenshot_mask_level, log_autocollect_enabled, log_min_severity,
@@ -33,16 +34,51 @@ const configColumns = `max_events_in_batch, error_replay_duration, anr_timeline_
 	http_track_request_for_urls, http_track_response_for_urls, http_blocked_headers,
 	profile_sampling_rate, updated_at, updated_by`
 
+// scanConfig reads a row selected with configColumns.
+func scanConfig(row pgx.Row) (sdkconfig.SdkConfig, error) {
+	var config sdkconfig.SdkConfig
+	err := row.Scan(
+		&config.MaxEventsInBatch,
+		&config.ErrorReplayDuration,
+		&config.ANRTimelineDuration,
+		&config.BugReportTimelineDuration,
+		&config.TraceSamplingRate,
+		&config.JourneySamplingRate,
+		&config.ScreenshotMaskLevel,
+		&config.LogAutocollectEnabled,
+		&config.LogMinSeverity,
+		&config.LogIgnorePatterns,
+		&config.CPUUsageInterval,
+		&config.MemoryUsageInterval,
+		&config.MemoryUsageBackgroundInterval,
+		&config.MemoryUsageSessionSamplingRate,
+		&config.ErrorFatalTakeScreenshot,
+		&config.ErrorFatalReplayEnabled,
+		&config.ErrorUnhandledReplayEnabled,
+		&config.ErrorHandledReplayEnabled,
+		&config.ErrorFatalSamplingRate,
+		&config.ErrorUnhandledSamplingRate,
+		&config.ErrorHandledSamplingRate,
+		&config.ANRTakeScreenshot,
+		&config.LaunchSamplingRate,
+		&config.GestureClickTakeSnapshot,
+		&config.HTTPSamplingRate,
+		&config.HTTPDisableEventForURLs,
+		&config.HTTPTrackRequestForURLs,
+		&config.HTTPTrackResponseForURLs,
+		&config.HTTPBlockedHeaders,
+		&config.ProfileSamplingRate,
+		&config.UpdatedAt,
+		&config.UpdatedBy,
+	)
+	return config, err
+}
+
 // PatchConfigForApp applies a patch to an app's SDK config in Postgres, then refreshes the cache.
 func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userID string) error {
 	var patch sdkconfig.ConfigPatch
 	if err := c.ShouldBindJSON(&patch); err != nil {
 		return fmt.Errorf("failed to bind JSON: %w", err)
-	}
-
-	userIdUUID, err := uuid.Parse(userID)
-	if err != nil {
-		return fmt.Errorf("invalid user ID: %w", err)
 	}
 
 	stmt := sqlf.PostgreSQL.Update("measure.sdk_config")
@@ -167,9 +203,12 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		}
 		stmt.Set("profile_sampling_rate", *patch.ProfileSamplingRate)
 	}
-	// the database clock, evaluated after the row lock, orders concurrent patches
+	// clock_timestamp() is read after the row lock is taken, so concurrent patches
+	// get updated_at in the order they write. Go's time.Now() and postgres now()
+	// are read before waiting on the lock, so the later write could get the
+	// earlier time.
 	stmt.SetExpr("updated_at", "clock_timestamp()")
-	stmt.Set("updated_by", &userIdUUID)
+	stmt.Set("updated_by", userID)
 	stmt.Where("app_id = ?", appID)
 
 	stmt.Returning(configColumns)
@@ -178,55 +217,64 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 
 	ctx := c.Request.Context()
 
-	var config sdkconfig.SdkConfig
-	if err := deps.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(
-		&config.MaxEventsInBatch,
-		&config.ErrorReplayDuration,
-		&config.ANRTimelineDuration,
-		&config.BugReportTimelineDuration,
-		&config.TraceSamplingRate,
-		&config.JourneySamplingRate,
-		&config.ScreenshotMaskLevel,
-		&config.LogAutocollectEnabled,
-		&config.LogMinSeverity,
-		&config.LogIgnorePatterns,
-		&config.CPUUsageInterval,
-		&config.MemoryUsageInterval,
-		&config.MemoryUsageBackgroundInterval,
-		&config.MemoryUsageSessionSamplingRate,
-		&config.ErrorFatalTakeScreenshot,
-		&config.ErrorFatalReplayEnabled,
-		&config.ErrorUnhandledReplayEnabled,
-		&config.ErrorHandledReplayEnabled,
-		&config.ErrorFatalSamplingRate,
-		&config.ErrorUnhandledSamplingRate,
-		&config.ErrorHandledSamplingRate,
-		&config.ANRTakeScreenshot,
-		&config.LaunchSamplingRate,
-		&config.GestureClickTakeSnapshot,
-		&config.HTTPSamplingRate,
-		&config.HTTPDisableEventForURLs,
-		&config.HTTPTrackRequestForURLs,
-		&config.HTTPTrackResponseForURLs,
-		&config.HTTPBlockedHeaders,
-		&config.ProfileSamplingRate,
-		&config.UpdatedAt,
-		&config.UpdatedBy,
-	); err != nil {
+	tx, err := deps.PgPool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback(ctx)
+
+	// the row lock keeps a concurrent patch from changing the config between
+	// this read & the update, which would record wrong old values in the history
+	selectStmt := sqlf.PostgreSQL.
+		Select(configColumns).
+		From("measure.sdk_config").
+		Where("app_id = ?", appID).
+		Clause("FOR UPDATE")
+	defer selectStmt.Close()
+
+	oldConfig, err := scanConfig(tx.QueryRow(ctx, selectStmt.String(), selectStmt.Args()...))
+	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return fmt.Errorf("config not found for app_id: %s", appID)
 		}
-		return fmt.Errorf("failed to exec update: %w", err)
+		return fmt.Errorf("failed to read config: %w", err)
 	}
 
-	jsonConfig, err := json.Marshal(&config)
+	config, err := scanConfig(tx.QueryRow(ctx, stmt.String(), stmt.Args()...))
 	if err != nil {
-		return fmt.Errorf("failed to marshal config: %w", err)
+		return fmt.Errorf("failed to exec update: %w", err)
 	}
 
 	// the cache guard fences on this, a nil means RETURNING dropped a column we set
 	if config.UpdatedAt == nil {
 		return fmt.Errorf("update returned no updated_at for app_id: %s", appID)
+	}
+
+	if changes := sdkconfig.Diff(oldConfig, config); len(changes) > 0 {
+		jsonChanges, err := json.Marshal(changes)
+		if err != nil {
+			return fmt.Errorf("failed to marshal config changes: %w", err)
+		}
+
+		insert := sqlf.PostgreSQL.InsertInto("measure.sdk_config_history").
+			Set("app_id", appID).
+			Set("changed_by", userID).
+			Set("changed_at", *config.UpdatedAt).
+			Set("changes", string(jsonChanges))
+		defer insert.Close()
+
+		if _, err := tx.Exec(ctx, insert.String(), insert.Args()...); err != nil {
+			return fmt.Errorf("failed to record config change: %w", err)
+		}
+	}
+
+	if err := tx.Commit(ctx); err != nil {
+		return fmt.Errorf("failed to commit config update: %w", err)
+	}
+
+	jsonConfig, err := json.Marshal(&config)
+	if err != nil {
+		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
 	// postgres is already updated & is the source of truth, the cache is best effort
@@ -244,6 +292,59 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 	}
 
 	return nil
+}
+
+// GetConfigHistory returns a page of an app's SDK config changes, newest first.
+func (h Handlers) GetConfigHistory(c *gin.Context) {
+	appID, err := uuid.Parse(c.Param("id"))
+	if err != nil {
+		msg := `id invalid or missing`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": msg})
+		return
+	}
+
+	query := struct {
+		Limit  int `form:"limit"`
+		Offset int `form:"offset"`
+	}{Limit: filter.DefaultPaginationLimit}
+	if err := c.ShouldBindQuery(&query); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error":   "Failed to parse query parameters",
+			"details": err.Error(),
+		})
+		return
+	}
+	if query.Limit < 1 || query.Limit > filter.MaxPaginationLimit {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("`limit` must be between 1 and %d", filter.MaxPaginationLimit),
+		})
+		return
+	}
+	if query.Offset < 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "`offset` cannot be negative"})
+		return
+	}
+
+	if _, ok := h.authorizeAppRead(c, appID); !ok {
+		return
+	}
+
+	changes, next, previous, err := sdkconfig.GetConfigChangesFromDb(c.Request.Context(), h.Deps.PgPool, appID, query.Limit, query.Offset)
+	if err != nil {
+		msg := `error fetching SDK config history`
+		fmt.Println(msg, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"results": changes,
+		"meta": gin.H{
+			"next":     next,
+			"previous": previous,
+		},
+	})
 }
 
 // GetConfigForSdk proxies to the ingest service, or returns 410 on Cloud.

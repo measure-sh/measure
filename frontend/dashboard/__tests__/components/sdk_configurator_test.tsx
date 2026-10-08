@@ -39,6 +39,13 @@ jest.mock("@/app/components/toast", () => ({
   toastNegative: jest.fn(),
 }));
 
+jest.mock("@/app/components/sdk_config_history", () => ({
+  __esModule: true,
+  default: ({ appId }: any) => (
+    <div data-testid="sdk-config-history-mock">{appId}</div>
+  ),
+}));
+
 // Mock Accordion to keep all items open for testing
 jest.mock("@/app/components/accordion", () => ({
   Accordion: ({ children }: any) => <div>{children}</div>,
@@ -182,6 +189,33 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByText("Screenshot Masking")).toBeInTheDocument();
     expect(screen.getByText("Memory")).toBeInTheDocument();
     expect(screen.getByText("Logs")).toBeInTheDocument();
+  });
+
+  it("switches between the settings and the history", () => {
+    render(
+      <SdkConfigurator
+        appId="test-app-id"
+        appName="Test App"
+        initialConfig={mockInitialConfig}
+        currentUserCanChangeAppSettings={true}
+        osNames={null}
+      />,
+    );
+
+    fireEvent.click(screen.getByText("History"));
+
+    expect(screen.getByText("Data Collection History")).toBeInTheDocument();
+    expect(screen.getByTestId("sdk-config-history-mock")).toHaveTextContent(
+      "test-app-id",
+    );
+    expect(screen.getByText("Errors")).not.toBeVisible();
+
+    fireEvent.click(screen.getByText("Configure Data Collection"));
+
+    expect(
+      screen.queryByTestId("sdk-config-history-mock"),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Errors")).toBeVisible();
   });
 
   it("hides ANR section when osNames is iOS, shows it for Android and null", () => {
