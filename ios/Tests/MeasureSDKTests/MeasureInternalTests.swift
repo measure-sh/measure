@@ -240,4 +240,48 @@ final class MeasureInternalTests: XCTestCase {
         XCTAssertFalse(logger.logs.contains("CpuUsageCollector enabled."), "collectors should not be re-enabled when SDK is stopped")
         XCTAssertFalse(logger.logs.contains("LifecycleCollector enabled."), "collectors should not be re-enabled when SDK is stopped")
     }
+
+    func testSetUserId_setsUserId_whenWithinMaxLength() {
+        let userId = String(repeating: "u", count: ValidationLimits.userId)
+
+        measureInternal.setUserId(userId)
+
+        XCTAssertEqual(mockMeasureInitializer.userAttributeProcessor.getUserId(), userId)
+    }
+
+    func testSetUserId_ignoresUserId_whenLongerThanMaxLength() {
+        measureInternal.setUserId(String(repeating: "u", count: ValidationLimits.userId + 1))
+
+        XCTAssertNil(mockMeasureInitializer.userAttributeProcessor.getUserId())
+    }
+
+    func testInternalSetPatch_setsPatch_whenPatchIdIsValidUUID() {
+        let patchId = UUID().uuidString
+        let attributes = Attributes()
+
+        measureInternal.internalSetPatch(patchId, patchVersion: "1.0.0")
+        mockMeasureInitializer.patchAttributeProcessor.appendAttributes(attributes)
+
+        XCTAssertEqual(attributes.patchId, patchId)
+        XCTAssertEqual(attributes.patchVersion, "1.0.0")
+    }
+
+    func testInternalSetPatch_ignoresPatch_whenPatchIdIsNotValidUUID() {
+        let attributes = Attributes()
+
+        measureInternal.internalSetPatch("not-a-uuid", patchVersion: "1.0.0")
+        mockMeasureInitializer.patchAttributeProcessor.appendAttributes(attributes)
+
+        XCTAssertNil(attributes.patchId)
+        XCTAssertNil(attributes.patchVersion)
+    }
+
+    func testInternalSetPatch_truncatesPatchVersion_whenLongerThanMaxLength() {
+        let attributes = Attributes()
+
+        measureInternal.internalSetPatch(UUID().uuidString, patchVersion: String(repeating: "v", count: ValidationLimits.patchVersion + 1))
+        mockMeasureInitializer.patchAttributeProcessor.appendAttributes(attributes)
+
+        XCTAssertEqual(attributes.patchVersion?.count, ValidationLimits.patchVersion)
+    }
 }

@@ -27,19 +27,25 @@ final class BaseBugReportCollector: BugReportCollector {
     private let sessionManager: SessionManager
     private let idProvider: IdProvider
     private let logger: Logger
+    private let configProvider: ConfigProvider
+    private let attributeValueValidator: AttributeValueValidator
 
     init(bugReportManager: BugReportManager,
          signalProcessor: SignalProcessor,
          timeProvider: TimeProvider,
          sessionManager: SessionManager,
          idProvider: IdProvider,
-         logger: Logger) {
+         logger: Logger,
+         configProvider: ConfigProvider,
+         attributeValueValidator: AttributeValueValidator) {
         self.bugReportManager = bugReportManager
         self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.sessionManager = sessionManager
         self.idProvider = idProvider
         self.logger = logger
+        self.configProvider = configProvider
+        self.attributeValueValidator = attributeValueValidator
         self.bugReportManager.setBugReportCollector(self)
     }
 
@@ -60,16 +66,47 @@ final class BaseBugReportCollector: BugReportCollector {
                         attachments: [MsrAttachment],
                         attributes: [String: AttributeValue]?) {
         SignPost.trace(subcategory: "Event", label: "trackBugReport") {
-            signalProcessor.trackUserTriggered(data: BugReportData(description: description),
+            let validAttributes = attributeValueValidator.dropInvalidAttributes(name: "bug_report", attributes: attributes)
+            signalProcessor.trackUserTriggered(data: BugReportData(description: sanitizedDescription(description)),
                                                timestamp: timeProvider.now(),
                                                type: .bugReport,
                                                attributes: nil,
                                                sessionId: nil,
-                                               attachments: attachments,
-                                               userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes),
+                                               attachments: sanitizedAttachments(attachments),
+                                               userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(validAttributes),
                                                threadName: nil,
                                                needsReporting: true)
             sessionManager.markCurrentSessionAsCrashed()
+        }
+    }
+
+    private func sanitizedDescription(_ description: String) -> String {
+        let maxLength = Int(configProvider.maxDescriptionLengthInBugReport)
+        if description.count > maxLength {
+            logger.log(level: .warning,
+                       message: "BugReportCollector: Description exceeds the maximum length of \(maxLength) characters and will be truncated",
+                       error: nil,
+                       data: nil)
+        }
+        return description.truncated(maxLength: maxLength)
+    }
+
+    private func sanitizedAttachments(_ attachments: [MsrAttachment]) -> [MsrAttachment] {
+        let maxAttachments = Int(configProvider.maxAttachmentsInBugReport)
+        if attachments.count > maxAttachments {
+            logger.log(level: .warning,
+                       message: "BugReportCollector: Bug report has more than \(maxAttachments) attachments, extra attachments will be dropped",
+                       error: nil,
+                       data: nil)
+        }
+        return attachments.prefix(maxAttachments).map { attachment in
+            guard attachment.name.isEmpty else { return attachment }
+            return MsrAttachment(name: attachment.id,
+                                 type: attachment.type,
+                                 size: attachment.size,
+                                 id: attachment.id,
+                                 bytes: attachment.bytes,
+                                 path: attachment.path)
         }
     }
 }

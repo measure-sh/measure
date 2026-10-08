@@ -13,6 +13,7 @@ final class BaseCustomEventCollectorTests: XCTestCase {
     private var signalProcessor: MockSignalProcessor!
     private var timeProvider: MockTimeProvider!
     private var configProvider: MockConfigProvider!
+    private var sessionManager: MockSessionManager!
     private var eventCollector: BaseCustomEventCollector!
 
     override func setUp() {
@@ -22,6 +23,7 @@ final class BaseCustomEventCollectorTests: XCTestCase {
         signalProcessor = MockSignalProcessor()
         timeProvider = MockTimeProvider()
         configProvider = MockConfigProvider()
+        sessionManager = MockSessionManager()
 
         configProvider.customEventNameRegex = "^[a-zA-Z0-9_-]+$"
         configProvider.maxEventNameLength = 50
@@ -34,7 +36,8 @@ final class BaseCustomEventCollectorTests: XCTestCase {
             signalProcessor: signalProcessor,
             timeProvider: timeProvider,
             configProvider: configProvider,
-            attributeValueValidator: BaseAttributeValueValidator(configProvider: configProvider, logger: logger)
+            attributeValueValidator: BaseAttributeValueValidator(configProvider: configProvider, logger: logger),
+            sessionManager: sessionManager
         )
     }
 
@@ -119,5 +122,32 @@ final class BaseCustomEventCollectorTests: XCTestCase {
 
         XCTAssertNil(signalProcessor.data)
         XCTAssertTrue(logger.logs[1].contains("contains invalid attribute value"))
+    }
+
+    func testTrackEvent_dropsEvent_whenTimestampIsBeforeSessionStart() {
+        eventCollector.enable()
+        sessionManager.sessionStartTime = 10_000
+
+        eventCollector.trackEvent(name: "old_event", attributes: [:], timestamp: 9_999)
+
+        XCTAssertNil(signalProcessor.data)
+    }
+
+    func testTrackEvent_tracksEvent_whenTimestampIsAtSessionStart() {
+        eventCollector.enable()
+        sessionManager.sessionStartTime = 10_000
+
+        eventCollector.trackEvent(name: "event", attributes: [:], timestamp: 10_000)
+
+        XCTAssertNotNil(signalProcessor.data as? CustomEventData)
+    }
+
+    func testTrackEvent_tracksEvent_whenTimestampIsNil() {
+        eventCollector.enable()
+        sessionManager.sessionStartTime = 10_000
+
+        eventCollector.trackEvent(name: "event", attributes: [:], timestamp: nil)
+
+        XCTAssertNotNil(signalProcessor.data as? CustomEventData)
     }
 }

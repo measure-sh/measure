@@ -82,8 +82,8 @@ final class BaseGestureCollector: GestureCollector {
             let width = UInt16(clamping: Int((gestureTargetFinderData.targetFrame?.width ?? targetFrame?.width) ?? 0))
             let height = UInt16(clamping: Int((gestureTargetFinderData.targetFrame?.height ?? targetFrame?.height) ?? 0))
 
-            let data = ClickData(target: gestureTargetFinderData.target ?? target,
-                                 targetId: gestureTargetFinderData.targetId ?? targetId,
+            let data = ClickData(target: (gestureTargetFinderData.target ?? target)?.truncated(maxLength: ValidationLimits.gestureTarget),
+                                 targetId: (gestureTargetFinderData.targetId ?? targetId)?.truncated(maxLength: ValidationLimits.gestureTargetId),
                                  label: gestureTargetFinderData.label,
                                  semanticLabel: gestureTargetFinderData.semanticLabel,
                                  width: width != 0 ? width : nil,
@@ -114,8 +114,8 @@ final class BaseGestureCollector: GestureCollector {
             let width = UInt16(clamping: Int((gestureTargetFinderData.targetFrame?.width ?? targetFrame?.width) ?? 0))
             let height = UInt16(clamping: Int((gestureTargetFinderData.targetFrame?.height ?? targetFrame?.height) ?? 0))
 
-            let data = LongClickData(target: gestureTargetFinderData.target ?? target,
-                                     targetId: gestureTargetFinderData.targetId ?? targetId,
+            let data = LongClickData(target: (gestureTargetFinderData.target ?? target)?.truncated(maxLength: ValidationLimits.gestureTarget),
+                                     targetId: (gestureTargetFinderData.targetId ?? targetId)?.truncated(maxLength: ValidationLimits.gestureTargetId),
                                      label: gestureTargetFinderData.label,
                                      semanticLabel: gestureTargetFinderData.semanticLabel,
                                      width: width != 0 ? width : nil,
@@ -145,8 +145,8 @@ final class BaseGestureCollector: GestureCollector {
                     return
                 }
 
-                let data = ScrollData(target: gestureTargetFinderData.target ?? target,
-                                      targetId: gestureTargetFinderData.targetId ?? targetId,
+                let data = ScrollData(target: (gestureTargetFinderData.target ?? target)?.truncated(maxLength: ValidationLimits.gestureTarget),
+                                      targetId: (gestureTargetFinderData.targetId ?? targetId)?.truncated(maxLength: ValidationLimits.gestureTargetId),
                                       x: FloatNumber32(startX),
                                       y: FloatNumber32(startY),
                                       endX: FloatNumber32(endX),

@@ -323,4 +323,54 @@ final class UserTriggeredEventCollectorTests: XCTestCase {
         XCTAssertNotNil(data.responseHeaders?["OK"])
         XCTAssertNil(data.responseHeaders?["Secret"])
     }
+
+    func test_trackHttpEvent_clientTooLong_isDiscarded() {
+        collector.trackHttpEvent(
+            url: "https://example.com",
+            method: "get",
+            startTime: 1000,
+            endTime: 2000,
+            client: String(repeating: "c", count: ValidationLimits.httpClient + 1),
+            statusCode: 200,
+            error: nil,
+            requestHeaders: nil,
+            responseHeaders: nil,
+            requestBody: nil,
+            responseBody: nil
+        )
+
+        XCTAssertNil(signalProcessor.data)
+        XCTAssertTrue(logger.logs.contains(where: { $0.contains("client exceeds the maximum length") }))
+    }
+
+    func test_trackHttpEvent_clientAtMaxLength_isTracked() {
+        collector.trackHttpEvent(
+            url: "https://example.com",
+            method: "get",
+            startTime: 1000,
+            endTime: 2000,
+            client: String(repeating: "c", count: ValidationLimits.httpClient),
+            statusCode: 200,
+            error: nil,
+            requestHeaders: nil,
+            responseHeaders: nil,
+            requestBody: nil,
+            responseBody: nil
+        )
+
+        XCTAssertNotNil(signalProcessor.data as? HttpData)
+    }
+
+    func test_trackScreenView_nameTooLong_isDiscarded() {
+        collector.trackScreenView(String(repeating: "s", count: ValidationLimits.screenViewName + 1), attributes: nil)
+
+        XCTAssertNil(signalProcessor.data)
+        XCTAssertTrue(logger.logs.contains(where: { $0.contains("name exceeds the maximum length") }))
+    }
+
+    func test_trackScreenView_nameAtMaxLength_isTracked() {
+        collector.trackScreenView(String(repeating: "s", count: ValidationLimits.screenViewName), attributes: nil)
+
+        XCTAssertNotNil(signalProcessor.data as? ScreenViewData)
+    }
 }

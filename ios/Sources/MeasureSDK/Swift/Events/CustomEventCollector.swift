@@ -21,9 +21,16 @@ final class BaseCustomEventCollector: CustomEventCollector {
     private var isEnabled = AtomicBool(false)
     private let customEventNameRegex: NSRegularExpression?
     private let attributeValueValidator: AttributeValueValidator
+    private let sessionManager: SessionManager
 
-    init(logger: Logger, signalProcessor: SignalProcessor, timeProvider: TimeProvider, configProvider: ConfigProvider, attributeValueValidator: AttributeValueValidator) {
+    init(logger: Logger,
+         signalProcessor: SignalProcessor,
+         timeProvider: TimeProvider,
+         configProvider: ConfigProvider,
+         attributeValueValidator: AttributeValueValidator,
+         sessionManager: SessionManager) {
         self.logger = logger
+        self.sessionManager = sessionManager
         self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
         self.configProvider = configProvider
@@ -52,6 +59,7 @@ final class BaseCustomEventCollector: CustomEventCollector {
         guard isEnabled.get() else { return }
         guard validateName(name) else { return }
         guard attributeValueValidator.validateAttributes(name: name, attributes: attributes) else { return }
+        guard validateTimestamp(timestamp, name: name) else { return }
 
         let data = CustomEventData(name: name)
         let userDefinedAttributes = EventSerializer.serializeUserDefinedAttribute(attributes)
@@ -65,6 +73,15 @@ final class BaseCustomEventCollector: CustomEventCollector {
                                            userDefinedAttributes: userDefinedAttributes,
                                            threadName: nil,
                                            needsReporting: false)
+    }
+
+    private func validateTimestamp(_ timestamp: Number?, name: String) -> Bool {
+        guard let timestamp, let sessionStartTime = sessionManager.getSessionStartTime() else { return true }
+        if timestamp < sessionStartTime {
+            logger.log(level: .warning, message: "CustomEventCollector: Event(\(name)) timestamp is before the session start time. This event will be dropped.", error: nil, data: nil)
+            return false
+        }
+        return true
     }
 
     private func validateName(_ name: String) -> Bool {

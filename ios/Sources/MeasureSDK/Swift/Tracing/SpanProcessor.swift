@@ -61,6 +61,7 @@ final class BaseSpanProcessor: SpanProcessor {
             attributeProcessors.forEach {
                 $0.appendAttributes(attributes)
             }
+            attributes.sanitize()
 
             span.setInternalAttribute(attributes)
 
@@ -122,6 +123,26 @@ final class BaseSpanProcessor: SpanProcessor {
         }
     }
 
+    private func isValidName(_ name: String) -> Bool {
+        if name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            logger.log(level: .error,
+                       message: "Invalid span: name is empty, span will be dropped",
+                       error: nil,
+                       data: nil)
+            return false
+        }
+
+        if name.count > configProvider.maxSpanNameLength {
+            logger.log(level: .error,
+                       message: "Invalid span: \(name), length \(name.count) exceeded max allowed, span will be dropped",
+                       error: nil,
+                       data: nil)
+            return false
+        }
+
+        return true
+    }
+
     private func sanitize(_ spanData: SpanData) -> SpanData? {
         // Discard span if its duration is negative
         if spanData.duration < 0 {
@@ -132,12 +153,7 @@ final class BaseSpanProcessor: SpanProcessor {
             return nil
         }
 
-        // Discard span if it exceeds max span name length
-        if spanData.name.count > configProvider.maxSpanNameLength {
-            logger.log(level: .error,
-                       message: "Invalid span: \(spanData.name), length \(spanData.name.count) exceeded max allowed, span will be dropped",
-                       error: nil,
-                       data: nil)
+        guard isValidName(spanData.name) else {
             return nil
         }
 

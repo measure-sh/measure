@@ -209,6 +209,7 @@ final class BaseSignalProcessor: SignalProcessor {
             event.attributes?.threadName = threadName
             event.attributes?.deviceLowPowerMode = ProcessInfo.processInfo.isLowPowerModeEnabled
             event.appendAttributes(self.attributeProcessors)
+            event.attributes?.sanitize()
             if let attributes = event.attributes {
                 self.crashDataPersistence.attribute = attributes
             }

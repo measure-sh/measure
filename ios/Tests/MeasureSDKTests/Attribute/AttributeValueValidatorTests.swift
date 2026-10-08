@@ -259,4 +259,30 @@ final class AttributeValueValidatorTests: XCTestCase {
 
         XCTAssertEqual(result?.count, 0)
     }
+
+    func testValidateAttributes_whenKeyMatchesAllowedCharacters_returnsTrue() {
+        let attributes: [String: AttributeValue] = ["plan_type": .string("pro"),
+                                                    "plan-type": .string("pro"),
+                                                    "PlanType2": .string("pro")]
+
+        XCTAssertTrue(validator.validateAttributes(name: "testEvent", attributes: attributes))
+    }
+
+    func testValidateAttributes_whenKeyHasDisallowedCharacters_returnsFalse() {
+        for key in ["plan.type", "plan type", "plan:type", "plan/type", "plän"] {
+            XCTAssertFalse(validator.validateAttributes(name: "testEvent", attributes: [key: .string("pro")]),
+                           "Key \"\(key)\" should be rejected")
+        }
+    }
+
+    func testValidateAttributes_whenKeyIsEmpty_returnsFalse() {
+        XCTAssertFalse(validator.validateAttributes(name: "testEvent", attributes: ["": .string("value")]))
+    }
+
+    func testDropInvalidAttributes_dropsKeysWithDisallowedCharacters() {
+        let result = validator.dropInvalidAttributes(name: "span",
+                                                     attributes: ["bad key": .string("value"), "good_key": .string("value")])
+
+        XCTAssertEqual(result?.keys.sorted(), ["good_key"])
+    }
 }

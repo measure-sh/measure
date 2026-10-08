@@ -416,7 +416,8 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                              signalProcessor: signalProcessor,
                                                              timeProvider: timeProvider,
                                                              configProvider: configProvider,
-                                                             attributeValueValidator: attributeValueValidator)
+                                                             attributeValueValidator: attributeValueValidator,
+                                                             sessionManager: sessionManager)
         self.logEventCollector = BaseLogEventCollector(logger: logger,
                                                        signalProcessor: signalProcessor,
                                                        timeProvider: timeProvider,
@@ -477,7 +478,9 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                          timeProvider: timeProvider,
                                                          sessionManager: sessionManager,
                                                          idProvider: idProvider,
-                                                         logger: logger)
+                                                         logger: logger,
+                                                         configProvider: configProvider,
+                                                         attributeValueValidator: attributeValueValidator)
         self.shakeDetector = AccelerometerShakeDetector(configProvider: configProvider)
         self.shakeBugReportCollector = ShakeBugReportCollector(shakeDetector: shakeDetector)
     }

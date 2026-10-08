@@ -86,7 +86,17 @@ final class BaseAttributeValueValidator: AttributeValueValidator {
     }
 
     private func validateKey(_ key: String) -> Bool {
-        return key.count <= configProvider.maxUserDefinedAttributeKeyLength
+        guard !key.isEmpty, key.count <= configProvider.maxUserDefinedAttributeKeyLength else {
+            return false
+        }
+        return key.unicodeScalars.allSatisfy { scalar in
+            switch scalar {
+            case "a"..."z", "A"..."Z", "0"..."9", "_", "-":
+                return true
+            default:
+                return false
+            }
+        }
     }
 
     private func validateValue(_ value: AttributeValue) -> Bool {

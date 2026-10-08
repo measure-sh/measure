@@ -317,7 +317,8 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                              signalProcessor: self.signalProcessor,
                                                              timeProvider: self.timeProvider,
                                                              configProvider: self.configProvider,
-                                                             attributeValueValidator: self.attributeValueValidator)
+                                                             attributeValueValidator: self.attributeValueValidator,
+                                                             sessionManager: self.sessionManager)
         self.logEventCollector = logEventCollector ?? BaseLogEventCollector(logger: self.logger,
                                                                             signalProcessor: self.signalProcessor,
                                                                             timeProvider: self.timeProvider,
@@ -378,7 +379,9 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                          timeProvider: self.timeProvider,
                                                          sessionManager: self.sessionManager,
                                                          idProvider: self.idProvider,
-                                                         logger: self.logger)
+                                                         logger: self.logger,
+                                                         configProvider: self.configProvider,
+                                                         attributeValueValidator: self.attributeValueValidator)
 
         self.shakeDetector = shakeDetector ?? AccelerometerShakeDetector(configProvider: self.configProvider)
         self.shakeBugReportCollector = shakeBugReportCollector ?? ShakeBugReportCollector(shakeDetector: self.shakeDetector)

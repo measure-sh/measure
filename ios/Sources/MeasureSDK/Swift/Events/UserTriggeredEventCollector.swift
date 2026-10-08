@@ -74,6 +74,13 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
 
     func trackScreenView(_ screenName: String, attributes: [String: AttributeValue]?) {
         guard isEnabled.get() else { return }
+        guard screenName.count <= ValidationLimits.screenViewName else {
+            logger.log(level: .error,
+                       message: "UserTriggeredEventCollector: Failed to track screen view, name exceeds the maximum length of \(ValidationLimits.screenViewName) characters",
+                       error: nil,
+                       data: nil)
+            return
+        }
         guard attributeValueValidator.validateAttributes(name: screenName, attributes: attributes) else { return }
 
         let timestamp = timeProvider.now()
@@ -160,6 +167,14 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
 
         if endTime < startTime {
             logger.log(level: .error, message: "UserTriggeredEventCollector: Failed to track HTTP event, invalid start or end time (end < start)", error: nil, data: nil)
+            return
+        }
+
+        if client.count > ValidationLimits.httpClient {
+            logger.log(level: .error,
+                       message: "UserTriggeredEventCollector: Failed to track HTTP event, client exceeds the maximum length of \(ValidationLimits.httpClient) characters",
+                       error: nil,
+                       data: nil)
             return
         }
 

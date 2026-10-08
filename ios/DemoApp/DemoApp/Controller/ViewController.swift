@@ -14,6 +14,7 @@ import Measure
     enum TableSection: Int, CaseIterable {
         case crashes = 0
         case httpEvents = 1
+        case validationFailures = 2
 
         var title: String {
             switch self {
@@ -21,6 +22,8 @@ import Measure
                 return "Crash Types"
             case .httpEvents:
                 return "HTTP Events"
+            case .validationFailures:
+                return "Validation Failures"
             }
         }
     }
@@ -51,7 +54,28 @@ import Measure
                           "GET – Network Error",
                           "GET – Non-JSON Response"]
 
+    let validationFailureTypes = ["Long user ID (129)",
+                                  "Clear user ID",
+                                  "Attribute key with dot",
+                                  "Attribute key empty",
+                                  "Span attribute key invalid",
+                                  "Span empty name",
+                                  "Long screen view name (1025)",
+                                  "Long HTTP client (33)",
+                                  "Long bug report description (4001)",
+                                  "Bug report with 6 attachments",
+                                  "Bug report attribute key invalid",
+                                  "Attachment with empty name",
+                                  "Huge NSError userInfo (exception.meta)",
+                                  "Custom event timestamp before session",
+                                  "Long thread name (129)",
+                                  "Gesture target / target_id screen",
+                                  "Long VC class name (>256)",
+                                  "Long SwiftUI view name (129)",
+                                  "Long launched_activity (present, then background/foreground)"]
+
     private let tableView = UITableView(frame: .zero, style: .plain)
+    private var didRunLaunchValidationTrigger = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -85,6 +109,12 @@ import Measure
                                                     "latitude": .double(30.2661403415387)]
 
         Measure.trackScreenView("Home", attributes: attributes)
+
+        if !didRunLaunchValidationTrigger,
+           let trigger = UserDefaults.standard.string(forKey: "validationTrigger") {
+            didRunLaunchValidationTrigger = true
+            triggerValidationFailure(type: trigger)
+        }
     }
 
     override func viewDidDisappear(_ animated: Bool) {
@@ -203,7 +233,14 @@ import Measure
     func tableView(_ tableView: UITableView,
                    numberOfRowsInSection section: Int) -> Int {
         guard let sectionType = TableSection(rawValue: section) else { return 0 }
-        return sectionType == .crashes ? crashTypes.count : httpEventTypes.count
+        switch sectionType {
+        case .crashes:
+            return crashTypes.count
+        case .httpEvents:
+            return httpEventTypes.count
+        case .validationFailures:
+            return validationFailureTypes.count
+        }
     }
 
     func tableView(_ tableView: UITableView,
@@ -220,6 +257,10 @@ import Measure
         case .httpEvents:
             cell.textLabel?.text = httpEventTypes[indexPath.row]
             cell.textLabel?.textColor = .systemBlue
+
+        case .validationFailures:
+            cell.textLabel?.text = validationFailureTypes[indexPath.row]
+            cell.textLabel?.textColor = .systemOrange
         }
 
         return cell
@@ -238,7 +279,117 @@ import Measure
             triggerCrash(type: crashTypes[indexPath.row])
         case .httpEvents:
             triggerHttpEvent(type: httpEventTypes[indexPath.row])
+        case .validationFailures:
+            triggerValidationFailure(type: validationFailureTypes[indexPath.row])
         }
+    }
+
+    // MARK: - Validation Failure Triggers
+
+    func triggerValidationFailure(type: String) {
+        switch type {
+        case "Long user ID (129)":
+            Measure.setUserId(String(repeating: "u", count: 129))
+
+        case "Clear user ID":
+            Measure.clearUserId()
+
+        case "Attribute key with dot":
+            Measure.trackEvent(name: "attr_key_dot", attributes: ["plan.type": .string("pro")], timestamp: nil)
+
+        case "Attribute key empty":
+            Measure.trackEvent(name: "attr_key_empty", attributes: ["": .string("value")], timestamp: nil)
+
+        case "Span attribute key invalid":
+            Measure.startSpan(name: "validation_span_attr")
+                .setAttribute("bad key", value: "value")
+                .end()
+
+        case "Span empty name":
+            Measure.startSpan(name: "").end()
+
+        case "Long screen view name (1025)":
+            Measure.trackScreenView(String(repeating: "s", count: 1025), attributes: nil)
+
+        case "Long HTTP client (33)":
+            let startTime = UInt64(Measure.getCurrentTime())
+            Measure.trackHttpEvent(url: "https://api.example.com/validation",
+                                   method: "get",
+                                   startTime: startTime,
+                                   endTime: startTime + 150,
+                                   client: String(repeating: "c", count: 33),
+                                   statusCode: 200)
+
+        case "Long bug report description (4001)":
+            Measure.trackBugReport(description: String(repeating: "d", count: 4001))
+
+        case "Bug report with 6 attachments":
+            let attachments = (0..<6).map { makeAttachment(name: "screenshot_\($0).png") }
+            Measure.trackBugReport(description: "Bug report with 6 attachments", attachments: attachments)
+
+        case "Bug report attribute key invalid":
+            Measure.trackBugReport(description: "Bug report with invalid attribute key",
+                                   attributes: ["a.b": .string("value")])
+
+        case "Attachment with empty name":
+            Measure.trackBugReport(description: "Bug report with empty attachment name",
+                                   attachments: [makeAttachment(name: "")])
+
+        case "Huge NSError userInfo (exception.meta)":
+            let error = NSError(domain: "sh.measure.demoapp.validation",
+                                code: 1,
+                                userInfo: ["blob": String(repeating: "m", count: 5000)])
+            Measure.trackError(error as Error)
+
+        case "Custom event timestamp before session":
+            Measure.trackEvent(name: "timestamp_before_session",
+                               attributes: [:],
+                               timestamp: Measure.getCurrentTime() - 86_400_000)
+
+        case "Long thread name (129)":
+            let longNamedQueue = DispatchQueue(label: String(repeating: "t", count: 129))
+            let operationQueue = OperationQueue()
+            operationQueue.underlyingQueue = longNamedQueue
+            operationQueue.addOperation {
+                withExtendedLifetime(longNamedQueue) {
+                    Measure.trackEvent(name: "long_thread_name", attributes: [:], timestamp: nil)
+                }
+            }
+
+        case "Gesture target / target_id screen":
+            navigationController?.pushViewController(GestureValidationViewController(), animated: true)
+
+        case "Long VC class name (>256)":
+            let controller = ValidationGenericViewController<
+                ValidationNestedTypeWithALongDescriptiveName<
+                    ValidationNestedTypeWithALongDescriptiveName<
+                        ValidationNestedTypeWithALongDescriptiveName<
+                            ValidationNestedTypeWithALongDescriptiveName<
+                                ValidationNestedTypeWithALongDescriptiveName<Int>>>>>>()
+            navigationController?.pushViewController(controller, animated: true)
+
+        case "Long SwiftUI view name (129)":
+            let view = MsrMonitorView(String(repeating: "v", count: 129)) {
+                Text("SwiftUI view with a 129 character name")
+            }
+            navigationController?.pushViewController(UIHostingController(rootView: view), animated: true)
+
+        case "Long launched_activity (present, then background/foreground)":
+            let controller = LaunchedActivityValidationViewControllerWithAnIntentionallyLongClassNameThatExceedsTheBackendLaunchedActivityLimitOfOneHundredTwentySevenCharacters()
+            present(controller, animated: true)
+
+        default:
+            break
+        }
+    }
+
+    private func makeAttachment(name: String) -> MsrAttachment {
+        let bytes = UIImage(systemName: "star.fill")?.pngData() ?? Data([0])
+        return MsrAttachment(name: name,
+                             type: .screenshot,
+                             size: Int64(bytes.count),
+                             id: UUID().uuidString,
+                             bytes: bytes)
     }
 
     // MARK: - HTTP Tracking
@@ -392,5 +543,93 @@ import Measure
         DispatchQueue.global(qos: .userInitiated).asyncAfter(deadline: .now() + 0.3) {
             abort()
         }
+    }
+}
+
+// MARK: - Validation Failure Test Types
+
+struct ValidationNestedTypeWithALongDescriptiveName<T> {}
+
+final class ValidationGenericViewController<T>: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+        title = "Long VC class name"
+    }
+}
+
+final class LaunchedActivityValidationViewControllerWithAnIntentionallyLongClassNameThatExceedsTheBackendLaunchedActivityLimitOfOneHundredTwentySevenCharacters: UIViewController { // swiftlint:disable:this type_name
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+
+        let label = UILabel()
+        label.text = "Background and foreground the app to trigger a launch event."
+        label.numberOfLines = 0
+        label.textAlignment = .center
+        label.translatesAutoresizingMaskIntoConstraints = false
+
+        let dismissButton = UIButton(type: .system)
+        dismissButton.setTitle("Dismiss", for: .normal)
+        dismissButton.addTarget(self, action: #selector(dismissTapped), for: .touchUpInside)
+
+        let stack = UIStackView(arrangedSubviews: [label, dismissButton])
+        stack.axis = .vertical
+        stack.spacing = 16
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(stack)
+
+        NSLayoutConstraint.activate([
+            stack.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16)
+        ])
+    }
+
+    @objc private func dismissTapped() {
+        dismiss(animated: true)
+    }
+}
+
+final class GestureTargetValidationViewWithAnIntentionallyLongClassNameThatExceedsTheBackendGestureTargetLimitOfOneHundredTwentyEightCharacters: UIView {} // swiftlint:disable:this type_name
+
+final class GestureValidationViewController: UIViewController {
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        view.backgroundColor = .systemBackground
+        title = "Gesture Validation"
+
+        let longTargetView = GestureTargetValidationViewWithAnIntentionallyLongClassNameThatExceedsTheBackendGestureTargetLimitOfOneHundredTwentyEightCharacters()
+        longTargetView.backgroundColor = .systemOrange
+
+        let longTargetIdView = UIView()
+        longTargetIdView.backgroundColor = .systemPurple
+        longTargetIdView.accessibilityIdentifier = String(repeating: "i", count: 129)
+
+        let stack = UIStackView(arrangedSubviews: [
+            makeCaption("Tap the orange box: long target (131)"),
+            longTargetView,
+            makeCaption("Tap the purple box: long target_id (129)"),
+            longTargetIdView
+        ])
+        stack.axis = .vertical
+        stack.spacing = 12
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(stack)
+
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            stack.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            longTargetView.heightAnchor.constraint(equalToConstant: 80),
+            longTargetIdView.heightAnchor.constraint(equalToConstant: 80)
+        ])
+    }
+
+    private func makeCaption(_ text: String) -> UILabel {
+        let label = UILabel()
+        label.text = text
+        label.textAlignment = .center
+        return label
     }
 }

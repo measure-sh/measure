@@ -17,4 +17,10 @@ extension String {
                    .replacingOccurrences(of: "}", with: "")
                    .replacingOccurrences(of: "\"", with: "")
     }
+
+    func truncated(maxLength: Int) -> String {
+        guard maxLength > 0 else { return "" }
+        guard count > maxLength else { return self }
+        return String(prefix(maxLength))
+    }
 }
