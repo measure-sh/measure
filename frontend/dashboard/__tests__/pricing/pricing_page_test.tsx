@@ -116,10 +116,56 @@ describe("Pricing page", () => {
       expect(screen.queryByText("Free Tier")).not.toBeInTheDocument();
     });
 
+    it("charges the minimum price when usage is above the free tier but costs less", () => {
+      render(<Pricing />);
+      // At the default settings this is above the free tier and costs less than the minimum.
+      act(() => fireEvent.change(dailyUsers(), { target: { value: "50000" } }));
+      expect(
+        screen.getByText(/Estimated monthly cost/).nextElementSibling,
+      ).toHaveTextContent(`$${MINIMUM_PRICE_AFTER_FREE_TIER}`);
+    });
+
+    // At the default settings, 1,000 users opening the app 3 times a day.
+    it.each([
+      ["App opens per user per day", "6", "Session tracking events", "180K"],
+      ["Session length", "20", "Journey events", "1.8K"],
+      ["Session length", "20", "Session replay events", "540K"],
+      [
+        "Sessions with an error",
+        "1",
+        "Error, ANR, App Hang & Bug report events",
+        "900",
+      ],
+      ["Trace sampling rate", "1", "Performance spans", "9K"],
+      ["Spans per session", "20", "Performance spans", "18"],
+      ["Launch metrics sampling rate", "1", "Launch time events", "900"],
+      ["User journey sampling rate", "1", "Journey events", "45K"],
+      ["HTTP sampling rate", "1", "HTTP events", "18K"],
+      ["Requests per session", "40", "HTTP events", "360"],
+    ])(
+      "updates the estimate when %s changes",
+      (inputLabel, value, resultLabel, expected) => {
+        render(<Pricing />);
+        act(() =>
+          fireEvent.click(
+            screen.getByRole("button", { name: /Advanced Settings/ }),
+          ),
+        );
+        act(() =>
+          fireEvent.change(screen.getByRole("textbox", { name: inputLabel }), {
+            target: { value },
+          }),
+        );
+        expect(
+          screen.getByText(`${resultLabel} per month:`).nextElementSibling,
+        ).toHaveTextContent(expected);
+      },
+    );
+
     it("reveals advanced settings on demand", () => {
       render(<Pricing />);
       expect(
-        screen.queryByRole("textbox", { name: /Average app opens/ }),
+        screen.queryByRole("textbox", { name: /App opens per user per day/ }),
       ).not.toBeInTheDocument();
 
       act(() =>
@@ -129,7 +175,7 @@ describe("Pricing page", () => {
       );
 
       expect(
-        screen.getByRole("textbox", { name: /Average app opens/ }),
+        screen.getByRole("textbox", { name: /App opens per user per day/ }),
       ).toBeInTheDocument();
     });
   });

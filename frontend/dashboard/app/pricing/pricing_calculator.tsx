@@ -11,34 +11,160 @@ import {
 } from "../components/collapsible";
 import { SyncedInputSlider } from "../components/synced_input_slider";
 import GetStartedLink from "../components/get_started_link";
-import { calculate } from "../utils/pricing_calculator";
 import {
   FREE_GB,
   MINIMUM_PRICE_AFTER_FREE_TIER,
+  PRICE_PER_GB_MONTH,
 } from "../utils/pricing_constants";
 import { cn } from "../utils/shadcn_utils";
 import { underlineLinkStyle } from "../utils/shared_styles";
 
-export default function PricingCalculator() {
-  const [dailyUsers, setDailyUsers] = useState(1000);
-  const [showAdvanced, setShowAdvanced] = useState(false);
+// Assumed event sizes for the cost estimate
+export const ERROR_EVENT_SIZE_KB = 50;
+export const DEFAULT_EVENT_SIZE_KB = 1;
 
-  // Advanced configurable rates (percent values for UI)
-  const [averageAppOpens, setAverageAppOpens] = useState(3); // times
-  const [launchSamplePercent, setLaunchSamplePercent] = useState(0.01); // percent
-  const [errorRatePercent, setErrorRatePercent] = useState(0.5); // percent
-  const [perfSpanSamplePercent, setPerfSpanSamplePercent] = useState(0.01); // percent
-  const [perfSpanCount, setPerfSpanCount] = useState(10); // number of performance spans in app
-  const [journeySamplePercent, setJourneySamplePercent] = useState(0.01); // percent
+const EVENTS_PER_SESSION_MINUTE = 60;
+const JOURNEY_EVENTS_PER_MINUTE = 10;
 
-  const result = calculate({
+export type CalculatorInputs = {
+  dailyUsers: number;
+  averageAppOpens: number;
+  sessionLengthMinutes: number;
+  launchSamplePercent: number; // e.g. 0.01 means 0.01%
+  errorRatePercent: number; // e.g. 0.5 means 0.5%
+  perfSpanSamplePercent: number; // e.g. 0.01 means 0.01%
+  perfSpanCount: number;
+  journeySamplePercent: number; // e.g. 0.01 means 0.01%
+  httpSamplePercent: number; // e.g. 0.01 means 0.01%
+  httpRequestsPerSession: number;
+};
+
+export type EventBreakdown = {
+  sessionStartPerDay: number;
+  launchPerDay: number;
+  crashEventsPerDay: number;
+  sessionReplayEventsPerDay: number;
+  perfSpansPerDay: number;
+  journeyEventsPerDay: number;
+  httpEventsPerDay: number;
+};
+
+export type CalculatorResult = {
+  events: EventBreakdown;
+  totalGBPerDay: number;
+  totalGBPerMonth: number;
+  isFreeTier: boolean;
+  rawMonthlyCost: number;
+};
+
+export function computeEventBreakdown(
+  inputs: CalculatorInputs,
+): EventBreakdown {
+  const {
     dailyUsers,
     averageAppOpens,
+    sessionLengthMinutes,
     launchSamplePercent,
     errorRatePercent,
     perfSpanSamplePercent,
     perfSpanCount,
     journeySamplePercent,
+    httpSamplePercent,
+    httpRequestsPerSession,
+  } = inputs;
+
+  const sessionStartPerDay = dailyUsers * averageAppOpens;
+  const launchPerDay =
+    dailyUsers * averageAppOpens * (launchSamplePercent / 100);
+  const crashSessionsPerDay =
+    dailyUsers * averageAppOpens * (errorRatePercent / 100);
+  const crashEventsPerDay = crashSessionsPerDay;
+  const sessionReplayEventsPerDay =
+    crashSessionsPerDay * sessionLengthMinutes * EVENTS_PER_SESSION_MINUTE;
+  const perfSpansPerDay =
+    dailyUsers *
+    averageAppOpens *
+    (perfSpanSamplePercent / 100) *
+    perfSpanCount;
+  const journeyEventsPerDay =
+    dailyUsers *
+    averageAppOpens *
+    sessionLengthMinutes *
+    JOURNEY_EVENTS_PER_MINUTE *
+    (journeySamplePercent / 100);
+  const httpEventsPerDay =
+    dailyUsers *
+    averageAppOpens *
+    (httpSamplePercent / 100) *
+    httpRequestsPerSession;
+
+  return {
+    sessionStartPerDay,
+    launchPerDay,
+    crashEventsPerDay,
+    sessionReplayEventsPerDay,
+    perfSpansPerDay,
+    journeyEventsPerDay,
+    httpEventsPerDay,
+  };
+}
+
+export function computeBytesPerDay(events: EventBreakdown): number {
+  const crashBytes = events.crashEventsPerDay * ERROR_EVENT_SIZE_KB * 1024;
+  const otherBytes =
+    (events.sessionStartPerDay +
+      events.launchPerDay +
+      events.sessionReplayEventsPerDay +
+      events.perfSpansPerDay +
+      events.journeyEventsPerDay +
+      events.httpEventsPerDay) *
+    DEFAULT_EVENT_SIZE_KB *
+    1024;
+  return crashBytes + otherBytes;
+}
+
+export function calculate(inputs: CalculatorInputs): CalculatorResult {
+  const events = computeEventBreakdown(inputs);
+  const totalBytesPerDay = computeBytesPerDay(events);
+  const totalGBPerDay = totalBytesPerDay / 1_000_000_000;
+  const totalGBPerMonth = totalGBPerDay * 30;
+  const isFreeTier = totalGBPerMonth <= FREE_GB;
+  const rawMonthlyCost = totalGBPerMonth * PRICE_PER_GB_MONTH;
+
+  return {
+    events,
+    totalGBPerDay,
+    totalGBPerMonth,
+    isFreeTier,
+    rawMonthlyCost,
+  };
+}
+
+export default function PricingCalculator() {
+  const [dailyUsers, setDailyUsers] = useState(1000);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+
+  const [averageAppOpens, setAverageAppOpens] = useState(3);
+  const [sessionLengthMinutes, setSessionLengthMinutes] = useState(5);
+  const [errorRatePercent, setErrorRatePercent] = useState(0.5);
+  const [perfSpanSamplePercent, setPerfSpanSamplePercent] = useState(0.01);
+  const [perfSpanCount, setPerfSpanCount] = useState(10); // spans per session
+  const [launchSamplePercent, setLaunchSamplePercent] = useState(0.01);
+  const [journeySamplePercent, setJourneySamplePercent] = useState(0.01);
+  const [httpSamplePercent, setHttpSamplePercent] = useState(0.01);
+  const [httpRequestsPerSession, setHttpRequestsPerSession] = useState(20);
+
+  const result = calculate({
+    dailyUsers,
+    averageAppOpens,
+    sessionLengthMinutes,
+    launchSamplePercent,
+    errorRatePercent,
+    perfSpanSamplePercent,
+    perfSpanCount,
+    journeySamplePercent,
+    httpSamplePercent,
+    httpRequestsPerSession,
   });
 
   const {
@@ -49,6 +175,7 @@ export default function PricingCalculator() {
       sessionReplayEventsPerDay,
       perfSpansPerDay,
       journeyEventsPerDay,
+      httpEventsPerDay,
     },
     totalGBPerMonth,
     isFreeTier,
@@ -80,6 +207,9 @@ export default function PricingCalculator() {
     }
     return 1;
   };
+
+  const sectionHeadingStyle =
+    "font-display text-lg text-muted-foreground border-b border-border pb-2";
 
   return (
     <div id="estimator" className="w-full max-w-6xl px-4 md:px-6">
@@ -118,86 +248,144 @@ export default function PricingCalculator() {
             </CollapsibleTrigger>
           </div>
 
-          <CollapsibleContent className="mt-8 space-y-8 rounded-lg">
-            <SyncedInputSlider
-              label="📲 Average app opens by a user per day"
-              description="Average number of times a user opens your app per day"
-              value={averageAppOpens}
-              onChange={setAverageAppOpens}
-              min={0}
-              max={50}
-              step={1}
-              integer
-              suffix="times"
-              rangeStartLabel="0"
-              rangeEndLabel="50"
-            />
+          <CollapsibleContent className="mt-8 space-y-12 rounded-lg">
+            <div className="space-y-8">
+              <h4 className={sectionHeadingStyle}>Usage</h4>
+              <SyncedInputSlider
+                label="App opens per user per day"
+                description="Average number of times a user opens your app per day"
+                value={averageAppOpens}
+                onChange={setAverageAppOpens}
+                min={0}
+                max={50}
+                step={1}
+                integer
+                suffix="times"
+                rangeStartLabel="0"
+                rangeEndLabel="50"
+              />
+              <SyncedInputSlider
+                label="Session length"
+                description="Average time a user spends in your app each time they open it. A session replay covers the whole session."
+                value={sessionLengthMinutes}
+                onChange={setSessionLengthMinutes}
+                min={0}
+                max={60}
+                step={1}
+                integer
+                suffix="minutes"
+                rangeStartLabel="0"
+                rangeEndLabel="60"
+              />
+            </div>
 
-            <SyncedInputSlider
-              label="🚀 Launch time metrics collection rate"
-              description="Percentage of app opens for which we collect launch timing metrics"
-              value={launchSamplePercent}
-              onChange={setLaunchSamplePercent}
-              min={0}
-              max={100}
-              step={percentStep}
-              suffix="%"
-              rangeStartLabel="0%"
-              rangeEndLabel="100%"
-            />
+            <div className="space-y-8">
+              <h4 className={sectionHeadingStyle}>
+                Errors, ANRs, App Hangs & Bug Reports
+              </h4>
+              <SyncedInputSlider
+                label="Sessions with an error"
+                description="Percentage of app opens that have an error, ANR, App Hang or bug report"
+                value={errorRatePercent}
+                onChange={setErrorRatePercent}
+                min={0}
+                max={100}
+                step={percentStep}
+                suffix="%"
+                rangeStartLabel="0%"
+                rangeEndLabel="100%"
+              />
+            </div>
 
-            <SyncedInputSlider
-              label="🐞 Error rate (Crashes, ANRs & Bug reports)"
-              description="Percentage of app opens which have Crashes, ANRs & Bug reports"
-              value={errorRatePercent}
-              onChange={setErrorRatePercent}
-              min={0}
-              max={100}
-              step={percentStep}
-              suffix="%"
-              rangeStartLabel="0%"
-              rangeEndLabel="100%"
-            />
+            <div className="space-y-8">
+              <h4 className={sectionHeadingStyle}>Traces</h4>
+              <SyncedInputSlider
+                label="Trace sampling rate"
+                description="Percentage of traces collected"
+                value={perfSpanSamplePercent}
+                onChange={setPerfSpanSamplePercent}
+                min={0}
+                max={100}
+                step={percentStep}
+                suffix="%"
+                rangeStartLabel="0%"
+                rangeEndLabel="100%"
+              />
+              <SyncedInputSlider
+                label="Spans per session"
+                description="Number of spans your app records per session, counting each child span in a trace"
+                value={perfSpanCount}
+                onChange={setPerfSpanCount}
+                min={0}
+                max={100}
+                step={1}
+                integer
+                suffix="spans"
+                rangeStartLabel="0"
+                rangeEndLabel="100"
+              />
+            </div>
 
-            <SyncedInputSlider
-              label="⚡️ Performance Spans collection rate"
-              description="Percentage of performance spans collected per session when sampled (a Trace can have multiple child spans)"
-              value={perfSpanSamplePercent}
-              onChange={setPerfSpanSamplePercent}
-              min={0}
-              max={100}
-              step={percentStep}
-              suffix="%"
-              rangeStartLabel="0%"
-              rangeEndLabel="100%"
-            />
+            <div className="space-y-8">
+              <h4 className={sectionHeadingStyle}>Launch Metrics</h4>
+              <SyncedInputSlider
+                label="Launch metrics sampling rate"
+                description="Percentage of app opens that collect cold, warm and hot launch metrics"
+                value={launchSamplePercent}
+                onChange={setLaunchSamplePercent}
+                min={0}
+                max={100}
+                step={percentStep}
+                suffix="%"
+                rangeStartLabel="0%"
+                rangeEndLabel="100%"
+              />
+            </div>
 
-            <SyncedInputSlider
-              label="⚡️ Number of Performance Spans in app"
-              description="Number of performance spans collected per session when sampled (a Trace can have multiple child spans)"
-              value={perfSpanCount}
-              onChange={setPerfSpanCount}
-              min={0}
-              max={100}
-              step={1}
-              integer
-              suffix="spans"
-              rangeStartLabel="0"
-              rangeEndLabel="100"
-            />
+            <div className="space-y-8">
+              <h4 className={sectionHeadingStyle}>User Journeys</h4>
+              <SyncedInputSlider
+                label="User journey sampling rate"
+                description="Percentage of sessions that collect user journeys"
+                value={journeySamplePercent}
+                onChange={setJourneySamplePercent}
+                min={0}
+                max={100}
+                step={percentStep}
+                suffix="%"
+                rangeStartLabel="0%"
+                rangeEndLabel="100%"
+              />
+            </div>
 
-            <SyncedInputSlider
-              label="🚕 User Journey events collection rate"
-              description="Percentage of user journey events collected per session when sampled"
-              value={journeySamplePercent}
-              onChange={setJourneySamplePercent}
-              min={0}
-              max={100}
-              step={percentStep}
-              suffix="%"
-              rangeStartLabel="0%"
-              rangeEndLabel="100%"
-            />
+            <div className="space-y-8">
+              <h4 className={sectionHeadingStyle}>HTTP</h4>
+              <SyncedInputSlider
+                label="HTTP sampling rate"
+                description="Percentage of HTTP events collected"
+                value={httpSamplePercent}
+                onChange={setHttpSamplePercent}
+                min={0}
+                max={100}
+                step={percentStep}
+                suffix="%"
+                rangeStartLabel="0%"
+                rangeEndLabel="100%"
+              />
+              <SyncedInputSlider
+                label="Requests per session"
+                description="Average number of HTTP requests your app makes per session"
+                value={httpRequestsPerSession}
+                onChange={setHttpRequestsPerSession}
+                min={0}
+                max={200}
+                step={1}
+                integer
+                suffix="requests"
+                rangeStartLabel="0"
+                rangeEndLabel="200"
+              />
+            </div>
           </CollapsibleContent>
         </Collapsible>
 
@@ -214,7 +402,7 @@ export default function PricingCalculator() {
             </div>
             <div className="flex justify-between">
               <span className="text-secondary-foreground">
-                Crash, ANR & Bug report events per month:
+                Error, ANR, App Hang & Bug report events per month:
               </span>
               <span className="font-display">
                 {formatNumber(Math.round(crashEventsPerDay * 30))}
@@ -250,6 +438,14 @@ export default function PricingCalculator() {
               </span>
               <span className="font-display">
                 {formatNumber(Math.round(journeyEventsPerDay * 30))}
+              </span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-secondary-foreground">
+                HTTP events per month:
+              </span>
+              <span className="font-display">
+                {formatNumber(Math.round(httpEventsPerDay * 30))}
               </span>
             </div>
             <div className="flex justify-between">
