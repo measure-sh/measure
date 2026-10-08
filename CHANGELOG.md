@@ -124,6 +124,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4573) by @dependabot[bot] in #4573
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
+- (**frontend**): Restyle pricing plan cards by @anupcowkur in #4595
 - (**frontend**): Update pricing calculator for sdk config options by @anupcowkur in #4594
 - (**frontend**): Add September 2026 what's new blog by @abhaysood in #4581
 - (**frontend**): Add app_launch trace to the sandbox by @anupcowkur in #4549
