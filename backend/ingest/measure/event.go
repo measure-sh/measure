@@ -366,6 +366,9 @@ func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 		if ev.IsANR() && ev.ANR == nil {
 			return fmt.Errorf(`%q must not be null`, `anr`)
 		}
+		if ev.IsAppHang() && ev.AppHang == nil {
+			return fmt.Errorf(`%q must not be null`, `app_hang`)
+		}
 
 		// discard batch if duplicate
 		// event ids found
@@ -509,6 +512,9 @@ func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
 		}
 		if ev.IsANR() && ev.ANR == nil {
 			return fmt.Errorf(`%q must not be null`, `anr`)
+		}
+		if ev.IsAppHang() && ev.AppHang == nil {
+			return fmt.Errorf(`%q must not be null`, `app_hang`)
 		}
 
 		// discard batch if duplicate event ids found

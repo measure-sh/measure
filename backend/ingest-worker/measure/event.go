@@ -459,6 +459,8 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		anrThreadDump := ""
 		exceptionExceptions := "[]"
 		exceptionThreads := "[]"
+		appHangExceptions := "[]"
+		appHangBinaryImages := "[]"
 		attachments := "[]"
 		binaryImages := "[]"
 		errorMeta := "{}"
@@ -496,6 +498,28 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 			}
 
 			if err := e.events[i].ANR.ComputeFingerprint(); err != nil {
+				return err
+			}
+		}
+		if e.events[i].IsAppHang() {
+			marshalledExceptions, err := json.Marshal(e.events[i].AppHang.Exceptions)
+			if err != nil {
+				return err
+			}
+			appHangExceptions = string(marshalledExceptions)
+
+			if len(e.events[i].AppHang.BinaryImages) > 0 {
+				marshalledImages, err := json.Marshal(e.events[i].AppHang.BinaryImages)
+				if err != nil {
+					return err
+				}
+				appHangBinaryImages = string(marshalledImages)
+			}
+
+			// The fingerprint falls back to the binary and the frame's
+			// offset within it, so a hang without symbols still groups.
+			// Validation rejects a hang with no frames.
+			if err := e.events[i].AppHang.ComputeFingerprint(); err != nil {
 				return err
 			}
 		}
@@ -625,6 +649,27 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`anr.foreground`, nil).
 				Set(`anr.subject`, nil).
 				Set(`anr.thread_dump`, nil)
+		}
+
+		// app hang
+		if e.events[i].IsAppHang() {
+			row.
+				Set(`app_hang.fingerprint`, e.events[i].AppHang.Fingerprint).
+				Set(`app_hang.exceptions`, appHangExceptions).
+				Set(`app_hang.binary_images`, appHangBinaryImages).
+				Set(`app_hang.duration`, e.events[i].AppHang.Duration).
+				Set(`app_hang.state`, e.events[i].AppHang.State).
+				Set(`app_hang.framework`, e.events[i].AppHang.Framework).
+				Set(`app_hang.foreground`, e.events[i].AppHang.Foreground)
+		} else {
+			row.
+				Set(`app_hang.fingerprint`, nil).
+				Set(`app_hang.exceptions`, nil).
+				Set(`app_hang.binary_images`, nil).
+				Set(`app_hang.duration`, nil).
+				Set(`app_hang.state`, nil).
+				Set(`app_hang.framework`, nil).
+				Set(`app_hang.foreground`, nil)
 		}
 
 		// exception

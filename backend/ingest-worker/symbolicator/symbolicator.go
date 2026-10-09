@@ -272,10 +272,11 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 			continue
 		}
 
-		// apple exceptions are symbolicated
+		// apple exceptions and app hangs are symbolicated
 		// in place and do not need any
 		// further processing
-		if ev.Type == event.TypeException && ev.Exception.GetFramework() == event.FrameworkApple {
+		isAppleException := ev.Type == event.TypeException && ev.Exception.GetFramework() == event.FrameworkApple
+		if isAppleException || ev.IsAppHang() {
 			if s.appleSymbolicator == nil {
 				fmt.Printf("skipping apple symbolication for event %s: symbolicator initialized for os %q\n", ev.ID, s.OSName)
 				continue
@@ -888,6 +889,108 @@ func (js *jvmSymbolicator) ensureRequestInitialized() {
 	}
 }
 
+// writeAppleFrames writes frame lines in the Apple crash
+// report format.
+func writeAppleFrames(b *strings.Builder, frames event.Frames) {
+	for _, frame := range frames {
+		if frame.FrameiOS == nil {
+			continue
+		}
+		b.WriteString(fmt.Sprintf("%d    %s    0x%s 0x%s + %d\n", frame.FrameIndex, frame.BinaryName, frame.SymbolAddress, frame.BinaryAddress, frame.Offset))
+	}
+}
+
+// writeAppleBinaryImages writes the binary images section of
+// an Apple crash report.
+func writeAppleBinaryImages(b *strings.Builder, images []event.BinaryImage) {
+	for j, image := range images {
+		if j == 0 {
+			b.WriteString("Binary Images:\n")
+		}
+
+		marker := "+"
+
+		if image.System {
+			marker = "-"
+		}
+
+		b.WriteString(fmt.Sprintf("       0x%s -        0x%s %s%s %s  <%s> %s\n", image.StartAddr, image.EndAddr, marker, image.Name, image.Arch, image.Uuid, image.Path))
+	}
+}
+
+// makeAppleHangReport creates an Apple crash report from an
+// app hang event.
+func (as *appleSymbolicator) makeAppleHangReport(ev event.EventField) {
+	var b strings.Builder
+
+	for j := range ev.AppHang.Exceptions {
+		detail := ev.AppHang.Exceptions[j]
+
+		// write os info
+		b.WriteString(fmt.Sprintf("Version: %s (%s)\n", ev.Attribute.AppVersion, ev.Attribute.AppBuild))
+
+		// write cpu arch
+		b.WriteString(fmt.Sprintf("Code Type: %s\n", ev.Attribute.DeviceCPUArch))
+
+		// write os version
+		b.WriteString(fmt.Sprintf("OS Version: iPhone OS %s (%s)\n", ev.Attribute.OSVersion, detail.OSBuildNumber))
+
+		b.WriteString("\n")
+
+		// a hang carries no BSD signal, but the report still needs an
+		// exception section. use the termination Apple itself reports
+		// when its watchdog kills an unresponsive main thread.
+		b.WriteString("Exception Type: EXC_CRASH (SIGKILL)\n")
+
+		// write exception codes
+		if len(detail.Frames) > 0 && detail.Frames[0].FrameiOS != nil {
+			b.WriteString(fmt.Sprintf("Exception Codes: #%d at 0x%s\n", detail.ThreadSequence, detail.Frames[0].SymbolAddress))
+		}
+
+		// write blocked thread
+		b.WriteString(fmt.Sprintf("Crashed Thread: %d\n", detail.ThreadSequence))
+
+		b.WriteString("\n")
+
+		if detail.ThreadName != "" {
+			b.WriteString(fmt.Sprintf("Thread %d name:  %s\n", detail.ThreadSequence, detail.ThreadName))
+		}
+		b.WriteString(fmt.Sprintf("Thread %d Crashed:\n", detail.ThreadSequence))
+
+		// write blocked thread's frames
+		writeAppleFrames(&b, detail.Frames)
+	}
+
+	// write binary images
+	writeAppleBinaryImages(&b, ev.AppHang.BinaryImages)
+
+	as.appleCrashReport = []byte(b.String())
+}
+
+// rewriteAppleHangReport partially updates the original
+// app hang event with symbolicated data.
+func (as appleSymbolicator) rewriteAppleHangReport(ev event.EventField) {
+	for i, st := range as.response.Stacktraces {
+		if i >= len(ev.AppHang.Exceptions) {
+			break
+		}
+
+		for _, f := range st.Frames {
+			if f.Status != "symbolicated" {
+				continue
+			}
+
+			if f.OriginalIndex < 0 || f.OriginalIndex >= len(ev.AppHang.Exceptions[i].Frames) {
+				continue
+			}
+
+			ev.AppHang.Exceptions[i].Frames[f.OriginalIndex].MethodName = f.Function
+			ev.AppHang.Exceptions[i].Frames[f.OriginalIndex].FileName = f.Filename
+			ev.AppHang.Exceptions[i].Frames[f.OriginalIndex].LineNum = f.LineNo
+		}
+	}
+}
+
 // makeAppleCrashReport creates an Apple crash report
 // from a list of exception events.
 func (as *appleSymbolicator) makeAppleCrashReport(event event.EventField) {
@@ -932,10 +1035,7 @@ func (as *appleSymbolicator) makeAppleCrashReport(event event.EventField) {
 		}
 
 		// write crashing thread's frames
-		for _, frame := range exception.Frames {
-			frameLine := fmt.Sprintf("%d    %s    0x%s 0x%s + %d\n", frame.FrameIndex, frame.BinaryName, frame.SymbolAddress, frame.BinaryAddress, frame.Offset)
-			b.WriteString(frameLine)
-		}
+		writeAppleFrames(&b, exception.Frames)
 	}
 
 	// write rest of the thread's frames
@@ -954,19 +1054,7 @@ func (as *appleSymbolicator) makeAppleCrashReport(event event.EventField) {
 	}
 
 	// write binary images
-	for j, image := range event.Exception.BinaryImages {
-		if j == 0 {
-			b.WriteString("Binary Images:\n")
-		}
-
-		marker := "+"
-
-		if image.System {
-			marker = "-"
-		}
-
-		b.WriteString(fmt.Sprintf("       0x%s -        0x%s %s%s %s  <%s> %s\n", image.StartAddr, image.EndAddr, marker, image.Name, image.Arch, image.Uuid, image.Path))
-	}
+	writeAppleBinaryImages(&b, event.Exception.BinaryImages)
 
 	as.appleCrashReport = []byte(b.String())
 }
@@ -975,7 +1063,11 @@ func (as *appleSymbolicator) makeAppleCrashReport(event event.EventField) {
 // an apple crash report by using symbolicator
 // and rewrites the event.
 func (as *appleSymbolicator) symbolicate(ev event.EventField, origin string, sources []Source) (err error) {
-	as.makeAppleCrashReport(ev)
+	if ev.IsAppHang() {
+		as.makeAppleHangReport(ev)
+	} else {
+		as.makeAppleCrashReport(ev)
+	}
 	sr := &SymbolicatorRequest{}
 	if err = sr.prepareAppleRequest(as, origin, sources); err != nil {
 		return
@@ -998,7 +1090,11 @@ func (as *appleSymbolicator) symbolicate(ev event.EventField, origin string, sou
 		fmt.Println(string(bytes))
 	}
 
-	as.rewriteAppleCrashReport(ev)
+	if ev.IsAppHang() {
+		as.rewriteAppleHangReport(ev)
+	} else {
+		as.rewriteAppleCrashReport(ev)
+	}
 	return
 }
 

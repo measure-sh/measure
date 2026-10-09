@@ -63,6 +63,26 @@ type Frame struct {
 
 type Frames []Frame
 
+// ImageOffset provides the frame's address relative to the start of the
+// binary image it belongs to, as hex, and whether it could be computed.
+func (f Frame) ImageOffset() (string, bool) {
+	if f.FrameiOS == nil {
+		return "", false
+	}
+
+	address, err := strconv.ParseUint(f.SymbolAddress, 16, 64)
+	if err != nil {
+		return "", false
+	}
+
+	base, err := strconv.ParseUint(f.BinaryAddress, 16, 64)
+	if err != nil || address < base {
+		return "", false
+	}
+
+	return strconv.FormatUint(address-base, 16), true
+}
+
 // CodeInfo provides a serialized
 // version of the frame's code information.
 func (f Frame) CodeInfo() string {

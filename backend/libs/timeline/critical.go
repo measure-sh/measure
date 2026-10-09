@@ -78,6 +78,36 @@ func (a ANR) GetTimestamp() time.Time {
 	return a.Timestamp
 }
 
+// AppHang represents app hang events suitable
+// for session timeline.
+type AppHang struct {
+	EventType   string              `json:"event_type"`
+	UDAttribute *udattr.UDAttribute `json:"user_defined_attribute"`
+	GroupId     string              `json:"group_id"`
+	Duration    uint32              `json:"duration"`
+	State       string              `json:"state"`
+	MethodName  string              `json:"method_name"`
+	FileName    string              `json:"file_name"`
+	LineNumber  int32               `json:"line_number"`
+	ThreadName  string              `json:"thread_name"`
+	Stacktrace  string              `json:"stacktrace"`
+	Foreground  bool                `json:"foreground"`
+	Timestamp   time.Time           `json:"timestamp"`
+	Attachments []event.Attachment  `json:"attachments"`
+}
+
+// GetThreadName provides the name of the thread
+// where the app hang took place.
+func (a AppHang) GetThreadName() string {
+	return a.ThreadName
+}
+
+// GetTimestamp provides the timestamp of
+// the app hang event.
+func (a AppHang) GetTimestamp() time.Time {
+	return a.Timestamp
+}
+
 // ComputeExceptions computes exceptions
 // for session timeline.
 func ComputeExceptions(ctx context.Context, appId *uuid.UUID, events []event.EventField) (result []ThreadGrouper, err error) {
@@ -136,6 +166,36 @@ func ComputeANRs(ctx context.Context, appId *uuid.UUID, events []event.EventFiel
 			e.Attachments,
 		}
 		result = append(result, anrs)
+	}
+
+	return result, nil
+}
+
+// ComputeAppHangs computes app hangs
+// for session timeline.
+func ComputeAppHangs(ctx context.Context, appId *uuid.UUID, events []event.EventField) (result []ThreadGrouper, err error) {
+	for _, e := range events {
+		threadName := e.AppHang.GetThreadName()
+		if threadName == "" {
+			threadName = e.Attribute.ThreadName
+		}
+
+		appHangs := AppHang{
+			e.Type,
+			&e.UserDefinedAttribute,
+			e.AppHang.Fingerprint,
+			e.AppHang.Duration,
+			e.AppHang.State,
+			e.AppHang.GetMethodName(),
+			e.AppHang.GetFileName(),
+			e.AppHang.GetLineNumber(),
+			threadName,
+			e.AppHang.Stacktrace(),
+			e.AppHang.Foreground,
+			e.Timestamp,
+			e.Attachments,
+		}
+		result = append(result, appHangs)
 	}
 
 	return result, nil
