@@ -204,6 +204,21 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
     return () => clearTimeout(timer);
   }, []);
 
+  // Pressing back from checkout or the billing portal can restore this page
+  // from the browser's back/forward cache with its old state, leaving the
+  // buttons stuck on "Redirecting...".
+  useEffect(() => {
+    const onPageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        setIsUpgrading(false);
+        setIsLoadingPortal(false);
+      }
+    };
+
+    window.addEventListener("pageshow", onPageShow);
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
   if (awaitingProConfirmation && billingInfo?.plan === "pro") {
     setAwaitingProConfirmation(false);
   }
