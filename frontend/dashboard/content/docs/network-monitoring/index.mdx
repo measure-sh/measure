@@ -218,10 +218,12 @@ Measure.trackHttpEvent(
 Control what network data is collected from the dashboard using [Adaptive Capture](/docs/adaptive-capture). This allows changing configuration
 without making an app release.
 
-- **Sampling rate**: the fraction of HTTP events collected. All of them are collected by default.
-- **Collect or ignore URLs**: turn collection on or off for specific URLs.
-- **Request body collection**: the URLs whose request bodies and headers are recorded. Off by default.
-- **Response body collection**: the URLs whose response bodies and headers are recorded. Off by default.
-- **Blocked headers**: headers to never collect. `Authorization`, `Cookie` and more sensitive headers are always blocked.
+| Option | Default | Description |
+|---|---|---|
+| **Sampling rate** | 100% | The fraction of HTTP events collected. |
+| **Collect or ignore URLs** | (empty) | Turn collection on or off for specific URLs. |
+| **Request body collection** | Off | The URLs whose request bodies and headers are recorded. |
+| **Response body collection** | Off | The URLs whose response bodies and headers are recorded. |
+| **Blocked headers** | `Authorization`, `Cookie` and more | Headers to never collect. The listed sensitive headers are always blocked. |
 
 See [HTTP events](/docs/adaptive-capture#http-events) for details on each setting.

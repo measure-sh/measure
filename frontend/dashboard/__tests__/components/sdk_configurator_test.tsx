@@ -121,6 +121,10 @@ const mockInitialConfig = {
   error_handled_sampling_rate: 0,
   anr_take_screenshot: true,
   anr_timeline_duration: 5,
+  app_hang_threshold_millis: 2000,
+  app_hang_timeline_duration: 5,
+  app_hang_sampling_rate: 100,
+  app_hang_replay_enabled: true,
   bug_report_timeline_duration: 5,
   trace_sampling_rate: 0.1,
   launch_sampling_rate: 0.1,
@@ -170,7 +174,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osNames={null}
+        osNames={["android", "ios"]}
       />,
     );
 
@@ -180,6 +184,7 @@ describe("SdkConfigurator Component", () => {
     // Check all accordion sections are rendered
     expect(screen.getByText("Errors")).toBeInTheDocument();
     expect(screen.getByText("ANRs")).toBeInTheDocument();
+    expect(screen.getByText("App Hangs")).toBeInTheDocument();
     expect(screen.getByText("Bug Reports")).toBeInTheDocument();
     expect(screen.getByText("Traces")).toBeInTheDocument();
     expect(screen.getByText("Launch Metrics")).toBeInTheDocument();
@@ -218,53 +223,59 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByText("Errors")).toBeVisible();
   });
 
-  it("hides ANR section when osNames is iOS, shows it for Android and null", () => {
-    // Test with iOS
-    const { unmount } = render(
-      <SdkConfigurator
-        appId="test-app-id"
-        appName="Test App"
-        initialConfig={mockInitialConfig}
-        currentUserCanChangeAppSettings={true}
-        osNames={["ios"]}
-      />,
-    );
+  it("shows the ANR section only when osName is Android", () => {
+    const renderWith = (osNames: string[] | null) =>
+      render(
+        <SdkConfigurator
+          appId="test-app-id"
+          appName="Test App"
+          initialConfig={mockInitialConfig}
+          currentUserCanChangeAppSettings={true}
+          osNames={osNames}
+        />,
+      );
 
-    expect(screen.queryByText("ANRs")).not.toBeInTheDocument();
+    const { unmount } = renderWith(["android"]);
+    expect(screen.getByText("ANRs")).toBeInTheDocument();
     unmount();
 
-    // Test with Android
-    const { unmount: unmount2 } = render(
-      <SdkConfigurator
-        appId="test-app-id"
-        appName="Test App"
-        initialConfig={mockInitialConfig}
-        currentUserCanChangeAppSettings={true}
-        osNames={["android"]}
-      />,
-    );
+    for (const osNames of [["ios"], [], null]) {
+      const { unmount: unmountNext } = renderWith(osNames);
+      expect(screen.queryByText("ANRs")).not.toBeInTheDocument();
+      unmountNext();
+    }
+  });
 
-    expect(screen.getByText("ANRs")).toBeInTheDocument();
-    unmount2();
+  it("shows the App Hangs section only when osName is ios.", () => {
+    const renderWith = (osNames: string[] | null) =>
+      render(
+        <SdkConfigurator
+          appId="test-app-id"
+          appName="Test App"
+          initialConfig={mockInitialConfig}
+          currentUserCanChangeAppSettings={true}
+          osNames={osNames}
+        />,
+      );
 
-    // Test with null
-    render(
-      <SdkConfigurator
-        appId="test-app-id"
-        appName="Test App"
-        initialConfig={mockInitialConfig}
-        currentUserCanChangeAppSettings={true}
-        osNames={null}
-      />,
-    );
+    for (const osNames of [["ios"], ["ipados"]]) {
+      const { unmount } = renderWith(osNames);
+      expect(screen.getByText("App Hangs")).toBeInTheDocument();
+      unmount();
+    }
 
-    expect(screen.getByText("ANRs")).toBeInTheDocument();
+    for (const osNames of [["android"], [], null]) {
+      const { unmount } = renderWith(osNames);
+      expect(screen.queryByText("App Hangs")).not.toBeInTheDocument();
+      unmount();
+    }
   });
 
   it.each([
     { platform: "iOS", osNames: ["ios"], showBackgroundInterval: false },
     { platform: "Android", osNames: ["android"], showBackgroundInterval: true },
-    { platform: "unknown OS", osNames: null, showBackgroundInterval: true },
+    { platform: "unknown OS", osNames: null, showBackgroundInterval: false },
+    { platform: "no reported OS", osNames: [], showBackgroundInterval: false },
   ])(
     "shows the supported memory settings for $platform",
     ({ osNames, showBackgroundInterval }) => {
@@ -302,13 +313,14 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osNames={null}
+        osNames={["android", "ios"]}
       />,
     );
 
     // Check that all save buttons are initially disabled
     expect(screen.getByTestId("errors-save-button")).toBeDisabled();
     expect(screen.getByTestId("anrs-save-button")).toBeDisabled();
+    expect(screen.getByTestId("app-hangs-save-button")).toBeDisabled();
     expect(screen.getByTestId("bug-reports-save-button")).toBeDisabled();
     expect(screen.getByTestId("traces-save-button")).toBeDisabled();
     expect(screen.getByTestId("launch-save-button")).toBeDisabled();
@@ -325,7 +337,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={false}
-        osNames={null}
+        osNames={["android", "ios"]}
       />,
     );
 
@@ -336,6 +348,12 @@ describe("SdkConfigurator Component", () => {
     // Check that inputs are disabled
     expect(screen.getByTestId("error-replay-duration-input")).toBeDisabled();
     expect(screen.getByTestId("anr-timeline-duration-input")).toBeDisabled();
+    expect(screen.getByTestId("app-hang-replay-switch")).toBeDisabled();
+    expect(screen.getByTestId("app-hang-threshold-input")).toBeDisabled();
+    expect(
+      screen.getByTestId("app-hang-timeline-duration-input"),
+    ).toBeDisabled();
+    expect(screen.getByTestId("app-hang-sampling-rate-input")).toBeDisabled();
     expect(
       screen.getByTestId("bug-report-timeline-duration-input"),
     ).toBeDisabled();
@@ -578,7 +596,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osNames={null}
+        osNames={["android", "ios"]}
       />,
     );
 
@@ -620,6 +638,79 @@ describe("SdkConfigurator Component", () => {
           config: expect.objectContaining({
             anr_take_screenshot: false,
             anr_timeline_duration: 75,
+          }),
+        },
+        expect.any(Object),
+      );
+    });
+
+    expect(toastPositive).toHaveBeenCalled();
+  });
+
+  it("saves app hang config with correct payload on successful save", async () => {
+    const { toastPositive } = require("@/app/components/toast");
+    simulateMutateSuccess();
+
+    render(
+      <SdkConfigurator
+        appId="test-app-id"
+        appName="Test App"
+        initialConfig={mockInitialConfig}
+        currentUserCanChangeAppSettings={true}
+        osNames={["android", "ios"]}
+      />,
+    );
+
+    const thresholdInput = screen.getByTestId("app-hang-threshold-input");
+    await act(async () => {
+      fireEvent.change(thresholdInput, { target: { value: "3000" } });
+      fireEvent.blur(thresholdInput);
+    });
+
+    const timelineInput = screen.getByTestId(
+      "app-hang-timeline-duration-input",
+    );
+    await act(async () => {
+      fireEvent.change(timelineInput, { target: { value: "60" } });
+      fireEvent.blur(timelineInput);
+    });
+
+    const samplingInput = screen.getByTestId("app-hang-sampling-rate-input");
+    await act(async () => {
+      fireEvent.change(samplingInput, { target: { value: "50" } });
+      fireEvent.blur(samplingInput);
+    });
+
+    const replaySwitch = screen.getByTestId("app-hang-replay-switch");
+    await act(async () => {
+      fireEvent.click(replaySwitch);
+    });
+
+    const saveButton = screen.getByTestId("app-hangs-save-button");
+    await act(async () => {
+      fireEvent.click(saveButton);
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("danger-confirmation-dialog"),
+      ).toBeInTheDocument();
+    });
+
+    const affirmativeButton = screen.getByTestId("dialog-affirmative-button");
+    await act(async () => {
+      fireEvent.click(affirmativeButton);
+    });
+
+    await waitFor(() => {
+      expect(mockMutate).toHaveBeenCalledWith(
+        {
+          appId: "test-app-id",
+          config: expect.objectContaining({
+            app_hang_threshold_millis: 3000,
+            app_hang_timeline_duration: 60,
+            app_hang_sampling_rate: 50,
+            app_hang_replay_enabled: false,
           }),
         },
         expect.any(Object),
@@ -1275,7 +1366,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osNames={null}
+        osNames={["android", "ios"]}
       />,
     );
 
@@ -1746,7 +1837,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={false}
-        osNames={null}
+        osNames={["android", "ios"]}
       />,
     );
 
@@ -1757,6 +1848,12 @@ describe("SdkConfigurator Component", () => {
     // Check that inputs are disabled
     expect(screen.getByTestId("error-replay-duration-input")).toBeDisabled();
     expect(screen.getByTestId("anr-timeline-duration-input")).toBeDisabled();
+    expect(screen.getByTestId("app-hang-replay-switch")).toBeDisabled();
+    expect(screen.getByTestId("app-hang-threshold-input")).toBeDisabled();
+    expect(
+      screen.getByTestId("app-hang-timeline-duration-input"),
+    ).toBeDisabled();
+    expect(screen.getByTestId("app-hang-sampling-rate-input")).toBeDisabled();
     expect(
       screen.getByTestId("bug-report-timeline-duration-input"),
     ).toBeDisabled();
@@ -1777,6 +1874,7 @@ describe("SdkConfigurator Component", () => {
     // Check that all save buttons are disabled
     expect(screen.getByTestId("errors-save-button")).toBeDisabled();
     expect(screen.getByTestId("anrs-save-button")).toBeDisabled();
+    expect(screen.getByTestId("app-hangs-save-button")).toBeDisabled();
     expect(screen.getByTestId("bug-reports-save-button")).toBeDisabled();
     expect(screen.getByTestId("traces-save-button")).toBeDisabled();
     expect(screen.getByTestId("launch-save-button")).toBeDisabled();
@@ -1952,7 +2050,7 @@ describe("SdkConfigurator Component", () => {
         appName="Test App"
         initialConfig={mockInitialConfig}
         currentUserCanChangeAppSettings={true}
-        osNames={null}
+        osNames={["android", "ios"]}
       />,
     );
 

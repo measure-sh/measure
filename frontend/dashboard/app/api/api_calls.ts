@@ -660,6 +660,10 @@ export type SdkConfig = {
   error_handled_sampling_rate: number;
   anr_timeline_duration: number;
   anr_take_screenshot: boolean;
+  app_hang_threshold_millis: number;
+  app_hang_timeline_duration: number;
+  app_hang_sampling_rate: number;
+  app_hang_replay_enabled: boolean;
   bug_report_timeline_duration: number;
   launch_sampling_rate: number;
   journey_sampling_rate: number;

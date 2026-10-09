@@ -1965,6 +1965,7 @@ function logSeverity(eventDetails: any): string {
 
 const eventPillTypes: Record<string, PillType> = {
   anr: PillType.SessionEventAnr,
+  app_hang: PillType.SessionEventAppHang,
   bug_report: PillType.SessionEventBugReport,
   gesture_click: PillType.SessionEventGestureClick,
   gesture_long_click: PillType.SessionEventGestureLongClick,
@@ -2024,9 +2025,38 @@ function titleFrom(parts: unknown[], separator: string): string {
     .join(separator);
 }
 
-function sessionEventTitle(eventType: string, eventDetails: any): string {
+function appHangTitle(eventDetails: any): string {
+  const ms = Number(eventDetails?.duration);
+  const duration = Number.isFinite(ms) && ms > 0 ? formatHangDuration(ms) : "";
+  const recovered = eventDetails?.state !== "killed";
+
+  if (!duration) {
+    return recovered
+      ? "Main thread blocked"
+      : "Main thread blocked, app killed";
+  }
+
+  return recovered
+    ? `Main thread blocked for ${duration}`
+    : `Main thread blocked for ${duration}, app killed`;
+}
+
+function formatHangDuration(ms: number): string {
+  const seconds = ms / 1000;
+  const rounded =
+    seconds >= 10 ? Math.round(seconds) : Math.round(seconds * 10) / 10;
+  return `${rounded}s`;
+}
+
+export function sessionEventTitle(
+  eventType: string,
+  eventDetails: any,
+): string {
   if (eventType === "error" || eventType === "anr") {
     return titleFrom([eventDetails?.type, eventDetails?.message], ": ");
+  }
+  if (eventType === "app_hang") {
+    return appHangTitle(eventDetails);
   }
   if (eventType === "bug_report") {
     return String(

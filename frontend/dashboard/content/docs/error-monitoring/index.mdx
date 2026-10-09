@@ -64,6 +64,17 @@ An [ANR](https://developer.android.com/topic/performance/vitals/anr) (Applicatio
 On Android 11 and above, the ANR is read from [ApplicationExitInfo](https://developer.android.com/reference/android/app/ApplicationExitInfo). Below Android 11, the ANR is caught by intercepting the SIGQUIT signal
 and capturing a stack trace manually when it happens.
 
+## App hang reporting
+
+Measure detects hangs on iOS and reports how long the main thread was blocked, where it happened, and whether the app recovered or got killed. App hangs are visible in [session replays](/docs/session-replay), alongside the user actions and app state that led up to them.
+
+App hangs are monitored by the Measure SDK, iOS itself does not report them as an error. A background thread sends a small probe to the main thread at a predefined interval and waits for an answer. If no answer arrives within the configured threshold, the main thread is considered blocked, and the SDK captures its stack.
+
+Every app hang has a status.
+
+- **Recovered** means the main thread started responding again. The reported duration is how long it was blocked.
+- **Killed** means the app got killed while in the hung state, usually because iOS terminated it for being unresponsive.
+
 ## Track a handled error
 
 Errors you catch and recover from can be manually reported. See [Track errors](/docs/api-reference#track-errors) for the full signature.
@@ -206,12 +217,25 @@ A spike of crashes or ANRs triggers an alert over email and Slack. Handled error
 
 ## Configuration options
 
-Errors and ANRs are configured remotely through [Adaptive Capture](/docs/adaptive-capture), so you can change these without shipping a new build:
+Errors, ANRs and app hangs are configured remotely through [Adaptive Capture](/docs/adaptive-capture), so you can change these without shipping a new build:
 
-- **Screenshots**: whether a screenshot is captured for fatal errors and for ANRs below Android 11. On by default.
-- **Session replay**: which error severities come with a replay. Only fatal errors do by default.
-- **Session replay duration**: how far back the replay reaches before the error. A longer window gives more context but collects more data. 5 minutes by default.
-- **Sampling**: how many errors of each severity are reported. All fatal and unhandled errors by default, and no handled errors.
-- **Screenshot mask level**: how much of each screenshot is masked to keep sensitive content from leaking. Masks all text and media by default.
+| Option | Default | Description |
+|---|---|---|
+| **Screenshots** | On | Whether a screenshot is captured for fatal errors and for ANRs below Android 11. |
+| **Session replay** | Fatal errors only | Which error severities come with a replay. |
+| **Session replay duration** | 5 minutes | How far back the replay reaches before the error. A longer window gives more context but collects more data. |
+| **Sampling** | 100% fatal and unhandled, 0% handled | How many errors of each severity are reported. |
+| **Screenshot mask level** | All text and media | How much of each screenshot is masked to keep sensitive content from leaking. |
 
 See [Errors](/docs/adaptive-capture#errors) for each setting.
+
+App hangs have their own settings:
+
+| Option | Default | Description |
+|---|---|---|
+| **Hang threshold** | 2 seconds | How long the main thread must be blocked before it counts as a hang. The SDK will not go below 1 second. |
+| **Sampling** | 100% | How many app hangs are reported. |
+| **Session replay** | On | Whether an app hang comes with a replay. |
+| **Session replay duration** | 5 minutes | How far back the replay reaches before the hang. |
+
+See [App hangs](/docs/adaptive-capture#app-hangs) for each setting.

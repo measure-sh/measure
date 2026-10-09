@@ -41,6 +41,7 @@ type SdkConfigFieldLabel = {
 
 const percent = "%";
 const seconds = " seconds";
+const milliseconds = " ms";
 
 export const sdkConfigFieldLabels: Record<
   keyof SdkConfig,
@@ -73,6 +74,19 @@ export const sdkConfigFieldLabels: Record<
     label: "ANR session replay duration",
     unit: seconds,
   },
+  app_hang_threshold_millis: {
+    label: "App hang threshold",
+    unit: milliseconds,
+  },
+  app_hang_timeline_duration: {
+    label: "App hang session replay duration",
+    unit: seconds,
+  },
+  app_hang_sampling_rate: {
+    label: "App hang sampling rate",
+    unit: percent,
+  },
+  app_hang_replay_enabled: { label: "Session replay with app hangs" },
   bug_report_timeline_duration: {
     label: "Bug report session replay duration",
     unit: seconds,
