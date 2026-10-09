@@ -34,6 +34,12 @@ protocol SignalProcessor {
         threadName: String?,
         needsReporting: Bool?)
 
+    func trackAppHang(_ appHang: AppHang,
+                      timestamp: Number,
+                      attributes: Attributes?,
+                      sessionId: String?,
+                      needsReporting: Bool) -> String
+
     func trackSpan(_ spanData: SpanData)
 }
 
@@ -127,6 +133,28 @@ final class BaseSignalProcessor: SignalProcessor {
         }
     }
 
+    func trackAppHang(_ appHang: AppHang, timestamp: Number, attributes: Attributes?, sessionId: String?, needsReporting: Bool) -> String {
+        let eventId = idProvider.uuid()
+
+        SignPost.trace(subcategory: "Event", label: "trackAppHang") {
+            track(data: appHang,
+                  timestamp: timestamp,
+                  type: .appHang,
+                  attributes: attributes,
+                  userTriggered: false,
+                  attachments: nil,
+                  sessionId: sessionId,
+                  userDefinedAttributes: nil,
+                  threadName: nil,
+                  needsReporting: needsReporting,
+                  synchronous: true,
+                  eventId: eventId,
+                  pendingResolution: true)
+        }
+
+        return eventId
+    }
+
     func trackSpan(_ spanData: SpanData) {
         SignPost.trace(subcategory: "Span", label: "trackSpanTriggered") {
             trackSpanData(spanData)
@@ -159,7 +187,9 @@ final class BaseSignalProcessor: SignalProcessor {
         userDefinedAttributes: String?,
         threadName: String?,
         needsReporting: Bool?,
-        synchronous: Bool
+        synchronous: Bool,
+        eventId: String? = nil,
+        pendingResolution: Bool = false
     ) {
         let resolvedThreadName = threadName ?? OperationQueue.current?.underlyingQueue?.label ?? "unknown"
 
@@ -174,7 +204,8 @@ final class BaseSignalProcessor: SignalProcessor {
                 attributes: attributes ?? Attributes(),
                 userTriggered: userTriggered,
                 sessionId: sessionId,
-                userDefinedAttributes: userDefinedAttributes
+                userDefinedAttributes: userDefinedAttributes,
+                eventId: eventId
             )
 
             self.appendAttributes(event: event, threadName: resolvedThreadName.isEmpty ? "unknown" : resolvedThreadName)
@@ -188,7 +219,7 @@ final class BaseSignalProcessor: SignalProcessor {
             } else {
                 resolvedNeedsReporting = needsReporting ?? false
             }
-            self.signalStore.store(event, needsReporting: resolvedNeedsReporting)
+            self.signalStore.store(event, needsReporting: resolvedNeedsReporting, pendingResolution: pendingResolution)
             self.sessionManager.onEventTracked(event)
             if event.type == .bugReport {
                 self.exporter.export()
@@ -223,9 +254,10 @@ final class BaseSignalProcessor: SignalProcessor {
         attributes: Attributes?,
         userTriggered: Bool,
         sessionId: String?,
-        userDefinedAttributes: String?
+        userDefinedAttributes: String?,
+        eventId: String? = nil
     ) -> Event<T> {
-        let id = idProvider.uuid()
+        let id = eventId ?? idProvider.uuid()
         let resolvedSessionId = sessionId ?? sessionManager.sessionId
         return Event(
             id: id,

@@ -94,7 +94,9 @@ final class BaseExporterTests: XCTestCase {
             bugReport: nil,
             sessionStartData: nil,
             log: nil,
-            needsReporting: false
+            appHang: nil,
+            needsReporting: false,
+            pendingResolution: false
         )
     }
 

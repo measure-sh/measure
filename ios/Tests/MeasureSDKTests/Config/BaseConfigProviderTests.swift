@@ -270,4 +270,47 @@ final class ConfigProviderTests: XCTestCase {
             httpBlockedHeaders: blockedHeaders ?? base.httpBlockedHeaders
         )
     }
+    // MARK: - App Hang
+
+    func testAppHangConfig_usesDefaults() {
+        XCTAssertEqual(provider.appHangThresholdMillis, 2_000)
+        XCTAssertEqual(provider.appHangTimelineDurationSeconds, 300)
+        XCTAssertEqual(provider.appHangSamplingRate, 100)
+        XCTAssertTrue(provider.appHangReplayEnabled)
+    }
+
+    func testAppHangConfig_readsDynamicConfig() {
+        provider.setDynamicConfig(BaseDynamicConfig(appHangThresholdMillis: 5_000,
+                                                    appHangTimelineDurationSeconds: 120,
+                                                    appHangSamplingRate: 25,
+                                                    appHangReplayEnabled: false))
+
+        XCTAssertEqual(provider.appHangThresholdMillis, 5_000)
+        XCTAssertEqual(provider.appHangTimelineDurationSeconds, 120)
+        XCTAssertEqual(provider.appHangSamplingRate, 25)
+        XCTAssertFalse(provider.appHangReplayEnabled)
+    }
+
+    /// A threshold below the supported minimum would drive the detector's idle interval down far
+    /// enough to matter, so the provider raises it whatever the server sends.
+    func testAppHangThreshold_isClampedToMinimum() {
+        provider.setDynamicConfig(BaseDynamicConfig(appHangThresholdMillis: 250))
+
+        XCTAssertEqual(provider.appHangThresholdMillis, DefaultConfig.minAppHangThresholdMillis)
+        XCTAssertEqual(provider.appHangThresholdMillis, 1_000)
+    }
+
+    func testAppHangThreshold_atMinimumIsUnchanged() {
+        provider.setDynamicConfig(BaseDynamicConfig(appHangThresholdMillis: 1_000))
+
+        XCTAssertEqual(provider.appHangThresholdMillis, 1_000)
+    }
+
+    func testAppHangThreshold_zeroOrNegativeIsClamped() {
+        provider.setDynamicConfig(BaseDynamicConfig(appHangThresholdMillis: 0))
+        XCTAssertEqual(provider.appHangThresholdMillis, 1_000)
+
+        provider.setDynamicConfig(BaseDynamicConfig(appHangThresholdMillis: -1))
+        XCTAssertEqual(provider.appHangThresholdMillis, 1_000)
+    }
 }

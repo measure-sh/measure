@@ -44,6 +44,11 @@ struct DefaultConfig {
     static let errorUnhandledSamplingRate: Float = 100
     static let errorHandledSamplingRate: Float = 0
     static let anrTakeScreenshot: Bool = true
+    static let appHangThresholdMillis: Number = 2_000
+    static let appHangTimelineDurationSeconds: Number = 300
+    static let appHangSamplingRate: Float = 100
+    static let appHangReplayEnabled: Bool = true
+    static let minAppHangThresholdMillis: Number = 1_000
     static let launchSamplingRate: Float = 100
     static let gestureClickTakeSnapshot: Bool = true
     static let httpSamplingRate: Float = 100

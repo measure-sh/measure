@@ -20,6 +20,9 @@ protocol EventStore {
     func getEventsCount() -> Int
     func getEventCount(forSessionId sessionId: String) -> Int
     func markTimelineForReporting(eventTimestampMillis: Int64, durationSeconds: Int64, sessionId: String)
+    func resolveAppHang(eventId: String, payload: Data)
+    func updateAppHangPayload(eventId: String, payload: Data)
+    func getUnresolvedAppHangs() -> [EventEntity]
     func getSessionIdsWithUnBatchedEvents() -> [String]
     func getAllEvents() -> [EventEntity]
 }
@@ -68,7 +71,9 @@ final class BaseEventStore: EventStore { // swiftlint:disable:this type_body_len
             eventOb.screenView = event.screenView
             eventOb.bugReport = event.bugReport
             eventOb.log = event.log
+            eventOb.appHang = event.appHang
             eventOb.needsReporting = event.needsReporting
+            eventOb.pendingResolution = event.pendingResolution
 
             if let attachments = event.attachments {
                 for attachment in attachments {
@@ -158,7 +163,8 @@ final class BaseEventStore: EventStore { // swiftlint:disable:this type_body_len
 
             var predicates: [NSPredicate] = [
                 NSPredicate(format: "batchId == nil"),
-                NSPredicate(format: "needsReporting == %@", NSNumber(value: true))
+                NSPredicate(format: "needsReporting == %@", NSNumber(value: true)),
+                NSPredicate(format: "pendingResolution == %@", NSNumber(value: false))
             ]
 
             if let sessionId = sessionId {
@@ -324,6 +330,7 @@ final class BaseEventStore: EventStore { // swiftlint:disable:this type_body_len
             let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
             fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                 NSPredicate(format: "sessionId == %@", sessionId),
+                NSPredicate(format: "pendingResolution == %@", NSNumber(value: false)),
                 NSPredicate(format: "timestampInMillis >= %lld", lowerBound),
                 NSPredicate(format: "timestampInMillis <= %lld", eventTimestampMillis)
             ])
@@ -336,6 +343,78 @@ final class BaseEventStore: EventStore { // swiftlint:disable:this type_body_len
                 logger.internalLog(level: .error, message: "EventStore: Failed to mark timeline events for reporting.", error: error, data: nil)
             }
         }
+    }
+
+    func resolveAppHang(eventId: String, payload: Data) {
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
+            return
+        }
+
+        context.performAndWait {
+            let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
+            fetchRequest.fetchLimit = 1
+            fetchRequest.predicate = NSPredicate(format: "id == %@", eventId)
+
+            do {
+                guard let eventOb = try context.fetch(fetchRequest).first else {
+                    logger.internalLog(level: .error, message: "EventStore: No app hang event found for id: \(eventId)", error: nil, data: nil)
+                    return
+                }
+
+                eventOb.appHang = payload
+                eventOb.pendingResolution = false
+                try context.saveIfNeeded()
+            } catch {
+                logger.internalLog(level: .error, message: "EventStore: Failed to resolve app hang event: \(eventId)", error: error, data: nil)
+            }
+        }
+    }
+
+    func updateAppHangPayload(eventId: String, payload: Data) {
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
+            return
+        }
+
+        context.performAndWait {
+            let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
+            fetchRequest.fetchLimit = 1
+            fetchRequest.predicate = NSPredicate(format: "id == %@", eventId)
+
+            do {
+                guard let eventOb = try context.fetch(fetchRequest).first else { return }
+                eventOb.appHang = payload
+                try context.saveIfNeeded()
+            } catch {
+                logger.internalLog(level: .error, message: "EventStore: Failed to update app hang payload: \(eventId)", error: error, data: nil)
+            }
+        }
+    }
+
+    func getUnresolvedAppHangs() -> [EventEntity] {
+        guard let context = coreDataManager.backgroundContext else {
+            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
+            return []
+        }
+
+        var result: [EventEntity] = []
+
+        context.performAndWait {
+            let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
+            fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
+                NSPredicate(format: "type == %@", EventType.appHang.rawValue),
+                NSPredicate(format: "pendingResolution == %@", NSNumber(value: true))
+            ])
+
+            do {
+                result = try context.fetch(fetchRequest).compactMap { $0.toEntity() }
+            } catch {
+                logger.internalLog(level: .error, message: "EventStore: Failed to fetch unresolved app hangs.", error: error, data: nil)
+            }
+        }
+
+        return result
     }
 
     func getSessionIdsWithUnBatchedEvents() -> [String] {
@@ -354,6 +433,7 @@ final class BaseEventStore: EventStore { // swiftlint:disable:this type_body_len
             fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
                 NSPredicate(format: "batchId == nil"),
                 NSPredicate(format: "needsReporting == %@", NSNumber(value: true)),
+                NSPredicate(format: "pendingResolution == %@", NSNumber(value: false)),
                 NSPredicate(format: "sessionId != nil")
             ])
 
@@ -448,7 +528,9 @@ extension EventOb {
             bugReport: bugReport,
             sessionStartData: nil,
             log: log,
-            needsReporting: needsReporting
+            appHang: appHang,
+            needsReporting: needsReporting,
+            pendingResolution: pendingResolution
         )
     }
-}
+} // swiftlint:disable:this file_length

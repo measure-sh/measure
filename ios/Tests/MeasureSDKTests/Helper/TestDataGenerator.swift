@@ -93,7 +93,9 @@ struct TestDataGenerator {
         bugReport: Data? = nil,
         sessionStartData: Data? = nil,
         log: Data? = nil,
-        needsReporting: Bool = true) -> EventEntity {
+        appHang: Data? = nil,
+        needsReporting: Bool = true,
+        pendingResolution: Bool = false) -> EventEntity {
         return EventEntity(
             id: id,
             sessionId: sessionId,
@@ -124,7 +126,9 @@ struct TestDataGenerator {
             bugReport: bugReport,
             sessionStartData: sessionStartData,
             log: log,
-            needsReporting: needsReporting
+            appHang: appHang,
+            needsReporting: needsReporting,
+            pendingResolution: pendingResolution
         )
     }
 

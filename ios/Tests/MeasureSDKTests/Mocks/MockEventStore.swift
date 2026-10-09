@@ -12,6 +12,7 @@ final class MockEventStore: EventStore {
     private var events: [String: EventEntity] = [:]
     private let lock = NSLock()
     private(set) var lastMarkTimelineDurationSeconds: Int64?
+    private(set) var resolvedAppHangs: [String: Data] = [:]
 
     func insertEvent(event: EventEntity) {
         lock.lock()
@@ -65,6 +66,7 @@ final class MockEventStore: EventStore {
 
         var filtered = events.values.filter { event in
             event.batchId == nil &&
+            !event.pendingResolution &&
             (sessionId == nil || event.sessionId == sessionId)
         }
 
@@ -134,6 +136,7 @@ final class MockEventStore: EventStore {
 
         self.events = self.events.mapValues { event in
             guard event.sessionId == sessionId,
+                  !event.pendingResolution,
                   event.timestampInMillis >= start,
                   event.timestampInMillis <= end else {
                 return event
@@ -150,10 +153,39 @@ final class MockEventStore: EventStore {
         defer { lock.unlock() }
 
         let sessionIds = events.values
-            .filter { $0.batchId == nil }
+            .filter { $0.batchId == nil && !$0.pendingResolution }
             .map { $0.sessionId }
 
         return Array(Set(sessionIds))
+    }
+
+    func resolveAppHang(eventId: String, payload: Data) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        resolvedAppHangs[eventId] = payload
+
+        guard var event = events[eventId] else { return }
+
+        event.appHang = payload
+        event.pendingResolution = false
+        events[eventId] = event
+    }
+
+    func updateAppHangPayload(eventId: String, payload: Data) {
+        lock.lock()
+        defer { lock.unlock() }
+
+        guard var event = events[eventId] else { return }
+        event.appHang = payload
+        events[eventId] = event
+    }
+
+    func getUnresolvedAppHangs() -> [EventEntity] {
+        lock.lock()
+        defer { lock.unlock() }
+
+        return events.values.filter { $0.type == EventType.appHang.rawValue && $0.pendingResolution }
     }
 
     func getAllEvents() -> [EventEntity] {
