@@ -245,7 +245,8 @@ var (
 		ValueSuggestionMode: ValueSuggestionModeFullList,
 		EnumValues: []string{
 			"fatal_error", "unhandled_error", "handled_error",
-			"anr", "bug_report", "user_interaction",
+			"anr", "recovered_app_hang", "killed_app_hang",
+			"bug_report", "user_interaction",
 		},
 	}
 

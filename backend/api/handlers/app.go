@@ -985,6 +985,7 @@ func (h Handlers) GetSession(c *gin.Context) {
 		event.TypeAppExit,
 		event.TypeException,
 		event.TypeANR,
+		event.TypeAppHang,
 		event.TypeHttp,
 		event.TypeScreenView,
 		event.TypeBugReport,
@@ -1170,6 +1171,21 @@ func (h Handlers) GetSession(c *gin.Context) {
 		}
 		threadedANRs := timeline.GroupByThreads(anrs)
 		threads.Organize(event.TypeANR, threadedANRs)
+	}
+
+	appHangEvents := eventMap[event.TypeAppHang]
+	if len(appHangEvents) > 0 {
+		appHangs, err := timeline.ComputeAppHangs(c, app.ID, appHangEvents)
+		if err != nil {
+			msg := fmt.Sprintf(`unable to compute app hangs for session %q for app %q`, sessionId, app.ID)
+			fmt.Println(msg, err)
+			c.JSON(http.StatusInternalServerError, gin.H{
+				"error": msg,
+			})
+			return
+		}
+		threadedAppHangs := timeline.GroupByThreads(appHangs)
+		threads.Organize(event.TypeAppHang, threadedAppHangs)
 	}
 
 	httpEvents := eventMap[event.TypeHttp]

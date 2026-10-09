@@ -929,6 +929,11 @@ func TestSessionsAggregatedKeyBindingsReadThePerSessionTotals(t *testing.T) {
 		{"session_events", OperatorIn, []string{"fatal_error"}, "(sum(fatal_exception_count) >= 1)"},
 		{"session_events", OperatorNotIn, []string{"anr"}, "not (sum(anr_count) >= 1)"},
 		{"session_events", OperatorIn, []string{"user_interaction"}, "((" + gestureCounts + "))"},
+		{"session_events", OperatorIn, []string{"recovered_app_hang"}, "(sum(app_hang_recovered_count) >= 1)"},
+		{"session_events", OperatorIn, []string{"killed_app_hang"}, "(sum(app_hang_killed_count) >= 1)"},
+		{"session_events", OperatorIn, []string{"recovered_app_hang", "killed_app_hang"},
+			"(sum(app_hang_recovered_count) >= 1 or sum(app_hang_killed_count) >= 1)"},
+		{"session_events", OperatorNotIn, []string{"killed_app_hang"}, "not (sum(app_hang_killed_count) >= 1)"},
 		{"session_foreground_background", OperatorIn, []string{"foreground"}, "((sum(foreground_count) >= 1 or " + gestureCounts +
 			" or sumMap(event_type_counts)['lifecycle_activity'] >= 1" +
 			" or sumMap(event_type_counts)['lifecycle_view_controller'] >= 1" +

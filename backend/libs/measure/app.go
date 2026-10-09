@@ -2758,6 +2758,11 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 	case opsys.AppleFamily:
 		cols = append(cols, []string{
 			`exception.error`,
+			`app_hang.fingerprint`,
+			`app_hang.exceptions`,
+			`app_hang.duration`,
+			`app_hang.state`,
+			`app_hang.foreground`,
 			`lifecycle_view_controller.type`,
 			`lifecycle_view_controller.class_name`,
 			`lifecycle_swift_ui.type`,
@@ -2811,6 +2816,8 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 		var anrThreads string
 		var anrSubject string
 		var anrThreadDump string
+		var appHang event.AppHang
+		var appHangExceptions string
 		var attachments string
 
 		var appExit event.AppExit
@@ -3081,6 +3088,11 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 		case opsys.AppleFamily:
 			dest = append(dest, []any{
 				&exceptionError,
+				&appHang.Fingerprint,
+				&appHangExceptions,
+				&appHang.Duration,
+				&appHang.State,
+				&appHang.Foreground,
 				&lifecycleViewController.Type,
 				&lifecycleViewController.ClassName,
 				&lifecycleSwiftUI.Type,
@@ -3123,6 +3135,16 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 				return nil, err
 			}
 			ev.ANR = &anr
+			session.Events = append(session.Events, ev)
+		case event.TypeAppHang:
+			// an app hang carries only the blocked main thread, and the
+			// frames are already symbolicated at ingest.
+			if appHangExceptions != "" {
+				if err := json.Unmarshal([]byte(appHangExceptions), &appHang.Exceptions); err != nil {
+					return nil, err
+				}
+			}
+			ev.AppHang = &appHang
 			session.Events = append(session.Events, ev)
 		case event.TypeException:
 			exception.Severity = event.Severity(exceptionSeverity)

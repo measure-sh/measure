@@ -83,6 +83,7 @@ const (
 
 const TypeCustom = "custom"
 const TypeANR = "anr"
+const TypeAppHang = "app_hang"
 const TypeException = "exception"
 const TypeAppExit = "app_exit"
 const TypeString = "string"
@@ -146,6 +147,11 @@ const LifecycleViewControllerTypeVCDeinit = "vcDeinit"
 const LifecycleSwiftUITypeOnAppear = "on_appear"
 const LifecycleSwiftUITypeOnDisappear = "on_disappear"
 
+const AppHangStateRecovered = "recovered"
+const AppHangStateKilled = "killed"
+
+var ValidAppHangStates = []string{AppHangStateRecovered, AppHangStateKilled}
+
 const LifecycleAppTypeBackground = "background"
 const LifecycleAppTypeForeground = "foreground"
 
@@ -184,6 +190,7 @@ var androidValidTypes = []string{
 // valid iOS event types.
 var iOSValidTypes = []string{
 	TypeException,
+	TypeAppHang,
 	TypeGestureLongClick, TypeGestureScroll, TypeGestureClick,
 	TypeLifecycleViewController, TypeLifecycleSwiftUI,
 	TypeLifecycleApp,
@@ -409,6 +416,40 @@ type ANR struct {
 	Foreground    bool           `json:"foreground" binding:"required"`
 	ThreadDump    *artdump.Dump  `json:"-"`
 	Fingerprint   string         `json:"fingerprint"`
+}
+
+// AppHangDetail is the blocked thread captured for an app hang.
+type AppHangDetail struct {
+	// ThreadName is the name of the blocked thread.
+	ThreadName string `json:"thread_name"`
+	// ThreadSequence is the order of the thread in the capture.
+	ThreadSequence uint `json:"thread_sequence"`
+	// OSBuildNumber is the operating system's build number.
+	OSBuildNumber string `json:"os_build_number"`
+	// Frames is the collection of stackframes of the blocked thread.
+	Frames Frames `json:"frames"`
+}
+
+type AppHangDetails []AppHangDetail
+
+// AppHang represents the main thread staying blocked for longer than the
+// threshold configured for the app. It is the iOS counterpart of Android's ANR.
+type AppHang struct {
+	// Exceptions holds the blocked thread.
+	Exceptions AppHangDetails `json:"exceptions"`
+	// Duration is how long the main thread was blocked, in milliseconds.
+	Duration uint32 `json:"duration"`
+	// State is the outcome of the hang, one of ValidAppHangStates.
+	State string `json:"state"`
+	// Framework is the framework the app hang originated from.
+	Framework string `json:"framework"`
+	// Foreground is true if the app was in the foreground when the hang
+	// was detected.
+	Foreground bool `json:"foreground"`
+	// BinaryImages holds every image needed to symbolicate Exceptions.
+	BinaryImages []BinaryImage `json:"binary_images,omitempty"`
+	// Fingerprint is computed server side, after symbolication.
+	Fingerprint string `json:"fingerprint"`
 }
 
 type Exception struct {
@@ -727,6 +768,7 @@ type EventField struct {
 	UserDefinedAttribute    udattr.UDAttribute       `json:"user_defined_attribute" binding:"required"`
 	Attachments             []Attachment             `json:"attachments" binding:"required"`
 	ANR                     *ANR                     `json:"anr,omitempty"`
+	AppHang                 *AppHang                 `json:"app_hang,omitempty"`
 	Exception               *Exception               `json:"exception,omitempty"`
 	AppExit                 *AppExit                 `json:"app_exit,omitempty"`
 	LogString               *LogString               `json:"string,omitempty"`
@@ -829,6 +871,35 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		}
 		if len(e.ANR.Subject) > maxANRSubjectBytes {
 			return fmt.Errorf(`%q size (%d bytes) exceeds maximum allowed (%d bytes)`, `anr.subject`, len(e.ANR.Subject), maxANRSubjectBytes)
+		}
+	}
+
+	if e.IsAppHang() {
+		if len(e.AppHang.Exceptions) < 1 {
+			return fmt.Errorf(`%q must contain at least one blocked thread`, `app_hang`)
+		}
+
+		if !e.AppHang.HasFrames() {
+			return fmt.Errorf(`%q must contain at least one frame`, `app_hang.exceptions`)
+		}
+
+		if !slices.Contains(ValidAppHangStates, e.AppHang.State) {
+			return fmt.Errorf(`%q must be one of %v, got %q`, `app_hang.state`, ValidAppHangStates, e.AppHang.State)
+		}
+
+		for i, bi := range e.AppHang.BinaryImages {
+			if bi.StartAddr == "" {
+				return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `start_addr`)
+			}
+			if bi.EndAddr == "" {
+				return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `end_addr`)
+			}
+			if bi.Name == "" {
+				return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `name`)
+			}
+			if bi.Path == "" {
+				return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `path`)
+			}
 		}
 	}
 
@@ -1330,6 +1401,12 @@ func (e EventField) IsANR() bool {
 	return e.Type == TypeANR
 }
 
+// IsAppHang returns true for app hang
+// event.
+func (e EventField) IsAppHang() bool {
+	return e.Type == TypeAppHang
+}
+
 // IsAppExit returns true for app
 // exit event.
 func (e EventField) IsAppExit() bool {
@@ -1492,6 +1569,12 @@ func (e EventField) NeedsSymbolication() (result bool) {
 		}
 
 		return
+	}
+
+	// app hangs are Apple only and symbolicate in place through
+	// the same path as an Apple exception.
+	if e.IsAppHang() {
+		return e.AppHang.HasFrames()
 	}
 
 	switch strings.ToLower(e.Attribute.OSName) {
@@ -2349,6 +2432,145 @@ func (a ANR) exceptionStacktrace() string {
 	}
 
 	return b.String()
+}
+
+// HasFrames returns true if the app hang carries at least
+// one frame to symbolicate or fingerprint.
+func (a AppHang) HasFrames() bool {
+	for i := range a.Exceptions {
+		if len(a.Exceptions[i].Frames) > 0 {
+			return true
+		}
+	}
+	return false
+}
+
+// GetRelevantFrame provides the frame an app hang is
+// attributed to, which is the first in-app frame, falling
+// back to the first frame of the blocked thread.
+func (a AppHang) GetRelevantFrame() (frame Frame) {
+	unitIndex := -1
+	frameIndex := -1
+
+	for i, unit := range a.Exceptions {
+		for j, f := range unit.Frames {
+			if f.InApp {
+				unitIndex = i
+				frameIndex = j
+				break
+			}
+		}
+
+		if frameIndex != -1 {
+			break
+		}
+	}
+
+	if unitIndex != -1 && frameIndex != -1 {
+		return a.Exceptions[unitIndex].Frames[frameIndex]
+	}
+
+	// no in app frame, fall back to the first
+	// unit's first frame.
+	for i := range a.Exceptions {
+		if len(a.Exceptions[i].Frames) > 0 {
+			return a.Exceptions[i].Frames[0]
+		}
+	}
+
+	return
+}
+
+// GetMethodName provides the method name of the app hang's
+// relevant frame.
+func (a AppHang) GetMethodName() string {
+	return a.GetRelevantFrame().MethodName
+}
+
+// GetFileName provides the file name of the app hang's
+// relevant frame.
+func (a AppHang) GetFileName() string {
+	return a.GetRelevantFrame().FileName
+}
+
+// GetLineNumber provides the line number of the app hang's
+// relevant frame.
+func (a AppHang) GetLineNumber() int32 {
+	return int32(a.GetRelevantFrame().LineNum)
+}
+
+// GetThreadName provides the name of the thread the hang blocked.
+func (a AppHang) GetThreadName() string {
+	for i := range a.Exceptions {
+		if a.Exceptions[i].ThreadName != "" {
+			return a.Exceptions[i].ThreadName
+		}
+	}
+	return ""
+}
+
+// IsKilled returns true if the process died while the main
+// thread was still blocked.
+func (a AppHang) IsKilled() bool {
+	return a.State == AppHangStateKilled
+}
+
+// Stacktrace writes a formatted stacktrace of the blocked
+// thread.
+func (a AppHang) Stacktrace() string {
+	var b strings.Builder
+
+	for i := range a.Exceptions {
+		for j := range a.Exceptions[i].Frames {
+			b.WriteString(FramePrefix + a.Exceptions[i].Frames[j].String(FrameworkApple))
+			lastUnit := i == len(a.Exceptions)-1
+			lastFrame := j == len(a.Exceptions[i].Frames)-1
+			if !lastFrame || !lastUnit {
+				b.WriteString("\n")
+			}
+		}
+	}
+
+	return b.String()
+}
+
+// ComputeFingerprint computes a fingerprint from the app hang
+// data.
+func (a *AppHang) ComputeFingerprint() (err error) {
+	if !a.HasFrames() {
+		return fmt.Errorf("error computing app hang fingerprint: no frames found")
+	}
+
+	frame := a.GetRelevantFrame()
+
+	// parts are joined by sep to form the fingerprint input
+	sep := ":"
+	parts := []string{}
+
+	if frame.FrameiOS != nil && frame.BinaryName != "" {
+		parts = append(parts, frame.BinaryName)
+	}
+
+	if offset, ok := frame.ImageOffset(); ok {
+		parts = append(parts, offset)
+	}
+
+	if frame.MethodName != "" {
+		parts = append(parts, frame.MethodName)
+	}
+
+	if frame.FileName != "" {
+		parts = append(parts, frame.FileName)
+	}
+
+	if len(parts) == 0 {
+		return fmt.Errorf("error computing app hang fingerprint: relevant frame carries no binary, address, method or file name")
+	}
+
+	hash := md5.Sum([]byte(strings.Join(parts, sep)))
+	a.Fingerprint = hex.EncodeToString(hash[:])
+
+	return nil
 }
 
 // Compute computes the most accurate cold launch timing
