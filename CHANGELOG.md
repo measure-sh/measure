@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**backend**): Show reporter user id in bug report alerts by @anupcowkur in #4600
 - (**backend**): Add profiles api (#4550) by @abhaysood
 - (**backend**): Parse and group ANR thread dumps (#4542) by @abhaysood
 - (**backend**): Add memory filters and share device memory tiers by @abhaysood
