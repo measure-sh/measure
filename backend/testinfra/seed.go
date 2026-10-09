@@ -1177,9 +1177,10 @@ func (h *TestHelper) SeedLaunchEvent(ctx context.Context, t *testing.T, teamID, 
 //   - EventID, SessionID: fresh per row
 //
 // The country, network, device and user attributes default to a Google Pixel
-// on Verizon wifi 4g in the US, locale en-US, user id "u1". PatchID stays the
-// nil uuid and PatchVersion an empty string unless set, as they are for a
-// report filed by an app not running an OTA patch.
+// on Verizon wifi 4g in the US, locale en-US, user id "u1". NoUserID leaves
+// the user id unset, as it is for a report filed by an app that never set
+// one. PatchID stays the nil uuid and PatchVersion an empty string unless
+// set, as they are for a report filed by an app not running an OTA patch.
 type BugReportRow struct {
 	EventID            string
 	SessionID          string
@@ -1199,6 +1200,7 @@ type BugReportRow struct {
 	DeviceName         string
 	DeviceModel        string
 	UserID             string
+	NoUserID           bool
 	PatchID            uuid.UUID
 	PatchVersion       string
 }
@@ -1249,7 +1251,7 @@ func (r BugReportRow) filled() BugReportRow {
 	if r.DeviceModel == "" {
 		r.DeviceModel = "Pixel 6"
 	}
-	if r.UserID == "" {
+	if r.UserID == "" && !r.NoUserID {
 		r.UserID = "u1"
 	}
 	return r

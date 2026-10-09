@@ -103,10 +103,15 @@ func main() {
 
 	// --- Alerts: Bug Report ---
 
-	alertMsg = alertmsg.BugReportMessage("The app crashes when I click the login button after entering a very long password.")
 	alertURL = alertmsg.BugReportURL("https://measure.sh", "team-abc", "app-123", "bug-report-456")
-	_, body = email.BugReportAlertEmail("MyApp", alertMsg, alertURL)
-	add("07b-bug-report-alert.html", body)
+
+	alertMsg = alertmsg.BugReportMessage("The app crashes when I click the login button after entering a very long password.", "user-789")
+	_, body = email.BugReportAlertEmail("MyApp", "user-789", alertMsg, alertURL)
+	add("07b-bug-report-alert-with-user-id.html", body)
+
+	alertMsg = alertmsg.BugReportMessage("The app crashes when I click the login button after entering a very long password.", "")
+	_, body = email.BugReportAlertEmail("MyApp", "", alertMsg, alertURL)
+	add("07c-bug-report-alert-without-user-id.html", body)
 
 	// --- Billing: Usage limits ---
 

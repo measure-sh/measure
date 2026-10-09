@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"html"
 	"time"
+
+	"backend/libs/alertmsg"
 )
 
 // escape turns a value that came from a person into text the mail client
@@ -86,9 +88,9 @@ func AnrSpikeAlertEmail(appName, alertMsg, alertURL string) (subject, body strin
 }
 
 // BugReportAlertEmail builds the bug report alert email from the plain
-// text alert message.
-func BugReportAlertEmail(appName, alertMsg, alertURL string) (subject, body string) {
-	subject = appName + " - New Bug Report"
+// text alert message. A non-empty userId is named in the subject.
+func BugReportAlertEmail(appName, userId, alertMsg, alertURL string) (subject, body string) {
+	subject = alertmsg.BugReportTitle(appName, userId)
 	body = RenderEmailBody(escape(appName), PlainTextContent(alertMsg), "View in Dashboard", alertURL)
 	return
 }

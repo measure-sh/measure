@@ -44,6 +44,9 @@ type Alert struct {
 	AppID    uuid.UUID
 	EntityID string
 	Type     string
+	// UserID is the user who filed a bug report. It is empty for other
+	// alert types and for reports from apps that set no user id.
+	UserID string
 }
 
 type AlertType string
@@ -173,7 +176,7 @@ func CreateBugReportAlerts(ctx context.Context) {
 			to := time.Now().UTC()
 
 			bugReportStmt := sqlf.From("bug_reports final").
-				Select("event_id, description").
+				Select("event_id, description, user_id").
 				Where("team_id = toUUID(?)", app.TeamID).
 				Where("app_id = toUUID(?)", app.ID).
 				Where("timestamp >= ? and timestamp <= ?", from, to)
@@ -189,7 +192,8 @@ func CreateBugReportAlerts(ctx context.Context) {
 			for bugReportRows.Next() {
 				var bugReportId string
 				var description string
-				if err := bugReportRows.Scan(&bugReportId, &description); err != nil {
+				var userId string
+				if err := bugReportRows.Scan(&bugReportId, &description, &userId); err != nil {
 					fmt.Printf("Error scanning bug report row: %v\n", err)
 					continue
 				}
@@ -216,7 +220,7 @@ func CreateBugReportAlerts(ctx context.Context) {
 					continue
 				}
 
-				alertMsg := alertmsg.BugReportMessage(description)
+				alertMsg := alertmsg.BugReportMessage(description, userId)
 				alertUrl := alertmsg.BugReportURL(server.Server.Config.SiteOrigin, team.ID.String(), app.ID.String(), bugReportId)
 
 				fmt.Printf("Inserting alert for bug report %s\n", bugReportId)
@@ -247,6 +251,7 @@ func CreateBugReportAlerts(ctx context.Context) {
 					AppID:    app.ID,
 					EntityID: bugReportId,
 					Type:     string(AlertTypeBugReport),
+					UserID:   userId,
 				}
 
 				scheduleEmailAlertsForteamMembers(ctx, alert, alertMsg, alertUrl, app.Name)
@@ -701,7 +706,7 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 	} else if alert.Type == string(AlertTypeAnrSpike) {
 		subject, body = email.AnrSpikeAlertEmail(appName, message, url)
 	} else if alert.Type == string(AlertTypeBugReport) {
-		subject, body = email.BugReportAlertEmail(appName, message, url)
+		subject, body = email.BugReportAlertEmail(appName, alert.UserID, message, url)
 	} else {
 		subject = appName + " - Alert"
 		body = email.RenderEmailBody(subject, email.PlainTextContent(message), "View in Dashboard", url)
@@ -750,7 +755,7 @@ func scheduleSlackAlertsForTeamChannels(ctx context.Context, alert Alert, messag
 	} else if alert.Type == string(AlertTypeAnrSpike) {
 		title = appName + " - ANR Spike Alert"
 	} else if alert.Type == string(AlertTypeBugReport) {
-		title = appName + " - New Bug Report"
+		title = alertmsg.BugReportTitle(appName, alert.UserID)
 	}
 
 	slackMessage := formatSlackAlertMessage(title, message, url)
