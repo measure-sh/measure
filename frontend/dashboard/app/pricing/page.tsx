@@ -1,8 +1,9 @@
-import { LucideCheck, LucideCheckCircle } from "lucide-react";
+import { LucideCheckCircle } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import LandingFooter from "../components/landing_footer";
 import LandingHeader from "../components/landing_header";
+import PlanFeature from "../components/plan_feature";
 import PricingViewed from "./pricing_viewed";
 import JsonLd from "../components/json_ld";
 import { webPageJsonLd } from "../utils/json_ld";
@@ -26,15 +27,6 @@ const seo = {
 };
 
 export const metadata: Metadata = pageMetadata(seo);
-
-function PlanFeature({ children }: { children: React.ReactNode }) {
-  return (
-    <li className="flex gap-3">
-      <LucideCheck className="mt-0.5 h-5 w-5 shrink-0 text-green-700 dark:text-green-400" />
-      <span>{children}</span>
-    </li>
-  );
-}
 
 export default function Pricing() {
   return (
