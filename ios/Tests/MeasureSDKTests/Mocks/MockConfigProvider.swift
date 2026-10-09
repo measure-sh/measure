@@ -73,6 +73,10 @@ final class MockConfigProvider: ConfigProvider {
     var errorUnhandledSamplingRate: Float
     var errorHandledSamplingRate: Float
     var anrTakeScreenshot: Bool
+    var appHangThresholdMillis: Number
+    var appHangTimelineDurationSeconds: Number
+    var appHangSamplingRate: Float
+    var appHangReplayEnabled: Bool
     var launchSamplingRate: Float
     var gestureClickTakeSnapshot: Bool
     var httpSamplingRate: Float
@@ -172,6 +176,10 @@ final class MockConfigProvider: ConfigProvider {
          errorUnhandledSamplingRate: Float = 100,
          errorHandledSamplingRate: Float = 0,
          anrTakeScreenshot: Bool = true,
+         appHangThresholdMillis: Number = 2_000,
+         appHangTimelineDurationSeconds: Number = 300,
+         appHangSamplingRate: Float = 100,
+         appHangReplayEnabled: Bool = true,
          launchSamplingRate: Float = 0.01,
          gestureClickTakeSnapshot: Bool = true,
          httpSamplingRate: Float = 0.01,
@@ -253,6 +261,10 @@ final class MockConfigProvider: ConfigProvider {
         self.errorUnhandledSamplingRate = errorUnhandledSamplingRate
         self.errorHandledSamplingRate = errorHandledSamplingRate
         self.anrTakeScreenshot = anrTakeScreenshot
+        self.appHangThresholdMillis = appHangThresholdMillis
+        self.appHangTimelineDurationSeconds = appHangTimelineDurationSeconds
+        self.appHangSamplingRate = appHangSamplingRate
+        self.appHangReplayEnabled = appHangReplayEnabled
         self.launchSamplingRate = launchSamplingRate
         self.gestureClickTakeSnapshot = gestureClickTakeSnapshot
         self.httpSamplingRate = httpSamplingRate

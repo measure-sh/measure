@@ -966,4 +966,132 @@ final class EventSerializerTests: XCTestCase { // swiftlint:disable:this type_bo
             }
         }
     }
+    // MARK: - App Hang
+
+    private func makeAppHang(state: AppHangState = .recovered, duration: Number = 3184) -> AppHang {
+        let frame = StackFrame(binaryName: "MyApp",
+                               binaryAddress: "0x104a10000",
+                               offset: 64,
+                               frameIndex: 0,
+                               symbolAddress: "0x104a3f5c0",
+                               inApp: true,
+                               className: nil,
+                               methodName: nil,
+                               fileName: nil,
+                               lineNumber: nil,
+                               columnNumber: nil,
+                               moduleName: nil,
+                               instructionAddress: nil)
+        let detail = AppHangDetail(threadName: "main",
+                                   threadSequence: 0,
+                                   osBuildNumber: "22D72",
+                                   frames: [frame])
+        let image = BinaryImage(startAddress: "0x104a10000",
+                                endAddress: "0x104b8ffff",
+                                baseAddress: nil,
+                                system: false,
+                                name: "MyApp",
+                                arch: "arm64",
+                                uuid: "b1f4c9a23d773f0e9c215a8e7d64b019",
+                                path: "/private/var/containers/Bundle/Application/MyApp.app/MyApp")
+        return AppHang(exceptions: [detail],
+                       duration: duration,
+                       state: state,
+                       framework: Framework.apple,
+                       foreground: true,
+                       binaryImages: [image])
+    }
+
+    private func serializedAppHangEvent(_ appHang: AppHang) -> [String: Any]? {
+        let event = Event(id: "123",
+                          sessionId: "sessionId",
+                          timestamp: "2024-10-22T10:00:00Z",
+                          timestampInMillis: 123456789,
+                          type: .appHang,
+                          data: appHang,
+                          attachments: [],
+                          attributes: TestDataGenerator.generateAttributes(),
+                          userTriggered: false)
+
+        guard let jsonData = eventSerializer.getSerialisedEvent(for: EventEntity(event, needsReporting: true)) else {
+            XCTFail("getSerialisedEvent should not return nil")
+            return nil
+        }
+        return (try? JSONSerialization.jsonObject(with: jsonData, options: [])) as? [String: Any]
+    }
+
+    func testEventEntity_AppHangSerialization() {
+        guard let jsonDict = serializedAppHangEvent(makeAppHang()) else { return }
+
+        XCTAssertEqual(jsonDict["type"] as? String, "app_hang")
+
+        guard let appHangDict = jsonDict["app_hang"] as? [String: Any] else {
+            XCTFail("App hang data is not present in the serialized event.")
+            return
+        }
+
+        XCTAssertEqual(appHangDict["duration"] as? Number, 3184)
+        XCTAssertEqual(appHangDict["state"] as? String, "recovered")
+        XCTAssertEqual(appHangDict["framework"] as? String, "apple")
+        XCTAssertEqual(appHangDict["foreground"] as? Bool, true)
+
+        guard let exceptions = appHangDict["exceptions"] as? [[String: Any]] else {
+            XCTFail("Exceptions are not present in the serialized app hang.")
+            return
+        }
+        XCTAssertEqual(exceptions.count, 1, "Only the main thread is ever captured for an app hang.")
+        XCTAssertEqual(exceptions[0]["thread_name"] as? String, "main")
+        XCTAssertEqual(exceptions[0]["thread_sequence"] as? Number, 0)
+        XCTAssertEqual(exceptions[0]["os_build_number"] as? String, "22D72")
+
+        guard let frames = exceptions[0]["frames"] as? [[String: Any]] else {
+            XCTFail("Frames are not present in the serialized app hang.")
+            return
+        }
+        XCTAssertEqual(frames.count, 1)
+        XCTAssertEqual(frames[0]["binary_name"] as? String, "MyApp")
+        XCTAssertEqual(frames[0]["in_app"] as? Bool, true)
+
+        guard let binaryImages = appHangDict["binary_images"] as? [[String: Any]] else {
+            XCTFail("Binary images are not present in the serialized app hang.")
+            return
+        }
+        XCTAssertEqual(binaryImages.count, 1)
+        XCTAssertEqual(binaryImages[0]["uuid"] as? String, "b1f4c9a23d773f0e9c215a8e7d64b019")
+        XCTAssertEqual(binaryImages[0]["arch"] as? String, "arm64")
+    }
+
+    /// The fields the `app_hang` payload deliberately drops relative to `exception`. A hang has no
+    /// exception name, no BSD signal, no severity and is never user-reported, so none of these may
+    /// leak back in.
+    func testEventEntity_AppHangOmitsExceptionOnlyFields() {
+        guard let jsonDict = serializedAppHangEvent(makeAppHang()),
+              let appHangDict = jsonDict["app_hang"] as? [String: Any] else {
+            XCTFail("App hang data is not present in the serialized event.")
+            return
+        }
+
+        for key in ["severity", "handled", "is_custom", "num_code", "code", "meta", "threads"] {
+            XCTAssertNil(appHangDict[key], "app_hang must not carry `\(key)`.")
+        }
+
+        guard let exceptions = appHangDict["exceptions"] as? [[String: Any]] else {
+            XCTFail("Exceptions are not present in the serialized app hang.")
+            return
+        }
+        for key in ["type", "message", "signal"] {
+            XCTAssertNil(exceptions[0][key], "app_hang exceptions must not carry `\(key)`.")
+        }
+    }
+
+    func testEventEntity_AppHangKilledStateSerialization() {
+        guard let jsonDict = serializedAppHangEvent(makeAppHang(state: .killed, duration: 2000)),
+              let appHangDict = jsonDict["app_hang"] as? [String: Any] else {
+            XCTFail("App hang data is not present in the serialized event.")
+            return
+        }
+
+        XCTAssertEqual(appHangDict["state"] as? String, "killed")
+        XCTAssertEqual(appHangDict["duration"] as? Number, 2000)
+    }
 } // swiftlint:disable:this file_length

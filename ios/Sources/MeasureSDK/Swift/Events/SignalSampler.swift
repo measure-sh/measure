@@ -14,6 +14,7 @@ protocol SignalSampler {
     func shouldTrackMemoryUsageForSession(sessionId: String) -> Bool
     func shouldSampleHttpEvent() -> Bool
     func shouldSampleError(_ severity: ExceptionSeverity) -> Bool
+    func shouldSampleAppHang() -> Bool
 }
 
 final class BaseSignalSampler: SignalSampler {
@@ -110,6 +111,13 @@ final class BaseSignalSampler: SignalSampler {
         }
 
         return shouldTrack(samplingRate / 100)
+    }
+
+    func shouldSampleAppHang() -> Bool {
+        if configProvider.enableFullCollectionMode {
+            return true
+        }
+        return shouldTrack(configProvider.appHangSamplingRate / 100)
     }
 
     /// Generates a stable sampling value in [0, 1] from a session ID.

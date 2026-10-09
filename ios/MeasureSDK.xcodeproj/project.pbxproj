@@ -56,6 +56,13 @@
 		526D18492D5A1913009A2E90 /* CustomEventData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17C22D5A1913009A2E90 /* CustomEventData.swift */; };
 		526D184A2D5A1913009A2E90 /* Event.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17C32D5A1913009A2E90 /* Event.swift */; };
 		526D184B2D5A1913009A2E90 /* SignalProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17C42D5A1913009A2E90 /* SignalProcessor.swift */; };
+		AF000000000000A9C0DE0701 /* AppHangCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF000000000000A9C0DE0700 /* AppHangCollector.swift */; };
+		AF000000000000A9C0DE0301 /* AppHangDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF000000000000A9C0DE0300 /* AppHangDetector.swift */; };
+		AF000000000000A9C0DE0303 /* AppHangStackCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF000000000000A9C0DE0302 /* AppHangStackCapture.swift */; };
+		AF000000000000A9C0DE0305 /* PingAppHangDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF000000000000A9C0DE0304 /* PingAppHangDetector.swift */; };
+		AF000000000000A9C0DE0003 /* AppHang.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF000000000000A9C0DE0000 /* AppHang.swift */; };
+		AF000000000000A9C0DE0004 /* AppHangDetail.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF000000000000A9C0DE0001 /* AppHangDetail.swift */; };
+		AF000000000000A9C0DE0005 /* AppHangState.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF000000000000A9C0DE0002 /* AppHangState.swift */; };
 		526D184C2D5A1913009A2E90 /* EventType.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17C52D5A1913009A2E90 /* EventType.swift */; };
 		526D184D2D5A1913009A2E90 /* ScreenViewData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17C62D5A1913009A2E90 /* ScreenViewData.swift */; };
 		526D184E2D5A1913009A2E90 /* UserTriggeredEventCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D17C72D5A1913009A2E90 /* UserTriggeredEventCollector.swift */; };
@@ -110,6 +117,7 @@
 		526D18862D5A1913009A2E90 /* MeasureQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D180B2D5A1913009A2E90 /* MeasureQueue.swift */; };
 		526D18872D5A1913009A2E90 /* Randomizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D180C2D5A1913009A2E90 /* Randomizer.swift */; };
 		526D18882D5A1913009A2E90 /* SignPost.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D180D2D5A1913009A2E90 /* SignPost.swift */; };
+		AF000000000000A9C0DE0307 /* MachOArch.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF000000000000A9C0DE0306 /* MachOArch.swift */; };
 		526D18892D5A1913009A2E90 /* SysCtl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D180E2D5A1913009A2E90 /* SysCtl.swift */; };
 		526D188A2D5A1913009A2E90 /* SystemFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D180F2D5A1913009A2E90 /* SystemFileManager.swift */; };
 		526D188B2D5A1913009A2E90 /* TimeProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 526D18102D5A1913009A2E90 /* TimeProvider.swift */; };
@@ -127,6 +135,10 @@
 		52B7F1382D757F81001498BC /* BaseConfigProviderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0E32D757F81001498BC /* BaseConfigProviderTests.swift */; };
 		52B7F1392D757F81001498BC /* BatchStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0E52D757F81001498BC /* BatchStoreTests.swift */; };
 		52B7F13A2D757F81001498BC /* DataCleanupServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0E62D757F81001498BC /* DataCleanupServiceTests.swift */; };
+		AF000000000000A9C0DE0801 /* AppHangCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF000000000000A9C0DE0800 /* AppHangCollectorTests.swift */; };
+		AF000000000000A9C0DE0401 /* AppHangStackCaptureTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF000000000000A9C0DE0400 /* AppHangStackCaptureTests.swift */; };
+		AF000000000000A9C0DE0403 /* PingAppHangDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF000000000000A9C0DE0402 /* PingAppHangDetectorTests.swift */; };
+		AF000000000000A9C0DE0201 /* CoreDataMigrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF000000000000A9C0DE0200 /* CoreDataMigrationTests.swift */; };
 		52B7F13B2D757F81001498BC /* EventStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0E72D757F81001498BC /* EventStoreTests.swift */; };
 		52B7F13C2D757F81001498BC /* SessionStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0E82D757F81001498BC /* SessionStoreTests.swift */; };
 		52B7F1432D757F81001498BC /* CustomEventCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F0F22D757F81001498BC /* CustomEventCollectorTests.swift */; };
@@ -155,6 +167,9 @@
 		52B7F1642D757F81001498BC /* MockRandomizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1182D757F81001498BC /* MockRandomizer.swift */; };
 		52B7F1652D757F81001498BC /* MockScreenshotGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F1192D757F81001498BC /* MockScreenshotGenerator.swift */; };
 		52B7F1662D757F81001498BC /* MockSessionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F11A2D757F81001498BC /* MockSessionManager.swift */; };
+		AF000000000000A9C0DE0803 /* MockAppHangCallbacks.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF000000000000A9C0DE0802 /* MockAppHangCallbacks.swift */; };
+		AF000000000000A9C0DE0601 /* MockAppHangDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF000000000000A9C0DE0600 /* MockAppHangDetector.swift */; };
+		AF000000000000A9C0DE0405 /* MockAppHangStackCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF000000000000A9C0DE0404 /* MockAppHangStackCapture.swift */; };
 		52B7F1682D757F81001498BC /* MockSysCtl.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F11C2D757F81001498BC /* MockSysCtl.swift */; };
 		52B7F1692D757F81001498BC /* MockSystemCrashReporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F11D2D757F81001498BC /* MockSystemCrashReporter.swift */; };
 		52B7F16A2D757F81001498BC /* MockSystemFileManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52B7F11E2D757F81001498BC /* MockSystemFileManager.swift */; };
@@ -483,6 +498,13 @@
 		526D17C22D5A1913009A2E90 /* CustomEventData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomEventData.swift; sourceTree = "<group>"; };
 		526D17C32D5A1913009A2E90 /* Event.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Event.swift; sourceTree = "<group>"; };
 		526D17C42D5A1913009A2E90 /* SignalProcessor.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SignalProcessor.swift; sourceTree = "<group>"; };
+		AF000000000000A9C0DE0700 /* AppHangCollector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppHangCollector.swift; sourceTree = "<group>"; };
+		AF000000000000A9C0DE0300 /* AppHangDetector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppHangDetector.swift; sourceTree = "<group>"; };
+		AF000000000000A9C0DE0302 /* AppHangStackCapture.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppHangStackCapture.swift; sourceTree = "<group>"; };
+		AF000000000000A9C0DE0304 /* PingAppHangDetector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PingAppHangDetector.swift; sourceTree = "<group>"; };
+		AF000000000000A9C0DE0000 /* AppHang.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppHang.swift; sourceTree = "<group>"; };
+		AF000000000000A9C0DE0001 /* AppHangDetail.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppHangDetail.swift; sourceTree = "<group>"; };
+		AF000000000000A9C0DE0002 /* AppHangState.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppHangState.swift; sourceTree = "<group>"; };
 		526D17C52D5A1913009A2E90 /* EventType.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EventType.swift; sourceTree = "<group>"; };
 		526D17C62D5A1913009A2E90 /* ScreenViewData.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ScreenViewData.swift; sourceTree = "<group>"; };
 		526D17C72D5A1913009A2E90 /* UserTriggeredEventCollector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = UserTriggeredEventCollector.swift; sourceTree = "<group>"; };
@@ -537,6 +559,7 @@
 		526D180B2D5A1913009A2E90 /* MeasureQueue.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MeasureQueue.swift; sourceTree = "<group>"; };
 		526D180C2D5A1913009A2E90 /* Randomizer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Randomizer.swift; sourceTree = "<group>"; };
 		526D180D2D5A1913009A2E90 /* SignPost.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SignPost.swift; sourceTree = "<group>"; };
+		AF000000000000A9C0DE0306 /* MachOArch.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MachOArch.swift; sourceTree = "<group>"; };
 		526D180E2D5A1913009A2E90 /* SysCtl.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SysCtl.swift; sourceTree = "<group>"; };
 		526D180F2D5A1913009A2E90 /* SystemFileManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SystemFileManager.swift; sourceTree = "<group>"; };
 		526D18102D5A1913009A2E90 /* TimeProvider.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = TimeProvider.swift; sourceTree = "<group>"; };
@@ -554,6 +577,10 @@
 		52B7F0E32D757F81001498BC /* BaseConfigProviderTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BaseConfigProviderTests.swift; sourceTree = "<group>"; };
 		52B7F0E52D757F81001498BC /* BatchStoreTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = BatchStoreTests.swift; sourceTree = "<group>"; };
 		52B7F0E62D757F81001498BC /* DataCleanupServiceTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = DataCleanupServiceTests.swift; sourceTree = "<group>"; };
+		AF000000000000A9C0DE0800 /* AppHangCollectorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppHangCollectorTests.swift; sourceTree = "<group>"; };
+		AF000000000000A9C0DE0400 /* AppHangStackCaptureTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AppHangStackCaptureTests.swift; sourceTree = "<group>"; };
+		AF000000000000A9C0DE0402 /* PingAppHangDetectorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PingAppHangDetectorTests.swift; sourceTree = "<group>"; };
+		AF000000000000A9C0DE0200 /* CoreDataMigrationTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreDataMigrationTests.swift; sourceTree = "<group>"; };
 		52B7F0E72D757F81001498BC /* EventStoreTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = EventStoreTests.swift; sourceTree = "<group>"; };
 		52B7F0E82D757F81001498BC /* SessionStoreTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = SessionStoreTests.swift; sourceTree = "<group>"; };
 		52B7F0F22D757F81001498BC /* CustomEventCollectorTests.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CustomEventCollectorTests.swift; sourceTree = "<group>"; };
@@ -582,6 +609,9 @@
 		52B7F1182D757F81001498BC /* MockRandomizer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockRandomizer.swift; sourceTree = "<group>"; };
 		52B7F1192D757F81001498BC /* MockScreenshotGenerator.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockScreenshotGenerator.swift; sourceTree = "<group>"; };
 		52B7F11A2D757F81001498BC /* MockSessionManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockSessionManager.swift; sourceTree = "<group>"; };
+		AF000000000000A9C0DE0802 /* MockAppHangCallbacks.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockAppHangCallbacks.swift; sourceTree = "<group>"; };
+		AF000000000000A9C0DE0600 /* MockAppHangDetector.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockAppHangDetector.swift; sourceTree = "<group>"; };
+		AF000000000000A9C0DE0404 /* MockAppHangStackCapture.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockAppHangStackCapture.swift; sourceTree = "<group>"; };
 		52B7F11C2D757F81001498BC /* MockSysCtl.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockSysCtl.swift; sourceTree = "<group>"; };
 		52B7F11D2D757F81001498BC /* MockSystemCrashReporter.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockSystemCrashReporter.swift; sourceTree = "<group>"; };
 		52B7F11E2D757F81001498BC /* MockSystemFileManager.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MockSystemFileManager.swift; sourceTree = "<group>"; };
@@ -691,6 +721,7 @@
 		CF86818D2DB6541F00C62DA5 /* SpanId.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpanId.swift; sourceTree = "<group>"; };
 		CF86818E2DB6541F00C62DA5 /* TraceId.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TraceId.swift; sourceTree = "<group>"; };
 		CF893DD02E95096B00D99D45 /* MeasureModelV2.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MeasureModelV2.xcdatamodel; sourceTree = "<group>"; };
+		AF000000000000A9C0DE0100 /* MeasureModelV3.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = MeasureModelV3.xcdatamodel; sourceTree = "<group>"; };
 		CF893DD12E950A7E00D99D45 /* MeasureModelV1ToV2.xcmappingmodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcmappingmodel; path = MeasureModelV1ToV2.xcmappingmodel; sourceTree = "<group>"; };
 		CF893DD42E950BF000D99D45 /* EventToAttachmentMigrationPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EventToAttachmentMigrationPolicy.swift; sourceTree = "<group>"; };
 		CF893DDA2E950DEE00D99D45 /* EventOb+CoreDataProperties.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EventOb+CoreDataProperties.swift"; sourceTree = "<group>"; };
@@ -999,6 +1030,20 @@
 			path = Events;
 			sourceTree = "<group>";
 		};
+		AF000000000000A9C0DE0006 /* AppHang */ = {
+			isa = PBXGroup;
+			children = (
+				AF000000000000A9C0DE0700 /* AppHangCollector.swift */,
+				AF000000000000A9C0DE0300 /* AppHangDetector.swift */,
+				AF000000000000A9C0DE0302 /* AppHangStackCapture.swift */,
+				AF000000000000A9C0DE0304 /* PingAppHangDetector.swift */,
+				AF000000000000A9C0DE0000 /* AppHang.swift */,
+				AF000000000000A9C0DE0001 /* AppHangDetail.swift */,
+				AF000000000000A9C0DE0002 /* AppHangState.swift */,
+			);
+			path = AppHang;
+			sourceTree = "<group>";
+		};
 		526D17CD2D5A1913009A2E90 /* Exception */ = {
 			isa = PBXGroup;
 			children = (
@@ -1152,6 +1197,7 @@
 				526D180C2D5A1913009A2E90 /* Randomizer.swift */,
 				CF86818D2DB6541F00C62DA5 /* SpanId.swift */,
 				CFBF626E2DB7ADA200D5ADFB /* SwizzlingUtility.swift */,
+				AF000000000000A9C0DE0306 /* MachOArch.swift */,
 				526D180E2D5A1913009A2E90 /* SysCtl.swift */,
 				526D180F2D5A1913009A2E90 /* SystemFileManager.swift */,
 				526D18102D5A1913009A2E90 /* TimeProvider.swift */,
@@ -1182,6 +1228,7 @@
 				526D18192D5A1913009A2E90 /* MeasureInternal.swift */,
 				CF9D75782E66C0FA007D6D30 /* SessionStartData.swift */,
 				526D181B2D5A1913009A2E90 /* SessionManager.swift */,
+				AF000000000000A9C0DE0006 /* AppHang */,
 				526D179A2D5A1913009A2E90 /* AppLaunch */,
 				526D17A42D5A1913009A2E90 /* Attribute */,
 				CF1BB3E02DC3537500588506 /* BugReport */,
@@ -1257,6 +1304,7 @@
 				CFB5756D2F599359000DB70B /* AttachmentStoreTests.swift */,
 				52B7F0E52D757F81001498BC /* BatchStoreTests.swift */,
 				52B7F0E62D757F81001498BC /* DataCleanupServiceTests.swift */,
+				AF000000000000A9C0DE0200 /* CoreDataMigrationTests.swift */,
 				52B7F0E72D757F81001498BC /* EventStoreTests.swift */,
 				52B7F0E82D757F81001498BC /* SessionStoreTests.swift */,
 				CF7CABBA2F27BE4000A9DC30 /* SignalStoreTests.swift */,
@@ -1350,6 +1398,9 @@
 				CF11CCD72F1B996B00EF68E9 /* MockSignalStore.swift */,
 				CFD88D302DAB8CA60095115E /* MockSpanProcessor.swift */,
 				CFD88D782DAFDA530095115E /* MockSpanStore.swift */,
+				AF000000000000A9C0DE0802 /* MockAppHangCallbacks.swift */,
+				AF000000000000A9C0DE0600 /* MockAppHangDetector.swift */,
+				AF000000000000A9C0DE0404 /* MockAppHangStackCapture.swift */,
 				52B7F11C2D757F81001498BC /* MockSysCtl.swift */,
 				52B7F11D2D757F81001498BC /* MockSystemCrashReporter.swift */,
 				52B7F11E2D757F81001498BC /* MockSystemFileManager.swift */,
@@ -1385,11 +1436,22 @@
 			path = Utils;
 			sourceTree = "<group>";
 		};
+		AF000000000000A9C0DE0500 /* AppHang */ = {
+			isa = PBXGroup;
+			children = (
+				AF000000000000A9C0DE0800 /* AppHangCollectorTests.swift */,
+				AF000000000000A9C0DE0400 /* AppHangStackCaptureTests.swift */,
+				AF000000000000A9C0DE0402 /* PingAppHangDetectorTests.swift */,
+			);
+			path = AppHang;
+			sourceTree = "<group>";
+		};
 		52B7F12E2D757F81001498BC /* MeasureSDKTests */ = {
 			isa = PBXGroup;
 			children = (
 				CFEC97EC2D9A7642000CFB68 /* MeasureInternalTests.swift */,
 				52B7F12D2D757F81001498BC /* SessionManagerTests.swift */,
+				AF000000000000A9C0DE0500 /* AppHang */,
 				52B7F0E22D757F81001498BC /* Attribute */,
 				CF1BB4F32DDEFC7E00588506 /* BugReport */,
 				52B7F0E42D757F81001498BC /* Config */,
@@ -1947,6 +2009,7 @@
 				526D18712D5A1913009A2E90 /* CpuUsageCalculator.swift in Sources */,
 				526D18232D5A1913009A2E90 /* AppLaunchCollector.swift in Sources */,
 				526D185C2D5A1913009A2E90 /* GestureDetector.swift in Sources */,
+				AF000000000000A9C0DE0307 /* MachOArch.swift in Sources */,
 				526D18892D5A1913009A2E90 /* SysCtl.swift in Sources */,
 				526D18522D5A1913009A2E90 /* ThreadDetail.swift in Sources */,
 				526D18362D5A1913009A2E90 /* MeasureConfig.swift in Sources */,
@@ -1975,6 +2038,13 @@
 				69694F0F2DE0461E008D1AF1 /* Framework.swift in Sources */,
 				CF1BB3E22DC77CF400588506 /* FloatingButtonViewController.swift in Sources */,
 				526D18512D5A1913009A2E90 /* StackFrame.swift in Sources */,
+				AF000000000000A9C0DE0701 /* AppHangCollector.swift in Sources */,
+				AF000000000000A9C0DE0301 /* AppHangDetector.swift in Sources */,
+				AF000000000000A9C0DE0303 /* AppHangStackCapture.swift in Sources */,
+				AF000000000000A9C0DE0305 /* PingAppHangDetector.swift in Sources */,
+				AF000000000000A9C0DE0003 /* AppHang.swift in Sources */,
+				AF000000000000A9C0DE0004 /* AppHangDetail.swift in Sources */,
+				AF000000000000A9C0DE0005 /* AppHangState.swift in Sources */,
 				526D184C2D5A1913009A2E90 /* EventType.swift in Sources */,
 				526D187C2D5A1913009A2E90 /* String+Extension.swift in Sources */,
 				CFC7CFD92EF1A0EF00F569AA /* MeasureSDK.m in Sources */,
@@ -2211,12 +2281,19 @@
 				CFF5AE902ED5E912003BCA79 /* MeasureConfigTests.swift in Sources */,
 				52B7F1392D757F81001498BC /* BatchStoreTests.swift in Sources */,
 				52B7F16F2D757F81001498BC /* CpuUsageCollectorTests.swift in Sources */,
+				AF000000000000A9C0DE0801 /* AppHangCollectorTests.swift in Sources */,
+				AF000000000000A9C0DE0401 /* AppHangStackCaptureTests.swift in Sources */,
+				AF000000000000A9C0DE0403 /* PingAppHangDetectorTests.swift in Sources */,
+				AF000000000000A9C0DE0201 /* CoreDataMigrationTests.swift in Sources */,
 				52B7F13B2D757F81001498BC /* EventStoreTests.swift in Sources */,
 				CF7CABB52F27429800A9DC30 /* ConfigLoaderTests.swift in Sources */,
 				CF041C452ED46E7F004B4D28 /* MockSignalSampler.swift in Sources */,
 				CF1BB3B72DBA39FF00588506 /* LifecycleCollectorTests.swift in Sources */,
 				52B7F1512D757F81001498BC /* XCTextCase+Extension.swift in Sources */,
 				69C4496B2DACC7C700E44CF4 /* InternalSignalCollectorTests.swift in Sources */,
+				AF000000000000A9C0DE0803 /* MockAppHangCallbacks.swift in Sources */,
+				AF000000000000A9C0DE0601 /* MockAppHangDetector.swift in Sources */,
+				AF000000000000A9C0DE0405 /* MockAppHangStackCapture.swift in Sources */,
 				52B7F1682D757F81001498BC /* MockSysCtl.swift in Sources */,
 				CF7CABB32F261DA800A9DC30 /* MockSessionStore.swift in Sources */,
 				CFB5756E2F599359000DB70B /* AttachmentStoreTests.swift in Sources */,
@@ -2982,10 +3059,11 @@
 		520C23942D65EBFC00F1C680 /* MeasureModel.xcdatamodeld */ = {
 			isa = XCVersionGroup;
 			children = (
+				AF000000000000A9C0DE0100 /* MeasureModelV3.xcdatamodel */,
 				CF893DD02E95096B00D99D45 /* MeasureModelV2.xcdatamodel */,
 				520C23952D65EBFC00F1C680 /* MeasureModel.xcdatamodel */,
 			);
-			currentVersion = CF893DD02E95096B00D99D45 /* MeasureModelV2.xcdatamodel */;
+			currentVersion = AF000000000000A9C0DE0100 /* MeasureModelV3.xcdatamodel */;
 			path = MeasureModel.xcdatamodeld;
 			sourceTree = "<group>";
 			versionGroupType = wrapper.xcdatamodel;

@@ -27,4 +27,5 @@ enum EventType: String, Codable, CaseIterable {
     case screenView = "screen_view"
     case bugReport = "bug_report"
     case sessionStart = "session_start"
+    case appHang = "app_hang"
 }

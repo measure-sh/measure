@@ -74,6 +74,7 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
     let shakeDetector: ShakeDetector
     let screenshotGenerator: ScreenshotGenerator
     let exceptionGenerator: ExceptionGenerator
+    let appHangCollector: AppHangCollector
     let measureDispatchQueue: MeasureDispatchQueue
     let attributeValueValidator: AttributeValueValidator
     let attachmentStore: AttachmentStore
@@ -137,6 +138,7 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
          tracer: Tracer? = nil,
          internalSignalCollector: InternalSignalCollector? = nil,
          exceptionGenerator: ExceptionGenerator? = nil,
+         appHangCollector: AppHangCollector? = nil,
          measureDispatchQueue: MeasureDispatchQueue? = nil,
          attributeValueValidator: AttributeValueValidator? = nil,
          attachmentStore: AttachmentStore? = nil,
@@ -327,6 +329,7 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
         self.exceptionGenerator = exceptionGenerator ?? BaseExceptionGenerator(logger: self.logger,
                                                                                crashDataPersistence: self.crashDataPersistence,
                                                                                sysCtl: self.sysCtl)
+        self.appHangCollector = appHangCollector ?? MockAppHangCollector()
         self.userTriggeredEventCollector = userTriggeredEventCollector ?? BaseUserTriggeredEventCollector(signalProcessor: self.signalProcessor,
                                                                            timeProvider: self.timeProvider,
                                                                            logger: self.logger,

@@ -10,6 +10,7 @@ import Foundation
 protocol ComputeOnceAttributeProcessor {
     func computeAttributes()
     func updateAttribute(_ attribute: Attributes)
+    func warmUp()
 }
 
 /// Generates the attributes once and then caches them. Subsequent calls to [appendAttributes] will return the cached attributes.
@@ -21,11 +22,14 @@ class BaseComputeOnceAttributeProcessor: AttributeProcessor, ComputeOnceAttribut
     private var isComputed = false
 
     func appendAttributes(_ attribute: Attributes) {
-        if !isComputed {
-            computeAttributes()
-            isComputed = true
-        }
+        warmUp()
         updateAttribute(attribute)
+    }
+
+    func warmUp() {
+        guard !isComputed else { return }
+        computeAttributes()
+        isComputed = true
     }
 
     func updateAttribute(_ attribute: Attributes) {

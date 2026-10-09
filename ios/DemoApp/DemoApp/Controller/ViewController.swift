@@ -15,6 +15,7 @@ import Measure
         case crashes = 0
         case httpEvents = 1
         case validationFailures = 2
+        case appHangs = 3
 
         var title: String {
             switch self {
@@ -24,6 +25,8 @@ import Measure
                 return "HTTP Events"
             case .validationFailures:
                 return "Validation Failures"
+            case .appHangs:
+                return "App Hangs"
             }
         }
     }
@@ -73,6 +76,8 @@ import Measure
                                   "Long VC class name (>256)",
                                   "Long SwiftUI view name (129)",
                                   "Long launched_activity (present, then background/foreground)"]
+
+    let appHangTypes = ["Block Main Thread", "Block Allocator Lock"]
 
     private let tableView = UITableView(frame: .zero, style: .plain)
     private var didRunLaunchValidationTrigger = false
@@ -240,6 +245,8 @@ import Measure
             return httpEventTypes.count
         case .validationFailures:
             return validationFailureTypes.count
+        case .appHangs:
+            return appHangTypes.count
         }
     }
 
@@ -261,6 +268,10 @@ import Measure
         case .validationFailures:
             cell.textLabel?.text = validationFailureTypes[indexPath.row]
             cell.textLabel?.textColor = .systemOrange
+
+        case .appHangs:
+            cell.textLabel?.text = appHangTypes[indexPath.row]
+            cell.textLabel?.textColor = .systemOrange
         }
 
         return cell
@@ -281,7 +292,94 @@ import Measure
             triggerHttpEvent(type: httpEventTypes[indexPath.row])
         case .validationFailures:
             triggerValidationFailure(type: validationFailureTypes[indexPath.row])
+        case .appHangs:
+            if indexPath.row == 0 {
+                presentAppHangOptions(from: tableView.cellForRow(at: indexPath))
+            } else {
+                presentAllocatorHangOptions(from: tableView.cellForRow(at: indexPath))
+            }
         }
+    }
+
+    // MARK: - App Hangs
+
+    private func presentAppHangOptions(from sourceView: UIView?) {
+        let alert = UIAlertController(title: "Block Main Thread",
+                                      message: "Blocks the main thread for the selected duration.",
+                                      preferredStyle: .actionSheet)
+
+        // 1 second sits below the 2000ms detection threshold, so it should not be reported.
+        let durations: [(String, TimeInterval)] = [("1 second (below threshold)", 1.0),
+                                                   ("2.5 seconds", 2.5),
+                                                   ("5 seconds", 5.0),
+                                                   ("10 seconds", 10.0)]
+
+        for (title, duration) in durations {
+            alert.addAction(UIAlertAction(title: title, style: .default) { _ in
+                Thread.sleep(forTimeInterval: duration)
+            })
+        }
+
+        alert.addAction(UIAlertAction(title: "100 micro hangs (100 × 50ms)", style: .default) { _ in
+            for _ in 0..<100 {
+                DispatchQueue.main.async {
+                    Thread.sleep(forTimeInterval: 0.05)
+                }
+            }
+        })
+
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = sourceView ?? view
+            popover.sourceRect = (sourceView ?? view).bounds
+        }
+
+        present(alert, animated: true)
+    }
+
+    private static let mallocForkPrepare: (@convention(c) () -> Void)? = {
+        guard let symbol = dlsym(dlopen(nil, RTLD_NOW), "_malloc_fork_prepare") else { return nil }
+        return unsafeBitCast(symbol, to: (@convention(c) () -> Void).self)
+    }()
+
+    private static let mallocForkParent: (@convention(c) () -> Void)? = {
+        guard let symbol = dlsym(dlopen(nil, RTLD_NOW), "_malloc_fork_parent") else { return nil }
+        return unsafeBitCast(symbol, to: (@convention(c) () -> Void).self)
+    }()
+
+    private func presentAllocatorHangOptions(from sourceView: UIView?) {
+        let alert = UIAlertController(title: "Block Allocator Lock",
+                                      message: "Blocks the main thread while holding every malloc zone lock, so any other thread that allocates blocks too.",
+                                      preferredStyle: .actionSheet)
+
+        for seconds in [5, 10, 20] {
+            alert.addAction(UIAlertAction(title: "\(seconds) seconds", style: .destructive) { _ in
+                Self.hangHoldingAllocatorLock(seconds: seconds)
+            })
+        }
+
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+
+        if let popover = alert.popoverPresentationController {
+            popover.sourceView = sourceView ?? view
+            popover.sourceRect = (sourceView ?? view).bounds
+        }
+
+        present(alert, animated: true)
+    }
+
+    static func hangHoldingAllocatorLock(seconds: Int) {
+        guard let prepare = mallocForkPrepare, let parent = mallocForkParent else {
+            NSLog("DemoApp: malloc fork handlers unavailable, cannot hold the allocator lock.")
+            return
+        }
+
+        NSLog("DemoApp: locking all malloc zones for %d seconds", seconds)
+        prepare()
+        usleep(useconds_t(seconds) * 1_000_000)
+        parent()
+        NSLog("DemoApp: malloc zones unlocked")
     }
 
     // MARK: - Validation Failure Triggers

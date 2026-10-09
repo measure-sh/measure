@@ -78,6 +78,7 @@ protocol MeasureInitializer {
     var measureDispatchQueue: MeasureDispatchQueue { get }
     var attributeValueValidator: AttributeValueValidator { get }
     var signalSampler: SignalSampler { get }
+    var appHangCollector: AppHangCollector { get }
     var attributeTransformer: AttributeTransformer { get }
 }
 
@@ -151,6 +152,7 @@ protocol MeasureInitializer {
 /// - `measureDispatchQueue`: `MeasureDispatchQueue` object to run tasks on a serial queue.
 /// - `attributeValueValidator`: `AttributeValueValidator` object to validate user defined attributes
 /// - `signalSampler`: `SignalSampler` object that is responsible for managing event sampling.
+/// - `appHangCollector`: `AppHangCollector` object that detects app hangs, i.e. periods where the main thread is blocked, and records them as events.
 ///
 final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:this type_body_length
     let configLoader: ConfigLoader
@@ -221,6 +223,7 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
     let attributeValueValidator: AttributeValueValidator
     let attachmentStore: AttachmentStore
     let signalSampler: SignalSampler
+    let appHangCollector: AppHangCollector
     let attributeTransformer: AttributeTransformer
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
@@ -426,6 +429,17 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
         self.exceptionGenerator = BaseExceptionGenerator(logger: logger,
                                                          crashDataPersistence: crashDataPersistence,
                                                          sysCtl: sysCtl)
+        self.attributeProcessors.compactMap { $0 as? ComputeOnceAttributeProcessor }.forEach { $0.warmUp() }
+        self.appHangCollector = BaseAppHangCollector(logger: logger,
+                                                     signalProcessor: signalProcessor,
+                                                     signalSampler: signalSampler,
+                                                     eventStore: eventStore,
+                                                     sessionStore: sessionStore,
+                                                     configProvider: configProvider,
+                                                     crashDataPersistence: crashDataPersistence,
+                                                     sysCtl: sysCtl,
+                                                     timeProvider: timeProvider,
+                                                     exporter: exporter)
         self.userTriggeredEventCollector = BaseUserTriggeredEventCollector(signalProcessor: signalProcessor,
                                                                            timeProvider: timeProvider,
                                                                            logger: logger,
@@ -484,4 +498,4 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
         self.shakeDetector = AccelerometerShakeDetector(configProvider: configProvider)
         self.shakeBugReportCollector = ShakeBugReportCollector(shakeDetector: shakeDetector)
     }
-}
+} // swiftlint:disable:this file_length

@@ -90,6 +90,9 @@ final class Event<T: Codable>: Codable {
     /// Data related to log events.
     let log: LogData?
 
+    /// Data related to an app hang events.
+    let appHang: AppHang?
+
     init(id: String,
          sessionId: String,
          timestamp: String,
@@ -127,6 +130,7 @@ final class Event<T: Codable>: Codable {
         self.screenView = data as? ScreenViewData
         self.bugReport = data as? BugReportData
         self.log = data as? LogData
+        self.appHang = data as? AppHang
     }
 
     enum CodingKeys: String, CodingKey {
@@ -157,6 +161,7 @@ final class Event<T: Codable>: Codable {
         case screenView = "screen_view"
         case bugReport = "bug_report"
         case log
+        case appHang = "app_hang"
     }
 
     /// Appends additional attributes to the event using the provided attribute processors.
