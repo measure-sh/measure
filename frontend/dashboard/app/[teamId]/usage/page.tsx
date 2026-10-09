@@ -2,8 +2,8 @@
 
 import { Button } from "@/app/components/button";
 import { buttonVariants } from "@/app/components/button_variants";
-import { Card } from "@/app/components/card";
 import EmptyState from "@/app/components/empty_state";
+import PlanFeature from "@/app/components/plan_feature";
 import DropdownSelect, {
   DropdownSelectType,
 } from "@/app/components/dropdown_select";
@@ -35,7 +35,6 @@ import { PlotTooltipShell } from "@/app/components/plot_tooltip";
 import { ResponsivePie } from "@nivo/pie";
 
 import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialog";
-import { Progress } from "@/app/components/progress";
 import { navigateTo } from "@/app/utils/navigation";
 import { toastNegative, toastPositive } from "@/app/components/toast";
 import { ChartPie } from "lucide-react";
@@ -209,25 +208,11 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
     setAwaitingProConfirmation(false);
   }
 
-  const bytesGranted = billingInfo?.bytes_granted ?? 0;
-  const bytesUsed = billingInfo?.bytes_used ?? 0;
   const [now] = useState(() => Date.now());
   const cancellationScheduled =
     billingInfo?.plan === "pro" &&
     (billingInfo?.canceled_at ?? 0) > 0 &&
     (billingInfo?.current_period_end ?? 0) * 1000 > now;
-  const freeUsagePercent =
-    billingInfo?.plan === "free" && bytesGranted > 0
-      ? Math.min(
-          100,
-          bytesUsed > 0
-            ? Math.max(
-                0.01,
-                Math.round((bytesUsed / bytesGranted) * 10000) / 100,
-              )
-            : 0,
-        )
-      : 0;
 
   const onUpgrade = async () => {
     setIsUpgrading(true);
@@ -472,318 +457,288 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
           {/* Main UI */}
           {billingInfoStatus === "pending" && (
             <div className="flex flex-col items-start w-full">
-              {/* Progress bar area */}
-              <div className="w-full max-w-6xl">
-                <div className="flex items-center justify-between mb-2">
-                  <Skeleton className="h-4 w-48" />
-                  <Skeleton className="h-4 w-36" />
-                </div>
-                <Skeleton className="h-1 w-full" />
-              </div>
-
               {/* Plan cards */}
-              <div className="flex flex-col md:flex-row gap-8 w-full mt-12">
-                <Card className="w-full md:w-1/2">
-                  <div className="p-4 md:p-8 flex flex-col items-center gap-3">
-                    <Skeleton className="h-6 w-16" />
-                    <Skeleton className="h-10 w-48" />
-                    <div className="flex flex-col gap-2 mt-4 w-full max-w-xs">
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-4 w-5/6" />
-                    </div>
+              <div className="flex flex-col md:flex-row gap-8 w-full">
+                <div className="w-full md:w-1/2 flex flex-col rounded-2xl border-2 border-border bg-card p-8">
+                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-14 w-40 mt-6" />
+                  <Skeleton className="h-4 w-32 mt-2" />
+                  <div className="flex flex-col gap-3 mt-8 pt-8 border-t border-border">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-5/6" />
                   </div>
-                </Card>
-                <Card className="w-full md:w-1/2">
-                  <div className="p-4 md:p-8 flex flex-col items-center gap-3">
-                    <Skeleton className="h-6 w-16" />
-                    <Skeleton className="h-10 w-48" />
-                    <div className="flex flex-col gap-2 mt-4 w-full max-w-xs">
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="h-4 w-5/6" />
-                    </div>
-                    <Skeleton className="h-9 w-40 mt-8" />
+                </div>
+                <div className="w-full md:w-1/2 flex flex-col rounded-2xl border-2 border-border bg-card p-8">
+                  <Skeleton className="h-8 w-20" />
+                  <Skeleton className="h-14 w-40 mt-6" />
+                  <Skeleton className="h-4 w-32 mt-2" />
+                  <div className="flex flex-col gap-3 mt-8 pt-8 border-t border-border">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="h-4 w-5/6" />
                   </div>
-                </Card>
+                  <Skeleton className="h-9 w-40 mt-8" />
+                </div>
               </div>
             </div>
           )}
           {billingInfoStatus === "success" && (
             <div className="flex flex-col items-start w-full">
-              {/* Progress indicator for Free plan */}
-              {billingInfo?.plan === "free" && (
-                <div className="w-full max-w-6xl">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="font-body">
-                      Free plan usage:{" "}
-                      <span className="font-semibold">{freeUsagePercent}%</span>
-                    </p>
-                    <p className="font-body text-muted-foreground">
-                      {formatBytesSI(bytesUsed)} used of{" "}
-                      {formatBytesSI(bytesGranted)}
-                    </p>
-                  </div>
-                  <Progress value={freeUsagePercent} />
-                </div>
-              )}
-
               {/* Plan Cards */}
-              <div className="flex flex-col md:flex-row gap-8 w-full mt-12">
+              <div className="flex flex-col md:flex-row gap-8 w-full">
                 {/* Free plan card */}
                 {billingInfo?.plan === "free" && (
-                  <Card className="w-full md:w-1/2 relative">
-                    {showCurrentPlanBadge()}
-                    <div className="p-4 md:p-8 flex flex-col items-center">
-                      <p className="text-xl font-display">FREE</p>
-                      <p className="text-4xl font-display py-2">$0 per month</p>
-                      <ul className="list-disc space-y-2 mt-6">
-                        <li className="font-body">
-                          Data: {formatDataLine(billingInfo)}
-                        </li>
-                        {(billingInfo?.token_credits_used ?? 0) > 0 && (
-                          <li className="font-body">
-                            Token credits: {formatTokenCreditsLine(billingInfo)}
-                          </li>
-                        )}
-                        <li className="font-body">
-                          {FREE_RETENTION_DAYS} days retention
-                        </li>
-                        <li className="font-body">MCP server</li>
-                      </ul>
+                  <section className="w-full md:w-1/2 flex flex-col rounded-2xl border-2 border-border bg-card text-card-foreground p-8">
+                    <div className="flex items-center justify-between gap-4">
+                      <h2 className="font-display text-2xl">Free</h2>
+                      {showCurrentPlanBadge()}
                     </div>
-                  </Card>
+                    <p className="mt-6 flex items-baseline gap-2 font-display">
+                      <span className="text-6xl">$0</span>{" "}
+                      <span className="text-lg text-muted-foreground">
+                        per month
+                      </span>
+                    </p>
+                    <p className="mt-2 font-body text-muted-foreground">
+                      {FREE_GB} GB of data
+                    </p>
+                    <ul className="mt-8 pt-8 border-t border-border space-y-3 font-body">
+                      <li>
+                        Data:{" "}
+                        <span className="font-semibold">
+                          {formatDataLine(billingInfo)}
+                        </span>
+                      </li>
+                      {(billingInfo?.token_credits_used ?? 0) > 0 && (
+                        <li>
+                          Token credits:{" "}
+                          <span className="font-semibold">
+                            {formatTokenCreditsLine(billingInfo)}
+                          </span>
+                        </li>
+                      )}
+                    </ul>
+                  </section>
                 )}
 
                 {/* Pro plan card, an upgrade pitch on the free plan and the
                     current plan on pro. Enterprise teams get their own card
                     below instead. */}
                 {billingInfo?.plan !== "enterprise" && (
-                  <Card
-                    className={`${billingInfo?.plan === "pro" ? "w-full" : "w-full md:w-1/2"} bg-green-50 dark:bg-card border border-green-300 dark:border-border relative`}
+                  <section
+                    className={`${billingInfo?.plan === "pro" ? "w-full" : "w-full md:w-1/2"} flex flex-col rounded-2xl border-2 border-primary bg-card text-card-foreground p-8`}
                   >
-                    {billingInfo?.plan === "pro" && showCurrentPlanBadge()}
-                    <div className="p-4 md:p-8 flex flex-col items-center">
-                      <p className="text-xl text-green-900 dark:text-primary font-display">
-                        PRO
-                      </p>
-                      <p className="text-4xl text-green-900 dark:text-primary font-display py-2">
-                        ${MINIMUM_PRICE_AFTER_FREE_TIER} per month
-                      </p>
-                      {billingInfo?.plan !== "pro" && (
-                        <ul className="list-disc space-y-2 mt-6">
-                          <li className="font-body text-green-900 dark:text-foreground">
-                            {INCLUDED_PRO_GB} GB per month included
+                    <div className="flex items-center justify-between gap-4">
+                      <h2 className="font-display text-2xl">Pro</h2>
+                      {billingInfo?.plan === "pro" && showCurrentPlanBadge()}
+                    </div>
+                    <p className="mt-6 flex items-baseline gap-2 font-display">
+                      <span className="text-6xl">
+                        ${MINIMUM_PRICE_AFTER_FREE_TIER}
+                      </span>{" "}
+                      <span className="text-lg text-muted-foreground">
+                        per month
+                      </span>
+                    </p>
+                    <p className="mt-2 font-body text-muted-foreground">
+                      {INCLUDED_PRO_GB} GB of data, then $
+                      {PRICE_PER_GB_MONTH.toFixed(2)} per GB
+                    </p>
+                    {billingInfo?.plan !== "pro" && (
+                      <ul className="mt-8 pt-8 border-t border-border space-y-3 font-body">
+                        <PlanFeature>
+                          {PRO_RETENTION_DAYS} days retention
+                        </PlanFeature>
+                        <PlanFeature>MCP server and Measure Agent</PlanFeature>
+                        <PlanFeature>
+                          Agent usage at provider token rates + a percentage
+                          markup for compute
+                        </PlanFeature>
+                      </ul>
+                    )}
+                    {billingInfo?.plan === "pro" &&
+                      currentUserCanChangePlan &&
+                      billingInfo.status && (
+                        <ul className="mt-8 pt-8 border-t border-border space-y-3 font-body">
+                          <li>
+                            Status:{" "}
+                            <span className="font-semibold capitalize">
+                              {billingInfo.status}
+                            </span>
                           </li>
-                          <li className="font-body text-green-900 dark:text-foreground">
-                            {PRO_RETENTION_DAYS} days retention
+                          <li>
+                            Current billing cycle:{" "}
+                            <span className="font-semibold">
+                              {new Date(
+                                billingInfo.current_period_start * 1000,
+                              ).toLocaleDateString()}{" "}
+                              –{" "}
+                              {new Date(
+                                billingInfo.current_period_end * 1000,
+                              ).toLocaleDateString()}
+                            </span>
                           </li>
-                          <li className="font-body text-green-900 dark:text-foreground">
-                            MCP server and Measure Agent
+                          {!cancellationScheduled && (
+                            <li>
+                              Next invoice:{" "}
+                              <span className="font-semibold">
+                                {new Date(
+                                  billingInfo.current_period_end * 1000,
+                                ).toLocaleDateString()}
+                              </span>
+                            </li>
+                          )}
+                          <li>
+                            Data:{" "}
+                            <span className="font-semibold">
+                              {formatDataLine(billingInfo)}
+                            </span>
                           </li>
-                          <li className="font-body text-green-900 dark:text-foreground">
-                            Extra data charged at $
-                            {PRICE_PER_GB_MONTH.toFixed(2)} per GB/month
-                          </li>
-                          <li className="font-body text-green-900 dark:text-foreground">
-                            Agent usage at provider token rates + a percentage
-                            markup for compute
-                          </li>
+                          {(billingInfo?.token_credits_used ?? 0) > 0 && (
+                            <li>
+                              Token credits:{" "}
+                              <span className="font-semibold">
+                                {formatTokenCreditsLine(billingInfo)}
+                              </span>
+                            </li>
+                          )}
                         </ul>
                       )}
-                      {billingInfo?.plan === "pro" &&
-                        currentUserCanChangePlan &&
-                        billingInfo.status && (
-                          <div className="mt-4 font-body text-start space-y-1">
-                            <ul className="list-disc list-inside">
-                              <li className="text-green-900 dark:text-foreground">
-                                Status:{" "}
-                                <span className="font-semibold capitalize">
-                                  {billingInfo.status}
-                                </span>
-                              </li>
-                              <li className="text-green-900 dark:text-foreground">
-                                Current billing cycle:{" "}
-                                <span className="font-semibold">
-                                  {new Date(
-                                    billingInfo.current_period_start * 1000,
-                                  ).toLocaleDateString()}{" "}
-                                  –{" "}
-                                  {new Date(
-                                    billingInfo.current_period_end * 1000,
-                                  ).toLocaleDateString()}
-                                </span>
-                              </li>
-                              {!cancellationScheduled && (
-                                <li className="text-green-900 dark:text-foreground">
-                                  Next invoice:{" "}
-                                  <span className="font-semibold">
-                                    {new Date(
-                                      billingInfo.current_period_end * 1000,
-                                    ).toLocaleDateString()}
-                                  </span>
-                                </li>
-                              )}
-                              <li className="text-green-900 dark:text-foreground">
-                                Data:{" "}
-                                <span className="font-semibold">
-                                  {formatDataLine(billingInfo)}
-                                </span>
-                              </li>
-                              {(billingInfo?.token_credits_used ?? 0) > 0 && (
-                                <li className="text-green-900 dark:text-foreground">
-                                  Token credits:{" "}
-                                  <span className="font-semibold">
-                                    {formatTokenCreditsLine(billingInfo)}
-                                  </span>
-                                </li>
-                              )}
-                            </ul>
-                          </div>
-                        )}
-                      <div className="pt-12">
-                        {billingInfo?.plan === "free" && (
+                    <div className="mt-auto pt-8">
+                      {billingInfo?.plan === "free" && (
+                        <Button
+                          className={buttonVariants({ variant: "default" })}
+                          onClick={onUpgrade}
+                          disabled={!currentUserCanChangePlan || isUpgrading}
+                        >
+                          {isUpgrading ? "Redirecting..." : "Upgrade to Pro"}
+                        </Button>
+                      )}
+                      {billingInfo?.plan === "pro" && (
+                        <div className="flex flex-col gap-3 items-start">
                           <Button
-                            className={buttonVariants({ variant: "default" })}
-                            onClick={onUpgrade}
-                            disabled={!currentUserCanChangePlan || isUpgrading}
+                            className="w-56"
+                            variant={"default"}
+                            onClick={onManageBilling}
+                            disabled={
+                              !currentUserCanChangePlan ||
+                              isLoadingPortal ||
+                              isDowngrading ||
+                              isUndoingDowngrade
+                            }
                           >
-                            {isUpgrading ? "Redirecting..." : "Upgrade to Pro"}
+                            {isLoadingPortal
+                              ? "Redirecting..."
+                              : "Manage Billing"}
                           </Button>
-                        )}
-                        {billingInfo?.plan === "pro" && (
-                          <div className="flex flex-col gap-3 items-center">
+                          {cancellationScheduled ? (
                             <Button
                               className="w-56"
                               variant={"default"}
-                              onClick={onManageBilling}
+                              onClick={onUndoDowngrade}
                               disabled={
                                 !currentUserCanChangePlan ||
-                                isLoadingPortal ||
-                                isDowngrading ||
-                                isUndoingDowngrade
+                                isUndoingDowngrade ||
+                                isLoadingPortal
                               }
                             >
-                              {isLoadingPortal
-                                ? "Redirecting..."
-                                : "Manage Billing"}
+                              {isUndoingDowngrade
+                                ? "Undoing..."
+                                : "Undo Cancellation"}
                             </Button>
-                            {cancellationScheduled ? (
-                              <Button
-                                className="w-56"
-                                variant={"default"}
-                                onClick={onUndoDowngrade}
-                                disabled={
-                                  !currentUserCanChangePlan ||
-                                  isUndoingDowngrade ||
-                                  isLoadingPortal
-                                }
-                              >
-                                {isUndoingDowngrade
-                                  ? "Undoing..."
-                                  : "Undo Cancellation"}
-                              </Button>
-                            ) : (
-                              <Button
-                                className="w-56"
-                                variant={"destructive"}
-                                onClick={() =>
-                                  setDowngradeConfirmationDialogOpen(true)
-                                }
-                                disabled={
-                                  !currentUserCanChangePlan ||
-                                  isDowngrading ||
-                                  isLoadingPortal
-                                }
-                              >
-                                {isDowngrading
-                                  ? "Scheduling..."
-                                  : "Downgrade to Free"}
-                              </Button>
+                          ) : (
+                            <Button
+                              className="w-56"
+                              variant={"destructive"}
+                              onClick={() =>
+                                setDowngradeConfirmationDialogOpen(true)
+                              }
+                              disabled={
+                                !currentUserCanChangePlan ||
+                                isDowngrading ||
+                                isLoadingPortal
+                              }
+                            >
+                              {isDowngrading
+                                ? "Scheduling..."
+                                : "Downgrade to Free"}
+                            </Button>
+                          )}
+                          {cancellationScheduled &&
+                            billingInfo.current_period_end && (
+                              <p className="font-body text-sm text-muted-foreground pt-2">
+                                Cancellation scheduled for{" "}
+                                {new Date(
+                                  billingInfo.current_period_end * 1000,
+                                ).toLocaleDateString()}
+                              </p>
                             )}
-                            {cancellationScheduled &&
-                              billingInfo.current_period_end && (
-                                <p className="font-body text-sm text-center text-muted-foreground pt-2">
-                                  Cancellation scheduled for{" "}
-                                  {new Date(
-                                    billingInfo.current_period_end * 1000,
-                                  ).toLocaleDateString()}
-                                </p>
-                              )}
-                          </div>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
-                  </Card>
+                  </section>
                 )}
 
                 {/* Enterprise plan card. It shows no price because the terms,
                     including retention and plan length, are whatever the
                     enterprise plan in Autumn was configured with. */}
                 {billingInfo?.plan === "enterprise" && (
-                  <Card className="w-full bg-green-50 dark:bg-card border border-green-300 dark:border-border relative">
-                    {showCurrentPlanBadge()}
-                    <div className="p-4 md:p-8 flex flex-col items-center">
-                      <p className="text-xl text-green-900 dark:text-primary font-display">
-                        ENTERPRISE
-                      </p>
-                      <div className="mt-4 font-body text-start space-y-1">
-                        <ul className="list-disc list-inside">
-                          <li className="text-green-900 dark:text-foreground">
-                            Data:{" "}
-                            <span className="font-semibold">
-                              {formatDataLine(billingInfo)}
-                            </span>
-                          </li>
-                          {(billingInfo?.token_credits_used ?? 0) > 0 ? (
-                            <li className="text-green-900 dark:text-foreground">
-                              Token credits:{" "}
-                              <span className="font-semibold">
-                                {formatTokenCreditsLine(billingInfo)}
-                              </span>
-                            </li>
-                          ) : null}
-                          {billingInfo?.retention_days ? (
-                            <li className="text-green-900 dark:text-foreground">
-                              Retention:{" "}
-                              <span className="font-semibold">
-                                {billingInfo.retention_days} days
-                              </span>
-                            </li>
-                          ) : null}
-                          {billingInfo?.current_period_start &&
-                          billingInfo?.current_period_end ? (
-                            <li className="text-green-900 dark:text-foreground">
-                              Plan period:{" "}
-                              <span className="font-semibold">
-                                {new Date(
-                                  billingInfo.current_period_start * 1000,
-                                ).toLocaleDateString()}{" "}
-                                –{" "}
-                                {new Date(
-                                  billingInfo.current_period_end * 1000,
-                                ).toLocaleDateString()}
-                              </span>
-                            </li>
-                          ) : null}
-                        </ul>
-                      </div>
-                      <div className="pt-12">
-                        <Button
-                          className="w-56"
-                          variant={"default"}
-                          onClick={onManageBilling}
-                          disabled={
-                            !currentUserCanChangePlan || isLoadingPortal
-                          }
-                        >
-                          {isLoadingPortal
-                            ? "Redirecting..."
-                            : "Manage Billing"}
-                        </Button>
-                      </div>
+                  <section className="w-full flex flex-col rounded-2xl border-2 border-primary bg-card text-card-foreground p-8">
+                    <div className="flex items-center justify-between gap-4">
+                      <h2 className="font-display text-2xl">Enterprise</h2>
+                      {showCurrentPlanBadge()}
                     </div>
-                  </Card>
+                    <ul className="mt-8 pt-8 border-t border-border space-y-3 font-body">
+                      <li>
+                        Data:{" "}
+                        <span className="font-semibold">
+                          {formatDataLine(billingInfo)}
+                        </span>
+                      </li>
+                      {(billingInfo?.token_credits_used ?? 0) > 0 ? (
+                        <li>
+                          Token credits:{" "}
+                          <span className="font-semibold">
+                            {formatTokenCreditsLine(billingInfo)}
+                          </span>
+                        </li>
+                      ) : null}
+                      {billingInfo?.retention_days ? (
+                        <li>
+                          Retention:{" "}
+                          <span className="font-semibold">
+                            {billingInfo.retention_days} days
+                          </span>
+                        </li>
+                      ) : null}
+                      {billingInfo?.current_period_start &&
+                      billingInfo?.current_period_end ? (
+                        <li>
+                          Plan period:{" "}
+                          <span className="font-semibold">
+                            {new Date(
+                              billingInfo.current_period_start * 1000,
+                            ).toLocaleDateString()}{" "}
+                            –{" "}
+                            {new Date(
+                              billingInfo.current_period_end * 1000,
+                            ).toLocaleDateString()}
+                          </span>
+                        </li>
+                      ) : null}
+                    </ul>
+                    <div className="mt-auto pt-8">
+                      <Button
+                        className="w-56"
+                        variant={"default"}
+                        onClick={onManageBilling}
+                        disabled={!currentUserCanChangePlan || isLoadingPortal}
+                      >
+                        {isLoadingPortal ? "Redirecting..." : "Manage Billing"}
+                      </Button>
+                    </div>
+                  </section>
                 )}
               </div>
 
@@ -840,7 +795,7 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
 
 function showCurrentPlanBadge() {
   return (
-    <div className="absolute top-4 right-4 bg-primary text-primary-foreground text-xs font-display px-2 py-1 rounded">
+    <div className="bg-primary text-primary-foreground text-xs font-display px-2 py-1 rounded">
       Current Plan
     </div>
   );

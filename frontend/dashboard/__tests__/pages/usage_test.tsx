@@ -270,19 +270,6 @@ jest.mock("@/app/components/card", () => ({
   ),
 }));
 
-// Mock Progress - render as a div with progressbar role
-jest.mock("@/app/components/progress", () => ({
-  Progress: ({ value, ...props }: any) => (
-    <div
-      role="progressbar"
-      aria-valuenow={value}
-      aria-valuemin={0}
-      aria-valuemax={100}
-      {...props}
-    />
-  ),
-}));
-
 // Mock next/link
 jest.mock("next/link", () => ({
   __esModule: true,
@@ -655,8 +642,10 @@ describe("Usage Page", () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
-    expect(screen.getByText("FREE")).toBeInTheDocument();
-    expect(screen.getByText("$0 per month")).toBeInTheDocument();
+    const plan = screen
+      .getByRole("heading", { name: "Free" })
+      .closest("section")!;
+    expect(plan).toHaveTextContent("$0 per month");
     expect(screen.getByText("Current Plan")).toBeInTheDocument();
     expect(screen.getByText("Upgrade to Pro")).toBeInTheDocument();
   });
@@ -672,114 +661,13 @@ describe("Usage Page", () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
-    expect(screen.getByText("PRO")).toBeInTheDocument();
-    expect(screen.getByText("$50 per month")).toBeInTheDocument();
+    const plan = screen
+      .getByRole("heading", { name: "Pro" })
+      .closest("section")!;
+    expect(plan).toHaveTextContent("$50 per month");
     expect(screen.getByText("Current Plan")).toBeInTheDocument();
     expect(screen.getByText("Downgrade to Free")).toBeInTheDocument();
     expect(screen.getByText("Contact us")).toBeInTheDocument();
-  });
-
-  it("shows free plan usage progress bar with percentage and GB", async () => {
-    useUsageStore.setState({
-      usageState: "loaded",
-      billingInfoState: "loaded",
-      billingInfo: { ...freeBillingInfo, bytes_used: 1_000_000 }, // 1 MB
-      months: ["2025-01", "2025-02"],
-      selectedMonth: "2025-02",
-      selectedMonthUsage: [
-        {
-          id: "app1",
-          label: "My App",
-          value: 150,
-          events: 700,
-          spans: 300,
-          bytes_in: 1_000_000,
-        },
-      ],
-    });
-
-    await act(async () => {
-      render(<Usage params={promiseParams({ teamId: "team1" })} />);
-    });
-
-    // 1_000_000 / 5_000_000_000 = 0.0002 → 0.02% after rounding.
-    expect(screen.getByText("0.02%")).toBeInTheDocument();
-    expect(screen.getByText(/1\.0 MB used of 5\.00 GB/)).toBeInTheDocument();
-
-    const progressbar = screen.getByRole("progressbar");
-    expect(progressbar).toHaveAttribute("aria-valuenow", "0.02");
-    expect(progressbar).toHaveAttribute("aria-valuemin", "0");
-    expect(progressbar).toHaveAttribute("aria-valuemax", "100");
-  });
-
-  it("shows 0% when there is no usage", async () => {
-    useUsageStore.setState({
-      usageState: "loaded",
-      billingInfoState: "loaded",
-      billingInfo: freeBillingInfo,
-      months: ["2025-02"],
-      selectedMonth: "2025-02",
-      selectedMonthUsage: [
-        {
-          id: "app1",
-          label: "Test App",
-          value: 0,
-          events: 0,
-          spans: 0,
-          bytes_in: 0,
-        },
-      ],
-    });
-
-    await act(async () => {
-      render(<Usage params={promiseParams({ teamId: "team1" })} />);
-    });
-
-    expect(screen.getByText("0%")).toBeInTheDocument();
-    expect(screen.getByText(/0 B used of 5\.00 GB/)).toBeInTheDocument();
-  });
-
-  it("shows minimum 0.01% for very small usage", async () => {
-    useUsageStore.setState({
-      usageState: "loaded",
-      billingInfoState: "loaded",
-      billingInfo: { ...freeBillingInfo, bytes_used: 48 },
-      months: ["2025-02"],
-      selectedMonth: "2025-02",
-      selectedMonthUsage: [
-        {
-          id: "app1",
-          label: "Test App",
-          value: 1,
-          events: 1,
-          spans: 0,
-          bytes_in: 48,
-        },
-      ],
-    });
-
-    await act(async () => {
-      render(<Usage params={promiseParams({ teamId: "team1" })} />);
-    });
-
-    // 48 bytes / 5 GB rounds to 0 — clamp pulls it up to 0.01% so the bar isn't hidden.
-    expect(screen.getByText("0.01%")).toBeInTheDocument();
-    expect(screen.getByText(/48 B used of 5\.00 GB/)).toBeInTheDocument();
-  });
-
-  it("does not show free plan progress bar when on pro plan", async () => {
-    useUsageStore.setState({
-      billingInfoState: "loaded",
-      billingInfo: proBillingInfo,
-      currentUserCanChangePlan: true,
-    });
-
-    await act(async () => {
-      render(<Usage params={promiseParams({ teamId: "team1" })} />);
-    });
-
-    expect(screen.queryByText(/Free plan usage:/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/used of 5 GB/)).not.toBeInTheDocument();
   });
 
   // ---- Upgrade flow ----
@@ -1293,9 +1181,11 @@ describe("Usage Page", () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
-    expect(screen.getByText(/GB per month included/)).toBeInTheDocument();
+    expect(screen.getByText(/GB of data, then/)).toBeInTheDocument();
     expect(screen.getAllByText(/days retention/).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Extra data charged at/)).toBeInTheDocument();
+    expect(
+      screen.getByText("MCP server and Measure Agent"),
+    ).toBeInTheDocument();
     expect(screen.getByText(/personalised plans/)).toBeInTheDocument();
   });
 
@@ -1310,8 +1200,10 @@ describe("Usage Page", () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
-    expect(screen.queryByText(/GB per month included/)).not.toBeInTheDocument();
-    expect(screen.queryByText(/Extra data charged at/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/days retention/)).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("MCP server and Measure Agent"),
+    ).not.toBeInTheDocument();
     // The "personalised plans" contact-us prompt is now shared across free
     // and pro — only enterprise hides it. Pro users should still see it.
     expect(screen.getByText(/personalised plans/)).toBeInTheDocument();
@@ -1383,7 +1275,7 @@ describe("Usage Page", () => {
     // Subscription info section should be absent, no crash
     expect(screen.queryByText(/Status:/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Next invoice:/)).not.toBeInTheDocument();
-    expect(screen.getByText("PRO")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Pro" })).toBeInTheDocument();
   });
 
   it("Free plan card shows 'Data: X of Y used' from Autumn values", async () => {
@@ -1402,9 +1294,10 @@ describe("Usage Page", () => {
 
     expect(screen.getByText(/^Data:/)).toBeInTheDocument();
     expect(screen.getByText(/1\.00 GB of 5\.00 GB used/)).toBeInTheDocument();
-    // Free has no overage — must not append the overage suffix even if
+    // Free has no overage, so the overage suffix must not appear even if
     // used > granted (which can't happen on Free in practice).
     expect(screen.queryByText(/overage/)).not.toBeInTheDocument();
+    expect(screen.queryByText("MCP server")).not.toBeInTheDocument();
   });
 
   it("Pro upgrade-pitch card shown to free users keeps the marketing copy", async () => {
@@ -1421,17 +1314,14 @@ describe("Usage Page", () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
-    expect(
-      screen.getByText(`${INCLUDED_PRO_GB} GB per month included`),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(`${PRO_RETENTION_DAYS} days retention`),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByText(
-        `Extra data charged at $${PRICE_PER_GB_MONTH.toFixed(2)} per GB/month`,
-      ),
-    ).toBeInTheDocument();
+    const plan = screen
+      .getByRole("heading", { name: "Pro" })
+      .closest("section")!;
+    expect(plan).toHaveTextContent(
+      `${INCLUDED_PRO_GB} GB of data, then $${PRICE_PER_GB_MONTH.toFixed(2)} per GB`,
+    );
+    expect(plan).toHaveTextContent(`${PRO_RETENTION_DAYS} days retention`);
+    expect(plan).toHaveTextContent("MCP server and Measure Agent");
   });
 
   it("Pro plan Data line shows 'X of Y used' when under quota", async () => {
@@ -1837,7 +1727,7 @@ describe("Usage Page", () => {
   // Enterprise plan card — full-width, no price, custom retention/bytes
   // -----------------------------------------------------------------------
 
-  it("renders Enterprise card with ENTERPRISE title on enterprise plan", async () => {
+  it("renders Enterprise card with Enterprise title on enterprise plan", async () => {
     useUsageStore.setState({
       billingInfoState: "loaded",
       billingInfo: enterpriseBillingInfo,
@@ -1847,7 +1737,9 @@ describe("Usage Page", () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
-    expect(screen.getByText("ENTERPRISE")).toBeInTheDocument();
+    expect(
+      screen.getByRole("heading", { name: "Enterprise" }),
+    ).toBeInTheDocument();
   });
 
   it("Enterprise Data line reads 'Unlimited' when bytes_unlimited is true", async () => {
@@ -2015,8 +1907,12 @@ describe("Usage Page", () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
-    expect(screen.queryByText("FREE")).not.toBeInTheDocument();
-    expect(screen.queryByText("PRO")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Free" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "Pro" }),
+    ).not.toBeInTheDocument();
     expect(screen.queryByText("Upgrade to Pro")).not.toBeInTheDocument();
     expect(screen.queryByText("Downgrade to Free")).not.toBeInTheDocument();
   });
