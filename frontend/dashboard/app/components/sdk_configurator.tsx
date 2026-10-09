@@ -65,6 +65,7 @@ export default function SdkConfigurator({
   >({
     errors: "idle",
     anrs: "idle",
+    appHangs: "idle",
     bugReports: "idle",
     traces: "idle",
     launch: "idle",
@@ -85,6 +86,7 @@ export default function SdkConfigurator({
   // Confirmation dialog states
   const [errorsConfirmOpen, setErrorsConfirmOpen] = useState(false);
   const [anrsConfirmOpen, setAnrsConfirmOpen] = useState(false);
+  const [appHangsConfirmOpen, setAppHangsConfirmOpen] = useState(false);
   const [bugReportsConfirmOpen, setBugReportsConfirmOpen] = useState(false);
   const [tracesConfirmOpen, setTracesConfirmOpen] = useState(false);
   const [launchConfirmOpen, setLaunchConfirmOpen] = useState(false);
@@ -136,6 +138,17 @@ export default function SdkConfigurator({
     (sdkConfig.anr_take_screenshot !== originalSdkConfig.anr_take_screenshot ||
       sdkConfig.anr_timeline_duration !==
         originalSdkConfig.anr_timeline_duration);
+  const appHangsChanged =
+    !!sdkConfig &&
+    !!originalSdkConfig &&
+    (sdkConfig.app_hang_threshold_millis !==
+      originalSdkConfig.app_hang_threshold_millis ||
+      sdkConfig.app_hang_timeline_duration !==
+        originalSdkConfig.app_hang_timeline_duration ||
+      sdkConfig.app_hang_sampling_rate !==
+        originalSdkConfig.app_hang_sampling_rate ||
+      sdkConfig.app_hang_replay_enabled !==
+        originalSdkConfig.app_hang_replay_enabled);
   const bugReportsChanged =
     !!sdkConfig &&
     !!originalSdkConfig &&
@@ -248,6 +261,14 @@ export default function SdkConfigurator({
       anr_timeline_duration: sdkConfig.anr_timeline_duration,
     });
   };
+  const handleSaveAppHangs = () => {
+    saveSection("appHangs", {
+      app_hang_threshold_millis: sdkConfig.app_hang_threshold_millis,
+      app_hang_timeline_duration: sdkConfig.app_hang_timeline_duration,
+      app_hang_sampling_rate: sdkConfig.app_hang_sampling_rate,
+      app_hang_replay_enabled: sdkConfig.app_hang_replay_enabled,
+    });
+  };
   const handleSaveBugReports = () => {
     saveSection("bugReports", {
       bug_report_timeline_duration: sdkConfig.bug_report_timeline_duration,
@@ -333,10 +354,12 @@ export default function SdkConfigurator({
 
   const getHeaderPlaceholder = () => ["X-User-ID", "X-API-Key"].join("\n");
 
-  // ANRs and background memory collection are Android-only, so show them when
-  // the OS is unknown or the app reports on Android.
   const shouldShowAndroidSettings =
-    !osNames?.length || osNames.some((os) => os.toLowerCase() === "android");
+    osNames?.some((os) => os.toLowerCase() === "android") ?? false;
+
+  const shouldShowIosSettings =
+    osNames?.some((os) => ["ios", "ipados"].includes(os.toLowerCase())) ??
+    false;
 
   // Confirmation dialog body generators
   const getErrorsConfirmBody = () => {
@@ -481,6 +504,70 @@ export default function SdkConfigurator({
           )}
         </ul>
         <p className="mt-4">These changes will apply to all new ANRs.</p>
+      </div>
+    );
+  };
+
+  const getAppHangsConfirmBody = () => {
+    return (
+      <div className="font-body">
+        <p>
+          Are you sure you want to update{" "}
+          <span className="font-display font-bold">App Hang settings</span> for
+          app <span className="font-display font-bold">{appName}</span>?
+        </p>
+        <p className="mt-4">The following changes will be applied:</p>
+        <ul className="mt-2 space-y-1 list-disc list-inside">
+          {sdkConfig.app_hang_threshold_millis !==
+            originalSdkConfig.app_hang_threshold_millis && (
+            <li>
+              Hang threshold:{" "}
+              <span className="font-display font-bold">
+                {originalSdkConfig.app_hang_threshold_millis} ms
+              </span>{" "}
+              →{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.app_hang_threshold_millis} ms
+              </span>
+            </li>
+          )}
+          {sdkConfig.app_hang_sampling_rate !==
+            originalSdkConfig.app_hang_sampling_rate && (
+            <li>
+              Sampling rate:{" "}
+              <span className="font-display font-bold">
+                {originalSdkConfig.app_hang_sampling_rate}%
+              </span>{" "}
+              →{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.app_hang_sampling_rate}%
+              </span>
+            </li>
+          )}
+          {sdkConfig.app_hang_replay_enabled !==
+            originalSdkConfig.app_hang_replay_enabled && (
+            <li>
+              Session replay with app hangs:{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.app_hang_replay_enabled ? "Enabled" : "Disabled"}
+              </span>
+            </li>
+          )}
+          {sdkConfig.app_hang_timeline_duration !==
+            originalSdkConfig.app_hang_timeline_duration && (
+            <li>
+              Session replay duration:{" "}
+              <span className="font-display font-bold">
+                {originalSdkConfig.app_hang_timeline_duration} seconds
+              </span>{" "}
+              →{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.app_hang_timeline_duration} seconds
+              </span>
+            </li>
+          )}
+        </ul>
+        <p className="mt-4">These changes will apply to all new app hangs.</p>
       </div>
     );
   };
@@ -1081,6 +1168,109 @@ export default function SdkConfigurator({
                       }
                       loading={sectionStatuses.anrs === "saving"}
                       onClick={() => setAnrsConfirmOpen(true)}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              </AccordionContent>
+            </AccordionItem>
+          )}
+
+          {/* App Hangs Accordion */}
+          {shouldShowIosSettings && (
+            <AccordionItem value="app_hangs" className="mt-2">
+              <AccordionTrigger className="font-body text-base">
+                App Hangs
+              </AccordionTrigger>
+              <AccordionContent className={accordionContentStyle}>
+                <div className="mt-2 space-y-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-body text-sm">
+                      Report an app hang when the main thread is blocked for
+                    </span>
+                    <SdkConfigNumericInput
+                      testId="app-hang-threshold-input"
+                      value={sdkConfig.app_hang_threshold_millis}
+                      minValue={1000}
+                      maxValue={30000}
+                      onChange={(val) =>
+                        updateSdkConfig({ app_hang_threshold_millis: val })
+                      }
+                      disabled={!currentUserCanChangeAppSettings}
+                    />
+                    <span className="font-body text-sm">
+                      milliseconds or longer
+                    </span>
+                    <InfoTooltip
+                      content={
+                        <>
+                          A lower threshold catches shorter stalls but wakes the
+                          detector more often. The SDK will not go below 1000
+                          ms.
+                        </>
+                      }
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-body text-sm">
+                      Collect app hangs at
+                    </span>
+                    <SdkConfigNumericInput
+                      testId="app-hang-sampling-rate-input"
+                      value={sdkConfig.app_hang_sampling_rate}
+                      minValue={0}
+                      maxValue={100}
+                      step={0.01}
+                      type="float"
+                      onChange={(value) =>
+                        updateSdkConfig({ app_hang_sampling_rate: value })
+                      }
+                      disabled={!currentUserCanChangeAppSettings}
+                    />
+                    <span className="font-body text-sm">% sampling rate</span>
+                  </div>
+                  <div className="flex flex-col gap-2 min-h-10 sm:flex-row sm:items-center sm:gap-0">
+                    <p className="text-sm">
+                      Collect session replay with app hangs
+                    </p>
+                    <Switch
+                      data-testid="app-hang-replay-switch"
+                      className="sm:ml-4"
+                      checked={sdkConfig.app_hang_replay_enabled}
+                      onCheckedChange={(checked) =>
+                        updateSdkConfig({ app_hang_replay_enabled: checked })
+                      }
+                      disabled={!currentUserCanChangeAppSettings}
+                    />
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-body text-sm">
+                      Collect session replay of
+                    </span>
+                    <SdkConfigNumericInput
+                      testId="app-hang-timeline-duration-input"
+                      value={sdkConfig.app_hang_timeline_duration}
+                      minValue={0}
+                      maxValue={3600}
+                      onChange={(val) =>
+                        updateSdkConfig({ app_hang_timeline_duration: val })
+                      }
+                      disabled={!currentUserCanChangeAppSettings}
+                    />
+                    <span className="font-body text-sm">
+                      seconds with every app hang
+                    </span>
+                  </div>
+                  <div className="flex justify-end mt-2">
+                    <Button
+                      data-testid="app-hangs-save-button"
+                      variant="outline"
+                      disabled={
+                        !currentUserCanChangeAppSettings || !appHangsChanged
+                      }
+                      loading={sectionStatuses.appHangs === "saving"}
+                      onClick={() => setAppHangsConfirmOpen(true)}
                     >
                       Save
                     </Button>
@@ -1719,6 +1909,20 @@ export default function SdkConfigurator({
             handleSaveAnrs();
           }}
           onCancelAction={() => setAnrsConfirmOpen(false)}
+        />
+      )}
+
+      {shouldShowIosSettings && (
+        <DangerConfirmationDialog
+          body={getAppHangsConfirmBody()}
+          open={appHangsConfirmOpen}
+          affirmativeText="Yes, I'm sure"
+          cancelText="Cancel"
+          onAffirmativeAction={() => {
+            setAppHangsConfirmOpen(false);
+            handleSaveAppHangs();
+          }}
+          onCancelAction={() => setAppHangsConfirmOpen(false)}
         />
       )}
 

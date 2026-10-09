@@ -30,6 +30,7 @@ export enum PillType {
   SessionEventHandledError = "session_event_handled_error",
   SessionEventError = "session_event_error",
   SessionEventAnr = "session_event_anr",
+  SessionEventAppHang = "session_event_app_hang",
   SessionEventBugReport = "session_event_bug_report",
   SessionEventGestureClick = "session_event_gesture_click",
   SessionEventGestureLongClick = "session_event_gesture_long_click",
@@ -179,6 +180,7 @@ const pillDefaults: Record<
   },
   [PillType.SessionEventError]: { label: "Error", ...sessionRed },
   [PillType.SessionEventAnr]: { label: "ANR", ...sessionRed },
+  [PillType.SessionEventAppHang]: { label: "App Hang", ...sessionRed },
   [PillType.SessionEventBugReport]: { label: "Bug Report", ...sessionRed },
   [PillType.SessionEventGestureClick]: { label: "Click", ...sessionEmerald },
   [PillType.SessionEventGestureLongClick]: {

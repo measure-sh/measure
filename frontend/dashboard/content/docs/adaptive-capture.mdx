@@ -27,6 +27,10 @@ Every app starts with these defaults:
 | Unhandled error sampling rate        | 100%                                                                                |
 | Handled error sampling rate          | 0%                                                                                  |
 | ANR session replay duration          | 300 seconds (5 minutes)                                                             |
+| App hang threshold (iOS)             | 2000 milliseconds (2 seconds)                                                       |
+| App hang sampling rate (iOS)         | 100%                                                                                |
+| App hang session replay (iOS)        | true                                                                                |
+| App hang session replay duration (iOS) | 300 seconds (5 minutes)                                                           |
 | Bug report session replay duration   | 300                                                                                 |
 | Trace sampling rate                  | 100%                                                                                |
 | Journey sampling rate                | 100%                                                                                |
@@ -86,12 +90,37 @@ collected for another error.
 
 ## ANRs
 
-ANRs are collected on Android only.
+ANRs are collected on Android only. The iOS equivalent is an [app hang](/docs/error-monitoring#app-hang-reporting), with
+its own settings below.
 
 ### Session replay duration
 
 Every ANR arrives with a replay of the events in the minutes before it. By default it captures
 the 5 minutes before the ANR.
+
+## App hangs
+
+[App hangs](/docs/error-monitoring#app-hang-reporting) are collected on iOS only. The Android
+equivalent is an [ANR](#anrs), with its own settings above.
+
+### Hang threshold
+
+How long the main thread must stay blocked before it counts as a hang. The default is 2 seconds.
+
+A lower threshold catches shorter hangs, at the cost of the SDK checking for hangs more
+often. The minimum value is 1 second and cannot be lower.
+
+### Sampling rate
+
+Percentage of app hangs reported, from 0% to 100%. The default is 100%.
+
+### Session replay
+
+Whether a session replay is recorded along with the app hang. On by default.
+
+### Session replay duration
+
+Duration of session replay captured with app hang. 5 mins by default.
 
 ## Bug reports
 

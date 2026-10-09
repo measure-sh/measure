@@ -36,6 +36,7 @@ import {
   tickOffsetMs,
   idleSkipThresholdMs,
   projectedExtent,
+  sessionEventTitle,
   type LayoutElement,
   type Attachment,
 } from "@/app/components/session_replay";
@@ -431,6 +432,36 @@ describe("replayFrom", () => {
     // A launch that reports no duration keeps its pill and says no more.
     expect(rows[2].title).toBe("");
     expect(rows[2].pillType).toBe(PillType.SessionEventHotLaunch);
+  });
+
+  it("shows app hang message with duration and state", () => {
+    const rows = replayFrom(
+      timelineWith([
+        {
+          event_type: "app_hang",
+          thread_name: "main",
+          duration: 5090,
+          state: "recovered",
+          method_name: "ViewController.blockMainThread()",
+          file_name: "ViewController.swift",
+          timestamp: at(0),
+        },
+        {
+          event_type: "app_hang",
+          thread_name: "main",
+          duration: 8000,
+          state: "killed",
+          method_name: "ViewController.blockMainThread()",
+          file_name: "ViewController.swift",
+          timestamp: at(1),
+        },
+      ]),
+    ).rows;
+
+    expect(rows[0].title).toBe("Main thread blocked for 5.1s");
+    expect(rows[0].pillType).toBe(PillType.SessionEventAppHang);
+    expect(rows[1].title).toBe("Main thread blocked for 8s, app killed");
+    expect(rows[1].pillType).toBe(PillType.SessionEventAppHang);
   });
 
   it("reads a network change as the move from one network to the next", () => {
@@ -1186,6 +1217,36 @@ describe("formatOffset", () => {
     [61_007, "1:01.007"],
   ])("formats %ims as %s", (ms, expected) => {
     expect(formatOffset(ms)).toBe(expected);
+  });
+});
+
+describe("app hang titles", () => {
+  it.each([
+    [5090, "recovered", "Main thread blocked for 5.1s"],
+    [2000, "recovered", "Main thread blocked for 2s"],
+    [12_400, "recovered", "Main thread blocked for 12s"],
+    [950, "recovered", "Main thread blocked for 1s"],
+  ])("reads %ims as %s", (duration, state, expected) => {
+    expect(sessionEventTitle("app_hang", { duration, state })).toBe(expected);
+  });
+
+  it("says so when the app never recovered", () => {
+    expect(
+      sessionEventTitle("app_hang", { duration: 8000, state: "killed" }),
+    ).toBe("Main thread blocked for 8s, app killed");
+  });
+
+  it("show messages without duration", () => {
+    expect(sessionEventTitle("app_hang", { state: "recovered" })).toBe(
+      "Main thread blocked",
+    );
+    expect(sessionEventTitle("app_hang", { state: "killed" })).toBe(
+      "Main thread blocked, app killed",
+    );
+  });
+
+  it("returns a title when only a duration is given", () => {
+    expect(sessionEventTitle("app_hang", { duration: 3000 })).not.toBe("");
   });
 });
 

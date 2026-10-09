@@ -1,4 +1,9 @@
 {
   "title": "Error Monitoring",
-  "pages": ["screenshot-masking", "upload-symbols", "grouping", "over-the-air-updates"]
+  "pages": [
+    "screenshot-masking",
+    "upload-symbols",
+    "grouping",
+    "over-the-air-updates"
+  ]
 }
