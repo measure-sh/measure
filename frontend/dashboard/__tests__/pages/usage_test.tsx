@@ -713,6 +713,36 @@ describe("Usage Page", () => {
     );
   });
 
+  it("upgrade button resets when the page is restored from the back/forward cache", async () => {
+    const handleUpgrade = jest
+      .fn()
+      .mockResolvedValue({ redirect: "https://checkout.stripe.com/test" });
+    useUsageStore.setState({
+      billingInfoState: "loaded",
+      billingInfo: freeBillingInfo,
+      currentUserCanChangePlan: true,
+      handleUpgrade,
+    });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Upgrade to Pro"));
+    });
+
+    expect(screen.getByText("Redirecting...")).toBeDisabled();
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PageTransitionEvent("pageshow", { persisted: true }),
+      );
+    });
+
+    expect(screen.getByText("Upgrade to Pro")).not.toBeDisabled();
+  });
+
   it("upgrade with already_upgraded response refreshes billing info and shows toast", async () => {
     const handleUpgrade = jest
       .fn()
@@ -1565,6 +1595,36 @@ describe("Usage Page", () => {
         redirect: "https://billing.stripe.com/session/test",
       });
     });
+  });
+
+  it("Manage Billing button resets when the page is restored from the back/forward cache", async () => {
+    const handleManageBilling = jest.fn().mockResolvedValue({
+      redirect: "https://billing.stripe.com/session/test",
+    });
+    useUsageStore.setState({
+      billingInfoState: "loaded",
+      billingInfo: proBillingInfo,
+      currentUserCanChangePlan: true,
+      handleManageBilling,
+    });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Manage Billing"));
+    });
+
+    expect(screen.getByText("Redirecting...")).toBeDisabled();
+
+    await act(async () => {
+      window.dispatchEvent(
+        new PageTransitionEvent("pageshow", { persisted: true }),
+      );
+    });
+
+    expect(screen.getByText("Manage Billing")).not.toBeDisabled();
   });
 
   it("Manage Billing error shows toast", async () => {
