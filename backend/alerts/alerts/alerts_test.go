@@ -15,6 +15,7 @@ import (
 	"backend/libs/autumn"
 	autumntest "backend/libs/autumn/testhelpers"
 	"backend/libs/email"
+	"backend/testinfra"
 
 	"github.com/google/uuid"
 )
@@ -639,6 +640,90 @@ func TestCreateBugReportAlerts(t *testing.T) {
 		}
 		if got := countPendingByChannel(ctx, t, "email"); got != 1 {
 			t.Errorf("want 1 pending email, got %d", got)
+		}
+	})
+
+	t.Run("bug report alert message, email subject and slack header include the user id", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Test Team")
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
+		th.SeedTeamSlack(ctx, t, teamID, []string{"C0TESTCHAN"})
+		th.SeedBugReportRow(ctx, t, teamID, appID, testinfra.BugReportRow{
+			EventID:     uuid.New().String(),
+			Description: "Button crash",
+			UserID:      "user-123",
+			Timestamp:   time.Now().UTC().Add(-5 * time.Minute),
+		})
+
+		CreateBugReportAlerts(ctx)
+
+		var message string
+		if err := th.PgPool.QueryRow(ctx,
+			"SELECT message FROM alerts WHERE type = $1", string(AlertTypeBugReport)).Scan(&message); err != nil {
+			t.Fatalf("query alert message: %v", err)
+		}
+		want := "Button crash\n\nReported by User ID: user-123"
+		if message != want {
+			t.Errorf("alert message = %q, want %q", message, want)
+		}
+
+		wantTitle := "Test App - New Bug Report from User ID: user-123"
+		if got := pendingEmailSubject(ctx, t); got != wantTitle {
+			t.Errorf("email subject = %q, want %q", got, wantTitle)
+		}
+		if got := pendingSlackHeader(ctx, t); got != "🚨 "+wantTitle {
+			t.Errorf("slack header = %q, want %q", got, "🚨 "+wantTitle)
+		}
+	})
+
+	t.Run("bug report alert message, email subject and slack header omit the user id when the report has none", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Test Team")
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
+		th.SeedTeamSlack(ctx, t, teamID, []string{"C0TESTCHAN"})
+		th.SeedBugReportRow(ctx, t, teamID, appID, testinfra.BugReportRow{
+			EventID:     uuid.New().String(),
+			Description: "Button crash",
+			NoUserID:    true,
+			Timestamp:   time.Now().UTC().Add(-5 * time.Minute),
+		})
+
+		CreateBugReportAlerts(ctx)
+
+		var message string
+		if err := th.PgPool.QueryRow(ctx,
+			"SELECT message FROM alerts WHERE type = $1", string(AlertTypeBugReport)).Scan(&message); err != nil {
+			t.Fatalf("query alert message: %v", err)
+		}
+		want := "Button crash"
+		if message != want {
+			t.Errorf("alert message = %q, want %q", message, want)
+		}
+
+		wantTitle := "Test App - New Bug Report"
+		if got := pendingEmailSubject(ctx, t); got != wantTitle {
+			t.Errorf("email subject = %q, want %q", got, wantTitle)
+		}
+		if got := pendingSlackHeader(ctx, t); got != "🚨 "+wantTitle {
+			t.Errorf("slack header = %q, want %q", got, "🚨 "+wantTitle)
 		}
 	})
 

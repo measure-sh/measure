@@ -1,5 +1,5 @@
-// Package alertmsg builds the plain text messages and dashboard URLs
-// for crash spike, ANR spike, and bug report alerts. The alerts service
+// Package alertmsg builds the plain text messages, titles, and dashboard
+// URLs for crash spike, ANR spike, and bug report alerts. The alerts service
 // stores each message in the alerts table and hands the same string to
 // the email and Slack channels, so the builders emit no markup: each
 // channel applies its own formatting, email by escaping the text into
@@ -19,11 +19,25 @@ func AnrSpikeMessage(file, method, message string) string {
 }
 
 // BugReportMessage builds the plain text message for a bug report alert.
-func BugReportMessage(description string) string {
+// A non-empty userId is appended on its own line after the description.
+func BugReportMessage(description, userId string) string {
 	if description == "" {
-		return "No description provided."
+		description = "No description provided."
 	}
-	return description
+	if userId == "" {
+		return description
+	}
+	return fmt.Sprintf("%s\n\nReported by User ID: %s", description, userId)
+}
+
+// BugReportTitle builds the email subject and Slack header for a bug report
+// alert. A non-empty userId is named after the title.
+func BugReportTitle(appName, userId string) string {
+	title := appName + " - New Bug Report"
+	if userId == "" {
+		return title
+	}
+	return fmt.Sprintf("%s from User ID: %s", title, userId)
 }
 
 // CrashSpikeURL builds the dashboard URL for a crash spike alert. A

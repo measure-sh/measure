@@ -808,7 +808,7 @@ func TestAppNameMarkupIsEscapedInTitle(t *testing.T) {
 
 	_, bodies["CrashSpikeAlertEmail"] = CrashSpikeAlertEmail(payload, "spiking", "https://measure.sh")
 	_, bodies["AnrSpikeAlertEmail"] = AnrSpikeAlertEmail(payload, "spiking", "https://measure.sh")
-	_, bodies["BugReportAlertEmail"] = BugReportAlertEmail(payload, "a bug", "https://measure.sh")
+	_, bodies["BugReportAlertEmail"] = BugReportAlertEmail(payload, "", "a bug", "https://measure.sh")
 	// The team summary places the team name in the subject and each app
 	// name in a section heading, so the payload is exercised in both spots.
 	_, bodies["TeamDailySummaryEmail"] = TeamDailySummaryEmail(payload, time.Now(), []AppDailySummary{{AppName: payload}}, "https://measure.sh", "team-abc")
@@ -855,7 +855,7 @@ func TestAlertMessageMarkupIsEscapedInBody(t *testing.T) {
 
 	_, bodies["CrashSpikeAlertEmail"] = CrashSpikeAlertEmail("MyApp", payload, "https://measure.sh")
 	_, bodies["AnrSpikeAlertEmail"] = AnrSpikeAlertEmail("MyApp", payload, "https://measure.sh")
-	_, bodies["BugReportAlertEmail"] = BugReportAlertEmail("MyApp", payload, "https://measure.sh")
+	_, bodies["BugReportAlertEmail"] = BugReportAlertEmail("MyApp", "", payload, "https://measure.sh")
 
 	for name, body := range bodies {
 		if strings.Contains(body, payload) {
