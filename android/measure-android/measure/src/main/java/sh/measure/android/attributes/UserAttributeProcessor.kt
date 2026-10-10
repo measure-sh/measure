@@ -5,6 +5,7 @@ import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.storage.PrefsStorage
+import sh.measure.android.utils.ValidationLimits
 import java.util.concurrent.RejectedExecutionException
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -23,11 +24,21 @@ internal class UserAttributeProcessor(
     override fun appendAttributes(attributes: MutableMap<String, Any?>) {
         if (!loadedFromDisk.getAndSet(true)) {
             userId = prefsStorage.getUserId()
+            if ((userId?.length ?: 0) > ValidationLimits.USER_ID) {
+                clearUserId()
+            }
         }
         attributes[USER_ID_KEY] = userId
     }
 
     fun setUserId(userId: String) {
+        if (userId.length > ValidationLimits.USER_ID) {
+            logger.log(
+                LogLevel.Error,
+                "User ID exceeds the maximum length of ${ValidationLimits.USER_ID} characters and will be ignored",
+            )
+            return
+        }
         this.userId = userId
         ioExecutor.submit {
             prefsStorage.setUserId(userId)

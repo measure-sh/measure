@@ -6,6 +6,7 @@ import sh.measure.android.layoutinspector.Bounds
 import sh.measure.android.layoutinspector.ElementFlags
 import sh.measure.android.layoutinspector.ElementType
 import sh.measure.android.layoutinspector.LayoutElement
+import sh.measure.android.utils.ValidationLimits
 
 class ClickDataTest {
 
@@ -41,6 +42,30 @@ class ClickDataTest {
         Assert.assertEquals(detectedGesture.y, result.y)
         Assert.assertEquals(detectedGesture.touchDownTime, result.touch_down_time)
         Assert.assertEquals(detectedGesture.touchUpTime, result.touch_up_time)
+    }
+
+    @Test
+    fun `truncates target and target id that exceed the maximum length`() {
+        val detectedGesture = DetectedGesture.Click(
+            x = 10f,
+            y = 20f,
+            touchDownTime = 0L,
+            touchUpTime = 0L,
+            timestamp = 0L,
+        )
+        val target = LayoutElement(
+            id = "i".repeat(ValidationLimits.GESTURE_TARGET_ID + 10),
+            label = "l".repeat(ValidationLimits.GESTURE_TARGET + 10),
+            type = ElementType.Container,
+            bounds = Bounds(10, 20, 100, 50),
+            flags = ElementFlags.create(scrollable = false, highlighted = false),
+        )
+        val result = ClickData.fromTargetNode(
+            gesture = detectedGesture,
+            layoutElement = target,
+        )
+        Assert.assertEquals(ValidationLimits.GESTURE_TARGET, result.target?.length)
+        Assert.assertEquals(ValidationLimits.GESTURE_TARGET_ID, result.target_id?.length)
     }
 }
 

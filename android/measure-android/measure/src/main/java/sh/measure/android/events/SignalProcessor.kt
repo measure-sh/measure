@@ -7,6 +7,7 @@ import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.attributes.StringAttr
 import sh.measure.android.attributes.appendAttributes
+import sh.measure.android.attributes.truncateToLimits
 import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.DefaultConfig
@@ -21,6 +22,7 @@ import sh.measure.android.screenshot.ScreenshotCollector
 import sh.measure.android.storage.SignalStore
 import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.tracing.SpanData
+import sh.measure.android.tracing.isValidAttributeKey
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.Sampler
 import sh.measure.android.utils.iso8601Timestamp
@@ -208,6 +210,7 @@ internal class SignalProcessorImpl(
                         ) ?: return@trace
                         applyAttributes(event, resolvedThreadName)
                         InternalTrace.trace(label = { "msr-store-event" }, block = {
+                            event.attributes.truncateToLimits()
                             signalStore.store(event)
                             onEventTracked(event)
                         })
@@ -249,6 +252,7 @@ internal class SignalProcessorImpl(
                 event.updateVersionAttribute(appVersion, appBuild)
                 event.updateSessionStartTimeAttribute(sessionStartTime)
                 InternalTrace.trace(label = { "msr-store-event" }, block = {
+                    event.attributes.truncateToLimits()
                     signalStore.store(event)
                 })
             },
@@ -282,6 +286,7 @@ internal class SignalProcessorImpl(
         // Stamped before the store so a profile can be attributed to this session even
         // if the event insert fails.
         sessionManager.markSessionWithAnr(event.sessionId, timestamp)
+        event.attributes.truncateToLimits()
         signalStore.store(event)
     }
 
@@ -316,6 +321,7 @@ internal class SignalProcessorImpl(
                     event.updateSessionStartTimeAttribute(sessionStartTime)
                 }
                 InternalTrace.trace(label = { "msr-store-event" }, block = {
+                    event.attributes.truncateToLimits()
                     signalStore.store(event)
                     onEventTracked(event)
                 })
@@ -361,6 +367,7 @@ internal class SignalProcessorImpl(
             // if the event insert fails or the process dies mid-store.
             sessionManager.markSessionWithAnr(event.sessionId, timestamp)
         }
+        event.attributes.truncateToLimits()
         signalStore.store(event)
         onEventTracked(event)
         exporter.export()
@@ -371,7 +378,11 @@ internal class SignalProcessorImpl(
             InternalTrace.trace(
                 { "msr-store-span" },
                 {
-                    signalStore.store(spanData)
+                    signalStore.store(
+                        spanData.copy(
+                            attributes = spanData.attributes.toMutableMap().apply { truncateToLimits() },
+                        ),
+                    )
                     if (logger.enabled) {
                         logger.log(
                             LogLevel.Debug,
@@ -401,10 +412,11 @@ internal class SignalProcessorImpl(
                 attachments = attachments,
                 attributes = attributes,
                 userTriggered = true,
-                userDefinedAttributes = userDefinedAttributes,
+                userDefinedAttributes = dropInvalidAttributes(type.value, userDefinedAttributes),
                 isSampled = true,
             ) ?: return@submit
             applyAttributes(event, thread)
+            event.attributes.truncateToLimits()
             signalStore.store(event)
             onEventTracked(event)
             exporter.export()
@@ -526,6 +538,24 @@ internal class SignalProcessorImpl(
         }
     }
 
+    private fun dropInvalidAttributes(
+        event: String,
+        attributes: Map<String, AttributeValue>,
+    ): Map<String, AttributeValue> {
+        val validAttributes = attributes
+            .filter { (key, value) -> isKeyValid(key) && isValueValid(value) }
+            .entries
+            .take(configProvider.maxUserDefinedAttributesPerEvent)
+            .associate { it.key to it.value }
+        if (validAttributes.size < attributes.size) {
+            logger.log(
+                LogLevel.Error,
+                "Invalid event($event): dropped ${attributes.size - validAttributes.size} invalid attributes",
+            )
+        }
+        return validAttributes
+    }
+
     private fun applyEventSampling(
         eventType: EventType,
         sessionId: String,
@@ -547,7 +577,7 @@ internal class SignalProcessorImpl(
         else -> isSampled
     }
 
-    private fun isKeyValid(key: String): Boolean = key.length <= configProvider.maxUserDefinedAttributeKeyLength
+    private fun isKeyValid(key: String): Boolean = key.isValidAttributeKey(configProvider.maxUserDefinedAttributeKeyLength)
 
     private fun isValueValid(value: AttributeValue): Boolean = when (value) {
         is StringAttr -> value.value.length <= configProvider.maxUserDefinedAttributeValueLength
