@@ -14,6 +14,7 @@ import sh.measure.android.okhttp.HttpData
 import sh.measure.android.toEventAttachment
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TimeProvider
+import sh.measure.android.utils.ValidationLimits
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface UserTriggeredEventCollector {
@@ -70,7 +71,14 @@ internal class UserTriggeredEventCollectorImpl(
             return
         }
         val timestamp = timeProvider.now()
-        val bugReportData = BugReportData(description)
+        val maxDescriptionLength = configProvider.maxDescriptionLengthInBugReport
+        if (description.length > maxDescriptionLength) {
+            logger.log(
+                LogLevel.Error,
+                "Bug report description exceeds the maximum length of $maxDescriptionLength characters and will be truncated",
+            )
+        }
+        val bugReportData = BugReportData(description.take(maxDescriptionLength))
         val attachments =
             screenshots.take(configProvider.maxAttachmentsInBugReport)
                 .map { it.toEventAttachment(AttachmentType.SCREENSHOT) }.toMutableList()
@@ -109,6 +117,15 @@ internal class UserTriggeredEventCollectorImpl(
         // validate method
         if (method != "get" && method != "post" && method != "put" && method != "delete" && method != "patch") {
             logger.log(LogLevel.Error, "Failed to track HTTP event, invalid method $method")
+            return
+        }
+
+        // validate client
+        if (client.length > ValidationLimits.HTTP_CLIENT) {
+            logger.log(
+                LogLevel.Error,
+                "Failed to track HTTP event, client exceeds the maximum length of ${ValidationLimits.HTTP_CLIENT} characters",
+            )
             return
         }
 
@@ -194,6 +211,13 @@ internal class UserTriggeredEventCollectorImpl(
 
     override fun trackScreenView(screenName: String, attributes: Map<String, AttributeValue>) {
         if (!enabled.get()) {
+            return
+        }
+        if (screenName.length > ValidationLimits.SCREEN_VIEW_NAME) {
+            logger.log(
+                LogLevel.Error,
+                "Failed to track screen view, name exceeds the maximum length of ${ValidationLimits.SCREEN_VIEW_NAME} characters",
+            )
             return
         }
         val timestamp = timeProvider.now()

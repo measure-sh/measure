@@ -22,6 +22,7 @@ import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.TimeProvider
+import sh.measure.android.utils.ValidationLimits
 import sh.measure.android.utils.getNetworkGeneration
 import sh.measure.android.utils.hasPermission
 import sh.measure.android.utils.hasPhoneStatePermission
@@ -141,7 +142,7 @@ internal class NetworkChangesCollector(
                     network_type = newNetworkType,
                     previous_network_generation = previousNetworkGeneration,
                     network_generation = newNetworkGeneration,
-                    network_provider = networkProvider,
+                    network_provider = networkProvider.take(ValidationLimits.NETWORK_CHANGE_PROVIDER),
                 ),
             )
             currentNetworkType = newNetworkType

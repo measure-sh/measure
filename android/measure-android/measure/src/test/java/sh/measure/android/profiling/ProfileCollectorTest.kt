@@ -170,6 +170,29 @@ class ProfileCollectorTest {
     }
 
     @Test
+    fun `clamps the profile time to the current session start when the profile appears to precede it`() {
+        val fileTimestamp = "2026-07-05-17-51-56"
+        val profileTime = parseFileTimestamp(fileTimestamp)
+        sessionManager.startTime = profileTime + 400
+        val file = File(tempDir, "profile_trigger-type-2_$fileTimestamp-124_uid-10229.perfetto-trace")
+        file.writeText("trace")
+
+        profileCollector.handleProfilingResult(file.absolutePath, ProfilingTrigger.TRIGGER_TYPE_APP_FULLY_DRAWN)
+
+        verify(signalProcessor).trackProfile(
+            data = any(),
+            timestamp = eq(profileTime + 400),
+            type = eq(EventType.PROFILE),
+            attachments = any(),
+            sessionId = eq(sessionManager.getSessionId()),
+            sessionStartTime = isNull(),
+            appVersion = isNull(),
+            appBuild = isNull(),
+            isSampled = eq(true),
+        )
+    }
+
+    @Test
     fun `parses file timestamps without milliseconds`() {
         val fileTimestamp = "2026-07-05-17-51-56"
         val profileTime = parseFileTimestamp(fileTimestamp)

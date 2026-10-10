@@ -15,6 +15,7 @@ import sh.measure.android.events.SignalProcessor
 import sh.measure.android.layoutinspector.LayoutSnapshotCollector
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.utils.TimeProvider
+import sh.measure.android.utils.ValidationLimits
 import sh.measure.android.utils.isClassAvailable
 
 internal class AndroidXFragmentNavigationCollector(
@@ -48,7 +49,7 @@ internal class AndroidXFragmentNavigationCollector(
             signalProcessor.track(
                 type = EventType.SCREEN_VIEW,
                 timestamp = timestamp,
-                data = ScreenViewData(name = displayName),
+                data = ScreenViewData(name = displayName.take(ValidationLimits.SCREEN_VIEW_NAME)),
                 attachments = listOfNotNull(attachment).toMutableList(),
             )
         }

@@ -11,6 +11,7 @@ import sh.measure.android.logger.Logger
 import sh.measure.android.mainHandler
 import sh.measure.android.postAtFrontOfQueueAsync
 import sh.measure.android.utils.TimeProvider
+import sh.measure.android.utils.ValidationLimits
 
 internal interface LaunchCallbacks {
     fun onColdLaunch(coldLaunchData: ColdLaunchData)
@@ -164,7 +165,7 @@ internal class LaunchTracker(
                         process_start_requested_uptime = LaunchState.processStartRequestedElapsedRealtime,
                         content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
                         on_next_draw_uptime = onNextDrawElapsedRealtime,
-                        launched_activity = onCreateRecord.activityName,
+                        launched_activity = onCreateRecord.activityName.take(ValidationLimits.LAUNCHED_ACTIVITY),
                         has_saved_state = onCreateRecord.hasSavedState,
                         intent_data = intentData,
                     ),
@@ -177,7 +178,7 @@ internal class LaunchTracker(
                         HotLaunchData(
                             app_visible_uptime = it,
                             on_next_draw_uptime = onNextDrawElapsedRealtime,
-                            launched_activity = onCreateRecord.activityName,
+                            launched_activity = onCreateRecord.activityName.take(ValidationLimits.LAUNCHED_ACTIVITY),
                             has_saved_state = onCreateRecord.hasSavedState,
                             intent_data = intentData,
                         ),
@@ -193,7 +194,7 @@ internal class LaunchTracker(
                         content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
                         app_visible_uptime = LaunchState.lastAppVisibleElapsedRealtime ?: 0,
                         on_next_draw_uptime = onNextDrawElapsedRealtime,
-                        launched_activity = onCreateRecord.activityName,
+                        launched_activity = onCreateRecord.activityName.take(ValidationLimits.LAUNCHED_ACTIVITY),
                         has_saved_state = onCreateRecord.hasSavedState,
                         intent_data = intentData,
                         is_lukewarm = false,
@@ -209,7 +210,7 @@ internal class LaunchTracker(
                         content_provider_attach_uptime = LaunchState.contentLoaderAttachElapsedRealtime,
                         app_visible_uptime = LaunchState.lastAppVisibleElapsedRealtime ?: 0,
                         on_next_draw_uptime = onNextDrawElapsedRealtime,
-                        launched_activity = onCreateRecord.activityName,
+                        launched_activity = onCreateRecord.activityName.take(ValidationLimits.LAUNCHED_ACTIVITY),
                         has_saved_state = onCreateRecord.hasSavedState,
                         intent_data = intentData,
                         is_lukewarm = true,

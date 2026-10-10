@@ -1,5 +1,6 @@
 package sh.measure.android.events
 
+import sh.measure.android.SessionManager
 import sh.measure.android.attributes.AttributeValue
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.logger.LogLevel
@@ -12,6 +13,7 @@ internal class CustomEventCollector(
     private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
     private val configProvider: ConfigProvider,
+    private val sessionManager: SessionManager,
 ) {
     private val isEnabled = AtomicBoolean(false)
     private val customEventNameRegex by lazy { Regex(configProvider.customEventNameRegex) }
@@ -29,6 +31,13 @@ internal class CustomEventCollector(
             return
         }
         if (!validateName(name)) {
+            return
+        }
+        if (timestamp != null && timestamp < sessionManager.getSessionStartTime()) {
+            logger.log(
+                LogLevel.Error,
+                "Invalid event($name): timestamp is before the session start time",
+            )
             return
         }
 
