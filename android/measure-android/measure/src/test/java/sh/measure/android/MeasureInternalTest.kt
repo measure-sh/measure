@@ -2,6 +2,8 @@ package sh.measure.android
 
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
@@ -15,11 +17,14 @@ import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import org.mockito.kotlin.whenever
 import org.robolectric.annotation.Config
+import sh.measure.android.attributes.Attribute
+import sh.measure.android.attributes.PatchAttributeProcessor
 import sh.measure.android.config.DynamicConfig
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.utils.ManifestMetadata
+import sh.measure.android.utils.ValidationLimits
 
 @RunWith(AndroidJUnit4::class)
 // Below Android 11 the SIGQUIT collector is the ANR source, which is what
@@ -28,6 +33,7 @@ import sh.measure.android.utils.ManifestMetadata
 class MeasureInternalTest {
     private val sessionManager = mock<SessionManager>()
     private val signalProcessor = mock<SignalProcessor>()
+    private val patchAttributeProcessor = PatchAttributeProcessor()
 
     private fun mockMeasureInitializer(): MeasureInitializer {
         val initializer = mock(MeasureInitializer::class.java)
@@ -72,6 +78,7 @@ class MeasureInternalTest {
         `when`(initializer.configLoader).thenReturn(mock())
         `when`(initializer.spanProcessor).thenReturn(mock())
         `when`(initializer.exporter).thenReturn(mock())
+        `when`(initializer.patchAttributeProcessor).thenReturn(patchAttributeProcessor)
 
         return initializer
     }
@@ -439,5 +446,17 @@ class MeasureInternalTest {
         val measureInternal = MeasureInternal(initializer)
         measureInternal.init()
         return initializer
+    }
+
+    @Test
+    fun `internalSetPatch ignores patch id that is not a uuid`() {
+        val measureInternal = MeasureInternal(mockMeasureInitializer())
+
+        measureInternal.internalSetPatch("not-a-uuid", "1.0.0")
+
+        val attributes = mutableMapOf<String, Any?>()
+        patchAttributeProcessor.appendAttributes(attributes)
+        assertNull(attributes[Attribute.PATCH_ID_KEY])
+        assertNull(attributes[Attribute.PATCH_VERSION_KEY])
     }
 }

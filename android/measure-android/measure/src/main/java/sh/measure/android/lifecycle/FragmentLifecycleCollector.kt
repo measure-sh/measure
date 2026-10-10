@@ -17,6 +17,7 @@ import sh.measure.android.tracing.SpanName
 import sh.measure.android.tracing.SpanStatus
 import sh.measure.android.tracing.Tracer
 import sh.measure.android.utils.TimeProvider
+import sh.measure.android.utils.ValidationLimits
 
 /**
  * Tracks [Fragment] lifecycle events.
@@ -36,9 +37,9 @@ internal class FragmentLifecycleCollector(
             timestamp = timeProvider.now(),
             data = FragmentLifecycleData(
                 type = FragmentLifecycleType.ATTACHED,
-                parent_activity = f.activity?.javaClass?.name,
-                parent_fragment = f.parentFragment?.javaClass?.name,
-                class_name = f.javaClass.name,
+                parent_activity = f.activity?.javaClass?.name?.take(ValidationLimits.FRAGMENT_CLASS_NAME),
+                parent_fragment = f.parentFragment?.javaClass?.name?.take(ValidationLimits.FRAGMENT_CLASS_NAME),
+                class_name = f.javaClass.name.take(ValidationLimits.FRAGMENT_CLASS_NAME),
                 tag = f.tag,
             ),
         )
@@ -67,9 +68,9 @@ internal class FragmentLifecycleCollector(
             timestamp = timeProvider.now(),
             data = FragmentLifecycleData(
                 type = FragmentLifecycleType.RESUMED,
-                parent_activity = f.activity?.javaClass?.name,
-                class_name = f.javaClass.name,
-                parent_fragment = f.parentFragment?.javaClass?.name,
+                parent_activity = f.activity?.javaClass?.name?.take(ValidationLimits.FRAGMENT_CLASS_NAME),
+                class_name = f.javaClass.name.take(ValidationLimits.FRAGMENT_CLASS_NAME),
+                parent_fragment = f.parentFragment?.javaClass?.name?.take(ValidationLimits.FRAGMENT_CLASS_NAME),
                 tag = f.tag,
             ),
         )
@@ -81,9 +82,9 @@ internal class FragmentLifecycleCollector(
             timestamp = timeProvider.now(),
             data = FragmentLifecycleData(
                 type = FragmentLifecycleType.PAUSED,
-                parent_activity = f.activity?.javaClass?.name,
-                class_name = f.javaClass.name,
-                parent_fragment = f.parentFragment?.javaClass?.name,
+                parent_activity = f.activity?.javaClass?.name?.take(ValidationLimits.FRAGMENT_CLASS_NAME),
+                class_name = f.javaClass.name.take(ValidationLimits.FRAGMENT_CLASS_NAME),
+                parent_fragment = f.parentFragment?.javaClass?.name?.take(ValidationLimits.FRAGMENT_CLASS_NAME),
                 tag = f.tag,
             ),
         )
@@ -97,9 +98,9 @@ internal class FragmentLifecycleCollector(
             timestamp = timeProvider.now(),
             data = FragmentLifecycleData(
                 type = FragmentLifecycleType.DETACHED,
-                parent_activity = f.activity?.javaClass?.name,
-                class_name = f.javaClass.name,
-                parent_fragment = f.parentFragment?.javaClass?.name,
+                parent_activity = f.activity?.javaClass?.name?.take(ValidationLimits.FRAGMENT_CLASS_NAME),
+                class_name = f.javaClass.name.take(ValidationLimits.FRAGMENT_CLASS_NAME),
+                parent_fragment = f.parentFragment?.javaClass?.name?.take(ValidationLimits.FRAGMENT_CLASS_NAME),
                 tag = f.tag,
             ),
         )

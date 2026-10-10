@@ -13,6 +13,7 @@ import okio.source
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.SystemServiceProvider
+import sh.measure.android.utils.ValidationLimits
 import java.io.InputStream
 
 internal interface AppExitProvider {
@@ -58,7 +59,8 @@ internal class AppExitProviderImpl(
             reasonId = reason,
             importance = getImportanceName(importance),
             trace = trace?.threads,
-            subject = trace?.subject ?: description?.takeIf { it.isNotBlank() },
+            subject = (trace?.subject ?: description?.takeIf { it.isNotBlank() })
+                ?.take(ValidationLimits.ANR_SUBJECT),
             process_name = processName,
             app_exit_time_ms = timestamp,
             pid = pid.toString(),

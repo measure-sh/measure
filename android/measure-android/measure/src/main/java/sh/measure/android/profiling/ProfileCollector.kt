@@ -188,9 +188,11 @@ internal class ProfileCollector(
             null
         }
         val session = anrSession ?: sessionManager.getSessionForTime(profileTimeMs)
+        val timestamp = anrSession?.lastAnrTime
+            ?: if (session != null) profileTimeMs else maxOf(profileTimeMs, sessionManager.getSessionStartTime())
         signalProcessor.trackProfile(
             data = ProfileData(reason = reason, format = format),
-            timestamp = anrSession?.lastAnrTime ?: profileTimeMs,
+            timestamp = timestamp,
             type = EventType.PROFILE,
             attachments = mutableListOf(
                 Attachment(name = file.name, type = format, path = filePath),

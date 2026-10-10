@@ -26,6 +26,7 @@ import sh.measure.android.fakes.TestData.toEvent
 import sh.measure.android.profiling.ProfileData
 import sh.measure.android.screenshot.Screenshot
 import sh.measure.android.screenshot.ScreenshotCollector
+import sh.measure.android.utils.ValidationLimits
 import sh.measure.android.utils.iso8601Timestamp
 
 internal class SignalProcessorTest {
@@ -613,5 +614,101 @@ internal class SignalProcessorTest {
         signalProcessor.trackSpan(spanData)
 
         assertTrue(signalStore.trackedSpans.contains(spanData))
+    }
+
+    @Test
+    fun `track drops event when user defined attribute key contains invalid characters`() {
+        signalProcessor.track(
+            data = TestData.getExceptionData(),
+            timestamp = 9856564654L,
+            type = EventType.EXCEPTION,
+            userDefinedAttributes = mapOf("invalid key!" to StringAttr("value")),
+        )
+
+        assertEquals(0, signalStore.trackedEvents.size)
+    }
+
+    @Test
+    fun `track drops event when user defined attribute key is empty`() {
+        signalProcessor.track(
+            data = TestData.getExceptionData(),
+            timestamp = 9856564654L,
+            type = EventType.EXCEPTION,
+            userDefinedAttributes = mapOf("" to StringAttr("value")),
+        )
+
+        assertEquals(0, signalStore.trackedEvents.size)
+    }
+
+    @Test
+    fun `track truncates thread name that exceeds the maximum length`() {
+        signalProcessor.track(
+            data = TestData.getExceptionData(),
+            timestamp = 9856564654L,
+            type = EventType.EXCEPTION,
+            threadName = "t".repeat(ValidationLimits.THREAD_NAME + 10),
+        )
+
+        val threadName = signalStore.trackedEvents.first().attributes[Attribute.THREAD_NAME] as String
+        assertEquals(ValidationLimits.THREAD_NAME, threadName.length)
+    }
+
+    @Test
+    fun `trackAppExit truncates app version that exceeds the maximum length`() {
+        signalProcessor.trackAppExit(
+            data = TestData.getAppExit(),
+            timestamp = 1710746412L,
+            type = EventType.APP_EXIT,
+            sessionId = "session-id-app-exit",
+            sessionStartTime = 1710746000L,
+            appVersion = "v".repeat(ValidationLimits.APP_VERSION + 10),
+            appBuild = "1000",
+            threadName = "thread-name",
+            isSampled = true,
+        )
+
+        val appVersion = signalStore.trackedEvents.first().attributes[Attribute.APP_VERSION_KEY] as String
+        assertEquals(ValidationLimits.APP_VERSION, appVersion.length)
+    }
+
+    @Test
+    fun `trackBugReport drops invalid attributes but keeps the bug report`() {
+        signalProcessor.trackBugReport(
+            data = TestData.getBugReportData(),
+            type = EventType.BUG_REPORT,
+            timestamp = 9856564654L,
+            attachments = mutableListOf(),
+            userDefinedAttributes = mutableMapOf(
+                "valid_key" to StringAttr("value"),
+                "invalid key!" to StringAttr("value"),
+            ),
+            userTriggered = true,
+            attributes = mutableMapOf(),
+        )
+
+        assertEquals(1, signalStore.trackedEvents.size)
+        assertEquals(
+            mapOf("valid_key" to StringAttr("value")),
+            signalStore.trackedEvents.first().userDefinedAttributes,
+        )
+    }
+
+    @Test
+    fun `trackSpan truncates span attributes that exceed their limits`() {
+        val spanData = TestData.getSpanData(
+            attributes = mapOf(
+                Attribute.THREAD_NAME to "t".repeat(ValidationLimits.THREAD_NAME + 10),
+                Attribute.DEVICE_MANUFACTURER_KEY to "m".repeat(ValidationLimits.DEVICE_MANUFACTURER + 10),
+            ),
+        )
+
+        signalProcessor.trackSpan(spanData)
+
+        val attributes = signalStore.trackedSpans.first().attributes
+        assertEquals(ValidationLimits.THREAD_NAME, (attributes[Attribute.THREAD_NAME] as String).length)
+        assertEquals(
+            ValidationLimits.DEVICE_MANUFACTURER,
+            (attributes[Attribute.DEVICE_MANUFACTURER_KEY] as String).length,
+        )
     }
 }

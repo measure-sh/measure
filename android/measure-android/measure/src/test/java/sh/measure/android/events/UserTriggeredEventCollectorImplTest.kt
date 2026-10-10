@@ -10,6 +10,7 @@ import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
 import org.mockito.kotlin.verify
 import sh.measure.android.attributes.StringAttr
+import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.events.AttachmentType
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.fakes.FakeConfigProvider
@@ -22,6 +23,7 @@ import sh.measure.android.okhttp.HttpData
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.ProcessInfoProvider
 import sh.measure.android.utils.TestClock
+import sh.measure.android.utils.ValidationLimits
 
 class UserTriggeredEventCollectorImplTest {
     private val logger = NoopLogger()
@@ -157,6 +159,74 @@ class UserTriggeredEventCollectorImplTest {
             userDefinedAttributes = mutableMapOf(),
             userTriggered = true,
             attributes = mutableMapOf(),
+        )
+    }
+
+    @Test
+    fun `does not track screen view when name exceeds the maximum length`() {
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackScreenView(
+            "s".repeat(ValidationLimits.SCREEN_VIEW_NAME + 1),
+            emptyMap(),
+        )
+        verify(signalProcessor, never()).trackUserTriggered(
+            any<ScreenViewData>(),
+            any(),
+            any(),
+            any(),
+            any(),
+        )
+    }
+
+    @Test
+    fun `truncates bug report description that exceeds the maximum length`() {
+        val maxLength = configProvider.maxDescriptionLengthInBugReport
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackBugReport(
+            "d".repeat(maxLength + 100),
+            screenshots = listOf(),
+            attributes = mutableMapOf(),
+        )
+        verify(signalProcessor).trackBugReport(
+            data = BugReportData("d".repeat(maxLength)),
+            type = EventType.BUG_REPORT,
+            timestamp = timeProvider.now(),
+            attachments = mutableListOf(),
+            userDefinedAttributes = mutableMapOf(),
+            userTriggered = true,
+            attributes = mutableMapOf(),
+        )
+    }
+
+    @Test
+    fun `does not track http event when client exceeds the maximum length`() {
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackHttp(
+            url = "https://example.com",
+            method = "get",
+            startTime = 1000L,
+            endTime = 2000L,
+            client = "c".repeat(ValidationLimits.HTTP_CLIENT + 1),
+            statusCode = 200,
+            failureReason = null,
+            failureDescription = null,
+            requestHeaders = null,
+            responseHeaders = null,
+            requestBody = null,
+            responseBody = null,
+        )
+
+        verify(signalProcessor, never()).track(
+            any<HttpData>(),
+            any(),
+            any(),
+            any(),
+            any(),
+            any(),
+            anyOrNull(),
+            anyOrNull(),
+            any(),
+            any(),
         )
     }
 

@@ -14,6 +14,7 @@ import sh.measure.android.logs.LogSeverity
 import sh.measure.android.tracing.Span
 import sh.measure.android.tracing.SpanBuilder
 import sh.measure.android.utils.AttachmentHelper
+import sh.measure.android.utils.ValidationLimits
 import sh.measure.android.utils.WebPEncoder
 import sh.measure.android.utils.iso8601Timestamp
 
@@ -35,6 +36,8 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
     @Volatile
     private var isStarted: Boolean = false
     private val lock = Any()
+
+    private val uuidRegex = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
     fun init() {
         try {
@@ -169,7 +172,14 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
     }
 
     fun internalSetPatch(patchId: String, patchVersion: String?) {
-        measure.patchAttributeProcessor.setPatch(patchId, patchVersion)
+        if (!uuidRegex.matches(patchId)) {
+            logger.log(LogLevel.Error, "Patch ID must be a valid UUID, patch will be ignored")
+            return
+        }
+        measure.patchAttributeProcessor.setPatch(
+            patchId,
+            patchVersion?.take(ValidationLimits.PATCH_VERSION),
+        )
     }
 
     fun trackScreenView(screenName: String, attributes: Map<String, AttributeValue>) {
