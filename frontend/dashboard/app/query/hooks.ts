@@ -8,8 +8,10 @@ import {
   changeRoleFromServer,
   changeTeamNameFromServer,
   createAppFromServer,
+  createFunnelFromServer,
   createTeamFromServer,
   defaultAppThresholdPrefs,
+  deleteFunnelFromServer,
   downgradeToFreeFromServer,
   emptyAppRetention,
   emptyNotifPrefs,
@@ -31,6 +33,16 @@ import {
   fetchErrorsDistributionPlotFromServer,
   fetchErrorsOverviewFromServer,
   fetchErrorsOverviewPlotFromServer,
+  fetchFunnelConversionFromServer,
+  fetchFunnelEventNamesFromServer,
+  fetchFunnelFromServer,
+  fetchFunnelCadenceFromServer,
+  fetchFunnelsFromServer,
+  fetchFunnelStepErrorsFromServer,
+  fetchFunnelStepNetworkFromServer,
+  fetchFunnelStepSessionsFromServer,
+  fetchFunnelStepTracesFromServer,
+  fetchFunnelTrendFromServer,
   fetchHighMemoryUsageSessionsFromServer,
   fetchJourneyFromServer,
   fetchMemoryUsageBreakdownFromServer,
@@ -44,6 +56,7 @@ import {
   fetchNetworkTrendsFromServer,
   fetchNotifPrefsFromServer,
   fetchPendingInvitesFromServer,
+  fetchPinnedFunnelsFromServer,
   fetchProfilesFromServer,
   fetchSdkConfigFromServer,
   fetchSdkConfigHistoryFromServer,
@@ -62,18 +75,26 @@ import {
   removeMemberFromServer,
   removePendingInviteFromServer,
   removeTeamSlackFromServer,
+  reorderPinnedFunnelsFromServer,
   resendPendingInviteFromServer,
   sendTestSlackAlertFromServer,
+  setFunnelPinnedFromServer,
   undoDowngradeFromServer,
   updateAppRetentionFromServer,
   updateAppThresholdPrefsFromServer,
   updateBugReportStatusFromServer,
+  updateFunnelFromServer,
   updateNotifPrefsFromServer,
   updateSdkConfigFromServer,
   updateTeamSlackStatusFromServer,
   type AttributeDistributionResponse,
   type ErrorDistributionResponse,
+  type Funnel,
+  type FunnelDraft,
+  type FunnelStepOutcome,
+  type FunnelTrendPeriod,
   type MemoryUsagePlotPoint,
+  type PinnedFunnelsResponse,
 } from "@/app/api/api_calls";
 import {
   App,
@@ -462,6 +483,386 @@ export function useJourneyQuery(params: FilterParams | null) {
       ),
     enabled: params !== null,
     retry: false,
+  });
+}
+
+// ─── Funnels ─────────────────────────────────────────────────────────────
+
+export const FUNNELS_LIMIT = 5;
+
+// Both funnel lists have keys that start with ["funnels", appId], so
+// invalidating that prefix refreshes the pinned funnels and the paged list.
+export function useFunnelsQuery(
+  appId: string | undefined,
+  search: string,
+  offset: number,
+) {
+  return useQuery({
+    queryKey: ["funnels", appId, "all", search, offset] as const,
+    queryFn: () =>
+      fetchFunnelsFromServer(appId!, search, FUNNELS_LIMIT, offset),
+    placeholderData: keepPreviousData,
+    enabled: !!appId,
+  });
+}
+
+function pinnedFunnelsQueryKey(appId: string | undefined) {
+  return ["funnels", appId, "pinned"] as const;
+}
+
+export function usePinnedFunnelsQuery(appId: string | undefined) {
+  return useQuery({
+    queryKey: pinnedFunnelsQueryKey(appId),
+    queryFn: () => fetchPinnedFunnelsFromServer(appId!),
+    enabled: !!appId,
+  });
+}
+
+export function useSetFunnelPinnedMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: {
+      appId: string;
+      funnelId: string;
+      pinned: boolean;
+    }) =>
+      setFunnelPinnedFromServer(params.appId, params.funnelId, params.pinned),
+    onSuccess: (_data, variables) =>
+      Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["funnels", variables.appId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["funnel", variables.appId, variables.funnelId],
+          exact: true,
+        }),
+      ]),
+  });
+}
+
+// The new order shows as soon as the user saves it. If the server rejects it,
+// for example because someone else pinned or unpinned a funnel meanwhile, the
+// pinned funnels are fetched again.
+export function useReorderPinnedFunnelsMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { appId: string; funnels: Funnel[] }) =>
+      reorderPinnedFunnelsFromServer(
+        params.appId,
+        params.funnels.map((funnel) => funnel.id),
+      ),
+    onMutate: async ({ appId, funnels }) => {
+      const queryKey = pinnedFunnelsQueryKey(appId);
+      await queryClient.cancelQueries({ queryKey });
+      queryClient.setQueryData<PinnedFunnelsResponse>(queryKey, {
+        results: funnels,
+      });
+    },
+    onSuccess: (data, { appId }) =>
+      queryClient.setQueryData(pinnedFunnelsQueryKey(appId), data),
+    onError: (_error, { appId }) =>
+      queryClient.invalidateQueries({
+        queryKey: pinnedFunnelsQueryKey(appId),
+      }),
+  });
+}
+
+// Every query about one funnel has a key that starts with
+// ["funnel", appId, funnelId], so invalidating ["funnel", appId] after a save
+// refreshes the funnel and everything computed from it.
+export function useFunnelQuery(appId: string, funnelId: string) {
+  return useQuery({
+    queryKey: ["funnel", appId, funnelId] as const,
+    queryFn: () => fetchFunnelFromServer(appId, funnelId),
+  });
+}
+
+export function useFunnelEventNamesQuery(
+  appId: string | undefined,
+  search: string,
+) {
+  return useQuery({
+    queryKey: ["funnelEventNames", appId, search] as const,
+    queryFn: () => fetchFunnelEventNamesFromServer(appId!, search),
+    enabled: !!appId,
+    staleTime: 60 * 1000,
+    placeholderData: keepPreviousData,
+  });
+}
+
+export function useFunnelConversionQuery(
+  params: FilterParams | null,
+  funnelId: string,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      "funnel",
+      params?.appId,
+      funnelId,
+      "conversion",
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+    ] as const,
+    queryFn: () =>
+      fetchFunnelConversionFromServer(
+        params!.appId,
+        funnelId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+      ),
+    enabled: enabled && params !== null,
+    retry: false,
+  });
+}
+
+export const FUNNEL_STEP_LIST_LIMIT = 5;
+
+export function useFunnelStepErrorsQuery(
+  params: FilterParams,
+  funnelId: string,
+  step: number | null,
+  paginationOffset: number,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      "funnel",
+      params.appId,
+      funnelId,
+      "errors",
+      step,
+      params.startDate,
+      params.endDate,
+      params.filterExpr,
+      paginationOffset,
+    ] as const,
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      fetchFunnelStepErrorsFromServer(
+        params.appId,
+        funnelId,
+        step,
+        params.startDate,
+        params.endDate,
+        params.filterExpr,
+        FUNNEL_STEP_LIST_LIMIT,
+        paginationOffset,
+      ),
+    enabled,
+    retry: false,
+  });
+}
+
+export function useFunnelStepSessionsQuery(
+  params: FilterParams,
+  funnelId: string,
+  step: number | null,
+  outcome: FunnelStepOutcome,
+  paginationOffset: number,
+) {
+  return useQuery({
+    queryKey: [
+      "funnel",
+      params.appId,
+      funnelId,
+      "sessions",
+      step,
+      outcome,
+      params.startDate,
+      params.endDate,
+      params.filterExpr,
+      paginationOffset,
+    ] as const,
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      fetchFunnelStepSessionsFromServer(
+        params.appId,
+        funnelId,
+        step,
+        outcome,
+        params.startDate,
+        params.endDate,
+        params.filterExpr,
+        FUNNEL_STEP_LIST_LIMIT,
+        paginationOffset,
+      ),
+    retry: false,
+  });
+}
+
+export function useFunnelStepTracesQuery(
+  params: FilterParams,
+  funnelId: string,
+  step: number | null,
+  quantile: RootSpanMetricsQuantile,
+  paginationOffset: number,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      "funnel",
+      params.appId,
+      funnelId,
+      "traces",
+      step,
+      quantile,
+      params.startDate,
+      params.endDate,
+      params.filterExpr,
+      paginationOffset,
+    ] as const,
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      fetchFunnelStepTracesFromServer(
+        params.appId,
+        funnelId,
+        step,
+        quantile,
+        params.startDate,
+        params.endDate,
+        params.filterExpr,
+        FUNNEL_STEP_LIST_LIMIT,
+        paginationOffset,
+      ),
+    enabled,
+    retry: false,
+  });
+}
+
+export function useFunnelStepNetworkQuery(
+  params: FilterParams,
+  funnelId: string,
+  step: number | null,
+  quantile: RootSpanMetricsQuantile,
+  paginationOffset: number,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      "funnel",
+      params.appId,
+      funnelId,
+      "network",
+      step,
+      quantile,
+      params.startDate,
+      params.endDate,
+      params.filterExpr,
+      paginationOffset,
+    ] as const,
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      fetchFunnelStepNetworkFromServer(
+        params.appId,
+        funnelId,
+        step,
+        quantile,
+        params.startDate,
+        params.endDate,
+        params.filterExpr,
+        FUNNEL_STEP_LIST_LIMIT,
+        paginationOffset,
+      ),
+    enabled,
+    retry: false,
+  });
+}
+
+export function useFunnelTrendQuery(
+  params: FilterParams | null,
+  funnelId: string,
+  period: FunnelTrendPeriod,
+  withBuilds: boolean,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      "funnel",
+      params?.appId,
+      funnelId,
+      "trend",
+      period,
+      withBuilds,
+      params?.filterExpr,
+    ] as const,
+    queryFn: () =>
+      fetchFunnelTrendFromServer(
+        params!.appId,
+        funnelId,
+        period,
+        params!.filterExpr,
+        withBuilds,
+      ),
+    enabled: enabled && params !== null,
+    retry: false,
+  });
+}
+
+export function useFunnelCadenceQuery(
+  params: FilterParams | null,
+  funnelId: string,
+  weeks: number,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      "funnel",
+      params?.appId,
+      funnelId,
+      "cadence",
+      weeks,
+      params?.filterExpr,
+    ] as const,
+    queryFn: () =>
+      fetchFunnelCadenceFromServer(
+        params!.appId,
+        funnelId,
+        weeks,
+        params!.filterExpr,
+      ),
+    enabled: enabled && params !== null,
+    retry: false,
+  });
+}
+
+export function useSaveFunnelMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: {
+      appId: string;
+      funnelId: string | null;
+      draft: FunnelDraft;
+    }) =>
+      params.funnelId === null
+        ? createFunnelFromServer(params.appId, params.draft)
+        : updateFunnelFromServer(params.appId, params.funnelId, params.draft),
+    onSuccess: (saved, variables) => {
+      // The funnel page checks its selected step against the funnel's steps,
+      // so the saved funnel goes into the cache before the step lists refetch,
+      // and they don't ask for a step the edit removed.
+      queryClient.setQueryData(["funnel", variables.appId, saved.id], saved);
+      return Promise.all([
+        queryClient.invalidateQueries({
+          queryKey: ["funnels", variables.appId],
+        }),
+        queryClient.invalidateQueries({
+          queryKey: ["funnel", variables.appId],
+        }),
+      ]);
+    },
+  });
+}
+
+export function useDeleteFunnelMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { appId: string; funnelId: string }) =>
+      deleteFunnelFromServer(params.appId, params.funnelId),
+    onSuccess: (_data, variables) =>
+      queryClient.invalidateQueries({ queryKey: ["funnels", variables.appId] }),
   });
 }
 

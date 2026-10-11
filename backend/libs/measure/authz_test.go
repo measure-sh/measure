@@ -329,6 +329,13 @@ func TestPerformAuthzMatrix(t *testing.T) {
 		{name: "viewer bug report all denied", role: "viewer", scope: *ScopeBugReportAll, wantAllow: false},
 		{name: "viewer bug report read allowed", role: "viewer", scope: *ScopeBugReportRead, wantAllow: true},
 		{name: "developer bug report read allowed", role: "developer", scope: *ScopeBugReportRead, wantAllow: true},
+		{name: "owner funnel all allowed", role: "owner", scope: *ScopeFunnelAll, wantAllow: true},
+		{name: "admin funnel all allowed", role: "admin", scope: *ScopeFunnelAll, wantAllow: true},
+		{name: "developer funnel all allowed", role: "developer", scope: *ScopeFunnelAll, wantAllow: true},
+		{name: "viewer funnel all denied", role: "viewer", scope: *ScopeFunnelAll, wantAllow: false},
+		{name: "owner funnel read allowed", role: "owner", scope: *ScopeFunnelRead, wantAllow: true},
+		{name: "developer funnel read allowed", role: "developer", scope: *ScopeFunnelRead, wantAllow: true},
+		{name: "viewer funnel read allowed", role: "viewer", scope: *ScopeFunnelRead, wantAllow: true},
 	}
 
 	for _, tc := range tests {

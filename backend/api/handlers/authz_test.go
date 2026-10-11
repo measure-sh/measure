@@ -72,11 +72,12 @@ func TestGetAuthzRoles_BillingEnabled(t *testing.T) {
 		wantRenameTeam  bool
 		wantManageSlack bool
 		wantPrefs       bool
+		wantFunnels     bool
 	}{
-		{role: "owner", wantBilling: true, wantRenameTeam: true, wantManageSlack: true, wantPrefs: true},
-		{role: "admin", wantBilling: true, wantRenameTeam: false, wantManageSlack: false, wantPrefs: true},
-		{role: "developer", wantBilling: false, wantRenameTeam: false, wantManageSlack: false, wantPrefs: false},
-		{role: "viewer", wantBilling: false, wantRenameTeam: false, wantManageSlack: false, wantPrefs: false},
+		{role: "owner", wantBilling: true, wantRenameTeam: true, wantManageSlack: true, wantPrefs: true, wantFunnels: true},
+		{role: "admin", wantBilling: true, wantRenameTeam: false, wantManageSlack: false, wantPrefs: true, wantFunnels: true},
+		{role: "developer", wantBilling: false, wantRenameTeam: false, wantManageSlack: false, wantPrefs: false, wantFunnels: true},
+		{role: "viewer", wantBilling: false, wantRenameTeam: false, wantManageSlack: false, wantPrefs: false, wantFunnels: false},
 	} {
 		tc := tc
 		t.Run(tc.role, func(t *testing.T) {
@@ -94,6 +95,7 @@ func TestGetAuthzRoles_BillingEnabled(t *testing.T) {
 			wantJSON(t, w, "can_rename_team", tc.wantRenameTeam)
 			wantJSON(t, w, "can_manage_slack", tc.wantManageSlack)
 			wantJSON(t, w, "can_change_app_threshold_prefs", tc.wantPrefs)
+			wantJSON(t, w, "can_change_funnels", tc.wantFunnels)
 
 			switch tc.role {
 			case "owner", "admin":

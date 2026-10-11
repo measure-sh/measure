@@ -1,6 +1,7 @@
 import { jsonResponse, SandboxRoute } from "./query";
 import { bugReportsRoutes } from "./bug_reports";
 import { errorsRoutes } from "./errors";
+import { funnelsRoutes } from "./funnels";
 import { memoryRoutes } from "./memory";
 import { networkRoutes } from "./network";
 import { overviewRoutes } from "./overview";
@@ -14,6 +15,7 @@ const routes: SandboxRoute[] = [
   ...overviewRoutes,
   ...sessionsRoutes,
   ...errorsRoutes,
+  ...funnelsRoutes,
   ...bugReportsRoutes,
   ...tracesRoutes,
   ...networkRoutes,

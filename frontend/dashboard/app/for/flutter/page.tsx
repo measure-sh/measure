@@ -143,6 +143,30 @@ const features: PlatformFeature[] = [
     ),
   },
   {
+    heading: "Funnels",
+    image: "/images/product_screenshots/funnels.webp",
+    imageAlt: "Conversion funnel for a Flutter app in Measure",
+    body: (
+      <>
+        Track your app’s key flows, where users drop off, and what gets in their
+        way with{" "}
+        <Link href="/product/funnels" className={underlineLinkStyle}>
+          Funnels
+        </Link>
+        . Build funnels from custom events to count how many users reach each
+        step, where they leave, and how long it takes them to move forward.
+        Watch conversion over days, weeks, or months, with every build upload
+        marked on the chart to see how each release impacts performance.
+        <br />
+        <br />
+        When conversion falls, use the Friction view to look into why. See the
+        crashes, errors, slow traces, and network requests users hit at each
+        step. Open session replays from users who dropped off to understand what
+        happened before they left.
+      </>
+    ),
+  },
+  {
     heading: "Network Monitoring",
     image: "/images/product_screenshots/network_performance.webp",
     imageAlt: "Network performance monitoring for a Flutter app in Measure",

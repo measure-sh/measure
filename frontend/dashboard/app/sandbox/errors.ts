@@ -52,7 +52,7 @@ function instanceAttributes(
 // The backend lists only the groups with an event inside the range, and the
 // instances route filters by timestamp the same way, so a listed group always
 // opens to at least one instance.
-function groupMatches(
+export function groupMatches(
   group: ErrorGroup,
   range: SandboxRange,
   filterExpr: string | null,
@@ -64,7 +64,7 @@ function groupMatches(
   );
 }
 
-function groupCount(
+export function groupCount(
   bundle: AppBundle,
   group: ErrorGroup,
   range: SandboxRange,
@@ -92,6 +92,23 @@ function versionCounts(
     range,
     selectedNames(bundle.scenario.app, filterExpr),
   );
+}
+
+// A group keeps too few sample instances to count its sessions and users, so
+// both are a stable share of its event count.
+export function groupSessionsAndUsers(
+  group: ErrorGroup,
+  count: number,
+): { sessions: number; users: number } {
+  const sessions = Math.max(
+    1,
+    Math.round(count * (0.55 + 0.35 * unitInterval(`sessions:${group.id}`))),
+  );
+  const users = Math.max(
+    1,
+    Math.round(sessions * (0.4 + 0.45 * unitInterval(`users:${group.id}`))),
+  );
+  return { sessions, users };
 }
 
 function summaryOf(group: ErrorGroup, count: number) {
@@ -457,19 +474,7 @@ export const errorsRoutes: SandboxRoute[] = [
           .map((instance) => instance.timestamp)
           .sort()
           .slice(-1)[0];
-        const sessions = Math.max(
-          1,
-          Math.round(
-            summary.count *
-              (0.55 + 0.35 * unitInterval(`sessions:${group.id}`)),
-          ),
-        );
-        const users = Math.max(
-          1,
-          Math.round(
-            sessions * (0.4 + 0.45 * unitInterval(`users:${group.id}`)),
-          ),
-        );
+        const { sessions, users } = groupSessionsAndUsers(group, summary.count);
         const row = { ...summary, users, sessions, last_seen: lastSeen };
         if (!includeTrend) {
           return row;

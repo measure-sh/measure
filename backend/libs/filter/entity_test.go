@@ -11,7 +11,7 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, SessionsEntity, ErrorsEntity, JourneysEntity, AlertsEntity, NetworkEntity, AppHealthEntity, MemoryEntity, ProfilesEntity}
+var allEntities = []Entity{BuildsEntity, SpansEntity, BugReportsEntity, SessionsEntity, ErrorsEntity, JourneysEntity, FunnelsEntity, AlertsEntity, NetworkEntity, AppHealthEntity, MemoryEntity, ProfilesEntity}
 
 func sampleValues(t *testing.T, key Key, operator Operator) []Value {
 	t.Helper()
@@ -448,6 +448,54 @@ func TestJourneyEventsKeyBindingsReadTheEventsColumns(t *testing.T) {
 	}
 	if args := onEvents.Args(); len(args) != 2 || !slices.Equal(args[0].([]string), []string{"1.2.0"}) || !slices.Equal(args[1].([]string), []string{"120"}) {
 		t.Errorf("want the version values bound, got %v", args)
+	}
+}
+
+func TestFunnelsEntityOffersEveryFunnelKey(t *testing.T) {
+	byName := IndexKeysByName(FunnelsEntity.Keys)
+
+	wanted := []string{
+		"version_name", "version_code", "patch_version", "patch_id",
+		"os_name", "os_version", "device_name", "device_manufacturer", "locale",
+		"network_type", "network_generation", "network_provider", "country",
+	}
+	for _, name := range wanted {
+		if _, ok := byName[name]; !ok {
+			t.Errorf("want a %q key on the funnels entity", name)
+		}
+	}
+	if len(FunnelsEntity.Keys) != len(wanted) {
+		t.Errorf("want %d funnel keys, got %d", len(wanted), len(FunnelsEntity.Keys))
+	}
+}
+
+func TestFunnelsBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
+	_, err := bindColumn(FunnelsEntity.Columns, Condition{
+		KeyName:  "user_id",
+		Operator: OperatorIn,
+		Values:   []Value{{Text: "user-1"}},
+	})
+
+	if err == nil {
+		t.Fatal("want a key the funnels entity does not have refused")
+	}
+	if !strings.Contains(err.Error(), "user_id") {
+		t.Errorf("want the key named, got %q", err)
+	}
+}
+
+func TestFunnelSpansColumnsBindEveryFunnelKey(t *testing.T) {
+	for _, key := range FunnelsEntity.Keys {
+		predicate, err := bindColumn(FunnelSpansColumns, Condition{
+			KeyName:  key.Name,
+			Operator: OperatorIn,
+			Values:   []Value{{Text: "00000000-0000-0000-0000-000000000001"}},
+		})
+		if err != nil {
+			t.Errorf("bind %q on the spans table: %v", key.Name, err)
+			continue
+		}
+		predicate.Close()
 	}
 }
 

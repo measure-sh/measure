@@ -172,9 +172,10 @@ xcodebuild test \
 
 The agent evals run Measure Agent against models through [OpenRouter](https://openrouter.ai/) and grade the results. Use them to check how a model change or a prompt change affects the agent. They spend real tokens, so they only run with `eval` build tag and do not run with the other tests.
 
-There are two evals, one for each model the agent uses:
+There are three evals:
 
 - `TestEvalAnswers` asks a fixed set of questions and grades each answer and the tool calls behind it. This is the job of the medium model.
+- `TestEvalFunnels` asks questions about funnels and asks the agent to create, pin, reorder, change and delete them. It grades each answer and the tool calls behind it, checks the funnels each change leaves behind, and checks that the agent asks for confirmation before it changes or deletes a funnel unless the request already confirms the change. The changes run on Slack only, since `ask_question` over MCP only reads data, and one MCP case checks that the agent declines a change there. This is also the job of the medium model.
 - `TestEvalCompaction` has the agent summarize long conversations, as it does when a conversation grows too large, and checks that each summary keeps the key facts and numbers, notes the open question, invents no numbers and stays short. This is the job of the small model.
 
 Code grades what it can decide reliably, and an LLM judge grades the rest. Code checks the judge's verdicts against the graded text, and a run whose verdict does not hold up is reported as ungraded and counted as not passed. Before grading any model, each eval has the judge grade a fixed set of answers with known outcomes, and stops if it gets any of them wrong.
@@ -189,6 +190,8 @@ EVAL_JUDGE_MODEL=deepseek/deepseek-v4-flash@deepinfra/fp8 \
 EVAL_TRIALS=3 \
 go test -tags eval -run 'TestEvalAnswers$' -parallel 8 -timeout 60m -v -count=1 ./agent/
 ```
+
+Run the funnel evals the same way, with `-run 'TestEvalFunnels$'`.
 
 And this to run the compaction evals:
 
@@ -207,7 +210,7 @@ go test -tags eval -run 'TestEvalCompaction$' -parallel 8 -timeout 20m -v -count
 | `EVAL_MODELS` | Comma-separated OpenRouter model ids to compare. Defaults to `LLM_AGENT_MODEL_MEDIUM` for the answer evals and `LLM_AGENT_MODEL_SMALL` for the compaction evals. Append `@provider`, using a tag from the model's OpenRouter provider list such as `deepinfra/fp8`, to have only that provider serve the model. Without it, OpenRouter picks a provider for each call, and cost and latency vary between runs. |
 | `EVAL_JUDGE_MODEL` | OpenRouter model id the judge runs on, with an optional `@provider` as in `EVAL_MODELS`. Required; the evals fail when it is not set. |
 | `EVAL_TRIALS` | How many times each case runs. Defaults to 1. Use 3 or more when comparing models, since answers vary between runs. |
-| `EVAL_SURFACES` | Answer evals only. `mcp`, `slack` or both, comma-separated. Defaults to both. MCP runs send the app ids a caller would; Slack runs are thread mentions, where the model picks the apps itself and can draw charts. Cases with follow-up questions run on Slack only. |
+| `EVAL_SURFACES` | Answer and funnel evals only. `mcp`, `slack` or both, comma-separated. Defaults to both. MCP runs send the app ids a caller would; Slack runs are thread mentions, where the model picks the apps itself and can draw charts. Cases with follow-up questions run on Slack only. |
 
 Trials run in parallel up to the `-parallel` limit. A pinned provider may answer a high limit with rate limit errors, which show up as failed trials.
 

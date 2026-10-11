@@ -45,6 +45,8 @@ tags:
     description: Bug report listing, details and status updates.
   - name: Alerts
     description: Alerts raised for an app.
+  - name: Funnels
+    description: Funnels, their conversion, trends and what happens between their steps.
   - name: Network Requests
     description: Network request domains, paths, trends and plots.
   - name: Teams
@@ -802,6 +804,7 @@ paths:
               - app_health
               - memory
               - profiles
+              - funnels
         - name: key
           in: query
           required: false
@@ -933,6 +936,7 @@ paths:
               - app_health
               - memory
               - profiles
+              - funnels
         - name: key_name
           in: query
           required: true
@@ -4797,6 +4801,1180 @@ paths:
           description: Rate limit of the requester has crossed maximum limits.
         "500":
           description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/funnels:
+    get:
+      operationId: getFunnels
+      tags:
+        - Funnels
+      summary: Fetch an app's funnels
+      description: |
+        Returns a page of the app's funnels, most recently updated first.
+      parameters:
+        - &funnelAppId
+          name: id
+          in: path
+          required: true
+          description: App's UUID.
+          schema:
+            type: string
+            format: uuid
+        - name: search
+          in: query
+          description: Text the funnel's name contains, ignoring case.
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Maximum funnels to return.
+          schema:
+            type: integer
+            default: 10
+            minimum: 1
+            maximum: 1000
+        - name: offset
+          in: query
+          description: Number of funnels to skip.
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Funnel"
+                  meta:
+                    type: object
+                    required:
+                      - next
+                      - previous
+                    properties:
+                      next:
+                        type: boolean
+                      previous:
+                        type: boolean
+              example:
+                results:
+                  - id: 3f0b6c1e-6a2d-4c8e-9a51-2d7e4b9f1c05
+                    app_id: 2b7ddad4-40a6-42a7-9e21-a90577e08263
+                    name: Checkout
+                    steps:
+                      - event_name: view_cart
+                      - event_name: start_checkout
+                      - event_name: purchase
+                    conversion_window_seconds: 3600
+                    pinned: true
+                    pin_order: 0
+                    created_by: 9c1f2a7e-3b4d-4e5f-8a6b-7c8d9e0f1a2b
+                    created_by_email: dev@example.com
+                    created_at: 2026-09-10T10:00:00Z
+                    updated_at: 2026-09-12T08:30:00Z
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+    post:
+      operationId: createFunnel
+      tags:
+        - Funnels
+      summary: Create a funnel
+      description: |
+        Creates a funnel. Needs a role that can change funnels.
+      parameters:
+        - *funnelAppId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FunnelDraft"
+            example:
+              name: Checkout
+              steps:
+                - event_name: view_cart
+                - event_name: start_checkout
+                - event_name: purchase
+              conversion_window_seconds: 3600
+      responses:
+        "201":
+          description: Funnel created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Funnel"
+              example:
+                id: 3f0b6c1e-6a2d-4c8e-9a51-2d7e4b9f1c05
+                app_id: 2b7ddad4-40a6-42a7-9e21-a90577e08263
+                name: Checkout
+                steps:
+                  - event_name: view_cart
+                  - event_name: start_checkout
+                  - event_name: purchase
+                conversion_window_seconds: 3600
+                pinned: false
+                pin_order: null
+                created_by: 9c1f2a7e-3b4d-4e5f-8a6b-7c8d9e0f1a2b
+                created_by_email: dev@example.com
+                created_at: 2026-09-10T10:00:00Z
+                updated_at: 2026-09-10T10:00:00Z
+        "400":
+          description: Request body is malformed or the funnel is invalid. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/funnels/events:
+    get:
+      operationId: getFunnelEventNames
+      tags:
+        - Funnels
+      summary: Fetch event names for funnel steps
+      description: |
+        Returns the custom event names the app sent in the last 30 days, most recently seen first, which a funnel's steps are chosen from.
+      parameters:
+        - *funnelAppId
+        - name: search
+          in: query
+          description: Text the event name contains, ignoring case.
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: string
+              example:
+                results:
+                  - purchase
+                  - start_checkout
+                  - view_cart
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/funnels/pinned:
+    get:
+      operationId: getPinnedFunnels
+      tags:
+        - Funnels
+      summary: Fetch an app's pinned funnels
+      description: |
+        Returns the app's pinned funnels in their pinned order.
+      parameters:
+        - *funnelAppId
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema: &pinnedFunnelsResponse
+                type: object
+                required:
+                  - results
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Funnel"
+              example: &pinnedFunnelsExample
+                results:
+                  - id: 3f0b6c1e-6a2d-4c8e-9a51-2d7e4b9f1c05
+                    app_id: 2b7ddad4-40a6-42a7-9e21-a90577e08263
+                    name: Checkout
+                    steps:
+                      - event_name: view_cart
+                      - event_name: start_checkout
+                      - event_name: purchase
+                    conversion_window_seconds: 3600
+                    pinned: true
+                    pin_order: 0
+                    created_by: 9c1f2a7e-3b4d-4e5f-8a6b-7c8d9e0f1a2b
+                    created_by_email: dev@example.com
+                    created_at: 2026-09-10T10:00:00Z
+                    updated_at: 2026-09-12T08:30:00Z
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+    put:
+      operationId: reorderPinnedFunnels
+      tags:
+        - Funnels
+      summary: Reorder an app's pinned funnels
+      description: |
+        Puts the app's pinned funnels in the given order and returns them in that order. Needs a role that can change funnels.
+
+        `funnel_ids` must hold every pinned funnel of the app once and no other funnel. When a funnel was pinned or unpinned since the list was read, the request fails with a 409, so a stale order does not undo that change.
+      parameters:
+        - *funnelAppId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - funnel_ids
+              properties:
+                funnel_ids:
+                  type: array
+                  description: The app's pinned funnel ids in their new order.
+                  items:
+                    type: string
+                    format: uuid
+            example:
+              funnel_ids:
+                - 3f0b6c1e-6a2d-4c8e-9a51-2d7e4b9f1c05
+                - 7a2e9d4b-1c3f-4b6a-8e5d-0f9c2b7a4e61
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema: *pinnedFunnelsResponse
+              example: *pinnedFunnelsExample
+        "400":
+          description: Request body is malformed. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "409":
+          description: "`funnel_ids` is not the app's current set of pinned funnels."
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/funnels/{funnelId}:
+    get:
+      operationId: getFunnel
+      tags:
+        - Funnels
+      summary: Fetch a funnel
+      description: |
+        Returns a funnel with its steps, conversion window and pin.
+      parameters:
+        - *funnelAppId
+        - &funnelId
+          name: funnelId
+          in: path
+          required: true
+          description: Funnel's UUID.
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Funnel"
+              example: &funnelExample
+                id: 3f0b6c1e-6a2d-4c8e-9a51-2d7e4b9f1c05
+                app_id: 2b7ddad4-40a6-42a7-9e21-a90577e08263
+                name: Checkout
+                steps:
+                  - event_name: view_cart
+                  - event_name: start_checkout
+                  - event_name: purchase
+                conversion_window_seconds: 3600
+                pinned: true
+                pin_order: 0
+                created_by: 9c1f2a7e-3b4d-4e5f-8a6b-7c8d9e0f1a2b
+                created_by_email: dev@example.com
+                created_at: 2026-09-10T10:00:00Z
+                updated_at: 2026-09-12T08:30:00Z
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "404":
+          description: Funnel does not exist in this app.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+    patch:
+      operationId: updateFunnel
+      tags:
+        - Funnels
+      summary: Update a funnel
+      description: |
+        Replaces the funnel's name, steps and conversion window, so the body needs all three. Needs a role that can change funnels.
+      parameters:
+        - *funnelAppId
+        - *funnelId
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/FunnelDraft"
+            example:
+              name: Checkout
+              steps:
+                - event_name: view_cart
+                - event_name: start_checkout
+                - event_name: purchase
+              conversion_window_seconds: 7200
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Funnel"
+              example: *funnelExample
+        "400":
+          description: Request body is malformed or the funnel is invalid. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "404":
+          description: Funnel does not exist in this app.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+    delete:
+      operationId: deleteFunnel
+      tags:
+        - Funnels
+      summary: Delete a funnel
+      description: |
+        Deletes a funnel. Needs a role that can change funnels.
+      parameters:
+        - *funnelAppId
+        - *funnelId
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok:
+                    type: string
+              example:
+                ok: done
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "404":
+          description: Funnel does not exist in this app.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/funnels/{funnelId}/pin:
+    put:
+      operationId: pinFunnel
+      tags:
+        - Funnels
+      summary: Pin a funnel
+      description: |
+        Pins a funnel after the app's other pinned funnels. Pinning a pinned funnel changes nothing. Needs a role that can change funnels.
+      parameters:
+        - *funnelAppId
+        - *funnelId
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Funnel"
+              example: *funnelExample
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "404":
+          description: Funnel does not exist in this app.
+        "409":
+          description: The app has as many pinned funnels as it can have. Unpin one to pin another.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+    delete:
+      operationId: unpinFunnel
+      tags:
+        - Funnels
+      summary: Unpin a funnel
+      description: |
+        Unpins a funnel. Unpinning a funnel that is not pinned changes nothing. Needs a role that can change funnels.
+      parameters:
+        - *funnelAppId
+        - *funnelId
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Funnel"
+              example:
+                id: 3f0b6c1e-6a2d-4c8e-9a51-2d7e4b9f1c05
+                app_id: 2b7ddad4-40a6-42a7-9e21-a90577e08263
+                name: Checkout
+                steps:
+                  - event_name: view_cart
+                  - event_name: start_checkout
+                  - event_name: purchase
+                conversion_window_seconds: 3600
+                pinned: false
+                pin_order: null
+                created_by: 9c1f2a7e-3b4d-4e5f-8a6b-7c8d9e0f1a2b
+                created_by_email: dev@example.com
+                created_at: 2026-09-10T10:00:00Z
+                updated_at: 2026-09-12T08:30:00Z
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "404":
+          description: Funnel does not exist in this app.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/funnels/{funnelId}/conversion:
+    get:
+      operationId: getFunnelConversion
+      tags:
+        - Funnels
+      summary: Fetch a funnel's conversion
+      description: |
+        Returns how many users reached each step of the funnel, and the median time between steps.
+
+        - Users are counted by installation id: each install of the app is one user, whatever user id the app has set.
+        - A user is counted when they did the first step between `from` and `to`. Their later steps can come after `to`, within the conversion window.
+        - A user reaches a step when they do it within the conversion window of their first step, after reaching the step before it.
+        - A `from` or `to` with seconds, such as one taken from the current time, is rounded down to the minute, or to ten minutes when the range is a day or more, so that repeated requests can share a cached result. A `from` or `to` on a whole minute is used as sent.
+      parameters:
+        - *funnelAppId
+        - *funnelId
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - steps
+                properties:
+                  steps:
+                    type: array
+                    description: One entry for each step of the funnel, in order.
+                    items:
+                      allOf:
+                        - type: object
+                          required:
+                            - event_name
+                          properties:
+                            event_name:
+                              type: string
+                        - $ref: "#/components/schemas/FunnelStepUsers"
+              example:
+                steps:
+                  - event_name: view_cart
+                    users: 1200
+                    median_seconds_from_previous: null
+                  - event_name: start_checkout
+                    users: 640
+                    median_seconds_from_previous: 95.5
+                  - event_name: purchase
+                    users: 410
+                    median_seconds_from_previous: 210
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "404":
+          description: Funnel does not exist in this app.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/funnels/{funnelId}/trend:
+    get:
+      operationId: getFunnelTrend
+      tags:
+        - Funnels
+      summary: Fetch a funnel's conversion trend
+      description: |
+        Returns the funnel's conversion for each day, week or month, ending with the current one in `timezone`. Users are counted as in the funnel's conversion, by the period they did the first step in.
+
+        - Weeks start on Monday.
+        - Users that did the first step near the end of a period can still convert after it ends, so a period is `complete` once a conversion window has passed since its end.
+        - `from` and `to` are ignored.
+      parameters:
+        - *funnelAppId
+        - *funnelId
+        - name: period
+          in: query
+          required: true
+          description: Length of each point of the trend.
+          schema:
+            type: string
+            enum:
+              - day
+              - week
+              - month
+        - $ref: "#/components/parameters/Timezone"
+        - $ref: "#/components/parameters/FilterExpr"
+        - name: builds
+          in: query
+          description: Set to `true` to include the builds and patches first uploaded during the trend.
+          schema:
+            type: boolean
+            default: false
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - event_names
+                  - points
+                  - builds
+                properties:
+                  event_names:
+                    type: array
+                    description: The funnel's step event names, in order.
+                    items:
+                      type: string
+                  points:
+                    type: array
+                    description: One point for each period, oldest first.
+                    items:
+                      type: object
+                      required:
+                        - datetime
+                        - steps
+                        - median_seconds_to_convert
+                        - complete
+                      properties:
+                        datetime:
+                          type: string
+                          format: date
+                          description: First day of the period in `timezone`.
+                        steps:
+                          type: array
+                          description: One entry for each step of the funnel, in order.
+                          items:
+                            $ref: "#/components/schemas/FunnelStepUsers"
+                        median_seconds_to_convert:
+                          type:
+                            - number
+                            - "null"
+                          description: Median time from the first step to the last for users that converted. Null when no user converted.
+                        complete:
+                          type: boolean
+                          description: False while users counted in the period can still convert.
+                  builds:
+                    type: array
+                    description: Builds and patches first uploaded during the trend, oldest first. Empty unless `builds` is `true`.
+                    items:
+                      type: object
+                      required:
+                        - version_name
+                        - version_code
+                        - patch_id
+                        - patch_version
+                        - uploaded_at
+                      properties:
+                        version_name:
+                          type: string
+                        version_code:
+                          type: string
+                        patch_id:
+                          type:
+                            - string
+                            - "null"
+                        patch_version:
+                          type:
+                            - string
+                            - "null"
+                        uploaded_at:
+                          type: string
+                          format: date-time
+              example:
+                event_names:
+                  - view_cart
+                  - start_checkout
+                  - purchase
+                points:
+                  - datetime: 2026-09-28
+                    steps:
+                      - users: 300
+                        median_seconds_from_previous: null
+                      - users: 160
+                        median_seconds_from_previous: 92
+                      - users: 104
+                        median_seconds_from_previous: 205
+                    median_seconds_to_convert: 320
+                    complete: true
+                  - datetime: 2026-10-05
+                    steps:
+                      - users: 280
+                        median_seconds_from_previous: null
+                      - users: 150
+                        median_seconds_from_previous: 98
+                      - users: 90
+                        median_seconds_from_previous: 215
+                    median_seconds_to_convert: 340
+                    complete: false
+                builds:
+                  - version_name: 1.4.0
+                    version_code: "140"
+                    patch_id: null
+                    patch_version: null
+                    uploaded_at: 2026-10-01T09:12:00Z
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "404":
+          description: Funnel does not exist in this app.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/funnels/{funnelId}/cadence:
+    get:
+      operationId: getFunnelCadence
+      tags:
+        - Funnels
+      summary: Fetch a funnel's weekly cadence
+      description: |
+        Returns, for each hour of the week in `timezone`, how many users did the funnel's first step in that hour and how many of them converted. Users are counted by installation id.
+
+        - The weeks end at the start of the latest week whose users have all had a full conversion window, so every hour is counted the same number of times and no user is still converting.
+        - Hours without users are left out.
+        - `from` and `to` are ignored.
+      parameters:
+        - *funnelAppId
+        - *funnelId
+        - name: weeks
+          in: query
+          required: true
+          description: Number of weeks to count.
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 12
+        - $ref: "#/components/parameters/Timezone"
+        - $ref: "#/components/parameters/FilterExpr"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - from
+                  - to
+                  - hours
+                properties:
+                  from:
+                    type: string
+                    format: date-time
+                    description: Start of the first week counted.
+                  to:
+                    type: string
+                    format: date-time
+                    description: End of the last week counted.
+                  hours:
+                    type: array
+                    items:
+                      type: object
+                      required:
+                        - weekday
+                        - hour
+                        - users
+                        - converted
+                      properties:
+                        weekday:
+                          type: integer
+                          minimum: 1
+                          maximum: 7
+                          description: Day of the week, from 1 for Monday to 7 for Sunday.
+                        hour:
+                          type: integer
+                          minimum: 0
+                          maximum: 23
+                        users:
+                          type: integer
+                          description: Users that did the first step in this hour.
+                        converted:
+                          type: integer
+                          description: Users of this hour that reached the last step.
+              example:
+                from: 2026-09-14T00:00:00+05:30
+                to: 2026-10-12T00:00:00+05:30
+                hours:
+                  - weekday: 1
+                    hour: 9
+                    users: 48
+                    converted: 17
+                  - weekday: 1
+                    hour: 10
+                    users: 62
+                    converted: 25
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "404":
+          description: Funnel does not exist in this app.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/funnels/{funnelId}/errors:
+    get:
+      operationId: getFunnelStepErrors
+      tags:
+        - Funnels
+      summary: Fetch errors between funnel steps
+      description: |
+        Returns the error groups users hit while trying to get from one step of the funnel to the next, with how many of those users converted and how many dropped off. The groups with the most users that dropped off come first.
+
+        - A user's attempt starts when they reach the earlier step and ends when they reach the next one or, if they never do, when their conversion window runs out.
+        - Users are counted by installation id, and counted when they did the funnel's first step between `from` and `to`. Their attempt can come after `to`, within the conversion window.
+        - The filter applies to the errors as it does to the step events.
+        - A `from` or `to` with seconds, such as one taken from the current time, is rounded down to the minute, or to ten minutes when the range is a day or more, so that repeated requests can share a cached result. A `from` or `to` on a whole minute is used as sent.
+      parameters:
+        - *funnelAppId
+        - *funnelId
+        - $ref: "#/components/parameters/FunnelStep"
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/FunnelLimit"
+        - $ref: "#/components/parameters/FunnelOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Error group id.
+                        type:
+                          type: string
+                          description: Exception class or ANR type. Empty for an app hang.
+                        error_type:
+                          type: string
+                          enum:
+                            - exception
+                            - anr
+                            - app_hang
+                        severity:
+                          type: string
+                          description: Empty for an app hang.
+                          enum:
+                            - fatal
+                            - unhandled
+                            - handled
+                            - ""
+                        message:
+                          type: string
+                          description: Empty for an app hang.
+                        method_name:
+                          type: string
+                        file_name:
+                          type: string
+                        count:
+                          type: integer
+                          description: Errors in the group hit during attempts.
+                        users:
+                          type: integer
+                          description: Users that hit the group.
+                        dropped:
+                          type: integer
+                          description: Users that hit the group and dropped off.
+                        converted:
+                          type: integer
+                          description: Users that hit the group and converted.
+                  meta: &funnelPageMeta
+                    type: object
+                    required:
+                      - next
+                      - previous
+                    properties:
+                      next:
+                        type: boolean
+                      previous:
+                        type: boolean
+              example:
+                results:
+                  - id: 9f2c4e1a7b3d5f60
+                    type: java.lang.IllegalStateException
+                    error_type: exception
+                    severity: fatal
+                    message: Payment sheet is not attached
+                    method_name: onPaymentResult
+                    file_name: CheckoutActivity.kt
+                    count: 42
+                    users: 37
+                    dropped: 31
+                    converted: 6
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "404":
+          description: Funnel does not exist in this app.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/funnels/{funnelId}/traces:
+    get:
+      operationId: getFunnelStepTraces
+      tags:
+        - Funnels
+      summary: Fetch traces between funnel steps
+      description: |
+        Returns the root spans that started while users tried to get from one step of the funnel to the next, with the quantile of their durations for users that converted and for those that dropped off. The span names recorded by the most users that dropped off come first.
+
+        - A user's attempt starts when they reach the earlier step and ends when they reach the next one or, if they never do, when their conversion window runs out.
+        - Users are counted by installation id, and counted when they did the funnel's first step between `from` and `to`. Their attempt can come after `to`, within the conversion window.
+        - A `from` or `to` with seconds, such as one taken from the current time, is rounded down to the minute, or to ten minutes when the range is a day or more, so that repeated requests can share a cached result. A `from` or `to` on a whole minute is used as sent.
+      parameters:
+        - *funnelAppId
+        - *funnelId
+        - $ref: "#/components/parameters/FunnelStep"
+        - $ref: "#/components/parameters/FunnelQuantile"
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/FunnelLimit"
+        - $ref: "#/components/parameters/FunnelOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        span_name:
+                          type: string
+                        count:
+                          type: integer
+                          description: Spans recorded during attempts.
+                        dropped:
+                          type: integer
+                          description: Users that recorded the span and dropped off.
+                        converted:
+                          type: integer
+                          description: Users that recorded the span and converted.
+                        dropped_duration_ms:
+                          type:
+                            - number
+                            - "null"
+                          description: Duration quantile for users that dropped off. Null when none of them recorded the span.
+                        converted_duration_ms:
+                          type:
+                            - number
+                            - "null"
+                          description: Duration quantile for users that converted. Null when none of them recorded the span.
+                  meta: *funnelPageMeta
+              example:
+                results:
+                  - span_name: checkout.load_payment_methods
+                    count: 820
+                    dropped: 214
+                    converted: 390
+                    dropped_duration_ms: 2310.5
+                    converted_duration_ms: 640
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "404":
+          description: Funnel does not exist in this app.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/funnels/{funnelId}/network:
+    get:
+      operationId: getFunnelStepNetwork
+      tags:
+        - Funnels
+      summary: Fetch network requests between funnel steps
+      description: |
+        Returns the URL patterns of the network requests users made while trying to get from one step of the funnel to the next, with the quantile of their latencies for users that converted and for those that dropped off. The patterns requested by the most users that dropped off come first.
+
+        - A user's attempt starts when they reach the earlier step and ends when they reach the next one or, if they never do, when their conversion window runs out.
+        - Users are counted by installation id, and counted when they did the funnel's first step between `from` and `to`. Their attempt can come after `to`, within the conversion window.
+        - A request counts once for each pattern its path matches.
+        - Requests that got no response, and requests that took over a minute, are left out.
+        - A `from` or `to` with seconds, such as one taken from the current time, is rounded down to the minute, or to ten minutes when the range is a day or more, so that repeated requests can share a cached result. A `from` or `to` on a whole minute is used as sent.
+      parameters:
+        - *funnelAppId
+        - *funnelId
+        - $ref: "#/components/parameters/FunnelStep"
+        - $ref: "#/components/parameters/FunnelQuantile"
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/FunnelLimit"
+        - $ref: "#/components/parameters/FunnelOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        domain:
+                          type: string
+                        path_pattern:
+                          type: string
+                        count:
+                          type: integer
+                          description: Requests made during attempts.
+                        dropped:
+                          type: integer
+                          description: Users that made the request and dropped off.
+                        converted:
+                          type: integer
+                          description: Users that made the request and converted.
+                        dropped_latency_ms:
+                          type:
+                            - number
+                            - "null"
+                          description: Latency quantile for users that dropped off. Null when none of them made the request.
+                        converted_latency_ms:
+                          type:
+                            - number
+                            - "null"
+                          description: Latency quantile for users that converted. Null when none of them made the request.
+                  meta: *funnelPageMeta
+              example:
+                results:
+                  - domain: api.example.com
+                    path_pattern: /v1/cart/*
+                    count: 1530
+                    dropped: 198
+                    converted: 402
+                    dropped_latency_ms: 1840
+                    converted_latency_ms: 420.25
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "404":
+          description: Funnel does not exist in this app.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/funnels/{funnelId}/sessions:
+    get:
+      operationId: getFunnelStepSessions
+      tags:
+        - Funnels
+      summary: Fetch sessions between funnel steps
+      description: |
+        Returns the sessions of users that converted, or of those that dropped off, while trying to get from one step of the funnel to the next. The users that started their attempt most recently come first, each with their sessions from oldest to newest.
+
+        - A user's attempt starts when they reach the earlier step and ends when they reach the next one or, if they never do, when their conversion window runs out.
+        - Users are counted by installation id, and counted when they did the funnel's first step between `from` and `to`. Their attempt can come after `to`, within the conversion window.
+        - A session is listed when it has an event during its user's attempt, so a user that got from one step to the next across sessions has each of them listed.
+        - Sessions whose only events are session starts are left out.
+        - A `from` or `to` with seconds, such as one taken from the current time, is rounded down to the minute, or to ten minutes when the range is a day or more, so that repeated requests can share a cached result. A `from` or `to` on a whole minute is used as sent.
+      parameters:
+        - *funnelAppId
+        - *funnelId
+        - $ref: "#/components/parameters/FunnelStep"
+        - name: outcome
+          in: query
+          required: true
+          description: Whether to list the sessions of users that converted or of those that dropped off.
+          schema:
+            type: string
+            enum:
+              - converted
+              - dropped
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/FunnelLimit"
+        - $ref: "#/components/parameters/FunnelOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                properties:
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        session_id:
+                          type: string
+                          format: uuid
+                        installation_id:
+                          type: string
+                          format: uuid
+                          description: The user the funnel counted.
+                        user_id:
+                          type: string
+                          description: The latest user id the app set on the session during the attempt. Empty when none was set.
+                        first_event_time:
+                          type: string
+                          format: date-time
+                        duration:
+                          type: integer
+                          description: Session duration in milliseconds.
+                  meta: *funnelPageMeta
+              example:
+                results:
+                  - session_id: 8d5a6d39-4c76-43d3-aecd-650e2c36f9c2
+                    installation_id: 1e6f0b2a-9c4d-4a7e-b3f5-62d8c0a9e174
+                    user_id: user-4821
+                    first_event_time: 2026-10-12T14:03:11Z
+                    duration: 184000
+                meta:
+                  next: true
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "404":
+          description: Funnel does not exist in this app.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
   /teams:
     post:
       operationId: createTeam
@@ -6234,6 +7412,46 @@ components:
           values in one condition.
         schema:
           type: string
+    FunnelStep:
+      name: step
+      in: query
+      required: false
+      description: |
+        Index of the step users try to reach, counting the first step as 0, so `1` looks at getting from the first step to the second. From 1 to the number of steps minus 1. Without it, covers getting from the first step to the last.
+      schema:
+        type: integer
+        minimum: 1
+    FunnelQuantile:
+      name: quantile
+      in: query
+      required: true
+      description: Quantile of the durations to return.
+      schema:
+        type: string
+        enum:
+          - p50
+          - p90
+          - p95
+          - p99
+    FunnelLimit:
+      name: limit
+      in: query
+      required: false
+      description: Maximum results to return.
+      schema:
+        type: integer
+        default: 10
+        minimum: 1
+        maximum: 1000
+    FunnelOffset:
+      name: offset
+      in: query
+      required: false
+      description: Number of results to skip.
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
   schemas:
     AttributeDistribution:
       type: object
@@ -6590,6 +7808,103 @@ components:
             the value reads for itself.
       required:
         - text
+    FunnelStepEvent:
+      type: object
+      required:
+        - event_name
+      properties:
+        event_name:
+          type: string
+          description: Name of a custom event.
+    FunnelDraft:
+      type: object
+      required:
+        - name
+        - steps
+        - conversion_window_seconds
+      properties:
+        name:
+          type: string
+          maxLength: 256
+          description: Funnel name. Leading and trailing spaces are trimmed.
+        steps:
+          type: array
+          minItems: 2
+          maxItems: 30
+          description: Custom events in the order users do them. An event can appear in more than one step.
+          items:
+            $ref: "#/components/schemas/FunnelStepEvent"
+        conversion_window_seconds:
+          type: integer
+          minimum: 60
+          maximum: 2592000
+          description: How long a user has from the first step to reach the last one, in seconds. A whole number of minutes from 1 minute to 30 days.
+    Funnel:
+      type: object
+      required:
+        - id
+        - app_id
+        - name
+        - steps
+        - conversion_window_seconds
+        - pinned
+        - pin_order
+        - created_by
+        - created_by_email
+        - created_at
+        - updated_at
+      properties:
+        id:
+          type: string
+          format: uuid
+        app_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/FunnelStepEvent"
+        conversion_window_seconds:
+          type: integer
+        pinned:
+          type: boolean
+        pin_order:
+          type:
+            - integer
+            - "null"
+          description: Sorts the app's pinned funnels, lowest first. Null when the funnel is not pinned.
+        created_by:
+          type:
+            - string
+            - "null"
+          format: uuid
+          description: Id of the user that created the funnel. Null when that user no longer exists.
+        created_by_email:
+          type:
+            - string
+            - "null"
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    FunnelStepUsers:
+      type: object
+      required:
+        - users
+        - median_seconds_from_previous
+      properties:
+        users:
+          type: integer
+          description: Users that reached the step.
+        median_seconds_from_previous:
+          type:
+            - number
+            - "null"
+          description: Median time from the step before, for users that reached this step. Steps sent in the same millisecond as the step before are left out. Null for the first step and when no time is left to take the median of.
   securitySchemes:
     bearerAuth:
       type: http

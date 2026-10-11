@@ -331,6 +331,7 @@ function keyGroupsOf(keys: FilterKey[]): string[] {
 const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
   app_health: [K.versionName, K.versionCode],
   journeys: versionKeys,
+  funnels: [...versionKeys, ...deviceTailKeys],
   errors: [K.errorType, ...versionKeys, K.userId, ...deviceTailKeys],
   error_group_events: [...versionKeys, K.userId, ...deviceTailKeys],
   sessions: [

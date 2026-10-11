@@ -81,6 +81,13 @@ const (
 	customNameKeyPattern                      = "^[a-zA-Z0-9_-]+$"
 )
 
+var customNameRegexp = regexp.MustCompile(customNameKeyPattern)
+
+// IsValidCustomName reports whether name is a name a custom event can have.
+func IsValidCustomName(name string) bool {
+	return len(name) <= maxCustomNameChars && customNameRegexp.MatchString(name)
+}
+
 const TypeCustom = "custom"
 const TypeANR = "anr"
 const TypeAppHang = "app_hang"
@@ -1335,8 +1342,7 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `custom.name`, maxTypeChars)
 		}
 
-		re := regexp.MustCompile(customNameKeyPattern)
-		if !re.MatchString(e.Custom.Name) {
+		if !customNameRegexp.MatchString(e.Custom.Name) {
 			return fmt.Errorf("%q custom event name must match this regular expression pattern %q", `custom.name`, customNameKeyPattern)
 		}
 	}

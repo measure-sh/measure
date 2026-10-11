@@ -44,6 +44,12 @@ Trace the actual routes people take through your app with [User Journeys](/produ
 
 Not sure what to tackle first? See at a glance which paths matter most to your users so you can prioritize effectively.
 
+## Funnels
+
+Follow your app’s core flows, where users drop off, and what stands in their way with [Funnels](/product/funnels). Build funnels from custom events to see how many users reach each step, where they leave, and how long they take to move forward. Track conversion over days, weeks, or months, with every build upload marked on the chart to see how each release affects performance.
+
+When conversion dips, use the Friction view to find out why. See the crashes, errors, slow traces, and network requests users run into at each step, then open session replays from users who dropped off to understand what happened before they left.
+
 ## Network Monitoring
 
 Keep tabs on every request your app fires with [Network Performance](/product/network-performance). Track how HTTP status codes trend over time and dig into your busiest endpoints, ranked by latency, error rate and call volume, to surface the requests dragging your app down.

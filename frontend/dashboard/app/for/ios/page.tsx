@@ -144,6 +144,30 @@ const features: PlatformFeature[] = [
     ),
   },
   {
+    heading: "Funnels",
+    image: "/images/product_screenshots/funnels.webp",
+    imageAlt: "Conversion funnel for an iOS app in Measure",
+    body: (
+      <>
+        Follow your app’s core flows, where users drop off, and what stands in
+        their way with{" "}
+        <Link href="/product/funnels" className={underlineLinkStyle}>
+          Funnels
+        </Link>
+        . Build funnels from custom events to see how many users reach each
+        step, where they leave, and how long they take to move forward. Track
+        conversion over days, weeks, or months, with every build upload marked
+        on the chart to see how each release affects performance.
+        <br />
+        <br />
+        When conversion dips, use the Friction view to find out why. See the
+        crashes, errors, slow traces, and network requests users run into at
+        each step, then open session replays from users who dropped off to
+        understand what happened before they left.
+      </>
+    ),
+  },
+  {
     heading: "Network Monitoring",
     image: "/images/product_screenshots/network_performance.webp",
     imageAlt: "Network performance monitoring for an iOS app in Measure",

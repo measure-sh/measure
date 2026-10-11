@@ -100,10 +100,12 @@ func (h Handlers) GetAuthzRoles(c *gin.Context) {
 	canManageSlack := slices.Contains(measure.ScopeMap[userRole], *measure.ScopeTeamAll)
 	canChangeAppThresholdPrefs := slices.Contains(measure.ScopeMap[userRole], *measure.ScopeAppAll)
 	canUpdateBugReports := slices.Contains(measure.ScopeMap[userRole], *measure.ScopeBugReportAll)
+	canChangeFunnels := slices.Contains(measure.ScopeMap[userRole], *measure.ScopeFunnelAll)
 
 	c.JSON(http.StatusOK, gin.H{
 		"can_invite_roles":               inviteeRoles,
 		"can_update_bug_reports":         canUpdateBugReports,
+		"can_change_funnels":             canChangeFunnels,
 		"can_change_billing":             canChangeBilling,
 		"can_create_app":                 canCreateApp,
 		"can_rename_app":                 canRenameApp,

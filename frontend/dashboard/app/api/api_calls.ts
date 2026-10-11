@@ -424,6 +424,7 @@ export const emptyErrorGroupDetails = {
 export const defaultAuthzAndMembers = {
   can_invite_roles: ["viewer"],
   can_update_bug_reports: false,
+  can_change_funnels: false,
   can_change_billing: false,
   can_create_app: false,
   can_rename_app: false,
@@ -2006,5 +2007,384 @@ export const fetchNetworkTrendsFromServer = async (
   return await request(
     `/api/apps/${appId}/networkRequests/trends?${params.toString()}`,
     { failsWith: "Failed to fetch network trends" },
+  );
+};
+
+export type Funnel = {
+  id: string;
+  app_id: string;
+  name: string;
+  steps: { event_name: string }[];
+  conversion_window_seconds: number;
+  pinned: boolean;
+  pin_order: number | null;
+  created_by: string | null;
+  created_by_email: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
+export type FunnelDraft = Pick<
+  Funnel,
+  "name" | "steps" | "conversion_window_seconds"
+>;
+
+export type FunnelConversion = {
+  steps: {
+    event_name: string;
+    users: number;
+    median_seconds_from_previous: number | null;
+  }[];
+};
+
+export type FunnelStepErrorsResponse = {
+  meta: { next: boolean; previous: boolean };
+  results: {
+    id: string;
+    type: string;
+    error_type: "exception" | "anr" | "app_hang";
+    severity: string;
+    message: string;
+    method_name: string;
+    file_name: string;
+    count: number;
+    users: number;
+    dropped: number;
+    converted: number;
+  }[];
+};
+
+export type FunnelStepTracesResponse = {
+  meta: { next: boolean; previous: boolean };
+  results: {
+    span_name: string;
+    count: number;
+    dropped: number;
+    converted: number;
+    dropped_duration_ms: number | null;
+    converted_duration_ms: number | null;
+  }[];
+};
+
+export type FunnelStepNetworkResponse = {
+  meta: { next: boolean; previous: boolean };
+  results: {
+    domain: string;
+    path_pattern: string;
+    count: number;
+    dropped: number;
+    converted: number;
+    dropped_latency_ms: number | null;
+    converted_latency_ms: number | null;
+  }[];
+};
+
+export type FunnelStepOutcome = "dropped" | "converted";
+
+export type FunnelStepSessionsResponse = {
+  meta: { next: boolean; previous: boolean };
+  results: {
+    session_id: string;
+    installation_id: string;
+    user_id: string;
+    first_event_time: string;
+    duration: number;
+  }[];
+};
+
+export type FunnelTrendPeriod = "day" | "week" | "month";
+
+export type FunnelTrend = {
+  event_names: string[];
+  points: {
+    datetime: string;
+    steps: {
+      users: number;
+      median_seconds_from_previous: number | null;
+    }[];
+    median_seconds_to_convert: number | null;
+    complete: boolean;
+  }[];
+  builds: {
+    version_name: string;
+    version_code: string;
+    patch_id: string | null;
+    patch_version: string | null;
+    uploaded_at: string;
+  }[];
+};
+
+// Weekdays run from 1 for Monday to 7 for Sunday. The weekday and hour are
+// when each user did the first step, in the time zone the request names.
+export type FunnelCadence = {
+  from: string;
+  to: string;
+  hours: { weekday: number; hour: number; users: number; converted: number }[];
+};
+
+export type FunnelsResponse = {
+  meta: { next: boolean; previous: boolean };
+  results: Funnel[];
+};
+
+export type PinnedFunnelsResponse = {
+  results: Funnel[];
+};
+
+function funnelRangeParams(
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+): URLSearchParams {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+  return params;
+}
+
+// The server covers the whole funnel when the step is left out.
+function funnelStepParams(
+  step: number | null,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+): URLSearchParams {
+  const params = funnelRangeParams(startDate, endDate, filterExpr);
+  if (step !== null) {
+    params.set("step", String(step));
+  }
+  return params;
+}
+
+export const fetchFunnelsFromServer = async (
+  appId: string,
+  search: string,
+  limit: number,
+  offset: number,
+) => {
+  const params = new URLSearchParams({
+    limit: String(limit),
+    offset: String(offset),
+  });
+  if (search !== "") {
+    params.set("search", search);
+  }
+  return await request<FunnelsResponse>(
+    `/api/apps/${appId}/funnels?${params.toString()}`,
+    { failsWith: "Failed to fetch funnels" },
+  );
+};
+
+export const fetchPinnedFunnelsFromServer = async (appId: string) =>
+  await request<PinnedFunnelsResponse>(`/api/apps/${appId}/funnels/pinned`, {
+    failsWith: "Failed to fetch pinned funnels",
+  });
+
+export const reorderPinnedFunnelsFromServer = async (
+  appId: string,
+  funnelIds: string[],
+) =>
+  await request<PinnedFunnelsResponse>(`/api/apps/${appId}/funnels/pinned`, {
+    method: "PUT",
+    body: JSON.stringify({ funnel_ids: funnelIds }),
+    failsWith: "Failed to reorder pinned funnels",
+  });
+
+export const setFunnelPinnedFromServer = async (
+  appId: string,
+  funnelId: string,
+  pinned: boolean,
+) =>
+  await request<Funnel>(`/api/apps/${appId}/funnels/${funnelId}/pin`, {
+    method: pinned ? "PUT" : "DELETE",
+    failsWith: pinned ? "Failed to pin funnel" : "Failed to unpin funnel",
+  });
+
+export const fetchFunnelFromServer = async (appId: string, funnelId: string) =>
+  await request<Funnel>(`/api/apps/${appId}/funnels/${funnelId}`, {
+    failsWith: "Failed to fetch funnel",
+  });
+
+export const fetchFunnelEventNamesFromServer = async (
+  appId: string,
+  search: string,
+) => {
+  const query =
+    search === "" ? "" : `?${new URLSearchParams({ search }).toString()}`;
+  const data = await request<{ results: string[] }>(
+    `/api/apps/${appId}/funnels/events${query}`,
+    { failsWith: "Failed to fetch events" },
+  );
+  return data.results;
+};
+
+export const createFunnelFromServer = async (
+  appId: string,
+  draft: FunnelDraft,
+) =>
+  await request<Funnel>(`/api/apps/${appId}/funnels`, {
+    method: "POST",
+    body: JSON.stringify(draft),
+    failsWith: "Failed to create funnel",
+  });
+
+export const updateFunnelFromServer = async (
+  appId: string,
+  funnelId: string,
+  draft: FunnelDraft,
+) =>
+  await request<Funnel>(`/api/apps/${appId}/funnels/${funnelId}`, {
+    method: "PATCH",
+    body: JSON.stringify(draft),
+    failsWith: "Failed to update funnel",
+  });
+
+export const deleteFunnelFromServer = async (appId: string, funnelId: string) =>
+  await request(`/api/apps/${appId}/funnels/${funnelId}`, {
+    method: "DELETE",
+    failsWith: "Failed to delete funnel",
+    parseBody: false,
+  });
+
+export const fetchFunnelConversionFromServer = async (
+  appId: string,
+  funnelId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+) => {
+  const params = funnelRangeParams(startDate, endDate, filterExpr);
+  return await request<FunnelConversion>(
+    `/api/apps/${appId}/funnels/${funnelId}/conversion?${params.toString()}`,
+    { failsWith: "Failed to fetch funnel conversion" },
+  );
+};
+
+export const fetchFunnelCadenceFromServer = async (
+  appId: string,
+  funnelId: string,
+  weeks: number,
+  filterExpr: string | null,
+) => {
+  const params = new URLSearchParams({
+    weeks: String(weeks),
+    timezone: getTimeZoneForServer(),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+  return await request<FunnelCadence>(
+    `/api/apps/${appId}/funnels/${funnelId}/cadence?${params.toString()}`,
+    { failsWith: "Failed to fetch funnel cadence" },
+  );
+};
+
+export const fetchFunnelStepErrorsFromServer = async (
+  appId: string,
+  funnelId: string,
+  step: number | null,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  limit: number,
+  offset: number,
+) => {
+  const params = funnelStepParams(step, startDate, endDate, filterExpr);
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  return await request<FunnelStepErrorsResponse>(
+    `/api/apps/${appId}/funnels/${funnelId}/errors?${params.toString()}`,
+    { failsWith: "Failed to fetch funnel step errors" },
+  );
+};
+
+export const fetchFunnelStepSessionsFromServer = async (
+  appId: string,
+  funnelId: string,
+  step: number | null,
+  outcome: FunnelStepOutcome,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  limit: number,
+  offset: number,
+) => {
+  const params = funnelStepParams(step, startDate, endDate, filterExpr);
+  params.set("outcome", outcome);
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  return await request<FunnelStepSessionsResponse>(
+    `/api/apps/${appId}/funnels/${funnelId}/sessions?${params.toString()}`,
+    { failsWith: "Failed to fetch funnel step sessions" },
+  );
+};
+
+export const fetchFunnelStepTracesFromServer = async (
+  appId: string,
+  funnelId: string,
+  step: number | null,
+  quantile: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  limit: number,
+  offset: number,
+) => {
+  const params = funnelStepParams(step, startDate, endDate, filterExpr);
+  params.set("quantile", quantile);
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  return await request<FunnelStepTracesResponse>(
+    `/api/apps/${appId}/funnels/${funnelId}/traces?${params.toString()}`,
+    { failsWith: "Failed to fetch funnel step traces" },
+  );
+};
+
+export const fetchFunnelStepNetworkFromServer = async (
+  appId: string,
+  funnelId: string,
+  step: number | null,
+  quantile: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  limit: number,
+  offset: number,
+) => {
+  const params = funnelStepParams(step, startDate, endDate, filterExpr);
+  params.set("quantile", quantile);
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  return await request<FunnelStepNetworkResponse>(
+    `/api/apps/${appId}/funnels/${funnelId}/network?${params.toString()}`,
+    { failsWith: "Failed to fetch funnel step network requests" },
+  );
+};
+
+export const fetchFunnelTrendFromServer = async (
+  appId: string,
+  funnelId: string,
+  period: FunnelTrendPeriod,
+  filterExpr: string | null,
+  withBuilds: boolean,
+) => {
+  const params = new URLSearchParams({
+    period,
+    timezone: getTimeZoneForServer(),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+  if (withBuilds) {
+    params.set("builds", "true");
+  }
+  return await request<FunnelTrend>(
+    `/api/apps/${appId}/funnels/${funnelId}/trend?${params.toString()}`,
+    { failsWith: "Failed to fetch funnel trend" },
   );
 };

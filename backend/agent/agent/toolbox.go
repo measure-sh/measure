@@ -375,8 +375,10 @@ func askQuestionTool(cfg *Config) Tool {
 			"and each app's team. " +
 			"Each call is independent: make the question self-contained, and when asking a follow-up include the " +
 			"relevant findings and numbers from earlier answers in the question, along with the answer's Method " +
-			"line so the recomputation stays consistent.",
+			"line so the recomputation stays consistent. " +
+			"The agent only reads data; use the other Measure tools to change funnels or bug reports.",
 		InputSchema: mcpMustInferSchema[askQuestionInput](),
+		Annotations: readOnlyTool,
 	}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in askQuestionInput) (*mcpsdk.CallToolResult, any, error) {
 		// The one agent-backed tool: while the agent is disabled it returns
 		// the unavailability notice. The plain data tools are not
@@ -392,6 +394,10 @@ func askQuestionTool(cfg *Config) Tool {
 	})
 }
 
+// readOnlyTool marks a tool that changes no data, so an MCP client can run it
+// without asking its user.
+var readOnlyTool = &mcpsdk.ToolAnnotations{ReadOnlyHint: true}
+
 // commonTools returns the tools served on both surfaces: to MCP clients and
 // to the agent's own loop. Purpose-built, one per dashboard question. The
 // render_chart tool is not one of them: it produces an artifact for the turn
@@ -403,6 +409,7 @@ func commonTools(cfg *Config) []Tool {
 		newTool(&mcpsdk.Tool{
 			Name:        "list_apps",
 			Description: "List all apps the authenticated user has access to, each with the team it belongs to",
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpListAppsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpListApps(ctx, in)
 		}),
@@ -410,8 +417,9 @@ func commonTools(cfg *Config) []Tool {
 		// get_filter_keys
 		newTool(&mcpsdk.Tool{
 			Name:        "get_filter_keys",
-			Description: "List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
+			Description: "List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, funnels or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
 			InputSchema: mcpMustInferSchema[mcpGetFilterKeysInput](),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFilterKeysInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetFilterKeys(ctx, in)
 		}),
@@ -421,6 +429,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_filter_values",
 			Description: "List the values a filter key can be set to for an app, for use in a filter_expr, optionally narrowed by a search string. truncated in the result says more values matched. get_filter_keys lists the keys; a key whose value_suggestion_mode is none takes typed values and has no list.",
 			InputSchema: mcpMustInferSchema[mcpGetFilterValuesInput](),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFilterValuesInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetFilterValues(ctx, in)
 		}),
@@ -430,6 +439,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_metrics",
 			Description: "Get app metrics including adoption, crash-free/ANR-free sessions, launch performance (cold/warm/hot p95) and app size. Covers every app version unless filter_expr narrows it; each metric is reported for the selected versions and for the rest, and adoption is only meaningful against a specific version, so narrow to one with its version_code when reading it. App size is reported only when the versions with data in the range share a single version name, as the size of that version's most recent build; otherwise sizes has multiple_versions or no_data set. " + mcpFilterExprToolsHint(filter.AppHealthEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetMetricsInput](mcpAppHealthFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetMetricsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetMetrics(ctx, in)
 		}),
@@ -439,6 +449,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_app_health_over_time",
 			Description: "Get the app health timeline: sessions, crashes (fatal exceptions) and ANRs bucketed over time. This is the overview health plot. Covers every app version unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.AppHealthEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetAppHealthOverTimeInput](mcpAppHealthFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetAppHealthOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetAppHealthOverTime(ctx, in)
 		}),
@@ -448,6 +459,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_errors",
 			Description: "Get error groups (crashes, non-fatal errors and ANRs) for an app, sorted by instance count. Each group has its instance count, unique users and sessions affected and the time it was last seen, all within the requested time range and filter. include_trend adds each group's instances per time bucket. Covers every error unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorsInput](mcpErrorsFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrors(ctx, in)
 		}),
@@ -457,6 +469,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_error",
 			Description: "Get individual error events (exception or ANR) for a specific error group. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorGroupEventsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorInput](mcpErrorGroupEventsFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetError(ctx, in)
 		}),
@@ -466,6 +479,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_errors_over_time",
 			Description: "Get time-series of error occurrences across all error groups. Covers every error unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorsOverTimeInput](mcpErrorsFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrorsOverTime(ctx, in)
 		}),
@@ -475,6 +489,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_error_over_time",
 			Description: "Get time-series of occurrences for a specific error group. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorGroupEventsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorOverTimeInput](mcpErrorGroupEventsFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrorOverTime(ctx, in)
 		}),
@@ -484,6 +499,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_error_distribution",
 			Description: "Get attribute distribution (app version, OS, country, network type, locale, device) for a specific error group: the 5 most frequent values of each attribute, the count of instances with any other value, and the number of distinct values. Pass attribute to list up to 25 values of one attribute. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorGroupEventsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorDistributionInput](mcpErrorGroupEventsFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorDistributionInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrorDistribution(ctx, in)
 		}),
@@ -493,6 +509,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_error_common_path",
 			Description: "Get the most common user navigation path leading to a specific error group (crash, exception or ANR)",
 			InputSchema: mcpMustInferSchema[mcpGetErrorCommonPathInput](),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorCommonPathInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetErrorCommonPath(ctx, in)
 		}),
@@ -502,6 +519,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_sessions",
 			Description: "Get sessions for an app, ordered by most recent first. Covers every session unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.SessionsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetSessionsInput](mcpSessionsFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSessionsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSessions(ctx, in)
 		}),
@@ -511,6 +529,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_sessions_over_time",
 			Description: "Get time-series of session counts. Covers every session unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.SessionsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetSessionsOverTimeInput](mcpSessionsFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSessionsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSessionsOverTime(ctx, in)
 		}),
@@ -520,6 +539,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_session",
 			Description: "Get full session with all events",
 			InputSchema: mcpMustInferSchema[mcpGetSessionInput](),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSessionInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSession(ctx, in)
 		}),
@@ -529,6 +549,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_memory_usage_over_time",
 			Description: "Get aggregate memory usage over time. Use it to compare shifts in app's memory profile. Returns p50/p90/p95/p99 in KiB by app version/build and time bucket. " + mcpFilterExprToolsHint(filter.MemoryEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetMemoryUsageOverTimeInput](mcpMemoryFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetMemoryUsageOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetMemoryUsageOverTime(ctx, in)
 		}),
@@ -538,6 +559,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_memory_usage_by_device_tier",
 			Description: "Get a breakdown of memory usage by different device memory tiers. Returns p50/p90/p95 in KiB along with sampled-session and sample counts. " + mcpFilterExprToolsHint(filter.MemoryEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetMemoryUsageByDeviceTierInput](mcpMemoryFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetMemoryUsageByDeviceTierInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetMemoryUsageByDeviceTier(ctx, in)
 		}),
@@ -547,6 +569,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_high_memory_sessions",
 			Description: "Get a paginated list of sessions with high memory usage. Use get_session to connect a returned session_id to user actions, screens, and errors. " + mcpFilterExprToolsHint(filter.MemoryEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetHighMemorySessionsInput](mcpMemoryFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetHighMemorySessionsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetHighMemorySessions(ctx, in)
 		}),
@@ -556,6 +579,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_bug_reports",
 			Description: "Get bug reports for an app, ordered by most recent first. Covers every bug report unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.BugReportsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetBugReportsInput](mcpBugReportsFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetBugReportsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetBugReports(ctx, in)
 		}),
@@ -565,6 +589,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_bug_reports_over_time",
 			Description: "Get time-series of bug report counts. Covers every bug report unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.BugReportsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetBugReportsOverTimeInput](mcpBugReportsFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetBugReportsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetBugReportsOverTime(ctx, in)
 		}),
@@ -574,6 +599,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_bug_report",
 			Description: "Get a single bug report with full details",
 			InputSchema: mcpMustInferSchema[mcpGetBugReportInput](),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetBugReportInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetBugReport(ctx, in)
 		}),
@@ -583,6 +609,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "update_bug_report_status",
 			Description: "Update the status of a bug report (open or closed)",
 			InputSchema: mcpMustInferSchema[mcpUpdateBugReportStatusInput](),
+			Annotations: &mcpsdk.ToolAnnotations{DestructiveHint: new(false), IdempotentHint: true},
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpUpdateBugReportStatusInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpUpdateBugReportStatus(ctx, in)
 		}),
@@ -592,6 +619,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_root_span_names",
 			Description: "Get all root span names for an app",
 			InputSchema: mcpMustInferSchema[mcpGetRootSpanNamesInput](),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetRootSpanNamesInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetRootSpanNames(ctx, in)
 		}),
@@ -601,6 +629,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_span_instances",
 			Description: "Get span instances for a root span name. Covers every span unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.SpansEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetSpanInstancesInput](mcpSpansFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSpanInstancesInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSpanInstances(ctx, in)
 		}),
@@ -610,6 +639,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_span_metrics_over_time",
 			Description: "Get p50/p90/p95/p99 duration metrics over time for a span name. Covers every span unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.SpansEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetSpanMetricsOverTimeInput](mcpSpansFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetSpanMetricsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetSpanMetricsOverTime(ctx, in)
 		}),
@@ -619,6 +649,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_trace",
 			Description: "Get full trace with all child spans",
 			InputSchema: mcpMustInferSchema[mcpGetTraceInput](),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetTraceInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetTrace(ctx, in)
 		}),
@@ -628,6 +659,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_alerts",
 			Description: "Get alerts for an app, ordered by most recent first",
 			InputSchema: mcpMustInferSchema[mcpGetAlertsInput](),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetAlertsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetAlerts(ctx, in)
 		}),
@@ -637,6 +669,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_journey",
 			Description: "Get an app's journey as a graph of screens. Each link is a transition between consecutive screens within a session, valued by the number of sessions that made that transition. Covers every session unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneyInput](mcpJourneysFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetJourney(ctx, in)
 		}),
@@ -646,6 +679,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_network_metrics_trends",
 			Description: "Get top network endpoints by latency, error rate, and frequency for domain and path pattern. Covers every request unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.NetworkEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetNetworkTrendsInput](mcpNetworkFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetNetworkTrendsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetNetworkTrends(ctx, in)
 		}),
@@ -655,6 +689,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_network_status_codes_over_time",
 			Description: "Get HTTP status-class counts over time for the whole app or a selected endpoint. Covers every request unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.NetworkEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetAppHttpStatusCodesOverTimeInput](mcpNetworkFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetAppHttpStatusCodesOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetAppStatusCodesOverTime(ctx, in)
 		}),
@@ -664,6 +699,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_network_endpoint_status_codes_over_time",
 			Description: "Get exact HTTP status-code counts over time for a selected endpoint. Covers every request unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.NetworkEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetHttpEndpointStatusCodesOverTimeInput](mcpNetworkFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetHttpEndpointStatusCodesOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetHttpEndpointStatusCodesOverTime(ctx, in)
 		}),
@@ -673,6 +709,7 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_network_latency_over_time",
 			Description: "Get latency percentiles over time for the whole app or a selected endpoint. Covers every request unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.NetworkEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetNetworkLatencyOverTimeInput](mcpNetworkFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetNetworkLatencyOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetNetworkLatencyOverTime(ctx, in)
 		}),
@@ -682,8 +719,169 @@ func commonTools(cfg *Config) []Tool {
 			Name:        "get_network_timeline",
 			Description: "Get the per-session HTTP request timeline for the whole app or a selected endpoint. Covers every request unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.NetworkEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetNetworkTimelineInput](mcpNetworkFilterExprGrammar),
+			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetNetworkTimelineInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetNetworkTimeline(ctx, in)
+		}),
+
+		// get_funnels
+		newTool(&mcpsdk.Tool{
+			Name:        "get_funnels",
+			Description: "List an app's funnels, most recently updated first, each with its name, steps, conversion window and pin. A funnel is an ordered list of custom event names, its steps, with a conversion window: a user enters the funnel by sending the first step's event, and reaches each later step by sending that step's event, in order, within the conversion window measured from the first step. get_pinned_funnels lists the pinned funnels in their pinned order.",
+			InputSchema: mcpMustInferSchema[mcpGetFunnelsInput](),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelsInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetFunnels(ctx, in)
+		}),
+
+		// get_pinned_funnels
+		newTool(&mcpsdk.Tool{
+			Name:        "get_pinned_funnels",
+			Description: "List an app's pinned funnels in their pinned order, which is the order the funnels page and the app's overview show them in.",
+			InputSchema: mcpMustInferSchema[mcpGetPinnedFunnelsInput](),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetPinnedFunnelsInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetPinnedFunnels(ctx, in)
+		}),
+
+		// get_funnel
+		newTool(&mcpsdk.Tool{
+			Name:        "get_funnel",
+			Description: "Get one funnel: its name, steps, conversion window, pin and who created it.",
+			InputSchema: mcpMustInferSchema[mcpGetFunnelInput](),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetFunnel(ctx, in)
+		}),
+
+		// get_funnel_event_names
+		newTool(&mcpsdk.Tool{
+			Name:        "get_funnel_event_names",
+			Description: fmt.Sprintf("List the custom event names an app's sessions sent in the last 30 days, most recently seen first, at most %d, optionally narrowed by a search string. A funnel's steps are custom event names, so use this to find them before create_funnel or update_funnel.", measure.MaxSuggestFunnelEventNames),
+			InputSchema: mcpMustInferSchema[mcpGetFunnelEventNamesInput](),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelEventNamesInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetFunnelEventNames(ctx, in)
+		}),
+
+		// get_funnel_conversion
+		newTool(&mcpsdk.Tool{
+			Name:        "get_funnel_conversion",
+			Description: "Get a funnel's conversion over a time range: for each step, the users that reached it and the median seconds they took to get there from the previous step. A user is counted when they did the first step within the range; their later steps can come after the range ends, within the conversion window. " + mcpFunnelRange + " " + mcpFunnelUsers + " Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelConversionInput](mcpFunnelsFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelConversionInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetFunnelConversion(ctx, in)
+		}),
+
+		// get_funnel_trend
+		newTool(&mcpsdk.Tool{
+			Name:        "get_funnel_trend",
+			Description: "Get a funnel's conversion in each of the last 30 days, 12 weeks or 12 months, ending with the current one, in the given timezone; weeks start on Monday. Each point has the users that reached each step, the median seconds to convert, and complete, which is false while users that entered the funnel in that period can still convert. include_builds adds the builds and patches first uploaded during the trend, to line changes in conversion up with releases. " + mcpFunnelUsers + " Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelTrendInput](mcpFunnelsFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelTrendInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetFunnelTrend(ctx, in)
+		}),
+
+		// get_funnel_cadence
+		newTool(&mcpsdk.Tool{
+			Name:        "get_funnel_cadence",
+			Description: "Get when users enter a funnel and how well they convert by hour of the week: for each weekday (1 for Monday to 7 for Sunday) and hour in the given timezone, the users that entered the funnel in it and how many of them converted. The weeks end at the latest week whose users have all had a full conversion window, and the result's from and to give the span they cover. " + mcpFunnelUsers + " Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelCadenceInput](mcpFunnelsFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelCadenceInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetFunnelCadence(ctx, in)
+		}),
+
+		// get_funnel_step_errors
+		newTool(&mcpsdk.Tool{
+			Name:        "get_funnel_step_errors",
+			Description: "List the error groups (crashes, ANRs, app hangs and handled errors) that users hit while trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " Each group has its error count, the users that hit it, and how many of them converted and how many dropped off; the groups with the most drop-offs come first. get_error takes a group's id to show its events. Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelStepErrorsInput](mcpFunnelsFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelStepErrorsInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetFunnelStepErrors(ctx, in)
+		}),
+
+		// get_funnel_step_traces
+		newTool(&mcpsdk.Tool{
+			Name:        "get_funnel_step_traces",
+			Description: "List the root spans that started while users were trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " Each span name has its span count, how many of the users that recorded it converted and how many dropped off, and the quantile of its duration in milliseconds for each of the two groups, null when no user of the group recorded it. The span names recorded by the most users that dropped off come first. Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelStepTracesInput](mcpFunnelsFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelStepTracesInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetFunnelStepTraces(ctx, in)
+		}),
+
+		// get_funnel_step_network
+		newTool(&mcpsdk.Tool{
+			Name:        "get_funnel_step_network",
+			Description: "List the URL patterns of the network requests that users made while trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " Each pattern has its request count, how many of the users that requested it converted and how many dropped off, and the quantile of its latency in milliseconds for each of the two groups, null when no user of the group requested it. The patterns requested by the most users that dropped off come first. Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelStepNetworkInput](mcpFunnelsFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelStepNetworkInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetFunnelStepNetwork(ctx, in)
+		}),
+
+		// get_funnel_step_sessions
+		newTool(&mcpsdk.Tool{
+			Name:        "get_funnel_step_sessions",
+			Description: "List the sessions of the users that converted, or of those that dropped off, while trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " A session is listed when it has an event during its user's attempt. installation_id identifies the user the funnel counted; user_id is the id the app set on the session, empty when none was set. The users that started their attempt most recently come first, each with their sessions from oldest to newest. get_session takes a session's id to show what happened in it. Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelStepSessionsInput](mcpFunnelsFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelStepSessionsInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetFunnelStepSessions(ctx, in)
+		}),
+
+		// create_funnel
+		newTool(&mcpsdk.Tool{
+			Name:        "create_funnel",
+			Description: "Create a funnel for an app and return it. " + mcpFunnelDraftRules,
+			InputSchema: mcpMustInferSchema[mcpCreateFunnelInput](),
+			Annotations: &mcpsdk.ToolAnnotations{DestructiveHint: new(false)},
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpCreateFunnelInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpCreateFunnel(ctx, in)
+		}),
+
+		// update_funnel
+		newTool(&mcpsdk.Tool{
+			Name:        "update_funnel",
+			Description: "Change a funnel's name, steps or conversion window and return it. Whatever is not given keeps its current value. " + mcpFunnelDraftRules,
+			InputSchema: mcpMustInferSchema[mcpUpdateFunnelInput](),
+			Annotations: &mcpsdk.ToolAnnotations{DestructiveHint: new(true), IdempotentHint: true},
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpUpdateFunnelInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpUpdateFunnel(ctx, in)
+		}),
+
+		// delete_funnel
+		newTool(&mcpsdk.Tool{
+			Name:        "delete_funnel",
+			Description: "Delete a funnel. A deleted funnel cannot be restored.",
+			InputSchema: mcpMustInferSchema[mcpDeleteFunnelInput](),
+			Annotations: &mcpsdk.ToolAnnotations{DestructiveHint: new(true), IdempotentHint: true},
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpDeleteFunnelInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpDeleteFunnel(ctx, in)
+		}),
+
+		// set_funnel_pinned
+		newTool(&mcpsdk.Tool{
+			Name:        "set_funnel_pinned",
+			Description: fmt.Sprintf("Pin a funnel after the app's other pinned funnels, or unpin it, and return it. Pinned funnels are shown first on the funnels page and on the app's overview. An app can have at most %d pinned funnels.", measure.MaxPinnedFunnels),
+			InputSchema: mcpMustInferSchema[mcpSetFunnelPinnedInput](),
+			Annotations: &mcpsdk.ToolAnnotations{DestructiveHint: new(false), IdempotentHint: true},
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpSetFunnelPinnedInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpSetFunnelPinned(ctx, in)
+		}),
+
+		// reorder_pinned_funnels
+		newTool(&mcpsdk.Tool{
+			Name:        "reorder_pinned_funnels",
+			Description: "Put an app's pinned funnels in a new order and return them in it. funnel_ids must hold every pinned funnel of the app once; get_pinned_funnels lists them.",
+			InputSchema: mcpMustInferSchema[mcpReorderPinnedFunnelsInput](),
+			Annotations: &mcpsdk.ToolAnnotations{DestructiveHint: new(false), IdempotentHint: true},
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpReorderPinnedFunnelsInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpReorderPinnedFunnels(ctx, in)
 		}),
 	}
 }
@@ -722,7 +920,16 @@ var (
 	mcpErrorGroupEventsFilterExprGrammar = mcpFilterExprGrammar(filter.ErrorGroupEventsEntity, "version_name:in:[1.2.0] AND os_name:in:[android]")
 	mcpAppHealthFilterExprGrammar        = mcpFilterExprGrammar(filter.AppHealthEntity, "version_name:in:[1.2.0] AND version_code:in:[120]")
 	mcpMemoryFilterExprGrammar           = mcpFilterExprGrammar(filter.MemoryEntity, "version_name:in:[1.2.0] AND app_state:eq:foreground")
+	mcpFunnelsFilterExprGrammar          = mcpFilterExprGrammar(filter.FunnelsEntity, "version_name:in:[1.2.0] AND country:in:[US]")
 )
+
+const mcpFunnelUsers = "Users are counted by installation id: each install of the app is one user, whatever user id the app has set."
+
+const mcpFunnelRange = "A from or to with seconds is rounded down to the minute, or to ten minutes when the range is a day or more; a from or to on a whole minute is used as sent."
+
+const mcpFunnelAttempt = "A user's attempt starts when they reach the earlier step and ends when they reach the next one or, if they never do, when their conversion window runs out. The result names the two steps as from_step and to_step."
+
+const mcpFunnelDraftRules = "The name is required and at most 256 characters. The steps are 2 to 30 custom event names in the order users do them, which get_funnel_event_names lists; a name can appear in more than one step. The conversion window is how long a user has from the first step to reach the last one, given in seconds: a whole number of minutes from 1 minute to 30 days."
 
 // mcpMustInferFilterExprSchema infers a JSON schema from a Go type and sets
 // the given entity grammar text as the description of its "filter_expr"
@@ -766,12 +973,12 @@ func mcpMustInferSchema[T any]() json.RawMessage {
 type mcpListAppsInput struct{}
 type mcpGetFilterKeysInput struct {
 	AppID  string   `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory or builds"`
+	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, funnels or builds"`
 	Keys   []string `json:"keys,omitempty" jsonschema:"Key names you already know, for example from the user's request, to include in the result even when the listing is truncated"`
 }
 type mcpGetFilterValuesInput struct {
 	AppID   string `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory or builds"`
+	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, funnels or builds"`
 	KeyName string `json:"key_name" jsonschema:"Name of the filter key to list values for, as get_filter_keys returns it"`
 	Search  string `json:"search,omitempty" jsonschema:"Return only values containing this text"`
 	Limit   int    `json:"limit,omitempty" jsonschema:"Maximum number of values to return (default: 50, max: 200)"`
@@ -979,6 +1186,116 @@ type mcpGetNetworkTimelineInput struct {
 	FilterExpr string `json:"filter_expr,omitempty"`
 	Domain     string `json:"domain,omitempty" jsonschema:"Restrict to an exact domain or * wildcard pattern (e.g. api.example.com or *.example.com)"`
 	Path       string `json:"path,omitempty" jsonschema:"Restrict to an exact, * or ** path pattern across all domains when domain is omitted (e.g. /v1/users or /v1/*)"`
+}
+
+// Funnel tool input structs.
+type mcpGetFunnelsInput struct {
+	AppID  string `json:"app_id" jsonschema:"UUID of the app to query"`
+	Search string `json:"search,omitempty" jsonschema:"Return only funnels whose name contains this text"`
+	Limit  int    `json:"limit,omitempty" jsonschema:"Maximum number of funnels to return (default: 10, max: 30)"`
+	Offset int    `json:"offset,omitempty" jsonschema:"Number of funnels to skip for pagination (default: 0)"`
+}
+type mcpGetPinnedFunnelsInput struct {
+	AppID string `json:"app_id" jsonschema:"UUID of the app to query"`
+}
+type mcpGetFunnelInput struct {
+	AppID    string `json:"app_id" jsonschema:"UUID of the app"`
+	FunnelID string `json:"funnel_id" jsonschema:"UUID of the funnel"`
+}
+type mcpGetFunnelEventNamesInput struct {
+	AppID  string `json:"app_id" jsonschema:"UUID of the app to query"`
+	Search string `json:"search,omitempty" jsonschema:"Return only event names containing this text"`
+}
+type mcpGetFunnelConversionInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	FunnelID   string `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+}
+type mcpGetFunnelTrendInput struct {
+	AppID         string `json:"app_id" jsonschema:"UUID of the app to query"`
+	FunnelID      string `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	Period        string `json:"period" jsonschema:"Length of each point: day, week or month"`
+	Timezone      string `json:"timezone" jsonschema:"Timezone the periods start in (e.g. America/New_York)"`
+	FilterExpr    string `json:"filter_expr,omitempty"`
+	IncludeBuilds bool   `json:"include_builds,omitempty" jsonschema:"Add the builds and patches first uploaded during the trend (default: false)"`
+}
+type mcpGetFunnelCadenceInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	FunnelID   string `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	Weeks      int    `json:"weeks" jsonschema:"Number of weeks to count, from 1 to 12"`
+	Timezone   string `json:"timezone" jsonschema:"Timezone of the weekdays and hours (e.g. America/New_York)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+}
+type mcpGetFunnelStepErrorsInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	FunnelID   string `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	Step       *int   `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of error groups to return (default: 10, max: 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of error groups to skip for pagination (default: 0)"`
+}
+type mcpGetFunnelStepTracesInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	FunnelID   string `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	Step       *int   `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
+	Quantile   string `json:"quantile,omitempty" jsonschema:"Quantile of the durations: p50, p90, p95 or p99 (default: p50)"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of span names to return (default: 10, max: 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of span names to skip for pagination (default: 0)"`
+}
+type mcpGetFunnelStepNetworkInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	FunnelID   string `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	Step       *int   `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
+	Quantile   string `json:"quantile,omitempty" jsonschema:"Quantile of the latencies: p50, p90, p95 or p99 (default: p50)"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of URL patterns to return (default: 10, max: 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of URL patterns to skip for pagination (default: 0)"`
+}
+type mcpGetFunnelStepSessionsInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	FunnelID   string `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	Step       *int   `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
+	Outcome    string `json:"outcome" jsonschema:"Whose sessions to list: dropped or converted"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of sessions to return (default: 10, max: 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of sessions to skip for pagination (default: 0)"`
+}
+type mcpCreateFunnelInput struct {
+	AppID                   string   `json:"app_id" jsonschema:"UUID of the app"`
+	Name                    string   `json:"name" jsonschema:"Name of the funnel"`
+	Steps                   []string `json:"steps" jsonschema:"Custom event names of the steps, in order"`
+	ConversionWindowSeconds int      `json:"conversion_window_seconds" jsonschema:"Conversion window in seconds, a whole number of minutes from 60 to 2592000"`
+}
+type mcpUpdateFunnelInput struct {
+	AppID                   string   `json:"app_id" jsonschema:"UUID of the app"`
+	FunnelID                string   `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	Name                    *string  `json:"name,omitempty" jsonschema:"New name of the funnel"`
+	Steps                   []string `json:"steps,omitempty" jsonschema:"New custom event names of the steps, in order, replacing every current step"`
+	ConversionWindowSeconds *int     `json:"conversion_window_seconds,omitempty" jsonschema:"New conversion window in seconds, a whole number of minutes from 60 to 2592000"`
+}
+type mcpDeleteFunnelInput struct {
+	AppID    string `json:"app_id" jsonschema:"UUID of the app"`
+	FunnelID string `json:"funnel_id" jsonschema:"UUID of the funnel"`
+}
+type mcpSetFunnelPinnedInput struct {
+	AppID    string `json:"app_id" jsonschema:"UUID of the app"`
+	FunnelID string `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	Pinned   *bool  `json:"pinned" jsonschema:"true to pin the funnel, false to unpin it"`
+}
+type mcpReorderPinnedFunnelsInput struct {
+	AppID     string   `json:"app_id" jsonschema:"UUID of the app"`
+	FunnelIDs []string `json:"funnel_ids" jsonschema:"UUIDs of every pinned funnel of the app, in the new order"`
 }
 
 // --------------------------------------------------------------------------
@@ -2124,6 +2441,442 @@ func (c *Config) mcpGetNetworkTimeline(ctx context.Context, in mcpGetNetworkTime
 		return nil, nil, fmt.Errorf("failed to get network request timeline: %v", err)
 	}
 	data, _ := json.Marshal(result)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+// --------------------------------------------------------------------------
+// Funnel tool helpers & handlers
+// --------------------------------------------------------------------------
+
+// mcpFunnelLimit caps how many rows a funnel list tool returns, so one
+// result stays small enough for the model to read.
+func mcpFunnelLimit(limit int) int {
+	if limit <= 0 {
+		return 10
+	}
+	return min(limit, 30)
+}
+
+func mcpParseFunnelID(rawFunnelID string) (uuid.UUID, error) {
+	if rawFunnelID == "" {
+		return uuid.UUID{}, fmt.Errorf("funnel_id is required")
+	}
+	funnelID, err := uuid.Parse(rawFunnelID)
+	if err != nil {
+		return uuid.UUID{}, fmt.Errorf("funnel_id is not a valid UUID")
+	}
+	return funnelID, nil
+}
+
+func (c *Config) mcpLoadFunnel(ctx context.Context, appID uuid.UUID, rawFunnelID string) (measure.Funnel, error) {
+	funnelID, err := mcpParseFunnelID(rawFunnelID)
+	if err != nil {
+		return measure.Funnel{}, err
+	}
+	funnel, err := measure.GetFunnel(ctx, c.Deps.PgPool, appID, funnelID)
+	if errors.Is(err, measure.ErrFunnelNotFound) {
+		return measure.Funnel{}, err
+	}
+	if err != nil {
+		return measure.Funnel{}, fmt.Errorf("failed to get funnel: %v", err)
+	}
+	return funnel, nil
+}
+
+// Every member of an app's team can read its funnels, but only some roles can
+// change them.
+func (c *Config) mcpResolveFunnelWriteAccess(ctx context.Context, rawAppID string) (uuid.UUID, error) {
+	appID, teamID, err := c.mcpResolveAppAccess(ctx, rawAppID)
+	if err != nil {
+		return uuid.UUID{}, err
+	}
+	userID, _ := UserIDFromContext(ctx)
+	allowed, err := measure.PerformAuthz(c.Deps.PgPool, userID, teamID.String(), *measure.ScopeFunnelAll)
+	if err != nil {
+		return uuid.UUID{}, fmt.Errorf("failed to perform authorization: %v", err)
+	}
+	if !allowed {
+		return uuid.UUID{}, fmt.Errorf("you are not authorized to change funnels; ask a team admin for access")
+	}
+	return appID, nil
+}
+
+// mcpFunnelStepResult names the two steps a step tool covered next to its
+// list, so a caller that passed the wrong step can tell from the result.
+func mcpFunnelStepResult(funnel measure.Funnel, stepRange measure.FunnelStepRange, key string, list any) *mcpsdk.CallToolResult {
+	data, _ := json.Marshal(map[string]any{
+		"from_step": funnel.Steps[stepRange.From].EventName,
+		"to_step":   funnel.Steps[stepRange.To].EventName,
+		key:         list,
+	})
+	return mcpTextResult(string(data))
+}
+
+func (c *Config) mcpPrepareFunnelStep(ctx context.Context, rawAppID, rawFunnelID string, step *int, from, to, filterExpr string, limit, offset int) (measure.Funnel, *filter.Filter, measure.FunnelStepRange, error) {
+	appID, _, flt, err := c.mcpPrepareFilter(ctx, filter.FunnelsEntity, rawAppID, from, to, filterExpr, func(flt *filter.Filter) {
+		flt.Limit = mcpFunnelLimit(limit)
+		flt.Offset = offset
+	})
+	if err != nil {
+		return measure.Funnel{}, nil, measure.FunnelStepRange{}, err
+	}
+	funnel, err := c.mcpLoadFunnel(ctx, appID, rawFunnelID)
+	if err != nil {
+		return measure.Funnel{}, nil, measure.FunnelStepRange{}, err
+	}
+	if step == nil {
+		return funnel, flt, measure.FunnelStepRange{From: 0, To: len(funnel.Steps) - 1}, nil
+	}
+	if *step < 1 || *step >= len(funnel.Steps) {
+		return measure.Funnel{}, nil, measure.FunnelStepRange{}, fmt.Errorf("step must be between 1 and %d", len(funnel.Steps)-1)
+	}
+	return funnel, flt, measure.FunnelStepRange{From: *step - 1, To: *step}, nil
+}
+
+func mcpFunnelQuantile(quantile string) (float64, error) {
+	if quantile == "" {
+		quantile = "p50"
+	}
+	q, ok := measure.FunnelQuantiles[quantile]
+	if !ok {
+		return 0, fmt.Errorf("quantile must be one of p50, p90, p95 or p99")
+	}
+	return q, nil
+}
+
+func mcpFunnelSteps(eventNames []string) []measure.FunnelStep {
+	steps := make([]measure.FunnelStep, len(eventNames))
+	for i, name := range eventNames {
+		steps[i] = measure.FunnelStep{EventName: name}
+	}
+	return steps
+}
+
+func (c *Config) mcpGetFunnels(ctx context.Context, in mcpGetFunnelsInput) (*mcpsdk.CallToolResult, any, error) {
+	if in.Offset < 0 {
+		return nil, nil, fmt.Errorf("offset cannot be negative")
+	}
+	appID, _, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	if err != nil {
+		return nil, nil, err
+	}
+	funnels, _, _, err := measure.GetFunnels(ctx, c.Deps.PgPool, appID, in.Search, mcpFunnelLimit(in.Limit), in.Offset)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get funnels: %v", err)
+	}
+	data, _ := json.Marshal(funnels)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetPinnedFunnels(ctx context.Context, in mcpGetPinnedFunnelsInput) (*mcpsdk.CallToolResult, any, error) {
+	appID, _, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	if err != nil {
+		return nil, nil, err
+	}
+	funnels, err := measure.GetPinnedFunnels(ctx, c.Deps.PgPool, appID)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get pinned funnels: %v", err)
+	}
+	data, _ := json.Marshal(funnels)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetFunnel(ctx context.Context, in mcpGetFunnelInput) (*mcpsdk.CallToolResult, any, error) {
+	appID, _, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	if err != nil {
+		return nil, nil, err
+	}
+	funnel, err := c.mcpLoadFunnel(ctx, appID, in.FunnelID)
+	if err != nil {
+		return nil, nil, err
+	}
+	data, _ := json.Marshal(funnel)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetFunnelEventNames(ctx context.Context, in mcpGetFunnelEventNamesInput) (*mcpsdk.CallToolResult, any, error) {
+	appID, teamID, err := c.mcpResolveAppAccess(ctx, in.AppID)
+	if err != nil {
+		return nil, nil, err
+	}
+	names, err := measure.SuggestFunnelEventNames(ctx, c.Deps.RchPool, teamID, appID, in.Search)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get funnel event names: %v", err)
+	}
+	data, _ := json.Marshal(names)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetFunnelConversion(ctx context.Context, in mcpGetFunnelConversionInput) (*mcpsdk.CallToolResult, any, error) {
+	appID, _, flt, err := c.mcpPrepareFilter(ctx, filter.FunnelsEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	funnel, err := c.mcpLoadFunnel(ctx, appID, in.FunnelID)
+	if err != nil {
+		return nil, nil, err
+	}
+	steps, err := measure.GetFunnelConversionCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get funnel conversion: %v", err)
+	}
+	data, _ := json.Marshal(map[string]any{"steps": steps})
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetFunnelTrend(ctx context.Context, in mcpGetFunnelTrendInput) (*mcpsdk.CallToolResult, any, error) {
+	if in.Timezone == "" {
+		return nil, nil, fmt.Errorf("timezone is required")
+	}
+	period := measure.FunnelTrendPeriod(in.Period)
+	if !period.Valid() {
+		return nil, nil, fmt.Errorf("period must be one of day, week or month")
+	}
+
+	// The trend's periods end with the current one, so the tool takes no
+	// time range.
+	appID, _, flt, err := c.mcpPrepareFilter(ctx, filter.FunnelsEntity, in.AppID, "", "", in.FilterExpr, func(flt *filter.Filter) {
+		flt.Timezone = in.Timezone
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	funnel, err := c.mcpLoadFunnel(ctx, appID, in.FunnelID)
+	if err != nil {
+		return nil, nil, err
+	}
+	trend, err := measure.GetFunnelTrendCached(ctx, c.Deps.VK, c.Deps.PgPool, c.Deps.RchPool, funnel, flt, period, in.IncludeBuilds)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get funnel trend: %v", err)
+	}
+	data, _ := json.Marshal(trend)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetFunnelCadence(ctx context.Context, in mcpGetFunnelCadenceInput) (*mcpsdk.CallToolResult, any, error) {
+	if in.Timezone == "" {
+		return nil, nil, fmt.Errorf("timezone is required")
+	}
+	if in.Weeks < 1 || in.Weeks > measure.FunnelCadenceMaxWeeks {
+		return nil, nil, fmt.Errorf("weeks must be between 1 and %d", measure.FunnelCadenceMaxWeeks)
+	}
+
+	// The weeks are counted back from the latest one with a full conversion
+	// window, so the tool takes no time range.
+	appID, _, flt, err := c.mcpPrepareFilter(ctx, filter.FunnelsEntity, in.AppID, "", "", in.FilterExpr, func(flt *filter.Filter) {
+		flt.Timezone = in.Timezone
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	funnel, err := c.mcpLoadFunnel(ctx, appID, in.FunnelID)
+	if err != nil {
+		return nil, nil, err
+	}
+	cadence, err := measure.GetFunnelCadenceCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, in.Weeks)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get funnel cadence: %v", err)
+	}
+	data, _ := json.Marshal(cadence)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetFunnelStepErrors(ctx context.Context, in mcpGetFunnelStepErrorsInput) (*mcpsdk.CallToolResult, any, error) {
+	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	stepErrors, _, _, err := measure.GetFunnelStepErrorsCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get funnel step errors: %v", err)
+	}
+	return mcpFunnelStepResult(funnel, stepRange, "errors", stepErrors), nil, nil
+}
+
+func (c *Config) mcpGetFunnelStepTraces(ctx context.Context, in mcpGetFunnelStepTracesInput) (*mcpsdk.CallToolResult, any, error) {
+	quantile, err := mcpFunnelQuantile(in.Quantile)
+	if err != nil {
+		return nil, nil, err
+	}
+	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	stepTraces, _, _, err := measure.GetFunnelStepTracesCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange, quantile)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get funnel step traces: %v", err)
+	}
+	return mcpFunnelStepResult(funnel, stepRange, "spans", stepTraces), nil, nil
+}
+
+func (c *Config) mcpGetFunnelStepNetwork(ctx context.Context, in mcpGetFunnelStepNetworkInput) (*mcpsdk.CallToolResult, any, error) {
+	quantile, err := mcpFunnelQuantile(in.Quantile)
+	if err != nil {
+		return nil, nil, err
+	}
+	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	stepEndpoints, _, _, err := measure.GetFunnelStepNetworkCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange, quantile)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get funnel step network requests: %v", err)
+	}
+	return mcpFunnelStepResult(funnel, stepRange, "endpoints", stepEndpoints), nil, nil
+}
+
+func (c *Config) mcpGetFunnelStepSessions(ctx context.Context, in mcpGetFunnelStepSessionsInput) (*mcpsdk.CallToolResult, any, error) {
+	var converted bool
+	switch in.Outcome {
+	case "dropped":
+	case "converted":
+		converted = true
+	default:
+		return nil, nil, fmt.Errorf("outcome must be one of dropped or converted")
+	}
+	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	stepSessions, _, _, err := measure.GetFunnelStepSessionsCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange, converted)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get funnel step sessions: %v", err)
+	}
+	return mcpFunnelStepResult(funnel, stepRange, "sessions", stepSessions), nil, nil
+}
+
+func (c *Config) mcpCreateFunnel(ctx context.Context, in mcpCreateFunnelInput) (*mcpsdk.CallToolResult, any, error) {
+	appID, err := c.mcpResolveFunnelWriteAccess(ctx, in.AppID)
+	if err != nil {
+		return nil, nil, err
+	}
+	draft := measure.FunnelDraft{
+		Name:                    in.Name,
+		Steps:                   mcpFunnelSteps(in.Steps),
+		ConversionWindowSeconds: in.ConversionWindowSeconds,
+	}
+	if err := draft.Validate(); err != nil {
+		return nil, nil, err
+	}
+	userID, _ := UserIDFromContext(ctx)
+	funnel, err := measure.CreateFunnel(ctx, c.Deps.PgPool, appID, userID, draft)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to create funnel: %v", err)
+	}
+	data, _ := json.Marshal(funnel)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpUpdateFunnel(ctx context.Context, in mcpUpdateFunnelInput) (*mcpsdk.CallToolResult, any, error) {
+	if in.Name == nil && in.Steps == nil && in.ConversionWindowSeconds == nil {
+		return nil, nil, fmt.Errorf("give at least one of name, steps or conversion_window_seconds to change")
+	}
+	appID, err := c.mcpResolveFunnelWriteAccess(ctx, in.AppID)
+	if err != nil {
+		return nil, nil, err
+	}
+	funnel, err := c.mcpLoadFunnel(ctx, appID, in.FunnelID)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	draft := measure.FunnelDraft{
+		Name:                    funnel.Name,
+		Steps:                   funnel.Steps,
+		ConversionWindowSeconds: funnel.ConversionWindowSeconds,
+	}
+	if in.Name != nil {
+		draft.Name = *in.Name
+	}
+	if in.Steps != nil {
+		draft.Steps = mcpFunnelSteps(in.Steps)
+	}
+	if in.ConversionWindowSeconds != nil {
+		draft.ConversionWindowSeconds = *in.ConversionWindowSeconds
+	}
+	if err := draft.Validate(); err != nil {
+		return nil, nil, err
+	}
+
+	funnel, err = measure.UpdateFunnel(ctx, c.Deps.PgPool, appID, funnel.ID, draft)
+	if errors.Is(err, measure.ErrFunnelNotFound) {
+		return nil, nil, err
+	}
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to update funnel: %v", err)
+	}
+	data, _ := json.Marshal(funnel)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpDeleteFunnel(ctx context.Context, in mcpDeleteFunnelInput) (*mcpsdk.CallToolResult, any, error) {
+	funnelID, err := mcpParseFunnelID(in.FunnelID)
+	if err != nil {
+		return nil, nil, err
+	}
+	appID, err := c.mcpResolveFunnelWriteAccess(ctx, in.AppID)
+	if err != nil {
+		return nil, nil, err
+	}
+	err = measure.DeleteFunnel(ctx, c.Deps.PgPool, appID, funnelID)
+	if errors.Is(err, measure.ErrFunnelNotFound) {
+		return nil, nil, err
+	}
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to delete funnel: %v", err)
+	}
+	return mcpTextResult(`{"ok":"done"}`), nil, nil
+}
+
+func (c *Config) mcpSetFunnelPinned(ctx context.Context, in mcpSetFunnelPinnedInput) (*mcpsdk.CallToolResult, any, error) {
+	if in.Pinned == nil {
+		return nil, nil, fmt.Errorf("pinned is required (true to pin, false to unpin)")
+	}
+	funnelID, err := mcpParseFunnelID(in.FunnelID)
+	if err != nil {
+		return nil, nil, err
+	}
+	appID, err := c.mcpResolveFunnelWriteAccess(ctx, in.AppID)
+	if err != nil {
+		return nil, nil, err
+	}
+	funnel, err := measure.SetFunnelPinned(ctx, c.Deps.PgPool, appID, funnelID, *in.Pinned)
+	switch {
+	case errors.Is(err, measure.ErrPinnedFunnelsFull):
+		return nil, nil, fmt.Errorf("an app can have at most %d pinned funnels, unpin one to pin another", measure.MaxPinnedFunnels)
+	case errors.Is(err, measure.ErrFunnelNotFound):
+		return nil, nil, err
+	case err != nil:
+		return nil, nil, fmt.Errorf("failed to change funnel pin: %v", err)
+	}
+	data, _ := json.Marshal(funnel)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpReorderPinnedFunnels(ctx context.Context, in mcpReorderPinnedFunnelsInput) (*mcpsdk.CallToolResult, any, error) {
+	if in.FunnelIDs == nil {
+		return nil, nil, fmt.Errorf("funnel_ids is required")
+	}
+	funnelIDs := make([]uuid.UUID, len(in.FunnelIDs))
+	for i, raw := range in.FunnelIDs {
+		id, err := uuid.Parse(raw)
+		if err != nil {
+			return nil, nil, fmt.Errorf("funnel_ids has %q, which is not a valid UUID", raw)
+		}
+		funnelIDs[i] = id
+	}
+	appID, err := c.mcpResolveFunnelWriteAccess(ctx, in.AppID)
+	if err != nil {
+		return nil, nil, err
+	}
+	funnels, err := measure.ReorderPinnedFunnels(ctx, c.Deps.PgPool, appID, funnelIDs)
+	if errors.Is(err, measure.ErrPinnedFunnelsChanged) {
+		return nil, nil, fmt.Errorf("funnel_ids must hold every pinned funnel of the app once; get_pinned_funnels lists them")
+	}
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to reorder pinned funnels: %v", err)
+	}
+	data, _ := json.Marshal(funnels)
 	return mcpTextResult(string(data)), nil, nil
 }
 

@@ -1,7 +1,9 @@
+import { bucketMaintenanceShares } from "@/app/sandbox/aggregate";
 import { handleSandboxRequest } from "@/app/sandbox/handlers";
 import { catalog } from "@/app/sandbox/catalog";
 import { beforeAll, describe, expect, it } from "@jest/globals";
 import { DateTime } from "luxon";
+import type { PlotTimeGroup } from "@/app/utils/time_utils";
 
 const world = catalog();
 const now = world.builtAt;
@@ -43,6 +45,23 @@ function seriesOf(
     label,
     values: points.map(read),
     stamps: points.map((point) => DateTime.fromISO(point.datetime)),
+  };
+}
+
+// The payment maintenance adds a burst of 503s to the buckets it covers, so
+// those buckets would fail the check that counts look randomly drawn.
+function outsideMaintenance(series: Series, range: Range): Series {
+  const shares = bucketMaintenanceShares({
+    from: range.from.setZone("UTC"),
+    to: now.setZone("UTC"),
+    group: range.group as PlotTimeGroup,
+    timezone: "UTC",
+  });
+  const keep = (_: unknown, i: number) => shares[i] === 0;
+  return {
+    label: series.label,
+    values: series.values.filter(keep),
+    stamps: series.stamps.filter(keep),
   };
 }
 
@@ -211,7 +230,10 @@ describe.each(apps)("plots read as telemetry: $app.name", (bundle) => {
         ),
         seriesOf("status codes 2xx", statusCodes, (point) => point.count_2xx),
         seriesOf("status codes 4xx", statusCodes, (point) => point.count_4xx),
-        seriesOf("status codes 5xx", statusCodes, (point) => point.count_5xx),
+        outsideMaintenance(
+          seriesOf("status codes 5xx", statusCodes, (point) => point.count_5xx),
+          range,
+        ),
       ];
     });
 

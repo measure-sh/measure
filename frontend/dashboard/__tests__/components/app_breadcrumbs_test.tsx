@@ -63,6 +63,7 @@ describe("AppBreadcrumbs", () => {
       ["overview", "Overview"],
       ["session_replays", "Session Replays"],
       ["journeys", "Journeys"],
+      ["funnels", "Funnels"],
       ["errors", "Errors"],
       ["bug_reports", "Bug Reports"],
       ["alerts", "Alerts"],
@@ -153,6 +154,30 @@ describe("AppBreadcrumbs", () => {
       expect(content.querySelector("a")).toHaveAttribute(
         "href",
         "/docs/adaptive-capture#journey-sampling",
+      );
+    });
+
+    it("shows a custom-events tooltip on the funnels section", async () => {
+      mockPathname = "/team-123/funnels";
+      render(<AppBreadcrumbs />);
+      const trigger = document.querySelector(
+        '[data-slot="tooltip-trigger"].lucide-info',
+      ) as HTMLElement;
+      expect(trigger).toBeTruthy();
+      fireEvent.focus(trigger);
+      const content = await waitFor(() => {
+        const el = document.querySelector('[data-slot="tooltip-content"]');
+        if (!el) {
+          throw new Error("tooltip content not visible");
+        }
+        return el as HTMLElement;
+      });
+      expect(content.textContent).toContain(
+        "Funnels are built from custom events",
+      );
+      expect(content.querySelector("a")).toHaveAttribute(
+        "href",
+        "/docs/custom-events",
       );
     });
 

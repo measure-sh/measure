@@ -30,7 +30,9 @@ import {
   changeRoleFromServer,
   changeTeamNameFromServer,
   createAppFromServer,
+  createFunnelFromServer,
   createTeamFromServer,
+  deleteFunnelFromServer,
   downgradeToFreeFromServer,
   downloadBuildFile,
   undoDowngradeFromServer,
@@ -53,6 +55,14 @@ import {
   fetchErrorsOverviewPlotFromServer,
   fetchCheckoutSessionFromServer,
   fetchCustomerPortalUrlFromServer,
+  fetchFunnelConversionFromServer,
+  fetchFunnelEventNamesFromServer,
+  fetchFunnelFromServer,
+  fetchFunnelsFromServer,
+  fetchFunnelStepErrorsFromServer,
+  fetchFunnelStepNetworkFromServer,
+  fetchFunnelStepTracesFromServer,
+  fetchFunnelTrendFromServer,
   fetchHighMemoryUsageSessionsFromServer,
   fetchJourneyFromServer,
   fetchMemoryUsageBreakdownFromServer,
@@ -66,6 +76,7 @@ import {
   fetchNetworkTrendsFromServer,
   fetchNotifPrefsFromServer,
   fetchPendingInvitesFromServer,
+  fetchPinnedFunnelsFromServer,
   fetchProfilesFromServer,
   fetchRootSpanNamesFromServer,
   fetchSdkConfigFromServer,
@@ -84,12 +95,15 @@ import {
   JourneyType,
   removeMemberFromServer,
   removePendingInviteFromServer,
+  reorderPinnedFunnelsFromServer,
   resendPendingInviteFromServer,
   SdkConfig,
   sendTestSlackAlertFromServer,
+  setFunnelPinnedFromServer,
   updateAppRetentionFromServer,
   updateAppThresholdPrefsFromServer,
   updateBugReportStatusFromServer,
+  updateFunnelFromServer,
   updateNotifPrefsFromServer,
   updateSdkConfigFromServer,
   updateTeamSlackStatusFromServer,
@@ -2291,4 +2305,522 @@ describe("validateInvitesFromServer", () => {
       RequestError,
     );
   });
+});
+
+// ========================================================================
+// Funnels
+// ========================================================================
+describe("funnels", () => {
+  const draft = {
+    name: "Checkout",
+    steps: [{ event_name: "cart_viewed" }, { event_name: "order_placed" }],
+    conversion_window_seconds: 3600,
+  };
+
+  // The same instants as isoFrom and isoTo, written with an IST offset.
+  const offsetFrom = "2026-04-01T05:30:00.000+05:30";
+  const offsetTo = "2026-04-10T05:30:00.000+05:30";
+
+  function lastFetchParams(): URLSearchParams {
+    return new URL(lastFetchUrl(), "http://localhost").searchParams;
+  }
+
+  describe("fetchFunnelsFromServer", () => {
+    it("sends the page, omits an empty search and returns the body", async () => {
+      const body = {
+        meta: { next: true, previous: false },
+        results: [{ id: "f1", name: "Checkout" }],
+      };
+      mockApiClientFetch.mockResolvedValueOnce(successResponse(body));
+      const result = await fetchFunnelsFromServer("app-a", "", 5, 10);
+      const url = new URL(lastFetchUrl(), "http://localhost");
+      expect(url.pathname).toBe("/api/apps/app-a/funnels");
+      expect(url.searchParams.get("limit")).toBe("5");
+      expect(url.searchParams.get("offset")).toBe("10");
+      expect(url.searchParams.has("search")).toBe(false);
+      expect(lastFetchOpts().method).toBeUndefined();
+      expect(result).toEqual(body);
+    });
+
+    it("sends a search with reserved characters intact", async () => {
+      mockApiClientFetch.mockResolvedValueOnce(
+        successResponse({ results: [] }),
+      );
+      await fetchFunnelsFromServer("app-a", "sign up & pay", 5, 0);
+      expect(lastFetchParams().get("search")).toBe("sign up & pay");
+    });
+  });
+
+  it("fetchPinnedFunnelsFromServer GETs the pinned list and returns it", async () => {
+    const body = { results: [{ id: "f1" }, { id: "f2" }] };
+    mockApiClientFetch.mockResolvedValueOnce(successResponse(body));
+    const result = await fetchPinnedFunnelsFromServer("app-a");
+    expect(lastFetchUrl()).toBe("/api/apps/app-a/funnels/pinned");
+    expect(lastFetchOpts().method).toBeUndefined();
+    expect(result).toEqual(body);
+  });
+
+  describe("reorderPinnedFunnelsFromServer", () => {
+    it("PUTs the ids in order and returns the saved list", async () => {
+      const body = { results: [{ id: "f2" }, { id: "f1" }] };
+      mockApiClientFetch.mockResolvedValueOnce(successResponse(body));
+      const result = await reorderPinnedFunnelsFromServer("app-a", [
+        "f2",
+        "f1",
+      ]);
+      expect(lastFetchUrl()).toBe("/api/apps/app-a/funnels/pinned");
+      expect(lastFetchOpts().method).toBe("PUT");
+      expect(JSON.parse(lastFetchOpts().body)).toEqual({
+        funnel_ids: ["f2", "f1"],
+      });
+      expect(result).toEqual(body);
+    });
+
+    it("keeps the 409 status and server message when the pins changed", async () => {
+      mockApiClientFetch.mockResolvedValueOnce(
+        mockResponse(false, 409, { error: "Pinned funnels have changed" }),
+      );
+      const err = await reorderPinnedFunnelsFromServer("app-a", ["f1"]).catch(
+        (e) => e,
+      );
+      expect(err).toBeInstanceOf(ApiError);
+      expect(err.status).toBe(409);
+      expect(err.message).toBe("Pinned funnels have changed");
+    });
+  });
+
+  describe("setFunnelPinnedFromServer", () => {
+    it("PUTs the pin resource to pin and returns the funnel", async () => {
+      mockApiClientFetch.mockResolvedValueOnce(
+        successResponse({ id: "f1", pinned: true }),
+      );
+      const result = await setFunnelPinnedFromServer("app-a", "f1", true);
+      expect(lastFetchUrl()).toBe("/api/apps/app-a/funnels/f1/pin");
+      expect(lastFetchOpts().method).toBe("PUT");
+      expect(result).toEqual({ id: "f1", pinned: true });
+    });
+
+    it("DELETEs the pin resource to unpin", async () => {
+      mockApiClientFetch.mockResolvedValueOnce(
+        successResponse({ id: "f1", pinned: false }),
+      );
+      await setFunnelPinnedFromServer("app-a", "f1", false);
+      expect(lastFetchUrl()).toBe("/api/apps/app-a/funnels/f1/pin");
+      expect(lastFetchOpts().method).toBe("DELETE");
+    });
+
+    it("names the pin or unpin operation in its failure message", async () => {
+      mockApiClientFetch.mockResolvedValueOnce(errorResponse(500));
+      await expect(
+        setFunnelPinnedFromServer("app-a", "f1", true),
+      ).rejects.toThrow("Failed to pin funnel");
+
+      mockApiClientFetch.mockResolvedValueOnce(errorResponse(500));
+      await expect(
+        setFunnelPinnedFromServer("app-a", "f1", false),
+      ).rejects.toThrow("Failed to unpin funnel");
+    });
+  });
+
+  it("fetchFunnelFromServer GETs the funnel by id and returns it", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse({ id: "f1", name: "Checkout" }),
+    );
+    const result = await fetchFunnelFromServer("app-a", "f1");
+    expect(lastFetchUrl()).toBe("/api/apps/app-a/funnels/f1");
+    expect(result).toEqual({ id: "f1", name: "Checkout" });
+  });
+
+  it("fetchFunnelEventNamesFromServer returns the results list from the events endpoint", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse({ results: ["app_open", "checkout"] }),
+    );
+    const result = await fetchFunnelEventNamesFromServer("app-a", "");
+    expect(lastFetchUrl()).toBe("/api/apps/app-a/funnels/events");
+    expect(result).toEqual(["app_open", "checkout"]);
+  });
+
+  it("fetchFunnelEventNamesFromServer sends the search encoded", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await fetchFunnelEventNamesFromServer("app-a", "add to&cart");
+    expect(lastFetchUrl()).toBe(
+      "/api/apps/app-a/funnels/events?search=add+to%26cart",
+    );
+  });
+
+  it("createFunnelFromServer POSTs the draft and returns the created funnel", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse({ id: "f9", ...draft }),
+    );
+    const result = await createFunnelFromServer("app-a", draft);
+    expect(lastFetchUrl()).toBe("/api/apps/app-a/funnels");
+    expect(lastFetchOpts().method).toBe("POST");
+    expect(JSON.parse(lastFetchOpts().body)).toEqual(draft);
+    expect(result).toEqual({ id: "f9", ...draft });
+  });
+
+  it("updateFunnelFromServer PATCHes the draft to the funnel", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse({ id: "f1", ...draft }),
+    );
+    const result = await updateFunnelFromServer("app-a", "f1", draft);
+    expect(lastFetchUrl()).toBe("/api/apps/app-a/funnels/f1");
+    expect(lastFetchOpts().method).toBe("PATCH");
+    expect(JSON.parse(lastFetchOpts().body)).toEqual(draft);
+    expect(result).toEqual({ id: "f1", ...draft });
+  });
+
+  it("deleteFunnelFromServer DELETEs the funnel without reading the body", async () => {
+    // A delete answers with no content, which must still count as success.
+    mockApiClientFetch.mockResolvedValueOnce({
+      ok: true,
+      status: 204,
+      json: async () => {
+        throw new SyntaxError("Unexpected end of JSON input");
+      },
+    });
+    const result = await deleteFunnelFromServer("app-a", "f1");
+    expect(lastFetchUrl()).toBe("/api/apps/app-a/funnels/f1");
+    expect(lastFetchOpts().method).toBe("DELETE");
+    expect(result).toBeUndefined();
+  });
+
+  describe("fetchFunnelConversionFromServer", () => {
+    it("sends the range in UTC and the timezone in the URL", async () => {
+      mockApiClientFetch.mockResolvedValueOnce(successResponse({ steps: [] }));
+      await fetchFunnelConversionFromServer(
+        "app-a",
+        "f1",
+        offsetFrom,
+        offsetTo,
+        null,
+      );
+      const url = new URL(lastFetchUrl(), "http://localhost");
+      expect(url.pathname).toBe("/api/apps/app-a/funnels/f1/conversion");
+      expect(url.searchParams.get("from")).toBe(isoFrom);
+      expect(url.searchParams.get("to")).toBe(isoTo);
+      expect(url.searchParams.get("timezone")).toBeTruthy();
+      expect(url.searchParams.has("filter_expr")).toBe(false);
+    });
+
+    it("sends the filter expression when one is given and returns the body", async () => {
+      const body = {
+        steps: [
+          {
+            event_name: "cart_viewed",
+            users: 10,
+            median_seconds_from_previous: null,
+          },
+          {
+            event_name: "order_placed",
+            users: 4,
+            median_seconds_from_previous: 30,
+          },
+        ],
+      };
+      mockApiClientFetch.mockResolvedValueOnce(successResponse(body));
+      const result = await fetchFunnelConversionFromServer(
+        "app-a",
+        "f1",
+        isoFrom,
+        isoTo,
+        "version_name:in:[1.2.0]",
+      );
+      expect(lastFetchParams().get("filter_expr")).toBe(
+        "version_name:in:[1.2.0]",
+      );
+      expect(result).toEqual(body);
+    });
+  });
+
+  describe("fetchFunnelStepErrorsFromServer", () => {
+    it("sends the step, the range in UTC, the timezone and the page in the URL", async () => {
+      mockApiClientFetch.mockResolvedValueOnce(
+        successResponse({ results: [] }),
+      );
+      await fetchFunnelStepErrorsFromServer(
+        "app-a",
+        "f1",
+        2,
+        offsetFrom,
+        offsetTo,
+        null,
+        5,
+        10,
+      );
+      const url = new URL(lastFetchUrl(), "http://localhost");
+      expect(url.pathname).toBe("/api/apps/app-a/funnels/f1/errors");
+      expect(url.searchParams.get("step")).toBe("2");
+      expect(url.searchParams.get("from")).toBe(isoFrom);
+      expect(url.searchParams.get("to")).toBe(isoTo);
+      expect(url.searchParams.get("timezone")).toBeTruthy();
+      expect(url.searchParams.get("limit")).toBe("5");
+      expect(url.searchParams.get("offset")).toBe("10");
+      expect(url.searchParams.has("quantile")).toBe(false);
+      expect(url.searchParams.has("filter_expr")).toBe(false);
+    });
+
+    it("sends the filter expression when one is given and returns the body", async () => {
+      const body = { meta: { next: false, previous: true }, results: [] };
+      mockApiClientFetch.mockResolvedValueOnce(successResponse(body));
+      const result = await fetchFunnelStepErrorsFromServer(
+        "app-a",
+        "f1",
+        2,
+        isoFrom,
+        isoTo,
+        "os_name:in:[android]",
+        5,
+        10,
+      );
+      expect(lastFetchParams().get("filter_expr")).toBe("os_name:in:[android]");
+      expect(result).toEqual(body);
+    });
+  });
+
+  const quantileFetches: Array<
+    [
+      string,
+      string,
+      (
+        ...args: Parameters<typeof fetchFunnelStepTracesFromServer>
+      ) => Promise<unknown>,
+    ]
+  > = [
+    [
+      "fetchFunnelStepTracesFromServer",
+      "traces",
+      fetchFunnelStepTracesFromServer,
+    ],
+    [
+      "fetchFunnelStepNetworkFromServer",
+      "network",
+      fetchFunnelStepNetworkFromServer,
+    ],
+  ];
+
+  it.each(quantileFetches)(
+    "%s sends the step, quantile, the range in UTC and the page in the URL",
+    async (_name, segment, fetchStep) => {
+      mockApiClientFetch.mockResolvedValueOnce(
+        successResponse({ results: [] }),
+      );
+      await fetchStep(
+        "app-a",
+        "f1",
+        1,
+        "p95",
+        offsetFrom,
+        offsetTo,
+        null,
+        5,
+        15,
+      );
+      const url = new URL(lastFetchUrl(), "http://localhost");
+      expect(url.pathname).toBe(`/api/apps/app-a/funnels/f1/${segment}`);
+      expect(url.searchParams.get("step")).toBe("1");
+      expect(url.searchParams.get("quantile")).toBe("p95");
+      expect(url.searchParams.get("from")).toBe(isoFrom);
+      expect(url.searchParams.get("to")).toBe(isoTo);
+      expect(url.searchParams.get("timezone")).toBeTruthy();
+      expect(url.searchParams.get("limit")).toBe("5");
+      expect(url.searchParams.get("offset")).toBe("15");
+      expect(url.searchParams.has("filter_expr")).toBe(false);
+    },
+  );
+
+  it.each(quantileFetches)(
+    "%s sends the filter expression and returns the body",
+    async (_name, _segment, fetchStep) => {
+      const body = { meta: { next: true, previous: false }, results: [] };
+      mockApiClientFetch.mockResolvedValueOnce(successResponse(body));
+      const result = await fetchStep(
+        "app-a",
+        "f1",
+        1,
+        "p50",
+        isoFrom,
+        isoTo,
+        "network_type:eq:wifi",
+        5,
+        0,
+      );
+      expect(lastFetchParams().get("filter_expr")).toBe("network_type:eq:wifi");
+      expect(result).toEqual(body);
+    },
+  );
+
+  describe("fetchFunnelTrendFromServer", () => {
+    it("sends the period and timezone without a date range", async () => {
+      mockApiClientFetch.mockResolvedValueOnce(
+        successResponse({ event_names: [], points: [], builds: [] }),
+      );
+      await fetchFunnelTrendFromServer("app-a", "f1", "week", null, false);
+      const url = new URL(lastFetchUrl(), "http://localhost");
+      expect(url.pathname).toBe("/api/apps/app-a/funnels/f1/trend");
+      expect(url.searchParams.get("period")).toBe("week");
+      expect(url.searchParams.get("timezone")).toBeTruthy();
+      expect(url.searchParams.has("from")).toBe(false);
+      expect(url.searchParams.has("to")).toBe(false);
+      expect(url.searchParams.has("filter_expr")).toBe(false);
+      expect(url.searchParams.has("builds")).toBe(false);
+    });
+
+    it("asks for builds when they are wanted", async () => {
+      mockApiClientFetch.mockResolvedValueOnce(
+        successResponse({ event_names: [], points: [], builds: [] }),
+      );
+      await fetchFunnelTrendFromServer("app-a", "f1", "week", null, true);
+      expect(lastFetchParams().get("builds")).toBe("true");
+    });
+
+    it("sends the filter expression when one is given and returns the body", async () => {
+      const body = {
+        event_names: ["app_open"],
+        points: [
+          {
+            datetime: "2026-04-01",
+            steps: [{ users: 3, median_seconds_from_previous: null }],
+            median_seconds_to_convert: null,
+            complete: false,
+          },
+        ],
+        builds: [],
+      };
+      mockApiClientFetch.mockResolvedValueOnce(successResponse(body));
+      const result = await fetchFunnelTrendFromServer(
+        "app-a",
+        "f1",
+        "month",
+        "version_name:in:[1.2.0]",
+        false,
+      );
+      expect(lastFetchParams().get("period")).toBe("month");
+      expect(lastFetchParams().get("filter_expr")).toBe(
+        "version_name:in:[1.2.0]",
+      );
+      expect(result).toEqual(body);
+    });
+  });
+
+  const failures: Array<[string, string, () => Promise<any>]> = [
+    [
+      "fetchFunnelsFromServer",
+      "Failed to fetch funnels",
+      () => fetchFunnelsFromServer("a", "", 5, 0),
+    ],
+    [
+      "fetchPinnedFunnelsFromServer",
+      "Failed to fetch pinned funnels",
+      () => fetchPinnedFunnelsFromServer("a"),
+    ],
+    [
+      "reorderPinnedFunnelsFromServer",
+      "Failed to reorder pinned funnels",
+      () => reorderPinnedFunnelsFromServer("a", ["f1"]),
+    ],
+    [
+      "fetchFunnelFromServer",
+      "Failed to fetch funnel",
+      () => fetchFunnelFromServer("a", "f1"),
+    ],
+    [
+      "fetchFunnelEventNamesFromServer",
+      "Failed to fetch events",
+      () => fetchFunnelEventNamesFromServer("a", ""),
+    ],
+    [
+      "createFunnelFromServer",
+      "Failed to create funnel",
+      () => createFunnelFromServer("a", draft),
+    ],
+    [
+      "updateFunnelFromServer",
+      "Failed to update funnel",
+      () => updateFunnelFromServer("a", "f1", draft),
+    ],
+    [
+      "deleteFunnelFromServer",
+      "Failed to delete funnel",
+      () => deleteFunnelFromServer("a", "f1"),
+    ],
+    [
+      "fetchFunnelConversionFromServer",
+      "Failed to fetch funnel conversion",
+      () => fetchFunnelConversionFromServer("a", "f1", isoFrom, isoTo, null),
+    ],
+    [
+      "fetchFunnelStepErrorsFromServer",
+      "Failed to fetch funnel step errors",
+      () =>
+        fetchFunnelStepErrorsFromServer(
+          "a",
+          "f1",
+          0,
+          isoFrom,
+          isoTo,
+          null,
+          5,
+          0,
+        ),
+    ],
+    [
+      "fetchFunnelStepTracesFromServer",
+      "Failed to fetch funnel step traces",
+      () =>
+        fetchFunnelStepTracesFromServer(
+          "a",
+          "f1",
+          0,
+          "p95",
+          isoFrom,
+          isoTo,
+          null,
+          5,
+          0,
+        ),
+    ],
+    [
+      "fetchFunnelStepNetworkFromServer",
+      "Failed to fetch funnel step network requests",
+      () =>
+        fetchFunnelStepNetworkFromServer(
+          "a",
+          "f1",
+          0,
+          "p95",
+          isoFrom,
+          isoTo,
+          null,
+          5,
+          0,
+        ),
+    ],
+    [
+      "fetchFunnelTrendFromServer",
+      "Failed to fetch funnel trend",
+      () => fetchFunnelTrendFromServer("a", "f1", "day", null, false),
+    ],
+  ];
+
+  it.each(failures)(
+    "%s throws an ApiError naming the operation on non-ok",
+    async (_name, message, fn) => {
+      mockApiClientFetch.mockResolvedValueOnce(errorResponse(500));
+      const err = await fn().catch((e) => e);
+      expect(err).toBeInstanceOf(ApiError);
+      expect(err.status).toBe(500);
+      expect(err.message).toBe(message);
+    },
+  );
+
+  it.each(failures)(
+    "%s throws a RequestError naming the operation on exception",
+    async (_name, message, fn) => {
+      mockApiClientFetch.mockRejectedValueOnce(new Error("boom"));
+      const err = await fn().catch((e) => e);
+      expect(err).toBeInstanceOf(RequestError);
+      expect(err.message).toBe(message);
+    },
+  );
 });

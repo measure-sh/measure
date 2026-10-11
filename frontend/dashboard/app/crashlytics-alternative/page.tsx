@@ -89,6 +89,11 @@ const comparisonRows: AlternativeComparisonRow[] = [
     competitor: "Requires Google Analytics",
   },
   {
+    feature: "Funnels with drop-off analysis",
+    measure: true,
+    competitor: "Requires Google Analytics",
+  },
+  {
     feature: "Open source",
     measure: "Yes, Apache 2.0 end to end",
     competitor: "SDKs only; backend and dashboard are proprietary",
@@ -418,13 +423,17 @@ export default function CrashlyticsAlternative() {
               ,{" "}
               <Link href="/product/bug-reports" className={underlineLinkStyle}>
                 Bug Reports
-              </Link>{" "}
-              and{" "}
+              </Link>
+              ,{" "}
               <Link
                 href="/product/user-journeys"
                 className={underlineLinkStyle}
               >
                 User Journeys
+              </Link>{" "}
+              and{" "}
+              <Link href="/product/funnels" className={underlineLinkStyle}>
+                Funnels
               </Link>{" "}
               are all designed around the failure modes mobile apps experience
               in production: memory pressure, main-thread blocking, errors

@@ -4,6 +4,7 @@ import { type LineCustomCanvasLayer, ResponsiveLineCanvas } from "@nivo/line";
 import { DateTime } from "luxon";
 import React, { useCallback, useMemo } from "react";
 import {
+  CHART_DATE_TICK_COUNT,
   CHART_GRID_DOT_SIZE,
   CHART_TEXT_SIZE,
   CHART_TICK_PADDING,
@@ -11,6 +12,8 @@ import {
   CHART_VALUE_TICK_COUNT,
   chartAxisMargin,
   COUNT_TICK_LABEL_WIDTH,
+  dateTickLabelHeight,
+  drawIsolatedPoints,
   gridDotPositions,
   useChartCanvasTheme,
   useChartGridOpacity,
@@ -28,13 +31,11 @@ import { Separator } from "./separator";
 // A value with no value on either side has no line segment to show it, so it
 // is drawn as a point of this size. Other values draw a point only while
 // hovered, since a point at every date crowds the lines.
-const ISOLATED_POINT_SIZE = 6;
 const HOVER_POINT_SIZE = 6;
 const LINE_WIDTH = 2;
 const CROSSHAIR_WIDTH = 1;
 const CROSSHAIR_DASH = [4, 4];
 const DIMMED_OPACITY = 0.15;
-const X_TICK_COUNT = 6;
 // Fits a duration label like "1m 20s".
 export const DURATION_TICK_LABEL_WIDTH = 38;
 
@@ -44,19 +45,6 @@ export function formatDurationTick(millis: number) {
   return millis < 1000
     ? `${Number(millis.toFixed(2))}ms`
     : formatMillisToHumanReadable(millis);
-}
-
-// Fits the widest date tick label, "Oct 2026".
-const DATE_TICK_LABEL_WIDTH = 45;
-
-// A date label rotated by this many degrees reaches below the axis by its
-// width and height projected onto the vertical.
-function dateTickLabelHeight(rotation: number) {
-  const radians = (Math.abs(rotation) * Math.PI) / 180;
-  return Math.ceil(
-    DATE_TICK_LABEL_WIDTH * Math.sin(radians) +
-      CHART_TEXT_SIZE * Math.cos(radians),
-  );
 }
 
 // Ticks fall on round times, so each label shows only what changes at its
@@ -235,7 +223,10 @@ export default function TimeSeriesPlot<Series extends TimeSeries>({
         const yTicks = (
           wholeNumberTicks ?? y.ticks(CHART_VALUE_TICK_COUNT)
         ).filter((tick) => !integerTicks || Number.isInteger(tick));
-        const xs = gridDotPositions(x.ticks(X_TICK_COUNT).map(x), innerWidth);
+        const xs = gridDotPositions(
+          x.ticks(CHART_DATE_TICK_COUNT).map(x),
+          innerWidth,
+        );
         const ys = gridDotPositions(yTicks.map(y), innerHeight);
         ctx.fillStyle = canvasTheme.axis.ticks.text.fill;
         ctx.globalAlpha = gridOpacity;
@@ -264,24 +255,7 @@ export default function TimeSeriesPlot<Series extends TimeSeries>({
       for (const s of series) {
         ctx.globalAlpha = opacityFor(s.id);
         ctx.fillStyle = s.color;
-        s.data.forEach((d, index) => {
-          const isolated =
-            d.data.y !== null &&
-            (s.data[index - 1]?.data.y ?? null) === null &&
-            (s.data[index + 1]?.data.y ?? null) === null;
-          if (!isolated) {
-            return;
-          }
-          ctx.beginPath();
-          ctx.arc(
-            d.position.x,
-            d.position.y,
-            ISOLATED_POINT_SIZE / 2,
-            0,
-            2 * Math.PI,
-          );
-          ctx.fill();
-        });
+        drawIsolatedPoints(ctx, s.data);
       }
 
       if (currentPoint) {
@@ -343,7 +317,7 @@ export default function TimeSeriesPlot<Series extends TimeSeries>({
         tickPadding: CHART_TICK_PADDING,
         tickRotation: xTickRotation,
         format: (value) => formatTimeTick(value, plotTimeGroup),
-        tickValues: X_TICK_COUNT,
+        tickValues: CHART_DATE_TICK_COUNT,
         legend: xAxisTitle,
         legendOffset: bottomMargin - CHART_TEXT_SIZE / 2,
         legendPosition: "middle",

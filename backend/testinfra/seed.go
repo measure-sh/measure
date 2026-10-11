@@ -578,9 +578,9 @@ func (h *TestHelper) SeedEvents(ctx context.Context, t *testing.T, teamID, appID
 //   - EndTime:    StartTime + Duration (Duration defaults to 100ms)
 //   - AppVersion: "v1", AppBuild: "1"
 //   - OSName: "Android", OSVersion: "14"
-//   - SessionID, TraceID, SpanID: fresh per inserted row
+//   - SessionID, TraceID, SpanID, InstallationID: fresh per inserted row
 //
-// The device, network and country attributes stay empty strings unless set,
+// ParentID stays empty unless set, which makes the span a root span. The device, network and country attributes stay empty strings unless set,
 // as they are for a span whose SDK did not report them. PatchID stays the nil
 // uuid and PatchVersion an empty string unless set, as they are for a span
 // not running an OTA patch.
@@ -589,6 +589,8 @@ type SpanRow struct {
 	SessionID          string
 	TraceID            string
 	SpanID             string
+	ParentID           string
+	InstallationID     string
 	Status             uint8
 	StartTime          time.Time
 	EndTime            time.Time
@@ -665,9 +667,13 @@ func (h *TestHelper) SeedSpanRows(ctx context.Context, t *testing.T, teamID, app
 	if row.SpanID != "" {
 		spanExpr = quote(row.SpanID)
 	}
+	installationExpr := "generateUUIDv4()"
+	if row.InstallationID != "" {
+		installationExpr = quote(row.InstallationID)
+	}
 
 	cols := []string{
-		"team_id", "app_id", "span_name", "span_id", "trace_id", "session_id",
+		"team_id", "app_id", "span_name", "span_id", "parent_id", "trace_id", "session_id",
 		"status", "start_time", "end_time",
 		"`attribute.app_unique_id`", "`attribute.installation_id`",
 		"`attribute.measure_sdk_version`", "`attribute.app_version`", "`attribute.os_version`",
@@ -679,9 +685,9 @@ func (h *TestHelper) SeedSpanRows(ctx context.Context, t *testing.T, teamID, app
 	}
 	vals := []string{
 		quote(teamID), quote(appID), quote(row.SpanName),
-		spanExpr, traceExpr, sessionExpr,
+		spanExpr, quote(row.ParentID), traceExpr, sessionExpr,
 		fmt.Sprintf("%d", row.Status), chTime(row.StartTime), chTime(row.EndTime),
-		"'com.test'", "generateUUIDv4()",
+		"'com.test'", installationExpr,
 		"'0.1'", fmt.Sprintf("('%s','%s')", row.AppVersion, row.AppBuild),
 		fmt.Sprintf("('%s','%s')", row.OSName, row.OSVersion),
 		quote(row.PatchID.String()), quote(row.PatchVersion),
@@ -1035,6 +1041,7 @@ type GroupRow struct {
 	FileName    string
 	Handled     bool
 	IsCustom    bool
+	Timestamp   time.Time
 }
 
 func (r GroupRow) filled() GroupRow {
@@ -1055,6 +1062,9 @@ func (r GroupRow) filled() GroupRow {
 	}
 	if r.FileName == "" {
 		r.FileName = "TestFile.java"
+	}
+	if r.Timestamp.IsZero() {
+		r.Timestamp = time.Now().UTC()
 	}
 	return r
 }
@@ -1103,7 +1113,8 @@ func (h *TestHelper) SeedGroupRow(ctx context.Context, t *testing.T, teamID, app
 			groupUniqArrayState('Pixel'),
 			groupUniqArrayState('Pixel 8'),
 			sumState(toUInt64(1)),
-			now64(3)`
+			toDateTime64(?, 3, 'UTC')`
+	args = append(args, row.Timestamp)
 
 	if err := h.ChConn.Exec(ctx, query, args...); err != nil {
 		t.Fatalf("seed %s row: %v", row.Table, err)

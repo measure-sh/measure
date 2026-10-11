@@ -34,6 +34,16 @@ import {
   makeFilterKeysFixture,
   makeNetworkFilterKeysFixture,
   makeFilterValuesFixture,
+  makeFunnelConversionFixture,
+  makeFunnelEventNamesFixture,
+  makeFunnelFixture,
+  makeFunnelCadenceFixture,
+  makeFunnelsFixture,
+  makeFunnelStepErrorsFixture,
+  makeFunnelStepNetworkFixture,
+  makeFunnelStepSessionsFixture,
+  makeFunnelStepTracesFixture,
+  makeFunnelTrendFixture,
   makeHealthPlotFixture,
   makeJourneyFixture,
   makeMetricsFixture,
@@ -45,7 +55,12 @@ import {
   makeNetworkTrendsFixture,
   makeNotifPrefsFixture,
   makePendingInvitesFixture,
+  makePinnedFunnelsFixture,
   makeSdkConfigFixture,
+  makeSearchToCartFunnelFixture,
+  makeSearchToCartTrendFixture,
+  makeSearchToOrderFunnelFixture,
+  makeSearchToOrderTrendFixture,
   makeSessionPlotFixture,
   makeSessionReplayFixture,
   makeSessionReplayOverviewFixture,
@@ -58,6 +73,14 @@ import {
   makeTraceDetailFixture,
   makeUsageFixture,
 } from "./fixtures";
+
+function funnelFixtureById(funnelId: string) {
+  return [
+    makeFunnelFixture(),
+    makeSearchToCartFunnelFixture(),
+    makeSearchToOrderFunnelFixture(),
+  ].find((funnel) => funnel.id === funnelId);
+}
 
 export const handlers = [
   // 1. GET /api/teams/:teamId/apps
@@ -452,5 +475,137 @@ export const handlers = [
   // 71. GET /api/apps/:appId/builds
   http.get("*/api/apps/:appId/builds", () => {
     return HttpResponse.json(makeBuildsFixture());
+  }),
+
+  // --- Funnel endpoints ---
+  // The fixed sub-paths come before /funnels/:funnelId, which would
+  // otherwise match /funnels/pinned and /funnels/events.
+
+  // 72. GET /api/apps/:appId/funnels (paginated, searchable list)
+  http.get("*/api/apps/:appId/funnels", () => {
+    return HttpResponse.json(makeFunnelsFixture());
+  }),
+
+  // 73. GET /api/apps/:appId/funnels/pinned
+  http.get("*/api/apps/:appId/funnels/pinned", () => {
+    return HttpResponse.json(makePinnedFunnelsFixture());
+  }),
+
+  // 74. PUT /api/apps/:appId/funnels/pinned (reorder)
+  http.put("*/api/apps/:appId/funnels/pinned", async ({ request }) => {
+    const { funnel_ids } = (await request.json()) as { funnel_ids: string[] };
+    return HttpResponse.json({
+      results: funnel_ids.map((id, i) => ({
+        ...funnelFixtureById(id),
+        pin_order: i,
+      })),
+    });
+  }),
+
+  // 75. GET /api/apps/:appId/funnels/events
+  http.get("*/api/apps/:appId/funnels/events", () => {
+    return HttpResponse.json(makeFunnelEventNamesFixture());
+  }),
+
+  // 76. POST /api/apps/:appId/funnels (create)
+  http.post("*/api/apps/:appId/funnels", async ({ request }) => {
+    const draft = (await request.json()) as Record<string, any>;
+    return HttpResponse.json(
+      makeFunnelFixture({
+        id: "funnel-new",
+        pinned: false,
+        pin_order: null,
+        ...draft,
+      }),
+    );
+  }),
+
+  // 77. GET /api/apps/:appId/funnels/:funnelId/conversion
+  http.get("*/api/apps/:appId/funnels/:funnelId/conversion", () => {
+    return HttpResponse.json(makeFunnelConversionFixture());
+  }),
+
+  // 78. GET /api/apps/:appId/funnels/:funnelId/errors
+  http.get("*/api/apps/:appId/funnels/:funnelId/errors", () => {
+    return HttpResponse.json(makeFunnelStepErrorsFixture());
+  }),
+
+  // 79. GET /api/apps/:appId/funnels/:funnelId/traces
+  http.get("*/api/apps/:appId/funnels/:funnelId/traces", () => {
+    return HttpResponse.json(makeFunnelStepTracesFixture());
+  }),
+
+  // 80. GET /api/apps/:appId/funnels/:funnelId/network
+  http.get("*/api/apps/:appId/funnels/:funnelId/network", () => {
+    return HttpResponse.json(makeFunnelStepNetworkFixture());
+  }),
+
+  // 81. GET /api/apps/:appId/funnels/:funnelId/sessions
+  http.get("*/api/apps/:appId/funnels/:funnelId/sessions", () => {
+    return HttpResponse.json(makeFunnelStepSessionsFixture());
+  }),
+
+  // 82. GET /api/apps/:appId/funnels/:funnelId/cadence
+  http.get("*/api/apps/:appId/funnels/:funnelId/cadence", () => {
+    return HttpResponse.json(makeFunnelCadenceFixture());
+  }),
+
+  // 83. GET /api/apps/:appId/funnels/:funnelId/trend
+  http.get("*/api/apps/:appId/funnels/:funnelId/trend", ({ params }) => {
+    if (params.funnelId === makeSearchToCartFunnelFixture().id) {
+      return HttpResponse.json(makeSearchToCartTrendFixture());
+    }
+    if (params.funnelId === makeSearchToOrderFunnelFixture().id) {
+      return HttpResponse.json(makeSearchToOrderTrendFixture());
+    }
+    return HttpResponse.json(makeFunnelTrendFixture());
+  }),
+
+  // 84. PUT /api/apps/:appId/funnels/:funnelId/pin
+  http.put("*/api/apps/:appId/funnels/:funnelId/pin", ({ params }) => {
+    const funnel = funnelFixtureById(params.funnelId as string);
+    if (!funnel) {
+      return HttpResponse.json({ error: "Funnel not found" }, { status: 404 });
+    }
+    return HttpResponse.json({ ...funnel, pinned: true });
+  }),
+
+  // 85. DELETE /api/apps/:appId/funnels/:funnelId/pin
+  http.delete("*/api/apps/:appId/funnels/:funnelId/pin", ({ params }) => {
+    const funnel = funnelFixtureById(params.funnelId as string);
+    if (!funnel) {
+      return HttpResponse.json({ error: "Funnel not found" }, { status: 404 });
+    }
+    return HttpResponse.json({ ...funnel, pinned: false, pin_order: null });
+  }),
+
+  // 86. GET /api/apps/:appId/funnels/:funnelId (unknown ids are not found)
+  http.get("*/api/apps/:appId/funnels/:funnelId", ({ params }) => {
+    const funnel = funnelFixtureById(params.funnelId as string);
+    if (!funnel) {
+      return HttpResponse.json({ error: "Funnel not found" }, { status: 404 });
+    }
+    return HttpResponse.json(funnel);
+  }),
+
+  // 87. PATCH /api/apps/:appId/funnels/:funnelId (update)
+  http.patch(
+    "*/api/apps/:appId/funnels/:funnelId",
+    async ({ params, request }) => {
+      const funnel = funnelFixtureById(params.funnelId as string);
+      if (!funnel) {
+        return HttpResponse.json(
+          { error: "Funnel not found" },
+          { status: 404 },
+        );
+      }
+      const draft = (await request.json()) as Record<string, any>;
+      return HttpResponse.json({ ...funnel, ...draft });
+    },
+  ),
+
+  // 88. DELETE /api/apps/:appId/funnels/:funnelId
+  http.delete("*/api/apps/:appId/funnels/:funnelId", () => {
+    return HttpResponse.json({ ok: true });
   }),
 ];

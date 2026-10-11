@@ -460,6 +460,7 @@ export function shopSpans(t: {
 type HttpOptions = { outcome?: number | "failure"; params?: string };
 
 const CATEGORIES = ["All", "Shoes", "Audio", "Apparel", "Bags", "Outdoor"];
+const SEARCH_RESULT_PREFIX = "row_result_";
 
 export class Journey {
   private steps: StepSpec[] = [];
@@ -560,7 +561,8 @@ export class Journey {
         kind: "span",
         span: this.b.span.app_launch,
         startup: { otherwise: [{ kind: "http", http: this.b.http.products }] },
-      });
+      })
+      .custom("app_opened");
   }
 
   login(): this {
@@ -571,10 +573,13 @@ export class Journey {
         span: this.b.span.app_launch_signed_out,
         startup: { otherwise: [] },
       })
+      .custom("login_viewed")
       .tap("field_email")
       .tap("field_password")
       .tap("btn_login")
+      .custom("login_submitted")
       .http("login")
+      .custom("login_succeeded", { user_id: "{user_id}" })
       .log("info", "Welcome back, resuming session")
       .screen("home")
       .http("products");
@@ -598,7 +603,21 @@ export class Journey {
       abortBefore?: string;
     } = {},
   ): this {
-    return this.tap(card).screen("product_detail").span("product_load", opts);
+    this.tap(card);
+    if (card.startsWith(SEARCH_RESULT_PREFIX)) {
+      this.custom("search_result_clicked", {
+        query: "{query}",
+        position: Number(card.slice(SEARCH_RESULT_PREFIX.length)) + 1,
+      });
+    }
+    this.screen("product_detail").span("product_load", opts);
+    // The app sends product_viewed only after the product loads.
+    return opts.fail || opts.abortBefore
+      ? this
+      : this.custom("product_viewed", {
+          product_id: "{product_id}",
+          product_name: "{product_name}",
+        });
   }
 
   skimHome(cards: string[]): this {
@@ -611,18 +630,21 @@ export class Journey {
 
   toProducts(category: number | null): this {
     if (category === null) {
-      return this.tap("hero_cta").screen("products").http("products");
+      return this.tap("hero_cta")
+        .screen("products")
+        .http("products")
+        .custom("category_viewed", { category: CATEGORIES[0] });
     }
     return this.tap(`chip_category_${category}`)
       .screen("products", CATEGORIES[category])
-      .http("products", categoryParams(category));
+      .http("products", categoryParams(category))
+      .custom("category_viewed", { category: CATEGORIES[category] });
   }
 
   category(index: number): this {
-    return this.tap(`chip_category_${index}`).http(
-      "products",
-      categoryParams(index),
-    );
+    return this.tap(`chip_category_${index}`)
+      .http("products", categoryParams(index))
+      .custom("category_viewed", { category: CATEGORIES[index] });
   }
 
   inspect(
@@ -638,13 +660,20 @@ export class Journey {
       this.tap("tab_reviews");
     }
     if (opts.addToCart) {
-      this.tap("btn_add_to_cart").http("cart_add");
+      this.tap("btn_add_to_cart").http("cart_add").custom("added_to_cart", {
+        product_id: "{product_id}",
+        option: "{option}",
+        price: "{price}",
+      });
     }
     return this.back();
   }
 
   seeAll(): this {
-    return this.tap("link_new_arrivals").screen("products").http("products");
+    return this.tap("link_new_arrivals")
+      .screen("products")
+      .http("products")
+      .custom("category_viewed", { category: "New arrivals" });
   }
 
   search(fromNav: boolean, query: string): this {
@@ -652,7 +681,11 @@ export class Journey {
       .screen("search")
       .tap("field_search")
       .type(query)
-      .span("search_query");
+      .span("search_query")
+      .custom("search_performed", {
+        query: "{query}",
+        result_count: "{result_count}",
+      });
   }
 
   openCart(
@@ -665,7 +698,9 @@ export class Journey {
         .variant("load_error")
         .tap("btn_retry");
     }
-    this.span("cart_refresh");
+    this.span("cart_refresh").custom("cart_viewed", {
+      item_count: "{item_count}",
+    });
     if (opts.loadFailure) {
       this.variant(null);
     }
@@ -685,7 +720,9 @@ export class Journey {
   applyCoupon(code: string, failure?: StepSpec[]): this {
     this.tap("field_coupon").type(code).tap("btn_apply_coupon");
     if (!failure) {
-      return this.http("promo");
+      return this.http("promo").custom("coupon_applied", {
+        coupon: "{coupon}",
+      });
     }
     return this.http("promo", { outcome: "failure" })
       .add(failure)
@@ -693,7 +730,13 @@ export class Journey {
   }
 
   toCheckout(): this {
-    return this.scroll().tap("btn_checkout").screen("checkout");
+    return this.scroll()
+      .tap("btn_checkout")
+      .screen("checkout")
+      .custom("checkout_started", {
+        item_count: "{item_count}",
+        total: "{total}",
+      });
   }
 
   toPayment(
@@ -716,7 +759,10 @@ export class Journey {
   }
 
   placeOrder(opts: { crash?: Crash; confirmationVariant?: string } = {}): this {
-    this.scroll().tap("btn_place_order");
+    this.scroll().tap("btn_place_order").custom("payment_submitted", {
+      payment_method: "{payment_method}",
+      total: "{total}",
+    });
     if (opts.crash) {
       if (opts.crash.abortBefore) {
         this.span("checkout_flow", { abortBefore: opts.crash.abortBefore });
@@ -725,7 +771,8 @@ export class Journey {
     }
     return this.span("checkout_flow")
       .screen("order_confirmation", opts.confirmationVariant)
-      .http("order_confirm");
+      .http("order_confirm")
+      .custom("order_placed", { order_id: "{order_id}", total: "{total}" });
   }
 
   checkout(
@@ -765,6 +812,7 @@ export class Journey {
     return this.tap("btn_track_order")
       .screen("orders")
       .http("orders")
+      .custom("orders_viewed")
       .scroll()
       .back()
       .tap("btn_continue_shopping")
@@ -986,6 +1034,7 @@ export function standardFlows(
         .tap("row_orders")
         .screen("orders")
         .http("orders")
+        .custom("orders_viewed")
         .apply(story.reports?.orders)
         .scroll()
         .back()

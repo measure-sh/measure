@@ -9,6 +9,7 @@
     "bug-reports",
     "performance-tracing",
     "custom-events",
+    "funnels",
     "logs",
     "gesture-tracking",
     "navigation-tracking",

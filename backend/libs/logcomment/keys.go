@@ -63,3 +63,7 @@ const Memory = "memory"
 // Profiles is the root key for the `profiles`
 // logcomment.
 const Profiles = "profiles"
+
+// Funnels is the root key for the `funnels`
+// logcomment.
+const Funnels = "funnels"

@@ -8,7 +8,11 @@ const CHART_AXIS_TITLE_GAP = 32;
 // Fits a four-character count label like "150K".
 export const COUNT_TICK_LABEL_WIDTH = 26;
 export const CHART_VALUE_TICK_COUNT = 5;
+export const CHART_DATE_TICK_COUNT = 6;
+// Fits the widest date tick label, "Oct 2026".
+const DATE_TICK_LABEL_WIDTH = 45;
 export const CHART_GRID_DOT_SIZE = 2;
+const CHART_ISOLATED_POINT_SIZE = 6;
 const CHART_GRID_OPACITY_LIGHT = 0.3;
 const CHART_GRID_OPACITY_DARK = 0.1;
 const CHART_GRID_DOTS_PER_TICK = 4;
@@ -80,11 +84,55 @@ export function useChartGridOpacity() {
     : CHART_GRID_OPACITY_LIGHT;
 }
 
+// A date label rotated by this many degrees reaches below the axis by its
+// width and height projected onto the vertical.
+export function dateTickLabelHeight(rotation: number) {
+  const radians = (Math.abs(rotation) * Math.PI) / 180;
+  return Math.ceil(
+    DATE_TICK_LABEL_WIDTH * Math.sin(radians) +
+      CHART_TEXT_SIZE * Math.cos(radians),
+  );
+}
+
 export function chartAxisMargin(tickLabelSize: number, hasTitle: boolean) {
   const tickLabels = CHART_TICK_SIZE + CHART_TICK_PADDING + tickLabelSize;
   return hasTitle
     ? tickLabels + CHART_AXIS_TITLE_GAP + CHART_TEXT_SIZE
     : tickLabels;
+}
+
+// A line is only drawn between two neighbouring points that both have a
+// value. A point whose neighbours on both sides have none, such as the only
+// hour with users in a day, gets no line, so it is drawn as a dot in the
+// current fill colour.
+export function drawIsolatedPoints(
+  ctx: CanvasRenderingContext2D,
+  points: readonly {
+    position: { x: number; y: number | null };
+    data: { y: unknown };
+  }[],
+) {
+  const hasValue = (index: number) =>
+    points[index] !== undefined && points[index].data.y !== null;
+  points.forEach((point, index) => {
+    if (
+      point.position.y === null ||
+      !hasValue(index) ||
+      hasValue(index - 1) ||
+      hasValue(index + 1)
+    ) {
+      return;
+    }
+    ctx.beginPath();
+    ctx.arc(
+      point.position.x,
+      point.position.y,
+      CHART_ISOLATED_POINT_SIZE / 2,
+      0,
+      2 * Math.PI,
+    );
+    ctx.fill();
+  });
 }
 
 // Every tick gets a dot so the grid lines up with the axis labels, and the dots

@@ -2062,9 +2062,15 @@ function buildSession(
       if (step.startup && script.launch !== "cold") {
         continue;
       }
+      const values = currentValues();
       push(mainThread, {
         event_type: "custom",
-        user_defined_attribute: step.attributes ?? {},
+        user_defined_attribute: Object.fromEntries(
+          Object.entries(step.attributes ?? {}).map(([name, value]) => [
+            name,
+            typeof value === "string" ? fillTemplate(value, values) : value,
+          ]),
+        ),
         thread_name: mainThread,
         user_triggered: true,
         name: step.name,
@@ -2685,6 +2691,34 @@ const BUG_REPORTS_PER_DAY_PER_100K_SESSIONS = 1.2;
 
 const REFERENCE_WINDOW_DAYS = 30;
 
+// The share of sessions on a screen that go on to another screen, the rest
+// leaving the app there. Shoppers often leave from a product or their cart,
+// and rarely in the middle of paying.
+const SCREEN_CONTINUE: Record<ScreenKey, number> = {
+  login: 0.92,
+  home: 0.74,
+  products: 0.78,
+  search: 0.72,
+  product_detail: 0.6,
+  cart: 0.68,
+  checkout: 0.84,
+  payment: 0.94,
+  order_confirmation: 0.45,
+  orders: 0.5,
+  profile: 0.6,
+};
+// A host activity or view controller only holds the app's screens.
+const HOST_CONTINUE = 0.95;
+const MAX_CONTINUE = 0.96;
+const CART_SESSION_SHARE = 0.025;
+// The share of sessions on a screen that take the next step of a purchase,
+// kept in line with the step rates of the sandbox funnels.
+const PURCHASE_STEP_RATE: Record<string, number> = {
+  "cart>checkout": 0.38,
+  "checkout>payment": 0.74,
+  "payment>order_confirmation": 0.9,
+};
+
 export function dailyBugReports(app: AppSpec): number {
   return Math.max(
     8,
@@ -3274,32 +3308,74 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
       queued.add(id);
     }
   }
+  const screenKeyOf = new Map<string, ScreenKey>();
+  for (const spec of scenario.screens) {
+    for (const name of [spec.key, spec.label, spec.className, spec.routeName]) {
+      if (name) {
+        screenKeyOf.set(name, scenario.ui.screens[spec.key]);
+      }
+    }
+  }
+  // Every app sends the same share of its sessions to the cart, which keeps
+  // the purchase screens in line with the sandbox funnels.
+  const isCartEntry = (source: string, target: string) =>
+    screenKeyOf.get(target) === "cart" && screenKeyOf.get(source) !== "cart";
+  const cartEntryWeight = Array.from(outgoingByNode).reduce(
+    (sum, [source, edges]) =>
+      sum +
+      edges
+        .filter((e) => isCartEntry(source, e.target))
+        .reduce((total, e) => total + e.weight, 0),
+    0,
+  );
   const links: Journey["links"] = [];
   for (const source of order) {
     const edges = outgoingByNode.get(source) ?? [];
     if (edges.length === 0) {
       continue;
     }
-    const reach = reachByNode.get(source) ?? 1;
-    const transitions = edges.reduce((sum, e) => sum + e.weight, 0);
-    const continuing = Math.min(1, transitions / Math.max(1, reach));
-    const passedOn =
-      continuing >= 1
-        ? stableInt(`journeydrop:${app.id}:${source}`, 780, 970) / 1000
-        : continuing;
+    const sourceKey = screenKeyOf.get(source);
+    const jitter = (name: string) =>
+      stableInt(`journeylink:${app.id}:${source}:${name}`, 900, 1100) / 1000;
     const available = inflow.get(source) ?? 0;
-    const values = distributeTotal(
-      Math.round(available * passedOn),
-      edges.map(
-        (e) =>
-          e.weight *
-          (stableInt(`journeylink:${app.id}:${source}:${e.target}`, 700, 1400) /
-            1000),
+    const continuing =
+      available *
+      Math.min(
+        MAX_CONTINUE,
+        (sourceKey ? SCREEN_CONTINUE[sourceKey] : HOST_CONTINUE) *
+          jitter("continue"),
+      );
+    // Purchase steps take a fixed share of the sessions. The other screens
+    // split the rest by how often the sample sessions moved to them.
+    const forward = edges.map((e) => {
+      if (isCartEntry(source, e.target)) {
+        return (
+          ((monthlySessions * CART_SESSION_SHARE * e.weight) /
+            cartEntryWeight) *
+          jitter(e.target)
+        );
+      }
+      const targetKey = screenKeyOf.get(e.target);
+      const rate =
+        sourceKey && targetKey
+          ? PURCHASE_STEP_RATE[`${sourceKey}>${targetKey}`]
+          : undefined;
+      return rate === undefined ? null : available * rate * jitter(e.target);
+    });
+    const forwardTotal = forward.reduce<number>((sum, v) => sum + (v ?? 0), 0);
+    const forwardScale =
+      forwardTotal > continuing ? continuing / forwardTotal : 1;
+    const rest = distributeTotal(
+      Math.max(0, Math.round(continuing - forwardTotal)),
+      edges.map((e, i) =>
+        forward[i] === null ? e.weight * jitter(e.target) : 0,
       ),
     );
     edges.forEach((edge, i) => {
-      links.push({ source, target: edge.target, value: values[i] });
-      inflow.set(edge.target, (inflow.get(edge.target) ?? 0) + values[i]);
+      const value =
+        forward[i] === null ? rest[i] : Math.floor(forward[i]! * forwardScale);
+      links.push({ source, target: edge.target, value });
+      inflow.set(edge.target, (inflow.get(edge.target) ?? 0) + value);
     });
   }
   const journey: Journey = {

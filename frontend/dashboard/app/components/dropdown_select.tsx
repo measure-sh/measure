@@ -19,10 +19,18 @@ export enum DropdownSelectType {
   MultiString,
 }
 
+// An item whose shown text differs from the value that is selected, with an
+// optional color dot before the text.
+export type DropdownSelectItem = {
+  value: string;
+  label: string;
+  color?: string;
+};
+
 interface DropdownSelectProps {
   type: DropdownSelectType;
   title: string;
-  items: string[];
+  items: string[] | DropdownSelectItem[];
   disabled?: boolean;
   initialSelected: string | string[];
   onChangeSelected?: (item: string | string[]) => void;
@@ -47,6 +55,9 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
     setInternalOpen(value);
     onOpenChange?.(value);
   };
+  const options: DropdownSelectItem[] = items.map((item) =>
+    typeof item === "string" ? { value: item, label: item } : item,
+  );
   const [selected, setSelected] = useState(initialSelected);
   const [searchValue, setSearchValue] = useState("");
   // Sync to a new initialSelected from the parent.
@@ -64,8 +75,9 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
   };
 
   const selectAll = () => {
-    setSelected(items);
-    onChangeSelected?.(items);
+    const values = options.map((option) => option.value);
+    setSelected(values);
+    onChangeSelected?.(values);
   };
 
   const clearAll = () => {
@@ -89,7 +101,10 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
   const getDisplayText = () => {
     switch (type) {
       case DropdownSelectType.SingleString:
-        return selected as string;
+        return (
+          options.find((option) => option.value === selected)?.label ??
+          (selected as string)
+        );
       case DropdownSelectType.MultiString:
         return title;
     }
@@ -101,7 +116,9 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
     switch (type) {
       case DropdownSelectType.SingleString:
       case DropdownSelectType.MultiString:
-        return items.filter((item) => item.toLowerCase().includes(searchLower));
+        return options.filter((option) =>
+          option.label.toLowerCase().includes(searchLower),
+        );
     }
   };
 
@@ -140,7 +157,7 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="p-0 w-64" align="start">
+      <PopoverContent className="p-0 w-max min-w-64 max-w-96" align="start">
         <Command>
           <CommandInput
             placeholder="Search..."
@@ -188,10 +205,10 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
             </div>
           </CommandEmpty>
           <CommandGroup className="max-h-72 overflow-auto">
-            {getFilteredItems().map((item, index) => (
+            {getFilteredItems().map((option, index) => (
               <CommandItem
                 key={index}
-                onSelect={() => handleItemClick(item)}
+                onSelect={() => handleItemClick(option.value)}
                 className={cn(
                   "flex items-center cursor-default outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px]",
                 )}
@@ -199,23 +216,29 @@ const DropdownSelect: React.FC<DropdownSelectProps> = ({
                 onKeyDown={(e: React.KeyboardEvent<HTMLDivElement>) => {
                   if (e.key === "Enter") {
                     e.preventDefault();
-                    handleItemClick(item);
+                    handleItemClick(option.value);
                   }
                 }}
               >
                 {isMultiSelect() && (
                   <span className="mr-2 flex items-center justify-center w-4 h-4">
-                    {isItemSelected(item) ? (
+                    {isItemSelected(option.value) ? (
                       <CircleCheck className="h-4 w-4" />
                     ) : (
                       <Circle className="h-4 w-4 opacity-50" />
                     )}
                   </span>
                 )}
+                {option.color !== undefined && (
+                  <span
+                    className="mr-2 size-2 shrink-0 rounded-full"
+                    style={{ backgroundColor: option.color }}
+                  />
+                )}
                 <span className="flex-1 truncate font-display text-sm">
-                  {item}
+                  {option.label}
                 </span>
-                {!isMultiSelect() && isItemSelected(item) && (
+                {!isMultiSelect() && isItemSelected(option.value) && (
                   <Check className="h-4 w-4 ml-2" />
                 )}
               </CommandItem>

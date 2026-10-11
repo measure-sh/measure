@@ -63,6 +63,8 @@ func FindByName(name string) (Entity, error) {
 		return BugReportsEntity, nil
 	case JourneysEntity.Name:
 		return JourneysEntity, nil
+	case FunnelsEntity.Name:
+		return FunnelsEntity, nil
 	case AlertsEntity.Name:
 		return AlertsEntity, nil
 	case NetworkEntity.Name:

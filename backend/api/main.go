@@ -151,6 +151,25 @@ func main() {
 		// alerts
 		apps.GET(":id/alerts", hdl.GetAlertsOverview)
 
+		// funnels
+		apps.GET(":id/funnels", hdl.GetFunnels)
+		apps.POST(":id/funnels", hdl.CreateFunnel)
+		apps.GET(":id/funnels/events", hdl.SuggestFunnelEventNames)
+		apps.GET(":id/funnels/pinned", hdl.GetPinnedFunnels)
+		apps.PUT(":id/funnels/pinned", hdl.ReorderPinnedFunnels)
+		apps.GET(":id/funnels/:funnelId", hdl.GetFunnel)
+		apps.PATCH(":id/funnels/:funnelId", hdl.UpdateFunnel)
+		apps.DELETE(":id/funnels/:funnelId", hdl.DeleteFunnel)
+		apps.GET(":id/funnels/:funnelId/conversion", hdl.GetFunnelConversion)
+		apps.GET(":id/funnels/:funnelId/trend", hdl.GetFunnelTrend)
+		apps.GET(":id/funnels/:funnelId/cadence", hdl.GetFunnelCadence)
+		apps.GET(":id/funnels/:funnelId/errors", hdl.GetFunnelStepErrors)
+		apps.GET(":id/funnels/:funnelId/traces", hdl.GetFunnelStepTraces)
+		apps.GET(":id/funnels/:funnelId/network", hdl.GetFunnelStepNetwork)
+		apps.GET(":id/funnels/:funnelId/sessions", hdl.GetFunnelStepSessions)
+		apps.PUT(":id/funnels/:funnelId/pin", hdl.PinFunnel)
+		apps.DELETE(":id/funnels/:funnelId/pin", hdl.UnpinFunnel)
+
 		// threshold preferences
 		apps.GET(":id/thresholdPrefs", hdl.GetAppThresholdPrefs)
 		apps.PATCH(":id/thresholdPrefs", hdl.UpdateAppThresholdPrefs)
