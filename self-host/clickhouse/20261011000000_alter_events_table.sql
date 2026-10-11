@@ -1,6 +1,6 @@
 -- migrate:up
 alter table events
-  add column if not exists `app_hang.fingerprint` String comment 'fingerprint for app hang similarity classification' CODEC(ZSTD(3)) after `anr.foreground`,
+  add column if not exists `app_hang.fingerprint` String comment 'fingerprint for app hang similarity classification' CODEC(ZSTD(3)) after `anr.thread_dump`,
   add column if not exists `app_hang.exceptions` String comment 'app hang blocked thread data' CODEC(ZSTD(3)) after `app_hang.fingerprint`,
   add column if not exists `app_hang.binary_images` String comment 'list of apple binary images for the app hang' CODEC(ZSTD(3)) after `app_hang.exceptions`,
   add column if not exists `app_hang.duration` UInt32 comment 'duration the main thread stayed blocked, in milliseconds' CODEC(T64, ZSTD(3)) after `app_hang.binary_images`,
