@@ -47,6 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Expand session arrays with an ARRAY JOIN clause by @anupcowkur
 - (**backend**): Bind the suggestion window start as a query parameter by @anupcowkur in #4464
 - (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
+- (**frontend**): Match apps settings error to other settings pages by @anupcowkur in #4608
 - (**frontend**): Reset usage page redirect buttons on back navigation by @anupcowkur in #4599
 - (**frontend**): Match notification prefs save button to other save buttons by @anupcowkur in #4597
 - (**frontend**): Make the sandbox user a developer by @anupcowkur
