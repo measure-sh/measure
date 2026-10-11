@@ -151,10 +151,14 @@ const differentiators: AlternativeDifferentiator[] = [
         ,{" "}
         <Link href="/product/bug-reports" className={underlineLinkStyle}>
           Bug Reports
-        </Link>{" "}
-        and{" "}
+        </Link>
+        ,{" "}
         <Link href="/product/user-journeys" className={underlineLinkStyle}>
           User Journeys
+        </Link>{" "}
+        and{" "}
+        <Link href="/product/funnels" className={underlineLinkStyle}>
+          Funnels
         </Link>{" "}
         are all shaped only by how mobile apps break in production.
         <br />
@@ -179,6 +183,11 @@ const comparisonRows: AlternativeComparisonRow[] = [
   { feature: "Performance traces", measure: true, competitor: true },
   { feature: "Network monitoring", measure: true, competitor: true },
   { feature: "User journeys", measure: true, competitor: true },
+  {
+    feature: "Funnels with drop-off analysis",
+    measure: true,
+    competitor: "Single start and end flows with abandonment reasons",
+  },
   { feature: "In-app bug reports", measure: true, competitor: false },
   {
     feature: "Session replay on every issue",

@@ -5,7 +5,7 @@ import { cn } from "../utils/shadcn_utils";
 interface EmptyStateProps {
   icon: LucideIcon;
   title: string;
-  description?: string;
+  description?: React.ReactNode;
   action?: React.ReactNode;
   className?: string;
 }

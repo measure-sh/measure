@@ -341,6 +341,147 @@ describe("DropdownSelect", () => {
     });
   });
 
+  // --- Item objects ---
+
+  describe("Item objects", () => {
+    const items = [
+      { value: "step_1", label: "Opened app", color: "#ff0000" },
+      { value: "step_2", label: "Added to cart" },
+      { value: "step_3", label: "Checked out", color: "#0000ff" },
+    ];
+
+    function renderSingle(
+      initialSelected: string,
+      onChangeSelected?: (item: string | string[]) => void,
+    ) {
+      render(
+        <DropdownSelect
+          type={DropdownSelectType.SingleString}
+          title="Step"
+          items={items}
+          initialSelected={initialSelected}
+          onChangeSelected={onChangeSelected}
+        />,
+      );
+    }
+
+    function renderMulti(
+      initialSelected: string[],
+      onChangeSelected?: (item: string | string[]) => void,
+    ) {
+      render(
+        <DropdownSelect
+          type={DropdownSelectType.MultiString}
+          title="Steps"
+          items={items}
+          initialSelected={initialSelected}
+          onChangeSelected={onChangeSelected}
+        />,
+      );
+    }
+
+    function colorDot(item: HTMLElement) {
+      return item.querySelector<HTMLElement>("span[style]");
+    }
+
+    it("renders each item's label", () => {
+      renderMulti([]);
+      expect(getItems().map((item) => item.textContent)).toEqual([
+        "Opened app",
+        "Added to cart",
+        "Checked out",
+      ]);
+    });
+
+    it("shows the selected item's label as display text in single select", () => {
+      renderSingle("step_2");
+      const trigger = screen.getByTestId("popover-trigger");
+      expect(trigger.textContent).toContain("Added to cart");
+      expect(trigger.textContent).not.toContain("step_2");
+    });
+
+    it("falls back to the selected value when no item has that value", () => {
+      renderSingle("step_9");
+      expect(screen.getByTestId("popover-trigger").textContent).toContain(
+        "step_9",
+      );
+    });
+
+    it("shows Check icon on the item whose value is selected", () => {
+      renderSingle("step_3");
+      expect(screen.getAllByTestId("check-icon")).toHaveLength(1);
+      expect(
+        getItems()[2].querySelector('[data-testid="check-icon"]'),
+      ).not.toBeNull();
+    });
+
+    it("fires onChangeSelected with the value in single select", () => {
+      const onChangeSelected = jest.fn();
+      renderSingle("step_1", onChangeSelected);
+      clickItem(1);
+      expect(onChangeSelected).toHaveBeenCalledWith("step_2");
+    });
+
+    it("selects by value on Enter key", () => {
+      const onChangeSelected = jest.fn();
+      renderSingle("step_1", onChangeSelected);
+      fireEvent.keyDown(getItems()[2], { key: "Enter" });
+      expect(onChangeSelected).toHaveBeenCalledWith("step_3");
+    });
+
+    it("toggles values in multi select and marks selected items by value", () => {
+      const onChangeSelected = jest.fn();
+      renderMulti(["step_1"], onChangeSelected);
+      expect(
+        getItems()[0].querySelector('[data-testid="circle-check-icon"]'),
+      ).not.toBeNull();
+      clickItem(2);
+      expect(onChangeSelected).toHaveBeenLastCalledWith(["step_3", "step_1"]);
+    });
+
+    it("selects every value when All is clicked", () => {
+      const onChangeSelected = jest.fn();
+      renderMulti([], onChangeSelected);
+      fireEvent.click(screen.getByText("All"));
+      expect(onChangeSelected).toHaveBeenLastCalledWith([
+        "step_1",
+        "step_2",
+        "step_3",
+      ]);
+      expect(screen.getAllByTestId("circle-check-icon")).toHaveLength(3);
+    });
+
+    it("matches search against labels and not values", () => {
+      renderMulti([]);
+      search("CART");
+      expect(getItems()).toHaveLength(1);
+      expect(getItems()[0].textContent).toBe("Added to cart");
+
+      search("step_");
+      expect(screen.queryAllByTestId("command-item")).toHaveLength(0);
+    });
+
+    it("selects the value of a filtered item", () => {
+      const onChangeSelected = jest.fn();
+      renderSingle("step_1", onChangeSelected);
+      search("checked");
+      clickItem(0);
+      expect(onChangeSelected).toHaveBeenCalledWith("step_3");
+    });
+
+    it("renders a color dot only for items with a color", () => {
+      renderMulti([]);
+      const renderedItems = getItems();
+      expect(colorDot(renderedItems[0])).toHaveStyle({
+        backgroundColor: "#ff0000",
+      });
+      expect(colorDot(renderedItems[1])).toBeNull();
+      expect(colorDot(renderedItems[2])).toHaveStyle({
+        backgroundColor: "#0000ff",
+      });
+    });
+  });
+
   // --- Search filtering ---
 
   describe("Search filtering", () => {

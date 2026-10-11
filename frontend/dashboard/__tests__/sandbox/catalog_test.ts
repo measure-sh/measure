@@ -525,6 +525,46 @@ describe.each(apps)("catalog: $app.name", (bundle) => {
     expect(Math.abs(monthlyEntries - monthlySessions)).toBeLessThanOrEqual(2);
   });
 
+  it("sends a fixed share of sessions to the cart and on through checkout at the sandbox funnels' step rates", () => {
+    const keyOf = new Map<string, string>();
+    for (const spec of scenario.screens) {
+      for (const name of [
+        spec.key,
+        spec.label,
+        spec.className,
+        spec.routeName,
+      ]) {
+        if (name) {
+          keyOf.set(name, scenario.ui.screens[spec.key]);
+        }
+      }
+    }
+    const into = (target: string, source?: string) =>
+      journey.links
+        .filter(
+          (link) =>
+            keyOf.get(link.target) === target &&
+            (source === undefined
+              ? keyOf.get(link.source) !== target
+              : keyOf.get(link.source) === source),
+        )
+        .reduce((sum, link) => sum + link.value, 0);
+    // Each link varies by up to a tenth between apps and is rounded down to
+    // whole sessions, so the lower bound has extra room.
+    const cartShare = into("cart") / (scenario.app.dailySessions * 30);
+    expect(cartShare).toBeGreaterThan(0.025 * 0.88);
+    expect(cartShare).toBeLessThan(0.025 * 1.1);
+    for (const [source, target, rate] of [
+      ["cart", "checkout", 0.38],
+      ["checkout", "payment", 0.74],
+      ["payment", "order_confirmation", 0.9],
+    ] as const) {
+      const share = into(target, source) / into(source);
+      expect(share).toBeGreaterThan(rate * 0.9);
+      expect(share).toBeLessThan(rate * 1.1);
+    }
+  });
+
   it("counts only fatal crash and ANR groups as journey issues", () => {
     const listed = new Set(
       journey.nodes.flatMap((node) => [
@@ -1155,6 +1195,12 @@ describe.each(apps)("session stories: $app.name", (bundle) => {
   const mainThread = bundle.scenario.threadNames.main;
   const events = (session: (typeof bundle.sessions)[number]) =>
     Object.values(session.detail.threads).flat();
+  const sorted = (session: (typeof bundle.sessions)[number]) =>
+    events(session).sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  const tapped = (event: GeneratedEvent) =>
+    decodeToken((event.attachments as { key: string }[])[0].key)!;
+  const attributes = (event: GeneratedEvent) =>
+    event.user_defined_attribute as Record<string, unknown>;
 
   it("prices each checkout from the cart the payment screen showed when place order was tapped", () => {
     let checked = 0;
@@ -1216,6 +1262,133 @@ describe.each(apps)("session stories: $app.name", (bundle) => {
         }
       }
     }
+  });
+
+  it("fills each custom event's attributes from the session's shop and user, leaving no placeholder", () => {
+    let orders = 0;
+    for (const session of bundle.sessions) {
+      const custom = sorted(session).filter((e) => e.event_type === "custom");
+      for (const event of custom) {
+        for (const value of Object.values(attributes(event))) {
+          expect(String(value)).not.toMatch(/\{[a-z_]+\}/);
+        }
+        if (event.name === "login_succeeded") {
+          expect(attributes(event).user_id).toBe(
+            session.detail.attribute.user_id,
+          );
+        }
+        if (event.name === "order_placed") {
+          const submitted = custom
+            .filter(
+              (e) =>
+                e.name === "payment_submitted" && e.timestamp < event.timestamp,
+            )
+            .at(-1)!;
+          expect(attributes(event).total).toBe(attributes(submitted).total);
+          orders += 1;
+        }
+      }
+    }
+    expect(orders).toBeGreaterThan(0);
+  });
+
+  it("sends each step of a purchase, a search and a sign-in only after the step before it in the same session", () => {
+    const chains = [
+      [
+        "product_viewed",
+        "added_to_cart",
+        "checkout_started",
+        "payment_submitted",
+        "order_placed",
+      ],
+      ["cart_viewed", "checkout_started"],
+      ["search_performed", "search_result_clicked"],
+      ["login_viewed", "login_submitted", "login_succeeded"],
+    ];
+    const sent = new Set<string>();
+    for (const session of bundle.sessions) {
+      const names = sorted(session)
+        .filter((e) => e.event_type === "custom")
+        .map((e) => String(e.name));
+      names.forEach((name, i) => {
+        sent.add(name);
+        for (const chain of chains) {
+          const step = chain.indexOf(name);
+          if (step > 0) {
+            expect(names.slice(0, i)).toContain(chain[step - 1]);
+          }
+        }
+      });
+    }
+    expect(sent.has("order_placed")).toBe(true);
+    expect(sent.has("search_result_clicked")).toBe(true);
+  });
+
+  it("gives each search result click the position of the tapped row and the query on screen", () => {
+    let clicks = 0;
+    for (const session of bundle.sessions) {
+      const all = sorted(session);
+      all.forEach((event, i) => {
+        if (
+          event.event_type !== "custom" ||
+          event.name !== "search_result_clicked"
+        ) {
+          return;
+        }
+        const tap = all
+          .slice(0, i)
+          .filter((e) => e.event_type === "gesture_click")
+          .at(-1)!;
+        const token = tapped(tap);
+        const row = token.highlight!.match(/^row_result_(\d+)$/)!;
+        expect(event.user_defined_attribute).toEqual({
+          query: parseState(token.state).shop.query,
+          position: Number(row[1]) + 1,
+        });
+        clicks += 1;
+      });
+    }
+    expect(clicks).toBeGreaterThan(0);
+  });
+
+  it("sends product_viewed only for a product whose load finished without failing", () => {
+    const opensProduct =
+      /^(card_product|card_related|card_saved|row_result)_\d+$/;
+    let notLoaded = 0;
+    for (const session of bundle.sessions) {
+      const all = sorted(session);
+      const opens = all.filter(
+        (e) =>
+          e.event_type === "gesture_click" &&
+          opensProduct.test(tapped(e).highlight ?? ""),
+      );
+      const loads = session.detail.traces.filter(
+        (t) => t.trace_name === "product_load",
+      );
+      const viewed = all.filter(
+        (e) => e.event_type === "custom" && e.name === "product_viewed",
+      );
+      let loaded = 0;
+      opens.forEach((tap, i) => {
+        const until = opens[i + 1]?.timestamp ?? "9999";
+        const load = loads.find(
+          (t) => t.start_time >= tap.timestamp && t.start_time < until,
+        );
+        const finished =
+          load !== undefined &&
+          bundle.traces
+            .get(load.trace_id)!
+            .spans.find((s) => s.parent_id === "")!.status !== 2;
+        const sent = viewed.some(
+          (e) => e.timestamp > tap.timestamp && e.timestamp < until,
+        );
+        expect(sent).toBe(finished);
+        loaded += finished ? 1 : 0;
+        notLoaded += finished ? 0 : 1;
+      });
+      expect(viewed).toHaveLength(loaded);
+    }
+    expect(notLoaded).toBeGreaterThan(0);
   });
 
   it("reports an ANR only after five seconds without a main-thread event", () => {

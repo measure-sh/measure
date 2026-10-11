@@ -102,6 +102,8 @@ var (
 	ScopeAppRead                   = newScope("app", "read")
 	ScopeBugReportAll              = newScope("bugReport", "*")
 	ScopeBugReportRead             = newScope("bugReport", "read")
+	ScopeFunnelAll                 = newScope("funnel", "*")
+	ScopeFunnelRead                = newScope("funnel", "read")
 )
 
 // Scope is one permission an authorization check tests, such as reading a
@@ -132,10 +134,10 @@ func (s Scope) GetRolesSameOrLower(r Rank) []Rank {
 }
 
 var ScopeMap = map[Rank][]Scope{
-	owner:     {*ScopeBillingAll, *ScopeTeamAll, *ScopeAlertAll, *ScopeAppAll, *ScopeBugReportAll},
-	admin:     {*ScopeBillingAll, *ScopeAlertAll, *ScopeAppAll, *ScopeBugReportAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
-	developer: {*ScopeBillingRead, *ScopeAlertAll, *ScopeAppRead, *ScopeBugReportAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
-	viewer:    {*ScopeBillingRead, *ScopeAlertRead, *ScopeTeamRead, *ScopeTeamInviteSameOrLower, *ScopeAppRead, *ScopeBugReportRead},
+	owner:     {*ScopeBillingAll, *ScopeTeamAll, *ScopeAlertAll, *ScopeAppAll, *ScopeBugReportAll, *ScopeFunnelAll},
+	admin:     {*ScopeBillingAll, *ScopeAlertAll, *ScopeAppAll, *ScopeBugReportAll, *ScopeFunnelAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
+	developer: {*ScopeBillingRead, *ScopeAlertAll, *ScopeAppRead, *ScopeBugReportAll, *ScopeFunnelAll, *ScopeTeamInviteSameOrLower, *ScopeTeamChangeRoleSameOrLower},
+	viewer:    {*ScopeBillingRead, *ScopeAlertRead, *ScopeTeamRead, *ScopeTeamInviteSameOrLower, *ScopeAppRead, *ScopeBugReportRead, *ScopeFunnelRead},
 }
 
 var RoleMap = map[string]Rank{
@@ -211,6 +213,21 @@ func PerformAuthz(pg *pgxpool.Pool, uid string, rid string, scope Scope) (bool, 
 			return true, nil
 		}
 		if slices.Contains(roleScope, *ScopeBugReportRead) {
+			return true, nil
+		}
+
+		return false, nil
+	case *ScopeFunnelAll:
+		if slices.Contains(roleScope, *ScopeFunnelAll) {
+			return true, nil
+		}
+
+		return false, nil
+	case *ScopeFunnelRead:
+		if slices.Contains(roleScope, *ScopeFunnelAll) {
+			return true, nil
+		}
+		if slices.Contains(roleScope, *ScopeFunnelRead) {
 			return true, nil
 		}
 

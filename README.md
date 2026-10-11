@@ -60,6 +60,12 @@ Understand how [users move](https://measure.sh/product/user-journeys) through yo
 
 <img alt="User Journeys" src="./frontend/dashboard/public/images/product_screenshots/user_journeys.webp" />
 
+### Funnels 🎯
+
+Improve conversion in important flows. Track conversion between steps, see trends over time, and find the issues that cause friction and make users drop off.
+
+<img alt="Funnels" src="./frontend/dashboard/public/images/product_screenshots/funnels.webp" />
+
 ### Network Performance 📡
 
 Monitor and improve [network performance](https://measure.sh/product/network-performance) across your app. Identify the slowest and most error-prone endoints for targeted improvements.

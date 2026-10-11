@@ -157,10 +157,10 @@ func searchPatternToLikePrefix(pattern string) string {
 	return strings.TrimRight(searchWildcardsToLike(pattern), "%") + "%"
 }
 
-// pathPatternMatchExpression returns a ClickHouse expression for paths where
+// PathPatternMatchExpression returns a ClickHouse expression for paths where
 // a complete "*" segment matches one non-empty segment and a final "**"
 // matches one or more descendant segments.
-func pathPatternMatchExpression(pathExpression, patternExpression string) string {
+func PathPatternMatchExpression(pathExpression, patternExpression string) string {
 	pathParts := fmt.Sprintf("splitByChar('/', %s)", pathExpression)
 	patternParts := fmt.Sprintf("splitByChar('/', %s)", patternExpression)
 	prefixPatternParts := fmt.Sprintf(
@@ -217,7 +217,7 @@ func pathPatternMatchPredicate(pathExpression, pattern string) (string, []any) {
 		}
 	}
 
-	expression := pathPatternMatchExpression(pathExpression, "?")
+	expression := PathPatternMatchExpression(pathExpression, "?")
 	args := make([]any, strings.Count(expression, "?"))
 	for i := range args {
 		args[i] = pattern

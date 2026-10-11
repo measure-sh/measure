@@ -5,7 +5,7 @@ import {
   DEVICE_MEMORY_TIERS,
   deviceMemoryTier,
 } from "@/app/sandbox/device_memory";
-import { describe, expect, it } from "@jest/globals";
+import { afterEach, describe, expect, it } from "@jest/globals";
 import { existsSync } from "fs";
 import { DateTime } from "luxon";
 import path from "path";
@@ -189,6 +189,7 @@ const VERSION_KEYS = [
 const FILTER_KEYS: Record<string, string[]> = {
   app_health: ["version_name", "version_code"],
   journeys: VERSION_KEYS,
+  funnels: [...VERSION_KEYS, ...DEVICE_KEYS],
   errors: ["error_type", ...VERSION_KEYS, "user_id", ...DEVICE_KEYS],
   error_group_events: [...VERSION_KEYS, "user_id", ...DEVICE_KEYS],
   sessions: [
@@ -1304,6 +1305,1096 @@ const settingsCases: Case[] = [
   ),
 ];
 
+const FUNNELS_BASE = `/api/apps/${APP_ID}/funnels`;
+const SEEDED_PINS = ["Checkout", "Search to order", "Open to purchase"];
+const noLoginApp = world.apps
+  .map((a) => world.appById.get(a.id)!)
+  .find(
+    (b) =>
+      !b.sessions.some((s) =>
+        Object.values(s.detail.threads)
+          .flat()
+          .some((e) => e.name === "login_succeeded"),
+      ),
+  )!;
+const segmentApp = world.apps
+  .map((a) => world.appById.get(a.id)!)
+  .find((b) =>
+    Array.from(b.networkEndpoints.values()).some((e) =>
+      e.path.endsWith("/payment-methods"),
+    ),
+  )!;
+
+function allFunnelsPath(appId: string = APP_ID) {
+  return `/api/apps/${appId}/funnels?limit=100&offset=0`;
+}
+
+function named(page: any, name: string) {
+  return page.results.find((f: any) => f.name === name);
+}
+
+async function funnelsOf(appId: string = APP_ID): Promise<any[]> {
+  const { json } = await fetchJson(allFunnelsPath(appId));
+  return json.results;
+}
+
+async function funnelNamed(name: string, appId: string = APP_ID) {
+  const { json } = await fetchJson(allFunnelsPath(appId));
+  return named(json, name);
+}
+
+async function pinnedNames(appId: string = APP_ID): Promise<string[]> {
+  const { json } = await fetchJson(`/api/apps/${appId}/funnels/pinned`);
+  return json.results.map((f: any) => f.name);
+}
+
+// The sandbox keeps pins in memory, so each case starts from the seeded pins
+// even after a case that failed midway.
+async function restoreSeededPins() {
+  for (const app of world.apps) {
+    const base = `/api/apps/${app.id}/funnels`;
+    const funnels = await funnelsOf(app.id);
+    for (const funnel of funnels) {
+      const method = SEEDED_PINS.includes(funnel.name) ? "PUT" : "DELETE";
+      await fetchJson(`${base}/${funnel.id}/pin`, { method });
+    }
+    const ids = SEEDED_PINS.map(
+      (name) => funnels.find((f) => f.name === name)!.id,
+    );
+    await fetchJson(`${base}/pinned`, {
+      method: "PUT",
+      body: JSON.stringify({ funnel_ids: ids }),
+    });
+  }
+}
+
+async function funnelUsers(funnel: any, range: string): Promise<number[]> {
+  const { json } = await fetchJson(
+    `/api/apps/${funnel.app_id}/funnels/${funnel.id}/conversion?${range}`,
+  );
+  return json.steps.map((s: any) => s.users);
+}
+
+function stepParams(step: number | null, extra: Record<string, string> = {}) {
+  return wideRangeParams({
+    ...(step === null ? {} : { step: String(step) }),
+    limit: "100",
+    offset: "0",
+    ...extra,
+  }).toString();
+}
+
+function expectNonIncreasing(values: number[]) {
+  for (let i = 1; i < values.length; i++) {
+    expect(values[i]).toBeLessThanOrEqual(values[i - 1]);
+  }
+}
+
+function expectStepOutcomes(rows: any[], users: number[], step: number) {
+  for (const row of rows) {
+    expect(row.dropped + row.converted).toBeGreaterThan(0);
+    expect(row.dropped).toBeLessThanOrEqual(users[step - 1] - users[step]);
+    expect(row.converted).toBeLessThanOrEqual(users[step]);
+  }
+}
+
+const funnelsCases: Case[] = [
+  {
+    name: "lists an app's funnels, most recently updated first, each made by an owner or admin",
+    path: `/api/teams/${TEAM_ID}/authz`,
+    status: 200,
+    check: async (authz) => {
+      const writers = authz.members.filter((member: any) =>
+        ["owner", "admin"].includes(member.role),
+      );
+      const funnels = await funnelsOf();
+      expect(funnels.length).toBeGreaterThan(0);
+      expect(new Set(funnels.map((f) => f.id)).size).toBe(funnels.length);
+      const updated = funnels.map((f) => f.updated_at);
+      expect(updated).toEqual([...updated].sort().reverse());
+      for (const funnel of funnels) {
+        expect(funnel.app_id).toBe(APP_ID);
+        expect(funnel.steps.length).toBeGreaterThanOrEqual(2);
+        expect(funnel.conversion_window_seconds).toBeGreaterThan(0);
+        expect(funnel.created_at <= funnel.updated_at).toBe(true);
+        expect(funnel.updated_at <= world.builtAt.toISO()!).toBe(true);
+        expect(writers).toContainEqual(
+          expect.objectContaining({
+            id: funnel.created_by,
+            email: funnel.created_by_email,
+          }),
+        );
+      }
+    },
+  },
+  {
+    name: "lists the login funnels only for an app whose users sign in",
+    path: allFunnelsPath(noLoginApp.app.id),
+    status: 200,
+    check: async (data) => {
+      const startsAtLogin = (f: any) =>
+        f.steps.some((s: any) => s.event_name.startsWith("login_"));
+      expect(data.results.length).toBeGreaterThan(0);
+      expect(data.results.some(startsAtLogin)).toBe(false);
+      const withLogin = await funnelsOf();
+      expect(withLogin.some(startsAtLogin)).toBe(true);
+      expect(data.results.map((f: any) => f.name)).toEqual(
+        withLogin.filter((f) => !startsAtLogin(f)).map((f) => f.name),
+      );
+    },
+  },
+  {
+    name: "searches funnel names without regard to case",
+    path: `${FUNNELS_BASE}?search=ORDER&limit=100&offset=0`,
+    status: 200,
+    check: async (data) => {
+      const all = await funnelsOf();
+      expect(data.results.map((f: any) => f.name)).toEqual(
+        all
+          .filter((f) => f.name.toLowerCase().includes("order"))
+          .map((f) => f.name),
+      );
+      expect(data.results.length).toBeGreaterThan(0);
+      expect(data.results.length).toBeLessThan(all.length);
+      const { json: none } = await fetchJson(
+        `${FUNNELS_BASE}?search=nothing-matches&limit=10&offset=0`,
+      );
+      expectPage(none, { length: 0, next: false, previous: false });
+    },
+  },
+  {
+    name: "honours limit and offset for funnels pagination",
+    path: `${FUNNELS_BASE}?limit=5&offset=0`,
+    status: 200,
+    check: async (page1) => {
+      const all = await funnelsOf();
+      expectPage(page1, { length: 5, next: true, previous: false });
+      const { json: page2 } = await fetchJson(
+        `${FUNNELS_BASE}?limit=5&offset=5`,
+      );
+      expect(page2.meta.previous).toBe(true);
+      const { json: last } = await fetchJson(
+        `${FUNNELS_BASE}?limit=5&offset=${all.length - 1}`,
+      );
+      expectPage(last, { length: 1, next: false, previous: true });
+      expect([...page1.results, ...page2.results]).toEqual(all.slice(0, 10));
+    },
+  },
+  {
+    name: "returns no funnels, events or pins for an unknown app",
+    path: "/api/apps/does-not-exist/funnels?limit=10&offset=0",
+    status: 200,
+    check: async (data) => {
+      expectPage(data, { length: 0, next: false, previous: false });
+      const { json: events } = await fetchJson(
+        "/api/apps/does-not-exist/funnels/events",
+      );
+      expect(events).toEqual({ results: [] });
+      const { json: pinned } = await fetchJson(
+        "/api/apps/does-not-exist/funnels/pinned",
+      );
+      expect(pinned).toEqual({ results: [] });
+    },
+  },
+  {
+    name: "lists every event the app's funnels use, once each and sorted",
+    path: `${FUNNELS_BASE}/events`,
+    status: 200,
+    check: async (data) => {
+      const used = new Set(
+        (await funnelsOf()).flatMap((f) =>
+          f.steps.map((s: any) => s.event_name),
+        ),
+      );
+      expect(data.results).toEqual([...used].sort());
+      const { json: noLogin } = await fetchJson(
+        `/api/apps/${noLoginApp.app.id}/funnels/events`,
+      );
+      expect(noLogin.results.length).toBeGreaterThan(0);
+      expect(
+        noLogin.results.some((name: string) => name.startsWith("login_")),
+      ).toBe(false);
+    },
+  },
+  {
+    name: "lists only the events whose name contains the search, ignoring case",
+    path: `${FUNNELS_BASE}/events?search=CART`,
+    status: 200,
+    check: async (data) => {
+      const { json: all } = await fetchJson(`${FUNNELS_BASE}/events`);
+      const matching = all.results.filter((name: string) =>
+        name.toLowerCase().includes("cart"),
+      );
+      expect(matching.length).toBeGreaterThan(0);
+      expect(matching.length).toBeLessThan(all.results.length);
+      expect(data.results).toEqual(matching);
+    },
+  },
+  {
+    name: "starts every app with the seeded pins, in their pinned order",
+    path: `${FUNNELS_BASE}/pinned`,
+    status: 200,
+    check: async (data) => {
+      expect(data.results.map((f: any) => f.name)).toEqual(SEEDED_PINS);
+      data.results.forEach((funnel: any, i: number) => {
+        expect(funnel.pinned).toBe(true);
+        expect(funnel.pin_order).toBe(i);
+      });
+      expect(await pinnedNames(noLoginApp.app.id)).toEqual(SEEDED_PINS);
+      for (const funnel of await funnelsOf()) {
+        const order = SEEDED_PINS.indexOf(funnel.name);
+        expect(funnel.pinned).toBe(order !== -1);
+        expect(funnel.pin_order).toBe(order === -1 ? null : order);
+      }
+    },
+  },
+  {
+    name: "returns each listed funnel by id",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      for (const funnel of data.results) {
+        const { res, json } = await fetchJson(`${FUNNELS_BASE}/${funnel.id}`);
+        expect(res.status).toBe(200);
+        expect(json).toEqual(funnel);
+      }
+    },
+  },
+  {
+    name: "returns 404 on every funnel route for an unknown funnel id",
+    path: `${FUNNELS_BASE}/does-not-exist`,
+    status: 404,
+    check: async (data) => {
+      expect(data.error).toBe("Funnel not found");
+      const login = await funnelNamed("Log in");
+      const unknown = `${FUNNELS_BASE}/does-not-exist`;
+      for (const [path, method] of [
+        [`${unknown}/conversion?${wideRangeParams().toString()}`, "GET"],
+        [`${unknown}/errors?${stepParams(1)}`, "GET"],
+        [`${unknown}/traces?${stepParams(1, { quantile: "p50" })}`, "GET"],
+        [`${unknown}/network?${stepParams(1, { quantile: "p50" })}`, "GET"],
+        [`${unknown}/trend?period=day`, "GET"],
+        [`${unknown}/pin`, "PUT"],
+        [`${unknown}/pin`, "DELETE"],
+        [`/api/apps/${noLoginApp.app.id}/funnels/${login.id}`, "GET"],
+      ]) {
+        const { res } = await fetchJson(path, { method });
+        expect([path, method, res.status]).toEqual([path, method, 404]);
+      }
+    },
+  },
+  {
+    name: "pins a funnel after the others and unpins it, keeping pins in memory for that app only",
+    path: FUNNELS_BASE,
+    status: 200,
+    check: async () => {
+      const funnel = await funnelNamed("Order tracking");
+      expect(funnel.pinned).toBe(false);
+      const { json: pinned } = await fetchJson(
+        `${FUNNELS_BASE}/${funnel.id}/pin`,
+        { method: "PUT" },
+      );
+      expect(pinned).toMatchObject({
+        id: funnel.id,
+        pinned: true,
+        pin_order: 3,
+      });
+      const { json: again } = await fetchJson(
+        `${FUNNELS_BASE}/${funnel.id}/pin`,
+        { method: "PUT" },
+      );
+      expect(again.pin_order).toBe(3);
+      expect(await pinnedNames()).toEqual([...SEEDED_PINS, "Order tracking"]);
+      expect((await funnelNamed("Order tracking")).pin_order).toBe(3);
+      expect(await pinnedNames(noLoginApp.app.id)).toEqual(SEEDED_PINS);
+
+      const { json: unpinned } = await fetchJson(
+        `${FUNNELS_BASE}/${funnel.id}/pin`,
+        { method: "DELETE" },
+      );
+      expect(unpinned).toMatchObject({ pinned: false, pin_order: null });
+      expect(await pinnedNames()).toEqual(SEEDED_PINS);
+    },
+  },
+  {
+    name: "moves the remaining pins up when a pinned funnel is unpinned",
+    path: FUNNELS_BASE,
+    status: 200,
+    check: async () => {
+      const checkout = await funnelNamed("Checkout");
+      await fetchJson(`${FUNNELS_BASE}/${checkout.id}/pin`, {
+        method: "DELETE",
+      });
+      expect(await pinnedNames()).toEqual(SEEDED_PINS.slice(1));
+      expect((await funnelNamed("Search to order")).pin_order).toBe(0);
+    },
+  },
+  {
+    name: "reorders the pinned funnels and keeps the new order",
+    path: `${FUNNELS_BASE}/pinned`,
+    status: 200,
+    check: async (data) => {
+      const ids = data.results.map((f: any) => f.id);
+      const reversed = [...ids].reverse();
+      const { res, json } = await fetchJson(`${FUNNELS_BASE}/pinned`, {
+        method: "PUT",
+        body: JSON.stringify({ funnel_ids: reversed }),
+      });
+      expect(res.status).toBe(200);
+      expect(json.results.map((f: any) => f.id)).toEqual(reversed);
+      expect(json.results.map((f: any) => f.pin_order)).toEqual([0, 1, 2]);
+      expect(await pinnedNames()).toEqual([...SEEDED_PINS].reverse());
+      expect((await funnelNamed(SEEDED_PINS[0])).pin_order).toBe(2);
+    },
+  },
+  {
+    name: "rejects a reorder that does not list each current pin once with 409, leaving the order as it was",
+    path: `${FUNNELS_BASE}/pinned`,
+    status: 200,
+    check: async (data) => {
+      const ids: string[] = data.results.map((f: any) => f.id);
+      const other = (await funnelNamed("Order tracking")).id;
+      for (const body of [
+        {},
+        { funnel_ids: "not-a-list" },
+        { funnel_ids: ids.slice(1) },
+        { funnel_ids: [...ids, other] },
+        { funnel_ids: [ids[0], ids[0], ids[1]] },
+        { funnel_ids: [other, ids[1], ids[2]] },
+      ]) {
+        const { res, json } = await fetchJson(`${FUNNELS_BASE}/pinned`, {
+          method: "PUT",
+          body: JSON.stringify(body),
+        });
+        expect([body, res.status]).toEqual([body, 409]);
+        expect(json.error).toEqual(expect.any(String));
+      }
+      expect(await pinnedNames()).toEqual(SEEDED_PINS);
+      const { res } = await fetchJson(
+        "/api/apps/does-not-exist/funnels/pinned",
+        {
+          method: "PUT",
+          body: JSON.stringify({ funnel_ids: ids }),
+        },
+      );
+      expect(res.status).toBe(404);
+    },
+  },
+  {
+    name: "rejects creating, editing and deleting a funnel in the demo with 403",
+    path: FUNNELS_BASE,
+    method: "POST",
+    body: {
+      name: "New funnel",
+      steps: [{ event_name: "app_opened" }, { event_name: "order_placed" }],
+      conversion_window_seconds: 3600,
+    },
+    status: 403,
+    check: async (data) => {
+      expect(data.error).toBe("Not available in the interactive demo");
+      const funnel = await funnelNamed("Checkout");
+      for (const method of ["PATCH", "DELETE"]) {
+        const { res, json } = await fetchJson(`${FUNNELS_BASE}/${funnel.id}`, {
+          method,
+          body: JSON.stringify({ ...funnel, name: "Renamed" }),
+        });
+        expect(res.status).toBe(403);
+        expect(json.error).toBe("Not available in the interactive demo");
+      }
+      const funnels = await funnelsOf();
+      expect(funnels.find((f) => f.id === funnel.id)).toEqual(funnel);
+      expect(funnels.some((f) => f.name === "New funnel")).toBe(false);
+    },
+  },
+  {
+    name: "returns one conversion row per step for every funnel, with users falling step to step",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      for (const funnel of data.results) {
+        const { json } = await fetchJson(
+          `${FUNNELS_BASE}/${funnel.id}/conversion?${wideRangeParams().toString()}`,
+        );
+        expect(json.steps.map((s: any) => s.event_name)).toEqual(
+          funnel.steps.map((s: any) => s.event_name),
+        );
+        const users = json.steps.map((s: any) => s.users);
+        expect(users[0]).toBeGreaterThan(0);
+        expectNonIncreasing(users);
+        for (const value of users) {
+          expect(Number.isInteger(value)).toBe(true);
+        }
+        expect(json.steps[0].median_seconds_from_previous).toBeNull();
+        for (const step of json.steps.slice(1)) {
+          expect(Number.isInteger(step.median_seconds_from_previous)).toBe(
+            true,
+          );
+          expect(step.median_seconds_from_previous).toBeGreaterThanOrEqual(1);
+        }
+      }
+    },
+  },
+  {
+    name: "reports no users and no step times for a range before the app's first session, or a filter that matches nothing",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      for (const range of [
+        EMPTY_RANGE,
+        wideRangeParams({ filter_expr: "version_name:in:9.9.9" }).toString(),
+      ]) {
+        const { json } = await fetchJson(
+          `${FUNNELS_BASE}/${funnel.id}/conversion?${range}`,
+        );
+        for (const step of json.steps) {
+          expect(step.users).toBe(0);
+          expect(step.median_seconds_from_previous).toBeNull();
+        }
+      }
+    },
+  },
+  {
+    name: "narrows a funnel's conversion when the filter selects one version",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      const all = await funnelUsers(funnel, wideRangeParams().toString());
+      const one = await funnelUsers(
+        funnel,
+        wideRangeParams({
+          filter_expr: `version_name:in:${latestVersion}`,
+        }).toString(),
+      );
+      expect(one[0]).toBeGreaterThan(0);
+      expect(one[0]).toBeLessThan(all[0]);
+      expectNonIncreasing(one);
+    },
+  },
+  {
+    name: "returns one trend point per period up to the current one, each with users falling step to step",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      const periods = [
+        ["day", 30],
+        ["week", 12],
+        ["month", 12],
+      ] as const;
+      for (const [period, count] of periods) {
+        const { res, json } = await fetchJson(
+          `${FUNNELS_BASE}/${funnel.id}/trend?period=${period}&timezone=UTC`,
+        );
+        expect(res.status).toBe(200);
+        expect(json.event_names).toEqual(
+          funnel.steps.map((step: any) => step.event_name),
+        );
+        expect(json.points).toHaveLength(count);
+        const current = DateTime.utc().startOf(period);
+        json.points.forEach((point: any, i: number) => {
+          expect(point.datetime).toBe(
+            current.minus({ [period]: count - 1 - i }).toFormat("yyyy-MM-dd"),
+          );
+          expect(point.steps).toHaveLength(funnel.steps.length);
+          expect(point.steps[0].median_seconds_from_previous).toBeNull();
+          expectNonIncreasing(point.steps.map((s: any) => s.users));
+        });
+        expect(json.points.at(-1).steps[0].users).toBeGreaterThan(0);
+      }
+    },
+  },
+  {
+    name: "starts each daily trend point at midnight in the requested timezone, and in UTC without one",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      const trend = `${FUNNELS_BASE}/${funnel.id}/trend?period=day`;
+      const datesOf = async (query: string) => {
+        const { json } = await fetchJson(`${trend}${query}`);
+        return json.points.map((p: any) => p.datetime);
+      };
+      const daysTo = (today: DateTime) =>
+        Array.from({ length: 30 }, (_, i) =>
+          today.minus({ days: 29 - i }).toFormat("yyyy-MM-dd"),
+        );
+      const utc = await datesOf("&timezone=UTC");
+      expect(await datesOf("")).toEqual(utc);
+      // These zones are fourteen hours ahead of UTC and eleven behind it, so
+      // at any hour at least one of them is on a different date than UTC.
+      const zoned = [];
+      for (const zone of ["Pacific/Kiritimati", "Pacific/Pago_Pago"]) {
+        const dates = await datesOf(`&timezone=${encodeURIComponent(zone)}`);
+        expect(dates).toEqual(
+          daysTo(DateTime.now().setZone(zone).startOf("day")),
+        );
+        zoned.push(dates);
+      }
+      expect(zoned.some((dates) => dates.at(-1) !== utc.at(-1))).toBe(true);
+    },
+  },
+  {
+    name: "counts a week and a day the same in Breakdown as in the trend point for it",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      for (const period of ["week", "day"] as const) {
+        const { json: trend } = await fetchJson(
+          `${FUNNELS_BASE}/${funnel.id}/trend?period=${period}&timezone=UTC`,
+        );
+        const point = trend.points.at(-4);
+        const start = DateTime.fromISO(point.datetime, { zone: "UTC" });
+        const query = new URLSearchParams({
+          from: start.toISO()!,
+          to: start.plus({ [period]: 1 }).toISO()!,
+          timezone: "UTC",
+        });
+        const { json: conversion } = await fetchJson(
+          `${FUNNELS_BASE}/${funnel.id}/conversion?${query}`,
+        );
+        expect(conversion.steps.map((s: any) => s.users)).toEqual(
+          point.steps.map((s: any) => s.users),
+        );
+        expect(
+          conversion.steps.map((s: any) => s.median_seconds_from_previous),
+        ).toEqual(point.steps.map((s: any) => s.median_seconds_from_previous));
+      }
+    },
+  },
+  {
+    name: "returns a cadence of whole weeks ending before the funnel's users are still converting",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      // Checkout's window is a day and Abandoned cart recovery's three days.
+      for (const name of ["Checkout", "Abandoned cart recovery"]) {
+        const funnel = named(data, name);
+        const { res, json } = await fetchJson(
+          `${FUNNELS_BASE}/${funnel.id}/cadence?weeks=4&timezone=UTC`,
+        );
+        expect(res.status).toBe(200);
+        const to = DateTime.utc()
+          .minus({ seconds: funnel.conversion_window_seconds })
+          .startOf("week");
+        expect(DateTime.fromISO(json.to).toMillis()).toBe(to.toMillis());
+        expect(DateTime.fromISO(json.from).toMillis()).toBe(
+          to.minus({ weeks: 4 }).toMillis(),
+        );
+        expect(json.hours.length).toBeGreaterThan(0);
+        for (const hour of json.hours) {
+          expect(hour.converted).toBeLessThanOrEqual(hour.users);
+        }
+      }
+    },
+  },
+  {
+    name: "dips cadence conversion during the payment maintenance only for funnels that place an order after their first step",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async () => {
+      const conversionAt = (hours: any[], weekday: number, hour: number) => {
+        const cell = hours.find(
+          (h: any) => h.weekday === weekday && h.hour === hour,
+        );
+        return cell.converted / cell.users;
+      };
+      const maintenanceRatio = async (appId: string, name: string) => {
+        const funnel = (await funnelsOf(appId)).find(
+          (f: any) => f.name === name,
+        );
+        const { json } = await fetchJson(
+          `/api/apps/${appId}/funnels/${funnel.id}/cadence?weeks=12&timezone=UTC`,
+        );
+        // Wednesday 2pm against Tuesday 2pm, outside the maintenance.
+        return (
+          conversionAt(json.hours, 3, 14) / conversionAt(json.hours, 2, 14)
+        );
+      };
+      let orderTrackingAppId: string | undefined;
+      for (const app of world.apps) {
+        if (
+          (await funnelsOf(app.id)).some((f) => f.name === "Order tracking")
+        ) {
+          orderTrackingAppId = app.id;
+          break;
+        }
+      }
+      expect(await maintenanceRatio(APP_ID, "Checkout")).toBeLessThan(0.75);
+      expect(
+        await maintenanceRatio(orderTrackingAppId!, "Order tracking"),
+      ).toBeGreaterThan(0.75);
+    },
+  },
+  {
+    name: "marks a trend point complete only once its period and the funnel's conversion window have passed",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      // A daily point ends at the next midnight, so a one-day window leaves
+      // today and yesterday open and a three-day window leaves four days open.
+      for (const [name, open] of [
+        ["Checkout", 2],
+        ["Abandoned cart recovery", 4],
+      ] as const) {
+        const funnel = named(data, name);
+        expect(funnel.conversion_window_seconds).toBe(
+          (open - 1) * 24 * 60 * 60,
+        );
+        const { json } = await fetchJson(
+          `${FUNNELS_BASE}/${funnel.id}/trend?period=day&timezone=UTC`,
+        );
+        const complete = json.points.map((p: any) => p.complete);
+        expect(complete).toEqual([
+          ...Array(complete.length - open).fill(true),
+          ...Array(open).fill(false),
+        ]);
+      }
+    },
+  },
+  {
+    name: "gives a trend point a time to convert at least the sum of its step times, and none when nobody converted",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      const trend = `${FUNNELS_BASE}/${funnel.id}/trend?period=week&timezone=UTC`;
+      const { json } = await fetchJson(trend);
+      for (const point of json.points) {
+        const converted = point.steps[point.steps.length - 1].users;
+        expect(converted).toBeGreaterThan(0);
+        const stepTimes = point.steps.reduce(
+          (sum: number, s: any) => sum + (s.median_seconds_from_previous ?? 0),
+          0,
+        );
+        expect(point.median_seconds_to_convert).toBeGreaterThanOrEqual(
+          stepTimes,
+        );
+      }
+      const { json: unmatched } = await fetchJson(
+        withFilter(trend, "version_name:in:9.9.9"),
+      );
+      for (const point of unmatched.points) {
+        expect(point.median_seconds_to_convert).toBeNull();
+        for (const step of point.steps) {
+          expect(step.users).toBe(0);
+          expect(step.median_seconds_from_previous).toBeNull();
+        }
+      }
+    },
+  },
+  {
+    name: "lists the builds uploaded inside a trend's span, oldest first, when asked",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      const trend = `${FUNNELS_BASE}/${funnel.id}/trend?timezone=UTC`;
+      const { json: withoutBuilds } = await fetchJson(`${trend}&period=month`);
+      expect(withoutBuilds.builds).toEqual([]);
+      const { json } = await fetchJson(`${trend}&period=month&builds=true`);
+      expect(json.builds.length).toBeGreaterThan(0);
+      const uploaded = json.builds.map((b: any) => b.uploaded_at);
+      expect(uploaded).toEqual([...uploaded].sort());
+      const versions = bundle.builds.map((b) => b.version_name);
+      for (const build of json.builds) {
+        expect(versions).toContain(build.version_name);
+        expect(
+          DateTime.fromISO(build.uploaded_at) >=
+            DateTime.fromISO(json.points[0].datetime, { zone: "UTC" }),
+        ).toBe(true);
+        expect(DateTime.fromISO(build.uploaded_at) <= DateTime.now()).toBe(
+          true,
+        );
+      }
+      const { json: daily } = await fetchJson(
+        `${trend}&period=day&builds=true`,
+      );
+      expect(daily.builds.length).toBeLessThanOrEqual(json.builds.length);
+    },
+  },
+  {
+    name: "rejects a missing or unknown trend period with 400",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const id = data.results[0].id;
+      for (const query of ["", "?period=year", "?period=toString"]) {
+        const { res, json } = await fetchJson(
+          `${FUNNELS_BASE}/${id}/trend${query}`,
+        );
+        expect(res.status).toBe(400);
+        expect(json.error).toBe("period must be one of day, week or month");
+      }
+    },
+  },
+  {
+    name: "lists the errors users hit before each step, most drop-offs first, within the step's conversion",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      const users = await funnelUsers(funnel, wideRangeParams().toString());
+      const groupIds = bundle.errorGroups.map((g) => g.id);
+      let listed = 0;
+      for (let step = 1; step < funnel.steps.length; step++) {
+        const { json } = await fetchJson(
+          `${FUNNELS_BASE}/${funnel.id}/errors?${stepParams(step)}`,
+        );
+        listed += json.results.length;
+        const dropped = json.results.map((e: any) => e.dropped);
+        expect(dropped).toEqual([...dropped].sort((a, b) => b - a));
+        expectStepOutcomes(json.results, users, step);
+        for (const error of json.results) {
+          expect(groupIds).toContain(error.id);
+          expect(error.users).toBe(error.dropped + error.converted);
+        }
+      }
+      expect(listed).toBeGreaterThan(0);
+    },
+  },
+  {
+    name: "keeps a step's error counts and users within what the errors page lists for the same range and filter",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      const filters: Record<string, string>[] = [
+        {},
+        { filter_expr: `version_name:in:${latestVersion}` },
+      ];
+      for (const extra of filters) {
+        const { json: groups } = await fetchJson(
+          `${ERROR_GROUPS_BASE}?${wideRangeParams({ limit: "200", offset: "0", ...extra }).toString()}`,
+        );
+        const byId = new Map<string, any>(
+          groups.results.map((g: any) => [g.id, g]),
+        );
+        for (let step = 1; step < funnel.steps.length; step++) {
+          const { json } = await fetchJson(
+            `${FUNNELS_BASE}/${funnel.id}/errors?${stepParams(step, extra)}`,
+          );
+          expect(json.results.length).toBeGreaterThan(0);
+          for (const error of json.results) {
+            const group = byId.get(error.id);
+            expect(group).toBeDefined();
+            expect(error.count).toBeLessThanOrEqual(group.count);
+            expect(error.users).toBeLessThanOrEqual(group.users);
+            expect(error.error_type).toBe(group.error_type);
+          }
+        }
+      }
+    },
+  },
+  {
+    name: "pages a step's errors, and lists none for a range without errors",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      const errors = `${FUNNELS_BASE}/${funnel.id}/errors`;
+      const { json: all } = await fetchJson(`${errors}?${stepParams(1)}`);
+      expect(all.results.length).toBeGreaterThan(2);
+      const { json: page1 } = await fetchJson(
+        `${errors}?${stepParams(1, { limit: "2" })}`,
+      );
+      expectPage(page1, { length: 2, next: true, previous: false });
+      const { json: page2 } = await fetchJson(
+        `${errors}?${stepParams(1, { limit: "2", offset: "2" })}`,
+      );
+      expect(page2.meta.previous).toBe(true);
+      expect([...page1.results, ...page2.results]).toEqual(
+        all.results.slice(0, 4),
+      );
+      const { json: empty } = await fetchJson(
+        `${errors}?${EMPTY_RANGE}&step=1&limit=10&offset=0`,
+      );
+      expectPage(empty, { length: 0, next: false, previous: false });
+    },
+  },
+  {
+    name: "rejects a step that is not between the funnel's second and last step with 400",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      const last = funnel.steps.length - 1;
+      for (const route of ["errors", "traces", "network", "sessions"]) {
+        for (const step of ["", "0", String(last + 1), "1.5", "abc"]) {
+          const { res, json } = await fetchJson(
+            `${FUNNELS_BASE}/${funnel.id}/${route}?${wideRangeParams({ step, quantile: "p50", outcome: "dropped" }).toString()}`,
+          );
+          expect([route, step, res.status]).toEqual([route, step, 400]);
+          expect(json.error).toBe(`step must be between 1 and ${last}`);
+        }
+        const { res } = await fetchJson(
+          `${FUNNELS_BASE}/${funnel.id}/${route}?${stepParams(last, { quantile: "p50", outcome: "dropped" })}`,
+        );
+        expect(res.status).toBe(200);
+      }
+    },
+  },
+  {
+    name: "lists the sandbox's own sessions between two steps, keeping each installation's sessions together",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async () => {
+      const crossSession: string[] = [];
+      for (const app of world.apps) {
+        const sessionById = new Map(
+          world.appById
+            .get(app.id)!
+            .sessions.map((s) => [s.list.session_id, s]),
+        );
+        for (const funnel of await funnelsOf(app.id)) {
+          for (let step = 1; step < funnel.steps.length; step++) {
+            for (const outcome of ["dropped", "converted"]) {
+              const { json } = await fetchJson(
+                `/api/apps/${app.id}/funnels/${funnel.id}/sessions?${stepParams(step, { outcome })}`,
+              );
+              const installations: string[] = [];
+              for (const row of json.results) {
+                const found = sessionById.get(row.session_id)!;
+                expect(found.detail.attribute.installation_id).toBe(
+                  row.installation_id,
+                );
+                expect(row.user_id).toBe(found.list.attribute.user_id);
+                expect(row.first_event_time).toBe(found.list.first_event_time);
+                expect(row.duration).toBe(Number(found.list.duration));
+                if (installations.at(-1) === row.installation_id) {
+                  crossSession.push(`${outcome}:${row.installation_id}`);
+                } else {
+                  expect(installations).not.toContain(row.installation_id);
+                  installations.push(row.installation_id);
+                }
+              }
+            }
+          }
+        }
+      }
+      // A user who views a product in one session and adds it to the cart in
+      // the next has both sessions listed for that step.
+      expect(crossSession.some((s) => s.startsWith("converted:"))).toBe(true);
+    },
+  },
+  {
+    name: "lists errors, traces and network requests across the whole funnel when no step is given",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      const users = await funnelUsers(funnel, wideRangeParams().toString());
+      const last = users.length - 1;
+      for (const route of ["errors", "traces", "network"]) {
+        const { res, json } = await fetchJson(
+          `${FUNNELS_BASE}/${funnel.id}/${route}?${stepParams(null, { quantile: "p95" })}`,
+        );
+        expect(res.status).toBe(200);
+        expect(json.results.length).toBeGreaterThan(0);
+        const dropped = json.results.map((r: any) => r.dropped);
+        expect(dropped).toEqual([...dropped].sort((a, b) => b - a));
+        for (const row of json.results) {
+          expect(row.dropped).toBeLessThanOrEqual(users[0] - users[last]);
+          expect(row.converted).toBeLessThanOrEqual(users[last]);
+        }
+      }
+    },
+  },
+  {
+    name: "lists the sessions of installations that finished the funnel, or dropped off at any step, when no step is given",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async () => {
+      const installationsOf = async (
+        app: string,
+        funnel: string,
+        step: number | null,
+        outcome: string,
+      ) => {
+        const { json } = await fetchJson(
+          `/api/apps/${app}/funnels/${funnel}/sessions?${stepParams(step, { outcome })}`,
+        );
+        return new Set<string>(json.results.map((r: any) => r.installation_id));
+      };
+      let listed = 0;
+      for (const app of world.apps) {
+        for (const funnel of await funnelsOf(app.id)) {
+          const last = funnel.steps.length - 1;
+          const converted = await installationsOf(
+            app.id,
+            funnel.id,
+            null,
+            "converted",
+          );
+          expect(converted).toEqual(
+            await installationsOf(app.id, funnel.id, last, "converted"),
+          );
+          const droppedAtSteps = new Set<string>();
+          for (let step = 1; step <= last; step++) {
+            for (const id of await installationsOf(
+              app.id,
+              funnel.id,
+              step,
+              "dropped",
+            )) {
+              droppedAtSteps.add(id);
+            }
+          }
+          const dropped = await installationsOf(
+            app.id,
+            funnel.id,
+            null,
+            "dropped",
+          );
+          expect(dropped).toEqual(droppedAtSteps);
+          listed += converted.size + dropped.size;
+        }
+      }
+      expect(listed).toBeGreaterThan(0);
+    },
+  },
+  {
+    name: "rejects a missing or unknown outcome on step sessions with 400",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      for (const outcome of ["", "Dropped off", "both"]) {
+        const { res, json } = await fetchJson(
+          `${FUNNELS_BASE}/${funnel.id}/sessions?${stepParams(1, { outcome })}`,
+        );
+        expect(res.status).toBe(400);
+        expect(json.error).toBe("outcome must be one of dropped or converted");
+      }
+    },
+  },
+  {
+    name: "rejects a missing or unknown quantile on step traces and network with 400",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      const quantiles: Record<string, string>[] = [
+        {},
+        { quantile: "p75" },
+        { quantile: "constructor" },
+      ];
+      for (const route of ["traces", "network"]) {
+        for (const extra of quantiles) {
+          const { res, json } = await fetchJson(
+            `${FUNNELS_BASE}/${funnel.id}/${route}?${stepParams(1, extra)}`,
+          );
+          expect(res.status).toBe(400);
+          expect(json.error).toBe(
+            "quantile must be one of p50, p90, p95 or p99",
+          );
+        }
+      }
+    },
+  },
+  {
+    name: "lists the root spans before a step, the one the step waits on first, within the step's conversion",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      const users = await funnelUsers(funnel, wideRangeParams().toString());
+      const { json } = await fetchJson(
+        `${FUNNELS_BASE}/${funnel.id}/traces?${stepParams(1, { quantile: "p95" })}`,
+      );
+      expect(json.results.length).toBeGreaterThan(1);
+      expectStepOutcomes(json.results, users, 1);
+      const dropped = json.results.map((t: any) => t.dropped);
+      expect(dropped).toEqual([...dropped].sort((a, b) => b - a));
+      // Adding to the cart waits on loading the product, so that span is the
+      // one most users who dropped off ran, and waited longer on.
+      const [first] = json.results;
+      expect(first.span_name).toBe("product_load");
+      expect(
+        first.dropped_duration_ms / first.converted_duration_ms,
+      ).toBeGreaterThan(1.15);
+      for (const trace of json.results) {
+        expect(bundle.rootSpanNames).toContain(trace.span_name);
+      }
+    },
+  },
+  {
+    name: "times step spans and endpoints at the requested percentile",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      const fields = {
+        traces: ["span_name", "converted_duration_ms"],
+        network: ["path_pattern", "converted_latency_ms"],
+      };
+      for (const [route, [key, timing]] of Object.entries(fields)) {
+        const at = async (quantile: string) => {
+          const { json } = await fetchJson(
+            `${FUNNELS_BASE}/${funnel.id}/${route}?${stepParams(1, { quantile })}`,
+          );
+          return new Map<string, number>(
+            json.results.map((r: any) => [r[key], r[timing]]),
+          );
+        };
+        const p50 = await at("p50");
+        const p99 = await at("p99");
+        expect(p50.size).toBeGreaterThan(0);
+        expect([...p99.keys()].sort()).toEqual([...p50.keys()].sort());
+        for (const [name, ms] of p50) {
+          expect(p99.get(name)!).toBeGreaterThanOrEqual(ms);
+        }
+        expect([...p50].some(([name, ms]) => p99.get(name)! > ms)).toBe(true);
+      }
+    },
+  },
+  {
+    name: "matches endpoints to steps by whole path segments, so payment-methods slows submitting payment and payments slows placing the order",
+    path: allFunnelsPath(segmentApp.app.id),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      const base = `/api/apps/${segmentApp.app.id}/funnels/${funnel.id}`;
+      const users = await funnelUsers(funnel, wideRangeParams().toString());
+      expect(funnel.steps.map((s: any) => s.event_name).slice(3)).toEqual([
+        "payment_submitted",
+        "order_placed",
+      ]);
+      const endpoints = Array.from(segmentApp.networkEndpoints.values()).map(
+        (e) => `${e.domain}${e.path}`,
+      );
+      const ratiosAt = async (step: number) => {
+        const { json } = await fetchJson(
+          `${base}/network?${stepParams(step, { quantile: "p95" })}`,
+        );
+        expectStepOutcomes(json.results, users, step);
+        const dropped = json.results.map((r: any) => r.dropped);
+        expect(dropped).toEqual([...dropped].sort((a, b) => b - a));
+        const ratios = json.results.map(
+          (r: any) => r.dropped_latency_ms / r.converted_latency_ms,
+        );
+        for (const row of json.results) {
+          expect(endpoints).toContain(`${row.domain}${row.path_pattern}`);
+        }
+        return new Map<string, number>(
+          json.results.map((r: any, i: number) => [
+            r.path_pattern.split("/").pop(),
+            ratios[i],
+          ]),
+        );
+      };
+      const submitting = await ratiosAt(3);
+      expect(submitting.get("payment-methods")).toBeGreaterThan(1.15);
+      expect(submitting.get("payments")).toBeLessThan(1.1);
+      const placing = await ratiosAt(4);
+      expect(placing.get("payments")).toBeGreaterThan(1.15);
+      expect(placing.get("payment-methods")).toBeLessThan(1.1);
+    },
+  },
+];
+
 describe("general sandbox routes", () => {
   it.each(generalCases)("$name", run);
 });
@@ -1338,6 +2429,11 @@ describe("sandbox profiles routes", () => {
 
 describe("sandbox settings routes", () => {
   it.each(settingsCases)("$name", run);
+});
+
+describe("funnels sandbox routes", () => {
+  afterEach(restoreSeededPins);
+  it.each(funnelsCases)("$name", run);
 });
 
 const sixHourRange = rangeParams(6 * 60);

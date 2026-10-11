@@ -87,6 +87,9 @@ interface FilterBarProps {
   // False hides the filter expression editor and keeps the app and date
   // range controls.
   showFilterExpr?: boolean;
+  // False hides the date range control, for consumers who handle their own
+  // date range.
+  showDateRange?: boolean;
   onChange: (change: FilterChange) => void;
 }
 
@@ -195,6 +198,7 @@ export default function FilterBar({
   filterExprIssues,
   showAppSelect = true,
   showFilterExpr = true,
+  showDateRange = true,
   onChange,
 }: FilterBarProps) {
   const [keyListOpen, setKeyListOpen] = useState(false);
@@ -357,7 +361,7 @@ export default function FilterBar({
     return (
       <div className="flex flex-wrap gap-4 items-center w-full">
         {showAppSelect && <Skeleton className="h-9 w-37.5" />}
-        <Skeleton className="h-9 w-37.5" />
+        {showDateRange && <Skeleton className="h-9 w-37.5" />}
         {showFilterExpr && <Skeleton className="h-9 flex-1 min-w-64" />}
       </div>
     );
@@ -610,17 +614,19 @@ export default function FilterBar({
       {showAppSelect && (
         <AppSelect apps={apps} selected={app} onChange={setApp} />
       )}
-      <DateRangeSelect
-        selection={value.date}
-        onChange={(selection) =>
-          onChange({
-            dateRange:
-              selection.dateRange === DateRange.Custom
-                ? selection
-                : { ...selection, startDate: null, endDate: null },
-          })
-        }
-      />
+      {showDateRange && (
+        <DateRangeSelect
+          selection={value.date}
+          onChange={(selection) =>
+            onChange({
+              dateRange:
+                selection.dateRange === DateRange.Custom
+                  ? selection
+                  : { ...selection, startDate: null, endDate: null },
+            })
+          }
+        />
+      )}
       {spanNames !== undefined &&
         (spanNames === null ? (
           <Skeleton className="h-9 w-37.5" />

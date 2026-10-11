@@ -42,7 +42,7 @@ Measure has a single, transparent [price](/pricing) based on how much data you u
 
 Luciq and Measure are both mobile first platforms. Luciq is closed source and proprietary.
 
-Measure is open source and built in the open, with a public roadmap and issue tracker, made for mobile developers to read, participate and contribute. [Crashes & ANRs](/product/crashes-and-anrs), [App Health](/product/app-health), [Performance Traces](/product/performance-traces), [Network Performance](/product/network-performance), [Bug Reports](/product/bug-reports) and [User Journeys](/product/user-journeys) are all shaped by how mobile apps break in production.
+Measure is open source and built in the open, with a public roadmap and issue tracker, made for mobile developers to read, participate and contribute. [Crashes & ANRs](/product/crashes-and-anrs), [App Health](/product/app-health), [Performance Traces](/product/performance-traces), [Network Performance](/product/network-performance), [Bug Reports](/product/bug-reports), [User Journeys](/product/user-journeys) and [Funnels](/product/funnels) are all shaped by how mobile apps break in production.
 
 Measure is built with the community, incorporating continuous feedback which we strongly believe leads to a better platform for mobile developers.
 
@@ -55,6 +55,7 @@ Measure is built with the community, incorporating continuous feedback which we 
 | Performance traces | ✓ | ✓ |
 | Network monitoring | ✓ | ✓ |
 | User journeys | ✓ | ✓ |
+| Funnels with drop-off analysis | ✓ | Single start and end flows with crash and abandonment drop-offs |
 | In-app bug reports | ✓ | ✓ |
 | Session replay on every issue | ✓ | ✓ |
 | Dynamic Sampling with Adaptive Capture | ✓ | ✗ |

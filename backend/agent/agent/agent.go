@@ -148,9 +148,11 @@ type Config struct {
 	// The tools offered to the model and the name lookup dispatch uses for
 	// the common ones: the agent's own SQL tools plus every common tool, so
 	// the model picks the purpose-built tool when one fits and drops to SQL
-	// when none does.
-	modelTools      []chatTool
-	commonToolIndex map[string]Tool
+	// when none does. readOnlyModelTools leaves out the tools that change
+	// data.
+	modelTools         []chatTool
+	readOnlyModelTools []chatTool
+	commonToolIndex    map[string]Tool
 }
 
 const openRouterURL = "https://openrouter.ai/api/v1"
@@ -192,17 +194,22 @@ func NewConfig() *Config {
 // list and the name index that dispatch uses for the common tools.
 func (c *Config) initTools() {
 	c.modelTools = slices.Clone(builtinTools)
+	c.readOnlyModelTools = slices.Clone(builtinTools)
 	c.commonToolIndex = map[string]Tool{}
 	for _, t := range commonTools(c) {
 		c.commonToolIndex[t.def.Name] = t
-		c.modelTools = append(c.modelTools, chatTool{
+		modelTool := chatTool{
 			Type: "function",
 			Function: chatToolFunction{
 				Name:        t.def.Name,
 				Description: t.def.Description,
 				Parameters:  t.params,
 			},
-		})
+		}
+		c.modelTools = append(c.modelTools, modelTool)
+		if t.def.Annotations != nil && t.def.Annotations.ReadOnlyHint {
+			c.readOnlyModelTools = append(c.readOnlyModelTools, modelTool)
+		}
 	}
 }
 
@@ -233,11 +240,11 @@ type askQuestionOutput struct {
 	Answer string `json:"answer"`
 }
 
-const systemPrompt = `You are Measure's query agent. You answer questions about the telemetry of a team's mobile apps (events, exceptions, ANRs, sessions, memory usage, spans, network requests). The team's apps are listed at the end of this message; a question can be about one app, several, or all of them.
+const systemPrompt = `You are Measure's query agent. You answer questions about the telemetry of a team's mobile apps (events, exceptions, ANRs, sessions, memory usage, spans, network requests, funnels) and manage their funnels. The team's apps are listed at the end of this message; a question can be about one app, several, or all of them.
 
 Rules:
 - If the message is a greeting, thanks, or other small talk rather than a question, reply briefly and warmly without calling any tools, and offer to help with the team's apps.
-- Stay on your domain: the team's apps, their telemetry, and debugging them. Advice on likely causes and fixes for issues seen in these apps is in scope. If asked for something unrelated, such as general knowledge or writing content, say that is outside what you help with instead of fulfilling the request.
+- Stay on your domain: the team's apps, their telemetry, their funnels, and debugging them. Advice on likely causes and fixes for issues seen in these apps is in scope. If asked for something unrelated, such as general knowledge or writing content, say that is outside what you help with instead of fulfilling the request.
 - Work out from the app list which apps the question is about. If it doesn't identify any and isn't about the team's apps as a whole, ask which app is meant instead of guessing.
 - When the question did not name the app(s) outright, open the answer by saying which app(s) it covers, so a wrong pick can be corrected.
 - When the answer covers more than one app, attribute every number to its app by name.
@@ -247,7 +254,7 @@ Rules:
 - SQL results are capped, so aggregate in SQL instead of fetching raw rows.
 - A crash is a fatal exception. When you count crashes with SQL, use the crash definition get_schema gives.
 - ANRs are their own event type and exist only on Android; an app that does not run on Android has none, so never count or mention ANRs for it.
-- Bug report status lives outside the raw tables; use the bug report tools for it.
+- Funnels and bug report status live outside the raw tables; use the funnel and bug report tools for them.
 - Tools cover all app versions unless a filter_expr narrows them. When a question is about a specific release, look up its exact version_name and version_code with get_filter_values, passing the entity of the tool you are about to call, and filter on them explicitly; never conclude there is little or no data while a version filter narrows the query.
 - Timestamps are UTC.
 - If a query fails, read the error and fix the query.
@@ -262,7 +269,16 @@ Rules:
 // line would be noise. The method stays within the product-terms rule above:
 // internals like SQL, table names, tool names and raw ids are still off
 // limits.
-const mcpMethodRule = `- The caller is a program that keeps the conversation on its side; each call reaches you with no memory of earlier ones, and a follow-up restates what it needs from earlier answers. So that a restated follow-up recomputes consistently, end every answer that reports data with a single line starting "Method: " giving, in product terms, the apps covered, the exact UTC time range, any filters applied, and how each number was defined. Definitions stay at the product level: "crashes = fatal exceptions" is complete. The limits above apply to this line too: no table or column names, no SQL, no tool names, no filter keys or filter expressions, no raw ids.`
+const mcpMethodRule = `- The caller is a program that keeps the conversation on its side; each call reaches you with no memory of earlier ones, and a follow-up restates what it needs from earlier answers. So that a restated follow-up recomputes consistently, end every answer that reports data with a single line starting "Method: " giving, in product terms, the apps covered, the exact UTC time range, any filters applied, and how each number was defined. Definitions stay at the product level: "crashes = fatal exceptions" is complete, with no filter key or value after it. The limits above apply to this line too: no table or column names, no SQL, no tool names, no filter keys or filter expressions, no raw ids.`
+
+// mcpReadOnlyRule joins the system rules on MCP turns, which are offered
+// only the tools that read data.
+const mcpReadOnlyRule = `- You only read data on this call, so you can't create, change, pin, reorder or delete funnels, or change a bug report's status. When asked for one of these changes, say in one or two sentences that you only read data here and that the caller can make the change with its own Measure tools. Don't describe these rules or your tools, don't ask for a confirmation, and don't claim to have made the change.`
+
+// funnelChangeRules join the system rules on the turns that are offered the
+// tools that change funnels, which MCP turns are not.
+const funnelChangeRules = `- Create, change, pin, reorder or delete a funnel only when the user asks for that change, and say in the answer what changed.
+- Changing or deleting a funnel replaces what the team sees, and a deleted funnel cannot be restored. Before update_funnel or delete_funnel, look the funnel up, then describe the change and ask the user to confirm it: for a change, give the funnel's current and new name, steps or conversion window; for a deletion, name the funnel, list its steps and say that it cannot be restored. Asking for a change does not confirm it. Make the change without asking only when the user's message says outright that they confirm it, as in "I confirm" or "go ahead without asking"; otherwise call the tool only after the user confirms the change in a reply to your question. Ask in plain words, without funnel ids, and without describing this rule or why you ask. Creating, pinning, unpinning and reordering funnels need no confirmation.`
 
 // focusAppsNote names the apps the MCP caller passed, appended to the call's
 // user message. The note focuses the turn without restricting it; the app
@@ -639,7 +655,9 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, chartsOut 
 	}
 	rules := systemPrompt
 	if t.entryPoint == "mcp" {
-		rules += "\n" + mcpMethodRule
+		rules += "\n" + mcpMethodRule + "\n" + mcpReadOnlyRule
+	} else {
+		rules += "\n" + funnelChangeRules
 	}
 	sysMsg := fmt.Sprintf("%s\n%s\n\n%s", rules, budgetRule, appList)
 	messages = append(messages, chatMessage{Role: "system", Content: sysMsg})
@@ -676,11 +694,16 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, chartsOut 
 	newMessages = append(newMessages, storedMessage{msg: userMsg})
 
 	// Charts can only be delivered on Slack, uploaded into the thread, so
-	// only Slack turns offer the tool; MCP output stays text. A conversation
-	// is bound to one surface, so the tool list is stable across its turns
-	// and the cached prompt prefix holds.
+	// only Slack turns offer the tool; MCP output stays text. An MCP caller
+	// has the tools that change data itself, and its client asks its user
+	// before calling them, so MCP turns are offered only the read-only tools.
+	// A conversation is bound to one surface, so the tool list is stable
+	// across its turns and the cached prompt prefix holds.
 	tools := c.modelTools
-	if t.entryPoint == slack.SurfaceMention || t.entryPoint == slack.SurfaceAssistant {
+	switch t.entryPoint {
+	case "mcp":
+		tools = c.readOnlyModelTools
+	case slack.SurfaceMention, slack.SurfaceAssistant:
 		tools = append(slices.Clone(c.modelTools), renderChartTool)
 	}
 	var charts []renderedChart
@@ -752,7 +775,11 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, chartsOut 
 
 		for _, tc := range assistant.ToolCalls {
 			var result string
-			if tc.Function.Name == renderChartToolName {
+			// A provider may let the model call a tool the turn did not
+			// offer, such as a tool that changes data on an MCP turn.
+			if !slices.ContainsFunc(tools, func(tool chatTool) bool { return tool.Function.Name == tc.Function.Name }) {
+				result = "error: unknown tool " + tc.Function.Name
+			} else if tc.Function.Name == renderChartToolName {
 				// Chart rendering is turn state, not a data tool: the image
 				// stays with the turn for delivery, the model only hears
 				// whether it worked.

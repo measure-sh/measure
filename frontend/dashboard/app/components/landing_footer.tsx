@@ -117,6 +117,15 @@ export default function LandingFooter() {
               User Journeys
             </Link>
             <Link
+              href="/product/funnels"
+              className={cn(
+                buttonVariants({ variant: "ghost" }),
+                "font-display select-none w-full md:w-fit justify-start",
+              )}
+            >
+              Funnels
+            </Link>
+            <Link
               href="/product/network-performance"
               className={cn(
                 buttonVariants({ variant: "ghost" }),

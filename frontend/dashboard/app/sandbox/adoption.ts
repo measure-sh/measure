@@ -124,8 +124,10 @@ export function sessionsIn(
   );
 }
 
+// The window ends at the start of the current UTC day, so every request made
+// on a day scales by the same window and two pages showing one range agree.
 export function referenceRange(): SandboxRange {
-  const to = DateTime.utc();
+  const to = DateTime.utc().startOf("day");
   return {
     from: to.minus({ days: REFERENCE_WINDOW_DAYS }),
     to,

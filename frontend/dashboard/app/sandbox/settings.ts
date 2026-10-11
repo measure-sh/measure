@@ -3,12 +3,14 @@ import { catalog } from "./catalog";
 import {
   isWithinRange,
   jsonResponse,
+  notAvailable,
   paginate,
   parseRange,
   SandboxRoute,
   SandboxRouteContext,
 } from "./query";
 import { matchesFilterExpr } from "./filter";
+import { SANDBOX_ADMIN, SANDBOX_OWNER } from "./team";
 
 export const SANDBOX_APP_ID = catalog().apps[0].id;
 
@@ -26,21 +28,6 @@ function memberSinceDays(): number {
   );
   return oldest + 30;
 }
-
-// Only owners and admins can change data collection settings, so the config
-// history of every app is made by these two members.
-const SANDBOX_OWNER = {
-  id: "00000000-0000-4000-8000-000000000002",
-  name: "Sarah Lewis",
-  email: "sarah@acme.shop",
-  role: "owner",
-};
-const SANDBOX_ADMIN = {
-  id: "00000000-0000-4000-8000-000000000003",
-  name: "James Morgan",
-  email: "james@acme.shop",
-  role: "admin",
-};
 
 function sandboxSessionUser() {
   const since = daysAgoIso(memberSinceDays());
@@ -70,6 +57,8 @@ function sandboxAuthzAndMembers() {
   return {
     can_invite_roles: ["developer", "viewer"],
     can_update_bug_reports: false,
+    // The sandbox keeps pins in memory, so visitors can pin and reorder funnels.
+    can_change_funnels: true,
     can_change_billing: false,
     can_create_app: false,
     can_rename_app: false,
@@ -184,7 +173,9 @@ type ConfigHistoryStep = {
 };
 
 // Oldest first. A step's new values come from the next step that changes the
-// same setting, or from SANDBOX_SDK_CONFIG for the newest change.
+// same setting, or from SANDBOX_SDK_CONFIG for the newest change. Only owners
+// and admins can change data collection settings, so every step is made by
+// SANDBOX_OWNER or SANDBOX_ADMIN.
 const CONFIG_HISTORY_STEPS: ConfigHistoryStep[] = [
   { by: SANDBOX_OWNER, before: { trace_sampling_rate: 10 } },
   {
@@ -357,10 +348,6 @@ function sandboxBillingInfo() {
     token_credits_used: 0,
     token_credits_granted: 0,
   };
-}
-
-function notAvailable(): Response {
-  return jsonResponse({ error: "Not available in the interactive demo" }, 403);
 }
 
 export const settingsRoutes: SandboxRoute[] = [

@@ -72,6 +72,12 @@ function buildInitNavData(): { navMain: NavSection[] } {
             isActive: false,
             external: false,
           },
+          {
+            title: "Funnels",
+            url: "funnels",
+            isActive: false,
+            external: false,
+          },
         ],
       },
       {

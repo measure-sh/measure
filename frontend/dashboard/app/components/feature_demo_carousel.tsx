@@ -11,6 +11,10 @@ const UserJourneysDemo = dynamic(
   () => import("./user_journeys").then((m) => m.UserJourneysDemo),
   { ssr: false },
 );
+const FunnelDetailsDemo = dynamic(
+  () => import("./funnel/details").then((m) => m.FunnelDetailsDemo),
+  { ssr: false },
+);
 const OverviewDemo = dynamic(
   () => import("./overview").then((m) => m.OverviewDemo),
   { ssr: false },
@@ -146,6 +150,23 @@ const features = [
     ),
   },
   {
+    title: "Funnels",
+    heightClassName: "h-[1150px]",
+    screenshot: {
+      src: "/images/product_screenshots/funnels.webp",
+      alt: "A Measure funnel showing how many users reach each step of a checkout, with the errors, traces and network requests that can cause drop-offs",
+      width: 2300,
+      height: 2268,
+    },
+    description: (
+      <>
+        Improve conversion in important flows <span aria-hidden="true">🎯</span>
+        . Track conversion between steps, see trends over time, and find the
+        issues that cause friction and make users drop off.
+      </>
+    ),
+  },
+  {
     title: "Network Performance",
     heightClassName: "h-[1000px]",
     screenshot: {
@@ -181,6 +202,7 @@ export default function FeatureDemoCarousel() {
     <TraceDetails demo={true} hideDemoTitle={false} key="demo-trace" />,
     <BugReport demo={true} hideDemoTitle={false} key="demo-bugreport" />,
     <UserJourneysDemo key="demo-journeys" />,
+    <FunnelDetailsDemo key="demo-funnels" />,
     <NetworkOverviewDemo key="demo-network" />,
   ];
 

@@ -42,7 +42,7 @@ Measure has a single, transparent [price](/pricing) based on how much data you a
 
 Embrace supports mobile and web monitoring. Mobile is one of the supported platforms, and the defaults, platform decisions, dashboards and product roadmap are shaped by the whole platform rather than by the needs of mobile devs alone.
 
-Measure is mobile first and focused on mobile developers. [Crashes & ANRs](/product/crashes-and-anrs), [App Health](/product/app-health), [Performance Traces](/product/performance-traces), [Network Performance](/product/network-performance), [Bug Reports](/product/bug-reports) and [User Journeys](/product/user-journeys) are all shaped only by how mobile apps break in production.
+Measure is mobile first and focused on mobile developers. [Crashes & ANRs](/product/crashes-and-anrs), [App Health](/product/app-health), [Performance Traces](/product/performance-traces), [Network Performance](/product/network-performance), [Bug Reports](/product/bug-reports), [User Journeys](/product/user-journeys) and [Funnels](/product/funnels) are all shaped only by how mobile apps break in production.
 
 Mobile is not a part of our product, it is the whole product.
 
@@ -55,6 +55,7 @@ Mobile is not a part of our product, it is the whole product.
 | Performance traces | ✓ | ✓ |
 | Network monitoring | ✓ | ✓ |
 | User journeys | ✓ | ✓ |
+| Funnels with drop-off analysis | ✓ | Single start and end flows with abandonment reasons |
 | In-app bug reports | ✓ | ✗ |
 | Session replay on every issue | ✓ | ✓ |
 | Dynamic Sampling with Adaptive Capture | ✓ | Always-on full capture |

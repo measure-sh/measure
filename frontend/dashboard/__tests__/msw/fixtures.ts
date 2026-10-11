@@ -1220,6 +1220,7 @@ export function makeAuthzFixture(overrides: Record<string, any> = {}) {
   return {
     can_create_app: true,
     can_update_bug_reports: true,
+    can_change_funnels: true,
     can_rename_app: true,
     can_change_retention: true,
     can_rotate_api_key: true,
@@ -1309,6 +1310,7 @@ export function makeAuthzAndMembersFixture(
     can_change_billing: true,
     can_create_app: true,
     can_update_bug_reports: true,
+    can_change_funnels: true,
     can_rename_app: true,
     can_change_retention: true,
     can_rotate_api_key: true,
@@ -2005,6 +2007,368 @@ export function makeBuildsFixture(overrides: Record<string, any> = {}) {
       },
     ],
     meta: { next: false, previous: false },
+    ...overrides,
+  };
+}
+
+// --- Funnels (GET /apps/:appId/funnels and /apps/:appId/funnels/:funnelId) ---
+// Shape: Funnel in app/api/api_calls.ts
+
+export function makeFunnelFixture(overrides: Record<string, any> = {}) {
+  return {
+    id: "funnel-001",
+    app_id: "b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f",
+    name: "Checkout",
+    steps: [
+      { event_name: "product_viewed" },
+      { event_name: "added_to_cart" },
+      { event_name: "checkout_started" },
+      { event_name: "payment_submitted" },
+      { event_name: "order_placed" },
+    ],
+    conversion_window_seconds: 86400,
+    pinned: true,
+    pin_order: 0,
+    created_by: "user-001",
+    created_by_email: "test@example.com",
+    created_at: "2026-03-01T00:00:00Z",
+    updated_at: "2026-04-04T09:30:00Z",
+    ...overrides,
+  };
+}
+
+export function makeSearchToCartFunnelFixture(
+  overrides: Record<string, any> = {},
+) {
+  return makeFunnelFixture({
+    id: "funnel-002",
+    name: "Search to cart",
+    steps: [
+      { event_name: "search_performed" },
+      { event_name: "search_result_clicked" },
+      { event_name: "added_to_cart" },
+    ],
+    conversion_window_seconds: 1800,
+    pinned: false,
+    pin_order: null,
+    created_by: null,
+    created_by_email: null,
+    created_at: "2026-03-04T00:00:00Z",
+    updated_at: "2026-03-04T00:00:00Z",
+    ...overrides,
+  });
+}
+
+export function makeSearchToOrderFunnelFixture(
+  overrides: Record<string, any> = {},
+) {
+  return makeFunnelFixture({
+    id: "funnel-003",
+    name: "Search to order",
+    steps: [
+      { event_name: "search_performed" },
+      { event_name: "search_result_clicked" },
+      { event_name: "added_to_cart" },
+      { event_name: "order_placed" },
+    ],
+    conversion_window_seconds: 7200,
+    pinned: true,
+    pin_order: 1,
+    created_at: "2026-03-10T00:00:00Z",
+    updated_at: "2026-04-01T00:00:00Z",
+    ...overrides,
+  });
+}
+
+export function makeFunnelsFixture(overrides: Record<string, any> = {}) {
+  return {
+    meta: { next: true, previous: false },
+    results: [
+      makeFunnelFixture(),
+      makeSearchToCartFunnelFixture(),
+      makeSearchToOrderFunnelFixture(),
+    ],
+    ...overrides,
+  };
+}
+
+export function makeFunnelsPage2Fixture() {
+  return {
+    meta: { next: false, previous: true },
+    results: [
+      makeFunnelFixture({
+        id: "funnel-004",
+        name: "Log in",
+        steps: [
+          { event_name: "login_viewed" },
+          { event_name: "login_submitted" },
+          { event_name: "login_succeeded" },
+        ],
+        conversion_window_seconds: 3600,
+        pinned: false,
+        pin_order: null,
+        updated_at: "2026-02-20T00:00:00Z",
+      }),
+    ],
+  };
+}
+
+// --- Pinned funnels (GET /apps/:appId/funnels/pinned) ---
+
+export function makePinnedFunnelsFixture(overrides: Record<string, any> = {}) {
+  return {
+    results: [makeFunnelFixture(), makeSearchToOrderFunnelFixture()],
+    ...overrides,
+  };
+}
+
+// --- Funnel event names (GET /apps/:appId/funnels/events) ---
+
+export function makeFunnelEventNamesFixture() {
+  return {
+    results: [
+      "added_to_cart",
+      "checkout_started",
+      "order_placed",
+      "payment_submitted",
+      "product_viewed",
+      "search_performed",
+      "search_result_clicked",
+    ],
+  };
+}
+
+// --- Funnel conversion (GET /apps/:appId/funnels/:funnelId/conversion) ---
+// One entry per step of the Checkout funnel, in step order.
+
+export function makeFunnelConversionFixture(
+  overrides: Record<string, any> = {},
+) {
+  return {
+    steps: [
+      {
+        event_name: "product_viewed",
+        users: 10000,
+        median_seconds_from_previous: null,
+      },
+      {
+        event_name: "added_to_cart",
+        users: 1900,
+        median_seconds_from_previous: 95,
+      },
+      {
+        event_name: "checkout_started",
+        users: 760,
+        median_seconds_from_previous: 240,
+      },
+      {
+        event_name: "payment_submitted",
+        users: 562,
+        median_seconds_from_previous: 110,
+      },
+      {
+        event_name: "order_placed",
+        users: 523,
+        median_seconds_from_previous: 6,
+      },
+    ],
+    ...overrides,
+  };
+}
+
+// --- Funnel trend (GET /apps/:appId/funnels/:funnelId/trend) ---
+// One entry per step for each period. The latest period is still converting.
+
+function funnelTrendPoint(
+  datetime: string,
+  users: number[],
+  medianSecondsToConvert: number | null,
+  complete = true,
+) {
+  return {
+    datetime,
+    steps: users.map((count, i) => ({
+      users: count,
+      median_seconds_from_previous: i === 0 ? null : 60 * i,
+    })),
+    median_seconds_to_convert: medianSecondsToConvert,
+    complete,
+  };
+}
+
+export function makeFunnelTrendFixture(overrides: Record<string, any> = {}) {
+  return {
+    event_names: [
+      "product_viewed",
+      "added_to_cart",
+      "checkout_started",
+      "payment_submitted",
+      "order_placed",
+    ],
+    points: [
+      funnelTrendPoint("2026-03-16", [1000, 200, 80, 60, 50], 1180),
+      funnelTrendPoint("2026-03-23", [1200, 230, 95, 70, 66], 1210),
+      funnelTrendPoint("2026-03-30", [1100, 210, 90, 66, 62], 1260),
+      funnelTrendPoint("2026-04-06", [900, 150, 40, 20, 10], 900, false),
+    ],
+    builds: [
+      {
+        version_name: "3.1.0",
+        version_code: "310",
+        patch_id: null,
+        patch_version: null,
+        uploaded_at: "2026-03-25T10:00:00Z",
+      },
+    ],
+    ...overrides,
+  };
+}
+
+export function makeSearchToOrderTrendFixture(
+  overrides: Record<string, any> = {},
+) {
+  return {
+    event_names: [
+      "search_performed",
+      "search_result_clicked",
+      "added_to_cart",
+      "order_placed",
+    ],
+    points: [
+      funnelTrendPoint("2026-03-23", [800, 500, 100, 30], 2400),
+      funnelTrendPoint("2026-03-30", [820, 520, 200, 26], 2700),
+      funnelTrendPoint("2026-04-06", [760, 470, 60, 5], 1500, false),
+    ],
+    releases: [],
+    ...overrides,
+  };
+}
+
+export function makeSearchToCartTrendFixture(
+  overrides: Record<string, any> = {},
+) {
+  return {
+    event_names: ["search_performed", "search_result_clicked", "added_to_cart"],
+    points: [
+      funnelTrendPoint("2026-03-23", [600, 380, 80], 140),
+      funnelTrendPoint("2026-03-30", [640, 400, 90], 150),
+      funnelTrendPoint("2026-04-06", [500, 300, 50], 120, false),
+    ],
+    releases: [],
+    ...overrides,
+  };
+}
+
+// --- Funnel step errors (GET /apps/:appId/funnels/:funnelId/errors) ---
+
+export function makeFunnelStepErrorsFixture(
+  overrides: Record<string, any> = {},
+) {
+  return {
+    meta: { next: true, previous: false },
+    results: [
+      {
+        id: "crash-group-001",
+        type: "java.lang.NullPointerException",
+        error_type: "exception",
+        severity: "fatal",
+        message: "Attempt to invoke virtual method on null object reference",
+        method_name: "onAddToCart",
+        file_name: "ProductActivity.kt",
+        count: 612,
+        users: 443,
+        dropped: 405,
+        converted: 38,
+      },
+      {
+        id: "anr-group-001",
+        type: "",
+        error_type: "anr",
+        severity: "fatal",
+        message: "Input dispatching timed out",
+        method_name: "loadImages",
+        file_name: "ProductGallery.kt",
+        count: 97,
+        users: 81,
+        dropped: 81,
+        converted: 0,
+      },
+    ],
+    ...overrides,
+  };
+}
+
+// --- Funnel step traces (GET /apps/:appId/funnels/:funnelId/traces) ---
+
+export function makeFunnelStepTracesFixture(
+  overrides: Record<string, any> = {},
+) {
+  return {
+    meta: { next: false, previous: false },
+    results: [
+      {
+        span_name: "product_detail_load",
+        count: 1600,
+        dropped: 1215,
+        converted: 190,
+        dropped_duration_ms: 4200,
+        converted_duration_ms: 2100,
+      },
+    ],
+    ...overrides,
+  };
+}
+
+// --- Funnel step network (GET /apps/:appId/funnels/:funnelId/network) ---
+
+export function makeFunnelStepNetworkFixture(
+  overrides: Record<string, any> = {},
+) {
+  return {
+    meta: { next: false, previous: false },
+    results: [
+      {
+        domain: "api.example.com",
+        path_pattern: "/v1/products/*/reviews",
+        count: 3100,
+        dropped: 2430,
+        converted: 380,
+        dropped_latency_ms: 950,
+        converted_latency_ms: 420,
+      },
+    ],
+    ...overrides,
+  };
+}
+
+// --- Funnel step sessions (GET /apps/:appId/funnels/:funnelId/sessions) ---
+
+export function makeFunnelCadenceFixture(overrides: Record<string, any> = {}) {
+  return {
+    from: "2026-03-09T00:00:00.000Z",
+    to: "2026-04-06T00:00:00.000Z",
+    hours: [
+      { weekday: 1, hour: 9, users: 400, converted: 12 },
+      { weekday: 6, hour: 20, users: 250, converted: 11 },
+    ],
+    ...overrides,
+  };
+}
+
+export function makeFunnelStepSessionsFixture(
+  overrides: Record<string, any> = {},
+) {
+  return {
+    meta: { next: false, previous: false },
+    results: [
+      {
+        session_id: "session-funnel-001",
+        installation_id: "installation-funnel-001",
+        user_id: "user-funnel-001",
+        first_event_time: "2026-03-24T10:00:00Z",
+        duration: 185000,
+      },
+    ],
     ...overrides,
   };
 }

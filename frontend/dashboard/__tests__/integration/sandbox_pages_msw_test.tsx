@@ -16,6 +16,7 @@ import {
   render,
   screen,
   waitFor,
+  within,
 } from "@testing-library/react";
 import { http } from "msw";
 
@@ -103,6 +104,19 @@ jest.mock("@nivo/bar", () => ({
   ),
 }));
 
+jest.mock("@nivo/funnel", () => ({
+  __esModule: true,
+  ResponsiveFunnel: ({ data }: any) => (
+    <div data-testid="nivo-funnel">
+      {data?.map((d: any) => (
+        <span key={d.id} data-testid={`funnel-part-${d.id}`}>
+          {d.label}: {d.value}
+        </span>
+      ))}
+    </div>
+  ),
+}));
+
 jest.mock("@nivo/heatmap", () => ({
   __esModule: true,
   ResponsiveHeatMapCanvas: ({ data }: any) => (
@@ -163,6 +177,8 @@ import AlertsOverview from "@/app/[teamId]/alerts/page";
 import Apps from "@/app/[teamId]/apps/page";
 import Builds from "@/app/[teamId]/builds/page";
 import BugReportsOverview from "@/app/[teamId]/bug_reports/page";
+import FunnelDetailsPage from "@/app/[teamId]/funnels/[appId]/[funnelId]/page";
+import FunnelsPage from "@/app/[teamId]/funnels/page";
 import UserJourneysPage from "@/app/[teamId]/journeys/page";
 import Notifications from "@/app/[teamId]/notif_prefs/page";
 import SessionDetail from "@/app/[teamId]/session_replays/[appId]/[sessionId]/page";
@@ -248,6 +264,22 @@ async function firstSandboxSessionId(): Promise<string> {
   );
   const data = await res.json();
   return data.results[0].session_id;
+}
+
+async function sandboxFunnels(): Promise<{
+  pinned: { id: string; name: string; steps: { event_name: string }[] }[];
+  listed: { name: string }[];
+}> {
+  const pinned = await handleSandboxRequest(
+    `/api/apps/${APP_ID}/funnels/pinned`,
+  );
+  const listed = await handleSandboxRequest(
+    `/api/apps/${APP_ID}/funnels?limit=5&offset=0`,
+  );
+  return {
+    pinned: (await pinned.json()).results,
+    listed: (await listed.json()).results,
+  };
 }
 
 function sessionsWithinHours(hours: number, versionName?: string): number {
@@ -433,6 +465,62 @@ const cases: SandboxCase[] = [
         await screen.findByTestId("exception-detail-common-path"),
       ).toBeTruthy();
       expect(screen.getByTestId("nivo-bar-chart")).toBeTruthy();
+    },
+  },
+  {
+    name: "Funnels overview",
+    path: "/sandbox/funnels",
+    render: () => <FunnelsPage params={promiseParams({ teamId: "sandbox" })} />,
+    expect: async () => {
+      const { pinned, listed } = await sandboxFunnels();
+      await waitFor(
+        () =>
+          expect(screen.queryAllByText("Weekly conversion")).toHaveLength(
+            pinned.length,
+          ),
+        { timeout: 5000 },
+      );
+      expect(screen.getAllByTestId("nivo-bar-canvas")).toHaveLength(
+        pinned.length,
+      );
+      const table = within(screen.getByRole("table"));
+      for (const funnel of listed) {
+        expect(table.getByRole("link", { name: funnel.name })).toBeTruthy();
+      }
+      expect(await screen.findByText(APP_NAME)).toBeTruthy();
+    },
+  },
+  {
+    name: "Funnel details",
+    path: "/sandbox/funnels",
+    render: async () => {
+      filtersStore.getState().setSelectedDateRange(DateRange.LastMonth);
+      const [funnel] = (await sandboxFunnels()).pinned;
+      return (
+        <FunnelDetailsPage
+          params={promiseParams({
+            teamId: "sandbox",
+            appId: APP_ID,
+            funnelId: funnel.id,
+          })}
+        />
+      );
+    },
+    expect: async () => {
+      const [funnel] = (await sandboxFunnels()).pinned;
+      expect(
+        await screen.findByText(/% converted · /, {}, { timeout: 5000 }),
+      ).toBeTruthy();
+      expect(screen.getByText(funnel.name)).toBeTruthy();
+      funnel.steps.forEach((step, i) => {
+        expect(screen.getByTestId(`funnel-part-${i}`).textContent).toMatch(
+          new RegExp(`^${step.event_name}: \\d+$`),
+        );
+      });
+      expect(
+        await screen.findAllByRole("link", { name: /\.kt: / }),
+      ).not.toHaveLength(0);
+      expect(screen.queryByText(/^Error fetching/)).toBeNull();
     },
   },
   {

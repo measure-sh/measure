@@ -1,9 +1,13 @@
+import { DateTime } from "luxon";
 import { catalog, percentile } from "./catalog";
 import type { HttpSample, NetworkEndpointStats } from "./catalog";
 import { jsonResponse, parseRange, SandboxRoute } from "./query";
 import { deviceAttributeBag, matchFraction, matchesFilterExpr } from "./filter";
 import {
+  bucketMaintenanceShares,
   drawCounts,
+  PAYMENT_MAINTENANCE,
+  paymentMaintenanceShare,
   scaledSeries,
   smoothScales,
   windowCoverage,
@@ -30,6 +34,31 @@ function matchingSamples(
 }
 
 type Outcomes = NetworkEndpointStats["outcomes"];
+
+const MAINTENANCE_CODE = 503;
+
+function withFailures(
+  weights: number[],
+  failed: number,
+  failedSlot: number,
+): number[] {
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  if (total <= 0 || failed <= 0) {
+    return weights;
+  }
+  return weights.map(
+    (weight, i) =>
+      (weight / total) * (1 - failed) + (i === failedSlot ? failed : 0),
+  );
+}
+
+// Charges go to the payment provider, so these endpoints fail during its
+// maintenance. Whole segments only, so "/payment-methods" is left out.
+function isPaymentPath(path: string): boolean {
+  return path
+    .split("/")
+    .some((part) => ["payment", "payments", "charge"].includes(part));
+}
 
 // A request that never got a response is recorded as code 0, and the backend
 // leaves it out of every status code count and total, so shares are taken
@@ -186,9 +215,23 @@ export const networkRoutes: SandboxRoute[] = [
         [200, 300, 400, 500],
         series.length,
       );
+      const paymentShare =
+        totalDailyRequests === 0
+          ? 0
+          : endpoints
+              .filter((e) => isPaymentPath(e.path))
+              .reduce((sum, e) => sum + answeredDailyRequests(e), 0) /
+            totalDailyRequests;
+      const maintenance = bucketMaintenanceShares(range);
       const data = series.map((point, i) => {
+        const failed =
+          paymentShare * maintenance[i] * PAYMENT_MAINTENANCE.failure;
         const [c2, c3, c4, c5] = drawCounts(
-          shares.map((share, slot) => share * wobbles[slot][i]),
+          withFailures(
+            shares.map((share, slot) => share * wobbles[slot][i]),
+            failed,
+            3,
+          ),
           point.instances,
           `statuscodes:${domain}|${path}:${i}`,
         );
@@ -228,15 +271,31 @@ export const networkRoutes: SandboxRoute[] = [
         bundle!.app.id,
       );
       const outcomes = answered(stats.outcomes);
-      const codes = outcomes.map((o) => o.code);
       const wobbles = codeWobbles(
         `endpointstatus:${domain}|${path}`,
-        codes,
+        outcomes.map((o) => o.code),
         series.length,
       );
+      const maintenance = isPaymentPath(path)
+        ? bucketMaintenanceShares(range)
+        : series.map(() => 0);
+      const failing = maintenance.some((share) => share > 0);
+      const codes = [
+        ...outcomes.map((o) => o.code),
+        ...(failing ? [MAINTENANCE_CODE] : []),
+      ];
       const data_points = series.map((point, i) => {
+        const weights = outcomes.map(
+          (outcome, slot) => outcome.weight * wobbles[slot][i],
+        );
         const counts = drawCounts(
-          outcomes.map((outcome, slot) => outcome.weight * wobbles[slot][i]),
+          failing
+            ? withFailures(
+                [...weights, 0],
+                maintenance[i] * PAYMENT_MAINTENANCE.failure,
+                weights.length,
+              )
+            : weights,
           point.instances,
           `endpointstatus:${domain}|${path}:${i}`,
         );
@@ -244,7 +303,7 @@ export const networkRoutes: SandboxRoute[] = [
           datetime: point.datetime,
           total_count: point.instances,
           ...Object.fromEntries(
-            codes.map((code, i) => [`count_${code}`, counts[i]]),
+            codes.map((code, slot) => [`count_${code}`, counts[slot]]),
           ),
         };
       });
@@ -319,9 +378,13 @@ export const networkRoutes: SandboxRoute[] = [
     handle: ({ params, url }) => {
       const filterExpr = url.searchParams.get("filter_expr");
       const bundle = catalog().appById.get(params.appId);
-      const coverage = bundle
-        ? windowCoverage(parseRange(url), bundle.dataStart)
-        : 0;
+      const range = parseRange(url);
+      const coverage = bundle ? windowCoverage(range, bundle.dataStart) : 0;
+      const now = DateTime.now();
+      const maintenance = paymentMaintenanceShare(
+        range.from,
+        range.to < now ? range.to : now,
+      );
       const samples = matchingSamples(params.appId, "", "", filterExpr);
       const byEndpoint = new Map<string, HttpSample[]>();
       for (const sample of samples) {
@@ -349,7 +412,12 @@ export const networkRoutes: SandboxRoute[] = [
             return [];
           }
           const durations = list.map((s) => s.durationMs).sort((a, b) => a - b);
-          const errorShare = weightShare(answered(stats.outcomes), 400, 599);
+          const failed = isPaymentPath(path_pattern)
+            ? maintenance * PAYMENT_MAINTENANCE.failure
+            : 0;
+          const errorShare =
+            weightShare(answered(stats.outcomes), 400, 599) * (1 - failed) +
+            failed;
           return [
             {
               domain,

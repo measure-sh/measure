@@ -24,6 +24,7 @@ export const MARKDOWN_TWIN_PATHS: ReadonlySet<string> = new Set([
   "/product/app-health",
   "/product/bug-reports",
   "/product/crashes-and-anrs",
+  "/product/funnels",
   "/product/mcp",
   "/product/network-performance",
   "/product/performance-traces",

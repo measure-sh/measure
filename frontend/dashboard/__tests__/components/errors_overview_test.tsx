@@ -185,4 +185,25 @@ describe("ErrorsOverview", () => {
     expect(href).toContain("java.lang.RuntimeException");
     expect(href).not.toContain("@");
   });
+
+  it("links every cell of a row to the group's page", () => {
+    const container = renderWith([group({})]);
+    const hrefs = [...container.querySelectorAll("a[href]")].map((link) =>
+      link.getAttribute("href"),
+    );
+
+    expect(hrefs.length).toBeGreaterThan(1);
+    for (const href of hrefs) {
+      expect(href).toBe(
+        "/team-id/errors/app-id/group-id/java.lang.RuntimeException%40Repo.kt",
+      );
+    }
+  });
+
+  it("titles a group by its file and method", () => {
+    renderWith([group({})]);
+
+    expect(screen.getByLabelText("Repo.kt: load()")).toBeInTheDocument();
+    expect(screen.getByText("Repo.kt: load()")).toBeInTheDocument();
+  });
 });

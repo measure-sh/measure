@@ -20,6 +20,10 @@ export function jsonResponse(data: unknown, status: number = 200): Response {
   });
 }
 
+export function notAvailable(): Response {
+  return jsonResponse({ error: "Not available in the interactive demo" }, 403);
+}
+
 export type SandboxRange = {
   from: DateTime;
   to: DateTime;

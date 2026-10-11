@@ -214,6 +214,16 @@ var errorEventTypes = []string{event.TypeANR, event.TypeException, event.TypeApp
 // membership subqueries compare against.
 const errorFingerprintExpr = "multiIf(type = 'anr', toString(`anr.fingerprint`), type = 'app_hang', `app_hang.fingerprint`, toString(`exception.fingerprint`))"
 
+// errorSourceTypeExpr reads which kind of group table an error row's group
+// is in.
+const errorSourceTypeExpr = "multiIf(type = 'anr', 'anr', type = 'app_hang', 'app_hang', 'exception')"
+
+// errorSeverityClassExpr applies the rule ingest uses to pick a group table
+// for an error row: a fatal exception goes to fatal_exception_groups, any
+// other exception to nonfatal_exception_groups, and an ANR or an app hang is
+// always fatal.
+const errorSeverityClassExpr = "multiIf(type in ('anr', 'app_hang'), 'fatal', `exception.severity` = 'fatal' or (`exception.severity` = '' and `exception.handled` = false), 'fatal', 'nonfatal')"
+
 // errorFingerprintMatch matches the events of one error group.
 const errorFingerprintMatch = "((type = 'anr' and `anr.fingerprint` = ?) or (type = 'exception' and `exception.fingerprint` = ?) or (type = 'app_hang' and `app_hang.fingerprint` = ?))"
 
@@ -237,16 +247,13 @@ func applyErrorPredicate(stmt *sqlf.Stmt, flt *filter.Filter) error {
 // by the error group each belongs to. A group is identified by fingerprint,
 // source type and severity class together, because the same exception can
 // be reported as a crash and as a handled error, and ingest stores those as
-// two groups with the same fingerprint. severity_class applies the rule
-// ingest uses to pick a group table: a fatal exception goes to
-// fatal_exception_groups, any other exception to nonfatal_exception_groups,
-// and an ANR is always fatal.
+// two groups with the same fingerprint.
 func (a App) errorGroupEventsStmt(flt *filter.Filter) (*sqlf.Stmt, error) {
 	stmt := sqlf.
 		From("events").
 		Select(errorFingerprintExpr+" as fingerprint").
-		Select("multiIf(type = 'anr', 'anr', type = 'app_hang', 'app_hang', 'exception') as source_type").
-		Select("multiIf(type in ('anr', 'app_hang'), 'fatal', `exception.severity` = 'fatal' or (`exception.severity` = '' and `exception.handled` = false), 'fatal', 'nonfatal') as severity_class").
+		Select(errorSourceTypeExpr+" as source_type").
+		Select(errorSeverityClassExpr+" as severity_class").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
 		Where("timestamp >= toDateTime64(?, 3, 'UTC')", flt.From).
@@ -264,22 +271,17 @@ func (a App) errorGroupEventsStmt(flt *filter.Filter) (*sqlf.Stmt, error) {
 	return stmt, nil
 }
 
-// GetErrorGroupsWithFilter lists the app's error groups with the number of
-// matching events, users and sessions in each and the time of the latest
-// one. The filter runs on events, so a group with no
-// matching events is dropped by the join; the group tables only describe
-// the groups.
-func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt *filter.Filter) (groups []group.ErrorGroup, next, previous bool, err error) {
-	ctx = chquery.WithTeamScope(ctx, a.TeamId)
-
-	versionNames, versionCodes := flt.RootVersionConditions()
-
+// errorGroupStmts returns one statement for each error group table, selecting
+// the details of the app's groups in it. Each row also has the source type and
+// severity class of its table, which is how errorGroupEventsStmt labels the
+// error events of those groups.
+func errorGroupStmts(teamID, appID uuid.UUID) []*sqlf.Stmt {
 	type groupColumns struct {
-		typeExpr, messageExpr, severityClassExpr, severityExpr, isCustomExpr string
+		typeExpr, messageExpr, severityClass, severityExpr, isCustomExpr string
 	}
 
-	newGroupsBranch := func(table, sourceType string, cols groupColumns) *sqlf.Stmt {
-		s := sqlf.
+	groupStmt := func(table, sourceType string, cols groupColumns) *sqlf.Stmt {
+		return sqlf.
 			From(table).
 			Select("team_id").
 			Select("app_id").
@@ -291,45 +293,58 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt 
 			Select("argMax(line_number, timestamp) as line_number").
 			Select("any(timestamp) as last_occurrence").
 			Select("'"+sourceType+"' as source_type").
-			Select(cols.severityClassExpr+" as severity_class").
+			Select("'"+cols.severityClass+"' as severity_class").
 			Select(cols.severityExpr+" as severity").
 			Select(cols.isCustomExpr+" as is_custom").
-			Where("team_id = toUUID(?)", a.TeamId).
-			Where("app_id = toUUID(?)", a.ID).
-			Where("timestamp >= toDateTime64(?, 3, 'UTC')", flt.From).
-			Where("timestamp <= toDateTime64(?, 3, 'UTC')", flt.To).
+			Where("team_id = toUUID(?)", teamID).
+			Where("app_id = toUUID(?)", appID).
 			GroupBy("team_id").
 			GroupBy("app_id").
 			GroupBy("id")
+	}
 
+	return []*sqlf.Stmt{
+		groupStmt("anr_groups final", event.TypeANR, groupColumns{
+			typeExpr: "argMax(type, timestamp)", messageExpr: "argMax(message, timestamp)",
+			severityClass: "fatal", severityExpr: "'fatal'", isCustomExpr: "false",
+		}),
+		groupStmt("fatal_exception_groups final", event.TypeException, groupColumns{
+			typeExpr: "argMax(type, timestamp)", messageExpr: "argMax(message, timestamp)",
+			severityClass: "fatal", severityExpr: "'fatal'", isCustomExpr: "argMax(is_custom, timestamp)",
+		}),
+		groupStmt("nonfatal_exception_groups final", event.TypeException, groupColumns{
+			typeExpr: "argMax(type, timestamp)", messageExpr: "argMax(message, timestamp)",
+			severityClass: "nonfatal", severityExpr: "if(argMax(handled, timestamp), 'handled', 'unhandled')", isCustomExpr: "argMax(is_custom, timestamp)",
+		}),
+		groupStmt("app_hang_groups final", event.TypeAppHang, groupColumns{
+			typeExpr: "''", messageExpr: "''",
+			severityClass: "fatal", severityExpr: "''", isCustomExpr: "false",
+		}),
+	}
+}
+
+// GetErrorGroupsWithFilter lists the app's error groups with the number of
+// matching events, users and sessions in each and the time of the latest
+// one. The filter runs on events, so a group with no
+// matching events is dropped by the join; the group tables only describe
+// the groups.
+func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt *filter.Filter) (groups []group.ErrorGroup, next, previous bool, err error) {
+	ctx = chquery.WithTeamScope(ctx, a.TeamId)
+
+	versionNames, versionCodes := flt.RootVersionConditions()
+
+	groupStmts := errorGroupStmts(a.TeamId, *a.ID)
+	for _, s := range groupStmts {
+		s.Where("timestamp >= toDateTime64(?, 3, 'UTC')", flt.From)
+		s.Where("timestamp <= toDateTime64(?, 3, 'UTC')", flt.To)
 		for _, names := range versionNames {
 			s.Where("app_version.1 in ?", names)
 		}
 		for _, codes := range versionCodes {
 			s.Where("app_version.2 in ?", codes)
 		}
-
-		return s
 	}
-
-	groupsCTE := unionStmts([]*sqlf.Stmt{
-		newGroupsBranch("anr_groups final", event.TypeANR, groupColumns{
-			typeExpr: "argMax(type, timestamp)", messageExpr: "argMax(message, timestamp)",
-			severityClassExpr: "'fatal'", severityExpr: "'fatal'", isCustomExpr: "false",
-		}),
-		newGroupsBranch("fatal_exception_groups final", event.TypeException, groupColumns{
-			typeExpr: "argMax(type, timestamp)", messageExpr: "argMax(message, timestamp)",
-			severityClassExpr: "'fatal'", severityExpr: "'fatal'", isCustomExpr: "argMax(is_custom, timestamp)",
-		}),
-		newGroupsBranch("nonfatal_exception_groups final", event.TypeException, groupColumns{
-			typeExpr: "argMax(type, timestamp)", messageExpr: "argMax(message, timestamp)",
-			severityClassExpr: "'nonfatal'", severityExpr: "if(argMax(handled, timestamp), 'handled', 'unhandled')", isCustomExpr: "argMax(is_custom, timestamp)",
-		}),
-		newGroupsBranch("app_hang_groups final", event.TypeAppHang, groupColumns{
-			typeExpr: "''", messageExpr: "''",
-			severityClassExpr: "'fatal'", severityExpr: "''", isCustomExpr: "false",
-		}),
-	})
+	groupsCTE := unionStmts(groupStmts)
 
 	countsCTE, err := a.errorGroupEventsStmt(flt)
 	if err != nil {

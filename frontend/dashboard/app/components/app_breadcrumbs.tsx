@@ -19,6 +19,7 @@ const sectionTitles: Record<string, string> = {
   overview: "Overview",
   session_replays: "Session Replays",
   journeys: "Journeys",
+  funnels: "Funnels",
   errors: "Errors",
   bug_reports: "Bug Reports",
   alerts: "Alerts",
@@ -61,6 +62,14 @@ const sectionInfo: Record<string, ReactNode> = {
         href="/docs/adaptive-capture#journey-sampling"
         className={underlineLinkStyle}
       >
+        Learn more
+      </Link>
+    </>
+  ),
+  funnels: (
+    <>
+      Funnels are built from custom events.{" "}
+      <Link href="/docs/custom-events" className={underlineLinkStyle}>
         Learn more
       </Link>
     </>

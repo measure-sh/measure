@@ -548,6 +548,20 @@ describe("FilterBar", () => {
       expect(screen.queryByTestId("filter-bar")).toBeNull();
     });
 
+    it("draws the app and filter without the range when the range is not offered", async () => {
+      await renderBar({}, { showDateRange: false });
+
+      expect(screen.getByTestId("app-select")).toBeInTheDocument();
+      expect(screen.getByTestId("filter-bar")).toBeInTheDocument();
+      expect(screen.queryByTestId("date-select")).toBeNull();
+    });
+
+    it("leaves the range skeleton out when the range is not offered", async () => {
+      await renderBar(null, { showDateRange: false });
+
+      expect(screen.getAllByTestId("skeleton")).toHaveLength(2);
+    });
+
     it("draws the filter editor when nothing says otherwise", async () => {
       await renderBar();
 

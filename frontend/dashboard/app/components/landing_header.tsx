@@ -33,6 +33,7 @@ const capabilityLinks = [
   { href: "/product/performance-traces", label: "Performance Traces" },
   { href: "/product/bug-reports", label: "Bug Reports" },
   { href: "/product/user-journeys", label: "User Journeys" },
+  { href: "/product/funnels", label: "Funnels" },
   { href: "/product/network-performance", label: "Network Performance" },
   { href: "/product/adaptive-capture", label: "Adaptive Capture" },
 ];

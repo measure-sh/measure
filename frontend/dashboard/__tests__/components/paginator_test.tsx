@@ -151,4 +151,23 @@ describe("Paginator", () => {
 
     expect(clicked).toBe(false);
   });
+
+  it("renders small buttons with small text when size is sm", () => {
+    render(
+      <Paginator
+        displayText="TITLE"
+        prevEnabled={true}
+        nextEnabled={true}
+        onNext={() => {}}
+        onPrev={() => {}}
+        size="sm"
+      />,
+    );
+
+    for (const name of ["Previous", "Next"]) {
+      const button = screen.getByText(name);
+      expect(button).toHaveClass("h-8", "text-xs");
+      expect(button).not.toHaveClass("h-9");
+    }
+  });
 });

@@ -30,9 +30,48 @@ export function diurnalWeight(hour: number): number {
   return interpolate(HOURLY_SHAPE, hour) / HOURLY_AVG;
 }
 
-function weeklyWeight(at: DateTime): number {
-  const hourOfDay = at.hour + at.minute / 60;
-  return interpolate(WEEKLY_SHAPE, at.weekday - 1 + (hourOfDay - 12) / 24);
+function weeklyWeight(weekday: number, hourOfDay: number): number {
+  return interpolate(WEEKLY_SHAPE, weekday - 1 + (hourOfDay - 12) / 24);
+}
+
+// How busy an hour of the week is, so funnel users spread across the week
+// the way the plotted sessions do.
+export function weekHourWeight(weekday: number, hour: number): number {
+  const middle = hour + 0.5;
+  return diurnalWeight(middle) * weeklyWeight(weekday, middle);
+}
+
+// The payment provider takes its service down for maintenance on Wednesday
+// afternoons, and this share of the charges made then fail with a 503.
+export const PAYMENT_MAINTENANCE = {
+  weekday: 3,
+  hours: [14, 15],
+  failure: 0.45,
+};
+
+// Hours count by how busy they are, since a busy afternoon hour holds more
+// requests and users than a quiet night hour.
+export function paymentMaintenanceShare(from: DateTime, to: DateTime): number {
+  let inside = 0;
+  let all = 0;
+  for (let at = from.startOf("hour"); at < to; at = at.plus({ hours: 1 })) {
+    const weight = weekHourWeight(at.weekday, at.hour);
+    all += weight;
+    if (
+      at.weekday === PAYMENT_MAINTENANCE.weekday &&
+      PAYMENT_MAINTENANCE.hours.includes(at.hour)
+    ) {
+      inside += weight;
+    }
+  }
+  return all === 0 ? 0 : inside / all;
+}
+
+export function bucketMaintenanceShares(range: SandboxRange): number[] {
+  const unit = unitFor(range.group);
+  return bucketsForRange(range).map((bucket) =>
+    paymentMaintenanceShare(bucket, bucket.plus({ [unit]: 1 })),
+  );
 }
 
 export function distributeTotal(total: number, weights: number[]): number[] {
@@ -169,7 +208,8 @@ function rateAt(shape: Shape, at: DateTime, unit: Unit): number {
     unit === "minute" || unit === "hour"
       ? diurnalWeight(at.hour + at.minute / 60)
       : 1;
-  const weekly = unit === "month" ? 1 : weeklyWeight(at);
+  const weekly =
+    unit === "month" ? 1 : weeklyWeight(at.weekday, at.hour + at.minute / 60);
   return (
     daily *
     weekly *

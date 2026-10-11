@@ -25,6 +25,7 @@ import (
 	"time"
 	"unicode"
 
+	"backend/libs/measure"
 	"backend/libs/secret"
 
 	"github.com/google/uuid"
@@ -40,6 +41,20 @@ type evalEnv struct {
 	server          *httptest.Server
 	evalJudge       *evalJudge
 	calibrationCost float64
+}
+
+func evalSurfaces(t *testing.T) []string {
+	t.Helper()
+	surfaces := envList("EVAL_SURFACES")
+	if len(surfaces) == 0 {
+		surfaces = []string{evalSurfaceMCP, evalSurfaceSlack}
+	}
+	for _, surface := range surfaces {
+		if surface != evalSurfaceMCP && surface != evalSurfaceSlack {
+			t.Fatalf("EVAL_SURFACES has %q, want mcp or slack", surface)
+		}
+	}
+	return surfaces
 }
 
 func newEvalEnv(t *testing.T, defaultModelVar string) *evalEnv {
@@ -156,6 +171,9 @@ type evalCase struct {
 	// fixtures are texts with a known outcome, which the judge must grade
 	// correctly before any model is graded.
 	fixtures []judgeFixture
+	// onSurfaces limits the case to these surfaces, for a case about what
+	// only one surface can do; when empty, the case runs on every surface.
+	onSurfaces []string
 }
 
 func (ec evalCase) describeText() string {
@@ -187,10 +205,9 @@ const (
 // An MCP call starts a new conversation every time, so a case with follow-up
 // questions runs on Slack only, where the thread's history is kept.
 func (ec evalCase) surfaces(requested []string) []string {
-	if len(ec.questions) > 1 {
-		return slices.DeleteFunc(slices.Clone(requested), func(s string) bool { return s == evalSurfaceMCP })
-	}
-	return requested
+	return slices.DeleteFunc(slices.Clone(requested), func(s string) bool {
+		return (len(ec.questions) > 1 && s == evalSurfaceMCP) || (len(ec.onSurfaces) > 0 && !slices.Contains(ec.onSurfaces, s))
+	})
 }
 
 // evalCheck returns what is wrong with a run, or "" when the run passes.
@@ -216,7 +233,9 @@ func (ec evalCase) grade(ctx context.Context, evalJudge *evalJudge, evalRun eval
 }
 
 // answer, toolCalls, toolResults and llmCalls are for the last question;
-// tokens, cost and duration add up every question in the case.
+// tokens, cost and duration add up every question in the case. funnels are
+// the funnels of the app a funnel eval's write case changes, read after the
+// last question.
 type evalRun struct {
 	answer      string
 	err         error
@@ -226,6 +245,7 @@ type evalRun struct {
 	tokens      int
 	cost        float64
 	duration    time.Duration
+	funnels     []measure.Funnel
 }
 
 // A run with ungraded reasons and no failures could not be graded, because a

@@ -42,7 +42,7 @@ Measure has a single, transparent [price](/pricing) based on how much data you u
 
 New Relic monitors infrastructure, APM, logs, browser, synthetics, security and more across one expansive platform. Mobile is one surface among many, and the defaults, dashboards, product decisions and roadmap are shaped by the whole platform rather than by the needs of mobile devs alone.
 
-Measure is built only for mobile. [Crashes & ANRs](/product/crashes-and-anrs), [App Health](/product/app-health), [Performance Traces](/product/performance-traces), [Network Performance](/product/network-performance), [Bug Reports](/product/bug-reports) and [User Journeys](/product/user-journeys) are all designed around how mobile apps actually break in production.
+Measure is built only for mobile. [Crashes & ANRs](/product/crashes-and-anrs), [App Health](/product/app-health), [Performance Traces](/product/performance-traces), [Network Performance](/product/network-performance), [Bug Reports](/product/bug-reports), [User Journeys](/product/user-journeys) and [Funnels](/product/funnels) are all designed around how mobile apps actually break in production.
 
 Mobile is not a part of our product, it is the whole product.
 
@@ -55,6 +55,7 @@ Mobile is not a part of our product, it is the whole product.
 | Performance traces | ✓ | ✓ |
 | Network monitoring | ✓ | ✓ |
 | User journeys | ✓ | ✓ |
+| Funnels with drop-off analysis | ✓ | ✗ |
 | In-app bug reports | ✓ | ✗ |
 | Session replay on every issue | ✓ | Session replay, sampled |
 | Dynamic Sampling with Adaptive Capture | ✓ | Sampled, partial remote control |

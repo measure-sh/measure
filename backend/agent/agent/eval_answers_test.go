@@ -21,22 +21,14 @@ import (
 
 func TestEvalAnswers(t *testing.T) {
 	env := newEvalEnv(t, "LLM_AGENT_MODEL_MEDIUM")
-	surfaces := envList("EVAL_SURFACES")
-	if len(surfaces) == 0 {
-		surfaces = []string{evalSurfaceMCP, evalSurfaceSlack}
-	}
-	for _, surface := range surfaces {
-		if surface != evalSurfaceMCP && surface != evalSurfaceSlack {
-			t.Fatalf("EVAL_SURFACES has %q, want mcp or slack", surface)
-		}
-	}
+	surfaces := evalSurfaces(t)
 
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
 	checkSeedPremises(t)
 	evalWorld := seedEvalWorld(ctx, t)
 	cases := evalCases(evalWorld)
-	checkExpectedCounts(t, cases)
+	checkExpectedCounts(t, cases, evalSeededCounts())
 	// Answers are also held to the system prompt's rule against showing
 	// internals. Compaction summaries are not, since the compaction prompt
 	// asks for app ids.
@@ -363,10 +355,10 @@ func largestAndroidErrorGroup(keep func(evalError) bool) string {
 }
 
 // checkExpectedCounts fails the test when a count the cases expect could be
-// read as something else in an answer: another expected count, a seeded
-// count for one day, user or session, a day of the month, a minute or a
-// year. Such a count would let a wrong answer carry the right number.
-func checkExpectedCounts(t *testing.T, cases []evalCase) {
+// read as something else in an answer: another expected count, one of the
+// seededCounts, a day of the month, a minute or a year. Such a count would
+// let a wrong answer carry the right number.
+func checkExpectedCounts(t *testing.T, cases []evalCase, seededCounts []int) {
 	t.Helper()
 	expected := map[int]string{}
 	for _, evalCase := range cases {
@@ -385,6 +377,21 @@ func checkExpectedCounts(t *testing.T, cases []evalCase) {
 		}
 	}
 
+	for n, claim := range expected {
+		switch {
+		case n < 100:
+			t.Fatalf("%d, expected by %q, is below 100 and could be a day of the month or a minute", n, claim)
+		case n >= 2000 && n < 2100:
+			t.Fatalf("%d, expected by %q, could be a year", n, claim)
+		case slices.Contains(seededCounts, n):
+			t.Fatalf("%d, expected by %q, is also a seeded count", n, claim)
+		}
+	}
+}
+
+// evalSeededCounts are the answers eval's counts for one day, user or
+// session.
+func evalSeededCounts() []int {
 	seededCounts := []int{}
 	for _, evalError := range evalErrors {
 		seededCounts = append(seededCounts, evalError.perDay...)
@@ -413,17 +420,7 @@ func checkExpectedCounts(t *testing.T, cases []evalCase) {
 	for _, errorFreeSessions := range evalErrorFreeSessions {
 		seededCounts = append(seededCounts, errorFreeSessions.perDay, errorFreeSessions.perDay*evalDays)
 	}
-
-	for n, claim := range expected {
-		switch {
-		case n < 100:
-			t.Fatalf("%d, expected by %q, is below 100 and could be a day of the month or a minute", n, claim)
-		case n >= 2000 && n < 2100:
-			t.Fatalf("%d, expected by %q, could be a year", n, claim)
-		case slices.Contains(seededCounts, n):
-			t.Fatalf("%d, expected by %q, is also a seeded count for one day, user or session", n, claim)
-		}
-	}
+	return seededCounts
 }
 
 type evalWorld struct {
@@ -501,14 +498,23 @@ func seedEvalApp(ctx context.Context, t *testing.T, teamID, appID uuid.UUID, nam
 	}
 }
 
-func seedEvalError(ctx context.Context, t *testing.T, evalWorld evalWorld, evalError evalError) {
+func (e evalError) eventType() string {
+	if e.kind == evalANR {
+		return "anr"
+	}
+	return "exception"
+}
+
+func (e evalError) handled() bool { return e.kind == evalHandledError }
+
+func seedEvalErrorGroup(ctx context.Context, t *testing.T, evalWorld evalWorld, evalError evalError) {
 	t.Helper()
-	table, eventType, handled := "fatal_exception_groups", "exception", false
+	table := "fatal_exception_groups"
 	switch evalError.kind {
 	case evalHandledError:
-		table, handled = "nonfatal_exception_groups", true
+		table = "nonfatal_exception_groups"
 	case evalANR:
-		table, eventType = "anr_groups", "anr"
+		table = "anr_groups"
 	}
 	th.SeedGroupRow(ctx, t, evalWorld.teamID.String(), evalWorld.appFor(evalError.device).String(), testinfra.GroupRow{
 		Table:       table,
@@ -519,8 +525,14 @@ func seedEvalError(ctx context.Context, t *testing.T, evalWorld evalWorld, evalE
 		Message:     evalError.message,
 		MethodName:  evalError.methodName,
 		FileName:    evalError.fileName,
-		Handled:     handled,
+		Handled:     evalError.handled(),
 	})
+}
+
+func seedEvalError(ctx context.Context, t *testing.T, evalWorld evalWorld, evalError evalError) {
+	t.Helper()
+	seedEvalErrorGroup(ctx, t, evalWorld, evalError)
+	eventType, handled := evalError.eventType(), evalError.handled()
 	next := 0
 	for day, n := range evalError.perDay {
 		row := testinfra.EventRow{Type: eventType, Fingerprint: evalError.fingerprint, Handled: handled, Timestamp: evalWorld.seededDay(day)}
@@ -999,9 +1011,14 @@ func avoidsTools(names ...string) evalCheck {
 	}
 }
 
+// staysWithinApps leaves out calls that returned an error, such as one with a
+// mistyped app id, since those read no app's data.
 func staysWithinApps(apps ...uuid.UUID) evalCheck {
 	return func(evalRun evalRun) string {
 		for _, toolCall := range evalRun.toolCalls {
+			if strings.HasPrefix(evalRun.toolResults[toolCall.ID], "error:") {
+				continue
+			}
 			var args struct {
 				AppID  string   `json:"app_id"`
 				AppIDs []string `json:"app_ids"`

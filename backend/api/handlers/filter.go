@@ -14,7 +14,39 @@ import (
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
+
+var tracer = otel.Tracer("handlers")
+
+func endSpan(span trace.Span, err error) {
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+	}
+	span.End()
+}
+
+func authorizeTeam(ctx context.Context, pg *pgxpool.Pool, userID, teamID string, scope measure.Scope) (ok bool, err error) {
+	_, span := tracer.Start(ctx, "authz")
+	defer func() {
+		span.SetAttributes(attribute.Bool("authz.allowed", ok))
+		endSpan(span, err)
+	}()
+
+	okTeam, err := measure.PerformAuthz(pg, userID, teamID, *measure.ScopeTeamRead)
+	if err != nil {
+		return false, err
+	}
+	okApp, err := measure.PerformAuthz(pg, userID, teamID, scope)
+	if err != nil {
+		return false, err
+	}
+	return okTeam && okApp, nil
+}
 
 func respondFilterError(c *gin.Context, err error) {
 	var parseErr *filter.ParseError
@@ -68,6 +100,9 @@ type filterEndpoint struct {
 func (h Handlers) prepareFilter(c *gin.Context, endpoint filterEndpoint) (app measure.App, flt filter.Filter, ctx context.Context, spanName string, ok bool) {
 	deps := h.Deps
 	ctx = c.Request.Context()
+	spanCtx, span := tracer.Start(ctx, "prepare_filter")
+	defer span.End()
+
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
 		msg := `id invalid or missing`
@@ -120,7 +155,9 @@ func (h Handlers) prepareFilter(c *gin.Context, endpoint filterEndpoint) (app me
 	app = measure.App{
 		ID: &id,
 	}
-	team, err := app.GetTeam(ctx, deps.PgPool)
+	teamCtx, teamSpan := tracer.Start(spanCtx, "get_team")
+	team, err := app.GetTeam(teamCtx, deps.PgPool)
+	endSpan(teamSpan, err)
 	if err != nil {
 		msg := "failed to get team from app id"
 		fmt.Println(msg, err)
@@ -137,8 +174,7 @@ func (h Handlers) prepareFilter(c *gin.Context, endpoint filterEndpoint) (app me
 		return
 	}
 
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
+	authorized, err := authorizeTeam(spanCtx, deps.PgPool, c.GetString("userId"), team.ID.String(), endpoint.appScope)
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
@@ -148,17 +184,7 @@ func (h Handlers) prepareFilter(c *gin.Context, endpoint filterEndpoint) (app me
 		return
 	}
 
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), endpoint.appScope)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	if !okTeam || !okApp {
+	if !authorized {
 		msg := `you are not authorized to access this app`
 		c.JSON(http.StatusForbidden, gin.H{
 			"error": msg,
@@ -177,9 +203,13 @@ func (h Handlers) prepareFilter(c *gin.Context, endpoint filterEndpoint) (app me
 		settings["use_query_cache"] = gin.Mode() == gin.ReleaseMode
 	}
 
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, endpoint.logName))
+	settings = logcomment.Put(settings, lc, logcomment.Name, endpoint.logName)
+	ctx = chquery.WithSettings(ctx, settings)
 
-	if err := flt.ResolveCustomKeys(ctx, deps.RchPool); err != nil {
+	keysCtx, keysSpan := tracer.Start(chquery.WithSettings(spanCtx, settings), "resolve_custom_keys")
+	err = flt.ResolveCustomKeys(keysCtx, deps.RchPool)
+	endSpan(keysSpan, err)
+	if err != nil {
 		msg := "failed to read the filter's custom keys"
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -196,14 +226,18 @@ func (h Handlers) prepareFilter(c *gin.Context, endpoint filterEndpoint) (app me
 	return app, flt, ctx, spanName, true
 }
 
-// authorizeAppRead reports whether the caller may read the app, along with the
-// id of the team owning it. Returns false when they may not.
-func (h Handlers) authorizeAppRead(c *gin.Context, appID uuid.UUID) (teamID uuid.UUID, ok bool) {
-	ctx := c.Request.Context()
+// authorizeApp reports whether the caller is in the team owning the app and
+// has the scope there, along with the team's id. Returns false when they are
+// not, after writing the error response.
+func (h Handlers) authorizeApp(c *gin.Context, appID uuid.UUID, scope measure.Scope) (teamID uuid.UUID, ok bool) {
+	ctx, span := tracer.Start(c.Request.Context(), "authorize_app")
+	defer span.End()
 	deps := h.Deps
 
 	app := measure.App{ID: &appID}
-	team, err := app.GetTeam(ctx, deps.PgPool)
+	teamCtx, teamSpan := tracer.Start(ctx, "get_team")
+	team, err := app.GetTeam(teamCtx, deps.PgPool)
+	endSpan(teamSpan, err)
 	if err != nil {
 		msg := "Failed to get team from app id"
 		fmt.Println(msg, err)
@@ -215,8 +249,7 @@ func (h Handlers) authorizeAppRead(c *gin.Context, appID uuid.UUID) (teamID uuid
 		return uuid.Nil, false
 	}
 
-	userId := c.GetString("userId")
-	okTeam, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeTeamRead)
+	authorized, err := authorizeTeam(ctx, deps.PgPool, c.GetString("userId"), team.ID.String(), scope)
 	if err != nil {
 		msg := `failed to perform authorization`
 		fmt.Println(msg, err)
@@ -224,15 +257,7 @@ func (h Handlers) authorizeAppRead(c *gin.Context, appID uuid.UUID) (teamID uuid
 		return uuid.Nil, false
 	}
 
-	okApp, err := measure.PerformAuthz(deps.PgPool, userId, team.ID.String(), *measure.ScopeAppRead)
-	if err != nil {
-		msg := `failed to perform authorization`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return uuid.Nil, false
-	}
-
-	if !okTeam || !okApp {
+	if !authorized {
 		c.JSON(http.StatusForbidden, gin.H{"error": `you are not authorized to access this app`})
 		return uuid.Nil, false
 	}
@@ -255,7 +280,7 @@ func (h Handlers) GetFilterKeys(c *gin.Context) {
 		return
 	}
 
-	teamID, ok := h.authorizeAppRead(c, appID)
+	teamID, ok := h.authorizeApp(c, appID, *measure.ScopeAppRead)
 	if !ok {
 		return
 	}
@@ -314,7 +339,7 @@ func (h Handlers) GetFilterValues(c *gin.Context) {
 		return
 	}
 
-	teamID, authorized := h.authorizeAppRead(c, appID)
+	teamID, authorized := h.authorizeApp(c, appID, *measure.ScopeAppRead)
 	if !authorized {
 		return
 	}

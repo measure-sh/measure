@@ -206,7 +206,7 @@ List all apps the authenticated user has access to.
 
 ### `get_filter_keys`
 
-List the filter keys of an entity (spans, bug_reports, journeys, network, memory or builds): the vocabulary a filter expression is written with.
+List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, funnels or builds): the vocabulary a filter expression is written with.
 
 ### `get_filter_values`
 
@@ -307,6 +307,72 @@ Get alerts for an app, ordered by most recent first.
 ### `get_journey`
 
 Get user journeys for an app as a graph of screens.
+
+### `get_funnels`
+
+Get an app's funnels, most recently updated first, optionally narrowed by a search on the funnel name.
+
+### `get_pinned_funnels`
+
+Get an app's pinned funnels in their pinned order.
+
+### `get_funnel`
+
+Get a single funnel with its steps, conversion window and pin.
+
+### `get_funnel_event_names`
+
+Get the custom event names an app sent, which a funnel's steps are chosen from.
+
+### `get_funnel_conversion`
+
+Get the users that reached each step of a funnel over a time range, and the median time between steps.
+
+### `get_funnel_trend`
+
+Get a funnel's conversion by day, week or month, optionally with the builds released in that time.
+
+### `get_funnel_cadence`
+
+Get how many users entered a funnel and converted in each hour of the week.
+
+### `get_funnel_step_errors`
+
+Get the errors users hit while trying to get from one funnel step to the next, with how many of them converted or dropped off.
+
+### `get_funnel_step_traces`
+
+Get the root spans recorded while users tried to get from one funnel step to the next, with their durations for users that converted and those that dropped off.
+
+### `get_funnel_step_network`
+
+Get the network requests made while users tried to get from one funnel step to the next, with their latencies for users that converted and those that dropped off.
+
+### `get_funnel_step_sessions`
+
+Get the sessions of users that converted, or of those that dropped off, between two funnel steps.
+
+### `create_funnel`
+
+Create a funnel from a name, an ordered list of custom event names and a conversion window.
+
+### `update_funnel`
+
+Change a funnel's name, steps or conversion window.
+
+### `delete_funnel`
+
+Delete a funnel.
+
+### `set_funnel_pinned`
+
+Pin or unpin a funnel.
+
+### `reorder_pinned_funnels`
+
+Change the order of an app's pinned funnels.
+
+`create_funnel`, `update_funnel`, `delete_funnel`, `set_funnel_pinned` and `reorder_pinned_funnels` change funnels for everyone on the team, and need a role that can edit funnels in the dashboard.
 
 ### `get_network_metrics_trends`
 

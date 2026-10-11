@@ -12,6 +12,7 @@ import (
 
 	"backend/api/server"
 	"backend/libs/filter"
+	"backend/libs/measure"
 	"backend/libs/sdkconfig"
 
 	"github.com/gin-gonic/gin"
@@ -346,7 +347,7 @@ func (h Handlers) GetConfigHistory(c *gin.Context) {
 		return
 	}
 
-	if _, ok := h.authorizeAppRead(c, appID); !ok {
+	if _, ok := h.authorizeApp(c, appID, *measure.ScopeAppRead); !ok {
 		return
 	}
 

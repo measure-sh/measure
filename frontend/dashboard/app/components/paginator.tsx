@@ -8,6 +8,7 @@ interface PaginatorProps {
   nextEnabled: boolean;
   onNext: () => void;
   onPrev: () => void;
+  size?: "default" | "sm";
 }
 
 export enum PaginationDirection {
@@ -22,14 +23,28 @@ const Paginator: React.FC<PaginatorProps> = ({
   nextEnabled,
   onNext,
   onPrev,
+  size = "default",
 }) => {
+  const small = size === "sm";
   return (
     <div className="flex flex-row items-center">
-      <Button variant="outline" disabled={!prevEnabled} onClick={onPrev}>
+      <Button
+        variant="outline"
+        size={size}
+        className={small ? "text-xs" : undefined}
+        disabled={!prevEnabled}
+        onClick={onPrev}
+      >
         Previous
       </Button>
-      <p className="font-display mx-4">{displayText}</p>
-      <Button variant="outline" disabled={!nextEnabled} onClick={onNext}>
+      <p className={`font-display ${small ? "mx-1" : "mx-4"}`}>{displayText}</p>
+      <Button
+        variant="outline"
+        size={size}
+        className={small ? "text-xs" : undefined}
+        disabled={!nextEnabled}
+        onClick={onNext}
+      >
         Next
       </Button>
     </div>

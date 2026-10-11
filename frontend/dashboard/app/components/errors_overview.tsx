@@ -16,12 +16,14 @@ import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import React from "react";
+import { errorGroupPath, errorGroupTitle } from "../utils/error_utils";
 import { formatPlotTooltipDate, PlotTimeGroup } from "../utils/time_utils";
 import ErrorsOverviewPlot from "./errors_overview_plot";
 import LoadingBar from "./loading_bar";
 import Paginator from "./paginator";
 import Pill, { PillType } from "./pill";
 import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
+import RowLinkCell from "./row_link_cell";
 import { SkeletonListPage } from "./skeleton";
 import {
   Table,
@@ -43,30 +45,6 @@ const {
 interface ErrorsOverviewProps {
   teamId: string;
 }
-
-function groupTitle(fileName: string, methodName: string): string {
-  const file = fileName !== "" ? fileName : "unknown_file";
-  const method = methodName !== "" ? methodName : "unknown_method";
-  const complete = method.endsWith(")") || method.endsWith("]");
-  return `${file}: ${method}${complete ? "" : "()"}`;
-}
-
-const RowLinkCell: React.FC<{
-  href: string;
-  className: string;
-  children: React.ReactNode;
-}> = ({ href, className, children }) => (
-  <TableCell className={`${className} select-none relative p-0`}>
-    <Link
-      href={href}
-      className="absolute inset-0 z-10 cursor-pointer"
-      tabIndex={-1}
-      aria-hidden="true"
-      style={{ display: "block" }}
-    />
-    <div className="pointer-events-none p-4">{children}</div>
-  </TableCell>
-);
 
 export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
   const router = useRouter();
@@ -232,16 +210,14 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                         }: any,
                         idx: number,
                       ) => {
-                        // A thread dump without a main thread gives its ANR no
-                        // type, so joining unconditionally would yield a leading "@".
-                        const groupName =
-                          [type, file_name]
-                            .filter((part) => part !== "")
-                            .join("@") || "unknown_file";
-                        const basePath = `/${teamId}/errors/${readyValue.app.id}/${id}/${encodeURIComponent(groupName)}`;
+                        const path = errorGroupPath(teamId, readyValue.app.id, {
+                          id,
+                          type,
+                          file_name,
+                        });
                         const href = detailQuery
-                          ? `${basePath}?${detailQuery}`
-                          : basePath;
+                          ? `${path}?${detailQuery}`
+                          : path;
                         return (
                           <TableRow
                             key={`${idx}-${id}`}
@@ -260,12 +236,15 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                                 href={href}
                                 className="absolute inset-0 z-10 cursor-pointer"
                                 tabIndex={-1}
-                                aria-label={groupTitle(file_name, method_name)}
+                                aria-label={errorGroupTitle(
+                                  file_name,
+                                  method_name,
+                                )}
                                 style={{ display: "block" }}
                               />
                               <div className="pointer-events-none p-4">
                                 <p className="truncate select-none">
-                                  {groupTitle(file_name, method_name)}
+                                  {errorGroupTitle(file_name, method_name)}
                                 </p>
 
                                 <p

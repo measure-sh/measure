@@ -32,6 +32,7 @@ Measure was built to close these gaps: full session context by default, dynamic 
 | Performance traces | Yes, with full dynamic sampling control | Separate Firebase Performance Monitoring product, with no user-controlled sampling |
 | In-app bug reports | ✓ | No, needs a third-party tool |
 | User journeys | ✓ | Requires Google Analytics |
+| Funnels with drop-off analysis | ✓ | Requires Google Analytics |
 | Open source | Yes, Apache 2.0 end to end | SDKs only; backend and dashboard are proprietary |
 | Self-hostable | ✓ | ✗ |
 | Public roadmap and issue tracker | ✓ | SDK repositories only |
@@ -51,7 +52,7 @@ The debugging process changes from guesses about what happened to facts you can 
 
 Crashlytics is part of Firebase, where mobile is one product line among many and roadmap decisions compete with everything else on the platform.
 
-Measure is built only for mobile. [Crashes & ANRs](/product/crashes-and-anrs), [App Health](/product/app-health), [Performance Traces](/product/performance-traces), [Network Performance](/product/network-performance), [Bug Reports](/product/bug-reports) and [User Journeys](/product/user-journeys) are all designed around the failure modes mobile apps experience in production: memory pressure, main-thread blocking, errors during background and foreground transitions, and unstable network conditions.
+Measure is built only for mobile. [Crashes & ANRs](/product/crashes-and-anrs), [App Health](/product/app-health), [Performance Traces](/product/performance-traces), [Network Performance](/product/network-performance), [Bug Reports](/product/bug-reports), [User Journeys](/product/user-journeys) and [Funnels](/product/funnels) are all designed around the failure modes mobile apps experience in production: memory pressure, main-thread blocking, errors during background and foreground transitions, and unstable network conditions.
 
 Mobile is not a part of our product. It is the whole product.
 

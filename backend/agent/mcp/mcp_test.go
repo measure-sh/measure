@@ -6,6 +6,7 @@ import (
 	"backend/agent/agent"
 	"backend/agent/server"
 	"backend/libs/authsession"
+	"backend/libs/measure"
 	"bytes"
 	"context"
 	"crypto/sha256"
@@ -2607,6 +2608,7 @@ func TestMCPToolsList(t *testing.T) {
 
 	toolNames := make(map[string]bool)
 	toolSchemas := make(map[string]map[string]any)
+	toolAnnotations := make(map[string]map[string]any)
 	for _, tool := range tools {
 		tm, _ := tool.(map[string]any)
 		name, _ := tm["name"].(string)
@@ -2614,6 +2616,7 @@ func TestMCPToolsList(t *testing.T) {
 		if schema, ok := tm["inputSchema"].(map[string]any); ok {
 			toolSchemas[name] = schema
 		}
+		toolAnnotations[name], _ = tm["annotations"].(map[string]any)
 	}
 
 	expectedTools := []string{
@@ -2633,6 +2636,12 @@ func TestMCPToolsList(t *testing.T) {
 		"get_network_endpoint_status_codes_over_time",
 		"get_network_latency_over_time",
 		"get_network_timeline",
+		"get_funnels", "get_pinned_funnels", "get_funnel", "get_funnel_event_names",
+		"get_funnel_conversion", "get_funnel_trend", "get_funnel_cadence",
+		"get_funnel_step_errors", "get_funnel_step_traces",
+		"get_funnel_step_network", "get_funnel_step_sessions",
+		"create_funnel", "update_funnel", "delete_funnel",
+		"set_funnel_pinned", "reorder_pinned_funnels",
 		"ask_question",
 	}
 	for _, expected := range expectedTools {
@@ -2645,6 +2654,28 @@ func TestMCPToolsList(t *testing.T) {
 	}
 	if toolNames["get_network_endpoints"] {
 		t.Error("get_network_endpoints should not be exposed over MCP")
+	}
+	// The tools that change data, each with whether it is destructive; every
+	// other tool must be marked read-only.
+	writeTools := map[string]bool{
+		"update_bug_report_status": false,
+		"create_funnel":            false,
+		"update_funnel":            true,
+		"delete_funnel":            true,
+		"set_funnel_pinned":        false,
+		"reorder_pinned_funnels":   false,
+	}
+	for name, annotations := range toolAnnotations {
+		readOnly := annotations["readOnlyHint"] == true
+		destructive, write := writeTools[name]
+		switch {
+		case !write && !readOnly:
+			t.Errorf("tool %q is not marked read-only: %v", name, annotations)
+		case write && readOnly:
+			t.Errorf("tool %q changes data but is marked read-only", name)
+		case write && annotations["destructiveHint"] != destructive:
+			t.Errorf("tool %q destructiveHint = %v, want %v", name, annotations["destructiveHint"], destructive)
+		}
 	}
 	for _, name := range []string{
 		"get_network_status_codes_over_time",
@@ -5842,9 +5873,617 @@ func TestMCPUpdateBugReportStatus(t *testing.T) {
 	})
 }
 
+func TestMCPFunnels(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now().UTC()
+	from := now.Add(-7 * 24 * time.Hour).Format(time.RFC3339)
+	to := now.Format(time.RFC3339)
+
+	setup := func(t *testing.T, role string) (appID, teamID uuid.UUID, userID, rawToken string) {
+		cleanupAll(ctx, t)
+		t.Cleanup(func() { cleanupAll(ctx, t) })
+		userID = uuid.NewString()
+		seedUser(ctx, t, userID, role+"@funnels.mcp.test")
+		teamID = uuid.New()
+		seedTeam(ctx, t, teamID, "funnels team")
+		seedTeamMembership(ctx, t, teamID, userID, role)
+		appID = uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken = seedMCPSession(ctx, t, userID, "c1", time.Now().Add(90*24*time.Hour))
+		return appID, teamID, userID, rawToken
+	}
+
+	call := func(t *testing.T, rawToken, tool string, args map[string]any, out any) {
+		t.Helper()
+		resp := callMCPTool(t, rawToken, tool, args)
+		if isToolError(resp) {
+			t.Fatalf("%s: unexpected tool error: %s", tool, extractTextContent(t, resp))
+		}
+		if out == nil {
+			return
+		}
+		content := extractTextContent(t, resp)
+		if err := json.Unmarshal([]byte(content), out); err != nil {
+			t.Fatalf("%s: unmarshal %q: %v", tool, content, err)
+		}
+	}
+
+	callErr := func(t *testing.T, rawToken, tool string, args map[string]any, want string) {
+		t.Helper()
+		resp := callMCPTool(t, rawToken, tool, args)
+		if !isToolError(resp) {
+			t.Fatalf("%s: want tool error containing %q, got %s", tool, want, extractTextContent(t, resp))
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, want) {
+			t.Errorf("%s: error %q does not contain %q", tool, text, want)
+		}
+	}
+
+	seedFunnel := func(t *testing.T, appID uuid.UUID, userID, name string, steps ...string) measure.Funnel {
+		t.Helper()
+		draft := measure.FunnelDraft{Name: name, ConversionWindowSeconds: 3600}
+		for _, step := range steps {
+			draft.Steps = append(draft.Steps, measure.FunnelStep{EventName: step})
+		}
+		funnel, err := measure.CreateFunnel(ctx, th.PgPool, appID, userID, draft)
+		if err != nil {
+			t.Fatalf("seed funnel: %v", err)
+		}
+		return funnel
+	}
+
+	// seedSession seeds one installation's custom events, a second apart, in
+	// one session, and returns the session id.
+	seedSession := func(t *testing.T, teamID, appID uuid.UUID, appVersion string, start time.Time, names ...string) string {
+		t.Helper()
+		installationID := uuid.NewString()
+		sessionID := uuid.NewString()
+		for i, name := range names {
+			th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+				Type:           "custom",
+				CustomName:     name,
+				InstallationID: installationID,
+				SessionID:      sessionID,
+				AppVersion:     appVersion,
+				Timestamp:      start.Add(time.Duration(i) * time.Second),
+			})
+		}
+		return sessionID
+	}
+
+	t.Run("creates, reads, updates and deletes a funnel", func(t *testing.T) {
+		appID, _, _, rawToken := setup(t, "developer")
+
+		var created measure.Funnel
+		call(t, rawToken, "create_funnel", map[string]any{
+			"app_id":                    appID.String(),
+			"name":                      " Checkout ",
+			"steps":                     []string{"open", "purchase"},
+			"conversion_window_seconds": 3600,
+		}, &created)
+		if created.Name != "Checkout" || len(created.Steps) != 2 || created.ConversionWindowSeconds != 3600 {
+			t.Fatalf("created funnel = %+v", created)
+		}
+
+		var got measure.Funnel
+		call(t, rawToken, "get_funnel", map[string]any{"app_id": appID.String(), "funnel_id": created.ID.String()}, &got)
+		if got.ID != created.ID || got.CreatedByEmail == nil || *got.CreatedByEmail != "developer@funnels.mcp.test" {
+			t.Fatalf("get_funnel = %+v, want the created funnel with its creator", got)
+		}
+
+		var listed []measure.Funnel
+		call(t, rawToken, "get_funnels", map[string]any{"app_id": appID.String(), "search": "check"}, &listed)
+		if len(listed) != 1 || listed[0].ID != created.ID {
+			t.Fatalf("search check = %+v, want the created funnel", listed)
+		}
+		call(t, rawToken, "get_funnels", map[string]any{"app_id": appID.String(), "search": "signup"}, &listed)
+		if len(listed) != 0 {
+			t.Fatalf("search signup = %+v, want none", listed)
+		}
+		callErr(t, rawToken, "get_funnels", map[string]any{"app_id": appID.String(), "offset": -1}, "offset cannot be negative")
+
+		var renamed measure.Funnel
+		call(t, rawToken, "update_funnel", map[string]any{"app_id": appID.String(), "funnel_id": created.ID.String(), "name": "Purchase"}, &renamed)
+		if renamed.Name != "Purchase" || len(renamed.Steps) != 2 || renamed.ConversionWindowSeconds != 3600 {
+			t.Fatalf("renamed funnel = %+v, want only the name changed", renamed)
+		}
+
+		var edited measure.Funnel
+		call(t, rawToken, "update_funnel", map[string]any{
+			"app_id":                    appID.String(),
+			"funnel_id":                 created.ID.String(),
+			"steps":                     []string{"open", "add_to_cart", "purchase"},
+			"conversion_window_seconds": 120,
+		}, &edited)
+		if edited.Name != "Purchase" || len(edited.Steps) != 3 || edited.Steps[1].EventName != "add_to_cart" || edited.ConversionWindowSeconds != 120 {
+			t.Fatalf("edited funnel = %+v", edited)
+		}
+
+		var deleted map[string]any
+		call(t, rawToken, "delete_funnel", map[string]any{"app_id": appID.String(), "funnel_id": created.ID.String()}, &deleted)
+		if deleted["ok"] != "done" {
+			t.Fatalf("delete_funnel = %v", deleted)
+		}
+		callErr(t, rawToken, "get_funnel", map[string]any{"app_id": appID.String(), "funnel_id": created.ID.String()}, "funnel not found")
+		callErr(t, rawToken, "delete_funnel", map[string]any{"app_id": appID.String(), "funnel_id": created.ID.String()}, "funnel not found")
+	})
+
+	t.Run("rejects a funnel that cannot be saved", func(t *testing.T) {
+		appID, _, userID, rawToken := setup(t, "owner")
+		funnel := seedFunnel(t, appID, userID, "Checkout", "open", "purchase")
+		draft := func(steps []string, window int) map[string]any {
+			return map[string]any{"app_id": appID.String(), "name": "Checkout", "steps": steps, "conversion_window_seconds": window}
+		}
+
+		callErr(t, rawToken, "create_funnel", draft([]string{"open"}, 3600), "between 2 and 30 steps")
+		callErr(t, rawToken, "create_funnel", draft([]string{"open", "has space"}, 3600), "step 2 must be the name of a custom event")
+		callErr(t, rawToken, "create_funnel", draft([]string{"open", "purchase"}, 90), "whole number of minutes")
+		callErr(t, rawToken, "create_funnel", map[string]any{"app_id": appID.String(), "name": "  ", "steps": []string{"open", "purchase"}, "conversion_window_seconds": 3600}, "funnel name is required")
+		callErr(t, rawToken, "update_funnel", map[string]any{"app_id": appID.String(), "funnel_id": funnel.ID.String(), "steps": []string{}}, "between 2 and 30 steps")
+		callErr(t, rawToken, "update_funnel", map[string]any{"app_id": appID.String(), "funnel_id": funnel.ID.String()}, "give at least one of name, steps or conversion_window_seconds")
+
+		var listed []measure.Funnel
+		call(t, rawToken, "get_funnels", map[string]any{"app_id": appID.String()}, &listed)
+		if len(listed) != 1 || listed[0].Steps[1].EventName != "purchase" {
+			t.Fatalf("funnels = %+v, want only the seeded funnel, unchanged", listed)
+		}
+	})
+
+	t.Run("a viewer can read funnels but not change them", func(t *testing.T) {
+		appID, _, userID, rawToken := setup(t, "viewer")
+		funnel := seedFunnel(t, appID, userID, "Checkout", "open", "purchase")
+		if _, err := measure.SetFunnelPinned(ctx, th.PgPool, appID, funnel.ID, true); err != nil {
+			t.Fatalf("pin: %v", err)
+		}
+		funnelArgs := map[string]any{"app_id": appID.String(), "funnel_id": funnel.ID.String()}
+
+		var listed []measure.Funnel
+		call(t, rawToken, "get_funnels", map[string]any{"app_id": appID.String()}, &listed)
+		if len(listed) != 1 {
+			t.Fatalf("viewer funnels = %+v, want the seeded funnel", listed)
+		}
+		call(t, rawToken, "get_funnel_conversion", map[string]any{"app_id": appID.String(), "funnel_id": funnel.ID.String(), "from": from, "to": to}, nil)
+
+		writes := []struct {
+			tool string
+			args map[string]any
+		}{
+			{"create_funnel", map[string]any{"app_id": appID.String(), "name": "Signup", "steps": []string{"open", "signup"}, "conversion_window_seconds": 3600}},
+			{"update_funnel", map[string]any{"app_id": appID.String(), "funnel_id": funnel.ID.String(), "name": "Renamed"}},
+			{"delete_funnel", funnelArgs},
+			{"set_funnel_pinned", map[string]any{"app_id": appID.String(), "funnel_id": funnel.ID.String(), "pinned": false}},
+			{"reorder_pinned_funnels", map[string]any{"app_id": appID.String(), "funnel_ids": []string{funnel.ID.String()}}},
+		}
+		for _, write := range writes {
+			callErr(t, rawToken, write.tool, write.args, "not authorized to change funnels")
+		}
+
+		got, err := measure.GetFunnel(ctx, th.PgPool, appID, funnel.ID)
+		if err != nil {
+			t.Fatalf("get funnel: %v", err)
+		}
+		if got.Name != "Checkout" || !got.Pinned {
+			t.Fatalf("funnel = %+v, want it unchanged", got)
+		}
+	})
+
+	t.Run("pins, lists the pins in order and reorders them", func(t *testing.T) {
+		appID, _, userID, rawToken := setup(t, "admin")
+		first := seedFunnel(t, appID, userID, "First", "open", "purchase")
+		second := seedFunnel(t, appID, userID, "Second", "open", "signup")
+		seedFunnel(t, appID, userID, "Unpinned", "open", "share")
+
+		pinnedIDs := func(t *testing.T) []uuid.UUID {
+			t.Helper()
+			var pinned []measure.Funnel
+			call(t, rawToken, "get_pinned_funnels", map[string]any{"app_id": appID.String()}, &pinned)
+			ids := make([]uuid.UUID, len(pinned))
+			for i, funnel := range pinned {
+				ids[i] = funnel.ID
+			}
+			return ids
+		}
+
+		for _, funnel := range []measure.Funnel{first, second} {
+			var pinned measure.Funnel
+			call(t, rawToken, "set_funnel_pinned", map[string]any{"app_id": appID.String(), "funnel_id": funnel.ID.String(), "pinned": true}, &pinned)
+			if !pinned.Pinned {
+				t.Fatalf("set_funnel_pinned = %+v, want pinned", pinned)
+			}
+		}
+		if got := pinnedIDs(t); fmt.Sprint(got) != fmt.Sprint([]uuid.UUID{first.ID, second.ID}) {
+			t.Fatalf("pins = %v, want first then second", got)
+		}
+
+		var reordered []measure.Funnel
+		call(t, rawToken, "reorder_pinned_funnels", map[string]any{"app_id": appID.String(), "funnel_ids": []string{second.ID.String(), first.ID.String()}}, &reordered)
+		if len(reordered) != 2 || reordered[0].ID != second.ID {
+			t.Fatalf("reordered = %+v, want second then first", reordered)
+		}
+		if got := pinnedIDs(t); fmt.Sprint(got) != fmt.Sprint([]uuid.UUID{second.ID, first.ID}) {
+			t.Fatalf("pins = %v, want second then first", got)
+		}
+
+		callErr(t, rawToken, "reorder_pinned_funnels", map[string]any{"app_id": appID.String(), "funnel_ids": []string{second.ID.String()}}, "every pinned funnel of the app")
+		callErr(t, rawToken, "reorder_pinned_funnels", map[string]any{"app_id": appID.String(), "funnel_ids": []string{"not-a-uuid"}}, "not a valid UUID")
+		callErr(t, rawToken, "set_funnel_pinned", map[string]any{"app_id": appID.String(), "funnel_id": first.ID.String()}, `missing properties: ["pinned"]`)
+
+		call(t, rawToken, "set_funnel_pinned", map[string]any{"app_id": appID.String(), "funnel_id": second.ID.String(), "pinned": false}, nil)
+		if got := pinnedIDs(t); fmt.Sprint(got) != fmt.Sprint([]uuid.UUID{first.ID}) {
+			t.Fatalf("pins = %v, want only first", got)
+		}
+	})
+
+	t.Run("pinning fails once the pins are full", func(t *testing.T) {
+		appID, _, userID, rawToken := setup(t, "owner")
+		for i := range measure.MaxPinnedFunnels {
+			funnel := seedFunnel(t, appID, userID, fmt.Sprintf("Pinned %d", i), "open", "purchase")
+			if _, err := measure.SetFunnelPinned(ctx, th.PgPool, appID, funnel.ID, true); err != nil {
+				t.Fatalf("pin: %v", err)
+			}
+		}
+		extra := seedFunnel(t, appID, userID, "Extra", "open", "purchase")
+
+		callErr(t, rawToken, "set_funnel_pinned", map[string]any{"app_id": appID.String(), "funnel_id": extra.ID.String(), "pinned": true}, fmt.Sprintf("at most %d pinned funnels", measure.MaxPinnedFunnels))
+	})
+
+	t.Run("reports a funnel that does not exist or has an invalid id", func(t *testing.T) {
+		appID, _, _, rawToken := setup(t, "owner")
+		missing := uuid.NewString()
+		tools := []struct {
+			name string
+			args map[string]any
+		}{
+			{"get_funnel", map[string]any{}},
+			{"get_funnel_conversion", map[string]any{"from": from, "to": to}},
+			{"get_funnel_trend", map[string]any{"period": "day", "timezone": "UTC"}},
+			{"get_funnel_cadence", map[string]any{"weeks": 4, "timezone": "UTC"}},
+			{"get_funnel_step_errors", map[string]any{"from": from, "to": to}},
+			{"get_funnel_step_traces", map[string]any{"from": from, "to": to}},
+			{"get_funnel_step_network", map[string]any{"from": from, "to": to}},
+			{"get_funnel_step_sessions", map[string]any{"outcome": "dropped", "from": from, "to": to}},
+			{"update_funnel", map[string]any{"name": "Renamed"}},
+			{"delete_funnel", map[string]any{}},
+			{"set_funnel_pinned", map[string]any{"pinned": true}},
+		}
+		for _, tool := range tools {
+			t.Run(tool.name, func(t *testing.T) {
+				args := map[string]any{"app_id": appID.String()}
+				for k, v := range tool.args {
+					args[k] = v
+				}
+				args["funnel_id"] = missing
+				callErr(t, rawToken, tool.name, args, "funnel not found")
+				args["funnel_id"] = "not-a-uuid"
+				callErr(t, rawToken, tool.name, args, "funnel_id is not a valid UUID")
+			})
+		}
+	})
+
+	t.Run("a funnel of another app of the same team is not found", func(t *testing.T) {
+		appID, teamID, userID, rawToken := setup(t, "owner")
+		otherAppID := uuid.New()
+		seedApp(ctx, t, otherAppID, teamID, 30)
+		funnel := seedFunnel(t, otherAppID, userID, "Checkout", "open", "purchase")
+
+		callErr(t, rawToken, "get_funnel", map[string]any{"app_id": appID.String(), "funnel_id": funnel.ID.String()}, "funnel not found")
+		callErr(t, rawToken, "delete_funnel", map[string]any{"app_id": appID.String(), "funnel_id": funnel.ID.String()}, "funnel not found")
+	})
+
+	t.Run("another team's funnels cannot be read or changed", func(t *testing.T) {
+		appID, _, userID, _ := setup(t, "owner")
+		funnel := seedFunnel(t, appID, userID, "Checkout", "open", "purchase")
+		if _, err := measure.SetFunnelPinned(ctx, th.PgPool, appID, funnel.ID, true); err != nil {
+			t.Fatalf("pin: %v", err)
+		}
+		outsiderID := uuid.NewString()
+		seedUser(ctx, t, outsiderID, "outsider@funnels.mcp.test")
+		outsiderTeamID := uuid.New()
+		seedTeam(ctx, t, outsiderTeamID, "outsider team")
+		seedTeamMembership(ctx, t, outsiderTeamID, outsiderID, "owner")
+		outsiderToken := seedMCPSession(ctx, t, outsiderID, "c1", time.Now().Add(time.Hour))
+
+		for tool, args := range funnelToolArgs(funnel.ID.String(), from, to) {
+			t.Run(tool, func(t *testing.T) {
+				args["app_id"] = appID.String()
+				callErr(t, outsiderToken, tool, args, "app not found or access denied")
+				args["app_id"] = "not-a-uuid"
+				callErr(t, outsiderToken, tool, args, "app_id is not a valid UUID")
+			})
+		}
+
+		got, err := measure.GetFunnel(ctx, th.PgPool, appID, funnel.ID)
+		if err != nil {
+			t.Fatalf("get funnel: %v", err)
+		}
+		if got.Name != "Checkout" || !got.Pinned {
+			t.Fatalf("funnel = %+v, want it unchanged", got)
+		}
+	})
+
+	t.Run("lists the custom event names a funnel can use", func(t *testing.T) {
+		appID, teamID, _, rawToken := setup(t, "viewer")
+		seedSession(t, teamID, appID, "1.0.0", now.Add(-time.Hour), "open_app", "purchase")
+
+		var names []string
+		call(t, rawToken, "get_funnel_event_names", map[string]any{"app_id": appID.String()}, &names)
+		if len(names) != 2 {
+			t.Fatalf("event names = %v, want open_app and purchase", names)
+		}
+		call(t, rawToken, "get_funnel_event_names", map[string]any{"app_id": appID.String(), "search": "purch"}, &names)
+		if fmt.Sprint(names) != "[purchase]" {
+			t.Fatalf("event names for purch = %v, want purchase", names)
+		}
+	})
+
+	t.Run("counts the conversion of installations and narrows it with filter_expr", func(t *testing.T) {
+		appID, teamID, userID, rawToken := setup(t, "viewer")
+		funnel := seedFunnel(t, appID, userID, "Checkout", "open", "purchase")
+		start := now.Add(-2 * time.Hour)
+		converted := seedSession(t, teamID, appID, "1.0.0", start, "open", "purchase")
+		seedSession(t, teamID, appID, "2.0.0", start, "open")
+		th.SeedUDAttrRow(ctx, t, teamID.String(), appID.String(), testinfra.UDAttrRow{SessionID: converted, Key: "plan", Value: "pro", Timestamp: start})
+
+		users := func(t *testing.T, filterExpr string) string {
+			t.Helper()
+			args := map[string]any{"app_id": appID.String(), "funnel_id": funnel.ID.String(), "from": from, "to": to}
+			if filterExpr != "" {
+				args["filter_expr"] = filterExpr
+			}
+			var conversion struct {
+				Steps []measure.FunnelStepConversion `json:"steps"`
+			}
+			call(t, rawToken, "get_funnel_conversion", args, &conversion)
+			counts := make([]string, len(conversion.Steps))
+			for i, step := range conversion.Steps {
+				counts[i] = fmt.Sprintf("%s=%d", step.EventName, step.Users)
+			}
+			return strings.Join(counts, " ")
+		}
+
+		if got := users(t, ""); got != "open=2 purchase=1" {
+			t.Errorf("conversion = %s, want open=2 purchase=1", got)
+		}
+		if got := users(t, "version_name:in:[2.0.0]"); got != "open=1 purchase=0" {
+			t.Errorf("conversion for 2.0.0 = %s, want open=1 purchase=0", got)
+		}
+		if got := users(t, "custom.plan:in:pro"); got != "open=1 purchase=1" {
+			t.Errorf("conversion for the pro plan = %s, want open=1 purchase=1", got)
+		}
+		callErr(t, rawToken, "get_funnel_conversion", map[string]any{"app_id": appID.String(), "funnel_id": funnel.ID.String(), "filter_expr": "span_status:in:error"}, "Unknown key")
+	})
+
+	t.Run("reads the trend and the cadence", func(t *testing.T) {
+		appID, teamID, userID, rawToken := setup(t, "viewer")
+		funnel := seedFunnel(t, appID, userID, "Checkout", "open", "purchase")
+		seedSession(t, teamID, appID, "1.0.0", now.Add(-2*time.Hour), "open", "purchase")
+		args := func(extra map[string]any) map[string]any {
+			a := map[string]any{"app_id": appID.String(), "funnel_id": funnel.ID.String()}
+			for k, v := range extra {
+				a[k] = v
+			}
+			return a
+		}
+
+		callErr(t, rawToken, "get_funnel_trend", args(map[string]any{"period": "year", "timezone": "UTC"}), "period must be one of day, week or month")
+		callErr(t, rawToken, "get_funnel_trend", args(map[string]any{"period": "day"}), `missing properties: ["timezone"]`)
+		callErr(t, rawToken, "get_funnel_trend", args(map[string]any{"period": "day", "timezone": "Mars/Base"}), "timezone")
+
+		var trend measure.FunnelTrend
+		call(t, rawToken, "get_funnel_trend", args(map[string]any{"period": "day", "timezone": "UTC", "include_builds": true}), &trend)
+		if len(trend.Points) != 30 || fmt.Sprint(trend.EventNames) != "[open purchase]" || trend.Builds == nil {
+			t.Fatalf("trend = %+v, want 30 days of open and purchase with builds", trend)
+		}
+		var entered, purchased uint64
+		for _, point := range trend.Points {
+			entered += point.Steps[0].Users
+			purchased += point.Steps[1].Users
+		}
+		if entered != 1 || purchased != 1 {
+			t.Errorf("trend counts %d entered and %d purchased, want 1 and 1", entered, purchased)
+		}
+
+		callErr(t, rawToken, "get_funnel_cadence", args(map[string]any{"weeks": 13, "timezone": "UTC"}), "weeks must be between 1 and 12")
+		callErr(t, rawToken, "get_funnel_cadence", args(map[string]any{"weeks": 4}), `missing properties: ["timezone"]`)
+
+		var cadence measure.FunnelCadence
+		call(t, rawToken, "get_funnel_cadence", args(map[string]any{"weeks": 4, "timezone": "UTC"}), &cadence)
+		if cadence.To.Sub(cadence.From) != 4*7*24*time.Hour || cadence.Hours == nil {
+			t.Fatalf("cadence = %+v, want 4 weeks of hours", cadence)
+		}
+	})
+
+	t.Run("reads what happened while installations tried to reach a step", func(t *testing.T) {
+		appID, teamID, userID, rawToken := setup(t, "viewer")
+		funnel := seedFunnel(t, appID, userID, "Checkout", "open", "purchase")
+		start := now.Add(-2 * time.Hour)
+		converted := seedSession(t, teamID, appID, "1.0.0", start, "open", "purchase")
+		dropped := seedSession(t, teamID, appID, "1.0.0", start, "open")
+		args := func(extra map[string]any) map[string]any {
+			a := map[string]any{"app_id": appID.String(), "funnel_id": funnel.ID.String(), "from": from, "to": to}
+			for k, v := range extra {
+				a[k] = v
+			}
+			return a
+		}
+
+		sessions := func(t *testing.T, extra map[string]any) []string {
+			t.Helper()
+			var result struct {
+				FromStep string                      `json:"from_step"`
+				ToStep   string                      `json:"to_step"`
+				Sessions []measure.FunnelStepSession `json:"sessions"`
+			}
+			call(t, rawToken, "get_funnel_step_sessions", args(extra), &result)
+			if result.FromStep != "open" || result.ToStep != "purchase" {
+				t.Errorf("sessions cover %s to %s, want open to purchase", result.FromStep, result.ToStep)
+			}
+			ids := make([]string, len(result.Sessions))
+			for i, session := range result.Sessions {
+				ids[i] = session.SessionID.String()
+			}
+			return ids
+		}
+		if got := sessions(t, map[string]any{"step": 1, "outcome": "converted"}); fmt.Sprint(got) != fmt.Sprint([]string{converted}) {
+			t.Errorf("converted sessions = %v, want %s", got, converted)
+		}
+		if got := sessions(t, map[string]any{"outcome": "dropped"}); fmt.Sprint(got) != fmt.Sprint([]string{dropped}) {
+			t.Errorf("dropped sessions = %v, want %s", got, dropped)
+		}
+		if got := sessions(t, map[string]any{"outcome": "dropped", "limit": 1, "offset": 1}); len(got) != 0 {
+			t.Errorf("second page of dropped sessions = %v, want none", got)
+		}
+
+		for tool, test := range map[string]struct {
+			extra map[string]any
+			key   string
+		}{
+			"get_funnel_step_errors":  {map[string]any{"step": 1}, "errors"},
+			"get_funnel_step_traces":  {map[string]any{"step": 1, "quantile": "p95"}, "spans"},
+			"get_funnel_step_network": {map[string]any{"step": 1, "quantile": "p95"}, "endpoints"},
+		} {
+			var result map[string]any
+			call(t, rawToken, tool, args(test.extra), &result)
+			if result["from_step"] != "open" || result["to_step"] != "purchase" {
+				t.Errorf("%s covers %v to %v, want open to purchase", tool, result["from_step"], result["to_step"])
+			}
+			if _, ok := result[test.key].([]any); !ok {
+				t.Errorf("%s %s = %v, want a list", tool, test.key, result[test.key])
+			}
+			callErr(t, rawToken, tool, args(map[string]any{"step": 0}), "step must be between 1 and 1")
+			callErr(t, rawToken, tool, args(map[string]any{"step": 2}), "step must be between 1 and 1")
+		}
+		callErr(t, rawToken, "get_funnel_step_traces", args(map[string]any{"quantile": "p75"}), "quantile must be one of")
+		callErr(t, rawToken, "get_funnel_step_network", args(map[string]any{"quantile": "p75"}), "quantile must be one of")
+		callErr(t, rawToken, "get_funnel_step_sessions", args(map[string]any{"outcome": "abandoned"}), "outcome must be one of dropped or converted")
+	})
+
+	t.Run("lists the errors, spans and requests between the two steps that step names", func(t *testing.T) {
+		appID, teamID, userID, rawToken := setup(t, "viewer")
+		funnel := seedFunnel(t, appID, userID, "Checkout", "open", "cart", "purchase")
+		crash, appHang := strings.Repeat("a", 32), strings.Repeat("b", 32)
+		th.SeedGroupRow(ctx, t, teamID.String(), appID.String(), testinfra.GroupRow{Table: "fatal_exception_groups", Fingerprint: crash, Type: "IllegalStateException"})
+		th.SeedGroupRow(ctx, t, teamID.String(), appID.String(), testinfra.GroupRow{Table: "app_hang_groups", Fingerprint: appHang})
+		th.SeedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.shop.com", "/cart")
+		start := now.Add(-2 * time.Hour)
+
+		seedEvent := func(installationID string, row testinfra.EventRow) {
+			t.Helper()
+			row.InstallationID = installationID
+			row.AppVersion = "1.0.0"
+			th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, row)
+		}
+		seedSteps := func(installationID string, names ...string) {
+			t.Helper()
+			for i, name := range names {
+				seedEvent(installationID, testinfra.EventRow{Type: "custom", CustomName: name, Timestamp: start.Add(time.Duration(i) * time.Minute)})
+			}
+		}
+		// Crashes before reaching cart, then hangs, crashes, runs a span and
+		// requests the cart between cart and purchase.
+		converted := uuid.NewString()
+		seedSteps(converted, "open", "cart", "purchase")
+		seedEvent(converted, testinfra.EventRow{Type: "exception", Fingerprint: crash, Timestamp: start.Add(30 * time.Second)})
+		seedEvent(converted, testinfra.EventRow{Type: "app_hang", Fingerprint: appHang, Timestamp: start.Add(70 * time.Second)})
+		seedEvent(converted, testinfra.EventRow{Type: "exception", Fingerprint: crash, Timestamp: start.Add(80 * time.Second)})
+		seedEvent(converted, testinfra.EventRow{
+			Type: "http", Timestamp: start.Add(90 * time.Second),
+			HttpURL: "https://api.shop.com/cart", HttpMethod: "get", HttpStatusCode: 200,
+			HttpStartTime: uint64(start.Add(90 * time.Second).UnixMilli()), HttpEndTime: uint64(start.Add(91 * time.Second).UnixMilli()),
+		})
+		th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{SpanName: "checkout", InstallationID: converted, AppVersion: "1.0.0", StartTime: start.Add(100 * time.Second), Duration: time.Second})
+		// Hangs after reaching cart, then drops off.
+		dropped := uuid.NewString()
+		seedSteps(dropped, "open", "cart")
+		seedEvent(dropped, testinfra.EventRow{Type: "app_hang", Fingerprint: appHang, Timestamp: start.Add(5 * time.Minute)})
+
+		stepArgs := func(step int, extra map[string]any) map[string]any {
+			a := map[string]any{"app_id": appID.String(), "funnel_id": funnel.ID.String(), "from": from, "to": to, "step": step}
+			for k, v := range extra {
+				a[k] = v
+			}
+			return a
+		}
+		type stepRange struct {
+			FromStep string `json:"from_step"`
+			ToStep   string `json:"to_step"`
+		}
+		expectRange := func(t *testing.T, tool string, got stepRange, from, to string) {
+			t.Helper()
+			if got.FromStep != from || got.ToStep != to {
+				t.Errorf("%s covers %s to %s, want %s to %s", tool, got.FromStep, got.ToStep, from, to)
+			}
+		}
+		errorRows := func(t *testing.T, step int) []string {
+			t.Helper()
+			var result struct {
+				stepRange
+				Errors []measure.FunnelStepError `json:"errors"`
+			}
+			call(t, rawToken, "get_funnel_step_errors", stepArgs(step, nil), &result)
+			expectRange(t, "get_funnel_step_errors", result.stepRange, funnel.Steps[step-1].EventName, funnel.Steps[step].EventName)
+			rows := []string{}
+			for _, stepError := range result.Errors {
+				rows = append(rows, fmt.Sprintf("%s %s %d %d %d %d", stepError.ErrorType, stepError.Type, stepError.Count, stepError.Users, stepError.Converted, stepError.Dropped))
+			}
+			return rows
+		}
+
+		if got := errorRows(t, 1); fmt.Sprint(got) != "[exception IllegalStateException 1 1 1 0]" {
+			t.Errorf("errors before cart = %v, want the one crash", got)
+		}
+		if got := errorRows(t, 2); fmt.Sprint(got) != "[app_hang  2 2 1 1 exception IllegalStateException 1 1 1 0]" {
+			t.Errorf("errors between cart and purchase = %v, want the app hangs then the crash", got)
+		}
+
+		var spans struct {
+			stepRange
+			Spans []measure.FunnelStepTrace `json:"spans"`
+		}
+		call(t, rawToken, "get_funnel_step_traces", stepArgs(2, map[string]any{"quantile": "p50"}), &spans)
+		expectRange(t, "get_funnel_step_traces", spans.stepRange, "cart", "purchase")
+		if len(spans.Spans) != 1 || spans.Spans[0].SpanName != "checkout" || spans.Spans[0].Converted != 1 {
+			t.Errorf("spans = %+v, want checkout from the installation that converted", spans.Spans)
+		}
+
+		var endpoints struct {
+			stepRange
+			Endpoints []measure.FunnelStepEndpoint `json:"endpoints"`
+		}
+		call(t, rawToken, "get_funnel_step_network", stepArgs(2, map[string]any{"quantile": "p50"}), &endpoints)
+		expectRange(t, "get_funnel_step_network", endpoints.stepRange, "cart", "purchase")
+		if len(endpoints.Endpoints) != 1 || endpoints.Endpoints[0].Domain+endpoints.Endpoints[0].PathPattern != "api.shop.com/cart" {
+			t.Errorf("endpoints = %+v, want api.shop.com/cart", endpoints.Endpoints)
+		}
+	})
+}
+
 // --------------------------------------------------------------------------
 // helpers local to this test file
 // --------------------------------------------------------------------------
+
+// funnelToolArgs returns valid arguments, apart from app_id, for every funnel
+// tool, naming the given funnel.
+func funnelToolArgs(funnelID, from, to string) map[string]map[string]any {
+	return map[string]map[string]any{
+		"get_funnels":              {},
+		"get_pinned_funnels":       {},
+		"get_funnel":               {"funnel_id": funnelID},
+		"get_funnel_event_names":   {},
+		"get_funnel_conversion":    {"funnel_id": funnelID, "from": from, "to": to},
+		"get_funnel_trend":         {"funnel_id": funnelID, "period": "day", "timezone": "UTC"},
+		"get_funnel_cadence":       {"funnel_id": funnelID, "weeks": 4, "timezone": "UTC"},
+		"get_funnel_step_errors":   {"funnel_id": funnelID, "from": from, "to": to},
+		"get_funnel_step_traces":   {"funnel_id": funnelID, "from": from, "to": to},
+		"get_funnel_step_network":  {"funnel_id": funnelID, "from": from, "to": to},
+		"get_funnel_step_sessions": {"funnel_id": funnelID, "outcome": "dropped", "from": from, "to": to},
+		"create_funnel":            {"name": "Signup", "steps": []string{"open", "signup"}, "conversion_window_seconds": 3600},
+		"update_funnel":            {"funnel_id": funnelID, "name": "Renamed"},
+		"delete_funnel":            {"funnel_id": funnelID},
+		"set_funnel_pinned":        {"funnel_id": funnelID, "pinned": false},
+		"reorder_pinned_funnels":   {"funnel_ids": []string{funnelID}},
+	}
+}
 
 // newTestGinContextWithQuery creates a Gin context with query parameters.
 func newTestGinContextWithQuery(method, path string, params url.Values) (*gin.Context, *httptest.ResponseRecorder) {

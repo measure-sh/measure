@@ -145,6 +145,30 @@ const features: PlatformFeature[] = [
     ),
   },
   {
+    heading: "Funnels",
+    image: "/images/product_screenshots/funnels.webp",
+    imageAlt: "Conversion funnel for an Android app in Measure",
+    body: (
+      <>
+        Track your app’s core flows, where users drop off, and what gets in
+        their way with{" "}
+        <Link href="/product/funnels" className={underlineLinkStyle}>
+          Funnels
+        </Link>
+        . Build funnels from custom events to track how many users reach each
+        step, where they leave, and how long it takes them to move forward.
+        Track conversion over days, weeks, or months, with every build upload
+        marked on the chart to see how each release impacts performance.
+        <br />
+        <br />
+        When conversion drops, use the Friction view to investigate why. See the
+        crashes, errors, slow traces, and network requests users encounter at
+        each step. Open session replays from users who dropped off to understand
+        what happened before they left.
+      </>
+    ),
+  },
+  {
     heading: "Network Monitoring",
     image: "/images/product_screenshots/network_performance.webp",
     imageAlt: "Network performance monitoring for an Android app in Measure",

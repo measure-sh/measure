@@ -42,7 +42,7 @@ Measure has a single, transparent [price](/pricing) based on how much data you u
 
 Bugsnag monitors mobile, web and backend across 50+ platforms and is now one product inside SmartBear's larger testing and monitoring suite. Mobile is one player among many, and the defaults, platform decisions, dashboards and roadmap are shaped by the whole portfolio rather than by the needs of mobile devs alone.
 
-Measure is built only for mobile. [Crashes & ANRs](/product/crashes-and-anrs), [App Health](/product/app-health), [Performance Traces](/product/performance-traces), [Network Performance](/product/network-performance), [Bug Reports](/product/bug-reports) and [User Journeys](/product/user-journeys) are all designed around how mobile apps actually break in production.
+Measure is built only for mobile. [Crashes & ANRs](/product/crashes-and-anrs), [App Health](/product/app-health), [Performance Traces](/product/performance-traces), [Network Performance](/product/network-performance), [Bug Reports](/product/bug-reports), [User Journeys](/product/user-journeys) and [Funnels](/product/funnels) are all designed around how mobile apps actually break in production.
 
 Mobile is not a part of our product, it is the whole product.
 
@@ -55,6 +55,7 @@ Mobile is not a part of our product, it is the whole product.
 | Performance traces | ✓ | ✓ |
 | Network monitoring | ✓ | ✓ |
 | User journeys | ✓ | ✗ |
+| Funnels with drop-off analysis | ✓ | ✗ |
 | In-app bug reports | ✓ | ✗ |
 | Session replay on every issue | ✓ | Limited breadcrumbs only |
 | Dynamic Sampling with Adaptive Capture | ✓ | Quota-driven sampling |
