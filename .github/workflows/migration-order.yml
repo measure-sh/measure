@@ -1,0 +1,69 @@
+# Migrations have to apply in the order they merge. A pull request that adds
+# a migration with a version at or below the newest one on the base branch
+# places it before migrations that databases may have already applied.
+name: Migration Order
+on: pull_request
+
+permissions:
+  contents: read
+
+env:
+  # For every open pull request, GitHub keeps a hidden commit that merges the
+  # pull request into the base branch, and actions/checkout checks out that
+  # commit. Its first parent, HEAD^1, is the latest commit on the base branch,
+  # so diffing HEAD^1 against HEAD lists what the pull request adds.
+  BASE: HEAD^1
+  MIGRATION_DIRS: self-host/postgres self-host/clickhouse
+
+jobs:
+  changes:
+    name: Find migration changes
+    runs-on: ubuntu-latest
+    outputs:
+      migrations: ${{ steps.diff.outputs.migrations }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - name: Check whether the pull request changes migrations
+        id: diff
+        run: |
+          # shellcheck disable=SC2086
+          if git diff --quiet "$BASE" HEAD -- $MIGRATION_DIRS; then
+            echo "migrations=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "migrations=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  # A required status check passes when its job is skipped, so pull requests
+  # without migration changes can merge while this job is required.
+  order:
+    name: Check migration order
+    needs: changes
+    if: needs.changes.outputs.migrations == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - name: Check new migrations sort after the base branch
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          status=0
+          for dir in $MIGRATION_DIRS; do
+            latest=$(git ls-tree --name-only "$BASE" "$dir/" \
+              | sed -n 's|.*/\([0-9]\{14\}\)_[^/]*\.sql$|\1|p' | sort | tail -n 1)
+            added=$(git diff --name-only --diff-filter=AR "$BASE" HEAD -- "$dir" \
+              | grep -E '/[0-9]{14}_[^/]*\.sql$' || true)
+            for path in $added; do
+              version=$(basename "$path" | cut -c 1-14)
+              if [[ ! "$version" > "$latest" ]]; then
+                echo "::error file=$path::Migration $version is not later than $latest, the newest migration in $dir on $BASE_REF. Rename it with a version later than $latest."
+                status=1
+              fi
+            done
+          done
+          exit $status
