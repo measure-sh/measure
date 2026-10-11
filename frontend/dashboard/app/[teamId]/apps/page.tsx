@@ -386,9 +386,9 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
 
       {/* Error State */}
       {pageDataError && (
-        <span className="text-xs font-body">
-          Error fetching app settings. Please refresh page to try again.
-        </span>
+        <p className="font-body text-sm mt-8">
+          Error fetching app settings, please refresh page to try again
+        </p>
       )}
 
       {/* Main UI - Only show when both APIs succeed and SDK config is loaded */}
