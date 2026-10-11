@@ -10,6 +10,15 @@ comment on column measure.sdk_config.app_hang_timeline_duration is 'duration for
 comment on column measure.sdk_config.app_hang_sampling_rate is 'sampling rate for app hangs';
 comment on column measure.sdk_config.app_hang_replay_enabled is 'whether to collect a session replay with app hangs';
 
+-- This migration first shipped as 20260924171707 in commit e2aabb7c9
+-- (https://github.com/measure-sh/measure/pull/4577), which merged after
+-- 20261007120000, so dbmate in strict mode refused it on databases that already
+-- had 20261007120000. Databases migrated before this file was renumbered
+-- recorded it as 20260924171707. Removing that row leaves this version as the
+-- only record of the migration, so a rollback does not look for a file under the
+-- old version.
+delete from schema_migrations where version = '20260924171707';
+
 -- migrate:down
 alter table measure.sdk_config
   drop column if exists app_hang_threshold_millis,
