@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Renumber app hang sdk config migration by @anupcowkur in #4607
 - (**backend**): State the requested numbers in agent replies with charts by @anupcowkur in #4546
 - (**backend**): Keep filter keys and crash fallback out of agent answers by @anupcowkur
 - (**backend**): Leave metrics without data out of get_metrics by @anupcowkur
