@@ -334,3 +334,62 @@ describe('MeasureInternal.init framework attributes', () => {
     expect(order).toEqual(['setFrameworkAttributes', 'start']);
   });
 });
+
+describe('MeasureInternal.trackError', () => {
+  function makeTrackErrorInitializer() {
+    const initializer = makeMockInitializer();
+    initializer.signalProcessor.trackEvent = jest.fn(() => Promise.resolve());
+    initializer.timeProvider = { now: jest.fn(() => 1000) };
+    return initializer;
+  }
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
+
+  it('tracks a handled exception with valid attributes', async () => {
+    const initializer = makeTrackErrorInitializer();
+    const sdk = new MeasureInternal(initializer);
+
+    await sdk.trackError({
+      error: new Error('boom'),
+      attributes: { screen: 'Home' },
+    });
+
+    expect(initializer.signalProcessor.trackEvent).toHaveBeenCalledWith(
+      expect.objectContaining({ severity: 'handled' }),
+      'exception',
+      1000,
+      {},
+      { screen: 'Home' }
+    );
+  });
+
+  it('drops the error when an attribute key is invalid', async () => {
+    const initializer = makeTrackErrorInitializer();
+    const sdk = new MeasureInternal(initializer);
+
+    await sdk.trackError({
+      error: new Error('boom'),
+      attributes: { 'bad key': 'value' },
+    });
+
+    expect(initializer.signalProcessor.trackEvent).not.toHaveBeenCalled();
+    expect(initializer.logger.log).toHaveBeenCalledWith(
+      'error',
+      'Invalid attributes provided for error. Dropping the event.'
+    );
+  });
+
+  it('drops the error when an attribute value is too long', async () => {
+    const initializer = makeTrackErrorInitializer();
+    const sdk = new MeasureInternal(initializer);
+
+    await sdk.trackError({
+      error: new Error('boom'),
+      attributes: { screen: 'v'.repeat(257) },
+    });
+
+    expect(initializer.signalProcessor.trackEvent).not.toHaveBeenCalled();
+  });
+});

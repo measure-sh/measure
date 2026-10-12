@@ -15,7 +15,10 @@ import {
 } from './native/measureBridge';
 import type { Span } from './tracing/span';
 import type { SpanBuilder } from './tracing/spanBuilder';
-import type { ValidAttributeValue } from './utils/attributeValueValidator';
+import {
+  validateAttributes,
+  type ValidAttributeValue,
+} from './utils/attributeValueValidator';
 
 export class MeasureInternal {
   private measureInitializer: MeasureInitializer;
@@ -272,6 +275,15 @@ export class MeasureInternal {
     error: unknown;
     attributes?: Record<string, ValidAttributeValue>;
   }): Promise<void> {
+    const { logger } = this.measureInitializer;
+    if (!validateAttributes(attributes ?? {}, logger)) {
+      logger.log(
+        'error',
+        'Invalid attributes provided for error. Dropping the event.'
+      );
+      return Promise.resolve();
+    }
+
     const payload = buildExceptionPayload(error, 'handled', false);
     return this.measureInitializer.signalProcessor
       .trackEvent(

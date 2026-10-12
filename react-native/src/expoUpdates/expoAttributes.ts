@@ -1,4 +1,5 @@
 import { NativeModules } from 'react-native';
+import { UUID_REGEX, ValidationLimits } from '../utils/validationLimits';
 
 export const EXPO_UPDATE_ID_KEY = 'expo_update_id';
 export const EXPO_RUNTIME_VERSION_KEY = 'expo_runtime_version';
@@ -165,6 +166,34 @@ function collectConstantsAttributes(target: ExpoAttributes): void {
   }
 }
 
+/** Backend length limits for the Expo string attributes. */
+const MAX_LENGTHS: Record<string, number> = {
+  [EXPO_RUNTIME_VERSION_KEY]: ValidationLimits.expoRuntimeVersion,
+  [EXPO_AUTOMATIC_UPDATE_POLICY_KEY]:
+    ValidationLimits.expoAutomaticUpdatePolicy,
+  [EXPO_EXECUTION_ENVIRONMENT_KEY]: ValidationLimits.expoExecutionEnvironment,
+  [EXPO_VERSION_KEY]: ValidationLimits.expoVersion,
+  [EXPO_SDK_VERSION_KEY]: ValidationLimits.expoSdkVersion,
+  [EXPO_EAS_PROJECT_ID_KEY]: ValidationLimits.expoEasProjectId,
+};
+
+/**
+ * Truncates string attributes to their backend limits.
+ */
+function sanitize(attributes: ExpoAttributes): void {
+  const updateId = attributes[EXPO_UPDATE_ID_KEY];
+  if (typeof updateId === 'string' && !UUID_REGEX.test(updateId)) {
+    delete attributes[EXPO_UPDATE_ID_KEY];
+  }
+
+  for (const [key, maxLength] of Object.entries(MAX_LENGTHS)) {
+    const value = attributes[key];
+    if (typeof value === 'string') {
+      attributes[key] = value.slice(0, maxLength);
+    }
+  }
+}
+
 /**
  * Returns the Expo attributes available in this app.
  *
@@ -178,8 +207,9 @@ export function collectExpoAttributes(): ExpoAttributes {
     collectUpdatesAttributes(attributes);
     collectConstantsAttributes(attributes);
   } catch {
-    return attributes;
+    // Fall through and return what was collected.
   }
 
+  sanitize(attributes);
   return attributes;
 }

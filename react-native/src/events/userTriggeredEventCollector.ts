@@ -4,6 +4,7 @@ import {
   type ValidAttributeValue,
 } from '../utils/attributeValueValidator';
 import type { Logger } from '../utils/logger';
+import { ValidationLimits } from '../utils/validationLimits';
 import type { TimeProvider } from '../utils/timeProvider';
 import { EventType } from './eventType';
 import type { ISignalProcessor } from './signalProcessor';
@@ -106,6 +107,14 @@ export class UserTriggeredEventCollector
       return;
     }
 
+    if (screenName.length > ValidationLimits.screenViewName) {
+      this.logger.log(
+        'error',
+        `Invalid screen view: name exceeds maximum length of ${ValidationLimits.screenViewName} characters`
+      );
+      return;
+    }
+
     const isValidAttributes = validateAttributes(attributes ?? {}, this.logger);
     if (!isValidAttributes) {
       this.logger.log(
@@ -181,6 +190,14 @@ export class UserTriggeredEventCollector
 
     if (!url || !method) {
       this.logger.log('error', 'Invalid HTTP event: url or method missing');
+      return;
+    }
+
+    if (client && client.length > ValidationLimits.httpClient) {
+      this.logger.log(
+        'error',
+        `Invalid HTTP event: client exceeds maximum length of ${ValidationLimits.httpClient} characters`
+      );
       return;
     }
 
