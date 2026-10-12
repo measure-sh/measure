@@ -6,6 +6,7 @@ import '../config/config_provider.dart';
 import '../logger/log_level.dart';
 import '../logger/logger.dart';
 import '../method_channel/signal_processor.dart';
+import '../utils/attribute_validator.dart';
 import '../utils/sampler.dart';
 import 'internal_span.dart';
 
@@ -157,34 +158,16 @@ class MsrSpanProcessor implements SpanProcessor {
       );
     }
 
-    // Remove invalid user-defined attributes
-    var droppedAttrsCount = 0;
-    spanData.userDefinedAttrs.removeWhere((key, value) {
-      final isInvalid = key.length > _configProvider.maxUserDefinedAttributeKeyLength ||
-          (value is String && value.length > _configProvider.maxUserDefinedAttributeValueLength);
-      if (isInvalid) {
-        droppedAttrsCount++;
-      }
-      return isInvalid;
-    });
-
-    if (droppedAttrsCount > 0) {
-      _logger.log(
-        LogLevel.error,
-        "SpanProcessor: invalid span (${spanData.name}) attributes, dropped $droppedAttrsCount attributes due to invalid key or value length",
-      );
-    }
-
-    // Limit number of user-defined attributes per span
-    if (spanData.userDefinedAttrs.length > _configProvider.maxUserDefinedAttributesPerEvent) {
-      final excessCount = spanData.userDefinedAttrs.length - _configProvider.maxUserDefinedAttributesPerEvent;
-      _logger.log(
-        LogLevel.error,
-        "SpanProcessor: invalid span (${spanData.name}) attributes, max attributes exceeded, $excessCount attributes will be dropped",
-      );
-      final keysToKeep = spanData.userDefinedAttrs.keys.take(_configProvider.maxUserDefinedAttributesPerEvent).toList();
-      spanData.userDefinedAttrs.removeWhere((key, _) => !keysToKeep.contains(key));
-    }
+    // Remove invalid user-defined attributes and limit their number
+    final validAttrs = dropInvalidAttributes(
+      'span(${spanData.name})',
+      spanData.userDefinedAttrs,
+      _configProvider,
+      _logger,
+    );
+    spanData.userDefinedAttrs
+      ..clear()
+      ..addAll(validAttrs);
 
     // Validation passed
     return true;

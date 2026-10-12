@@ -406,5 +406,30 @@ void main() {
       expect(signalProcessor.trackedSpans.length, 1);
       expect(signalProcessor.trackedSpans.first.isSampled, true);
     });
+
+    test("removes user-defined attributes with invalid key characters", () {
+      spanProcessor.onConfigLoaded();
+
+      final span = MsrSpan(
+        logger: logger,
+        spanProcessor: spanProcessor,
+        timeProvider: timeProvider,
+        isSampled: true,
+        name: "span-name",
+        spanId: "span-id",
+        traceId: "trace-id",
+        parentId: null,
+        startTime: timeProvider.now() - 1000,
+      );
+      spanProcessor.onStart(span);
+
+      span.setAttributeString("bad key!", "value");
+      span.setAttributeString("valid-key", "value");
+      span.end();
+
+      expect(signalProcessor.trackedSpans.length, 1);
+      expect(signalProcessor.trackedSpans.first.userDefinedAttrs.containsKey("bad key!"), false);
+      expect(signalProcessor.trackedSpans.first.userDefinedAttrs.containsKey("valid-key"), true);
+    });
   });
 }

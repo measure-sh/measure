@@ -10,6 +10,7 @@ import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/method_channel/signal_processor.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
+import 'package:measure_flutter/src/utils/attribute_validator.dart';
 import 'package:measure_flutter/src/utils/file_extension.dart';
 import 'package:measure_flutter/src/utils/id_provider.dart';
 
@@ -61,6 +62,20 @@ class BugReportCollector {
       Map<String, AttributeValue> attributes) async {
     if (!isEnabled) return;
     try {
+      final maxDescriptionLength = _configProvider.maxDescriptionLengthInBugReport;
+      if (description.length > maxDescriptionLength) {
+        _logger.log(
+          LogLevel.warning,
+          'Bug report description exceeds maximum length of $maxDescriptionLength characters and will be truncated',
+        );
+        description = description.substring(0, maxDescriptionLength);
+      }
+      final validAttributes = dropInvalidAttributes(
+        'bug_report',
+        attributes,
+        _configProvider,
+        _logger,
+      );
       final storedAttachments = <MsrAttachment>[];
 
       for (var attachment in attachments) {
@@ -127,7 +142,7 @@ class BugReportCollector {
         data: data,
         type: EventType.bugReport,
         timestamp: _timeProvider.now(),
-        userDefinedAttrs: attributes,
+        userDefinedAttrs: validAttributes,
         userTriggered: true,
         attachments: storedAttachments,
       );

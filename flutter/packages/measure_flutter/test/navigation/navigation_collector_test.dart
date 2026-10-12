@@ -7,6 +7,7 @@ import 'package:measure_flutter/src/time/time_provider.dart';
 
 import '../utils/fake_layout_snapshot_collector.dart';
 import '../utils/fake_signal_processor.dart';
+import '../utils/noop_logger.dart';
 import '../utils/test_clock.dart';
 
 void main() {
@@ -32,6 +33,7 @@ void main() {
       attachment: snapshotAttachment,
     );
     collector = NavigationCollector(
+      logger: NoopLogger(),
       signalProcessor: signalProcessor,
       timeProvider: timeProvider,
       layoutSnapshotCollector: snapshotCollector,
@@ -134,6 +136,28 @@ void main() {
       await trackScreenView('CheckoutScreen');
 
       expect(lastEvent().attachments?.single, same(snapshotAttachment));
+    });
+  });
+
+  group('screen view name length', () {
+    test('drops a user triggered screen view with a name over 1024 characters',
+        () async {
+      await trackScreenView('s' * 1025, userTriggered: true);
+
+      expect(signalProcessor.trackedEvents, isEmpty);
+    });
+
+    test('truncates an automatically tracked name over 1024 characters',
+        () async {
+      await trackScreenView('s' * 1025, userTriggered: false);
+
+      expect(screenName(lastEvent()), equals('s' * 1024));
+    });
+
+    test('tracks a name of exactly 1024 characters', () async {
+      await trackScreenView('s' * 1024, userTriggered: true);
+
+      expect(screenName(lastEvent()), equals('s' * 1024));
     });
   });
 }
