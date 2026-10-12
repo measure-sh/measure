@@ -6,6 +6,7 @@ import 'package:measure_flutter/src/http/http_data.dart';
 
 import '../utils/fake_config_provider.dart';
 import '../utils/fake_signal_processor.dart';
+import '../utils/noop_logger.dart';
 
 void main() {
   group('HttpCollector', () {
@@ -17,6 +18,7 @@ void main() {
       signalProcessor = FakeSignalProcessor();
       configProvider = FakeConfigProvider();
       collector = HttpCollector(
+        logger: NoopLogger(),
         signalProcessor: signalProcessor,
         configProvider: configProvider,
       );
@@ -429,6 +431,36 @@ void main() {
           statusCode: 200,
         );
         expect(signalProcessor.trackedEvents.length, 2); // Now tracked again
+      });
+    });
+
+    group('client length', () {
+      test('drops the event when client exceeds 32 characters', () {
+        collector.register();
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.get,
+          startTime: 1234567890,
+          statusCode: 200,
+          client: 'c' * 33,
+        );
+
+        expect(signalProcessor.trackedEvents, isEmpty);
+      });
+
+      test('tracks the event when client is exactly 32 characters', () {
+        collector.register();
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.get,
+          startTime: 1234567890,
+          statusCode: 200,
+          client: 'c' * 32,
+        );
+
+        expect(signalProcessor.trackedEvents.length, 1);
+        final data = signalProcessor.trackedEvents.first.data as HttpData;
+        expect(data.client, 'c' * 32);
       });
     });
   });

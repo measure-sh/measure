@@ -158,12 +158,14 @@ final class MeasureInitializer {
       _idProvider,
     );
     _navigationCollector = NavigationCollector(
+      logger: logger,
       signalProcessor: signalProcessor,
       timeProvider: timeProvider,
       layoutSnapshotCollector: _layoutSnapshotCollector,
       layoutSnapshotThrottler: LayoutSnapshotThrottler(_timeProvider),
     );
     _httpCollector = HttpCollector(
+      logger: logger,
       signalProcessor: signalProcessor,
       configProvider: configProvider,
     );

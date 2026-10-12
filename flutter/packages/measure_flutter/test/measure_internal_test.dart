@@ -3,6 +3,8 @@ import 'package:measure_flutter/src/config/measure_config.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
 import 'package:measure_flutter/src/measure_internal.dart';
 
+import 'utils/test_method_channel.dart';
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -122,6 +124,33 @@ void main() {
 
       await measureInternal.unregisterCollectors();
       expect(measureInternal.initializer.exceptionCollector.isEnabled(), false);
+    });
+  });
+
+  group('MeasureInternal - setUserId', () {
+    late TestMethodChannel channel;
+    late MeasureInternal measureInternal;
+
+    setUp(() {
+      channel = TestMethodChannel();
+      measureInternal = MeasureInternal(
+        initializer: MeasureInitializer(
+          const MeasureConfig(enableLogging: false, autoStart: false),
+        ),
+        methodChannel: channel,
+      );
+    });
+
+    test('sets a user ID of exactly 128 characters', () async {
+      await measureInternal.setUserId('u' * 128);
+
+      expect(channel.userId, equals('u' * 128));
+    });
+
+    test('ignores a user ID over 128 characters', () async {
+      await measureInternal.setUserId('u' * 129);
+
+      expect(channel.userId, isNull);
     });
   });
 }

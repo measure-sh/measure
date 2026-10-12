@@ -84,5 +84,29 @@ void main() {
       expect(trackedEvent.$4, isEmpty);
       expect(trackedEvent.$5, userTriggered);
     });
+
+    test('drops event with an attribute key containing invalid characters', () {
+      signalProcessor.trackEvent(
+        data: CustomEventData(name: 'event_name'),
+        type: EventType.custom,
+        timestamp: DateTime(2024, 2, 12, 10, 30).millisecondsSinceEpoch,
+        userDefinedAttrs: {'bad key!': StringAttr('value')},
+        userTriggered: true,
+      );
+
+      expect(channel.trackedEvents, isEmpty);
+    });
+
+    test('drops event with an empty attribute key', () {
+      signalProcessor.trackEvent(
+        data: CustomEventData(name: 'event_name'),
+        type: EventType.custom,
+        timestamp: DateTime(2024, 2, 12, 10, 30).millisecondsSinceEpoch,
+        userDefinedAttrs: {'': StringAttr('value')},
+        userTriggered: true,
+      );
+
+      expect(channel.trackedEvents, isEmpty);
+    });
   });
 }

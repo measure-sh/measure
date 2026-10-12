@@ -271,5 +271,28 @@ void main() {
         tempDir.deleteSync();
       }
     });
+
+    test('truncates a description over the maximum length', () async {
+      final maxLength = configProvider.maxDescriptionLengthInBugReport;
+
+      await collector.trackBugReport('d' * (maxLength + 1), [], {});
+
+      final data = signalProcessor.trackedEvents.single.data as BugReportData;
+      expect(data.description, equals('d' * maxLength));
+    });
+
+    test('drops invalid attributes and keeps the bug report', () async {
+      final attributes = <String, AttributeValue>{
+        'bad key!': StringAttr('value'),
+        'long_value': StringAttr(
+            'v' * (configProvider.maxUserDefinedAttributeValueLength + 1)),
+        'valid_key': StringAttr('value'),
+      };
+
+      await collector.trackBugReport('description', [], attributes);
+
+      final event = signalProcessor.trackedEvents.single;
+      expect(event.userDefinedAttrs.keys, equals(['valid_key']));
+    });
   });
 }

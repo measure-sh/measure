@@ -11,6 +11,7 @@ import 'package:measure_flutter/src/gestures/gesture_collector.dart';
 import 'package:measure_flutter/src/gestures/long_click_data.dart';
 import 'package:measure_flutter/src/http/http_collector.dart';
 import 'package:measure_flutter/src/isolate/file_processing_isolate.dart';
+import 'package:measure_flutter/src/logger/log_level.dart';
 import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/logs/log_collector.dart';
 import 'package:measure_flutter/src/measure_initializer.dart';
@@ -21,6 +22,7 @@ import 'package:measure_flutter/src/time/time_provider.dart';
 import 'package:measure_flutter/src/tracing/span_processor.dart';
 import 'package:measure_flutter/src/tracing/tracer.dart';
 import 'package:measure_flutter/src/utils/id_provider.dart';
+import 'package:measure_flutter/src/utils/validation_limits.dart';
 
 import '../measure_flutter.dart';
 import 'config/config_provider.dart';
@@ -197,6 +199,13 @@ final class MeasureInternal {
   }
 
   Future<void> setUserId(String userId) {
+    if (userId.length > ValidationLimits.userId) {
+      logger.log(
+        LogLevel.error,
+        "User ID exceeds maximum length of ${ValidationLimits.userId} characters and will be ignored",
+      );
+      return Future.value();
+    }
     return methodChannel.setUserId(userId);
   }
 

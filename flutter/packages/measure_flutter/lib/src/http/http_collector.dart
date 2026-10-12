@@ -1,16 +1,21 @@
 import 'package:measure_flutter/measure_flutter.dart';
 import 'package:measure_flutter/src/config/config_provider.dart';
+import 'package:measure_flutter/src/logger/log_level.dart';
+import 'package:measure_flutter/src/logger/logger.dart';
+import 'package:measure_flutter/src/utils/validation_limits.dart';
 
 import '../events/event_type.dart';
 import '../method_channel/signal_processor.dart';
 import 'http_data.dart';
 
 class HttpCollector {
+  final Logger logger;
   final SignalProcessor signalProcessor;
   final ConfigProvider configProvider;
   bool _enabled = false;
 
   HttpCollector({
+    required this.logger,
     required this.signalProcessor,
     required this.configProvider,
   });
@@ -42,6 +47,14 @@ class HttpCollector {
     }
 
     if (!configProvider.shouldTrackHttpEvent(url)) {
+      return;
+    }
+
+    if (client != null && client.length > ValidationLimits.httpClient) {
+      logger.log(
+        LogLevel.error,
+        "Invalid HTTP event: client exceeds maximum length of ${ValidationLimits.httpClient} characters",
+      );
       return;
     }
 

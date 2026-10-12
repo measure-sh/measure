@@ -5,6 +5,7 @@ import 'package:measure_flutter/src/logger/logger.dart';
 import 'package:measure_flutter/src/method_channel/msr_method_channel.dart';
 import 'package:measure_flutter/src/serialization/json_serializable.dart';
 import 'package:measure_flutter/src/tracing/span_data.dart';
+import 'package:measure_flutter/src/utils/attribute_validator.dart';
 
 abstract interface class SignalProcessor {
   Future<void> trackEvent<T extends JsonSerialized>({
@@ -77,8 +78,8 @@ final class DefaultSignalProcessor extends SignalProcessor {
       final key = entry.key;
       final value = entry.value;
 
-      final isKeyValid = _isKeyValid(key);
-      final isValueValid = _isValueValid(value);
+      final isKeyValid = isValidAttributeKey(key, configProvider);
+      final isValueValid = isValidAttributeValue(value, configProvider);
 
       if (!isKeyValid) {
         logger.log(
@@ -96,17 +97,5 @@ final class DefaultSignalProcessor extends SignalProcessor {
 
       return isKeyValid && isValueValid;
     });
-  }
-
-  bool _isKeyValid(String key) {
-    return key.length <= configProvider.maxUserDefinedAttributeKeyLength;
-  }
-
-  bool _isValueValid(AttributeValue value) {
-    if (value is StringAttr) {
-      String str = value.value as String;
-      return str.length <= configProvider.maxUserDefinedAttributeValueLength;
-    }
-    return true;
   }
 }
