@@ -13,6 +13,7 @@ const UPDATES = 'expo-updates';
 const CONSTANTS = 'expo-constants';
 const UPDATES_NATIVE_MODULE = 'ExpoUpdates';
 const CONSTANTS_NATIVE_MODULE = 'ExponentConstants';
+const UPDATE_ID = '0f8fad5b-d9cb-469f-a165-70867728950e';
 
 function loadCollector() {
   return require('../../expoUpdates/expoAttributes').collectExpoAttributes();
@@ -93,12 +94,12 @@ describe('collectExpoAttributes', () => {
     let factory: jest.Mock | undefined;
     const attrs = collectWith(() => {
       installNativeModules(UPDATES_NATIVE_MODULE);
-      mockModule(UPDATES, { updateId: 'update-id' });
+      mockModule(UPDATES, { updateId: UPDATE_ID });
       factory = mockAbsent(CONSTANTS);
     });
 
     expect(factory).not.toHaveBeenCalled();
-    expect(attrs).toEqual({ expo_update_id: 'update-id' });
+    expect(attrs).toEqual({ expo_update_id: UPDATE_ID });
   });
 
   it('collects expo-constants attributes when expo-updates is absent', () => {
@@ -160,11 +161,11 @@ describe('collectExpoAttributes', () => {
       jest.doMock('react-native', () => ({
         NativeModules: { [UPDATES_NATIVE_MODULE]: {} },
       }));
-      mockModule(UPDATES, { updateId: 'update-id' });
+      mockModule(UPDATES, { updateId: UPDATE_ID });
       mockAbsent(CONSTANTS);
     });
 
-    expect(attrs).toEqual({ expo_update_id: 'update-id' });
+    expect(attrs).toEqual({ expo_update_id: UPDATE_ID });
   });
 
   it('reads expo-constants values from the default export', () => {
@@ -293,7 +294,7 @@ describe('collectExpoAttributes', () => {
   it('still collects expo-updates attributes when expo-constants throws', () => {
     const attrs = collectWith(() => {
       installNativeModules(UPDATES_NATIVE_MODULE, CONSTANTS_NATIVE_MODULE);
-      mockModule(UPDATES, { updateId: 'update-id' });
+      mockModule(UPDATES, { updateId: UPDATE_ID });
       mockEsModuleWithDefault(CONSTANTS, {
         get expoConfig(): never {
           throw new Error('Constants.manifest is null, must be an object.');
@@ -301,7 +302,7 @@ describe('collectExpoAttributes', () => {
       });
     });
 
-    expect(attrs).toEqual({ expo_update_id: 'update-id' });
+    expect(attrs).toEqual({ expo_update_id: UPDATE_ID });
   });
 
   it('does not throw when a require resolves to undefined', () => {
@@ -322,5 +323,40 @@ describe('collectExpoAttributes', () => {
     });
 
     expect(attrs).toEqual({});
+  });
+
+  it('drops an update id that is not a UUID', () => {
+    const attrs = collectWith(() => {
+      installNativeModules(UPDATES_NATIVE_MODULE);
+      mockModule(UPDATES, { updateId: 'not-a-uuid', runtimeVersion: '1.0.0' });
+      mockAbsent(CONSTANTS);
+    });
+
+    expect(attrs).toEqual({ expo_runtime_version: '1.0.0' });
+  });
+
+  it('truncates string attributes to their backend limits', () => {
+    const attrs = collectWith(() => {
+      installNativeModules(UPDATES_NATIVE_MODULE, CONSTANTS_NATIVE_MODULE);
+      mockModule(UPDATES, {
+        runtimeVersion: 'r'.repeat(129),
+        checkAutomatically: 'p'.repeat(33),
+      });
+      mockEsModuleWithDefault(CONSTANTS, {
+        executionEnvironment: 'e'.repeat(33),
+        expoVersion: 'v'.repeat(33),
+        expoConfig: { sdkVersion: 's'.repeat(33) },
+        easConfig: { projectId: 'i'.repeat(65) },
+      });
+    });
+
+    expect(attrs).toEqual({
+      expo_runtime_version: 'r'.repeat(128),
+      expo_automatic_update_policy: 'p'.repeat(32),
+      expo_execution_environment: 'e'.repeat(32),
+      expo_version: 'v'.repeat(32),
+      expo_sdk_version: 's'.repeat(32),
+      expo_eas_project_id: 'i'.repeat(64),
+    });
   });
 });

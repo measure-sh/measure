@@ -166,6 +166,40 @@ describe('SpanProcessor', () => {
     );
   });
 
+  it('drops invalid user defined attributes and keeps the span', () => {
+    const span = createSpan();
+
+    processor.onStart(span);
+    span.setAttribute('valid_key', 'ok');
+    span.setAttribute('bad key', 'value');
+    span.setAttribute('long_value', 'v'.repeat(257));
+    span.end(2000);
+
+    processor.onConfigLoaded();
+
+    const tracked = mockSignalProcessor.trackSpan.mock.calls[0][0];
+    expect(tracked.userDefinedAttrs).toEqual({ valid_key: 'ok' });
+    expect(mockLogger.log).toHaveBeenCalledWith(
+      'warning',
+      'Invalid attributes for span(span-name): dropped 2 attributes'
+    );
+  });
+
+  it('keeps at most 100 user defined attributes', () => {
+    const span = createSpan();
+
+    processor.onStart(span);
+    for (let i = 0; i < 101; i++) {
+      span.setAttribute(`attr_${i}`, i);
+    }
+    span.end(2000);
+
+    processor.onConfigLoaded();
+
+    const tracked = mockSignalProcessor.trackSpan.mock.calls[0][0];
+    expect(Object.keys(tracked.userDefinedAttrs)).toHaveLength(100);
+  });
+
   it('drops span if duration is negative', () => {
     const span = createSpan();
 

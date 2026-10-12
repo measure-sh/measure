@@ -1,5 +1,9 @@
 import type { Logger } from '../utils/logger';
-import type { ValidAttributeValue } from '../utils/attributeValueValidator';
+import {
+  dropInvalidAttributes,
+  type ValidAttributeValue,
+} from '../utils/attributeValueValidator';
+import { ValidationLimits } from '../utils/validationLimits';
 import { launchBugReport, trackBugReport } from '../native/measureBridge';
 import type { MsrAttachment } from '../events/msrAttachment';
 
@@ -66,18 +70,34 @@ export class BugReportCollector implements IBugReportCollector {
       return;
     }
 
+    if (description.length > ValidationLimits.bugReportDescription) {
+      this.logger.log(
+        'warning',
+        `Bug report description exceeds maximum length of ${ValidationLimits.bugReportDescription} characters and will be truncated`
+      );
+    }
+    const sanitizedDescription = description.slice(
+      0,
+      ValidationLimits.bugReportDescription
+    );
+    const validAttributes = dropInvalidAttributes(
+      'bug_report',
+      attributes,
+      this.logger
+    );
+
     try {
       this.logger.internalLog(
         'info',
         '[BugReportCollector] Tracking bug report...',
         {
-          description,
+          description: sanitizedDescription,
           attachments,
-          attributes,
+          attributes: validAttributes,
         }
       );
 
-      await trackBugReport(description, attachments, attributes);
+      await trackBugReport(sanitizedDescription, attachments, validAttributes);
     } catch (err: any) {
       this.logger.internalLog(
         'error',
@@ -104,16 +124,22 @@ export class BugReportCollector implements IBugReportCollector {
       return;
     }
 
+    const validAttributes = dropInvalidAttributes(
+      'bug_report',
+      attributes,
+      this.logger
+    );
+
     this.logger.internalLog(
       'info',
       '[BugReportCollector] Launching native bug report UI...',
       {
         takeScreenshot,
         bugReportConfig,
-        attributes,
+        attributes: validAttributes,
       }
     );
 
-    return launchBugReport(takeScreenshot, bugReportConfig, attributes);
+    return launchBugReport(takeScreenshot, bugReportConfig, validAttributes);
   }
 }

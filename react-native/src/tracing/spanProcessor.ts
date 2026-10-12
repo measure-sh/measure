@@ -1,5 +1,6 @@
 import type { IConfigProvider } from '../config/configProvider';
 import type { ISignalProcessor } from '../events/signalProcessor';
+import { dropInvalidAttributes } from '../utils/attributeValueValidator';
 import type { Logger } from '../utils/logger';
 import type { InternalSpan } from './internalSpan';
 import type { SpanData } from './spanData';
@@ -210,6 +211,11 @@ export class SpanProcessor implements ISpanProcessor {
     return {
       ...spanData,
       checkpoints: sanitizedCheckpoints,
+      userDefinedAttrs: dropInvalidAttributes(
+        `span(${name})`,
+        spanData.userDefinedAttrs ?? {},
+        this.logger
+      ),
     };
   }
 }
