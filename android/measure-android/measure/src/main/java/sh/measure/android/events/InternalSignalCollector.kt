@@ -1,5 +1,6 @@
 package sh.measure.android.events
 
+import kotlinx.serialization.encodeToString
 import sh.measure.android.MsrAttachment
 import sh.measure.android.SessionManager
 import sh.measure.android.attributes.AttributeProcessor
@@ -23,7 +24,9 @@ import sh.measure.android.toEventAttachment
 import sh.measure.android.tracing.Checkpoint
 import sh.measure.android.tracing.SpanData
 import sh.measure.android.tracing.SpanStatus
+import sh.measure.android.tracing.sanitize
 import sh.measure.android.utils.ProcessInfoProvider
+import sh.measure.android.utils.ValidationLimits
 import sh.measure.android.utils.toJsonElement
 
 /**
@@ -85,7 +88,7 @@ internal class InternalSignalCollector(
                             "invalid exception event, missing foreground property",
                         )
                     }
-                    val extractedData = extractExceptionEventData(data)
+                    val extractedData = extractExceptionEventData(data).withSizeLimitedMeta()
                     if (extractedData.severity == ExceptionSeverity.Fatal) {
                         // ignoring session ID and user triggered properties
                         // this should be safe as handled exceptions are not tracked in
@@ -275,10 +278,26 @@ internal class InternalSignalCollector(
                 hasEnded = hasEnded,
                 isSampled = spanIsSampled,
             )
+            if (!spanData.sanitize(logger, configProvider)) {
+                return
+            }
             signalProcessor.trackSpan(spanData)
         } catch (e: Exception) {
             logger.log(LogLevel.Error, "Failed to decode span", e)
         }
+    }
+
+    private fun ExceptionData.withSizeLimitedMeta(): ExceptionData {
+        val meta = meta ?: return this
+        val size = jsonSerializer.encodeToString(meta).toByteArray(Charsets.UTF_8).size
+        if (size <= ValidationLimits.EXCEPTION_META_BYTES) {
+            return this
+        }
+        logger.log(
+            LogLevel.Error,
+            "Exception meta exceeds the maximum size of ${ValidationLimits.EXCEPTION_META_BYTES} bytes and will be dropped",
+        )
+        return copy(meta = null)
     }
 
     private fun extractHttpData(map: MutableMap<String, Any?>): HttpData = jsonSerializer.decodeFromJsonElement(HttpData.serializer(), map.toJsonElement())

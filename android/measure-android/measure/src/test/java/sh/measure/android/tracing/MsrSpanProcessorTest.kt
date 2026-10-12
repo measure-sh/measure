@@ -1,6 +1,8 @@
 package sh.measure.android.tracing
 
 import org.junit.Assert
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.never
@@ -205,6 +207,27 @@ class MsrSpanProcessorTest {
     }
 
     @Test
+    fun `discards attributes if key contains invalid characters`() {
+        val spanProcessor =
+            MsrSpanProcessor(logger, signalProcessor, emptyList(), configProvider, sampler)
+        spanProcessor.onConfigLoaded()
+
+        val span = TestData.getSpan(
+            logger = logger,
+            timeProvider = timeProvider,
+            spanProcessor = spanProcessor,
+            startTime = timeProvider.now() - 1000,
+        )
+        span.setAttribute("invalid key!", "value")
+        span.setAttribute("valid-key", "value")
+        span.end()
+
+        val spanData = span.toSpanData()
+        Assert.assertEquals(1, spanData.userDefinedAttrs.size)
+        Assert.assertEquals("value", spanData.userDefinedAttrs["valid-key"])
+    }
+
+    @Test
     fun `discards attributes if value exceeds max length`() {
         val spanProcessor =
             MsrSpanProcessor(logger, signalProcessor, emptyList(), configProvider, sampler)
@@ -335,5 +358,27 @@ class MsrSpanProcessorTest {
         spanProcessor.onConfigLoaded()
 
         verify(signalProcessor, times(1)).trackSpan(span.toSpanData())
+    }
+
+    @Test
+    fun `accepts keys with letters, digits, underscores and hyphens`() {
+        assertTrue("user_segment-1".isValidAttributeKey(maxLength = 256))
+    }
+
+    @Test
+    fun `rejects empty key`() {
+        assertFalse("".isValidAttributeKey(maxLength = 256))
+    }
+
+    @Test
+    fun `rejects key with invalid characters`() {
+        assertFalse("invalid key!".isValidAttributeKey(maxLength = 256))
+        assertFalse("user.id".isValidAttributeKey(maxLength = 256))
+    }
+
+    @Test
+    fun `rejects key longer than max length`() {
+        assertTrue("a".repeat(256).isValidAttributeKey(maxLength = 256))
+        assertFalse("a".repeat(257).isValidAttributeKey(maxLength = 256))
     }
 }

@@ -465,6 +465,7 @@ internal class MeasureInitializerImpl(
         configProvider = configProvider,
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
+        sessionManager = sessionManager,
     ),
     override val logEventCollector: LogEventCollector = LogEventCollector(
         logger = logger,

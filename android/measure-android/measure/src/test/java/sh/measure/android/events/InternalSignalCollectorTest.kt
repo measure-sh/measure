@@ -461,6 +461,68 @@ class InternalSignalCollectorTest {
     }
 
     @Test
+    fun `trackEvent drops exception meta that exceeds the maximum size`() {
+        val exceptionData = TestData.getUnObfuscatedFlutterExceptionData(severity = ExceptionSeverity.Handled)
+        val withLargeMeta = exceptionData.copy(meta = mapOf("payload" to "x".repeat(5000)))
+        val data = jsonToMap(jsonSerializer.encodeToJsonElement(withLargeMeta).jsonObject)
+
+        internalSignalCollector.trackEvent(
+            data = data.toMutableMap(),
+            type = EventType.EXCEPTION.value,
+            timestamp = 1234567890L,
+            attributes = mutableMapOf(),
+            userDefinedAttrs = mutableMapOf(),
+            attachments = mutableListOf(),
+            userTriggered = true,
+            sessionId = "session_id",
+            threadName = "thread_name",
+        )
+
+        verify(signalProcessor).track(
+            data = exceptionData.copy(meta = null),
+            timestamp = 1234567890L,
+            type = EventType.EXCEPTION,
+            attributes = mutableMapOf(),
+            userDefinedAttributes = mutableMapOf(),
+            attachments = mutableListOf(),
+            threadName = "thread_name",
+            sessionId = "session_id",
+            userTriggered = true,
+        )
+    }
+
+    @Test
+    fun `trackEvent keeps exception meta within the maximum size`() {
+        val exceptionData = TestData.getUnObfuscatedFlutterExceptionData(severity = ExceptionSeverity.Handled)
+            .copy(meta = mapOf("key" to "value"))
+        val data = jsonToMap(jsonSerializer.encodeToJsonElement(exceptionData).jsonObject)
+
+        internalSignalCollector.trackEvent(
+            data = data.toMutableMap(),
+            type = EventType.EXCEPTION.value,
+            timestamp = 1234567890L,
+            attributes = mutableMapOf(),
+            userDefinedAttrs = mutableMapOf(),
+            attachments = mutableListOf(),
+            userTriggered = true,
+            sessionId = "session_id",
+            threadName = "thread_name",
+        )
+
+        verify(signalProcessor).track(
+            data = exceptionData,
+            timestamp = 1234567890L,
+            type = EventType.EXCEPTION,
+            attributes = mutableMapOf(),
+            userDefinedAttributes = mutableMapOf(),
+            attachments = mutableListOf(),
+            threadName = "thread_name",
+            sessionId = "session_id",
+            userTriggered = true,
+        )
+    }
+
+    @Test
     fun `trackEvent for flutter exception updates foreground property`() {
         processInfoProvider.foregroundProcess = true
         val exceptionData = TestData.getUnObfuscatedFlutterExceptionData(foreground = false)
@@ -618,6 +680,64 @@ class InternalSignalCollectorTest {
 
         // Then
         verify(signalProcessor).trackSpan(expectedSpanData)
+    }
+
+    @Test
+    fun `trackSpan drops span when name exceeds the maximum length`() {
+        internalSignalCollector.trackSpan(
+            name = "s".repeat(configProvider.maxSpanNameLength + 1),
+            traceId = "trace_id",
+            spanId = "span_id",
+            parentId = null,
+            startTime = 1234567890L,
+            endTime = 1234568890L,
+            duration = 1000,
+            status = SpanStatus.Ok.value,
+            attributes = mutableMapOf(),
+            userDefinedAttrs = mutableMapOf(),
+            checkpoints = emptyMap(),
+            hasEnded = true,
+            isSampled = true,
+        )
+
+        verifyNoInteractions(signalProcessor)
+    }
+
+    @Test
+    fun `trackSpan drops user defined attributes with invalid keys`() {
+        internalSignalCollector.trackSpan(
+            name = "span_name",
+            traceId = "trace_id",
+            spanId = "span_id",
+            parentId = null,
+            startTime = 1234567890L,
+            endTime = 1234568890L,
+            duration = 1000,
+            status = SpanStatus.Ok.value,
+            attributes = mutableMapOf(),
+            userDefinedAttrs = mutableMapOf("invalid key!" to "value", "valid_key" to "value"),
+            checkpoints = emptyMap(),
+            hasEnded = true,
+            isSampled = true,
+        )
+
+        verify(signalProcessor).trackSpan(
+            TestData.getSpanData(
+                name = "span_name",
+                traceId = "trace_id",
+                spanId = "span_id",
+                parentId = null,
+                sessionId = sessionManager.getSessionId(),
+                startTime = 1234567890L,
+                endTime = 1234568890L,
+                duration = 1000,
+                status = SpanStatus.Ok,
+                attributes = mapOf("key-processor" to "value-processor"),
+                userDefinedAttrs = mutableMapOf("valid_key" to "value"),
+                hasEnded = true,
+                isSampled = true,
+            ),
+        )
     }
 
     @Test

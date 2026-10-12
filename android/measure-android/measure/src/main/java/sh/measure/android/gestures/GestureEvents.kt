@@ -7,6 +7,7 @@ import kotlinx.serialization.Serializable
 import sh.measure.android.layoutinspector.LayoutElement
 import sh.measure.android.layoutinspector.collectLabel
 import sh.measure.android.layoutinspector.collectSemanticLabel
+import sh.measure.android.utils.ValidationLimits
 
 @SuppressLint("UnsafeOptInUsageError")
 @Serializable
@@ -27,8 +28,8 @@ internal data class ClickData(
             gesture: DetectedGesture.Click,
             layoutElement: LayoutElement,
         ): ClickData = ClickData(
-            target = layoutElement.label,
-            target_id = layoutElement.id,
+            target = layoutElement.label.take(ValidationLimits.GESTURE_TARGET),
+            target_id = layoutElement.id?.take(ValidationLimits.GESTURE_TARGET_ID),
             label = layoutElement.collectLabel(),
             semantic_label = layoutElement.collectSemanticLabel(),
             width = layoutElement.width,
@@ -60,8 +61,8 @@ internal data class LongClickData(
             gesture: DetectedGesture.LongClick,
             layoutElement: LayoutElement,
         ): LongClickData = LongClickData(
-            target = layoutElement.label,
-            target_id = layoutElement.id,
+            target = layoutElement.label.take(ValidationLimits.GESTURE_TARGET),
+            target_id = layoutElement.id?.take(ValidationLimits.GESTURE_TARGET_ID),
             label = layoutElement.collectLabel(),
             semantic_label = layoutElement.collectSemanticLabel(),
             width = layoutElement.width,
@@ -92,8 +93,8 @@ internal data class ScrollData(
             gesture: DetectedGesture.Scroll,
             layoutElement: LayoutElement,
         ): ScrollData = ScrollData(
-            target = layoutElement.label,
-            target_id = layoutElement.id,
+            target = layoutElement.label.take(ValidationLimits.GESTURE_TARGET),
+            target_id = layoutElement.id?.take(ValidationLimits.GESTURE_TARGET_ID),
             x = gesture.x,
             y = gesture.y,
             end_x = gesture.endX,

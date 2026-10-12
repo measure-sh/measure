@@ -10,6 +10,7 @@ import sh.measure.android.attributes.IntAttr
 import sh.measure.android.attributes.StringAttr
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.fakes.FakeConfigProvider
+import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.AndroidTimeProvider
@@ -21,11 +22,13 @@ class CustomEventCollectorTest {
     private val signalProcessor: SignalProcessor = mock()
     private val timeProvider: TimeProvider = AndroidTimeProvider(TestClock.create())
     private val configProvider: ConfigProvider = FakeConfigProvider()
+    private val sessionManager = FakeSessionManager()
     private val collector: CustomEventCollector = CustomEventCollector(
         logger = logger,
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         configProvider = configProvider,
+        sessionManager = sessionManager,
     )
 
     @Before
@@ -72,6 +75,26 @@ class CustomEventCollectorTest {
             data = CustomEventData(eventName),
             userTriggered = true,
             userDefinedAttributes = attributes,
+        )
+    }
+
+    @Test
+    fun `trackEvent should drop event when timestamp is before session start`() {
+        sessionManager.startTime = 1000L
+        collector.trackEvent("event", mapOf(), 999L)
+        verifyNoInteractions(signalProcessor)
+    }
+
+    @Test
+    fun `trackEvent should track event when timestamp equals session start`() {
+        sessionManager.startTime = 1000L
+        collector.trackEvent("event", mapOf(), 1000L)
+
+        verify(signalProcessor).track(
+            timestamp = 1000L,
+            type = EventType.CUSTOM,
+            data = CustomEventData("event"),
+            userTriggered = true,
         )
     }
 

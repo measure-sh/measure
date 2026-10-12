@@ -18,6 +18,7 @@ import sh.measure.android.tracing.SpanName
 import sh.measure.android.tracing.SpanStatus
 import sh.measure.android.tracing.Tracer
 import sh.measure.android.utils.TimeProvider
+import sh.measure.android.utils.ValidationLimits
 import sh.measure.android.utils.isClassAvailable
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -73,7 +74,7 @@ internal class DefaultActivityLifecycleCollector(
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
                 type = ActivityLifecycleType.CREATED,
-                class_name = activity.javaClass.name,
+                class_name = activity.javaClass.name.take(ValidationLimits.ACTIVITY_CLASS_NAME),
                 saved_instance_state = savedInstanceState != null,
                 intent = intentData,
             ),
@@ -94,7 +95,7 @@ internal class DefaultActivityLifecycleCollector(
                 type = EventType.LIFECYCLE_ACTIVITY,
                 data = ActivityLifecycleData(
                     type = ActivityLifecycleType.RESUMED,
-                    class_name = activity.javaClass.name,
+                    class_name = activity.javaClass.name.take(ValidationLimits.ACTIVITY_CLASS_NAME),
                 ),
                 attachments = listOfNotNull(attachment).toMutableList(),
             )
@@ -116,7 +117,7 @@ internal class DefaultActivityLifecycleCollector(
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
                 type = ActivityLifecycleType.PAUSED,
-                class_name = activity.javaClass.name,
+                class_name = activity.javaClass.name.take(ValidationLimits.ACTIVITY_CLASS_NAME),
             ),
         )
     }
@@ -127,7 +128,7 @@ internal class DefaultActivityLifecycleCollector(
             type = EventType.LIFECYCLE_ACTIVITY,
             data = ActivityLifecycleData(
                 type = ActivityLifecycleType.DESTROYED,
-                class_name = activity.javaClass.name,
+                class_name = activity.javaClass.name.take(ValidationLimits.ACTIVITY_CLASS_NAME),
             ),
         )
         if (isAndroidXFragmentAvailable() && activity is FragmentActivity) {
