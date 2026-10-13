@@ -5,6 +5,7 @@ import { SessionReplayPage } from "../../pages/session_replay_page.ts";
 
 test.describe("errors", () => {
   test.describe("fatal error", () => {
+    const gwpAsanPill = "GWP-ASan";
     let overview: ErrorsOverviewPage;
 
     test.beforeEach(async ({ page, appId, teamId }) => {
@@ -89,6 +90,180 @@ test.describe("errors", () => {
         );
         await expect(replay.eventDetails).toContainText(
           "sh.frankenstein.android.NativeAndroidScreenKt",
+        );
+
+        await replay.openErrorDetails();
+        await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
+      });
+    });
+
+    test.describe("android native", { tag: "@android" }, () => {
+      const subtitle = /^SIGSEGV:SEGV_MAPERR/;
+      const errorPill = "Crash";
+      const fatalPill = "Fatal";
+
+      test.beforeEach(() =>
+        expect(overview.selectErrorGroupRowByType(subtitle)).toBeVisible(),
+      );
+
+      test("error group row renders the native crash", async () => {
+        const row = overview.selectErrorGroupRowByType(subtitle);
+        await expect(row).toBeVisible();
+        await expect(overview.selectGroupRowPill(row, errorPill)).toBeVisible();
+        await expect(overview.selectGroupRowPill(row, fatalPill)).toBeVisible();
+        await expect(overview.selectGroupRowPill(row, gwpAsanPill)).toHaveCount(
+          0,
+        );
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
+      });
+
+      test("error details renders the symbolicated native crash", async ({
+        page,
+        teamId,
+      }) => {
+        await overview.openErrorGroupByType(subtitle);
+        const detail = new ErrorDetailPage(page, teamId);
+
+        await expect(detail.errorInstancesPlot).toBeVisible();
+        await expect(detail.attributeDistributionPlot).toBeVisible();
+        await expect(detail.commonPathSection).toBeVisible();
+        await expect(detail.commonPathSection).toContainText("Common Path");
+        await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
+        await expect(detail.timestampPill).toHaveText(/Time:\s+\S/);
+        await expect(detail.devicePill).toHaveText(/Device:\s+\S/);
+        await expect(detail.appVersionPill).toHaveText(/App version:\s+\d/);
+        await expect(detail.networkTypePill).toHaveText(/Network type:\s+\S/);
+        await expect(detail.copyAgentPromptButton).toBeVisible();
+
+        await expect(detail.selectErrorPill(errorPill)).toBeVisible();
+        await expect(detail.selectErrorPill(fatalPill)).toBeVisible();
+
+        await expect(detail.cause).toContainText("null pointer dereference");
+        await expect(detail.gwpAsanReport).toHaveCount(0);
+        await expect(detail.errorThreadStacktrace).toContainText(
+          "libfrank_crash.so (write_through_null)",
+        );
+      });
+
+      test("session replay renders the native crash event", async ({
+        page,
+        teamId,
+      }) => {
+        await overview.openErrorGroupByType(subtitle);
+        const detail = new ErrorDetailPage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
+
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectError(/SIGSEGV/);
+        await expect(event).toBeVisible();
+        await expect(
+          replay.selectEventPill(event, "Fatal Error"),
+        ).toBeVisible();
+
+        await event.click();
+        await expect(replay.eventDetails).toContainText(
+          "libfrank_crash.so (write_through_null)",
+        );
+
+        await replay.openErrorDetails();
+        await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
+      });
+    });
+
+    test.describe("android gwp-asan report", { tag: "@android" }, () => {
+      const subtitle = /^SIGSEGV:Use After Free/;
+      const errorPill = "Crash";
+      const fatalPill = "Fatal";
+      const freedThenAllocated =
+        /Freed by: main \(\d+\)[\s\S]*\(native_crash\.c:48\)[\s\S]*Allocated by: main \(\d+\)[\s\S]*\(native_crash\.c:47\)/;
+
+      test.beforeEach(() =>
+        expect(overview.selectErrorGroupRowByType(subtitle)).toBeVisible(),
+      );
+
+      test("error group row renders the gwp-asan report", async () => {
+        const row = overview.selectErrorGroupRowByType(subtitle);
+        await expect(row).toBeVisible();
+        await expect(overview.selectGroupRowPill(row, errorPill)).toBeVisible();
+        await expect(overview.selectGroupRowPill(row, fatalPill)).toBeVisible();
+        await expect(
+          overview.selectGroupRowPill(row, gwpAsanPill),
+        ).toBeVisible();
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
+      });
+
+      test("gwp-asan report filter keeps only gwp-asan reports", async ({
+        appId,
+      }) => {
+        await overview.gotoGWPASanReports(appId);
+
+        await expect(
+          overview.selectErrorGroupRowByType(subtitle),
+        ).toBeVisible();
+        await expect(
+          overview.selectErrorGroupRowByType(/^SIGSEGV:SEGV_MAPERR/),
+        ).toHaveCount(0);
+        await expect(
+          overview.selectErrorGroupRowByType(
+            /^java\.lang\.IllegalAccessException/,
+          ),
+        ).toHaveCount(0);
+      });
+
+      test("error details renders where the memory was freed and allocated", async ({
+        page,
+        teamId,
+      }) => {
+        await overview.openErrorGroupByType(subtitle);
+        const detail = new ErrorDetailPage(page, teamId);
+
+        await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
+        await expect(detail.selectErrorPill(errorPill)).toBeVisible();
+        await expect(detail.selectErrorPill(fatalPill)).toBeVisible();
+        await expect(detail.selectErrorPill(gwpAsanPill)).toBeVisible();
+
+        await expect(detail.errorThreadStacktrace).toContainText(
+          "libfrank_crash.so (use_after_free) (native_crash.c:49)",
+        );
+        await expect(detail.errorThreadStacktrace).not.toContainText(
+          "Freed by",
+        );
+
+        await expect(detail.gwpAsanReport).toContainText("Use After Free");
+        await expect(detail.gwpAsanReport).toContainText(freedThenAllocated);
+        await expect(detail.cause).toHaveCount(0);
+      });
+
+      test("session replay renders the gwp-asan report event", async ({
+        page,
+        teamId,
+      }) => {
+        await overview.openErrorGroupByType(subtitle);
+        const detail = new ErrorDetailPage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
+
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectError(/Use After Free/);
+        await expect(event).toBeVisible();
+        await expect(
+          replay.selectEventPill(event, "Fatal Error"),
+        ).toBeVisible();
+
+        await event.click();
+        await expect(replay.eventDetails).toContainText(
+          "libfrank_crash.so (use_after_free) (native_crash.c:49)",
         );
 
         await replay.openErrorDetails();

@@ -67,8 +67,15 @@ export class ErrorsOverviewPage {
     await this.goto(appId, "ANR");
   }
 
-  private async goto(appId: string, errorType: string) {
-    const filter = encodeURIComponent(`error_type:in:"${errorType}"`);
+  async gotoGWPASanReports(appId: string) {
+    await this.goto(appId, "Crash", "gwp_asan_report:eq:true");
+  }
+
+  private async goto(appId: string, errorType: string, extraFilter?: string) {
+    const expr = [`error_type:in:"${errorType}"`, extraFilter]
+      .filter(Boolean)
+      .join(" AND ");
+    const filter = encodeURIComponent(expr);
     await this.page.goto(
       `/${this.teamId}/errors?a=${appId}&filter_expr=${filter}`,
     );

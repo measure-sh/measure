@@ -463,6 +463,7 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 		appHangBinaryImages := "[]"
 		attachments := "[]"
 		binaryImages := "[]"
+		exceptionGWPASanReport := ""
 		errorMeta := "{}"
 		var numCode int32
 		anonRSS := int64(-1)
@@ -545,6 +546,14 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 					return err
 				}
 				binaryImages = string(marshalledImages)
+			}
+
+			if e.events[i].Exception.GWPASanReport != nil {
+				marshalledGWPASanReport, err := json.Marshal(e.events[i].Exception.GWPASanReport)
+				if err != nil {
+					return err
+				}
+				exceptionGWPASanReport = string(marshalledGWPASanReport)
 			}
 
 			if e.events[i].Exception.HasError() {
@@ -687,7 +696,10 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.code`, e.events[i].Exception.Code).
 				Set(`exception.meta`, errorMeta).
 				Set(`exception.severity`, e.events[i].Exception.GetSeverity()).
-				Set(`exception.is_custom`, e.events[i].Exception.IsCustom)
+				Set(`exception.is_custom`, e.events[i].Exception.IsCustom).
+				Set(`exception.abort_message`, e.events[i].Exception.AbortMessage).
+				Set(`exception.cause`, e.events[i].Exception.Cause).
+				Set(`exception.gwp_asan_report`, exceptionGWPASanReport)
 		} else {
 			row.
 				Set(`exception.handled`, nil).
@@ -702,7 +714,10 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`exception.code`, nil).
 				Set(`exception.meta`, nil).
 				Set(`exception.severity`, nil).
-				Set(`exception.is_custom`, nil)
+				Set(`exception.is_custom`, nil).
+				Set(`exception.abort_message`, nil).
+				Set(`exception.cause`, nil).
+				Set(`exception.gwp_asan_report`, nil)
 		}
 
 		// app exit

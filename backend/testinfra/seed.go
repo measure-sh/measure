@@ -248,13 +248,14 @@ type EventRow struct {
 	InsertedAt time.Time
 
 	// Exception/ANR payload, written only for issue events (Type "exception"
-	// or "anr"). Severity, ExceptionsJSON and IsCustom are written only when
-	// set, leaving ClickHouse column defaults otherwise.
-	Handled        bool
-	Fingerprint    string
-	Severity       string
-	ExceptionsJSON string
-	IsCustom       bool
+	// or "anr"). Severity, ExceptionsJSON, GWPASanReportJSON and IsCustom are
+	// written only when set, leaving ClickHouse column defaults otherwise.
+	Handled           bool
+	Fingerprint       string
+	Severity          string
+	ExceptionsJSON    string
+	GWPASanReportJSON string
+	IsCustom          bool
 
 	// ART thread dump payload, written only for anr events.
 	Subject        string
@@ -426,6 +427,10 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 		if row.Severity != "" {
 			cols = append(cols, "`exception.severity`")
 			vals = append(vals, quote(row.Severity))
+		}
+		if row.GWPASanReportJSON != "" {
+			cols = append(cols, "`exception.gwp_asan_report`")
+			vals = append(vals, quote(row.GWPASanReportJSON))
 		}
 		if row.IsCustom {
 			cols = append(cols, "`exception.is_custom`")

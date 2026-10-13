@@ -612,3 +612,20 @@ func readNullTerminatedString(b []byte) string {
 	}
 	return string(b)
 }
+
+// GunzipIfCompressed returns the decompressed bytes
+// when data starts with the gzip magic bytes, and
+// data unchanged otherwise.
+func GunzipIfCompressed(data []byte) ([]byte, error) {
+	if len(data) < 2 || data[0] != 0x1f || data[1] != 0x8b {
+		return data, nil
+	}
+
+	reader, err := gzip.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	defer reader.Close()
+
+	return io.ReadAll(reader)
+}
