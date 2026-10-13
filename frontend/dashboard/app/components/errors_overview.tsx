@@ -224,6 +224,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                           message,
                           method_name,
                           file_name,
+                          gwp_asan_report,
                           count,
                           users,
                           sessions,
@@ -296,6 +297,9 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                                   )}
                                   {severity === "handled" && (
                                     <Pill type={PillType.Handled} />
+                                  )}
+                                  {gwp_asan_report && (
+                                    <Pill type={PillType.GWPASan} />
                                   )}
                                 </div>
                               </div>

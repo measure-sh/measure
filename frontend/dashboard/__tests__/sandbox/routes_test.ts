@@ -189,7 +189,13 @@ const VERSION_KEYS = [
 const FILTER_KEYS: Record<string, string[]> = {
   app_health: ["version_name", "version_code"],
   journeys: VERSION_KEYS,
-  errors: ["error_type", ...VERSION_KEYS, "user_id", ...DEVICE_KEYS],
+  errors: [
+    "error_type",
+    "gwp_asan_report",
+    ...VERSION_KEYS,
+    "user_id",
+    ...DEVICE_KEYS,
+  ],
   error_group_events: [...VERSION_KEYS, "user_id", ...DEVICE_KEYS],
   sessions: [
     "session_events",

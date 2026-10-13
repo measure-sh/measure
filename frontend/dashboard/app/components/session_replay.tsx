@@ -2288,7 +2288,10 @@ function ReplayEventDetails({
             </p>
             <CodeBlock
               language="java"
-              className={cn(CODE_BLOCK_CARD_CLASS, "text-xs leading-relaxed")}
+              className={cn(
+                CODE_BLOCK_CARD_CLASS,
+                "text-xs leading-relaxed [&_span]:not-italic!",
+              )}
               code={stacktrace}
             />
           </div>

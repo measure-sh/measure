@@ -24,6 +24,10 @@ When an uncaught exception terminates the app, it's recorded as a fatal error wi
 
 If you obfuscate your code with R8, set up the [Measure Android Gradle Plugin](/docs/error-monitoring/upload-symbols#android). It uploads the `mapping.txt` file so stack traces are readable.
 
+Native crashes in C or C++ code are reported on Android 12 and above. Android hands a native crash to the app the next time the user opens it, so the crash shows up after that launch, in the session where it happened. To see function names and line numbers for your own libraries, upload [native symbols](/docs/error-monitoring/upload-symbols#native-libraries). Some device makers don't share native crashes with apps, so crashes from those devices aren't reported.
+
+Memory errors like a use after free, a double free, or a buffer overflow also show where the memory was allocated and where it was freed, which usually points straight at the bug. Android finds these with [GWP-ASan](https://developer.android.com/ndk/guides/gwp-asan), which is on by default on Android 14 and above. It checks only a small sample of allocations, so a bug can take many sessions to show up. To catch these on Android 12 and 13 too, set `android:gwpAsanMode="always"` on the `<application>` tag in your manifest. Filter the Errors page by **GWP-ASan report** to see only these errors.
+
 ### iOS
 
 A crash report is saved the moment a crash happens and is uploaded the next time the user reopens the app. Crashes are captured using [KSCrash](https://github.com/kstenerud/KSCrash).

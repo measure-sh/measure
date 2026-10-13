@@ -303,6 +303,18 @@ export const emptySpansResponse = {
   }[],
 };
 
+export type GWPASanReportStack = {
+  thread_id: number;
+  thread_name: string;
+  frames: string[];
+};
+
+export type GWPASanReport = {
+  type: string;
+  deallocation: GWPASanReportStack | null;
+  allocation: GWPASanReportStack | null;
+};
+
 export const emptyErrorGroup = {
   id: "",
   app_id: "",
@@ -314,6 +326,7 @@ export const emptyErrorGroup = {
   method_name: "",
   file_name: "",
   line_number: 0,
+  gwp_asan_report: false,
   count: 0,
   users: 0,
   sessions: 0,
@@ -370,7 +383,15 @@ const emptyErrorGroupDetailsItem = {
     title: "",
     stacktrace: "",
     message: "",
-  } as { title: string; stacktrace: string; message: string } | null,
+    cause: "",
+    gwp_asan_report: null,
+  } as {
+    title: string;
+    stacktrace: string;
+    message: string;
+    cause: string;
+    gwp_asan_report: GWPASanReport | null;
+  } | null,
   anr: {
     title: "",
     stacktrace: "",

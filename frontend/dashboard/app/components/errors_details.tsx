@@ -19,6 +19,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import { cn } from "../utils/shadcn_utils";
+import type { GWPASanReport } from "../api/api_calls";
+import { gwpAsanReportStackSections } from "../utils/gwp_asan";
 import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
 import { track } from "../utils/analytics/track";
 import {
@@ -176,9 +178,10 @@ const demoErrorDetails = {
   ],
 } as any;
 
+// Shiki sets italics inline on parts of the folded frame lines.
 const stackTraceCodeBlockClassName = cn(
   CODE_BLOCK_CARD_CLASS,
-  "text-sm leading-relaxed",
+  "text-sm leading-relaxed [&_span]:not-italic!",
 );
 
 function renderThread(
@@ -202,6 +205,33 @@ function renderThread(
         />
       </AccordionContent>
     </AccordionItem>
+  );
+}
+
+function GWPASanReportSection({
+  report,
+  cause,
+}: {
+  report: GWPASanReport;
+  cause: string;
+}): ReactNode {
+  return (
+    <div
+      className={cn(CODE_BLOCK_CARD_CLASS, "flex flex-col gap-2 pt-3.5")}
+      data-testid="exception-detail-gwp-asan-report"
+    >
+      <div className="flex flex-col gap-1 px-4 font-body">
+        <p className="font-display text-base">GWP-ASan report</p>
+        {cause && <p className="text-sm">{cause}</p>}
+      </div>
+      <CodeBlock
+        language="java"
+        className="text-xs leading-relaxed [&_span]:not-italic!"
+        code={gwpAsanReportStackSections(report)
+          .map(({ title, stack }) => [title, ...stack.frames].join("\n"))
+          .join("\n\n")}
+      />
+    </div>
   );
 }
 
@@ -301,6 +331,13 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
 
   const extraAttributeRows: Array<[string, unknown]> = [];
   if (firstResult) {
+    // A GWP-ASan report shows its cause in its own section.
+    if (
+      firstResult.exception?.cause &&
+      !firstResult.exception.gwp_asan_report
+    ) {
+      extraAttributeRows.push(["cause", firstResult.exception.cause]);
+    }
     if (firstResult.anr?.cause) {
       extraAttributeRows.push(["cause", firstResult.anr.cause]);
     }
@@ -459,6 +496,9 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
                   {firstResult.severity === "handled" && (
                     <Pill type={PillType.Handled} />
                   )}
+                  {firstResult.exception?.gwp_asan_report && (
+                    <Pill type={PillType.GWPASan} />
+                  )}
                   <Pill
                     data-testid="exception-detail-timestamp"
                     tooltip
@@ -536,6 +576,15 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
                         renderAttributeRow(k, v),
                       )}
                     </div>
+                    <div className="py-4" />
+                  </>
+                )}
+                {firstResult.exception?.gwp_asan_report && (
+                  <>
+                    <GWPASanReportSection
+                      report={firstResult.exception.gwp_asan_report}
+                      cause={firstResult.exception.cause}
+                    />
                     <div className="py-4" />
                   </>
                 )}

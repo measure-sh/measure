@@ -45,6 +45,7 @@ function instanceAttributes(
 ): Record<string, unknown> {
   return {
     error_type: errorTypeLabel(group),
+    gwp_asan_report: group.gwp_asan_report,
     ...deviceAttributeBag(instance.attribute),
   };
 }

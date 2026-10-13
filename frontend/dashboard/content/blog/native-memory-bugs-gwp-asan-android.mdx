@@ -1,0 +1,203 @@
+---
+title: "Random SIGSEGV crashes on Android: how GWP-ASan finds native memory bugs"
+description: "Why native memory bugs like use after free and buffer overflow cause random SIGSEGV crashes on Android, how GWP-ASan detects them, and how to read a GWP-ASan tombstone."
+date: "2026-10-11"
+image: /blog/assets/native-memory-bugs-gwp-asan-android-hero.png
+author:
+  name: Abhay Sood
+  avatar: /images/profile_pics/profile_abhay.webp
+tags:
+  - android
+  - memory
+  - error-monitoring
+---
+![Hero Image](/blog/assets/native-memory-bugs-gwp-asan-android-hero.png)
+
+Your Android app crashes with `Fatal signal 11 (SIGSEGV)`, and the stack trace points to a function. Is that where the bug is? Often it isn't. Memory bugs in C or C++ code, like a use after free or a buffer overflow, often break something in one place and crash the app somewhere else. Android has a built-in tool called GWP-ASan that makes the app crash where the bug actually is.
+
+We'll start with how a memory bug in native code can crash the app far from where the bug is. Then we'll look at how GWP-ASan works, which errors it catches, and how to read its crash reports.
+
+## Why does my Android app crash with SIGSEGV in code that looks fine?
+
+When your code asks for 32 bytes with `malloc`, it gets back a pointer to them. When it's done, it calls `free`, and the memory goes back to the allocator. But nothing stops the code from keeping the old pointer.
+
+The allocator is free to hand those same 32 bytes to the next request, from any other part of the app.
+
+```c
+char *p = malloc(32);
+free(p);
+
+char *q = malloc(32);  // can get the same memory
+p[0] = 'x';            // writes into q
+```
+
+Writing through p after freeing it is called a **use after free**. Since q now owns that memory, the write changes q's data.
+
+What happens next depends on what q holds. The app might show wrong data, or keep running without any visible problem. If q holds a pointer, the code that owns q can follow it to an invalid address and crash. The stack trace then shows where it crashed, not where the bug is. It also depends on what else the app allocated in between, so the crash can be hard to reproduce.
+
+## What is GWP-ASan and how does it work?
+
+GWP-ASan is a sampling memory error detector in Android's native allocator. It makes heap memory bugs crash on the bad access itself instead of somewhere later. It does that for a small, random sample of allocations, which keeps the cost low enough to run in production.
+
+When the app starts, GWP-ASan reserves a small, separate region of memory pages, kept apart from the normal heap. Between the pages are **guard pages**. Touching a guard page crashes the app.
+
+![Diagram of the GWP-ASan region, with a guard page on each side of every page. Allocation p sits right after a guard page and allocation q right before one.](/blog/assets/native-memory-bugs-gwp-asan-region.svg)
+
+Here's what happens to an allocation that GWP-ASan picks:
+
+1. Once in a while, the allocator picks an allocation at random and puts it in this region instead of the normal heap.
+2. The allocation gets a page to itself, and sits right next to the guard page on one side of it, picked at random.
+3. GWP-ASan saves the stack trace of where it was allocated.
+4. When the app frees it, GWP-ASan saves that stack trace too and blocks access to the whole page. The page stays blocked for a while before it's used again.
+
+![Diagram of the GWP-ASan region after p is freed. The page p points to is now blocked, like a guard page, while q's page is unchanged.](/blog/assets/native-memory-bugs-gwp-asan-freed.svg)
+
+## Which memory errors does GWP-ASan detect?
+
+The same setup catches more than a use after free. GWP-ASan can report five kinds of memory errors.
+
+### 1. Use after free
+
+A use after free happens when code frees a piece of memory but still holds on to the pointer, and later reads or writes through it.
+
+```c
+char *buf = malloc(32);
+free(buf);
+buf[0] = 'A';  // buf was already freed
+```
+
+In real code, the free and the use are rarely this close together. One object frees a buffer while another object still has a pointer to it, or a callback runs after the thing it points to was cleaned up. By then, the allocator may have given that memory to something else, so the write quietly changes another object's data and the app breaks later, somewhere unrelated.
+
+When GWP-ASan samples the allocation, it blocks the whole page as soon as the memory is freed. The late write then crashes right away, and the report shows where the memory was freed as well as where it was used.
+
+### 2. Buffer overflow
+
+A buffer overflow happens when code writes past the end of a buffer.
+
+```c
+char *buf = malloc(32);
+buf[32] = 'A';  // the last valid index is 31
+```
+
+It's often an off-by-one mistake in a loop, or a copy of a string that's longer than the buffer it goes into. The extra bytes land in whatever sits next to the buffer in memory, which is usually another object, so again the damage shows up somewhere else.
+
+When GWP-ASan puts a guard page right after the buffer, writing past it hits the guard page and crashes immediately. Allocation sizes are rounded up a little for alignment, though, so there can be a few bytes between the end of the buffer and the guard page. An overflow of only a byte or two can land in that gap and go unnoticed.
+
+### 3. Buffer underflow
+
+A buffer underflow is the same mistake in the other direction: the code writes before the start of a buffer.
+
+```c
+char *buf = malloc(32);
+buf[-1] = 'A';  // one byte before the buffer
+```
+
+This usually comes from an index or offset that goes negative, for example when code steps backwards through a buffer one step too far.
+
+GWP-ASan catches it when the guard page sits right before the buffer. Since the guard page ends up on one side of each buffer at random, an overflow and an underflow are each caught about half the time they're sampled. A bug that happens often still gets caught, it may just take a few samples.
+
+### 4. Double free
+
+A double free happens when code frees the same memory twice.
+
+```c
+char *buf = malloc(32);
+free(buf);
+free(buf);  // freed again
+```
+
+This usually means two parts of the code both think they own the memory, and both clean it up. The second `free` can damage the allocator's own bookkeeping, and the app may then crash much later inside an unrelated `malloc`, which is very hard to trace back.
+
+GWP-ASan keeps a record of every allocation it manages. When `free` is called on one it has already freed, it reports the double free on the spot, with the stack of the first `free` and the second.
+
+### 5. Invalid free
+
+An invalid free happens when code passes `free` a pointer that didn't come from `malloc`, like a pointer into the middle of a buffer.
+
+```c
+char *buf = malloc(32);
+free(buf + 8);  // not the start of the allocation
+```
+
+This can happen when code moves a pointer forward while reading through a buffer, and then frees the moved pointer instead of the original one.
+
+GWP-ASan knows where each of its allocations starts. When `free` gets a pointer that doesn't match, it reports an invalid free and shows how far into the allocation the pointer was.
+
+### Quick reference
+
+GWP-ASan catches five kinds of native memory errors on Android:
+
+| Error | What goes wrong | How GWP-ASan catches it |
+| --- | --- | --- |
+| Use after free | Memory is used after it was freed | The page is blocked when the memory is freed, so the next access is caught |
+| Buffer overflow | Code writes past the end of a buffer | If a guard page sits right after the buffer, the write is caught |
+| Buffer underflow | Code writes before the start of a buffer | If a guard page sits right before the buffer, the write is caught |
+| Double free | The same memory is freed twice | It sees that the memory was already freed |
+| Invalid free | `free()` gets a pointer that isn't the start of an allocation | It sees that the pointer doesn't match where the allocation starts |
+
+## How to read a GWP-ASan crash report
+
+A GWP-ASan crash shows up in the tombstone like any other native crash, with a few extra lines. Here's a shortened report for a use after free:
+
+```log
+signal 11 (SIGSEGV), code 2 (SEGV_ACCERR), fault addr 0x7a1c3f6fe0
+Cause: [GWP-ASan]: Use After Free, 0 bytes into a 32-byte allocation at 0x7a1c3f6fe0
+
+backtrace:
+  #00 pc 0x0000000000001a2c  libapp.so (write_name+28)
+
+deallocated by thread 8123:
+  #00 pc 0x0000000000048b9c  libc.so (free+76)
+  #01 pc 0x0000000000001b10  libapp.so (release_user+64)
+
+allocated by thread 8123:
+  #00 pc 0x0000000000048a10  libc.so (malloc+32)
+  #01 pc 0x0000000000001c44  libapp.so (create_user+52)
+```
+
+Each part answers a different question:
+
+- **Cause** tells you which error it is and where the access landed relative to the allocation.
+- **backtrace** is the line that made the bad access.
+- **deallocated by** shows who freed the memory. For a use after free or double free, this is usually where the fix goes.
+- **allocated by** shows who created the memory, which helps when the same buffer is shared between components.
+
+The top frames of the extra stacks are inside the allocator, so skip down to the first frame from your own library.
+
+## What GWP-ASan can't catch
+
+GWP-ASan is a sampling tool for heap memory, so it has limits:
+
+- Only a tiny share of allocations are sampled. A single test run will rarely catch a bug, but across many users in production it eventually will.
+- Only allocations made through the system allocator are covered. Custom allocators and memory pools never reach GWP-ASan, and neither does an overflow from one field into another inside the same struct.
+- Stack and global memory aren't covered. Null pointer dereferences, stack corruption, and aborts are separate kinds of native crashes with their own causes.
+
+## FAQs
+
+### What does "Fatal signal 11 (SIGSEGV)" mean on Android?
+
+SIGSEGV is short for segmentation fault. Every app gets its own set of memory from the system. When C or C++ code reads or writes an address outside that memory, or writes to memory that's read-only, the CPU stops it and Android sends the app signal 11. The app can't recover from this, so it's killed.
+
+Kotlin and Java can't access memory this way, so a SIGSEGV almost always comes from native code, either your own or a library you use. The usual causes are:
+
+- A null pointer, where the code reads through a pointer that was never set.
+- A use after free, where the code keeps using memory after freeing it.
+- A buffer overflow, where the code reads or writes past the end of an array.
+
+### What's the difference between SIGSEGV and SIGABRT?
+
+A SIGSEGV is an accident. The code didn't know anything was wrong. It used a bad pointer, and the CPU stopped it at that moment.
+
+A SIGABRT is on purpose. The code noticed that something was wrong and stopped the app itself by calling `abort()`, because carrying on could do more damage. This happens when a check like `assert` fails, when a C++ exception isn't caught, or when the memory allocator notices its own data has been corrupted. The last one is often a memory bug too, but caught later, when the allocator next looks at that memory.
+
+### Is GWP-ASan enabled by default?
+
+Yes. On Android 14 and later, every app runs GWP-ASan in a recoverable mode on a small share of launches, about 1%. When it finds a bug, it writes a report and lets the app keep running.
+
+If you'd rather have the app crash on the first error, set `android:gwpAsanMode="always"` on the `<application>` tag in your manifest. This also turns GWP-ASan on for Android 11 to 13.
+
+```xml
+<application
+    android:gwpAsanMode="always"
+    ... >
+```

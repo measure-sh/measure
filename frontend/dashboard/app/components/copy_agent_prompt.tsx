@@ -7,6 +7,7 @@ import {
   emptyErrorGroupDetails,
   fetchSessionReplayFromServer,
 } from "../api/api_calls";
+import { gwpAsanReportStackSections } from "../utils/gwp_asan";
 import { replayEventsFrom, type ReplayEvent } from "../utils/replay_events";
 import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
 import { Button } from "./button";
@@ -181,6 +182,7 @@ const CopyAgentPrompt: React.FC<CopyAgentPromptProps> = ({
       ["type", errorEvent.type],
       ["severity", errorEvent.severity],
       ["message", errorEvent.exception?.message],
+      ["cause", errorEvent.exception?.cause],
       ["code", errorEvent.code],
       ["num_code", errorEvent.num_code],
       ["timestamp", formatDateToHumanReadableDateTime(errorEvent.timestamp)],
@@ -220,6 +222,17 @@ const CopyAgentPrompt: React.FC<CopyAgentPromptProps> = ({
       .join("\n");
     if (attachments) {
       sections.push("## Attachments\n" + attachments);
+    }
+
+    const gwpAsanReport = errorEvent.exception?.gwp_asan_report;
+    if (gwpAsanReport) {
+      const stacks = gwpAsanReportStackSections(gwpAsanReport)
+        .map(
+          ({ title, stack }) =>
+            `### ${title}\n` + codeBlock(stack.frames.join("\n")),
+        )
+        .join("\n\n");
+      sections.push("## GWP-ASan report\n" + stacks);
     }
 
     const stacktrace =
