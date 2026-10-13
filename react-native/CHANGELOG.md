@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [rn-v0.4.2] - 2026-10-13
+
+### :bug: Bug fixes
+
+
+- (**rn**): Enforce validation limits on event fields (#4611) by @adwinross in #4611
+
+## [rn-v0.4.1] - 2026-09-23
+
+### :hammer: Misc
+
+
+- (**rn**): Prepare release 0.4.1 (#4500) by @abhaysood in #4500
+
 ## [rn-v0.4.0] - 2026-09-22
 
 ### :hammer: Misc
@@ -127,6 +141,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**rn**): Add exception tracking (#2628) by @adwinross in #2628
 - (**rn**): Add sdk initialization api (#2505) by @adwinross in #2505
 
+[rn-v0.4.2]: https://github.com/measure-sh/measure/compare/rn-v0.4.1..rn-v0.4.2
+[rn-v0.4.1]: https://github.com/measure-sh/measure/compare/rn-v0.4.0..rn-v0.4.1
 [rn-v0.4.0]: https://github.com/measure-sh/measure/compare/rn-v0.3.1..rn-v0.4.0
 [rn-v0.3.1]: https://github.com/measure-sh/measure/compare/rn-v0.3.0..rn-v0.3.1
 [rn-v0.3.0]: https://github.com/measure-sh/measure/compare/rn-v0.2.0..rn-v0.3.0
