@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [measure_flutter-v0.9.1] - 2026-10-13
+
+### :bug: Bug fixes
+
+- (**flutter**): Enforce validation limits on event fields (#4612) by @adwinross in #4612
+
+### :hammer: Misc
+
+- (**flutter**): Prepare next measure_flutter version 0.9.0 by @abhaysood in #4507
+
 ## [measure_flutter-v0.8.0] - 2026-09-23
 
 ### :sparkles: New features
@@ -17,6 +27,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**flutter**): Prepare measure_flutter release 0.8.0 by @abhaysood in #4504
 - (**flutter**): Prepare next measure_flutter version 0.8.0 (#4368) by @abhaysood in #4368
 
 ## [measure_flutter-v0.7.0] - 2026-09-02
