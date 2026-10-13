@@ -3,6 +3,7 @@
 package sh.measure
 
 import com.autonomousapps.kit.GradleBuilder.build
+import com.autonomousapps.kit.GradleProject
 import com.autonomousapps.kit.truth.TestKitTruth.Companion.assertThat
 import net.swiftzer.semver.SemVer
 import okhttp3.mockwebserver.MockResponse
@@ -10,6 +11,7 @@ import okhttp3.mockwebserver.MockWebServer
 import org.gradle.util.GradleVersion
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.Arguments
@@ -170,7 +172,73 @@ class MeasurePluginTest {
         }
     }
 
+    @ParameterizedTest
+    @MethodSource("versions")
+    fun `native crash reporting enabled, assert flag is in the packaged manifest`(
+        agpVersion: SemVer,
+        gradleVersion: GradleVersion,
+    ) {
+        val project = MeasurePluginFixture(agpVersion, enableNativeCrashReporting = true).gradleProject
+        val result = build(gradleVersion, project.rootDir, ":app:assembleRelease")
+        assertThat(result).task(":app:addReleaseNativeCrashReportingFlag").succeeded()
+        assertEquals(1, packagedManifest(project).split(NATIVE_CRASH_REPORTING_FLAG).size - 1)
+    }
+
+    @ParameterizedTest
+    @MethodSource("versions")
+    fun `native crash reporting disabled, assert flag is not in the packaged manifest`(
+        agpVersion: SemVer,
+        gradleVersion: GradleVersion,
+    ) {
+        val project = MeasurePluginFixture(agpVersion).gradleProject
+        val result = build(gradleVersion, project.rootDir, ":app:assembleRelease")
+        assertThat(result).doesNotHaveTask(":app:addReleaseNativeCrashReportingFlag")
+        assertFalse(packagedManifest(project).contains(NATIVE_CRASH_REPORTING_FLAG))
+    }
+
+    @ParameterizedTest
+    @MethodSource("versions")
+    fun `native crash reporting enabled, assert upload request is still created`(
+        agpVersion: SemVer,
+        gradleVersion: GradleVersion,
+    ) {
+        server.enqueue(MockResponse().setResponseCode(200))
+        server.start(8080)
+        val project = MeasurePluginFixture(
+            agpVersion,
+            setMeasureApiKey = true,
+            measureApiUrl = "http://localhost:8080",
+            enableNativeCrashReporting = true,
+        ).gradleProject
+        build(gradleVersion, project.rootDir, ":app:assembleRelease")
+        assertEquals(1, server.requestCount)
+    }
+
+    @ParameterizedTest
+    @MethodSource("versions")
+    fun `native crash reporting enabled, assert plugin does not break configuration cache`(
+        agpVersion: SemVer,
+        gradleVersion: GradleVersion,
+    ) {
+        val project = MeasurePluginFixture(agpVersion, enableNativeCrashReporting = true).gradleProject
+        build(gradleVersion, project.rootDir, ":app:assembleRelease", "--configuration-cache")
+        val result =
+            build(gradleVersion, project.rootDir, ":app:assembleRelease", "--configuration-cache")
+        if (agpVersion > SemVer(8, 0)) {
+            assertThat(result).output().contains("Configuration cache entry reused.")
+        }
+    }
+
+    private fun packagedManifest(project: GradleProject): String = project.rootDir
+        .resolve("app/build/intermediates/packaged_manifests/release")
+        .walkTopDown()
+        .single { it.name == "AndroidManifest.xml" }
+        .readText()
+
     companion object {
+        private const val NATIVE_CRASH_REPORTING_FLAG =
+            "android:name=\"sh.measure.android.NATIVE_CRASH_REPORTING\""
+
         @JvmStatic
         fun versions(): Stream<Arguments> {
             return Stream.of(

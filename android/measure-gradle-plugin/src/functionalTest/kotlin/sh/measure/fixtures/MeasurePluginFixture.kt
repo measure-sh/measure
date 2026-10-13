@@ -23,6 +23,7 @@ class MeasurePluginFixture(
     private val setMeasureApiUrl: Boolean = true,
     private val measureApiUrl: String = "https://measure.sh",
     private val enabled: Boolean = true,
+    private val enableNativeCrashReporting: Boolean = false,
 ) : AbstractGradleProject() {
 
     val gradleProject: GradleProject = build()
@@ -101,6 +102,7 @@ class MeasurePluginFixture(
                 withGroovy(
                     """
                         measure {
+                            enableNativeCrashReporting = $enableNativeCrashReporting
                             variantFilter {
                                enabled = $enabled
                             }
