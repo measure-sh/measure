@@ -91,6 +91,21 @@ internal interface SignalProcessor {
     )
 
     /**
+     * Tracks a native crash collected using an AppExit from a different session than the
+     * current one. Stores the event before returning, so the session that crashed can be
+     * marked as tracked right after.
+     */
+    fun trackNativeCrash(
+        data: ExceptionData,
+        timestamp: Long,
+        threadName: String,
+        sessionId: String,
+        sessionStartTime: Long,
+        appVersion: String?,
+        appBuild: String?,
+    )
+
+    /**
      * Profile events can be delivered by the OS after the session they were captured in has
      * ended. This method is used to track profile events for a specific session with the
      * attributes provided. The session attributes are left untouched when they are unknown.
@@ -288,6 +303,33 @@ internal class SignalProcessorImpl(
         sessionManager.markSessionWithAnr(event.sessionId, timestamp)
         event.attributes.truncateToLimits()
         signalStore.store(event)
+    }
+
+    override fun trackNativeCrash(
+        data: ExceptionData,
+        timestamp: Long,
+        threadName: String,
+        sessionId: String,
+        sessionStartTime: Long,
+        appVersion: String?,
+        appBuild: String?,
+    ) {
+        val event = createEvent(
+            data = data,
+            timestamp = timestamp,
+            type = EventType.EXCEPTION,
+            attachments = mutableListOf(),
+            attributes = mutableMapOf(),
+            userTriggered = false,
+            userDefinedAttributes = mutableMapOf(),
+            sessionId = sessionId,
+            isSampled = true,
+        ) ?: return
+        applyAttributes(event, threadName)
+        event.updateVersionAttribute(appVersion, appBuild)
+        event.updateSessionStartTimeAttribute(sessionStartTime)
+        signalStore.store(event)
+        onEventTracked(event)
     }
 
     override fun trackProfile(

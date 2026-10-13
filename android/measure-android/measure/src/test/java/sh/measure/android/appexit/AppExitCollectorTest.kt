@@ -18,6 +18,10 @@ import sh.measure.android.fakes.FakeAppExitProvider
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.fakes.TestData
+import sh.measure.android.nativecrash.Tombstone
+import sh.measure.android.nativecrash.TombstoneFrame
+import sh.measure.android.nativecrash.TombstoneSignal
+import sh.measure.android.nativecrash.TombstoneThread
 import sh.measure.android.storage.SessionRecord
 
 private const val THREAD_DUMP = "DALVIK THREADS (1):\n\"main\" prio=5 tid=1 Blocked\n"
@@ -33,6 +37,7 @@ class AppExitCollectorTest {
         appExitProvider,
         signalProcessor,
         sessionManager,
+        "sh.frankenstein.android.debug",
     )
 
     @Test
@@ -171,6 +176,48 @@ class AppExitCollectorTest {
     }
 
     @Test
+    fun `tracks a native crash for a native exit with a session and a tombstone`() {
+        val appExit = nativeCrashExit(tombstone())
+        appExitProvider.appExits = mapOf(1 to appExit)
+        val session = getSession(1)
+        sessionManager.appExitSessions[1] = session
+
+        appExitCollector.collect()
+
+        val data = argumentCaptor<ExceptionData>()
+        verify(signalProcessor).trackNativeCrash(
+            data = data.capture(),
+            timestamp = eq(appExit.app_exit_time_ms),
+            threadName = eq("crash-thread"),
+            sessionId = eq(session.id),
+            sessionStartTime = eq(session.createdAt),
+            appVersion = eq(session.appVersion),
+            appBuild = eq(session.appBuild),
+        )
+        assertEquals("ndk", data.firstValue.framework)
+        assertEquals("SIGSEGV", data.firstValue.exceptions.single().type)
+    }
+
+    @Test
+    fun `does not track a native exit without a tombstone`() {
+        appExitProvider.appExits = mapOf(1 to nativeCrashExit(tombstone = null))
+        sessionManager.appExitSessions[1] = getSession(1)
+
+        appExitCollector.collect()
+
+        verifyNoNativeCrashTracked()
+    }
+
+    @Test
+    fun `does not track a native exit without a session`() {
+        appExitProvider.appExits = mapOf(1 to nativeCrashExit(tombstone()))
+
+        appExitCollector.collect()
+
+        verifyNoNativeCrashTracked()
+    }
+
+    @Test
     fun `marks sessions as app exit tracked after collection`() {
         appExitProvider.appExits = mapOf(1 to anrExit(), 2 to anrExit())
         sessionManager.appExitSessions[1] = getSession(sessionId = "session-1", pid = 1)
@@ -193,6 +240,51 @@ class AppExitCollectorTest {
             isSampled = any(),
         )
     }
+
+    private fun verifyNoNativeCrashTracked() {
+        verify(signalProcessor, never()).trackNativeCrash(
+            data = any(),
+            timestamp = any(),
+            threadName = any(),
+            sessionId = any(),
+            sessionStartTime = any(),
+            appVersion = any(),
+            appBuild = any(),
+        )
+    }
+
+    private fun nativeCrashExit(tombstone: Tombstone?) = TestData.getAppExit(
+        reasonId = ApplicationExitInfo.REASON_CRASH_NATIVE,
+        trace = null,
+        importance = "FOREGROUND",
+        tombstone = tombstone,
+    )
+
+    private fun tombstone() = Tombstone(
+        arch = "arm64",
+        pid = 1,
+        tid = 2,
+        signal = TombstoneSignal(name = "SIGSEGV", codeName = "SEGV_MAPERR", faultAddress = 0),
+        abortMessage = null,
+        causes = emptyList(),
+        gwpAsanReport = null,
+        threads = mapOf(
+            2 to TombstoneThread(
+                id = 2,
+                name = "crash-thread",
+                frames = listOf(
+                    TombstoneFrame(
+                        relPc = 0x10,
+                        pc = 0x1010,
+                        functionName = null,
+                        fileName = "/data/app/lib/arm64/libfoo.so",
+                        buildId = "abc",
+                    ),
+                ),
+            ),
+        ),
+        mappings = emptyList(),
+    )
 
     private fun anrExit(
         reasonId: Int = ApplicationExitInfo.REASON_ANR,

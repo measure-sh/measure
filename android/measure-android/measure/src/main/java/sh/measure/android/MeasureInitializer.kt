@@ -343,12 +343,14 @@ internal class MeasureInitializerImpl(
     private val appExitProvider: AppExitProvider = AppExitProviderImpl(
         logger = logger,
         systemServiceProvider = systemServiceProvider,
+        manifestReader = manifestReader,
     ),
     override val appExitCollector: AppExitCollector = AppExitCollector(
         logger = logger,
         appExitProvider = appExitProvider,
         signalProcessor = signalProcessor,
         sessionManager = sessionManager,
+        packageName = application.packageName,
     ),
     override val cpuUsageCollector: CpuUsageCollector = CpuUsageCollector(
         logger = logger,

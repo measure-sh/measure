@@ -16,6 +16,8 @@ import org.mockito.Mockito.`when`
 import org.robolectric.annotation.Config
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.logger.Logger
+import sh.measure.android.utils.ManifestMetadata
+import sh.measure.android.utils.ManifestReader
 import sh.measure.android.utils.SystemServiceProvider
 
 @RunWith(AndroidJUnit4::class)
@@ -24,8 +26,12 @@ class AppExitProviderImplTest {
     private val logger: Logger = NoopLogger()
     private val systemServiceProvider: SystemServiceProvider = mock()
     private val activityManager: ActivityManager = mock()
+    private var nativeCrashReporting = true
+    private val manifestReader = object : ManifestReader {
+        override fun load() = ManifestMetadata(url = null, apiKey = null, nativeCrashReporting = nativeCrashReporting)
+    }
     private val appExitProvider: AppExitProviderImpl =
-        AppExitProviderImpl(logger, systemServiceProvider)
+        AppExitProviderImpl(logger, systemServiceProvider, manifestReader)
 
     @Before
     fun setup() {
@@ -64,6 +70,42 @@ class AppExitProviderImplTest {
             "CACHED",
             result?.get(2)?.importance,
         )
+    }
+
+    @Test
+    fun `get skips native crash exits when native crash reporting is off`() {
+        nativeCrashReporting = false
+        val anr = mockApplicationExitInfo(
+            1,
+            ApplicationExitInfo.REASON_ANR,
+            ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
+        )
+        val nativeCrash = mockApplicationExitInfo(
+            2,
+            ApplicationExitInfo.REASON_CRASH_NATIVE,
+            ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
+        )
+        `when`(activityManager.getHistoricalProcessExitReasons(null, 0, 3))
+            .thenReturn(listOf(anr, nativeCrash))
+
+        val result = appExitProvider.get()
+
+        assertEquals(setOf(1), result?.keys)
+    }
+
+    @Test
+    fun `get keeps native crash exits when native crash reporting is on`() {
+        val nativeCrash = mockApplicationExitInfo(
+            2,
+            ApplicationExitInfo.REASON_CRASH_NATIVE,
+            ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
+        )
+        `when`(activityManager.getHistoricalProcessExitReasons(null, 0, 3))
+            .thenReturn(listOf(nativeCrash))
+
+        val result = appExitProvider.get()
+
+        assertEquals("CRASH_NATIVE", result?.get(2)?.reason)
     }
 
     @Test

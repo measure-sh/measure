@@ -3,4 +3,5 @@ package sh.measure.android.exceptions
 internal object ExceptionFramework {
     const val JVM = "jvm"
     const val JS = "js"
+    const val NDK = "ndk"
 }
