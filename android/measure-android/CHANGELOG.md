@@ -5,10 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [android-v0.22.0] - 2026-10-13
+
+### :sparkles: New features
+
+- (**android**): Add android 17 profiling triggers (#4550) by @abhaysood in #4550
+- (**android**): Improve ANR collection with ART thread dumps (#4542) by @abhaysood
+
+### :bug: Bug fixes
+
+- (**android**): Enforce validation limits on event fields (#4602) by @adwinross in #4602
+
+### :hammer: Misc
+
+- (**android**): Drop flaky memory heap tests (#4555) by @abhaysood in #4555
+- (**android**): Prepare next development version 0.22.0-SNAPSHOT by @abhaysood in #4499
+
 ## [android-v0.21.1] - 2026-09-23
 
 ### :hammer: Misc
 
+- (**android**): Prepare sdk release 0.21.1 by @abhaysood in #4498
 - (**android**): Prepare next development version 0.22.0-SNAPSHOT by @abhaysood in #4493
 - (**android**): Default memory sampling to 0.01% by @abhaysood
 
@@ -964,6 +981,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Add missing links to readme by @abhaysood
 - (**android**): Create a template for Android SDK documentation by @abhaysood
 
+[android-v0.22.0]: https://github.com/measure-sh/measure/compare/android-v0.21.1..android-v0.22.0
 [android-v0.21.1]: https://github.com/measure-sh/measure/compare/android-v0.21.0..android-v0.21.1
 [android-v0.21.0]: https://github.com/measure-sh/measure/compare/android-v0.20.0..android-v0.21.0
 [android-v0.20.0]: https://github.com/measure-sh/measure/compare/android-v0.19.0..android-v0.20.0
