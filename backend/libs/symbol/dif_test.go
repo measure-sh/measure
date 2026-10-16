@@ -2,6 +2,7 @@ package symbol
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"os"
 	"strings"
@@ -254,5 +255,38 @@ func TestExtractDsymEntities(t *testing.T) {
 		if expected[0][1].Key != got[0][1].Key {
 			t.Errorf("Expected key %v, but got %v", expected[0][1].Key, got[0][1].Key)
 		}
+	}
+}
+
+func TestGunzipIfCompressed(t *testing.T) {
+	raw := []byte("\x7fELF raw bytes")
+
+	var compressed bytes.Buffer
+	writer := gzip.NewWriter(&compressed)
+	if _, err := writer.Write(raw); err != nil {
+		t.Fatal(err)
+	}
+	if err := writer.Close(); err != nil {
+		t.Fatal(err)
+	}
+
+	cases := []struct {
+		name string
+		in   []byte
+	}{
+		{name: "gzipped", in: compressed.Bytes()},
+		{name: "raw", in: raw},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			got, err := GunzipIfCompressed(tc.in)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if !bytes.Equal(got, raw) {
+				t.Errorf("got %q, want %q", got, raw)
+			}
+		})
 	}
 }

@@ -73,7 +73,7 @@ class MeasurePlugin : Plugin<Project> {
                 return@onVariants
             }
             bytecodeTransformer.transform(variant, project)
-            registerBuildTasks(variant, project, httpClientProvider, sdkDirectory)
+            registerBuildTasks(variant, project, httpClientProvider, sdkDirectory, measure)
         }
     }
 
@@ -82,7 +82,21 @@ class MeasurePlugin : Plugin<Project> {
         project: Project,
         httpClientProvider: Provider<MeasureHttpClient>,
         sdkDirectory: Provider<Directory>,
+        measure: MeasurePluginExtension,
     ) {
+        if (measure.enableNativeCrashReporting) {
+            val addNativeCrashReportingFlagProvider = project.tasks.register(
+                addNativeCrashReportingFlagTaskName(variant),
+                AddNativeCrashReportingFlagTask::class.java,
+            )
+            variant.artifacts.use(addNativeCrashReportingFlagProvider)
+                .wiredWithFiles(
+                    AddNativeCrashReportingFlagTask::mergedManifest,
+                    AddNativeCrashReportingFlagTask::updatedManifest,
+                )
+                .toTransform(SingleArtifact.MERGED_MANIFEST)
+        }
+
         val extractManifestDataProvider =
             project.tasks.register(
                 extractManifestDataTaskName(variant),
@@ -137,6 +151,10 @@ class MeasurePlugin : Plugin<Project> {
                         )
                     }
                     it.reactNativeBundleArchives.setFrom(rnBundleArchives)
+                    it.enableNativeCrashReportingProperty.set(measure.enableNativeCrashReporting)
+                    if (measure.enableNativeCrashReporting) {
+                        it.nativeLibs.from(project.tasks.matching { task -> task.name == mergeNativeLibsTaskName(variant) })
+                    }
                     it.buildMetadataFileProperty.set(appSizeFileProvider(project, variant))
                     it.retriesProperty.set(DEFAULT_RETRIES)
                     it.usesService(httpClientProvider)
@@ -185,9 +203,13 @@ class MeasurePlugin : Plugin<Project> {
         variant: Variant,
     ): Provider<RegularFile> = project.layout.buildDirectory.file("intermediates/measure/${variant.name}/manifestData.json")
 
+    private fun mergeNativeLibsTaskName(variant: Variant) = "merge${variant.name.capitalize()}NativeLibs"
+
     private fun buildUploadTaskName(variant: Variant) = "upload${variant.name.capitalize()}BuildToMeasure"
 
     private fun extractManifestDataTaskName(variant: Variant) = "extract${variant.name.capitalize()}ManifestData"
+
+    private fun addNativeCrashReportingFlagTaskName(variant: Variant) = "add${variant.name.capitalize()}NativeCrashReportingFlag"
 
     private fun packageReactNativeBundleTaskName(variant: Variant) = "packageReactNativeBundle${variant.name.capitalize()}"
 

@@ -11,8 +11,8 @@ const (
 )
 
 // ErrorsEntity filters an app's error groups. ErrorGroupEventsEntity filters
-// the events of one group and has no error_type key: a group holds one kind
-// of error.
+// the events of one group and has no error_type or gwp_asan_report key: a
+// group holds one kind of error.
 var (
 	ErrorsEntity = Entity{
 		Name:            "errors",
@@ -31,7 +31,7 @@ var (
 	}
 )
 
-var errorsKeys = slices.Concat([]Key{errorType}, errorGroupEventsKeys)
+var errorsKeys = slices.Concat([]Key{errorType, gwpASanReport}, errorGroupEventsKeys)
 
 var errorGroupEventsKeys = []Key{
 	versionName,
@@ -60,7 +60,17 @@ var errorTypePredicates = map[string]string{
 	ErrorTypeUnhandledError: "(type = 'exception' and `exception.severity` = 'unhandled')",
 }
 
+// GWPASanReportSQL matches error events that
+// carry a GWP-ASan report.
+const GWPASanReportSQL = "(type = 'exception' and `exception.gwp_asan_report` != '')"
+
+var gwpASanReportPredicates = map[string]string{
+	"true":  GWPASanReportSQL,
+	"false": "not " + GWPASanReportSQL,
+}
+
 var errorEventsColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]column{
+	gwpASanReport.Name:      {kind: columnPredicates, predicates: gwpASanReportPredicates},
 	errorType.Name:          {kind: columnPredicates, predicates: errorTypePredicates},
 	versionName.Name:        {expr: "`attribute.app_version`"},
 	versionCode.Name:        {expr: "`attribute.app_build`"},

@@ -12,6 +12,7 @@ import org.mockito.kotlin.verify
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.StringAttr
+import sh.measure.android.exceptions.ExceptionFramework
 import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.exporter.Exporter
 import sh.measure.android.fakes.FakeConfigProvider
@@ -497,6 +498,37 @@ internal class SignalProcessorTest {
         )
         assertEquals(appVersion, event.attributes[Attribute.APP_VERSION_KEY])
         assertEquals(appBuild, event.attributes[Attribute.APP_BUILD_KEY])
+    }
+
+    @Test
+    fun `trackNativeCrash stores event against the session that crashed`() {
+        val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Fatal).copy(framework = ExceptionFramework.NDK)
+        val timestamp = 1710746412L
+        val sessionId = "session-id-that-crashed"
+        val sessionStartTime = 1710746000L
+
+        signalProcessor.trackNativeCrash(
+            data = exceptionData,
+            timestamp = timestamp,
+            threadName = "RenderThread",
+            sessionId = sessionId,
+            sessionStartTime = sessionStartTime,
+            appVersion = "app-version",
+            appBuild = "1000",
+        )
+
+        assertEquals(1, signalStore.trackedEvents.size)
+        val event = signalStore.trackedEvents.first()
+        assertEquals(EventType.EXCEPTION, event.type)
+        assertEquals(sessionId, event.sessionId)
+        assertEquals("RenderThread", event.attributes[Attribute.THREAD_NAME])
+        assertEquals(
+            sessionStartTime.iso8601Timestamp(),
+            event.attributes[Attribute.SESSION_START_TIME_KEY],
+        )
+        assertEquals("app-version", event.attributes[Attribute.APP_VERSION_KEY])
+        assertEquals("1000", event.attributes[Attribute.APP_BUILD_KEY])
+        assertTrue(event.isSampled)
     }
 
     @Test

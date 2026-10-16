@@ -234,7 +234,9 @@ describe.each(apps)("catalog: $app.name", (bundle) => {
         expect(spec.framework).toBe("jvm");
         expect(scenario.app.os).toBe("android");
       } else {
-        expect([expected, nativeFramework]).toContain(spec.framework);
+        const nativeFrameworks =
+          scenario.app.os === "android" ? ["jvm", "ndk"] : ["apple"];
+        expect([expected, ...nativeFrameworks]).toContain(spec.framework);
       }
     }
   });
@@ -301,6 +303,8 @@ describe.each(apps)("catalog: $app.name", (bundle) => {
           for (const frame of thread.frames) {
             if (spec.framework === "apple") {
               expect(frame).toMatch(/^\s*\d+ {3}\S+\s+0x[0-9a-f]{16} {3}\S/);
+            } else if (spec.framework === "ndk") {
+              expect(frame).toMatch(/^#\d{2} pc 0x[0-9a-f]{16} {2}\S/);
             } else {
               expect(frame).toMatch(/^[\w$.<>]+(\(.*\))?$/);
             }

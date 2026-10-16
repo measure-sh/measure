@@ -114,6 +114,12 @@ func (m *Mapping) extractDif() (err error) {
 			m.Difs = append(m.Difs, entity...)
 		}
 	case symbol.TypeElfDebug.String():
+		elfData, errGunzip := symbol.GunzipIfCompressed(m.File)
+		if errGunzip != nil {
+			return errGunzip
+		}
+		m.File = elfData
+
 		debugID, errBuildID := symbol.GetBuildIDFromELF(m.File)
 		if errBuildID != nil {
 			return errBuildID

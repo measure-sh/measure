@@ -140,6 +140,21 @@ func (f Frame) String(frmwrk string) string {
 			return fmt.Sprintf("at %s", f.MethodName)
 		}
 		return fmt.Sprintf("at %s", fileInfo)
+	case FrameworkNDK:
+		// #00 pc 0x00000000000008f4  libfoo.so (crash_now) (foo.cpp:42)
+		index := 0
+		if f.FrameiOS != nil {
+			index = f.FrameIndex
+		}
+		offset, _ := f.nativeOffset()
+		line := fmt.Sprintf("#%02d pc 0x%016x  %s", index, offset, f.binaryName())
+		if f.MethodName != "" {
+			line += " (" + f.MethodName + ")"
+		}
+		if fileInfo := f.FileInfo(); fileInfo != "" {
+			line += " (" + fileInfo + ")"
+		}
+		return line
 	case FrameworkApple:
 		binaryName := f.BinaryName
 		methodName := f.MethodName
@@ -222,4 +237,61 @@ func isHexString(s string) bool {
 		}
 	}
 	return true
+}
+
+// binaryName provides the name of the binary
+// the frame belongs to, or "???" when unknown.
+func (f Frame) binaryName() string {
+	if f.FrameiOS == nil || f.BinaryName == "" {
+		return "???"
+	}
+	return f.BinaryName
+}
+
+// nativeOffset provides the frame's instruction
+// address relative to its binary's load address.
+func (f Frame) nativeOffset() (uint64, bool) {
+	if f.FrameiOS == nil {
+		return 0, false
+	}
+
+	address, err := strconv.ParseUint(strings.TrimPrefix(f.InstructionAddr, "0x"), 16, 64)
+	if err != nil {
+		return 0, false
+	}
+
+	base, err := strconv.ParseUint(strings.TrimPrefix(f.BinaryAddress, "0x"), 16, 64)
+	if err != nil || address < base {
+		return 0, false
+	}
+
+	return address - base, true
+}
+
+// NativeFunctionName drops the parameter list and
+// trailing qualifiers from a demangled C++ name, so
+// "Foo::bar(int) const" reads "Foo::bar". Devices
+// name frames with parameters, symbolicator may not,
+// and the name is part of the fingerprint.
+func NativeFunctionName(name string) string {
+	name = strings.TrimSpace(name)
+	for _, qualifier := range []string{" const", " volatile", " &&", " &"} {
+		name = strings.TrimSuffix(name, qualifier)
+	}
+	if !strings.HasSuffix(name, ")") {
+		return name
+	}
+	depth := 0
+	for i := len(name) - 1; i >= 0; i-- {
+		switch name[i] {
+		case ')':
+			depth++
+		case '(':
+			depth--
+			if depth == 0 {
+				return strings.TrimSpace(name[:i])
+			}
+		}
+	}
+	return name
 }

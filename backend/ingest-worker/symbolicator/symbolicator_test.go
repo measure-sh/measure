@@ -20,6 +20,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"slices"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -52,6 +53,8 @@ var (
 	sqliteProguardMappingKey  string // unified layout key for the sqlite proguard mapping
 	artdumpProguardMappingKey string // unified layout key for the art thread dump proguard mapping
 	elfDebugMappingKey        string // unified layout key for the ELF debug symbols
+	nativeMappingKey          string // unified layout key for the native shared library
+	nativeUAFMappingKey       string // unified layout key for the native shared library with the use after free
 	jsBundleMappingKey        string // unified layout key for the JS bundle
 	jsSourcemapMappingKey     string // unified layout key for the JS sourcemap
 	symbolicatorContainer     testcontainers.Container
@@ -288,6 +291,11 @@ func TestMain(m *testing.M) {
 		fmt.Printf("failed to upload ELF meta to minio: %v\n", err)
 		os.Exit(1)
 	}
+
+	// Upload unstripped native shared libraries to MinIO, keyed
+	// by their full 20 byte GNU build ID as symboloader stores them.
+	nativeMappingKey = uploadNativeLibrary(ctx, s3Client, "libfrank_crash.so")
+	nativeUAFMappingKey = uploadNativeLibrary(ctx, s3Client, "libfrank_crash_uaf.so")
 
 	// Upload React Native JS bundle + sourcemap to MinIO. Keys
 	// mirror what ExtractJsBundle now produces: unified layout
@@ -1245,6 +1253,185 @@ func TestDartExceptionSymbolication(t *testing.T) {
 
 	stacktrace := events[0].Exception.Stacktrace()
 	assertStacktraceMatchesGolden(t, "dart_exception_stacktrace_golden.txt", stacktrace)
+}
+
+// uploadNativeLibrary uploads an unstripped native shared library and its
+// meta to MinIO, and returns the library's mapping key.
+func uploadNativeLibrary(ctx context.Context, s3Client *s3.Client, file string) string {
+	ndkBytes, err := os.ReadFile(filepath.Join(testdataDir, file))
+	if err != nil {
+		fmt.Printf("failed to read native library: %v\n", err)
+		os.Exit(1)
+	}
+
+	ndkBuildID, err := symbol.GetBuildIDFromELF(ndkBytes)
+	if err != nil {
+		fmt.Printf("failed to read native library build ID: %v\n", err)
+		os.Exit(1)
+	}
+	ndkUnifiedPath := symbol.BuildUnifiedLayout(ndkBuildID)
+
+	for key, body := range map[string][]byte{
+		ndkUnifiedPath + "/debuginfo": ndkBytes,
+		ndkUnifiedPath + "/meta":      []byte(`{"name":"arm64-v8a/libfrank_crash.so.gz","arch":"arm64","file_format":"elf"}`),
+	} {
+		_, err = s3Client.PutObject(ctx, &s3.PutObjectInput{
+			Bucket: aws.String(symbolsBucket),
+			Key:    aws.String(key),
+			Body:   bytes.NewReader(body),
+		})
+		if err != nil {
+			fmt.Printf("failed to upload native library to minio: %v\n", err)
+			os.Exit(1)
+		}
+	}
+
+	return ndkUnifiedPath + "/debuginfo"
+}
+
+// makeNativeCrashEvents loads a native crash captured from frank
+// on an API 31 emulator.
+func makeNativeCrashEvents(t *testing.T, fixture, versionName, versionCode string) []event.EventField {
+	t.Helper()
+
+	data, err := os.ReadFile(filepath.Join(testdataDir, fixture))
+	if err != nil {
+		t.Fatalf("read native crash fixture: %v", err)
+	}
+
+	var raw struct {
+		Exception event.Exception `json:"exception"`
+	}
+	if err := json.Unmarshal(data, &raw); err != nil {
+		t.Fatalf("unmarshal native crash fixture: %v", err)
+	}
+
+	return []event.EventField{
+		{
+			ID:        uuid.New(),
+			SessionID: uuid.New(),
+			Timestamp: time.Now(),
+			Type:      event.TypeException,
+			Attribute: event.Attribute{
+				AppVersion: versionName,
+				AppBuild:   versionCode,
+				OSName:     "android",
+			},
+			Exception: &raw.Exception,
+		},
+	}
+}
+
+func TestNativeCrashSymbolication(t *testing.T) {
+	ctx := context.Background()
+	appID := uuid.New()
+	versionName := "0.1.0"
+	versionCode := "5524"
+
+	seedApp(ctx, t, appID)
+	seedBuildMappingRow(ctx, t, appID, versionName, versionCode, "elf_debug", nativeMappingKey)
+
+	events := makeNativeCrashEvents(t, "ndk_sigsegv_input.json", versionName, versionCode)
+	deviceNamed := events[0].Exception.Exceptions[0].Frames[2].MethodName
+	sources := []Source{newS3Source()}
+
+	symb := New(symbolicatorOrigin, "android", sources, nil)
+	if err := symb.Symbolicate(ctx, pgPool, appID, events, nil); err != nil {
+		t.Fatalf("Symbolicate failed: %v", err)
+	}
+
+	frames := events[0].Exception.Exceptions[0].Frames
+	if frames[0].MethodName != "write_through_null" || frames[0].FileName == "" || frames[0].LineNum == 0 {
+		t.Errorf("expected the crashing frame to be symbolicated, got %+v", frames[0])
+	}
+	if frames[0].BinaryName != "libfrank_crash.so" || !frames[0].InApp {
+		t.Errorf("expected the crashing frame to keep its binary, got %+v", frames[0])
+	}
+	if frames[2].MethodName != deviceNamed {
+		t.Errorf("expected the system frame to keep its device name %q, got %q", deviceNamed, frames[2].MethodName)
+	}
+
+	assertStacktraceMatchesGolden(t, "ndk_sigsegv_stacktrace_golden.txt", events[0].Exception.Stacktrace())
+}
+
+// shiftNativeImage moves a native crash's app library to a new
+// load address, as a second crashed process would load it.
+func shiftNativeImage(t *testing.T, ev event.EventField, delta uint64) {
+	t.Helper()
+	shift := func(hex string) string {
+		value, err := strconv.ParseUint(strings.TrimPrefix(hex, "0x"), 16, 64)
+		if err != nil {
+			t.Fatalf("parse address %q: %v", hex, err)
+		}
+		return "0x" + strconv.FormatUint(value+delta, 16)
+	}
+	for i := range ev.Exception.Exceptions[0].Frames {
+		frame := &ev.Exception.Exceptions[0].Frames[i]
+		if frame.FrameiOS != nil && frame.BinaryName == "libfrank_crash.so" {
+			frame.InstructionAddr = shift(frame.InstructionAddr)
+			frame.BinaryAddress = shift(frame.BinaryAddress)
+		}
+	}
+	for i := range ev.Exception.BinaryImages {
+		image := &ev.Exception.BinaryImages[i]
+		if image.Name == "libfrank_crash.so" {
+			image.BaseAddr = shift(image.BaseAddr)
+			image.StartAddr = shift(image.StartAddr)
+			image.EndAddr = shift(image.EndAddr)
+		}
+	}
+}
+
+func TestNativeCrashSymbolicationBatch(t *testing.T) {
+	ctx := context.Background()
+	appID := uuid.New()
+	versionName := "0.1.0"
+	versionCode := "5524"
+
+	seedApp(ctx, t, appID)
+	seedBuildMappingRow(ctx, t, appID, versionName, versionCode, "elf_debug", nativeMappingKey)
+
+	events := append(makeNativeCrashEvents(t, "ndk_sigsegv_input.json", versionName, versionCode), makeNativeCrashEvents(t, "ndk_sigsegv_input.json", versionName, versionCode)...)
+	shiftNativeImage(t, events[1], 0x1000000)
+
+	symb := New(symbolicatorOrigin, "android", []Source{newS3Source()}, nil)
+	if err := symb.Symbolicate(ctx, pgPool, appID, events, nil); err != nil {
+		t.Fatalf("Symbolicate failed: %v", err)
+	}
+
+	for i, ev := range events {
+		if got := ev.Exception.Exceptions[0].Frames[0].MethodName; got != "write_through_null" {
+			t.Errorf("event %d: expected the crashing frame to be symbolicated, got %q", i, got)
+		}
+	}
+}
+
+func TestNativeGWPASanReportSymbolication(t *testing.T) {
+	ctx := context.Background()
+	appID := uuid.New()
+	versionName := "0.1.0"
+	versionCode := "5524"
+
+	seedApp(ctx, t, appID)
+	seedBuildMappingRow(ctx, t, appID, versionName, versionCode, "elf_debug", nativeUAFMappingKey)
+
+	events := makeNativeCrashEvents(t, "ndk_gwp_asan_input.json", versionName, versionCode)
+	symb := New(symbolicatorOrigin, "android", []Source{newS3Source()}, nil)
+	if err := symb.Symbolicate(ctx, pgPool, appID, events, nil); err != nil {
+		t.Fatalf("Symbolicate failed: %v", err)
+	}
+
+	assertStacktraceMatchesGolden(t, "ndk_gwp_asan_stacktrace_golden.txt", events[0].Exception.Stacktrace())
+
+	report := events[0].Exception.GWPASanReport
+	wantDeallocation := "#02 pc 0x0000000000000b5c  libfrank_crash.so (use_after_free) (native_crash.c:48)"
+	if got := event.NativeStackLines(report.Deallocation.Frames); got[2] != wantDeallocation {
+		t.Errorf("want deallocation frame %q, got %q", wantDeallocation, got[2])
+	}
+	wantAllocation := "#04 pc 0x0000000000000b50  libfrank_crash.so (use_after_free) (native_crash.c:47)"
+	if got := event.NativeStackLines(report.Allocation.Frames); got[4] != wantAllocation {
+		t.Errorf("want allocation frame %q, got %q", wantAllocation, got[4])
+	}
 }
 
 // makeJVMRealEvents loads a real-world JVM exception fixture from

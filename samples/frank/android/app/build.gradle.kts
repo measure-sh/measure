@@ -1,4 +1,5 @@
 import java.util.Properties
+import com.google.firebase.crashlytics.buildtools.gradle.CrashlyticsExtension
 
 val localProps = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.reader()?.use { load(it) }
@@ -64,6 +65,9 @@ android {
             signingConfig = signingConfigs.getByName("release")
             manifestPlaceholders["measureApiKey"] = localProps.getProperty("measure.release.apiKey", "")
             manifestPlaceholders["measureApiUrl"] = localProps.getProperty("measure.release.apiUrl", "")
+            configure<CrashlyticsExtension> {
+                nativeSymbolUploadEnabled = true
+            }
         }
     }
 
@@ -107,6 +111,7 @@ measure {
         "io.flutter",
         "androidx.work",
     )
+    enableNativeCrashReporting = true
 }
 
 react {
@@ -174,4 +179,5 @@ dependencies {
     // Firebase
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.crashlytics)
+    implementation(libs.firebase.crashlytics.ndk)
 }

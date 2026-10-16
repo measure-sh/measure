@@ -30,6 +30,10 @@ appId: ${APP_ID}
       - tapOn:
           text: "Done"
           optional: true
+      # The API 35 picker confirms with "Add (n)" instead of "Done".
+      - tapOn:
+          text: "Add \\(\\d+\\)"
+          optional: true
       - tapOn: "Send"
 - runFlow:
     when:

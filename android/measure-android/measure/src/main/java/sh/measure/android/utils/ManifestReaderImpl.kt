@@ -15,6 +15,7 @@ internal interface ManifestReader {
 internal class ManifestReaderImpl(private val context: Context, private val logger: Logger) : ManifestReader {
     private val measureUrlKey = "sh.measure.android.API_URL"
     private val measureApiKey = "sh.measure.android.API_KEY"
+    private val nativeCrashReportingKey = "sh.measure.android.NATIVE_CRASH_REPORTING"
 
     override fun load(): ManifestMetadata? {
         val bundle = try {
@@ -30,6 +31,7 @@ internal class ManifestReaderImpl(private val context: Context, private val logg
         return ManifestMetadata(
             url = bundle.getString(measureUrlKey),
             apiKey = bundle.getString(measureApiKey),
+            nativeCrashReporting = bundle.getBoolean(nativeCrashReportingKey, false),
         )
     }
 
@@ -49,4 +51,5 @@ internal class ManifestReaderImpl(private val context: Context, private val logg
 internal class ManifestMetadata(
     val url: String?,
     val apiKey: String?,
+    val nativeCrashReporting: Boolean = false,
 )

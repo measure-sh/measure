@@ -1097,6 +1097,9 @@ paths:
                           type: string
                         line_number:
                           type: number
+                        gwp_asan_report:
+                          type: boolean
+                          description: Whether GWP-ASan caught the group's errors.
                         count:
                           type: number
                         users:
@@ -1347,6 +1350,52 @@ paths:
                               type: string
                             message:
                               type: string
+                            cause:
+                              type: string
+                              description: >
+                                OS reported cause of a native crash, for example
+                                `Use After Free, 0 bytes into a 32-byte allocation at 0x7718e1afe0`.
+                                Empty for other errors.
+                            gwp_asan_report:
+                              type: object
+                              nullable: true
+                              description: >
+                                Report GWP-ASan wrote when it caught bad memory use. Null
+                                when GWP-ASan did not catch the error.
+                              properties:
+                                type:
+                                  type: string
+                                  description: Kind of report, for example `use_after_free`.
+                                deallocation:
+                                  type: object
+                                  nullable: true
+                                  description: Where the memory was freed. Null when nothing was freed.
+                                  properties:
+                                    thread_id:
+                                      type: integer
+                                    thread_name:
+                                      type: string
+                                      description: Empty when the thread had exited by the time of the crash.
+                                    frames:
+                                      type: array
+                                      description: Rendered frames, one line each.
+                                      items:
+                                        type: string
+                                allocation:
+                                  type: object
+                                  nullable: true
+                                  description: Where the memory was allocated.
+                                  properties:
+                                    thread_id:
+                                      type: integer
+                                    thread_name:
+                                      type: string
+                                      description: Empty when the thread had exited by the time of the crash.
+                                    frames:
+                                      type: array
+                                      description: Rendered frames, one line each.
+                                      items:
+                                        type: string
                         anr:
                           type: object
                           description: Present on ANR events.

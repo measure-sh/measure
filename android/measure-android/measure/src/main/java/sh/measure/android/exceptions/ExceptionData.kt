@@ -69,6 +69,48 @@ internal data class ExceptionData(
      * expired. Set only for ANRs reported from app exit info.
      */
     val subject: String? = null,
+
+    /**
+     * The message passed to abort by the native code that crashed.
+     */
+    val abort_message: String? = null,
+
+    /**
+     * A summary of the likely cause, as reported by the OS.
+     */
+    val cause: String? = null,
+
+    /**
+     * The report GWP-ASan wrote when it caught bad memory use, with where
+     * the memory was allocated and freed.
+     */
+    val gwp_asan_report: GwpAsanReport? = null,
+)
+
+@Serializable
+internal data class GwpAsanReport(
+    /**
+     * The kind of error, for example `use_after_free`.
+     */
+    val type: String,
+    /**
+     * Where the memory was allocated.
+     */
+    val allocation: GwpAsanReportStack? = null,
+    /**
+     * Where the memory was freed.
+     */
+    val deallocation: GwpAsanReportStack? = null,
+)
+
+@Serializable
+internal data class GwpAsanReportStack(
+    val thread_id: Long,
+    /**
+     * The name of the thread, or null when it had exited by the time of the crash.
+     */
+    val thread_name: String? = null,
+    val frames: List<Frame>,
 )
 
 @Serializable
@@ -169,6 +211,11 @@ internal data class Frame(
     val symbol_address: String? = null,
 
     /**
+     * The name of the binary that contains the frame.
+     */
+    val binary_name: String? = null,
+
+    /**
      * The index of the frame in the stacktrace.
      */
     val frame_index: Int? = null,
@@ -197,4 +244,24 @@ internal data class BinaryImage(
      * The base address of the binary image for Dart exceptions.
      */
     val base_addr: String,
+    /**
+     * The file name of the binary.
+     */
+    val name: String? = null,
+    /**
+     * The path the binary was loaded from.
+     */
+    val path: String? = null,
+    /**
+     * The address where the binary's mapping starts.
+     */
+    val start_addr: String? = null,
+    /**
+     * The address where the binary's mapping ends.
+     */
+    val end_addr: String? = null,
+    /**
+     * `true` if the binary ships with the OS.
+     */
+    val system: Boolean = false,
 )

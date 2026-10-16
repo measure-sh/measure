@@ -64,6 +64,46 @@ type ExceptionView struct {
 	Title      string `json:"title"`
 	Stacktrace string `json:"stacktrace"`
 	Message    string `json:"message"`
+	// Cause is the OS reported cause of a
+	// native crash.
+	Cause         string             `json:"cause"`
+	GWPASanReport *GWPASanReportView `json:"gwp_asan_report"`
+}
+
+// GWPASanReportView is a GWP-ASan report with its
+// stacks rendered like the thread stacks.
+type GWPASanReportView struct {
+	Type         string                  `json:"type"`
+	Deallocation *GWPASanReportStackView `json:"deallocation"`
+	Allocation   *GWPASanReportStackView `json:"allocation"`
+}
+
+type GWPASanReportStackView struct {
+	ThreadID   uint64   `json:"thread_id"`
+	ThreadName string   `json:"thread_name"`
+	Frames     []string `json:"frames"`
+}
+
+func gwpASanReportView(r *GWPASanReport) *GWPASanReportView {
+	if r == nil {
+		return nil
+	}
+	return &GWPASanReportView{
+		Type:         r.Type,
+		Deallocation: gwpASanReportStackView(r.Deallocation),
+		Allocation:   gwpASanReportStackView(r.Allocation),
+	}
+}
+
+func gwpASanReportStackView(s *GWPASanReportStack) *GWPASanReportStackView {
+	if s == nil {
+		return nil
+	}
+	return &GWPASanReportStackView{
+		ThreadID:   s.ThreadID,
+		ThreadName: s.ThreadName,
+		Frames:     NativeStackLines(s.Frames),
+	}
 }
 
 // ComputeView computes a consumer friendly
@@ -119,9 +159,11 @@ func threadViews(threads []artdump.Thread) []ThreadView {
 // version of the exception.
 func (e *EventException) ComputeView() {
 	e.ExceptionView = ExceptionView{
-		Title:      e.Exception.GetDisplayTitle(),
-		Stacktrace: e.Exception.Stacktrace(),
-		Message:    e.Exception.GetMessage(),
+		Title:         e.Exception.GetDisplayTitle(),
+		Stacktrace:    e.Exception.Stacktrace(),
+		Message:       e.Exception.GetMessage(),
+		GWPASanReport: gwpASanReportView(e.Exception.GWPASanReport),
+		Cause:         e.Exception.Cause,
 	}
 
 	f := e.Exception.GetFramework()

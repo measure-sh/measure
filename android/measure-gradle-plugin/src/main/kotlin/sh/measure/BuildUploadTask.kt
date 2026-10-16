@@ -26,6 +26,7 @@ import java.io.File
 import java.io.IOException
 import java.net.URI
 import java.net.URL
+import java.util.zip.GZIPOutputStream
 
 internal const val HEADER_AUTHORIZATION = "Authorization"
 
@@ -34,9 +35,13 @@ internal const val HEADER_AUTHORIZATION = "Authorization"
 private val json = Json { ignoreUnknownKeys = true }
 
 private const val TYPE_PROGUARD = "proguard"
-private const val TYPE_FLUTTER_SYMBOLS = "elf_debug"
+private const val TYPE_ELF_DEBUG = "elf_debug"
 private const val TYPE_JS_BUNDLE = "jsbundle"
 private const val BUILDS_PATH = "builds"
+
+// libflutter.so is the Flutter engine, over 150 MB per ABI. Dart symbols come
+// from the --split-debug-info output instead of libapp.so.
+private val FLUTTER_LIBS = setOf("libflutter.so", "libapp.so")
 
 private const val ERROR_MSG_401 =
     "measure: Failed to upload build info to Measure, please check the api-key in manifest. Stack traces will not be symbolicated."
@@ -107,6 +112,13 @@ abstract class BuildUploadTask : DefaultTask() {
     @get:InputFiles
     abstract val reactNativeBundleArchives: ConfigurableFileCollection
 
+    // Outputs of the native libs merge task, laid out as lib/<abi>/<name>.so.
+    @get:InputFiles
+    abstract val nativeLibs: ConfigurableFileCollection
+
+    @get:Input
+    abstract val enableNativeCrashReportingProperty: Property<Boolean>
+
     @get:InputFile
     abstract val manifestFileProperty: RegularFileProperty
 
@@ -126,12 +138,16 @@ abstract class BuildUploadTask : DefaultTask() {
         val buildMetadataFile = buildMetadataFileProperty.get().asFile
         val flutterSymbols = flutterSymbolsFiles.files
         val rnBundleArchives = reactNativeBundleArchives.files
+        val nativeSymbols = compressNativeLibsWithSymbols(nativeLibs.asFileTree.files)
+        if (enableNativeCrashReportingProperty.get() && nativeSymbols.isEmpty()) {
+            logger.warn("measure: enableNativeCrashReporting is enabled but no native libraries with symbols were found")
+        }
 
         val manifestData = readManifestData(manifestFile)
         val (buildSize, buildType) = readBuildMetadata(buildMetadataFile)
 
         val client = httpClientProvider.get().client
-        val mappings = collectMappingInfo(mappingFile, flutterSymbols, rnBundleArchives)
+        val mappings = collectMappingInfo(mappingFile, flutterSymbols, rnBundleArchives, nativeSymbols)
         val buildsRequest = createBuildsRequest(manifestData, buildSize, buildType, mappings)
 
         sendBuildsRequest(
@@ -142,13 +158,44 @@ abstract class BuildUploadTask : DefaultTask() {
             mappingFile,
             flutterSymbols,
             rnBundleArchives,
+            nativeSymbols,
         )
+    }
+
+    /**
+     * Gzips each native library that still has symbols. Returns the compressed
+     * files keyed by name, for example arm64-v8a/libfoo.so.gz.
+     */
+    private fun compressNativeLibsWithSymbols(libs: Set<File>): Map<String, File> {
+        val outputDir = File(temporaryDir, "native-symbols").apply {
+            deleteRecursively()
+            mkdirs()
+        }
+        return libs
+            .filter { it.isFile && it.name.endsWith(".so") && it.name !in FLUTTER_LIBS }
+            .filter { lib ->
+                val hasSymbols = ElfInspector.hasSymbols(lib)
+                if (!hasSymbols) {
+                    logger.info("measure: skipping stripped native library ${lib.parentFile.name}/${lib.name}")
+                }
+                hasSymbols
+            }
+            .associate { lib ->
+                val abi = lib.parentFile.name
+                val compressed = File(outputDir, "$abi/${lib.name}.gz")
+                compressed.parentFile.mkdirs()
+                lib.inputStream().use { input ->
+                    GZIPOutputStream(compressed.outputStream()).use { output -> input.copyTo(output) }
+                }
+                "$abi/${compressed.name}" to compressed
+            }
     }
 
     private fun collectMappingInfo(
         mappingFile: File?,
         flutterSymbols: Set<File>,
         rnBundleArchives: Set<File>,
+        nativeSymbols: Map<String, File>,
     ): List<MappingInfo> {
         val mappings = mutableListOf<MappingInfo>()
 
@@ -162,7 +209,7 @@ abstract class BuildUploadTask : DefaultTask() {
         if (flutterSymbols.isNotEmpty()) {
             logger.info("measure: ${flutterSymbols.size} flutter symbol files found")
             flutterSymbols.forEach { symbolsFile ->
-                mappings.add(MappingInfo(type = TYPE_FLUTTER_SYMBOLS, filename = symbolsFile.name))
+                mappings.add(MappingInfo(type = TYPE_ELF_DEBUG, filename = symbolsFile.name))
             }
         }
 
@@ -170,6 +217,13 @@ abstract class BuildUploadTask : DefaultTask() {
             if (archive.exists()) {
                 logger.info("measure: react native bundle archive found at ${archive.absolutePath}")
                 mappings.add(MappingInfo(type = TYPE_JS_BUNDLE, filename = archive.name))
+            }
+        }
+
+        if (nativeSymbols.isNotEmpty()) {
+            logger.info("measure: ${nativeSymbols.size} native libraries with symbols found")
+            nativeSymbols.keys.forEach { name ->
+                mappings.add(MappingInfo(type = TYPE_ELF_DEBUG, filename = name))
             }
         }
 
@@ -199,10 +253,11 @@ abstract class BuildUploadTask : DefaultTask() {
         mappingFile: File?,
         flutterSymbols: Set<File>,
         rnBundleArchives: Set<File>,
+        nativeSymbols: Map<String, File>,
     ) {
         val buildsResponse = callBuildsApi(client, manifestData, buildsRequest)
         if (buildsResponse != null && mappings.isNotEmpty()) {
-            uploadMappingFiles(client, buildsResponse, mappingFile, flutterSymbols, rnBundleArchives)
+            uploadMappingFiles(client, buildsResponse, mappingFile, flutterSymbols, rnBundleArchives, nativeSymbols)
         }
     }
 
@@ -250,11 +305,13 @@ abstract class BuildUploadTask : DefaultTask() {
         mappingFile: File?,
         flutterSymbols: Set<File>,
         rnBundleArchives: Set<File>,
+        nativeSymbols: Map<String, File>,
     ) {
         buildsResponse.mappings.forEach { mapping ->
             val file = when (mapping.type) {
                 TYPE_PROGUARD -> mappingFile
-                TYPE_FLUTTER_SYMBOLS -> flutterSymbols.firstOrNull { it.name == mapping.filename }
+                TYPE_ELF_DEBUG -> nativeSymbols[mapping.filename]
+                    ?: flutterSymbols.firstOrNull { it.name == mapping.filename }
                 TYPE_JS_BUNDLE -> rnBundleArchives.firstOrNull { it.name == mapping.filename }
                 else -> null
             }

@@ -1,9 +1,10 @@
+import type { GWPASanReportStack } from "../api/api_calls";
 import type { ScreenKey, UiStyle } from "./layouts";
 
 export type OsName = "android" | "ios";
 export type Framework = "native" | "flutter" | "react_native";
 export type MappingType = "proguard" | "dsym" | "elf_debug" | "jsbundle";
-export type ExceptionFramework = "jvm" | "apple" | "dart" | "js";
+export type ExceptionFramework = "jvm" | "apple" | "dart" | "js" | "ndk";
 
 export type AppSpec = {
   id: string;
@@ -94,6 +95,14 @@ export type ExceptionSpec = {
   handled: boolean;
   foreground: boolean;
   framework: ExceptionFramework;
+  // The OS reported cause of a native crash.
+  cause?: string;
+  // A report GWP-ASan wrote when it caught bad memory use.
+  gwp_asan_report?: {
+    type: string;
+    deallocation?: GWPASanReportStack;
+    allocation?: GWPASanReportStack;
+  };
   exceptions: {
     type: string;
     message: string;

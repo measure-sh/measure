@@ -685,3 +685,61 @@ func TestGetErrorGroupsWithFilterTrendTimezone(t *testing.T) {
 		t.Errorf("trend total = %d, want 1: %+v", got, g.Trend)
 	}
 }
+
+func TestGetErrorGroupsWithFilterByGWPASan(t *testing.T) {
+	f := errorKindsFixture{plotFixture: newPlotFixture(t), ts: time.Now().UTC()}
+	teamID, appID := f.teamIDStr(), f.appIDStr()
+
+	const (
+		fpGWPASan = "0000000000000000000000000000c008"
+		fpNative  = "0000000000000000000000000000c00a"
+	)
+
+	seed := func(fingerprint, gwpASanReportJSON string) {
+		th.SeedGroupRow(f.ctx, t, teamID, appID, testinfra.GroupRow{
+			Table: "fatal_exception_groups", Fingerprint: fingerprint, AppVersion: "1.1.0", AppBuild: "110",
+		})
+		seedEventRows(f.ctx, t, teamID, appID, 1, testinfra.EventRow{
+			Type: "exception", Fingerprint: fingerprint, Severity: "fatal",
+			ExceptionsJSON:    `[{"type":"SIGSEGV","message":"","frames":[]}]`,
+			GWPASanReportJSON: gwpASanReportJSON,
+			Timestamp:         f.ts, AppVersion: "1.1.0", AppBuild: "110", OSName: "android", OSVersion: "14",
+		})
+	}
+	seed(fpGWPASan, `{"type":"use_after_free"}`)
+	seed(fpNative, "")
+
+	tests := []struct {
+		name  string
+		value string
+		want  []string
+	}{
+		{"true matches only gwp-asan errors", "true", []string{fpGWPASan}},
+		{"false keeps plain crashes", "false", []string{fpNative}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			exprTree := leaf("gwp_asan_report", filter.OperatorEq, test.value)
+			want := slices.Clone(test.want)
+			slices.Sort(want)
+			if got := groupIDs(t, f, f.newFilter(&exprTree)); !slices.Equal(got, want) {
+				t.Fatalf("want %v, got %v", want, got)
+			}
+		})
+	}
+	t.Run("marks only gwp-asan groups as a gwp-asan report", func(t *testing.T) {
+		groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, f.newFilter(nil))
+		if err != nil {
+			t.Fatalf("GetErrorGroupsWithFilter: %v", err)
+		}
+		for _, fp := range []string{fpGWPASan, fpNative} {
+			g := findErrorGroup(groups, fp)
+			if g == nil {
+				t.Fatalf("group %s not found", fp)
+			}
+			if want := fp == fpGWPASan; g.GWPASanReport != want {
+				t.Errorf("group %s: want gwp_asan_report %v, got %v", fp, want, g.GWPASanReport)
+			}
+		}
+	})
+}

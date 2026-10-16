@@ -28,6 +28,7 @@ import sh.measure.android.lifecycle.ApplicationLifecycleData
 import sh.measure.android.lifecycle.FragmentLifecycleData
 import sh.measure.android.lifecycle.FragmentLifecycleType
 import sh.measure.android.logger.Logger
+import sh.measure.android.nativecrash.Tombstone
 import sh.measure.android.navigation.ScreenViewData
 import sh.measure.android.networkchange.NetworkChangeData
 import sh.measure.android.networkchange.NetworkGeneration
@@ -452,6 +453,7 @@ internal object TestData {
         appExitTimeMs: Long = 987654321L,
         pid: String = "123",
         subject: String? = null,
+        tombstone: Tombstone? = null,
     ): AppExit = AppExit(
         reasonId = reasonId,
         reason = reason,
@@ -461,6 +463,7 @@ internal object TestData {
         process_name = processName,
         app_exit_time_ms = appExitTimeMs,
         pid = pid,
+        tombstone = tombstone,
     )
 
     fun getScreenViewData(): ScreenViewData = ScreenViewData(name = "screen-name")

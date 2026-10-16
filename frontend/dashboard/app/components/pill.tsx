@@ -17,6 +17,8 @@ export enum PillType {
   Fatal = "fatal",
   Unhandled = "unhandled",
   Handled = "handled",
+  // GWP-ASan reports
+  GWPASan = "gwp_asan_report",
   // Bug report statuses
   OpenStatus = "open",
   ClosedStatus = "closed",
@@ -151,6 +153,10 @@ const pillDefaults: Record<
   [PillType.Handled]: {
     label: "Handled",
     tint: "border-yellow-400 text-yellow-700 bg-yellow-100 dark:border-yellow-400 dark:text-yellow-400 dark:bg-yellow-950/40",
+  },
+  [PillType.GWPASan]: {
+    label: "GWP-ASan",
+    tint: "border-orange-400 text-orange-700 bg-orange-100 dark:border-orange-400 dark:text-orange-400 dark:bg-orange-950/40",
   },
   [PillType.OpenStatus]: {
     label: "Open",

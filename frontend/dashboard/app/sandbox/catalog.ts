@@ -1,6 +1,6 @@
 import { DateTime } from "luxon";
 import type { FilterKey, FilterValue } from "../api/filter_types";
-import type { App, Profile } from "../api/api_calls";
+import type { App, GWPASanReport, Profile } from "../api/api_calls";
 import { SANDBOX_TEAM_ID } from "../utils/sandbox";
 import { androidNativeScenario } from "./platforms/android";
 import {
@@ -238,7 +238,13 @@ function exceptionProblems(spec: ExceptionSpec): string[] {
     );
   }
 
-  for (const frame of frames) {
+  // The backend folds runs of ART frames in a native stacktrace into one
+  // line, so those frames never show on their own.
+  const shownFrames =
+    spec.framework === "ndk"
+      ? frames.filter((frame) => frame.binary_name !== "libart.so")
+      : frames;
+  for (const frame of shownFrames) {
     const line = frameToString(frame, spec.framework);
     if (!spec.stacktrace.includes(line)) {
       problems.push(`${where} stacktrace is missing the frame ${line}`);
@@ -468,7 +474,13 @@ export type ErrorInstance = {
   timestamp: string;
   type: string;
   attribute: SessionAttribute;
-  exception: { title: string; stacktrace: string; message: string } | null;
+  exception: {
+    title: string;
+    stacktrace: string;
+    message: string;
+    cause: string;
+    gwp_asan_report: GWPASanReport | null;
+  } | null;
   anr: { title: string; stacktrace: string } | null;
   severity: string;
   num_code: number | null;
@@ -500,6 +512,7 @@ export type ErrorGroup = {
   updated_at: string;
   instances: ErrorInstance[];
   screen: string;
+  gwp_asan_report: boolean;
 };
 
 export type BugReport = {
@@ -706,6 +719,13 @@ function frameToString(frame: FrameSpec, framework: string): string {
       frame.line_num ?? null,
     ]);
     return `#${num}      ${frame.method_name ?? ""} ${location === "" ? "" : `(${location})`}`;
+  }
+  if (framework === "ndk") {
+    const num = String(frame.frame_index ?? 0).padStart(2, "0");
+    const pc = (frame.offset ?? 0).toString(16).padStart(16, "0");
+    const method = frame.method_name ? ` (${frame.method_name})` : "";
+    const location = fileInfo === "" ? "" : ` (${fileInfo})`;
+    return `#${num} pc 0x${pc}  ${frame.binary_name ?? ""}${method}${location}`;
   }
   if (framework === "js") {
     const location = joinNonEmpty(":", [
@@ -3030,13 +3050,28 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
         session_id: inst.session.sessionId,
         timestamp: inst.timestamp,
         type: g.spec.type,
-        attribute: inst.session.detail.attribute,
+        // The SDK tracks a native crash on the thread that crashed.
+        attribute:
+          g.spec.framework === "ndk" && g.spec.exceptions[0]?.thread_name
+            ? {
+                ...inst.session.detail.attribute,
+                thread_name: g.spec.exceptions[0].thread_name,
+              }
+            : inst.session.detail.attribute,
         exception:
           g.spec.kind === "exception"
             ? {
                 title: groupTitle(g.spec.type, g.spec.file_name),
                 stacktrace: g.spec.stacktrace,
                 message: g.spec.message,
+                cause: g.spec.cause ?? "",
+                gwp_asan_report: g.spec.gwp_asan_report
+                  ? {
+                      type: g.spec.gwp_asan_report.type,
+                      deallocation: g.spec.gwp_asan_report.deallocation ?? null,
+                      allocation: g.spec.gwp_asan_report.allocation ?? null,
+                    }
+                  : null,
               }
             : null,
         anr:
@@ -3073,6 +3108,7 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
         updated_at: updatedAt,
         instances,
         screen,
+        gwp_asan_report: g.spec.gwp_asan_report !== undefined,
       };
     },
   );

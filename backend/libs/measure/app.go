@@ -325,6 +325,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt 
 		Select("max(timestamp) as last_seen").
 		Select("uniq(`attribute.installation_id`) as users").
 		Select("uniq(session_id) as sessions").
+		Select("toBool(max(" + filter.GWPASanReportSQL + ")) as gwp_asan_report").
 		Where(errorFingerprintExpr + " != ''").
 		GroupBy("team_id").
 		GroupBy("app_id")
@@ -342,6 +343,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt 
 		Select("g.method_name").
 		Select("g.file_name").
 		Select("g.line_number").
+		Select("c.gwp_asan_report").
 		Select("g.last_occurrence").
 		Select("c.event_count as event_count").
 		Select("c.users").
@@ -389,6 +391,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt 
 			&g.MethodName,
 			&g.FileName,
 			&g.LineNumber,
+			&g.GWPASanReport,
 			&g.UpdatedAt,
 			&g.Count,
 			&g.Users,
@@ -904,6 +907,9 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 			Select("exception.exceptions as exceptions").
 			Select("exception.threads as threads").
 			Select("exception.framework as framework").
+			Select("exception.abort_message as abort_message").
+			Select("exception.cause as cause").
+			Select("exception.gwp_asan_report as gwp_asan_report").
 			Select("if(exception.has_num_code OR exception.num_code != 0, exception.num_code, NULL) as num_code").
 			Select("exception.code as code").
 			Select("exception.meta as meta").
@@ -929,6 +935,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 			var exceptions string
 			var threads string
 			var meta string
+			var gwpASanReport string
 			var severity string
 			var attachments string
 			var userDefAttr map[string][]any
@@ -946,6 +953,9 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 				&exceptions,
 				&threads,
 				&e.Exception.Framework,
+				&e.Exception.AbortMessage,
+				&e.Exception.Cause,
+				&gwpASanReport,
 				&e.NumCode,
 				&e.Code,
 				&meta,
@@ -968,6 +978,11 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 			}
 			if meta != "" {
 				if err = json.Unmarshal([]byte(meta), &e.Meta); err != nil {
+					return
+				}
+			}
+			if gwpASanReport != "" {
+				if err = json.Unmarshal([]byte(gwpASanReport), &e.Exception.GWPASanReport); err != nil {
 					return
 				}
 			}
@@ -2652,6 +2667,9 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 		`exception.exceptions`,
 		`exception.threads`,
 		`exception.framework`,
+		`exception.abort_message`,
+		`exception.cause`,
+		`exception.gwp_asan_report`,
 		`lifecycle_app.type`,
 		`cold_launch.process_start_uptime`,
 		`cold_launch.process_start_requested_uptime`,
@@ -2850,6 +2868,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 
 		var exceptionError string
 		var exceptionMeta string
+		var exceptionGWPASanReport string
 		var exceptionSeverity string
 		var lifecycleViewController event.LifecycleViewController
 		var lifecycleSwiftUI event.LifecycleSwiftUI
@@ -2943,6 +2962,9 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			&exceptionExceptions,
 			&exceptionThreads,
 			&exception.Framework,
+			&exception.AbortMessage,
+			&exception.Cause,
+			&exceptionGWPASanReport,
 
 			// lifecycle app
 			&lifecycleApp.Type,
@@ -3169,6 +3191,12 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 
 			if exceptionMeta != "" {
 				if err := json.Unmarshal([]byte(exceptionMeta), &exception.Meta); err != nil {
+					return nil, err
+				}
+			}
+
+			if exceptionGWPASanReport != "" {
+				if err := json.Unmarshal([]byte(exceptionGWPASanReport), &exception.GWPASanReport); err != nil {
 					return nil, err
 				}
 			}

@@ -95,6 +95,15 @@ const K = {
     ["in", "not_in"],
     "full_list",
   ),
+  gwpAsanReport: key(
+    "gwp_asan_report",
+    "GWP-ASan report",
+    "Filter native Android crashes caught by GWP-ASan.",
+    "Error",
+    "bool",
+    ["eq"],
+    "full_list",
+  ),
   sessionEvents: key(
     "session_events",
     "Events",
@@ -331,7 +340,13 @@ function keyGroupsOf(keys: FilterKey[]): string[] {
 const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
   app_health: [K.versionName, K.versionCode],
   journeys: versionKeys,
-  errors: [K.errorType, ...versionKeys, K.userId, ...deviceTailKeys],
+  errors: [
+    K.errorType,
+    K.gwpAsanReport,
+    ...versionKeys,
+    K.userId,
+    ...deviceTailKeys,
+  ],
   error_group_events: [...versionKeys, K.userId, ...deviceTailKeys],
   sessions: [
     K.sessionEvents,
@@ -499,6 +514,7 @@ function actualValuesFor(
 
 const STATIC_VALUES_BY_KEY: Record<string, FilterValue[]> = {
   error_type: values(["Crash", "ANR", "Handled Error", "Unhandled Error"]),
+  gwp_asan_report: values(["true", "false"]),
   http_method: values(["get", "post", "put", "patch", "delete"]),
   mapping_type: values(["proguard", "dsym", "elf_debug", "jsbundle"]),
   bug_report_status: [

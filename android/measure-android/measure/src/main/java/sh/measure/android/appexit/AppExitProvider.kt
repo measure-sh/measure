@@ -12,6 +12,9 @@ import okio.buffer
 import okio.source
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.nativecrash.Tombstone
+import sh.measure.android.nativecrash.TombstoneParser
+import sh.measure.android.utils.ManifestReader
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.ValidationLimits
 import java.io.InputStream
@@ -36,6 +39,7 @@ private val MANAGED_FRAME_REGEX = Regex("""^  at [\w$.\-]+\.[\w$\-<>]+\(.*\)$"""
 internal class AppExitProviderImpl(
     private val logger: Logger,
     private val systemServiceProvider: SystemServiceProvider,
+    private val manifestReader: ManifestReader,
 ) : AppExitProvider {
 
     @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.R)
@@ -43,29 +47,56 @@ internal class AppExitProviderImpl(
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return null
         }
+        val nativeCrashReporting = manifestReader.load()?.nativeCrashReporting == true
         return systemServiceProvider.activityManager?.runCatching {
-            getHistoricalProcessExitReasons(null, 0, 3).associateBy(
-                { it.pid },
-                { it.toAppExit() },
-            )
+            getHistoricalProcessExitReasons(null, 0, 3)
+                .filter { nativeCrashReporting || it.reason != ApplicationExitInfo.REASON_CRASH_NATIVE }
+                .associateBy(
+                    { it.pid },
+                    { it.toAppExit() },
+                )
         }?.getOrNull()
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
     fun ApplicationExitInfo.toAppExit(): AppExit {
-        val trace = readTrace(traceInputStream)
-        return AppExit(
-            reason = getReasonName(reason),
-            reasonId = reason,
-            importance = getImportanceName(importance),
-            trace = trace?.threads,
-            subject = (trace?.subject ?: description?.takeIf { it.isNotBlank() })
-                ?.take(ValidationLimits.ANR_SUBJECT),
-            process_name = processName,
-            app_exit_time_ms = timestamp,
-            pid = pid.toString(),
-        )
+        if (isNativeCrashWithTombstone()) {
+            return toAppExit(trace = null, tombstone = readTombstone())
+        }
+        return toAppExit(trace = readTrace(traceInputStream), tombstone = null)
     }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun ApplicationExitInfo.readTombstone(): Tombstone? {
+        val input = traceInputStream
+        if (input == null) {
+            logger.log(LogLevel.Debug, "No tombstone available for native crash with pid $pid")
+            return null
+        }
+        val tombstone = TombstoneParser.parse(input)
+        if (tombstone == null) {
+            logger.log(LogLevel.Debug, "Failed to parse tombstone for native crash with pid $pid")
+        }
+        return tombstone
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun ApplicationExitInfo.isNativeCrashWithTombstone(): Boolean = reason == ApplicationExitInfo.REASON_CRASH_NATIVE &&
+        Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun ApplicationExitInfo.toAppExit(trace: ArtTrace?, tombstone: Tombstone?): AppExit = AppExit(
+        reason = getReasonName(reason),
+        reasonId = reason,
+        importance = getImportanceName(importance),
+        trace = trace?.threads,
+        subject = (trace?.subject ?: description?.takeIf { it.isNotBlank() })
+            ?.take(ValidationLimits.ANR_SUBJECT),
+        process_name = processName,
+        app_exit_time_ms = timestamp,
+        pid = pid.toString(),
+        tombstone = tombstone,
+    )
 
     /**
      * Reads the thread blocks and the subject out of an ART trace.

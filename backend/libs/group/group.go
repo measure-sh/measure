@@ -87,12 +87,15 @@ type ErrorGroup struct {
 	MethodName string         `json:"method_name"`
 	FileName   string         `json:"file_name"`
 	LineNumber int32          `json:"line_number"`
-	Count      uint64         `json:"count"`
-	Users      uint64         `json:"users"`
-	Sessions   uint64         `json:"sessions"`
-	LastSeen   time.Time      `json:"last_seen"`
-	Trend      []TrendPoint   `json:"trend,omitempty"`
-	UpdatedAt  time.Time      `json:"updated_at"`
+	// GWPASanReport is true when the group's errors
+	// were caught by GWP-ASan.
+	GWPASanReport bool         `json:"gwp_asan_report"`
+	Count         uint64       `json:"count"`
+	Users         uint64       `json:"users"`
+	Sessions      uint64       `json:"sessions"`
+	LastSeen      time.Time    `json:"last_seen"`
+	Trend         []TrendPoint `json:"trend,omitempty"`
+	UpdatedAt     time.Time    `json:"updated_at"`
 }
 
 type TrendPoint struct {

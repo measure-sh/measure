@@ -6,6 +6,7 @@ import android.os.Build
 import androidx.annotation.RequiresApi
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.Transient
+import sh.measure.android.nativecrash.Tombstone
 
 /**
  * Represents the data that is collected when an application exits.
@@ -53,9 +54,18 @@ internal data class AppExit(
      * @see [ApplicationExitInfo.getPid]
      */
     val pid: String,
+
+    /**
+     * A parsed tombstone for a native crash.
+     */
+    @Transient
+    val tombstone: Tombstone? = null,
 ) {
     @RequiresApi(Build.VERSION_CODES.R)
     fun isANR(): Boolean = reasonId == ApplicationExitInfo.REASON_ANR
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    fun isNativeCrash(): Boolean = reasonId == ApplicationExitInfo.REASON_CRASH_NATIVE
 
     /**
      * Whether the process was perceptible to the user when it was killed.

@@ -235,6 +235,17 @@ var (
 		},
 	}
 
+	gwpASanReport = Key{
+		Name:                "gwp_asan_report",
+		Label:               "GWP-ASan report",
+		Description:         "Filter native Android crashes caught by GWP-ASan.",
+		KeyGroup:            KeyGroupError,
+		ValueType:           ValueTypeBool,
+		Operators:           []Operator{OperatorEq},
+		ValueSuggestionMode: ValueSuggestionModeFullList,
+		EnumValues:          []string{"true", "false"},
+	}
+
 	sessionEvents = Key{
 		Name:                "session_events",
 		Label:               "Events",
