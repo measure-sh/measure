@@ -1915,6 +1915,84 @@ describe("the player", () => {
         "/test-team/errors/app-1/group-9/java.lang.IllegalStateException%40CheckoutActivity.kt",
       );
     });
+
+    it.each([
+      ["killed", "Main thread blocked for 8s, app killed"],
+      ["recovered", "Main thread blocked for 8s"],
+    ])("links a %s app hang to app hang details page", async (state, title) => {
+      renderReplay({
+        threads: {
+          main: [
+            {
+              event_type: "app_hang",
+              thread_name: "main",
+              group_id: "970e70deaf83c0aaea222463e2cf831e",
+              duration: 8000,
+              state,
+              method_name: "blockMainThread()",
+              file_name: "ViewController.swift",
+              line_number: 319,
+              stacktrace:
+                "0 DemoApp 0x104a3f5c0 ViewController.blockMainThread() + 192 (ViewController.swift:319)",
+              foreground: true,
+              timestamp: "2026-04-10T10:00:00Z",
+              attachments: [],
+            },
+          ],
+        },
+        traces: [],
+      });
+
+      const row = (await screen.findByText(title)).closest("button");
+      await act(async () => {
+        fireEvent.click(row!);
+      });
+
+      const link = (await screen.findByText("View App Hang Details")).closest(
+        "a",
+      );
+      expect(link?.getAttribute("href")).toBe(
+        "/test-team/errors/app-1/970e70deaf83c0aaea222463e2cf831e/ViewController.swift",
+      );
+    });
+
+    it("links an app hang with no file name to app hang details page as unknown_file", async () => {
+      renderReplay({
+        threads: {
+          main: [
+            {
+              event_type: "app_hang",
+              thread_name: "main",
+              group_id: "970e70deaf83c0aaea222463e2cf831e",
+              duration: 8000,
+              state: "recovered",
+              method_name: "",
+              file_name: "",
+              line_number: 0,
+              stacktrace: "0 DemoApp 0x104a3f5c0",
+              foreground: true,
+              timestamp: "2026-04-10T10:00:00Z",
+              attachments: [],
+            },
+          ],
+        },
+        traces: [],
+      });
+
+      const row = (
+        await screen.findByText("Main thread blocked for 8s")
+      ).closest("button");
+      await act(async () => {
+        fireEvent.click(row!);
+      });
+
+      const link = (await screen.findByText("View App Hang Details")).closest(
+        "a",
+      );
+      expect(link?.getAttribute("href")).toBe(
+        "/test-team/errors/app-1/970e70deaf83c0aaea222463e2cf831e/unknown_file",
+      );
+    });
   });
 
   describe("controls", () => {

@@ -141,7 +141,10 @@ func TestErrorValues(t *testing.T) {
 		for i, value := range valueList.Values {
 			texts[i] = value.Text
 		}
-		want := []string{ErrorTypeCrash, ErrorTypeANR, ErrorTypeHandledError, ErrorTypeUnhandledError}
+		want := []string{
+			ErrorTypeCrash, ErrorTypeANR, ErrorTypeHandledError, ErrorTypeUnhandledError,
+			ErrorTypeAppHang,
+		}
 		if !slices.Equal(texts, want) {
 			t.Errorf("want %v, got %v", want, texts)
 		}

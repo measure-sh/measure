@@ -497,6 +497,8 @@ func (h Handlers) GetErrorDetailErrors(c *gin.Context) {
 			atts = ev.Attachments
 		case *event.EventANR:
 			atts = ev.Attachments
+		case *event.EventAppHang:
+			atts = ev.Attachments
 		}
 		for j := range atts {
 			if err := atts[j].PreSignURL(ctx, presignConfig(deps)); err != nil {

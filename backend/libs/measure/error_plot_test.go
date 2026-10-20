@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"reflect"
 	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -51,8 +52,8 @@ func TestGetErrorPlotInstancesCountsEveryErrorKind(t *testing.T) {
 	}
 
 	t.Run("no filter counts every error of the app", func(t *testing.T) {
-		if got := total(t, nil); got != 7 {
-			t.Fatalf("instances = %d, want 7", got)
+		if got := total(t, nil); got != 9 {
+			t.Fatalf("instances = %d, want 9", got)
 		}
 	})
 
@@ -65,7 +66,8 @@ func TestGetErrorPlotInstancesCountsEveryErrorKind(t *testing.T) {
 		{"an anr", leaf("error_type", filter.OperatorIn, filter.ErrorTypeANR), 1},
 		{"a handled error covers the legacy handled row", leaf("error_type", filter.OperatorIn, filter.ErrorTypeHandledError), 2},
 		{"an unhandled error needs a named severity", leaf("error_type", filter.OperatorIn, filter.ErrorTypeUnhandledError), 1},
-		{"not an anr", leaf("error_type", filter.OperatorNotIn, filter.ErrorTypeANR), 6},
+		{"an app hang covers both states", leaf("error_type", filter.OperatorIn, filter.ErrorTypeAppHang), 2},
+		{"not an anr", leaf("error_type", filter.OperatorNotIn, filter.ErrorTypeANR), 8},
 		{"one version", leaf("version_name", filter.OperatorIn, "1.2.0"), 1},
 		{"one user", leaf("user_id", filter.OperatorIn, "ana"), 2},
 		{"one patch", leaf("patch_version", filter.OperatorIn, "1.2.0-patch.3"), 1},
@@ -133,6 +135,9 @@ func TestGetErrorGroupPlotInstancesScopesToTheFingerprint(t *testing.T) {
 
 	crash := leaf("error_type", filter.OperatorIn, filter.ErrorTypeCrash)
 	anr := leaf("error_type", filter.OperatorIn, filter.ErrorTypeANR)
+	appHang := leaf("error_type", filter.OperatorIn, filter.ErrorTypeAppHang)
+	killed := leaf("app_hang_state", filter.OperatorIn, filter.AppHangStateKilled)
+	recovered := leaf("app_hang_state", filter.OperatorIn, filter.AppHangStateRecovered)
 
 	tests := []struct {
 		name        string
@@ -146,6 +151,12 @@ func TestGetErrorGroupPlotInstancesScopesToTheFingerprint(t *testing.T) {
 		{"a crash filter on a handled fingerprint", fpHandled, &crash, 0},
 		{"an anr filter on an exception fingerprint", fpCrash, &anr, 0},
 		{"an anr filter on an anr fingerprint", fpANR, &anr, 1},
+		{"an app hang fingerprint with no filter", fpAppHang, nil, 2},
+		{"an app hang filter on an app hang fingerprint", fpAppHang, &appHang, 2},
+		{"an app hang filter on an exception fingerprint", fpCrash, &appHang, 0},
+		{"a killed filter on an app hang fingerprint", fpAppHang, &killed, 1},
+		{"a recovered filter on an app hang fingerprint", fpAppHang, &recovered, 1},
+		{"a killed filter on an exception fingerprint", fpCrash, &killed, 0},
 		{"an unknown fingerprint", "ffffffffffffffffffffffffffffffff", nil, 0},
 	}
 
@@ -276,6 +287,29 @@ func TestGetErrorGroupAttributesDistribution(t *testing.T) {
 		want = []event.AttributeValueCount{{Value: "1.1.0 (110)", Count: 1}}
 		if got := distribution["app_version"].Values; !slices.Equal(got, want) {
 			t.Errorf("app version = %v, want %v", got, want)
+		}
+	})
+
+	t.Run("an app hang fingerprint reads the attributes of both states", func(t *testing.T) {
+		distribution, err := f.app.GetErrorGroupAttributesDistribution(f.ctx, deps.RchPool, fpAppHang, f.newFilter(nil))
+		if err != nil {
+			t.Fatalf("GetErrorGroupAttributesDistribution: %v", err)
+		}
+		want := []event.AttributeValueCount{{Value: "IN", Count: 2}}
+		if got := distribution["country"].Values; !slices.Equal(got, want) {
+			t.Errorf("country = %v, want %v", got, want)
+		}
+	})
+
+	t.Run("an app hang state filter reads the attributes of that state", func(t *testing.T) {
+		exprTree := leaf("app_hang_state", filter.OperatorIn, filter.AppHangStateRecovered)
+		distribution, err := f.app.GetErrorGroupAttributesDistribution(f.ctx, deps.RchPool, fpAppHang, f.newFilter(&exprTree))
+		if err != nil {
+			t.Fatalf("GetErrorGroupAttributesDistribution: %v", err)
+		}
+		want := []event.AttributeValueCount{{Value: "IN", Count: 1}}
+		if got := distribution["country"].Values; !slices.Equal(got, want) {
+			t.Errorf("country = %v, want %v", got, want)
 		}
 	})
 
@@ -506,6 +540,76 @@ func TestGetErrorsWithFilter(t *testing.T) {
 
 	t.Run("an unknown fingerprint returns nothing", func(t *testing.T) {
 		if got := count(t, "ffffffffffffffffffffffffffffffff", nil); got != 0 {
+			t.Fatalf("want no events, got %d", got)
+		}
+	})
+
+	t.Run("an app hang fingerprint returns its killed and recovered events", func(t *testing.T) {
+		events, _, _, err := f.app.GetErrorsWithFilter(f.ctx, deps.RchPool, fpAppHang, f.newFilter(nil))
+		if err != nil {
+			t.Fatalf("GetErrorsWithFilter: %v", err)
+		}
+		if len(events) != 2 {
+			t.Fatalf("want 2 events, got %d", len(events))
+		}
+
+		states := map[string]bool{}
+		for _, e := range events {
+			hang, ok := e.(*event.EventAppHang)
+			if !ok {
+				t.Fatalf("want an app hang event, got %T", e)
+			}
+			view := hang.AppHangView
+			states[view.State] = true
+			if view.Duration != appHangDurations[view.State] {
+				t.Errorf("%s: duration = %d, want %d", view.State, view.Duration, appHangDurations[view.State])
+			}
+			if view.Title != "ViewController.swift: blockMainThread()" {
+				t.Errorf("%s: title = %q", view.State, view.Title)
+			}
+			if view.ThreadName != "main" {
+				t.Errorf("%s: thread name = %q, want main", view.State, view.ThreadName)
+			}
+			if !strings.Contains(view.Stacktrace, "blockMainThread()") {
+				t.Errorf("%s: stacktrace = %q, want the blocked frame", view.State, view.Stacktrace)
+			}
+			if hang.Threads == nil || len(hang.Threads) != 0 {
+				t.Errorf("%s: want an empty thread list, got %v", view.State, hang.Threads)
+			}
+		}
+		if !states[event.AppHangStateKilled] || !states[event.AppHangStateRecovered] {
+			t.Errorf("states = %v, want killed and recovered", states)
+		}
+	})
+
+	t.Run("an app hang state filter returns only that state", func(t *testing.T) {
+		exprTree := leaf("app_hang_state", filter.OperatorIn, filter.AppHangStateKilled)
+		events, _, _, err := f.app.GetErrorsWithFilter(f.ctx, deps.RchPool, fpAppHang, f.newFilter(&exprTree))
+		if err != nil {
+			t.Fatalf("GetErrorsWithFilter: %v", err)
+		}
+		if len(events) != 1 {
+			t.Fatalf("want 1 event, got %d", len(events))
+		}
+		hang, ok := events[0].(*event.EventAppHang)
+		if !ok {
+			t.Fatalf("want an app hang event, got %T", events[0])
+		}
+		if hang.AppHangView.State != event.AppHangStateKilled {
+			t.Errorf("state = %q, want %q", hang.AppHangView.State, event.AppHangStateKilled)
+		}
+	})
+
+	t.Run("an app hang state filter reaches the exception query too", func(t *testing.T) {
+		exprTree := leaf("app_hang_state", filter.OperatorIn, filter.AppHangStateKilled)
+		if got := count(t, fpCrash, &exprTree); got != 0 {
+			t.Fatalf("want no events, got %d", got)
+		}
+	})
+
+	t.Run("an error kind filter reaches the app hang query too", func(t *testing.T) {
+		exprTree := leaf("error_type", filter.OperatorIn, filter.ErrorTypeCrash)
+		if got := count(t, fpAppHang, &exprTree); got != 0 {
 			t.Fatalf("want no events, got %d", got)
 		}
 	})

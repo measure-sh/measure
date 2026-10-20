@@ -99,7 +99,7 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 		fingerprintCondition = "anr.fingerprint = fp"
 		lcRootValue = logcomment.ANRs
 	case group.GroupTypeError:
-		fingerprintCondition = "(exception.fingerprint = fp OR anr.fingerprint = fp)"
+		fingerprintCondition = "(exception.fingerprint = fp OR anr.fingerprint = fp OR app_hang.fingerprint = fp)"
 		lcRootValue = logcomment.Errors
 	}
 
@@ -279,6 +279,8 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
             exception_severity,
             anr_data,
             anr_cause,
+            app_hang_data,
+            app_hang_state,
             position_from_end,
             uniqExact(session_id) OVER () AS total_cnt
           FROM (
@@ -292,8 +294,10 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
               if(e.type = 'exception', e.exception.severity, '') AS exception_severity,
               if(e.type = 'anr', e.anr.exceptions, '') AS anr_data,
               if(e.type = 'anr', JSONExtractString(e.anr.thread_dump, 'cause'), '') AS anr_cause,
+              if(e.type = 'app_hang', e.app_hang.exceptions, '') AS app_hang_data,
+              if(e.type = 'app_hang', e.app_hang.state, '') AS app_hang_state,
               multiIf(
-                (e.type = 'exception') OR (e.type = 'anr'), e.type,
+                (e.type = 'exception') OR (e.type = 'anr') OR (e.type = 'app_hang'), e.type,
                 e.type = 'app_exit', concat('App exited: ', coalesce(e.app_exit.reason, 'unknown reason')),
                 e.type = 'gesture_click', concat('User tapped on ', coalesce(nullIf(e.gesture_click.target_id, ''), nullIf(e.gesture_click.target, ''), 'unknown view'), if((e.gesture_click.target_id != '') AND (e.gesture_click.target != ''), concat(' (', e.gesture_click.target, ')'), '')),
                 e.type = 'gesture_long_click', concat('User long-pressed on ', coalesce(nullIf(e.gesture_long_click.target_id, ''), nullIf(e.gesture_long_click.target, ''), 'unknown view'), if((e.gesture_long_click.target_id != '') AND (e.gesture_long_click.target != ''), concat(' (', e.gesture_long_click.target, ')'), '')),
@@ -364,7 +368,9 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
             any(exception_handled) AS exception_handled,
             any(exception_severity) AS exception_severity,
             any(anr_data) AS anr_data,
-            any(anr_cause) AS anr_cause
+            any(anr_cause) AS anr_cause,
+            any(app_hang_data) AS app_hang_data,
+            groupUniqArray(app_hang_state) AS app_hang_states
           FROM recent_events
           GROUP BY
             position_from_end,
@@ -382,7 +388,9 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
             exception_handled,
             exception_severity,
             anr_data,
-            anr_cause
+            anr_cause,
+            app_hang_data,
+            app_hang_states
           FROM (
             SELECT
               *,
@@ -401,7 +409,9 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
         exception_handled,
         exception_severity,
         anr_data,
-        anr_cause
+        anr_cause,
+        app_hang_data,
+        app_hang_states
       FROM best_event_per_position
       ORDER BY position_from_end DESC
       `,
@@ -449,6 +459,8 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 		var exceptionSeverity string
 		var anrData string
 		var anrCause string
+		var appHangData string
+		var appHangStates []string
 
 		if err := rows.Scan(
 			&eventType,
@@ -460,6 +472,8 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 			&exceptionSeverity,
 			&anrData,
 			&anrCause,
+			&appHangData,
+			&appHangStates,
 		); err != nil {
 			return nil, fmt.Errorf("failed to scan reproduction step: %v", err)
 		}
@@ -507,6 +521,19 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 				step.Description = fmt.Sprintf("ANR: %s", anrCause)
 			default:
 				step.Description = "ANR (Application Not Responding) occurred"
+			}
+
+		case "app_hang":
+			label := "App hang"
+			if len(appHangStates) == 1 {
+				label = fmt.Sprintf("App hang (%s)", appHangStates[0])
+			}
+
+			var appHang event.AppHang
+			if appHangData != "" && json.Unmarshal([]byte(appHangData), &appHang.Exceptions) == nil && appHang.HasFrames() {
+				step.Description = fmt.Sprintf("%s: %s", label, appHang.GetDisplayTitle())
+			} else {
+				step.Description = label + " occurred"
 			}
 		default:
 			step.Description = rawDescription

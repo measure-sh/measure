@@ -475,6 +475,7 @@ const activityEventTypes = [
   ...gestureTypes,
   "error",
   "anr",
+  "app_hang",
   "bug_report",
   "screen_view",
   "lifecycle_activity",
@@ -2236,6 +2237,14 @@ function ReplayEventDetails({
         label: `View ${eventType === "error" ? "Error" : "ANR"} Details`,
         href: `/${teamId}/errors/${appId}/${eventDetails.group_id}/${encodeURIComponent(
           `${eventDetails.type}${eventDetails.file_name ? `@${eventDetails.file_name}` : ""}`,
+        )}`,
+      };
+    }
+    if (eventType === "app_hang") {
+      return {
+        label: "View App Hang Details",
+        href: `/${teamId}/errors/${appId}/${eventDetails.group_id}/${encodeURIComponent(
+          eventDetails.file_name || "unknown_file",
         )}`,
       };
     }

@@ -155,7 +155,7 @@ const errorTypeKey = {
   value_type: "enum",
   value_suggestion_mode: "full_list",
   operators: ["in", "not_in"],
-  enum_values: ["Crash", "ANR", "Handled Error", "Unhandled Error"],
+  enum_values: ["Crash", "ANR", "Handled Error", "Unhandled Error", "App Hang"],
 };
 
 const sampleErrorGroup = {

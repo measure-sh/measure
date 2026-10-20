@@ -25,7 +25,15 @@ const (
 	fpLegacyCrash   = "0000000000000000000000000000c005"
 	fpLegacyHandled = "0000000000000000000000000000c006"
 	fpPatched       = "0000000000000000000000000000c007"
+	fpAppHang       = "0000000000000000000000000000c008"
 )
+
+// appHangDurations are the durations the fixture's app hangs blocked the
+// main thread for, in milliseconds.
+var appHangDurations = map[string]uint32{
+	event.AppHangStateKilled:    8000,
+	event.AppHangStateRecovered: 2500,
+}
 
 type errorKindsFixture struct {
 	plotFixture
@@ -36,7 +44,8 @@ type errorKindsFixture struct {
 
 // newErrorKindsFixture seeds one event and its group row for every error
 // kind: crash, ANR, handled, unhandled, the two legacy shapes with no
-// severity, and a crash on a later version with an OTA patch.
+// severity, a crash on a later version with an OTA patch, and an app hang
+// that was killed once and recovered once, which share one group.
 func newErrorKindsFixture(t *testing.T) errorKindsFixture {
 	t.Helper()
 
@@ -118,6 +127,37 @@ func newErrorKindsFixture(t *testing.T) errorKindsFixture {
 		PatchID: f.patchID, PatchVersion: "1.2.0-patch.3",
 	})
 
+	const appHangExceptionsJSON = `[{"thread_name":"main","frames":[{"method_name":"blockMainThread()","file_name":"ViewController.swift","line_num":319,"in_app":true,"frame_index":3,"binary_name":"DemoApp","binary_address":"0x104a10000","symbol_address":"0x104a3f5c0","offset":192}]}]`
+
+	ios := func(row testinfra.EventRow) testinfra.EventRow {
+		row.Type = "app_hang"
+		row.Fingerprint = fpAppHang
+		row.ExceptionsJSON = appHangExceptionsJSON
+		row.Timestamp = f.ts
+		row.AppVersion = "1.1.0"
+		row.AppBuild = "110"
+		row.OSName = "ios"
+		row.OSVersion = "18"
+		row.CountryCode = "IN"
+		row.NetworkProvider = "carrier"
+		row.NetworkType = "wifi"
+		row.NetworkGeneration = "5g"
+		row.DeviceLocale = "en-IN"
+		row.DeviceManufacturer = "Apple"
+		row.DeviceName = "iphone"
+		return row
+	}
+
+	th.SeedGroupRow(f.ctx, t, teamID, appID, testinfra.GroupRow{
+		Table: "app_hang_groups", Fingerprint: fpAppHang, AppVersion: "1.1.0", AppBuild: "110",
+		MethodName: "blockMainThread()", FileName: "ViewController.swift",
+	})
+	for _, state := range []string{event.AppHangStateKilled, event.AppHangStateRecovered} {
+		seedEventRows(f.ctx, t, teamID, appID, 1, ios(testinfra.EventRow{
+			AppHangState: state, AppHangDuration: appHangDurations[state], UserID: "kai",
+		}))
+	}
+
 	return f
 }
 
@@ -167,7 +207,7 @@ func TestGetErrorGroupsWithFilterCoversEverySource(t *testing.T) {
 	if err != nil {
 		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
 	}
-	if len(groups) != 7 {
+	if len(groups) != 8 {
 		t.Fatalf("want one row per seeded group, got %d: %+v", len(groups), groups)
 	}
 
@@ -197,6 +237,23 @@ func TestGetErrorGroupsWithFilterCoversEverySource(t *testing.T) {
 		if g.Severity != c.wantSeverity {
 			t.Errorf("fingerprint %s: severity = %q, want %q", c.id, g.Severity, c.wantSeverity)
 		}
+	}
+
+	g := findErrorGroup(groups, fpAppHang)
+	if g == nil {
+		t.Fatalf("missing app hang row")
+	}
+	if g.ErrorType != event.TypeAppHang {
+		t.Errorf("app hang: error_type = %q, want %q", g.ErrorType, event.TypeAppHang)
+	}
+	if g.Severity != "" || g.Type != "" || g.Message != "" {
+		t.Errorf("app hang: want no severity, type or message, got %q, %q, %q", g.Severity, g.Type, g.Message)
+	}
+	if g.MethodName != "blockMainThread()" || g.FileName != "ViewController.swift" {
+		t.Errorf("app hang: frame = %s: %s, want ViewController.swift: blockMainThread()", g.FileName, g.MethodName)
+	}
+	if g.Count != 2 || g.Users != 2 || g.Sessions != 2 {
+		t.Errorf("app hang: count, users, sessions = %d, %d, %d, want 2 each", g.Count, g.Users, g.Sessions)
 	}
 }
 
@@ -230,6 +287,11 @@ func TestGetErrorGroupsWithFilterByErrorType(t *testing.T) {
 			want:   []string{fpUnhandled},
 		},
 		{
+			name:   "an app hang covers both states",
+			values: []string{filter.ErrorTypeAppHang},
+			want:   []string{fpAppHang},
+		},
+		{
 			name:   "many kinds match either",
 			values: []string{filter.ErrorTypeCrash, filter.ErrorTypeANR},
 			want:   []string{fpANR, fpCrash, fpLegacyCrash, fpPatched},
@@ -238,7 +300,7 @@ func TestGetErrorGroupsWithFilterByErrorType(t *testing.T) {
 			name:     "not in leaves a kind out",
 			operator: filter.OperatorNotIn,
 			values:   []string{filter.ErrorTypeCrash},
-			want:     []string{fpANR, fpHandled, fpLegacyHandled, fpUnhandled},
+			want:     []string{fpANR, fpHandled, fpLegacyHandled, fpUnhandled, fpAppHang},
 		},
 	}
 
@@ -289,7 +351,7 @@ func TestGetErrorGroupsWithFilterByAttributes(t *testing.T) {
 		{
 			name:     "no patch",
 			exprTree: leaf("patch_id", filter.OperatorIsNotSet),
-			want:     []string{fpCrash, fpANR, fpHandled, fpUnhandled, fpLegacyCrash, fpLegacyHandled},
+			want:     []string{fpCrash, fpANR, fpHandled, fpUnhandled, fpLegacyCrash, fpLegacyHandled, fpAppHang},
 		},
 		{
 			name:     "user id",
@@ -299,12 +361,12 @@ func TestGetErrorGroupsWithFilterByAttributes(t *testing.T) {
 		{
 			name:     "os name",
 			exprTree: leaf("os_name", filter.OperatorIn, "ios"),
-			want:     []string{fpPatched},
+			want:     []string{fpPatched, fpAppHang},
 		},
 		{
 			name:     "country",
 			exprTree: leaf("country", filter.OperatorIn, "IN"),
-			want:     []string{fpPatched},
+			want:     []string{fpPatched, fpAppHang},
 		},
 		{
 			name: "an error kind and an os name together",
@@ -379,7 +441,7 @@ func TestGetErrorGroupsWithFilterPaginates(t *testing.T) {
 		t.Fatalf("want the first page with more to come, got %d groups next=%v previous=%v", len(groups), next, previous)
 	}
 
-	flt.Offset = 6
+	flt.Offset = 7
 	groups, next, previous, err = f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
@@ -579,6 +641,50 @@ func TestGetErrorGroupsWithFilterAggregates(t *testing.T) {
 	}
 	var want []group.TrendPoint
 	for i, instances := range []uint64{0, 3, 1, 0, 0} {
+		want = append(want, group.TrendPoint{
+			DateTime:  ts.Add(time.Duration(i-1) * time.Hour).Format("2006-01-02T15:04:05"),
+			Instances: instances,
+		})
+	}
+	if !slices.Equal(g.Trend, want) {
+		t.Errorf("trend = %+v, want %+v", g.Trend, want)
+	}
+}
+
+const fpAppHangTrend = "0000000000000000000000000000c042"
+
+// TestGetErrorGroupsWithFilterAppHangTrends checks that an app hang's group
+// gets the trend of both its killed and its recovered events.
+func TestGetErrorGroupsWithFilterAppHangTrends(t *testing.T) {
+	f := newPlotFixture(t)
+	teamID, appID := f.teamIDStr(), f.appIDStr()
+	ts := time.Now().UTC().Truncate(time.Hour).Add(-2 * time.Hour)
+
+	th.SeedAppHangGroup(f.ctx, t, teamID, appID, fpAppHangTrend)
+	hang := func(state string, ts time.Time) testinfra.EventRow {
+		return testinfra.EventRow{Type: "app_hang", Fingerprint: fpAppHangTrend, AppHangState: state, Timestamp: ts}
+	}
+	seedEventRows(f.ctx, t, teamID, appID, 2, hang(event.AppHangStateKilled, ts))
+	seedEventRows(f.ctx, t, teamID, appID, 1, hang(event.AppHangStateRecovered, ts.Add(time.Hour)))
+
+	flt := f.errorFilter(ts.Add(-time.Hour), ts.Add(3*time.Hour), "UTC", "")
+	groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, flt)
+	if err != nil {
+		t.Fatalf("GetErrorGroupsWithFilter: %v", err)
+	}
+	if err := f.app.FillErrorGroupTrends(f.ctx, deps.RchPool, flt, groups); err != nil {
+		t.Fatalf("FillErrorGroupTrends: %v", err)
+	}
+
+	g := findErrorGroup(groups, fpAppHangTrend)
+	if g == nil {
+		t.Fatalf("missing app hang row: %+v", groups)
+	}
+	if g.Count != 3 {
+		t.Errorf("count = %d, want 3", g.Count)
+	}
+	var want []group.TrendPoint
+	for i, instances := range []uint64{0, 2, 1, 0, 0} {
 		want = append(want, group.TrendPoint{
 			DateTime:  ts.Add(time.Duration(i-1) * time.Hour).Format("2006-01-02T15:04:05"),
 			Instances: instances,

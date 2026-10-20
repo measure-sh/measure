@@ -66,6 +66,39 @@ type ExceptionView struct {
 	Message    string `json:"message"`
 }
 
+type EventAppHang struct {
+	ID          uuid.UUID      `json:"id"`
+	SessionID   uuid.UUID      `json:"session_id"`
+	Timestamp   chrono.ISOTime `json:"timestamp"`
+	Type        string         `json:"type"`
+	Attribute   Attribute      `json:"attribute"`
+	AppHang     AppHang        `json:"-"`
+	AppHangView AppHangView    `json:"app_hang"`
+	Attachments []Attachment   `json:"attachments"`
+	Threads     []ThreadView   `json:"threads"`
+}
+
+type AppHangView struct {
+	Title      string `json:"title"`
+	Stacktrace string `json:"stacktrace"`
+	ThreadName string `json:"thread_name"`
+	Duration   uint32 `json:"duration"`
+	State      string `json:"state"`
+}
+
+// ComputeView computes a consumer friendly
+// version of the app hang.
+func (e *EventAppHang) ComputeView() {
+	e.AppHangView = AppHangView{
+		Title:      e.AppHang.GetDisplayTitle(),
+		Stacktrace: e.AppHang.Stacktrace(),
+		ThreadName: e.AppHang.GetThreadName(),
+		Duration:   e.AppHang.Duration,
+		State:      e.AppHang.State,
+	}
+	e.Threads = []ThreadView{}
+}
+
 // ComputeView computes a consumer friendly
 // version of the ANR.
 func (e *EventANR) ComputeView() {

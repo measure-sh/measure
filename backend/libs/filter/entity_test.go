@@ -1007,14 +1007,86 @@ func TestErrorGroupEventsEntityOffersEveryErrorKeyButTheType(t *testing.T) {
 	if _, ok := IndexKeysByName(entity.Keys)["error_type"]; ok {
 		t.Error("want no error_type key on the error events entity")
 	}
-	if want := len(ErrorsEntity.Keys) - 1; len(entity.Keys) != want {
+	last := len(entity.Keys) - 1
+	if entity.Keys[last].Name != "app_hang_state" {
+		t.Fatalf("want the app hang state key last, got %q", entity.Keys[last].Name)
+	}
+	if want := len(ErrorsEntity.Keys); len(entity.Keys) != want {
 		t.Errorf("want %d error event keys, got %d", want, len(entity.Keys))
 	}
-	for i, key := range entity.Keys {
+	for i, key := range entity.Keys[:last] {
 		if ErrorsEntity.Keys[i+1].Name != key.Name {
 			t.Errorf("want key %d to be %q, got %q", i, ErrorsEntity.Keys[i+1].Name, key.Name)
 		}
 	}
+	if groups := ListKeyGroups(entity.Keys); len(groups) == 0 || groups[len(groups)-1] != KeyGroupAppHang {
+		t.Errorf("want the app hang group listed last, got %v", groups)
+	}
+}
+
+func TestErrorsEntityHasNoAppHangStateKey(t *testing.T) {
+	if _, ok := IndexKeysByName(ErrorsEntity.Keys)["app_hang_state"]; ok {
+		t.Error("want no app_hang_state key on the errors entity")
+	}
+}
+
+func TestAppHangStateBindsPredicates(t *testing.T) {
+	bind := func(t *testing.T, operator Operator, names ...string) (*sqlf.Stmt, error) {
+		t.Helper()
+		values := make([]Value, len(names))
+		for i, name := range names {
+			values[i] = Value{Text: name}
+		}
+		return bindColumn(ErrorGroupEventsEntity.Columns, Condition{
+			KeyName:  "app_hang_state",
+			Operator: operator,
+			Values:   values,
+		})
+	}
+
+	const (
+		killedSQL    = "(type = 'app_hang' and `app_hang.state` = 'killed')"
+		recoveredSQL = "(type = 'app_hang' and `app_hang.state` = 'recovered')"
+	)
+
+	tests := []struct {
+		name     string
+		operator Operator
+		values   []string
+		want     string
+	}{
+		{"killed", OperatorIn, []string{AppHangStateKilled}, "(" + killedSQL + ")"},
+		{"recovered", OperatorIn, []string{AppHangStateRecovered}, "(" + recoveredSQL + ")"},
+		{"both states match either", OperatorIn, []string{AppHangStateKilled, AppHangStateRecovered}, "(" + killedSQL + " or " + recoveredSQL + ")"},
+		{"not in", OperatorNotIn, []string{AppHangStateKilled}, "not (" + killedSQL + ")"},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			stmt, err := bind(t, test.operator, test.values...)
+			if err != nil {
+				t.Fatalf("bind app hang state: %v", err)
+			}
+			defer stmt.Close()
+
+			if got := stmt.String(); got != test.want {
+				t.Errorf("\n got %s\nwant %s", got, test.want)
+			}
+			if args := stmt.Args(); len(args) != 0 {
+				t.Errorf("want no bound arguments, got %v", args)
+			}
+		})
+	}
+
+	t.Run("unknown value", func(t *testing.T) {
+		_, err := bind(t, OperatorIn, "Frozen")
+		if err == nil {
+			t.Fatal("want an app hang state the entity does not know refused")
+		}
+		if !strings.Contains(err.Error(), "Frozen") {
+			t.Errorf("want the value named, got %q", err)
+		}
+	})
 }
 
 func TestErrorsBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
@@ -1051,6 +1123,7 @@ func TestErrorTypeBindsPredicates(t *testing.T) {
 		anrSQL       = "(type = 'anr')"
 		handledSQL   = "(type = 'exception' and (`exception.severity` = 'handled' or (`exception.severity` = '' and `exception.handled` = true)))"
 		unhandledSQL = "(type = 'exception' and `exception.severity` = 'unhandled')"
+		appHangSQL   = "(type = 'app_hang')"
 	)
 
 	tests := []struct {
@@ -1063,6 +1136,7 @@ func TestErrorTypeBindsPredicates(t *testing.T) {
 		{"an anr", OperatorIn, []string{ErrorTypeANR}, "(" + anrSQL + ")"},
 		{"a handled error", OperatorIn, []string{ErrorTypeHandledError}, "(" + handledSQL + ")"},
 		{"an unhandled error", OperatorIn, []string{ErrorTypeUnhandledError}, "(" + unhandledSQL + ")"},
+		{"an app hang", OperatorIn, []string{ErrorTypeAppHang}, "(" + appHangSQL + ")"},
 		{"many values match either", OperatorIn, []string{ErrorTypeCrash, ErrorTypeANR}, "(" + crashSQL + " or " + anrSQL + ")"},
 		{"not in", OperatorNotIn, []string{ErrorTypeANR}, "not (" + anrSQL + ")"},
 		{"not in many", OperatorNotIn, []string{ErrorTypeHandledError, ErrorTypeUnhandledError}, "not (" + handledSQL + " or " + unhandledSQL + ")"},

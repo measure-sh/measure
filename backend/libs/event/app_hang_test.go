@@ -185,6 +185,43 @@ func TestAppHangGetRelevantFrame(t *testing.T) {
 	})
 }
 
+func TestAppHangGetDisplayTitle(t *testing.T) {
+	tests := []struct {
+		name   string
+		frames Frames
+		want   string
+	}{
+		{
+			name:   "adds parentheses to a bare method name",
+			frames: Frames{makeAppHangFrame(0, "DemoApp", "blockMainThread", "ViewController.swift", true)},
+			want:   "ViewController.swift: blockMainThread()",
+		},
+		{
+			name:   "keeps a Swift signature as it is",
+			frames: Frames{makeAppHangFrame(0, "DemoApp", "closure #1 (UIAlertAction) in ViewController.presentAppHangOptions(from: UIView?)", "ViewController.swift", true)},
+			want:   "ViewController.swift: closure #1 (UIAlertAction) in ViewController.presentAppHangOptions(from: UIView?)",
+		},
+		{
+			name:   "keeps an Objective-C selector as it is",
+			frames: Frames{makeAppHangFrame(0, "DemoApp", "-[ObjcDetailViewController viewDidLoad]", "ObjcDetailViewController.m", true)},
+			want:   "ObjcDetailViewController.m: -[ObjcDetailViewController viewDidLoad]",
+		},
+		{
+			name:   "names an unsymbolicated frame unknown",
+			frames: Frames{makeAppHangFrame(0, "DemoApp", "", "", true)},
+			want:   "unknown_file: unknown_method()",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := makeAppHang(test.frames).GetDisplayTitle(); got != test.want {
+				t.Errorf("Expected %q, got %q", test.want, got)
+			}
+		})
+	}
+}
+
 func TestAppHangComputeFingerprint(t *testing.T) {
 	t.Run("same blocking frame produces the same fingerprint", func(t *testing.T) {
 		first := makeAppHang(Frames{

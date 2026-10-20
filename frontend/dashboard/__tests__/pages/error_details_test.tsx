@@ -2,7 +2,7 @@ import { mockRouter } from "@/__tests__/helpers/mock_router";
 import { promiseParams } from "@/__tests__/helpers/promise_params";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 
 jest.mock("next/navigation", () =>
   require("@/__tests__/helpers/mock_router").nextNavigationMock(),
@@ -97,6 +97,12 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => ({
       <span data-testid="filter-bar-expr">
         {props.value?.filterExpr ?? "none"}
       </span>
+      <span data-testid="filter-bar-key-groups">
+        {props.keyGroups.join(",")}
+      </span>
+      <span data-testid="filter-bar-keys">
+        {props.keys?.map((key: any) => key.name).join(",") ?? "none"}
+      </span>
       <button
         data-testid="filter-bar-apply"
         onClick={() => props.onChange({ filterExpr: "os_name:in:android" })}
@@ -188,6 +194,9 @@ jest.mock("next/link", () => ({
 
 jest.mock("@/app/utils/time_utils", () => ({
   formatDateToHumanReadableDateTime: () => "Jan 1, 2026, 12:00 AM",
+  formatMillisToHumanReadable: jest.requireActual<
+    typeof import("@/app/utils/time_utils")
+  >("@/app/utils/time_utils").formatMillisToHumanReadable,
 }));
 
 import ErrorDetailsPage from "@/app/[teamId]/errors/[appId]/[errorGroupId]/[errorGroupName]/page";
@@ -200,6 +209,17 @@ const osNameKey = {
   key_group: "OS",
   description: "The operating system the error occurred on",
   value_type: "string",
+  value_suggestion_mode: "full_list",
+  operators: ["in", "not_in"],
+};
+
+const appHangStateKey = {
+  name: "app_hang_state",
+  label: "State",
+  key_group: "App Hang",
+  description:
+    "Whether the app was killed during the hang or recovered from it.",
+  value_type: "enum",
   value_suggestion_mode: "full_list",
   operators: ["in", "not_in"],
 };
@@ -437,6 +457,139 @@ describe("ErrorGroupDetails page", () => {
       },
     });
     expect(screen.getByText(/ANR in sh\.measure\.demo/)).toBeInTheDocument();
+  });
+
+  function renderPageWithAppHang(state: string) {
+    return renderPageWithEvent({
+      type: "app_hang",
+      exception: null,
+      app_hang: {
+        title: "ViewController.swift: blockMainThread()",
+        stacktrace:
+          "0 DemoApp 0x104a3f5c0 ViewController.blockMainThread() + 192 (ViewController.swift:319)",
+        thread_name: "com.apple.main-thread",
+        duration: 4996,
+        state,
+      },
+      threads: [],
+    });
+  }
+
+  it("renders the app hang stack trace under its blocked thread when the event is an app hang", () => {
+    renderPageWithAppHang("killed");
+    expect(
+      screen.getByText(/ViewController\.blockMainThread\(\) \+ 192/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Thread: com.apple.main-thread" }),
+    ).toBeInTheDocument();
+  });
+
+  it.each([
+    ["killed", "Killed", "Recovered"],
+    ["recovered", "Recovered", "Killed"],
+  ])(
+    "renders the App Hang and state pills, with no severity pill, when the event is a %s app hang",
+    (state, shown, hidden) => {
+      renderPageWithAppHang(state);
+      const pills = within(screen.getByTestId("exception-detail-pills"));
+      expect(pills.getByText("App Hang")).toBeInTheDocument();
+      expect(pills.getByText(shown)).toBeInTheDocument();
+      expect(pills.queryByText(hidden)).not.toBeInTheDocument();
+      for (const label of ["Crash", "Error", "ANR", "Fatal"]) {
+        expect(pills.queryByText(label)).not.toBeInTheDocument();
+      }
+    },
+  );
+
+  it("renders the duration pill between time and app version when the event is an app hang", () => {
+    renderPageWithAppHang("killed");
+    const pills = within(screen.getByTestId("exception-detail-pills"));
+    expect(pills.getByTestId("exception-detail-duration")).toHaveTextContent(
+      "Duration: 4.996s",
+    );
+    const order = [
+      "exception-detail-timestamp",
+      "exception-detail-duration",
+      "exception-detail-app-version",
+    ].map((id) => pills.getByTestId(id));
+    expect(
+      order[0].compareDocumentPosition(order[1]) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(
+      order[1].compareDocumentPosition(order[2]) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+  });
+
+  it("omits duration and state rows when the event is an app hang", () => {
+    renderPageWithAppHang("killed");
+    expect(screen.queryByText("duration")).not.toBeInTheDocument();
+    expect(screen.queryByText("state")).not.toBeInTheDocument();
+    expect(screen.queryByText("killed")).not.toBeInTheDocument();
+    expect(screen.queryAllByTestId("exception-detail-attribute")).toHaveLength(
+      0,
+    );
+  });
+
+  describe("App Hang filter", () => {
+    beforeEach(() => {
+      mockUseFilterKeysQuery.mockReturnValue({
+        data: {
+          keys: [osNameKey, appHangStateKey],
+          key_groups: ["OS", "App Hang"],
+        },
+        isPending: false,
+        isError: false,
+        isPlaceholderData: false,
+      });
+    });
+
+    it("renders the App Hang filter when the event is an app hang", () => {
+      renderPageWithAppHang("killed");
+      expect(screen.getByTestId("filter-bar-key-groups")).toHaveTextContent(
+        "OS,App Hang",
+      );
+      expect(screen.getByTestId("filter-bar-keys")).toHaveTextContent(
+        "os_name,app_hang_state",
+      );
+    });
+
+    it("hides the App Hang filter when the event is an exception", () => {
+      renderPageWithEvent({});
+      expect(screen.getByTestId("filter-bar-key-groups")).toHaveTextContent(
+        /^OS$/,
+      );
+      expect(screen.getByTestId("filter-bar-keys")).toHaveTextContent(
+        /^os_name$/,
+      );
+    });
+
+    it("keeps the App Hang filter when a state filter matches no events", () => {
+      const { rerender } = renderPageWithAppHang("killed");
+      detailsLoaded({ results: [], meta: { previous: false, next: false } });
+      rerender(
+        <ErrorDetailsPage
+          params={promiseParams({
+            teamId: "123",
+            appId: "app-1",
+            errorGroupId: "g1",
+            errorGroupName: "test",
+          })}
+        />,
+      );
+      expect(screen.getByTestId("filter-bar-key-groups")).toHaveTextContent(
+        "OS,App Hang",
+      );
+    });
+  });
+
+  it("hides the duration pill when the event is an exception", () => {
+    renderPageWithEvent({});
+    expect(
+      screen.queryByTestId("exception-detail-duration"),
+    ).not.toBeInTheDocument();
   });
 
   it("renders num_code, code, meta, and user_defined_attribute rows when present", () => {

@@ -9,6 +9,8 @@ import (
 	"testing"
 	"time"
 
+	"backend/testinfra"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -236,6 +238,52 @@ func TestGetErrorGroupCommonPathHandler(t *testing.T) {
 		}
 		if result.SessionsAnalyzed < 1 {
 			t.Errorf("sessions_analyzed = %d, want >= 1", result.SessionsAnalyzed)
+		}
+	})
+
+	t.Run("valid call with app hang fingerprint produces non-zero result", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "cp-error-app-hang-team")
+		userID := uuid.New().String()
+		seedUser(ctx, t, userID, "cp-err-app-hang@test.com")
+		seedTeamMembership(ctx, t, teamID, userID, "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+
+		fingerprint := "0000000000000000000000000000a002"
+		sessionID := uuid.New().String()
+		now := time.Now().UTC()
+		seedEventWithSession(ctx, t, teamID.String(), appID.String(), sessionID, now.Add(-2*time.Second))
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+			Type: "app_hang", SessionID: sessionID, Timestamp: now, Fingerprint: fingerprint, AppHangState: "killed",
+		})
+
+		c, w := newTestGinContext("GET", "/apps/"+appID.String()+"/errorGroups/"+fingerprint+"/path", nil)
+		c.Set("userId", userID)
+		c.Params = gin.Params{{Key: "id", Value: appID.String()}, {Key: "errorGroupId", Value: fingerprint}}
+
+		h.GetErrorGroupCommonPath(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+		}
+
+		var result struct {
+			SessionsAnalyzed uint64 `json:"sessions_analyzed"`
+			Steps            []struct {
+				Description string `json:"description"`
+			} `json:"steps"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		if result.SessionsAnalyzed != 1 || len(result.Steps) == 0 {
+			t.Fatalf("want one session analyzed with steps, got %s", w.Body.String())
+		}
+		if last := result.Steps[len(result.Steps)-1].Description; last != "App hang (killed) occurred" {
+			t.Errorf("last step = %q, want %q", last, "App hang (killed) occurred")
 		}
 	})
 }

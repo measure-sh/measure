@@ -86,6 +86,7 @@ func FindByName(name string) (Entity, error) {
 
 const (
 	KeyGroupError     KeyGroup = "Error"
+	KeyGroupAppHang   KeyGroup = "App Hang"
 	KeyGroupVersion   KeyGroup = "Version"
 	KeyGroupBuild     KeyGroup = "Build"
 	KeyGroupSpan      KeyGroup = "Span"
@@ -106,7 +107,7 @@ const (
 var keyGroupOrder = []KeyGroup{
 	KeyGroupError, KeyGroupBugReport, KeyGroupSession, KeyGroupMemory, KeyGroupProfile, KeyGroupSpan, KeyGroupRequest, KeyGroupBuild,
 	KeyGroupVersion, KeyGroupUser, KeyGroupOS, KeyGroupDevice, KeyGroupNetwork, KeyGroupLocation,
-	KeyGroupCustom,
+	KeyGroupCustom, KeyGroupAppHang,
 }
 
 func ListKeyGroups(keys []Key) []KeyGroup {
@@ -232,6 +233,7 @@ var (
 		EnumValues: []string{
 			ErrorTypeCrash, ErrorTypeANR,
 			ErrorTypeHandledError, ErrorTypeUnhandledError,
+			ErrorTypeAppHang,
 		},
 	}
 
@@ -322,6 +324,17 @@ var (
 		Operators:           []Operator{OperatorEq},
 		ValueSuggestionMode: ValueSuggestionModeFullList,
 		EnumValues:          []string{"foreground", "user_service", "background"},
+	}
+
+	appHangState = Key{
+		Name:                "app_hang_state",
+		Label:               "State",
+		Description:         "Whether the app was killed during the hang or recovered from it.",
+		KeyGroup:            KeyGroupAppHang,
+		ValueType:           ValueTypeEnum,
+		Operators:           []Operator{OperatorIn, OperatorNotIn},
+		ValueSuggestionMode: ValueSuggestionModeFullList,
+		EnumValues:          []string{AppHangStateKilled, AppHangStateRecovered},
 	}
 
 	profileTrigger = Key{

@@ -8,6 +8,13 @@ const (
 	ErrorTypeANR            = "ANR"
 	ErrorTypeHandledError   = "Handled Error"
 	ErrorTypeUnhandledError = "Unhandled Error"
+	ErrorTypeAppHang        = "App Hang"
+)
+
+// The values the app_hang_state key takes.
+const (
+	AppHangStateKilled    = "Killed"
+	AppHangStateRecovered = "Recovered"
 )
 
 // ErrorsEntity filters an app's error groups. ErrorGroupEventsEntity filters
@@ -31,9 +38,11 @@ var (
 	}
 )
 
-var errorsKeys = slices.Concat([]Key{errorType}, errorGroupEventsKeys)
+var errorsKeys = slices.Concat([]Key{errorType}, errorEventsKeys)
 
-var errorGroupEventsKeys = []Key{
+var errorGroupEventsKeys = slices.Concat(errorEventsKeys, []Key{appHangState})
+
+var errorEventsKeys = []Key{
 	versionName,
 	versionCode,
 	patchVersion,
@@ -58,10 +67,17 @@ var errorTypePredicates = map[string]string{
 	ErrorTypeANR:            "(type = 'anr')",
 	ErrorTypeHandledError:   "(type = 'exception' and (`exception.severity` = 'handled' or (`exception.severity` = '' and `exception.handled` = true)))",
 	ErrorTypeUnhandledError: "(type = 'exception' and `exception.severity` = 'unhandled')",
+	ErrorTypeAppHang:        "(type = 'app_hang')",
+}
+
+var appHangStatePredicates = map[string]string{
+	AppHangStateKilled:    "(type = 'app_hang' and `app_hang.state` = 'killed')",
+	AppHangStateRecovered: "(type = 'app_hang' and `app_hang.state` = 'recovered')",
 }
 
 var errorEventsColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]column{
 	errorType.Name:          {kind: columnPredicates, predicates: errorTypePredicates},
+	appHangState.Name:       {kind: columnPredicates, predicates: appHangStatePredicates},
 	versionName.Name:        {expr: "`attribute.app_version`"},
 	versionCode.Name:        {expr: "`attribute.app_build`"},
 	patchVersion.Name:       {expr: "`attribute.patch_version`"},
@@ -92,7 +108,7 @@ var errorEventsValues = valueSource{
 	}},
 	recencyExpr: "max(timestamp)",
 	timeColumn:  "timestamp",
-	extraScope:  "type in ('exception', 'anr')",
+	extraScope:  "type in ('exception', 'anr', 'app_hang')",
 }
 
 // Custom keys are the user-defined attributes of the error event itself.

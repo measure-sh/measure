@@ -384,6 +384,13 @@ const emptyErrorGroupDetailsItem = {
     cause: string;
     blamed_thread: string;
   } | null,
+  app_hang: null as {
+    title: string;
+    stacktrace: string;
+    thread_name: string;
+    duration: number;
+    state: string;
+  } | null,
   severity: "",
   num_code: 0 as number | null,
   code: "",
