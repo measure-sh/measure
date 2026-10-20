@@ -10,6 +10,7 @@ import org.gradle.internal.impldep.org.junit.Rule
 import org.gradle.internal.impldep.org.junit.rules.TemporaryFolder
 import org.gradle.testfixtures.ProjectBuilder
 import org.junit.After
+import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -17,6 +18,7 @@ import org.junit.Before
 import org.junit.Test
 import java.io.File
 import java.time.Duration
+import java.util.zip.GZIPInputStream
 
 class BuildUploadTaskTest {
 
@@ -62,6 +64,7 @@ class BuildUploadTaskTest {
             it.parameters.timeout.set(Duration.ofSeconds(30))
         }.get()
         task.retriesProperty.set(retriesCount)
+        task.enableNativeCrashReportingProperty.set(false)
         task.httpClientProvider.set(httpClient)
         task.manifestFileProperty.set(manifestDataFile)
         task.mappingFiles.setFrom(mappingFile)
@@ -298,6 +301,71 @@ class BuildUploadTaskTest {
         }
         assertEquals(bundleContent, uploadsByPath["/upload-rn-bundle"])
         assertEquals(sourceMapContent, uploadsByPath["/upload-rn-source-map"])
+    }
+
+    @Test
+    fun `sends native libraries with symbols as gzipped elf_debug named by ABI`() {
+        nativeLib("arm64-v8a", "libfoo.so", "native/libsymbols.so")
+        nativeLib("x86_64", "libfoo.so", "native/libsymbols.so")
+        nativeLib("arm64-v8a", "libstripped.so", "native/libstripped.so")
+        nativeLib("armeabi-v7a", "libfoo.so", "native/libsymbols32.so")
+        nativeLib("armeabi-v7a", "libstripped.so", "native/libstripped32.so")
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200).setBody("""{"ok": "uploaded build info"}""")
+        )
+
+        task.upload()
+
+        val requestBody = mockWebServer.takeRequest().body.readUtf8()
+        val buildsRequest = Json.decodeFromString(BuildsApiRequest.serializer(), requestBody)
+        val nativeMappings = buildsRequest.mappings.filter { it.type == "elf_debug" }.map { it.filename }.toSet()
+        assertEquals(setOf("arm64-v8a/libfoo.so.gz", "x86_64/libfoo.so.gz", "armeabi-v7a/libfoo.so.gz"), nativeMappings)
+    }
+
+    @Test
+    fun `does not send flutter engine and app libraries`() {
+        nativeLib("arm64-v8a", "libflutter.so", "native/libsymbols.so")
+        nativeLib("arm64-v8a", "libapp.so", "native/libsymbols.so")
+        mockWebServer.enqueue(
+            MockResponse().setResponseCode(200).setBody("""{"ok": "uploaded build info"}""")
+        )
+
+        task.upload()
+
+        val requestBody = mockWebServer.takeRequest().body.readUtf8()
+        val buildsRequest = Json.decodeFromString(BuildsApiRequest.serializer(), requestBody)
+        assertTrue(buildsRequest.mappings.none { it.filename.endsWith(".so.gz") })
+    }
+
+    @Test
+    fun `uploads gzipped native library to presigned URL`() {
+        val lib = nativeLib("arm64-v8a", "libfoo.so", "native/libsymbols.so")
+        task.mappingFiles.setFrom()
+        val uploadUrl = mockWebServer.url("/upload-native").toString()
+        val buildsResponse = """
+            {
+                "mappings": [
+                    {
+                        "id": "native-id",
+                        "type": "elf_debug",
+                        "filename": "arm64-v8a/libfoo.so.gz",
+                        "upload_url": "$uploadUrl",
+                        "expires_at": "2025-08-13T01:59:45.577889184Z",
+                        "headers": {}
+                    }
+                ]
+            }
+        """.trimIndent()
+        mockWebServer.enqueue(MockResponse().setResponseCode(200).setBody(buildsResponse))
+        mockWebServer.enqueue(MockResponse().setResponseCode(200))
+
+        task.upload()
+
+        mockWebServer.takeRequest()
+        val upload = mockWebServer.takeRequest()
+        assertEquals("/upload-native", upload.path)
+        val uploaded = GZIPInputStream(upload.body.inputStream()).use { it.readBytes() }
+        assertArrayEquals(lib.readBytes(), uploaded)
     }
 
     @Test
@@ -538,5 +606,15 @@ class BuildUploadTaskTest {
         return """
             {"apiKey":"msrsh_123","apiUrl":"$url","versionCode":"7575527","appUniqueId":"sh.measure.sample","versionName":"1.23.12"}
         """.trimIndent()
+    }
+
+    private fun nativeLib(abi: String, name: String, resource: String): File {
+        val file = temporaryFolder.root.resolve("lib/$abi/$name")
+        file.parentFile.mkdirs()
+        javaClass.classLoader.getResourceAsStream(resource)!!.use { input ->
+            file.outputStream().use { input.copyTo(it) }
+        }
+        task.nativeLibs.from(file)
+        return file
     }
 }

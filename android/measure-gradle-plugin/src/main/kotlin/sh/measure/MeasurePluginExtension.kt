@@ -40,6 +40,18 @@ open class MeasurePluginExtension @Inject constructor(objects: ObjectFactory) {
      */
     var logsAutoCollectPackageNames: List<String> = emptyList()
 
+    /**
+     * Reports native crashes on Android 12 and above, and uploads native libraries
+     * (`.so` files) that still have symbols so the crashes are symbolicated.
+     *
+     * ```kotlin
+     * measure {
+     *   enableNativeCrashReporting = true
+     * }
+     * ```
+     */
+    var enableNativeCrashReporting: Boolean = false
+
     internal var filter: Action<VariantFilter> = Action {
         if (it.name.lowercase().contains("debug")) {
             it.enabled = true
