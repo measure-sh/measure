@@ -1,6 +1,6 @@
 module backend/libs
 
-go 1.27.1
+go 1.27.3
 
 require (
 	cloud.google.com/go/compute/metadata v0.9.0

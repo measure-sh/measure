@@ -1,6 +1,6 @@
 module migrator
 
-go 1.27.1
+go 1.27.3
 
 require (
 	backend/libs v0.0.0
