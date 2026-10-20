@@ -445,16 +445,16 @@
           "line_num": 30
         },
         {
-          "class_name": "sh.measure.android.exporter.NetworkClientImpl",
-          "method_name": "getConfig",
-          "file_name": "NetworkClient.kt",
-          "line_num": 74
-        },
-        {
           "class_name": "sh.measure.android.exporter.HttpUrlConnectionClient",
           "method_name": "getConfig",
           "file_name": "HttpUrlConnectionClient.kt",
           "line_num": 137
+        },
+        {
+          "class_name": "sh.measure.android.exporter.NetworkClientImpl",
+          "method_name": "getConfig",
+          "file_name": "NetworkClient.kt",
+          "line_num": 74
         },
         {
           "class_name": "sh.measure.android.config.ConfigLoaderImpl",

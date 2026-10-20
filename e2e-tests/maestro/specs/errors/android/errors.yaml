@@ -19,3 +19,14 @@ appId: ${APP_ID}
 - extendedWaitUntil:
     visible: "Native Android"
     timeout: 10000
+
+- tapOn: "Native Android"
+- scrollUntilVisible:
+    element:
+      text: "Inlined Exception"
+- tapOn: "Inlined Exception"
+
+- launchApp
+- extendedWaitUntil:
+    visible: "Native Android"
+    timeout: 10000
