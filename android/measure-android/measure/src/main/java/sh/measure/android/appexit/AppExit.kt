@@ -1,64 +1,51 @@
 package sh.measure.android.appexit
 
-import android.app.ActivityManager
-import android.app.ApplicationExitInfo
-import android.os.Build
-import androidx.annotation.RequiresApi
-import kotlinx.serialization.Serializable
-import kotlinx.serialization.Transient
+import sh.measure.android.nativecrash.Tombstone
 
 /**
- * Represents the data that is collected when an application exits.
+ * An earlier process exit that can be reported, read from
+ * [android.app.ApplicationExitInfo].
  */
-@Serializable
-internal data class AppExit(
+internal sealed interface AppExit {
     /**
-     * @see [ApplicationExitInfo.getReason]
+     * The ID of the process that exited.
      */
-    @Transient
-    val reasonId: Int = 0,
-    /**
-     * [reasonId] mapped to a human readable string.
-     */
-    val reason: String,
+    val pid: Int
 
     /**
-     * @see [ActivityManager.RunningAppProcessInfo.importance]
+     * The time the process exited, in milliseconds since epoch.
      */
-    val importance: String,
+    val timestamp: Long
 
     /**
-     * @see [ApplicationExitInfo.getTraceInputStream]
+     * Whether the process was visible to the user when it exited.
      */
-    val trace: String?,
+    val foreground: Boolean
 
-    /**
-     * The `Subject:` line from the ART trace, falling back to
-     * [ApplicationExitInfo.getDescription].
-     */
-    val subject: String?,
+    data class Anr(
+        override val pid: Int,
+        override val timestamp: Long,
+        override val foreground: Boolean,
+        /**
+         * The thread section of the ART trace.
+         */
+        val trace: String,
+        /**
+         * The `Subject:` line from the ART trace, or the exit description
+         * when the trace has none.
+         */
+        val subject: String?,
+    ) : AppExit
 
-    /**
-     * @see [ApplicationExitInfo.getProcessName]
-     */
-    val process_name: String,
-
-    /**
-     * @see [ApplicationExitInfo.getTimestamp]
-     */
-    @Transient
-    val app_exit_time_ms: Long = 0,
-
-    /**
-     * @see [ApplicationExitInfo.getPid]
-     */
-    val pid: String,
-) {
-    @RequiresApi(Build.VERSION_CODES.R)
-    fun isANR(): Boolean = reasonId == ApplicationExitInfo.REASON_ANR
-
-    /**
-     * Whether the process was perceptible to the user when it was killed.
-     */
-    fun isForeground(): Boolean = importance == "FOREGROUND" || importance == "VISIBLE"
+    data class NativeCrash(
+        override val pid: Int,
+        override val timestamp: Long,
+        override val foreground: Boolean,
+        val tombstone: Tombstone,
+        /**
+         * Whether the process kept running after the error, as it does in
+         * recoverable GWP-ASan and permissive MTE modes.
+         */
+        val recoverable: Boolean,
+    ) : AppExit
 }

@@ -165,46 +165,6 @@ internal class SignalStoreTest {
     }
 
     @Test
-    fun `given app_exit event contains a trace, stores it in file storage and stores the path in database`() {
-        // given
-        val appExit = TestData.getAppExit(trace = "trace")
-        val event = appExit.toEvent(type = EventType.APP_EXIT)
-        val eventsCaptor = argumentCaptor<List<EventEntity>>()
-        `when`(fileStorage.writeEventData(any(), any())).thenReturn("fake-file-path")
-
-        // when
-        signalStore.store(event)
-        signalStore.flush()
-
-        // then
-        verify(fileStorage).writeEventData(
-            event.id,
-            event.serializeDataToString(),
-        )
-        verify(database).insertSignals(eventsCaptor.capture(), eq(emptyList()))
-        val eventEntity = eventsCaptor.firstValue.first()
-        assertEquals("fake-file-path", eventEntity.filePath)
-    }
-
-    @Test
-    fun `given app_exit event does not contain a trace, stores it directly in database`() {
-        // given
-        val appExit = TestData.getAppExit(trace = null)
-        val event = appExit.toEvent(type = EventType.APP_EXIT)
-        val eventsCaptor = argumentCaptor<List<EventEntity>>()
-
-        // when
-        signalStore.store(event)
-        signalStore.flush()
-
-        // then
-        verify(database).insertSignals(eventsCaptor.capture(), eq(emptyList()))
-        val eventEntity = eventsCaptor.firstValue.first()
-        assertNull(eventEntity.filePath)
-        assertNotNull(eventEntity.serializedData)
-    }
-
-    @Test
     fun `stores sampled span`() {
         // given
         val spanData = TestData.getSpanData(isSampled = true)

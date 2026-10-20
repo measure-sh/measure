@@ -1444,6 +1444,18 @@ class DatabaseTest {
     }
 
     @Test
+    fun `getEventPackets reads app_exit events stored by older SDK versions`() {
+        database.insertSession(TestData.getSessionEntity(id = "session-id"))
+        database.insertEvent(
+            TestData.getEventEntity(eventId = "event-id-1", type = EventType.APP_EXIT, sessionId = "session-id"),
+        )
+
+        val packets = database.getEventPackets(listOf("event-id-1"))
+
+        assertEquals(EventType.APP_EXIT, packets.single().type)
+    }
+
+    @Test
     fun `getEventPackets returns empty list for non-existent IDs`() {
         // given
         database.insertSession(TestData.getSessionEntity(id = "session-id"))

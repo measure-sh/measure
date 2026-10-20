@@ -5,6 +5,7 @@ import android.app.ApplicationExitInfo
 import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -18,6 +19,9 @@ import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.logger.Logger
 import sh.measure.android.utils.SystemServiceProvider
 
+private const val MAIN_THREAD_TRACE = "DALVIK THREADS (1):\n\"main\" prio=5 tid=1 Blocked\n" +
+    "  at com.example.app.Repo.load(Repo.kt:8)\n"
+
 @RunWith(AndroidJUnit4::class)
 @Config(sdk = [Build.VERSION_CODES.R])
 class AppExitProviderImplTest {
@@ -25,7 +29,7 @@ class AppExitProviderImplTest {
     private val systemServiceProvider: SystemServiceProvider = mock()
     private val activityManager: ActivityManager = mock()
     private val appExitProvider: AppExitProviderImpl =
-        AppExitProviderImpl(logger, systemServiceProvider)
+        AppExitProviderImpl(logger, systemServiceProvider, nativeCrashReporting = true)
 
     @Before
     fun setup() {
@@ -39,31 +43,145 @@ class AppExitProviderImplTest {
     }
 
     @Test
-    fun `get returns map of AppExit when SDK is R or above`() {
-        val exitInfo1 = mockApplicationExitInfo(
+    fun `get returns ANR exits with a readable trace`() {
+        val anr = mockApplicationExitInfo(
+            1,
+            ApplicationExitInfo.REASON_ANR,
+            ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
+            trace = MAIN_THREAD_TRACE,
+        )
+        `when`(activityManager.getHistoricalProcessExitReasons(null, 0, 5)).thenReturn(listOf(anr))
+
+        val appExit = appExitProvider.get()?.single { it.pid == 1 } as AppExit.Anr
+
+        assertEquals(1234567890L, appExit.timestamp)
+        assertTrue(appExit.foreground)
+        assertTrue(appExit.trace.startsWith("DALVIK THREADS (1):"))
+    }
+
+    @Test
+    fun `get skips ANR exits whose trace cannot be read`() {
+        val anr = mockApplicationExitInfo(
             1,
             ApplicationExitInfo.REASON_ANR,
             ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
         )
-        val exitInfo2 = mockApplicationExitInfo(
-            2,
-            ApplicationExitInfo.REASON_CRASH,
-            ActivityManager.RunningAppProcessInfo.IMPORTANCE_CACHED,
-        )
+        `when`(activityManager.getHistoricalProcessExitReasons(null, 0, 5)).thenReturn(listOf(anr))
 
-        `when`(activityManager.getHistoricalProcessExitReasons(null, 0, 3))
-            .thenReturn(listOf(exitInfo1, exitInfo2))
+        assertEquals(emptyList<AppExit>(), appExitProvider.get())
+    }
+
+    @Test
+    fun `get skips exits that are not ANRs or native crashes`() {
+        val crash = mockApplicationExitInfo(
+            1,
+            ApplicationExitInfo.REASON_CRASH,
+            ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
+            trace = MAIN_THREAD_TRACE,
+        )
+        `when`(activityManager.getHistoricalProcessExitReasons(null, 0, 5)).thenReturn(listOf(crash))
+
+        assertEquals(emptyList<AppExit>(), appExitProvider.get())
+    }
+
+    @Test
+    fun `get marks visible exits as foreground and cached exits as background`() {
+        val visible = mockApplicationExitInfo(
+            1,
+            ApplicationExitInfo.REASON_ANR,
+            ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE,
+            trace = MAIN_THREAD_TRACE,
+        )
+        val cached = mockApplicationExitInfo(
+            2,
+            ApplicationExitInfo.REASON_ANR,
+            ActivityManager.RunningAppProcessInfo.IMPORTANCE_CACHED,
+            trace = MAIN_THREAD_TRACE,
+        )
+        `when`(activityManager.getHistoricalProcessExitReasons(null, 0, 5)).thenReturn(listOf(visible, cached))
+
+        val result = appExitProvider.get()!!
+
+        assertTrue(result.single { it.pid == 1 }.foreground)
+        assertFalse(result.single { it.pid == 2 }.foreground)
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.S])
+    fun `get skips native crash exits when native crash reporting is off`() {
+        val appExitProvider = AppExitProviderImpl(logger, systemServiceProvider, nativeCrashReporting = false)
+        val anr = mockApplicationExitInfo(
+            1,
+            ApplicationExitInfo.REASON_ANR,
+            ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
+            trace = MAIN_THREAD_TRACE,
+        )
+        val nativeCrash = mockNativeCrashExitInfo(2)
+        `when`(activityManager.getHistoricalProcessExitReasons(null, 0, 5))
+            .thenReturn(listOf(anr, nativeCrash))
 
         val result = appExitProvider.get()
 
-        assertEquals(2, result?.size)
-        assertEquals("ANR", result?.get(1)?.reason)
-        assertEquals("FOREGROUND", result?.get(1)?.importance)
-        assertEquals("CRASH", result?.get(2)?.reason)
-        assertEquals(
-            "CACHED",
-            result?.get(2)?.importance,
+        assertEquals(listOf(1), result?.map { it.pid })
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.S])
+    fun `get keeps native crash exits when native crash reporting is on`() {
+        val nativeCrash = mockNativeCrashExitInfo(2)
+        `when`(activityManager.getHistoricalProcessExitReasons(null, 0, 5)).thenReturn(listOf(nativeCrash))
+
+        val appExit = appExitProvider.get()?.single { it.pid == 2 } as AppExit.NativeCrash
+
+        assertEquals("SIGSEGV", appExit.tombstone.signal.name)
+        assertFalse(appExit.recoverable)
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.S])
+    fun `get marks a recoverable native crash exit as recoverable`() {
+        val nativeCrash = mockNativeCrashExitInfo(2)
+        `when`(nativeCrash.description).thenReturn("recoverable_crash")
+        `when`(activityManager.getHistoricalProcessExitReasons(null, 0, 5)).thenReturn(listOf(nativeCrash))
+
+        val appExit = appExitProvider.get()?.single() as AppExit.NativeCrash
+
+        assertTrue(appExit.recoverable)
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.S])
+    fun `get keeps every native crash exit of a process`() {
+        val crash = mockNativeCrashExitInfo(2)
+        val recoverable = mockNativeCrashExitInfo(2)
+        `when`(recoverable.description).thenReturn("recoverable_crash")
+        `when`(activityManager.getHistoricalProcessExitReasons(null, 0, 5)).thenReturn(listOf(crash, recoverable))
+
+        val appExits = appExitProvider.get()!!.map { it as AppExit.NativeCrash }
+
+        assertEquals(listOf(false, true), appExits.map { it.recoverable })
+    }
+
+    @Test
+    @Config(sdk = [Build.VERSION_CODES.S])
+    fun `get skips native crash exits whose tombstone cannot be read`() {
+        val nativeCrash = mockApplicationExitInfo(
+            2,
+            ApplicationExitInfo.REASON_CRASH_NATIVE,
+            ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
+            trace = "not a tombstone",
         )
+        `when`(activityManager.getHistoricalProcessExitReasons(null, 0, 5)).thenReturn(listOf(nativeCrash))
+
+        assertEquals(emptyList<AppExit>(), appExitProvider.get())
+    }
+
+    @Test
+    fun `get skips native crash exits below Android 12`() {
+        val nativeCrash = mockNativeCrashExitInfo(2)
+        `when`(activityManager.getHistoricalProcessExitReasons(null, 0, 5)).thenReturn(listOf(nativeCrash))
+
+        assertEquals(emptyList<AppExit>(), appExitProvider.get())
     }
 
     @Test
@@ -133,7 +251,7 @@ class AppExitProviderImplTest {
         `when`(exitInfo.description)
             .thenReturn("user request after error: Broadcast of Intent { }")
 
-        val appExit = with(appExitProvider) { exitInfo.toAppExit() }
+        val appExit = with(appExitProvider) { exitInfo.toAppExit() } as AppExit.Anr
 
         assertEquals("Broadcast of Intent { }", appExit.subject)
     }
@@ -152,17 +270,27 @@ class AppExitProviderImplTest {
             )
         `when`(exitInfo.description).thenReturn("user request after error: Input dispatching timed out")
 
-        val appExit = with(appExitProvider) { exitInfo.toAppExit() }
+        val appExit = with(appExitProvider) { exitInfo.toAppExit() } as AppExit.Anr
 
         assertEquals("user request after error: Input dispatching timed out", appExit.subject)
+    }
+
+    private fun mockNativeCrashExitInfo(pid: Int): ApplicationExitInfo = mockApplicationExitInfo(
+        pid,
+        ApplicationExitInfo.REASON_CRASH_NATIVE,
+        ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND,
+    ).apply {
+        `when`(traceInputStream).thenReturn(javaClass.classLoader!!.getResourceAsStream("tombstones/api31_segv.pb"))
     }
 
     private fun mockApplicationExitInfo(
         pid: Int,
         reason: Int,
         importance: Int,
+        trace: String? = null,
     ): ApplicationExitInfo = mock(ApplicationExitInfo::class.java).apply {
         `when`(this.pid).thenReturn(pid)
+        `when`(this.traceInputStream).thenReturn(trace?.byteInputStream())
         `when`(this.reason).thenReturn(reason)
         `when`(this.importance).thenReturn(importance)
         `when`(this.processName).thenReturn("com.example.app")

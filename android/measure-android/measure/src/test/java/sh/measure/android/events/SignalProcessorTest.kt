@@ -12,6 +12,7 @@ import org.mockito.kotlin.verify
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.StringAttr
+import sh.measure.android.exceptions.ExceptionFramework
 import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.exporter.Exporter
 import sh.measure.android.fakes.FakeConfigProvider
@@ -465,38 +466,34 @@ internal class SignalProcessorTest {
     }
 
     @Test
-    fun `trackAppExit stores event with provided sessionId, session start time and version attributes`() {
-        val appExit = TestData.getAppExit()
+    fun `trackNativeCrash stores event against the session that crashed`() {
+        val exceptionData = TestData.getExceptionData(severity = ExceptionSeverity.Fatal).copy(framework = ExceptionFramework.NDK)
         val timestamp = 1710746412L
-        val type = EventType.APP_EXIT
-        val sessionId = "session-id-app-exit"
+        val sessionId = "session-id-that-crashed"
         val sessionStartTime = 1710746000L
-        val appVersion = "app-version"
-        val appBuild = "1000"
-        val isSampled = true
 
-        signalProcessor.trackAppExit(
-            data = appExit,
+        signalProcessor.trackNativeCrash(
+            data = exceptionData,
             timestamp = timestamp,
-            type = type,
+            threadName = "RenderThread",
             sessionId = sessionId,
             sessionStartTime = sessionStartTime,
-            appVersion = appVersion,
-            appBuild = appBuild,
-            threadName = "thread-name",
-            isSampled = isSampled,
+            appVersion = "app-version",
+            appBuild = "1000",
         )
 
         assertEquals(1, signalStore.trackedEvents.size)
         val event = signalStore.trackedEvents.first()
-        assertEquals(type, event.type)
+        assertEquals(EventType.EXCEPTION, event.type)
         assertEquals(sessionId, event.sessionId)
+        assertEquals("RenderThread", event.attributes[Attribute.THREAD_NAME])
         assertEquals(
             sessionStartTime.iso8601Timestamp(),
             event.attributes[Attribute.SESSION_START_TIME_KEY],
         )
-        assertEquals(appVersion, event.attributes[Attribute.APP_VERSION_KEY])
-        assertEquals(appBuild, event.attributes[Attribute.APP_BUILD_KEY])
+        assertEquals("app-version", event.attributes[Attribute.APP_VERSION_KEY])
+        assertEquals("1000", event.attributes[Attribute.APP_BUILD_KEY])
+        assertTrue(event.isSampled)
     }
 
     @Test
@@ -654,17 +651,15 @@ internal class SignalProcessorTest {
     }
 
     @Test
-    fun `trackAppExit truncates app version that exceeds the maximum length`() {
-        signalProcessor.trackAppExit(
-            data = TestData.getAppExit(),
+    fun `trackNativeCrash truncates app version that exceeds the maximum length`() {
+        signalProcessor.trackNativeCrash(
+            data = TestData.getExceptionData(severity = ExceptionSeverity.Fatal).copy(framework = ExceptionFramework.NDK),
             timestamp = 1710746412L,
-            type = EventType.APP_EXIT,
-            sessionId = "session-id-app-exit",
+            threadName = "RenderThread",
+            sessionId = "session-id-that-crashed",
             sessionStartTime = 1710746000L,
             appVersion = "v".repeat(ValidationLimits.APP_VERSION + 10),
             appBuild = "1000",
-            threadName = "thread-name",
-            isSampled = true,
         )
 
         val appVersion = signalStore.trackedEvents.first().attributes[Attribute.APP_VERSION_KEY] as String

@@ -69,6 +69,60 @@ internal data class ExceptionData(
      * expired. Set only for ANRs reported from app exit info.
      */
     val subject: String? = null,
+
+    /**
+     * The message passed to abort by the native code that crashed.
+     */
+    val abort_message: String? = null,
+
+    /**
+     * A summary of the likely cause, as reported by the OS.
+     */
+    val cause: String? = null,
+
+    /**
+     * The memory error that GWP-ASan or MTE caught, with where the memory
+     * was allocated and freed.
+     */
+    val memory_error: MemoryError? = null,
+)
+
+@Serializable
+internal data class MemoryError(
+    /**
+     * The tool that caught the error, either `gwp_asan` or `mte`.
+     */
+    val tool: String,
+    /**
+     * The kind of error, such as `use_after_free`, or `unknown`.
+     */
+    val type: String,
+    /**
+     * The address of the allocation.
+     */
+    val address: String? = null,
+    /**
+     * The size of the allocation in bytes.
+     */
+    val size: Long? = null,
+    /**
+     * Where the memory was allocated.
+     */
+    val allocation: MemoryErrorStack? = null,
+    /**
+     * Where the memory was freed.
+     */
+    val deallocation: MemoryErrorStack? = null,
+)
+
+@Serializable
+internal data class MemoryErrorStack(
+    val thread_id: Long,
+    /**
+     * The name of the thread, or null when it had exited by the time of the crash.
+     */
+    val thread_name: String? = null,
+    val frames: List<Frame>,
 )
 
 @Serializable
@@ -169,6 +223,11 @@ internal data class Frame(
     val symbol_address: String? = null,
 
     /**
+     * The name of the binary that contains the frame.
+     */
+    val binary_name: String? = null,
+
+    /**
      * The index of the frame in the stacktrace.
      */
     val frame_index: Int? = null,
@@ -185,8 +244,7 @@ internal data class Frame(
 @Serializable
 internal data class BinaryImage(
     /**
-     * The unique identifier of the binary image.
-     * This is the `build_id` for Dart exceptions.
+     * The build ID of the binary image.
      */
     val uuid: String,
     /**
@@ -194,7 +252,27 @@ internal data class BinaryImage(
      */
     val arch: String,
     /**
-     * The base address of the binary image for Dart exceptions.
+     * The base address of the binary image.
      */
     val base_addr: String,
+    /**
+     * The file name of the binary.
+     */
+    val name: String? = null,
+    /**
+     * The path the binary was loaded from.
+     */
+    val path: String? = null,
+    /**
+     * The address where the binary's mapping starts.
+     */
+    val start_addr: String? = null,
+    /**
+     * The address where the binary's mapping ends.
+     */
+    val end_addr: String? = null,
+    /**
+     * `true` if the binary ships with the OS.
+     */
+    val system: Boolean = false,
 )

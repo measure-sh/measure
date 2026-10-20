@@ -53,7 +53,6 @@ class MeasureInternalTest {
         `when`(initializer.userTriggeredEventCollector).thenReturn(mock())
         `when`(initializer.resumedActivityProvider).thenReturn(mock())
         `when`(initializer.networkClient).thenReturn(mock())
-        `when`(initializer.manifestReader).thenReturn(mock())
         `when`(initializer.unhandledExceptionCollector).thenReturn(mock())
         `when`(initializer.anrCollector).thenReturn(mock())
         `when`(initializer.cpuUsageCollector).thenReturn(mock())
@@ -87,7 +86,7 @@ class MeasureInternalTest {
     fun `init with valid manifest initializes network client`() {
         val initializer = mockMeasureInitializer()
         val manifest = ManifestMetadata("https://api.measure.sh", "msrsh_123")
-        whenever(initializer.manifestReader.load()).thenReturn(manifest)
+        whenever(initializer.manifest).thenReturn(manifest)
         val measureInternal = MeasureInternal(initializer)
 
         measureInternal.init()
@@ -111,7 +110,7 @@ class MeasureInternalTest {
     fun `init loads config and updates config provider`() {
         val initializer = mockMeasureInitializer()
         val manifest = ManifestMetadata("https://api.measure.sh", "msrsh_123")
-        whenever(initializer.manifestReader.load()).thenReturn(manifest)
+        whenever(initializer.manifest).thenReturn(manifest)
         val measureInternal = MeasureInternal(initializer)
         val dynamicConfig = DynamicConfig()
         val callbackCaptor = argumentCaptor<(DynamicConfig?) -> Unit>()
@@ -128,7 +127,7 @@ class MeasureInternalTest {
     fun `init loads config updates various components`() {
         val initializer = mockMeasureInitializer()
         val manifest = ManifestMetadata("https://api.measure.sh", "msrsh_123")
-        whenever(initializer.manifestReader.load()).thenReturn(manifest)
+        whenever(initializer.manifest).thenReturn(manifest)
         val callbackCaptor = argumentCaptor<(DynamicConfig?) -> Unit>()
         val measureInternal = MeasureInternal(initializer)
 
@@ -152,7 +151,7 @@ class MeasureInternalTest {
     fun `onAppBackground unregisters CPU usage and reschedules Memory usage collection`() {
         val initializer = mockMeasureInitializer()
         val manifest = ManifestMetadata("https://api.measure.sh", "msrsh_123")
-        whenever(initializer.manifestReader.load()).thenReturn(manifest)
+        whenever(initializer.manifest).thenReturn(manifest)
         val measureInternal = MeasureInternal(initializer)
         measureInternal.init()
         measureInternal.start()
@@ -168,7 +167,7 @@ class MeasureInternalTest {
     fun `onAppBackground triggers signal store scheduler`() {
         val initializer = mockMeasureInitializer()
         val manifest = ManifestMetadata("https://api.measure.sh", "msrsh_123")
-        whenever(initializer.manifestReader.load()).thenReturn(manifest)
+        whenever(initializer.manifest).thenReturn(manifest)
         val measureInternal = MeasureInternal(initializer)
         measureInternal.init()
         measureInternal.start()
@@ -182,7 +181,7 @@ class MeasureInternalTest {
     fun `onAppBackground triggers data cleanup`() {
         val initializer = mockMeasureInitializer()
         val manifest = ManifestMetadata("https://api.measure.sh", "msrsh_123")
-        whenever(initializer.manifestReader.load()).thenReturn(manifest)
+        whenever(initializer.manifest).thenReturn(manifest)
         val measureInternal = MeasureInternal(initializer)
         measureInternal.init()
         measureInternal.start()
@@ -196,7 +195,7 @@ class MeasureInternalTest {
     fun `onAppBackground triggers export`() {
         val initializer = mockMeasureInitializer()
         val manifest = ManifestMetadata("https://api.measure.sh", "msrsh_123")
-        whenever(initializer.manifestReader.load()).thenReturn(manifest)
+        whenever(initializer.manifest).thenReturn(manifest)
         val measureInternal = MeasureInternal(initializer)
         measureInternal.init()
         measureInternal.start()
@@ -210,7 +209,7 @@ class MeasureInternalTest {
     fun `onAppForeground triggers flush`() {
         val initializer = mockMeasureInitializer()
         val manifest = ManifestMetadata("https://api.measure.sh", "msrsh_123")
-        whenever(initializer.manifestReader.load()).thenReturn(manifest)
+        whenever(initializer.manifest).thenReturn(manifest)
         val measureInternal = MeasureInternal(initializer)
         measureInternal.init()
         measureInternal.start()
@@ -223,7 +222,7 @@ class MeasureInternalTest {
     @Test
     fun `init with null manifest does not initialize`() {
         val initializer = mockMeasureInitializer()
-        whenever(initializer.manifestReader.load()).thenReturn(null)
+        whenever(initializer.manifest).thenReturn(null)
         val measureInternal = MeasureInternal(initializer)
 
         measureInternal.init()
@@ -236,7 +235,7 @@ class MeasureInternalTest {
     fun `init with empty apiUrl does not initialize`() {
         val initializer = mockMeasureInitializer()
         val manifest = ManifestMetadata("", "msrsh_123")
-        whenever(initializer.manifestReader.load()).thenReturn(manifest)
+        whenever(initializer.manifest).thenReturn(manifest)
         val measureInternal = MeasureInternal(initializer)
 
         measureInternal.init()
@@ -249,7 +248,7 @@ class MeasureInternalTest {
     fun `init with empty apiKey does not initialize`() {
         val initializer = mockMeasureInitializer()
         val manifest = ManifestMetadata("https://api.measure.sh", "")
-        whenever(initializer.manifestReader.load()).thenReturn(manifest)
+        whenever(initializer.manifest).thenReturn(manifest)
         val measureInternal = MeasureInternal(initializer)
 
         measureInternal.init()
@@ -262,7 +261,7 @@ class MeasureInternalTest {
     fun `init with invalid apiKey prefix does not initialize`() {
         val initializer = mockMeasureInitializer()
         val manifest = ManifestMetadata("https://api.measure.sh", "invalid_key")
-        whenever(initializer.manifestReader.load()).thenReturn(manifest)
+        whenever(initializer.manifest).thenReturn(manifest)
         val measureInternal = MeasureInternal(initializer)
 
         measureInternal.init()
@@ -275,7 +274,7 @@ class MeasureInternalTest {
     fun `init with auto-start disabled does not register collectors`() {
         val initializer = mockMeasureInitializer()
         val manifest = ManifestMetadata("https://api.measure.sh", "msrsh_123")
-        whenever(initializer.manifestReader.load()).thenReturn(manifest)
+        whenever(initializer.manifest).thenReturn(manifest)
         `when`(initializer.configProvider.autoStart).thenReturn(false)
 
         val measureInternal = MeasureInternal(initializer)
@@ -442,7 +441,7 @@ class MeasureInternalTest {
     private fun initWithValidCredentials(): MeasureInitializer {
         val initializer = mockMeasureInitializer()
         val manifest = ManifestMetadata("https://api.measure.sh", "msrsh_123")
-        whenever(initializer.manifestReader.load()).thenReturn(manifest)
+        whenever(initializer.manifest).thenReturn(manifest)
         val measureInternal = MeasureInternal(initializer)
         measureInternal.init()
         return initializer

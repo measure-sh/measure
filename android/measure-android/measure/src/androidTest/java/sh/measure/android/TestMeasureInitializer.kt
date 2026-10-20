@@ -50,6 +50,7 @@ import sh.measure.android.lifecycle.DefaultActivityLifecycleCollector
 import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.logger.Logger
 import sh.measure.android.logs.LogEventCollector
+import sh.measure.android.nativecrash.NativeCrashFactory
 import sh.measure.android.networkchange.InitialNetworkStateProvider
 import sh.measure.android.networkchange.InitialNetworkStateProviderImpl
 import sh.measure.android.networkchange.NetworkChangesCollector
@@ -92,6 +93,8 @@ import sh.measure.android.utils.IdProviderImpl
 import sh.measure.android.utils.LocaleProvider
 import sh.measure.android.utils.LocaleProviderImpl
 import sh.measure.android.utils.LowMemoryCheck
+import sh.measure.android.utils.ManifestMetadata
+import sh.measure.android.utils.ManifestReader
 import sh.measure.android.utils.ManifestReaderImpl
 import sh.measure.android.utils.OsSysConfProvider
 import sh.measure.android.utils.OsSysConfProviderImpl
@@ -144,7 +147,8 @@ internal class TestMeasureInitializer(
         configProvider = configProvider,
     ),
     override val configLoader: ConfigLoader = FakeConfigLoader(),
-    override val manifestReader: ManifestReaderImpl = ManifestReaderImpl(application, logger),
+    private val manifestReader: ManifestReader = ManifestReaderImpl(application, logger),
+    override val manifest: ManifestMetadata? = manifestReader.load(),
     private val randomizer: Randomizer = RandomizerImpl(),
     private val idProvider: IdProvider = IdProviderImpl(randomizer),
     override val processInfoProvider: ProcessInfoProvider = ProcessInfoProviderImpl(),
@@ -302,11 +306,14 @@ internal class TestMeasureInitializer(
     private val appExitProvider: AppExitProvider = AppExitProviderImpl(
         logger = logger,
         systemServiceProvider = systemServiceProvider,
+        nativeCrashReporting = manifest?.nativeCrashReporting == true,
     ),
     override val appExitCollector: AppExitCollector = AppExitCollector(
+        logger = logger,
         appExitProvider = appExitProvider,
         signalProcessor = signalProcessor,
         sessionManager = sessionManager,
+        nativeCrashFactory = NativeCrashFactory(application.packageName),
     ),
     override val cpuUsageCollector: CpuUsageCollector = CpuUsageCollector(
         logger = logger,
