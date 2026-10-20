@@ -13,10 +13,14 @@ export enum PillType {
   Crash = "crash",
   Error = "error",
   Anr = "anr",
+  AppHang = "app_hang",
   // Error severities
   Fatal = "fatal",
   Unhandled = "unhandled",
   Handled = "handled",
+  // App hang states
+  Killed = "killed",
+  Recovered = "recovered",
   // Bug report statuses
   OpenStatus = "open",
   ClosedStatus = "closed",
@@ -140,6 +144,10 @@ const pillDefaults: Record<
     label: "ANR",
     tint: "border-violet-400 text-violet-700 bg-violet-100 dark:border-violet-400 dark:text-violet-400 dark:bg-violet-950/40",
   },
+  [PillType.AppHang]: {
+    label: "App Hang",
+    tint: "border-violet-400 text-violet-700 bg-violet-100 dark:border-violet-400 dark:text-violet-400 dark:bg-violet-950/40",
+  },
   [PillType.Fatal]: {
     label: "Fatal",
     tint: "border-red-400 text-red-700 bg-red-100 dark:border-red-400 dark:text-red-400 dark:bg-red-950/40",
@@ -151,6 +159,14 @@ const pillDefaults: Record<
   [PillType.Handled]: {
     label: "Handled",
     tint: "border-yellow-400 text-yellow-700 bg-yellow-100 dark:border-yellow-400 dark:text-yellow-400 dark:bg-yellow-950/40",
+  },
+  [PillType.Killed]: {
+    label: "Killed",
+    tint: "border-red-400 text-red-700 bg-red-100 dark:border-red-400 dark:text-red-400 dark:bg-red-950/40",
+  },
+  [PillType.Recovered]: {
+    label: "Recovered",
+    tint: "border-amber-400 text-amber-700 bg-amber-100 dark:border-amber-400 dark:text-amber-400 dark:bg-amber-950/40",
   },
   [PillType.OpenStatus]: {
     label: "Open",

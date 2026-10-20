@@ -234,9 +234,10 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                       ) => {
                         // A thread dump without a main thread gives its ANR no
                         // type, so joining unconditionally would yield a leading "@".
-                        const groupName = [type, file_name]
-                          .filter((part) => part !== "")
-                          .join("@");
+                        const groupName =
+                          [type, file_name]
+                            .filter((part) => part !== "")
+                            .join("@") || "unknown_file";
                         const basePath = `/${teamId}/errors/${readyValue.app.id}/${id}/${encodeURIComponent(groupName)}`;
                         const href = detailQuery
                           ? `${basePath}?${detailQuery}`
@@ -278,6 +279,9 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                                 <div className="flex flex-wrap gap-1.5 pt-3">
                                   {error_type === "anr" && (
                                     <Pill type={PillType.Anr} />
+                                  )}
+                                  {error_type === "app_hang" && (
+                                    <Pill type={PillType.AppHang} />
                                   )}
                                   {error_type === "exception" && (
                                     <Pill

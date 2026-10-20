@@ -72,10 +72,21 @@ type ANRGroup struct {
 	UpdatedAt   time.Time        `json:"updated_at" db:"updated_at"`
 }
 
+type AppHangGroup struct {
+	AppID       uuid.UUID       `json:"app_id" db:"app_id"`
+	ID          string          `json:"id" db:"id"`
+	CountryCode string          `json:"country_code"`
+	Attribute   event.Attribute `json:"-"`
+	MethodName  string          `json:"method_name" db:"method_name"`
+	FileName    string          `json:"file_name" db:"file_name"`
+	LineNumber  int32           `json:"line_number" db:"line_number"`
+	UpdatedAt   time.Time       `json:"updated_at" db:"updated_at"`
+}
+
 // ErrorGroup is the unified response row for the errors-overview
 // endpoint. A single row may represent a fatal exception, a nonfatal
-// (handled or unhandled) exception, or an ANR, disambiguated by the
-// Type and Severity fields.
+// (handled or unhandled) exception, an ANR, or an app hang, disambiguated
+// by the ErrorType and Severity fields. App hangs leave Severity empty.
 type ErrorGroup struct {
 	AppID      uuid.UUID      `json:"app_id"`
 	ID         string         `json:"id"`
@@ -267,6 +278,67 @@ func (a *ANRGroup) Insert(ctx context.Context, conn driver.Conn) (err error) {
 		Expr("(?, ?)", a.Attribute.AppVersion, a.Attribute.AppBuild).
 		Expr("?", a.Type).
 		Expr("?", a.Message).
+		Expr("?", a.MethodName).
+		Expr("?", a.FileName).
+		Expr("?", a.LineNumber).
+		Expr("groupUniqArrayState(tuple(?, ?))", a.Attribute.OSName, a.Attribute.OSVersion).
+		Expr("groupUniqArrayState(?)", a.CountryCode).
+		Expr("groupUniqArrayState(?)", a.Attribute.NetworkProvider).
+		Expr("groupUniqArrayState(?)", a.Attribute.NetworkType).
+		Expr("groupUniqArrayState(?)", a.Attribute.NetworkGeneration).
+		Expr("groupUniqArrayState(?)", a.Attribute.DeviceLocale).
+		Expr("groupUniqArrayState(?)", a.Attribute.DeviceManufacturer).
+		Expr("groupUniqArrayState(?)", a.Attribute.DeviceName).
+		Expr("groupUniqArrayState(?)", a.Attribute.DeviceModel).
+		Expr("sumState(toUInt64(1))").
+		Expr("toDateTime64(?, 3, 'UTC')", a.UpdatedAt.Format(chrono.MSTimeFormat))
+
+	defer stmt.Close()
+
+	asyncCtx := clickhouse.Context(ctx, clickhouse.WithAsync(true))
+	return conn.Exec(asyncCtx, stmt.String(), stmt.Args()...)
+}
+
+// GetId provides the app hang's
+// Id.
+func (a AppHangGroup) GetId() string {
+	return a.ID
+}
+
+// Insert inserts a new AppHangGroup into the database.
+func (a *AppHangGroup) Insert(ctx context.Context, conn driver.Conn) (err error) {
+	teamId, err := ambient.TeamId(ctx)
+	if err != nil {
+		return err
+	}
+
+	stmt := sqlf.
+		New("insert into app_hang_groups").
+		Clause("(").
+		Expr("team_id").
+		Expr("app_id").
+		Expr("id").
+		Expr("app_version").
+		Expr("method_name").
+		Expr("file_name").
+		Expr("line_number").
+		Expr("os_versions").
+		Expr("country_codes").
+		Expr("network_providers").
+		Expr("network_types").
+		Expr("network_generations").
+		Expr("device_locales").
+		Expr("device_manufacturers").
+		Expr("device_names").
+		Expr("device_models").
+		Expr("count").
+		Expr("timestamp").
+		Clause(")").
+		Clause("select").
+		Expr("toUUID(?)", teamId).
+		Expr("toUUID(?)", a.AppID).
+		Expr("?", a.ID).
+		Expr("(?, ?)", a.Attribute.AppVersion, a.Attribute.AppBuild).
 		Expr("?", a.MethodName).
 		Expr("?", a.FileName).
 		Expr("?", a.LineNumber).
@@ -556,6 +628,20 @@ func NewANRGroup(appId uuid.UUID, countryCode string, attribute event.Attribute,
 		ID:          fingerprint,
 		Type:        anrType,
 		Message:     message,
+		MethodName:  methodName,
+		FileName:    fileName,
+		LineNumber:  lineNumber,
+		UpdatedAt:   timestamp,
+	}
+}
+
+// NewAppHangGroup constructs a new AppHangGroup and returns a pointer to it.
+func NewAppHangGroup(appId uuid.UUID, countryCode string, attribute event.Attribute, fingerprint string, methodName, fileName string, lineNumber int32, timestamp time.Time) *AppHangGroup {
+	return &AppHangGroup{
+		AppID:       appId,
+		CountryCode: countryCode,
+		Attribute:   attribute,
+		ID:          fingerprint,
 		MethodName:  methodName,
 		FileName:    fileName,
 		LineNumber:  lineNumber,

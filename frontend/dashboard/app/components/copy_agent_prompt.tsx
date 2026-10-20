@@ -8,7 +8,10 @@ import {
   fetchSessionReplayFromServer,
 } from "../api/api_calls";
 import { replayEventsFrom, type ReplayEvent } from "../utils/replay_events";
-import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
+import {
+  formatDateToHumanReadableDateTime,
+  formatMillisToHumanReadable,
+} from "../utils/time_utils";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Popover, PopoverContent, PopoverTrigger } from "./popover";
@@ -168,11 +171,22 @@ const CopyAgentPrompt: React.FC<CopyAgentPromptProps> = ({
     const title =
       errorEvent.exception?.title ||
       errorEvent.anr?.title ||
+      errorEvent.app_hang?.title ||
       errorEvent.type ||
       "Error";
 
-    const intro =
+    let intro =
       "I'm debugging this error in my app. The full context is below.";
+    if (errorEvent.app_hang) {
+      const duration = formatMillisToHumanReadable(
+        errorEvent.app_hang.duration,
+      );
+      const outcome =
+        errorEvent.app_hang.state === "killed"
+          ? "and the app was killed"
+          : "before the app recovered";
+      intro = `I'm debugging an app hang in my app. The main thread was blocked for ${duration} ${outcome}. The full context is below.`;
+    }
 
     const sections: string[] = [`# ${title}`, intro];
 
@@ -181,6 +195,8 @@ const CopyAgentPrompt: React.FC<CopyAgentPromptProps> = ({
       ["type", errorEvent.type],
       ["severity", errorEvent.severity],
       ["message", errorEvent.exception?.message],
+      ["state", errorEvent.app_hang?.state],
+      ["duration_ms", errorEvent.app_hang?.duration],
       ["code", errorEvent.code],
       ["num_code", errorEvent.num_code],
       ["timestamp", formatDateToHumanReadableDateTime(errorEvent.timestamp)],
@@ -223,11 +239,15 @@ const CopyAgentPrompt: React.FC<CopyAgentPromptProps> = ({
     }
 
     const stacktrace =
-      errorEvent.exception?.stacktrace ?? errorEvent.anr?.stacktrace ?? "";
+      errorEvent.exception?.stacktrace ??
+      errorEvent.anr?.stacktrace ??
+      errorEvent.app_hang?.stacktrace ??
+      "";
+    const threadName =
+      errorEvent.app_hang?.thread_name || errorEvent.attribute.thread_name;
     if (hasValue(stacktrace)) {
       sections.push(
-        `## Stack trace (thread: ${errorEvent.attribute.thread_name})\n` +
-          codeBlock(stacktrace),
+        `## Stack trace (thread: ${threadName})\n` + codeBlock(stacktrace),
       );
     }
 

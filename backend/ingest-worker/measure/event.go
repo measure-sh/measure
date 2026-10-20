@@ -75,6 +75,9 @@ type eventreq struct {
 	exceptionIds []int
 	// anrIds is a list of all ANR event IDs
 	anrIds []int
+	// appHangIds is a list of all app hang
+	// event ids
+	appHangIds []int
 	// events is the list of events in the ingest
 	// batch
 	events []event.EventField
@@ -206,6 +209,12 @@ func (e eventreq) hasANRs() bool {
 	return len(e.anrIds) > 0
 }
 
+// hasAppHangs returns true if event payload
+// contains app hangs.
+func (e eventreq) hasAppHangs() bool {
+	return len(e.appHangIds) > 0
+}
+
 // getOSName extracts the operating system name of the app from the ingest
 // batch, taken from the first event (or the first span, for span-only
 // batches). Returns "" if the batch has neither.
@@ -261,6 +270,17 @@ func (e eventreq) getANRs() (events []event.EventField) {
 		return
 	}
 	for _, v := range e.anrIds {
+		events = append(events, e.events[v])
+	}
+	return
+}
+
+// getAppHangs returns app hangs from the event payload.
+func (e eventreq) getAppHangs() (events []event.EventField) {
+	if !e.hasAppHangs() {
+		return
+	}
+	for _, v := range e.appHangIds {
 		events = append(events, e.events[v])
 	}
 	return
@@ -364,6 +384,30 @@ func (e eventreq) bucketANRs(ctx context.Context) (err error) {
 		)
 
 		if err := anrGroup.Insert(ctx, server.Server.ChPool); err != nil {
+			return err
+		}
+	}
+
+	return
+}
+
+// bucketAppHangs groups app hangs based on similarity.
+func (e eventreq) bucketAppHangs(ctx context.Context) (err error) {
+	events := e.getAppHangs()
+
+	for i := range events {
+		appHangGroup := group.NewAppHangGroup(
+			events[i].AppID,
+			events[i].CountryCode,
+			events[i].Attribute,
+			events[i].AppHang.Fingerprint,
+			events[i].AppHang.GetMethodName(),
+			events[i].AppHang.GetFileName(),
+			events[i].AppHang.GetLineNumber(),
+			events[i].Timestamp,
+		)
+
+		if err := appHangGroup.Insert(ctx, server.Server.ChPool); err != nil {
 			return err
 		}
 	}
@@ -1372,7 +1416,8 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		symbolicateSpans:  make(map[string]int),
 	}
 
-	// Rebuild exceptionIds, anrIds and symbolication lookups by scanning events.
+	// Rebuild exceptionIds, anrIds, appHangIds and symbolication lookups by
+	// scanning events.
 	for i := range eventReq.events {
 		eventReq.events[i].AppID = appID
 		if eventReq.events[i].NeedsSymbolication() {
@@ -1383,6 +1428,9 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		}
 		if eventReq.events[i].IsANR() {
 			eventReq.anrIds = append(eventReq.anrIds, i)
+		}
+		if eventReq.events[i].IsAppHang() {
+			eventReq.appHangIds = append(eventReq.appHangIds, i)
 		}
 	}
 
@@ -1555,6 +1603,15 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 		defer bucketAnrsSpan.End()
 		if err := eventReq.bucketANRs(ingestCtx); err != nil {
 			fmt.Println(`failed to bucket anrs`, err)
+			return err
+		}
+		return nil
+	})
+	bucketGroup.Go(func() error {
+		_, bucketAppHangsSpan := ingestTracer.Start(ingestCtx, "bucket-app-hangs")
+		defer bucketAppHangsSpan.End()
+		if err := eventReq.bucketAppHangs(ingestCtx); err != nil {
+			fmt.Println(`failed to bucket app hangs`, err)
 			return err
 		}
 		return nil

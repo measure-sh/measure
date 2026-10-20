@@ -459,28 +459,48 @@ export function makeExceptionsOverviewPage2Fixture() {
 // --- Exception Instance Detail (GET /apps/:appId/crashGroups/:id/crashes) ---
 
 // Pass `variant: 'anr'` to get an ANR instance (with `anr` field instead of `exception`)
+// Pass `variant: 'app_hang'` to get a killed iOS app hang instance
 export function makeExceptionInstanceFixture(
-  overrides: Record<string, any> & { variant?: "crash" | "anr" } = {},
+  overrides: Record<string, any> & {
+    variant?: "crash" | "anr" | "app_hang";
+  } = {},
 ) {
   const { variant = "crash", ...rest } = overrides;
-  const exceptionField =
-    variant === "anr"
+  const appHangFields =
+    variant === "app_hang"
       ? {
-          anr: {
-            title: "ANR at CheckoutActivity.onClick",
+          type: "app_hang",
+          app_hang: {
+            title: "ViewController.swift: blockMainThread()",
             stacktrace:
-              "ANR in sh.measure.demo.CheckoutActivity.onClick(CheckoutActivity.kt:42)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)",
+              "0 DemoApp 0x104a3f5c0 ViewController.blockMainThread() + 192 (ViewController.swift:319)",
+            thread_name: "main",
+            duration: 8083,
+            state: "killed",
           },
+          threads: [],
         }
-      : {
-          exception: {
-            title: "NullPointerException at CheckoutActivity.onClick",
-            stacktrace:
-              "java.lang.NullPointerException: Attempt to invoke virtual method\n\tat sh.measure.demo.CheckoutActivity.onClick(CheckoutActivity.kt:42)\n\tat android.view.View.performClick(View.java:7448)",
-            message:
-              "Attempt to invoke virtual method on null object reference",
-          },
-        };
+      : {};
+  const exceptionField =
+    variant === "app_hang"
+      ? {}
+      : variant === "anr"
+        ? {
+            anr: {
+              title: "ANR at CheckoutActivity.onClick",
+              stacktrace:
+                "ANR in sh.measure.demo.CheckoutActivity.onClick(CheckoutActivity.kt:42)\n\tat android.os.Handler.dispatchMessage(Handler.java:106)",
+            },
+          }
+        : {
+            exception: {
+              title: "NullPointerException at CheckoutActivity.onClick",
+              stacktrace:
+                "java.lang.NullPointerException: Attempt to invoke virtual method\n\tat sh.measure.demo.CheckoutActivity.onClick(CheckoutActivity.kt:42)\n\tat android.view.View.performClick(View.java:7448)",
+              message:
+                "Attempt to invoke virtual method on null object reference",
+            },
+          };
   return {
     meta: { next: true, previous: false },
     results: [
@@ -531,6 +551,7 @@ export function makeExceptionInstanceFixture(
             frames: ["java.lang.Thread.run(Thread.java:920)"],
           },
         ],
+        ...appHangFields,
         ...rest,
       },
     ],
@@ -1771,8 +1792,24 @@ export function makeErrorGroupEventsFilterKeysFixture() {
   const errors = makeErrorsFilterKeysFixture();
   return {
     ...errors,
-    keys: errors.keys.filter((key: any) => key.name !== "error_type"),
-    key_groups: errors.key_groups.filter((group: string) => group !== "Error"),
+    keys: [
+      ...errors.keys.filter((key: any) => key.name !== "error_type"),
+      {
+        name: "app_hang_state",
+        label: "State",
+        description:
+          "Whether the app was killed during the hang or recovered from it.",
+        key_group: "App Hang",
+        value_type: "enum",
+        value_suggestion_mode: "full_list",
+        operators: ["in", "not_in"],
+        enum_values: ["Killed", "Recovered"],
+      },
+    ],
+    key_groups: [
+      ...errors.key_groups.filter((group: string) => group !== "Error"),
+      "App Hang",
+    ],
   };
 }
 
@@ -1789,7 +1826,13 @@ export function makeErrorsFilterKeysFixture(
         value_type: "enum",
         value_suggestion_mode: "full_list",
         operators: ["in", "not_in"],
-        enum_values: ["Crash", "ANR", "Handled Error", "Unhandled Error"],
+        enum_values: [
+          "Crash",
+          "ANR",
+          "Handled Error",
+          "Unhandled Error",
+          "App Hang",
+        ],
       },
       {
         name: "version_name",

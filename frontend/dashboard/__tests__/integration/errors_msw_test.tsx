@@ -114,6 +114,7 @@ import {
   makeAppFixture,
   makeCrashPlotFixture,
   makeErrorsFilterKeysFixture,
+  makeExceptionInstanceFixture,
   makeExceptionsOverviewFixture,
   makeExceptionsOverviewPage2Fixture,
 } from "../msw/fixtures";
@@ -367,6 +368,71 @@ describe("Errors Overview (MSW integration)", () => {
         "error_type:in:Crash",
       );
     });
+
+    it("filters by app hangs, then lists the app hangs the server returns", async () => {
+      server.use(
+        http.get("*/api/apps/:appId/filters/values", () =>
+          HttpResponse.json({
+            values: [{ text: "App Hang" }],
+            truncated: false,
+          }),
+        ),
+      );
+      const sent: URL[] = [];
+      server.use(
+        http.get("*/api/apps/:appId/errorGroups", ({ request }) => {
+          const url = new URL(request.url);
+          if (
+            url.pathname.includes("/plots/") ||
+            url.pathname.match(/errorGroups\/[^/]+\//)
+          ) {
+            return;
+          }
+          sent.push(url);
+          if (!url.searchParams.get("filter_expr")) {
+            return HttpResponse.json(makeExceptionsOverviewFixture());
+          }
+          return HttpResponse.json({
+            meta: { next: false, previous: false, plot_time_group: "hours" },
+            results: [
+              {
+                app_id: "app-1",
+                id: "970e70deaf83c0aaea222463e2cf831e",
+                type: "",
+                error_type: "app_hang",
+                severity: "",
+                is_custom: false,
+                message: "",
+                method_name: "blockMainThread()",
+                file_name: "ViewController.swift",
+                line_number: 319,
+                count: 2,
+                users: 1,
+                sessions: 2,
+                last_seen: "2026-01-02T00:00:00Z",
+                trend: [],
+                updated_at: "2026-01-02T00:00:00Z",
+              },
+            ],
+          });
+        }),
+      );
+      renderPage();
+      await waitForErrors();
+
+      fireEvent.click(screen.getByTestId("filter-input"));
+      fireEvent.click(await screen.findByTestId("filter-key-error_type"));
+      fireEvent.click(await screen.findByTestId("filter-value-App Hang"));
+
+      await waitFor(() => expect(sent).toHaveLength(2));
+      expect(sent[1].searchParams.get("filter_expr")).toBe(
+        'error_type:in:"App Hang"',
+      );
+      await screen.findByText("ViewController.swift: blockMainThread()");
+      const row = within(screen.getByTestId("exception-row"));
+      expect(row.getByText("App Hang")).toBeTruthy();
+      expect(row.queryByText("Killed")).toBeNull();
+    });
   });
 
   describe("pagination", () => {
@@ -545,6 +611,75 @@ describe("Errors Detail (MSW integration)", () => {
     );
     expect(sent[0].searchParams.get("limit")).toBe("1");
     expect(sent[0].searchParams.get("offset")).toBe("0");
+  });
+
+  it("renders an app hang instance with its state, duration and blocked thread", async () => {
+    server.use(
+      http.get("*/api/apps/:appId/errorGroups/:groupId/errors", () =>
+        HttpResponse.json(
+          makeExceptionInstanceFixture({ variant: "app_hang" }),
+        ),
+      ),
+    );
+    renderPage();
+    await waitForDetails();
+
+    const pills = within(screen.getByTestId("exception-detail-pills"));
+    expect(pills.getByText("App Hang")).toBeTruthy();
+    expect(pills.getByText("Killed")).toBeTruthy();
+    expect(pills.queryByText("Fatal")).toBeNull();
+    expect(screen.getByText("Duration: 8.083s")).toBeTruthy();
+    expect(
+      screen.getByText(/ViewController\.blockMainThread\(\) \+ 192/),
+    ).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Thread: main" })).toBeTruthy();
+  });
+
+  describe("the App Hang filter", () => {
+    it("filters an app hang group by the state picked", async () => {
+      server.use(
+        http.get("*/api/apps/:appId/filters/values", () =>
+          HttpResponse.json({
+            values: [{ text: "Killed" }, { text: "Recovered" }],
+            truncated: false,
+          }),
+        ),
+      );
+      const sent: URL[] = [];
+      server.use(
+        http.get(
+          "*/api/apps/:appId/errorGroups/:groupId/errors",
+          ({ request }) => {
+            sent.push(new URL(request.url));
+            return HttpResponse.json(
+              makeExceptionInstanceFixture({ variant: "app_hang" }),
+            );
+          },
+        ),
+      );
+      renderPage();
+      await waitForDetails();
+
+      fireEvent.click(screen.getByTestId("filter-input"));
+      fireEvent.click(await screen.findByRole("button", { name: "App Hang" }));
+      fireEvent.click(await screen.findByTestId("filter-key-app_hang_state"));
+      fireEvent.click(await screen.findByTestId("filter-value-Killed"));
+
+      await waitFor(() => expect(sent).toHaveLength(2));
+      expect(sent[1].searchParams.get("filter_expr")).toBe(
+        "app_hang_state:in:Killed",
+      );
+    });
+
+    it("is not offered for an exception group", async () => {
+      renderPage();
+      await waitForDetails();
+
+      fireEvent.click(screen.getByTestId("filter-input"));
+      await screen.findByTestId("filter-key-version_name");
+      expect(screen.queryByRole("button", { name: "App Hang" })).toBeNull();
+      expect(screen.queryByTestId("filter-key-app_hang_state")).toBeNull();
+    });
   });
 
   it("shows error message when the events query errors", async () => {

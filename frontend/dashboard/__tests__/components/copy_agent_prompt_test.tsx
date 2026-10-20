@@ -22,6 +22,9 @@ jest.mock("@/app/components/toast", () => ({
 
 jest.mock("@/app/utils/time_utils", () => ({
   formatDateToHumanReadableDateTime: (ts: string) => `formatted:${ts}`,
+  formatMillisToHumanReadable: jest.requireActual<
+    typeof import("@/app/utils/time_utils")
+  >("@/app/utils/time_utils").formatMillisToHumanReadable,
 }));
 
 jest.mock("lucide-react", () => ({
@@ -148,6 +151,34 @@ function mockAnrEvent() {
       stacktrace: "at com.example.ANR.block(ANR.java:20)",
     },
     threads: null,
+  };
+}
+
+function mockAppHangEvent() {
+  return {
+    id: "app-hang-1",
+    session_id: "session-xyz",
+    type: "app_hang",
+    timestamp: "2024-06-15T12:00:00Z",
+    attribute: {
+      app_version: "1.0.3",
+      platform: "ios",
+      device_manufacturer: "Apple",
+      device_model: "iPhone 17 Pro",
+      network_type: "wifi",
+      thread_name: "main",
+    },
+    exception: null,
+    anr: null,
+    app_hang: {
+      title: "ViewController.swift: blockMainThread()",
+      stacktrace:
+        "0 DemoApp 0x104a3f5c0 ViewController.blockMainThread() + 192 (ViewController.swift:319)",
+      thread_name: "com.apple.main-thread",
+      duration: 4996,
+      state: "killed",
+    },
+    threads: [],
   };
 }
 
@@ -619,6 +650,47 @@ describe("CopyAgentPrompt", () => {
       const copied = copiedTextFor(mockAnrEvent());
       expect(copied).toContain("- app: MyApp");
       expect(copied).not.toContain("## All threads");
+    });
+  });
+
+  describe("App hang context formatting", () => {
+    it("uses the app hang title as the heading", () => {
+      expect(copiedTextFor(mockAppHangEvent())).toContain(
+        "# ViewController.swift: blockMainThread()",
+      );
+    });
+
+    it("includes the duration and killed outcome in the intro when the app hang is killed", () => {
+      const copied = copiedTextFor(mockAppHangEvent());
+      expect(copied).toContain(
+        "I'm debugging an app hang in my app. The main thread was blocked for 4.996s and the app was killed. The full context is below.",
+      );
+      expect(copied).not.toContain("I'm debugging this error in my app.");
+    });
+
+    it("includes the duration and recovered outcome in the intro when the app hang is recovered", () => {
+      const event = mockAppHangEvent();
+      const copied = copiedTextFor({
+        ...event,
+        app_hang: { ...event.app_hang, state: "recovered", duration: 2500 },
+      });
+      expect(copied).toContain(
+        "I'm debugging an app hang in my app. The main thread was blocked for 2.5s before the app recovered. The full context is below.",
+      );
+    });
+
+    it("includes the state and duration in the summary", () => {
+      const copied = copiedTextFor(mockAppHangEvent());
+      expect(copied).toContain("- state: killed");
+      expect(copied).toContain("- duration_ms: 4996");
+    });
+
+    it("uses the app hang stacktrace under its blocked thread", () => {
+      const copied = copiedTextFor(mockAppHangEvent());
+      expect(copied).toContain(
+        "## Stack trace (thread: com.apple.main-thread)",
+      );
+      expect(copied).toContain("ViewController.blockMainThread() + 192");
     });
   });
 });

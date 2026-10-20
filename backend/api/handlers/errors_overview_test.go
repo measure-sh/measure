@@ -21,8 +21,9 @@ import (
 
 // The fingerprint columns are FixedString(32).
 const (
-	fpOverviewCrash = "0000000000000000000000000000e001"
-	fpOverviewANR   = "0000000000000000000000000000e002"
+	fpOverviewCrash   = "0000000000000000000000000000e001"
+	fpOverviewANR     = "0000000000000000000000000000e002"
+	fpOverviewAppHang = "0000000000000000000000000000e003"
 )
 
 // Events are seeded at this instant and the group rows at insert time, so
@@ -231,6 +232,86 @@ func TestGetErrorOverview(t *testing.T) {
 
 		if w.Code != http.StatusBadRequest {
 			t.Fatalf("status = %d, want 400, body: %s", w.Code, w.Body.String())
+		}
+	})
+}
+
+func TestGetErrorOverviewAppHangs(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	ownerID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+	appID := uuid.New()
+	seedApp(ctx, t, appID, teamID, 90)
+
+	th.SeedAppHangGroup(ctx, t, teamID.String(), appID.String(), fpOverviewAppHang)
+	for _, state := range []string{"killed", "recovered"} {
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+			Type: "app_hang", Fingerprint: fpOverviewAppHang, AppHangState: state, Timestamp: errorsOverviewTestTime,
+		})
+	}
+
+	type row struct {
+		ID        string `json:"id"`
+		ErrorType string `json:"error_type"`
+		Severity  string `json:"severity"`
+		Count     uint64 `json:"count"`
+	}
+	rows := func(t *testing.T, rawQuery string) []row {
+		t.Helper()
+		c, w := newErrorsOverviewContext(ownerID, appID, rawQuery)
+		h.GetErrorOverview(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+		}
+
+		var body struct {
+			Results []row `json:"results"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+			t.Fatalf("unmarshal response: %v", err)
+		}
+		return body.Results
+	}
+
+	t.Run("a killed and a recovered app hang are one row", func(t *testing.T) {
+		got := rows(t, errorsOverviewTimeRangeQuery())
+		if len(got) != 1 {
+			t.Fatalf("results = %+v, want one app hang row", got)
+		}
+		if r := got[0]; r.ID != fpOverviewAppHang || r.ErrorType != "app_hang" || r.Severity != "" || r.Count != 2 {
+			t.Errorf("want one app hang with no severity and both instances, got %+v", r)
+		}
+	})
+
+	t.Run("the app hang detail lists both states", func(t *testing.T) {
+		c, w := newErrorDetailErrorsContext(ownerID, appID, fpOverviewAppHang, errorsOverviewTimeRangeQuery())
+		h.GetErrorDetailErrors(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+		}
+		var body struct {
+			Results []struct {
+				Type    string `json:"type"`
+				AppHang struct {
+					State string `json:"state"`
+				} `json:"app_hang"`
+			} `json:"results"`
+		}
+		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+			t.Fatalf("unmarshal response: %v", err)
+		}
+		states := map[string]bool{}
+		for _, r := range body.Results {
+			if r.Type != "app_hang" {
+				t.Errorf("type = %q, want app_hang", r.Type)
+			}
+			states[r.AppHang.State] = true
+		}
+		if len(body.Results) != 2 || !states["killed"] || !states["recovered"] {
+			t.Errorf("want a killed and a recovered event, got %s", w.Body.String())
 		}
 	})
 }

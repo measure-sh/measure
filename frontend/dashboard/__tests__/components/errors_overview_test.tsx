@@ -84,6 +84,37 @@ const renderWith = (results: any[]) => {
 const hrefOf = (container: HTMLElement) =>
   decodeURIComponent(container.querySelector("a[href]")!.getAttribute("href")!);
 
+const PILL_LABELS = [
+  "Crash",
+  "Error",
+  "ANR",
+  "App Hang",
+  "Fatal",
+  "Unhandled",
+  "Handled",
+  "Killed",
+  "Recovered",
+];
+
+const pillsOf = (container: HTMLElement) =>
+  Array.from(container.querySelectorAll('[data-testid="exception-row"]')).map(
+    (row) =>
+      Array.from(row.querySelectorAll('[data-slot="badge"]'))
+        .map((badge) => badge.textContent ?? "")
+        .filter((label) => PILL_LABELS.includes(label)),
+  );
+
+const appHang = () =>
+  group({
+    id: "hang-id",
+    type: "",
+    error_type: "app_hang",
+    severity: "",
+    message: "",
+    method_name: "blockMainThread()",
+    file_name: "ViewController.swift",
+  });
+
 describe("ErrorsOverview", () => {
   it("renders type and message, and links to type@file", () => {
     const container = renderWith([group({})]);
@@ -110,6 +141,42 @@ describe("ErrorsOverview", () => {
 
     expect(href).toContain("Repo.kt");
     expect(href).not.toContain("@");
+  });
+
+  it("renders the type and severity pills of a crash and an ANR", () => {
+    const container = renderWith([
+      group({ error_type: "exception", severity: "fatal" }),
+      group({ error_type: "anr", severity: "fatal" }),
+    ]);
+
+    expect(pillsOf(container)).toEqual([
+      ["Crash", "Fatal"],
+      ["ANR", "Fatal"],
+    ]);
+  });
+
+  it("renders an app hang with only the App Hang pill", () => {
+    const container = renderWith([appHang()]);
+
+    expect(pillsOf(container)).toEqual([["App Hang"]]);
+  });
+
+  it("renders an app hang titled by file and method, and links to the file alone", () => {
+    const container = renderWith([appHang()]);
+
+    expect(
+      screen.getByText("ViewController.swift: blockMainThread()"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("exception-row-type")).toBeEmptyDOMElement();
+    const href = hrefOf(container);
+    expect(href).toContain("/hang-id/ViewController.swift");
+    expect(href).not.toContain("@");
+  });
+
+  it("links to unknown_file when an app hang has no file name", () => {
+    const href = hrefOf(renderWith([{ ...appHang(), file_name: "" }]));
+
+    expect(href).toContain("/hang-id/unknown_file");
   });
 
   it("links to the type alone when a group has no file name", () => {

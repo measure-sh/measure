@@ -19,7 +19,10 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import { cn } from "../utils/shadcn_utils";
-import { formatDateToHumanReadableDateTime } from "../utils/time_utils";
+import {
+  formatDateToHumanReadableDateTime,
+  formatMillisToHumanReadable,
+} from "../utils/time_utils";
 import { track } from "../utils/analytics/track";
 import {
   Accordion,
@@ -86,6 +89,7 @@ const demoErrorDetails = {
         message: "Payment method must be specified",
       },
       anr: null,
+      app_hang: null,
       severity: "",
       num_code: null,
       code: "",
@@ -290,12 +294,16 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
     firstResult === undefined &&
     !data.meta.previous;
   const stacktrace =
-    firstResult?.exception?.stacktrace ?? firstResult?.anr?.stacktrace ?? "";
+    firstResult?.exception?.stacktrace ??
+    firstResult?.anr?.stacktrace ??
+    firstResult?.app_hang?.stacktrace ??
+    "";
 
   // An exception falls back to the thread name attribute.
   const topThreadValue =
     "Thread: " +
     (firstResult?.anr?.blamed_thread ||
+      firstResult?.app_hang?.thread_name ||
       firstResult?.attribute.thread_name ||
       "");
 
@@ -345,7 +353,11 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
       team_id: teamId,
       app_id: appId,
       app_platform: firstResult.attribute?.os_name,
-      type: firstResult.anr ? "anr" : "crash",
+      type: firstResult.anr
+        ? "anr"
+        : firstResult.app_hang
+          ? "app_hang"
+          : "crash",
       severity: firstResult.severity,
       feature_area: "errors",
       entry_point: entryPoint,
@@ -445,11 +457,19 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
                     type={
                       firstResult.anr
                         ? PillType.Anr
-                        : firstResult.severity === "fatal"
-                          ? PillType.Crash
-                          : PillType.Error
+                        : firstResult.app_hang
+                          ? PillType.AppHang
+                          : firstResult.severity === "fatal"
+                            ? PillType.Crash
+                            : PillType.Error
                     }
                   />
+                  {firstResult.app_hang?.state === "killed" && (
+                    <Pill type={PillType.Killed} />
+                  )}
+                  {firstResult.app_hang?.state === "recovered" && (
+                    <Pill type={PillType.Recovered} />
+                  )}
                   {firstResult.severity === "fatal" && (
                     <Pill type={PillType.Fatal} />
                   )}
@@ -463,6 +483,12 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
                     data-testid="exception-detail-timestamp"
                     tooltip
                   >{`Time: ${formatDateToHumanReadableDateTime(firstResult.timestamp)}`}</Pill>
+                  {firstResult.app_hang && (
+                    <Pill
+                      data-testid="exception-detail-duration"
+                      tooltip
+                    >{`Duration: ${formatMillisToHumanReadable(firstResult.app_hang.duration)}`}</Pill>
+                  )}
                   <Pill
                     data-testid="exception-detail-app-version"
                     tooltip
@@ -583,6 +609,8 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
   );
 };
 
+const appHangKeyGroup = "App Hang";
+
 interface ErrorsDetailsProps {
   teamId: string;
   appId: string;
@@ -652,6 +680,17 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
     isFetching,
   } = detailsQuery;
 
+  const [isAppHangGroup, setIsAppHangGroup] = useState(false);
+  if (!isAppHangGroup && errorsDetails.results[0]?.app_hang) {
+    setIsAppHangGroup(true);
+  }
+  const visibleKeys = isAppHangGroup
+    ? keys
+    : (keys?.filter((key) => key.key_group !== appHangKeyGroup) ?? null);
+  const visibleKeyGroups = isAppHangGroup
+    ? keyGroups
+    : keyGroups.filter((group) => group !== appHangKeyGroup);
+
   return (
     <div className="flex flex-col items-start">
       <div className="py-4" />
@@ -662,8 +701,8 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
         placeholder="Filter events…"
         value={value}
         apps={apps}
-        keys={keys}
-        keyGroups={keyGroups}
+        keys={visibleKeys}
+        keyGroups={visibleKeyGroups}
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
         showAppSelect={false}

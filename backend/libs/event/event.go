@@ -2499,6 +2499,22 @@ func (a AppHang) GetLineNumber() int32 {
 	return int32(a.GetRelevantFrame().LineNum)
 }
 
+// GetDisplayTitle provides the app hang's title.
+func (a AppHang) GetDisplayTitle() string {
+	file := a.GetFileName()
+	if file == "" {
+		file = "unknown_file"
+	}
+	method := a.GetMethodName()
+	if method == "" {
+		method = "unknown_method"
+	}
+	if !strings.HasSuffix(method, ")") && !strings.HasSuffix(method, "]") {
+		method += "()"
+	}
+	return file + ": " + method
+}
+
 // GetThreadName provides the name of the thread the hang blocked.
 func (a AppHang) GetThreadName() string {
 	for i := range a.Exceptions {

@@ -207,15 +207,15 @@ func unionStmts(stmts []*sqlf.Stmt) *sqlf.Stmt {
 	return sqlf.New(strings.Join(parts, " UNION ALL "), args...)
 }
 
-var errorEventTypes = []string{event.TypeANR, event.TypeException}
+var errorEventTypes = []string{event.TypeANR, event.TypeException, event.TypeAppHang}
 
-// errorFingerprintExpr reads the fingerprint of an ANR or an exception row.
+// errorFingerprintExpr reads the fingerprint of an ANR, an app hang or an exception row.
 // Never alias it "id": that shadows events.id, which the custom attribute
 // membership subqueries compare against.
-const errorFingerprintExpr = "if(type = 'anr', `anr.fingerprint`, `exception.fingerprint`)"
+const errorFingerprintExpr = "multiIf(type = 'anr', toString(`anr.fingerprint`), type = 'app_hang', `app_hang.fingerprint`, toString(`exception.fingerprint`))"
 
 // errorFingerprintMatch matches the events of one error group.
-const errorFingerprintMatch = "((type = 'anr' and `anr.fingerprint` = ?) or (type = 'exception' and `exception.fingerprint` = ?))"
+const errorFingerprintMatch = "((type = 'anr' and `anr.fingerprint` = ?) or (type = 'exception' and `exception.fingerprint` = ?) or (type = 'app_hang' and `app_hang.fingerprint` = ?))"
 
 // applyErrorPredicate adds the filter expression to an error events query.
 func applyErrorPredicate(stmt *sqlf.Stmt, flt *filter.Filter) error {
@@ -245,8 +245,8 @@ func (a App) errorGroupEventsStmt(flt *filter.Filter) (*sqlf.Stmt, error) {
 	stmt := sqlf.
 		From("events").
 		Select(errorFingerprintExpr+" as fingerprint").
-		Select("if(type = 'anr', 'anr', 'exception') as source_type").
-		Select("multiIf(type = 'anr', 'fatal', `exception.severity` = 'fatal' or (`exception.severity` = '' and `exception.handled` = false), 'fatal', 'nonfatal') as severity_class").
+		Select("multiIf(type = 'anr', 'anr', type = 'app_hang', 'app_hang', 'exception') as source_type").
+		Select("multiIf(type in ('anr', 'app_hang'), 'fatal', `exception.severity` = 'fatal' or (`exception.severity` = '' and `exception.handled` = false), 'fatal', 'nonfatal') as severity_class").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
 		Where("timestamp >= toDateTime64(?, 3, 'UTC')", flt.From).
@@ -274,22 +274,26 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt 
 
 	versionNames, versionCodes := flt.RootVersionConditions()
 
-	newGroupsBranch := func(table, sourceType, severityClass, severityExpr, isCustomExpr string) *sqlf.Stmt {
+	type groupColumns struct {
+		typeExpr, messageExpr, severityClassExpr, severityExpr, isCustomExpr string
+	}
+
+	newGroupsBranch := func(table, sourceType string, cols groupColumns) *sqlf.Stmt {
 		s := sqlf.
 			From(table).
 			Select("team_id").
 			Select("app_id").
 			Select("id").
-			Select("argMax(type, timestamp) as type").
-			Select("argMax(message, timestamp) as message").
+			Select(cols.typeExpr+" as type").
+			Select(cols.messageExpr+" as message").
 			Select("argMax(method_name, timestamp) as method_name").
 			Select("argMax(file_name, timestamp) as file_name").
 			Select("argMax(line_number, timestamp) as line_number").
 			Select("any(timestamp) as last_occurrence").
 			Select("'"+sourceType+"' as source_type").
-			Select("'"+severityClass+"' as severity_class").
-			Select(severityExpr+" as severity").
-			Select(isCustomExpr+" as is_custom").
+			Select(cols.severityClassExpr+" as severity_class").
+			Select(cols.severityExpr+" as severity").
+			Select(cols.isCustomExpr+" as is_custom").
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
 			Where("timestamp >= toDateTime64(?, 3, 'UTC')", flt.From).
@@ -309,9 +313,22 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt 
 	}
 
 	groupsCTE := unionStmts([]*sqlf.Stmt{
-		newGroupsBranch("anr_groups final", "anr", "fatal", "'fatal'", "false"),
-		newGroupsBranch("fatal_exception_groups final", "exception", "fatal", "'fatal'", "argMax(is_custom, timestamp)"),
-		newGroupsBranch("nonfatal_exception_groups final", "exception", "nonfatal", "if(argMax(handled, timestamp), 'handled', 'unhandled')", "argMax(is_custom, timestamp)"),
+		newGroupsBranch("anr_groups final", event.TypeANR, groupColumns{
+			typeExpr: "argMax(type, timestamp)", messageExpr: "argMax(message, timestamp)",
+			severityClassExpr: "'fatal'", severityExpr: "'fatal'", isCustomExpr: "false",
+		}),
+		newGroupsBranch("fatal_exception_groups final", event.TypeException, groupColumns{
+			typeExpr: "argMax(type, timestamp)", messageExpr: "argMax(message, timestamp)",
+			severityClassExpr: "'fatal'", severityExpr: "'fatal'", isCustomExpr: "argMax(is_custom, timestamp)",
+		}),
+		newGroupsBranch("nonfatal_exception_groups final", event.TypeException, groupColumns{
+			typeExpr: "argMax(type, timestamp)", messageExpr: "argMax(message, timestamp)",
+			severityClassExpr: "'nonfatal'", severityExpr: "if(argMax(handled, timestamp), 'handled', 'unhandled')", isCustomExpr: "argMax(is_custom, timestamp)",
+		}),
+		newGroupsBranch("app_hang_groups final", event.TypeAppHang, groupColumns{
+			typeExpr: "''", messageExpr: "''",
+			severityClassExpr: "'fatal'", severityExpr: "''", isCustomExpr: "false",
+		}),
 	})
 
 	countsCTE, err := a.errorGroupEventsStmt(flt)
@@ -521,7 +538,7 @@ func (a App) FillErrorGroupTrends(ctx context.Context, rch driver.Conn, flt *fil
 
 	for i := range groups {
 		severityClass := "nonfatal"
-		if groups[i].Severity == event.SeverityFatal {
+		if groups[i].Severity == event.SeverityFatal || groups[i].ErrorType == event.TypeAppHang {
 			severityClass = "fatal"
 		}
 		groups[i].Trend = trends[groupKey{groups[i].ID, groups[i].ErrorType, severityClass}]
@@ -615,7 +632,7 @@ func (a App) GetErrorGroupPlotInstances(ctx context.Context, rch driver.Conn, fi
 		Where("app_id = toUUID(?)", a.ID).
 		Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To).
 		Where("type in ?", errorEventTypes).
-		Where(errorFingerprintMatch, fingerprint, fingerprint).
+		Where(errorFingerprintMatch, fingerprint, fingerprint, fingerprint).
 		GroupBy("version, datetime_bucket").
 		OrderBy("version, datetime_bucket")
 
@@ -700,7 +717,7 @@ func (a App) GetErrorGroupAttributesDistribution(ctx context.Context, rch driver
 		Where("app_id = toUUID(?)", a.ID).
 		Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To).
 		Where("type in ?", errorEventTypes).
-		Where(errorFingerprintMatch, fingerprint, fingerprint).
+		Where(errorFingerprintMatch, fingerprint, fingerprint, fingerprint).
 		GroupBy("app_version").
 		GroupBy("os_version").
 		GroupBy("country").
@@ -787,7 +804,7 @@ func (a App) GetErrorGroupSingleAttributeDistribution(ctx context.Context, rch d
 		Where("app_id = toUUID(?)", a.ID).
 		Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To).
 		Where("type in ?", errorEventTypes).
-		Where(errorFingerprintMatch, fingerprint, fingerprint).
+		Where(errorFingerprintMatch, fingerprint, fingerprint, fingerprint).
 		GroupBy("attribute_value")
 
 	defer valueCountsStmt.Close()
@@ -864,9 +881,10 @@ func unmarshalANR(anr *event.ANR, exceptions, threads, subject, threadDump strin
 }
 
 // GetErrorsWithFilter reads one error group's matching events, newest first.
-// Exceptions and ANRs are stored in different columns, so each is read by
-// its own query.
+// Exceptions, ANRs and app hangs are stored in different columns, so each is
+// read by its own query.
 func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerprint string, flt *filter.Filter) (events []any, next, previous bool, err error) {
+
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 
 	applyCommonFilters := func(s *sqlf.Stmt) error {
@@ -1051,11 +1069,80 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 		}
 	}
 
+	{
+		stmt := sqlf.From("events").
+			Select("id").
+			Select("type").
+			Select("timestamp").
+			Select("session_id").
+			Select("attribute.app_version as app_version").
+			Select("attribute.app_build as app_build").
+			Select("attribute.device_manufacturer as device_manufacturer").
+			Select("attribute.device_model as device_model").
+			Select("attribute.network_type as network_type").
+			Select("attribute.thread_name as thread_name").
+			Select("app_hang.exceptions as exceptions").
+			Select("app_hang.duration as duration").
+			Select("app_hang.state as state").
+			Select("app_hang.foreground as foreground").
+			Select("attachments").
+			Where("type = ?", event.TypeAppHang).
+			Where("app_hang.fingerprint = ?", fingerprint)
+
+		if err = applyCommonFilters(stmt); err != nil {
+			return
+		}
+		defer stmt.Close()
+
+		rows, errQ := rch.Query(ctx, stmt.String(), stmt.Args()...)
+		if errQ != nil {
+			err = errQ
+			return
+		}
+
+		for rows.Next() {
+			var e event.EventAppHang
+			var exceptions string
+			var attachments string
+			if err = rows.Scan(
+				&e.ID,
+				&e.Type,
+				&e.Timestamp,
+				&e.SessionID,
+				&e.Attribute.AppVersion,
+				&e.Attribute.AppBuild,
+				&e.Attribute.DeviceManufacturer,
+				&e.Attribute.DeviceModel,
+				&e.Attribute.NetworkType,
+				&e.Attribute.ThreadName,
+				&exceptions,
+				&e.AppHang.Duration,
+				&e.AppHang.State,
+				&e.AppHang.Foreground,
+				&attachments,
+			); err != nil {
+				return
+			}
+
+			if err = json.Unmarshal([]byte(exceptions), &e.AppHang.Exceptions); err != nil {
+				return
+			}
+			if err = json.Unmarshal([]byte(attachments), &e.Attachments); err != nil {
+				return
+			}
+
+			e.ComputeView()
+			events = append(events, &e)
+		}
+	}
+
 	tsOf := func(v any) time.Time {
 		switch x := v.(type) {
 		case *event.EventException:
 			return time.Time(x.Timestamp)
 		case *event.EventANR:
+			return time.Time(x.Timestamp)
+		case *event.EventAppHang:
 			return time.Time(x.Timestamp)
 		}
 		return time.Time{}

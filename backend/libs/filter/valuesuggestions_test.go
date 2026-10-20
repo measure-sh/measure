@@ -155,7 +155,7 @@ func TestSuggestionSQL(t *testing.T) {
 			},
 			wantSQL: "SELECT `attribute.user_id` as suggested_value, max(timestamp) as recency" +
 				" FROM events" +
-				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND timestamp >= ? AND type in ('exception', 'anr') AND `attribute.user_id` <> ''" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND timestamp >= ? AND type in ('exception', 'anr', 'app_hang') AND `attribute.user_id` <> ''" +
 				" GROUP BY suggested_value ORDER BY recency desc, suggested_value LIMIT ?",
 			wantArgs: []any{teamID, appID, windowStart{}, DefaultValueLimit + 1},
 		},

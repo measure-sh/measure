@@ -66,7 +66,15 @@ and capturing a stack trace manually when it happens.
 
 ## App hang reporting
 
+<Callout type="info">
+
+App hangs require Measure iOS SDK **0.15.0** or later.
+
+</Callout>
+
 Measure detects hangs on iOS and reports how long the main thread was blocked, where it happened, and whether the app recovered or got killed. App hangs are visible in [session replays](/docs/session-replay), alongside the user actions and app state that led up to them.
+
+App hangs are listed on the Errors page. Hangs blocked at the same place in your code are grouped into a single issue, whether the app recovered or got killed.
 
 App hangs are monitored by the Measure SDK, iOS itself does not report them as an error. A background thread sends a small probe to the main thread at a predefined interval and waits for an answer. If no answer arrives within the configured threshold, the main thread is considered blocked, and the SDK captures its stack.
 

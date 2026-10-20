@@ -4,10 +4,12 @@ package measure
 
 import (
 	"backend/libs/artdump"
+	"backend/libs/event"
 	"backend/libs/group"
 	"backend/testinfra"
 	"context"
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -579,6 +581,69 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		}
 		if !found {
 			t.Errorf("expected step with description 'ANR (Application Not Responding) occurred', got steps: %+v", result.Steps)
+		}
+	})
+
+	// ------------------------------------------------------------------
+	// Row scanning: app hangs
+	// ------------------------------------------------------------------
+
+	appHangPath := func(t *testing.T, exceptionsJSON string, states ...string) []string {
+		t.Helper()
+		teamID := uuid.New()
+		appID := uuid.New()
+		fingerprint := "0000000000000000000000000000a001"
+		th.SeedAppHangGroup(ctx, t, teamID.String(), appID.String(), fingerprint)
+
+		now := time.Now().UTC()
+		for _, state := range states {
+			sessionID := uuid.New().String()
+			seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "HomeScreen", now.Add(-2*time.Second))
+			seedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+				Type: "app_hang", SessionID: sessionID, Timestamp: now, Fingerprint: fingerprint,
+				AppHangState: state, AppHangDuration: 2500, ExceptionsJSON: exceptionsJSON,
+			})
+		}
+
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeError, fingerprint)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		var result struct {
+			Steps []struct {
+				Description string `json:"description"`
+			} `json:"steps"`
+		}
+		if err := json.Unmarshal(data, &result); err != nil {
+			t.Fatalf("unmarshal: %v", err)
+		}
+		descriptions := make([]string, len(result.Steps))
+		for i, step := range result.Steps {
+			descriptions[i] = step.Description
+		}
+		return descriptions
+	}
+
+	const appHangJSON = `[{"thread_name":"main","frames":[{"method_name":"blockMainThread()","file_name":"ViewController.swift","line_num":319,"in_app":true,"frame_index":3,"binary_name":"DemoApp","binary_address":"0x104a10000","symbol_address":"0x104a3f5c0","offset":192}]}]`
+
+	t.Run("killed app hang with data shows App hang (killed) prefix", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		got := appHangPath(t, appHangJSON, event.AppHangStateKilled)
+		want := []string{"Navigated to screen: HomeScreen", "App hang (killed): ViewController.swift: blockMainThread()"}
+		if !slices.Equal(got, want) {
+			t.Errorf("steps = %q, want %q", got, want)
+		}
+	})
+
+	t.Run("killed and recovered app hangs show App hang prefix without a state", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		got := appHangPath(t, appHangJSON, event.AppHangStateKilled, event.AppHangStateRecovered)
+		want := []string{"Navigated to screen: HomeScreen", "App hang: ViewController.swift: blockMainThread()"}
+		if !slices.Equal(got, want) {
+			t.Errorf("steps = %q, want %q", got, want)
 		}
 	})
 

@@ -260,6 +260,12 @@ type EventRow struct {
 	Subject        string
 	ThreadDumpJSON string
 
+	// App hang payload, written only for Type "app_hang" events together
+	// with Fingerprint and ExceptionsJSON. AppHangState is
+	// "recovered" or "killed" and defaults to "recovered".
+	AppHangState    string
+	AppHangDuration uint32
+
 	// Payload of a Type "lifecycle_activity" event, written only when the
 	// class name is set.
 	LifecycleActivityType      string
@@ -439,6 +445,23 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 			cols = append(cols, "`anr.thread_dump`")
 			vals = append(vals, quoteEscaped(row.ThreadDumpJSON))
 		}
+	}
+
+	if row.Type == "app_hang" {
+		state := row.AppHangState
+		if state == "" {
+			state = "recovered"
+		}
+		exceptions := row.ExceptionsJSON
+		if exceptions == "" {
+			exceptions = "[]"
+		}
+		cols = append(cols,
+			"`app_hang.fingerprint`", "`app_hang.state`", "`app_hang.duration`",
+			"`app_hang.foreground`", "`app_hang.exceptions`", "`app_hang.binary_images`", "attachments")
+		vals = append(vals,
+			quote(row.Fingerprint), quote(state), strconv.FormatUint(uint64(row.AppHangDuration), 10),
+			"true", quote(exceptions), "'[]'", "'[]'")
 	}
 
 	if row.Type == "bug_report" {
@@ -1038,28 +1061,34 @@ func (r GroupRow) filled() GroupRow {
 
 // SeedGroupRow inserts one row into the group table the row names.
 // Fingerprint must be 32 characters: the id column is FixedString(32).
-// anr_groups has no handled or is_custom columns.
+// anr_groups has no handled or is_custom columns. app_hang_groups has no
+// type, message, handled or is_custom columns.
 func (h *TestHelper) SeedGroupRow(ctx context.Context, t *testing.T, teamID, appID string, row GroupRow) {
 	t.Helper()
 	row = row.filled()
 
-	flagCols, flagVals, args := "", "", []any{teamID, appID, row.Fingerprint, row.AppVersion, row.AppBuild, row.Type, row.Message, row.MethodName, row.FileName}
-	if row.Table != "anr_groups" {
+	descCols, descVals, args := "type, message, ", "?, ?, ", []any{teamID, appID, row.Fingerprint, row.AppVersion, row.AppBuild, row.Type, row.Message, row.MethodName, row.FileName}
+	if row.Table == "app_hang_groups" {
+		descCols, descVals = "", ""
+		args = []any{teamID, appID, row.Fingerprint, row.AppVersion, row.AppBuild, row.MethodName, row.FileName}
+	}
+
+	flagCols, flagVals := "", ""
+	if row.Table != "anr_groups" && row.Table != "app_hang_groups" {
 		flagCols = "handled, is_custom, "
 		flagVals = "?, ?, "
 		args = append(args, row.Handled, row.IsCustom)
 	}
 
 	query := `insert into ` + row.Table + ` (
-			team_id, app_id, id, app_version, type, message, method_name, file_name, line_number, ` + flagCols + `os_versions, country_codes, network_providers, network_types, network_generations, device_locales, device_manufacturers, device_names, device_models, count, timestamp
+			team_id, app_id, id, app_version, ` + descCols + `method_name, file_name, line_number, ` + flagCols + `os_versions, country_codes, network_providers, network_types, network_generations, device_locales, device_manufacturers, device_names, device_models, count, timestamp
 		)
 		select
 			toUUID(?),
 			toUUID(?),
 			?,
 			(?, ?),
-			?,
-			?,
+			` + descVals + `
 			?,
 			?,
 			42,
@@ -1123,6 +1152,12 @@ func (h *TestHelper) SeedIssueEventWithCustomFlag(
 func (h *TestHelper) SeedAnrGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {
 	t.Helper()
 	h.SeedGroupRow(ctx, t, teamID, appID, GroupRow{Table: "anr_groups", Fingerprint: fingerprint, Type: "ANR", Message: "Test ANR"})
+}
+
+// SeedAppHangGroup inserts an app_hang_groups row.
+func (h *TestHelper) SeedAppHangGroup(ctx context.Context, t *testing.T, teamID, appID, fingerprint string) {
+	t.Helper()
+	h.SeedGroupRow(ctx, t, teamID, appID, GroupRow{Table: "app_hang_groups", Fingerprint: fingerprint, MethodName: "blockMainThread()", FileName: "ViewController.swift"})
 }
 
 // SeedAppMetrics inserts generic, exception/error, and ANR events so that

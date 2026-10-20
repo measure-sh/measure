@@ -414,6 +414,10 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
+	if err = chconn.Exec(ctx, "truncate table app_hang_groups;"); err != nil {
+		return
+	}
+
 	if err = chconn.Exec(ctx, "truncate table spans;"); err != nil {
 		return
 	}
@@ -476,11 +480,12 @@ func (j *janitor) resolveAppIds(ctx context.Context, conn *pgx.Conn, apps []stri
 	return
 }
 
-// rmErrorGroups removes error and ANR groups for apps in config.
+// rmErrorGroups removes error, ANR and app hang groups for apps in config.
 func (j *janitor) rmErrorGroups(ctx context.Context) (err error) {
 	deleteFatalExceptionGroups := `delete from fatal_exception_groups where app_id = @app_id;`
 	deleteNonFatalExceptionGroups := `delete from nonfatal_exception_groups where app_id = @app_id;`
 	deleteAnrGroups := `delete from anr_groups where app_id = @app_id;`
+	deleteAppHangGroups := `delete from app_hang_groups where app_id = @app_id;`
 
 	dsn := j.config.Storage["clickhouse_dsn"]
 	opts, err := clickhouse.ParseDSN(dsn)
@@ -513,6 +518,10 @@ func (j *janitor) rmErrorGroups(ctx context.Context) (err error) {
 		}
 
 		if err := conn.Exec(ctx, deleteAnrGroups, namedAppId); err != nil {
+			return err
+		}
+
+		if err := conn.Exec(ctx, deleteAppHangGroups, namedAppId); err != nil {
 			return err
 		}
 	}

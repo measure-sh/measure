@@ -39,6 +39,27 @@ describe("Pill", () => {
       expect(badge!.className).toMatch(/border-violet-400/);
     });
 
+    it("renders 'App Hang' label with violet tint for PillType.AppHang", () => {
+      render(<Pill type={PillType.AppHang} />);
+      const badge = findBadge("App Hang");
+      expect(badge).not.toBeNull();
+      expect(badge!.className).toMatch(/border-violet-400/);
+    });
+
+    it("renders 'Killed' label with red tint for PillType.Killed", () => {
+      render(<Pill type={PillType.Killed} />);
+      const badge = findBadge("Killed");
+      expect(badge).not.toBeNull();
+      expect(badge!.className).toMatch(/border-red-400/);
+    });
+
+    it("renders 'Recovered' label with amber tint for PillType.Recovered", () => {
+      render(<Pill type={PillType.Recovered} />);
+      const badge = findBadge("Recovered");
+      expect(badge).not.toBeNull();
+      expect(badge!.className).toMatch(/border-amber-400/);
+    });
+
     it("renders 'Fatal' label with red tint for PillType.Fatal", () => {
       render(<Pill type={PillType.Fatal} />);
       const badge = findBadge("Fatal");

@@ -992,8 +992,8 @@ paths:
       summary: Fetch an app's error overview
       description: |
         Fetch an app's error groups, optionally narrowed by a filter
-        expression. Crashes, ANRs, and handled and unhandled non-fatal errors
-        come back in one list.
+        expression. Crashes, ANRs, app hangs, and handled and unhandled
+        non-fatal errors come back in one list.
 
         Pass `limit` and `offset` values to paginate results.
 
@@ -1014,8 +1014,8 @@ paths:
         UTC when it is not set.
 
         The `error_type` filter key takes the values `Crash`, `ANR`,
-        `Handled Error` and `Unhandled Error`. A value holding a space is
-        double-quoted, as in `error_type:in:[Crash, "Handled Error"]`.
+        `Handled Error`, `Unhandled Error` and `App Hang`. A value holding a
+        space is double-quoted, as in `error_type:in:[Crash, "Handled Error"]`.
       parameters:
         - name: id
           in: path
@@ -1080,17 +1080,18 @@ paths:
                           type: string
                         type:
                           type: string
-                          description: The exception type. For an ANR with a thread dump, this is the cause found in the dump.
+                          description: The exception type. For an ANR with a thread dump, this is the cause found in the dump. Empty for an app hang.
                         error_type:
                           type: string
-                          description: "`exception` or `anr`."
+                          description: "`exception`, `anr` or `app_hang`."
                         severity:
                           type: string
-                          description: "`fatal`, `unhandled` or `handled`."
+                          description: "`fatal`, `unhandled` or `handled`. Empty for an app hang."
                         is_custom:
                           type: boolean
                         message:
                           type: string
+                          description: Empty for an app hang.
                         method_name:
                           type: string
                         file_name:
@@ -1169,6 +1170,28 @@ paths:
                           - datetime: "2025-06-13"
                             instances: 2
                         updated_at: "2025-06-13T14:08:57.940485305Z"
+                      - app_id: 0c1d5a5e-7c55-4c47-9a5a-3b8fd0f2b7a1
+                        id: 970e70deaf83c0aaea222463e2cf831e
+                        type: ""
+                        error_type: app_hang
+                        severity: ""
+                        is_custom: false
+                        message: ""
+                        method_name: "closure #1 (UIAlertAction) in ViewController.presentAppHangOptions(from: UIView?)"
+                        file_name: ViewController.swift
+                        line_number: 319
+                        count: 2
+                        users: 1
+                        sessions: 2
+                        last_seen: "2025-06-13T14:07:12.410Z"
+                        trend:
+                          - datetime: "2025-06-11"
+                            instances: 0
+                          - datetime: "2025-06-12"
+                            instances: 0
+                          - datetime: "2025-06-13"
+                            instances: 2
+                        updated_at: "2025-06-13T14:07:12.410Z"
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
@@ -1190,8 +1213,8 @@ paths:
         app version, optionally narrowed by a filter expression.
 
         The `error_type` filter key takes the values `Crash`, `ANR`,
-        `Handled Error` and `Unhandled Error`. A value holding a space is
-        double-quoted, as in `error_type:in:[Crash, "Handled Error"]`.
+        `Handled Error`, `Unhandled Error` and `App Hang`. A value holding a
+        space is double-quoted, as in `error_type:in:[Crash, "Handled Error"]`.
       parameters:
         - name: id
           in: path
@@ -1264,17 +1287,25 @@ paths:
 
         Pass `limit` and `offset` values to paginate results.
 
-        Each result is either an exception event or an ANR event, distinguished
-        by the `type` field (`exception` or `anr`). Exception events include
-        `exception`, `severity`, `num_code`, `code`, `meta`, and
-        `user_defined_attribute` fields; `severity` is `fatal`, `unhandled`, or
-        `handled`. ANR events include an `anr` field instead of `exception`;
-        `severity` is always `fatal` for ANRs and ANR events do not include
-        `user_defined_attribute`.
+        Each result is an exception event, an ANR event or an app hang event,
+        distinguished by the `type` field (`exception`, `anr` or `app_hang`).
+        Exception events include `exception`, `severity`, `num_code`, `code`,
+        `meta`, and `user_defined_attribute` fields; `severity` is `fatal`,
+        `unhandled`, or `handled`. ANR events include an `anr` field instead of
+        `exception`; `severity` is always `fatal` for ANRs and ANR events do not
+        include `user_defined_attribute`. App hang events include an `app_hang`
+        field instead and do not include `severity` or
+        `user_defined_attribute`. An app hang's `state` says whether it was
+        killed or recovered. An app hang group holds both its killed and its
+        recovered events.
 
         The filter is written against the `error_group_events` entity, whose keys
         are those of `errors` without `error_type`: one group holds one kind
         of error.
+
+        The `app_hang_state` filter key takes the values `Killed` and
+        `Recovered`, as in `app_hang_state:in:[Killed]`. It only matches app
+        hang events.
       parameters:
         - name: id
           in: path
@@ -1323,7 +1354,7 @@ paths:
                     type: array
                     items:
                       type: object
-                      description: Exception event or ANR event, distinguished by the `type` field.
+                      description: Exception event, ANR event or app hang event, distinguished by the `type` field.
                       properties:
                         id:
                           type: string
@@ -1333,7 +1364,7 @@ paths:
                           type: string
                         type:
                           type: string
-                          description: "`exception` or `anr`."
+                          description: "`exception`, `anr` or `app_hang`."
                         attribute:
                           type: object
                           additionalProperties: true
@@ -1366,6 +1397,25 @@ paths:
                             blamed_thread:
                               type: string
                               description: The header line of the thread the ANR is blamed on. `stacktrace` shows this thread. Empty below Android 11.
+                        app_hang:
+                          type: object
+                          description: Present on app hang events.
+                          properties:
+                            title:
+                              type: string
+                              description: "The file and method the app hang is attributed to, as `file: method()`."
+                            stacktrace:
+                              type: string
+                              description: The stack of the blocked thread.
+                            thread_name:
+                              type: string
+                              description: The name of the blocked thread.
+                            duration:
+                              type: number
+                              description: How long the main thread stayed blocked, in milliseconds.
+                            state:
+                              type: string
+                              description: "`killed` if the app was killed while the main thread was blocked, otherwise `recovered`."
                         severity:
                           type: string
                         num_code:
@@ -1510,6 +1560,25 @@ paths:
                             frames:
                               - "  at com.example.app.Receiver.onReceive(Receiver.kt:11)"
                               - "  - waiting to lock <0x053dd6df> (a java.lang.Object) held by thread 46"
+                      - id: 6b1f0c52-3d4e-4a7b-9c2d-8e5f1a0b3c4d
+                        session_id: 7c2a1d63-4e5f-4b8c-8d3e-9f6a2b1c4d5e
+                        timestamp: "2025-06-13T16:52:44.103Z"
+                        type: app_hang
+                        attribute:
+                          installation_id: 8d3b2e74-5f6a-4c9d-9e4f-0a7b3c2d5e6f
+                          app_version: 1.0.3
+                          app_build: "1"
+                          app_unique_id: sh.measure.DemoApp
+                          os_name: ios
+                          os_version: "26.0"
+                        app_hang:
+                          title: "ViewController.swift: closure #1 (UIAlertAction) in ViewController.presentAppHangOptions(from: UIView?)"
+                          stacktrace: "0 libsystem_kernel.dylib 0x1f2c4a0b8 __semwait_signal + 8\n1 DemoApp.debug.dylib 0x104a3f5c0 closure #1 (UIAlertAction) in ViewController.presentAppHangOptions(from: UIView?) + 192 (ViewController.swift:319)"
+                          thread_name: main
+                          duration: 8083
+                          state: killed
+                        attachments: []
+                        threads: []
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
@@ -1606,6 +1675,10 @@ paths:
         The filter is written against the `error_group_events` entity, whose keys
         are those of `errors` without `error_type`: one group holds one kind
         of error.
+
+        The `app_hang_state` filter key takes the values `Killed` and
+        `Recovered`, as in `app_hang_state:in:[Killed]`. It only matches app
+        hang events.
       parameters:
         - name: id
           in: path
@@ -1686,6 +1759,10 @@ paths:
         The filter is written against the `error_group_events` entity, whose keys
         are those of `errors` without `error_type`: one group holds one kind
         of error.
+
+        The `app_hang_state` filter key takes the values `Killed` and
+        `Recovered`, as in `app_hang_state:in:[Killed]`. It only matches app
+        hang events.
       parameters:
         - name: id
           in: path
@@ -1814,6 +1891,10 @@ paths:
         The filter is written against the `error_group_events` entity, whose keys
         are those of `errors` without `error_type`: one group holds one kind
         of error.
+
+        The `app_hang_state` filter key takes the values `Killed` and
+        `Recovered`, as in `app_hang_state:in:[Killed]`. It only matches app
+        hang events.
       parameters:
         - name: id
           in: path
