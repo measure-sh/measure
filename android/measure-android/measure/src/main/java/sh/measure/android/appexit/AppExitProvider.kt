@@ -12,12 +12,13 @@ import okio.buffer
 import okio.source
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
+import sh.measure.android.nativecrash.TombstoneParser
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.ValidationLimits
 import java.io.InputStream
 
 internal interface AppExitProvider {
-    fun get(): Map<Int, AppExit>?
+    fun get(): List<AppExit>?
 }
 
 internal data class ArtTrace(
@@ -29,6 +30,10 @@ private const val THREAD_SECTION_HEADER = "DALVIK THREADS ("
 private const val SUBJECT_PREFIX = "Subject: "
 private const val SCHEDULER_PREFIX = "  | "
 private const val DUMP_LATENCY_PREFIX = "DumpLatencyMs:"
+
+// The OS records an error that the process recovered from as a native crash
+// with this description, while the process keeps running.
+private const val RECOVERABLE_CRASH_DESCRIPTION = "recoverable_crash"
 private const val MAX_TRACE_BYTES = 256 * 1024
 private val THREAD_HEADER_REGEX = Regex("""^"(.*)" (?:daemon )?prio=\d+(?: tid=(\d+))?""")
 private val MANAGED_FRAME_REGEX = Regex("""^  at [\w$.\-]+\.[\w$\-<>]+\(.*\)$""")
@@ -36,36 +41,73 @@ private val MANAGED_FRAME_REGEX = Regex("""^  at [\w$.\-]+\.[\w$\-<>]+\(.*\)$"""
 internal class AppExitProviderImpl(
     private val logger: Logger,
     private val systemServiceProvider: SystemServiceProvider,
+    private val nativeCrashReporting: Boolean,
 ) : AppExitProvider {
 
     @ChecksSdkIntAtLeast(api = Build.VERSION_CODES.R)
-    override fun get(): Map<Int, AppExit>? {
+    override fun get(): List<AppExit>? {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
             return null
         }
         return systemServiceProvider.activityManager?.runCatching {
-            getHistoricalProcessExitReasons(null, 0, 3).associateBy(
-                { it.pid },
-                { it.toAppExit() },
-            )
+            getHistoricalProcessExitReasons(null, 0, 5)
+                .mapNotNull { it.toAppExit() }
         }?.getOrNull()
     }
 
     @RequiresApi(Build.VERSION_CODES.R)
-    fun ApplicationExitInfo.toAppExit(): AppExit {
+    fun ApplicationExitInfo.toAppExit(): AppExit? = when (reason) {
+        ApplicationExitInfo.REASON_ANR -> toAnr()
+        ApplicationExitInfo.REASON_CRASH_NATIVE -> if (canReportNativeCrash()) toNativeCrash() else null
+        else -> null
+    }
+
+    /**
+     * The OS attaches a tombstone to native crash exits only from Android 12.
+     */
+    private fun canReportNativeCrash(): Boolean = nativeCrashReporting && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun ApplicationExitInfo.toAnr(): AppExit.Anr? {
         val trace = readTrace(traceInputStream)
-        return AppExit(
-            reason = getReasonName(reason),
-            reasonId = reason,
-            importance = getImportanceName(importance),
-            trace = trace?.threads,
-            subject = (trace?.subject ?: description?.takeIf { it.isNotBlank() })
+        if (trace == null) {
+            logger.log(LogLevel.Debug, "Discarding ANR exit for pid $pid, failed to read thread dump")
+            return null
+        }
+        return AppExit.Anr(
+            pid = pid,
+            timestamp = timestamp,
+            foreground = isForeground(),
+            trace = trace.threads,
+            subject = (trace.subject ?: description?.takeIf { it.isNotBlank() })
                 ?.take(ValidationLimits.ANR_SUBJECT),
-            process_name = processName,
-            app_exit_time_ms = timestamp,
-            pid = pid.toString(),
         )
     }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun ApplicationExitInfo.toNativeCrash(): AppExit.NativeCrash? {
+        val input = traceInputStream
+        if (input == null) {
+            logger.log(LogLevel.Debug, "Discarding native crash for pid $pid, no tombstone available")
+            return null
+        }
+        val tombstone = TombstoneParser.parse(input)
+        if (tombstone == null) {
+            logger.log(LogLevel.Debug, "Discarding native crash for pid $pid, failed to parse tombstone")
+            return null
+        }
+        return AppExit.NativeCrash(
+            pid = pid,
+            timestamp = timestamp,
+            foreground = isForeground(),
+            tombstone = tombstone,
+            recoverable = description == RECOVERABLE_CRASH_DESCRIPTION,
+        )
+    }
+
+    @RequiresApi(Build.VERSION_CODES.R)
+    private fun ApplicationExitInfo.isForeground(): Boolean = importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND ||
+        importance == ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE
 
     /**
      * Reads the thread blocks and the subject out of an ART trace.
@@ -160,32 +202,4 @@ internal class AppExitProviderImpl(
         !line.startsWith(" ") &&
         !isThreadHeader(line) &&
         !line.startsWith(DUMP_LATENCY_PREFIX)
-
-    private fun getImportanceName(importance: Int): String = when (importance) {
-        ActivityManager.RunningAppProcessInfo.IMPORTANCE_CACHED -> "CACHED"
-        ActivityManager.RunningAppProcessInfo.IMPORTANCE_CANT_SAVE_STATE -> "CANT_SAVE_STATE"
-        ActivityManager.RunningAppProcessInfo.IMPORTANCE_FOREGROUND -> "FOREGROUND"
-        ActivityManager.RunningAppProcessInfo.IMPORTANCE_GONE -> "GONE"
-        ActivityManager.RunningAppProcessInfo.IMPORTANCE_PERCEPTIBLE -> "PERCEPTIBLE"
-        ActivityManager.RunningAppProcessInfo.IMPORTANCE_SERVICE -> "SERVICE"
-        ActivityManager.RunningAppProcessInfo.IMPORTANCE_TOP_SLEEPING -> "TOP_SLEEPING"
-        ActivityManager.RunningAppProcessInfo.IMPORTANCE_VISIBLE -> "VISIBLE"
-        else -> "UNKNOWN"
-    }
-
-    private fun getReasonName(reason: Int): String = when (reason) {
-        ApplicationExitInfo.REASON_ANR -> "ANR"
-        ApplicationExitInfo.REASON_CRASH -> "CRASH"
-        ApplicationExitInfo.REASON_CRASH_NATIVE -> "CRASH_NATIVE"
-        ApplicationExitInfo.REASON_DEPENDENCY_DIED -> "DEPENDENCY_DIED"
-        ApplicationExitInfo.REASON_EXCESSIVE_RESOURCE_USAGE -> "EXCESSIVE_RESOURCE_USAGE"
-        ApplicationExitInfo.REASON_EXIT_SELF -> "EXIT_SELF"
-        ApplicationExitInfo.REASON_INITIALIZATION_FAILURE -> "INITIALIZATION_FAILURE"
-        ApplicationExitInfo.REASON_LOW_MEMORY -> "LOW_MEMORY"
-        ApplicationExitInfo.REASON_OTHER -> "OTHER"
-        ApplicationExitInfo.REASON_SIGNALED -> "SIGNALED"
-        ApplicationExitInfo.REASON_USER_REQUESTED -> "USER_REQUESTED"
-        ApplicationExitInfo.REASON_UNKNOWN -> "UNKNOWN"
-        else -> "UNKNOWN"
-    }
 }

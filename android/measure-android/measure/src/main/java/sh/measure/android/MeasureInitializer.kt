@@ -55,6 +55,7 @@ import sh.measure.android.lifecycle.DefaultActivityLifecycleCollector
 import sh.measure.android.logger.AndroidLogger
 import sh.measure.android.logger.Logger
 import sh.measure.android.logs.LogEventCollector
+import sh.measure.android.nativecrash.NativeCrashFactory
 import sh.measure.android.networkchange.InitialNetworkStateProvider
 import sh.measure.android.networkchange.InitialNetworkStateProviderImpl
 import sh.measure.android.networkchange.NetworkChangesCollector
@@ -97,6 +98,7 @@ import sh.measure.android.utils.IdProviderImpl
 import sh.measure.android.utils.LocaleProvider
 import sh.measure.android.utils.LocaleProviderImpl
 import sh.measure.android.utils.LowMemoryCheck
+import sh.measure.android.utils.ManifestMetadata
 import sh.measure.android.utils.ManifestReader
 import sh.measure.android.utils.ManifestReaderImpl
 import sh.measure.android.utils.OsSysConfProvider
@@ -143,7 +145,8 @@ internal class MeasureInitializerImpl(
     ),
     private val randomizer: Randomizer = RandomizerImpl(),
     private val database: Database = DatabaseImpl(context = application, logger = logger),
-    override val manifestReader: ManifestReaderImpl = ManifestReaderImpl(application, logger),
+    private val manifestReader: ManifestReader = ManifestReaderImpl(application, logger),
+    override val manifest: ManifestMetadata? = manifestReader.load(),
     override val networkClient: NetworkClient = NetworkClientImpl(
         logger = logger,
         fileStorage = fileStorage,
@@ -343,12 +346,14 @@ internal class MeasureInitializerImpl(
     private val appExitProvider: AppExitProvider = AppExitProviderImpl(
         logger = logger,
         systemServiceProvider = systemServiceProvider,
+        nativeCrashReporting = manifest?.nativeCrashReporting == true,
     ),
     override val appExitCollector: AppExitCollector = AppExitCollector(
         logger = logger,
         appExitProvider = appExitProvider,
         signalProcessor = signalProcessor,
         sessionManager = sessionManager,
+        nativeCrashFactory = NativeCrashFactory(application.packageName),
     ),
     override val cpuUsageCollector: CpuUsageCollector = CpuUsageCollector(
         logger = logger,
@@ -515,7 +520,7 @@ internal interface MeasureInitializer {
     val networkClient: NetworkClient
     val configLoader: ConfigLoader
     val configProvider: ConfigProvider
-    val manifestReader: ManifestReader
+    val manifest: ManifestMetadata?
     val resumedActivityProvider: ResumedActivityProvider
     val signalProcessor: SignalProcessor
     val userTriggeredEventCollector: UserTriggeredEventCollector

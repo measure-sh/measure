@@ -373,7 +373,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
     }
 
     private fun setupNetworkClient(): Boolean {
-        val manifest = measure.manifestReader.load()
+        val manifest = measure.manifest
         if (manifest == null) {
             return false
         }

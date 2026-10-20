@@ -1,7 +1,6 @@
 package sh.measure.android.events
 
 import sh.measure.android.SessionManager
-import sh.measure.android.appexit.AppExit
 import sh.measure.android.attributes.Attribute
 import sh.measure.android.attributes.AttributeProcessor
 import sh.measure.android.attributes.AttributeValue
@@ -60,22 +59,6 @@ internal interface SignalProcessor {
     )
 
     /**
-     * App exit events can be triggered for an older session. This method is used to track app exit
-     * events for a specific session with the attributes provided.
-     */
-    fun trackAppExit(
-        data: AppExit,
-        timestamp: Long,
-        type: EventType,
-        threadName: String,
-        sessionId: String,
-        sessionStartTime: Long,
-        appVersion: String?,
-        appBuild: String?,
-        isSampled: Boolean = true,
-    )
-
-    /**
      * Tracks an ANR collected using an AppExit from a different session than the
      * current one.
      */
@@ -88,6 +71,21 @@ internal interface SignalProcessor {
         appVersion: String?,
         appBuild: String?,
         isSampled: Boolean = true,
+    )
+
+    /**
+     * Tracks a native crash collected using an AppExit from a different session than the
+     * current one. Stores the event before returning, so the session that crashed can be
+     * marked as tracked right after.
+     */
+    fun trackNativeCrash(
+        data: ExceptionData,
+        timestamp: Long,
+        threadName: String,
+        sessionId: String,
+        sessionStartTime: Long,
+        appVersion: String?,
+        appBuild: String?,
     )
 
     /**
@@ -222,43 +220,6 @@ internal class SignalProcessorImpl(
         }
     }
 
-    override fun trackAppExit(
-        data: AppExit,
-        timestamp: Long,
-        type: EventType,
-        threadName: String,
-        sessionId: String,
-        sessionStartTime: Long,
-        appVersion: String?,
-        appBuild: String?,
-        isSampled: Boolean,
-    ) {
-        InternalTrace.trace(
-            label = { "msr-trackEvent" },
-            block = {
-                val attributes = mutableMapOf<String, Any?>()
-                val event = createEvent(
-                    data = data,
-                    timestamp = timestamp,
-                    type = type,
-                    attachments = mutableListOf(),
-                    attributes = attributes,
-                    userTriggered = false,
-                    userDefinedAttributes = mutableMapOf(),
-                    sessionId = sessionId,
-                    isSampled = isSampled,
-                ) ?: return@trace
-                applyAttributes(event, threadName)
-                event.updateVersionAttribute(appVersion, appBuild)
-                event.updateSessionStartTimeAttribute(sessionStartTime)
-                InternalTrace.trace(label = { "msr-store-event" }, block = {
-                    event.attributes.truncateToLimits()
-                    signalStore.store(event)
-                })
-            },
-        )
-    }
-
     override fun trackAnr(
         data: ExceptionData,
         timestamp: Long,
@@ -288,6 +249,34 @@ internal class SignalProcessorImpl(
         sessionManager.markSessionWithAnr(event.sessionId, timestamp)
         event.attributes.truncateToLimits()
         signalStore.store(event)
+    }
+
+    override fun trackNativeCrash(
+        data: ExceptionData,
+        timestamp: Long,
+        threadName: String,
+        sessionId: String,
+        sessionStartTime: Long,
+        appVersion: String?,
+        appBuild: String?,
+    ) {
+        val event = createEvent(
+            data = data,
+            timestamp = timestamp,
+            type = EventType.EXCEPTION,
+            attachments = mutableListOf(),
+            attributes = mutableMapOf(),
+            userTriggered = false,
+            userDefinedAttributes = mutableMapOf(),
+            sessionId = sessionId,
+            isSampled = true,
+        ) ?: return
+        applyAttributes(event, threadName)
+        event.updateVersionAttribute(appVersion, appBuild)
+        event.updateSessionStartTimeAttribute(sessionStartTime)
+        event.attributes.truncateToLimits()
+        signalStore.store(event)
+        onEventTracked(event)
     }
 
     override fun trackProfile(

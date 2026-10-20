@@ -1,7 +1,6 @@
 package sh.measure.android.storage
 
 import kotlinx.serialization.encodeToString
-import sh.measure.android.appexit.AppExit
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.events.Event
 import sh.measure.android.events.EventType
@@ -163,11 +162,6 @@ internal class SignalStoreImpl(
             EventType.HTTP -> {
                 val httpEvent = data as? HttpData ?: return false
                 return httpEvent.request_body != null || httpEvent.response_body != null
-            }
-
-            EventType.APP_EXIT -> {
-                val appExit = data as? AppExit ?: return false
-                return appExit.trace != null
             }
 
             else -> false

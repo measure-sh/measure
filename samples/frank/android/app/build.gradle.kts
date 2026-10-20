@@ -107,6 +107,7 @@ measure {
         "io.flutter",
         "androidx.work",
     )
+    enableNativeCrashReporting = true
 }
 
 react {
