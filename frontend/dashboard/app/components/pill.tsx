@@ -21,6 +21,8 @@ export enum PillType {
   // App hang states
   Killed = "killed",
   Recovered = "recovered",
+  // Native memory errors
+  MemoryError = "memory_error",
   // Bug report statuses
   OpenStatus = "open",
   ClosedStatus = "closed",
@@ -167,6 +169,10 @@ const pillDefaults: Record<
   [PillType.Recovered]: {
     label: "Recovered",
     tint: "border-amber-400 text-amber-700 bg-amber-100 dark:border-amber-400 dark:text-amber-400 dark:bg-amber-950/40",
+  },
+  [PillType.MemoryError]: {
+    label: "GWP-ASan",
+    tint: "border-orange-400 text-orange-700 bg-orange-100 dark:border-orange-400 dark:text-orange-400 dark:bg-orange-950/40",
   },
   [PillType.OpenStatus]: {
     label: "Open",

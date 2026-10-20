@@ -202,6 +202,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                           message,
                           method_name,
                           file_name,
+                          memory_error,
                           count,
                           users,
                           sessions,
@@ -279,6 +280,9 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                                   )}
                                   {severity === "handled" && (
                                     <Pill type={PillType.Handled} />
+                                  )}
+                                  {memory_error && (
+                                    <Pill type={PillType.MemoryError} />
                                   )}
                                 </div>
                               </div>

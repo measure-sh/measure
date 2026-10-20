@@ -10,6 +10,20 @@ When an error is reported, its stack trace often comes back obfuscated or full o
 
 If you use ProGuard or R8 to obfuscate your code, Measure needs the mapping files to de-obfuscate stack traces. Measure's Android Gradle Plugin, added in [getting started](/docs/getting-started/android#3-add-the-gradle-plugin), uploads them automatically when you run an `assemble` Gradle task, so there's nothing else to do.
 
+### Native libraries
+
+Native crashes are reported only when native crash reporting is turned on in the `measure` block of your app's `build.gradle.kts`.
+
+```kotlin
+measure {
+  enableNativeCrashReporting = true
+}
+```
+
+After each build, the plugin uploads every native library (`.so` file) that still has symbols. Libraries without symbols, which includes most third-party ones, are skipped. Flutter's `libflutter.so` and `libapp.so` are never uploaded, as Dart symbols come from your `--split-debug-info` files.
+
+It's off by default because unstripped libraries can add hundreds of megabytes to every build.
+
 ## iOS
 
 On iOS, a crash report comes back as bare memory addresses until your dSYM files decode it. Upload the dSYMs with a shell script or straight from an XCArchive, whichever fits your build.

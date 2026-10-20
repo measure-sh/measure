@@ -190,7 +190,13 @@ const FILTER_KEYS: Record<string, string[]> = {
   app_health: ["version_name", "version_code"],
   journeys: VERSION_KEYS,
   funnels: [...VERSION_KEYS, ...DEVICE_KEYS],
-  errors: ["error_type", ...VERSION_KEYS, "user_id", ...DEVICE_KEYS],
+  errors: [
+    "error_type",
+    "memory_error",
+    ...VERSION_KEYS,
+    "user_id",
+    ...DEVICE_KEYS,
+  ],
   error_group_events: [...VERSION_KEYS, "user_id", ...DEVICE_KEYS],
   sessions: [
     "session_events",

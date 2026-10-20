@@ -45,6 +45,7 @@ function instanceAttributes(
 ): Record<string, unknown> {
   return {
     error_type: errorTypeLabel(group),
+    memory_error: group.memory_error,
     ...deviceAttributeBag(instance.attribute),
   };
 }

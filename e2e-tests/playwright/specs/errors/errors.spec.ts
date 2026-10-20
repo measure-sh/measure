@@ -75,9 +75,7 @@ test.describe("errors", () => {
         const replay = new SessionReplayPage(page, teamId);
 
         await expect(replay.eventsList).toBeVisible();
-        const event = replay.selectError(
-          /java\.lang\.IllegalAccessException/,
-        );
+        const event = replay.selectError(/java\.lang\.IllegalAccessException/);
         await expect(event).toBeVisible();
         await expect(
           replay.selectEventPill(event, "Fatal Error"),
@@ -100,7 +98,7 @@ test.describe("errors", () => {
       const subtitle = /^SIGSEGV:SEGV_MAPERR/;
       const errorPill = "Crash";
       const fatalPill = "Fatal";
-      const memoryErrorPill = "Memory error";
+      const gwpAsanPill = "GWP-ASan";
 
       test.beforeEach(() =>
         expect(overview.selectErrorGroupRowByType(subtitle)).toBeVisible(),
@@ -111,7 +109,7 @@ test.describe("errors", () => {
         await expect(row).toBeVisible();
         await expect(overview.selectGroupRowPill(row, errorPill)).toBeVisible();
         await expect(overview.selectGroupRowPill(row, fatalPill)).toBeVisible();
-        await expect(overview.selectGroupRowPill(row, memoryErrorPill)).toHaveCount(
+        await expect(overview.selectGroupRowPill(row, gwpAsanPill)).toHaveCount(
           0,
         );
         await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
@@ -169,105 +167,6 @@ test.describe("errors", () => {
         await event.click();
         await expect(replay.eventDetails).toContainText(
           "libfrank_crash.so (write_through_null) (native_crash.c:16)",
-        );
-
-        await replay.openErrorDetails();
-        await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
-      });
-    });
-
-    test.describe("android gwp-asan memory error", { tag: "@android" }, () => {
-      const subtitle = /^SIGSEGV:Use After Free/;
-      const errorPill = "Crash";
-      const fatalPill = "Fatal";
-      const memoryErrorPill = "Memory error";
-      const freedThenAllocated =
-        /Freed by: main \(\d+\)[\s\S]*\(native_crash\.c:53\)[\s\S]*Allocated by: main \(\d+\)[\s\S]*\(native_crash\.c:52\)/;
-
-      test.beforeEach(() =>
-        expect(overview.selectErrorGroupRowByType(subtitle)).toBeVisible(),
-      );
-
-      test("error group row renders the memory error", async () => {
-        const row = overview.selectErrorGroupRowByType(subtitle);
-        await expect(row).toBeVisible();
-        await expect(overview.selectGroupRowPill(row, errorPill)).toBeVisible();
-        await expect(overview.selectGroupRowPill(row, fatalPill)).toBeVisible();
-        await expect(
-          overview.selectGroupRowPill(row, memoryErrorPill),
-        ).toBeVisible();
-        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
-          /ago$|^just now$/,
-        );
-        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
-        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
-        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
-      });
-
-      test("memory error filter keeps only memory errors", async ({
-        appId,
-      }) => {
-        await overview.gotoMemoryErrors(appId);
-
-        await expect(
-          overview.selectErrorGroupRowByType(subtitle),
-        ).toBeVisible();
-        await expect(
-          overview.selectErrorGroupRowByType(/^SIGSEGV:SEGV_MAPERR/),
-        ).toHaveCount(0);
-        await expect(
-          overview.selectErrorGroupRowByType(
-            /^java\.lang\.IllegalAccessException/,
-          ),
-        ).toHaveCount(0);
-      });
-
-      test("error details renders where the memory was freed and allocated", async ({
-        page,
-        teamId,
-      }) => {
-        await overview.openErrorGroupByType(subtitle);
-        const detail = new ErrorDetailPage(page, teamId);
-
-        await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
-        await expect(detail.selectErrorPill(errorPill)).toBeVisible();
-        await expect(detail.selectErrorPill(fatalPill)).toBeVisible();
-        await expect(detail.selectErrorPill(memoryErrorPill)).toBeVisible();
-
-        await expect(detail.errorThreadStacktrace).toContainText(
-          "libfrank_crash.so (use_after_free) (native_crash.c:54)",
-        );
-        await expect(detail.errorThreadStacktrace).not.toContainText(
-          "Freed by",
-        );
-
-        await expect(detail.memoryError).toContainText(
-          "Memory error caught by GWP-ASan",
-        );
-        await expect(detail.memoryError).toContainText("Use After Free");
-        await expect(detail.memoryError).toContainText(freedThenAllocated);
-        await expect(detail.cause).toHaveCount(0);
-      });
-
-      test("session replay renders the memory error event", async ({
-        page,
-        teamId,
-      }) => {
-        await overview.openErrorGroupByType(subtitle);
-        const detail = new ErrorDetailPage(page, teamId);
-        await detail.openSessionReplay();
-        const replay = new SessionReplayPage(page, teamId);
-
-        await expect(replay.eventsList).toBeVisible();
-        const event = replay.selectError(/Use After Free/);
-        await expect(event).toBeVisible();
-        await expect(
-          replay.selectEventPill(event, "Fatal Error"),
-        ).toBeVisible();
-
-        await event.click();
-        await expect(replay.eventDetails).toContainText(
-          "libfrank_crash.so (use_after_free) (native_crash.c:54)",
         );
 
         await replay.openErrorDetails();
@@ -655,9 +554,7 @@ test.describe("errors", () => {
           ),
         ).toBeVisible();
 
-        await expect(overview.selectGroupRowSubtitle(row)).toContainText(
-          cause,
-        );
+        await expect(overview.selectGroupRowSubtitle(row)).toContainText(cause);
       });
 
       test("error details renders the anr", async ({ page, teamId }) => {
@@ -681,9 +578,7 @@ test.describe("errors", () => {
         await expect(detail.errorThreadStacktrace).toContainText(
           "AnrBroadcastReceiver$Companion.trigger$lambda$0",
         );
-        await expect(detail.errorThreadStacktrace).toContainText(
-          "sleeping on",
-        );
+        await expect(detail.errorThreadStacktrace).toContainText("sleeping on");
 
         await expect(detail.screenshot).toHaveCount(0);
 
@@ -737,10 +632,7 @@ test.describe("errors", () => {
         ).toContainText("sleeping on");
       });
 
-      test("session replay renders the anr event", async ({
-        page,
-        teamId,
-      }) => {
+      test("session replay renders the anr event", async ({ page, teamId }) => {
         await overview.openErrorGroup(selectRow());
         const detail = new ErrorDetailPage(page, teamId);
         await detail.openSessionReplay();
@@ -769,6 +661,109 @@ test.describe("errors", () => {
     test.beforeEach(async ({ page, appId, teamId }) => {
       overview = new ErrorsOverviewPage(page, teamId);
       await overview.gotoUnhandledErrors(appId);
+    });
+
+    // Frank sets gwpAsanMode="always", which is recoverable on Android 15 and
+    // above, so the app keeps running and the memory error is unhandled.
+    test.describe("android gwp-asan memory error", { tag: "@android" }, () => {
+      const subtitle = /^SIGSEGV:Use After Free/;
+      const errorPill = "Error";
+      const unhandledPill = "Unhandled";
+      const gwpAsanPill = "GWP-ASan";
+      const freedThenAllocated =
+        /Freed by: main \(\d+\)[\s\S]*\(native_crash\.c:53\)[\s\S]*Allocated by: main \(\d+\)[\s\S]*\(native_crash\.c:52\)/;
+
+      test.beforeEach(() =>
+        expect(overview.selectErrorGroupRowByType(subtitle)).toBeVisible(),
+      );
+
+      test("error group row renders the memory error", async () => {
+        const row = overview.selectErrorGroupRowByType(subtitle);
+        await expect(row).toBeVisible();
+        await expect(overview.selectGroupRowPill(row, errorPill)).toBeVisible();
+        await expect(
+          overview.selectGroupRowPill(row, unhandledPill),
+        ).toBeVisible();
+        await expect(
+          overview.selectGroupRowPill(row, gwpAsanPill),
+        ).toBeVisible();
+        await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+          /ago$|^just now$/,
+        );
+        await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+        await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+        await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
+      });
+
+      test("memory error filter keeps only memory errors", async ({
+        appId,
+      }) => {
+        await overview.gotoMemoryErrors(appId);
+
+        await expect(
+          overview.selectErrorGroupRowByType(subtitle),
+        ).toBeVisible();
+        await expect(
+          overview.selectErrorGroupRowByType(/^SIGSEGV:SEGV_MAPERR/),
+        ).toHaveCount(0);
+        await expect(
+          overview.selectErrorGroupRowByType(
+            /^java\.lang\.IllegalAccessException/,
+          ),
+        ).toHaveCount(0);
+      });
+
+      test("error details renders where the memory was freed and allocated", async ({
+        page,
+        teamId,
+      }) => {
+        await overview.openErrorGroupByType(subtitle);
+        const detail = new ErrorDetailPage(page, teamId);
+
+        await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
+        await expect(detail.selectErrorPill(errorPill)).toBeVisible();
+        await expect(detail.selectErrorPill(unhandledPill)).toBeVisible();
+        await expect(detail.selectErrorPill(gwpAsanPill)).toBeVisible();
+
+        await expect(detail.errorThreadStacktrace).toContainText(
+          "libfrank_crash.so (use_after_free) (native_crash.c:54)",
+        );
+        await expect(detail.errorThreadStacktrace).not.toContainText(
+          "Freed by",
+        );
+
+        await expect(detail.memoryError).toContainText(
+          "Memory error caught by GWP-ASan",
+        );
+        await expect(detail.memoryError).toContainText("Use After Free");
+        await expect(detail.memoryError).toContainText(freedThenAllocated);
+        await expect(detail.cause).toHaveCount(0);
+      });
+
+      test("session replay renders the memory error event", async ({
+        page,
+        teamId,
+      }) => {
+        await overview.openErrorGroupByType(subtitle);
+        const detail = new ErrorDetailPage(page, teamId);
+        await detail.openSessionReplay();
+        const replay = new SessionReplayPage(page, teamId);
+
+        await expect(replay.eventsList).toBeVisible();
+        const event = replay.selectError(/Use After Free/);
+        await expect(event).toBeVisible();
+        await expect(
+          replay.selectEventPill(event, "Unhandled Error"),
+        ).toBeVisible();
+
+        await event.click();
+        await expect(replay.eventDetails).toContainText(
+          "libfrank_crash.so (use_after_free) (native_crash.c:54)",
+        );
+
+        await replay.openErrorDetails();
+        await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
+      });
     });
 
     test.describe("flutter", () => {
@@ -1446,9 +1441,7 @@ test.describe("errors", () => {
         const replay = new SessionReplayPage(page, teamId);
 
         await expect(replay.eventsList).toBeVisible();
-        const event = replay.selectError(
-          /Error: Simulated handled exception/,
-        );
+        const event = replay.selectError(/Error: Simulated handled exception/);
         await expect(event).toBeVisible();
         await expect(
           replay.selectEventPill(event, "Handled Error"),

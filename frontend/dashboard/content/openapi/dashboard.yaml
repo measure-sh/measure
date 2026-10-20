@@ -1020,6 +1020,10 @@ paths:
         The `error_type` filter key takes the values `Crash`, `ANR`,
         `Handled Error`, `Unhandled Error` and `App Hang`. A value holding a
         space is double-quoted, as in `error_type:in:[Crash, "Handled Error"]`.
+
+        The `memory_error` filter key takes `true` or `false` with the `eq`
+        operator, as in `memory_error:eq:true`, to keep only native Android
+        errors with a memory error caught by GWP-ASan or MTE.
       parameters:
         - name: id
           in: path
@@ -1102,6 +1106,9 @@ paths:
                           type: string
                         line_number:
                           type: number
+                        memory_error:
+                          type: boolean
+                          description: Whether the group's errors are memory errors caught by GWP-ASan or MTE.
                         count:
                           type: number
                         users:
@@ -1219,6 +1226,10 @@ paths:
         The `error_type` filter key takes the values `Crash`, `ANR`,
         `Handled Error`, `Unhandled Error` and `App Hang`. A value holding a
         space is double-quoted, as in `error_type:in:[Crash, "Handled Error"]`.
+
+        The `memory_error` filter key takes `true` or `false` with the `eq`
+        operator, as in `memory_error:eq:true`, to keep only native Android
+        errors with a memory error caught by GWP-ASan or MTE.
       parameters:
         - name: id
           in: path
@@ -1382,6 +1393,71 @@ paths:
                               type: string
                             message:
                               type: string
+                            cause:
+                              type: string
+                              description: >
+                                OS reported cause of a native crash, for example
+                                `Use After Free, 0 bytes into a 32-byte allocation at 0x7718e1afe0`.
+                                Empty for other errors.
+                            memory_error:
+                              type: object
+                              nullable: true
+                              description: >
+                                Memory error caught by GWP-ASan or MTE. Null when the
+                                error is not a memory error.
+                              properties:
+                                tool:
+                                  type: string
+                                  enum:
+                                    - gwp_asan
+                                    - mte
+                                  description: Tool that caught the memory error.
+                                type:
+                                  type: string
+                                  enum:
+                                    - use_after_free
+                                    - double_free
+                                    - invalid_free
+                                    - buffer_overflow
+                                    - buffer_underflow
+                                    - unknown
+                                  description: Kind of memory error.
+                                address:
+                                  type: string
+                                  description: Address of the heap allocation, in hex.
+                                size:
+                                  type: integer
+                                  description: Size of the heap allocation in bytes.
+                                deallocation:
+                                  type: object
+                                  nullable: true
+                                  description: Where the memory was freed. Null when nothing was freed.
+                                  properties:
+                                    thread_id:
+                                      type: integer
+                                    thread_name:
+                                      type: string
+                                      description: Empty when the thread had exited by the time of the crash.
+                                    frames:
+                                      type: array
+                                      description: Rendered frames, one line each.
+                                      items:
+                                        type: string
+                                allocation:
+                                  type: object
+                                  nullable: true
+                                  description: Where the memory was allocated.
+                                  properties:
+                                    thread_id:
+                                      type: integer
+                                    thread_name:
+                                      type: string
+                                      description: Empty when the thread had exited by the time of the crash.
+                                    frames:
+                                      type: array
+                                      description: Rendered frames, one line each.
+                                      items:
+                                        type: string
                         anr:
                           type: object
                           description: Present on ANR events.
