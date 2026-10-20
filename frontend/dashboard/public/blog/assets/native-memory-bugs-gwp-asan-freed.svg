@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 380" width="1200" height="380" font-family="Work Sans, Helvetica, Arial, sans-serif">
+  <defs>
+    <pattern id="hatch" width="12" height="12" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="12" height="12" fill="#262626"/>
+      <line x1="0" y1="0" x2="0" y2="12" stroke="#525252" stroke-width="4"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="380" rx="16" fill="#111111"/>
+
+  <text x="60" y="68" font-size="26" font-weight="600" fill="#a1a1a1">GWP-ASan region, after free(p)</text>
+
+  <g font-size="28" font-family="Fira Code, Menlo, monospace" text-anchor="middle">
+    <text x="206" y="124" fill="#00bcff">p</text>
+    <text x="684" y="124" fill="#a684ff">q</text>
+  </g>
+
+  <g>
+    <rect x="60" y="170" width="70" height="140" rx="6" fill="url(#hatch)" stroke="#737373" stroke-dasharray="6 4"/>
+    <rect x="140" y="170" width="260" height="140" rx="6" fill="url(#hatch)" stroke="#737373" stroke-dasharray="6 4"/>
+    <rect x="410" y="170" width="70" height="140" rx="6" fill="url(#hatch)" stroke="#737373" stroke-dasharray="6 4"/>
+    <rect x="490" y="170" width="260" height="140" rx="6" fill="#171717" stroke="#ffffff33"/>
+    <rect x="760" y="170" width="70" height="140" rx="6" fill="url(#hatch)" stroke="#737373" stroke-dasharray="6 4"/>
+    <rect x="840" y="170" width="230" height="140" rx="6" fill="#171717" stroke="#ffffff33"/>
+    <rect x="1080" y="170" width="60" height="140" rx="6" fill="url(#hatch)" stroke="#737373" stroke-dasharray="6 4"/>
+  </g>
+  <rect x="146" y="200" width="120" height="80" rx="6" fill="none" stroke="#00bcff" stroke-width="3" stroke-dasharray="8 6"/>
+  <rect x="624" y="200" width="120" height="80" rx="6" fill="#a684ff"/>
+
+  <g fill="none" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M206 136 V194 M196 184 L206 194 L216 184" stroke="#00bcff"/>
+    <path d="M684 136 V194 M674 184 L684 194 L694 184" stroke="#a684ff"/>
+  </g>
+
+  <g transform="translate(316 212)" fill="none" stroke="#fafafa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="0" y="24" width="48" height="34" rx="5"/>
+    <path d="M10 24 V15 a14 14 0 0 1 28 0 V24"/>
+  </g>
+
+  <g font-size="20" fill="#a1a1a1" text-anchor="middle">
+    <text x="95" y="346">guard</text>
+    <text x="270" y="346" fill="#fafafa">freed, blocked</text>
+    <text x="445" y="346">guard</text>
+    <text x="620" y="346">page</text>
+    <text x="795" y="346">guard</text>
+    <text x="955" y="346">page</text>
+    <text x="1110" y="346">guard</text>
+  </g>
+</svg>

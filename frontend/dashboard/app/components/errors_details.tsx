@@ -19,6 +19,11 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import { cn } from "../utils/shadcn_utils";
+import type { MemoryError } from "../api/api_calls";
+import {
+  memoryErrorStackSections,
+  memoryErrorToolName,
+} from "../utils/memory_error";
 import {
   formatDateToHumanReadableDateTime,
   formatMillisToHumanReadable,
@@ -209,6 +214,35 @@ function renderThread(
   );
 }
 
+function MemoryErrorSection({
+  memoryError,
+  cause,
+}: {
+  memoryError: MemoryError;
+  cause: string;
+}): ReactNode {
+  return (
+    <div
+      className={cn(CODE_BLOCK_CARD_CLASS, "flex flex-col gap-2 pt-3.5")}
+      data-testid="exception-detail-memory-error"
+    >
+      <div className="flex flex-col gap-1 px-4 font-body">
+        <p className="font-display text-base">
+          Memory error caught by {memoryErrorToolName(memoryError.tool)}
+        </p>
+        {cause && <p className="text-sm">{cause}</p>}
+      </div>
+      <CodeBlock
+        language="java"
+        className="text-xs leading-relaxed"
+        code={memoryErrorStackSections(memoryError)
+          .map(({ title, stack }) => [title, ...stack.frames].join("\n"))
+          .join("\n\n")}
+      />
+    </div>
+  );
+}
+
 function renderAttributeRow(key: string, value: unknown): ReactNode {
   const isObject = typeof value === "object" && value !== null;
   return (
@@ -309,6 +343,10 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
 
   const extraAttributeRows: Array<[string, unknown]> = [];
   if (firstResult) {
+    // A memory error shows its cause in its own section.
+    if (firstResult.exception?.cause && !firstResult.exception.memory_error) {
+      extraAttributeRows.push(["cause", firstResult.exception.cause]);
+    }
     if (firstResult.anr?.cause) {
       extraAttributeRows.push(["cause", firstResult.anr.cause]);
     }
@@ -479,6 +517,9 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
                   {firstResult.severity === "handled" && (
                     <Pill type={PillType.Handled} />
                   )}
+                  {firstResult.exception?.memory_error && (
+                    <Pill type={PillType.MemoryError} />
+                  )}
                   <Pill
                     data-testid="exception-detail-timestamp"
                     tooltip
@@ -562,6 +603,15 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
                         renderAttributeRow(k, v),
                       )}
                     </div>
+                    <div className="py-4" />
+                  </>
+                )}
+                {firstResult.exception?.memory_error && (
+                  <>
+                    <MemoryErrorSection
+                      memoryError={firstResult.exception.memory_error}
+                      cause={firstResult.exception.cause}
+                    />
                     <div className="py-4" />
                   </>
                 )}

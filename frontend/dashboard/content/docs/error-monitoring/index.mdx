@@ -64,6 +64,47 @@ An [ANR](https://developer.android.com/topic/performance/vitals/anr) (Applicatio
 On Android 11 and above, the ANR is read from [ApplicationExitInfo](https://developer.android.com/reference/android/app/ApplicationExitInfo). Below Android 11, the ANR is caught by intercepting the SIGQUIT signal
 and capturing a stack trace manually when it happens.
 
+## Native Crashes (Android)
+
+<Callout type="info">
+
+Native crashes require Measure Android SDK **0.23.0** or later and Measure Android Gradle Plugin **0.15.0** or later.
+
+</Callout>
+
+Native crashes in C, C++, Rust, or any other native code, including third-party SDKs, are reported on Android 12 and above. Native crash reporting is not turned on by default. To turn it on, set `enableNativeCrashReporting` in the `measure` block of your app's `build.gradle.kts`:
+
+```kotlin
+measure {
+  enableNativeCrashReporting = true
+}
+```
+
+### Memory errors
+
+Native crashes caused by a memory error, like a use after free, a double free, or a buffer overflow, also show where the memory was allocated and where it was freed. These errors are marked with a **GWP-ASan** label on the Errors page, and you can filter the page by **Memory error** to see only them.
+
+Memory errors are caught by [GWP-ASan](https://developer.android.com/ndk/guides/gwp-asan) and by [Arm Memory Tagging Extension (MTE)](https://developer.android.com/ndk/guides/arm-mte) on devices and apps that have it turned on. GWP-ASan is built into Android and checks a small, random sample of your app's memory allocations. When it catches a memory error, what happens next depends on the mode it runs in.
+
+- **Recoverable mode.** The app keeps running. Measure reports the memory error as an **unhandled** error the next time the app starts.
+- **Crashing mode.** The app crashes as soon as the memory error happens. Measure reports it as a **fatal** crash, the same as any other native crash.
+
+The mode depends on the Android version, and on whether you set `android:gwpAsanMode="always"` on the `<application>` tag in your `AndroidManifest.xml`.
+
+```xml
+<application
+    android:gwpAsanMode="always"
+    ... >
+```
+
+| Android version | `gwpAsanMode` not set | `gwpAsanMode="always"` |
+| --- | --- | --- |
+| 12 and 13 | Off | Crashing mode |
+| 14 | Recoverable mode | Crashing mode |
+| 15 and above | Recoverable mode | Recoverable mode |
+
+GWP-ASan doesn't run on every launch of your app by default. On Android 14 and above, when you don't set `gwpAsanMode`, Android turns GWP-ASan on for about 1% of app launches. When you set `gwpAsanMode="always"`, GWP-ASan runs on every launch of your app, on all supported Android versions.
+
 ## App hang reporting
 
 <Callout type="info">

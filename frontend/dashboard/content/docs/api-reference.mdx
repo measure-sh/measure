@@ -353,6 +353,16 @@ Measure.trackHandledException(e, attributes)
 </Tab>
 </Tabs>
 
+### Enable native crash reporting
+
+Native crashes are reported on Android 12 and above. Native crash reporting is not turned on by default. To turn it on, set `enableNativeCrashReporting` in the `measure` block of your app's `build.gradle.kts`:
+
+```kotlin
+measure {
+  enableNativeCrashReporting = true
+}
+```
+
 ## Track custom events
 
 Track app-specific events like user actions or feature usage with `trackEvent`.

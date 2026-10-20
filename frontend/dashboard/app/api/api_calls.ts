@@ -303,6 +303,31 @@ export const emptySpansResponse = {
   }[],
 };
 
+export type MemoryErrorStack = {
+  thread_id: number;
+  thread_name: string;
+  frames: string[];
+};
+
+export type MemoryErrorTool = "gwp_asan" | "mte";
+
+export type MemoryErrorType =
+  | "use_after_free"
+  | "double_free"
+  | "invalid_free"
+  | "buffer_overflow"
+  | "buffer_underflow"
+  | "unknown";
+
+export type MemoryError = {
+  tool: MemoryErrorTool;
+  type: MemoryErrorType;
+  address: string;
+  size: number;
+  deallocation: MemoryErrorStack | null;
+  allocation: MemoryErrorStack | null;
+};
+
 export const emptyErrorGroup = {
   id: "",
   app_id: "",
@@ -314,6 +339,7 @@ export const emptyErrorGroup = {
   method_name: "",
   file_name: "",
   line_number: 0,
+  memory_error: false,
   count: 0,
   users: 0,
   sessions: 0,
@@ -370,7 +396,15 @@ const emptyErrorGroupDetailsItem = {
     title: "",
     stacktrace: "",
     message: "",
-  } as { title: string; stacktrace: string; message: string } | null,
+    cause: "",
+    memory_error: null,
+  } as {
+    title: string;
+    stacktrace: string;
+    message: string;
+    cause: string;
+    memory_error: MemoryError | null;
+  } | null,
   anr: {
     title: "",
     stacktrace: "",

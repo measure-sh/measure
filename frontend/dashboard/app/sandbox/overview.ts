@@ -95,6 +95,15 @@ const K = {
     ["in", "not_in"],
     "full_list",
   ),
+  memoryError: key(
+    "memory_error",
+    "Memory error",
+    "Filter native Android errors caught by GWP-ASan or MTE.",
+    "Error",
+    "bool",
+    ["eq"],
+    "full_list",
+  ),
   sessionEvents: key(
     "session_events",
     "Events",
@@ -332,7 +341,13 @@ const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
   app_health: [K.versionName, K.versionCode],
   journeys: versionKeys,
   funnels: [...versionKeys, ...deviceTailKeys],
-  errors: [K.errorType, ...versionKeys, K.userId, ...deviceTailKeys],
+  errors: [
+    K.errorType,
+    K.memoryError,
+    ...versionKeys,
+    K.userId,
+    ...deviceTailKeys,
+  ],
   error_group_events: [...versionKeys, K.userId, ...deviceTailKeys],
   sessions: [
     K.sessionEvents,
@@ -500,6 +515,7 @@ function actualValuesFor(
 
 const STATIC_VALUES_BY_KEY: Record<string, FilterValue[]> = {
   error_type: values(["Crash", "ANR", "Handled Error", "Unhandled Error"]),
+  memory_error: values(["true", "false"]),
   http_method: values(["get", "post", "put", "patch", "delete"]),
   mapping_type: values(["proguard", "dsym", "elf_debug", "jsbundle"]),
   bug_report_status: [

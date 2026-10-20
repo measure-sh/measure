@@ -2,10 +2,11 @@ import { describe, expect, it } from "@jest/globals";
 import { androidNativeScenario } from "@/app/sandbox/platforms/android";
 
 const scenario = androidNativeScenario;
+const jvmExceptions = scenario.exceptions.filter((e) => e.framework === "jvm");
 
 describe("androidNativeScenario", () => {
   it("opens every stacktrace with the exception type and indents the frames", () => {
-    for (const spec of scenario.exceptions) {
+    for (const spec of jvmExceptions) {
       const [title, ...rest] = spec.stacktrace.split("\n");
       expect(title.startsWith(spec.exceptions[0].type)).toBe(true);
       for (const line of rest) {
@@ -17,7 +18,7 @@ describe("androidNativeScenario", () => {
   });
 
   it("names the app's own frames with the app package and a Kotlin file", () => {
-    for (const spec of scenario.exceptions) {
+    for (const spec of jvmExceptions) {
       const appFrames = spec.exceptions
         .flatMap((unit) => unit.frames)
         .filter((frame) => frame.in_app);
@@ -26,6 +27,17 @@ describe("androidNativeScenario", () => {
         expect(frame.class_name).toMatch(/^com\.acme\.shop\./);
         expect(frame.file_name).toMatch(/\.kt$|^Unknown Source$/);
       }
+    }
+  });
+
+  it("reports each native crash as the frames the backend renders", () => {
+    const native = scenario.exceptions.filter((e) => e.framework === "ndk");
+    expect(native.length).toBeGreaterThan(0);
+    for (const spec of native) {
+      expect(spec.stacktrace).toMatch(/^#00 pc 0x[0-9a-f]{16} {2}/);
+      expect(spec.cause).not.toMatch(/GWP-ASan/);
+      expect(spec.stacktrace).not.toContain("Allocated by");
+      expect(spec.stacktrace).not.toContain("Freed by");
     }
   });
 

@@ -7,6 +7,10 @@ import {
   emptyErrorGroupDetails,
   fetchSessionReplayFromServer,
 } from "../api/api_calls";
+import {
+  memoryErrorStackSections,
+  memoryErrorToolName,
+} from "../utils/memory_error";
 import { replayEventsFrom, type ReplayEvent } from "../utils/replay_events";
 import {
   formatDateToHumanReadableDateTime,
@@ -197,6 +201,7 @@ const CopyAgentPrompt: React.FC<CopyAgentPromptProps> = ({
       ["message", errorEvent.exception?.message],
       ["state", errorEvent.app_hang?.state],
       ["duration_ms", errorEvent.app_hang?.duration],
+      ["cause", errorEvent.exception?.cause],
       ["code", errorEvent.code],
       ["num_code", errorEvent.num_code],
       ["timestamp", formatDateToHumanReadableDateTime(errorEvent.timestamp)],
@@ -236,6 +241,20 @@ const CopyAgentPrompt: React.FC<CopyAgentPromptProps> = ({
       .join("\n");
     if (attachments) {
       sections.push("## Attachments\n" + attachments);
+    }
+
+    const memoryError = errorEvent.exception?.memory_error;
+    if (memoryError) {
+      const stacks = memoryErrorStackSections(memoryError)
+        .map(
+          ({ title, stack }) =>
+            `### ${title}\n` + codeBlock(stack.frames.join("\n")),
+        )
+        .join("\n\n");
+      sections.push(
+        `## Memory error caught by ${memoryErrorToolName(memoryError.tool)}\n` +
+          stacks,
+      );
     }
 
     const stacktrace =

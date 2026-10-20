@@ -68,7 +68,7 @@ export class ErrorsOverviewPage {
   }
 
   async gotoMemoryErrors(appId: string) {
-    await this.goto(appId, "Crash", "memory_error:eq:true");
+    await this.goto(appId, "Unhandled Error", "memory_error:eq:true");
   }
 
   private async goto(appId: string, errorType: string, extraFilter?: string) {

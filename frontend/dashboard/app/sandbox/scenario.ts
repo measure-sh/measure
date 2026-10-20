@@ -1,9 +1,14 @@
+import type {
+  MemoryErrorStack,
+  MemoryErrorTool,
+  MemoryErrorType,
+} from "../api/api_calls";
 import type { ScreenKey, UiStyle } from "./layouts";
 
 export type OsName = "android" | "ios";
 export type Framework = "native" | "flutter" | "react_native";
 export type MappingType = "proguard" | "dsym" | "elf_debug" | "jsbundle";
-export type ExceptionFramework = "jvm" | "apple" | "dart" | "js";
+export type ExceptionFramework = "jvm" | "apple" | "dart" | "js" | "ndk";
 
 export type AppSpec = {
   id: string;
@@ -94,6 +99,15 @@ export type ExceptionSpec = {
   handled: boolean;
   foreground: boolean;
   framework: ExceptionFramework;
+  cause?: string;
+  memory_error?: {
+    tool: MemoryErrorTool;
+    type: MemoryErrorType;
+    address?: string;
+    size?: number;
+    deallocation?: MemoryErrorStack;
+    allocation?: MemoryErrorStack;
+  };
   exceptions: {
     type: string;
     message: string;

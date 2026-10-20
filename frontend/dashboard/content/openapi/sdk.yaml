@@ -552,9 +552,10 @@ paths:
                                       binary_name:
                                         type: string
                                         description: >
-                                          Name of the iOS binary image, for example
-                                          `UIKitCore`. Used for selecting the binary
-                                          image to use for symbolication.
+                                          Name of the binary image, for example
+                                          `UIKitCore` on iOS or `libfoo.so` for native
+                                          Android crashes. Used for selecting the
+                                          binary image to use for symbolication.
                                       symbol_address:
                                         type: string
                                         description: >
@@ -650,27 +651,29 @@ paths:
                                   type: string
                                   description: >
                                     Start address, where the binary is loaded into
-                                    virtual memory. Only applies to Apple apps.
+                                    virtual memory. Applies to Apple apps and native
+                                    Android crashes.
                                 end_addr:
                                   type: string
                                   description: >
                                     End address, the upper memory boundary of the
-                                    binary. Only applies to Apple apps.
+                                    binary. Applies to Apple apps and native Android
+                                    crashes.
                                 base_addr:
                                   type: string
                                   description: >
-                                    Base address of symbols, only applies to Dart
-                                    exceptions.
+                                    Base address of symbols. Applies to Dart exceptions
+                                    and native Android crashes.
                                 system:
                                   type: boolean
                                   description: >
-                                    Binary marker indicating a system binary, only
-                                    applies to Apple apps.
+                                    Binary marker indicating a system binary. Applies
+                                    to Apple apps and native Android crashes.
                                 name:
                                   type: string
                                   description: >
-                                    Name of the app, framework or library binary, only
-                                    applies to Apple apps.
+                                    Name of the app, framework or library binary.
+                                    Applies to Apple apps and native Android crashes.
                                 arch:
                                   type: string
                                   description: CPU architecture the binary is compiled for.
@@ -681,7 +684,8 @@ paths:
                                   type: string
                                   description: >
                                     Full path to where the binary was located at
-                                    runtime, only applies to Apple apps.
+                                    runtime. Applies to Apple apps and native Android
+                                    crashes.
                           framework:
                             type: string
                             enum:
@@ -689,9 +693,87 @@ paths:
                               - jvm
                               - apple
                               - js
+                              - ndk
                             description: >
                               Specifies the framework where the exception originated
-                              from.
+                              from. `ndk` is a native C or C++ crash on Android.
+                          abort_message:
+                            type: string
+                            description: >
+                              Message passed to abort by the native code that crashed.
+                              Only applies to `ndk` exceptions.
+                          cause:
+                            type: string
+                            description: >
+                              OS reported summary of the likely cause, for example
+                              `null pointer dereference`. Only applies to `ndk`
+                              exceptions.
+                          memory_error:
+                            type: object
+                            nullable: true
+                            description: >
+                              Memory error caught by GWP-ASan or MTE, with where the
+                              memory was allocated and freed. Only applies to `ndk`
+                              exceptions.
+                            properties:
+                              tool:
+                                type: string
+                                enum:
+                                  - gwp_asan
+                                  - mte
+                                description: Tool that caught the memory error.
+                              type:
+                                type: string
+                                enum:
+                                  - use_after_free
+                                  - double_free
+                                  - invalid_free
+                                  - buffer_overflow
+                                  - buffer_underflow
+                                  - unknown
+                                description: Kind of memory error.
+                              address:
+                                type: string
+                                description: Address of the heap allocation, in hex.
+                              size:
+                                type: integer
+                                description: Size of the heap allocation in bytes.
+                              allocation:
+                                type: object
+                                description: Stack of the thread that allocated the memory.
+                                properties:
+                                  thread_id:
+                                    type: integer
+                                    description: Id of the thread.
+                                  thread_name:
+                                    type: string
+                                    description: >
+                                      Name of the thread. Absent when the thread had
+                                      exited by the time of the crash.
+                                  frames:
+                                    type: array
+                                    description: Same shape as the frames under `exceptions`.
+                                    items:
+                                      type: object
+                              deallocation:
+                                type: object
+                                description: >
+                                  Stack of the thread that freed the memory. Absent when
+                                  nothing was freed, as with a buffer overflow.
+                                properties:
+                                  thread_id:
+                                    type: integer
+                                    description: Id of the thread.
+                                  thread_name:
+                                    type: string
+                                    description: >
+                                      Name of the thread. Absent when the thread had
+                                      exited by the time of the crash.
+                                  frames:
+                                    type: array
+                                    description: Same shape as the frames under `exceptions`.
+                                    items:
+                                      type: object
                           is_custom:
                             type: boolean
                             description: >

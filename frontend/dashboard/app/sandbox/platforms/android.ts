@@ -2633,6 +2633,513 @@ const androidExceptions: ExceptionSpec[] = [
 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:697)
 	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:684)`,
   },
+  {
+    key: "gwp_asan_uaf_hero_blur",
+    kind: "exception",
+    type: "SIGSEGV",
+    message: "Use After Free",
+    severity: "fatal",
+    handled: false,
+    foreground: true,
+    framework: "ndk",
+    memory_error: {
+      tool: "gwp_asan",
+      type: "use_after_free",
+      address: "0x79c2f4bfd0",
+      size: 48,
+      deallocation: {
+        thread_id: 23741,
+        thread_name: "main",
+        frames: [
+          "#00 pc 0x0000000000047c64  libc.so (gwp_asan::AllocationMetadata::CallSiteInfo::RecordBacktrace(unsigned long (*)(unsigned long*, unsigned long)))",
+          "#01 pc 0x0000000000048388  libc.so (gwp_asan::GuardedPoolAllocator::deallocate(void*))",
+          "#02 pc 0x000000000001c7f0  libacme_imaging.so (acme::RowCache::evict(unsigned long)) (row_cache.cpp:54)",
+          "#03 pc 0x000000000001c5d8  libacme_imaging.so (acme::RowCache::trimTo(unsigned long)) (row_cache.cpp:71)",
+          "#04 pc 0x000000000001ba64  libacme_imaging.so (Java_com_acme_shop_imaging_NativeBlur_nativeTrimMemory) (native_blur.cpp:44)",
+          "#05 pc 0x0000000000222244  libart.so (art_quick_generic_jni_trampoline)",
+        ],
+      },
+      allocation: {
+        thread_id: 23790,
+        thread_name: "glide-source-thread-1",
+        frames: [
+          "#00 pc 0x0000000000047c64  libc.so (gwp_asan::AllocationMetadata::CallSiteInfo::RecordBacktrace(unsigned long (*)(unsigned long*, unsigned long)))",
+          "#01 pc 0x0000000000048294  libc.so (gwp_asan::GuardedPoolAllocator::allocate(unsigned long, unsigned long))",
+          "#02 pc 0x000000000003c298  libc.so (gwp_asan_malloc(unsigned long))",
+          "#03 pc 0x000000000003ccc4  libc.so (malloc)",
+          "#04 pc 0x000000000001c3b8  libacme_imaging.so (acme::RowCache::acquire(int)) (row_cache.cpp:32)",
+          "#05 pc 0x000000000001e05c  libacme_imaging.so (acme::BlurFilter::apply(acme::Bitmap&, int)) (blur_filter.cpp:36)",
+          "#06 pc 0x000000000001b9a0  libacme_imaging.so (Java_com_acme_shop_imaging_NativeBlur_nativeApply) (native_blur.cpp:27)",
+          "#07 pc 0x0000000000222244  libart.so (art_quick_generic_jni_trampoline)",
+        ],
+      },
+    },
+    cause: "Use After Free, 16 bytes into a 48-byte allocation at 0x79c2f4bfd0",
+    exceptions: [
+      {
+        type: "SIGSEGV",
+        message: "SEGV_ACCERR at 0xb4000079c2f4bfe0",
+        signal: "SIGSEGV",
+        thread_name: "glide-source-thread-1",
+        frames: [
+          {
+            frame_index: 0,
+            binary_name: "libacme_imaging.so",
+            offset: 0x1e2c8,
+            method_name:
+              "acme::BlurFilter::blurRow(unsigned char const*, unsigned char*, int)",
+            file_name: "blur_filter.cpp",
+            line_num: 88,
+            in_app: true,
+          },
+          {
+            frame_index: 1,
+            binary_name: "libacme_imaging.so",
+            offset: 0x1e0f4,
+            method_name: "acme::BlurFilter::apply(acme::Bitmap&, int)",
+            file_name: "blur_filter.cpp",
+            line_num: 41,
+            in_app: true,
+          },
+          {
+            frame_index: 2,
+            binary_name: "libacme_imaging.so",
+            offset: 0x1b9a0,
+            method_name: "Java_com_acme_shop_imaging_NativeBlur_nativeApply",
+            file_name: "native_blur.cpp",
+            line_num: 27,
+            in_app: true,
+          },
+          {
+            frame_index: 3,
+            binary_name: "libart.so",
+            offset: 0x222244,
+            method_name: "art_quick_generic_jni_trampoline",
+            in_app: false,
+          },
+          {
+            frame_index: 4,
+            binary_name: "libart.so",
+            offset: 0x218be8,
+            method_name: "art_quick_invoke_stub",
+            in_app: false,
+          },
+          {
+            frame_index: 5,
+            binary_name: "libart.so",
+            offset: 0x2a3f1c,
+            method_name:
+              "art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)",
+            in_app: false,
+          },
+          {
+            frame_index: 6,
+            binary_name: "libart.so",
+            offset: 0x4b6d30,
+            method_name:
+              "art::interpreter::ArtInterpreterToCompiledCodeBridge(art::Thread*, art::ArtMethod*, art::ShadowFrame*, unsigned short, art::JValue*)",
+            in_app: false,
+          },
+          {
+            frame_index: 7,
+            binary_name: "base.odex",
+            offset: 0x52c6e8,
+            method_name: "com.acme.shop.imaging.NativeBlur.apply",
+            in_app: false,
+          },
+          {
+            frame_index: 8,
+            binary_name: "base.odex",
+            offset: 0x52c41c,
+            method_name:
+              "com.acme.shop.imaging.HeroBlurTransformation.transform",
+            in_app: false,
+          },
+          {
+            frame_index: 9,
+            binary_name: "base.odex",
+            offset: 0x4e81c4,
+            method_name:
+              "com.bumptech.glide.load.resource.bitmap.BitmapTransformation.transform",
+            in_app: false,
+          },
+          {
+            frame_index: 10,
+            binary_name: "base.odex",
+            offset: 0x4d2a58,
+            method_name:
+              "com.bumptech.glide.load.engine.DecodeJob.transformEncodeAndTranscode",
+            in_app: false,
+          },
+          {
+            frame_index: 11,
+            binary_name: "base.odex",
+            offset: 0x4d1f9c,
+            method_name:
+              "com.bumptech.glide.load.engine.DecodeJob.decodeFromRetrievedData",
+            in_app: false,
+          },
+          {
+            frame_index: 12,
+            binary_name: "base.odex",
+            offset: 0x4d0b40,
+            method_name: "com.bumptech.glide.load.engine.DecodeJob.run",
+            in_app: false,
+          },
+          {
+            frame_index: 13,
+            binary_name: "boot.oat",
+            offset: 0x36a1f4,
+            method_name: "java.util.concurrent.ThreadPoolExecutor.runWorker",
+            in_app: false,
+          },
+          {
+            frame_index: 14,
+            binary_name: "boot.oat",
+            offset: 0x36b0d8,
+            method_name: "java.util.concurrent.ThreadPoolExecutor$Worker.run",
+            in_app: false,
+          },
+          {
+            frame_index: 15,
+            binary_name: "base.odex",
+            offset: 0x4f2c10,
+            method_name:
+              "com.bumptech.glide.load.engine.executor.GlideExecutor$DefaultThreadFactory$1.run",
+            in_app: false,
+          },
+          {
+            frame_index: 16,
+            binary_name: "boot.oat",
+            offset: 0x1d5e64,
+            method_name: "java.lang.Thread.run",
+            in_app: false,
+          },
+          {
+            frame_index: 17,
+            binary_name: "libart.so",
+            offset: 0x218be8,
+            method_name: "art_quick_invoke_stub",
+            in_app: false,
+          },
+          {
+            frame_index: 18,
+            binary_name: "libart.so",
+            offset: 0x2a3f1c,
+            method_name:
+              "art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)",
+            in_app: false,
+          },
+          {
+            frame_index: 19,
+            binary_name: "libart.so",
+            offset: 0x5d81a4,
+            method_name: "art::Thread::CreateCallback(void*)",
+            in_app: false,
+          },
+          {
+            frame_index: 20,
+            binary_name: "libc.so",
+            offset: 0xc89b4,
+            method_name: "__pthread_start(void*)",
+            in_app: false,
+          },
+          {
+            frame_index: 21,
+            binary_name: "libc.so",
+            offset: 0x5ed50,
+            method_name: "__start_thread",
+            in_app: false,
+          },
+        ],
+      },
+    ],
+    threads: [
+      {
+        name: "main",
+        frames: [
+          {
+            frame_index: 0,
+            binary_name: "libc.so",
+            offset: 0xa3f8c,
+            method_name: "__epoll_pwait",
+            in_app: false,
+          },
+          {
+            frame_index: 1,
+            binary_name: "libutils.so",
+            offset: 0x1691c,
+            method_name: "android::Looper::pollInner(int)",
+            in_app: false,
+          },
+          {
+            frame_index: 2,
+            binary_name: "libutils.so",
+            offset: 0x16524,
+            method_name: "android::Looper::pollOnce(int, int*, int*, void**)",
+            in_app: false,
+          },
+          {
+            frame_index: 3,
+            binary_name: "libandroid_runtime.so",
+            offset: 0x14ae0c,
+            method_name:
+              "android::android_os_MessageQueue_nativePollOnce(_JNIEnv*, _jobject*, long, int)",
+            in_app: false,
+          },
+          {
+            frame_index: 4,
+            binary_name: "boot-framework.oat",
+            offset: 0x19c22c,
+            method_name: "art_jni_trampoline",
+            in_app: false,
+          },
+          {
+            frame_index: 5,
+            binary_name: "boot-framework.oat",
+            offset: 0x5d2f40,
+            method_name: "android.os.MessageQueue.next",
+            in_app: false,
+          },
+          {
+            frame_index: 6,
+            binary_name: "boot-framework.oat",
+            offset: 0x5b9e14,
+            method_name: "android.os.Looper.loopOnce",
+            in_app: false,
+          },
+          {
+            frame_index: 7,
+            binary_name: "boot-framework.oat",
+            offset: 0x5ba6c8,
+            method_name: "android.os.Looper.loop",
+            in_app: false,
+          },
+          {
+            frame_index: 8,
+            binary_name: "boot-framework.oat",
+            offset: 0x3e8d50,
+            method_name: "android.app.ActivityThread.main",
+            in_app: false,
+          },
+        ],
+      },
+      {
+        name: "RenderThread",
+        frames: [
+          {
+            frame_index: 0,
+            binary_name: "libc.so",
+            offset: 0x5a4b8,
+            method_name: "syscall",
+            in_app: false,
+          },
+          {
+            frame_index: 1,
+            binary_name: "libhwui.so",
+            offset: 0x2b7f40,
+            method_name:
+              "android::uirenderer::renderthread::RenderThread::threadLoop()",
+            in_app: false,
+          },
+          {
+            frame_index: 2,
+            binary_name: "libutils.so",
+            offset: 0x11b0c,
+            method_name: "android::Thread::_threadLoop(void*)",
+            in_app: false,
+          },
+          {
+            frame_index: 3,
+            binary_name: "libc.so",
+            offset: 0xc89b4,
+            method_name: "__pthread_start(void*)",
+            in_app: false,
+          },
+          {
+            frame_index: 4,
+            binary_name: "libc.so",
+            offset: 0x5ed50,
+            method_name: "__start_thread",
+            in_app: false,
+          },
+        ],
+      },
+      {
+        name: "glide-source-thread-2",
+        frames: [
+          {
+            frame_index: 0,
+            binary_name: "libc.so",
+            offset: 0x5a4b8,
+            method_name: "syscall",
+            in_app: false,
+          },
+          {
+            frame_index: 1,
+            binary_name: "libart.so",
+            offset: 0x2f6c1c,
+            method_name:
+              "art::ConditionVariable::WaitHoldingLocks(art::Thread*)",
+            in_app: false,
+          },
+          {
+            frame_index: 2,
+            binary_name: "boot.oat",
+            offset: 0x2c8e74,
+            method_name: "java.lang.Object.wait",
+            in_app: false,
+          },
+          {
+            frame_index: 3,
+            binary_name: "boot.oat",
+            offset: 0x4a1c28,
+            method_name: "java.util.concurrent.locks.LockSupport.park",
+            in_app: false,
+          },
+          {
+            frame_index: 4,
+            binary_name: "boot.oat",
+            offset: 0x36f3a0,
+            method_name: "java.util.concurrent.LinkedBlockingQueue.take",
+            in_app: false,
+          },
+          {
+            frame_index: 5,
+            binary_name: "boot.oat",
+            offset: 0x36a0b8,
+            method_name: "java.util.concurrent.ThreadPoolExecutor.getTask",
+            in_app: false,
+          },
+          {
+            frame_index: 6,
+            binary_name: "boot.oat",
+            offset: 0x36a1f4,
+            method_name: "java.util.concurrent.ThreadPoolExecutor.runWorker",
+            in_app: false,
+          },
+          {
+            frame_index: 7,
+            binary_name: "boot.oat",
+            offset: 0x1d5e64,
+            method_name: "java.lang.Thread.run",
+            in_app: false,
+          },
+          {
+            frame_index: 8,
+            binary_name: "libc.so",
+            offset: 0xc89b4,
+            method_name: "__pthread_start(void*)",
+            in_app: false,
+          },
+          {
+            frame_index: 9,
+            binary_name: "libc.so",
+            offset: 0x5ed50,
+            method_name: "__start_thread",
+            in_app: false,
+          },
+        ],
+      },
+      {
+        name: "OkHttp Dispatcher",
+        frames: [
+          {
+            frame_index: 0,
+            binary_name: "libc.so",
+            offset: 0x5a4b8,
+            method_name: "syscall",
+            in_app: false,
+          },
+          {
+            frame_index: 1,
+            binary_name: "libart.so",
+            offset: 0x2f6c1c,
+            method_name:
+              "art::ConditionVariable::WaitHoldingLocks(art::Thread*)",
+            in_app: false,
+          },
+          {
+            frame_index: 2,
+            binary_name: "boot.oat",
+            offset: 0x2c8e74,
+            method_name: "java.lang.Object.wait",
+            in_app: false,
+          },
+          {
+            frame_index: 3,
+            binary_name: "boot.oat",
+            offset: 0x4a1c28,
+            method_name: "java.util.concurrent.locks.LockSupport.park",
+            in_app: false,
+          },
+          {
+            frame_index: 4,
+            binary_name: "boot.oat",
+            offset: 0x36f3a0,
+            method_name: "java.util.concurrent.LinkedBlockingQueue.take",
+            in_app: false,
+          },
+          {
+            frame_index: 5,
+            binary_name: "boot.oat",
+            offset: 0x36a0b8,
+            method_name: "java.util.concurrent.ThreadPoolExecutor.getTask",
+            in_app: false,
+          },
+          {
+            frame_index: 6,
+            binary_name: "boot.oat",
+            offset: 0x36a1f4,
+            method_name: "java.util.concurrent.ThreadPoolExecutor.runWorker",
+            in_app: false,
+          },
+          {
+            frame_index: 7,
+            binary_name: "boot.oat",
+            offset: 0x1d5e64,
+            method_name: "java.lang.Thread.run",
+            in_app: false,
+          },
+          {
+            frame_index: 8,
+            binary_name: "libc.so",
+            offset: 0xc89b4,
+            method_name: "__pthread_start(void*)",
+            in_app: false,
+          },
+          {
+            frame_index: 9,
+            binary_name: "libc.so",
+            offset: 0x5ed50,
+            method_name: "__start_thread",
+            in_app: false,
+          },
+        ],
+      },
+    ],
+    file_name: "blur_filter.cpp",
+    method_name:
+      "acme::BlurFilter::blurRow(unsigned char const*, unsigned char*, int)",
+    line_number: 88,
+    stacktrace: `#00 pc 0x000000000001e2c8  libacme_imaging.so (acme::BlurFilter::blurRow(unsigned char const*, unsigned char*, int)) (blur_filter.cpp:88)
+#01 pc 0x000000000001e0f4  libacme_imaging.so (acme::BlurFilter::apply(acme::Bitmap&, int)) (blur_filter.cpp:41)
+#02 pc 0x000000000001b9a0  libacme_imaging.so (Java_com_acme_shop_imaging_NativeBlur_nativeApply) (native_blur.cpp:27)
+    ... 4 internal frames ...
+#07 pc 0x000000000052c6e8  base.odex (com.acme.shop.imaging.NativeBlur.apply)
+#08 pc 0x000000000052c41c  base.odex (com.acme.shop.imaging.HeroBlurTransformation.transform)
+#09 pc 0x00000000004e81c4  base.odex (com.bumptech.glide.load.resource.bitmap.BitmapTransformation.transform)
+#10 pc 0x00000000004d2a58  base.odex (com.bumptech.glide.load.engine.DecodeJob.transformEncodeAndTranscode)
+#11 pc 0x00000000004d1f9c  base.odex (com.bumptech.glide.load.engine.DecodeJob.decodeFromRetrievedData)
+#12 pc 0x00000000004d0b40  base.odex (com.bumptech.glide.load.engine.DecodeJob.run)
+#13 pc 0x000000000036a1f4  boot.oat (java.util.concurrent.ThreadPoolExecutor.runWorker)
+#14 pc 0x000000000036b0d8  boot.oat (java.util.concurrent.ThreadPoolExecutor$Worker.run)
+#15 pc 0x00000000004f2c10  base.odex (com.bumptech.glide.load.engine.executor.GlideExecutor$DefaultThreadFactory$1.run)
+#16 pc 0x00000000001d5e64  boot.oat (java.lang.Thread.run)
+    ... 3 internal frames ...
+#20 pc 0x00000000000c89b4  libc.so (__pthread_start(void*))
+#21 pc 0x000000000005ed50  libc.so (__start_thread)`,
+  },
 ];
 
 export const androidNativeScenario: PlatformScenario = {
@@ -2650,7 +3157,7 @@ export const androidNativeScenario: PlatformScenario = {
       { name: "3.1.4", code: "3140", releasedDaysAgo: 266 },
     ],
     candidate: { name: "3.2.2", code: "3220" },
-    mappingTypes: ["proguard"],
+    mappingTypes: ["proguard", "elf_debug"],
     createdDaysAgo: 260,
     dailySessions: 420_000,
     crashFreeRate: 0.99183,
@@ -3157,6 +3664,10 @@ export const androidNativeScenario: PlatformScenario = {
         { kind: "exception", exception: "illegalstate_recyclerview" },
       ],
       detailAnr: [{ kind: "exception", exception: "anr_image_decode" }],
+      detailCrash: {
+        abortBefore: SPAN_STEPS.productDecode,
+        steps: [{ kind: "exception", exception: "gwp_asan_uaf_hero_blur" }],
+      },
       cartHandled: {
         coupon: {
           code: "SPRING20",
@@ -3192,6 +3703,7 @@ export const androidNativeScenario: PlatformScenario = {
         checkout_crash: "checkout_crash",
         list_crash: "product_list_crash",
         detail_anr: "product_detail_anr",
+        detail_crash: "product_detail_native_crash",
         cart_handled: "cart_timeout_handled",
         login: "login_flow",
         profile: "profile_flow",
@@ -3267,11 +3779,11 @@ export const androidNativeScenario: PlatformScenario = {
       memoryLeak: true,
     },
     {
-      flow: "profile_flow",
+      flow: "product_detail_native_crash",
       user: 5,
       version: 1,
-      agoMinutes: 4300,
-      launch: "hot",
+      agoMinutes: 200,
+      launch: "cold",
     },
   ],
 
