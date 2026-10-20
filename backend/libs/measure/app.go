@@ -357,6 +357,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt 
 		Select("max(timestamp) as last_seen").
 		Select("uniq(`attribute.installation_id`) as users").
 		Select("uniq(session_id) as sessions").
+		Select("toBool(max(" + filter.MemoryErrorSQL + ")) as memory_error").
 		Where(errorFingerprintExpr + " != ''").
 		GroupBy("team_id").
 		GroupBy("app_id")
@@ -374,6 +375,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt 
 		Select("g.method_name").
 		Select("g.file_name").
 		Select("g.line_number").
+		Select("c.memory_error").
 		Select("g.last_occurrence").
 		Select("c.event_count as event_count").
 		Select("c.users").
@@ -421,6 +423,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt 
 			&g.MethodName,
 			&g.FileName,
 			&g.LineNumber,
+			&g.MemoryError,
 			&g.UpdatedAt,
 			&g.Count,
 			&g.Users,
@@ -937,6 +940,9 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 			Select("exception.exceptions as exceptions").
 			Select("exception.threads as threads").
 			Select("exception.framework as framework").
+			Select("exception.abort_message as abort_message").
+			Select("exception.cause as cause").
+			Select("exception.memory_error as memory_error").
 			Select("if(exception.has_num_code OR exception.num_code != 0, exception.num_code, NULL) as num_code").
 			Select("exception.code as code").
 			Select("exception.meta as meta").
@@ -962,6 +968,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 			var exceptions string
 			var threads string
 			var meta string
+			var memoryError string
 			var severity string
 			var attachments string
 			var userDefAttr map[string][]any
@@ -979,6 +986,9 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 				&exceptions,
 				&threads,
 				&e.Exception.Framework,
+				&e.Exception.AbortMessage,
+				&e.Exception.Cause,
+				&memoryError,
 				&e.NumCode,
 				&e.Code,
 				&meta,
@@ -1001,6 +1011,11 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 			}
 			if meta != "" {
 				if err = json.Unmarshal([]byte(meta), &e.Meta); err != nil {
+					return
+				}
+			}
+			if memoryError != "" {
+				if err = json.Unmarshal([]byte(memoryError), &e.Exception.MemoryError); err != nil {
 					return
 				}
 			}
@@ -2754,6 +2769,9 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 		`exception.exceptions`,
 		`exception.threads`,
 		`exception.framework`,
+		`exception.abort_message`,
+		`exception.cause`,
+		`exception.memory_error`,
 		`lifecycle_app.type`,
 		`cold_launch.process_start_uptime`,
 		`cold_launch.process_start_requested_uptime`,
@@ -2952,6 +2970,7 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 
 		var exceptionError string
 		var exceptionMeta string
+		var exceptionMemoryError string
 		var exceptionSeverity string
 		var lifecycleViewController event.LifecycleViewController
 		var lifecycleSwiftUI event.LifecycleSwiftUI
@@ -3045,6 +3064,9 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			&exceptionExceptions,
 			&exceptionThreads,
 			&exception.Framework,
+			&exception.AbortMessage,
+			&exception.Cause,
+			&exceptionMemoryError,
 
 			// lifecycle app
 			&lifecycleApp.Type,
@@ -3271,6 +3293,12 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 
 			if exceptionMeta != "" {
 				if err := json.Unmarshal([]byte(exceptionMeta), &exception.Meta); err != nil {
+					return nil, err
+				}
+			}
+
+			if exceptionMemoryError != "" {
+				if err := json.Unmarshal([]byte(exceptionMemoryError), &exception.MemoryError); err != nil {
 					return nil, err
 				}
 			}

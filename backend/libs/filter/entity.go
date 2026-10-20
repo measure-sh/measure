@@ -239,6 +239,17 @@ var (
 		},
 	}
 
+	memoryError = Key{
+		Name:                "memory_error",
+		Label:               "Memory error",
+		Description:         "Filter native Android errors caught by GWP-ASan or MTE.",
+		KeyGroup:            KeyGroupError,
+		ValueType:           ValueTypeBool,
+		Operators:           []Operator{OperatorEq},
+		ValueSuggestionMode: ValueSuggestionModeFullList,
+		EnumValues:          []string{"true", "false"},
+	}
+
 	sessionEvents = Key{
 		Name:                "session_events",
 		Label:               "Events",

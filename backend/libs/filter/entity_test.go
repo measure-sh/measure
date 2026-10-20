@@ -1022,7 +1022,7 @@ func TestErrorsEntityOffersEveryErrorKey(t *testing.T) {
 	byName := IndexKeysByName(ErrorsEntity.Keys)
 
 	wanted := []string{
-		"error_type",
+		"error_type", "memory_error",
 		"version_name", "version_code", "patch_version", "patch_id",
 		"user_id",
 		"os_name", "os_version",
@@ -1047,24 +1047,26 @@ func TestErrorsEntityOffersEveryErrorKey(t *testing.T) {
 	}
 }
 
-func TestErrorGroupEventsEntityOffersEveryErrorKeyButTheType(t *testing.T) {
+func TestErrorGroupEventsEntityOffersEveryErrorKeyButTheGroupKeys(t *testing.T) {
 	entity, err := FindByName("error_group_events")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := IndexKeysByName(entity.Keys)["error_type"]; ok {
-		t.Error("want no error_type key on the error events entity")
+	for _, name := range []string{"error_type", "memory_error"} {
+		if _, ok := IndexKeysByName(entity.Keys)[name]; ok {
+			t.Errorf("want no %s key on the error events entity", name)
+		}
 	}
 	last := len(entity.Keys) - 1
 	if entity.Keys[last].Name != "app_hang_state" {
 		t.Fatalf("want the app hang state key last, got %q", entity.Keys[last].Name)
 	}
-	if want := len(ErrorsEntity.Keys); len(entity.Keys) != want {
+	if want := len(ErrorsEntity.Keys) - 1; len(entity.Keys) != want {
 		t.Errorf("want %d error event keys, got %d", want, len(entity.Keys))
 	}
 	for i, key := range entity.Keys[:last] {
-		if ErrorsEntity.Keys[i+1].Name != key.Name {
-			t.Errorf("want key %d to be %q, got %q", i, ErrorsEntity.Keys[i+1].Name, key.Name)
+		if ErrorsEntity.Keys[i+2].Name != key.Name {
+			t.Errorf("want key %d to be %q, got %q", i, ErrorsEntity.Keys[i+2].Name, key.Name)
 		}
 	}
 	if groups := ListKeyGroups(entity.Keys); len(groups) == 0 || groups[len(groups)-1] != KeyGroupAppHang {

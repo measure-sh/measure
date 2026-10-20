@@ -1,0 +1,2537 @@
+{
+  "id": "b79c4d8a-cd6c-464a-bf7a-02888ebc5438",
+  "session_id": "beb63fa7-c6e3-4799-b038-d035e18d5025",
+  "user_triggered": false,
+  "timestamp": "2026-10-20T10:27:19.68300000Z",
+  "type": "exception",
+  "exception": {
+    "exceptions": [
+      {
+        "type": "SIGSEGV",
+        "message": "SEGV_MAPERR at 0x0",
+        "frames": [
+          {
+            "instruction_address": "0x6c65884ee4",
+            "binary_address": "0x6c65884000",
+            "binary_name": "libfrank_crash.so",
+            "frame_index": 0,
+            "in_app": true
+          },
+          {
+            "method_name": "Java_sh_frankenstein_android_NativeCrash_segfault",
+            "instruction_address": "0x6c65884ec4",
+            "binary_address": "0x6c65884000",
+            "binary_name": "libfrank_crash.so",
+            "frame_index": 1,
+            "in_app": true
+          },
+          {
+            "method_name": "art_quick_generic_jni_trampoline",
+            "instruction_address": "0x6d8f378f70",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "art_quick_invoke_stub",
+            "instruction_address": "0x6d8f362774",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 3
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35bd1c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 4
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 5
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 6
+          },
+          {
+            "method_name": "sh.frankenstein.android.NativeAndroidScreenKt.NativeAndroidScreen$lambda$25$0",
+            "instruction_address": "0x702c790f30",
+            "binary_address": "0x702c772000",
+            "binary_name": "<anonymous:702c772000>",
+            "frame_index": 7
+          },
+          {
+            "method_name": "art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238.llvm.2845697060370838518)",
+            "instruction_address": "0x6d8f34e21c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 8
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35c5b0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 9
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 10
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 11
+          },
+          {
+            "method_name": "sh.frankenstein.android.NativeAndroidScreenKt.$r8$lambda$br5RQSVB21f5g1hcVo_72hbJ-mU",
+            "instruction_address": "0x702c790730",
+            "binary_address": "0x702c772000",
+            "binary_name": "<anonymous:702c772000>",
+            "frame_index": 12
+          },
+          {
+            "method_name": "art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238.llvm.2845697060370838518)",
+            "instruction_address": "0x6d8f34e21c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 13
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35c5b0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 14
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 15
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 16
+          },
+          {
+            "method_name": "sh.frankenstein.android.NativeAndroidScreenKt$$ExternalSyntheticLambda57.invoke",
+            "instruction_address": "0x702c78f874",
+            "binary_address": "0x702c772000",
+            "binary_name": "<anonymous:702c772000>",
+            "frame_index": 17
+          },
+          {
+            "method_name": "art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238.llvm.2845697060370838518)",
+            "instruction_address": "0x6d8f34e21c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 18
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35c5b0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 19
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 20
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 21
+          },
+          {
+            "method_name": "sh.frankenstein.android.NativeAndroidScreenKt.DemoCard$lambda$0$0",
+            "instruction_address": "0x702c790960",
+            "binary_address": "0x702c772000",
+            "binary_name": "<anonymous:702c772000>",
+            "frame_index": 22
+          },
+          {
+            "method_name": "art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238.llvm.2845697060370838518)",
+            "instruction_address": "0x6d8f34e21c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 23
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35c5b0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 24
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 25
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 26
+          },
+          {
+            "method_name": "sh.frankenstein.android.NativeAndroidScreenKt.$r8$lambda$rgR3mB9aq5o9RGWAYG9sZ1OWjOs",
+            "instruction_address": "0x702c7908b8",
+            "binary_address": "0x702c772000",
+            "binary_name": "<anonymous:702c772000>",
+            "frame_index": 27
+          },
+          {
+            "method_name": "art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238.llvm.2845697060370838518)",
+            "instruction_address": "0x6d8f34e21c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 28
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35c5b0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 29
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 30
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 31
+          },
+          {
+            "method_name": "art_quick_osr_stub",
+            "instruction_address": "0x6d8f362ad0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 32
+          },
+          {
+            "method_name": "art::jit::Jit::MaybeDoOnStackReplacement(art::Thread*, art::ArtMethod*, unsigned int, int, art::JValue*)",
+            "instruction_address": "0x6d8f34caf8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 33
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76bdd0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 34
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 35
+          },
+          {
+            "method_name": "android.os.Looper.loop",
+            "instruction_address": "0x6d8ce17024",
+            "binary_address": "0x6d8cc0b000",
+            "binary_name": "framework.jar",
+            "frame_index": 36
+          },
+          {
+            "method_name": "art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238.llvm.2845697060370838518)",
+            "instruction_address": "0x6d8f34e21c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 37
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35c5b0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 38
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 39
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 40
+          },
+          {
+            "method_name": "android.app.ActivityThread.main",
+            "instruction_address": "0x6d8e1e1138",
+            "binary_address": "0x6d8e00b000",
+            "binary_name": "framework.jar",
+            "frame_index": 41
+          },
+          {
+            "method_name": "artQuickToInterpreterBridge",
+            "instruction_address": "0x6d8f34d5a8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 42
+          },
+          {
+            "method_name": "art_quick_to_interpreter_bridge",
+            "instruction_address": "0x6d8f379098",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 43
+          },
+          {
+            "method_name": "art_quick_invoke_static_stub",
+            "instruction_address": "0x6d8f362a40",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 44
+          },
+          {
+            "method_name": "_jobject* art::InvokeMethod<(art::PointerSize)8>(art::ScopedObjectAccessAlreadyRunnable const&, _jobject*, _jobject*, _jobject*, unsigned long)",
+            "instruction_address": "0x6d8f35e42c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 45
+          },
+          {
+            "method_name": "art::Method_invoke(_JNIEnv*, _jobject*, _jobject*, _jobjectArray*) (.__uniq.165753521025965369065708152063621506277)",
+            "instruction_address": "0x6d8f6c87f8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 46
+          },
+          {
+            "method_name": "art_quick_generic_jni_trampoline",
+            "instruction_address": "0x6d8f378f70",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 47
+          },
+          {
+            "method_name": "art_quick_invoke_stub",
+            "instruction_address": "0x6d8f362774",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 48
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35bd1c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 49
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 50
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 51
+          },
+          {
+            "method_name": "com.android.internal.os.RuntimeInit$MethodAndArgsCaller.run",
+            "instruction_address": "0x6d8bcf026c",
+            "binary_address": "0x6d8bb1e000",
+            "binary_name": "framework.jar",
+            "frame_index": 52
+          },
+          {
+            "method_name": "artQuickToInterpreterBridge",
+            "instruction_address": "0x6d8f34d5a8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 53
+          },
+          {
+            "method_name": "art_quick_to_interpreter_bridge",
+            "instruction_address": "0x6d8f379098",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 54
+          },
+          {
+            "method_name": "com.android.internal.os.ZygoteInit.main",
+            "instruction_address": "0x71d55f24",
+            "binary_address": "0x71550000",
+            "binary_name": "boot-framework.oat",
+            "frame_index": 55
+          },
+          {
+            "method_name": "art_quick_invoke_static_stub",
+            "instruction_address": "0x6d8f362a40",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 56
+          },
+          {
+            "method_name": "art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)",
+            "instruction_address": "0x6d8f34df38",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 57
+          },
+          {
+            "method_name": "art::JValue art::InvokeWithVarArgs<_jmethodID*>(art::ScopedObjectAccessAlreadyRunnable const&, _jobject*, _jmethodID*, std::__va_list)",
+            "instruction_address": "0x6d8f34beec",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 58
+          },
+          {
+            "method_name": "art::JNI<true>::CallStaticVoidMethodV(_JNIEnv*, _jclass*, _jmethodID*, std::__va_list)",
+            "instruction_address": "0x6d8f7398bc",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 59
+          },
+          {
+            "method_name": "_JNIEnv::CallStaticVoidMethod(_jclass*, _jmethodID*, ...)",
+            "instruction_address": "0x7028ce6290",
+            "binary_address": "0x7028c11000",
+            "binary_name": "libandroid_runtime.so",
+            "frame_index": 60
+          },
+          {
+            "method_name": "android::AndroidRuntime::start(char const*, android::Vector<android::String8> const&, bool)",
+            "instruction_address": "0x7028cfb74c",
+            "binary_address": "0x7028c11000",
+            "binary_name": "libandroid_runtime.so",
+            "frame_index": 61
+          },
+          {
+            "method_name": "main",
+            "instruction_address": "0x62cc968568",
+            "binary_address": "0x62cc964000",
+            "binary_name": "app_process64",
+            "frame_index": 62
+          },
+          {
+            "method_name": "__libc_init",
+            "instruction_address": "0x703be9f2cc",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 63
+          }
+        ],
+        "thread_name": "main"
+      }
+    ],
+    "threads": [
+      {
+        "name": "Signal Catcher",
+        "frames": [
+          {
+            "method_name": "__rt_sigtimedwait",
+            "instruction_address": "0x703bf083a8",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 0
+          },
+          {
+            "method_name": "sigwait64",
+            "instruction_address": "0x703bebb734",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 1
+          },
+          {
+            "method_name": "art::SignalCatcher::Run(void*)",
+            "instruction_address": "0x6d8f653fa8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "__pthread_start(void*)",
+            "instruction_address": "0x703beb6354",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 3
+          },
+          {
+            "method_name": "__start_thread",
+            "instruction_address": "0x703bea8fc4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 4
+          }
+        ]
+      },
+      {
+        "name": "perfetto_hprof_",
+        "frames": [
+          {
+            "method_name": "read",
+            "instruction_address": "0x703bf076a4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 0
+          },
+          {
+            "method_name": "void* std::__1::__thread_proxy[abi:nn180000]<std::__1::tuple<std::__1::unique_ptr<std::__1::__thread_struct, std::__1::default_delete<std::__1::__thread_struct>>, ArtPlugin_Initialize::$_7>>(void*)",
+            "instruction_address": "0x6d8812b9c0",
+            "binary_address": "0x6d88100000",
+            "binary_name": "libperfetto_hprof.so",
+            "frame_index": 1
+          },
+          {
+            "method_name": "__pthread_start(void*)",
+            "instruction_address": "0x703beb6354",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "__start_thread",
+            "instruction_address": "0x703bea8fc4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 3
+          }
+        ]
+      },
+      {
+        "name": "ADB-JDWP Connec",
+        "frames": [
+          {
+            "method_name": "__ppoll",
+            "instruction_address": "0x703bf08aa4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 0
+          },
+          {
+            "method_name": "poll",
+            "instruction_address": "0x703beb3ee8",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 1
+          },
+          {
+            "method_name": "adbconnection::AdbConnectionState::RunPollLoop(art::Thread*)",
+            "instruction_address": "0x6d8e9dd97c",
+            "binary_address": "0x6d8e9d0000",
+            "binary_name": "libadbconnection.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "adbconnection::CallbackFunction(void*)",
+            "instruction_address": "0x6d8e9dc330",
+            "binary_address": "0x6d8e9d0000",
+            "binary_name": "libadbconnection.so",
+            "frame_index": 3
+          },
+          {
+            "method_name": "__pthread_start(void*)",
+            "instruction_address": "0x703beb6354",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 4
+          },
+          {
+            "method_name": "__start_thread",
+            "instruction_address": "0x703bea8fc4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 5
+          }
+        ]
+      },
+      {
+        "name": "Jit thread pool",
+        "frames": [
+          {
+            "method_name": "syscall",
+            "instruction_address": "0x703becb4ac",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 0
+          },
+          {
+            "method_name": "art::ConditionVariable::WaitHoldingLocks(art::Thread*)",
+            "instruction_address": "0x6d8f22a220",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 1
+          },
+          {
+            "method_name": "art::ThreadPoolWorker::Run()",
+            "instruction_address": "0x6d8f65d6ec",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "art::ThreadPoolWorker::Callback(void*)",
+            "instruction_address": "0x6d8f654b38",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 3
+          },
+          {
+            "method_name": "__pthread_start(void*)",
+            "instruction_address": "0x703beb6354",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 4
+          },
+          {
+            "method_name": "__start_thread",
+            "instruction_address": "0x703bea8fc4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 5
+          }
+        ]
+      },
+      {
+        "name": "HeapTaskDaemon",
+        "frames": [
+          {
+            "method_name": "syscall",
+            "instruction_address": "0x703becb4ac",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 0
+          },
+          {
+            "method_name": "art::ConditionVariable::TimedWait(art::Thread*, long, int)",
+            "instruction_address": "0x6d8f55c1dc",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 1
+          },
+          {
+            "method_name": "art::gc::TaskProcessor::RunAllTasks(art::Thread*)",
+            "instruction_address": "0x6d8f306dd0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "art_quick_generic_jni_trampoline",
+            "instruction_address": "0x6d8f378f70",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 3
+          },
+          {
+            "method_name": "art_quick_invoke_stub",
+            "instruction_address": "0x6d8f362774",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 4
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35bd1c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 5
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 6
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 7
+          },
+          {
+            "method_name": "java.lang.Daemons$HeapTaskDaemon.runInternal",
+            "instruction_address": "0x7063b2e074",
+            "binary_address": "0x7063b02000",
+            "binary_name": "core-libart.jar",
+            "frame_index": 8
+          },
+          {
+            "method_name": "art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238.llvm.2845697060370838518)",
+            "instruction_address": "0x6d8f34e21c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 9
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35c5b0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 10
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 11
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 12
+          },
+          {
+            "method_name": "java.lang.Daemons$Daemon.run",
+            "instruction_address": "0x7063b2d314",
+            "binary_address": "0x7063b02000",
+            "binary_name": "core-libart.jar",
+            "frame_index": 13
+          },
+          {
+            "method_name": "art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238.llvm.2845697060370838518)",
+            "instruction_address": "0x6d8f34e21c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 14
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35c5b0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 15
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 16
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 17
+          },
+          {
+            "method_name": "java.lang.Thread.run",
+            "instruction_address": "0x6d8eb17a28",
+            "binary_address": "0x6d8ea00000",
+            "binary_name": "core-oj.jar",
+            "frame_index": 18
+          },
+          {
+            "method_name": "artQuickToInterpreterBridge",
+            "instruction_address": "0x6d8f34d5a8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 19
+          },
+          {
+            "method_name": "art_quick_to_interpreter_bridge",
+            "instruction_address": "0x6d8f379098",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 20
+          },
+          {
+            "method_name": "art_quick_invoke_stub",
+            "instruction_address": "0x6d8f362774",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 21
+          },
+          {
+            "method_name": "art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)",
+            "instruction_address": "0x6d8f34def0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 22
+          },
+          {
+            "method_name": "art::detail::ShortyTraits<(char)86>::Type art::ArtMethod::InvokeInstance<(char)86>(art::Thread*, art::ObjPtr<art::mirror::Object>, art::detail::ShortyTraits<>::Type...)",
+            "instruction_address": "0x6d8f9430d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 23
+          },
+          {
+            "method_name": "art::Thread::CreateCallback(void*)",
+            "instruction_address": "0x6d8f63e694",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 24
+          },
+          {
+            "method_name": "art::Thread::CreateCallbackWithUffdGc(void*)",
+            "instruction_address": "0x6d8f63e144",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 25
+          },
+          {
+            "method_name": "__pthread_start(void*)",
+            "instruction_address": "0x703beb6354",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 26
+          },
+          {
+            "method_name": "__start_thread",
+            "instruction_address": "0x703bea8fc4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 27
+          }
+        ]
+      },
+      {
+        "name": "ReferenceQueueD",
+        "frames": [
+          {
+            "method_name": "syscall",
+            "instruction_address": "0x703becb4ac",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 0
+          },
+          {
+            "method_name": "art::ConditionVariable::WaitHoldingLocks(art::Thread*)",
+            "instruction_address": "0x6d8f22a220",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 1
+          },
+          {
+            "method_name": "art::Monitor::Wait(art::Thread*, art::ObjPtr<art::mirror::Object>, long, int, bool, art::ThreadState)",
+            "instruction_address": "0x6d8f4412f0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "art_jni_trampoline",
+            "instruction_address": "0x6200a934",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 3
+          },
+          {
+            "method_name": "java.lang.Object.wait",
+            "instruction_address": "0x62009c8c",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 4
+          },
+          {
+            "method_name": "java.lang.Object.wait",
+            "instruction_address": "0x62009b64",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 5
+          },
+          {
+            "method_name": "art_quick_invoke_stub",
+            "instruction_address": "0x6d8f362774",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 6
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35bd1c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 7
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 8
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 9
+          },
+          {
+            "method_name": "java.lang.Daemons$ReferenceQueueDaemon.runInternal",
+            "instruction_address": "0x7063b2e164",
+            "binary_address": "0x7063b02000",
+            "binary_name": "core-libart.jar",
+            "frame_index": 10
+          },
+          {
+            "method_name": "artQuickToInterpreterBridge",
+            "instruction_address": "0x6d8f34d5a8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 11
+          },
+          {
+            "method_name": "art_quick_to_interpreter_bridge",
+            "instruction_address": "0x6d8f379098",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 12
+          },
+          {
+            "method_name": "java.lang.Daemons$Daemon.run",
+            "instruction_address": "0x62004848",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 13
+          },
+          {
+            "method_name": "java.lang.Thread.run",
+            "instruction_address": "0x620046a8",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 14
+          },
+          {
+            "method_name": "art_quick_invoke_stub",
+            "instruction_address": "0x6d8f362774",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 15
+          },
+          {
+            "method_name": "art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)",
+            "instruction_address": "0x6d8f34def0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 16
+          },
+          {
+            "method_name": "art::detail::ShortyTraits<(char)86>::Type art::ArtMethod::InvokeInstance<(char)86>(art::Thread*, art::ObjPtr<art::mirror::Object>, art::detail::ShortyTraits<>::Type...)",
+            "instruction_address": "0x6d8f9430d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 17
+          },
+          {
+            "method_name": "art::Thread::CreateCallback(void*)",
+            "instruction_address": "0x6d8f63e694",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 18
+          },
+          {
+            "method_name": "art::Thread::CreateCallbackWithUffdGc(void*)",
+            "instruction_address": "0x6d8f63e144",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 19
+          },
+          {
+            "method_name": "__pthread_start(void*)",
+            "instruction_address": "0x703beb6354",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 20
+          },
+          {
+            "method_name": "__start_thread",
+            "instruction_address": "0x703bea8fc4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 21
+          }
+        ]
+      },
+      {
+        "name": "FinalizerDaemon",
+        "frames": [
+          {
+            "method_name": "syscall",
+            "instruction_address": "0x703becb4ac",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 0
+          },
+          {
+            "method_name": "art::ConditionVariable::WaitHoldingLocks(art::Thread*)",
+            "instruction_address": "0x6d8f22a220",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 1
+          },
+          {
+            "method_name": "art::Monitor::Wait(art::Thread*, art::ObjPtr<art::mirror::Object>, long, int, bool, art::ThreadState)",
+            "instruction_address": "0x6d8f4412f0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "art_jni_trampoline",
+            "instruction_address": "0x6200a934",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 3
+          },
+          {
+            "method_name": "java.lang.Object.wait",
+            "instruction_address": "0x62009c8c",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 4
+          },
+          {
+            "method_name": "art_quick_invoke_stub",
+            "instruction_address": "0x6d8f362774",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 5
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35bd1c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 6
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 7
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 8
+          },
+          {
+            "method_name": "java.lang.ref.ReferenceQueue.remove",
+            "instruction_address": "0x6d8eb2b570",
+            "binary_address": "0x6d8ea00000",
+            "binary_name": "core-oj.jar",
+            "frame_index": 9
+          },
+          {
+            "method_name": "art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238.llvm.2845697060370838518)",
+            "instruction_address": "0x6d8f34e21c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 10
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35c5b0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 11
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 12
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 13
+          },
+          {
+            "method_name": "java.lang.ref.ReferenceQueue.remove",
+            "instruction_address": "0x6d8eb2b550",
+            "binary_address": "0x6d8ea00000",
+            "binary_name": "core-oj.jar",
+            "frame_index": 14
+          },
+          {
+            "method_name": "art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238.llvm.2845697060370838518)",
+            "instruction_address": "0x6d8f34e21c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 15
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35c5b0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 16
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 17
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 18
+          },
+          {
+            "method_name": "java.lang.Daemons$FinalizerDaemon.runInternal",
+            "instruction_address": "0x7063b2d6dc",
+            "binary_address": "0x7063b02000",
+            "binary_name": "core-libart.jar",
+            "frame_index": 19
+          },
+          {
+            "method_name": "artQuickToInterpreterBridge",
+            "instruction_address": "0x6d8f34d5a8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 20
+          },
+          {
+            "method_name": "art_quick_to_interpreter_bridge",
+            "instruction_address": "0x6d8f379098",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 21
+          },
+          {
+            "method_name": "java.lang.Daemons$Daemon.run",
+            "instruction_address": "0x62004848",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 22
+          },
+          {
+            "method_name": "java.lang.Thread.run",
+            "instruction_address": "0x620046a8",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 23
+          },
+          {
+            "method_name": "art_quick_invoke_stub",
+            "instruction_address": "0x6d8f362774",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 24
+          },
+          {
+            "method_name": "art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)",
+            "instruction_address": "0x6d8f34def0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 25
+          },
+          {
+            "method_name": "art::detail::ShortyTraits<(char)86>::Type art::ArtMethod::InvokeInstance<(char)86>(art::Thread*, art::ObjPtr<art::mirror::Object>, art::detail::ShortyTraits<>::Type...)",
+            "instruction_address": "0x6d8f9430d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 26
+          },
+          {
+            "method_name": "art::Thread::CreateCallback(void*)",
+            "instruction_address": "0x6d8f63e694",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 27
+          },
+          {
+            "method_name": "art::Thread::CreateCallbackWithUffdGc(void*)",
+            "instruction_address": "0x6d8f63e144",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 28
+          },
+          {
+            "method_name": "__pthread_start(void*)",
+            "instruction_address": "0x703beb6354",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 29
+          },
+          {
+            "method_name": "__start_thread",
+            "instruction_address": "0x703bea8fc4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 30
+          }
+        ]
+      },
+      {
+        "name": "FinalizerWatchd",
+        "frames": [
+          {
+            "method_name": "syscall",
+            "instruction_address": "0x703becb4ac",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 0
+          },
+          {
+            "method_name": "art::ConditionVariable::WaitHoldingLocks(art::Thread*)",
+            "instruction_address": "0x6d8f22a220",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 1
+          },
+          {
+            "method_name": "art::Monitor::Wait(art::Thread*, art::ObjPtr<art::mirror::Object>, long, int, bool, art::ThreadState)",
+            "instruction_address": "0x6d8f4412f0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "art_jni_trampoline",
+            "instruction_address": "0x6200a934",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 3
+          },
+          {
+            "method_name": "java.lang.Object.wait",
+            "instruction_address": "0x62009c8c",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 4
+          },
+          {
+            "method_name": "java.lang.Object.wait",
+            "instruction_address": "0x62009b64",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 5
+          },
+          {
+            "method_name": "art_quick_invoke_stub",
+            "instruction_address": "0x6d8f362774",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 6
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35bd1c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 7
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 8
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 9
+          },
+          {
+            "method_name": "java.lang.Daemons$FinalizerWatchdogDaemon.sleepUntilNeeded",
+            "instruction_address": "0x7063b2d874",
+            "binary_address": "0x7063b02000",
+            "binary_name": "core-libart.jar",
+            "frame_index": 10
+          },
+          {
+            "method_name": "art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238.llvm.2845697060370838518)",
+            "instruction_address": "0x6d8f34e21c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 11
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35c5b0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 12
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 13
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 14
+          },
+          {
+            "method_name": "java.lang.Daemons$FinalizerWatchdogDaemon.runInternal",
+            "instruction_address": "0x7063b2df08",
+            "binary_address": "0x7063b02000",
+            "binary_name": "core-libart.jar",
+            "frame_index": 15
+          },
+          {
+            "method_name": "art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238.llvm.2845697060370838518)",
+            "instruction_address": "0x6d8f34e21c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 16
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35c5b0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 17
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 18
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 19
+          },
+          {
+            "method_name": "java.lang.Daemons$Daemon.run",
+            "instruction_address": "0x7063b2d314",
+            "binary_address": "0x7063b02000",
+            "binary_name": "core-libart.jar",
+            "frame_index": 20
+          },
+          {
+            "method_name": "art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238.llvm.2845697060370838518)",
+            "instruction_address": "0x6d8f34e21c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 21
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35c5b0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 22
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 23
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 24
+          },
+          {
+            "method_name": "java.lang.Thread.run",
+            "instruction_address": "0x6d8eb17a28",
+            "binary_address": "0x6d8ea00000",
+            "binary_name": "core-oj.jar",
+            "frame_index": 25
+          },
+          {
+            "method_name": "artQuickToInterpreterBridge",
+            "instruction_address": "0x6d8f34d5a8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 26
+          },
+          {
+            "method_name": "art_quick_to_interpreter_bridge",
+            "instruction_address": "0x6d8f379098",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 27
+          },
+          {
+            "method_name": "art_quick_invoke_stub",
+            "instruction_address": "0x6d8f362774",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 28
+          },
+          {
+            "method_name": "art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)",
+            "instruction_address": "0x6d8f34def0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 29
+          },
+          {
+            "method_name": "art::detail::ShortyTraits<(char)86>::Type art::ArtMethod::InvokeInstance<(char)86>(art::Thread*, art::ObjPtr<art::mirror::Object>, art::detail::ShortyTraits<>::Type...)",
+            "instruction_address": "0x6d8f9430d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 30
+          },
+          {
+            "method_name": "art::Thread::CreateCallback(void*)",
+            "instruction_address": "0x6d8f63e694",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 31
+          },
+          {
+            "method_name": "art::Thread::CreateCallbackWithUffdGc(void*)",
+            "instruction_address": "0x6d8f63e144",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 32
+          },
+          {
+            "method_name": "__pthread_start(void*)",
+            "instruction_address": "0x703beb6354",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 33
+          },
+          {
+            "method_name": "__start_thread",
+            "instruction_address": "0x703bea8fc4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 34
+          }
+        ]
+      },
+      {
+        "name": "binder:3230_1",
+        "frames": [
+          {
+            "method_name": "__ioctl",
+            "instruction_address": "0x703bf079a8",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 0
+          },
+          {
+            "method_name": "ioctl",
+            "instruction_address": "0x703beb13d0",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 1
+          },
+          {
+            "method_name": "android::IPCThreadState::joinThreadPool(bool)",
+            "instruction_address": "0x7054f76e84",
+            "binary_address": "0x7054f1f000",
+            "binary_name": "libbinder.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "android::PoolThread::threadLoop()",
+            "instruction_address": "0x7054f8de9c",
+            "binary_address": "0x7054f1f000",
+            "binary_name": "libbinder.so",
+            "frame_index": 3
+          },
+          {
+            "method_name": "android::Thread::_threadLoop(void*)",
+            "instruction_address": "0x7061958b14",
+            "binary_address": "0x7061942000",
+            "binary_name": "libutils.so",
+            "frame_index": 4
+          },
+          {
+            "method_name": "android::AndroidRuntime::javaThreadShell(void*)",
+            "instruction_address": "0x7028cfbb08",
+            "binary_address": "0x7028c11000",
+            "binary_name": "libandroid_runtime.so",
+            "frame_index": 5
+          },
+          {
+            "method_name": "__pthread_start(void*)",
+            "instruction_address": "0x703beb6354",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 6
+          },
+          {
+            "method_name": "__start_thread",
+            "instruction_address": "0x703bea8fc4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 7
+          }
+        ]
+      },
+      {
+        "name": "binder:3230_2",
+        "frames": [
+          {
+            "method_name": "__ioctl",
+            "instruction_address": "0x703bf079a8",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 0
+          },
+          {
+            "method_name": "ioctl",
+            "instruction_address": "0x703beb13d0",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 1
+          },
+          {
+            "method_name": "android::IPCThreadState::joinThreadPool(bool)",
+            "instruction_address": "0x7054f76e84",
+            "binary_address": "0x7054f1f000",
+            "binary_name": "libbinder.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "android::PoolThread::threadLoop()",
+            "instruction_address": "0x7054f8de9c",
+            "binary_address": "0x7054f1f000",
+            "binary_name": "libbinder.so",
+            "frame_index": 3
+          },
+          {
+            "method_name": "android::Thread::_threadLoop(void*)",
+            "instruction_address": "0x7061958b14",
+            "binary_address": "0x7061942000",
+            "binary_name": "libutils.so",
+            "frame_index": 4
+          },
+          {
+            "method_name": "android::AndroidRuntime::javaThreadShell(void*)",
+            "instruction_address": "0x7028cfbb08",
+            "binary_address": "0x7028c11000",
+            "binary_name": "libandroid_runtime.so",
+            "frame_index": 5
+          },
+          {
+            "method_name": "__pthread_start(void*)",
+            "instruction_address": "0x703beb6354",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 6
+          },
+          {
+            "method_name": "__start_thread",
+            "instruction_address": "0x703bea8fc4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 7
+          }
+        ]
+      },
+      {
+        "name": "binder:3230_3",
+        "frames": [
+          {
+            "method_name": "__ioctl",
+            "instruction_address": "0x703bf079a8",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 0
+          },
+          {
+            "method_name": "ioctl",
+            "instruction_address": "0x703beb13d0",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 1
+          },
+          {
+            "method_name": "android::IPCThreadState::joinThreadPool(bool)",
+            "instruction_address": "0x7054f76e84",
+            "binary_address": "0x7054f1f000",
+            "binary_name": "libbinder.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "android::PoolThread::threadLoop()",
+            "instruction_address": "0x7054f8de9c",
+            "binary_address": "0x7054f1f000",
+            "binary_name": "libbinder.so",
+            "frame_index": 3
+          },
+          {
+            "method_name": "android::Thread::_threadLoop(void*)",
+            "instruction_address": "0x7061958b14",
+            "binary_address": "0x7061942000",
+            "binary_name": "libutils.so",
+            "frame_index": 4
+          },
+          {
+            "method_name": "android::AndroidRuntime::javaThreadShell(void*)",
+            "instruction_address": "0x7028cfbb08",
+            "binary_address": "0x7028c11000",
+            "binary_name": "libandroid_runtime.so",
+            "frame_index": 5
+          },
+          {
+            "method_name": "__pthread_start(void*)",
+            "instruction_address": "0x703beb6354",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 6
+          },
+          {
+            "method_name": "__start_thread",
+            "instruction_address": "0x703bea8fc4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 7
+          }
+        ]
+      },
+      {
+        "name": "binder:3230_4",
+        "frames": [
+          {
+            "method_name": "__ioctl",
+            "instruction_address": "0x703bf079a8",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 0
+          },
+          {
+            "method_name": "ioctl",
+            "instruction_address": "0x703beb13d0",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 1
+          },
+          {
+            "method_name": "android::IPCThreadState::joinThreadPool(bool)",
+            "instruction_address": "0x7054f76e84",
+            "binary_address": "0x7054f1f000",
+            "binary_name": "libbinder.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "android::PoolThread::threadLoop()",
+            "instruction_address": "0x7054f8de9c",
+            "binary_address": "0x7054f1f000",
+            "binary_name": "libbinder.so",
+            "frame_index": 3
+          },
+          {
+            "method_name": "android::Thread::_threadLoop(void*)",
+            "instruction_address": "0x7061958b14",
+            "binary_address": "0x7061942000",
+            "binary_name": "libutils.so",
+            "frame_index": 4
+          },
+          {
+            "method_name": "android::AndroidRuntime::javaThreadShell(void*)",
+            "instruction_address": "0x7028cfbb08",
+            "binary_address": "0x7028c11000",
+            "binary_name": "libandroid_runtime.so",
+            "frame_index": 5
+          },
+          {
+            "method_name": "__pthread_start(void*)",
+            "instruction_address": "0x703beb6354",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 6
+          },
+          {
+            "method_name": "__start_thread",
+            "instruction_address": "0x703bea8fc4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 7
+          }
+        ]
+      },
+      {
+        "name": "Profile Saver",
+        "frames": [
+          {
+            "method_name": "syscall",
+            "instruction_address": "0x703becb4ac",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 0
+          },
+          {
+            "method_name": "art::ConditionVariable::TimedWait(art::Thread*, long, int)",
+            "instruction_address": "0x6d8f55c1dc",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 1
+          },
+          {
+            "method_name": "art::ProfileSaver::RunProfileSaverThread(void*)",
+            "instruction_address": "0x6d8f55d5e0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "__pthread_start(void*)",
+            "instruction_address": "0x703beb6354",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 3
+          },
+          {
+            "method_name": "__start_thread",
+            "instruction_address": "0x703bea8fc4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 4
+          }
+        ]
+      },
+      {
+        "name": "SharedPreferenc",
+        "frames": [
+          {
+            "method_name": "syscall",
+            "instruction_address": "0x703becb4ac",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 0
+          },
+          {
+            "method_name": "art::Thread::Park(bool, long)",
+            "instruction_address": "0x6d8f4448f0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 1
+          },
+          {
+            "method_name": "art::Unsafe_park(_JNIEnv*, _jobject*, unsigned char, long) (.__uniq.319429422067363160645159987129209045680)",
+            "instruction_address": "0x6d8f444398",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "art_quick_generic_jni_trampoline",
+            "instruction_address": "0x6d8f378f70",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 3
+          },
+          {
+            "method_name": "java.util.concurrent.locks.LockSupport.parkNanos",
+            "instruction_address": "0x6214890c",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 4
+          },
+          {
+            "method_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.awaitNanos",
+            "instruction_address": "0x62147cfc",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 5
+          },
+          {
+            "method_name": "java.util.concurrent.LinkedBlockingQueue.poll",
+            "instruction_address": "0x62130364",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 6
+          },
+          {
+            "method_name": "java.util.concurrent.ThreadPoolExecutor.getTask",
+            "instruction_address": "0x6212ff54",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 7
+          },
+          {
+            "method_name": "art_quick_invoke_stub",
+            "instruction_address": "0x6d8f362774",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 8
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35bd1c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 9
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 10
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 11
+          },
+          {
+            "method_name": "java.util.concurrent.ThreadPoolExecutor.runWorker",
+            "instruction_address": "0x6d8ec583a4",
+            "binary_address": "0x6d8ea00000",
+            "binary_name": "core-oj.jar",
+            "frame_index": 12
+          },
+          {
+            "method_name": "art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238.llvm.2845697060370838518)",
+            "instruction_address": "0x6d8f34e21c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 13
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35c5b0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 14
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 15
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 16
+          },
+          {
+            "method_name": "java.util.concurrent.ThreadPoolExecutor$Worker.run",
+            "instruction_address": "0x6d8ec5723c",
+            "binary_address": "0x6d8ea00000",
+            "binary_name": "core-oj.jar",
+            "frame_index": 17
+          },
+          {
+            "method_name": "artQuickToInterpreterBridge",
+            "instruction_address": "0x6d8f34d5a8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 18
+          },
+          {
+            "method_name": "art_quick_to_interpreter_bridge",
+            "instruction_address": "0x6d8f379098",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 19
+          },
+          {
+            "method_name": "java.lang.Thread.run",
+            "instruction_address": "0x620046a8",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 20
+          },
+          {
+            "method_name": "art_quick_invoke_stub",
+            "instruction_address": "0x6d8f362774",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 21
+          },
+          {
+            "method_name": "art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)",
+            "instruction_address": "0x6d8f34def0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 22
+          },
+          {
+            "method_name": "art::detail::ShortyTraits<(char)86>::Type art::ArtMethod::InvokeInstance<(char)86>(art::Thread*, art::ObjPtr<art::mirror::Object>, art::detail::ShortyTraits<>::Type...)",
+            "instruction_address": "0x6d8f9430d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 23
+          },
+          {
+            "method_name": "art::Thread::CreateCallback(void*)",
+            "instruction_address": "0x6d8f63e694",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 24
+          },
+          {
+            "method_name": "art::Thread::CreateCallbackWithUffdGc(void*)",
+            "instruction_address": "0x6d8f63e144",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 25
+          },
+          {
+            "method_name": "__pthread_start(void*)",
+            "instruction_address": "0x703beb6354",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 26
+          },
+          {
+            "method_name": "__start_thread",
+            "instruction_address": "0x703bea8fc4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 27
+          }
+        ]
+      },
+      {
+        "name": "Firebase Backgr",
+        "frames": [
+          {
+            "method_name": "syscall",
+            "instruction_address": "0x703becb4ac",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 0
+          },
+          {
+            "method_name": "art::Thread::Park(bool, long)",
+            "instruction_address": "0x6d8f444944",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 1
+          },
+          {
+            "method_name": "art::Unsafe_park(_JNIEnv*, _jobject*, unsigned char, long) (.__uniq.319429422067363160645159987129209045680)",
+            "instruction_address": "0x6d8f444398",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "art_jni_trampoline",
+            "instruction_address": "0x622ab21c",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 3
+          },
+          {
+            "method_name": "java.util.concurrent.locks.LockSupport.park",
+            "instruction_address": "0x62199b30",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 4
+          },
+          {
+            "method_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionNode.block",
+            "instruction_address": "0x621999e8",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 5
+          },
+          {
+            "method_name": "java.util.concurrent.ForkJoinPool.unmanagedBlock",
+            "instruction_address": "0x621996d4",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 6
+          },
+          {
+            "method_name": "java.util.concurrent.ForkJoinPool.managedBlock",
+            "instruction_address": "0x62199560",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 7
+          },
+          {
+            "method_name": "java.util.concurrent.locks.AbstractQueuedSynchronizer$ConditionObject.await",
+            "instruction_address": "0x6219907c",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 8
+          },
+          {
+            "method_name": "java.util.concurrent.LinkedBlockingQueue.take",
+            "instruction_address": "0x62198d3c",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 9
+          },
+          {
+            "method_name": "java.util.concurrent.ThreadPoolExecutor.getTask",
+            "instruction_address": "0x6212ffa0",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 10
+          },
+          {
+            "method_name": "java.util.concurrent.ThreadPoolExecutor.runWorker",
+            "instruction_address": "0x6212f818",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 11
+          },
+          {
+            "method_name": "java.util.concurrent.ThreadPoolExecutor$Worker.run",
+            "instruction_address": "0x6212f6b0",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 12
+          },
+          {
+            "method_name": "art_quick_invoke_stub",
+            "instruction_address": "0x6d8f362774",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 13
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35bd1c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 14
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 15
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 16
+          },
+          {
+            "instruction_address": "0x6d027e02c0",
+            "binary_address": "0x6d02076000",
+            "binary_name": "<anonymous:6d02076000>",
+            "frame_index": 17
+          },
+          {
+            "method_name": "art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238.llvm.2845697060370838518)",
+            "instruction_address": "0x6d8f34e21c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 18
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35c5b0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 19
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 20
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 21
+          },
+          {
+            "instruction_address": "0x6d027e01ec",
+            "binary_address": "0x6d02076000",
+            "binary_name": "<anonymous:6d02076000>",
+            "frame_index": 22
+          },
+          {
+            "method_name": "artQuickToInterpreterBridge",
+            "instruction_address": "0x6d8f34d5a8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 23
+          },
+          {
+            "method_name": "art_quick_to_interpreter_bridge",
+            "instruction_address": "0x6d8f379098",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 24
+          },
+          {
+            "method_name": "java.lang.Thread.run",
+            "instruction_address": "0x620046a8",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 25
+          },
+          {
+            "method_name": "art_quick_invoke_stub",
+            "instruction_address": "0x6d8f362774",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 26
+          },
+          {
+            "method_name": "art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)",
+            "instruction_address": "0x6d8f34def0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 27
+          },
+          {
+            "method_name": "art::detail::ShortyTraits<(char)86>::Type art::ArtMethod::InvokeInstance<(char)86>(art::Thread*, art::ObjPtr<art::mirror::Object>, art::detail::ShortyTraits<>::Type...)",
+            "instruction_address": "0x6d8f9430d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 28
+          },
+          {
+            "method_name": "art::Thread::CreateCallback(void*)",
+            "instruction_address": "0x6d8f63e694",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 29
+          },
+          {
+            "method_name": "art::Thread::CreateCallbackWithUffdGc(void*)",
+            "instruction_address": "0x6d8f63e144",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 30
+          },
+          {
+            "method_name": "__pthread_start(void*)",
+            "instruction_address": "0x703beb6354",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 31
+          },
+          {
+            "method_name": "__start_thread",
+            "instruction_address": "0x703bea8fc4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 32
+          }
+        ]
+      },
+      {
+        "name": "Firebase Blocki",
+        "frames": [
+          {
+            "method_name": "syscall",
+            "instruction_address": "0x703becb4ac",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 0
+          },
+          {
+            "method_name": "art::Thread::Park(bool, long)",
+            "instruction_address": "0x6d8f4448f0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 1
+          },
+          {
+            "method_name": "art::Unsafe_park(_JNIEnv*, _jobject*, unsigned char, long) (.__uniq.319429422067363160645159987129209045680)",
+            "instruction_address": "0x6d8f444398",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 2
+          },
+          {
+            "method_name": "art_jni_trampoline",
+            "instruction_address": "0x622ab21c",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 3
+          },
+          {
+            "method_name": "java.util.concurrent.locks.LockSupport.parkNanos",
+            "instruction_address": "0x6214890c",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 4
+          },
+          {
+            "method_name": "java.util.concurrent.SynchronousQueue$TransferStack.transfer",
+            "instruction_address": "0x62171808",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 5
+          },
+          {
+            "method_name": "java.util.concurrent.SynchronousQueue.poll",
+            "instruction_address": "0x6223b194",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 6
+          },
+          {
+            "method_name": "java.util.concurrent.ThreadPoolExecutor.getTask",
+            "instruction_address": "0x6212ff54",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 7
+          },
+          {
+            "method_name": "java.util.concurrent.ThreadPoolExecutor.runWorker",
+            "instruction_address": "0x6212f818",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 8
+          },
+          {
+            "method_name": "java.util.concurrent.ThreadPoolExecutor$Worker.run",
+            "instruction_address": "0x6212f6b0",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 9
+          },
+          {
+            "method_name": "art_quick_invoke_stub",
+            "instruction_address": "0x6d8f362774",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 10
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35bd1c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 11
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 12
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 13
+          },
+          {
+            "instruction_address": "0x6d027e02c0",
+            "binary_address": "0x6d02076000",
+            "binary_name": "<anonymous:6d02076000>",
+            "frame_index": 14
+          },
+          {
+            "method_name": "art::interpreter::Execute(art::Thread*, art::CodeItemDataAccessor const&, art::ShadowFrame&, art::JValue, bool, bool) (.__uniq.112435418011751916792819755956732575238.llvm.2845697060370838518)",
+            "instruction_address": "0x6d8f34e21c",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 15
+          },
+          {
+            "method_name": "bool art::interpreter::DoCall<false>(art::ArtMethod*, art::Thread*, art::ShadowFrame&, art::Instruction const*, unsigned short, bool, art::JValue*)",
+            "instruction_address": "0x6d8f35c5b0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 16
+          },
+          {
+            "method_name": "void art::interpreter::ExecuteSwitchImplCpp<false>(art::interpreter::SwitchImplContext*)",
+            "instruction_address": "0x6d8f76da48",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 17
+          },
+          {
+            "method_name": "ExecuteSwitchImplAsm",
+            "instruction_address": "0x6d8f37b5d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 18
+          },
+          {
+            "instruction_address": "0x6d027e01ec",
+            "binary_address": "0x6d02076000",
+            "binary_name": "<anonymous:6d02076000>",
+            "frame_index": 19
+          },
+          {
+            "method_name": "artQuickToInterpreterBridge",
+            "instruction_address": "0x6d8f34d5a8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 20
+          },
+          {
+            "method_name": "art_quick_to_interpreter_bridge",
+            "instruction_address": "0x6d8f379098",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 21
+          },
+          {
+            "method_name": "java.lang.Thread.run",
+            "instruction_address": "0x620046a8",
+            "binary_address": "0x62000000",
+            "binary_name": "[anon_shmem:dalvik-jit-code-cache",
+            "frame_index": 22
+          },
+          {
+            "method_name": "art_quick_invoke_stub",
+            "instruction_address": "0x6d8f362774",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 23
+          },
+          {
+            "method_name": "art::ArtMethod::Invoke(art::Thread*, unsigned int*, unsigned int, art::JValue*, char const*)",
+            "instruction_address": "0x6d8f34def0",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 24
+          },
+          {
+            "method_name": "art::detail::ShortyTraits<(char)86>::Type art::ArtMethod::InvokeInstance<(char)86>(art::Thread*, art::ObjPtr<art::mirror::Object>, art::detail::ShortyTraits<>::Type...)",
+            "instruction_address": "0x6d8f9430d8",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 25
+          },
+          {
+            "method_name": "art::Thread::CreateCallback(void*)",
+            "instruction_address": "0x6d8f63e694",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 26
+          },
+          {
+            "method_name": "art::Thread::CreateCallbackWithUffdGc(void*)",
+            "instruction_address": "0x6d8f63e144",
+            "binary_address": "0x6d8f000000",
+            "binary_name": "libart.so",
+            "frame_index": 27
+          },
+          {
+            "method_name": "__pthread_start(void*)",
+            "instruction_address": "0x703beb6354",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 28
+          },
+          {
+            "method_name": "__start_thread",
+            "instruction_address": "0x703bea8fc4",
+            "binary_address": "0x703be4a000",
+            "binary_name": "libc.so",
+            "frame_index": 29
+          }
+        ]
+      }
+    ],
+    "severity": "fatal",
+    "foreground": true,
+    "binary_images": [
+      {
+        "uuid": "b1825675320e2a480c7f7aa69de2eef18ae3be68",
+        "arch": "arm64",
+        "base_addr": "0x6c65884000",
+        "name": "libfrank_crash.so",
+        "path": "/data/app/~~TwrNc-qgsYUcb6LgZskAQQ==/sh.frankenstein.android.debug-SbRndk3rReOBKRQRYQl74w==/base.apk!libfrank_crash.so",
+        "start_addr": "0x6c65884000",
+        "end_addr": "0x6c65886000"
+      },
+      {
+        "uuid": "dcb9fe2b5c99aa3f1a682a6008427d08",
+        "arch": "arm64",
+        "base_addr": "0x6d8f000000",
+        "name": "libart.so",
+        "path": "/apex/com.android.art/lib64/libart.so",
+        "start_addr": "0x6d8f000000",
+        "end_addr": "0x6d8fc03000",
+        "system": true
+      },
+      {
+        "uuid": "63f4eb325f3987ae1d20b869e98918cda0bfdf73",
+        "arch": "arm64",
+        "base_addr": "0x71550000",
+        "name": "boot-framework.oat",
+        "path": "/system/framework/arm64/boot-framework.oat",
+        "start_addr": "0x71550000",
+        "end_addr": "0x71e51000",
+        "system": true
+      },
+      {
+        "uuid": "7e2a886b7a4523debea27d91258da727",
+        "arch": "arm64",
+        "base_addr": "0x7028c11000",
+        "name": "libandroid_runtime.so",
+        "path": "/system/lib64/libandroid_runtime.so",
+        "start_addr": "0x7028c11000",
+        "end_addr": "0x7028e82000",
+        "system": true
+      },
+      {
+        "uuid": "ca426b31a2d06fac00c886329fb5d520",
+        "arch": "arm64",
+        "base_addr": "0x62cc964000",
+        "name": "app_process64",
+        "path": "/system/bin/app_process64",
+        "start_addr": "0x62cc964000",
+        "end_addr": "0x62cc971000",
+        "system": true
+      },
+      {
+        "uuid": "1b9fecf834d610f77e641f026ca7269b",
+        "arch": "arm64",
+        "base_addr": "0x703be4a000",
+        "name": "libc.so",
+        "path": "/apex/com.android.runtime/lib64/bionic/libc.so",
+        "start_addr": "0x703be4a000",
+        "end_addr": "0x703bf1f000",
+        "system": true
+      },
+      {
+        "uuid": "d93f44fb8bbfdecc626adeb2d3da7219",
+        "arch": "arm64",
+        "base_addr": "0x6d88100000",
+        "name": "libperfetto_hprof.so",
+        "path": "/apex/com.android.art/lib64/libperfetto_hprof.so",
+        "start_addr": "0x6d88100000",
+        "end_addr": "0x6d8817d000",
+        "system": true
+      },
+      {
+        "uuid": "45c8d53209d6d1f93b97abcc2d918d4d",
+        "arch": "arm64",
+        "base_addr": "0x6d8e9d0000",
+        "name": "libadbconnection.so",
+        "path": "/apex/com.android.art/lib64/libadbconnection.so",
+        "start_addr": "0x6d8e9d0000",
+        "end_addr": "0x6d8e9e9000",
+        "system": true
+      },
+      {
+        "uuid": "411becee63c4b563ba569d0205cb0302",
+        "arch": "arm64",
+        "base_addr": "0x7054f1f000",
+        "name": "libbinder.so",
+        "path": "/system/lib64/libbinder.so",
+        "start_addr": "0x7054f1f000",
+        "end_addr": "0x7054fe0000",
+        "system": true
+      },
+      {
+        "uuid": "eb16d925d301dcbe28e761592a8de52d",
+        "arch": "arm64",
+        "base_addr": "0x7061942000",
+        "name": "libutils.so",
+        "path": "/system/lib64/libutils.so",
+        "start_addr": "0x7061942000",
+        "end_addr": "0x7061967000",
+        "system": true
+      }
+    ],
+    "framework": "ndk",
+    "cause": "null pointer dereference"
+  },
+  "attachments": null,
+  "attribute": {
+    "thread_name": "main",
+    "user_id": null,
+    "device_name": "emu64a",
+    "device_model": "sdk_gphone64_arm64",
+    "device_manufacturer": "Google",
+    "device_type": "phone",
+    "device_is_foldable": false,
+    "device_is_physical": false,
+    "device_density_dpi": 420,
+    "device_width_px": 1080,
+    "device_height_px": 2400,
+    "device_density": 2.625,
+    "device_locale": "en-US",
+    "device_total_memory": 2531992,
+    "os_name": "android",
+    "os_version": "35",
+    "os_page_size": 4,
+    "app_version": "0.1.0",
+    "app_build": "5538",
+    "app_unique_id": "sh.frankenstein.android.debug",
+    "measure_sdk_version": "0.22.0-SNAPSHOT",
+    "installation_id": "67a192ca-93cf-42c6-9520-7fccae403996",
+    "network_type": "wifi",
+    "network_generation": "unknown",
+    "network_provider": "unknown",
+    "device_low_power_mode": false,
+    "device_thermal_throttling_enabled": false,
+    "session_start_time": "2026-10-20T10:27:14.02500000Z"
+  },
+  "user_defined_attribute": null
+}

@@ -791,3 +791,59 @@ func TestGetErrorGroupsWithFilterTrendTimezone(t *testing.T) {
 		t.Errorf("trend total = %d, want 1: %+v", got, g.Trend)
 	}
 }
+
+func TestGetErrorGroupsWithFilterByMemoryError(t *testing.T) {
+	f := errorKindsFixture{plotFixture: newPlotFixture(t), ts: time.Now().UTC()}
+	teamID, appID := f.teamIDStr(), f.appIDStr()
+
+	const (
+		fpMemoryError = "0000000000000000000000000000c008"
+		fpCrash       = "0000000000000000000000000000c00a"
+	)
+
+	seed := func(fingerprint, memoryErrorJSON string) {
+		th.SeedGroupRow(f.ctx, t, teamID, appID, testinfra.GroupRow{
+			Table: "fatal_exception_groups", Fingerprint: fingerprint, AppVersion: "1.1.0", AppBuild: "110",
+		})
+		seedEventRows(f.ctx, t, teamID, appID, 1, testinfra.EventRow{
+			Type: "exception", Fingerprint: fingerprint, Severity: "fatal",
+			ExceptionsJSON:  `[{"type":"SIGSEGV","message":"","frames":[]}]`,
+			MemoryErrorJSON: memoryErrorJSON,
+			Timestamp:       f.ts, AppVersion: "1.1.0", AppBuild: "110", OSName: "android", OSVersion: "14",
+		})
+	}
+	seed(fpMemoryError, `{"tool":"gwp_asan","type":"use_after_free"}`)
+	seed(fpCrash, "")
+
+	tests := []struct {
+		name  string
+		value string
+		want  []string
+	}{
+		{"true matches only memory errors", "true", []string{fpMemoryError}},
+		{"false keeps plain crashes", "false", []string{fpCrash}},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			exprTree := leaf("memory_error", filter.OperatorEq, test.value)
+			if got := groupIDs(t, f, f.newFilter(&exprTree)); !slices.Equal(got, test.want) {
+				t.Fatalf("want %v, got %v", test.want, got)
+			}
+		})
+	}
+	t.Run("marks only memory error groups as a memory error", func(t *testing.T) {
+		groups, _, _, err := f.app.GetErrorGroupsWithFilter(f.ctx, deps.RchPool, f.newFilter(nil))
+		if err != nil {
+			t.Fatalf("GetErrorGroupsWithFilter: %v", err)
+		}
+		for _, fp := range []string{fpMemoryError, fpCrash} {
+			g := findErrorGroup(groups, fp)
+			if g == nil {
+				t.Fatalf("group %s not found", fp)
+			}
+			if want := fp == fpMemoryError; g.MemoryError != want {
+				t.Errorf("group %s: want memory_error %v, got %v", fp, want, g.MemoryError)
+			}
+		}
+	})
+}

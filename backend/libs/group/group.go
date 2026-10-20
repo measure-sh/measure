@@ -88,22 +88,23 @@ type AppHangGroup struct {
 // (handled or unhandled) exception, an ANR, or an app hang, disambiguated
 // by the ErrorType and Severity fields. App hangs leave Severity empty.
 type ErrorGroup struct {
-	AppID      uuid.UUID      `json:"app_id"`
-	ID         string         `json:"id"`
-	Type       string         `json:"type"`
-	ErrorType  string         `json:"error_type"`
-	Severity   event.Severity `json:"severity"`
-	IsCustom   bool           `json:"is_custom"`
-	Message    string         `json:"message"`
-	MethodName string         `json:"method_name"`
-	FileName   string         `json:"file_name"`
-	LineNumber int32          `json:"line_number"`
-	Count      uint64         `json:"count"`
-	Users      uint64         `json:"users"`
-	Sessions   uint64         `json:"sessions"`
-	LastSeen   time.Time      `json:"last_seen"`
-	Trend      []TrendPoint   `json:"trend,omitempty"`
-	UpdatedAt  time.Time      `json:"updated_at"`
+	AppID       uuid.UUID      `json:"app_id"`
+	ID          string         `json:"id"`
+	Type        string         `json:"type"`
+	ErrorType   string         `json:"error_type"`
+	Severity    event.Severity `json:"severity"`
+	IsCustom    bool           `json:"is_custom"`
+	Message     string         `json:"message"`
+	MethodName  string         `json:"method_name"`
+	FileName    string         `json:"file_name"`
+	LineNumber  int32          `json:"line_number"`
+	MemoryError bool           `json:"memory_error"`
+	Count       uint64         `json:"count"`
+	Users       uint64         `json:"users"`
+	Sessions    uint64         `json:"sessions"`
+	LastSeen    time.Time      `json:"last_seen"`
+	Trend       []TrendPoint   `json:"trend,omitempty"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 type TrendPoint struct {
