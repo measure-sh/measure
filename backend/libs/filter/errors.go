@@ -18,8 +18,8 @@ const (
 )
 
 // ErrorsEntity filters an app's error groups. ErrorGroupEventsEntity filters
-// the events of one group and has no error_type key: a group holds one kind
-// of error.
+// the events of one group and has no error_type or memory_error key: a
+// group holds one kind of error.
 var (
 	ErrorsEntity = Entity{
 		Name:            "errors",
@@ -38,7 +38,7 @@ var (
 	}
 )
 
-var errorsKeys = slices.Concat([]Key{errorType}, errorEventsKeys)
+var errorsKeys = slices.Concat([]Key{errorType, memoryError}, errorEventsKeys)
 
 var errorGroupEventsKeys = slices.Concat(errorEventsKeys, []Key{appHangState})
 
@@ -75,9 +75,19 @@ var appHangStatePredicates = map[string]string{
 	AppHangStateRecovered: "(type = 'app_hang' and `app_hang.state` = 'recovered')",
 }
 
+// MemoryErrorSQL matches exception events with
+// a memory error.
+const MemoryErrorSQL = "(type = 'exception' and `exception.memory_error` != '')"
+
+var memoryErrorPredicates = map[string]string{
+	"true":  MemoryErrorSQL,
+	"false": "not " + MemoryErrorSQL,
+}
+
 var errorEventsColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]column{
 	errorType.Name:          {kind: columnPredicates, predicates: errorTypePredicates},
 	appHangState.Name:       {kind: columnPredicates, predicates: appHangStatePredicates},
+	memoryError.Name:        {kind: columnPredicates, predicates: memoryErrorPredicates},
 	versionName.Name:        {expr: "`attribute.app_version`"},
 	versionCode.Name:        {expr: "`attribute.app_build`"},
 	patchVersion.Name:       {expr: "`attribute.patch_version`"},

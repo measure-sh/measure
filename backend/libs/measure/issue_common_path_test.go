@@ -842,4 +842,65 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 			t.Errorf("expected step with 'Navigated to screen: DetailScreen', got steps: %+v", result.Steps)
 		}
 	})
+
+	t.Run("native crash shows signal and cause", func(t *testing.T) {
+		tests := []struct {
+			name  string
+			cause string
+			want  string
+		}{
+			{
+				name:  "with cause",
+				cause: "null pointer dereference",
+				want:  "Crash: SIGSEGV - null pointer dereference",
+			},
+			{
+				name: "without cause",
+				want: "Crash: SIGSEGV",
+			},
+		}
+		for _, test := range tests {
+			t.Run(test.name, func(t *testing.T) {
+				defer cleanupAll(ctx, t)
+
+				teamID := uuid.New()
+				appID := uuid.New()
+				fingerprint := "fp-native-crash-" + strings.ReplaceAll(test.name, " ", "-")
+				th.SeedExceptionGroup(ctx, t, teamID.String(), appID.String(), fingerprint)
+
+				sessionID := uuid.New().String()
+				now := time.Now().UTC()
+				seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "DetailScreen", now.Add(-2*time.Second))
+				th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+					Type:           "exception",
+					SessionID:      sessionID,
+					Fingerprint:    fingerprint,
+					ExceptionsJSON: `[{"type":"SIGSEGV","message":"SEGV_MAPERR at 0x0","frames":[]}]`,
+					Framework:      "ndk",
+					Cause:          test.cause,
+					Timestamp:      now,
+				})
+
+				data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, fingerprint)
+				if err != nil {
+					t.Fatalf("unexpected error: %v", err)
+				}
+
+				var result struct {
+					Steps []struct {
+						Description string `json:"description"`
+					} `json:"steps"`
+				}
+				if err := json.Unmarshal(data, &result); err != nil {
+					t.Fatalf("unmarshal: %v", err)
+				}
+				if len(result.Steps) == 0 {
+					t.Fatal("want steps, got none")
+				}
+				if got := result.Steps[len(result.Steps)-1].Description; got != test.want {
+					t.Errorf("crash step = %q, want %q", got, test.want)
+				}
+			})
+		}
+	})
 }

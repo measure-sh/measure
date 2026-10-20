@@ -1,0 +1,18 @@
+#00 pc 0x000000000004fbcc  libc.so (abort)
+#01 pc 0x000000000062689c  libart.so (art::Runtime::Abort(char const*))
+#02 pc 0x000000000001595c  libbase.so (android::base::SetAborter(std::__1::function<void (char const*)>&&)::$_3::__invoke(char const*))
+#03 pc 0x0000000000006dc8  liblog.so (__android_log_assert)
+#04 pc 0x000000000000092c  libfrank_crash.so (Java_sh_frankenstein_android_NativeCrash_abortWithMessage)
+    ... 219 internal frames ...
+#224 pc 0x00000000000ad5c4  libandroid_runtime.so (_JNIEnv::CallVoidMethod(_jobject*, _jmethodID*, ...))
+#225 pc 0x0000000000117058  libandroid_runtime.so (android::NativeInputEventReceiver::consumeEvents(_JNIEnv*, bool, long, bool*))
+#226 pc 0x0000000000116ee0  libandroid_runtime.so (android::NativeInputEventReceiver::handleEvent(int, int, void*))
+#227 pc 0x000000000001691c  libutils.so (android::Looper::pollInner(int))
+#228 pc 0x0000000000016524  libutils.so (android::Looper::pollOnce(int, int*, int*, void**))
+#229 pc 0x000000000014ae0c  libandroid_runtime.so (android::android_os_MessageQueue_nativePollOnce(_JNIEnv*, _jobject*, long, int))
+#230 pc 0x000000000019c22c  boot-framework.oat (art_jni_trampoline)
+#231 pc 0x000000000203234c  memfd:jit-cache (deleted) (android.os.MessageQueue.next)
+#232 pc 0x000000000203da88  memfd:jit-cache (deleted) (android.os.Looper.loopOnce)
+    ... 17 internal frames ...
+#250 pc 0x00000000000b2f74  boot.oat (art_jni_trampoline)
+    ... 5 internal frames ...

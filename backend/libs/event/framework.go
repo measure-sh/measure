@@ -15,3 +15,7 @@ const FrameworkDart = "dart"
 // FrameworkJS represents JavaScript context
 // in an app's collected data.
 const FrameworkJS = "js"
+
+// FrameworkNDK represents native C and C++
+// context in an Android app's collected data.
+const FrameworkNDK = "ndk"

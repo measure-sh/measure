@@ -13,6 +13,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"strings"
 
 	"github.com/google/uuid"
@@ -112,6 +113,18 @@ type nativeSymbolicator struct {
 	request       *requestNative
 	response      *responseNative
 	stacktraceLUT []stacktraceEntry
+	// stackLUT locates the stacks of a native crash
+	// in the request.
+	stackLUT []stackEntry
+}
+
+// stackEntry locates one native crash stack in the
+// native request.
+type stackEntry struct {
+	// frames are the stack's frames, rewritten in
+	// place once symbolicated.
+	frames     *event.Frames
+	stacktrace int
 }
 
 // appleSymbolicator represents an Apple symbolicator request.
@@ -247,6 +260,18 @@ func resolveBatchPatchID(events []event.EventField, spans []span.SpanField) uuid
 	return uuid.Nil
 }
 
+// usesPatchMappings reports whether the event is symbolicated
+// with the batch's patch_id mappings. An OTA patch only replaces
+// JS, so native crashes always use the native libraries uploaded
+// for the app version and build.
+func usesPatchMappings(ev event.EventField, patchID uuid.UUID) bool {
+	if patchID == uuid.Nil {
+		return false
+	}
+	isNativeCrash := ev.Type == event.TypeException && ev.Exception.GetFramework() == event.FrameworkNDK
+	return !isNativeCrash
+}
+
 // Symbolicate performs symbolication by retrieving
 // appropriate mapping file and managing symbolicator
 // request to response cycle.
@@ -289,7 +314,7 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 		// in play, use the patch_id-scoped set; otherwise fall back to
 		// the (app_id, version_name, version_code) lookup.
 		var mappings map[string]symbol.MappingType
-		if patchID != uuid.Nil {
+		if usesPatchMappings(ev, patchID) {
 			mappings = patchMappings
 		} else {
 			name := ev.Attribute.AppVersion
@@ -339,6 +364,34 @@ func (s *Symbolicator) Symbolicate(ctx context.Context, conn *pgxpool.Pool, appI
 				uuid := ev.Exception.BinaryImages[0].Uuid
 				arch := ev.Exception.BinaryImages[0].Arch
 				s.nativeSymbolicator.configureModule(mappings, baseAddr, uuid, arch)
+
+			case event.FrameworkNDK:
+				// a symbolicator request describes one process,
+				// and every crashed process loads its libraries
+				// at different addresses, so each native crash
+				// gets a request of its own.
+				ns := &nativeSymbolicator{}
+				ns.ensureRequestInitialized()
+				for j := range ev.Exception.Exceptions {
+					ns.addStack(&ev.Exception.Exceptions[j].Frames)
+				}
+				for l := range ev.Exception.Threads {
+					ns.addStack(&ev.Exception.Threads[l].Frames)
+				}
+				if r := ev.Exception.MemoryError; r != nil {
+					if r.Allocation != nil {
+						ns.addStack(&r.Allocation.Frames)
+					}
+					if r.Deallocation != nil {
+						ns.addStack(&r.Deallocation.Frames)
+					}
+				}
+				ns.configureImages(mappings, ev.Exception.BinaryImages)
+				if len(ns.request.Modules) > 0 {
+					if errNative := ns.symbolicate(events, s.Origin, s.Sources); errNative != nil {
+						return fmt.Errorf("native crash symbolication failed: %w", errNative)
+					}
+				}
 
 			case event.FrameworkJS:
 				if s.SymboloaderOrigin == "" {
@@ -1141,6 +1194,7 @@ func (ns *nativeSymbolicator) symbolicate(events []event.EventField, origin stri
 			fmt.Println(string(bytes))
 		}
 		ns.rewriteException(events)
+		ns.rewriteStacks()
 	}
 	return
 }
@@ -1178,10 +1232,125 @@ func (ns *nativeSymbolicator) configureModule(mappings map[string]symbol.Mapping
 			case symbol.TypeDsym:
 				ns.request.AddMachOModule(uuid, arch, baseAddr)
 			case symbol.TypeElfDebug:
-				ns.request.AddElfModule(uuid, arch, baseAddr)
+				ns.request.AddElfModule(uuid, arch, baseAddr, 0)
 			}
 		}
 	}
+}
+
+// addStack adds one stack of a native crash to the
+// native request. Tombstone addresses already point
+// at the call, so symbolicator must not step back
+// from them again.
+func (ns *nativeSymbolicator) addStack(frames *event.Frames) {
+	if len(*frames) == 0 {
+		return
+	}
+	adjust := false
+	framesNative := []frameNative{}
+	for k, frame := range *frames {
+		framesNative = append(framesNative, frameNative{
+			OriginalIndex:         k,
+			InstructionAddr:       frame.InstructionAddr,
+			AdjustInstructionAddr: &adjust,
+		})
+	}
+	ns.stackLUT = append(ns.stackLUT, stackEntry{frames: frames, stacktrace: len(ns.request.Stacktraces)})
+	ns.request.Stacktraces = append(ns.request.Stacktraces, stacktraceNative{
+		Frames: framesNative,
+	})
+}
+
+// rewriteStacks updates the stacks of a native crash
+// with symbolicated data.
+func (ns nativeSymbolicator) rewriteStacks() {
+	for _, entry := range ns.stackLUT {
+		if entry.stacktrace >= len(ns.response.Stacktraces) {
+			continue
+		}
+		*entry.frames = rewriteNativeFrames(*entry.frames, ns.response.Stacktraces[entry.stacktrace].Frames)
+	}
+}
+
+// configureImages adds a module for every app
+// binary image of a native crash. System images
+// are left out as their symbols are never
+// uploaded and the device already named them.
+func (ns *nativeSymbolicator) configureImages(mappings map[string]symbol.MappingType, images []event.BinaryImage) {
+	if !hasElfDebugMapping(mappings) {
+		return
+	}
+
+	for _, image := range images {
+		if image.System {
+			continue
+		}
+		ns.request.AddElfModule(image.Uuid, image.Arch, image.BaseAddr, imageSize(image))
+	}
+}
+
+// hasElfDebugMapping reports whether native
+// symbols were uploaded for the build.
+func hasElfDebugMapping(mappings map[string]symbol.MappingType) bool {
+	for _, mappingType := range mappings {
+		if mappingType == symbol.TypeElfDebug {
+			return true
+		}
+	}
+	return false
+}
+
+// imageSize provides the size of a binary image,
+// or zero when its end is unknown.
+func imageSize(image event.BinaryImage) uint64 {
+	start, startErr := strconv.ParseUint(strings.TrimPrefix(image.StartAddr, "0x"), 16, 64)
+	end, endErr := strconv.ParseUint(strings.TrimPrefix(image.EndAddr, "0x"), 16, 64)
+	if startErr != nil || endErr != nil || end <= start {
+		return 0
+	}
+	return end - start
+}
+
+// rewriteNativeFrame updates a native crash frame
+// with symbolicated data. Frames symbolicator could
+// not resolve keep the name the device gave them.
+func rewriteNativeFrame(frame *event.Frame, resolved frameNative) {
+	if resolved.Function == "" {
+		return
+	}
+	frame.MethodName = resolved.Function
+	frame.FileName = resolved.Filename
+	frame.LineNum = resolved.LineNo
+	frame.ModuleName = extractDirectoryPath(resolved.AbsPath)
+}
+
+// rewriteNativeFrames updates a native crash
+// stack with symbolicated data. Inlined calls
+// become frames of their own, sharing the
+// binary of the frame they were inlined in.
+func rewriteNativeFrames(frames event.Frames, resolved []frameNative) event.Frames {
+	if len(resolved) == len(frames) {
+		for k := range frames {
+			rewriteNativeFrame(&frames[k], resolved[k])
+		}
+		return frames
+	}
+
+	rewritten := event.Frames{}
+	for _, r := range resolved {
+		if r.OriginalIndex < 0 || r.OriginalIndex >= len(frames) {
+			continue
+		}
+		frame := frames[r.OriginalIndex]
+		if frame.FrameiOS != nil {
+			copied := *frame.FrameiOS
+			frame.FrameiOS = &copied
+			frame.FrameIndex = len(rewritten)
+		}
+		rewriteNativeFrame(&frame, r)
+		rewritten = append(rewritten, frame)
+	}
+	return rewritten
 }
 
 // rewriteException partially updates the original

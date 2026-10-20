@@ -29,7 +29,7 @@ const GenericPrefix = ": "
 type FrameiOS struct {
 	// FrameIndex is the sequence of the frame.
 	FrameIndex int `json:"frame_index"`
-	// BinaryName is the name of the iOS binary image.
+	// BinaryName is the name of the binary.
 	BinaryName string `json:"binary_name"`
 	// BinaryAddress is the binary load address.
 	BinaryAddress string `json:"binary_address"`
@@ -140,6 +140,21 @@ func (f Frame) String(frmwrk string) string {
 			return fmt.Sprintf("at %s", f.MethodName)
 		}
 		return fmt.Sprintf("at %s", fileInfo)
+	case FrameworkNDK:
+		// #00 pc 0x00000000000008f4  libfoo.so (crash_now) (foo.cpp:42)
+		index := 0
+		if f.FrameiOS != nil {
+			index = f.FrameIndex
+		}
+		offset, _ := f.nativeOffset()
+		line := fmt.Sprintf("#%02d pc 0x%016x  %s", index, offset, f.binaryName())
+		if f.MethodName != "" {
+			line += " (" + f.MethodName + ")"
+		}
+		if fileInfo := f.FileInfo(); fileInfo != "" {
+			line += " (" + fileInfo + ")"
+		}
+		return line
 	case FrameworkApple:
 		binaryName := f.BinaryName
 		methodName := f.MethodName
@@ -222,4 +237,62 @@ func isHexString(s string) bool {
 		}
 	}
 	return true
+}
+
+// binaryName returns BinaryName, or "???"
+// when it is not set.
+func (f Frame) binaryName() string {
+	if f.FrameiOS == nil || f.BinaryName == "" {
+		return "???"
+	}
+	return f.BinaryName
+}
+
+// nativeOffset provides the frame's instruction
+// address relative to its binary's load address.
+func (f Frame) nativeOffset() (uint64, bool) {
+	if f.FrameiOS == nil {
+		return 0, false
+	}
+
+	address, err := strconv.ParseUint(strings.TrimPrefix(f.InstructionAddr, "0x"), 16, 64)
+	if err != nil {
+		return 0, false
+	}
+
+	base, err := strconv.ParseUint(strings.TrimPrefix(f.BinaryAddress, "0x"), 16, 64)
+	if err != nil || address < base {
+		return 0, false
+	}
+
+	return address - base, true
+}
+
+// nativeFunctionName returns a C++ function name
+// without its parameters and qualifiers, so
+// "Foo::bar(int) const" becomes "Foo::bar".
+func nativeFunctionName(name string) string {
+	name = strings.TrimSpace(name)
+	for trimmed := ""; trimmed != name; {
+		trimmed = name
+		for _, qualifier := range []string{" const", " volatile", " &&", " &"} {
+			name = strings.TrimSuffix(name, qualifier)
+		}
+	}
+	if !strings.HasSuffix(name, ")") {
+		return name
+	}
+	depth := 0
+	for i := len(name) - 1; i >= 0; i-- {
+		switch name[i] {
+		case ')':
+			depth++
+		case '(':
+			depth--
+			if depth == 0 {
+				return strings.TrimSpace(name[:i])
+			}
+		}
+	}
+	return name
 }

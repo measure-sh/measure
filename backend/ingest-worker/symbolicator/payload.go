@@ -11,12 +11,16 @@ type frameNative struct {
 	Status          string `json:"status"`
 	OriginalIndex   int    `json:"original_index"`
 	InstructionAddr string `json:"instruction_addr"`
-	Symbol          string `json:"symbol"`
-	Package         string `json:"package"`
-	Function        string `json:"function"`
-	Filename        string `json:"filename"`
-	AbsPath         string `json:"abs_path"`
-	LineNo          int    `json:"lineno"`
+	// AdjustInstructionAddr tells symbolicator whether to
+	// step back from a return address to the call before
+	// it. Left out, symbolicator decides by frame position.
+	AdjustInstructionAddr *bool  `json:"adjust_instruction_addr,omitempty"`
+	Symbol                string `json:"symbol"`
+	Package               string `json:"package"`
+	Function              string `json:"function"`
+	Filename              string `json:"filename"`
+	AbsPath               string `json:"abs_path"`
+	LineNo                int    `json:"lineno"`
 }
 
 // stacktraceNative represents a stacktrace
@@ -36,6 +40,7 @@ type moduleNative struct {
 	CodeId      string `json:"code_id"`
 	Arch        string `json:"arch"`
 	ImageAddr   string `json:"image_addr"`
+	ImageSize   uint64 `json:"image_size,omitempty"`
 	Type        string `json:"type"`
 }
 
@@ -269,9 +274,10 @@ func (r *requestNative) AddMachOModule(codeId string, arch string, imageAddr str
 	})
 }
 
-// AddModule adds a module to the JVM request
-// payload only if not already present.
-func (r *requestNative) AddElfModule(codeId string, arch string, imageAddr string) {
+// AddElfModule adds an ELF module to the native
+// request payload only if not already present. An
+// imageSize of 0 leaves the size out.
+func (r *requestNative) AddElfModule(codeId string, arch string, imageAddr string, imageSize uint64) {
 	for _, m := range r.Modules {
 		if m.CodeId == codeId {
 			return
@@ -283,6 +289,7 @@ func (r *requestNative) AddElfModule(codeId string, arch string, imageAddr strin
 		Type:      "elf",
 		Arch:      arch,
 		ImageAddr: imageAddr,
+		ImageSize: imageSize,
 	})
 }
 

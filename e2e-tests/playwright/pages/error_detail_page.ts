@@ -19,6 +19,7 @@ export class ErrorDetailPage {
   readonly threadHeaders: Locator;
   readonly subject: Locator;
   readonly cause: Locator;
+  readonly memoryError: Locator;
 
   constructor(page: Page, teamId: string) {
     this.page = page;
@@ -53,6 +54,7 @@ export class ErrorDetailPage {
     this.cause = page
       .getByTestId("exception-detail-attribute")
       .filter({ has: page.getByText("cause", { exact: true }) });
+    this.memoryError = page.getByTestId("exception-detail-memory-error");
   }
 
   selectThread(name: string | RegExp): Locator {

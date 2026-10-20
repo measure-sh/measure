@@ -277,6 +277,8 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
             exception_data,
             exception_handled,
             exception_severity,
+            exception_framework,
+            exception_cause,
             anr_data,
             anr_cause,
             app_hang_data,
@@ -292,6 +294,8 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
               if(e.type = 'exception', e.exception.exceptions, '') AS exception_data,
               if(e.type = 'exception', e.exception.handled, false) AS exception_handled,
               if(e.type = 'exception', e.exception.severity, '') AS exception_severity,
+              if(e.type = 'exception', e.exception.framework, '') AS exception_framework,
+              if(e.type = 'exception', e.exception.cause, '') AS exception_cause,
               if(e.type = 'anr', e.anr.exceptions, '') AS anr_data,
               if(e.type = 'anr', JSONExtractString(e.anr.thread_dump, 'cause'), '') AS anr_cause,
               if(e.type = 'app_hang', e.app_hang.exceptions, '') AS app_hang_data,
@@ -367,6 +371,8 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
             any(exception_data) AS exception_data,
             any(exception_handled) AS exception_handled,
             any(exception_severity) AS exception_severity,
+            any(exception_framework) AS exception_framework,
+            any(exception_cause) AS exception_cause,
             any(anr_data) AS anr_data,
             any(anr_cause) AS anr_cause,
             any(app_hang_data) AS app_hang_data,
@@ -387,6 +393,8 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
             exception_data,
             exception_handled,
             exception_severity,
+            exception_framework,
+            exception_cause,
             anr_data,
             anr_cause,
             app_hang_data,
@@ -408,6 +416,8 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
         exception_data,
         exception_handled,
         exception_severity,
+        exception_framework,
+        exception_cause,
         anr_data,
         anr_cause,
         app_hang_data,
@@ -457,6 +467,8 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 		var exceptionData string
 		var exceptionHandled bool
 		var exceptionSeverity string
+		var exceptionFramework string
+		var exceptionCause string
 		var anrData string
 		var anrCause string
 		var appHangData string
@@ -470,6 +482,8 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 			&exceptionData,
 			&exceptionHandled,
 			&exceptionSeverity,
+			&exceptionFramework,
+			&exceptionCause,
 			&anrData,
 			&anrCause,
 			&appHangData,
@@ -483,6 +497,7 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 			var exception event.Exception
 			exception.Handled = exceptionHandled
 			exception.Severity = event.Severity(exceptionSeverity)
+			exception.Framework = exceptionFramework
 
 			prefix, noPayloadDescription := "Crash: ", "Crash occurred"
 			switch exception.GetSeverity() {
@@ -492,15 +507,18 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 				prefix, noPayloadDescription = "Handled error: ", "Handled error occurred"
 			}
 
-			if exceptionData != "" && json.Unmarshal([]byte(exceptionData), &exception.Exceptions) == nil {
+			switch {
+			case exceptionData == "" || json.Unmarshal([]byte(exceptionData), &exception.Exceptions) != nil:
+				step.Description = noPayloadDescription
+			case exception.GetFramework() == event.FrameworkNDK:
+				step.Description = prefix + formatExceptionMessage(exception.GetType(), exceptionCause, "", "")
+			default:
 				step.Description = fmt.Sprintf("%s%s", prefix, formatExceptionMessage(
 					exception.GetType(),
 					exception.GetMessage(),
 					exception.GetFileName(),
 					exception.GetMethodName(),
 				))
-			} else {
-				step.Description = noPayloadDescription
 			}
 
 		case "anr":

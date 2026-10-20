@@ -61,9 +61,28 @@ type EventException struct {
 }
 
 type ExceptionView struct {
-	Title      string `json:"title"`
-	Stacktrace string `json:"stacktrace"`
-	Message    string `json:"message"`
+	Title       string           `json:"title"`
+	Stacktrace  string           `json:"stacktrace"`
+	Message     string           `json:"message"`
+	Cause       string           `json:"cause"`
+	MemoryError *MemoryErrorView `json:"memory_error"`
+}
+
+// MemoryErrorView is a memory error with its
+// stacks as text lines.
+type MemoryErrorView struct {
+	Tool         string                `json:"tool"`
+	Type         string                `json:"type"`
+	Address      string                `json:"address"`
+	Size         uint64                `json:"size"`
+	Deallocation *MemoryErrorStackView `json:"deallocation"`
+	Allocation   *MemoryErrorStackView `json:"allocation"`
+}
+
+type MemoryErrorStackView struct {
+	ThreadID   uint64   `json:"thread_id"`
+	ThreadName string   `json:"thread_name"`
+	Frames     []string `json:"frames"`
 }
 
 type EventAppHang struct {
@@ -152,9 +171,11 @@ func threadViews(threads []artdump.Thread) []ThreadView {
 // version of the exception.
 func (e *EventException) ComputeView() {
 	e.ExceptionView = ExceptionView{
-		Title:      e.Exception.GetDisplayTitle(),
-		Stacktrace: e.Exception.Stacktrace(),
-		Message:    e.Exception.GetMessage(),
+		Title:       e.Exception.GetDisplayTitle(),
+		Stacktrace:  e.Exception.Stacktrace(),
+		Message:     e.Exception.GetMessage(),
+		Cause:       e.Exception.Cause,
+		MemoryError: memoryErrorView(e.Exception.MemoryError),
 	}
 
 	f := e.Exception.GetFramework()
@@ -185,5 +206,30 @@ func (e *EventException) ComputeView() {
 		}
 		e.Threads = append(e.Threads, tv)
 		w.Reset()
+	}
+}
+
+func memoryErrorView(r *MemoryError) *MemoryErrorView {
+	if r == nil {
+		return nil
+	}
+	return &MemoryErrorView{
+		Tool:         r.Tool,
+		Type:         r.Type,
+		Address:      r.Address,
+		Size:         r.Size,
+		Deallocation: memoryErrorStackView(r.Deallocation),
+		Allocation:   memoryErrorStackView(r.Allocation),
+	}
+}
+
+func memoryErrorStackView(s *MemoryErrorStack) *MemoryErrorStackView {
+	if s == nil {
+		return nil
+	}
+	return &MemoryErrorStackView{
+		ThreadID:   s.ThreadID,
+		ThreadName: s.ThreadName,
+		Frames:     NativeStackLines(s.Frames),
 	}
 }

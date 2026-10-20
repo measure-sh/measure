@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"regexp"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -484,6 +485,59 @@ type Exception struct {
 	// a user tracked error. For example: payment_failed
 	IsCustom bool     `json:"is_custom" binding:"required"`
 	Severity Severity `json:"severity" binding:"required"`
+	// AbortMessage is the message passed to abort
+	// by native code.
+	AbortMessage string `json:"abort_message,omitempty"`
+	// Cause is the OS reported summary of the likely
+	// cause.
+	Cause string `json:"cause,omitempty"`
+	// MemoryError is set when GWP-ASan or MTE
+	// caught the crash.
+	MemoryError *MemoryError `json:"memory_error,omitempty"`
+}
+
+// MemoryError is a heap memory error caught by
+// GWP-ASan or MTE.
+type MemoryError struct {
+	// Tool is either "gwp_asan" or "mte".
+	Tool string `json:"tool"`
+	// Type is the kind of memory error, a key of
+	// memoryErrorTypes.
+	Type string `json:"type"`
+	// Address is the address of the heap allocation,
+	// as a hex string.
+	Address string `json:"address,omitempty"`
+	// Size is the size of the allocation in bytes.
+	Size uint64 `json:"size,omitempty"`
+	// Allocation is where the memory was allocated.
+	Allocation *MemoryErrorStack `json:"allocation,omitempty"`
+	// Deallocation is where the memory was freed.
+	Deallocation *MemoryErrorStack `json:"deallocation,omitempty"`
+}
+
+// MemoryErrorStack is the stack of the thread that
+// allocated or freed the memory.
+type MemoryErrorStack struct {
+	ThreadID uint64 `json:"thread_id"`
+	// ThreadName is the name of the thread, empty
+	// when the thread had exited by the crash.
+	ThreadName string `json:"thread_name,omitempty"`
+	Frames     Frames `json:"frames"`
+}
+
+// memoryErrorTools are the tools that report
+// memory errors.
+var memoryErrorTools = []string{"gwp_asan", "mte"}
+
+// memoryErrorTypes maps each memory error type
+// to the message shown for it.
+var memoryErrorTypes = map[string]string{
+	"use_after_free":   "Use After Free",
+	"double_free":      "Double Free",
+	"invalid_free":     "Invalid Free",
+	"buffer_overflow":  "Buffer Overflow",
+	"buffer_underflow": "Buffer Underflow",
+	"unknown":          "Unknown Memory Error",
 }
 
 // Error represents a generic error object that occurred
@@ -978,6 +1032,35 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		case FrameworkJS:
 			if len(e.Exception.Exceptions) < 1 {
 				return fmt.Errorf(`%q must contain at least one exception`, `exception`)
+			}
+		case FrameworkNDK:
+			if opsys.ToFamily(e.Attribute.OSName) != opsys.Android {
+				return fmt.Errorf(`%q framework requires an Android os_name, got %q`, f, e.Attribute.OSName)
+			}
+			if len(e.Exception.Exceptions) < 1 {
+				return fmt.Errorf(`%q must contain at least one exception`, `exception`)
+			}
+			if len(e.Exception.Exceptions[0].Frames) < 1 {
+				return fmt.Errorf(`%q must contain at least one frame`, `exception.exceptions[0].frames`)
+			}
+			if r := e.Exception.MemoryError; r != nil {
+				if !slices.Contains(memoryErrorTools, r.Tool) {
+					return fmt.Errorf(`%q is not a valid value for %q`, r.Tool, `exception.memory_error.tool`)
+				}
+				if _, ok := memoryErrorTypes[r.Type]; !ok {
+					return fmt.Errorf(`%q is not a valid value for %q`, r.Type, `exception.memory_error.type`)
+				}
+			}
+			for i, bi := range e.Exception.BinaryImages {
+				if bi.Uuid == "" {
+					return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `uuid`)
+				}
+				if bi.Arch == "" {
+					return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `arch`)
+				}
+				if bi.BaseAddr == "" {
+					return fmt.Errorf(`binary image at index %d is missing required field %q`, i, `base_addr`)
+				}
 			}
 		default:
 			return fmt.Errorf(`%q is not a valid framework for %q.`, f, `exception.framework`)
@@ -1572,6 +1655,8 @@ func (e EventField) NeedsSymbolication() (result bool) {
 			if e.Exception.HasExceptions() && len(e.Exception.Exceptions[0].Frames) > 0 && e.Exception.Exceptions[0].Frames[0].InstructionAddr != "" {
 				result = true
 			}
+		case FrameworkNDK:
+			result = e.Exception.hasInstructionAddress()
 		}
 
 		return
@@ -1681,7 +1766,7 @@ func (e Exception) HasNoFrames() bool {
 			return true
 		}
 		return len(e.Exceptions[0].Frames) == 0
-	case FrameworkDart, FrameworkJS:
+	case FrameworkDart, FrameworkJS, FrameworkNDK:
 		// For some cases, exceptions may not be present
 		if !e.HasExceptions() {
 			return true
@@ -1788,7 +1873,7 @@ func (e Exception) GetType() string {
 			return unknown
 		}
 		return e.Exceptions[0].Signal
-	case FrameworkDart, FrameworkJS:
+	case FrameworkDart, FrameworkJS, FrameworkNDK:
 		// We do not look for the deepest exception
 		// as only the top most exception unit
 		// contains the type.
@@ -1821,6 +1906,14 @@ func (e Exception) GetMessage() string {
 		// iOS doesn't have a typical message to
 		// use for an exception
 		return ""
+	case FrameworkNDK:
+		if e.AbortMessage != "" {
+			return e.AbortMessage
+		}
+		if e.MemoryError != nil {
+			return memoryErrorTypes[e.MemoryError.Type]
+		}
+		return e.Exceptions[0].Message
 	case FrameworkDart, FrameworkJS:
 		// We do not look for the deepest exception
 		// as only the top most exception unit
@@ -1842,6 +1935,12 @@ func (e Exception) GetFileName() string {
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
 	case FrameworkApple:
 		return e.GetRelevantFrame().FileName
+	case FrameworkNDK:
+		frame := e.getNativeRelevantFrame()
+		if frame.FileName != "" {
+			return frame.FileName
+		}
+		return frame.binaryName()
 	case FrameworkDart:
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
 	case FrameworkJS:
@@ -1881,6 +1980,8 @@ func (e Exception) GetLineNumber() int32 {
 		return int32(e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum)
 	case FrameworkApple:
 		return int32(e.GetRelevantFrame().LineNum)
+	case FrameworkNDK:
+		return int32(e.getNativeRelevantFrame().LineNum)
 	case FrameworkJS:
 		return int32(e.Exceptions[0].Frames[0].LineNum)
 	}
@@ -1901,6 +2002,8 @@ func (e Exception) GetMethodName() string {
 		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
 	case FrameworkApple:
 		return e.GetRelevantFrame().MethodName
+	case FrameworkNDK:
+		return e.getNativeRelevantFrame().MethodName
 	case FrameworkJS:
 		return e.Exceptions[0].Frames[0].MethodName
 	}
@@ -2045,11 +2148,128 @@ func (e Exception) Stacktrace() string {
 				}
 			}
 		}
+	case FrameworkNDK:
+		// Android tombstone style frames.
+		//
+		// #00 pc 0x00000000000008f4  libfoo.so (crash_now) (foo.cpp:42)
+		//     ... 12 internal frames ...
+		b.WriteString(strings.Join(NativeStackLines(e.Exceptions[0].Frames), "\n"))
 	default:
 		fmt.Printf("unknown framework %s\n", f)
 	}
 
 	return b.String()
+}
+
+// NativeStackLines renders the frames of a native
+// stack, one line each. Runs of ART runtime frames
+// are folded into one line, as they sit between
+// every Java and native call and bury the app frames.
+func NativeStackLines(frames Frames) []string {
+	lines := []string{}
+	for i := 0; i < len(frames); {
+		run := i
+		for run < len(frames) && frames[run].isARTRuntime() {
+			run++
+		}
+		if run-i > 1 {
+			lines = append(lines, fmt.Sprintf("    ... %d internal frames ...", run-i))
+			i = run
+			continue
+		}
+		lines = append(lines, frames[i].String(FrameworkNDK))
+		i++
+	}
+	return lines
+}
+
+// isARTRuntime reports whether a frame is the Android
+// runtime itself, or Java code the device left unnamed.
+func (f Frame) isARTRuntime() bool {
+	binary := f.binaryName()
+	return binary == "libart.so" || (f.MethodName == "" && !strings.HasSuffix(binary, ".so"))
+}
+
+// nativeNoiseMethods are functions that report a
+// native crash rather than cause it.
+var nativeNoiseMethods = []string{
+	"abort",
+	"raise",
+	"__libc_fatal",
+	"__stack_chk_fail",
+	"__android_log_assert",
+}
+
+// nativeNoisePrefixes are function name prefixes of
+// the C++ runtime, which reports native crashes.
+var nativeNoisePrefixes = []string{
+	"__cxa_",
+	"__gxx_personality",
+	"std::terminate",
+	"std::__terminate",
+	"std::__1::__terminate",
+}
+
+// nativeNoiseBinaries are app bundled binaries
+// that never cause a native crash on their own.
+var nativeNoiseBinaries = []string{
+	"libc++_shared.so",
+}
+
+// isNativeNoise reports whether a frame is part
+// of crash reporting, not the cause of the crash.
+func (f Frame) isNativeNoise() bool {
+	if slices.Contains(nativeNoiseBinaries, f.binaryName()) {
+		return true
+	}
+	if slices.Contains(nativeNoiseMethods, f.MethodName) {
+		return true
+	}
+	for _, prefix := range nativeNoisePrefixes {
+		if strings.HasPrefix(f.MethodName, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// getNativeRelevantFrame returns the first in app
+// frame of the crashing thread that is not noise,
+// then the first frame that is not noise, then
+// the first frame.
+func (e Exception) getNativeRelevantFrame() Frame {
+	frames := e.Exceptions[0].Frames
+	for _, frame := range frames {
+		if frame.InApp && !frame.isNativeNoise() {
+			return frame
+		}
+	}
+	for _, frame := range frames {
+		if !frame.isNativeNoise() {
+			return frame
+		}
+	}
+	return frames[0]
+}
+
+// hasInstructionAddress reports whether any frame
+// of the exception has an instruction address.
+func (e Exception) hasInstructionAddress() bool {
+	for _, exception := range e.Exceptions {
+		for _, frame := range exception.Frames {
+			if frame.InstructionAddr != "" {
+				return true
+			}
+		}
+	}
+	for _, thread := range e.Threads {
+		for _, frame := range thread.Frames {
+			if frame.InstructionAddr != "" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // ComputeFingerprint computes a fingerprint
@@ -2153,6 +2373,25 @@ func (e *Exception) ComputeFingerprint() (err error) {
 			if fileName != "" {
 				input += sep + fileName
 			}
+		}
+	case FrameworkNDK:
+		// initialize with the signal
+		input = e.GetType()
+
+		// memory errors of different kinds can fault
+		// in the same function, but are different bugs.
+		// The tool is left out so the same bug caught
+		// by GWP-ASan or MTE stays one group.
+		if e.MemoryError != nil {
+			input += sep + e.MemoryError.Type
+		}
+
+		frame := e.getNativeRelevantFrame()
+		input += sep + frame.binaryName()
+		if frame.MethodName != "" {
+			input += sep + nativeFunctionName(frame.MethodName)
+		} else if offset, ok := frame.nativeOffset(); ok {
+			input += sep + "0x" + strconv.FormatUint(offset, 16)
 		}
 	default:
 		return errors.New("failed to compute fingerprint for unknown framework")

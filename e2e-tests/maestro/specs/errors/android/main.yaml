@@ -9,6 +9,8 @@ appId: ${APP_ID}
 
 - runFlow: errors.yaml
 - runFlow: anr.yaml
+- runFlow: native_crash.yaml
+- runFlow: native_gwp_asan_use_after_free.yaml
 - runFlow: ../kmp/errors.yaml
 - runFlow: ../flutter/errors.yaml
 - runFlow: ../react_native/errors.yaml

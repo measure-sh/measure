@@ -1,0 +1,18 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Native Android"
+    timeout: 5000
+- tapOn: "Native Android"
+- scrollUntilVisible:
+    element:
+      text: "Native Use After Free"
+- tapOn: "Native Use After Free"
+
+# The native crash is read from app exit info on the launch after the one
+# it happened in, so the report needs this relaunch to reach the backend.
+- launchApp
+- extendedWaitUntil:
+    visible: "Native Android"
+    timeout: 10000
