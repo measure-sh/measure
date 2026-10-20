@@ -96,6 +96,28 @@ test.describe("errors", () => {
       });
     });
 
+    test.describe("android inlined", { tag: "@android" }, () => {
+      const subtitle = /^java\.lang\.IllegalStateException:Order total is zero/;
+
+      test("error details lists inlined frames innermost first", async ({
+        page,
+        teamId,
+      }) => {
+        await overview.openErrorGroupByType(subtitle);
+        const detail = new ErrorDetailPage(page, teamId);
+
+        await expect(detail.errorThreadStacktrace).toContainText(
+          new RegExp(
+            [
+              "at sh\\.frankenstein\\.android\\.InlinedCrash\\.validate\\(InlinedCrash\\.kt:14\\)",
+              "at sh\\.frankenstein\\.android\\.InlinedCrash\\.placeOrder\\(InlinedCrash\\.kt:10\\)",
+              "at sh\\.frankenstein\\.android\\.InlinedCrash\\.submit\\(InlinedCrash\\.kt:6\\)",
+            ].join("\\s*"),
+          ),
+        );
+      });
+    });
+
     test.describe("ios", { tag: "@ios" }, () => {
       const errorPill = "Crash";
       const fatalPill = "Fatal";

@@ -157,6 +157,12 @@ fun NativeAndroidScreen() {
             action = { throw IllegalAccessException("This is a new exception") },
         ),
         DemoItem(
+            title = "Inlined Exception",
+            description = "Throws from functions that R8 inlines",
+            category = DemoCategory.CRASHES,
+            action = { InlinedCrash.submit() },
+        ),
+        DemoItem(
             title = "Chained Exception",
             description = "IOException wrapping a custom cause",
             category = DemoCategory.CRASHES,

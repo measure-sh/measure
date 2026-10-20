@@ -167,6 +167,17 @@ type requestJVM struct {
 	// Modules form a list of Debug Information
 	// Files and their types.
 	Modules []moduleJVM `json:"modules"`
+	// Options configures how Symbolicator
+	// processes the request.
+	Options optionsJVM `json:"options"`
+}
+
+// optionsJVM represents the options of a
+// JVM symbolication request.
+type optionsJVM struct {
+	// FrameOrder is the order of the frames
+	// in each stacktrace.
+	FrameOrder string `json:"frame_order"`
 }
 
 // requestNative represents the payload sent
@@ -237,6 +248,7 @@ func NewRequestJVM() *requestJVM {
 		Exceptions:  []exceptionJVM{},
 		Stacktraces: []stacktraceJVM{},
 		Modules:     []moduleJVM{},
+		Options:     optionsJVM{FrameOrder: "callee_first"},
 	}
 }
 
