@@ -38,6 +38,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
+          check-latest: true
           cache: "npm"
 
       - name: Install dependencies for CI
@@ -62,6 +63,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
+          check-latest: true
 
       - name: Install dependencies for CI
         run: npm ci
