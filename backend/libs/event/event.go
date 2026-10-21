@@ -1339,7 +1339,7 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 
 	if e.IsCustom() {
 		if len(e.Custom.Name) > maxCustomNameChars {
-			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `custom.name`, maxTypeChars)
+			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `custom.name`, maxCustomNameChars)
 		}
 
 		if !customNameRegexp.MatchString(e.Custom.Name) {
