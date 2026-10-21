@@ -32,6 +32,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Report correct custom.name length limit by @anupcowkur in #4651
 - (**backend**): Symbolicate jvm frames innermost first (#4644) by @abhaysood in #4644
 - (**backend**): Renumber app hang clickhouse migrations by @anupcowkur in #4610
 - (**backend**): Renumber app hang sdk config migration by @anupcowkur in #4607
