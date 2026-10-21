@@ -579,7 +579,7 @@ const Journey: React.FC<JourneyProps> = ({
   query: journeyQuery,
   errorDetailContext,
 }) => {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const chartColor = useChartColor();
   const chartColors = useChartColors();
   const router = useRouter();
@@ -694,7 +694,7 @@ const Journey: React.FC<JourneyProps> = ({
             nodeBorderColor={{
               from: "color",
               modifiers: [
-                theme === "dark" ? ["brighter", 0.5] : ["darker", 0.3],
+                resolvedTheme === "dark" ? ["brighter", 0.5] : ["darker", 0.3],
               ],
             }}
             nodeBorderRadius={3}
@@ -705,17 +705,19 @@ const Journey: React.FC<JourneyProps> = ({
             labelPadding={8}
             labelTextColor={
               journeyType === JourneyType.Exceptions
-                ? theme === "dark"
+                ? resolvedTheme === "dark"
                   ? exceptionNodeLabelColourDark
                   : exceptionNodeLabelColour
                 : {
                     from: "color",
                     modifiers: [
-                      theme === "dark" ? ["brighter", 0.5] : ["darker", 0.7],
+                      resolvedTheme === "dark"
+                        ? ["brighter", 0.5]
+                        : ["darker", 0.7],
                     ],
                   }
             }
-            linkBlendMode={theme === "dark" ? "lighten" : "multiply"}
+            linkBlendMode={resolvedTheme === "dark" ? "lighten" : "multiply"}
             onClick={
               journeyType === JourneyType.Exceptions
                 ? (nodeOrLink) => {

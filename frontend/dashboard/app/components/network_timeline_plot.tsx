@@ -25,7 +25,7 @@ interface Props {
 }
 
 const NetworkTimelinePlot: React.FC<Props> = ({ data }) => {
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const interval = data.interval;
   const canvasTheme = useChartCanvasTheme();
 
@@ -192,16 +192,16 @@ const NetworkTimelinePlot: React.FC<Props> = ({ data }) => {
           data={filteredHeatmapData}
           theme={canvasTheme}
           colors={
-            theme === "dark"
+            resolvedTheme === "dark"
               ? { type: "diverging", colors: ["#cad8ea", "#5e98c4", "#1f77b4"] }
               : { type: "diverging", colors: ["#fee6ce", "#fdae6b", "#e6550d"] }
           }
-          emptyColor={theme === "dark" ? "#1a1a1a" : "#f9f9f9"}
+          emptyColor={resolvedTheme === "dark" ? "#1a1a1a" : "#f9f9f9"}
           opacity={1}
           activeOpacity={1}
-          inactiveOpacity={theme === "dark" ? 0.9 : 0.7}
+          inactiveOpacity={resolvedTheme === "dark" ? 0.9 : 0.7}
           borderWidth={1}
-          borderColor={theme === "dark" ? "#000000" : "#ffffff"}
+          borderColor={resolvedTheme === "dark" ? "#000000" : "#ffffff"}
           margin={{ top: 20, right: 40, bottom: 120, left: 180 }}
           axisTop={null}
           axisRight={null}

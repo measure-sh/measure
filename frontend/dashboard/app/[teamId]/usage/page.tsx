@@ -126,7 +126,7 @@ function parseUsageForMonth(usage: any[], month: string): AppMonthlyUsage[] {
 export default function Usage(props: { params: Promise<{ teamId: string }> }) {
   const params = use(props.params);
   const showBilling = isBillingEnabled() && !isSandboxTeamId(params.teamId);
-  const { theme } = useTheme();
+  const { resolvedTheme } = useTheme();
   const chartColors = useChartColors();
 
   const [isUpgrading, setIsUpgrading] = useState(false);
@@ -422,7 +422,7 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
                         className="text-sm font-semibold"
                         style={{
                           color:
-                            theme === "dark"
+                            resolvedTheme === "dark"
                               ? color
                               : `color-mix(in oklch, ${color} 80%, black)`,
                         }}
