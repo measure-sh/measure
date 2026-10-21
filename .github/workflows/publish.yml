@@ -84,6 +84,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
+          check-latest: true
 
       - name: Install dependencies for CI
         run: npm ci
