@@ -49,8 +49,8 @@ interface ErrorsOverviewProps {
 export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { theme } = useTheme();
-  const trendColor = theme === "dark" ? "#a1a1a1" : "#a3a3a3";
+  const { resolvedTheme } = useTheme();
+  const trendColor = resolvedTheme === "dark" ? "#a1a1a1" : "#a3a3a3";
 
   const {
     value,
