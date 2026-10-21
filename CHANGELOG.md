@@ -32,6 +32,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Symbolicate jvm frames innermost first (#4644) by @abhaysood in #4644
+- (**backend**): Renumber app hang clickhouse migrations by @anupcowkur in #4610
 - (**backend**): Renumber app hang sdk config migration by @anupcowkur in #4607
 - (**backend**): State the requested numbers in agent replies with charts by @anupcowkur in #4546
 - (**backend**): Keep filter keys and crash fallback out of agent answers by @anupcowkur
@@ -47,6 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Expand session arrays with an ARRAY JOIN clause by @anupcowkur
 - (**backend**): Bind the suggestion window start as a query parameter by @anupcowkur in #4464
 - (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
+- (**frontend**): Fix september blog preview image (#4613) by @abhaysood in #4613
 - (**frontend**): Match apps settings error to other settings pages by @anupcowkur in #4608
 - (**frontend**): Reset usage page redirect buttons on back navigation by @anupcowkur in #4599
 - (**frontend**): Match notification prefs save button to other save buttons by @anupcowkur in #4597
@@ -76,6 +79,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Bump Go to 1.27.3 (#4646) by @detj in #4646
 - (**backend**): Bump Go to 1.27.1 (#4587) by @detj in #4587
 - (**backend**): Upgrade clickhouse go driver & other deps (#4580) by @detj in #4580
 - (**backend**): Upgrade to clickhouse 26.6 (#4579) by @detj in #4579
@@ -93,6 +97,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump sharp from 0.35.4 to 0.35.5 in /frontend/dashboard (#4618) by @dependabot[bot] in #4618
+- (**deps**): Bump source-map-js in /frontend/dashboard (#4617) by @dependabot[bot] in #4617
 - (**deps**): Bump github actions to latest majors (#4588) by @detj in #4588
 - (**deps**): Bump dompurify from 3.4.14 to 3.4.16 in /frontend/dashboard (#4574) by @dependabot[bot] in #4574
 - (**deps**): Bump fast-uri from 3.1.7 to 3.1.8 in /frontend/dashboard (#4572) by @dependabot[bot] in #4572
@@ -157,6 +163,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Drop unused initConfig prop from Onboarding by @anupcowkur
 - (**frontend**): Keep touch indicators on the correct replay screen (#4436) by @abhaysood in #4436
 - (**kmp**): Prepare sdk release 0.3.0 by @abhaysood in #4506
+- Add android trigger-based profiling blog (#4629) by @abhaysood in #4629
 - Add anrs on android blog (#4584) by @abhaysood in #4584
 - Update September blog (#4585) by @abhaysood in #4585
 - Record workspace sums for recent dependency bumps by @anupcowkur in #4575
