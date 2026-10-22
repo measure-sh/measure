@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Expand session arrays with an ARRAY JOIN clause by @anupcowkur
 - (**backend**): Bind the suggestion window start as a query parameter by @anupcowkur in #4464
 - (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
+- (**frontend**): Keep app hang filters from the URL on error details by @anupcowkur in #4666
 - (**frontend**): Handle error details with no matching events by @anupcowkur
 - (**frontend**): Use resolved theme for chart colours and theme toggle by @anupcowkur in #4652
 - (**frontend**): Fix september blog preview image (#4613) by @abhaysood in #4613
