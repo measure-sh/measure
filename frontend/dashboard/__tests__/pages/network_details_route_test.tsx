@@ -103,9 +103,8 @@ describe("NetworkDetailsPage", () => {
     );
     await waitFor(() => expect(mockTrack).toHaveBeenCalledTimes(1));
 
-    // NetworkDetails rebuilds the query string from filters without `from`.
     mockSearchParams = new URLSearchParams(
-      "a=app-1&domain=api.example.com&path=/v1/users",
+      "domain=api.example.com&path=/v1/users&from=search&a=app-1",
     );
     rerender(
       <NetworkDetailsPage params={promiseParams({ teamId: "team-1" })} />,

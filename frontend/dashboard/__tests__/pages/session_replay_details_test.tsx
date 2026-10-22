@@ -136,9 +136,11 @@ describe("SessionReplayDetails Page", () => {
     const { rerender } = renderPage();
     expect(trackMock).toHaveBeenCalledTimes(1);
 
-    // A changed entry point re-runs the effect; the session was already
-    // counted.
-    mockSearchParams = new URLSearchParams("from=alerts");
+    // A refetch hands the page a new session object.
+    mockUseSessionReplayQuery.mockReturnValue({
+      data: { ...sampleSession },
+      status: "success",
+    });
     rerender(
       <SessionReplayDetailsPage
         params={promiseParams({
