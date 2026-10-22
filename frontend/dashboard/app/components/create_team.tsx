@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import React, { FormEventHandler, useState } from "react";
+import React, { SubmitEventHandler, useState } from "react";
 import { useCreateTeamMutation } from "../query/hooks";
 import { toastNegative, toastPositive } from "./toast";
 import { Button } from "./button";
@@ -25,7 +25,7 @@ const CreateTeam: React.FC<CreateTeamProps> = ({ disabled, onSuccess }) => {
   const [teamName, setTeamName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const handleCreateTeam: FormEventHandler = async (event) => {
+  const handleCreateTeam: SubmitEventHandler = async (event) => {
     event.preventDefault();
     if (teamName === "") {
       return;

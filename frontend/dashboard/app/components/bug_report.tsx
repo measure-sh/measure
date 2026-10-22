@@ -14,7 +14,7 @@ import { toastNegative, toastPositive } from "@/app/components/toast";
 import { DateTime } from "luxon";
 import Image from "next/image";
 import Link from "next/link";
-import { FormEventHandler, useState } from "react";
+import { useState } from "react";
 import Pill, { PillType } from "./pill";
 
 const demoBugReport = {
@@ -120,8 +120,7 @@ export default function BugReport({
     setImageErrors((prev) => new Set(prev).add(key));
   };
 
-  const handleToggleStatus: FormEventHandler = async (event) => {
-    event.preventDefault();
+  const handleToggleStatus = async () => {
     if (demo) {
       setDemoUpdating(true);
       setTimeout(() => {
