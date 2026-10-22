@@ -737,8 +737,12 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
     isFetching,
   } = detailsQuery;
 
+  // All events in an error group share the same type, so any loaded event
+  // can identify an app hang group. Once set, the flag stays enabled to keep
+  // app hang keys in the filter bar even when the current filter matches no
+  // events, allowing users to continue filtering by them.
   const [isAppHangGroup, setIsAppHangGroup] = useState(false);
-  if (!isAppHangGroup && errorsDetails.results[0]?.app_hang) {
+  if (!isAppHangGroup && errorsDetails.results?.[0]?.app_hang) {
     setIsAppHangGroup(true);
   }
   const visibleKeys = isAppHangGroup
