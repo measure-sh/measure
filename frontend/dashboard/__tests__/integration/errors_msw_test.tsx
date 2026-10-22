@@ -651,6 +651,27 @@ describe("Errors Detail (MSW integration)", () => {
   });
 
   describe("the App Hang filter", () => {
+    function recordErrorsRequests(body: any) {
+      const sent: URL[] = [];
+      server.use(
+        http.get(
+          "*/api/apps/:appId/errorGroups/:groupId/errors",
+          ({ request }) => {
+            sent.push(new URL(request.url));
+            return HttpResponse.json(body);
+          },
+        ),
+      );
+      return sent;
+    }
+
+    async function expectAppHangKeysNotOffered() {
+      fireEvent.click(screen.getByTestId("filter-input"));
+      await screen.findByTestId("filter-key-version_name");
+      expect(screen.queryByRole("button", { name: "App Hang" })).toBeNull();
+      expect(screen.queryByTestId("filter-key-app_hang_state")).toBeNull();
+    }
+
     it("filters an app hang group by the state picked", async () => {
       server.use(
         http.get("*/api/apps/:appId/filters/values", () =>
@@ -660,17 +681,8 @@ describe("Errors Detail (MSW integration)", () => {
           }),
         ),
       );
-      const sent: URL[] = [];
-      server.use(
-        http.get(
-          "*/api/apps/:appId/errorGroups/:groupId/errors",
-          ({ request }) => {
-            sent.push(new URL(request.url));
-            return HttpResponse.json(
-              makeExceptionInstanceFixture({ variant: "app_hang" }),
-            );
-          },
-        ),
+      const sent = recordErrorsRequests(
+        makeExceptionInstanceFixture({ variant: "app_hang" }),
       );
       renderPage();
       await waitForDetails();
@@ -689,11 +701,43 @@ describe("Errors Detail (MSW integration)", () => {
     it("is not offered for an exception group", async () => {
       renderPage();
       await waitForDetails();
+      await expectAppHangKeysNotOffered();
+    });
 
-      fireEvent.click(screen.getByTestId("filter-input"));
-      await screen.findByTestId("filter-key-version_name");
-      expect(screen.queryByRole("button", { name: "App Hang" })).toBeNull();
-      expect(screen.queryByTestId("filter-key-app_hang_state")).toBeNull();
+    it("shows and applies a condition from the URL when no events match", async () => {
+      mockRouter.setUrl(
+        `filter_expr=${encodeURIComponent("app_hang_state:in:Killed")}`,
+      );
+      const sent = recordErrorsRequests({
+        meta: { next: false, previous: false },
+        results: null,
+      });
+      renderPage();
+
+      expect(await screen.findByText("No stack traces found")).toBeTruthy();
+      const bar = within(screen.getByTestId("filter-bar"));
+      expect(bar.getByText("State")).toBeTruthy();
+      expect(bar.getByText("Killed")).toBeTruthy();
+      expect(screen.queryByTestId("filter-issue")).toBeNull();
+      expect(sent[0].searchParams.get("filter_expr")).toBe(
+        "app_hang_state:in:Killed",
+      );
+      await expectAppHangKeysNotOffered();
+    });
+
+    it("shows and applies a condition from the URL on an exception group", async () => {
+      const filterExpr = "app_hang_state:in:Killed OR os_name:in:android";
+      mockRouter.setUrl(`filter_expr=${encodeURIComponent(filterExpr)}`);
+      const sent = recordErrorsRequests(makeExceptionInstanceFixture());
+      renderPage();
+      await waitForDetails();
+
+      const bar = within(screen.getByTestId("filter-bar"));
+      expect(bar.getByText("State")).toBeTruthy();
+      expect(bar.getByText("Killed")).toBeTruthy();
+      expect(screen.queryByTestId("filter-issue")).toBeNull();
+      expect(sent[0].searchParams.get("filter_expr")).toBe(filterExpr);
+      await expectAppHangKeysNotOffered();
     });
   });
 
