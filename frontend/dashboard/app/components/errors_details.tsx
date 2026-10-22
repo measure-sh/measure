@@ -582,7 +582,7 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
                   ) : (
                     <Link
                       key={firstResult.id}
-                      href={`/${teamId}/session_replays/${appId}/${firstResult.session_id}`}
+                      href={`/${teamId}/session_replays/${appId}/${firstResult.session_id}?from=error_details`}
                       className={cn(
                         buttonVariants({ variant: "outline" }),
                         "justify-center w-fit",

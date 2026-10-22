@@ -118,7 +118,7 @@ export default function TraceDetails({
                 </div>
               ) : (
                 <Link
-                  href={`/${params.teamId}/session_replays/${params.appId}/${displayTrace.session_id}`}
+                  href={`/${params.teamId}/session_replays/${params.appId}/${displayTrace.session_id}?from=trace_details`}
                   className={cn(
                     buttonVariants({ variant: "outline", size: "sm" }),
                   )}

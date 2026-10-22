@@ -47,7 +47,7 @@ export default function FunnelStepNetwork({
     params.set(urlFiltersKeyMap.appId, appId);
     params.set("domain", endpoint.domain);
     params.set("path", endpoint.path_pattern);
-    params.set("from", "funnel");
+    params.set("from", "funnel_details");
     return `/${teamId}/network/details?${params}`;
   };
 

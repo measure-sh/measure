@@ -396,7 +396,7 @@ describe("FunnelPinnedCard header", () => {
 
     expect(screen.getByRole("link", { name: "Checkout flow" })).toHaveAttribute(
       "href",
-      `${funnelPath}?from=pinned`,
+      `${funnelPath}?from=funnels_overview_pinned`,
     );
     expect(
       screen.queryByRole("button", { name: /^Move/ }),
@@ -531,7 +531,7 @@ describe("FunnelPinnedCard weekly plot", () => {
     const url = new URL(mockPush.mock.calls[0][0] as string, "http://host");
     expect(url.pathname).toBe(funnelPath);
     expect(Object.fromEntries(url.searchParams)).toEqual({
-      from: "pinned",
+      from: "funnels_overview_pinned",
       d: "Custom Range",
       sd: "2026-09-28T00:00:00.000Z",
       ed: "2026-10-05T00:00:00.000Z",
@@ -543,7 +543,9 @@ describe("FunnelPinnedCard weekly plot", () => {
     fireEvent.click(screen.getByTestId("bar-canvas"));
 
     expect(mockPush).toHaveBeenCalledTimes(1);
-    expect(mockPush).toHaveBeenCalledWith(`${funnelPath}?from=pinned`);
+    expect(mockPush).toHaveBeenCalledWith(
+      `${funnelPath}?from=funnels_overview_pinned`,
+    );
   });
 
   it("opens nothing when the plot or a bar is clicked in reorder mode", () => {

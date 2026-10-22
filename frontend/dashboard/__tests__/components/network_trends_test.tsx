@@ -269,7 +269,7 @@ describe("NetworkTrends", () => {
         screen.getByText("api.example.com/v1/checkout").closest("tr")!,
       );
       expect(mockRouterPush).toHaveBeenCalledWith(
-        "/team-1/network/details?domain=api.example.com&path=%2Fv1%2Fcheckout&from=top_endpoint",
+        "/team-1/network/details?domain=api.example.com&path=%2Fv1%2Fcheckout&from=network_overview_top_endpoints",
       );
     });
 
@@ -285,7 +285,7 @@ describe("NetworkTrends", () => {
 
       expect(screen.getAllByRole("link")[0]).toHaveAttribute(
         "href",
-        "/team-1/network/details?domain=api.example.com&path=%2Fv1%2Fcheckout&from=top_endpoint",
+        "/team-1/network/details?domain=api.example.com&path=%2Fv1%2Fcheckout&from=network_overview_top_endpoints",
       );
     });
 
@@ -323,7 +323,7 @@ describe("NetworkTrends", () => {
         { key: "Enter" },
       );
       expect(mockRouterPush).toHaveBeenCalledWith(
-        "/team-1/network/details?domain=api.example.com&path=%2Fv1%2Fcheckout&from=top_endpoint",
+        "/team-1/network/details?domain=api.example.com&path=%2Fv1%2Fcheckout&from=network_overview_top_endpoints",
       );
     });
   });

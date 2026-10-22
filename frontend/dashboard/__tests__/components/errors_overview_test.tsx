@@ -195,7 +195,7 @@ describe("ErrorsOverview", () => {
     expect(hrefs.length).toBeGreaterThan(1);
     for (const href of hrefs) {
       expect(href).toBe(
-        "/team-id/errors/app-id/group-id/java.lang.RuntimeException%40Repo.kt",
+        "/team-id/errors/app-id/group-id/java.lang.RuntimeException%40Repo.kt?from=errors_overview",
       );
     }
   });

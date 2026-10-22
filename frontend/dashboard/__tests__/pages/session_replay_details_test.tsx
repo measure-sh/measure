@@ -100,8 +100,8 @@ describe("SessionReplayDetails Page", () => {
     );
   });
 
-  it("tracks the view with the entry point the URL names", () => {
-    mockSearchParams = new URLSearchParams("from=errors");
+  it("tracks the view with the entry point the URL specifies", () => {
+    mockSearchParams = new URLSearchParams("from=error_details");
     mockUseSessionReplayQuery.mockReturnValue({
       data: sampleSession,
       status: "success",
@@ -112,11 +112,11 @@ describe("SessionReplayDetails Page", () => {
       app_id: "app-1",
       app_platform: "android",
       feature_area: "sessions",
-      entry_point: "errors",
+      entry_point: "error_details",
     });
   });
 
-  it("tracks a direct entry when the URL names none", () => {
+  it("tracks a direct entry when the URL has no from parameter", () => {
     mockUseSessionReplayQuery.mockReturnValue({
       data: sampleSession,
       status: "success",

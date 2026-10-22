@@ -58,7 +58,7 @@ export default function FunnelStepErrors({
       return undefined;
     }
     const params = new URLSearchParams(dateRangeParams);
-    params.set("from", "funnel");
+    params.set("from", "funnel_details");
     return `${errorGroupPath(teamId, appId, error)}?${params}`;
   };
 

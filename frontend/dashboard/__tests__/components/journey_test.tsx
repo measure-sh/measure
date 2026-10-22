@@ -367,7 +367,7 @@ describe("Journey — exceptions panel", () => {
     expect(target).toContain("/test-team/errors/app-1/anr-001/");
   });
 
-  it("crash link carries no query string", () => {
+  it("crash link carries only the entry point", () => {
     renderExceptions();
     fireEvent.click(screen.getByTestId("sankey-node-ProductListActivity"));
     fireEvent.click(
@@ -376,7 +376,7 @@ describe("Journey — exceptions panel", () => {
         .closest("button")!,
     );
 
-    expect(mockRouterPush.mock.calls[0][0]).not.toContain("?");
+    expect(mockRouterPush.mock.calls[0][0].split("?")[1]).toBe("from=journeys");
   });
 
   it("without an error detail context, clicking a crash item navigates nowhere", () => {

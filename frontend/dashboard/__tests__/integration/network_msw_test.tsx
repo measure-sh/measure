@@ -285,7 +285,7 @@ describe("Network overview (MSW integration)", () => {
         filter_expr: "http_method:in:get",
         domain: "api.example.com",
         path: "/v1/users/*/profile",
-        from: "search",
+        from: "network_overview_search",
       });
     });
   });

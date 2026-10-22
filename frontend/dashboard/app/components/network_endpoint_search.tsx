@@ -106,7 +106,7 @@ export default function NetworkEndpointSearch({
     const params = new URLSearchParams(currentSearchParams.toString());
     params.set("domain", domain);
     params.set("path", path);
-    params.set("from", "search");
+    params.set("from", "network_overview_search");
 
     // cmdk invokes keyboard selection through a native event. Update the
     // controlled input before navigation so both keyboard and pointer

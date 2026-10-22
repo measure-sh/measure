@@ -307,7 +307,7 @@ describe("FunnelStepErrors", () => {
     renderErrors(successQuery([stepError()]));
 
     expect(rowHrefs(rowOf("Cart.kt: checkout()"))).toEqual([
-      `/team-1/errors/app-1/group-1/${encodeURIComponent("java.lang.IllegalStateException@Cart.kt")}?from=funnel`,
+      `/team-1/errors/app-1/group-1/${encodeURIComponent("java.lang.IllegalStateException@Cart.kt")}?from=funnel_details`,
     ]);
   });
 
@@ -318,7 +318,7 @@ describe("FunnelStepErrors", () => {
     renderErrors(successQuery([stepError()]));
 
     expect(rowHrefs(rowOf("Cart.kt: checkout()"))).toEqual([
-      `/team-1/errors/app-1/group-1/${encodeURIComponent("java.lang.IllegalStateException@Cart.kt")}?d=Custom+Range&sd=2026-01-01&ed=2026-01-31&from=funnel`,
+      `/team-1/errors/app-1/group-1/${encodeURIComponent("java.lang.IllegalStateException@Cart.kt")}?d=Custom+Range&sd=2026-01-01&ed=2026-01-31&from=funnel_details`,
     ]);
   });
 
@@ -444,7 +444,7 @@ describe("FunnelStepNetwork", () => {
       a: "app-1",
       domain: "api.example.com",
       path: "/v1/cart",
-      from: "funnel",
+      from: "funnel_details",
     });
   });
 });

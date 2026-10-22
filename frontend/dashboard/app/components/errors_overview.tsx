@@ -96,6 +96,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
     d ? `${dateRangeUrlKey}=${encodeURIComponent(d)}` : null,
     sd ? `${startDateUrlKey}=${encodeURIComponent(sd)}` : null,
     ed ? `${endDateUrlKey}=${encodeURIComponent(ed)}` : null,
+    "from=errors_overview",
   ]
     .filter(Boolean)
     .join("&");
@@ -216,9 +217,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                           type,
                           file_name,
                         });
-                        const href = detailQuery
-                          ? `${path}?${detailQuery}`
-                          : path;
+                        const href = `${path}?${detailQuery}`;
                         return (
                           <TableRow
                             key={`${idx}-${id}`}

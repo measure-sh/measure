@@ -234,7 +234,7 @@ describe("TraceDetails", () => {
         const link = screen.getByText("View Session Replay");
         expect(link.closest("a")).toHaveAttribute(
           "href",
-          "/team-1/session_replays/app-1/session-xyz",
+          "/team-1/session_replays/app-1/session-xyz?from=trace_details",
         );
       });
     });
