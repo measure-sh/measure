@@ -359,6 +359,20 @@ func (e eventreq) parseANRThreadDumps() {
 	}
 }
 
+// truncateMessages caps exception & ANR messages in place.
+func (e eventreq) truncateMessages() {
+	for _, i := range e.exceptionIds {
+		if exception := e.events[i].Exception; exception != nil {
+			exception.TruncateMessages()
+		}
+	}
+	for _, i := range e.anrIds {
+		if anr := e.events[i].ANR; anr != nil {
+			anr.TruncateMessages()
+		}
+	}
+}
+
 // bucketANRs groups ANRs based on similarity.
 func (e eventreq) bucketANRs(ctx context.Context) (err error) {
 	events := e.getANRs()
@@ -1579,6 +1593,8 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 	if err := symbolicationGroup.Wait(); err != nil {
 		fmt.Println("failed to symbolicate", err)
 	}
+
+	eventReq.truncateMessages()
 
 	var ingestGroup errgroup.Group
 	ingestGroup.Go(func() error {
