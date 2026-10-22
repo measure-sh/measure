@@ -141,6 +141,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4573) by @dependabot[bot] in #4573
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
+- (**frontend**): Shorten profiles filter bar placeholder by @anupcowkur in #4657
 - (**frontend**): Retitle docs introduction page by @anupcowkur in #4655
 - (**frontend**): Restyle usage page plan cards by @anupcowkur in #4598
 - (**frontend**): Darken light mode accent and muted text by @anupcowkur in #4596
