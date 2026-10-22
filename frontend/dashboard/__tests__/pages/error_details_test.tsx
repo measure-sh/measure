@@ -586,40 +586,7 @@ describe("ErrorGroupDetails page", () => {
       });
     });
 
-    it("renders the App Hang filter when the event is an app hang", () => {
-      renderPageWithAppHang("killed");
-      expect(screen.getByTestId("filter-bar-key-groups")).toHaveTextContent(
-        "OS,App Hang",
-      );
-      expect(screen.getByTestId("filter-bar-keys")).toHaveTextContent(
-        "os_name,app_hang_state",
-      );
-    });
-
-    it("hides the App Hang filter when the event is an exception", () => {
-      renderPageWithEvent({});
-      expect(screen.getByTestId("filter-bar-key-groups")).toHaveTextContent(
-        /^OS$/,
-      );
-      expect(screen.getByTestId("filter-bar-keys")).toHaveTextContent(
-        /^os_name$/,
-      );
-    });
-
-    it("hides the App Hang filter when the first response has no events", () => {
-      detailsLoaded({ results: null, meta: { previous: false, next: false } });
-      renderPage();
-      expect(screen.getByTestId("filter-bar-key-groups")).toHaveTextContent(
-        /^OS$/,
-      );
-      expect(screen.getByTestId("filter-bar-keys")).toHaveTextContent(
-        /^os_name$/,
-      );
-    });
-
-    it("keeps the App Hang filter when a later response has no events", () => {
-      const { rerender } = renderPageWithAppHang("killed");
-      detailsLoaded({ results: null, meta: { previous: false, next: false } });
+    function rerenderPage(rerender: ReturnType<typeof render>["rerender"]) {
       rerender(
         <ErrorDetailsPage
           params={promiseParams({
@@ -630,8 +597,91 @@ describe("ErrorGroupDetails page", () => {
           })}
         />,
       );
+    }
+
+    function expectAppHangKeysOffered(offered: boolean) {
       expect(screen.getByTestId("filter-bar-key-groups")).toHaveTextContent(
-        "OS,App Hang",
+        offered ? /^OS,App Hang$/ : /^OS$/,
+      );
+      expect(screen.getByTestId("filter-bar-keys")).toHaveTextContent(
+        /^os_name,app_hang_state$/,
+      );
+    }
+
+    it("offers the App Hang keys when the event is an app hang", () => {
+      renderPageWithAppHang("killed");
+      expectAppHangKeysOffered(true);
+    });
+
+    it("does not offer the App Hang keys when the event is an exception", () => {
+      renderPageWithEvent({});
+      expectAppHangKeysOffered(false);
+    });
+
+    it("does not offer the App Hang keys when the first response has no events", () => {
+      detailsLoaded({ results: null, meta: { previous: false, next: false } });
+      renderPage();
+      expectAppHangKeysOffered(false);
+    });
+
+    it("stops offering the App Hang keys when a later response has no events", () => {
+      const { rerender } = renderPageWithAppHang("killed");
+      detailsLoaded({ results: null, meta: { previous: false, next: false } });
+      rerenderPage(rerender);
+      expectAppHangKeysOffered(false);
+    });
+
+    it("offers the App Hang keys when an app hang event loads after a response with no events", () => {
+      detailsLoaded({ results: null, meta: { previous: false, next: false } });
+      const { rerender } = renderPage();
+      detailsLoaded({
+        results: [
+          {
+            ...sampleErrorEvent,
+            type: "app_hang",
+            exception: null,
+            app_hang: { stacktrace: "", thread_name: "", state: "killed" },
+          },
+        ],
+        meta: { previous: false, next: false },
+      });
+      rerenderPage(rerender);
+      expectAppHangKeysOffered(true);
+    });
+
+    it("applies an App Hang condition from the URL when no events load", () => {
+      mockRouter.setUrl("?filter_expr=app_hang_state:in:Killed");
+      detailsLoaded({ results: null, meta: { previous: false, next: false } });
+      renderPage();
+
+      expect(screen.getByTestId("filter-bar-expr")).toHaveTextContent(
+        "app_hang_state:in:Killed",
+      );
+      expectAppHangKeysOffered(false);
+      expect(mockUseErrorsDetailsQuery).toHaveBeenLastCalledWith(
+        expect.objectContaining({ filterExpr: "app_hang_state:in:Killed" }),
+        "g1",
+        0,
+      );
+    });
+
+    it("applies an App Hang condition from the URL when the event is an exception", () => {
+      mockRouter.setUrl(
+        `?filter_expr=${encodeURIComponent("app_hang_state:in:Killed OR os_name:in:android")}`,
+      );
+      renderPageWithEvent({});
+
+      expect(screen.getByText(/Id: event-1/)).toBeInTheDocument();
+      expect(screen.getByTestId("filter-bar-expr")).toHaveTextContent(
+        "app_hang_state:in:Killed OR os_name:in:android",
+      );
+      expectAppHangKeysOffered(false);
+      expect(mockUseErrorsDetailsQuery).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          filterExpr: "app_hang_state:in:Killed OR os_name:in:android",
+        }),
+        "g1",
+        0,
       );
     });
   });

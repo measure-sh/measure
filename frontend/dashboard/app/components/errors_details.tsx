@@ -737,18 +737,15 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
     isFetching,
   } = detailsQuery;
 
-  // All events in an error group share the same type, so any loaded event
-  // can identify an app hang group. Once set, the flag stays enabled to keep
-  // app hang keys in the filter bar even when the current filter matches no
-  // events, allowing users to continue filtering by them.
-  const [isAppHangGroup, setIsAppHangGroup] = useState(false);
-  if (!isAppHangGroup && errorsDetails.results?.[0]?.app_hang) {
-    setIsAppHangGroup(true);
-  }
-  const visibleKeys = isAppHangGroup
-    ? keys
-    : (keys?.filter((key) => key.key_group !== appHangKeyGroup) ?? null);
-  const visibleKeyGroups = isAppHangGroup
+  // All events in an error group share the same type, so the loaded event
+  // determines whether the picker includes App Hang keys. The filter bar always
+  // retains all keys, keeping App Hang conditions from the URL visible even when
+  // no events are loaded or the group isn't an App Hang group. Since other groups
+  // contain no App Hang events, an App Hang state condition either filters out
+  // all events or leaves them all unchanged, depending on whether the App Hang
+  // state is included or excluded. Users can still see and remove the condition
+  // from the filter bar.
+  const visibleKeyGroups = errorsDetails.results?.[0]?.app_hang
     ? keyGroups
     : keyGroups.filter((group) => group !== appHangKeyGroup);
 
@@ -762,7 +759,7 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
         placeholder="Filter events…"
         value={value}
         apps={apps}
-        keys={visibleKeys}
+        keys={keys}
         keyGroups={visibleKeyGroups}
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
