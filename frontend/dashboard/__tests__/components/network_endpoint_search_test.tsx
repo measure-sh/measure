@@ -123,7 +123,7 @@ describe("NetworkEndpointSearch", () => {
     fireEvent.keyDown(box(), { key: "Enter" });
 
     expect(mockRouterPush).toHaveBeenCalledWith(
-      "/test-team/network/details?domain=api.example.com&path=%2Fv1%2Fusers%2F*&from=search",
+      "/test-team/network/details?domain=api.example.com&path=%2Fv1%2Fusers%2F*&from=network_overview_search",
     );
     jest.useRealTimers();
   });
@@ -139,7 +139,7 @@ describe("NetworkEndpointSearch", () => {
     fireEvent.keyDown(box(), { key: "Enter" });
 
     expect(mockRouterPush).toHaveBeenCalledWith(
-      "/test-team/network/details?domain=api.example.com&path=%2Fv1%2F**&from=search",
+      "/test-team/network/details?domain=api.example.com&path=%2Fv1%2F**&from=network_overview_search",
     );
     jest.useRealTimers();
   });
@@ -157,7 +157,7 @@ describe("NetworkEndpointSearch", () => {
     fireEvent.keyDown(box(), { key: "Enter" });
 
     expect(mockRouterPush).toHaveBeenCalledWith(
-      "/test-team/network/details?domain=&path=%2Freviews%2F*&from=search",
+      "/test-team/network/details?domain=&path=%2Freviews%2F*&from=network_overview_search",
     );
     jest.useRealTimers();
   });

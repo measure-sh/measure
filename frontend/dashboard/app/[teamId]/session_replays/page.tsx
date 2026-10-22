@@ -165,7 +165,7 @@ export default function SessionReplayOverview(props: {
                         }: any,
                         idx: number,
                       ) => {
-                        const sessionHref = `/${params.teamId}/session_replays/${app_id}/${session_id}`;
+                        const sessionHref = `/${params.teamId}/session_replays/${app_id}/${session_id}?from=session_replay_overview`;
                         return (
                           <TableRow
                             key={`${idx}-${session_id}`}

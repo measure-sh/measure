@@ -89,7 +89,7 @@ function ProfileActions({
   profile: Profile;
 }) {
   const attachment = profile.attachments[0];
-  const sessionHref = `/${teamId}/session_replays/${profile.app_id}/${profile.session_id}`;
+  const sessionHref = `/${teamId}/session_replays/${profile.app_id}/${profile.session_id}?from=profiles`;
 
   return (
     <div className="flex items-center justify-center gap-2 p-4">

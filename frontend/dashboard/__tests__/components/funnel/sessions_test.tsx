@@ -111,7 +111,7 @@ describe("FunnelSessions", () => {
     const link = screen.getByRole("link", { name: "Session ID: session-1" });
     expect(link).toHaveAttribute(
       "href",
-      "/team-1/session_replays/app-1/session-1?from=funnel",
+      "/team-1/session_replays/app-1/session-1?from=funnel_details",
     );
     const row = link.closest("tr")!;
     const cells = within(row).getAllByRole("cell");
@@ -124,7 +124,7 @@ describe("FunnelSessions", () => {
     for (const cell of cells) {
       expect(cell.querySelector("a")).toHaveAttribute(
         "href",
-        "/team-1/session_replays/app-1/session-1?from=funnel",
+        "/team-1/session_replays/app-1/session-1?from=funnel_details",
       );
     }
   });

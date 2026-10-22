@@ -421,7 +421,7 @@ describe("FunnelsOverview funnels table", () => {
     );
     expect(hrefs).toHaveLength(5);
     expect(new Set(hrefs)).toEqual(
-      new Set(["/team-1/funnels/app-1/f-signup?from=funnels"]),
+      new Set(["/team-1/funnels/app-1/f-signup?from=funnels_overview_list"]),
     );
   });
 
@@ -433,8 +433,8 @@ describe("FunnelsOverview funnels table", () => {
     fireEvent.keyDown(row("Signup"), { key: "a" });
 
     expect(mockPush.mock.calls).toEqual([
-      ["/team-1/funnels/app-1/f-checkout?from=funnels"],
-      ["/team-1/funnels/app-1/f-signup?from=funnels"],
+      ["/team-1/funnels/app-1/f-checkout?from=funnels_overview_list"],
+      ["/team-1/funnels/app-1/f-signup?from=funnels_overview_list"],
     ]);
   });
 
@@ -1031,7 +1031,7 @@ describe("FunnelsOverview creating a funnel", () => {
     );
 
     expect(mockPush).toHaveBeenCalledWith(
-      "/team-1/funnels/app-1/f-new?from=created",
+      "/team-1/funnels/app-1/f-new?from=funnels_overview_created",
     );
     expect(trackMock).toHaveBeenCalledWith("funnel_created", {
       team_id: "team-1",

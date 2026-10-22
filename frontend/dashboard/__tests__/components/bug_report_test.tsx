@@ -193,7 +193,7 @@ describe("BugReport", () => {
       const link = screen.getByText("View Session Replay");
       expect(link.closest("a")).toHaveAttribute(
         "href",
-        "/test-team/session_replays/app-br-1/sess-br-001",
+        "/test-team/session_replays/app-br-1/sess-br-001?from=bug_report_details",
       );
     });
   });

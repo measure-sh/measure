@@ -82,21 +82,21 @@ describe("NetworkDetailsPage", () => {
 
   it("uses the source from the detail URL", async () => {
     mockSearchParams = new URLSearchParams(
-      "domain=api.example.com&path=/v1/users&from=search",
+      "domain=api.example.com&path=/v1/users&from=network_overview_search",
     );
     render(<NetworkDetailsPage params={promiseParams({ teamId: "team-1" })} />);
 
     await waitFor(() => {
       expect(mockTrack).toHaveBeenCalledWith(
         "network_call_inspected",
-        expect.objectContaining({ entry_point: "search" }),
+        expect.objectContaining({ entry_point: "network_overview_search" }),
       );
     });
   });
 
   it("does not track the same endpoint again after URL filters change", async () => {
     mockSearchParams = new URLSearchParams(
-      "domain=api.example.com&path=/v1/users&from=search",
+      "domain=api.example.com&path=/v1/users&from=network_overview_search",
     );
     const { rerender } = render(
       <NetworkDetailsPage params={promiseParams({ teamId: "team-1" })} />,
@@ -104,7 +104,7 @@ describe("NetworkDetailsPage", () => {
     await waitFor(() => expect(mockTrack).toHaveBeenCalledTimes(1));
 
     mockSearchParams = new URLSearchParams(
-      "domain=api.example.com&path=/v1/users&from=search&a=app-1",
+      "domain=api.example.com&path=/v1/users&from=network_overview_search&a=app-1",
     );
     rerender(
       <NetworkDetailsPage params={promiseParams({ teamId: "team-1" })} />,
@@ -113,13 +113,13 @@ describe("NetworkDetailsPage", () => {
     expect(mockTrack).toHaveBeenCalledTimes(1);
     expect(mockTrack).toHaveBeenCalledWith(
       "network_call_inspected",
-      expect.objectContaining({ entry_point: "search" }),
+      expect.objectContaining({ entry_point: "network_overview_search" }),
     );
   });
 
   it("renders a path-only selection", async () => {
     mockSearchParams = new URLSearchParams(
-      "a=app-1&path=/v1/users&from=search",
+      "a=app-1&path=/v1/users&from=network_overview_search",
     );
     render(<NetworkDetailsPage params={promiseParams({ teamId: "team-1" })} />);
 
@@ -127,14 +127,16 @@ describe("NetworkDetailsPage", () => {
     await waitFor(() => {
       expect(mockTrack).toHaveBeenCalledWith(
         "network_call_inspected",
-        expect.objectContaining({ entry_point: "search" }),
+        expect.objectContaining({ entry_point: "network_overview_search" }),
       );
     });
     expect(mockReplace).not.toHaveBeenCalled();
   });
 
   it("returns a detail URL without a selection to Network overview", async () => {
-    mockSearchParams = new URLSearchParams("a=app-1&from=search");
+    mockSearchParams = new URLSearchParams(
+      "a=app-1&from=network_overview_search",
+    );
     render(<NetworkDetailsPage params={promiseParams({ teamId: "team-1" })} />);
 
     expect(screen.queryByTestId("network-details")).not.toBeInTheDocument();

@@ -263,7 +263,9 @@ export default function FunnelPinnedCard({
 }) {
   // While the user reorders the pinned funnels, the card has no link, so a
   // click cannot leave the page and lose the unsaved order.
-  const href = reordering ? null : funnelHref(teamId, funnel, "pinned");
+  const href = reordering
+    ? null
+    : funnelHref(teamId, funnel, "funnels_overview_pinned");
   const trendQuery = useFunnelTrendQuery(params, funnel.id, "week", false);
   const points = trendQuery.data?.points ?? [];
   // Users who entered in the latest weeks can still convert within the

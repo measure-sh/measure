@@ -324,8 +324,8 @@ describe("Profiles page", () => {
 
     const links = screen.getAllByRole("link", { name: "View session replay" });
     expect(links.map((link) => link.getAttribute("href"))).toEqual([
-      "/123/session_replays/app-1/session-anr",
-      "/123/session_replays/app-1/session-drawn",
+      "/123/session_replays/app-1/session-anr?from=profiles",
+      "/123/session_replays/app-1/session-drawn?from=profiles",
     ]);
   });
 

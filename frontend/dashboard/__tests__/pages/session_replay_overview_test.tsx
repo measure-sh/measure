@@ -433,18 +433,25 @@ describe("SessionReplayOverview page", () => {
 
     const link = screen.getByRole("link", { name: /Session ID: session1/i });
     expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute("href", "/123/session_replays/app1/session1");
+    expect(link).toHaveAttribute(
+      "href",
+      "/123/session_replays/app1/session1?from=session_replay_overview",
+    );
 
     const row = link.closest("tr");
     await act(async () => {
       fireEvent.keyDown(row!, { key: "Enter" });
     });
-    expect(pushMock).toHaveBeenCalledWith("/123/session_replays/app1/session1");
+    expect(pushMock).toHaveBeenCalledWith(
+      "/123/session_replays/app1/session1?from=session_replay_overview",
+    );
 
     await act(async () => {
       fireEvent.keyDown(row!, { key: " " });
     });
-    expect(pushMock).toHaveBeenCalledWith("/123/session_replays/app1/session1");
+    expect(pushMock).toHaveBeenCalledWith(
+      "/123/session_replays/app1/session1?from=session_replay_overview",
+    );
   });
 
   describe("a filter it could not settle", () => {

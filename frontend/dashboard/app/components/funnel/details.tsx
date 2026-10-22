@@ -536,7 +536,10 @@ export default function FunnelDetails({
   }, [view]);
 
   const trackFunnelEvent = (name: string, props?: Record<string, unknown>) =>
-    track(name, { ...funnelEventProps({ teamId, appId, platform }), ...props });
+    track(name, {
+      ...funnelEventProps({ teamId, appId, platform, entryPoint }),
+      ...props,
+    });
 
   const selectStep = (step: number | null) =>
     setPageUrlKey(stepUrlKey, step === null ? overallStep : String(step));

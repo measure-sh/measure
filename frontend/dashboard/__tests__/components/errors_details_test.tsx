@@ -74,8 +74,8 @@ describe("ErrorsDetailsView error_investigated", () => {
     trackMock.mockClear();
   });
 
-  it("tracks the view with the first result and the entry point the URL names", () => {
-    mockSearchParams = new URLSearchParams("from=alerts");
+  it("tracks the view with the first result and the entry point the URL specifies", () => {
+    mockSearchParams = new URLSearchParams("from=errors_overview");
     render(view({}));
 
     expect(trackMock).toHaveBeenCalledTimes(1);
@@ -86,11 +86,11 @@ describe("ErrorsDetailsView error_investigated", () => {
       type: "crash",
       severity: "fatal",
       feature_area: "errors",
-      entry_point: "alerts",
+      entry_point: "errors_overview",
     });
   });
 
-  it("tracks a direct entry when the URL names none", () => {
+  it("tracks a direct entry when the URL has no from parameter", () => {
     render(view({}));
 
     expect(trackMock).toHaveBeenCalledWith(
@@ -149,7 +149,7 @@ describe("ErrorsDetailsView error_investigated", () => {
   });
 
   it("tracks a view once across refetches, paging, emptied results and URL changes", () => {
-    mockSearchParams = new URLSearchParams("from=alerts");
+    mockSearchParams = new URLSearchParams("from=errors_overview");
     const { rerender } = render(view({}));
     expect(trackMock).toHaveBeenCalledTimes(1);
 
@@ -162,7 +162,7 @@ describe("ErrorsDetailsView error_investigated", () => {
       }),
     );
     rerender(view({ data: details([]) }));
-    mockSearchParams = new URLSearchParams("from=alerts&a=app-1");
+    mockSearchParams = new URLSearchParams("from=errors_overview&a=app-1");
     rerender(view({ data: details([event()]) }));
 
     expect(trackMock).toHaveBeenCalledTimes(1);

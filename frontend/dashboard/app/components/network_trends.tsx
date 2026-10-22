@@ -186,7 +186,7 @@ export default function NetworkTrends({
     const params = new URLSearchParams(currentSearchParams.toString());
     params.set("domain", endpoint.domain);
     params.set("path", endpoint.path_pattern);
-    params.set("from", "top_endpoint");
+    params.set("from", "network_overview_top_endpoints");
     return `/${teamId}/network/details?${params.toString()}`;
   };
 
