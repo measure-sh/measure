@@ -54,7 +54,7 @@ const event = (overrides: Record<string, unknown> = {}) => ({
   ...overrides,
 });
 
-const details = (results: any[]) =>
+const details = (results: any[] | null) =>
   ({ meta: { next: false, previous: false }, results }) as any;
 
 const view = (props: Record<string, unknown>) => (
@@ -143,6 +143,31 @@ describe("ErrorsDetailsView error_investigated", () => {
     expect(trackMock).toHaveBeenCalledTimes(1);
   });
 
+  it("does not track a response with no results", () => {
+    render(view({ data: details(null) }));
+    expect(trackMock).not.toHaveBeenCalled();
+  });
+
+  it("tracks the first result that loads after a response with no results", () => {
+    const { rerender } = render(view({ data: details(null) }));
+    rerender(
+      view({
+        data: details([
+          event({
+            exception: null,
+            anr: { stacktrace: "", blamed_thread: "" },
+          }),
+        ]),
+      }),
+    );
+
+    expect(trackMock).toHaveBeenCalledTimes(1);
+    expect(trackMock).toHaveBeenCalledWith(
+      "error_investigated",
+      expect.objectContaining({ type: "anr" }),
+    );
+  });
+
   it("does not track the demo", () => {
     render(view({ demo: true }));
     expect(trackMock).not.toHaveBeenCalled();
@@ -161,7 +186,7 @@ describe("ErrorsDetailsView error_investigated", () => {
         ]),
       }),
     );
-    rerender(view({ data: details([]) }));
+    rerender(view({ data: details(null) }));
     mockSearchParams = new URLSearchParams("from=errors_overview&a=app-1");
     rerender(view({ data: details([event()]) }));
 

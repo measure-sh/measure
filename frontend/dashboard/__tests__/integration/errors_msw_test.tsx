@@ -598,7 +598,7 @@ describe("Errors Detail (MSW integration)", () => {
           sent.push(new URL(request.url));
           return HttpResponse.json({
             meta: { next: false, previous: false },
-            results: [],
+            results: null,
           });
         },
       ),
@@ -611,6 +611,21 @@ describe("Errors Detail (MSW integration)", () => {
     );
     expect(sent[0].searchParams.get("limit")).toBe("1");
     expect(sent[0].searchParams.get("offset")).toBe("0");
+  });
+
+  it("shows the stack traces empty state when no events match", async () => {
+    server.use(
+      http.get("*/api/apps/:appId/errorGroups/:groupId/errors", () =>
+        HttpResponse.json({
+          meta: { next: false, previous: false },
+          results: null,
+        }),
+      ),
+    );
+    renderPage();
+
+    expect(await screen.findByText("No stack traces found")).toBeTruthy();
+    expect(screen.queryByText(/Id: /)).toBeNull();
   });
 
   it("renders an app hang instance with its state, duration and blocked thread", async () => {
