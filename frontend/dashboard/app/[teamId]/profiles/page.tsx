@@ -166,7 +166,7 @@ export default function ProfilesPage({ params }: PageProps) {
         teamId={teamId}
         status={filter.status}
         entity="profiles"
-        placeholder="Filter by profile trigger, app version or device…"
+        placeholder="Filter profiles…"
         value={filter.value}
         apps={filter.apps}
         keys={filter.keys}
