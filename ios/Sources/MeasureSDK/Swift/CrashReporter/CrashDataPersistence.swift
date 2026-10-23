@@ -86,7 +86,12 @@ final class BaseCrashDataPersistence: CrashDataPersistence {
     func writeCrashData(plan: UnsafePointer<ExceptionHandlingPlan>, writer: UnsafePointer<ReportWriter>) {
         // Per KSCrash's contract for `crashedDuringExceptionHandling`: record nothing extra
         // when a crash occurs while already handling another crash.
-        guard !plan.pointee.crashedDuringExceptionHandling, attribute != nil else { return }
+        guard !plan.pointee.crashedDuringExceptionHandling else { return }
+
+        sessionIdBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.sessionId, $0) }
+        writer.pointee.addBooleanElement(writer, CrashDataKeys.isForeground, isForeground)
+
+        guard attribute != nil else { return }
 
         threadNameBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.threadName, $0) }
         deviceNameBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.deviceName, $0) }
@@ -106,7 +111,6 @@ final class BaseCrashDataPersistence: CrashDataPersistence {
         appBuildBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.appBuild, $0) }
         measureSdkVersionBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.measureSdkVersion, $0) }
         appUniqueIdBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.appUniqueId, $0) }
-        sessionIdBuffer.withCString { writer.pointee.addStringElement(writer, CrashDataKeys.sessionId, $0) }
 
         if let deviceIsFoldable = attribute?.deviceIsFoldable {
             writer.pointee.addBooleanElement(writer, CrashDataKeys.deviceIsFoldable, deviceIsFoldable)
@@ -129,7 +133,6 @@ final class BaseCrashDataPersistence: CrashDataPersistence {
         if let deviceTotalMemory = attribute?.deviceTotalMemory {
             writer.pointee.addUIntegerElement(writer, CrashDataKeys.deviceTotalMemory, deviceTotalMemory)
         }
-        writer.pointee.addBooleanElement(writer, CrashDataKeys.isForeground, isForeground)
     }
 
     func readCrashData(from reportDict: [String: Any]) -> CrashDataAttributes {
@@ -137,7 +140,7 @@ final class BaseCrashDataPersistence: CrashDataPersistence {
             return (attribute: nil, sessionId: nil, isForeground: nil)
         }
 
-        let sessionId = crashData[CrashDataKeys.sessionId] as? String ?? ""
+        let sessionId = (crashData[CrashDataKeys.sessionId] as? String).flatMap { $0.isEmpty ? nil : $0 }
         let isForeground = crashData[CrashDataKeys.isForeground] as? Bool
         let attributes = getAttributes(crashData: crashData)
         return (attribute: attributes, sessionId: sessionId, isForeground: isForeground)
