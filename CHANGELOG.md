@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Cap exception & ANR messages at 8 KiB (#4659) by @detj in #4659
 - (**backend**): Report correct custom.name length limit by @anupcowkur in #4651
 - (**backend**): Symbolicate jvm frames innermost first (#4644) by @abhaysood in #4644
 - (**backend**): Renumber app hang clickhouse migrations by @anupcowkur in #4610
