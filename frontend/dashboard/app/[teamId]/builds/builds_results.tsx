@@ -134,7 +134,10 @@ function BuildRow({
   const { title, subtitle } = describeBuild(build);
 
   return (
-    <TableRow data-testid="build-row" className="font-body">
+    <TableRow
+      data-testid="build-row"
+      className="font-body hover:bg-transparent"
+    >
       <TableCell className="w-[60%] align-top">
         <p className="truncate select-none">{title}</p>
         {subtitle && (
