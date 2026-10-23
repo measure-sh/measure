@@ -609,7 +609,7 @@ func NewExceptionGroup(appId uuid.UUID, countryCode string, attribute event.Attr
 		Attribute:   attribute,
 		ID:          fingerprint,
 		Type:        exceptionType,
-		Message:     message,
+		Message:     event.CapMessage(message),
 		MethodName:  methodName,
 		FileName:    fileName,
 		LineNumber:  lineNumber,

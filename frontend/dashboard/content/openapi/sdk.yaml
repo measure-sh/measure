@@ -374,6 +374,7 @@ paths:
                                   description: >
                                     Error message text. Optional only for nested
                                     exceptions from Dart.
+                                    Messages longer than 8192 bytes (8 KiB) are truncated.
                                 frames:
                                   type: array
                                   description: >
@@ -522,7 +523,9 @@ paths:
                                   description: Type of the exception.
                                 message:
                                   type: string
-                                  description: Error message text.
+                                  description: >
+                                    Error message text. Messages longer than 8192
+                                    bytes (8 KiB) are truncated.
                                 frames:
                                   type: array
                                   description: Array of stackframe objects.

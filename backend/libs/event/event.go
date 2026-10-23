@@ -78,6 +78,7 @@ const (
 	maxErrorMetaBytes                         = 4096 // Maximum size for marshaled Error.Meta in bytes
 	maxANRThreadDumpBytes                     = 1024 * 1024
 	maxANRSubjectBytes                        = 1024
+	maxExceptionMessageBytes                  = 8192
 	maxEventAttachments                       = 5
 	customNameKeyPattern                      = "^[a-zA-Z0-9_-]+$"
 )
@@ -396,6 +397,30 @@ type ExceptionUnit struct {
 }
 
 type ExceptionUnits []ExceptionUnit
+
+// truncateMessages caps every unit's Message at
+// maxExceptionMessageBytes in place.
+func (u ExceptionUnits) truncateMessages() {
+	for i := range u {
+		u[i].Message = CapMessage(u[i].Message)
+	}
+}
+
+// CapMessage cuts s to at most maxExceptionMessageBytes on a rune boundary.
+func CapMessage(s string) string {
+	return truncateBytes(s, maxExceptionMessageBytes)
+}
+
+// truncateBytes cuts s to at most n bytes on a rune boundary.
+func truncateBytes(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	for n > 0 && !utf8.RuneStart(s[n]) {
+		n--
+	}
+	return s[:n]
+}
 
 // ThreadiOS represents iOS specific structure
 // to work with iOS exceptions.
@@ -2272,6 +2297,12 @@ func (e Exception) hasInstructionAddress() bool {
 	return false
 }
 
+// TruncateMessages caps every exception unit message
+// at maxExceptionMessageBytes in place. AbortMessage is unchanged.
+func (e *Exception) TruncateMessages() {
+	e.Exceptions.truncateMessages()
+}
+
 // ComputeFingerprint computes a fingerprint
 // for the exception.
 func (e *Exception) ComputeFingerprint() (err error) {
@@ -2524,6 +2555,12 @@ func (a ANR) Stacktrace() string {
 	}
 
 	return a.dumpStacktrace()
+}
+
+// TruncateMessages caps every exception unit message
+// at maxExceptionMessageBytes in place.
+func (a *ANR) TruncateMessages() {
+	a.Exceptions.truncateMessages()
 }
 
 // ComputeFingerprint computes a fingerprint

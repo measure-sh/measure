@@ -1,8 +1,10 @@
 package group
 
 import (
+	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"backend/libs/event"
 
@@ -61,6 +63,36 @@ func TestANRGroupGetDisplayTitle(t *testing.T) {
 		g := ANRGroup{Type: "Input dispatching timed out"}
 		if got, want := g.GetDisplayTitle(), "Input dispatching timed out"; got != want {
 			t.Errorf("Expected display title %q, but got %q", want, got)
+		}
+	})
+}
+
+func TestNewExceptionGroupMessage(t *testing.T) {
+	newGroup := func(message string) *ExceptionGroup {
+		return NewExceptionGroup(uuid.New(), "IN", event.Attribute{}, "fp", "Err", message, "m", "f", 1, false, true, false, time.Now())
+	}
+
+	t.Run("caps oversized message", func(t *testing.T) {
+		g := newGroup(strings.Repeat("a", 9000))
+		if len(g.Message) != 8192 {
+			t.Errorf("Expected 8192 bytes, but got %d", len(g.Message))
+		}
+	})
+
+	t.Run("caps multi-byte message on a rune boundary", func(t *testing.T) {
+		g := newGroup(strings.Repeat("a", 8191) + strings.Repeat("é", 10))
+		if len(g.Message) > 8192 {
+			t.Errorf("Expected at most 8192 bytes, but got %d", len(g.Message))
+		}
+		if !utf8.ValidString(g.Message) {
+			t.Error("Expected valid UTF-8 message")
+		}
+	})
+
+	t.Run("keeps short message", func(t *testing.T) {
+		g := newGroup("boom")
+		if g.Message != "boom" {
+			t.Errorf("Expected %q, but got %q", "boom", g.Message)
 		}
 	})
 }

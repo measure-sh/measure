@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"os"
 	"reflect"
+	"strings"
 	"testing"
 	"time"
 
@@ -385,4 +386,31 @@ func TestIngestStacktraceANRStoresNoThreadDump(t *testing.T) {
 	if fingerprint == "" {
 		t.Error("Expected a fingerprint")
 	}
+}
+
+func TestEventReqTruncateMessages(t *testing.T) {
+	long := strings.Repeat("a", 9000)
+	req := eventreq{
+		events: []event.EventField{
+			{Exception: &event.Exception{Exceptions: event.ExceptionUnits{{Message: long}}}},
+			{ANR: &event.ANR{Exceptions: event.ExceptionUnits{{Message: long}}}},
+			{},
+		},
+		exceptionIds: []int{0, 2},
+		anrIds:       []int{1, 2},
+	}
+
+	req.truncateMessages()
+
+	t.Run("caps exception message", func(t *testing.T) {
+		if got := len(req.events[0].Exception.Exceptions[0].Message); got != 8192 {
+			t.Errorf("Expected 8192 bytes, but got %d", got)
+		}
+	})
+
+	t.Run("caps ANR message", func(t *testing.T) {
+		if got := len(req.events[1].ANR.Exceptions[0].Message); got != 8192 {
+			t.Errorf("Expected 8192 bytes, but got %d", got)
+		}
+	})
 }

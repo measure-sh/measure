@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	"github.com/google/uuid"
 )
@@ -1497,6 +1498,87 @@ func TestANRComputeFingerprint(t *testing.T) {
 		expected := "575ddc443e854d811e7e1b2b04868356"
 		if a.Fingerprint != expected {
 			t.Errorf("Expected fingerprint %q, but got %q", expected, a.Fingerprint)
+		}
+	})
+}
+
+func TestTruncateMessages(t *testing.T) {
+	big := strings.Repeat("a", maxExceptionMessageBytes+500)
+	// 3 byte runes so the cap lands inside a rune
+	straddle := "a" + strings.Repeat("\u20ac", maxExceptionMessageBytes)
+	nasty := strings.Repeat("\"\\<>&\n\u20ac\U0001F600", maxExceptionMessageBytes)
+
+	t.Run("under cap unchanged", func(t *testing.T) {
+		a := ANR{Exceptions: ExceptionUnits{{Message: "short"}}}
+		a.TruncateMessages()
+		if a.Exceptions[0].Message != "short" {
+			t.Errorf("message changed: %q", a.Exceptions[0].Message)
+		}
+	})
+
+	t.Run("oversized ascii cut to cap", func(t *testing.T) {
+		a := ANR{Exceptions: ExceptionUnits{{Message: big}}}
+		a.TruncateMessages()
+		if got := len(a.Exceptions[0].Message); got != maxExceptionMessageBytes {
+			t.Errorf("got %d bytes, want %d", got, maxExceptionMessageBytes)
+		}
+	})
+
+	t.Run("multi-byte cut on rune boundary", func(t *testing.T) {
+		a := ANR{Exceptions: ExceptionUnits{{Message: straddle}}}
+		a.TruncateMessages()
+		got := a.Exceptions[0].Message
+		if len(got) > maxExceptionMessageBytes || !utf8.ValidString(got) {
+			t.Errorf("got %d bytes, valid utf8 %v", len(got), utf8.ValidString(got))
+		}
+		if !strings.HasPrefix(straddle, got) || len(got) < maxExceptionMessageBytes-3 {
+			t.Errorf("cut removed more than one rune")
+		}
+	})
+
+	t.Run("exception caps unit messages & keeps abort message", func(t *testing.T) {
+		e := Exception{
+			Exceptions:   ExceptionUnits{{Message: big}, {Message: big}},
+			AbortMessage: big,
+		}
+		e.TruncateMessages()
+		for i, u := range e.Exceptions {
+			if len(u.Message) != maxExceptionMessageBytes {
+				t.Errorf("unit %d has %d bytes", i, len(u.Message))
+			}
+		}
+		if e.AbortMessage != big {
+			t.Errorf("abort message changed to %d bytes", len(e.AbortMessage))
+		}
+	})
+
+	t.Run("anr caps every unit", func(t *testing.T) {
+		a := ANR{Exceptions: ExceptionUnits{{Message: big}, {Message: big}}}
+		a.TruncateMessages()
+		for i, u := range a.Exceptions {
+			if len(u.Message) != maxExceptionMessageBytes {
+				t.Errorf("unit %d has %d bytes", i, len(u.Message))
+			}
+		}
+	})
+
+	t.Run("marshaled exceptions stay valid json", func(t *testing.T) {
+		e := Exception{Exceptions: ExceptionUnits{{Message: nasty}}}
+		a := ANR{Exceptions: ExceptionUnits{{Message: nasty}}}
+		e.TruncateMessages()
+		a.TruncateMessages()
+		for name, units := range map[string]ExceptionUnits{"exception": e.Exceptions, "anr": a.Exceptions} {
+			b, err := json.Marshal(units)
+			if err != nil || !json.Valid(b) {
+				t.Fatalf("%s: invalid json, err %v", name, err)
+			}
+			var back ExceptionUnits
+			if err := json.Unmarshal(b, &back); err != nil {
+				t.Fatalf("%s: unmarshal: %v", name, err)
+			}
+			if back[0].Message != units[0].Message || len(back[0].Message) > maxExceptionMessageBytes {
+				t.Errorf("%s: round trip mismatch", name)
+			}
 		}
 	})
 }
