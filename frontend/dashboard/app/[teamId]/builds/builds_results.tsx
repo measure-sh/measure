@@ -11,6 +11,7 @@ import EmptyState from "@/app/components/empty_state";
 import type { FilterStatus } from "@/app/components/filter_bar/use_filter_page";
 import LoadingBar from "@/app/components/loading_bar";
 import Paginator from "@/app/components/paginator";
+import SimpleTooltip from "@/app/components/simple_tooltip";
 import { SkeletonListPage } from "@/app/components/skeleton";
 import {
   Table,
@@ -21,7 +22,7 @@ import {
   TableRow,
 } from "@/app/components/table";
 import type { useBuildsQuery } from "@/app/query/hooks";
-import { Package } from "lucide-react";
+import { Download, Package } from "lucide-react";
 import { formatDateToHumanReadableDateTime } from "@/app/utils/time_utils";
 
 export default function BuildsResults({
@@ -170,22 +171,25 @@ function FileRow({ file, disabled }: { file: BuildFile; disabled: boolean }) {
         </p>
       </div>
       {disabled ? (
-        <Button variant="outline" disabled>
-          Download
+        <Button variant="outline" size="icon" aria-label="Download" disabled>
+          <Download />
         </Button>
       ) : (
-        <Button variant="outline" asChild>
-          <a
-            href={url}
-            download
-            onClick={(e) => {
-              e.preventDefault();
-              downloadBuildFile(url);
-            }}
-          >
-            Download
-          </a>
-        </Button>
+        <SimpleTooltip content="Download" align="end">
+          <Button variant="outline" size="icon" asChild>
+            <a
+              href={url}
+              download
+              aria-label="Download"
+              onClick={(e) => {
+                e.preventDefault();
+                downloadBuildFile(url);
+              }}
+            >
+              <Download />
+            </a>
+          </Button>
+        </SimpleTooltip>
       )}
     </div>
   );
