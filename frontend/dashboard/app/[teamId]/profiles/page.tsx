@@ -231,7 +231,7 @@ export default function ProfilesPage({ params }: PageProps) {
           <div className="py-4" />
           <Table className="font-display select-none">
             <TableHeader>
-              <TableRow className="hover:bg-transparent">
+              <TableRow>
                 <TableHead className="w-[50%]">Profile Trigger</TableHead>
                 <TableHead className="w-[15%] text-center">Type</TableHead>
                 <TableHead className="w-[15%] text-center">Time</TableHead>

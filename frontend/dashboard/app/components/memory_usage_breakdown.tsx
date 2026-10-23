@@ -46,7 +46,7 @@ export default function MemoryUsageBreakdown({
       {status === "success" && !!data?.length && (
         <Table className="font-display">
           <TableHeader>
-            <TableRow className="hover:bg-transparent">
+            <TableRow>
               <TableHead>Device total memory</TableHead>
               <TableHead className="text-center">p50</TableHead>
               <TableHead className="text-center">p90</TableHead>
