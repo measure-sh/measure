@@ -3,7 +3,7 @@
 import NetworkDetails from "@/app/components/network_details";
 import { track } from "@/app/utils/analytics/track";
 import { useRouter, useSearchParams } from "next/navigation";
-import { use, useEffect, useRef } from "react";
+import { use, useEffect } from "react";
 
 export default function NetworkDetailsPage({
   params,
@@ -33,20 +33,10 @@ export default function NetworkDetailsPage({
     );
   }, [domain, resolvedParams.teamId, router, search]);
 
-  // Fire `network_call_inspected` once per endpoint. The ref covers
-  // within-route navigation (endpoint A -> endpoint B without remount) and
-  // NetworkDetails URL rewrites, which omit `from` but are not new inspections.
-  const inspectedEndpointRef = useRef<string | null>(null);
   useEffect(() => {
     if (domain === "" && path === "") {
       return;
     }
-
-    const endpoint = JSON.stringify([domain, path]);
-    if (inspectedEndpointRef.current === endpoint) {
-      return;
-    }
-    inspectedEndpointRef.current = endpoint;
 
     track("network_call_inspected", {
       team_id: resolvedParams.teamId,

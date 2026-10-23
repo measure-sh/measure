@@ -113,7 +113,7 @@ function SessionList({
         }
       >
         {(session) => {
-          const href = `/${teamId}/session_replays/${params.appId}/${session.session_id}?from=funnel`;
+          const href = `/${teamId}/session_replays/${params.appId}/${session.session_id}?from=funnel_details`;
           return (
             <StepRow
               key={session.session_id}

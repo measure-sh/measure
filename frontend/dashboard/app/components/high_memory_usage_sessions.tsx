@@ -123,7 +123,7 @@ export default function HighMemoryUsageSessions({
                 </TableRow>
               ) : (
                 results.map((session) => {
-                  const href = `/${teamId}/session_replays/${session.app_id}/${session.session_id}`;
+                  const href = `/${teamId}/session_replays/${session.app_id}/${session.session_id}?from=memory`;
                   return (
                     <TableRow
                       key={session.session_id}

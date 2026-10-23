@@ -1043,19 +1043,19 @@ describe("FunnelDetails delete", () => {
 });
 
 describe("FunnelDetails analytics", () => {
-  it("tracks the view with the entry point the URL names", () => {
-    renderDetails("from=pinned");
+  it("tracks the view with the entry point the URL specifies", () => {
+    renderDetails("from=funnels_overview_pinned");
 
     expect(trackMock).toHaveBeenCalledWith("funnel_investigated", {
       team_id: "team-1",
       app_id: "app-1",
       app_platform: "android",
       feature_area: "funnels",
-      entry_point: "pinned",
+      entry_point: "funnels_overview_pinned",
     });
   });
 
-  it("tracks a direct entry when the URL names none", () => {
+  it("tracks a direct entry when the URL has no from parameter", () => {
     renderDetails();
 
     expect(trackMock).toHaveBeenCalledWith(
@@ -1116,6 +1116,21 @@ describe("FunnelDetails interaction analytics", () => {
     trackMock.mock.calls
       .filter(([event]) => event === name)
       .map(([, props]) => props);
+
+  it("tracks interactions with the entry point the URL specifies", () => {
+    renderDetails("from=funnels_overview_list");
+
+    fireEvent.click(screen.getByRole("button", { name: "Trend" }));
+
+    expect(callsOf("funnel_view_switched")).toEqual([
+      {
+        ...shared,
+        entry_point: "funnels_overview_list",
+        section: "view",
+        selected: "trend",
+      },
+    ]);
+  });
 
   it("tracks a view picked from the tabs, but not the one already shown", () => {
     renderDetails();

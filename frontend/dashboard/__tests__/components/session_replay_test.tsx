@@ -1912,7 +1912,7 @@ describe("the player", () => {
       });
       const link = screen.getByText("View Error Details").closest("a");
       expect(link?.getAttribute("href")).toBe(
-        "/test-team/errors/app-1/group-9/java.lang.IllegalStateException%40CheckoutActivity.kt",
+        "/test-team/errors/app-1/group-9/java.lang.IllegalStateException%40CheckoutActivity.kt?from=session_replay_details",
       );
     });
 
@@ -1952,7 +1952,7 @@ describe("the player", () => {
         "a",
       );
       expect(link?.getAttribute("href")).toBe(
-        "/test-team/errors/app-1/970e70deaf83c0aaea222463e2cf831e/ViewController.swift",
+        "/test-team/errors/app-1/970e70deaf83c0aaea222463e2cf831e/ViewController.swift?from=session_replay_details",
       );
     });
 
@@ -1990,7 +1990,7 @@ describe("the player", () => {
         "a",
       );
       expect(link?.getAttribute("href")).toBe(
-        "/test-team/errors/app-1/970e70deaf83c0aaea222463e2cf831e/unknown_file",
+        "/test-team/errors/app-1/970e70deaf83c0aaea222463e2cf831e/unknown_file?from=session_replay_details",
       );
     });
   });

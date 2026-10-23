@@ -17,7 +17,7 @@ import { FileCode } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import React, { ReactNode, useEffect, useRef, useState } from "react";
+import React, { ReactNode, useEffect, useState } from "react";
 import { cn } from "../utils/shadcn_utils";
 import type { MemoryError } from "../api/api_calls";
 import {
@@ -375,32 +375,39 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
 
   const entryPoint = searchParams.get("from") ?? "direct";
 
-  // Fire `error_investigated` once per error group, after the first result
-  // loads. Ref keyed by errorGroupId covers within-route navigation between
-  // groups without a remount, mirroring the session_investigated pattern.
-  const investigatedGroupRef = useRef<string | null>(null);
-  useEffect(() => {
-    if (demo || !firstResult || !errorGroupId) {
-      return;
-    }
-    if (investigatedGroupRef.current === errorGroupId) {
-      return;
-    }
-    investigatedGroupRef.current = errorGroupId;
-    track("error_investigated", {
-      team_id: teamId,
-      app_id: appId,
-      app_platform: firstResult.attribute?.os_name,
+  // Kept from the first result that loads, so paging, a refetch or a filter
+  // that returns no results doesn't send `error_investigated` again.
+  const [investigated, setInvestigated] = useState<{
+    appPlatform: string;
+    type: string;
+    severity: string;
+  } | null>(null);
+  if (investigated === null && firstResult) {
+    setInvestigated({
+      appPlatform: firstResult.attribute?.os_name,
       type: firstResult.anr
         ? "anr"
         : firstResult.app_hang
           ? "app_hang"
           : "crash",
       severity: firstResult.severity,
+    });
+  }
+
+  useEffect(() => {
+    if (demo || investigated === null || !errorGroupId) {
+      return;
+    }
+    track("error_investigated", {
+      team_id: teamId,
+      app_id: appId,
+      app_platform: investigated.appPlatform,
+      type: investigated.type,
+      severity: investigated.severity,
       feature_area: "errors",
       entry_point: entryPoint,
     });
-  }, [demo, errorGroupId, firstResult, teamId, appId, entryPoint]);
+  }, [demo, errorGroupId, investigated, teamId, appId, entryPoint]);
 
   return (
     <div className="flex flex-col items-start w-full">
@@ -575,7 +582,7 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
                   ) : (
                     <Link
                       key={firstResult.id}
-                      href={`/${teamId}/session_replays/${appId}/${firstResult.session_id}`}
+                      href={`/${teamId}/session_replays/${appId}/${firstResult.session_id}?from=error_details`}
                       className={cn(
                         buttonVariants({ variant: "outline" }),
                         "justify-center w-fit",
@@ -730,14 +737,15 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
     isFetching,
   } = detailsQuery;
 
-  const [isAppHangGroup, setIsAppHangGroup] = useState(false);
-  if (!isAppHangGroup && errorsDetails.results[0]?.app_hang) {
-    setIsAppHangGroup(true);
-  }
-  const visibleKeys = isAppHangGroup
-    ? keys
-    : (keys?.filter((key) => key.key_group !== appHangKeyGroup) ?? null);
-  const visibleKeyGroups = isAppHangGroup
+  // All events in an error group share the same type, so the loaded event
+  // determines whether the picker includes App Hang keys. The filter bar always
+  // retains all keys, keeping App Hang conditions from the URL visible even when
+  // no events are loaded or the group isn't an App Hang group. Since other groups
+  // contain no App Hang events, an App Hang state condition either filters out
+  // all events or leaves them all unchanged, depending on whether the App Hang
+  // state is included or excluded. Users can still see and remove the condition
+  // from the filter bar.
+  const visibleKeyGroups = errorsDetails.results?.[0]?.app_hang
     ? keyGroups
     : keyGroups.filter((group) => group !== appHangKeyGroup);
 
@@ -751,7 +759,7 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
         placeholder="Filter events…"
         value={value}
         apps={apps}
-        keys={visibleKeys}
+        keys={keys}
         keyGroups={visibleKeyGroups}
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}

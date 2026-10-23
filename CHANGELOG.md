@@ -52,6 +52,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Expand session arrays with an ARRAY JOIN clause by @anupcowkur
 - (**backend**): Bind the suggestion window start as a query parameter by @anupcowkur in #4464
 - (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
+- (**frontend**): Stop highlighting build rows on hover by @anupcowkur in #4671
+- (**frontend**): Stop highlighting table headers on hover by @anupcowkur in #4672
+- (**frontend**): Keep app hang filters from the URL on error details by @anupcowkur in #4666
+- (**frontend**): Handle error details with no matching events by @anupcowkur
 - (**frontend**): Use resolved theme for chart colours and theme toggle by @anupcowkur in #4652
 - (**frontend**): Fix september blog preview image (#4613) by @abhaysood in #4613
 - (**frontend**): Match apps settings error to other settings pages by @anupcowkur in #4608
@@ -141,6 +145,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4573) by @dependabot[bot] in #4573
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
+- (**frontend**): Use a download icon on the builds page by @anupcowkur in #4670
+- (**frontend**): Specify which page each view event came from by @anupcowkur in #4663
+- (**frontend**): Replace deprecated form event handler types by @anupcowkur in #4658
 - (**frontend**): Shorten profiles filter bar placeholder by @anupcowkur in #4657
 - (**frontend**): Retitle docs introduction page by @anupcowkur in #4655
 - (**frontend**): Restyle usage page plan cards by @anupcowkur in #4598
@@ -189,6 +196,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :recycle: Refactor
 
+- (**frontend**): Remove refs that stop view events repeating by @anupcowkur in #4661
 - (**frontend**): Export the journeys demo as its own component by @anupcowkur in #4425
 - (**frontend**): Keep expr filter state in the URL only by @anupcowkur in #4407
 

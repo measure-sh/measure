@@ -1,7 +1,7 @@
 "use client";
 
 import { Plus } from "lucide-react";
-import React, { FormEventHandler, useState } from "react";
+import React, { SubmitEventHandler, useState } from "react";
 import { App } from "../api/api_calls";
 import { useCreateAppMutation } from "../query/hooks";
 import { toastNegative, toastPositive } from "./toast";
@@ -30,7 +30,7 @@ const CreateApp: React.FC<CreateAppProps> = ({
   const [appName, setAppName] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
 
-  const handleCreateApp: FormEventHandler = async (event) => {
+  const handleCreateApp: SubmitEventHandler = async (event) => {
     event.preventDefault();
 
     if (appName === "") {

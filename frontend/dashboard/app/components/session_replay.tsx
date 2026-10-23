@@ -2237,7 +2237,7 @@ function ReplayEventDetails({
         label: `View ${eventType === "error" ? "Error" : "ANR"} Details`,
         href: `/${teamId}/errors/${appId}/${eventDetails.group_id}/${encodeURIComponent(
           `${eventDetails.type}${eventDetails.file_name ? `@${eventDetails.file_name}` : ""}`,
-        )}`,
+        )}?from=session_replay_details`,
       };
     }
     if (eventType === "app_hang") {
@@ -2245,7 +2245,7 @@ function ReplayEventDetails({
         label: "View App Hang Details",
         href: `/${teamId}/errors/${appId}/${eventDetails.group_id}/${encodeURIComponent(
           eventDetails.file_name || "unknown_file",
-        )}`,
+        )}?from=session_replay_details`,
       };
     }
     if (eventType === "trace") {

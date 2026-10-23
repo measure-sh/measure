@@ -407,11 +407,48 @@ describe("ErrorGroupDetails page", () => {
   });
 
   it("shows the stack traces empty state and hides the paginator when there are no events", () => {
-    detailsLoaded({ results: [], meta: { previous: false, next: false } });
+    detailsLoaded({ results: null, meta: { previous: false, next: false } });
     renderPage();
 
     expect(screen.getByText("No stack traces found")).toBeInTheDocument();
     expect(screen.queryByText("Next")).not.toBeInTheDocument();
+  });
+
+  it("keeps the plots and common path and hides the event details when there are no events", () => {
+    detailsLoaded({ results: null, meta: { previous: false, next: false } });
+    renderPage();
+
+    expect(screen.getByTestId("errors-details-plot-mock")).toBeInTheDocument();
+    expect(
+      screen.getByTestId("errors-distribution-plot-mock"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByTestId("error-group-common-path-mock"),
+    ).toBeInTheDocument();
+    expect(screen.queryByTestId("exception-detail-id")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("exception-detail-pills"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText("View Session Replay")).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId("copy-ai-context-mock"),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByTestId("code-block-mock")).not.toBeInTheDocument();
+  });
+
+  it("keeps the paginator and hides the empty state when a page after the first has no events", async () => {
+    mockRouter.setUrl("?po=1");
+    detailsLoaded({ results: null, meta: { previous: true, next: false } });
+    renderPage();
+
+    expect(screen.queryByText("No stack traces found")).not.toBeInTheDocument();
+    expect(screen.getByTestId("prev-button")).toBeEnabled();
+    expect(screen.getByTestId("next-button")).toBeDisabled();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("prev-button"));
+    });
+    expect(mockRouter.urlParams()).toEqual({ ...settled, po: "0" });
   });
 
   it("renders a View Session Replay link with teamId/appId/sessionId", () => {
@@ -420,7 +457,10 @@ describe("ErrorGroupDetails page", () => {
 
     const link = screen.getByText("View Session Replay").closest("a");
     expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute("href", "/123/session_replays/app-1/sess-1");
+    expect(link).toHaveAttribute(
+      "href",
+      "/123/session_replays/app-1/sess-1?from=error_details",
+    );
   });
 
   it("shows an error message when the details query errors", () => {
@@ -546,29 +586,7 @@ describe("ErrorGroupDetails page", () => {
       });
     });
 
-    it("renders the App Hang filter when the event is an app hang", () => {
-      renderPageWithAppHang("killed");
-      expect(screen.getByTestId("filter-bar-key-groups")).toHaveTextContent(
-        "OS,App Hang",
-      );
-      expect(screen.getByTestId("filter-bar-keys")).toHaveTextContent(
-        "os_name,app_hang_state",
-      );
-    });
-
-    it("hides the App Hang filter when the event is an exception", () => {
-      renderPageWithEvent({});
-      expect(screen.getByTestId("filter-bar-key-groups")).toHaveTextContent(
-        /^OS$/,
-      );
-      expect(screen.getByTestId("filter-bar-keys")).toHaveTextContent(
-        /^os_name$/,
-      );
-    });
-
-    it("keeps the App Hang filter when a state filter matches no events", () => {
-      const { rerender } = renderPageWithAppHang("killed");
-      detailsLoaded({ results: [], meta: { previous: false, next: false } });
+    function rerenderPage(rerender: ReturnType<typeof render>["rerender"]) {
       rerender(
         <ErrorDetailsPage
           params={promiseParams({
@@ -579,8 +597,91 @@ describe("ErrorGroupDetails page", () => {
           })}
         />,
       );
+    }
+
+    function expectAppHangKeysOffered(offered: boolean) {
       expect(screen.getByTestId("filter-bar-key-groups")).toHaveTextContent(
-        "OS,App Hang",
+        offered ? /^OS,App Hang$/ : /^OS$/,
+      );
+      expect(screen.getByTestId("filter-bar-keys")).toHaveTextContent(
+        /^os_name,app_hang_state$/,
+      );
+    }
+
+    it("offers the App Hang keys when the event is an app hang", () => {
+      renderPageWithAppHang("killed");
+      expectAppHangKeysOffered(true);
+    });
+
+    it("does not offer the App Hang keys when the event is an exception", () => {
+      renderPageWithEvent({});
+      expectAppHangKeysOffered(false);
+    });
+
+    it("does not offer the App Hang keys when the first response has no events", () => {
+      detailsLoaded({ results: null, meta: { previous: false, next: false } });
+      renderPage();
+      expectAppHangKeysOffered(false);
+    });
+
+    it("stops offering the App Hang keys when a later response has no events", () => {
+      const { rerender } = renderPageWithAppHang("killed");
+      detailsLoaded({ results: null, meta: { previous: false, next: false } });
+      rerenderPage(rerender);
+      expectAppHangKeysOffered(false);
+    });
+
+    it("offers the App Hang keys when an app hang event loads after a response with no events", () => {
+      detailsLoaded({ results: null, meta: { previous: false, next: false } });
+      const { rerender } = renderPage();
+      detailsLoaded({
+        results: [
+          {
+            ...sampleErrorEvent,
+            type: "app_hang",
+            exception: null,
+            app_hang: { stacktrace: "", thread_name: "", state: "killed" },
+          },
+        ],
+        meta: { previous: false, next: false },
+      });
+      rerenderPage(rerender);
+      expectAppHangKeysOffered(true);
+    });
+
+    it("applies an App Hang condition from the URL when no events load", () => {
+      mockRouter.setUrl("?filter_expr=app_hang_state:in:Killed");
+      detailsLoaded({ results: null, meta: { previous: false, next: false } });
+      renderPage();
+
+      expect(screen.getByTestId("filter-bar-expr")).toHaveTextContent(
+        "app_hang_state:in:Killed",
+      );
+      expectAppHangKeysOffered(false);
+      expect(mockUseErrorsDetailsQuery).toHaveBeenLastCalledWith(
+        expect.objectContaining({ filterExpr: "app_hang_state:in:Killed" }),
+        "g1",
+        0,
+      );
+    });
+
+    it("applies an App Hang condition from the URL when the event is an exception", () => {
+      mockRouter.setUrl(
+        `?filter_expr=${encodeURIComponent("app_hang_state:in:Killed OR os_name:in:android")}`,
+      );
+      renderPageWithEvent({});
+
+      expect(screen.getByText(/Id: event-1/)).toBeInTheDocument();
+      expect(screen.getByTestId("filter-bar-expr")).toHaveTextContent(
+        "app_hang_state:in:Killed OR os_name:in:android",
+      );
+      expectAppHangKeysOffered(false);
+      expect(mockUseErrorsDetailsQuery).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          filterExpr: "app_hang_state:in:Killed OR os_name:in:android",
+        }),
+        "g1",
+        0,
       );
     });
   });

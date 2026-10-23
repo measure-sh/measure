@@ -344,7 +344,9 @@ describe("Funnels Overview (MSW integration)", () => {
         table()
           .getByRole("link", { name: "Search to cart" })
           .getAttribute("href"),
-      ).toBe(`/test-team/funnels/${appId}/funnel-002?from=funnels`);
+      ).toBe(
+        `/test-team/funnels/${appId}/funnel-002?from=funnels_overview_list`,
+      );
     });
 
     it("asks for the app's first page of funnels and its pinned funnels", async () => {
@@ -383,7 +385,9 @@ describe("Funnels Overview (MSW integration)", () => {
         screen
           .getAllByRole("link", { name: "Search to order" })[0]
           .getAttribute("href"),
-      ).toBe(`/test-team/funnels/${appId}/funnel-003?from=pinned`);
+      ).toBe(
+        `/test-team/funnels/${appId}/funnel-003?from=funnels_overview_pinned`,
+      );
     });
 
     it("asks for each pinned funnel's weekly trend", async () => {
@@ -430,7 +434,7 @@ describe("Funnels Overview (MSW integration)", () => {
       });
       expect(mockRouterPush).toHaveBeenCalledTimes(1);
       expect(mockRouterPush).toHaveBeenCalledWith(
-        `/test-team/funnels/${appId}/funnel-001?from=pinned&${params}`,
+        `/test-team/funnels/${appId}/funnel-001?from=funnels_overview_pinned&${params}`,
       );
     });
   });
@@ -791,7 +795,7 @@ describe("Funnels Overview (MSW integration)", () => {
       });
       await waitFor(() =>
         expect(mockRouterPush).toHaveBeenCalledWith(
-          `/test-team/funnels/${appId}/funnel-new?from=created`,
+          `/test-team/funnels/${appId}/funnel-new?from=funnels_overview_created`,
         ),
       );
       expect(
@@ -1082,7 +1086,7 @@ describe("Funnel Details (MSW integration)", () => {
           .getByRole("link", { name: "ProductActivity.kt: onAddToCart()" })
           .getAttribute("href"),
       ).toBe(
-        `/test-team/errors/${appId}/crash-group-001/${encodeURIComponent("java.lang.NullPointerException@ProductActivity.kt")}?d=Last+6+Hours&from=funnel`,
+        `/test-team/errors/${appId}/crash-group-001/${encodeURIComponent("java.lang.NullPointerException@ProductActivity.kt")}?d=Last+6+Hours&from=funnel_details`,
       );
     });
 

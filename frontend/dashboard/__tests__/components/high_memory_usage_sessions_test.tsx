@@ -181,14 +181,14 @@ describe("HighMemoryUsageSessions", () => {
       const link = screen.getByRole("link", { name: "Session ID: session-1" });
       expect(link).toHaveAttribute(
         "href",
-        "/team-1/session_replays/app-1/session-1",
+        "/team-1/session_replays/app-1/session-1?from=memory",
       );
       fireEvent.keyDown(
         screen.getByRole("row", { name: /Session ID: session-1/ }),
         { key },
       );
       expect(mockRouter.pushMock).toHaveBeenCalledWith(
-        "/team-1/session_replays/app-1/session-1",
+        "/team-1/session_replays/app-1/session-1?from=memory",
       );
     },
   );

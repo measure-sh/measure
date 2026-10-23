@@ -40,4 +40,38 @@ final class CrashDataPersistenceTests: XCTestCase {
 
         XCTAssertEqual(recorded, memory)
     }
+
+    func testReadsMissingOrEmptySessionIdAsNil() {
+        let persistence = BaseCrashDataPersistence()
+
+        XCTAssertNil(persistence.readCrashData(from: ["user": [:]]).sessionId)
+        XCTAssertNil(persistence.readCrashData(from: ["user": ["session_id": ""]]).sessionId)
+        XCTAssertEqual(persistence.readCrashData(from: ["user": ["session_id": "session-123"]]).sessionId, "session-123")
+    }
+
+    func testWritesSessionIdAndForegroundWhenAttributesAreNil() {
+        let persistence = BaseCrashDataPersistence(attribute: nil, sessionId: "session-123", isForeground: true)
+        var plan = ExceptionHandlingPlan()
+        var writer = ReportWriter()
+        writer.addStringElement = { writer, name, value in
+            let recorder = Unmanaged<CrashDataRecorder>.fromOpaque(writer!.pointee.context!).takeUnretainedValue()
+            recorder.strings[String(cString: name!)] = String(cString: value!)
+        }
+        writer.addBooleanElement = { writer, name, value in
+            let recorder = Unmanaged<CrashDataRecorder>.fromOpaque(writer!.pointee.context!).takeUnretainedValue()
+            recorder.booleans[String(cString: name!)] = value
+        }
+        let recorder = CrashDataRecorder()
+        writer.context = Unmanaged.passUnretained(recorder).toOpaque()
+
+        persistence.writeCrashData(plan: &plan, writer: &writer)
+
+        XCTAssertEqual(recorder.strings, ["session_id": "session-123"])
+        XCTAssertEqual(recorder.booleans, ["is_foreground": true])
+    }
+}
+
+private final class CrashDataRecorder {
+    var strings: [String: String] = [:]
+    var booleans: [String: Bool] = [:]
 }

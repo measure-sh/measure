@@ -824,7 +824,7 @@ const Journey: React.FC<JourneyProps> = ({
                                   ? undefined
                                   : () =>
                                       router.push(
-                                        `/${errorDetailContext.teamId}/errors/${errorDetailContext.appId}/${id}/${title}`,
+                                        `/${errorDetailContext.teamId}/errors/${errorDetailContext.appId}/${id}/${title}?from=journeys`,
                                       )
                               }
                               className={`block w-full text-left px-3 py-2 border-b border-border/40 last:border-b-0 text-xs wrap-break-word font-body transition-colors ${errorDetailContext === undefined ? "cursor-default" : "hover:bg-accent cursor-pointer"}`}
@@ -853,7 +853,7 @@ const Journey: React.FC<JourneyProps> = ({
                                   ? undefined
                                   : () =>
                                       router.push(
-                                        `/${errorDetailContext.teamId}/errors/${errorDetailContext.appId}/${id}/${title}`,
+                                        `/${errorDetailContext.teamId}/errors/${errorDetailContext.appId}/${id}/${title}?from=journeys`,
                                       )
                               }
                               className={`block w-full text-left px-3 py-2 border-b border-border/40 last:border-b-0 text-xs wrap-break-word font-body transition-colors ${errorDetailContext === undefined ? "cursor-default" : "hover:bg-accent cursor-pointer"}`}

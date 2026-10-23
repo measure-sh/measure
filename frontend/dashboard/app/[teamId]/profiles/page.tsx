@@ -89,7 +89,7 @@ function ProfileActions({
   profile: Profile;
 }) {
   const attachment = profile.attachments[0];
-  const sessionHref = `/${teamId}/session_replays/${profile.app_id}/${profile.session_id}`;
+  const sessionHref = `/${teamId}/session_replays/${profile.app_id}/${profile.session_id}?from=profiles`;
 
   return (
     <div className="flex items-center justify-center gap-2 p-4">
@@ -231,7 +231,7 @@ export default function ProfilesPage({ params }: PageProps) {
           <div className="py-4" />
           <Table className="font-display select-none">
             <TableHeader>
-              <TableRow className="hover:bg-transparent">
+              <TableRow>
                 <TableHead className="w-[50%]">Profile Trigger</TableHead>
                 <TableHead className="w-[15%] text-center">Type</TableHead>
                 <TableHead className="w-[15%] text-center">Time</TableHead>

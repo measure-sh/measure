@@ -391,7 +391,7 @@ export default function FunnelsOverview({ teamId }: { teamId: string }) {
           </TableHeader>
           <TableBody>
             {funnels.map((funnel) => {
-              const href = funnelHref(teamId, funnel, "funnels");
+              const href = funnelHref(teamId, funnel, "funnels_overview_list");
               return (
                 <TableRow
                   key={funnel.id}
@@ -478,7 +478,7 @@ export default function FunnelsOverview({ teamId }: { teamId: string }) {
                 platform: appPlatform(apps, funnel.app_id),
               }),
             );
-            router.push(funnelHref(teamId, funnel, "created"));
+            router.push(funnelHref(teamId, funnel, "funnels_overview_created"));
           }}
         />
       )}
