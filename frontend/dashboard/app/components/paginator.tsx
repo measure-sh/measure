@@ -37,7 +37,7 @@ const Paginator: React.FC<PaginatorProps> = ({
       >
         Previous
       </Button>
-      <p className={`font-display ${small ? "mx-1" : "mx-4"}`}>{displayText}</p>
+      <p className="font-display mx-1">{displayText}</p>
       <Button
         variant="outline"
         size={size}
