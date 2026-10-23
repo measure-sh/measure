@@ -52,6 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Expand session arrays with an ARRAY JOIN clause by @anupcowkur
 - (**backend**): Bind the suggestion window start as a query parameter by @anupcowkur in #4464
 - (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
+- (**frontend**): Stop highlighting build rows on hover by @anupcowkur in #4671
 - (**frontend**): Stop highlighting table headers on hover by @anupcowkur in #4672
 - (**frontend**): Keep app hang filters from the URL on error details by @anupcowkur in #4666
 - (**frontend**): Handle error details with no matching events by @anupcowkur
