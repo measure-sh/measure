@@ -142,8 +142,8 @@ export default function SessionReplayOverview(props: {
                 </div>
                 <div className="py-4" />
                 <Table className="font-display select-none">
-                  <TableHeader className="hover:bg-muted/50">
-                    <TableRow className="hover:bg-transparent">
+                  <TableHeader>
+                    <TableRow>
                       <TableHead className="w-[60%]">Session Replay</TableHead>
                       <TableHead className="w-[20%] text-center">
                         Start Time
