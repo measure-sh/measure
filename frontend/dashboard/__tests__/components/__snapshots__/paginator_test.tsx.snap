@@ -16,7 +16,7 @@ exports[`Paginator renders correctly when prev and next buttons are disabled 1`]
           Previous
         </button>
         <p
-          class="font-display mx-4"
+          class="font-display mx-1"
         >
           TITLE
         </p>
@@ -42,7 +42,7 @@ exports[`Paginator renders correctly when prev and next buttons are disabled 1`]
         Previous
       </button>
       <p
-        class="font-display mx-4"
+        class="font-display mx-1"
       >
         TITLE
       </p>
@@ -124,7 +124,7 @@ exports[`Paginator renders correctly when prev and next buttons are enabled 1`] 
           Previous
         </button>
         <p
-          class="font-display mx-4"
+          class="font-display mx-1"
         >
           TITLE
         </p>
@@ -148,7 +148,7 @@ exports[`Paginator renders correctly when prev and next buttons are enabled 1`] 
         Previous
       </button>
       <p
-        class="font-display mx-4"
+        class="font-display mx-1"
       >
         TITLE
       </p>
@@ -230,7 +230,7 @@ exports[`Paginator renders correctly when prev button is disabled and next butto
           Previous
         </button>
         <p
-          class="font-display mx-4"
+          class="font-display mx-1"
         >
           TITLE
         </p>
@@ -255,7 +255,7 @@ exports[`Paginator renders correctly when prev button is disabled and next butto
         Previous
       </button>
       <p
-        class="font-display mx-4"
+        class="font-display mx-1"
       >
         TITLE
       </p>
@@ -336,7 +336,7 @@ exports[`Paginator renders correctly when prev button is enabled and next button
           Previous
         </button>
         <p
-          class="font-display mx-4"
+          class="font-display mx-1"
         >
           TITLE
         </p>
@@ -361,7 +361,7 @@ exports[`Paginator renders correctly when prev button is enabled and next button
         Previous
       </button>
       <p
-        class="font-display mx-4"
+        class="font-display mx-1"
       >
         TITLE
       </p>
