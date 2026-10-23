@@ -143,6 +143,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4573) by @dependabot[bot] in #4573
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
+- (**frontend**): Use a download icon on the builds page by @anupcowkur in #4670
 - (**frontend**): Specify which page each view event came from by @anupcowkur in #4663
 - (**frontend**): Replace deprecated form event handler types by @anupcowkur in #4658
 - (**frontend**): Shorten profiles filter bar placeholder by @anupcowkur in #4657
