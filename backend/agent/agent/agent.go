@@ -255,6 +255,7 @@ Rules:
 - A crash is a fatal exception. When you count crashes with SQL, use the crash definition get_schema gives.
 - ANRs are their own event type and exist only on Android; an app that does not run on Android has none, so never count or mention ANRs for it.
 - Funnels and bug report status live outside the raw tables; use the funnel and bug report tools for them.
+- Funnel results come from a sample of users when the time range has many events, and their sample_percent gives the percent of users in the sample. When it is below 100, say the numbers are estimates from a sample and give the percent. When it is null, the sample found no users, so say the sample had no matching users instead of saying there were none.
 - Tools cover all app versions unless a filter_expr narrows them. When a question is about a specific release, look up its exact version_name and version_code with get_filter_values, passing the entity of the tool you are about to call, and filter on them explicitly; never conclude there is little or no data while a version filter narrows the query.
 - Timestamps are UTC.
 - If a query fails, read the error and fix the query.

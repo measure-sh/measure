@@ -1,7 +1,7 @@
 "use client";
 
 import { Video } from "lucide-react";
-import { useState } from "react";
+import { useEffect } from "react";
 import type { FunnelConversion, FunnelStepOutcome } from "../../api/api_calls";
 import {
   type FilterParams,
@@ -21,6 +21,7 @@ import RowLinkCell from "../row_link_cell";
 import { Skeleton, SkeletonTable } from "../skeleton";
 import TabSelect from "../tab_select";
 import { TableHead } from "../table";
+import { pastLastPage } from "../../utils/url_utils";
 
 export enum SessionsOutcome {
   Dropped = "Dropped off",
@@ -44,6 +45,9 @@ interface SessionListProps {
   outcome: SessionsOutcome;
   onSelectOutcome: (outcome: SessionsOutcome) => void;
   onOpenSession: () => void;
+  offset: number;
+  onChangeOffset: (offset: number) => void;
+  onPastLastPage: () => void;
 }
 
 function SessionList({
@@ -56,15 +60,26 @@ function SessionList({
   outcome,
   onSelectOutcome,
   onOpenSession,
+  offset,
+  onChangeOffset,
+  onPastLastPage,
 }: SessionListProps) {
-  const [offset, setOffset] = useState(0);
   const query = useFunnelStepSessionsQuery(
     params,
+    conversion.sample_percent,
     funnelId,
     selectedStep,
     outcomeParams[outcome],
     offset,
   );
+
+  // Runs after every render while the list is past its last page, since the
+  // page can skip the removal until its URL settles.
+  useEffect(() => {
+    if (pastLastPage(offset, query)) {
+      onPastLastPage();
+    }
+  });
 
   return (
     <>
@@ -82,24 +97,26 @@ function SessionList({
               !query.isFetching && (query.data?.meta.previous ?? false)
             }
             nextEnabled={!query.isFetching && (query.data?.meta.next ?? false)}
-            onNext={() => setOffset((o) => o + FUNNEL_STEP_LIST_LIMIT)}
+            onNext={() => onChangeOffset(offset + FUNNEL_STEP_LIST_LIMIT)}
             onPrev={() =>
-              setOffset((o) => Math.max(0, o - FUNNEL_STEP_LIST_LIMIT))
+              onChangeOffset(Math.max(0, offset - FUNNEL_STEP_LIST_LIMIT))
             }
           />
           <ControlSeparator />
           <TabSelect
             items={Object.values(SessionsOutcome)}
             selected={outcome}
-            onChangeSelected={(item) => {
-              onSelectOutcome(item as SessionsOutcome);
-              setOffset(0);
-            }}
+            onChangeSelected={(item) =>
+              onSelectOutcome(item as SessionsOutcome)
+            }
           />
         </div>
       </div>
       <StepList
-        query={query}
+        status={query.status}
+        data={query.data}
+        error={query.error}
+        isFetching={query.isFetching}
         offset={offset}
         noun="session replays"
         icon={Video}
@@ -188,7 +205,8 @@ export default function FunnelSessions({
         </>
       ) : (
         // The key remounts the list when the step or filters change, so it
-        // goes back to its first page.
+        // does not show the sessions of the previous step or filters while
+        // the new ones load.
         <SessionList
           key={[
             selectedStep,

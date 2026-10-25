@@ -13,7 +13,9 @@ import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Funnel, FunnelTrend } from "../../api/api_calls";
+import { isQueryOverLimit } from "../../api/api_error";
 import { type FilterParams, useFunnelTrendQuery } from "../../query/hooks";
+import { formatSamplePercent } from "../sample_percent";
 import { urlFiltersKeyMap } from "../../stores/filters_store";
 import { formatConversionWindow, funnelHref, trendPeriodRange } from "./format";
 import { numberToKMB } from "../../utils/number_utils";
@@ -307,11 +309,16 @@ export default function FunnelPinnedCard({
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-3 min-w-0">
             <p className="font-display text-lg truncate">{funnel.name}</p>
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 min-w-0">
               <FunnelSteps funnel={funnel} />
               <Pill>
                 {`Conversion window: ${formatConversionWindow(funnel.conversion_window_seconds)}`}
               </Pill>
+              {trendQuery.data && (
+                <Pill>
+                  {`Sampled at: ${formatSamplePercent(trendQuery.data.sample_percent)}`}
+                </Pill>
+              )}
             </div>
           </div>
           {reordering ? (
@@ -358,7 +365,9 @@ export default function FunnelPinnedCard({
 
         {trendQuery.isError && (
           <p className="text-sm text-muted-foreground">
-            Error fetching weekly conversion, please refresh page to try again
+            {isQueryOverLimit(trendQuery.error)
+              ? "This funnel is too large to show here. Click it to see details and adjust the date range."
+              : "Error fetching weekly conversion, please refresh page to try again"}
           </p>
         )}
 

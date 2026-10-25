@@ -1,8 +1,11 @@
 "use client";
 
-import { filterExprIssuesIn } from "@/app/api/api_error";
-import FilterBar from "@/app/components/filter_bar/filter_bar";
+import { filterExprIssuesIn, queryErrorMessage } from "@/app/api/api_error";
+import FilterBar, {
+  type FilterChange,
+} from "@/app/components/filter_bar/filter_bar";
 import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
+import { SamplePercent } from "@/app/components/sample_percent";
 import {
   RootSpanMetricsQuantile,
   useAuthzAndMembersQuery,
@@ -13,6 +16,14 @@ import {
   useFunnelTrendQuery,
 } from "@/app/query/hooks";
 import { track } from "@/app/utils/analytics/track";
+import {
+  enumFromUrl,
+  offsetFromUrl,
+  offsetUrlValue,
+  unknownOffset,
+  unknownUrlKeys,
+  useDiscardUrlKeys,
+} from "@/app/utils/url_utils";
 import { Funnel as FunnelIcon, Pencil, Trash2 } from "lucide-react";
 import { DateTime } from "luxon";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -48,9 +59,6 @@ import {
   demoCadences,
   demoConversion,
   demoFunnel,
-  demoStepErrors,
-  demoStepNetwork,
-  demoStepTraces,
   demoTrends,
 } from "./demo_data";
 import FunnelFriction, {
@@ -78,6 +86,20 @@ const overallStep = "overall";
 const listUrlKey = "fl";
 const outcomeUrlKey = "fo";
 const weeksUrlKey = "fw";
+const quantileUrlKey = "fq";
+const frictionOffsetUrlKeys: Record<FrictionList, string> = {
+  [FrictionList.Errors]: "foe",
+  [FrictionList.Traces]: "fot",
+  [FrictionList.Network]: "fon",
+};
+const sessionsOffsetUrlKey = "fos";
+// The lists start over at their first page when the step or filters change.
+const firstPageEntries = Object.fromEntries(
+  [...Object.values(frictionOffsetUrlKeys), sessionsOffsetUrlKey].map((key) => [
+    key,
+    null,
+  ]),
+);
 
 enum FunnelView {
   Breakdown = "Breakdown",
@@ -98,14 +120,6 @@ const CADENCE_SPANS = [
   { label: "12 weeks", weeks: 12 },
 ];
 const DEFAULT_CADENCE_SPAN = CADENCE_SPANS[1];
-
-function enumFromUrl<T extends string>(
-  values: T[],
-  value: string | null,
-  fallback: T,
-): T {
-  return values.find((v) => v === value) ?? fallback;
-}
 
 function formatConversion(entered: number, converted: number): string {
   return `${formatShare(converted, entered)} converted · ${numberToKMB(converted)} of ${numberToKMB(entered)} users`;
@@ -151,7 +165,7 @@ function FunnelHeader({
       <div className="flex flex-col gap-3 w-full">
         <Skeleton className="h-9 w-56" />
         <div className="flex flex-wrap gap-2">
-          <Skeleton className="h-6.5 w-144 max-w-full rounded-full" />
+          <Skeleton className="h-6.5 w-xl max-w-full rounded-full" />
           <Skeleton className="h-6.5 w-40 rounded-full" />
           <Skeleton className="h-6.5 w-48 rounded-full" />
           <Skeleton className="h-6.5 w-52 rounded-full" />
@@ -220,6 +234,7 @@ function FunnelViewHeader({
   onSelectPeriod,
   cadenceSpan,
   onSelectCadenceSpan,
+  sample,
   summary,
 }: {
   view: FunnelView;
@@ -230,6 +245,7 @@ function FunnelViewHeader({
   onSelectPeriod: (period: Period) => void;
   cadenceSpan: CadenceSpan;
   onSelectCadenceSpan: (span: CadenceSpan) => void;
+  sample?: React.ReactNode;
   summary: string | undefined;
 }) {
   return (
@@ -271,6 +287,12 @@ function FunnelViewHeader({
               <ControlSeparator />
             </>
           )}
+          {sample !== undefined && (
+            <>
+              {sample}
+              <ControlSeparator />
+            </>
+          )}
           <TabSelect
             items={Object.values(FunnelView)}
             selected={view}
@@ -283,10 +305,6 @@ function FunnelViewHeader({
       </p>
     </>
   );
-}
-
-function demoQuery<Data>(data: Data) {
-  return { data, status: "success" as const, isFetching: false };
 }
 
 export function FunnelDetailsDemo({
@@ -382,23 +400,6 @@ export function FunnelDetailsDemo({
               onSelectList={setList}
               quantile={quantile}
               onSelectQuantile={setQuantile}
-              errorsQuery={demoQuery(
-                demoStepErrors(selectedStep, offsets[FrictionList.Errors]),
-              )}
-              tracesQuery={demoQuery(
-                demoStepTraces(
-                  selectedStep,
-                  quantile,
-                  offsets[FrictionList.Traces],
-                ),
-              )}
-              networkQuery={demoQuery(
-                demoStepNetwork(
-                  selectedStep,
-                  quantile,
-                  offsets[FrictionList.Network],
-                ),
-              )}
               offsets={offsets}
               onChangeOffset={(list, offset) =>
                 setOffsets((offsets) => ({ ...offsets, [list]: offset }))
@@ -456,6 +457,18 @@ export default function FunnelDetails({
     searchParams.get(outcomeUrlKey),
     SessionsOutcome.Dropped,
   );
+  const quantile = enumFromUrl(
+    Object.values(RootSpanMetricsQuantile),
+    searchParams.get(quantileUrlKey),
+    RootSpanMetricsQuantile.p50,
+  );
+  const frictionOffsets = Object.fromEntries(
+    Object.values(FrictionList).map((l) => [
+      l,
+      offsetFromUrl(searchParams.get(frictionOffsetUrlKeys[l])),
+    ]),
+  ) as Record<FrictionList, number>;
+  const sessionsOffset = offsetFromUrl(searchParams.get(sessionsOffsetUrlKey));
 
   const {
     value,
@@ -467,6 +480,8 @@ export default function FunnelDetails({
     filterParams,
     onChange,
     setPageUrlKey,
+    setPageUrlKeys,
+    discardPageUrlKeys,
   } = useFilterPage({ teamId, entity: "funnels", appId });
   const platform = appPlatform(apps, appId);
   const entryPoint = searchParams.get("from") ?? "direct";
@@ -505,6 +520,37 @@ export default function FunnelDetails({
     Number.isInteger(urlStep) && urlStep >= 1 && urlStep < stepCount
       ? urlStep
       : null;
+  // A step past the last one is judged only once the funnel and its
+  // conversion agree on the steps.
+  const stepsLoaded =
+    funnel !== undefined &&
+    conversionQuery.status === "success" &&
+    !conversionQuery.isPlaceholderData &&
+    funnel.steps.length === conversionQuery.data.steps.length;
+  const urlStepValue = searchParams.get(stepUrlKey);
+  const unusableStep =
+    urlStepValue !== null &&
+    urlStepValue !== overallStep &&
+    (!Number.isInteger(urlStep) ||
+      urlStep < 1 ||
+      (stepsLoaded && urlStep >= stepCount));
+  const unusableKeys = [
+    ...unknownUrlKeys(searchParams, {
+      [viewUrlKey]: Object.values(FunnelView),
+      [periodUrlKey]: PERIODS.map((p) => p.period),
+      [weeksUrlKey]: CADENCE_SPANS.map((span) => String(span.weeks)),
+      [metricUrlKey]: Object.values(FunnelTrendMetric),
+      [listUrlKey]: Object.values(FrictionList),
+      [outcomeUrlKey]: Object.values(SessionsOutcome),
+      [quantileUrlKey]: Object.values(RootSpanMetricsQuantile),
+    }),
+    ...(unusableStep ? [stepUrlKey] : []),
+    ...[...Object.values(frictionOffsetUrlKeys), sessionsOffsetUrlKey].filter(
+      (key) => unknownOffset(searchParams.get(key)),
+    ),
+  ];
+  useDiscardUrlKeys(unusableKeys, discardPageUrlKeys);
+
   const trendQuery = useFunnelTrendQuery(
     filterParams,
     funnelId,
@@ -518,6 +564,12 @@ export default function FunnelDetails({
     cadenceSpan.weeks,
     view === FunnelView.Cadence,
   );
+  const viewQuery =
+    view === FunnelView.Trend
+      ? trendQuery
+      : view === FunnelView.Cadence
+        ? cadenceQuery
+        : conversionQuery;
   const filterExprIssues =
     filterExprIssuesIn(conversionQuery.error) ??
     filterExprIssuesIn(trendQuery.error) ??
@@ -542,7 +594,15 @@ export default function FunnelDetails({
     });
 
   const selectStep = (step: number | null) =>
-    setPageUrlKey(stepUrlKey, step === null ? overallStep : String(step));
+    setPageUrlKeys({
+      [stepUrlKey]: step === null ? overallStep : String(step),
+      ...(step === selectedStep ? {} : firstPageEntries),
+    });
+
+  const changeFilters = (change: FilterChange) => {
+    onChange(change);
+    setPageUrlKeys(firstPageEntries);
+  };
 
   const selectStepFrom =
     (source: "chart" | "friction" | "sessions") => (step: number | null) => {
@@ -577,7 +637,7 @@ export default function FunnelDetails({
     step: number | null,
   ) => {
     scrollToTopRef.current = true;
-    onChange({
+    changeFilters({
       dateRange: {
         dateRange: DateRange.Custom,
         startDate: start.toISO(),
@@ -660,7 +720,7 @@ export default function FunnelDetails({
         showAppSelect={false}
         showDateRange={view === FunnelView.Breakdown}
         status={filterStatus}
-        onChange={onChange}
+        onChange={changeFilters}
       />
       <div className="py-4" />
 
@@ -691,6 +751,12 @@ export default function FunnelDetails({
               onSelectCadenceSpan={(span) =>
                 setPageUrlKey(weeksUrlKey, String(span.weeks))
               }
+              sample={
+                <SamplePercent
+                  percent={viewQuery.data?.sample_percent}
+                  className="h-8 px-4 font-normal"
+                />
+              }
               summary={
                 view === FunnelView.Breakdown
                   ? conversionQuery.data &&
@@ -719,8 +785,10 @@ export default function FunnelDetails({
                 {conversionQuery.isError && filterExprIssues === null && (
                   <div className="flex font-body items-center justify-center w-full h-72">
                     <p className="text-lg font-display text-center p-4">
-                      Error fetching plot, please change filters or refresh page
-                      to try again
+                      {queryErrorMessage(
+                        conversionQuery.error,
+                        "Error fetching plot. Please refresh page or change filters to try again.",
+                      )}
                     </p>
                   </div>
                 )}
@@ -747,6 +815,7 @@ export default function FunnelDetails({
                 period={period.period}
                 metric={metric}
                 status={funnel ? trendQuery.status : "pending"}
+                error={trendQuery.error}
                 trend={trendQuery.data}
                 onSelectPoint={handleSelectTrendPoint}
               />
@@ -755,6 +824,7 @@ export default function FunnelDetails({
             {view === FunnelView.Cadence && (
               <FunnelCadencePlot
                 status={funnel ? cadenceQuery.status : "pending"}
+                error={cadenceQuery.error}
                 hours={cadenceQuery.data}
                 onSelectPoint={handleSelectCadencePoint}
               />
@@ -782,6 +852,19 @@ export default function FunnelDetails({
                   setPageUrlKey(listUrlKey, selected);
                 }}
                 onOpenItem={trackFrictionItem}
+                quantile={quantile}
+                onSelectQuantile={(selected) =>
+                  setPageUrlKey(quantileUrlKey, selected)
+                }
+                offsets={frictionOffsets}
+                onPastLastPage={(list) =>
+                  discardPageUrlKeys([frictionOffsetUrlKeys[list]])
+                }
+                onChangeOffset={(list, offset) =>
+                  setPageUrlKeys({
+                    [frictionOffsetUrlKeys[list]]: offsetUrlValue(offset),
+                  })
+                }
               />
               <div className="py-8" />
               <FunnelSessions
@@ -800,8 +883,20 @@ export default function FunnelDetails({
                     outcomeParams[outcome],
                     outcomeParams[selected],
                   );
-                  setPageUrlKey(outcomeUrlKey, selected);
+                  setPageUrlKeys({
+                    [outcomeUrlKey]: selected,
+                    [sessionsOffsetUrlKey]: null,
+                  });
                 }}
+                offset={sessionsOffset}
+                onPastLastPage={() =>
+                  discardPageUrlKeys([sessionsOffsetUrlKey])
+                }
+                onChangeOffset={(offset) =>
+                  setPageUrlKeys({
+                    [sessionsOffsetUrlKey]: offsetUrlValue(offset),
+                  })
+                }
               />
             </>
           )}

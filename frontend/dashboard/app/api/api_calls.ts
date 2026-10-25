@@ -958,6 +958,17 @@ export const fetchJourneyFromServer = async (
   });
 };
 
+// A list sends the sample percent of the funnel it shows more about, so that
+// it covers the same users.
+function setSamplePercent(
+  params: URLSearchParams,
+  samplePercent: number | null,
+) {
+  if (samplePercent !== null) {
+    params.set("sample_percent", String(samplePercent));
+  }
+}
+
 export const fetchMetricsFromServer = async (
   appId: string,
   startDate: string,
@@ -2078,10 +2089,12 @@ export type FunnelConversion = {
     users: number;
     median_seconds_from_previous: number | null;
   }[];
+  sample_percent: number | null;
 };
 
 export type FunnelStepErrorsResponse = {
   meta: { next: boolean; previous: boolean };
+  sample_percent: number | null;
   results: {
     id: string;
     type: string;
@@ -2099,6 +2112,7 @@ export type FunnelStepErrorsResponse = {
 
 export type FunnelStepTracesResponse = {
   meta: { next: boolean; previous: boolean };
+  sample_percent: number | null;
   results: {
     span_name: string;
     count: number;
@@ -2111,6 +2125,7 @@ export type FunnelStepTracesResponse = {
 
 export type FunnelStepNetworkResponse = {
   meta: { next: boolean; previous: boolean };
+  sample_percent: number | null;
   results: {
     domain: string;
     path_pattern: string;
@@ -2126,6 +2141,7 @@ export type FunnelStepOutcome = "dropped" | "converted";
 
 export type FunnelStepSessionsResponse = {
   meta: { next: boolean; previous: boolean };
+  sample_percent: number | null;
   results: {
     session_id: string;
     installation_id: string;
@@ -2155,6 +2171,7 @@ export type FunnelTrend = {
     patch_version: string | null;
     uploaded_at: string;
   }[];
+  sample_percent: number | null;
 };
 
 // Weekdays run from 1 for Monday to 7 for Sunday. The weekday and hour are
@@ -2163,6 +2180,7 @@ export type FunnelCadence = {
   from: string;
   to: string;
   hours: { weekday: number; hour: number; users: number; converted: number }[];
+  sample_percent: number | null;
 };
 
 export type FunnelsResponse = {
@@ -2334,10 +2352,12 @@ export const fetchFunnelStepErrorsFromServer = async (
   startDate: string,
   endDate: string,
   filterExpr: string | null,
+  samplePercent: number | null,
   limit: number,
   offset: number,
 ) => {
   const params = funnelStepParams(step, startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
   params.set("limit", String(limit));
   params.set("offset", String(offset));
   return await request<FunnelStepErrorsResponse>(
@@ -2354,10 +2374,12 @@ export const fetchFunnelStepSessionsFromServer = async (
   startDate: string,
   endDate: string,
   filterExpr: string | null,
+  samplePercent: number | null,
   limit: number,
   offset: number,
 ) => {
   const params = funnelStepParams(step, startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
   params.set("outcome", outcome);
   params.set("limit", String(limit));
   params.set("offset", String(offset));
@@ -2375,10 +2397,12 @@ export const fetchFunnelStepTracesFromServer = async (
   startDate: string,
   endDate: string,
   filterExpr: string | null,
+  samplePercent: number | null,
   limit: number,
   offset: number,
 ) => {
   const params = funnelStepParams(step, startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
   params.set("quantile", quantile);
   params.set("limit", String(limit));
   params.set("offset", String(offset));
@@ -2396,10 +2420,12 @@ export const fetchFunnelStepNetworkFromServer = async (
   startDate: string,
   endDate: string,
   filterExpr: string | null,
+  samplePercent: number | null,
   limit: number,
   offset: number,
 ) => {
   const params = funnelStepParams(step, startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
   params.set("quantile", quantile);
   params.set("limit", String(limit));
   params.set("offset", String(offset));

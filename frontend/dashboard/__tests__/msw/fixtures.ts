@@ -2172,6 +2172,7 @@ export function makeFunnelConversionFixture(
         median_seconds_from_previous: 6,
       },
     ],
+    sample_percent: 100,
     ...overrides,
   };
 }
@@ -2220,6 +2221,7 @@ export function makeFunnelTrendFixture(overrides: Record<string, any> = {}) {
         uploaded_at: "2026-03-25T10:00:00Z",
       },
     ],
+    sample_percent: 100,
     ...overrides,
   };
 }
@@ -2240,6 +2242,7 @@ export function makeSearchToOrderTrendFixture(
       funnelTrendPoint("2026-04-06", [760, 470, 60, 5], 1500, false),
     ],
     releases: [],
+    sample_percent: 100,
     ...overrides,
   };
 }
@@ -2255,6 +2258,7 @@ export function makeSearchToCartTrendFixture(
       funnelTrendPoint("2026-04-06", [500, 300, 50], 120, false),
     ],
     releases: [],
+    sample_percent: 100,
     ...overrides,
   };
 }
@@ -2351,6 +2355,7 @@ export function makeFunnelCadenceFixture(overrides: Record<string, any> = {}) {
       { weekday: 1, hour: 9, users: 400, converted: 12 },
       { weekday: 6, hour: 20, users: 250, converted: 11 },
     ],
+    sample_percent: 100,
     ...overrides,
   };
 }

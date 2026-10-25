@@ -737,7 +737,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_pinned_funnels
 		newTool(&mcpsdk.Tool{
 			Name:        "get_pinned_funnels",
-			Description: "List an app's pinned funnels in their pinned order, which is the order the funnels page and the app's overview show them in.",
+			Description: "List an app's pinned funnels in their pinned order, which is the order the funnels page shows them in.",
 			InputSchema: mcpMustInferSchema[mcpGetPinnedFunnelsInput](),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetPinnedFunnelsInput) (*mcpsdk.CallToolResult, any, error) {
@@ -767,7 +767,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_funnel_conversion
 		newTool(&mcpsdk.Tool{
 			Name:        "get_funnel_conversion",
-			Description: "Get a funnel's conversion over a time range: for each step, the users that reached it and the median seconds they took to get there from the previous step. A user is counted when they did the first step within the range; their later steps can come after the range ends, within the conversion window. " + mcpFunnelRange + " " + mcpFunnelUsers + " Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			Description: "Get a funnel's conversion over a time range: for each step, the users that reached it and the median seconds they took to get there from the previous step. A user is counted when they did the first step within the range; their later steps can come after the range ends, within the conversion window. " + mcpFunnelRange + " " + mcpFunnelUsers + " " + mcpSampledWithPercent + " filter_expr narrows the users it covers; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelConversionInput](mcpFunnelsFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelConversionInput) (*mcpsdk.CallToolResult, any, error) {
@@ -777,7 +777,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_funnel_trend
 		newTool(&mcpsdk.Tool{
 			Name:        "get_funnel_trend",
-			Description: "Get a funnel's conversion in each of the last 30 days, 12 weeks or 12 months, ending with the current one, in the given timezone; weeks start on Monday. Each point has the users that reached each step, the median seconds to convert, and complete, which is false while users that entered the funnel in that period can still convert. include_builds adds the builds and patches first uploaded during the trend, to line changes in conversion up with releases. " + mcpFunnelUsers + " Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			Description: "Get a funnel's conversion in each of the last 30 days, 12 weeks or 12 months, ending with the current one, in the given timezone; weeks start on Monday. Each point has the users that reached each step, the median seconds to convert, and complete, which is false while users that entered the funnel in that period can still convert. include_builds adds the builds and patches first uploaded during the trend, to line changes in conversion up with releases. " + mcpFunnelUsers + " " + mcpSampledWithPercent + " filter_expr narrows the users it covers; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelTrendInput](mcpFunnelsFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelTrendInput) (*mcpsdk.CallToolResult, any, error) {
@@ -787,7 +787,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_funnel_cadence
 		newTool(&mcpsdk.Tool{
 			Name:        "get_funnel_cadence",
-			Description: "Get when users enter a funnel and how well they convert by hour of the week: for each weekday (1 for Monday to 7 for Sunday) and hour in the given timezone, the users that entered the funnel in it and how many of them converted. The weeks end at the latest week whose users have all had a full conversion window, and the result's from and to give the span they cover. " + mcpFunnelUsers + " Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			Description: "Get when users enter a funnel and how well they convert by hour of the week: for each weekday (1 for Monday to 7 for Sunday) and hour in the given timezone, the users that entered the funnel in it and how many of them converted. The weeks end at the latest week whose users have all had a full conversion window, and the result's from and to give the span they cover. " + mcpFunnelUsers + " " + mcpSampledWithPercent + " filter_expr narrows the users it covers; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelCadenceInput](mcpFunnelsFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelCadenceInput) (*mcpsdk.CallToolResult, any, error) {
@@ -797,7 +797,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_funnel_step_errors
 		newTool(&mcpsdk.Tool{
 			Name:        "get_funnel_step_errors",
-			Description: "List the error groups (crashes, ANRs, app hangs and handled errors) that users hit while trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " Each group has its error count, the users that hit it, and how many of them converted and how many dropped off; the groups with the most drop-offs come first. get_error takes a group's id to show its events. Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			Description: "List the error groups (crashes, ANRs, app hangs and handled errors) that users hit while trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " Each group has its error count, the users that hit it, and how many of them converted and how many dropped off; the groups with the most drop-offs come first. get_error takes a group's id to show its events. " + mcpSampledWithPercent + " " + mcpFunnelStepSample + " filter_expr narrows the users it covers; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelStepErrorsInput](mcpFunnelsFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelStepErrorsInput) (*mcpsdk.CallToolResult, any, error) {
@@ -807,7 +807,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_funnel_step_traces
 		newTool(&mcpsdk.Tool{
 			Name:        "get_funnel_step_traces",
-			Description: "List the root spans that started while users were trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " Each span name has its span count, how many of the users that recorded it converted and how many dropped off, and the quantile of its duration in milliseconds for each of the two groups, null when no user of the group recorded it. The span names recorded by the most users that dropped off come first. Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			Description: "List the root spans that started while users were trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " Each span name has its span count, how many of the users that recorded it converted and how many dropped off, and the quantile of its duration in milliseconds for each of the two groups, null when no user of the group recorded it. The span names recorded by the most users that dropped off come first. " + mcpSampledWithPercent + " " + mcpFunnelStepSample + " filter_expr narrows the users it covers; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelStepTracesInput](mcpFunnelsFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelStepTracesInput) (*mcpsdk.CallToolResult, any, error) {
@@ -817,7 +817,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_funnel_step_network
 		newTool(&mcpsdk.Tool{
 			Name:        "get_funnel_step_network",
-			Description: "List the URL patterns of the network requests that users made while trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " Each pattern has its request count, how many of the users that requested it converted and how many dropped off, and the quantile of its latency in milliseconds for each of the two groups, null when no user of the group requested it. The patterns requested by the most users that dropped off come first. Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			Description: "List the URL patterns of the network requests that users made while trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " Each pattern has its request count, how many of the users that requested it converted and how many dropped off, and the quantile of its latency in milliseconds for each of the two groups, null when no user of the group requested it. The patterns requested by the most users that dropped off come first. " + mcpSampledWithPercent + " " + mcpFunnelStepSample + " filter_expr narrows the users it covers; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelStepNetworkInput](mcpFunnelsFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelStepNetworkInput) (*mcpsdk.CallToolResult, any, error) {
@@ -827,7 +827,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_funnel_step_sessions
 		newTool(&mcpsdk.Tool{
 			Name:        "get_funnel_step_sessions",
-			Description: "List the sessions of the users that converted, or of those that dropped off, while trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " A session is listed when it has an event during its user's attempt. installation_id identifies the user the funnel counted; user_id is the id the app set on the session, empty when none was set. The users that started their attempt most recently come first, each with their sessions from oldest to newest. get_session takes a session's id to show what happened in it. Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			Description: "List the sessions of the users that converted, or of those that dropped off, while trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " A session is listed when it has a screen, custom event, tap or scroll, app launch, move to the foreground or background, error, network request or root span during its user's attempt. installation_id identifies the user the funnel counted; user_id is the id the app set on the session, empty when none was set. The users that started their attempt most recently come first, each with their sessions from oldest to newest. get_session takes a session's id to show what happened in it. " + mcpSampledSessions + " " + mcpFunnelStepSample + " filter_expr narrows the users it covers; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelStepSessionsInput](mcpFunnelsFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelStepSessionsInput) (*mcpsdk.CallToolResult, any, error) {
@@ -867,7 +867,7 @@ func commonTools(cfg *Config) []Tool {
 		// set_funnel_pinned
 		newTool(&mcpsdk.Tool{
 			Name:        "set_funnel_pinned",
-			Description: fmt.Sprintf("Pin a funnel after the app's other pinned funnels, or unpin it, and return it. Pinned funnels are shown first on the funnels page and on the app's overview. An app can have at most %d pinned funnels.", measure.MaxPinnedFunnels),
+			Description: fmt.Sprintf("Pin a funnel after the app's other pinned funnels, or unpin it, and return it. Pinned funnels are shown first on the funnels page. An app can have at most %d pinned funnels.", measure.MaxPinnedFunnels),
 			InputSchema: mcpMustInferSchema[mcpSetFunnelPinnedInput](),
 			Annotations: &mcpsdk.ToolAnnotations{DestructiveHint: new(false), IdempotentHint: true},
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpSetFunnelPinnedInput) (*mcpsdk.CallToolResult, any, error) {
@@ -924,6 +924,16 @@ var (
 )
 
 const mcpFunnelUsers = "Users are counted by installation id: each install of the app is one user, whatever user id the app has set."
+
+// The funnel tools read a sample of the app's installations, which is a
+// smaller share the more events the time range has.
+const (
+	mcpSampled            = "Counts come from a sample of users and are scaled up to all users, so they are estimates unless the sample has every user. The more events the time range has, the smaller the share of users sampled."
+	mcpSamplePercent      = "sample_percent is the percent of users in the sample, or null when the sample found no users, since a small sample can miss users that exist; 100 means the counts are exact."
+	mcpSampledWithPercent = mcpSampled + " " + mcpSamplePercent
+	mcpSampledSessions    = "The list has only the sessions of a sample of users. The more events the time range has, the smaller the share of users sampled. " + mcpSamplePercent
+	mcpFunnelStepSample   = "Pass the sample_percent of get_funnel_conversion for the same range and filter_expr as sample_percent, so that the result covers the same users as the conversion."
+)
 
 const mcpFunnelRange = "A from or to with seconds is rounded down to the minute, or to ten minutes when the range is a day or more; a from or to on a whole minute is used as sent."
 
@@ -1229,47 +1239,51 @@ type mcpGetFunnelCadenceInput struct {
 	FilterExpr string `json:"filter_expr,omitempty"`
 }
 type mcpGetFunnelStepErrorsInput struct {
-	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
-	FunnelID   string `json:"funnel_id" jsonschema:"UUID of the funnel"`
-	Step       *int   `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
-	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
-	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
-	FilterExpr string `json:"filter_expr,omitempty"`
-	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of error groups to return (default: 10, max: 30)"`
-	Offset     int    `json:"offset,omitempty" jsonschema:"Number of error groups to skip for pagination (default: 0)"`
+	AppID         string  `json:"app_id" jsonschema:"UUID of the app to query"`
+	FunnelID      string  `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	Step          *int    `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
+	From          string  `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string  `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string  `json:"filter_expr,omitempty"`
+	SamplePercent float64 `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_funnel_conversion for the same range and filter_expr, so that the result covers the same users as the conversion (default: a sample of its own)"`
+	Limit         int     `json:"limit,omitempty" jsonschema:"Maximum number of error groups to return (default: 10, max: 30)"`
+	Offset        int     `json:"offset,omitempty" jsonschema:"Number of error groups to skip for pagination (default: 0)"`
 }
 type mcpGetFunnelStepTracesInput struct {
-	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
-	FunnelID   string `json:"funnel_id" jsonschema:"UUID of the funnel"`
-	Step       *int   `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
-	Quantile   string `json:"quantile,omitempty" jsonschema:"Quantile of the durations: p50, p90, p95 or p99 (default: p50)"`
-	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
-	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
-	FilterExpr string `json:"filter_expr,omitempty"`
-	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of span names to return (default: 10, max: 30)"`
-	Offset     int    `json:"offset,omitempty" jsonschema:"Number of span names to skip for pagination (default: 0)"`
+	AppID         string  `json:"app_id" jsonschema:"UUID of the app to query"`
+	FunnelID      string  `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	Step          *int    `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
+	Quantile      string  `json:"quantile,omitempty" jsonschema:"Quantile of the durations: p50, p90, p95 or p99 (default: p50)"`
+	From          string  `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string  `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string  `json:"filter_expr,omitempty"`
+	SamplePercent float64 `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_funnel_conversion for the same range and filter_expr, so that the result covers the same users as the conversion (default: a sample of its own)"`
+	Limit         int     `json:"limit,omitempty" jsonschema:"Maximum number of span names to return (default: 10, max: 30)"`
+	Offset        int     `json:"offset,omitempty" jsonschema:"Number of span names to skip for pagination (default: 0)"`
 }
 type mcpGetFunnelStepNetworkInput struct {
-	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
-	FunnelID   string `json:"funnel_id" jsonschema:"UUID of the funnel"`
-	Step       *int   `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
-	Quantile   string `json:"quantile,omitempty" jsonschema:"Quantile of the latencies: p50, p90, p95 or p99 (default: p50)"`
-	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
-	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
-	FilterExpr string `json:"filter_expr,omitempty"`
-	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of URL patterns to return (default: 10, max: 30)"`
-	Offset     int    `json:"offset,omitempty" jsonschema:"Number of URL patterns to skip for pagination (default: 0)"`
+	AppID         string  `json:"app_id" jsonschema:"UUID of the app to query"`
+	FunnelID      string  `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	Step          *int    `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
+	Quantile      string  `json:"quantile,omitempty" jsonschema:"Quantile of the latencies: p50, p90, p95 or p99 (default: p50)"`
+	From          string  `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string  `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string  `json:"filter_expr,omitempty"`
+	SamplePercent float64 `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_funnel_conversion for the same range and filter_expr, so that the result covers the same users as the conversion (default: a sample of its own)"`
+	Limit         int     `json:"limit,omitempty" jsonschema:"Maximum number of URL patterns to return (default: 10, max: 30)"`
+	Offset        int     `json:"offset,omitempty" jsonschema:"Number of URL patterns to skip for pagination (default: 0)"`
 }
 type mcpGetFunnelStepSessionsInput struct {
-	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
-	FunnelID   string `json:"funnel_id" jsonschema:"UUID of the funnel"`
-	Step       *int   `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
-	Outcome    string `json:"outcome" jsonschema:"Whose sessions to list: dropped or converted"`
-	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
-	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
-	FilterExpr string `json:"filter_expr,omitempty"`
-	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of sessions to return (default: 10, max: 30)"`
-	Offset     int    `json:"offset,omitempty" jsonschema:"Number of sessions to skip for pagination (default: 0)"`
+	AppID         string  `json:"app_id" jsonschema:"UUID of the app to query"`
+	FunnelID      string  `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	Step          *int    `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
+	Outcome       string  `json:"outcome" jsonschema:"Whose sessions to list: dropped or converted"`
+	From          string  `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string  `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string  `json:"filter_expr,omitempty"`
+	SamplePercent float64 `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_funnel_conversion for the same range and filter_expr, so that the result covers the same users as the conversion (default: a sample of its own)"`
+	Limit         int     `json:"limit,omitempty" jsonschema:"Maximum number of sessions to return (default: 10, max: 30)"`
+	Offset        int     `json:"offset,omitempty" jsonschema:"Number of sessions to skip for pagination (default: 0)"`
 }
 type mcpCreateFunnelInput struct {
 	AppID                   string   `json:"app_id" jsonschema:"UUID of the app"`
@@ -2506,23 +2520,36 @@ func (c *Config) mcpResolveFunnelWriteAccess(ctx context.Context, rawAppID strin
 	return appID, nil
 }
 
+// mcpSetSamplePercent sets the sample of a list tool from its sample_percent
+// input, which is zero when the caller leaves it out.
+func mcpSetSamplePercent(flt *filter.Filter, percent float64) error {
+	if percent == 0 {
+		return nil
+	}
+	return flt.SetSamplePercent(percent)
+}
+
 // mcpFunnelStepResult names the two steps a step tool covered next to its
 // list, so a caller that passed the wrong step can tell from the result.
-func mcpFunnelStepResult(funnel measure.Funnel, stepRange measure.FunnelStepRange, key string, list any) *mcpsdk.CallToolResult {
+func mcpFunnelStepResult(funnel measure.Funnel, stepRange measure.FunnelStepRange, key string, list any, samplePercent *float64) *mcpsdk.CallToolResult {
 	data, _ := json.Marshal(map[string]any{
-		"from_step": funnel.Steps[stepRange.From].EventName,
-		"to_step":   funnel.Steps[stepRange.To].EventName,
-		key:         list,
+		"from_step":      funnel.Steps[stepRange.From].EventName,
+		"to_step":        funnel.Steps[stepRange.To].EventName,
+		key:              list,
+		"sample_percent": samplePercent,
 	})
 	return mcpTextResult(string(data))
 }
 
-func (c *Config) mcpPrepareFunnelStep(ctx context.Context, rawAppID, rawFunnelID string, step *int, from, to, filterExpr string, limit, offset int) (measure.Funnel, *filter.Filter, measure.FunnelStepRange, error) {
+func (c *Config) mcpPrepareFunnelStep(ctx context.Context, rawAppID, rawFunnelID string, step *int, from, to, filterExpr string, samplePercent float64, limit, offset int) (measure.Funnel, *filter.Filter, measure.FunnelStepRange, error) {
 	appID, _, flt, err := c.mcpPrepareFilter(ctx, filter.FunnelsEntity, rawAppID, from, to, filterExpr, func(flt *filter.Filter) {
 		flt.Limit = mcpFunnelLimit(limit)
 		flt.Offset = offset
 	})
 	if err != nil {
+		return measure.Funnel{}, nil, measure.FunnelStepRange{}, err
+	}
+	if err := mcpSetSamplePercent(flt, samplePercent); err != nil {
 		return measure.Funnel{}, nil, measure.FunnelStepRange{}, err
 	}
 	funnel, err := c.mcpLoadFunnel(ctx, appID, rawFunnelID)
@@ -2621,11 +2648,11 @@ func (c *Config) mcpGetFunnelConversion(ctx context.Context, in mcpGetFunnelConv
 	if err != nil {
 		return nil, nil, err
 	}
-	steps, err := measure.GetFunnelConversionCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt)
+	conversion, err := measure.GetFunnelConversionCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get funnel conversion: %v", err)
 	}
-	data, _ := json.Marshal(map[string]any{"steps": steps})
+	data, _ := json.Marshal(conversion)
 	return mcpTextResult(string(data)), nil, nil
 }
 
@@ -2687,15 +2714,15 @@ func (c *Config) mcpGetFunnelCadence(ctx context.Context, in mcpGetFunnelCadence
 }
 
 func (c *Config) mcpGetFunnelStepErrors(ctx context.Context, in mcpGetFunnelStepErrorsInput) (*mcpsdk.CallToolResult, any, error) {
-	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.Limit, in.Offset)
+	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.SamplePercent, in.Limit, in.Offset)
 	if err != nil {
 		return nil, nil, err
 	}
-	stepErrors, _, _, err := measure.GetFunnelStepErrorsCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange)
+	page, err := measure.GetFunnelStepErrorsCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get funnel step errors: %v", err)
 	}
-	return mcpFunnelStepResult(funnel, stepRange, "errors", stepErrors), nil, nil
+	return mcpFunnelStepResult(funnel, stepRange, "errors", page.Results, page.SamplePercent), nil, nil
 }
 
 func (c *Config) mcpGetFunnelStepTraces(ctx context.Context, in mcpGetFunnelStepTracesInput) (*mcpsdk.CallToolResult, any, error) {
@@ -2703,15 +2730,15 @@ func (c *Config) mcpGetFunnelStepTraces(ctx context.Context, in mcpGetFunnelStep
 	if err != nil {
 		return nil, nil, err
 	}
-	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.Limit, in.Offset)
+	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.SamplePercent, in.Limit, in.Offset)
 	if err != nil {
 		return nil, nil, err
 	}
-	stepTraces, _, _, err := measure.GetFunnelStepTracesCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange, quantile)
+	page, err := measure.GetFunnelStepTracesCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange, quantile)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get funnel step traces: %v", err)
 	}
-	return mcpFunnelStepResult(funnel, stepRange, "spans", stepTraces), nil, nil
+	return mcpFunnelStepResult(funnel, stepRange, "spans", page.Results, page.SamplePercent), nil, nil
 }
 
 func (c *Config) mcpGetFunnelStepNetwork(ctx context.Context, in mcpGetFunnelStepNetworkInput) (*mcpsdk.CallToolResult, any, error) {
@@ -2719,15 +2746,15 @@ func (c *Config) mcpGetFunnelStepNetwork(ctx context.Context, in mcpGetFunnelSte
 	if err != nil {
 		return nil, nil, err
 	}
-	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.Limit, in.Offset)
+	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.SamplePercent, in.Limit, in.Offset)
 	if err != nil {
 		return nil, nil, err
 	}
-	stepEndpoints, _, _, err := measure.GetFunnelStepNetworkCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange, quantile)
+	page, err := measure.GetFunnelStepNetworkCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange, quantile)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get funnel step network requests: %v", err)
 	}
-	return mcpFunnelStepResult(funnel, stepRange, "endpoints", stepEndpoints), nil, nil
+	return mcpFunnelStepResult(funnel, stepRange, "endpoints", page.Results, page.SamplePercent), nil, nil
 }
 
 func (c *Config) mcpGetFunnelStepSessions(ctx context.Context, in mcpGetFunnelStepSessionsInput) (*mcpsdk.CallToolResult, any, error) {
@@ -2739,15 +2766,15 @@ func (c *Config) mcpGetFunnelStepSessions(ctx context.Context, in mcpGetFunnelSt
 	default:
 		return nil, nil, fmt.Errorf("outcome must be one of dropped or converted")
 	}
-	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.Limit, in.Offset)
+	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.SamplePercent, in.Limit, in.Offset)
 	if err != nil {
 		return nil, nil, err
 	}
-	stepSessions, _, _, err := measure.GetFunnelStepSessionsCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange, converted)
+	page, err := measure.GetFunnelStepSessionsCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange, converted)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get funnel step sessions: %v", err)
 	}
-	return mcpFunnelStepResult(funnel, stepRange, "sessions", stepSessions), nil, nil
+	return mcpFunnelStepResult(funnel, stepRange, "sessions", page.Results, page.SamplePercent), nil, nil
 }
 
 func (c *Config) mcpCreateFunnel(ctx context.Context, in mcpCreateFunnelInput) (*mcpsdk.CallToolResult, any, error) {

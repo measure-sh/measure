@@ -133,7 +133,13 @@ const points: TrendPoint[] = [
 const completePoints = points.map((p) => ({ ...p, complete: true }));
 
 function trendWith(overrides: Partial<FunnelTrend> = {}): FunnelTrend {
-  return { event_names: eventNames, points, builds: [], ...overrides };
+  return {
+    sample_percent: 100,
+    event_names: eventNames,
+    points,
+    builds: [],
+    ...overrides,
+  };
 }
 
 type PlotProps = Parameters<typeof FunnelTrendPlot>[0];

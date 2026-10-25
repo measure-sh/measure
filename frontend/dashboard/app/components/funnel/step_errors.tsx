@@ -8,7 +8,6 @@ import {
   OutcomeCells,
   StepList,
   type StepOutcomes,
-  type StepListQuery,
   StepRow,
   useDateRangeParams,
 } from "./step_list";
@@ -17,7 +16,11 @@ import { TableHead } from "../table";
 
 type StepError = FunnelStepErrorsResponse["results"][number];
 
-function ErrorPills({ error }: { error: StepError }) {
+export function ErrorPills({
+  error,
+}: {
+  error: Pick<StepError, "error_type" | "severity">;
+}) {
   return (
     <div className="flex flex-wrap gap-1.5 pt-3">
       {error.error_type === "anr" && <Pill type={PillType.Anr} />}
@@ -37,7 +40,10 @@ function ErrorPills({ error }: { error: StepError }) {
 export default function FunnelStepErrors({
   teamId,
   appId,
-  query,
+  status,
+  data,
+  error,
+  isFetching,
   offset,
   outcomes,
   demo = false,
@@ -45,7 +51,10 @@ export default function FunnelStepErrors({
 }: {
   teamId: string;
   appId: string;
-  query: StepListQuery<FunnelStepErrorsResponse>;
+  status: "pending" | "success" | "error";
+  data: FunnelStepErrorsResponse | undefined;
+  error?: unknown;
+  isFetching?: boolean;
   offset: number;
   outcomes: StepOutcomes;
   demo?: boolean;
@@ -64,7 +73,10 @@ export default function FunnelStepErrors({
 
   return (
     <StepList
-      query={query}
+      status={status}
+      data={data}
+      error={error}
+      isFetching={isFetching}
       offset={offset}
       noun="errors"
       icon={AlertTriangle}

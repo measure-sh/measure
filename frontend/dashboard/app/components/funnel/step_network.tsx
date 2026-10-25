@@ -10,7 +10,6 @@ import {
   OutcomeCells,
   StepList,
   type StepOutcomes,
-  type StepListQuery,
   StepRow,
   useDateRangeParams,
 } from "./step_list";
@@ -21,7 +20,10 @@ type StepEndpoint = FunnelStepNetworkResponse["results"][number];
 export default function FunnelStepNetwork({
   teamId,
   appId,
-  query,
+  status,
+  data,
+  error,
+  isFetching,
   quantile,
   offset,
   outcomes,
@@ -30,7 +32,10 @@ export default function FunnelStepNetwork({
 }: {
   teamId: string;
   appId: string;
-  query: StepListQuery<FunnelStepNetworkResponse>;
+  status: "pending" | "success" | "error";
+  data: FunnelStepNetworkResponse | undefined;
+  error?: unknown;
+  isFetching?: boolean;
   quantile: RootSpanMetricsQuantile;
   offset: number;
   outcomes: StepOutcomes;
@@ -53,7 +58,10 @@ export default function FunnelStepNetwork({
 
   return (
     <StepList
-      query={query}
+      status={status}
+      data={data}
+      error={error}
+      isFetching={isFetching}
       offset={offset}
       noun="network requests"
       icon={Globe}

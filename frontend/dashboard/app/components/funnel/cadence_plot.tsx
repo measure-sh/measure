@@ -5,6 +5,7 @@ import { Clock } from "lucide-react";
 import { DateTime } from "luxon";
 import { useCallback, useMemo, useState } from "react";
 import type { FunnelCadence } from "../../api/api_calls";
+import { queryErrorMessage } from "../../api/api_error";
 import {
   CHART_GRID_DOT_SIZE,
   CHART_TEXT_SIZE,
@@ -287,10 +288,12 @@ function HourLines({
 
 export default function FunnelCadencePlot({
   status,
+  error,
   hours,
   onSelectPoint,
 }: {
   status: "pending" | "error" | "success";
+  error?: unknown;
   hours: FunnelCadence | undefined;
   onSelectPoint: (weekday: number, hour: number) => void;
 }) {
@@ -310,8 +313,10 @@ export default function FunnelCadencePlot({
       {status === "error" && (
         <div className="flex items-center justify-center w-full h-144">
           <p className="text-lg font-display text-center p-4">
-            Error fetching plot, please change filters or refresh page to try
-            again
+            {queryErrorMessage(
+              error,
+              "Error fetching plot. Please refresh page or change filters to try again.",
+            )}
           </p>
         </div>
       )}

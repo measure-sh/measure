@@ -5419,6 +5419,8 @@ paths:
         - A user is counted when they did the first step between `from` and `to`. Their later steps can come after `to`, within the conversion window.
         - A user reaches a step when they do it within the conversion window of their first step, after reaching the step before it.
         - A `from` or `to` with seconds, such as one taken from the current time, is rounded down to the minute, or to ten minutes when the range is a day or more, so that repeated requests can share a cached result. A `from` or `to` on a whole minute is used as sent.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. The more events the range has, the smaller the share of installations sampled.
+        - `sample_percent` is the percent of the app's installations in the sample, or null when the query found no rows.
       parameters:
         - *funnelAppId
         - *funnelId
@@ -5433,8 +5435,14 @@ paths:
               schema:
                 type: object
                 required:
+                  - sample_percent
                   - steps
                 properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
                   steps:
                     type: array
                     description: One entry for each step of the funnel, in order.
@@ -5448,6 +5456,7 @@ paths:
                               type: string
                         - $ref: "#/components/schemas/FunnelStepUsers"
               example:
+                sample_percent: 100
                 steps:
                   - event_name: view_cart
                     users: 1200
@@ -5466,6 +5475,8 @@ paths:
           description: Requester does not have access to this resource.
         "404":
           description: Funnel does not exist in this app.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -5482,6 +5493,8 @@ paths:
         - Weeks start on Monday.
         - Users that did the first step near the end of a period can still convert after it ends, so a period is `complete` once a conversion window has passed since its end.
         - `from` and `to` are ignored.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. The more events the range has, the smaller the share of installations sampled.
+        - `sample_percent` is the percent of the app's installations in the sample, or null when the query found no rows.
       parameters:
         - *funnelAppId
         - *funnelId
@@ -5511,10 +5524,16 @@ paths:
               schema:
                 type: object
                 required:
+                  - sample_percent
                   - event_names
                   - points
                   - builds
                 properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
                   event_names:
                     type: array
                     description: The funnel's step event names, in order.
@@ -5576,6 +5595,7 @@ paths:
                           type: string
                           format: date-time
               example:
+                sample_percent: 29.7
                 event_names:
                   - view_cart
                   - start_checkout
@@ -5615,6 +5635,8 @@ paths:
           description: Requester does not have access to this resource.
         "404":
           description: Funnel does not exist in this app.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -5631,6 +5653,8 @@ paths:
         - The weeks end at the start of the latest week whose users have all had a full conversion window, so every hour is counted the same number of times and no user is still converting.
         - Hours without users are left out.
         - `from` and `to` are ignored.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. The more events the range has, the smaller the share of installations sampled.
+        - `sample_percent` is the percent of the app's installations in the sample, or null when the query found no rows.
       parameters:
         - *funnelAppId
         - *funnelId
@@ -5652,10 +5676,16 @@ paths:
               schema:
                 type: object
                 required:
+                  - sample_percent
                   - from
                   - to
                   - hours
                 properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
                   from:
                     type: string
                     format: date-time
@@ -5690,6 +5720,7 @@ paths:
                           type: integer
                           description: Users of this hour that reached the last step.
               example:
+                sample_percent: 29.7
                 from: 2026-09-14T00:00:00+05:30
                 to: 2026-10-12T00:00:00+05:30
                 hours:
@@ -5709,6 +5740,8 @@ paths:
           description: Requester does not have access to this resource.
         "404":
           description: Funnel does not exist in this app.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -5726,6 +5759,7 @@ paths:
         - Users are counted by installation id, and counted when they did the funnel's first step between `from` and `to`. Their attempt can come after `to`, within the conversion window.
         - The filter applies to the errors as it does to the step events.
         - A `from` or `to` with seconds, such as one taken from the current time, is rounded down to the minute, or to ten minutes when the range is a day or more, so that repeated requests can share a cached result. A `from` or `to` on a whole minute is used as sent.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. The more events the range has, the smaller the share of installations sampled. Pass the conversion's `sample_percent` as `sample_percent` to read the same installations as the conversion.
       parameters:
         - *funnelAppId
         - *funnelId
@@ -5733,6 +5767,7 @@ paths:
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/FunnelSamplePercent"
         - $ref: "#/components/parameters/FunnelLimit"
         - $ref: "#/components/parameters/FunnelOffset"
       responses:
@@ -5745,7 +5780,13 @@ paths:
                 required:
                   - results
                   - meta
+                  - sample_percent
                 properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
                   results:
                     type: array
                     items:
@@ -5801,6 +5842,7 @@ paths:
                       previous:
                         type: boolean
               example:
+                sample_percent: 100
                 results:
                   - id: 9f2c4e1a7b3d5f60
                     type: java.lang.IllegalStateException
@@ -5824,6 +5866,8 @@ paths:
           description: Requester does not have access to this resource.
         "404":
           description: Funnel does not exist in this app.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -5840,6 +5884,7 @@ paths:
         - A user's attempt starts when they reach the earlier step and ends when they reach the next one or, if they never do, when their conversion window runs out.
         - Users are counted by installation id, and counted when they did the funnel's first step between `from` and `to`. Their attempt can come after `to`, within the conversion window.
         - A `from` or `to` with seconds, such as one taken from the current time, is rounded down to the minute, or to ten minutes when the range is a day or more, so that repeated requests can share a cached result. A `from` or `to` on a whole minute is used as sent.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. The more events the range has, the smaller the share of installations sampled. Pass the conversion's `sample_percent` as `sample_percent` to read the same installations as the conversion.
       parameters:
         - *funnelAppId
         - *funnelId
@@ -5848,6 +5893,7 @@ paths:
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/FunnelSamplePercent"
         - $ref: "#/components/parameters/FunnelLimit"
         - $ref: "#/components/parameters/FunnelOffset"
       responses:
@@ -5860,7 +5906,13 @@ paths:
                 required:
                   - results
                   - meta
+                  - sample_percent
                 properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
                   results:
                     type: array
                     items:
@@ -5889,6 +5941,7 @@ paths:
                           description: Duration quantile for users that converted. Null when none of them recorded the span.
                   meta: *funnelPageMeta
               example:
+                sample_percent: 100
                 results:
                   - span_name: checkout.load_payment_methods
                     count: 820
@@ -5907,6 +5960,8 @@ paths:
           description: Requester does not have access to this resource.
         "404":
           description: Funnel does not exist in this app.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -5925,6 +5980,7 @@ paths:
         - A request counts once for each pattern its path matches.
         - Requests that got no response, and requests that took over a minute, are left out.
         - A `from` or `to` with seconds, such as one taken from the current time, is rounded down to the minute, or to ten minutes when the range is a day or more, so that repeated requests can share a cached result. A `from` or `to` on a whole minute is used as sent.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. The more events the range has, the smaller the share of installations sampled. Pass the conversion's `sample_percent` as `sample_percent` to read the same installations as the conversion.
       parameters:
         - *funnelAppId
         - *funnelId
@@ -5933,6 +5989,7 @@ paths:
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/FunnelSamplePercent"
         - $ref: "#/components/parameters/FunnelLimit"
         - $ref: "#/components/parameters/FunnelOffset"
       responses:
@@ -5945,7 +6002,13 @@ paths:
                 required:
                   - results
                   - meta
+                  - sample_percent
                 properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
                   results:
                     type: array
                     items:
@@ -5976,6 +6039,7 @@ paths:
                           description: Latency quantile for users that converted. Null when none of them made the request.
                   meta: *funnelPageMeta
               example:
+                sample_percent: 100
                 results:
                   - domain: api.example.com
                     path_pattern: /v1/cart/*
@@ -5995,6 +6059,8 @@ paths:
           description: Requester does not have access to this resource.
         "404":
           description: Funnel does not exist in this app.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -6010,9 +6076,9 @@ paths:
 
         - A user's attempt starts when they reach the earlier step and ends when they reach the next one or, if they never do, when their conversion window runs out.
         - Users are counted by installation id, and counted when they did the funnel's first step between `from` and `to`. Their attempt can come after `to`, within the conversion window.
-        - A session is listed when it has an event during its user's attempt, so a user that got from one step to the next across sessions has each of them listed.
-        - Sessions whose only events are session starts are left out.
+        - A session is listed when it has a screen, custom event, tap or scroll, app launch, move to the foreground or background, error, network request or root span during its user's attempt, so a user that got from one step to the next across sessions has each of them listed.
         - A `from` or `to` with seconds, such as one taken from the current time, is rounded down to the minute, or to ten minutes when the range is a day or more, so that repeated requests can share a cached result. A `from` or `to` on a whole minute is used as sent.
+        - Only the sessions of a sample of the app's installations are listed. When the range has few events, the sample has every installation, so every matching session is listed. Pass the conversion's `sample_percent` as `sample_percent` to list the sessions of the same installations as the conversion.
       parameters:
         - *funnelAppId
         - *funnelId
@@ -6029,6 +6095,7 @@ paths:
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/FunnelSamplePercent"
         - $ref: "#/components/parameters/FunnelLimit"
         - $ref: "#/components/parameters/FunnelOffset"
       responses:
@@ -6041,7 +6108,13 @@ paths:
                 required:
                   - results
                   - meta
+                  - sample_percent
                 properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
                   results:
                     type: array
                     items:
@@ -6065,6 +6138,7 @@ paths:
                           description: Session duration in milliseconds.
                   meta: *funnelPageMeta
               example:
+                sample_percent: 100
                 results:
                   - session_id: 8d5a6d39-4c76-43d3-aecd-650e2c36f9c2
                     installation_id: 1e6f0b2a-9c4d-4a7e-b3f5-62d8c0a9e174
@@ -6082,6 +6156,8 @@ paths:
           description: Requester does not have access to this resource.
         "404":
           description: Funnel does not exist in this app.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -7544,6 +7620,15 @@ components:
           - p90
           - p95
           - p99
+    FunnelSamplePercent:
+      name: sample_percent
+      in: query
+      required: false
+      description: The `sample_percent` of the funnel's conversion for the same range and filter, so that the result covers the same installations as the conversion. Without it, the query takes a sample of its own, which can cover fewer installations when events were added to the range after the conversion was read.
+      schema:
+        type: number
+        exclusiveMinimum: 0
+        maximum: 100
     FunnelLimit:
       name: limit
       in: query

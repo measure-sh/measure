@@ -6397,6 +6397,13 @@ func TestMCPFunnels(t *testing.T) {
 		if got := sessions(t, map[string]any{"outcome": "dropped"}); fmt.Sprint(got) != fmt.Sprint([]string{dropped}) {
 			t.Errorf("dropped sessions = %v, want %s", got, dropped)
 		}
+		if got := sessions(t, map[string]any{"outcome": "dropped", "sample_percent": 100}); fmt.Sprint(got) != fmt.Sprint([]string{dropped}) {
+			t.Errorf("dropped sessions in the conversion's sample = %v, want %s", got, dropped)
+		}
+		for _, tool := range []string{"get_funnel_step_errors", "get_funnel_step_traces", "get_funnel_step_network"} {
+			callErr(t, rawToken, tool, args(map[string]any{"sample_percent": 150}), "sample_percent must be above 0 and at most 100")
+		}
+		callErr(t, rawToken, "get_funnel_step_sessions", args(map[string]any{"outcome": "dropped", "sample_percent": 150}), "sample_percent must be above 0 and at most 100")
 		if got := sessions(t, map[string]any{"outcome": "dropped", "limit": 1, "offset": 1}); len(got) != 0 {
 			t.Errorf("second page of dropped sessions = %v, want none", got)
 		}

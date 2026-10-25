@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 
 	"backend/libs/chquery"
 	"backend/libs/filter"
@@ -88,6 +89,9 @@ type filterEndpoint struct {
 	// requireTimezone rejects requests without a timezone query param, which
 	// plot endpoints need to bucket rows by day.
 	requireTimezone bool
+	// acceptSamplePercent reads the sample_percent query param into the
+	// filter.
+	acceptSamplePercent bool
 }
 
 // prepareFilter runs the request prologue shared by the endpoints that
@@ -137,6 +141,16 @@ func (h Handlers) prepareFilter(c *gin.Context, endpoint filterEndpoint) (app me
 	}
 
 	flt.Entity = endpoint.entity
+
+	if value := c.Query("sample_percent"); endpoint.acceptSamplePercent && value != "" {
+		percent, err := strconv.ParseFloat(value, 64)
+		if err != nil || flt.SetSamplePercent(percent) != nil {
+			c.JSON(http.StatusBadRequest, gin.H{
+				"error": filter.ErrInvalidSamplePercent.Error(),
+			})
+			return
+		}
+	}
 
 	if err := flt.BuildExprTree(); err != nil {
 		respondFilterError(c, err)
@@ -380,5 +394,37 @@ func (h Handlers) GetFilterValues(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"values":    valueList.Values,
 		"truncated": valueList.Truncated,
+	})
+}
+
+// queryLimitMessage is the error of a query that needed more memory or time
+// than the server allows. The dashboard shows this message to the user.
+const queryLimitMessage = "This query is larger than the current processing limits allow. Try a shorter date range or narrower filters, or run it again later."
+
+// respondQueryError writes the error of a query. A query over the limits gets
+// status 422, so the dashboard can tell it apart from other failures.
+func respondQueryError(c *gin.Context, msg string, err error) {
+	fmt.Println(msg, err)
+	if chquery.IsLimitError(err) {
+		c.JSON(http.StatusUnprocessableEntity, gin.H{"error": queryLimitMessage})
+		return
+	}
+	c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+}
+
+// respondSampledPage writes a page of a list that a sampled funnel query
+// read, or the error of the query.
+func respondSampledPage[T any](c *gin.Context, msg string, page measure.SampledPage[T], err error) {
+	if err != nil {
+		respondQueryError(c, msg, err)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"results": page.Results,
+		"meta": gin.H{
+			"next":     page.Next,
+			"previous": page.Previous,
+		},
+		"sample_percent": page.SamplePercent,
 	})
 }

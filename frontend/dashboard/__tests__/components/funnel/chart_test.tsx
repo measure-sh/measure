@@ -38,6 +38,7 @@ beforeEach(() => {
 });
 
 const conversion: FunnelConversion = {
+  sample_percent: 100,
   steps: [
     { event_name: "app_open", users: 2000, median_seconds_from_previous: null },
     { event_name: "add_to_cart", users: 500, median_seconds_from_previous: 90 },

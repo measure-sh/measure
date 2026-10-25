@@ -37,6 +37,7 @@ export const demoFunnel: Funnel = {
 };
 
 export const demoConversion: FunnelConversion = {
+  sample_percent: 100,
   steps: [
     {
       event_name: "view_product",
@@ -401,6 +402,7 @@ function page<T>(items: T[], offset: number) {
       next: offset + FUNNEL_STEP_LIST_LIMIT < items.length,
       previous: offset > 0,
     },
+    sample_percent: 100,
     results: items.slice(offset, offset + FUNNEL_STEP_LIST_LIMIT),
   };
 }
@@ -533,6 +535,7 @@ function generateTrend(period: FunnelTrendPeriod): FunnelTrend {
   });
   const first = current.minus({ [period]: length - 1 });
   return {
+    sample_percent: 100,
     event_names: demoFunnel.steps.map((s) => s.event_name),
     points,
     builds: demoBuilds.filter((b) => {
@@ -577,6 +580,7 @@ function generateCadence(weeks: number): FunnelCadence {
     }
   }
   return {
+    sample_percent: 100,
     from: to.minus({ weeks }).toISO()!,
     to: to.toISO()!,
     hours,

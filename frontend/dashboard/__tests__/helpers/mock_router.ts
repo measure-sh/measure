@@ -48,6 +48,24 @@ export const mockRouter = {
       search.startsWith("?") ? search : `?${search}`,
     );
   },
+  // Stands in for useFilterPage's setPageUrlKeys.
+  setPageUrlKeys(entries: Record<string, string | string[] | null>) {
+    const params = new URLSearchParams(window.location.search);
+    for (const [key, value] of Object.entries(entries)) {
+      params.delete(key);
+      for (const item of value === null ? [] : [value].flat()) {
+        params.append(key, item);
+      }
+    }
+    mockRouter.setUrl(params.toString());
+  },
+  // Stands in for useFilterPage's discardPageUrlKeys, without its checks of
+  // the URL.
+  discardPageUrlKeys(keys: string[]) {
+    const params = new URLSearchParams(window.location.search);
+    keys.forEach((key) => params.delete(key));
+    mockRouter.setUrl(params.toString());
+  },
   urlParams() {
     return Object.fromEntries(new URLSearchParams(window.location.search));
   },

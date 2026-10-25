@@ -1,10 +1,10 @@
 "use client";
 
-import type { UseQueryResult } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
+import { queryErrorMessage } from "../../api/api_error";
 import { urlFiltersKeyMap } from "../../stores/filters_store";
 import { formatShare } from "./format";
 import { numberToKMB } from "../../utils/number_utils";
@@ -14,11 +14,6 @@ import LoadingBar from "../loading_bar";
 import RowLinkCell from "../row_link_cell";
 import { SkeletonTable } from "../skeleton";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../table";
-
-export type StepListQuery<Data> = Pick<
-  UseQueryResult<Data>,
-  "data" | "status" | "isFetching"
->;
 
 // The users that did the previous step, split into those that did the
 // selected step and those that did not. Rows show their counts as a share of
@@ -43,7 +38,10 @@ export function useDateRangeParams(): URLSearchParams {
 }
 
 export function StepList<Item>({
-  query,
+  status,
+  data,
+  error,
+  isFetching = false,
   offset,
   noun,
   icon,
@@ -51,7 +49,10 @@ export function StepList<Item>({
   header,
   children,
 }: {
-  query: StepListQuery<{ results: Item[] }>;
+  status: "pending" | "success" | "error";
+  data: { results: Item[] } | undefined;
+  error?: unknown;
+  isFetching?: boolean;
   offset: number;
   noun: string;
   icon: LucideIcon;
@@ -59,7 +60,6 @@ export function StepList<Item>({
   header: ReactNode;
   children: (item: Item) => ReactNode;
 }) {
-  const { data, status, isFetching } = query;
   const empty =
     status === "success" && offset === 0 && data?.results.length === 0;
 
@@ -76,8 +76,10 @@ export function StepList<Item>({
 
       {status === "error" && (
         <p className="text-sm">
-          Error fetching list of {noun}, please change filters or refresh page
-          to try again
+          {queryErrorMessage(
+            error,
+            `Error fetching list of ${noun}, please change filters or refresh page to try again`,
+          )}
         </p>
       )}
 
@@ -164,7 +166,7 @@ export function StepRow({
   );
 }
 
-function StepCell({
+export function StepCell({
   href,
   className,
   children,

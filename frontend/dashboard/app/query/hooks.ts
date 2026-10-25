@@ -622,6 +622,7 @@ export const FUNNEL_STEP_LIST_LIMIT = 5;
 
 export function useFunnelStepErrorsQuery(
   params: FilterParams,
+  samplePercent: number | null,
   funnelId: string,
   step: number | null,
   paginationOffset: number,
@@ -637,6 +638,7 @@ export function useFunnelStepErrorsQuery(
       params.startDate,
       params.endDate,
       params.filterExpr,
+      samplePercent,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
@@ -648,6 +650,7 @@ export function useFunnelStepErrorsQuery(
         params.startDate,
         params.endDate,
         params.filterExpr,
+        samplePercent,
         FUNNEL_STEP_LIST_LIMIT,
         paginationOffset,
       ),
@@ -658,6 +661,7 @@ export function useFunnelStepErrorsQuery(
 
 export function useFunnelStepSessionsQuery(
   params: FilterParams,
+  samplePercent: number | null,
   funnelId: string,
   step: number | null,
   outcome: FunnelStepOutcome,
@@ -674,6 +678,7 @@ export function useFunnelStepSessionsQuery(
       params.startDate,
       params.endDate,
       params.filterExpr,
+      samplePercent,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
@@ -686,6 +691,7 @@ export function useFunnelStepSessionsQuery(
         params.startDate,
         params.endDate,
         params.filterExpr,
+        samplePercent,
         FUNNEL_STEP_LIST_LIMIT,
         paginationOffset,
       ),
@@ -695,6 +701,7 @@ export function useFunnelStepSessionsQuery(
 
 export function useFunnelStepTracesQuery(
   params: FilterParams,
+  samplePercent: number | null,
   funnelId: string,
   step: number | null,
   quantile: RootSpanMetricsQuantile,
@@ -712,6 +719,7 @@ export function useFunnelStepTracesQuery(
       params.startDate,
       params.endDate,
       params.filterExpr,
+      samplePercent,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
@@ -724,6 +732,7 @@ export function useFunnelStepTracesQuery(
         params.startDate,
         params.endDate,
         params.filterExpr,
+        samplePercent,
         FUNNEL_STEP_LIST_LIMIT,
         paginationOffset,
       ),
@@ -734,6 +743,7 @@ export function useFunnelStepTracesQuery(
 
 export function useFunnelStepNetworkQuery(
   params: FilterParams,
+  samplePercent: number | null,
   funnelId: string,
   step: number | null,
   quantile: RootSpanMetricsQuantile,
@@ -751,6 +761,7 @@ export function useFunnelStepNetworkQuery(
       params.startDate,
       params.endDate,
       params.filterExpr,
+      samplePercent,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
@@ -763,6 +774,7 @@ export function useFunnelStepNetworkQuery(
         params.startDate,
         params.endDate,
         params.filterExpr,
+        samplePercent,
         FUNNEL_STEP_LIST_LIMIT,
         paginationOffset,
       ),

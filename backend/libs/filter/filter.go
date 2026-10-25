@@ -63,6 +63,27 @@ type Filter struct {
 	FilterExpr string `form:"filter_expr"`
 
 	ExprTree *ExprTree
+
+	// SamplePercent is the percent of the app's installations that a sampled
+	// query reads. Zero lets the query select its own sample. A query that
+	// shows more data about the result of a previous query uses the sample
+	// percent of that query, so that the two queries read the same
+	// installations.
+	SamplePercent float64 `form:"-"`
+}
+
+var ErrInvalidSamplePercent = errors.New("sample_percent must be above 0 and at most 100")
+
+// SetSamplePercent sets the sample that a sampled query reads to the sample
+// percent of an earlier query.
+func (flt *Filter) SetSamplePercent(percent float64) error {
+	// ClickHouse reads a sample of 0 as all the rows. The check is on the
+	// share, so a percent so small that its share rounds to 0 is rejected.
+	if share := percent / 100; !(share > 0 && share <= 1) {
+		return ErrInvalidSamplePercent
+	}
+	flt.SamplePercent = percent
+	return nil
 }
 
 func (flt *Filter) HasFilterExpr() bool {

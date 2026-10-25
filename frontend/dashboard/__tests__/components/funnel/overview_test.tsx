@@ -803,6 +803,31 @@ describe("FunnelsOverview reordering pinned funnels", () => {
     ).toBeInTheDocument();
   });
 
+  it("does not bring the reorder draft back after switching to another app and back", () => {
+    const { rerender } = renderOverview();
+    startReorder();
+    fireEvent.click(
+      within(card("Checkout flow")).getByRole("button", { name: "Move down" }),
+    );
+
+    mockFilterPage = readyFilterPage({
+      value: { app: { id: "app-2" } },
+      filterParams: { ...filterParams, appId: "app-2" },
+    });
+    mockPinned([search, onboarding]);
+    rerender(<FunnelsOverview teamId="team-1" />);
+    mockFilterPage = readyFilterPage();
+    mockPinned([checkout, onboarding, search]);
+    rerender(<FunnelsOverview teamId="team-1" />);
+
+    expect(pinnedCardNames()).toEqual([
+      "Checkout flow",
+      "Onboarding",
+      "Search",
+    ]);
+    expect(mockCardProps["f-checkout"].reordering).toBe(false);
+  });
+
   it("saves the new order and leaves reorder mode", async () => {
     renderOverview();
     startReorder();

@@ -51,7 +51,3 @@ var funnelCustomKeySource = customKeySource{
 	table:    "user_def_attrs",
 	idColumn: "session_id",
 }
-
-// FunnelSpansColumns rebinds the funnel keys onto the spans table, for the
-// queries that read the spans recorded by a funnel's installations.
-var FunnelSpansColumns = spansTableColumns
