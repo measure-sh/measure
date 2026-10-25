@@ -157,7 +157,7 @@ describe("AppBreadcrumbs", () => {
       );
     });
 
-    it("shows a custom-events tooltip on the funnels section", async () => {
+    it("shows a funnels docs tooltip on the funnels section", async () => {
       mockPathname = "/team-123/funnels";
       render(<AppBreadcrumbs />);
       const trigger = document.querySelector(
@@ -177,7 +177,7 @@ describe("AppBreadcrumbs", () => {
       );
       expect(content.querySelector("a")).toHaveAttribute(
         "href",
-        "/docs/custom-events",
+        "/docs/funnels",
       );
     });
 

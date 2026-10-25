@@ -1,4 +1,5 @@
 import type { Funnel, FunnelTrend } from "@/app/api/api_calls";
+import { ApiError } from "@/app/api/api_error";
 import FunnelPinnedCard, {
   FunnelPinButton,
 } from "@/app/components/funnel/pinned_card";
@@ -113,12 +114,18 @@ const week3 = "2026-10-05T00:00:00Z";
 const mockTrend = (
   points: TrendPoint[],
   eventNames = funnel.steps.map((step) => step.event_name),
+  samplePercent = 100,
 ) =>
   mockUseFunnelTrendQuery.mockReturnValue({
     isPending: false,
     isError: false,
     isSuccess: true,
-    data: { event_names: eventNames, points, builds: [] },
+    data: {
+      event_names: eventNames,
+      points,
+      builds: [],
+      sample_percent: samplePercent,
+    },
   });
 
 const renderCard = (
@@ -374,6 +381,25 @@ describe("FunnelPinnedCard metrics", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("Users entered")).not.toBeInTheDocument();
   });
+
+  it("sends the user to the details page when the trend is over the query limits", () => {
+    mockUseFunnelTrendQuery.mockReturnValue({
+      isPending: false,
+      isError: true,
+      isSuccess: false,
+      error: new ApiError(422, "over the limits"),
+    });
+    renderCard();
+
+    expect(
+      screen.getByText(
+        "This funnel is too large to show here. Click it to see details and adjust the date range.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Error fetching weekly conversion/),
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe("FunnelPinnedCard header", () => {
@@ -389,6 +415,13 @@ describe("FunnelPinnedCard header", () => {
       "app_open > add_to_cart > purchase",
     );
     expect(screen.getByText("Conversion window: 1 day")).toBeInTheDocument();
+  });
+
+  it("shows the percent of users the trend read", () => {
+    mockTrend([], undefined, 29.67);
+    renderCard();
+
+    expect(screen.getByText("Sampled at: 30%")).toBeInTheDocument();
   });
 
   it("links to the funnel and offers unpin outside reorder mode", () => {

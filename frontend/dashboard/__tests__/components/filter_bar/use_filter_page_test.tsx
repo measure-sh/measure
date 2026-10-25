@@ -38,6 +38,7 @@ jest.mock("@/app/query/hooks", () => ({
 }));
 
 import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
+import { useDiscardUrlKeys } from "@/app/utils/url_utils";
 
 const app = (id: string, name: string, onboarded = true) =>
   ({ id, name, onboarded }) as App;
@@ -371,6 +372,90 @@ describe("useFilterPage", () => {
       expect(page.value!.date.dateRange).toBe("Last Week");
       expect(page.filterParams).toMatchObject({
         startDate: page.value!.date.startDate,
+      });
+    });
+  });
+
+  describe("page keys", () => {
+    it("sets several keys at once, one value per item of a list, and removes null ones", async () => {
+      mockRouter.setUrl("?a=app-1&d=Last+6+Hours&jn=Home&jl=Traces");
+      await renderPage({ teamId: "team-1", entity: "journeys" });
+
+      await act(async () => {
+        page.setPageUrlKeys({ jn: null, jp: ["Home", "Cart"], jl: "Network" });
+      });
+
+      expect(window.location.search).toBe(
+        "?a=app-1&d=Last+6+Hours&jp=Home&jp=Cart&jl=Network",
+      );
+    });
+
+    it("removes the keys a page can't use once the filters are in the URL", async () => {
+      mockRouter.setUrl("?a=app-1&d=Last+6+Hours&jl=Logs&jq=p42");
+      await renderPage({ teamId: "team-1", entity: "journeys" });
+
+      await act(async () => {
+        page.discardPageUrlKeys(["jl", "jq"]);
+      });
+
+      expect(mockRouter.urlParams()).toEqual(settled);
+    });
+
+    it("keeps the keys while the filters are not in the URL yet", async () => {
+      mockUseAppsQuery.mockReturnValue({ status: "pending", data: undefined });
+      mockRouter.setUrl("?jl=Logs");
+      await renderPage({ teamId: "team-1", entity: "journeys" });
+
+      await act(async () => {
+        page.discardPageUrlKeys(["jl"]);
+      });
+
+      expect(mockRouter.urlParams()).toEqual({ jl: "Logs" });
+    });
+
+    it("removes the keys once the apps load for a URL that already holds the filters", async () => {
+      function DiscardingHost() {
+        const discarding = useFilterPage({
+          teamId: "team-1",
+          entity: "funnels",
+        });
+        useDiscardUrlKeys(["fq"], discarding.discardPageUrlKeys);
+        return null;
+      }
+      mockUseAppsQuery.mockReturnValue({ status: "pending", data: undefined });
+      mockRouter.setUrl("?a=app-1&d=Last+6+Hours&fq=p42");
+      let view!: ReturnType<typeof render>;
+      await act(async () => {
+        view = render(<DiscardingHost />);
+      });
+      expect(mockRouter.urlParams().fq).toBe("p42");
+
+      appsLoaded();
+      await act(async () => {
+        view.rerender(<DiscardingHost />);
+      });
+
+      expect(mockRouter.urlParams()).toEqual(settled);
+    });
+
+    it("keeps a write still in flight when it removes keys", async () => {
+      mockRouter.setUrl("?a=app-1&d=Last+6+Hours&jl=Logs");
+      await renderPage({ teamId: "team-1", entity: "journeys" });
+
+      mockRouter.deferReplace = true;
+      await act(async () => {
+        page.onChange({
+          dateRange: { dateRange: "Last Week", startDate: null, endDate: null },
+        });
+      });
+      await act(async () => {
+        page.discardPageUrlKeys(["jl"]);
+      });
+
+      expect(mockRouter.urlParams()).toEqual({
+        a: "app-1",
+        d: "Last Week",
+        jl: "Logs",
       });
     });
   });

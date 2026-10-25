@@ -42,6 +42,18 @@ export function filterExprIssuesIn(error: unknown): FilterExprIssue[] | null {
   return error.filterExprIssues ?? [];
 }
 
+// The server sends status 422 when a query needed more memory or time than
+// the server allows.
+export function isQueryOverLimit(error: unknown): error is ApiError {
+  return error instanceof ApiError && error.status === 422;
+}
+
+// The message to show when a query fails. A query over the limits shows the
+// server's message, and other failures show `fallback`.
+export function queryErrorMessage(error: unknown, fallback: string): string {
+  return isQueryOverLimit(error) ? error.message : fallback;
+}
+
 /**
  * The call failed without a rejection from the server: the connection failed,
  * the URL could not be built, or the response body could not be read.

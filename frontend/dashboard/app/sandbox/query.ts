@@ -121,6 +121,37 @@ export function paginate<T>(
   };
 }
 
+export function pageResponse<T>(items: T[], url: URL): Response {
+  const page = paginate(items, url);
+  return jsonResponse({
+    meta: { next: page.hasNext, previous: page.hasPrev },
+    results: page.items,
+  });
+}
+
+const QUANTILES: Record<string, number> = {
+  p50: 0.5,
+  p90: 0.9,
+  p95: 0.95,
+  p99: 0.99,
+};
+
+export function quantileOf(values: number[], q: number): number {
+  const sorted = [...values].sort((a, b) => a - b);
+  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))];
+}
+
+export function parseQuantile(url: URL): number | Response {
+  const quantile = url.searchParams.get("quantile") ?? "";
+  if (!Object.hasOwn(QUANTILES, quantile)) {
+    return jsonResponse(
+      { error: "quantile must be one of p50, p90, p95 or p99" },
+      400,
+    );
+  }
+  return QUANTILES[quantile];
+}
+
 function seedState(seed: string): number {
   let h = 0x811c9dc5;
   for (let i = 0; i < seed.length; i++) {

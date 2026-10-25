@@ -69,7 +69,7 @@ const sectionInfo: Record<string, ReactNode> = {
   funnels: (
     <>
       Funnels are built from custom events.{" "}
-      <Link href="/docs/custom-events" className={underlineLinkStyle}>
+      <Link href="/docs/funnels" className={underlineLinkStyle}>
         Learn more
       </Link>
     </>

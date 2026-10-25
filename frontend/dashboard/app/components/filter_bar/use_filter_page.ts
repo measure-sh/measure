@@ -51,6 +51,9 @@ const noKeyGroups: string[] = [];
 
 type UrlEntry = [key: string, value: string | null];
 
+// A null value removes the key, and an array sets one value for each item.
+export type PageUrlEntries = Record<string, string | string[] | null>;
+
 function dateUrlEntries(range: UncheckedDateRange): UrlEntry[] {
   const custom = range.dateRange === DateRange.Custom;
   return [
@@ -292,6 +295,32 @@ export function useFilterPage({
     writeUrl((params) => params.set(key, pageValue));
   };
 
+  const setPageUrlKeys = (entries: PageUrlEntries) => {
+    writeUrl((params) => {
+      for (const [key, pageValue] of Object.entries(entries)) {
+        params.delete(key);
+        for (const item of pageValue === null ? [] : [pageValue].flat()) {
+          params.append(key, item);
+        }
+      }
+    });
+  };
+
+  // Remove unsupported keys only after filters have reached the URL.
+  // Guard against stale renders so we don't overwrite pending navigation.
+  // Callers retry after every render until the keys are gone.
+  const discardPageUrlKeys = (keys: string[]) => {
+    const live = new URLSearchParams(window.location.search);
+    if (
+      filterParams === null ||
+      live.toString() !== search ||
+      !keys.some((key) => live.has(key))
+    ) {
+      return;
+    }
+    writeUrl((params) => keys.forEach((key) => params.delete(key)));
+  };
+
   const movePage = (by: number) => {
     if (paginationLimit === undefined) {
       return;
@@ -320,6 +349,8 @@ export function useFilterPage({
     paginationOffset,
     onChange,
     setPageUrlKey,
+    setPageUrlKeys,
+    discardPageUrlKeys,
     nextPage: () => movePage(paginationLimit ?? 0),
     prevPage: () => movePage(-(paginationLimit ?? 0)),
   };

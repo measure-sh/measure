@@ -1625,7 +1625,7 @@ describe("funnel queries", () => {
     ],
     [
       "useFunnelStepErrorsQuery",
-      () => useFunnelStepErrorsQuery(funnelParams, "f1", 1, 0, false),
+      () => useFunnelStepErrorsQuery(funnelParams, null, "f1", 1, 0, false),
       mockFetchFunnelStepErrors,
     ],
     [
@@ -1633,6 +1633,7 @@ describe("funnel queries", () => {
       () =>
         useFunnelStepTracesQuery(
           funnelParams,
+          null,
           "f1",
           1,
           RootSpanMetricsQuantile.p50,
@@ -1646,6 +1647,7 @@ describe("funnel queries", () => {
       () =>
         useFunnelStepNetworkQuery(
           funnelParams,
+          null,
           "f1",
           1,
           RootSpanMetricsQuantile.p50,
@@ -1722,7 +1724,7 @@ describe("funnel queries", () => {
     ],
     [
       "useFunnelStepErrorsQuery",
-      (offset) => useFunnelStepErrorsQuery(funnelParams, "f1", 1, offset),
+      (offset) => useFunnelStepErrorsQuery(funnelParams, null, "f1", 1, offset),
       mockFetchFunnelStepErrors,
     ],
     [
@@ -1730,6 +1732,7 @@ describe("funnel queries", () => {
       (offset) =>
         useFunnelStepTracesQuery(
           funnelParams,
+          null,
           "f1",
           1,
           RootSpanMetricsQuantile.p95,
@@ -1742,6 +1745,7 @@ describe("funnel queries", () => {
       (offset) =>
         useFunnelStepNetworkQuery(
           funnelParams,
+          null,
           "f1",
           1,
           RootSpanMetricsQuantile.p95,
@@ -1830,6 +1834,7 @@ type FunnelResultProps = {
   withBuilds: boolean;
   outcome: FunnelStepOutcome;
   weeks: number;
+  samplePercent: number | null;
 };
 
 const resultProps: FunnelResultProps = {
@@ -1842,6 +1847,7 @@ const resultProps: FunnelResultProps = {
   withBuilds: true,
   outcome: "dropped",
   weeks: 4,
+  samplePercent: 25,
 };
 
 const resultPropChanges: Record<string, Partial<FunnelResultProps>> = {
@@ -1853,6 +1859,7 @@ const resultPropChanges: Record<string, Partial<FunnelResultProps>> = {
   builds: { withBuilds: false },
   outcome: { outcome: "converted" },
   weeks: { weeks: 12 },
+  "sample percent": { samplePercent: 50 },
   app: { params: { ...funnelParams, appId: "app-2" } },
   "start date": {
     params: { ...funnelParams, startDate: "2025-12-01T00:00:00Z" },
@@ -1888,7 +1895,13 @@ const resultQueries: {
   {
     name: "useFunnelStepErrorsQuery",
     useResult: (p) =>
-      useFunnelStepErrorsQuery(p.params, p.funnelId, p.step, p.offset),
+      useFunnelStepErrorsQuery(
+        p.params,
+        p.samplePercent,
+        p.funnelId,
+        p.step,
+        p.offset,
+      ),
     fetch: mockFetchFunnelStepErrors,
     fetchArgs: (p) => [
       p.params.appId,
@@ -1897,10 +1910,11 @@ const resultQueries: {
       p.params.startDate,
       p.params.endDate,
       p.params.filterExpr,
+      p.samplePercent,
       FUNNEL_STEP_LIST_LIMIT,
       p.offset,
     ],
-    refetchesOn: ["funnel", "step", "page", ...rangeChanges],
+    refetchesOn: ["funnel", "step", "page", "sample percent", ...rangeChanges],
   },
   ...(
     [
@@ -1918,7 +1932,14 @@ const resultQueries: {
   ).map(([name, useStepQuery, fetch]) => ({
     name,
     useResult: (p: FunnelResultProps) =>
-      useStepQuery(p.params, p.funnelId, p.step, p.quantile, p.offset),
+      useStepQuery(
+        p.params,
+        p.samplePercent,
+        p.funnelId,
+        p.step,
+        p.quantile,
+        p.offset,
+      ),
     fetch,
     fetchArgs: (p: FunnelResultProps) => [
       p.params.appId,
@@ -1928,10 +1949,18 @@ const resultQueries: {
       p.params.startDate,
       p.params.endDate,
       p.params.filterExpr,
+      p.samplePercent,
       FUNNEL_STEP_LIST_LIMIT,
       p.offset,
     ],
-    refetchesOn: ["funnel", "step", "quantile", "page", ...rangeChanges],
+    refetchesOn: [
+      "funnel",
+      "step",
+      "quantile",
+      "page",
+      "sample percent",
+      ...rangeChanges,
+    ],
   })),
   {
     name: "useFunnelTrendQuery",
@@ -1952,6 +1981,7 @@ const resultQueries: {
     useResult: (p) =>
       useFunnelStepSessionsQuery(
         p.params,
+        p.samplePercent,
         p.funnelId,
         p.step,
         p.outcome,
@@ -1966,10 +1996,18 @@ const resultQueries: {
       p.params.startDate,
       p.params.endDate,
       p.params.filterExpr,
+      p.samplePercent,
       FUNNEL_STEP_LIST_LIMIT,
       p.offset,
     ],
-    refetchesOn: ["funnel", "step", "outcome", "page", ...rangeChanges],
+    refetchesOn: [
+      "funnel",
+      "step",
+      "outcome",
+      "page",
+      "sample percent",
+      ...rangeChanges,
+    ],
   },
   {
     name: "useFunnelCadenceQuery",
@@ -2084,9 +2122,10 @@ function useFunnelResults() {
   } = resultProps;
   return {
     conversion: useFunnelConversionQuery(params, funnelId),
-    stepErrors: useFunnelStepErrorsQuery(params, funnelId, step, offset),
+    stepErrors: useFunnelStepErrorsQuery(params, null, funnelId, step, offset),
     stepTraces: useFunnelStepTracesQuery(
       params,
+      null,
       funnelId,
       step,
       quantile,
@@ -2094,6 +2133,7 @@ function useFunnelResults() {
     ),
     stepNetwork: useFunnelStepNetworkQuery(
       params,
+      null,
       funnelId,
       step,
       quantile,
@@ -2102,6 +2142,7 @@ function useFunnelResults() {
     trend: useFunnelTrendQuery(params, funnelId, period, withBuilds),
     stepSessions: useFunnelStepSessionsQuery(
       params,
+      null,
       funnelId,
       step,
       outcome,

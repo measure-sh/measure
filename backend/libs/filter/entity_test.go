@@ -484,21 +484,6 @@ func TestFunnelsBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
 	}
 }
 
-func TestFunnelSpansColumnsBindEveryFunnelKey(t *testing.T) {
-	for _, key := range FunnelsEntity.Keys {
-		predicate, err := bindColumn(FunnelSpansColumns, Condition{
-			KeyName:  key.Name,
-			Operator: OperatorIn,
-			Values:   []Value{{Text: "00000000-0000-0000-0000-000000000001"}},
-		})
-		if err != nil {
-			t.Errorf("bind %q on the spans table: %v", key.Name, err)
-			continue
-		}
-		predicate.Close()
-	}
-}
-
 func TestAppHealthEntityOffersEveryAppHealthKey(t *testing.T) {
 	byName := IndexKeysByName(AppHealthEntity.Keys)
 

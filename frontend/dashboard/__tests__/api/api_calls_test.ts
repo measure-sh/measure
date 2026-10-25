@@ -2587,6 +2587,7 @@ describe("funnels", () => {
         offsetFrom,
         offsetTo,
         null,
+        null,
         5,
         10,
       );
@@ -2600,6 +2601,25 @@ describe("funnels", () => {
       expect(url.searchParams.get("offset")).toBe("10");
       expect(url.searchParams.has("quantile")).toBe(false);
       expect(url.searchParams.has("filter_expr")).toBe(false);
+      expect(url.searchParams.has("sample_percent")).toBe(false);
+    });
+
+    it("sends the sample percent of the conversion", async () => {
+      mockApiClientFetch.mockResolvedValueOnce(
+        successResponse({ results: [] }),
+      );
+      await fetchFunnelStepErrorsFromServer(
+        "app-a",
+        "f1",
+        2,
+        isoFrom,
+        isoTo,
+        null,
+        33.5,
+        5,
+        0,
+      );
+      expect(lastFetchParams().get("sample_percent")).toBe("33.5");
     });
 
     it("sends the filter expression when one is given and returns the body", async () => {
@@ -2612,6 +2632,7 @@ describe("funnels", () => {
         isoFrom,
         isoTo,
         "os_name:in:[android]",
+        null,
         5,
         10,
       );
@@ -2655,6 +2676,7 @@ describe("funnels", () => {
         offsetFrom,
         offsetTo,
         null,
+        null,
         5,
         15,
       );
@@ -2684,6 +2706,7 @@ describe("funnels", () => {
         isoFrom,
         isoTo,
         "network_type:eq:wifi",
+        null,
         5,
         0,
       );
@@ -2802,6 +2825,7 @@ describe("funnels", () => {
           isoFrom,
           isoTo,
           null,
+          null,
           5,
           0,
         ),
@@ -2818,6 +2842,7 @@ describe("funnels", () => {
           isoFrom,
           isoTo,
           null,
+          null,
           5,
           0,
         ),
@@ -2833,6 +2858,7 @@ describe("funnels", () => {
           "p95",
           isoFrom,
           isoTo,
+          null,
           null,
           5,
           0,

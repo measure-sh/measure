@@ -1,13 +1,8 @@
 "use client";
 
 import { Check, ChevronsUpDown } from "lucide-react";
-import { useState } from "react";
-import type {
-  FunnelConversion,
-  FunnelStepErrorsResponse,
-  FunnelStepNetworkResponse,
-  FunnelStepTracesResponse,
-} from "../../api/api_calls";
+import { useEffect, useState } from "react";
+import type { FunnelConversion } from "../../api/api_calls";
 import {
   type FilterParams,
   FUNNEL_STEP_LIST_LIMIT,
@@ -16,9 +11,9 @@ import {
   useFunnelStepNetworkQuery,
   useFunnelStepTracesQuery,
 } from "../../query/hooks";
+import { demoStepErrors, demoStepNetwork, demoStepTraces } from "./demo_data";
 import { formatShare } from "./format";
 import { useStepColor } from "./step_color";
-import type { StepListQuery } from "./step_list";
 import { numberToKMB } from "../../utils/number_utils";
 import { Button } from "../button";
 import { Command, CommandGroup, CommandItem } from "../command";
@@ -32,6 +27,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "../popover";
 import { Separator } from "../separator";
 import { Skeleton, SkeletonTable } from "../skeleton";
 import TabSelect from "../tab_select";
+import { pastLastPage } from "../../utils/url_utils";
 
 export enum FrictionList {
   Errors = "Errors",
@@ -169,9 +165,9 @@ type FrictionListsViewProps = StepSelection & {
   onOpenItem?: (target: FrictionItemTarget) => void;
   quantile: RootSpanMetricsQuantile;
   onSelectQuantile: (quantile: RootSpanMetricsQuantile) => void;
-  errorsQuery: StepListQuery<FunnelStepErrorsResponse>;
-  tracesQuery: StepListQuery<FunnelStepTracesResponse>;
-  networkQuery: StepListQuery<FunnelStepNetworkResponse>;
+  errorsQuery?: ReturnType<typeof useFunnelStepErrorsQuery>;
+  tracesQuery?: ReturnType<typeof useFunnelStepTracesQuery>;
+  networkQuery?: ReturnType<typeof useFunnelStepNetworkQuery>;
   offsets: Record<FrictionList, number>;
   onChangeOffset: (list: FrictionList, offset: number) => void;
 };
@@ -201,11 +197,28 @@ export function FrictionListsView({
     dropped: conversion.steps[from].users - converted,
   };
 
+  // The demo has no queries, so it lists its own data.
+  const errors = demo
+    ? demoStepErrors(selectedStep, offsets[FrictionList.Errors])
+    : errorsQuery?.data;
+  const traces = demo
+    ? demoStepTraces(selectedStep, quantile, offsets[FrictionList.Traces])
+    : tracesQuery?.data;
+  const network = demo
+    ? demoStepNetwork(selectedStep, quantile, offsets[FrictionList.Network])
+    : networkQuery?.data;
+
   const activeQuery = {
     [FrictionList.Errors]: errorsQuery,
     [FrictionList.Traces]: tracesQuery,
     [FrictionList.Network]: networkQuery,
   }[list];
+  const activeData = {
+    [FrictionList.Errors]: errors,
+    [FrictionList.Traces]: traces,
+    [FrictionList.Network]: network,
+  }[list];
+  const isFetching = activeQuery?.isFetching ?? false;
   const offset = offsets[list];
 
   return (
@@ -234,13 +247,8 @@ export function FrictionListsView({
           <Paginator
             size="sm"
             displayText=""
-            prevEnabled={
-              !activeQuery.isFetching &&
-              (activeQuery.data?.meta.previous ?? false)
-            }
-            nextEnabled={
-              !activeQuery.isFetching && (activeQuery.data?.meta.next ?? false)
-            }
+            prevEnabled={!isFetching && (activeData?.meta.previous ?? false)}
+            nextEnabled={!isFetching && (activeData?.meta.next ?? false)}
             onNext={() => onChangeOffset(list, offset + FUNNEL_STEP_LIST_LIMIT)}
             onPrev={() =>
               onChangeOffset(list, Math.max(0, offset - FUNNEL_STEP_LIST_LIMIT))
@@ -261,7 +269,10 @@ export function FrictionListsView({
         <FunnelStepErrors
           teamId={teamId}
           appId={appId}
-          query={errorsQuery}
+          status={demo ? "success" : (errorsQuery?.status ?? "pending")}
+          data={errors}
+          error={errorsQuery?.error}
+          isFetching={errorsQuery?.isFetching}
           offset={offsets[FrictionList.Errors]}
           outcomes={outcomes}
           demo={demo}
@@ -272,7 +283,10 @@ export function FrictionListsView({
         <FunnelStepTraces
           teamId={teamId}
           appId={appId}
-          query={tracesQuery}
+          status={demo ? "success" : (tracesQuery?.status ?? "pending")}
+          data={traces}
+          error={tracesQuery?.error}
+          isFetching={tracesQuery?.isFetching}
           quantile={quantile}
           offset={offsets[FrictionList.Traces]}
           outcomes={outcomes}
@@ -284,7 +298,10 @@ export function FrictionListsView({
         <FunnelStepNetwork
           teamId={teamId}
           appId={appId}
-          query={networkQuery}
+          status={demo ? "success" : (networkQuery?.status ?? "pending")}
+          data={network}
+          error={networkQuery?.error}
+          isFetching={networkQuery?.isFetching}
           quantile={quantile}
           offset={offsets[FrictionList.Network]}
           outcomes={outcomes}
@@ -301,6 +318,11 @@ interface FrictionListsProps extends StepSelection {
   funnelId: string;
   params: FilterParams;
   onOpenItem: (target: FrictionItemTarget) => void;
+  quantile: RootSpanMetricsQuantile;
+  onSelectQuantile: (quantile: RootSpanMetricsQuantile) => void;
+  offsets: Record<FrictionList, number>;
+  onChangeOffset: (list: FrictionList, offset: number) => void;
+  onPastLastPage: (list: FrictionList) => void;
 }
 
 export const FRICTION_FIRST_PAGES = {
@@ -315,12 +337,10 @@ function FrictionLists({
   selectedStep,
   quantile,
   onSelectQuantile,
+  offsets,
+  onPastLastPage,
   ...rest
-}: FrictionListsProps & {
-  quantile: RootSpanMetricsQuantile;
-  onSelectQuantile: (quantile: RootSpanMetricsQuantile) => void;
-}) {
-  const [offsets, setOffsets] = useState(FRICTION_FIRST_PAGES);
+}: FrictionListsProps) {
   // Each list's query is expensive, so a list is fetched only once the user
   // has opened it.
   const [openedLists, setOpenedLists] = useState(() => new Set([rest.list]));
@@ -328,6 +348,7 @@ function FrictionLists({
     list === rest.list || openedLists.has(list);
   const errorsQuery = useFunnelStepErrorsQuery(
     params,
+    rest.conversion.sample_percent,
     funnelId,
     selectedStep,
     offsets[FrictionList.Errors],
@@ -335,6 +356,7 @@ function FrictionLists({
   );
   const tracesQuery = useFunnelStepTracesQuery(
     params,
+    rest.conversion.sample_percent,
     funnelId,
     selectedStep,
     quantile,
@@ -343,12 +365,28 @@ function FrictionLists({
   );
   const networkQuery = useFunnelStepNetworkQuery(
     params,
+    rest.conversion.sample_percent,
     funnelId,
     selectedStep,
     quantile,
     offsets[FrictionList.Network],
     opened(FrictionList.Network),
   );
+
+  const queries = {
+    [FrictionList.Errors]: errorsQuery,
+    [FrictionList.Traces]: tracesQuery,
+    [FrictionList.Network]: networkQuery,
+  };
+  // Runs after every render while a list is past its last page, since the
+  // page can skip the removal until its URL settles.
+  useEffect(() => {
+    for (const list of Object.values(FrictionList)) {
+      if (pastLastPage(offsets[list], queries[list])) {
+        onPastLastPage(list);
+      }
+    }
+  });
 
   return (
     <FrictionListsView
@@ -360,9 +398,6 @@ function FrictionLists({
       tracesQuery={tracesQuery}
       networkQuery={networkQuery}
       offsets={offsets}
-      onChangeOffset={(list, offset) =>
-        setOffsets((offsets) => ({ ...offsets, [list]: offset }))
-      }
       {...rest}
       onSelectList={(list) => {
         setOpenedLists((lists) => new Set(lists).add(list));
@@ -395,11 +430,6 @@ export default function FunnelFriction({
   conversion: FunnelConversion | undefined;
   conversionFailed: boolean;
 }) {
-  // The lists remount when the step or filters change, so the percentile is
-  // kept here to stay the same across those changes. Traces and network
-  // requests share it.
-  const [quantile, setQuantile] = useState(RootSpanMetricsQuantile.p50);
-
   return (
     <div className="w-full font-body">
       <FrictionHeading />
@@ -416,7 +446,8 @@ export default function FunnelFriction({
         </>
       ) : (
         // The key remounts the lists when the step or filters change, so
-        // they go back to their first page.
+        // they do not show the items of the previous step or filters while
+        // the new ones load.
         <FrictionLists
           key={[
             selectedStep,
@@ -427,8 +458,6 @@ export default function FunnelFriction({
           params={params}
           conversion={conversion}
           selectedStep={selectedStep}
-          quantile={quantile}
-          onSelectQuantile={setQuantile}
           {...rest}
         />
       )}

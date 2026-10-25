@@ -47,6 +47,7 @@ jest.mock("@/app/components/command", () => ({
 import FunnelCadencePlot from "@/app/components/funnel/cadence_plot";
 
 const cadence: FunnelCadence = {
+  sample_percent: 100,
   from: "2026-10-05T00:00:00.000+05:30",
   to: "2026-10-12T00:00:00.000+05:30",
   hours: [

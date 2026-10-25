@@ -1,6 +1,7 @@
 package filter
 
 import (
+	"math"
 	"strings"
 	"testing"
 	"time"
@@ -309,5 +310,20 @@ func TestNeedsWholeGroup(t *testing.T) {
 				t.Errorf("want %v, got %v", test.want, got)
 			}
 		})
+	}
+}
+
+func TestSetSamplePercent(t *testing.T) {
+	for _, percent := range []float64{100, 37.5, 0.001, 1e-300} {
+		var flt Filter
+		if err := flt.SetSamplePercent(percent); err != nil || flt.SamplePercent != percent {
+			t.Errorf("SetSamplePercent(%v) = %v with %v set, want %v set", percent, err, flt.SamplePercent, percent)
+		}
+	}
+	for _, percent := range []float64{0, -5, 100.5, 1e-323, math.NaN(), math.Inf(1)} {
+		var flt Filter
+		if err := flt.SetSamplePercent(percent); err != ErrInvalidSamplePercent || flt.SamplePercent != 0 {
+			t.Errorf("SetSamplePercent(%v) = %v with %v set, want ErrInvalidSamplePercent and nothing set", percent, err, flt.SamplePercent)
+		}
 	}
 }

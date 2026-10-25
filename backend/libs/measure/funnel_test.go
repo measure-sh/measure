@@ -151,7 +151,7 @@ func TestAlignFunnelRange(t *testing.T) {
 	align := func(from, to time.Time) *filter.Filter {
 		flt := cacheTestFilter()
 		flt.From, flt.To = from, to
-		return alignFunnelRange(flt)
+		return alignCachedRange(flt)
 	}
 	expectRange := func(t *testing.T, flt *filter.Filter, from, to time.Time) {
 		t.Helper()
@@ -225,7 +225,7 @@ func TestAlignFunnelRange(t *testing.T) {
 		flt := cacheTestFilter()
 		from, to := flt.From.Add(time.Second), flt.To.Add(time.Second)
 		flt.From, flt.To = from, to
-		alignFunnelRange(flt)
+		alignCachedRange(flt)
 		expectRange(t, flt, from, to)
 	})
 }
@@ -332,6 +332,7 @@ func TestFunnelCacheKey(t *testing.T) {
 			"filter":            func(_ *Funnel, flt *filter.Filter, _ *string, _ *[]any) { flt.FilterExpr = `os_name == "ios"` },
 			"limit":             func(_ *Funnel, flt *filter.Filter, _ *string, _ *[]any) { flt.Limit = 20 },
 			"offset":            func(_ *Funnel, flt *filter.Filter, _ *string, _ *[]any) { flt.Offset = 10 },
+			"sample percent":    func(_ *Funnel, flt *filter.Filter, _ *string, _ *[]any) { flt.SamplePercent = 25 },
 			"step range": func(_ *Funnel, _ *filter.Filter, _ *string, params *[]any) {
 				*params = []any{FunnelStepRange{From: 1, To: 2}}
 			},
@@ -556,15 +557,17 @@ func TestCachedFunnelResult(t *testing.T) {
 		}
 	})
 
-	t.Run("a cached page keeps its results and whether there are pages before and after", func(t *testing.T) {
+	t.Run("a cached page keeps its results, whether there are pages before and after, and its sample", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		wantFunnelPage := funnelPage[FunnelStepError]{
-			Results:  []FunnelStepError{{ID: "abc", Type: "exception", Count: 3, Users: 2, Dropped: 1, Converted: 1}},
-			Next:     true,
-			Previous: true,
+		percent := 25.0
+		wantFunnelPage := SampledPage[FunnelStepError]{
+			Results:       []FunnelStepError{{ID: "abc", Type: "exception", Count: 3, Users: 2, Dropped: 1, Converted: 1}},
+			Next:          true,
+			Previous:      true,
+			SamplePercent: &percent,
 		}
 		runs := 0
-		query := func() (funnelPage[FunnelStepError], error) {
+		query := func() (SampledPage[FunnelStepError], error) {
 			runs++
 			return wantFunnelPage, nil
 		}
@@ -582,4 +585,69 @@ func TestCachedFunnelResult(t *testing.T) {
 			t.Fatalf("query ran %d times, want 1", runs)
 		}
 	})
+}
+
+func TestFunnelOfADayReadsAllTheInstallationsOfThatDay(t *testing.T) {
+	f := newPlotFixture(t)
+	base := time.Date(2026, 1, 10, 10, 0, 0, 0, time.UTC)
+	day := base.AddDate(0, 0, 10)
+	// The month has more rows than the sample, and the day has fewer. Each
+	// insert has rows of both days, so the rows of the two days are in the
+	// same parts, as after merges.
+	err := th.ChConn.Exec(f.ctx, "insert into measure.analytics_events (id, type, session_id, app_id, team_id, timestamp, installation_id, `custom.name`) "+
+		"select generateUUIDv4(), 'custom', generateUUIDv4(), ?, ?, toDateTime64(?, 3, 'UTC') + toIntervalDay(10 * (number % 2)), generateUUIDv4(), 'view_product' from numbers(?)",
+		f.appID, f.teamID, base.Format(time.DateTime), 8_000_000)
+	if err != nil {
+		t.Fatalf("seed view_product: %v", err)
+	}
+	installation := uuid.NewString()
+	for _, event := range []struct {
+		name string
+		at   time.Time
+	}{{"view_product", day}, {"order_placed", day.Add(time.Minute)}} {
+		err := th.ChConn.Exec(f.ctx, "insert into measure.analytics_events (id, type, session_id, app_id, team_id, timestamp, installation_id, `custom.name`) "+
+			"values (generateUUIDv4(), 'custom', generateUUIDv4(), ?, ?, toDateTime64(?, 3, 'UTC'), toUUID(?), ?)",
+			f.appID, f.teamID, event.at.Format(time.DateTime), installation, event.name)
+		if err != nil {
+			t.Fatalf("seed %s: %v", event.name, err)
+		}
+	}
+	err = th.ChConn.Exec(f.ctx, "insert into measure.analytics_events (id, type, session_id, app_id, team_id, timestamp, installation_id, `span.name`, `span.duration_ms`) "+
+		"values (generateUUIDv4(), 'span', generateUUIDv4(), ?, ?, toDateTime64(?, 3, 'UTC'), toUUID(?), 'checkout.load', 120)",
+		f.appID, f.teamID, day.Add(30*time.Second).Format(time.DateTime), installation)
+	if err != nil {
+		t.Fatalf("seed span: %v", err)
+	}
+
+	funnel := Funnel{
+		ID:                      uuid.New(),
+		AppID:                   f.appID,
+		Steps:                   []FunnelStep{{EventName: "view_product"}, {EventName: "order_placed"}},
+		ConversionWindowSeconds: 3600,
+	}
+	flt := &filter.Filter{
+		AppID:    f.appID,
+		TeamID:   f.teamID,
+		Entity:   filter.FunnelsEntity,
+		From:     day.Add(-time.Hour),
+		To:       day.Add(time.Hour),
+		Timezone: "UTC",
+		Limit:    filter.DefaultPaginationLimit,
+	}
+
+	conversion, err := GetFunnelConversion(f.ctx, deps.RchPool, funnel, flt)
+	if err != nil {
+		t.Fatalf("GetFunnelConversion: %v", err)
+	}
+	if conversion.SamplePercent == nil || *conversion.SamplePercent != 100 {
+		t.Errorf("want the conversion to read all the installations, got the sample percent %s", formatSamplePercent(conversion.SamplePercent))
+	}
+
+	traces, err := GetFunnelStepTraces(f.ctx, deps.RchPool, funnel, flt, FunnelStepRange{From: 0, To: 1}, 0.5)
+	if err != nil {
+		t.Fatalf("GetFunnelStepTraces: %v", err)
+	}
+	if traces.SamplePercent == nil || *traces.SamplePercent != 100 {
+		t.Errorf("want the traces to read all the installations, got the sample percent %s", formatSamplePercent(traces.SamplePercent))
+	}
 }

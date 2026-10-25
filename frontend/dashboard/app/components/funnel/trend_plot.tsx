@@ -5,6 +5,7 @@ import { ChartLine } from "lucide-react";
 import { DateTime } from "luxon";
 import { type MouseEvent, useCallback, useMemo, useRef, useState } from "react";
 import type { FunnelTrend, FunnelTrendPeriod } from "../../api/api_calls";
+import { queryErrorMessage } from "../../api/api_error";
 import {
   CHART_DATE_TICK_COUNT,
   CHART_GRID_DOT_SIZE,
@@ -276,6 +277,7 @@ interface FunnelTrendPlotProps {
   period: FunnelTrendPeriod;
   metric: FunnelTrendMetric;
   status: "pending" | "error" | "success";
+  error?: unknown;
   trend: FunnelTrend | undefined;
   // Called with the start of the clicked period and the clicked line's step,
   // which is null for the Overall line.
@@ -286,6 +288,7 @@ export default function FunnelTrendPlot({
   period,
   metric,
   status,
+  error,
   trend,
   onSelectPoint,
 }: FunnelTrendPlotProps) {
@@ -324,8 +327,10 @@ export default function FunnelTrendPlot({
       {status === "error" && (
         <div className="flex items-center justify-center w-full h-144">
           <p className="text-lg font-display text-center p-4">
-            Error fetching plot, please change filters or refresh page to try
-            again
+            {queryErrorMessage(
+              error,
+              "Error fetching plot. Please refresh page or change filters to try again.",
+            )}
           </p>
         </div>
       )}

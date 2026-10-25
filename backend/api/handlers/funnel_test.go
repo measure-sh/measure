@@ -1333,6 +1333,33 @@ func TestGetFunnelConversion(t *testing.T) {
 			"app_open 5 -", "add_to_cart 2 90", "purchase 1 120")
 	})
 
+	t.Run("an app with fewer rows than the sample is read in full", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		funnel := seedFunnelSteps(ctx, t, appID, userID, 3600, "app_open", "add_to_cart")
+		seedInstallationEvents(ctx, t, teamID, appID, "", start, funnelEvent{"app_open", 0}, funnelEvent{"add_to_cart", time.Minute})
+		w := getConversion(userID, appID, funnel.ID, lastTwoDays)
+		expectStatus(t, w, http.StatusOK)
+		if conversion := decodeBody[measure.FunnelConversion](t, w); conversion.SamplePercent == nil || *conversion.SamplePercent != 100 {
+			t.Errorf("sample_percent = %v, want 100", conversion.SamplePercent)
+		}
+	})
+
+	t.Run("a range with no installations has a null sample percent", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		funnel := seedFunnelSteps(ctx, t, appID, userID, 3600, "app_open", "add_to_cart")
+		w := getConversion(userID, appID, funnel.ID, lastTwoDays)
+		expectStatus(t, w, http.StatusOK)
+		if !strings.Contains(w.Body.String(), `"sample_percent":null`) {
+			t.Errorf("body = %s, want a null sample_percent", w.Body.String())
+		}
+	})
+
 	t.Run("a step counts only within the conversion window from the first step", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
@@ -1583,6 +1610,7 @@ type stepErrorsPage struct {
 		Next     bool `json:"next"`
 		Previous bool `json:"previous"`
 	} `json:"meta"`
+	SamplePercent *float64 `json:"sample_percent"`
 }
 
 // stepErrorRows turns each error group on the page into one string of its id,
@@ -1673,11 +1701,32 @@ func TestGetFunnelStepErrors(t *testing.T) {
 		if page.Meta.Next || page.Meta.Previous {
 			t.Fatalf("meta = %+v, want no other pages", page.Meta)
 		}
+		if page.SamplePercent == nil || *page.SamplePercent != 100 {
+			t.Errorf("sample_percent = %v, want 100", page.SamplePercent)
+		}
 
 		w = getStepErrors(userID, appID, funnel.ID, lastTwoDays+"&step=2")
 		expectStatus(t, w, http.StatusOK)
 		expectPoints(t, stepErrorRows(decodeBody[stepErrorsPage](t, w)),
 			"a IllegalStateException exception fatal 1 1 0 1")
+	})
+
+	t.Run("a step with no errors has a null sample percent", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		funnel := seedFunnelSteps(ctx, t, appID, userID, 3600, "app_open", "add_to_cart")
+		seedInstallationEvents(ctx, t, teamID, appID, "", start, funnelEvent{"app_open", 0}, funnelEvent{"add_to_cart", time.Minute})
+
+		w := getStepErrors(userID, appID, funnel.ID, lastTwoDays)
+		expectStatus(t, w, http.StatusOK)
+		if page := decodeBody[stepErrorsPage](t, w); len(page.Results) != 0 {
+			t.Fatalf("results = %+v, want no errors", page.Results)
+		}
+		if !strings.Contains(w.Body.String(), `"sample_percent":null`) {
+			t.Errorf("body = %s, want a null sample_percent", w.Body.String())
+		}
 	})
 
 	t.Run("describes a group by its newest row when it has rows from before the range and after its end", func(t *testing.T) {
@@ -2376,6 +2425,23 @@ func TestFunnelStepListsAccess(t *testing.T) {
 
 				for _, stepList := range stepLists {
 					expectStatus(t, stepList.get(userID, appID, funnel.ID, stepList.query), http.StatusOK)
+				}
+			})
+		}
+	})
+
+	t.Run("the step lists take a sample percent above 0 and at most 100", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		userID, appID := seedFunnelApp(ctx, t, "owner")
+		funnel := seedFunnel(ctx, t, appID, userID, "Checkout")
+
+		for _, stepList := range stepLists {
+			t.Run(stepList.name, func(t *testing.T) {
+				for _, percent := range []string{"100", "37.5", "0.001"} {
+					expectStatus(t, stepList.get(userID, appID, funnel.ID, stepList.query+"&sample_percent="+percent), http.StatusOK)
+				}
+				for _, percent := range []string{"0", "-5", "100.5", "NaN", "all"} {
+					expectError(t, stepList.get(userID, appID, funnel.ID, stepList.query+"&sample_percent="+percent), http.StatusBadRequest, "sample_percent must be above 0 and at most 100")
 				}
 			})
 		}
