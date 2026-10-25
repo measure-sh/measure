@@ -8,7 +8,7 @@ import TabSelect, { TabSize } from "./tab_select";
 
 const BugReport = dynamic(() => import("./bug_report"), { ssr: false });
 const UserJourneysDemo = dynamic(
-  () => import("./user_journeys").then((m) => m.UserJourneysDemo),
+  () => import("./journey/overview").then((m) => m.JourneysDemo),
   { ssr: false },
 );
 const FunnelDetailsDemo = dynamic(
@@ -42,7 +42,7 @@ const NetworkOverviewDemo = dynamic(
 const features = [
   {
     title: "Session Replays",
-    heightClassName: "h-[790px]",
+    heightClassName: "h-197.5",
     screenshot: {
       src: "/images/product_screenshots/session_replays.webp",
       alt: "A Measure session replay showing the replayed screen alongside a timeline of clicks, navigations and network calls",
@@ -60,7 +60,7 @@ const features = [
   },
   {
     title: "App Health",
-    heightClassName: "h-[975px]",
+    heightClassName: "h-243.75",
     screenshot: {
       src: "/images/product_screenshots/app_health.webp",
       alt: "The Measure app health dashboard showing crash rate, ANR rate, launch time and app size metrics with trends over time",
@@ -78,7 +78,7 @@ const features = [
   },
   {
     title: "Crashes and ANRs",
-    heightClassName: "h-[1000px]",
+    heightClassName: "h-250",
     screenshot: {
       src: "/images/product_screenshots/crashes_and_anrs.webp",
       alt: "A crash detail view in Measure showing the stacktrace, affected sessions and distribution across devices and app versions",
@@ -96,7 +96,7 @@ const features = [
   },
   {
     title: "Performance Traces",
-    heightClassName: "h-[505px]",
+    heightClassName: "h-126.25",
     screenshot: {
       src: "/images/product_screenshots/performance_traces.webp",
       alt: "A performance trace in Measure showing parent and child spans laid out as a waterfall chart",
@@ -114,7 +114,7 @@ const features = [
   },
   {
     title: "Bug Reports",
-    heightClassName: "h-[660px]",
+    heightClassName: "h-165",
     screenshot: {
       src: "/images/product_screenshots/bug_reports.webp",
       alt: "A bug report in Measure showing the reporter's screenshot, description and the device and network context captured with it",
@@ -133,12 +133,12 @@ const features = [
   },
   {
     title: "User Journeys",
-    heightClassName: "h-[815px]",
+    heightClassName: "h-250",
     screenshot: {
       src: "/images/product_screenshots/user_journeys.webp",
       alt: "A user journey graph in Measure showing how users move between screens and which routes are most affected by issues",
-      width: 2300,
-      height: 1996,
+      width: 1568,
+      height: 1510,
     },
     description: (
       <>
@@ -151,7 +151,7 @@ const features = [
   },
   {
     title: "Funnels",
-    heightClassName: "h-[1150px]",
+    heightClassName: "h-287.5",
     screenshot: {
       src: "/images/product_screenshots/funnels.webp",
       alt: "A Measure funnel showing how many users reach each step of a checkout, with the errors, traces and network requests that can cause drop-offs",
@@ -168,7 +168,7 @@ const features = [
   },
   {
     title: "Network Performance",
-    heightClassName: "h-[1000px]",
+    heightClassName: "h-250",
     screenshot: {
       src: "/images/product_screenshots/network_performance.webp",
       alt: "The Measure network performance view showing HTTP status distribution over time and the slowest endpoints by latency",

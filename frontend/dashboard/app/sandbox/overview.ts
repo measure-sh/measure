@@ -339,7 +339,7 @@ function keyGroupsOf(keys: FilterKey[]): string[] {
 
 const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
   app_health: [K.versionName, K.versionCode],
-  journeys: versionKeys,
+  journeys: [...versionKeys, ...deviceTailKeys],
   funnels: [...versionKeys, ...deviceTailKeys],
   errors: [
     K.errorType,
@@ -536,51 +536,6 @@ const STATIC_VALUES_BY_KEY: Record<string, FilterValue[]> = {
   app_state: values([...MEMORY_APP_STATES]),
 };
 
-// The backend builds the node and link slices only from sessions in range,
-// so an empty range serializes them as null.
-const EMPTY_JOURNEY = { totalIssues: 0, nodes: null, links: null };
-
-function journeyFor(
-  bundle: AppBundle,
-  range: SandboxRange,
-  filterExpr: string | null,
-) {
-  const names = selectedNames(bundle.scenario.app, filterExpr);
-  const coverage = versionCoverage(bundle, range, names);
-  if (coverage <= 0) {
-    return EMPTY_JOURNEY;
-  }
-  const groupById = new Map(bundle.errorGroups.map((g) => [g.id, g]));
-  const scaleIssue = (issue: { id: string; title: string; count: number }) => {
-    const group = groupById.get(issue.id);
-    return {
-      ...issue,
-      count: group ? groupCount(bundle, group, range, names) : 0,
-    };
-  };
-  const nodes = bundle.journey.nodes.map((node) => ({
-    ...node,
-    issues: {
-      crashes: node.issues.crashes.map(scaleIssue),
-      anrs: node.issues.anrs.map(scaleIssue),
-    },
-  }));
-  return {
-    links: bundle.journey.links.map((link) => ({
-      ...link,
-      value: Math.round(link.value * coverage),
-    })),
-    nodes,
-    totalIssues: nodes.reduce(
-      (sum, node) =>
-        sum +
-        node.issues.crashes.reduce((a, i) => a + i.count, 0) +
-        node.issues.anrs.reduce((a, i) => a + i.count, 0),
-      0,
-    ),
-  };
-}
-
 export const overviewRoutes: SandboxRoute[] = [
   {
     method: "GET",
@@ -651,23 +606,6 @@ export const overviewRoutes: SandboxRoute[] = [
           ),
         },
       ]);
-    },
-  },
-  {
-    method: "GET",
-    path: "/api/apps/:appId/journey",
-    handle: ({ params, url }) => {
-      const bundle = catalog().appById.get(params.appId);
-      if (!bundle) {
-        return jsonResponse(EMPTY_JOURNEY);
-      }
-      return jsonResponse(
-        journeyFor(
-          bundle,
-          parseRange(url),
-          url.searchParams.get("filter_expr"),
-        ),
-      );
     },
   },
   {

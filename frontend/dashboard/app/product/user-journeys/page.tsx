@@ -19,38 +19,36 @@ export default function ProductUserJourneys() {
       title="User Journeys"
       intro={
         <>
-          See the full picture of user behavior with beautiful flow diagrams
-          that reveal the actual paths users take through your app.
+          See the full picture of user behavior with flow diagrams that reveal
+          the actual paths users take through your app.
           <br />
           <br />
           User Journeys automatically map every screen transition, showing you
           which flows are most popular, where users drop off and which
           navigation patterns you never anticipated. Easily add your own screens
-          and views to enrich them further.
+          and custom events to enrich them further.
           <br />
           <br />
-          Toggle between normal path analysis and exception view to see exactly
-          where crashes and ANRs interrupt user flows. If users consistently
-          crash when navigating from Product List to Product Detail screens,
-          you&apos;ll see it highlighted with crash counts and session volumes.
-          Click any path or exception to drill into the details and investigate
-          further.
+          Click any screen, event or path to see exactly the issues users ran
+          into along the way. If users are dropping off on a particular screen,
+          you&apos;ll see the slow requests, traces and errors that affect them,
+          along with the session replays to watch.
           <br />
           <br /> Whether you&apos;re redesigning navigation, prioritizing
-          feature work or debugging issues in conversion funnels, User Journeys
+          feature work or debugging issues in frequented paths, User Journeys
           transforms complex behavioral data into clear, actionable
           visualizations that help you build better experiences.
         </>
       }
       demo={{
         frame: "scaled",
-        heightClassName: "h-[840px]",
+        heightClassName: "h-235",
         content: <UserJourneysDemo />,
         screenshot: {
           src: "/images/product_screenshots/user_journeys.webp",
           alt: "A user journey graph in Measure showing how users move between screens and which routes are most affected by issues",
-          width: 2300,
-          height: 1996,
+          width: 1568,
+          height: 1510,
         },
       }}
       ctaLocation="product_user_journeys"

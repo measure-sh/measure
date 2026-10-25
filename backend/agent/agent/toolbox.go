@@ -667,11 +667,71 @@ func commonTools(cfg *Config) []Tool {
 		// get_journey
 		newTool(&mcpsdk.Tool{
 			Name:        "get_journey",
-			Description: "Get an app's journey as a graph of screens. Each link is a transition between consecutive screens within a session, valued by the number of sessions that made that transition. Covers every session unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
+			Description: "Get an app's journey. The journey is a graph of the screens and custom events that users went through. A node id is its kind, a colon and its name, such as screen:MainActivity or event:add_to_cart. A fatal crash, ANR or killed app hang ends a session in the node with id fatal. Users are app installations. Each node has the number of users that reached it and the number of users that went on to a different step. It also has the median step where users reached it first, and the median time from the previous step. Each link has the number of users that went from its source to its target in the same session. " + fmt.Sprintf("The graph has the %d screens and custom events with the most users, or the ones in node_ids, which get_journey_nodes lists. It has the max_links links with the most users between these nodes, and their links to the fatal node.", mcpJourneyNodes) + " " + mcpSampledWithPercent + " filter_expr narrows the sessions it covers; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneyInput](mcpJourneysFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetJourney(ctx, in)
+		}),
+
+		// get_journey_nodes
+		newTool(&mcpsdk.Tool{
+			Name:        "get_journey_nodes",
+			Description: "List the screens and custom events of an app's journey, the most users first, with the id and the number of users of each. Users are app installations. Use it to find the node_ids to give get_journey. " + mcpSampledJourneyNode + " filter_expr narrows the sessions it covers; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneyNodesInput](mcpJourneysFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyNodesInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetJourneyNodes(ctx, in)
+		}),
+
+		// get_journey_path_users
+		newTool(&mcpsdk.Tool{
+			Name:        "get_journey_path_users",
+			Description: "Count the users that went along a path of an app's journey in one or more sessions. The path is two or more node ids from get_journey or get_journey_nodes, in the order a session went through them one right after the other. Users are app installations. get_journey has the users of each link, so use this for a path of three or more nodes. " + mcpSampledWithPercent + " " + mcpJourneyListSample + " filter_expr narrows the sessions it covers; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneyPathUsersInput](mcpJourneysFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyPathUsersInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetJourneyPathUsers(ctx, in)
+		}),
+
+		// get_journey_errors
+		newTool(&mcpsdk.Tool{
+			Name:        "get_journey_errors",
+			Description: "List the error groups (crashes, ANRs, app hangs and handled errors) that users hit at a node or along a path of an app's journey. " + mcpJourneySelection + " Each group has its error count and the users that hit it; the groups with the most users come first. get_error takes a group's id to show its events. " + mcpSampledWithPercent + " " + mcpJourneyListSample + " filter_expr narrows the sessions it covers; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneyErrorsInput](mcpJourneysFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyErrorsInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetJourneyErrors(ctx, in)
+		}),
+
+		// get_journey_traces
+		newTool(&mcpsdk.Tool{
+			Name:        "get_journey_traces",
+			Description: "List the root spans that started at a node or along a path of an app's journey. " + mcpJourneySelection + " Each span name has its span count, the users that recorded it, and the quantile of its duration in milliseconds; the span names with the most users come first. " + mcpSampledWithPercent + " " + mcpJourneyListSample + " filter_expr narrows the sessions it covers; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneyTracesInput](mcpJourneysFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyTracesInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetJourneyTraces(ctx, in)
+		}),
+
+		// get_journey_network
+		newTool(&mcpsdk.Tool{
+			Name:        "get_journey_network",
+			Description: "List the URL patterns of the network requests that users made at a node or along a path of an app's journey. " + mcpJourneySelection + " Each pattern has its request count, the users that requested it, and the quantile of its latency in milliseconds; the patterns with the most users come first. " + mcpSampledWithPercent + " " + mcpJourneyListSample + " filter_expr narrows the sessions it covers; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneyNetworkInput](mcpJourneysFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyNetworkInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetJourneyNetwork(ctx, in)
+		}),
+
+		// get_journey_sessions
+		newTool(&mcpsdk.Tool{
+			Name:        "get_journey_sessions",
+			Description: "List the sessions that reached a node or went along a path of an app's journey. " + mcpJourneySelection + " installation_id identifies the user; user_id is the id the app set on the session, empty when none was set. The sessions that reached the node or started the path most recently come first. get_session takes a session's id to show what happened in it. " + mcpSampledSessions + " " + mcpJourneyListSample + " filter_expr narrows the sessions it covers; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneySessionsInput](mcpJourneysFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneySessionsInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetJourneySessions(ctx, in)
 		}),
 
 		// get_network_metrics_trends
@@ -925,15 +985,19 @@ var (
 
 const mcpFunnelUsers = "Users are counted by installation id: each install of the app is one user, whatever user id the app has set."
 
-// The funnel tools read a sample of the app's installations, which is a
-// smaller share the more events the time range has.
+// The journey and funnel tools read a sample of the app's installations,
+// which is a smaller share the more events the time range has.
 const (
 	mcpSampled            = "Counts come from a sample of users and are scaled up to all users, so they are estimates unless the sample has every user. The more events the time range has, the smaller the share of users sampled."
 	mcpSamplePercent      = "sample_percent is the percent of users in the sample, or null when the sample found no users, since a small sample can miss users that exist; 100 means the counts are exact."
 	mcpSampledWithPercent = mcpSampled + " " + mcpSamplePercent
 	mcpSampledSessions    = "The list has only the sessions of a sample of users. The more events the time range has, the smaller the share of users sampled. " + mcpSamplePercent
+	mcpSampledJourneyNode = mcpSampled + " get_journey with the same range and filter_expr gives the sample_percent."
+	mcpJourneyListSample  = "Pass the sample_percent of get_journey for the same range and filter_expr as sample_percent, so that the result covers the same users as the graph."
 	mcpFunnelStepSample   = "Pass the sample_percent of get_funnel_conversion for the same range and filter_expr as sample_percent, so that the result covers the same users as the conversion."
 )
+
+const mcpJourneySelection = "Give node_id for one screen or custom event, or path for two or more node ids that a session went through one right after the other, such as the source and target of a link; get_journey and get_journey_nodes give the node ids. For a node, the list covers each time a session was at the node, from reaching it to the session's next step, or to the session's end after its last step. For a path, it covers each time a session went along the path, from its first node to its last. Users are app installations."
 
 const mcpFunnelRange = "A from or to with seconds is rounded down to the minute, or to ten minutes when the range is a day or more; a from or to on a whole minute is used as sent."
 
@@ -1139,10 +1203,72 @@ type mcpGetAlertsInput struct {
 	Offset int    `json:"offset,omitempty" jsonschema:"Number of alerts to skip for pagination (default: 0)"`
 }
 type mcpGetJourneyInput struct {
+	AppID      string   `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string   `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string   `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string   `json:"filter_expr,omitempty"`
+	NodeIDs    []string `json:"node_ids,omitempty" jsonschema:"Ids of the screens and custom events the graph has, from get_journey_nodes (default: the ones with the most users)"`
+	MaxLinks   int      `json:"max_links,omitempty" jsonschema:"Number of links to return, the ones with the most users, from 1 to 5000 (default: 200)"`
+}
+type mcpGetJourneyNodesInput struct {
 	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
 	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
 	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
 	FilterExpr string `json:"filter_expr,omitempty"`
+}
+type mcpGetJourneyPathUsersInput struct {
+	AppID         string   `json:"app_id" jsonschema:"UUID of the app to query"`
+	Path          []string `json:"path" jsonschema:"Two or more node ids, in the order sessions went through them"`
+	From          string   `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string   `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string   `json:"filter_expr,omitempty"`
+	SamplePercent float64  `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_journey for the same range and filter_expr, so that the result covers the same users as the graph (default: a sample of its own)"`
+}
+type mcpGetJourneyErrorsInput struct {
+	AppID         string   `json:"app_id" jsonschema:"UUID of the app to query"`
+	NodeID        string   `json:"node_id,omitempty" jsonschema:"Id of the node to look at; give this or path"`
+	Path          []string `json:"path,omitempty" jsonschema:"Two or more node ids, in the order sessions went through them; give this or node_id"`
+	From          string   `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string   `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string   `json:"filter_expr,omitempty"`
+	SamplePercent float64  `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_journey for the same range and filter_expr, so that the result covers the same users as the graph (default: a sample of its own)"`
+	Limit         int      `json:"limit,omitempty" jsonschema:"Maximum number of error groups to return (default: 10, max: 30)"`
+	Offset        int      `json:"offset,omitempty" jsonschema:"Number of error groups to skip for pagination (default: 0)"`
+}
+type mcpGetJourneyTracesInput struct {
+	AppID         string   `json:"app_id" jsonschema:"UUID of the app to query"`
+	NodeID        string   `json:"node_id,omitempty" jsonschema:"Id of the node to look at; give this or path"`
+	Path          []string `json:"path,omitempty" jsonschema:"Two or more node ids, in the order sessions went through them; give this or node_id"`
+	Quantile      string   `json:"quantile,omitempty" jsonschema:"Quantile of the durations: p50, p90, p95 or p99 (default: p50)"`
+	From          string   `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string   `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string   `json:"filter_expr,omitempty"`
+	SamplePercent float64  `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_journey for the same range and filter_expr, so that the result covers the same users as the graph (default: a sample of its own)"`
+	Limit         int      `json:"limit,omitempty" jsonschema:"Maximum number of span names to return (default: 10, max: 30)"`
+	Offset        int      `json:"offset,omitempty" jsonschema:"Number of span names to skip for pagination (default: 0)"`
+}
+type mcpGetJourneyNetworkInput struct {
+	AppID         string   `json:"app_id" jsonschema:"UUID of the app to query"`
+	NodeID        string   `json:"node_id,omitempty" jsonschema:"Id of the node to look at; give this or path"`
+	Path          []string `json:"path,omitempty" jsonschema:"Two or more node ids, in the order sessions went through them; give this or node_id"`
+	Quantile      string   `json:"quantile,omitempty" jsonschema:"Quantile of the latencies: p50, p90, p95 or p99 (default: p50)"`
+	From          string   `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string   `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string   `json:"filter_expr,omitempty"`
+	SamplePercent float64  `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_journey for the same range and filter_expr, so that the result covers the same users as the graph (default: a sample of its own)"`
+	Limit         int      `json:"limit,omitempty" jsonschema:"Maximum number of URL patterns to return (default: 10, max: 30)"`
+	Offset        int      `json:"offset,omitempty" jsonschema:"Number of URL patterns to skip for pagination (default: 0)"`
+}
+type mcpGetJourneySessionsInput struct {
+	AppID         string   `json:"app_id" jsonschema:"UUID of the app to query"`
+	NodeID        string   `json:"node_id,omitempty" jsonschema:"Id of the node to look at; give this or path"`
+	Path          []string `json:"path,omitempty" jsonschema:"Two or more node ids, in the order sessions went through them; give this or node_id"`
+	From          string   `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string   `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string   `json:"filter_expr,omitempty"`
+	SamplePercent float64  `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_journey for the same range and filter_expr, so that the result covers the same users as the graph (default: a sample of its own)"`
+	Limit         int      `json:"limit,omitempty" jsonschema:"Maximum number of sessions to return (default: 10, max: 30)"`
+	Offset        int      `json:"offset,omitempty" jsonschema:"Number of sessions to skip for pagination (default: 0)"`
 }
 type mcpGetErrorCommonPathInput struct {
 	AppID        string `json:"app_id" jsonschema:"UUID of the app to query"`
@@ -2244,42 +2370,202 @@ func (c *Config) mcpGetAlerts(ctx context.Context, in mcpGetAlertsInput) (*mcpsd
 	return mcpTextResult(string(data)), nil, nil
 }
 
+// get_journey gives this number of nodes, and this number of links when
+// max_links is not set, so the result stays small enough for a model to read.
+const (
+	mcpJourneyNodes        = 50
+	mcpJourneyDefaultLinks = 200
+)
+
+func (c *Config) mcpJourney(ctx context.Context, appID, from, to, filterExpr string) (measure.Journey, error) {
+	_, _, flt, err := c.mcpPrepareFilter(ctx, filter.JourneysEntity, appID, from, to, filterExpr, nil)
+	if err != nil {
+		return measure.Journey{}, err
+	}
+
+	journey, err := measure.GetJourney(ctx, c.Deps.VK, c.Deps.RchPool, flt)
+	if err != nil {
+		return measure.Journey{}, fmt.Errorf("failed to get journey: %v", err)
+	}
+	return journey, nil
+}
+
 func (c *Config) mcpGetJourney(ctx context.Context, in mcpGetJourneyInput) (*mcpsdk.CallToolResult, any, error) {
-	deps := c.Deps
-	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.JourneysEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
+	maxLinks := in.MaxLinks
+	if maxLinks == 0 {
+		maxLinks = mcpJourneyDefaultLinks
+	}
+	if maxLinks < 1 || maxLinks > measure.JourneyMaxLinks {
+		return nil, nil, fmt.Errorf("max_links must be from 1 to %d", measure.JourneyMaxLinks)
+	}
+
+	journey, err := c.mcpJourney(ctx, in.AppID, in.From, in.To, in.FilterExpr)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	app := &measure.App{ID: &appID, TeamId: teamID}
-	if err := app.Populate(ctx, deps.PgPool); err != nil {
+	if len(in.NodeIDs) == 0 {
+		journey = journey.Top(mcpJourneyNodes, maxLinks)
+	} else {
+		ids := map[string]bool{}
+		for _, node := range journey.Nodes {
+			ids[node.ID] = true
+		}
+		missing := []string{}
+		for _, id := range in.NodeIDs {
+			if !ids[id] {
+				missing = append(missing, id)
+			}
+		}
+		if len(missing) > 0 {
+			return nil, nil, fmt.Errorf("the journey has no nodes with the ids %s, get_journey_nodes lists its node ids", strings.Join(missing, ", "))
+		}
+		journey = journey.WithNodes(in.NodeIDs, maxLinks)
+	}
+
+	data, _ := json.Marshal(journey)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetJourneyNodes(ctx context.Context, in mcpGetJourneyNodesInput) (*mcpsdk.CallToolResult, any, error) {
+	journey, err := c.mcpJourney(ctx, in.AppID, in.From, in.To, in.FilterExpr)
+	if err != nil {
 		return nil, nil, err
 	}
-	journeyCtx := ambient.WithTeamId(ctx, teamID)
 
-	g, journeyErr := app.GetJourneyGraph(journeyCtx, deps.RchPool, flt)
-	if journeyErr != nil {
-		return nil, nil, fmt.Errorf("failed to get journey: %v", journeyErr)
+	type node struct {
+		ID    string `json:"id"`
+		Users uint64 `json:"users"`
 	}
-
-	type journeyNode struct {
-		Source string `json:"source"`
-		Target string `json:"target"`
-		Value  uint64 `json:"value"`
+	nodes := []node{}
+	for _, journeyNode := range journey.Nodes {
+		if journeyNode.Kind != "fatal" {
+			nodes = append(nodes, node{ID: journeyNode.ID, Users: journeyNode.Users})
+		}
 	}
+	sort.SliceStable(nodes, func(i, j int) bool {
+		return nodes[i].Users > nodes[j].Users
+	})
 
-	type result struct {
-		Nodes []string      `json:"nodes"`
-		Links []journeyNode `json:"links"`
-	}
-
-	var links []journeyNode
-	for _, edge := range g.Edges {
-		links = append(links, journeyNode{Source: edge.Source, Target: edge.Target, Value: edge.Sessions})
-	}
-
-	data, _ := json.Marshal(result{Nodes: g.Nodes, Links: links})
+	data, _ := json.Marshal(map[string]any{"nodes": nodes})
 	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetJourneyPathUsers(ctx context.Context, in mcpGetJourneyPathUsersInput) (*mcpsdk.CallToolResult, any, error) {
+	if len(in.Path) < 2 {
+		return nil, nil, fmt.Errorf("path must have two or more node ids")
+	}
+	_, _, flt, err := c.mcpPrepareFilter(ctx, filter.JourneysEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := mcpSetSamplePercent(flt, in.SamplePercent); err != nil {
+		return nil, nil, err
+	}
+	pathUsers, err := measure.GetJourneyPathUsers(ctx, c.Deps.VK, c.Deps.RchPool, flt, in.Path)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get journey path users: %v", err)
+	}
+	data, _ := json.Marshal(pathUsers)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpPrepareJourneySelection(ctx context.Context, rawAppID, nodeID string, path []string, from, to, filterExpr string, samplePercent float64, limit, offset int) (*filter.Filter, measure.JourneySelection, error) {
+	var selection measure.JourneySelection
+	switch {
+	case nodeID != "" && len(path) > 0:
+		return nil, selection, fmt.Errorf("give node_id or path, not both")
+	case nodeID != "":
+		selection.Node = nodeID
+	case len(path) >= 2:
+		selection.Path = path
+	default:
+		return nil, selection, fmt.Errorf("node_id or a path of two or more node ids is required")
+	}
+	_, _, flt, err := c.mcpPrepareFilter(ctx, filter.JourneysEntity, rawAppID, from, to, filterExpr, func(flt *filter.Filter) {
+		flt.Limit = mcpFunnelLimit(limit)
+		flt.Offset = offset
+	})
+	if err != nil {
+		return nil, selection, err
+	}
+	if err := mcpSetSamplePercent(flt, samplePercent); err != nil {
+		return nil, selection, err
+	}
+	return flt, selection, nil
+}
+
+// mcpSetSamplePercent sets the sample of a list tool from its sample_percent
+// input, which is zero when the caller leaves it out.
+func mcpSetSamplePercent(flt *filter.Filter, percent float64) error {
+	if percent == 0 {
+		return nil
+	}
+	return flt.SetSamplePercent(percent)
+}
+
+func mcpJourneyListResult(key string, list any, samplePercent *float64) *mcpsdk.CallToolResult {
+	data, _ := json.Marshal(map[string]any{
+		key:              list,
+		"sample_percent": samplePercent,
+	})
+	return mcpTextResult(string(data))
+}
+
+func (c *Config) mcpGetJourneyErrors(ctx context.Context, in mcpGetJourneyErrorsInput) (*mcpsdk.CallToolResult, any, error) {
+	flt, selection, err := c.mcpPrepareJourneySelection(ctx, in.AppID, in.NodeID, in.Path, in.From, in.To, in.FilterExpr, in.SamplePercent, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	page, err := measure.GetJourneyErrors(ctx, c.Deps.VK, c.Deps.RchPool, flt, selection)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get journey errors: %v", err)
+	}
+	return mcpJourneyListResult("errors", page.Results, page.SamplePercent), nil, nil
+}
+
+func (c *Config) mcpGetJourneyTraces(ctx context.Context, in mcpGetJourneyTracesInput) (*mcpsdk.CallToolResult, any, error) {
+	quantile, err := mcpFunnelQuantile(in.Quantile)
+	if err != nil {
+		return nil, nil, err
+	}
+	flt, selection, err := c.mcpPrepareJourneySelection(ctx, in.AppID, in.NodeID, in.Path, in.From, in.To, in.FilterExpr, in.SamplePercent, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	page, err := measure.GetJourneyTraces(ctx, c.Deps.VK, c.Deps.RchPool, flt, selection, quantile)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get journey traces: %v", err)
+	}
+	return mcpJourneyListResult("spans", page.Results, page.SamplePercent), nil, nil
+}
+
+func (c *Config) mcpGetJourneyNetwork(ctx context.Context, in mcpGetJourneyNetworkInput) (*mcpsdk.CallToolResult, any, error) {
+	quantile, err := mcpFunnelQuantile(in.Quantile)
+	if err != nil {
+		return nil, nil, err
+	}
+	flt, selection, err := c.mcpPrepareJourneySelection(ctx, in.AppID, in.NodeID, in.Path, in.From, in.To, in.FilterExpr, in.SamplePercent, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	page, err := measure.GetJourneyNetwork(ctx, c.Deps.VK, c.Deps.RchPool, flt, selection, quantile)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get journey network requests: %v", err)
+	}
+	return mcpJourneyListResult("endpoints", page.Results, page.SamplePercent), nil, nil
+}
+
+func (c *Config) mcpGetJourneySessions(ctx context.Context, in mcpGetJourneySessionsInput) (*mcpsdk.CallToolResult, any, error) {
+	flt, selection, err := c.mcpPrepareJourneySelection(ctx, in.AppID, in.NodeID, in.Path, in.From, in.To, in.FilterExpr, in.SamplePercent, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	page, err := measure.GetJourneySessions(ctx, c.Deps.VK, c.Deps.RchPool, flt, selection)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get journey sessions: %v", err)
+	}
+	return mcpJourneyListResult("sessions", page.Results, page.SamplePercent), nil, nil
 }
 
 func (c *Config) mcpGetErrorCommonPath(ctx context.Context, in mcpGetErrorCommonPathInput) (*mcpsdk.CallToolResult, any, error) {
@@ -2518,15 +2804,6 @@ func (c *Config) mcpResolveFunnelWriteAccess(ctx context.Context, rawAppID strin
 		return uuid.UUID{}, fmt.Errorf("you are not authorized to change funnels; ask a team admin for access")
 	}
 	return appID, nil
-}
-
-// mcpSetSamplePercent sets the sample of a list tool from its sample_percent
-// input, which is zero when the caller leaves it out.
-func mcpSetSamplePercent(flt *filter.Filter, percent float64) error {
-	if percent == 0 {
-		return nil
-	}
-	return flt.SetSamplePercent(percent)
 }
 
 // mcpFunnelStepResult names the two steps a step tool covered next to its

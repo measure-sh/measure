@@ -110,7 +110,6 @@ func main() {
 	// Dashboard routes
 	apps := r.Group("/apps", hdl.ValidateAccessToken())
 	{
-		apps.GET(":id/journey", hdl.GetAppJourney)
 		apps.GET(":id/metrics", hdl.GetAppMetrics)
 		apps.GET(":id/health/plots/instances", hdl.GetHealthOverviewPlotInstances)
 
@@ -169,6 +168,14 @@ func main() {
 		apps.GET(":id/funnels/:funnelId/sessions", hdl.GetFunnelStepSessions)
 		apps.PUT(":id/funnels/:funnelId/pin", hdl.PinFunnel)
 		apps.DELETE(":id/funnels/:funnelId/pin", hdl.UnpinFunnel)
+
+		// journeys
+		apps.GET(":id/journey", hdl.GetJourney)
+		apps.GET(":id/journey/path", hdl.GetJourneyPathUsers)
+		apps.GET(":id/journey/errors", hdl.GetJourneyErrors)
+		apps.GET(":id/journey/traces", hdl.GetJourneyTraces)
+		apps.GET(":id/journey/network", hdl.GetJourneyNetwork)
+		apps.GET(":id/journey/sessions", hdl.GetJourneySessions)
 
 		// threshold preferences
 		apps.GET(":id/thresholdPrefs", hdl.GetAppThresholdPrefs)

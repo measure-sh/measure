@@ -45,7 +45,12 @@ import {
   makeFunnelStepTracesFixture,
   makeFunnelTrendFixture,
   makeHealthPlotFixture,
+  makeJourneyErrorsFixture,
   makeJourneyFixture,
+  makeJourneyNetworkFixture,
+  makeJourneyPathUsersFixture,
+  makeJourneySessionsFixture,
+  makeJourneyTracesFixture,
   makeMetricsFixture,
   makeNetworkEndpointStatusCodesFixture,
   makeNetworkEndpointLatencyFixture,
@@ -607,5 +612,30 @@ export const handlers = [
   // 88. DELETE /api/apps/:appId/funnels/:funnelId
   http.delete("*/api/apps/:appId/funnels/:funnelId", () => {
     return HttpResponse.json({ ok: true });
+  }),
+
+  // 89. GET /api/apps/:appId/journey/errors
+  http.get("*/api/apps/:appId/journey/errors", () => {
+    return HttpResponse.json(makeJourneyErrorsFixture());
+  }),
+
+  // 90. GET /api/apps/:appId/journey/traces
+  http.get("*/api/apps/:appId/journey/traces", () => {
+    return HttpResponse.json(makeJourneyTracesFixture());
+  }),
+
+  // 91. GET /api/apps/:appId/journey/network
+  http.get("*/api/apps/:appId/journey/network", () => {
+    return HttpResponse.json(makeJourneyNetworkFixture());
+  }),
+
+  // 92. GET /api/apps/:appId/journey/sessions
+  http.get("*/api/apps/:appId/journey/sessions", () => {
+    return HttpResponse.json(makeJourneySessionsFixture());
+  }),
+
+  // 93. GET /api/apps/:appId/journey/path
+  http.get("*/api/apps/:appId/journey/path", () => {
+    return HttpResponse.json(makeJourneyPathUsersFixture());
   }),
 ];

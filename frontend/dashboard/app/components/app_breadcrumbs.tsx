@@ -57,11 +57,8 @@ const sectionInfo: Record<string, ReactNode> = {
   ),
   journeys: (
     <>
-      Journeys are approximated based on sampled journey events.{" "}
-      <Link
-        href="/docs/adaptive-capture#journey-sampling"
-        className={underlineLinkStyle}
-      >
+      Journeys are built from screen views and custom events.{" "}
+      <Link href="/docs/journeys" className={underlineLinkStyle}>
         Learn more
       </Link>
     </>

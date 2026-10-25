@@ -14,7 +14,6 @@ const FILES_WITH_REWRITTEN_LINKS = [
   "pricing/page.tsx",
   "why-measure/page.tsx",
   "components/sdk_configurator.tsx",
-  "components/user_journeys.tsx",
   "[teamId]/apps/page.tsx",
   "[teamId]/team/page.tsx",
   "[teamId]/session_replays/page.tsx",
@@ -42,13 +41,13 @@ describe("GitHub docs links have been replaced", () => {
     expect(content).toContain('href="/docs/adaptive-capture"');
   });
 
-  it("app_breadcrumbs.tsx links to /docs/adaptive-capture#journey-sampling", () => {
+  it("app_breadcrumbs.tsx links to /docs/journeys", () => {
     const content = fs.readFileSync(
       path.join(APP_DIR, "components/app_breadcrumbs.tsx"),
       "utf-8",
     );
 
-    expect(content).toContain('href="/docs/adaptive-capture#journey-sampling"');
+    expect(content).toContain('href="/docs/journeys"');
   });
 
   it("app_breadcrumbs.tsx links to /docs/session-replay", () => {
@@ -121,9 +120,7 @@ describe("rewritten links do not use target=_blank", () => {
     );
 
     const lines = content.split("\n");
-    const docsLinkLine = lines.find((l) =>
-      l.includes("/docs/adaptive-capture"),
-    );
+    const docsLinkLine = lines.find((l) => l.includes("/docs/journeys"));
 
     expect(docsLinkLine).toBeDefined();
     expect(docsLinkLine).not.toContain("target");

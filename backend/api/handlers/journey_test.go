@@ -4,165 +4,181 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
+	"net/http/httptest"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
-	"backend/libs/event"
+	"backend/libs/measure"
+	"backend/testinfra"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
 
-// Fingerprints must be exactly 32 chars to match the FixedString(32) group id.
-const (
-	fpJourneyHandlerCrash      = "fpjourneyhandlercrash00000000001"
-	fpJourneyHandlerANR        = "fpjourneyhandleranr0000000000001"
-	fpJourneyHandlerUnanchored = "fpjourneyhandlerunanchored000001"
-)
-
-// journeyResponse mirrors the JSON GetAppJourney emits. Issue lists stay raw so
-// a serialised empty array is distinguishable from null.
-type journeyResponse struct {
-	TotalIssues uint64 `json:"totalIssues"`
-	Nodes       []struct {
-		ID     string `json:"id"`
-		Issues struct {
-			Crashes json.RawMessage `json:"crashes"`
-			ANRs    json.RawMessage `json:"anrs"`
-		} `json:"issues"`
-	} `json:"nodes"`
-	Links []struct {
-		Source string `json:"source"`
-		Target string `json:"target"`
-		Value  uint64 `json:"value"`
-	} `json:"links"`
+type journeyPage[T any] struct {
+	Results []T `json:"results"`
+	Meta    struct {
+		Next     bool `json:"next"`
+		Previous bool `json:"previous"`
+	} `json:"meta"`
 }
 
-// TestGetAppJourneyHandler drives the endpoint end to end over two sessions &
-// asserts the JSON contract the dashboard depends on: unanchored issues stay
-// counted, issue lists never serialise as null, issue counts are per node & a
-// link carries its transition's session count.
-func TestGetAppJourneyHandler(t *testing.T) {
+func serveJourney(handler gin.HandlerFunc, list, userID string, appID uuid.UUID, query string) *httptest.ResponseRecorder {
+	path := "/apps/" + appID.String() + "/journey"
+	if list != "" {
+		path += "/" + list
+	}
+	c, w := newTestGinContext("GET", path+"?"+query, strings.NewReader(""))
+	c.Set("userId", userID)
+	c.Params = gin.Params{{Key: "id", Value: appID.String()}}
+	handler(c)
+	return w
+}
+
+func TestJourneyHandlers(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
-
-	teamID := uuid.New()
-	seedTeam(ctx, t, teamID, "journey-handler-team")
-	userID := uuid.New().String()
-	seedUser(ctx, t, userID, "journey-handler@test.com")
-	seedTeamMembership(ctx, t, teamID, userID, "owner")
+	start := time.Now().UTC().Add(-time.Hour).Truncate(time.Second)
+	userID, teamID := seedTeamAndMemberWithRole(t, ctx, "viewer")
 	appID := uuid.New()
 	seedApp(ctx, t, appID, teamID, 30)
 
-	team, app := teamID.String(), appID.String()
-	sessionA, sessionB := uuid.NewString(), uuid.NewString()
-	base := time.Now().UTC().Add(-time.Hour)
-	at := func(offset int) time.Time { return base.Add(time.Duration(offset) * time.Second) }
-
-	// Session A: Home -> Cart -> Pay, one crash on Home, one ANR on Cart. Pay
-	// carries no issue at all.
-	seedLifecycleActivityInSession(ctx, t, team, app, sessionA, event.LifecycleActivityTypeResumed, "HomeActivity", at(0))
-	seedIssueEventInSession(ctx, t, team, app, sessionA, "exception", fpJourneyHandlerCrash, false, at(1))
-	seedLifecycleActivityInSession(ctx, t, team, app, sessionA, event.LifecycleActivityTypeResumed, "CartActivity", at(2))
-	seedIssueEventInSession(ctx, t, team, app, sessionA, "anr", fpJourneyHandlerANR, false, at(3))
-	seedLifecycleActivityInSession(ctx, t, team, app, sessionA, event.LifecycleActivityTypeResumed, "PayActivity", at(4))
-
-	// Session B repeats Home -> Cart so that transition spans two sessions. Its
-	// first crash precedes every node, so it anchors nowhere. The same crash
-	// fingerprint fires twice on Cart, making the group's global count 3 while
-	// no single node's count is 3.
-	seedIssueEventInSession(ctx, t, team, app, sessionB, "exception", fpJourneyHandlerUnanchored, false, at(0))
-	seedLifecycleActivityInSession(ctx, t, team, app, sessionB, event.LifecycleActivityTypeResumed, "HomeActivity", at(1))
-	seedLifecycleActivityInSession(ctx, t, team, app, sessionB, event.LifecycleActivityTypeResumed, "CartActivity", at(2))
-	seedIssueEventInSession(ctx, t, team, app, sessionB, "exception", fpJourneyHandlerCrash, false, at(3))
-	seedIssueEventInSession(ctx, t, team, app, sessionB, "exception", fpJourneyHandlerCrash, false, at(4))
-
-	// Titles come from the group rows, issues without one get dropped.
-	seedExceptionGroup(ctx, t, team, app, fpJourneyHandlerCrash)
-	seedAnrGroup(ctx, t, team, app, fpJourneyHandlerANR)
-
-	const timeFormat = "2006-01-02T15:04:05.000Z"
-	from := base.Add(-time.Hour).Format(timeFormat)
-	to := time.Now().UTC().Add(time.Hour).Format(timeFormat)
-
-	c, w := newTestGinContext("GET", "/apps/"+app+"/journey?from="+from+"&to="+to, nil)
-	c.Set("userId", userID)
-	c.Params = gin.Params{{Key: "id", Value: app}}
-
-	h.GetAppJourney(c)
-
-	if w.Code != http.StatusOK {
-		t.Fatalf("status = %d, want %d, body: %s", w.Code, http.StatusOK, w.Body.String())
+	// The one session goes to Home and Cart. Then it crashes.
+	installation, session := uuid.NewString(), uuid.NewString()
+	crash := strings.Repeat("a", 32)
+	for _, row := range []testinfra.EventRow{
+		{Type: "lifecycle_activity", LifecycleActivityType: "resumed", LifecycleActivityClassName: "Home", Timestamp: start},
+		{Type: "lifecycle_activity", LifecycleActivityType: "resumed", LifecycleActivityClassName: "Cart", Timestamp: start.Add(time.Second)},
+		{Type: "exception", Fingerprint: crash, Timestamp: start.Add(2 * time.Second)},
+	} {
+		row.InstallationID = installation
+		row.SessionID = session
+		th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, row)
 	}
+	th.SeedGroupRow(ctx, t, teamID.String(), appID.String(), testinfra.GroupRow{Table: "fatal_exception_groups", Fingerprint: crash, Type: "IllegalStateException"})
+	inRange := rangeQuery(start.Add(-time.Hour), start.Add(time.Hour))
 
-	var result journeyResponse
-	if err := json.Unmarshal(w.Body.Bytes(), &result); err != nil {
-		t.Fatalf("unmarshal: %v", err)
-	}
+	t.Run("the journey has the screens and the fatal error", func(t *testing.T) {
+		w := serveJourney(h.GetJourney, "", userID, appID, inRange)
+		expectStatus(t, w, http.StatusOK)
+		journey := decodeBody[measure.Journey](t, w)
+		var links []string
+		for _, link := range journey.Links {
+			links = append(links, link.Source+" > "+link.Target)
+		}
+		slices.Sort(links)
+		if len(journey.Nodes) != 3 || strings.Join(links, ", ") != "screen:Cart > fatal, screen:Home > screen:Cart" {
+			t.Errorf("journey = %+v", journey)
+		}
+	})
 
-	// 1 crash on Home, 1 ANR on Cart, 2 crashes on Cart & the unanchored crash.
-	if want := uint64(5); result.TotalIssues != want {
-		t.Errorf("totalIssues = %d, want %d (the unanchored crash counts too)", result.TotalIssues, want)
-	}
+	t.Run("an app with fewer rows than the sample is read in full", func(t *testing.T) {
+		w := serveJourney(h.GetJourney, "", userID, appID, inRange)
+		expectStatus(t, w, http.StatusOK)
+		if journey := decodeBody[measure.Journey](t, w); journey.SamplePercent == nil || *journey.SamplePercent != 100 {
+			t.Errorf("sample_percent = %v, want 100", journey.SamplePercent)
+		}
+	})
 
-	nodes := map[string]journeyNodeIssues{}
-	for _, node := range result.Nodes {
-		nodes[node.ID] = journeyNodeIssues{crashes: node.Issues.Crashes, anrs: node.Issues.ANRs}
-	}
+	t.Run("max_links keeps the links with the most users", func(t *testing.T) {
+		w := serveJourney(h.GetJourney, "", userID, appID, inRange+"&max_links=1")
+		expectStatus(t, w, http.StatusOK)
+		if journey := decodeBody[measure.Journey](t, w); len(journey.Links) != 2 {
+			t.Errorf("links = %+v, want the link from Home and the link to the fatal error", journey.Links)
+		}
+		for _, maxLinks := range []string{"0", "5001", "2.5", "all"} {
+			w := serveJourney(h.GetJourney, "", userID, appID, inRange+"&max_links="+maxLinks)
+			expectStatus(t, w, http.StatusBadRequest)
+		}
+	})
 
-	pay, ok := nodes["PayActivity"]
-	if !ok {
-		t.Fatalf("node PayActivity missing from %+v", result.Nodes)
-	}
-	// The dashboard types both as non optional arrays, null would break it.
-	if got := string(pay.crashes); got != "[]" {
-		t.Errorf("PayActivity issues.crashes = %s, want []", got)
-	}
-	if got := string(pay.anrs); got != "[]" {
-		t.Errorf("PayActivity issues.anrs = %s, want []", got)
-	}
+	t.Run("path users count the users through the path", func(t *testing.T) {
+		w := serveJourney(h.GetJourneyPathUsers, "path", userID, appID, inRange+"&path=screen:Home&path=screen:Cart&path=fatal")
+		expectStatus(t, w, http.StatusOK)
+		got := decodeBody[measure.JourneyPathUsers](t, w)
+		if got.Users != 1 || got.SamplePercent == nil || *got.SamplePercent != 100 {
+			t.Errorf("path users = %+v, want 1 user at a sample percent of 100", got)
+		}
+	})
 
-	home, ok := nodes["HomeActivity"]
-	if !ok {
-		t.Fatalf("node HomeActivity missing from %+v", result.Nodes)
-	}
-	crashes := decodeJourneyIssues(t, home.crashes)
-	if len(crashes) != 1 {
-		t.Fatalf("HomeActivity crashes = %+v, want exactly 1", crashes)
-	}
-	if crashes[0].ID != fpJourneyHandlerCrash {
-		t.Errorf("HomeActivity crash id = %s, want %s", crashes[0].ID, fpJourneyHandlerCrash)
-	}
-	// The group's global count is 3, only this node's own count is right.
-	if want := uint64(1); crashes[0].Count != want {
-		t.Errorf("HomeActivity crash count = %d, want %d (per node, not the group total)", crashes[0].Count, want)
-	}
+	t.Run("path users need two nodes", func(t *testing.T) {
+		w := serveJourney(h.GetJourneyPathUsers, "path", userID, appID, inRange+"&path=screen:Home")
+		expectStatus(t, w, http.StatusBadRequest)
+	})
 
-	links := map[string]uint64{}
-	for _, link := range result.Links {
-		links[link.Source+"->"+link.Target] = link.Value
-	}
-	value, ok := links["HomeActivity->CartActivity"]
-	if !ok {
-		t.Fatalf("link HomeActivity->CartActivity missing from %+v", result.Links)
-	}
-	if want := uint64(2); value != want {
-		t.Errorf("link HomeActivity->CartActivity value = %d, want %d sessions", value, want)
-	}
-}
+	t.Run("a link selects the errors between its nodes", func(t *testing.T) {
+		w := serveJourney(h.GetJourneyErrors, "errors", userID, appID, inRange+"&source=screen:Cart&target=fatal")
+		expectStatus(t, w, http.StatusOK)
+		page := decodeBody[journeyPage[measure.JourneyError]](t, w)
+		if len(page.Results) != 1 || page.Results[0].Type != "IllegalStateException" || page.Results[0].Users != 1 {
+			t.Errorf("errors = %+v", page.Results)
+		}
+	})
 
-// journeyNodeIssues holds one node's raw issue lists.
-type journeyNodeIssues struct {
-	crashes json.RawMessage
-	anrs    json.RawMessage
-}
+	t.Run("a node's lists cover the time until the next step", func(t *testing.T) {
+		w := serveJourney(h.GetJourneyErrors, "errors", userID, appID, inRange+"&node=screen:Home")
+		expectStatus(t, w, http.StatusOK)
+		if page := decodeBody[journeyPage[measure.JourneyError]](t, w); len(page.Results) != 0 {
+			t.Errorf("errors = %+v, want none", page.Results)
+		}
+	})
 
-func decodeJourneyIssues(t *testing.T, raw json.RawMessage) (issues []journeyIssue) {
-	t.Helper()
-	if err := json.Unmarshal(raw, &issues); err != nil {
-		t.Fatalf("unmarshal issues %s: %v", raw, err)
-	}
-	return
+	t.Run("a path selects the sessions that went through it", func(t *testing.T) {
+		w := serveJourney(h.GetJourneySessions, "sessions", userID, appID, inRange+"&path=screen:Home&path=screen:Cart")
+		expectStatus(t, w, http.StatusOK)
+		if page := decodeBody[journeyPage[measure.FunnelStepSession]](t, w); len(page.Results) != 1 {
+			t.Errorf("sessions = %+v, want one", page.Results)
+		}
+	})
+
+	t.Run("the journey ignores a SamplePercent param", func(t *testing.T) {
+		for _, percent := range []string{"-1", "1000", "NaN"} {
+			w := serveJourney(h.GetJourney, "", userID, appID, inRange+"&SamplePercent="+percent)
+			expectStatus(t, w, http.StatusOK)
+			if journey := decodeBody[measure.Journey](t, w); len(journey.Nodes) != 3 || journey.SamplePercent == nil || *journey.SamplePercent != 100 {
+				t.Errorf("journey with SamplePercent=%s = %+v, want the 3 nodes at a sample percent of 100", percent, journey)
+			}
+		}
+	})
+
+	t.Run("the lists and path users take a sample percent above 0 and at most 100", func(t *testing.T) {
+		lists := []struct {
+			handler gin.HandlerFunc
+			list    string
+			query   string
+		}{
+			{h.GetJourneyPathUsers, "path", "&path=screen:Home&path=screen:Cart"},
+			{h.GetJourneyErrors, "errors", "&node=screen:Home"},
+			{h.GetJourneyTraces, "traces", "&node=screen:Home&quantile=p50"},
+			{h.GetJourneyNetwork, "network", "&node=screen:Home&quantile=p50"},
+			{h.GetJourneySessions, "sessions", "&node=screen:Home"},
+		}
+		for _, list := range lists {
+			t.Run(list.list, func(t *testing.T) {
+				for _, percent := range []string{"100", "37.5", "0.001"} {
+					expectStatus(t, serveJourney(list.handler, list.list, userID, appID, inRange+list.query+"&sample_percent="+percent), http.StatusOK)
+				}
+				for _, percent := range []string{"0", "-5", "100.5", "NaN", "all"} {
+					expectError(t, serveJourney(list.handler, list.list, userID, appID, inRange+list.query+"&sample_percent="+percent), http.StatusBadRequest, "sample_percent must be above 0 and at most 100")
+				}
+			})
+		}
+	})
+
+	t.Run("a list needs a selection", func(t *testing.T) {
+		w := serveJourney(h.GetJourneySessions, "sessions", userID, appID, inRange+"&source=screen:Home")
+		expectStatus(t, w, http.StatusBadRequest)
+	})
+
+	t.Run("traces and network need a known quantile", func(t *testing.T) {
+		for list, handler := range map[string]gin.HandlerFunc{"traces": h.GetJourneyTraces, "network": h.GetJourneyNetwork} {
+			w := serveJourney(handler, list, userID, appID, inRange+"&node=screen:Home&quantile=p42")
+			expectStatus(t, w, http.StatusBadRequest)
+			w = serveJourney(handler, list, userID, appID, inRange+"&node=screen:Home&quantile=p90")
+			expectStatus(t, w, http.StatusOK)
+		}
+	})
 }

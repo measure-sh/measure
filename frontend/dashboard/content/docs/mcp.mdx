@@ -306,7 +306,31 @@ Get alerts for an app, ordered by most recent first.
 
 ### `get_journey`
 
-Get user journeys for an app as a graph of screens.
+Get user journeys for an app as a graph of screens and custom events.
+
+### `get_journey_nodes`
+
+Get the screens and custom events of an app's journey with their number of users, which `get_journey` can be filtered on.
+
+### `get_journey_path_users`
+
+Get how many users went through a journey path.
+
+### `get_journey_errors`
+
+Get the errors users hit on a journey node or a path.
+
+### `get_journey_traces`
+
+Get the root spans recorded on a journey node or a path.
+
+### `get_journey_network`
+
+Get the network requests made on a journey node or a path.
+
+### `get_journey_sessions`
+
+Get the sessions that went through a journey node or a path.
 
 ### `get_funnels`
 

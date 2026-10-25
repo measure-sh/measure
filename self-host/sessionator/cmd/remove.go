@@ -88,7 +88,7 @@ func newRemoveAppsCmd() *cobra.Command {
 				return
 			}
 
-			if err = j.rmJourney(ctx); err != nil {
+			if err = j.rmAnalyticsEvents(ctx); err != nil {
 				return
 			}
 

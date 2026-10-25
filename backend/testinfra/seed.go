@@ -952,7 +952,7 @@ func (h *TestHelper) SeedNavigationEventInSession(ctx context.Context, t *testin
 }
 
 // SeedLifecycleActivityInSession inserts a lifecycle_activity event with a
-// known session_id, activity type & class name, feeding journey_mv.
+// known session_id, activity type & class name.
 func (h *TestHelper) SeedLifecycleActivityInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, activityType, className string, ts time.Time) {
 	t.Helper()
 	query := fmt.Sprintf(
@@ -969,7 +969,7 @@ func (h *TestHelper) SeedLifecycleActivityInSession(ctx context.Context, t *test
 }
 
 // SeedScreenViewInSession inserts a screen_view event with a known session_id
-// & screen name, feeding journey_mv.
+// & screen name.
 func (h *TestHelper) SeedScreenViewInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, screenName string, ts time.Time) {
 	t.Helper()
 	query := fmt.Sprintf(
@@ -986,7 +986,7 @@ func (h *TestHelper) SeedScreenViewInSession(ctx context.Context, t *testing.T, 
 }
 
 // SeedLifecycleFragmentInSession inserts a lifecycle_fragment event with a
-// known session_id, fragment type & class name, feeding journey_mv.
+// known session_id, fragment type & class name.
 func (h *TestHelper) SeedLifecycleFragmentInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, fragmentType, className string, ts time.Time) {
 	t.Helper()
 	query := fmt.Sprintf(
@@ -1003,8 +1003,7 @@ func (h *TestHelper) SeedLifecycleFragmentInSession(ctx context.Context, t *test
 }
 
 // SeedLifecycleViewControllerInSession inserts a lifecycle_view_controller
-// event with a known session_id, view controller type & class name, feeding
-// journey_mv.
+// event with a known session_id, view controller type & class name.
 func (h *TestHelper) SeedLifecycleViewControllerInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, vcType, className string, ts time.Time) {
 	t.Helper()
 	query := fmt.Sprintf(
@@ -1021,7 +1020,7 @@ func (h *TestHelper) SeedLifecycleViewControllerInSession(ctx context.Context, t
 }
 
 // SeedLifecycleSwiftUIInSession inserts a lifecycle_swift_ui event with a known
-// session_id, SwiftUI type & class name, feeding journey_mv.
+// session_id, SwiftUI type & class name.
 func (h *TestHelper) SeedLifecycleSwiftUIInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, swiftUIType, className string, ts time.Time) {
 	t.Helper()
 	query := fmt.Sprintf(

@@ -45,6 +45,11 @@ import {
   fetchFunnelTrendFromServer,
   fetchHighMemoryUsageSessionsFromServer,
   fetchJourneyFromServer,
+  fetchJourneyErrorsFromServer,
+  fetchJourneyNetworkFromServer,
+  fetchJourneySessionsFromServer,
+  fetchJourneyTracesFromServer,
+  fetchJourneyPathUsersFromServer,
   fetchMemoryUsageBreakdownFromServer,
   fetchMemoryUsagePlotFromServer,
   fetchMetricsFromServer,
@@ -93,6 +98,7 @@ import {
   type FunnelDraft,
   type FunnelStepOutcome,
   type FunnelTrendPeriod,
+  type JourneySelection,
   type MemoryUsagePlotPoint,
   type PinnedFunnelsResponse,
 } from "@/app/api/api_calls";
@@ -474,6 +480,7 @@ export function useJourneyQuery(params: FilterParams | null) {
       params?.endDate,
       params?.filterExpr,
     ] as const,
+    placeholderData: keepPreviousData,
     queryFn: () =>
       fetchJourneyFromServer(
         params!.appId,
@@ -482,6 +489,189 @@ export function useJourneyQuery(params: FilterParams | null) {
         params!.filterExpr,
       ),
     enabled: params !== null,
+    retry: false,
+  });
+}
+
+export const JOURNEY_LIST_LIMIT = 5;
+
+export function useJourneyErrorsQuery(
+  params: FilterParams,
+  samplePercent: number | null,
+  selection: JourneySelection,
+  paginationOffset: number,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      "journey",
+      params.appId,
+      "errors",
+      selection,
+      params.startDate,
+      params.endDate,
+      params.filterExpr,
+      samplePercent,
+      paginationOffset,
+    ] as const,
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      fetchJourneyErrorsFromServer(
+        params.appId,
+        params.startDate,
+        params.endDate,
+        params.filterExpr,
+        samplePercent,
+        selection,
+        JOURNEY_LIST_LIMIT,
+        paginationOffset,
+      ),
+    enabled,
+    retry: false,
+  });
+}
+
+export function useJourneyTracesQuery(
+  params: FilterParams,
+  samplePercent: number | null,
+  selection: JourneySelection,
+  quantile: RootSpanMetricsQuantile,
+  paginationOffset: number,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      "journey",
+      params.appId,
+      "traces",
+      selection,
+      quantile,
+      params.startDate,
+      params.endDate,
+      params.filterExpr,
+      samplePercent,
+      paginationOffset,
+    ] as const,
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      fetchJourneyTracesFromServer(
+        params.appId,
+        params.startDate,
+        params.endDate,
+        params.filterExpr,
+        samplePercent,
+        selection,
+        quantile,
+        JOURNEY_LIST_LIMIT,
+        paginationOffset,
+      ),
+    enabled,
+    retry: false,
+  });
+}
+
+export function useJourneyNetworkQuery(
+  params: FilterParams,
+  samplePercent: number | null,
+  selection: JourneySelection,
+  quantile: RootSpanMetricsQuantile,
+  paginationOffset: number,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      "journey",
+      params.appId,
+      "network",
+      selection,
+      quantile,
+      params.startDate,
+      params.endDate,
+      params.filterExpr,
+      samplePercent,
+      paginationOffset,
+    ] as const,
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      fetchJourneyNetworkFromServer(
+        params.appId,
+        params.startDate,
+        params.endDate,
+        params.filterExpr,
+        samplePercent,
+        selection,
+        quantile,
+        JOURNEY_LIST_LIMIT,
+        paginationOffset,
+      ),
+    enabled,
+    retry: false,
+  });
+}
+
+export function useJourneySessionsQuery(
+  params: FilterParams,
+  samplePercent: number | null,
+  selection: JourneySelection,
+  paginationOffset: number,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      "journey",
+      params.appId,
+      "sessions",
+      selection,
+      params.startDate,
+      params.endDate,
+      params.filterExpr,
+      samplePercent,
+      paginationOffset,
+    ] as const,
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      fetchJourneySessionsFromServer(
+        params.appId,
+        params.startDate,
+        params.endDate,
+        params.filterExpr,
+        samplePercent,
+        selection,
+        JOURNEY_LIST_LIMIT,
+        paginationOffset,
+      ),
+    enabled,
+    retry: false,
+  });
+}
+
+export function useJourneyPathUsersQuery(
+  params: FilterParams,
+  samplePercent: number | null,
+  path: string[],
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: [
+      "journey",
+      params.appId,
+      "path",
+      params.startDate,
+      params.endDate,
+      params.filterExpr,
+      samplePercent,
+      path,
+    ] as const,
+    queryFn: () =>
+      fetchJourneyPathUsersFromServer(
+        params.appId,
+        params.startDate,
+        params.endDate,
+        params.filterExpr,
+        samplePercent,
+        path,
+      ),
+    enabled,
     retry: false,
   });
 }
