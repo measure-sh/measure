@@ -30,11 +30,6 @@ import { apiClient } from "./api_client";
 import { ApiError, RequestError } from "./api_error";
 import type { FilterKeysResponse, FilterValue } from "./filter_types";
 
-export enum JourneyType {
-  Paths,
-  Exceptions,
-}
-
 export type Team = {
   id: string;
   name: string;
@@ -164,38 +159,6 @@ export type App = {
   os_names: string[] | null;
   onboarded_at: string | null;
   unique_identifier: string | null;
-};
-
-export const emptyJourney = {
-  links: [
-    {
-      source: "",
-      target: "",
-      value: 0,
-    },
-  ],
-  nodes: [
-    {
-      id: "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
-      issues: {
-        anrs: [
-          {
-            id: "",
-            title: "",
-            count: 0,
-          },
-        ],
-        crashes: [
-          {
-            id: "",
-            title: "",
-            count: 0,
-          },
-        ],
-      },
-    },
-  ],
-  totalIssues: 0,
 };
 
 export const emptyMetrics = {
@@ -938,12 +901,100 @@ export const fetchAppHealthPlotFromServer = async (
   return filteredResult;
 };
 
-export const fetchJourneyFromServer = async (
-  appId: string,
+// Counts are of users. Each app installation counts as one user. The counts
+// include all the sessions of a user in the date range.
+// A node is one screen or custom event. Its step is the median step at which
+// users first reach it in a session.
+// A link counts the users that moved from its source to its target in the
+// same session at least once. A link does not join two sessions.
+// The node of kind "fatal" shows the crashes, ANRs and app hangs that end
+// sessions. Links to it come from the last screen or custom event of each of
+// these sessions.
+export type JourneyNodeKind = "screen" | "event" | "fatal";
+
+export type JourneyNode = {
+  id: string;
+  name: string;
+  kind: JourneyNodeKind;
+  step: number;
+  users: number;
+  // The users that went on from this screen or custom event to another step
+  // of the same session at least once.
+  continuing: number;
+  median_ms_from_previous: number | null;
+};
+
+export type Journey = {
+  nodes: JourneyNode[];
+  links: { source: string; target: string; users: number }[];
+  sample_percent: number | null;
+};
+
+export type JourneyLink = { source: string; target: string };
+
+// A path is a list of two or more nodes. A link goes from each node to the
+// next node. A session goes through a path when it makes all the moves of the
+// path in sequence. A path counts the users that went through it in one or
+// more sessions. Thus a path of two nodes counts the same users as its link.
+export type JourneyPath = { path: string[] };
+
+// The lists for a node cover the time sessions spent from reaching it until
+// their next step, and the lists for a link the time between its two nodes.
+// The lists for a path cover the time from its first node to its last node.
+// A session can go through a path more than once, and each time counts.
+export type JourneySelection = { node: string } | JourneyLink | JourneyPath;
+
+export type JourneyPathUsers = {
+  users: number;
+  sample_percent: number | null;
+};
+
+export type JourneyErrorsResponse = {
+  meta: { next: boolean; previous: boolean };
+  sample_percent: number | null;
+  results: {
+    id: string;
+    type: string;
+    error_type: "exception" | "anr" | "app_hang";
+    severity: string;
+    message: string;
+    method_name: string;
+    file_name: string;
+    count: number;
+    users: number;
+  }[];
+};
+
+export type JourneyTracesResponse = {
+  meta: { next: boolean; previous: boolean };
+  sample_percent: number | null;
+  results: {
+    span_name: string;
+    count: number;
+    users: number;
+    duration_ms: number;
+  }[];
+};
+
+export type JourneyNetworkResponse = {
+  meta: { next: boolean; previous: boolean };
+  sample_percent: number | null;
+  results: {
+    domain: string;
+    path_pattern: string;
+    count: number;
+    users: number;
+    latency_ms: number;
+  }[];
+};
+
+export type JourneySessionsResponse = FunnelStepSessionsResponse;
+
+function journeyParams(
   startDate: string,
   endDate: string,
   filterExpr: string | null,
-) => {
+): URLSearchParams {
   const params = new URLSearchParams({
     from: formatUserInputDateToServerFormat(startDate),
     to: formatUserInputDateToServerFormat(endDate),
@@ -952,14 +1003,24 @@ export const fetchJourneyFromServer = async (
   if (filterExpr) {
     params.set("filter_expr", filterExpr);
   }
+  return params;
+}
 
-  return await request(`/api/apps/${appId}/journey?${params.toString()}`, {
-    failsWith: "Failed to fetch journey",
-  });
+export const fetchJourneyFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+) => {
+  const params = journeyParams(startDate, endDate, filterExpr);
+  return await request<Journey>(
+    `/api/apps/${appId}/journey?${params.toString()}`,
+    { failsWith: "Failed to fetch journey" },
+  );
 };
 
-// A list sends the sample percent of the funnel it shows more about, so that
-// it covers the same users.
+// A list sends the sample percent of the journey or funnel it shows more
+// about, so that it covers the same users.
 function setSamplePercent(
   params: URLSearchParams,
   samplePercent: number | null,
@@ -968,6 +1029,127 @@ function setSamplePercent(
     params.set("sample_percent", String(samplePercent));
   }
 }
+
+function setSelectionParams(
+  params: URLSearchParams,
+  selection: JourneySelection,
+) {
+  if ("node" in selection) {
+    params.set("node", selection.node);
+  } else if ("path" in selection) {
+    for (const node of selection.path) {
+      params.append("path", node);
+    }
+  } else {
+    params.set("source", selection.source);
+    params.set("target", selection.target);
+  }
+}
+
+export const fetchJourneyPathUsersFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  samplePercent: number | null,
+  path: string[],
+) => {
+  const params = journeyParams(startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
+  setSelectionParams(params, { path });
+  return await request<JourneyPathUsers>(
+    `/api/apps/${appId}/journey/path?${params.toString()}`,
+    { failsWith: "Failed to fetch journey path" },
+  );
+};
+
+export const fetchJourneyErrorsFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  samplePercent: number | null,
+  selection: JourneySelection,
+  limit: number,
+  offset: number,
+) => {
+  const params = journeyParams(startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
+  setSelectionParams(params, selection);
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  return await request<JourneyErrorsResponse>(
+    `/api/apps/${appId}/journey/errors?${params.toString()}`,
+    { failsWith: "Failed to fetch journey errors" },
+  );
+};
+
+export const fetchJourneyTracesFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  samplePercent: number | null,
+  selection: JourneySelection,
+  quantile: string,
+  limit: number,
+  offset: number,
+) => {
+  const params = journeyParams(startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
+  setSelectionParams(params, selection);
+  params.set("quantile", quantile);
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  return await request<JourneyTracesResponse>(
+    `/api/apps/${appId}/journey/traces?${params.toString()}`,
+    { failsWith: "Failed to fetch journey traces" },
+  );
+};
+
+export const fetchJourneyNetworkFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  samplePercent: number | null,
+  selection: JourneySelection,
+  quantile: string,
+  limit: number,
+  offset: number,
+) => {
+  const params = journeyParams(startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
+  setSelectionParams(params, selection);
+  params.set("quantile", quantile);
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  return await request<JourneyNetworkResponse>(
+    `/api/apps/${appId}/journey/network?${params.toString()}`,
+    { failsWith: "Failed to fetch journey network" },
+  );
+};
+
+export const fetchJourneySessionsFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  samplePercent: number | null,
+  selection: JourneySelection,
+  limit: number,
+  offset: number,
+) => {
+  const params = journeyParams(startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
+  setSelectionParams(params, selection);
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  return await request<JourneySessionsResponse>(
+    `/api/apps/${appId}/journey/sessions?${params.toString()}`,
+    { failsWith: "Failed to fetch journey sessions" },
+  );
+};
 
 export const fetchMetricsFromServer = async (
   appId: string,

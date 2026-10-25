@@ -412,8 +412,8 @@ func respondQueryError(c *gin.Context, msg string, err error) {
 	c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
 }
 
-// respondSampledPage writes a page of a list that a sampled funnel query
-// read, or the error of the query.
+// respondSampledPage writes a page of a list that a sampled journey or funnel
+// query read, or the error of the query.
 func respondSampledPage[T any](c *gin.Context, msg string, page measure.SampledPage[T], err error) {
 	if err != nil {
 		respondQueryError(c, msg, err)

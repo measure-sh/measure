@@ -69,7 +69,6 @@ func TestEveryColumnSetNamesADialect(t *testing.T) {
 		"SpanMetricsColumns":        SpanMetricsColumns,
 		"SessionsAggregatedColumns": SessionsAggregatedColumns,
 		"NetworkMetricsColumns":     NetworkMetricsColumns,
-		"JourneyEventsColumns":      JourneyEventsColumns,
 		"AppHealthEventsColumns":    AppHealthEventsColumns,
 	}
 	for _, entity := range allEntities {
@@ -394,7 +393,11 @@ func TestBugReportStatusBindsTheColumnCodes(t *testing.T) {
 func TestJourneysEntityOffersEveryJourneyKey(t *testing.T) {
 	byName := IndexKeysByName(JourneysEntity.Keys)
 
-	wanted := []string{"version_name", "version_code", "patch_version", "patch_id"}
+	wanted := []string{
+		"version_name", "version_code", "patch_version", "patch_id",
+		"os_name", "os_version", "device_name", "device_manufacturer", "locale",
+		"network_type", "network_generation", "network_provider", "country",
+	}
 	for _, name := range wanted {
 		if _, ok := byName[name]; !ok {
 			t.Errorf("want a %q key on the journeys entity", name)
@@ -407,47 +410,16 @@ func TestJourneysEntityOffersEveryJourneyKey(t *testing.T) {
 
 func TestJourneysBindKeyRefusesAKeyTheEntityDoesNotHave(t *testing.T) {
 	_, err := bindColumn(JourneysEntity.Columns, Condition{
-		KeyName:  "os_name",
+		KeyName:  "user_id",
 		Operator: OperatorIn,
-		Values:   []Value{{Text: "android"}},
+		Values:   []Value{{Text: "alice"}},
 	})
 
 	if err == nil {
 		t.Fatal("want a key the journeys entity does not have refused")
 	}
-	if !strings.Contains(err.Error(), "os_name") {
+	if !strings.Contains(err.Error(), "user_id") {
 		t.Errorf("want the key named, got %q", err)
-	}
-}
-
-// Asserts the events-table column set compares the version keys against the
-// flat attribute columns of the events table, where the journey table itself
-// holds them as a tuple.
-func TestJourneyEventsKeyBindingsReadTheEventsColumns(t *testing.T) {
-	flt := &Filter{Entity: JourneysEntity, FilterExpr: "version_name:in:1.2.0 AND version_code:in:120"}
-	if err := flt.BuildExprTree(); err != nil {
-		t.Fatalf("build: %v", err)
-	}
-
-	onJourney, err := flt.Predicate(nil)
-	if err != nil {
-		t.Fatalf("predicate on the journey table: %v", err)
-	}
-	defer onJourney.Close()
-	if got := onJourney.String(); got != "((tupleElement(app_version, 1) in ?) and (tupleElement(app_version, 2) in ?))" {
-		t.Errorf("want the tuple columns compared, got %q", got)
-	}
-
-	onEvents, err := flt.Predicate(JourneyEventsColumns)
-	if err != nil {
-		t.Fatalf("predicate on the events table: %v", err)
-	}
-	defer onEvents.Close()
-	if got := onEvents.String(); got != "((attribute.app_version in ?) and (attribute.app_build in ?))" {
-		t.Errorf("want the attribute columns compared, got %q", got)
-	}
-	if args := onEvents.Args(); len(args) != 2 || !slices.Equal(args[0].([]string), []string{"1.2.0"}) || !slices.Equal(args[1].([]string), []string{"120"}) {
-		t.Errorf("want the version values bound, got %v", args)
 	}
 }
 

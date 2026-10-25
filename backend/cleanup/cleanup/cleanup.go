@@ -81,8 +81,8 @@ func DeleteStaleData(ctx context.Context) {
 	// delete sessions
 	deleteSessions(ctx, appRetentions)
 
-	// delete journeys
-	deleteJourneys(ctx, appRetentions)
+	// delete analytics events
+	deleteAnalyticsEvents(ctx, appRetentions)
 
 	// delete spans
 	deleteSpans(ctx, appRetentions)
@@ -414,20 +414,20 @@ func deleteSessions(ctx context.Context, retentions []AppRetention) {
 	}
 }
 
-// deleteJourneys deletes stale journeys for each
-// app's retention threshold.
-func deleteJourneys(ctx context.Context, retentions []AppRetention) {
+// deleteAnalyticsEvents deletes the analytics events that are older than the
+// retention threshold of each app.
+func deleteAnalyticsEvents(ctx context.Context, retentions []AppRetention) {
 	errCount := 0
 	for _, retention := range retentions {
 		stmt := sqlf.
-			DeleteFrom("journey").
+			DeleteFrom("analytics_events").
 			Where("team_id = toUUID(?)", retention.TeamID).
 			Where("app_id = toUUID(?)", retention.AppID).
 			Where("timestamp < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
 			errCount += 1
-			fmt.Printf("Failed to delete stale journeys for app id %q: %v\n", retention.AppID, err)
+			fmt.Printf("Failed to delete stale analytics events for app id %q: %v\n", retention.AppID, err)
 			stmt.Close()
 			continue
 		}
@@ -436,7 +436,7 @@ func deleteJourneys(ctx context.Context, retentions []AppRetention) {
 	}
 
 	if errCount < 1 {
-		fmt.Println("Successfully deleted stale journeys")
+		fmt.Println("Successfully deleted stale analytics events")
 	}
 }
 

@@ -3,8 +3,7 @@
 import dynamic from "next/dynamic";
 
 const Demo = dynamic(
-  () =>
-    import("../../components/user_journeys").then((m) => m.UserJourneysDemo),
+  () => import("../../components/journey/overview").then((m) => m.JourneysDemo),
   { ssr: false },
 );
 

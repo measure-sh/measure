@@ -327,48 +327,151 @@ export function makeSessionReplayOverviewPage2Fixture() {
 // --- Session Replay Details (GET /apps/:appId/sessions/:sessionId) ---
 
 // --- Journey (GET /apps/:appId/journey) ---
-// Go struct: assembled in handler, backend/api/measure/app.go
+
+// The server gives the fatal error node the id "fatal".
+function journeyNodeFixture(
+  name: string,
+  kind: "screen" | "event" | "fatal",
+  step: number,
+  users: number,
+  continuing: number,
+) {
+  return {
+    id: kind === "fatal" ? "fatal" : name,
+    name,
+    kind,
+    step,
+    users,
+    continuing,
+    median_ms_from_previous: step === 0 ? null : 4000,
+  };
+}
 
 export function makeJourneyFixture(overrides: Record<string, any> = {}) {
   return {
     nodes: [
-      {
-        id: "sh.measure.demo.MainActivity",
-        issues: { crashes: [], anrs: [] },
-      },
-      {
-        id: "sh.measure.demo.ProductListActivity",
-        issues: { crashes: [], anrs: [] },
-      },
-      {
-        id: "sh.measure.demo.SearchActivity",
-        issues: { crashes: [], anrs: [] },
-      },
-      {
-        id: "sh.measure.demo.CartActivity",
-        issues: { crashes: [], anrs: [] },
-      },
+      journeyNodeFixture(
+        "sh.measure.demo.MainActivity",
+        "screen",
+        0,
+        9000,
+        8000,
+      ),
+      journeyNodeFixture(
+        "sh.measure.demo.ProductListActivity",
+        "screen",
+        1,
+        5000,
+        1300,
+      ),
+      journeyNodeFixture("search_submitted", "event", 1, 2800, 0),
+      journeyNodeFixture("sh.measure.demo.CartActivity", "screen", 2, 1200, 0),
+      journeyNodeFixture("Fatal error", "fatal", 3, 100, 0),
     ],
     links: [
       {
         source: "sh.measure.demo.MainActivity",
         target: "sh.measure.demo.ProductListActivity",
-        value: 5000,
+        users: 5000,
       },
       {
         source: "sh.measure.demo.MainActivity",
-        target: "sh.measure.demo.SearchActivity",
-        value: 2800,
+        target: "search_submitted",
+        users: 2800,
       },
       {
         source: "sh.measure.demo.ProductListActivity",
         target: "sh.measure.demo.CartActivity",
-        value: 1200,
+        users: 1200,
+      },
+      {
+        source: "sh.measure.demo.ProductListActivity",
+        target: "fatal",
+        users: 100,
       },
     ],
-    totalIssues: 0,
+    sample_percent: 100,
     ...overrides,
   };
+}
+
+// --- Journey lists (GET /apps/:appId/journey/{errors,traces,network,sessions}) ---
+
+export function makeJourneyErrorsFixture(overrides: Record<string, any> = {}) {
+  return {
+    meta: { next: false, previous: false },
+    results: [
+      {
+        id: "crash-group-001",
+        type: "java.lang.NullPointerException",
+        error_type: "exception",
+        severity: "fatal",
+        message: "Attempt to invoke virtual method on null object reference",
+        method_name: "onAddToCart",
+        file_name: "ProductActivity.kt",
+        count: 120,
+        users: 100,
+      },
+    ],
+    ...overrides,
+  };
+}
+
+export function makeJourneyTracesFixture(overrides: Record<string, any> = {}) {
+  return {
+    meta: { next: false, previous: false },
+    results: [
+      {
+        span_name: "product_list_load",
+        count: 1600,
+        users: 1200,
+        duration_ms: 2100,
+      },
+    ],
+    ...overrides,
+  };
+}
+
+export function makeJourneyNetworkFixture(overrides: Record<string, any> = {}) {
+  return {
+    meta: { next: false, previous: false },
+    results: [
+      {
+        domain: "api.example.com",
+        path_pattern: "/v1/products",
+        count: 3100,
+        users: 1900,
+        latency_ms: 420,
+      },
+    ],
+    ...overrides,
+  };
+}
+
+export function makeJourneySessionsFixture(
+  overrides: Record<string, any> = {},
+) {
+  return {
+    meta: { next: false, previous: false },
+    results: [
+      {
+        session_id: "session-journey-001",
+        installation_id: "installation-journey-001",
+        user_id: "user-journey-001",
+        first_event_time: "2026-03-24T10:00:00Z",
+        duration: 185000,
+      },
+    ],
+    ...overrides,
+  };
+}
+
+// --- Journey path users (GET /apps/:appId/journey/path) ---
+
+export function makeJourneyPathUsersFixture(
+  overrides: Record<string, any> = {},
+) {
+  return { users: 640, sample_percent: 100, ...overrides };
 }
 
 // --- Exceptions Overview (GET /apps/:appId/crashGroups or /anrGroups) ---

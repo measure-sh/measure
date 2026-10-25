@@ -205,7 +205,7 @@ func rmAppResources(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
-	if err = j.rmJourney(ctx); err != nil {
+	if err = j.rmAnalyticsEvents(ctx); err != nil {
 		return
 	}
 
@@ -338,7 +338,7 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 		return
 	}
 
-	if err = chconn.Exec(ctx, "truncate table journey;"); err != nil {
+	if err = chconn.Exec(ctx, "truncate table analytics_events;"); err != nil {
 		return
 	}
 
@@ -367,10 +367,6 @@ func rmAll(ctx context.Context, c *config.Config) (err error) {
 	}
 
 	if err = deleteAllObjects(ctx, attachmentsBucket, attachmentsClient); err != nil {
-		return
-	}
-
-	if err = chconn.Exec(ctx, "truncate table journey;"); err != nil {
 		return
 	}
 
@@ -992,10 +988,9 @@ func (j *janitor) rmSessions(ctx context.Context) (err error) {
 	return
 }
 
-// rmJourney removes app's journeys for apps
-// in config.
-func (j *janitor) rmJourney(ctx context.Context) (err error) {
-	deleteJourney := `delete from journey where app_id = toUUID(@app_id);`
+// rmAnalyticsEvents removes the analytics events of the apps in config.
+func (j *janitor) rmAnalyticsEvents(ctx context.Context) (err error) {
+	deleteAnalyticsEvents := `delete from analytics_events where app_id = toUUID(@app_id);`
 
 	dsn := j.config.Storage["clickhouse_dsn"]
 	opts, err := clickhouse.ParseDSN(dsn)
@@ -1014,12 +1009,12 @@ func (j *janitor) rmJourney(ctx context.Context) (err error) {
 		}
 	}()
 
-	fmt.Println("removing journey")
+	fmt.Println("removing analytics events")
 
 	for i := range j.appIds {
 		namedAppId := clickhouse.Named("app_id", j.appIds[i])
 
-		if err := conn.Exec(ctx, deleteJourney, namedAppId); err != nil {
+		if err := conn.Exec(ctx, deleteAnalyticsEvents, namedAppId); err != nil {
 			return err
 		}
 	}

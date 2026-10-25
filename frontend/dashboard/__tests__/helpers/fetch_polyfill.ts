@@ -29,6 +29,16 @@ Object.defineProperties(globalThis, {
     writable: true,
     configurable: true,
   },
+  CompressionStream: {
+    value: require("node:stream/web").CompressionStream,
+    writable: true,
+    configurable: true,
+  },
+  DecompressionStream: {
+    value: require("node:stream/web").DecompressionStream,
+    writable: true,
+    configurable: true,
+  },
   BroadcastChannel: {
     value: require("node:worker_threads").BroadcastChannel,
     writable: true,

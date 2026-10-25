@@ -13,6 +13,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -2630,7 +2631,9 @@ func TestMCPToolsList(t *testing.T) {
 		"get_bug_reports", "get_bug_reports_over_time", "get_bug_report",
 		"update_bug_report_status",
 		"get_root_span_names", "get_span_instances", "get_span_metrics_over_time",
-		"get_trace", "get_alerts", "get_journey",
+		"get_trace", "get_alerts", "get_journey", "get_journey_nodes",
+		"get_journey_path_users", "get_journey_errors", "get_journey_traces",
+		"get_journey_network", "get_journey_sessions",
 		"get_network_metrics_trends",
 		"get_network_status_codes_over_time",
 		"get_network_endpoint_status_codes_over_time",
@@ -5229,13 +5232,92 @@ func TestMCPGetJourney(t *testing.T) {
 			t.Fatalf("want no nodes for a version never seen, got %v", got)
 		}
 	})
+	t.Run("max_links out of range", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "journeylinks@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_journey", map[string]any{"app_id": appID.String(), "from": from, "to": to, "max_links": 5001})
+		if !isToolError(resp) {
+			t.Error("want tool error for max_links above 5000")
+		}
+	})
+	t.Run("node_ids picks the nodes get_journey_nodes lists", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "journeynodes@mcp.test")
+		// Each session has its own installation, so HomeActivity has 3 users,
+		// CartActivity 2 and SettingsActivity 1.
+		for _, screens := range [][]string{{"HomeActivity", "CartActivity", "SettingsActivity"}, {"HomeActivity", "CartActivity"}, {"HomeActivity"}} {
+			sessionID, installationID := uuid.NewString(), uuid.NewString()
+			for i, screen := range screens {
+				err := th.ChConn.Exec(ctx, "insert into measure.events (id, type, session_id, app_id, team_id, timestamp, `attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, `lifecycle_activity.type`, `lifecycle_activity.class_name`) values (?, 'lifecycle_activity', ?, ?, ?, ?, ?, 'v1', '1', 'resumed', ?)",
+					uuid.NewString(), sessionID, appID, teamID, now.Add(-time.Hour).Add(time.Duration(i)*time.Second), installationID, screen)
+				if err != nil {
+					t.Fatalf("seed screen: %v", err)
+				}
+			}
+		}
+		args := func(extra map[string]any) map[string]any {
+			args := map[string]any{"app_id": appID.String(), "from": from, "to": to}
+			maps.Copy(args, extra)
+			return args
+		}
+
+		var listed struct {
+			Nodes []struct {
+				ID    string `json:"id"`
+				Users uint64 `json:"users"`
+			} `json:"nodes"`
+		}
+		resp := callMCPTool(t, rawToken, "get_journey_nodes", args(nil))
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &listed); err != nil {
+			t.Fatalf("unmarshal journey nodes: %v", err)
+		}
+		got := []string{}
+		for _, node := range listed.Nodes {
+			got = append(got, fmt.Sprintf("%s %d", node.ID, node.Users))
+		}
+		if want := []string{"screen:HomeActivity 3", "screen:CartActivity 2", "screen:SettingsActivity 1"}; !slices.Equal(got, want) {
+			t.Fatalf("nodes = %v, want %v", got, want)
+		}
+
+		resp = callMCPTool(t, rawToken, "get_journey", args(map[string]any{"node_ids": []string{"screen:CartActivity", "screen:SettingsActivity"}}))
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		var journey measure.Journey
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &journey); err != nil {
+			t.Fatalf("unmarshal journey: %v", err)
+		}
+		if len(journey.Nodes) != 2 || len(journey.Links) != 1 || journey.Links[0].Source != "screen:CartActivity" || journey.Links[0].Target != "screen:SettingsActivity" {
+			t.Errorf("want CartActivity, SettingsActivity and the link between them, got %+v", journey)
+		}
+
+		resp = callMCPTool(t, rawToken, "get_journey", args(map[string]any{"max_links": 1}))
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &journey); err != nil {
+			t.Fatalf("unmarshal journey: %v", err)
+		}
+		if len(journey.Links) != 1 || journey.Links[0].Source != "screen:HomeActivity" || journey.Links[0].Target != "screen:CartActivity" {
+			t.Errorf("want the link from HomeActivity to CartActivity, the one with the most users, got %+v", journey.Links)
+		}
+
+		resp = callMCPTool(t, rawToken, "get_journey", args(map[string]any{"node_ids": []string{"screen:CartActivity", "screen:LoginActivity"}}))
+		if !isToolError(resp) {
+			t.Fatal("want tool error for a node the journey does not have")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "screen:LoginActivity") {
+			t.Errorf("error text %q should give the missing node", text)
+		}
+	})
 	t.Run("invalid filter_expr returns the issue", func(t *testing.T) {
 		appID, _, rawToken := setupToolTest(t, "journeyexprbad@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_journey", map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": "os_name:in:android"})
+		resp := callMCPTool(t, rawToken, "get_journey", map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": "user_id:in:alice"})
 		if !isToolError(resp) {
 			t.Fatal("want tool error for a key the journeys entity does not have")
 		}
-		if text := extractTextContent(t, resp); !strings.Contains(text, "Unknown key") || !strings.Contains(text, "os_name") {
+		if text := extractTextContent(t, resp); !strings.Contains(text, "Unknown key") || !strings.Contains(text, "user_id") {
 			t.Errorf("error text %q should name the unknown key", text)
 		}
 	})
@@ -5247,6 +5329,194 @@ func TestMCPGetJourney(t *testing.T) {
 		}
 		if text := extractTextContent(t, resp); !strings.Contains(text, "filter_expr could not be parsed") || !strings.Contains(text, "at position") {
 			t.Errorf("error text %q should report the parse failure and its position", text)
+		}
+	})
+}
+
+func TestMCPJourneySelection(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now().UTC()
+	from := now.Add(-7 * 24 * time.Hour).Format(time.RFC3339)
+	to := now.Format(time.RFC3339)
+
+	cleanupAll(ctx, t)
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+	userID := uuid.NewString()
+	seedUser(ctx, t, userID, "selection@journeys.mcp.test")
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, "journeys team")
+	seedTeamMembership(ctx, t, teamID, userID, "viewer")
+	appID := uuid.New()
+	seedApp(ctx, t, appID, teamID, 30)
+	rawToken := seedMCPSession(ctx, t, userID, "c1", time.Now().Add(90*24*time.Hour))
+
+	appHang := strings.Repeat("b", 32)
+	th.SeedGroupRow(ctx, t, teamID.String(), appID.String(), testinfra.GroupRow{Table: "app_hang_groups", Fingerprint: appHang})
+	th.SeedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.shop.com", "/cart")
+	start := now.Add(-2 * time.Hour)
+
+	seedEvent := func(sessionID, installationID string, row testinfra.EventRow) {
+		t.Helper()
+		row.SessionID = sessionID
+		row.InstallationID = installationID
+		row.AppVersion = "1.0.0"
+		th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, row)
+	}
+	seedSteps := func(sessionID, installationID string, names ...string) {
+		t.Helper()
+		for i, name := range names {
+			seedEvent(sessionID, installationID, testinfra.EventRow{Type: "custom", CustomName: name, Timestamp: start.Add(time.Duration(i) * time.Minute)})
+		}
+	}
+	// The session that purchases hangs, runs a span and requests the cart
+	// while at cart. The other session stops at cart.
+	purchased, purchasedInstallation := uuid.NewString(), uuid.NewString()
+	seedSteps(purchased, purchasedInstallation, "open", "cart", "purchase")
+	seedEvent(purchased, purchasedInstallation, testinfra.EventRow{Type: "app_hang", Fingerprint: appHang, Timestamp: start.Add(70 * time.Second)})
+	seedEvent(purchased, purchasedInstallation, testinfra.EventRow{
+		Type: "http", Timestamp: start.Add(90 * time.Second),
+		HttpURL: "https://api.shop.com/cart", HttpMethod: "get", HttpStatusCode: 200,
+		HttpStartTime: uint64(start.Add(90 * time.Second).UnixMilli()), HttpEndTime: uint64(start.Add(91 * time.Second).UnixMilli()),
+	})
+	th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{SpanName: "checkout", SessionID: purchased, InstallationID: purchasedInstallation, AppVersion: "1.0.0", StartTime: start.Add(80 * time.Second), Duration: time.Second})
+	stopped := uuid.NewString()
+	seedSteps(stopped, uuid.NewString(), "open", "cart")
+
+	args := func(extra map[string]any) map[string]any {
+		a := map[string]any{"app_id": appID.String(), "from": from, "to": to}
+		maps.Copy(a, extra)
+		return a
+	}
+	call := func(t *testing.T, tool string, extra map[string]any, out any) {
+		t.Helper()
+		resp := callMCPTool(t, rawToken, tool, args(extra))
+		if isToolError(resp) {
+			t.Fatalf("%s: unexpected tool error: %s", tool, extractTextContent(t, resp))
+		}
+		content := extractTextContent(t, resp)
+		if err := json.Unmarshal([]byte(content), out); err != nil {
+			t.Fatalf("%s: unmarshal %q: %v", tool, content, err)
+		}
+	}
+	callErr := func(t *testing.T, tool string, extra map[string]any, want string) {
+		t.Helper()
+		resp := callMCPTool(t, rawToken, tool, args(extra))
+		if !isToolError(resp) {
+			t.Fatalf("%s: want tool error containing %q, got %s", tool, want, extractTextContent(t, resp))
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, want) {
+			t.Errorf("%s: error %q does not contain %q", tool, text, want)
+		}
+	}
+	cart := map[string]any{"node_id": "event:cart"}
+	cartToPurchase := map[string]any{"path": []string{"event:cart", "event:purchase"}}
+
+	t.Run("path users", func(t *testing.T) {
+		for path, want := range map[string]uint64{"event:open event:cart": 2, "event:open event:cart event:purchase": 1} {
+			var result struct {
+				Users uint64 `json:"users"`
+			}
+			call(t, "get_journey_path_users", map[string]any{"path": strings.Fields(path)}, &result)
+			if result.Users != want {
+				t.Errorf("users along %s = %d, want %d", path, result.Users, want)
+			}
+		}
+		callErr(t, "get_journey_path_users", map[string]any{"path": []string{"event:open"}}, "path must have two or more node ids")
+	})
+
+	t.Run("errors at a node and along a path", func(t *testing.T) {
+		for _, selection := range []map[string]any{cart, cartToPurchase} {
+			var result struct {
+				Errors        []measure.JourneyError `json:"errors"`
+				SamplePercent *float64               `json:"sample_percent"`
+			}
+			call(t, "get_journey_errors", selection, &result)
+			if len(result.Errors) != 1 || result.Errors[0].ID != appHang || result.Errors[0].Users != 1 {
+				t.Errorf("errors for %v = %+v, want the app hang of one user", selection, result.Errors)
+			}
+			if result.SamplePercent == nil || *result.SamplePercent != 100 {
+				t.Errorf("sample_percent for %v = %v, want 100", selection, result.SamplePercent)
+			}
+		}
+
+		var result struct {
+			Errors        []measure.JourneyError `json:"errors"`
+			SamplePercent *float64               `json:"sample_percent"`
+		}
+		call(t, "get_journey_errors", map[string]any{"node_id": "event:open"}, &result)
+		if len(result.Errors) != 0 || result.SamplePercent != nil {
+			t.Errorf("errors at open = %+v with sample_percent %v, want none and null", result.Errors, result.SamplePercent)
+		}
+	})
+
+	t.Run("spans and requests at a node", func(t *testing.T) {
+		var spans struct {
+			Spans []measure.JourneyTrace `json:"spans"`
+		}
+		call(t, "get_journey_traces", map[string]any{"node_id": "event:cart", "quantile": "p95"}, &spans)
+		if len(spans.Spans) != 1 || spans.Spans[0].SpanName != "checkout" {
+			t.Errorf("spans at cart = %+v, want checkout", spans.Spans)
+		}
+
+		var endpoints struct {
+			Endpoints []measure.JourneyEndpoint `json:"endpoints"`
+		}
+		call(t, "get_journey_network", cart, &endpoints)
+		if len(endpoints.Endpoints) != 1 || endpoints.Endpoints[0].Domain+endpoints.Endpoints[0].PathPattern != "api.shop.com/cart" {
+			t.Errorf("endpoints at cart = %+v, want api.shop.com/cart", endpoints.Endpoints)
+		}
+
+		callErr(t, "get_journey_traces", map[string]any{"node_id": "event:cart", "quantile": "p75"}, "quantile must be one of")
+		callErr(t, "get_journey_network", map[string]any{"node_id": "event:cart", "quantile": "p75"}, "quantile must be one of")
+	})
+
+	t.Run("sessions at a node and along a path", func(t *testing.T) {
+		sessions := func(t *testing.T, extra map[string]any) []string {
+			t.Helper()
+			var result struct {
+				Sessions []measure.FunnelStepSession `json:"sessions"`
+			}
+			call(t, "get_journey_sessions", extra, &result)
+			ids := []string{}
+			for _, session := range result.Sessions {
+				ids = append(ids, session.SessionID.String())
+			}
+			slices.Sort(ids)
+			return ids
+		}
+		both := []string{purchased, stopped}
+		slices.Sort(both)
+		if got := sessions(t, cart); !slices.Equal(got, both) {
+			t.Errorf("sessions at cart = %v, want %v", got, both)
+		}
+		if got := sessions(t, cartToPurchase); !slices.Equal(got, []string{purchased}) {
+			t.Errorf("sessions from cart to purchase = %v, want %s", got, purchased)
+		}
+		if got := sessions(t, map[string]any{"node_id": "event:cart", "limit": 1, "offset": 2}); len(got) != 0 {
+			t.Errorf("third page of sessions at cart = %v, want none", got)
+		}
+	})
+
+	t.Run("the lists and path users read the sample percent they are given", func(t *testing.T) {
+		var result struct {
+			Errors        []measure.JourneyError `json:"errors"`
+			SamplePercent *float64               `json:"sample_percent"`
+		}
+		call(t, "get_journey_errors", map[string]any{"node_id": "event:cart", "sample_percent": 100}, &result)
+		if len(result.Errors) != 1 || result.SamplePercent == nil || *result.SamplePercent != 100 {
+			t.Errorf("errors at cart = %+v with sample_percent %v, want the app hang at 100", result.Errors, result.SamplePercent)
+		}
+		for _, tool := range []string{"get_journey_errors", "get_journey_traces", "get_journey_network", "get_journey_sessions"} {
+			callErr(t, tool, map[string]any{"node_id": "event:cart", "sample_percent": -1}, "sample_percent must be above 0 and at most 100")
+		}
+		callErr(t, "get_journey_path_users", map[string]any{"path": []string{"event:open", "event:cart"}, "sample_percent": 101}, "sample_percent must be above 0 and at most 100")
+	})
+
+	t.Run("a selection is required", func(t *testing.T) {
+		for _, tool := range []string{"get_journey_errors", "get_journey_traces", "get_journey_network", "get_journey_sessions"} {
+			callErr(t, tool, nil, "node_id or a path of two or more node ids is required")
+			callErr(t, tool, map[string]any{"path": []string{"event:cart"}}, "node_id or a path of two or more node ids is required")
+			callErr(t, tool, map[string]any{"node_id": "event:cart", "path": []string{"event:cart", "event:purchase"}}, "give node_id or path, not both")
 		}
 	})
 }
@@ -5683,6 +5953,12 @@ func TestMCPAccessControl(t *testing.T) {
 		{"get_trace", map[string]any{"app_id": appA.String(), "trace_id": "trace-1"}},
 		{"get_alerts", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
 		{"get_journey", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
+		{"get_journey_nodes", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
+		{"get_journey_path_users", map[string]any{"app_id": appA.String(), "path": []string{"screen:A", "screen:B"}, "from": from, "to": to}},
+		{"get_journey_errors", map[string]any{"app_id": appA.String(), "node_id": "screen:A", "from": from, "to": to}},
+		{"get_journey_traces", map[string]any{"app_id": appA.String(), "node_id": "screen:A", "from": from, "to": to}},
+		{"get_journey_network", map[string]any{"app_id": appA.String(), "node_id": "screen:A", "from": from, "to": to}},
+		{"get_journey_sessions", map[string]any{"app_id": appA.String(), "node_id": "screen:A", "from": from, "to": to}},
 	}
 
 	for _, tc := range toolCalls {
@@ -5719,6 +5995,12 @@ func TestMCPInvalidAppIDFormat(t *testing.T) {
 		{"get_trace", map[string]any{"app_id": "not-a-uuid", "trace_id": "some-id"}},
 		{"get_alerts", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_journey", map[string]any{"app_id": "not-a-uuid"}},
+		{"get_journey_nodes", map[string]any{"app_id": "not-a-uuid"}},
+		{"get_journey_path_users", map[string]any{"app_id": "not-a-uuid", "path": []string{"screen:A", "screen:B"}}},
+		{"get_journey_errors", map[string]any{"app_id": "not-a-uuid", "node_id": "screen:A"}},
+		{"get_journey_traces", map[string]any{"app_id": "not-a-uuid", "node_id": "screen:A"}},
+		{"get_journey_network", map[string]any{"app_id": "not-a-uuid", "node_id": "screen:A"}},
+		{"get_journey_sessions", map[string]any{"app_id": "not-a-uuid", "node_id": "screen:A"}},
 		{"get_error_common_path", map[string]any{"app_id": "not-a-uuid", "error_group_id": "fp-1"}},
 		{"update_bug_report_status", map[string]any{"app_id": "not-a-uuid", "bug_report_id": "some-id", "status": 1}},
 	}

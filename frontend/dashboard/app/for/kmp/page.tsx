@@ -138,9 +138,10 @@ const features: PlatformFeature[] = [
         <Link href="/product/user-journeys" className={underlineLinkStyle}>
           User Journeys
         </Link>
-        . Every screen transition is mapped automatically into clear flow
-        diagrams, and the exception view shows where issues interrupt those
-        flows.
+        . Every step users take is mapped automatically into clear flow
+        diagrams, and choosing any screen or path shows the errors, slow traces
+        and network requests that interrupt those flows, along with session
+        replays to understand what happened.
         <br />
         <br />
         Short on time and figuring out what issues to prioritize? Easily see

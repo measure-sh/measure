@@ -40,7 +40,7 @@ Skip the email threads and support ticket back-and-forth. Your users describe th
 
 ## User Journeys
 
-See the real paths users take through your app with [User Journeys](/product/user-journeys). Every screen transition is mapped automatically into clear flow diagrams, and the exception view shows where issues interrupt those flows.
+See the real paths users take through your app with [User Journeys](/product/user-journeys). Every step users take is mapped automatically into clear flow diagrams, and choosing any screen or path shows the errors, slow traces and network requests that interrupt those flows, along with session replays to understand what happened.
 
 Short on time and figuring out what issues to prioritize? Easily see which paths are important to users so you can unblock them first.
 

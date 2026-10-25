@@ -10,6 +10,7 @@
     "performance-tracing",
     "custom-events",
     "funnels",
+    "journeys",
     "logs",
     "gesture-tracking",
     "navigation-tracking",

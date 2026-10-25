@@ -3,7 +3,14 @@ import { mockRouter } from "@/__tests__/helpers/mock_router";
 import { promiseParams } from "@/__tests__/helpers/promise_params";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 
 jest.mock("next/navigation", () =>
   require("@/__tests__/helpers/mock_router").nextNavigationMock(),
@@ -96,53 +103,58 @@ jest.mock("@/app/components/filter_bar/filter_bar", () => ({
 jest.mock("@/app/components/skeleton", () => ({
   __esModule: true,
   SkeletonListPage: () => <div data-testid="skeleton-list-page-mock" />,
+  SkeletonPlot: () => <div data-testid="skeleton-plot-mock" />,
 }));
 
-jest.mock("@/app/components/journey", () => ({
+// The graph stub lists its nodes and offers buttons that select the first
+// node or the first link, or clear the selection, the way clicks on the real
+// graph do.
+jest.mock("@/app/components/journey/graph", () => ({
   __esModule: true,
-  JourneyType: { Paths: "Paths", Exceptions: "Exceptions" },
-  PlotType: { Paths: "Paths", Exceptions: "Exceptions" },
   default: (props: any) => (
     <div
-      data-testid={`journey-mock-${props.journeyType}`}
-      data-search-text={props.searchText}
-      data-status={props.query.status}
-      data-app={props.errorDetailContext.appId}
-      data-team={props.errorDetailContext.teamId}
-    >{`Journey Rendered: ${props.journeyType}`}</div>
-  ),
-}));
-
-jest.mock("@/app/components/tab_select", () => ({
-  __esModule: true,
-  default: (props: any) => (
-    <div data-testid="tab-select-mock" data-selected={props.selected}>
-      {props.items.map((item: string) => (
-        <button
-          key={item}
-          data-testid={`tab-${item}`}
-          onClick={() => props.onChangeSelected(item)}
-        >
-          {item}
-        </button>
-      ))}
+      data-testid="journey-graph-mock"
+      data-nodes={props.journey.nodes.map((n: any) => n.id).join(",")}
+      data-selection={JSON.stringify(props.selection)}
+    >
+      <button
+        onClick={() => props.onSelect({ node: props.journey.nodes[0].id })}
+      >
+        select node
+      </button>
+      <button
+        onClick={() =>
+          props.onSelect({
+            source: props.journey.links[0].source,
+            target: props.journey.links[0].target,
+          })
+        }
+      >
+        select link
+      </button>
+      <button onClick={() => props.onSelect(null)}>clear selection</button>
+      {props.toolbarStart}
+      {props.toolbarEnd}
+      {props.placeholder}
+      <p>{props.summary}</p>
     </div>
   ),
 }));
 
-jest.mock("@/app/components/debounce_text_input", () => ({
+jest.mock("@/app/components/journey/selection_details", () => ({
   __esModule: true,
+  detailsUrlKeys: [],
   default: (props: any) => (
-    <input
-      data-testid="debounce-text-input-mock"
-      placeholder={props.placeholder}
-      defaultValue={props.initialValue}
-      onChange={(e) => props.onChange(e.target.value)}
+    <div
+      data-testid="selection-details-mock"
+      data-team={props.teamId}
+      data-app={props.params.appId}
+      data-selection={JSON.stringify(props.selection)}
     />
   ),
 }));
 
-import UserJourneysPage from "@/app/[teamId]/journeys/page";
+import JourneysPage from "@/app/[teamId]/journeys/page";
 import { ApiError, invalidFilterExpr } from "@/app/api/api_error";
 
 const mockApp = { id: "app-1", name: "Sample", onboarded: true };
@@ -158,12 +170,22 @@ const versionKey = {
   operators: ["in", "not_in"],
 };
 
+function journeyNode(id: string, step: number) {
+  return {
+    id,
+    name: id,
+    kind: "screen",
+    step,
+    users: 100,
+    continuing: 50,
+    median_ms_from_previous: null,
+  };
+}
+
 const mockJourneyData = {
-  nodes: [
-    { id: "sh.measure.demo.MainActivity", issues: { crashes: [], anrs: [] } },
-  ],
-  links: [],
-  totalIssues: 0,
+  nodes: [journeyNode("MainActivity", 0), journeyNode("CartActivity", 1)],
+  links: [{ source: "MainActivity", target: "CartActivity", users: 40 }],
+  sample_percent: 100,
 };
 
 function journeyLoaded(data: any = mockJourneyData) {
@@ -187,10 +209,10 @@ function journeyFailed(error: Error) {
 const settled = { a: "app-1", d: "Last 6 Hours" };
 
 function renderPage() {
-  return render(<UserJourneysPage params={promiseParams({ teamId: "123" })} />);
+  return render(<JourneysPage params={promiseParams({ teamId: "123" })} />);
 }
 
-describe("UserJourneys page", () => {
+describe("Journeys page", () => {
   beforeEach(() => {
     mockRouter.reset();
     mockFiltersStore.reset();
@@ -285,156 +307,227 @@ describe("UserJourneys page", () => {
     });
   });
 
-  it("renders the tabs, the search input and the journey once ready", () => {
+  it("draws the journey once ready", () => {
     journeyLoaded();
     renderPage();
 
-    expect(screen.getByTestId("tab-select-mock")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Search nodes...")).toBeInTheDocument();
-    expect(screen.getByTestId("journey-mock-Paths")).toHaveAttribute(
-      "data-status",
-      "success",
+    expect(screen.getByTestId("journey-graph-mock")).toHaveAttribute(
+      "data-nodes",
+      "MainActivity,CartActivity",
     );
-    expect(screen.queryByTestId("journey-mock-Exceptions")).toBeNull();
+    expect(screen.queryByTestId("skeleton-plot-mock")).toBeNull();
   });
 
-  it("keeps the tabs and the journey up while the journey loads", () => {
+  it("shows a skeleton in the graph while the journey loads", () => {
     renderPage();
 
-    expect(screen.getByTestId("tab-select-mock")).toBeInTheDocument();
-    expect(screen.getByTestId("journey-mock-Paths")).toHaveAttribute(
-      "data-status",
-      "pending",
-    );
+    expect(
+      within(screen.getByTestId("journey-graph-mock")).getByTestId(
+        "skeleton-plot-mock",
+      ),
+    ).toBeInTheDocument();
   });
 
-  it("links the issue buttons to the team and app it settled on", () => {
-    journeyLoaded();
+  it("shows a skeleton in the graph while another journey loads", () => {
+    mockUseJourneyQuery.mockReturnValue({
+      data: mockJourneyData,
+      status: "success",
+      isFetching: true,
+      isPlaceholderData: true,
+      error: null,
+    } as any);
     renderPage();
 
-    const journey = screen.getByTestId("journey-mock-Paths");
-    expect(journey).toHaveAttribute("data-team", "123");
-    expect(journey).toHaveAttribute("data-app", mockApp.id);
+    expect(
+      within(screen.getByTestId("journey-graph-mock")).getByTestId(
+        "skeleton-plot-mock",
+      ),
+    ).toBeInTheDocument();
   });
 
-  it("passes the typed search text to the journey", async () => {
-    journeyLoaded();
+  it("says in the graph that no journeys were found when the journey has no nodes", () => {
+    journeyLoaded({ nodes: [], links: [], sample_percent: 100 });
     renderPage();
 
-    await act(async () => {
-      fireEvent.change(screen.getByPlaceholderText("Search nodes..."), {
-        target: { value: "search term" },
-      });
-    });
-
-    expect(screen.getByTestId("journey-mock-Paths")).toHaveAttribute(
-      "data-search-text",
-      "search term",
-    );
+    expect(
+      within(screen.getByTestId("journey-graph-mock")).getByText(
+        "No journeys found",
+      ),
+    ).toBeInTheDocument();
   });
 
-  describe("the plot type", () => {
-    it("opens on the plot the URL names", () => {
-      mockRouter.setUrl("?jt=Exceptions");
+  it("shows the sample percent when the journey has no nodes", () => {
+    journeyLoaded({ nodes: [], links: [], sample_percent: 100 });
+    renderPage();
+
+    expect(screen.getByText("Sampled at: 100%")).toBeInTheDocument();
+  });
+
+  describe("the selection", () => {
+    it("shows no details until something is selected", () => {
       journeyLoaded();
       renderPage();
 
-      expect(screen.getByTestId("tab-select-mock")).toHaveAttribute(
-        "data-selected",
-        "Exceptions",
+      expect(screen.getByTestId("journey-graph-mock")).toHaveAttribute(
+        "data-selection",
+        "null",
       );
-      expect(screen.getByTestId("journey-mock-Exceptions")).toBeInTheDocument();
-      expect(screen.queryByTestId("journey-mock-Paths")).toBeNull();
+      expect(screen.queryByTestId("selection-details-mock")).toBeNull();
     });
 
-    it("survives what the page settled on being written into the URL", () => {
-      mockRouter.setUrl("?jt=Exceptions");
-      journeyLoaded();
-      renderPage();
-
-      expect(mockRouter.urlParams()).toEqual({ ...settled, jt: "Exceptions" });
-      expect(screen.getByTestId("journey-mock-Exceptions")).toBeInTheDocument();
-    });
-
-    it("is written into the URL when a tab is clicked, keeping the filter", async () => {
-      mockRouter.setUrl("?filter_expr=version_name%3Ain%3A1.2.0");
+    it("shows the details of a selected node for the team and app", async () => {
       journeyLoaded();
       renderPage();
 
       await act(async () => {
-        fireEvent.click(screen.getByTestId("tab-Exceptions"));
+        fireEvent.click(screen.getByText("select node"));
       });
 
-      expect(mockRouter.urlParams()).toEqual({
-        ...settled,
-        filter_expr: "version_name:in:1.2.0",
-        jt: "Exceptions",
-      });
-      expect(screen.getByTestId("journey-mock-Exceptions")).toBeInTheDocument();
-      expect(screen.queryByTestId("journey-mock-Paths")).toBeNull();
-
-      await act(async () => {
-        fireEvent.click(screen.getByTestId("tab-Paths"));
-      });
-
-      expect(mockRouter.urlParams()).toEqual({
-        ...settled,
-        filter_expr: "version_name:in:1.2.0",
-        jt: "Paths",
-      });
-      expect(screen.getByTestId("journey-mock-Paths")).toBeInTheDocument();
+      const selection = JSON.stringify({ node: "MainActivity" });
+      expect(screen.getByTestId("journey-graph-mock")).toHaveAttribute(
+        "data-selection",
+        selection,
+      );
+      const details = screen.getByTestId("selection-details-mock");
+      expect(details).toHaveAttribute("data-selection", selection);
+      expect(details).toHaveAttribute("data-team", "123");
+      expect(details).toHaveAttribute("data-app", "app-1");
     });
 
-    it("does not change the query when a tab is clicked", async () => {
-      journeyLoaded();
-      renderPage();
-      const callsBefore = mockUseJourneyQuery.mock.calls.length;
-
-      await act(async () => {
-        fireEvent.click(screen.getByTestId("tab-Exceptions"));
-      });
-
-      for (const [params] of mockUseJourneyQuery.mock.calls.slice(
-        callsBefore,
-      )) {
-        expect(params).toEqual(
-          expect.objectContaining({ appId: "app-1", filterExpr: null }),
-        );
-      }
-    });
-
-    it("is kept when the filter changes", async () => {
-      mockRouter.setUrl("?jt=Exceptions");
+    it("replaces a selected node with a selected link", async () => {
       journeyLoaded();
       renderPage();
 
+      await act(async () => {
+        fireEvent.click(screen.getByText("select node"));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByText("select link"));
+      });
+
+      expect(screen.getByTestId("selection-details-mock")).toHaveAttribute(
+        "data-selection",
+        JSON.stringify({ source: "MainActivity", target: "CartActivity" }),
+      );
+    });
+
+    it("hides the details when the selection is cleared", async () => {
+      journeyLoaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("select node"));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByText("clear selection"));
+      });
+
+      expect(screen.queryByTestId("selection-details-mock")).toBeNull();
+    });
+
+    it("is cleared when the filter changes", async () => {
+      journeyLoaded();
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("select node"));
+      });
       await act(async () => {
         fireEvent.click(screen.getByTestId("filter-bar-apply"));
       });
 
-      expect(mockRouter.urlParams()).toEqual({
-        ...settled,
-        filter_expr: "version_name:in:1.2.0",
-        jt: "Exceptions",
-      });
-      expect(mockUseJourneyQuery).toHaveBeenLastCalledWith(
-        expect.objectContaining({ filterExpr: "version_name:in:1.2.0" }),
+      expect(screen.getByTestId("journey-graph-mock")).toHaveAttribute(
+        "data-selection",
+        "null",
       );
-      expect(screen.getByTestId("journey-mock-Exceptions")).toBeInTheDocument();
+      expect(screen.queryByTestId("selection-details-mock")).toBeNull();
     });
 
-    it("is kept when the filter is cleared", async () => {
-      mockRouter.setUrl("?jt=Exceptions&filter_expr=version_name%3Ain%3A1.2.0");
+    it("is written to the URL", async () => {
       journeyLoaded();
       renderPage();
 
       await act(async () => {
-        fireEvent.click(screen.getByTestId("filter-bar-clear"));
+        fireEvent.click(screen.getByText("select link"));
       });
 
-      expect(mockRouter.urlParams()).toEqual({ ...settled, jt: "Exceptions" });
-      expect(screen.getByTestId("journey-mock-Exceptions")).toBeInTheDocument();
+      expect(mockRouter.urlParams()).toEqual({
+        ...settled,
+        js: "MainActivity",
+        jt: "CartActivity",
+      });
     });
+  });
+
+  describe("the shown nodes", () => {
+    // 30 screens, where S0 has the most users and S29 the fewest.
+    const manyNodes = {
+      nodes: Array.from({ length: 30 }, (_, i) => ({
+        ...journeyNode(`S${i}`, i),
+        users: 100 - i,
+      })),
+      links: [{ source: "S0", target: "S1", users: 40 }],
+      sample_percent: 100,
+    };
+    const shownNodes = () =>
+      screen
+        .getByTestId("journey-graph-mock")
+        .getAttribute("data-nodes")!
+        .split(",");
+
+    it("are the 25 nodes with the most users by default", () => {
+      journeyLoaded(manyNodes);
+      renderPage();
+
+      expect(shownNodes()).toHaveLength(25);
+      expect(shownNodes()).toContain("S24");
+      expect(shownNodes()).not.toContain("S25");
+      expect(screen.getByText("25 of 30 nodes")).toBeInTheDocument();
+    });
+
+    it("change with the nodes the user selects and clear the selection", async () => {
+      journeyLoaded(manyNodes);
+      renderPage();
+      await act(async () => {
+        fireEvent.click(screen.getByText("select node"));
+      });
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Select Nodes"));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("option", { name: "S29" }));
+      });
+
+      await waitFor(() => expect(shownNodes()).toContain("S29"));
+      expect(screen.getByText("26 of 30 nodes")).toBeInTheDocument();
+      expect(screen.queryByTestId("selection-details-mock")).toBeNull();
+    });
+
+    it("say so in the graph when the user selects none", async () => {
+      journeyLoaded(manyNodes);
+      renderPage();
+
+      await act(async () => {
+        fireEvent.click(screen.getByText("Select Nodes"));
+      });
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Clear" }));
+      });
+
+      expect(
+        await within(screen.getByTestId("journey-graph-mock")).findByText(
+          "No nodes shown",
+        ),
+      ).toBeInTheDocument();
+    });
+  });
+
+  it("shows the percent of users the journey read", () => {
+    journeyLoaded({ ...mockJourneyData, sample_percent: 2.534 });
+    renderPage();
+
+    expect(screen.getByText("Sampled at: 2.5%")).toBeInTheDocument();
   });
 
   it("refetches for the app the bar switches to", async () => {
@@ -449,10 +542,7 @@ describe("UserJourneys page", () => {
     expect(mockUseJourneyQuery).toHaveBeenLastCalledWith(
       expect.objectContaining({ appId: mockOtherApp.id, filterExpr: null }),
     );
-    expect(screen.getByTestId("journey-mock-Paths")).toHaveAttribute(
-      "data-app",
-      mockOtherApp.id,
-    );
+    expect(screen.getByTestId("journey-graph-mock")).toBeInTheDocument();
   });
 
   describe("when the journey request fails", () => {
@@ -460,8 +550,11 @@ describe("UserJourneys page", () => {
       journeyFailed(new Error("fail"));
       renderPage();
 
-      expect(screen.getByText(/Error fetching journey/)).toBeInTheDocument();
-      expect(screen.queryByTestId("journey-mock-Paths")).toBeNull();
+      expect(
+        within(screen.getByTestId("journey-graph-mock")).getByText(
+          /Error fetching journey/,
+        ),
+      ).toBeInTheDocument();
       expect(screen.getByTestId("filter-bar-issues")).toHaveTextContent("none");
     });
 
@@ -478,7 +571,7 @@ describe("UserJourneys page", () => {
         'Unknown key "os_name"',
       );
       expect(screen.queryByText(/Error fetching journey/)).toBeNull();
-      expect(screen.queryByTestId("journey-mock-Paths")).toBeNull();
+      expect(screen.queryByTestId("journey-graph-mock")).toBeNull();
     });
   });
 
@@ -497,7 +590,7 @@ describe("UserJourneys page", () => {
           "Error fetching apps, please refresh page to try again",
         ),
       ).toBeInTheDocument();
-      expect(screen.queryByTestId("journey-mock-Paths")).toBeNull();
+      expect(screen.queryByTestId("journey-graph-mock")).toBeNull();
     });
 
     it("stops the page fetching anything", () => {

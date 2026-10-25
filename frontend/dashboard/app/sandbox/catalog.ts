@@ -544,20 +544,6 @@ export type HttpSample = {
   attribute: SessionAttribute;
 };
 
-export type JourneyNode = {
-  id: string;
-  issues: {
-    anrs: { id: string; title: string; count: number }[];
-    crashes: { id: string; title: string; count: number }[];
-  };
-};
-
-export type Journey = {
-  links: { source: string; target: string; value: number }[];
-  nodes: JourneyNode[];
-  totalIssues: number;
-};
-
 export type Alert = {
   id: string;
   team_id: string;
@@ -675,7 +661,6 @@ export type AppBundle = {
   rootSpanNames: string[];
   httpSamples: HttpSample[];
   networkEndpoints: Map<string, NetworkEndpointStats>;
-  journey: Journey;
   releases: Release[];
   launchP95: { cold: number; warm: number; hot: number };
   appSizeByVersion: Record<string, number>;
@@ -2631,7 +2616,7 @@ type ScreenStep = {
 // A fragment detached from the activity on screen hands the screen back to
 // that activity, which resumed earlier and so has no event of its own at that
 // moment, unless another screen resumes right after the detach.
-function screenSequence(
+export function screenSequence(
   detail: SessionDetail,
   mainThread: string,
 ): ScreenStep[] {
@@ -2710,34 +2695,6 @@ const UNHANDLED_ERROR_RATE = 0.00286;
 const BUG_REPORTS_PER_DAY_PER_100K_SESSIONS = 1.2;
 
 const REFERENCE_WINDOW_DAYS = 30;
-
-// The share of sessions on a screen that go on to another screen, the rest
-// leaving the app there. Shoppers often leave from a product or their cart,
-// and rarely in the middle of paying.
-const SCREEN_CONTINUE: Record<ScreenKey, number> = {
-  login: 0.92,
-  home: 0.74,
-  products: 0.78,
-  search: 0.72,
-  product_detail: 0.6,
-  cart: 0.68,
-  checkout: 0.84,
-  payment: 0.94,
-  order_confirmation: 0.45,
-  orders: 0.5,
-  profile: 0.6,
-};
-// A host activity or view controller only holds the app's screens.
-const HOST_CONTINUE = 0.95;
-const MAX_CONTINUE = 0.96;
-const CART_SESSION_SHARE = 0.025;
-// The share of sessions on a screen that take the next step of a purchase,
-// kept in line with the step rates of the sandbox funnels.
-const PURCHASE_STEP_RATE: Record<string, number> = {
-  "cart>checkout": 0.38,
-  "checkout>payment": 0.74,
-  "payment>order_confirmation": 0.9,
-};
 
 export function dailyBugReports(app: AppSpec): number {
   return Math.max(
@@ -3265,170 +3222,6 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
     });
   }
 
-  const linkCounts = new Map<string, number>();
-  const nodeIds = new Set<string>();
-  for (const session of built) {
-    const sequence = screenSequence(session.detail, scenario.threadNames.main);
-    sequence.forEach((entry) => nodeIds.add(entry.name));
-    for (let i = 0; i < sequence.length - 1; i++) {
-      const key = `${sequence[i].name}\u0000${sequence[i + 1].name}`;
-      linkCounts.set(key, (linkCounts.get(key) ?? 0) + 1);
-    }
-  }
-  const nodes: JourneyNode[] = Array.from(nodeIds).map((id) => {
-    const issuesOn = (errorType: ErrorGroup["error_type"]) =>
-      errorGroups
-        .filter(
-          (g) =>
-            g.error_type === errorType &&
-            g.severity === "fatal" &&
-            g.screen === id,
-        )
-        .map((g) => ({
-          id: g.id,
-          title: groupTitle(g.type, g.file_name),
-          count: g.count,
-        }));
-    return {
-      id,
-      issues: { crashes: issuesOn("exception"), anrs: issuesOn("anr") },
-    };
-  });
-
-  const sequences = built.map((s) =>
-    screenSequence(s.detail, scenario.threadNames.main),
-  );
-  const reachByNode = new Map(
-    Array.from(nodeIds).map((id) => [
-      id,
-      sequences.filter((sequence) => sequence.some((e) => e.name === id))
-        .length,
-    ]),
-  );
-  const entryNodes = Array.from(nodeIds).map((id) => ({
-    id,
-    weight: sequences.filter((sequence) => sequence[0]?.name === id).length,
-  }));
-  const monthlySessions = Math.round(app.dailySessions * REFERENCE_WINDOW_DAYS);
-  const entryValues = distributeTotal(
-    monthlySessions,
-    entryNodes.map((n) => n.weight),
-  );
-  const inflow = new Map<string, number>(
-    entryNodes.map((n, i) => [n.id, entryValues[i]]),
-  );
-  const outgoingByNode = new Map<
-    string,
-    { target: string; weight: number }[]
-  >();
-  for (const [key, weight] of linkCounts) {
-    const [source, target] = key.split("\u0000");
-    const list = outgoingByNode.get(source) ?? [];
-    list.push({ target, weight });
-    outgoingByNode.set(source, list);
-  }
-  const order: string[] = [];
-  const queued = new Set<string>();
-  for (const entry of entryNodes.filter((n) => n.weight > 0)) {
-    order.push(entry.id);
-    queued.add(entry.id);
-  }
-  for (let i = 0; i < order.length; i++) {
-    for (const edge of outgoingByNode.get(order[i]) ?? []) {
-      if (!queued.has(edge.target)) {
-        queued.add(edge.target);
-        order.push(edge.target);
-      }
-    }
-  }
-  for (const id of nodeIds) {
-    if (!queued.has(id)) {
-      order.push(id);
-      queued.add(id);
-    }
-  }
-  const screenKeyOf = new Map<string, ScreenKey>();
-  for (const spec of scenario.screens) {
-    for (const name of [spec.key, spec.label, spec.className, spec.routeName]) {
-      if (name) {
-        screenKeyOf.set(name, scenario.ui.screens[spec.key]);
-      }
-    }
-  }
-  // Every app sends the same share of its sessions to the cart, which keeps
-  // the purchase screens in line with the sandbox funnels.
-  const isCartEntry = (source: string, target: string) =>
-    screenKeyOf.get(target) === "cart" && screenKeyOf.get(source) !== "cart";
-  const cartEntryWeight = Array.from(outgoingByNode).reduce(
-    (sum, [source, edges]) =>
-      sum +
-      edges
-        .filter((e) => isCartEntry(source, e.target))
-        .reduce((total, e) => total + e.weight, 0),
-    0,
-  );
-  const links: Journey["links"] = [];
-  for (const source of order) {
-    const edges = outgoingByNode.get(source) ?? [];
-    if (edges.length === 0) {
-      continue;
-    }
-    const sourceKey = screenKeyOf.get(source);
-    const jitter = (name: string) =>
-      stableInt(`journeylink:${app.id}:${source}:${name}`, 900, 1100) / 1000;
-    const available = inflow.get(source) ?? 0;
-    const continuing =
-      available *
-      Math.min(
-        MAX_CONTINUE,
-        (sourceKey ? SCREEN_CONTINUE[sourceKey] : HOST_CONTINUE) *
-          jitter("continue"),
-      );
-    // Purchase steps take a fixed share of the sessions. The other screens
-    // split the rest by how often the sample sessions moved to them.
-    const forward = edges.map((e) => {
-      if (isCartEntry(source, e.target)) {
-        return (
-          ((monthlySessions * CART_SESSION_SHARE * e.weight) /
-            cartEntryWeight) *
-          jitter(e.target)
-        );
-      }
-      const targetKey = screenKeyOf.get(e.target);
-      const rate =
-        sourceKey && targetKey
-          ? PURCHASE_STEP_RATE[`${sourceKey}>${targetKey}`]
-          : undefined;
-      return rate === undefined ? null : available * rate * jitter(e.target);
-    });
-    const forwardTotal = forward.reduce<number>((sum, v) => sum + (v ?? 0), 0);
-    const forwardScale =
-      forwardTotal > continuing ? continuing / forwardTotal : 1;
-    const rest = distributeTotal(
-      Math.max(0, Math.round(continuing - forwardTotal)),
-      edges.map((e, i) =>
-        forward[i] === null ? e.weight * jitter(e.target) : 0,
-      ),
-    );
-    edges.forEach((edge, i) => {
-      const value =
-        forward[i] === null ? rest[i] : Math.floor(forward[i]! * forwardScale);
-      links.push({ source, target: edge.target, value });
-      inflow.set(edge.target, (inflow.get(edge.target) ?? 0) + value);
-    });
-  }
-  const journey: Journey = {
-    links,
-    nodes,
-    totalIssues: nodes.reduce(
-      (sum, node) =>
-        sum +
-        node.issues.crashes.reduce((a, i) => a + i.count, 0) +
-        node.issues.anrs.reduce((a, i) => a + i.count, 0),
-      0,
-    ),
-  };
-
   function launchPercentile(kind: "cold" | "warm" | "hot"): number {
     const durations = built
       .map((s) =>
@@ -3623,7 +3416,6 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
     rootSpanNames,
     httpSamples,
     networkEndpoints,
-    journey,
     releases,
     launchP95,
     appSizeByVersion,

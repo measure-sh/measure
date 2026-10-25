@@ -375,13 +375,20 @@ paths:
       operationId: getAppJourney
       tags:
         - Apps
-      summary: Fetch an app's issue journey map
+      summary: Fetch an app's journey
       description: |
-        Fetch an app's issue journey map, optionally narrowed by a filter
-        expression. Filter time range using `from` & `to` query string
-        parameters.
+        Returns the screens and custom events users went through, as a graph of nodes and the links between them.
+
+        - Users are counted by installation id, and each counts once towards a node and once towards a link, however many times or sessions they reached it.
+        - A step is a screen or a custom event. Several events in a row for one screen or custom event count as one step.
+        - A session that ends in a fatal crash, ANR or an app hang that killed the app ends in the node of kind `fatal`, and the steps after that error are left out.
+        - A link counts the users that moved from its source to its target in the same session at least once.
+        - The 500 nodes reached by the most users are returned, along with the node of kind `fatal`. The `max_links` links between those nodes taken by the most users are returned, along with every link to the node of kind `fatal`.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. The more events the range has, the smaller the share of installations sampled.
+        - `sample_percent` is the percent of the app's installations in the sample, or null when the query found no rows.
       parameters:
-        - name: id
+        - &journeyAppId
+          name: id
           in: path
           required: true
           description: App's UUID.
@@ -391,12 +398,15 @@ paths:
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/FilterExpr"
-        - name: bigraph
+        - name: max_links
           in: query
           required: false
-          description: Choose journey's directionality. `1` or `true` keeps both directions of a transition. Default is `0`, a unidirectional graph.
+          description: Number of links to return, from 1 to 5000. Defaults to 5000. Links to the node of kind `fatal` are returned in addition.
           schema:
-            type: string
+            type: integer
+            minimum: 1
+            maximum: 5000
+            default: 5000
       responses:
         "200":
           description: Successful response, no errors.
@@ -404,9 +414,51 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - nodes
+                  - links
+                  - sample_percent
                 properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
+                  nodes:
+                    type: array
+                    description: Nodes in order of their step.
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: The kind, a colon and the name, such as `screen:MainActivity` or `event:add_to_cart`. The id of the fatal error node is `fatal`.
+                        name:
+                          type: string
+                          description: Screen name, custom event name, or `Fatal error`.
+                        kind:
+                          type: string
+                          enum:
+                            - screen
+                            - event
+                            - fatal
+                        step:
+                          type: integer
+                          description: Median step at which users first reached the node in a session, counting the first step as 0.
+                        users:
+                          type: integer
+                          description: Users that reached the node.
+                        continuing:
+                          type: integer
+                          description: Users that went on from the node to another step of the same session at least once.
+                        median_ms_from_previous:
+                          type:
+                            - number
+                            - "null"
+                          description: Median time from the previous step in milliseconds. Null when the node was only ever a first step.
                   links:
                     type: array
+                    description: Links with the most users first.
                     items:
                       type: object
                       properties:
@@ -414,65 +466,470 @@ paths:
                           type: string
                         target:
                           type: string
-                        value:
-                          type: number
-                  nodes:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        issues:
-                          type: object
-                          properties:
-                            anrs:
-                              type: array
-                              items:
-                                type: object
-                                additionalProperties: true
-                            crashes:
-                              type: array
-                              items:
-                                type: object
-                                properties:
-                                  id:
-                                    type: string
-                                  title:
-                                    type: string
-                                  count:
-                                    type: number
-                  totalIssues:
-                    type: number
-              examples:
-                response:
-                  value:
-                    links:
-                      - source: au.com.shiftyjelly.pocketcasts.ui.MainActivity
-                        target: au.com.shiftyjelly.pocketcasts.player.view.PlayerContainerFragment
-                        value: 4
-                      - source: au.com.shiftyjelly.pocketcasts.account.onboarding.OnboardingActivity
-                        target: au.com.shiftyjelly.pocketcasts.ui.MainActivity
-                        value: 1
-                    nodes:
-                      - id: au.com.shiftyjelly.pocketcasts.ui.MainActivity
-                        issues:
-                          anrs: []
-                          crashes: []
-                      - id: au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment
-                        issues:
-                          anrs: []
-                          crashes:
-                            - id: 018f5c68-6fe0-75c9-81ba-b36871c8b5fa
-                              title: java.lang.IllegalStateException
-                              count: 18
-                    totalIssues: 30
+                        users:
+                          type: integer
+              example:
+                sample_percent: 100
+                nodes:
+                  - id: screen:MainActivity
+                    name: MainActivity
+                    kind: screen
+                    step: 0
+                    users: 1200
+                    continuing: 1100
+                    median_ms_from_previous: null
+                  - id: event:add_to_cart
+                    name: add_to_cart
+                    kind: event
+                    step: 2
+                    users: 430
+                    continuing: 400
+                    median_ms_from_previous: 5300
+                  - id: fatal
+                    name: Fatal error
+                    kind: fatal
+                    step: 3
+                    users: 12
+                    continuing: 0
+                    median_ms_from_previous: 2100
+                links:
+                  - source: screen:MainActivity
+                    target: event:add_to_cart
+                    users: 410
+                  - source: event:add_to_cart
+                    target: fatal
+                    users: 9
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
           description: Either the user's access token is invalid or has expired.
         "403":
           description: Requester does not have access to this resource.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/journey/path:
+    get:
+      operationId: getAppJourneyPathUsers
+      tags:
+        - Apps
+      summary: Fetch the users that went through a journey path
+      description: |
+        Returns how many users went through a path of two or more nodes of the journey in one or more sessions. A session goes through a path when its steps include the path's nodes one after another.
+
+        - Counts come from a sample of the app's installations and are scaled up to all installations. The more events the range has, the smaller the share of installations sampled. Pass the journey's `sample_percent` as `sample_percent` to read the same installations as the journey.
+      parameters:
+        - *journeyAppId
+        - name: path
+          in: query
+          required: true
+          description: The ids of the nodes of the path, in order. Give one parameter for each node, and two or more nodes.
+          schema:
+            type: array
+            minItems: 2
+            items:
+              type: string
+          style: form
+          explode: true
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/JourneySamplePercent"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - users
+                  - sample_percent
+                properties:
+                  users:
+                    type: integer
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
+              example:
+                users: 37
+                sample_percent: 100
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/journey/errors:
+    get:
+      operationId: getAppJourneyErrors
+      tags:
+        - Apps
+      summary: Fetch errors of a journey node, link or path
+      description: |
+        Returns the error groups of the errors that happened during a node, a link or a path of the journey. The groups that the most users hit come first.
+
+        - A node covers the time from reaching it until the session's next step, or until the session ends after its last step.
+        - A link or a path covers the time from its first node to its last node, each time a session goes through it.
+        - Pass `node`, or `source` and `target`, or two or more `path` parameters.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. Pass the journey's `sample_percent` as `sample_percent` to read the same installations as the journey.
+      parameters:
+        - *journeyAppId
+        - $ref: "#/components/parameters/JourneyNode"
+        - $ref: "#/components/parameters/JourneySource"
+        - $ref: "#/components/parameters/JourneyTarget"
+        - $ref: "#/components/parameters/JourneyPath"
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/JourneySamplePercent"
+        - $ref: "#/components/parameters/FunnelLimit"
+        - $ref: "#/components/parameters/FunnelOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                  - sample_percent
+                properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Error group id.
+                        type:
+                          type: string
+                          description: Exception class or ANR type. Empty for an app hang.
+                        error_type:
+                          type: string
+                          enum:
+                            - exception
+                            - anr
+                            - app_hang
+                        severity:
+                          type: string
+                          description: Empty for an app hang.
+                          enum:
+                            - fatal
+                            - unhandled
+                            - handled
+                            - ""
+                        message:
+                          type: string
+                          description: Empty for an app hang.
+                        method_name:
+                          type: string
+                        file_name:
+                          type: string
+                        count:
+                          type: integer
+                          description: Errors in the group.
+                        users:
+                          type: integer
+                          description: Users that hit the group.
+                  meta: &journeyPageMeta
+                    type: object
+                    required:
+                      - next
+                      - previous
+                    properties:
+                      next:
+                        type: boolean
+                      previous:
+                        type: boolean
+              example:
+                sample_percent: 100
+                results:
+                  - id: 9f2c4e1a7b3d5f60
+                    type: java.lang.IllegalStateException
+                    error_type: exception
+                    severity: fatal
+                    message: Payment sheet is not attached
+                    method_name: onPaymentResult
+                    file_name: CheckoutActivity.kt
+                    count: 42
+                    users: 37
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/journey/traces:
+    get:
+      operationId: getAppJourneyTraces
+      tags:
+        - Apps
+      summary: Fetch traces of a journey node, link or path
+      description: |
+        Returns the root spans that started during a node, a link or a path of the journey, with the quantile of their durations. The span names recorded by the most users come first. The time a node, link or path covers is described under the journey errors.
+
+        - Counts come from a sample of the app's installations and are scaled up to all installations. Pass the journey's `sample_percent` as `sample_percent` to read the same installations as the journey.
+      parameters:
+        - *journeyAppId
+        - $ref: "#/components/parameters/JourneyNode"
+        - $ref: "#/components/parameters/JourneySource"
+        - $ref: "#/components/parameters/JourneyTarget"
+        - $ref: "#/components/parameters/JourneyPath"
+        - $ref: "#/components/parameters/FunnelQuantile"
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/JourneySamplePercent"
+        - $ref: "#/components/parameters/FunnelLimit"
+        - $ref: "#/components/parameters/FunnelOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                  - sample_percent
+                properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        span_name:
+                          type: string
+                        count:
+                          type: integer
+                          description: Spans recorded.
+                        users:
+                          type: integer
+                          description: Users that recorded the span.
+                        duration_ms:
+                          type: number
+                          description: Duration quantile in milliseconds.
+                  meta: *journeyPageMeta
+              example:
+                sample_percent: 100
+                results:
+                  - span_name: checkout.load_payment_methods
+                    count: 820
+                    users: 604
+                    duration_ms: 640
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/journey/network:
+    get:
+      operationId: getAppJourneyNetwork
+      tags:
+        - Apps
+      summary: Fetch network requests of a journey node, link or path
+      description: |
+        Returns the URL patterns of the network requests made during a node, a link or a path of the journey, with the quantile of their latencies. The patterns requested by the most users come first. The time a node, link or path covers is described under the journey errors.
+
+        - A request counts once for each pattern its path matches.
+        - Requests that got no response, and requests that took over a minute, are left out.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. Pass the journey's `sample_percent` as `sample_percent` to read the same installations as the journey.
+      parameters:
+        - *journeyAppId
+        - $ref: "#/components/parameters/JourneyNode"
+        - $ref: "#/components/parameters/JourneySource"
+        - $ref: "#/components/parameters/JourneyTarget"
+        - $ref: "#/components/parameters/JourneyPath"
+        - $ref: "#/components/parameters/FunnelQuantile"
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/JourneySamplePercent"
+        - $ref: "#/components/parameters/FunnelLimit"
+        - $ref: "#/components/parameters/FunnelOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                  - sample_percent
+                properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        domain:
+                          type: string
+                        path_pattern:
+                          type: string
+                        count:
+                          type: integer
+                          description: Requests made.
+                        users:
+                          type: integer
+                          description: Users that made the request.
+                        latency_ms:
+                          type: number
+                          description: Latency quantile in milliseconds.
+                  meta: *journeyPageMeta
+              example:
+                sample_percent: 100
+                results:
+                  - domain: api.example.com
+                    path_pattern: /v1/cart/*
+                    count: 1530
+                    users: 600
+                    latency_ms: 420.25
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/journey/sessions:
+    get:
+      operationId: getAppJourneySessions
+      tags:
+        - Apps
+      summary: Fetch sessions of a journey node, link or path
+      description: |
+        Returns the sessions that reached a node, or went through a link or a path, of the journey. The sessions that did so most recently come first.
+
+        - Only the sessions of a sample of the app's installations are listed. Pass the journey's `sample_percent` as `sample_percent` to list the sessions of the same installations as the journey.
+      parameters:
+        - *journeyAppId
+        - $ref: "#/components/parameters/JourneyNode"
+        - $ref: "#/components/parameters/JourneySource"
+        - $ref: "#/components/parameters/JourneyTarget"
+        - $ref: "#/components/parameters/JourneyPath"
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/JourneySamplePercent"
+        - $ref: "#/components/parameters/FunnelLimit"
+        - $ref: "#/components/parameters/FunnelOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                  - sample_percent
+                properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        session_id:
+                          type: string
+                          format: uuid
+                        installation_id:
+                          type: string
+                          format: uuid
+                        user_id:
+                          type: string
+                          description: The latest user id the app set on the session's screens and custom events. Empty when none was set.
+                        first_event_time:
+                          type: string
+                          format: date-time
+                        duration:
+                          type: integer
+                          description: Session duration in milliseconds.
+                  meta: *journeyPageMeta
+              example:
+                sample_percent: 100
+                results:
+                  - session_id: 8d5a6d39-4c76-43d3-aecd-650e2c36f9c2
+                    installation_id: 1e6f0b2a-9c4d-4a7e-b3f5-62d8c0a9e174
+                    user_id: user-4821
+                    first_event_time: 2026-10-12T14:03:11Z
+                    duration: 184000
+                meta:
+                  next: true
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -7599,6 +8056,38 @@ components:
           values in one condition.
         schema:
           type: string
+    JourneyNode:
+      name: node
+      in: query
+      required: false
+      description: The id of a node of the journey.
+      schema:
+        type: string
+    JourneySource:
+      name: source
+      in: query
+      required: false
+      description: The id of the node where a link of the journey starts. Pass it with `target`.
+      schema:
+        type: string
+    JourneyTarget:
+      name: target
+      in: query
+      required: false
+      description: The id of the node where a link of the journey ends. Pass it with `source`.
+      schema:
+        type: string
+    JourneyPath:
+      name: path
+      in: query
+      required: false
+      description: The ids of the nodes of a path of the journey, in order. Give one parameter for each node, and two or more nodes.
+      schema:
+        type: array
+        items:
+          type: string
+      style: form
+      explode: true
     FunnelStep:
       name: step
       in: query
@@ -7620,6 +8109,15 @@ components:
           - p90
           - p95
           - p99
+    JourneySamplePercent:
+      name: sample_percent
+      in: query
+      required: false
+      description: The `sample_percent` of the journey for the same range and filter, so that the result covers the same installations as the journey. Without it, the query takes a sample of its own, which can cover fewer installations when events were added to the range after the journey was read.
+      schema:
+        type: number
+        exclusiveMinimum: 0
+        maximum: 100
     FunnelSamplePercent:
       name: sample_percent
       in: query

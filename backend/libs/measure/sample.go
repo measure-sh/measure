@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// Funnels read a sample of the analytics_events table. ClickHouse
+// Journeys and funnels read a sample of the analytics_events table. ClickHouse
 // estimates the rows in the query's range and picks the share of the app's
 // installations that gives about the sample's row count, or every
 // installation when the range has fewer rows. A query multiplies its counts
@@ -21,9 +21,11 @@ import (
 const (
 	// analyticsMaxSeconds is the maximum run time of one analytics query.
 	analyticsMaxSeconds = 60
-	// funnelMaxMemoryBytes is the maximum server memory for one funnel
-	// query. A query that needs more memory fails.
-	funnelMaxMemoryBytes = 1 << 30
+	// The maximum server memory for one funnel or journey query. A query that
+	// needs more memory fails. A journey collects the steps of each session
+	// in arrays, so it uses more memory than a funnel for the same rows.
+	funnelMaxMemoryBytes  = 1 << 30
+	journeyMaxMemoryBytes = 2 << 30
 
 	// The memory of a query grows with the rows in the sample. The
 	// _sample_factor column of a row is the number of installations that one

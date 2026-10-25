@@ -52,7 +52,6 @@ describe.each(apps)("catalog: $app.name", (bundle) => {
     bugReports,
     traces,
     rootSpanNames,
-    journey,
   } = bundle;
   const mainThread = scenario.threadNames.main;
   const allEvents = (session: (typeof sessions)[number]) =>
@@ -466,154 +465,6 @@ describe.each(apps)("catalog: $app.name", (bundle) => {
     }
   });
 
-  it("gives every journey node id a screen name present in the app's sessions", () => {
-    expect(journey.nodes.length).toBeGreaterThan(0);
-    expect(journey.links.length).toBeGreaterThan(0);
-    for (const node of journey.nodes) {
-      const seenSomewhere = sessions.some((s) =>
-        allEvents(s).some(
-          (e) =>
-            (e.event_type === "lifecycle_activity" &&
-              e.class_name === node.id) ||
-            (e.event_type === "lifecycle_fragment" &&
-              e.class_name === node.id) ||
-            (e.event_type === "lifecycle_view_controller" &&
-              e.type === "viewDidAppear" &&
-              e.class_name === node.id) ||
-            (e.event_type === "lifecycle_swift_ui" &&
-              e.type === "on_appear" &&
-              e.class_name === node.id) ||
-            (e.event_type === "screen_view" && e.name === node.id),
-        ),
-      );
-      expect(seenSomewhere).toBe(true);
-    }
-  });
-
-  it("never lets a screen pass on more traffic than reached it", () => {
-    const monthlySessions = scenario.app.dailySessions * 30;
-    const sequences = sessions.map((s) =>
-      screenSequence(s.detail.threads[mainThread] ?? []).map((e) => e.name),
-    );
-    const entered = new Map<string, number>();
-    for (const sequence of sequences) {
-      const first = sequence[0];
-      if (first !== undefined) {
-        entered.set(first, (entered.get(first) ?? 0) + 1);
-      }
-    }
-    const entryTotal = Array.from(entered.values()).reduce((a, b) => a + b, 0);
-    const inflow = new Map<string, number>();
-    for (const [name, count] of entered) {
-      inflow.set(name, Math.round((count / entryTotal) * monthlySessions));
-    }
-    for (const link of journey.links) {
-      expect(link.value).toBeGreaterThanOrEqual(0);
-      inflow.set(link.target, (inflow.get(link.target) ?? 0) + link.value);
-    }
-    const outflow = new Map<string, number>();
-    for (const link of journey.links) {
-      outflow.set(link.source, (outflow.get(link.source) ?? 0) + link.value);
-    }
-    for (const [node, out] of outflow) {
-      // The slack covers rounding between the entry counts estimated here and the
-      // ones the journey was split from.
-      expect(out).toBeLessThanOrEqual((inflow.get(node) ?? 0) * 0.98 + 2);
-    }
-    const monthlyEntries = Array.from(entered.keys()).reduce(
-      (sum, name) =>
-        sum +
-        Math.round(((entered.get(name) ?? 0) / entryTotal) * monthlySessions),
-      0,
-    );
-    expect(Math.abs(monthlyEntries - monthlySessions)).toBeLessThanOrEqual(2);
-  });
-
-  it("sends a fixed share of sessions to the cart and on through checkout at the sandbox funnels' step rates", () => {
-    const keyOf = new Map<string, string>();
-    for (const spec of scenario.screens) {
-      for (const name of [
-        spec.key,
-        spec.label,
-        spec.className,
-        spec.routeName,
-      ]) {
-        if (name) {
-          keyOf.set(name, scenario.ui.screens[spec.key]);
-        }
-      }
-    }
-    const into = (target: string, source?: string) =>
-      journey.links
-        .filter(
-          (link) =>
-            keyOf.get(link.target) === target &&
-            (source === undefined
-              ? keyOf.get(link.source) !== target
-              : keyOf.get(link.source) === source),
-        )
-        .reduce((sum, link) => sum + link.value, 0);
-    // Each link varies by up to a tenth between apps and is rounded down to
-    // whole sessions, so the lower bound has extra room.
-    const cartShare = into("cart") / (scenario.app.dailySessions * 30);
-    expect(cartShare).toBeGreaterThan(0.025 * 0.88);
-    expect(cartShare).toBeLessThan(0.025 * 1.1);
-    for (const [source, target, rate] of [
-      ["cart", "checkout", 0.38],
-      ["checkout", "payment", 0.74],
-      ["payment", "order_confirmation", 0.9],
-    ] as const) {
-      const share = into(target, source) / into(source);
-      expect(share).toBeGreaterThan(rate * 0.9);
-      expect(share).toBeLessThan(rate * 1.1);
-    }
-  });
-
-  it("counts only fatal crash and ANR groups as journey issues", () => {
-    const listed = new Set(
-      journey.nodes.flatMap((node) => [
-        ...node.issues.crashes.map((i) => i.id),
-        ...node.issues.anrs.map((i) => i.id),
-      ]),
-    );
-    for (const group of errorGroups) {
-      if (group.severity !== "fatal") {
-        expect(listed.has(group.id)).toBe(false);
-      }
-    }
-    for (const node of journey.nodes) {
-      for (const issue of node.issues.crashes) {
-        const group = errorGroups.find((g) => g.id === issue.id)!;
-        expect(group.error_type).toBe("exception");
-        expect(group.severity).toBe("fatal");
-        expect(group.screen).toBe(node.id);
-        expect(issue.count).toBe(group.count);
-      }
-      for (const issue of node.issues.anrs) {
-        const group = errorGroups.find((g) => g.id === issue.id)!;
-        expect(group.error_type).toBe("anr");
-        expect(issue.count).toBe(group.count);
-      }
-    }
-    const fatalTotal = errorGroups
-      .filter((g) => g.severity === "fatal")
-      .reduce((sum, g) => sum + g.count, 0);
-    expect(journey.totalIssues).toBe(fatalTotal);
-  });
-
-  it("spreads journey traffic across screens rather than through one shell", () => {
-    const appearances = new Map<string, number>();
-    for (const link of journey.links) {
-      for (const node of [link.source, link.target]) {
-        appearances.set(node, (appearances.get(node) ?? 0) + 1);
-      }
-    }
-    // A host activity mistaken for a screen would be an end of nearly every link.
-    for (const count of appearances.values()) {
-      expect(count).toBeLessThan(journey.links.length * 0.6);
-    }
-  });
-
   it("dates every build before the first session on its version and after the app was created, newest version first", () => {
     for (const build of bundle.builds) {
       const versionSessions = sessions.filter(
@@ -941,24 +792,25 @@ describe.each(apps)("sandbox routes agree: $app.name", (bundle) => {
       }
     });
 
-    it("hands the journey the same crash and ANR counts the errors list reports", async () => {
+    it("gives the journey's fatal error node the users the errors list reports for fatal errors", async () => {
       const journey = await get(`/api/apps/${appId}/journey?${query(range)}`);
       const errors = await get(
         `/api/apps/${appId}/errorGroups?${query(range, { limit: "50", offset: "0" })}`,
       );
-      const byId = new Map<string, number>(
-        errors.results.map((g: any) => [g.id, g.count]),
+      const fatalUsers = errors.results
+        .filter((g: any) => g.severity === "fatal")
+        .reduce((sum: number, g: any) => sum + g.users, 0);
+      const fatal = journey.nodes.filter((n: any) => n.kind === "fatal");
+      expect(fatal).toHaveLength(1);
+      expect(Math.abs(fatal[0].users - fatalUsers)).toBeLessThanOrEqual(1);
+      expect(fatal[0].continuing).toBe(0);
+      const intoFatal = journey.links
+        .filter((l: any) => l.target === fatal[0].id)
+        .reduce((sum: number, l: any) => sum + l.users, 0);
+      // Each link into the fatal node is rounded to whole users.
+      expect(Math.abs(intoFatal - fatal[0].users)).toBeLessThanOrEqual(
+        journey.links.length,
       );
-      let issues = 0;
-      for (const node of journey.nodes) {
-        for (const issue of [...node.issues.crashes, ...node.issues.anrs]) {
-          expect(
-            Math.abs(issue.count - (byId.get(issue.id) ?? -1)),
-          ).toBeLessThanOrEqual(1);
-          issues += issue.count;
-        }
-      }
-      expect(journey.totalIssues).toBe(issues);
     });
 
     it("gives every root span a reading in every bucket with its percentiles in order", async () => {
@@ -1135,11 +987,6 @@ describe.each(apps)("sandbox routes agree: $app.name", (bundle) => {
     expect(share).toBeLessThan(1);
     const metrics = await get(`/api/apps/${appId}/metrics?${filtered}`);
     expect(metrics.adoption.adoption / 100).toBeCloseTo(share, 2);
-    const journeyAll = await get(`/api/apps/${appId}/journey?${all}`);
-    const journeyOne = await get(`/api/apps/${appId}/journey?${filtered}`);
-    const linkTotal = (j: any) =>
-      j.links.reduce((sum: number, l: any) => sum + l.value, 0);
-    expect(linkTotal(journeyOne) / linkTotal(journeyAll)).toBeCloseTo(share, 2);
     const health = await get(
       `/api/apps/${appId}/health/plots/instances?${filtered}`,
     );

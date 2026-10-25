@@ -133,7 +133,7 @@ describe("AppBreadcrumbs", () => {
       );
     });
 
-    it("shows a sampling-info tooltip on the journeys section", async () => {
+    it("shows a journeys docs tooltip on the journeys section", async () => {
       mockPathname = "/team-123/journeys";
       render(<AppBreadcrumbs />);
       const trigger = document.querySelector(
@@ -149,11 +149,11 @@ describe("AppBreadcrumbs", () => {
         return el as HTMLElement;
       });
       expect(content.textContent).toContain(
-        "Journeys are approximated based on sampled journey events",
+        "Journeys are built from screen views and custom events",
       );
       expect(content.querySelector("a")).toHaveAttribute(
         "href",
-        "/docs/adaptive-capture#journey-sampling",
+        "/docs/journeys",
       );
     });
 
