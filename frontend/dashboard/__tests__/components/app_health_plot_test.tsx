@@ -138,6 +138,25 @@ describe("AppHealthPlot", () => {
     expect(container.textContent).toContain("Crashes - 2");
   });
 
+  it("colors app hangs like ANRs", () => {
+    render(
+      <AppHealthPlot
+        {...plotDates}
+        status="success"
+        plot={[
+          {
+            id: "App Hangs",
+            data: [{ id: "h1", x: "2026-02-01T01:00:00", y: 3 }],
+          },
+        ]}
+      />,
+    );
+
+    const appHangsColor = lastLineProps.colors({ id: "App Hangs" });
+    expect(appHangsColor).not.toBe("#888");
+    expect(appHangsColor).toBe(lastLineProps.colors({ id: "ANRs" }));
+  });
+
   it("uses fallback color for unknown series id", () => {
     render(
       <AppHealthPlot

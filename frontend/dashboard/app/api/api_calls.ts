@@ -211,6 +211,12 @@ export const emptyMetrics = {
     no_data: false,
     unselected_no_data: false,
   },
+  app_hang_free_sessions: null as {
+    app_hang_free_sessions: number;
+    unselected_app_hang_free_sessions: number;
+    no_data: boolean;
+    unselected_no_data: boolean;
+  } | null,
   cold_launch: {
     p95: 0,
     unselected_p95: 0,
@@ -868,13 +874,14 @@ export const fetchAppHealthPlotFromServer = async (
     return null;
   }
 
-  // The server returns three sparse series keyed by id: "sessions", "crashes"
-  // and "anrs", each with { datetime, instances } points. Collapse each into a
-  // date -> count map.
+  // The server returns four sparse series keyed by id: "sessions", "crashes",
+  // "anrs" and "app_hangs", each with { datetime, instances } points. Collapse
+  // each into a date -> count map.
   const dateMaps: Record<string, Record<string, number>> = {
     sessions: {},
     crashes: {},
     anrs: {},
+    app_hangs: {},
   };
   for (const series of data || []) {
     const dateMap = dateMaps[series.id];
@@ -887,12 +894,13 @@ export const fetchAppHealthPlotFromServer = async (
     }
   }
 
-  // Align all three series on the same sorted set of dates, zero-filling gaps.
+  // Align all four series on the same sorted set of dates, zero-filling gaps.
   const allDates = Array.from(
     new Set([
       ...Object.keys(dateMaps.sessions),
       ...Object.keys(dateMaps.crashes),
       ...Object.keys(dateMaps.anrs),
+      ...Object.keys(dateMaps.app_hangs),
     ]),
   ).sort();
 
@@ -911,6 +919,7 @@ export const fetchAppHealthPlotFromServer = async (
     buildSeries("Sessions", dateMaps.sessions),
     buildSeries("Crashes", dateMaps.crashes),
     buildSeries("ANRs", dateMaps.anrs),
+    buildSeries("App Hangs", dateMaps.app_hangs),
   ];
 
   // If all the series are empty, there is nothing to plot.
@@ -918,9 +927,9 @@ export const fetchAppHealthPlotFromServer = async (
     return null;
   }
 
-  // Remove ANRs if all y values are 0
+  // Remove ANRs and app hangs if all y values are 0
   const filteredResult = result.filter((series) => {
-    if (series.id === "ANRs") {
+    if (series.id === "ANRs" || series.id === "App Hangs") {
       return series.data.some((point) => point.y !== 0);
     }
     return true;

@@ -1005,16 +1005,17 @@ func TestCreateBugReportAlerts(t *testing.T) {
 //
 //	[0] Sessions
 //	[1] Crash-free sessions
-//	[2] ANR-free sessions
+//	[2] ANR-free sessions (only present when either day recorded an ANR)
+//	[2] App-hang-free sessions (only present when either day recorded an app hang)
 //	[3] Cold launch p95
 //	[4] Warm launch p95
 //	[5] Hot launch p95
 //	[6] Bug reports (only present when count > 0)
 //
 // card returns the summary card carrying the given label. Cards for ANR free
-// sessions and bug reports are only included on days that have something to
-// report, so a card's position in the slice is not fixed and the label is the
-// only reliable way to find it.
+// sessions, app hang free sessions and bug reports are only included on days
+// that have something to report, so a card's position in the slice is not
+// fixed and the label is the only reliable way to find it.
 func card(t *testing.T, metrics []email.MetricData, label string) email.MetricData {
 	t.Helper()
 	for _, metric := range metrics {
@@ -1735,6 +1736,118 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		}
 		if card(t, metrics, "ANR free sessions").Subtitle != "No change from yesterday" {
 			t.Errorf("anr-free subtitle: want %q, got %q", "No change from yesterday", card(t, metrics, "ANR free sessions").Subtitle)
+		}
+	})
+
+	// ---------- App-hang-free sessions ----------
+
+	seedAppHangs := func(ctx context.Context, t *testing.T, teamID, appID string, count int, row testinfra.EventRow) {
+		t.Helper()
+		row.Type = "app_hang"
+		th.SeedEventRows(ctx, t, teamID, appID, count, row)
+	}
+
+	t.Run("app-hang-free: card is absent when neither day recorded an app hang", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		th.SeedTeam(ctx, t, teamID, "T")
+		th.SeedApp(ctx, t, appID, teamID, "A", 30)
+
+		now := time.Now().UTC()
+		th.SeedAppMetrics(ctx, t, teamID, appID, now.Add(-25*time.Hour), 10, 0, 0)
+		th.SeedAppMetrics(ctx, t, teamID, appID, now, 10, 0, 0)
+
+		app := makeApp(teamID, appID)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if hasCard(metrics, "App hang free sessions") {
+			t.Errorf("app-hang-free card should be absent, got cards %v", cardLabels(metrics))
+		}
+	})
+
+	t.Run("app-hang-free: card follows the crash card and compares against yesterday", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		th.SeedTeam(ctx, t, teamID, "T")
+		th.SeedApp(ctx, t, appID, teamID, "A", 30)
+
+		now := time.Now().UTC()
+		yesterday := now.Add(-25 * time.Hour)
+		// Yesterday: 10 sessions, 1 with an app hang → 90% app-hang-free
+		th.SeedAppMetrics(ctx, t, teamID, appID, yesterday, 9, 0, 0)
+		seedAppHangs(ctx, t, teamID, appID, 1, testinfra.EventRow{Timestamp: yesterday})
+		// Today: 20 sessions, 1 with an app hang → 95% app-hang-free
+		th.SeedAppMetrics(ctx, t, teamID, appID, now, 19, 0, 0)
+		seedAppHangs(ctx, t, teamID, appID, 1, testinfra.EventRow{Timestamp: now})
+
+		app := makeApp(teamID, appID)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		labels := cardLabels(metrics)
+		if len(labels) < 3 || labels[1] != "Crash free sessions" || labels[2] != "App hang free sessions" {
+			t.Errorf("cards = %v, want the app hang card right after the crash card", labels)
+		}
+		if hasCard(metrics, "ANR free sessions") {
+			t.Errorf("anr-free card should be absent, got cards %v", labels)
+		}
+		appHangFree := card(t, metrics, "App hang free sessions")
+		if appHangFree.Value != "95%" {
+			t.Errorf("app-hang-free value: want %q, got %q", "95%", appHangFree.Value)
+		}
+		if appHangFree.Subtitle != "Up from 90% yesterday" {
+			t.Errorf("app-hang-free subtitle: want %q, got %q", "Up from 90% yesterday", appHangFree.Subtitle)
+		}
+		// 95 <= 95 → warning; 95 > 85 → no error
+		if !appHangFree.HasWarning || appHangFree.HasError {
+			t.Errorf("app-hang-free = %+v, want a warning without an error", appHangFree)
+		}
+	})
+
+	t.Run("app-hang-free: killed and recovered app hangs in one session count once", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		th.SeedTeam(ctx, t, teamID, "T")
+		th.SeedApp(ctx, t, appID, teamID, "A", 30)
+
+		now := time.Now().UTC()
+		session := uuid.NewString()
+		// 3 plain sessions and 1 session with a killed and a recovered app hang
+		// → 4 sessions, 1 with an app hang → 75% app-hang-free
+		th.SeedAppMetrics(ctx, t, teamID, appID, now, 3, 0, 0)
+		seedAppHangs(ctx, t, teamID, appID, 1, testinfra.EventRow{AppHangState: "killed", SessionID: session, Timestamp: now})
+		seedAppHangs(ctx, t, teamID, appID, 1, testinfra.EventRow{AppHangState: "recovered", SessionID: session, Timestamp: now})
+
+		app := makeApp(teamID, appID)
+		metrics, _, err := getDailySummaryMetrics(ctx, now, &app)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		appHangFree := card(t, metrics, "App hang free sessions")
+		if appHangFree.Value != "75%" {
+			t.Errorf("app-hang-free value: want %q, got %q", "75%", appHangFree.Value)
+		}
+		if appHangFree.Subtitle != "No previous day data" {
+			t.Errorf("app-hang-free subtitle: want %q, got %q", "No previous day data", appHangFree.Subtitle)
+		}
+		// 75 <= 85 → error
+		if !appHangFree.HasError {
+			t.Error("app-hang-free should have an error at 75%")
 		}
 	})
 

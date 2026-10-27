@@ -84,7 +84,7 @@ func TestGetIssueFreeMetricsExcludesHandled(t *testing.T) {
 
 	flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "version_name:in:v1 AND version_code:in:1")
 
-	crashFree, _, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, flt)
+	crashFree, _, _, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetIssueFreeMetrics: %v", err)
 	}

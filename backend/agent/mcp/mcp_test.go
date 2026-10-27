@@ -2921,6 +2921,7 @@ func TestMCPGetAppHealthOverTime(t *testing.T) {
 		ts := now.Add(-1 * time.Hour)
 		// 5 plain sessions, 2 crash sessions (legacy fatal), 1 ANR session.
 		seedAppMetrics(ctx, t, teamID.String(), appID.String(), ts, 5, 2, 1)
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 2, testinfra.EventRow{Type: "app_hang", AppVersion: "v1", AppBuild: "1", Timestamp: ts})
 
 		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
@@ -2952,19 +2953,22 @@ func TestMCPGetAppHealthOverTime(t *testing.T) {
 			return total
 		}
 
-		for _, series := range []string{"sessions", "crashes", "anrs"} {
+		for _, series := range []string{"sessions", "crashes", "anrs", "app_hangs"} {
 			if _, ok := result[series]; !ok {
 				t.Errorf("response missing %q series", series)
 			}
 		}
-		if got := sumInstances("sessions"); got != 8 {
-			t.Errorf("sessions = %d, want 8 (5 generic + 2 crash + 1 anr)", got)
+		if got := sumInstances("sessions"); got != 10 {
+			t.Errorf("sessions = %d, want 10 (5 generic + 2 crash + 1 anr + 2 app hang)", got)
 		}
 		if got := sumInstances("crashes"); got != 2 {
 			t.Errorf("crashes = %d, want 2", got)
 		}
 		if got := sumInstances("anrs"); got != 1 {
 			t.Errorf("anrs = %d, want 1", got)
+		}
+		if got := sumInstances("app_hangs"); got != 2 {
+			t.Errorf("app_hangs = %d, want 2", got)
 		}
 	})
 
@@ -3026,7 +3030,7 @@ func TestMCPGetAppHealthOverTime(t *testing.T) {
 		if err := json.Unmarshal([]byte(content), &result); err != nil {
 			t.Fatalf("response is not the expected JSON object: %v\ncontent: %s", err, content)
 		}
-		for _, series := range []string{"sessions", "crashes", "anrs"} {
+		for _, series := range []string{"sessions", "crashes", "anrs", "app_hangs"} {
 			if len(result[series]) != 0 {
 				t.Errorf("%s = %v, want nothing for an unseeded version", series, result[series])
 			}
@@ -4041,6 +4045,69 @@ func TestMCPGetMetrics(t *testing.T) {
 		}
 		if result.Adoption.SelectedVersion != 3 || result.Adoption.AllVersions != 4 || result.Adoption.Adoption != 75 {
 			t.Errorf("adoption = %+v, want 3 of 4 at 75%%", result.Adoption)
+		}
+	})
+
+	getAppHangMetrics := func(t *testing.T, email, osName string) map[string]json.RawMessage {
+		t.Helper()
+		teamID, appID, rawToken := setupMetricsApp(t, email)
+		if _, err := th.PgPool.Exec(ctx, "UPDATE apps SET os_names = $1 WHERE id = $2", []string{osName}, appID); err != nil {
+			t.Fatalf("set os_names: %v", err)
+		}
+
+		now := time.Now().UTC()
+		ts := now.Add(-time.Hour)
+		// Three sessions of which one saw an app hang.
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 2, testinfra.EventRow{AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{Type: "app_hang", AppHangState: "killed", AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+
+		resp := callMCPTool(t, rawToken, "get_metrics", map[string]any{
+			"app_id": appID.String(),
+			"from":   now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
+			"to":     now.Format(time.RFC3339),
+		})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+
+		var result map[string]json.RawMessage
+		content := extractTextContent(t, resp)
+		if err := json.Unmarshal([]byte(content), &result); err != nil {
+			t.Fatalf("response is not JSON object: %v\ncontent: %s", err, content)
+		}
+		return result
+	}
+
+	t.Run("an iOS app reports app hang free sessions", func(t *testing.T) {
+		result := getAppHangMetrics(t, "metios@mcp.test", "ios")
+
+		var appHangFree struct {
+			AppHangFreeSessions float64 `json:"app_hang_free_sessions"`
+			NoData              bool    `json:"no_data"`
+			UnselectedNoData    bool    `json:"unselected_no_data"`
+		}
+		if err := json.Unmarshal(result["app_hang_free_sessions"], &appHangFree); err != nil {
+			t.Fatalf("unmarshal app_hang_free_sessions: %v", err)
+		}
+		if want := 66.67; appHangFree.AppHangFreeSessions != want || appHangFree.NoData {
+			t.Errorf("app_hang_free_sessions = %+v, want %v", appHangFree, want)
+		}
+		if !appHangFree.UnselectedNoData {
+			t.Error("unselected_no_data = false, want true")
+		}
+		if _, ok := result["anr_free_sessions"]; ok {
+			t.Error("anr_free_sessions is present, want it absent for an iOS app")
+		}
+	})
+
+	t.Run("an Android app has no app hang free sessions", func(t *testing.T) {
+		result := getAppHangMetrics(t, "metandroid@mcp.test", "android")
+
+		if _, ok := result["app_hang_free_sessions"]; ok {
+			t.Error("app_hang_free_sessions is present, want it absent for an Android app")
+		}
+		if _, ok := result["anr_free_sessions"]; !ok {
+			t.Error("anr_free_sessions is absent, want it present for an Android app")
 		}
 	})
 }

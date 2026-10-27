@@ -1321,14 +1321,15 @@ func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, rch driver.Co
 	return size, nil
 }
 
-// GetIssueFreeMetrics computes crash and anr free sessions
-// percentage for the selected app versions and, separately,
-// for the unselected app versions.
+// GetIssueFreeMetrics computes crash, anr and app hang free
+// sessions percentage for the selected app versions and,
+// separately, for the unselected app versions.
 //
 // - Crash free sessions
 // - Perceived crash free sessions
 // - ANR free sessions
 // - Perceived ANR free sessions
+// - App hang free sessions
 func (a App) GetIssueFreeMetrics(
 	ctx context.Context,
 	rch driver.Conn,
@@ -1338,6 +1339,7 @@ func (a App) GetIssueFreeMetrics(
 	perceivedCrashFree *metrics.PerceivedCrashFreeSession,
 	anrFree *metrics.ANRFreeSession,
 	perceivedANRFree *metrics.PerceivedANRFreeSession,
+	appHangFree *metrics.AppHangFreeSession,
 	err error,
 ) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
@@ -1348,6 +1350,8 @@ func (a App) GetIssueFreeMetrics(
 	case opsys.Android:
 		anrFree = &metrics.ANRFreeSession{}
 		perceivedANRFree = &metrics.PerceivedANRFreeSession{}
+	case opsys.AppleFamily:
+		appHangFree = &metrics.AppHangFreeSession{}
 	}
 
 	predicate, err := appMetricsPredicate(flt)
@@ -1365,6 +1369,8 @@ func (a App) GetIssueFreeMetrics(
 	switch a.Family() {
 	case opsys.Android:
 		columns = append(columns, "anr_sessions", "perceived_anr_sessions")
+	case opsys.AppleFamily:
+		columns = append(columns, "app_hang_sessions")
 	}
 
 	for _, column := range columns {
@@ -1388,6 +1394,7 @@ func (a App) GetIssueFreeMetrics(
 		perceivedCrashSelected, perceivedCrashUnselected uint64
 		anrSelected, anrUnselected                       uint64
 		perceivedANRSelected, perceivedANRUnselected     uint64
+		appHangSelected, appHangUnselected               uint64
 	)
 
 	dest := []any{
@@ -1402,6 +1409,8 @@ func (a App) GetIssueFreeMetrics(
 	switch a.Family() {
 	case opsys.Android:
 		dest = append(dest, &anrSelected, &anrUnselected, &perceivedANRSelected, &perceivedANRUnselected)
+	case opsys.AppleFamily:
+		dest = append(dest, &appHangSelected, &appHangUnselected)
 	}
 
 	if err = rch.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(dest...); err != nil {
@@ -1416,6 +1425,8 @@ func (a App) GetIssueFreeMetrics(
 		case opsys.Android:
 			anrFree.ANRFreeSessions = math.NaN()
 			perceivedANRFree.ANRFreeSessions = math.NaN()
+		case opsys.AppleFamily:
+			appHangFree.AppHangFreeSessions = math.NaN()
 		}
 	} else {
 		crashFree.CrashFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(crashSelected) / float64(selected))) * 100)
@@ -1425,6 +1436,8 @@ func (a App) GetIssueFreeMetrics(
 		case opsys.Android:
 			anrFree.ANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(anrSelected) / float64(selected))) * 100)
 			perceivedANRFree.ANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedANRSelected) / float64(selected))) * 100)
+		case opsys.AppleFamily:
+			appHangFree.AppHangFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(appHangSelected) / float64(selected))) * 100)
 		}
 	}
 
@@ -1436,6 +1449,8 @@ func (a App) GetIssueFreeMetrics(
 		case opsys.Android:
 			anrFree.UnselectedANRFreeSessions = math.NaN()
 			perceivedANRFree.UnselectedANRFreeSessions = math.NaN()
+		case opsys.AppleFamily:
+			appHangFree.UnselectedAppHangFreeSessions = math.NaN()
 		}
 	} else {
 		crashFree.UnselectedCrashFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(crashUnselected) / float64(unselected))) * 100)
@@ -1445,6 +1460,8 @@ func (a App) GetIssueFreeMetrics(
 		case opsys.Android:
 			anrFree.UnselectedANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(anrUnselected) / float64(unselected))) * 100)
 			perceivedANRFree.UnselectedANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedANRUnselected) / float64(unselected))) * 100)
+		case opsys.AppleFamily:
+			appHangFree.UnselectedAppHangFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(appHangUnselected) / float64(unselected))) * 100)
 		}
 	}
 
@@ -1455,6 +1472,8 @@ func (a App) GetIssueFreeMetrics(
 	case opsys.Android:
 		anrFree.SetNoData()
 		perceivedANRFree.SetNoData()
+	case opsys.AppleFamily:
+		appHangFree.SetNoData()
 	}
 
 	return

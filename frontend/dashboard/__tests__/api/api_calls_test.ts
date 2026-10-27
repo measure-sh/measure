@@ -562,6 +562,48 @@ describe("fetchAppHealthPlotFromServer", () => {
     expect(r?.map((s: any) => s.id)).toEqual(["Sessions", "Crashes"]);
   });
 
+  it("maps the app hangs series to App Hangs and drops the empty ANRs", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse([
+        { id: "sessions", data: [{ datetime: "2026-01-01", instances: 100 }] },
+        { id: "crashes", data: [{ datetime: "2026-01-01", instances: 10 }] },
+        { id: "anrs", data: [] },
+        { id: "app_hangs", data: [{ datetime: "2026-01-01", instances: 3 }] },
+      ]),
+    );
+    const r = await fetchAppHealthPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      null,
+    );
+    expect(r?.map((s: any) => s.id)).toEqual([
+      "Sessions",
+      "Crashes",
+      "App Hangs",
+    ]);
+    const appHangs = r!.find((s: any) => s.id === "App Hangs");
+    expect(appHangs!.data.map((p: any) => p.y)).toEqual([3]);
+  });
+
+  it("drops the App Hangs series when all app hang values are zero", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse([
+        { id: "sessions", data: [{ datetime: "2026-01-01", instances: 100 }] },
+        { id: "crashes", data: [{ datetime: "2026-01-01", instances: 10 }] },
+        { id: "anrs", data: [] },
+        { id: "app_hangs", data: [{ datetime: "2026-01-01", instances: 0 }] },
+      ]),
+    );
+    const r = await fetchAppHealthPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      null,
+    );
+    expect(r?.map((s: any) => s.id)).toEqual(["Sessions", "Crashes"]);
+  });
+
   it("treats null instances as zero", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
       successResponse([

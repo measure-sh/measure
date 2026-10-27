@@ -41,6 +41,15 @@ type ANRFreeSession struct {
 	UnselectedNoData          bool    `json:"unselected_no_data"`
 }
 
+// AppHangFreeSession represents compute result of an app's
+// app hang free sessions.
+type AppHangFreeSession struct {
+	AppHangFreeSessions           float64 `json:"app_hang_free_sessions"`
+	UnselectedAppHangFreeSessions float64 `json:"unselected_app_hang_free_sessions"`
+	NoData                        bool    `json:"no_data"`
+	UnselectedNoData              bool    `json:"unselected_no_data"`
+}
+
 // PerceivedCrashFreeSesssion represents compute result of an app's
 // perceived crash free sessions.
 type PerceivedCrashFreeSession struct {
@@ -158,6 +167,22 @@ func (afs *ANRFreeSession) SetNoData() {
 	if math.IsNaN(afs.UnselectedANRFreeSessions) {
 		afs.UnselectedNoData = true
 		afs.UnselectedANRFreeSessions = 0
+	}
+}
+
+// SetNoData detects app hang free session values that came out
+// as NaN, which happens when there were no sessions to compute
+// the percentage from, and records them as no-data flags while
+// zeroing the values.
+func (ahfs *AppHangFreeSession) SetNoData() {
+	if math.IsNaN(ahfs.AppHangFreeSessions) {
+		ahfs.NoData = true
+		ahfs.AppHangFreeSessions = 0
+	}
+
+	if math.IsNaN(ahfs.UnselectedAppHangFreeSessions) {
+		ahfs.UnselectedNoData = true
+		ahfs.UnselectedAppHangFreeSessions = 0
 	}
 }
 

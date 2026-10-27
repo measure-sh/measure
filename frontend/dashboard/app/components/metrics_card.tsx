@@ -48,6 +48,7 @@ export type MetricType =
   | "perceived_crash_free_sessions"
   | "anr_free_sessions"
   | "perceived_anr_free_sessions"
+  | "app_hang_free_sessions"
   | "app_start_time"
   | "app_size"
   | "app_adoption";
@@ -96,6 +97,15 @@ export interface PerceivedAnrFreeSessionsProps extends BaseMetricsCardProps {
   errorCautionThreshold: number;
 }
 
+export interface AppHangFreeSessionsProps extends BaseMetricsCardProps {
+  type: "app_hang_free_sessions";
+  value: number;
+  unselectedValue: number;
+  noComparison: boolean;
+  errorGoodThreshold: number;
+  errorCautionThreshold: number;
+}
+
 export interface AppStartTimeProps extends BaseMetricsCardProps {
   type: "app_start_time";
   value: number;
@@ -123,6 +133,7 @@ export type MetricsCardProps =
   | PerceivedCrashFreeSessionsProps
   | AnrFreeSessionsProps
   | PerceivedAnrFreeSessionsProps
+  | AppHangFreeSessionsProps
   | AppStartTimeProps
   | AppSizeProps
   | AppAdoptionProps;
@@ -138,6 +149,8 @@ const getMetricTitle = (type: MetricType, launchType?: string): string => {
       return "ANR free sessions";
     case "perceived_anr_free_sessions":
       return "Perceived ANR free sessions";
+    case "app_hang_free_sessions":
+      return "App hang free sessions";
     case "app_start_time":
       return `App ${launchType?.toLowerCase()} launch time`;
     case "app_size":
@@ -360,11 +373,13 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
       case "perceived_crash_free_sessions":
       case "anr_free_sessions":
       case "perceived_anr_free_sessions":
+      case "app_hang_free_sessions":
         const exceptionProps = props as
           | CrashFreeSessionsProps
           | PerceivedCrashFreeSessionsProps
           | AnrFreeSessionsProps
-          | PerceivedAnrFreeSessionsProps;
+          | PerceivedAnrFreeSessionsProps
+          | AppHangFreeSessionsProps;
         return (
           <>
             <p className={STYLES.text.mainValue}> {exceptionProps.value}%</p>
@@ -440,7 +455,8 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
       | CrashFreeSessionsProps
       | PerceivedCrashFreeSessionsProps
       | AnrFreeSessionsProps
-      | PerceivedAnrFreeSessionsProps;
+      | PerceivedAnrFreeSessionsProps
+      | AppHangFreeSessionsProps;
     switch (type) {
       case "crash_free_sessions":
         return (
@@ -513,6 +529,26 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
               <br />
               Comparison = Perceived ANR free sessions percentage of unselected
               app versions
+            </p>
+            <br />
+            {renderThresholdStatusIcons(
+              exceptionProps.errorGoodThreshold,
+              exceptionProps.errorCautionThreshold,
+            )}
+          </div>
+        );
+
+      case "app_hang_free_sessions":
+        return (
+          <div className={STYLES.text.tooltipContent}>
+            <p>
+              App hang free sessions = (1 - Sessions which experienced an app
+              hang in selected app versions / Total sessions of selected app
+              versions) * 100
+              <br />
+              <br />
+              Comparison = App hang free sessions percentage of unselected app
+              versions
             </p>
             <br />
             {renderThresholdStatusIcons(
@@ -609,6 +645,7 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
         "perceived_crash_free_sessions",
         "anr_free_sessions",
         "perceived_anr_free_sessions",
+        "app_hang_free_sessions",
         "app_start_time",
         "app_size",
       ].includes(type) &&
@@ -623,11 +660,13 @@ const MetricsCard: React.FC<MetricsCardProps> = (props) => {
       case "perceived_crash_free_sessions":
       case "anr_free_sessions":
       case "perceived_anr_free_sessions":
+      case "app_hang_free_sessions":
         const exceptionProps = props as
           | CrashFreeSessionsProps
           | PerceivedCrashFreeSessionsProps
           | AnrFreeSessionsProps
-          | PerceivedAnrFreeSessionsProps;
+          | PerceivedAnrFreeSessionsProps
+          | AppHangFreeSessionsProps;
         return getStatusIcon(
           exceptionProps.value,
           exceptionProps.errorGoodThreshold,

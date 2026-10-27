@@ -9,6 +9,8 @@ import (
 	"backend/libs/filter"
 	"backend/libs/metrics"
 	"backend/testinfra"
+
+	"github.com/google/uuid"
 )
 
 // GetIssueFreeMetrics must compute crash free percentages for the
@@ -28,7 +30,7 @@ func TestGetIssueFreeMetricsUnselected(t *testing.T) {
 
 	flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "version_name:in:v1 AND version_code:in:1")
 
-	crashFree, perceivedCrashFree, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, flt)
+	crashFree, perceivedCrashFree, _, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetIssueFreeMetrics: %v", err)
 	}
@@ -67,7 +69,7 @@ func TestGetIssueFreeMetricsUnselectedNoData(t *testing.T) {
 
 	flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "version_name:in:v1 AND version_code:in:1")
 
-	crashFree, perceivedCrashFree, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, flt)
+	crashFree, perceivedCrashFree, _, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetIssueFreeMetrics: %v", err)
 	}
@@ -97,7 +99,7 @@ func TestGetIssueFreeMetricsWithoutFilterExpr(t *testing.T) {
 
 	flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "")
 
-	crashFree, _, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, flt)
+	crashFree, _, _, _, _, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetIssueFreeMetrics: %v", err)
 	}
@@ -109,6 +111,78 @@ func TestGetIssueFreeMetricsWithoutFilterExpr(t *testing.T) {
 	if !crashFree.UnselectedNoData {
 		t.Error("crashFree.UnselectedNoData = false, want true")
 	}
+}
+
+// GetIssueFreeMetrics must compute app hang free percentages for the
+// selected app versions and, independently, for the unselected ones,
+// counting a session once however many app hangs it saw, killed or
+// recovered. A version with no sessions reports no data.
+func TestGetIssueFreeMetricsAppHangFree(t *testing.T) {
+	f := newPlotFixture(t)
+	f.app.OSNames = []string{"ios"}
+	ts := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
+	team, app := f.teamIDStr(), f.appIDStr()
+	both := uuid.NewString()
+
+	// Selected version v1: 7 plain sessions, 1 killed, 1 recovered, and 1
+	// session with both -> 10 sessions, 3 with an app hang.
+	seedEventRows(f.ctx, t, team, app, 7, testinfra.EventRow{AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+	seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{Type: "app_hang", AppHangState: "killed", AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+	seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{Type: "app_hang", AppHangState: "recovered", AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+	seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{Type: "app_hang", AppHangState: "killed", SessionID: both, AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+	seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{Type: "app_hang", AppHangState: "recovered", SessionID: both, AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+
+	// Unselected version v2: 9 plain sessions and 1 recovered -> 10 sessions, 1 with an app hang.
+	seedEventRows(f.ctx, t, team, app, 9, testinfra.EventRow{AppVersion: "v2", AppBuild: "2", Timestamp: ts})
+	seedEventRows(f.ctx, t, team, app, 1, testinfra.EventRow{Type: "app_hang", AppHangState: "recovered", AppVersion: "v2", AppBuild: "2", Timestamp: ts})
+
+	issueFree := func(t *testing.T, filterExpr string) (*metrics.ANRFreeSession, *metrics.AppHangFreeSession) {
+		t.Helper()
+		flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, filterExpr)
+		_, _, anrFree, _, appHangFree, err := f.app.GetIssueFreeMetrics(f.ctx, deps.RchPool, flt)
+		if err != nil {
+			t.Fatalf("GetIssueFreeMetrics: %v", err)
+		}
+		return anrFree, appHangFree
+	}
+
+	t.Run("selected and unselected versions are computed separately", func(t *testing.T) {
+		_, appHangFree := issueFree(t, "version_name:in:v1 AND version_code:in:1")
+
+		// selected: (1 - 3/10) * 100 = 70, unselected: (1 - 1/10) * 100 = 90.
+		if appHangFree.AppHangFreeSessions != 70 {
+			t.Errorf("appHangFree.AppHangFreeSessions = %v, want 70", appHangFree.AppHangFreeSessions)
+		}
+		if appHangFree.UnselectedAppHangFreeSessions != 90 {
+			t.Errorf("appHangFree.UnselectedAppHangFreeSessions = %v, want 90", appHangFree.UnselectedAppHangFreeSessions)
+		}
+		if appHangFree.NoData || appHangFree.UnselectedNoData {
+			t.Errorf("appHangFree = %+v, want data on both sides", appHangFree)
+		}
+	})
+
+	t.Run("a version without sessions has no data", func(t *testing.T) {
+		_, appHangFree := issueFree(t, "version_name:in:v9")
+
+		if !appHangFree.NoData || appHangFree.AppHangFreeSessions != 0 {
+			t.Errorf("appHangFree = %+v, want no data with a zero value", appHangFree)
+		}
+	})
+
+	t.Run("an Apple app has no ANR free sessions", func(t *testing.T) {
+		if anrFree, _ := issueFree(t, ""); anrFree != nil {
+			t.Errorf("anrFree = %+v, want nil", anrFree)
+		}
+	})
+
+	t.Run("an Android app has no app hang free sessions", func(t *testing.T) {
+		f.app.OSNames = []string{"android"}
+		defer func() { f.app.OSNames = []string{"ios"} }()
+
+		if _, appHangFree := issueFree(t, ""); appHangFree != nil {
+			t.Errorf("appHangFree = %+v, want nil", appHangFree)
+		}
+	})
 }
 
 // Adoption compares the selected versions against every version of the app,

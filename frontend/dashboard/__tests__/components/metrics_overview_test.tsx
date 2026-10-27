@@ -65,6 +65,12 @@ function mockMetricsData() {
       no_data: false,
       unselected_no_data: false,
     },
+    app_hang_free_sessions: null as {
+      app_hang_free_sessions: number;
+      unselected_app_hang_free_sessions: number;
+      no_data: boolean;
+      unselected_no_data: boolean;
+    } | null,
     cold_launch: {
       p95: 923,
       unselected_p95: 987,
@@ -217,6 +223,39 @@ describe("MetricsOverview", () => {
     ).not.toBeInTheDocument();
     expect(
       screen.queryByTestId("metrics-card-perceived_anr_free_sessions"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("renders the app hang free sessions card with the threshold prefs when app_hang_free_sessions is present", () => {
+    const data = mockMetricsData();
+    data.app_hang_free_sessions = {
+      app_hang_free_sessions: 98.4,
+      unselected_app_hang_free_sessions: 97.9,
+      no_data: false,
+      unselected_no_data: false,
+    };
+    render(
+      <MetricsOverview
+        status="success"
+        metrics={data}
+        appThresholdPrefs={appThresholdPrefs}
+      />,
+    );
+    const card = screen.getByTestId("metrics-card-app_hang_free_sessions");
+    expect(card).toHaveAttribute("data-error-good-threshold", "99");
+    expect(card).toHaveAttribute("data-error-caution-threshold", "95");
+  });
+
+  it("does not render the app hang free sessions card when app_hang_free_sessions is null", () => {
+    render(
+      <MetricsOverview
+        status="success"
+        metrics={mockMetricsData()}
+        appThresholdPrefs={appThresholdPrefs}
+      />,
+    );
+    expect(
+      screen.queryByTestId("metrics-card-app_hang_free_sessions"),
     ).not.toBeInTheDocument();
   });
 

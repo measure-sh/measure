@@ -5,6 +5,7 @@ import MetricsCard, {
   AppStartTimeProps,
   CrashFreeSessionsProps,
   PerceivedAnrFreeSessionsProps,
+  AppHangFreeSessionsProps,
   PerceivedCrashFreeSessionsProps,
 } from "@/app/components/metrics_card";
 import "@testing-library/jest-dom";
@@ -150,6 +151,20 @@ describe("MetricsCard", () => {
     noData: false,
     value: 95.5,
     unselectedValue: 96.2,
+    noComparison: false,
+    errorGoodThreshold: 95,
+    errorCautionThreshold: 85,
+    ...overrides,
+  });
+
+  const createAppHangFreeSessionsProps = (
+    overrides = {},
+  ): AppHangFreeSessionsProps => ({
+    type: "app_hang_free_sessions",
+    status: "success" as const,
+    noData: false,
+    value: 97.3,
+    unselectedValue: 96.8,
     noComparison: false,
     errorGoodThreshold: 95,
     errorCautionThreshold: 85,
@@ -464,6 +479,30 @@ describe("MetricsCard", () => {
       expect(
         screen.getByText("Perceived ANR free sessions"),
       ).toBeInTheDocument();
+    });
+  });
+
+  describe("App Hang Free Sessions", () => {
+    it("should render app hang free sessions data correctly", () => {
+      const props = createAppHangFreeSessionsProps();
+      render(<MetricsCard {...props} />);
+
+      expect(screen.getByText("97.3%")).toBeInTheDocument();
+      expect(screen.getByText("96.8%")).toBeInTheDocument();
+      expect(screen.getByText("App hang free sessions")).toBeInTheDocument();
+    });
+
+    it("should apply configurable thresholds for app hang free sessions", () => {
+      const props = createAppHangFreeSessionsProps({
+        value: 90,
+        errorGoodThreshold: 99,
+        errorCautionThreshold: 95,
+      });
+      render(<MetricsCard {...props} />);
+
+      const cardContent = screen.getByTestId("card-content");
+      const errorIcon = within(cardContent).getByTestId("alert-triangle-icon");
+      expect(errorIcon).toHaveClass("text-red-600");
     });
   });
 
