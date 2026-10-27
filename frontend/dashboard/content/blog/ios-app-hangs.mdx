@@ -1,0 +1,212 @@
+---
+title: "App Hangs on iOS: How We Detect Them and How to Diagnose Them in Production"
+description: "How the Measure iOS SDK detects app hangs and reports the ones that end with iOS killing the app. Covers what detection costs and how to debug a hang in production."
+date: "2026-10-27"
+image: /blog/assets/application-not-responding-android-hero.png
+author:
+  name: Abhay Sood
+  avatar: /images/profile_pics/profile_abhay.webp
+tags:
+  - ios
+  - app-hang
+  - performance
+---
+{/* TODO: replace placeholder hero image with /blog/assets/ios-app-hangs-hero.png and update `image:` in the frontmatter */}
+![Hero Image](/blog/assets/application-not-responding-android-hero.png)
+
+An app hang is when the main thread stops responding for long enough that the user notices. The user taps and nothing happens. Sometimes they wait it out. Sometimes they force-quit or iOS kills the app for them.
+
+iOS doesn't raise an error for hangs, so there's nothing like an ANR to collect. When iOS kills a hung app it sends `SIGKILL`. No code in the app can catch that signal, so your crash reporter never sees the kill.
+
+We compared four ways to detect a hang and picked the one that worked best for the Measure iOS SDK. This post covers how the SDK reports hangs that end with iOS killing the app. It also covers what detection costs and how to debug a hang in production.
+
+## What is an app hang?
+
+An app hang is a main thread blocked for longer than a threshold. Measure uses 2 seconds by default. You can set the threshold anywhere from 1 to 30 seconds in the dashboard without shipping a new build.
+
+A hang has no exception and no crash site. All you get is the main thread's stack at the moment the SDK detected the hang. 
+
+Many issues can cause an app hang. Some common ones:
+
+- Synchronous network or disk I/O on the main thread
+- Waiting on a lock or semaphore that another thread holds
+- A `DispatchQueue.main.sync` call that deadlocks
+- Many small blocks queued on the main queue at once
+
+### App hang types
+
+Measure reports two types of app hangs. A recovered hang ends when the main thread starts responding again. A killed hang ends when the app dies while the main thread is still blocked.
+
+| | Recovered | Killed |
+| --- | --- | --- |
+| What happened | The main thread started responding again. | The app died while the main thread was still blocked. The user force-quit or iOS killed the app. |
+| When Measure reports it | As soon as the main thread responds | On the next launch |
+| Duration | How long the main thread was blocked | How long the main thread was blocked before the app died, to within a second |
+
+A killed hang ends the session the same way a crash does.
+
+The same code can cause both types. Take a synchronous network call on the main thread. If the response arrives after 3 seconds, the hang is recovered. If the user gives up and force-quits first, the hang is killed. The type tells you how the hang ended. It doesn't point to different code.
+
+## Ways to detect a hang
+
+Code on the main thread can't detect its own hang. A `Timer` on the main run loop stops firing during the hang for the same reason. Every approach has to watch the main thread from somewhere else. We looked at four.
+
+| Approach | Cost when idle | Stack during the hang | Knows if the app was killed | Main weakness |
+| --- | --- | --- | --- | --- |
+| Frame-based | A callback every frame | Needs a second thread | Needs extra work | No frames looks the same as a hang |
+| MetricKit | None | Sampled by iOS | No | No outcome and no session |
+| Run-loop observer | Near zero | No | Needs extra work | Can miss hangs without any sign |
+| Ping | About 20 wakeups a second | Yes | Yes | Wakes an idle app |
+
+### Frame-based detection
+
+A `CADisplayLink` calls you on the main thread once per screen refresh. That's every 16.7 ms at 60 Hz and every 8.3 ms at 120 Hz. You record the time in each callback. A gap between two frames longer than the threshold means the main thread was blocked.
+
+Display link callbacks also stop when the screen is locked or the app renders to CarPlay. The main thread is idle in those cases. A frame-based detector still reports a hang.
+
+A display link callback can only measure the gap once frames resume. To capture a stack during the hang or catch a killed app you need a second thread that watches the last frame's timestamp. Every other approach needs that second thread too.
+
+### MetricKit
+
+MetricKit detects hangs inside iOS. You register an `MXMetricManagerSubscriber`. After a hang, iOS delivers an `MXHangDiagnostic` with the duration and a sampled call stack tree. No detector runs in your app, so MetricKit costs nothing. On iOS 15 and later iOS delivers diagnostics right away. The once-a-day delay applies to metrics only.
+
+An `MXHangDiagnostic` doesn't tell you whether the app was killed. It also has no session, so you can't see what the user did before the hang. Stack frames arrive as a binary UUID plus an offset and need their own symbolication. MetricKit doesn't run in the simulator either. MetricKit could be a second source later, but it can't be the main detector.
+
+### Run-loop observer
+
+A `CFRunLoopObserver` on the main run loop gets a callback when the loop wakes up and again before the loop goes back to sleep. The callback records the time and signals a watcher thread. If the watcher hears nothing for longer than the threshold, the main thread is stuck on one piece of work.
+
+An idle app pays almost nothing for the observer. Durations are precise too: a 2.5-second block measured 2,501 ms in our prototype.
+
+The observer callback runs on the main thread on every pass through the loop. During a scroll that's hundreds to thousands of calls a second.
+
+Observers also run in order. Work started from an observer that runs after yours is invisible to you. UIKit handles table view selection from its own observer. Another SDK missed hangs in `tableView(_:didSelectRowAt:)` for that reason.
+
+The observer and the watcher thread also share the time the current piece of work started. In our prototype the watcher read that time after the hang ended. By then the main thread had started its next piece of work and overwritten the time. Every hang came out as 0 ms.
+
+### Ping
+
+A background thread sends a block to the main queue with `DispatchQueue.main.async` and waits on a semaphore for the block to run. If the block runs within the threshold, the thread sleeps for a moment and sends another. If the block hasn't run by the threshold, the main queue is stuck and the SDK reports a hang.
+
+![The ping loop: a detector thread sends a block to the main queue and waits up to the threshold. It either sleeps and repeats or reports a hang.](/blog/assets/ios-app-hangs-ping.webp)
+
+Ping doesn't depend on observer order. A single long task and a backlog of short blocks both leave the ping waiting, so ping catches both. The detector thread stays free during the hang. The SDK uses that thread to capture the main thread's stack with KSCrash and update the hang's duration.
+
+Ping has two costs. The detector wakes the main thread about 20 times a second even when the app is idle. Durations also come out slightly short because the main thread can block while the detector sleeps between pings. In our prototype the same 2.5-second block measured 2,488 ms.
+
+The wait between pings controls both costs. A shorter wait gives more accurate durations and more wakeups. We wait 2.5% of the threshold with a 50 ms minimum.
+
+We chose ping for the Measure iOS SDK. Ping catches every kind of main thread block and leaves the detector thread free to capture the stack during the hang.
+
+## Reporting hangs that kill the app
+
+No code runs after iOS kills an app. Anything the SDK hasn't written to disk is gone. So the SDK saves the hang as soon as it detects one. The saved hang has the state killed and a duration equal to the threshold. The SDK holds the hang back from upload until the hang ends.
+
+While the hang continues, the SDK updates the saved duration every second. The hang then ends one of two ways.
+
+- **The main thread recovers.** The SDK sets the final duration and changes the state to recovered. The SDK uploads the hang with the session timeline before it.
+- **iOS kills the app.** On the next launch the SDK finds the unfinished hang and uploads it as killed. The duration is the last value the SDK saved, so it's accurate to within a second.
+
+![The life of a hang: saved as killed and updated every second. It ends as recovered or gets reported as killed on the next launch.](/blog/assets/ios-app-hangs-lifecycle.webp)
+
+## Keeping false positives out
+
+The SDK drops hangs that only look like hangs.
+
+- **30 seconds or longer.** A hang that long is almost always a debugger breakpoint or a suspended app.
+- **The app went to the background.** The SDK stops detection in the background and deletes any hang still in progress. If iOS later kills the suspended app, the kill doesn't show up as a hang. 
+
+Detection keeps running with the debugger attached, so you can test it from Xcode.
+
+## What it costs
+
+| Threshold | Wait between pings | Wakeups per second | Idle CPU |
+| --- | --- | --- | --- |
+| Detection off | – | 1.6 | 0.27% |
+| 1 s (minimum) | 50 ms | 20 | 0.41% |
+| 2 s (default) | 50 ms | 20 | 0.41% |
+
+We measured on an iPhone 17 running iOS 26.6 with the app idle. Every threshold up to 2 seconds uses the 50 ms minimum wait and costs the same. Higher thresholds wait longer between pings and cost less. Capturing a stack takes about 0.5 ms and only happens during a hang.
+
+## Reading an app hang stack trace
+
+Our demo app calls `Thread.sleep` in `application(_:didFinishLaunchingWithOptions:)` to trigger a hang during launch.
+
+```text
+0  libsystem_kernel.dylib  __semwait_signal + 8
+1  libsystem_c.dylib       nanosleep + 216
+2  Foundation              +[NSThread sleepForTimeInterval:] + 152
+3  DemoApp                 AppDelegate.application(_:didFinishLaunchingWithOptions:) + 36
+...
+```
+
+The top three frames are system code with the thread asleep in the kernel. Those frames tell you how the main thread was blocked. The first frame from your own code tells you why. In this stack that's frame 3.
+
+### Why the stack trace can point at the wrong code
+
+The SDK captures the stack when the hang crosses the threshold. For one long task the stack shows that task. When the hang comes from a backlog of short blocks, the stack shows whichever block was running at that moment. That block may not be the one that caused the backlog. If the stacks in a hang group point at different code, compare several reports and check what the app did just before the hang.
+
+## A triage workflow for app hangs
+
+1. **Start with killed hangs.** They end sessions.
+2. **Check the duration.** A hang just over the threshold and a 20-second hang are different problems.
+3. **Find the first frame from your app.** That frame is your lead.
+4. **Check what the main thread was doing.** Sleeping or waiting points to a lock or a synchronous call. Your own code at the top of the stack points to expensive work.
+5. **Compare reports in the group.** A frame that shows up in many reports is a stronger lead than any one report.
+6. **Check the session timeline.** Look at the screen and the last tap before the hang.
+7. **Look for patterns across sessions.** The same screen or the same OS version before most of the hangs is a lead.
+
+## Debugging app hangs with Measure
+
+### Find hangs on the Errors page
+
+Measure groups app hangs by stack trace on the Errors page. Set the Error Type filter to App Hang to see only hangs.
+
+![Measure's Errors page filtered to app hangs, grouped by the method that blocked the main thread.](/blog/assets/ios-app-hangs-errors-page.webp)
+
+Open a group to see the main thread's stack trace for each hang. Each hang shows its duration and whether it was killed or recovered. The State filter narrows the group to killed or recovered hangs.
+
+![An app hang group in Measure with the Recovered pill, the duration and the main thread's stack trace.](/blog/assets/ios-app-hangs-error-details.webp)
+
+### Check what happened before the hang
+
+Open the session replay from any hang to see what the user did before it. The hang shows up in the session timeline with its duration and stack trace.
+
+![Measure's session replay for a killed app hang with the hang's duration and stack trace.](/blog/assets/ios-app-hangs-session-timeline.webp)
+
+## FAQs
+
+### What is an app hang on iOS?
+
+An app hang is a main thread blocked long enough that the app stops responding. iOS doesn't report hangs as errors. Measure reports hangs of 1 second or longer and uses 2 seconds by default.
+
+### How is an app hang different from an ANR?
+
+Android raises an ANR when an app misses a system timeout and can show the user a dialog. iOS has no equivalent error or dialog. A hung iOS app stays frozen until the main thread recovers or the app dies. Hangs only get reported if code in the app detects them.
+
+### Can MetricKit detect app hangs on its own?
+
+MetricKit reports hangs with a duration and a sampled stack. An `MXHangDiagnostic` doesn't say whether the app was killed and has no session to tie the hang to. MetricKit also doesn't run in the simulator.
+
+### Does hang detection slow down my app?
+
+At the default threshold idle CPU use goes from 0.27% to 0.41%. Capturing a stack takes about 0.5 ms and only happens during a hang. The SDK stops detection in the background. See [What it costs](#what-it-costs).
+
+### Why doesn't my hang's stack trace show the cause?
+
+The SDK captures the stack when it detects the hang. When a backlog of short blocks causes the hang, the stack shows whichever block was running then. Compare several reports in the same group and check the session timeline. See [Why the stack trace can point at the wrong code](#why-the-stack-trace-can-point-at-the-wrong-code).
+
+### How do I reproduce an app hang locally?
+
+Call `Thread.sleep(forTimeInterval: 3)` on the main thread, for example in a button's action. Detection runs with the debugger attached, so you can trigger the hang from Xcode. The SDK ignores hangs of 30 seconds or longer, so pausing on a breakpoint doesn't create a hang.
+
+### How do I fix an app hang?
+
+Start from the first frame from your app in the stack trace.
+
+- Move network and disk I/O off the main thread.
+- Don't call `DispatchQueue.main.sync` from code the main thread might wait on.
+- Move heavy work to a background queue and send only the result back to the main thread.
+- Don't wait on a lock or semaphore on the main thread.
+
+If the stack doesn't show the cause, follow the [triage workflow](#a-triage-workflow-for-app-hangs).
