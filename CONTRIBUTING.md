@@ -552,6 +552,7 @@ These versions are not updated by Dependabot. Change them by hand and keep the l
 - Workflow tool versions: Node, Java, Flutter, Xcode, Ruby & Yarn in `.github/workflows`
 - Compose & test pairs: Postgres, ClickHouse, Valkey & MinIO in [self-host/compose.yml](self-host/compose.yml) and [backend/testinfra](backend/testinfra), MinIO also in `backend/ingest-worker/symbolicator/symbolicator_test.go`
 - Symbolicator in [self-host/compose.yml](self-host/compose.yml) & `backend/ingest-worker/symbolicator/symbolicator_test.go` with the golden files in `backend/ingest-worker/symbolicator/testdata`
+- Iggy server in [self-host/compose.yml](self-host/compose.yml) is held at the backend Go client version (`github.com/apache/iggy/foreign/go` in the backend `go.mod` files). Upgrading needs the `IGGY_SYSTEM_PATH` → `IGGY_PATH` rename, a data-volume compatibility check & a matching Go client bump
 - ClickHouse `compatibility` setting: `rg '"compatibility"' backend` lists the sites
 - Minimum Docker & Docker Compose versions in [self-host/install.sh](self-host/install.sh)
 - SwiftLint `latest` in [.github/workflows/ios.yml](.github/workflows/ios.yml)

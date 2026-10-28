@@ -187,6 +187,7 @@ updates:
       - dependency-name: "*postgres"
       - dependency-name: "*clickhouse-server"
       - dependency-name: "*valkey"
+      - dependency-name: "*iggy"
       - dependency-name: "*symbolicator"
 
   - package-ecosystem: gradle

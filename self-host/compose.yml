@@ -714,7 +714,7 @@ services:
     command: ["migrate"]
 
   iggy:
-    image: apache/iggy:0.9.0
+    image: apache/iggy:0.7.0
     restart: unless-stopped
     ports:
       - "3010:80"
