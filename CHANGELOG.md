@@ -34,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :bug: Bug fixes
 
+- (**backend**): Pin self-host iggy to 0.7.0 (#4682) by @detj in #4682
 - (**backend**): Cap exception & ANR messages at 8 KiB (#4659) by @detj in #4659
 - (**backend**): Report correct custom.name length limit by @anupcowkur in #4651
 - (**backend**): Symbolicate jvm frames innermost first (#4644) by @abhaysood in #4644
