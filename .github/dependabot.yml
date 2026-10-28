@@ -1,0 +1,372 @@
+# Versions Dependabot can't parse are listed in CONTRIBUTING.md "Manually managed versions"
+version: 2
+
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+    versioning-strategy: increase
+    groups:
+      root-tooling:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /frontend/dashboard
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+    versioning-strategy: increase
+    groups:
+      dashboard-framework:
+        patterns: [next, react, react-dom, "@types/react*"]
+        update-types: [minor, patch]
+      dashboard:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: npm
+    directory: /e2e-tests
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+    versioning-strategy: increase
+    groups:
+      e2e:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: gomod
+    directories:
+      - /backend/agent
+      - /backend/alerts
+      - /backend/api
+      - /backend/cleanup
+      - /backend/ingest
+      - /backend/ingest-worker
+      - /backend/migrator
+      - /backend/symboloader
+      - /backend/libs
+      - /backend/testinfra
+      - /self-host/sessionator
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+    groups:
+      go:
+        patterns: ["*"]
+        group-by: dependency-name
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+    groups:
+      actions:
+        patterns: ["*"]
+        update-types: [minor, patch]
+
+  - package-ecosystem: docker
+    directories:
+      - /backend/agent
+      - /backend/alerts
+      - /backend/api
+      - /backend/cleanup
+      - /backend/ingest
+      - /backend/ingest-worker
+      - /backend/migrator
+      - /backend/symboloader
+      - /frontend/dashboard
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+    groups:
+      images:
+        patterns: ["*"]
+        group-by: dependency-name
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*golang"
+      - dependency-name: "*node"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: docker-compose
+    directory: /self-host
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+    groups:
+      self-host:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    ignore:
+      - dependency-name: "*postgres"
+      - dependency-name: "*clickhouse-server"
+      - dependency-name: "*valkey"
+      - dependency-name: "*symbolicator"
+
+  - package-ecosystem: gradle
+    directory: /android/measure-android
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+
+  - package-ecosystem: gradle
+    directory: /android/measure-gradle-plugin
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+
+  - package-ecosystem: gradle
+    directory: /kmp/measure-kmp
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+
+  - package-ecosystem: gradle
+    directory: /flutter/packages/measure_flutter/android
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+
+  - package-ecosystem: npm
+    directory: /react-native
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+    versioning-strategy: increase
+
+  - package-ecosystem: npm
+    directory: /samples/frank/react_native
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+    versioning-strategy: increase
+    ignore:
+      - dependency-name: "*"
+
+  - package-ecosystem: gradle
+    directory: /samples/frank
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+    ignore:
+      - dependency-name: "*"
+
+  - package-ecosystem: gradle
+    directory: /flutter/example/android
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+    ignore:
+      - dependency-name: "*"
+
+  - package-ecosystem: gradle
+    directory: /flutter/packages/measure_flutter/example/android
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+    ignore:
+      - dependency-name: "*"
+
+  - package-ecosystem: bundler
+    directory: /samples/frank/ios
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Kolkata
+    cooldown:
+      default-days: 7
+      semver-major-days: 14
+    open-pull-requests-limit: 0
+    commit-message:
+      prefix: "chore(deps)"
+    assignees:
+      - detj
+    rebase-strategy: auto
+    ignore:
+      - dependency-name: "*"

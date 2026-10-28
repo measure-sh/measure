@@ -537,6 +537,26 @@ VERSION=$(git cliff --bumped-version --github-token $(gh auth token)) && git tag
 set VERSION (git cliff --bumped-version --github-token (gh auth token)) && git tag -s $VERSION -m $VERSION && git push origin $VERSION
 ```
 
+## Manually managed versions
+
+Dependabot is configured in [.github/dependabot.yml](.github/dependabot.yml). Commit titles use `chore(deps)`.
+
+- Version updates: root tooling, `frontend/dashboard`, `e2e-tests`, the Go modules (one PR per dependency across modules), GitHub Actions, backend & dashboard Dockerfiles and the [self-host compose file](self-host/compose.yml)
+- Security updates only: published SDKs (`android/measure-android`, `android/measure-gradle-plugin`, `kmp/measure-kmp`, `flutter/packages/measure_flutter/android` & `react-native`). Bump their dependency versions by hand and respect the minimum supported versions (Kotlin, Compose, AGP, Flutter, `analyzer`)
+- Alerts only: pub (Flutter), Swift (iOS) & the `libwebp` submodule
+- Excluded: samples and examples
+
+These versions are not updated by Dependabot. Change them by hand and keep the listed locations in sync.
+
+- Go toolchain: `go` in every `go.mod`, `go.work`, `go-version: ["1.27.x"]` in the Go workflows under `.github/workflows` & the `golang` builder image in the backend dockerfiles
+- Workflow tool versions: Node, Java, Flutter, Xcode, Ruby & Yarn in `.github/workflows`
+- Compose & test pairs: Postgres, ClickHouse, Valkey & MinIO in [self-host/compose.yml](self-host/compose.yml) and [backend/testinfra](backend/testinfra), MinIO also in `backend/ingest-worker/symbolicator/symbolicator_test.go`
+- Symbolicator in [self-host/compose.yml](self-host/compose.yml) & `backend/ingest-worker/symbolicator/symbolicator_test.go` with the golden files in `backend/ingest-worker/symbolicator/testdata`
+- ClickHouse `compatibility` setting: `rg '"compatibility"' backend` lists the sites
+- Minimum Docker & Docker Compose versions in [self-host/install.sh](self-host/install.sh)
+- SwiftLint `latest` in [.github/workflows/ios.yml](.github/workflows/ios.yml)
+- `measureIosSdk` version & revision in [react-native/package.json](react-native/package.json)
+
 ## Documentation
 - Public facing docs are MDX pages in [frontend/dashboard/content/docs](frontend/dashboard/content/docs), rendered at [measure.sh/docs](https://measure.sh/docs) with fumadocs - self host guide, SDK guides, feature docs and so on. The REST API reference is generated from the OpenAPI specs in [frontend/dashboard/content/openapi](frontend/dashboard/content/openapi); edit the specs, not the generated pages under content/docs/api
 - Main folder of subproject should link to main guide. ex: [frontend README](frontend/dashboard/README.md) has link to self hosting and local dev guide

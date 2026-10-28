@@ -12,7 +12,7 @@ import (
 	miniomodule "github.com/testcontainers/testcontainers-go/modules/minio"
 )
 
-const minioImage = "pgsty/minio:latest"
+const minioImage = "pgsty/minio:RELEASE.2026-08-04T00-00-00Z"
 
 // MinioUser and MinioPassword are the root credentials of the MinIO
 // container started by SetupMinio.

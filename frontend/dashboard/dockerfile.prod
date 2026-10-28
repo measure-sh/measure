@@ -1,11 +1,11 @@
-FROM node:lts-slim AS deps
+FROM node:24-slim AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 RUN --mount=type=cache,target=/root/.npm \
     npm ci
 
-FROM node:lts-slim AS builder
+FROM node:24-slim AS builder
 WORKDIR /app
 
 # Copy dependencies
@@ -62,7 +62,7 @@ RUN --mount=type=secret,id=posthog_sourcemap_personal_key \
 # ============================================
 # Production Runner (minimal)
 # ============================================
-FROM node:lts-slim AS runner
+FROM node:24-slim AS runner
 WORKDIR /app
 
 RUN apt-get update \

@@ -55,6 +55,8 @@ jobs:
         working-directory: android/measure-android
         run: ./gradlew :measure:publishToMavenLocal
         env:
+          # dependabot PRs get no secrets
+          ORG_GRADLE_PROJECT_RELEASE_SIGNING_ENABLED: ${{ github.actor != 'dependabot[bot]' }}
           ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.MAVEN_ARTIFACT_SIGNING_KEY }}
           ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.MAVEN_ARTIFACT_SIGNING_PASSWORD }}
       - name: Run Gradle plugin checks
