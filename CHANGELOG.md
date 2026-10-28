@@ -108,6 +108,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump github.com/go-analyze/charts in /backend/agent (#4695) by @dependabot[bot] in #4695
 - (**deps**): Bump the root-tooling group with 3 updates (#4685) by @dependabot[bot] in #4685
 - (**deps**): Bump esbuild from 0.28.0 to 0.28.2 in /e2e-tests (#4675) by @dependabot[bot] in #4675
 - (**deps**): Bump sharp from 0.35.4 to 0.35.5 in /frontend/dashboard (#4618) by @dependabot[bot] in #4618
