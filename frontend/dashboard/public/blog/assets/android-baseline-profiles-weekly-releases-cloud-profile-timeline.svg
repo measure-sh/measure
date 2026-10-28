@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 355" width="1200" height="355" font-family="Work Sans, Helvetica, Arial, sans-serif">
+<style>text { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }</style>
+<rect x="0.5" y="0.5" width="1199" height="354" rx="12" fill="#111111" stroke="#2a2a2a" stroke-width="1"/>
+<rect x="60" y="50" width="22" height="22" rx="4" fill="#ffb900"/>
+<text x="92" y="68" font-size="19" fill="#fafafa">Waiting for cloud profile</text>
+<rect x="370" y="50" width="22" height="22" rx="4" fill="#05df72"/>
+<text x="402" y="68" font-size="19" fill="#fafafa">Cloud profile available</text>
+<path d="M672.0 55.0 L688.0 55.0 L680.0 67.0 Z" fill="#fafafa"/>
+<text x="700" y="68" font-size="19" fill="#fafafa">New release</text>
+<text x="60" y="157" font-size="21" font-weight="600" fill="#fafafa">Release every 2 weeks</text>
+<rect x="380.0" y="130.0" width="81.4" height="40" fill="#ffb900"/>
+<rect x="461.4" y="130.0" width="296.6" height="40" fill="#05df72"/>
+<path d="M372.0 114.0 L388.0 114.0 L380.0 126.0 Z" fill="#fafafa"/>
+<rect x="762.0" y="130.0" width="160.9" height="40" fill="#ffb900"/>
+<rect x="922.9" y="130.0" width="217.1" height="40" fill="#05df72"/>
+<path d="M754.0 114.0 L770.0 114.0 L762.0 126.0 Z" fill="#fafafa"/>
+<text x="60" y="252" font-size="21" font-weight="600" fill="#fafafa">Release every week</text>
+<rect x="380.0" y="225.0" width="81.4" height="40" fill="#ffb900"/>
+<rect x="461.4" y="225.0" width="106.6" height="40" fill="#05df72"/>
+<path d="M372.0 209.0 L388.0 209.0 L380.0 221.0 Z" fill="#fafafa"/>
+<rect x="572.0" y="225.0" width="160.9" height="40" fill="#ffb900"/>
+<rect x="732.9" y="225.0" width="25.1" height="40" fill="#05df72"/>
+<path d="M564.0 209.0 L580.0 209.0 L572.0 221.0 Z" fill="#fafafa"/>
+<rect x="762.0" y="225.0" width="106.6" height="40" fill="#ffb900"/>
+<rect x="868.6" y="225.0" width="79.4" height="40" fill="#05df72"/>
+<path d="M754.0 209.0 L770.0 209.0 L762.0 221.0 Z" fill="#fafafa"/>
+<rect x="952.0" y="225.0" width="188.0" height="40" fill="#ffb900"/>
+<path d="M944.0 209.0 L960.0 209.0 L952.0 221.0 Z" fill="#fafafa"/>
+<text x="475.0" y="317" font-size="18" fill="#d4d4d4" text-anchor="middle">Week 1</text>
+<text x="665.0" y="317" font-size="18" fill="#d4d4d4" text-anchor="middle">Week 2</text>
+<text x="855.0" y="317" font-size="18" fill="#d4d4d4" text-anchor="middle">Week 3</text>
+<text x="1045.0" y="317" font-size="18" fill="#d4d4d4" text-anchor="middle">Week 4</text>
+<path d="M380.0 293 V301" stroke="#525252" stroke-width="2"/>
+<path d="M570.0 293 V301" stroke="#525252" stroke-width="2"/>
+<path d="M760.0 293 V301" stroke="#525252" stroke-width="2"/>
+<path d="M950.0 293 V301" stroke="#525252" stroke-width="2"/>
+<path d="M1140.0 293 V301" stroke="#525252" stroke-width="2"/>
+<path d="M380 293 H1140" stroke="#525252" stroke-width="2"/>
+</svg>
