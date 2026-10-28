@@ -116,7 +116,6 @@ updates:
       timezone: Asia/Kolkata
     cooldown:
       default-days: 7
-      semver-major-days: 14
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(deps)"
@@ -146,7 +145,6 @@ updates:
       timezone: Asia/Kolkata
     cooldown:
       default-days: 7
-      semver-major-days: 14
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(deps)"
@@ -172,7 +170,6 @@ updates:
       timezone: Asia/Kolkata
     cooldown:
       default-days: 7
-      semver-major-days: 14
     open-pull-requests-limit: 5
     commit-message:
       prefix: "chore(deps)"
