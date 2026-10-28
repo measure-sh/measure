@@ -35,5 +35,11 @@ export default {
      * type stays lower-case so git-cliff commit parsers keep matching
      */
     "subject-case": [0],
+    /**
+     * disable body line length limit
+     *
+     * dependabot bodies contain long lines
+     */
+    "body-max-line-length": [0],
   },
 };

@@ -641,7 +641,7 @@ services:
     command: ["run", "-c", "/etc/symbolicator/config.yml"]
 
   minio:
-    image: pgsty/minio
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
     ports:
       - "9119:9000"
       - "9229:9001"
@@ -676,7 +676,7 @@ services:
       - minio-data:/data
 
   dbmate-postgres:
-    image: ghcr.io/amacneil/dbmate
+    image: ghcr.io/amacneil/dbmate:2.36.0
     profiles:
       - migrate
     environment:
@@ -695,7 +695,7 @@ services:
     command: ["migrate"]
 
   dbmate-clickhouse:
-    image: ghcr.io/amacneil/dbmate
+    image: ghcr.io/amacneil/dbmate:2.36.0
     profiles:
       - migrate
     environment:
@@ -714,7 +714,7 @@ services:
     command: ["migrate"]
 
   iggy:
-    image: apache/iggy
+    image: apache/iggy:0.9.0
     restart: unless-stopped
     ports:
       - "3010:80"
@@ -836,7 +836,7 @@ services:
       retries: 5
 
   clickstack:
-    image: docker.hyperdx.io/hyperdx/hyperdx-local
+    image: docker.hyperdx.io/hyperdx/hyperdx-local:2.42.0
     profiles:
       - debug
     ports:
@@ -844,7 +844,7 @@ services:
       - 4317:4317
 
   iggy-web:
-    image: apache/iggy-web-ui
+    image: apache/iggy-web-ui:0.4.0
     profiles:
       - debug
     ports:
