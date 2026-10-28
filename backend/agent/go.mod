@@ -5,7 +5,7 @@ go 1.27.3
 require (
 	backend/libs v0.0.0
 	cloud.google.com/go/cloudsqlconn v1.25.4
-	cloud.google.com/go/pubsub/v2 v2.5.1
+	cloud.google.com/go/pubsub/v2 v2.7.0
 	github.com/AfterShip/clickhouse-sql-parser v0.5.2
 	github.com/ClickHouse/clickhouse-go/v2 v2.48.0
 	github.com/gin-gonic/gin v1.12.0
