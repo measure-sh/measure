@@ -40,7 +40,7 @@ jobs:
           cache: 'gradle'
 
       - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation@v3
+        uses: gradle/actions/wrapper-validation@v6
 
       - name: Run Spotless check
         run: ./gradlew spotlessCheck --no-daemon --no-configuration-cache --stacktrace
@@ -66,7 +66,7 @@ jobs:
           cache: 'gradle'
 
       - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation@v3
+        uses: gradle/actions/wrapper-validation@v6
 
       - name: Run Android host tests
         run: ./gradlew testAndroidHostTest --no-daemon --no-configuration-cache --stacktrace
@@ -94,7 +94,7 @@ jobs:
           cache: 'gradle'
 
       - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation@v3
+        uses: gradle/actions/wrapper-validation@v6
 
       - name: Select Xcode
         run: sudo xcode-select -s /Applications/Xcode.app
