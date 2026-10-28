@@ -108,6 +108,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump github.com/go-analyze/charts in /backend/agent (#4695) by @dependabot[bot] in #4695
+- (**deps**): Bump the root-tooling group with 3 updates (#4685) by @dependabot[bot] in #4685
 - (**deps**): Bump esbuild from 0.28.0 to 0.28.2 in /e2e-tests (#4675) by @dependabot[bot] in #4675
 - (**deps**): Bump sharp from 0.35.4 to 0.35.5 in /frontend/dashboard (#4618) by @dependabot[bot] in #4618
 - (**deps**): Bump source-map-js in /frontend/dashboard (#4617) by @dependabot[bot] in #4617
@@ -183,6 +185,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Drop unused initConfig prop from Onboarding by @anupcowkur
 - (**frontend**): Keep touch indicators on the correct replay screen (#4436) by @abhaysood in #4436
 - (**kmp**): Prepare sdk release 0.3.0 by @abhaysood in #4506
+- Add weekly releases and jit vs aot blogs (#4680) by @abhaysood in #4680
+- Add why android and ios apps crash blog (#4635) by @abhaysood in #4635
 - Add dependabot & pin docker image tags (#4681) by @detj in #4681
 - Add android trigger-based profiling blog (#4629) by @abhaysood in #4629
 - Add anrs on android blog (#4584) by @abhaysood in #4584
