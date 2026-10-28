@@ -37,7 +37,7 @@ jobs:
           cache: 'gradle'
 
       - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation@v3
+        uses: gradle/actions/wrapper-validation@v6
 
       - name: Publish measure-android
         run: ./gradlew clean :measure:publish --no-daemon --no-parallel --no-configuration-cache --stacktrace
