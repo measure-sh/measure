@@ -27,4 +27,5 @@ internal object ValidationLimits {
     const val HTTP_CLIENT = 32
     const val ANR_SUBJECT = 1024
     const val EXCEPTION_META_BYTES = 4096
+    const val EXCEPTION_MESSAGE = 8192
 }
