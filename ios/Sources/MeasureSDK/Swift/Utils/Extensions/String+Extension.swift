@@ -20,7 +20,7 @@ extension String {
 
     func truncated(maxLength: Int) -> String {
         guard maxLength > 0 else { return "" }
-        guard count > maxLength else { return self }
-        return String(prefix(maxLength))
+        guard let end = index(startIndex, offsetBy: maxLength, limitedBy: endIndex), end < endIndex else { return self }
+        return String(self[..<end])
     }
 }

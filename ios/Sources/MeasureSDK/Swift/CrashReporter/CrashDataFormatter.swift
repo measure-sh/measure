@@ -72,7 +72,7 @@ final class CrashDataFormatter {
     func parseExceptionDetail(crashedThread: ThreadDetail?) -> ExceptionDetail {
         return ExceptionDetail(
             type: parseExceptionName(),
-            message: parseExceptionReason(),
+            message: parseExceptionReason().truncated(maxLength: ValidationLimits.exceptionMessage),
             frames: crashedThread?.frames,
             signal: parseSignalName(),
             threadName: crashedThread?.name,
