@@ -90,6 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Ignore go work sum (#4705) by @detj in #4705
 - (**backend**): Bump Go to 1.27.3 (#4646) by @detj in #4646
 - (**backend**): Bump Go to 1.27.1 (#4587) by @detj in #4587
 - (**backend**): Upgrade clickhouse go driver & other deps (#4580) by @detj in #4580
