@@ -676,7 +676,7 @@ services:
       - minio-data:/data
 
   dbmate-postgres:
-    image: ghcr.io/amacneil/dbmate:2.36.0
+    image: ghcr.io/amacneil/dbmate:2.37.0
     profiles:
       - migrate
     environment:
@@ -695,7 +695,7 @@ services:
     command: ["migrate"]
 
   dbmate-clickhouse:
-    image: ghcr.io/amacneil/dbmate:2.36.0
+    image: ghcr.io/amacneil/dbmate:2.37.0
     profiles:
       - migrate
     environment:
