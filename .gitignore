@@ -19,6 +19,9 @@ node_modules
 .swiftpm/
 Package.resolved
 
+# go
+go.work.sum
+
 # flutter
 .index-build/
 
