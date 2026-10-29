@@ -61,7 +61,7 @@
     "flexsearch": "^0.8.212",
     "fumadocs-core": "^16.14.4",
     "fumadocs-mdx": "^15.2.3",
-    "fumadocs-openapi": "^11.2.4",
+    "fumadocs-openapi": "^12.4.2",
     "fumadocs-ui": "^16.14.4",
     "hast-util-to-jsx-runtime": "^2.3.6",
     "lottie-react": "^2.4.1",
