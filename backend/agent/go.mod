@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/cloudsqlconn v1.25.4
 	cloud.google.com/go/pubsub/v2 v2.5.1
 	github.com/AfterShip/clickhouse-sql-parser v0.5.2
-	github.com/ClickHouse/clickhouse-go/v2 v2.48.0
+	github.com/ClickHouse/clickhouse-go/v2 v2.49.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-analyze/charts v0.6.4
 	github.com/golang-jwt/jwt/v5 v5.3.1
@@ -44,7 +44,7 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.34.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.56.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.56.0 // indirect
-	github.com/andybalholm/brotli v1.2.2 // indirect
+	github.com/andybalholm/brotli v1.2.6 // indirect
 	github.com/apache/iggy/foreign/go v0.7.0 // indirect
 	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/aws/aws-sdk-go-v2 v1.41.6 // indirect
