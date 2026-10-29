@@ -6,6 +6,15 @@ const setPlatform = (os: 'ios' | 'android') => {
 };
 
 describe('buildExceptionPayload', () => {
+  it('truncates the message to 8192 characters', () => {
+    const payload = buildExceptionPayload(
+      new Error('a'.repeat(10000)),
+      'handled'
+    );
+
+    expect(payload.exceptions[0]?.message).toBe('a'.repeat(8192));
+  });
+
   it('builds payload for Error object', () => {
     setPlatform('ios');
     const err = new Error('Something went wrong');
