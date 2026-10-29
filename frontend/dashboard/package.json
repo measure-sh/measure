@@ -22,7 +22,7 @@
     "@ai-sdk/react": "^4.0.23",
     "@base-ui/react": "^1.7.0",
     "@c15t/nextjs": "^2.2.1",
-    "@c15t/scripts": "^2.1.0",
+    "@c15t/scripts": "^3.0.0",
     "@nivo/bar": "^0.99.0",
     "@nivo/core": "^0.99.0",
     "@nivo/funnel": "^0.99.0",
