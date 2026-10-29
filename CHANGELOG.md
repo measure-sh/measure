@@ -109,6 +109,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump fumadocs-openapi in /frontend/dashboard (#4702) by @dependabot[bot] in #4702
 - (**deps**): Bump the dashboard-framework group (#4688) by @dependabot[bot] in #4688
 - (**deps**): Bump amacneil/dbmate in /self-host in the self-host group (#4684) by @dependabot[bot] in #4684
 - (**deps**): Bump cloud.google.com/go/cloudsqlconn in /backend/agent (#4686) by @dependabot[bot] in #4686
