@@ -113,60 +113,6 @@ describe("proxy", () => {
     }
   });
 
-  describe("/api proxy", () => {
-    it("rewrites /api/foo to the API origin", () => {
-      const result: any = proxy(makeRequest("/api/foo"));
-      expect(result.type).toBe("rewrite");
-      expect(result.url).toBe("http://api:8080/foo");
-    });
-
-    it("preserves query string", () => {
-      const result: any = proxy(
-        makeRequest("/api/users", "?limit=10&offset=20"),
-      );
-      expect(result.url).toBe("http://api:8080/users?limit=10&offset=20");
-    });
-
-    it("uses API_BASE_URL env var when set", () => {
-      process.env.API_BASE_URL = "https://api.example.com:9000";
-      const result: any = proxy(makeRequest("/api/foo"));
-      expect(result.url).toBe("https://api.example.com:9000/foo");
-    });
-
-    it("replaces only the first /api occurrence", () => {
-      // /api/api-keys → after replace("/api", "") → /api-keys (not //-keys)
-      const result: any = proxy(makeRequest("/api/api-keys"));
-      expect(result.url).toBe("http://api:8080/api-keys");
-    });
-
-    it("handles a bare /api with no trailing path", () => {
-      // After replacement pathname becomes "" — URL normalizes to "/"
-      const result: any = proxy(makeRequest("/api"));
-      expect(result.url).toBe("http://api:8080/");
-    });
-
-    it("handles a deeply nested path", () => {
-      const result: any = proxy(
-        makeRequest("/api/teams/abc/apps/xyz/sessions"),
-      );
-      expect(result.url).toBe("http://api:8080/teams/abc/apps/xyz/sessions");
-    });
-
-    it("throws when API_BASE_URL is unset", () => {
-      delete process.env.API_BASE_URL;
-      expect(() => proxy(makeRequest("/api/foo"))).toThrow(
-        "API_BASE_URL is not set",
-      );
-    });
-
-    it("throws when API_BASE_URL is an empty string", () => {
-      process.env.API_BASE_URL = "";
-      expect(() => proxy(makeRequest("/api/foo"))).toThrow(
-        "API_BASE_URL is not set",
-      );
-    });
-  });
-
   describe("/yrtmlt/static proxy", () => {
     it("rewrites /yrtmlt/static/array.js to PostHog assets CDN", () => {
       const result: any = proxy(makeRequest("/yrtmlt/static/array.js"));
@@ -437,15 +383,14 @@ describe("proxy", () => {
   });
 
   describe("config.matcher", () => {
-    const pageMatcher = config.matcher[2];
+    const pageMatcher = config.matcher[1];
     const pageRegex = new RegExp(
       `^${pageMatcher.replace("/(", "/").slice(0, -1)}$`,
     );
 
-    it("routes /api and /yrtmlt to the reverse proxies", () => {
-      expect(config.matcher[0]).toBe("/api/:path*");
-      expect(config.matcher[1]).toBe("/yrtmlt/:path*");
-      expect(config.matcher).toHaveLength(3);
+    it("routes /yrtmlt to the reverse proxy", () => {
+      expect(config.matcher[0]).toBe("/yrtmlt/:path*");
+      expect(config.matcher).toHaveLength(2);
     });
 
     it.each([
@@ -538,42 +483,6 @@ describe("proxy", () => {
           .map((rel) => `/${rel.split(path.sep).join("/")}`)
           .filter((url) => pageRegex.test(url)),
       ).toEqual([]);
-    });
-  });
-
-  describe("path edge cases", () => {
-    it("/api/ with trailing slash rewrites to API origin root", () => {
-      // pathname.replace("/api", "") → "/", URL keeps it
-      const result: any = proxy(makeRequest("/api/"));
-      expect(result.url).toBe("http://api:8080/");
-    });
-
-    it("/api/foo/ preserves trailing slash on the rewritten path", () => {
-      const result: any = proxy(makeRequest("/api/foo/"));
-      expect(result.url).toBe("http://api:8080/foo/");
-    });
-
-    it("preserves percent-encoded segments through the API rewrite", () => {
-      const result: any = proxy(makeRequest("/api/teams/team%20one"));
-      expect(result.url).toBe("http://api:8080/teams/team%20one");
-    });
-
-    it("preserves a leading double slash after /api stripping", () => {
-      // /api//foo → pathname.replace("/api", "") → "//foo"
-      // URL does not collapse the double slash; documents existing behavior.
-      const result: any = proxy(makeRequest("/api//foo"));
-      expect(result.url).toBe("http://api:8080//foo");
-    });
-  });
-
-  describe("header behavior", () => {
-    it("API branch does not consult Accept header — /api routes to API origin regardless", () => {
-      // Even if the markdown matcher fires alongside the /api matcher,
-      // the function's if-chain checks pathname first and routes the
-      // request to the API origin. Agents requesting /api/foo with
-      // Accept: text/markdown still hit the API.
-      const result: any = proxy(markdownRequest("/api/foo"));
-      expect(result.url).toBe("http://api:8080/foo");
     });
   });
 
