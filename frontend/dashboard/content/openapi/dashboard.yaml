@@ -4155,10 +4155,16 @@ paths:
                     type: integer
                   error_replay_duration:
                     type: integer
+                    minimum: 0
+                    maximum: 3600
                   anr_timeline_duration:
                     type: integer
+                    minimum: 0
+                    maximum: 3600
                   bug_report_timeline_duration:
                     type: integer
+                    minimum: 0
+                    maximum: 3600
                   trace_sampling_rate:
                     type: number
                     minimum: 0
@@ -4181,10 +4187,14 @@ paths:
                     type: integer
                   memory_usage_interval:
                     type: integer
+                    minimum: 1
+                    maximum: 3600
                     default: 5
                     description: Memory usage measurement interval in seconds while the app is in the foreground.
                   memory_usage_background_interval:
                     type: integer
+                    minimum: 1
+                    maximum: 3600
                     default: 10
                     description: Memory usage measurement interval in seconds while an Android app is in the background. iOS/iPadOS stops collecting in the background.
                   memory_usage_session_sampling_rate:
@@ -4217,8 +4227,12 @@ paths:
                     type: boolean
                   app_hang_threshold_millis:
                     type: integer
+                    minimum: 1000
+                    maximum: 30000
                   app_hang_timeline_duration:
                     type: integer
+                    minimum: 0
+                    maximum: 3600
                   app_hang_sampling_rate:
                     type: number
                     minimum: 0
