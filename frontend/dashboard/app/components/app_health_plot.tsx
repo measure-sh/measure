@@ -149,6 +149,7 @@ const AppHealthPlot: React.FC<AppHealthPlotProps> = ({
         Sessions: chartColor.blue,
         Crashes: chartColor.red,
         ANRs: chartColor.amber,
+        "App Hangs": chartColor.amber,
       }) as const,
     [chartColor],
   );

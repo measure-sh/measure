@@ -293,8 +293,9 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 	var perceivedCrashFree *metrics.PerceivedCrashFreeSession
 	var anrFree *metrics.ANRFreeSession
 	var perceivedANRFree *metrics.PerceivedANRFreeSession
+	var appHangFree *metrics.AppHangFreeSession
 	metricsGroup.Go(func() (err error) {
-		crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err = app.GetIssueFreeMetrics(metricsSettings("issue_free"), deps.RchPool, &flt)
+		crashFree, perceivedCrashFree, anrFree, perceivedANRFree, appHangFree, err = app.GetIssueFreeMetrics(metricsSettings("issue_free"), deps.RchPool, &flt)
 		if err != nil {
 			err = fmt.Errorf("failed to fetch issue free metrics: %w", err)
 		}
@@ -354,6 +355,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 		"anr_free_sessions":             anrFree,
 		"perceived_crash_free_sessions": perceivedCrashFree,
 		"perceived_anr_free_sessions":   perceivedANRFree,
+		"app_hang_free_sessions":        appHangFree,
 	})
 }
 

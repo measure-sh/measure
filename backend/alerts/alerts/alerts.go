@@ -70,6 +70,9 @@ type DailySummaryRow struct {
 	ANRSessionsToday     uint64
 	ANRSessionsYesterday uint64
 
+	AppHangSessionsToday     uint64
+	AppHangSessionsYesterday uint64
+
 	ColdLaunchTodayMs     float64
 	ColdLaunchYesterdayMs float64
 
@@ -420,8 +423,8 @@ func formatUnit(x float64, unit string) string {
 	return strconv.FormatFloat(math.Round(x*100)/100, 'f', -1, 64) + unit
 }
 
-// freeRate returns the share of sessions that saw no crash (or no ANR) as a
-// percentage. affected must not exceed total.
+// freeRate returns the share of sessions that saw no crash, ANR or
+// app hang as a percentage. affected must not exceed total.
 func freeRate(total, affected uint64) float64 {
 	if total == 0 {
 		return 0
@@ -467,6 +470,26 @@ func launchMetric(label string, todayMs, yesterdayMs float64) email.MetricData {
 	return email.MetricData{Value: value, Label: label, Subtitle: subtitle}
 }
 
+// issueFreeMetric builds the card for the share of sessions that saw no
+// issue of one kind, compared with yesterday when yesterday had sessions.
+func issueFreeMetric(label string, sessionsToday, sessionsYesterday, affectedToday, affectedYesterday uint64, prefs AppThresholdPrefs) email.MetricData {
+	freeToday := freeRate(sessionsToday, affectedToday)
+	value := formatUnit(freeToday, "%")
+	subtitle := "No previous day data"
+	if sessionsYesterday > 0 {
+		freeYesterday := freeRate(sessionsYesterday, affectedYesterday)
+		subtitle = comparison(value, formatUnit(freeYesterday, "%"), freeToday > freeYesterday)
+	}
+
+	return email.MetricData{
+		Value:      value,
+		Label:      label,
+		Subtitle:   subtitle,
+		HasWarning: sessionsToday != 0 && freeToday <= prefs.ErrorGoodThreshold,
+		HasError:   sessionsToday != 0 && freeToday <= prefs.ErrorCautionThreshold,
+	}
+}
+
 func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) (metrics []email.MetricData, sessionsToday uint64, err error) {
 	appThresholdPrefs, err := getAppThresholdPrefs(ctx, app.ID)
 	if err != nil {
@@ -488,6 +511,7 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) (metr
                     uniqMerge(unique_sessions) AS total_sessions,
                     uniqMerge(crash_sessions) AS crash_sessions,
                     uniqMerge(anr_sessions) AS anr_sessions,
+                    uniqMerge(app_hang_sessions) AS app_hang_sessions,
                     quantileMerge(0.95)(cold_launch_p95) AS cold_launch_p95_ms,
                     quantileMerge(0.95)(warm_launch_p95) AS warm_launch_p95_ms,
                     quantileMerge(0.95)(hot_launch_p95) AS hot_launch_p95_ms
@@ -519,6 +543,9 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) (metr
             cd.anr_sessions,
             pd.anr_sessions,
 
+            cd.app_hang_sessions,
+            pd.app_hang_sessions,
+
             cd.cold_launch_p95_ms,
             pd.cold_launch_p95_ms,
 
@@ -544,6 +571,8 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) (metr
 		&summary.CrashSessionsYesterday,
 		&summary.ANRSessionsToday,
 		&summary.ANRSessionsYesterday,
+		&summary.AppHangSessionsToday,
+		&summary.AppHangSessionsYesterday,
 		&summary.ColdLaunchTodayMs,
 		&summary.ColdLaunchYesterdayMs,
 		&summary.WarmLaunchTodayMs,
@@ -590,24 +619,12 @@ func getDailySummaryMetrics(ctx context.Context, date time.Time, app *App) (metr
 		},
 	}
 
-	// ANR card is only shown if once an ANR has
-	// been recorded on either day to prevent permanent ANR card with no data in iOS.
 	if summary.ANRSessionsToday > 0 || summary.ANRSessionsYesterday > 0 {
-		anrFreeToday := freeRate(summary.SessionsToday, summary.ANRSessionsToday)
-		anrFreeValue := formatUnit(anrFreeToday, "%")
-		anrFreeSubtitle := "No previous day data"
-		if hasYesterday {
-			anrFreeYesterday := freeRate(summary.SessionsYesterday, summary.ANRSessionsYesterday)
-			anrFreeSubtitle = comparison(anrFreeValue, formatUnit(anrFreeYesterday, "%"), anrFreeToday > anrFreeYesterday)
-		}
+		metrics = append(metrics, issueFreeMetric("ANR free sessions", summary.SessionsToday, summary.SessionsYesterday, summary.ANRSessionsToday, summary.ANRSessionsYesterday, appThresholdPrefs))
+	}
 
-		metrics = append(metrics, email.MetricData{
-			Value:      anrFreeValue,
-			Label:      "ANR free sessions",
-			Subtitle:   anrFreeSubtitle,
-			HasWarning: summary.SessionsToday != 0 && anrFreeToday <= appThresholdPrefs.ErrorGoodThreshold,
-			HasError:   summary.SessionsToday != 0 && anrFreeToday <= appThresholdPrefs.ErrorCautionThreshold,
-		})
+	if summary.AppHangSessionsToday > 0 || summary.AppHangSessionsYesterday > 0 {
+		metrics = append(metrics, issueFreeMetric("App hang free sessions", summary.SessionsToday, summary.SessionsYesterday, summary.AppHangSessionsToday, summary.AppHangSessionsYesterday, appThresholdPrefs))
 	}
 
 	metrics = append(metrics,

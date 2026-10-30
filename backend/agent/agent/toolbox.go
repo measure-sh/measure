@@ -437,7 +437,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_metrics
 		newTool(&mcpsdk.Tool{
 			Name:        "get_metrics",
-			Description: "Get app metrics including adoption, crash-free/ANR-free sessions, launch performance (cold/warm/hot p95) and app size. Covers every app version unless filter_expr narrows it; each metric is reported for the selected versions and for the rest, and adoption is only meaningful against a specific version, so narrow to one with its version_code when reading it. App size is reported only when the versions with data in the range share a single version name, as the size of that version's most recent build; otherwise sizes has multiple_versions or no_data set. " + mcpFilterExprToolsHint(filter.AppHealthEntity) + ".",
+			Description: "Get app metrics including adoption, crash-free/ANR-free/app-hang-free sessions, launch performance (cold/warm/hot p95) and app size. Covers every app version unless filter_expr narrows it; each metric is reported for the selected versions and for the rest, and adoption is only meaningful against a specific version, so narrow to one with its version_code when reading it. App size is reported only when the versions with data in the range share a single version name, as the size of that version's most recent build; otherwise sizes has multiple_versions or no_data set. " + mcpFilterExprToolsHint(filter.AppHealthEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetMetricsInput](mcpAppHealthFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetMetricsInput) (*mcpsdk.CallToolResult, any, error) {
@@ -447,7 +447,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_app_health_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_app_health_over_time",
-			Description: "Get the app health timeline: sessions, crashes (fatal exceptions) and ANRs bucketed over time. This is the overview health plot. Covers every app version unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.AppHealthEntity) + ".",
+			Description: "Get the app health timeline: sessions, crashes (fatal exceptions), ANRs and app hangs bucketed over time. This is the overview health plot. Covers every app version unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.AppHealthEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetAppHealthOverTimeInput](mcpAppHealthFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetAppHealthOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
@@ -1623,7 +1623,7 @@ func (c *Config) mcpGetMetrics(ctx context.Context, in mcpGetMetricsInput) (*mcp
 		return nil, nil, fmt.Errorf("failed to fetch adoption metrics: %w", err)
 	}
 
-	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err := app.GetIssueFreeMetrics(ctx, deps.RchPool, flt)
+	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, appHangFree, err := app.GetIssueFreeMetrics(ctx, deps.RchPool, flt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch issue free metrics: %w", err)
 	}
@@ -1657,6 +1657,10 @@ func (c *Config) mcpGetMetrics(ctx context.Context, in mcpGetMetricsInput) (*mcp
 			anrFree.UnselectedANRFreeSessions, anrFree.UnselectedNoData)
 		result["perceived_anr_free_sessions"] = metricResult("perceived_anr_free_sessions", perceivedANRFree.ANRFreeSessions, perceivedANRFree.NoData,
 			perceivedANRFree.UnselectedANRFreeSessions, perceivedANRFree.UnselectedNoData)
+	}
+	if appHangFree != nil {
+		result["app_hang_free_sessions"] = metricResult("app_hang_free_sessions", appHangFree.AppHangFreeSessions, appHangFree.NoData,
+			appHangFree.UnselectedAppHangFreeSessions, appHangFree.UnselectedNoData)
 	}
 
 	sizes, err := app.GetSizeMetrics(ctx, deps.PgPool, deps.RchPool, flt)
@@ -1706,7 +1710,7 @@ func (c *Config) mcpGetAppHealthOverTime(ctx context.Context, in mcpGetAppHealth
 	}
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
-	sessions, crashes, anrs, plotErr := app.GetHealthPlotInstances(ctx, deps.RchPool, flt)
+	sessions, crashes, anrs, appHangs, plotErr := app.GetHealthPlotInstances(ctx, deps.RchPool, flt)
 	if plotErr != nil {
 		return nil, nil, fmt.Errorf("failed to get app health plot: %v", plotErr)
 	}
@@ -1723,9 +1727,10 @@ func (c *Config) mcpGetAppHealthOverTime(ctx context.Context, in mcpGetAppHealth
 	}
 
 	result := map[string]any{
-		"sessions": build(sessions),
-		"crashes":  build(crashes),
-		"anrs":     build(anrs),
+		"sessions":  build(sessions),
+		"crashes":   build(crashes),
+		"anrs":      build(anrs),
+		"app_hangs": build(appHangs),
 	}
 
 	data, _ := json.Marshal(result)

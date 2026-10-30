@@ -503,6 +503,10 @@ paths:
         version name, since a download size belongs to a single build. A
         version with several builds in the range reports its most recently
         seen build.
+
+        `anr_free_sessions` and `perceived_anr_free_sessions` are null for iOS
+        apps, and `app_hang_free_sessions` is null for Android apps. App hang
+        free sessions count killed and recovered app hangs alike.
       parameters:
         - name: id
           in: path
@@ -599,6 +603,19 @@ paths:
                         type: boolean
                       unselected_no_data:
                         type: boolean
+                  app_hang_free_sessions:
+                    type:
+                      - object
+                      - "null"
+                    properties:
+                      app_hang_free_sessions:
+                        type: number
+                      unselected_app_hang_free_sessions:
+                        type: number
+                      no_data:
+                        type: boolean
+                      unselected_no_data:
+                        type: boolean
                   sizes:
                     type: object
                     description: Reports a size only when the app versions with data in the range share a single version name; a version with several builds reports its most recent build.
@@ -663,6 +680,7 @@ paths:
                       unselected_perceived_crash_free_sessions: 98.9
                       no_data: false
                       unselected_no_data: false
+                    app_hang_free_sessions: null
                     sizes:
                       average_app_size: 26298701
                       selected_app_size: 25887094
@@ -693,17 +711,18 @@ paths:
       description: |
         Fetch an app's health overview instances plot, optionally narrowed by
         a filter expression over the app version. The response is a time
-        series of three metrics bucketed by datetime: sessions, crashes (fatal
-        exceptions) & ANRs.
+        series of four metrics bucketed by datetime: sessions, crashes (fatal
+        exceptions), ANRs & app hangs.
 
         `from` & `to` will default to a last 7 days time range if not
         supplied. `timezone` is required and decides which day a bucket falls
         in.
 
-        The response is an array of three series identified by `id`:
-        `sessions`, `crashes` & `anrs`. Each series holds a sparse list of
-        datetime buckets that had data, so a bucket with no crashes or ANRs is
-        simply absent from that series.
+        The response is an array of four series identified by `id`:
+        `sessions`, `crashes`, `anrs` & `app_hangs`. Each series holds a sparse
+        list of datetime buckets that had data, so a bucket with no crashes,
+        ANRs or app hangs is simply absent from that series. `app_hangs`
+        counts killed and recovered app hangs alike.
       parameters:
         - name: id
           in: path
@@ -729,7 +748,7 @@ paths:
                   properties:
                     id:
                       type: string
-                      description: Series identifier, one of `sessions`, `crashes` or `anrs`.
+                      description: Series identifier, one of `sessions`, `crashes`, `anrs` or `app_hangs`.
                     data:
                       type: array
                       items:
@@ -756,6 +775,8 @@ paths:
                       data:
                         - datetime: "2024-10-02"
                           instances: 4
+                    - id: app_hangs
+                      data: []
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":

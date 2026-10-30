@@ -25,7 +25,7 @@ func TestGetHealthPlotInstancesTimeRange(t *testing.T) {
 	seedAppMetrics(f.ctx, t, f.teamIDStr(), f.appIDStr(), after, 9, 9, 9)  // after to
 
 	flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "")
-	sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
+	sessions, crashes, anrs, _, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetHealthPlotInstances: %v", err)
 	}
@@ -54,7 +54,7 @@ func TestGetHealthPlotInstancesAppTeamIsolation(t *testing.T) {
 	seedAppMetrics(f.ctx, t, uuid.NewString(), f.appIDStr(), ts, 9, 9, 9)
 
 	flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "")
-	sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
+	sessions, crashes, anrs, _, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
 	if err != nil {
 		t.Fatalf("GetHealthPlotInstances: %v", err)
 	}
@@ -83,7 +83,7 @@ func TestGetHealthPlotInstancesPartialSeries(t *testing.T) {
 		cleanupAll(f.ctx, t)
 		seedGenericEvents(f.ctx, t, team, app, 5, ts)
 
-		sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, base(t))
+		sessions, crashes, anrs, _, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, base(t))
 		if err != nil {
 			t.Fatalf("GetHealthPlotInstances: %v", err)
 		}
@@ -100,7 +100,7 @@ func TestGetHealthPlotInstancesPartialSeries(t *testing.T) {
 		seedGenericEvents(f.ctx, t, team, app, 3, ts)
 		seedIssueEvent(f.ctx, t, team, app, "exception", "", false, ts) // fatal crash
 
-		sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, base(t))
+		sessions, crashes, anrs, _, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, base(t))
 		if err != nil {
 			t.Fatalf("GetHealthPlotInstances: %v", err)
 		}
@@ -120,7 +120,7 @@ func TestGetHealthPlotInstancesPartialSeries(t *testing.T) {
 		seedGenericEvents(f.ctx, t, team, app, 3, ts)
 		seedIssueEvent(f.ctx, t, team, app, "anr", "", false, ts)
 
-		sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, base(t))
+		sessions, crashes, anrs, _, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, base(t))
 		if err != nil {
 			t.Fatalf("GetHealthPlotInstances: %v", err)
 		}
@@ -140,7 +140,7 @@ func TestGetHealthPlotInstancesPartialSeries(t *testing.T) {
 		seedIssueEventWithSeverity(f.ctx, t, team, app, "", "handled", ts)
 		seedIssueEventWithSeverity(f.ctx, t, team, app, "", "unhandled", ts)
 
-		sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, base(t))
+		sessions, crashes, anrs, _, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, base(t))
 		if err != nil {
 			t.Fatalf("GetHealthPlotInstances: %v", err)
 		}
@@ -174,7 +174,7 @@ func TestGetHealthPlotInstancesMultipleVersions(t *testing.T) {
 
 	t.Run("no version filter sums across versions", func(t *testing.T) {
 		flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "")
-		sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
+		sessions, crashes, anrs, _, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetHealthPlotInstances: %v", err)
 		}
@@ -191,7 +191,7 @@ func TestGetHealthPlotInstancesMultipleVersions(t *testing.T) {
 
 	t.Run("version filter selects a single version", func(t *testing.T) {
 		flt := f.appHealthFilter(t, ts.Add(-time.Hour), ts.Add(time.Hour), "UTC", filter.PlotTimeGroupDays, "version_name:in:v2 AND version_code:in:2")
-		sessions, crashes, anrs, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
+		sessions, crashes, anrs, _, err := f.app.GetHealthPlotInstances(f.ctx, deps.RchPool, flt)
 		if err != nil {
 			t.Fatalf("GetHealthPlotInstances: %v", err)
 		}

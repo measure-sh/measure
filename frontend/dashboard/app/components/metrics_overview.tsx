@@ -11,6 +11,7 @@ export const demoMetrics = {
     adoption: 41,
     no_data: false,
   },
+  app_hang_free_sessions: null,
   anr_free_sessions: {
     anr_free_sessions: 99.7,
     unselected_anr_free_sessions: 99.2,
@@ -143,6 +144,21 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({
               .unselected_perceived_anr_free_sessions
           }
           noComparison={metrics.perceived_anr_free_sessions.unselected_no_data}
+          errorGoodThreshold={appThresholdPrefs.error_good_threshold}
+          errorCautionThreshold={appThresholdPrefs.error_caution_threshold}
+        />
+      )}
+
+      {metrics.app_hang_free_sessions && (
+        <MetricsCard
+          type="app_hang_free_sessions"
+          status={status}
+          noData={metrics.app_hang_free_sessions.no_data}
+          value={metrics.app_hang_free_sessions.app_hang_free_sessions}
+          unselectedValue={
+            metrics.app_hang_free_sessions.unselected_app_hang_free_sessions
+          }
+          noComparison={metrics.app_hang_free_sessions.unselected_no_data}
           errorGoodThreshold={appThresholdPrefs.error_good_threshold}
           errorCautionThreshold={appThresholdPrefs.error_caution_threshold}
         />
