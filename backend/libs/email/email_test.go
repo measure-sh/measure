@@ -741,6 +741,23 @@ func TestUsageLimitEmail_Enterprise(t *testing.T) {
 	}
 }
 
+func TestMailingListConfirmEmail(t *testing.T) {
+	subject, body := MailingListConfirmEmail("https://measure.sh", "tok_abc-123")
+
+	if subject != "Confirm your subscription to the Measure newsletter" {
+		t.Errorf("subject = %q", subject)
+	}
+	if !strings.Contains(body, `href="https://measure.sh/mailing_list/confirm?token=tok_abc-123"`) {
+		t.Error("body missing confirmation link")
+	}
+	if !strings.Contains(body, "ignore this email") {
+		t.Error("body missing what to do if the signup was not yours")
+	}
+	if !strings.Contains(body, "link to unsubscribe") {
+		t.Error("body missing that the subscriber can unsubscribe")
+	}
+}
+
 func TestRemovedFromTeamEmail(t *testing.T) {
 	t.Run("links to the member's remaining team", func(t *testing.T) {
 		subject, body := RemovedFromTeamEmail("Acme Corp", "owner@example.com", "https://measure.sh", "team-abc")

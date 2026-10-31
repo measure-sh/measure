@@ -101,6 +101,11 @@ jest.mock("@/app/components/usage_threshold_banner", () => ({
   default: () => null,
 }));
 
+jest.mock("@/app/components/signup_consent_saver", () => ({
+  __esModule: true,
+  default: () => null,
+}));
+
 jest.mock("@/app/components/user_avatar", () => ({
   __esModule: true,
   default: () => <div data-testid="user-avatar-mock" />,

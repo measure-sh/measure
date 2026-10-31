@@ -39,6 +39,15 @@ func InviteNewUserEmail(inviterEmail, role, teamName string, validityDays int, s
 	return
 }
 
+// MailingListConfirmEmail builds the email that confirms a mailing list signup.
+func MailingListConfirmEmail(siteOrigin, token string) (subject, body string) {
+	subject = "Confirm your subscription to the Measure newsletter"
+	msg := "Someone, hopefully you, asked to subscribe this address to the Measure newsletter. Confirm to start receiving it. Every newsletter email has a link to unsubscribe.<br/><br/>If this wasn't you, ignore this email and you won't be subscribed."
+	url := siteOrigin + "/mailing_list/confirm?token=" + token
+	body = RenderEmailBody(subject, MessageContent(msg), "Confirm subscription", url)
+	return
+}
+
 // InviteExistingUserEmail builds the email sent when an existing user is invited to a team.
 func InviteExistingUserEmail(inviterEmail, role, teamName, siteOrigin string) (subject, body string) {
 	subject = "Invitation to join Measure"

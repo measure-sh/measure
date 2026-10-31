@@ -1387,6 +1387,50 @@ export const updateNotifPrefsFromServer = async (
   });
 };
 
+export type MailingListPrefs = {
+  // False where the mailing list isn't set up, as on self-hosted.
+  enabled: boolean;
+  subscribed: boolean;
+};
+
+export const fetchMailingListPrefsFromServer = async () => {
+  const data = await request(`/api/prefs/mailingList`, {
+    failsWith: "Failed to fetch mailing list prefs",
+  });
+
+  return data as MailingListPrefs;
+};
+
+export const updateMailingListPrefsFromServer = async (
+  subscribed: boolean,
+  attribution: string,
+) => {
+  await request(`/api/prefs/mailingList`, {
+    method: "PATCH",
+    body: JSON.stringify({ subscribed, attribution }),
+    failsWith: "Failed to update mailing list prefs",
+  });
+};
+
+export const subscribeToMailingListFromServer = async (
+  email: string,
+  attribution: string,
+) => {
+  await request(`/api/mailingList/subscribe`, {
+    method: "POST",
+    body: JSON.stringify({ email, attribution }),
+    failsWith: "Something went wrong. Please try again later.",
+  });
+};
+
+export const confirmMailingListFromServer = async (token: string) => {
+  await request(`/api/mailingList/confirm`, {
+    method: "POST",
+    body: JSON.stringify({ token }),
+    failsWith: "Something went wrong. Please try again later.",
+  });
+};
+
 export const fetchAppRetentionFromServer = async (appId: string) => {
   const data = await request(`/api/apps/${appId}/retention`, {
     failsWith: "Failed to fetch app retention",

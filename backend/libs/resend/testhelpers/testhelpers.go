@@ -1,0 +1,63 @@
+// Package testhelpers provides test-only mock helpers for swapping the
+// package-level resend.X function variables and configuration. Each helper
+// saves the current value, installs the test's value, and restores the
+// original on test cleanup.
+//
+// Import as:
+//
+//	import resendtest "backend/libs/resend/testhelpers"
+package testhelpers
+
+import (
+	"context"
+	"errors"
+	"testing"
+
+	"backend/libs/resend"
+)
+
+// MockSubscribe swaps resend.Subscribe for the duration of the test.
+func MockSubscribe(t *testing.T, fn func(ctx context.Context, email, firstName string) error) {
+	t.Helper()
+	orig := resend.Subscribe
+	resend.Subscribe = fn
+	t.Cleanup(func() { resend.Subscribe = orig })
+}
+
+// MockUnsubscribe swaps resend.Unsubscribe for the duration of the test.
+func MockUnsubscribe(t *testing.T, fn func(ctx context.Context, email string) error) {
+	t.Helper()
+	orig := resend.Unsubscribe
+	resend.Unsubscribe = fn
+	t.Cleanup(func() { resend.Unsubscribe = orig })
+}
+
+// MockContactSubscribed swaps resend.ContactSubscribed for the duration of
+// the test.
+func MockContactSubscribed(t *testing.T, fn func(ctx context.Context, email string) (bool, error)) {
+	t.Helper()
+	orig := resend.ContactSubscribed
+	resend.ContactSubscribed = fn
+	t.Cleanup(func() { resend.ContactSubscribed = orig })
+}
+
+// Enable sets test credentials so resend.Enabled reports true. Any Resend
+// call the test does not mock fails it, so no test reaches the real API.
+func Enable(t *testing.T) {
+	t.Helper()
+	resend.Init(resend.Config{APIKey: "re_test", SegmentID: "seg_test"})
+	t.Cleanup(func() { resend.Init(resend.Config{}) })
+
+	MockSubscribe(t, func(_ context.Context, email, _ string) error {
+		t.Errorf("unexpected Resend subscribe for %q, mock it with MockSubscribe", email)
+		return errors.New("unexpected Resend call")
+	})
+	MockUnsubscribe(t, func(_ context.Context, email string) error {
+		t.Errorf("unexpected Resend unsubscribe for %q, mock it with MockUnsubscribe", email)
+		return errors.New("unexpected Resend call")
+	})
+	MockContactSubscribed(t, func(_ context.Context, email string) (bool, error) {
+		t.Errorf("unexpected Resend contact lookup for %q, mock it with MockContactSubscribed", email)
+		return false, errors.New("unexpected Resend call")
+	})
+}

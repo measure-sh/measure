@@ -24,6 +24,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Team } from "../api/api_calls";
 import { apiClient } from "../api/api_client";
 import SandboxBanner from "../components/sandbox_banner";
+import SignupConsentSaver from "../components/signup_consent_saver";
 import { Skeleton } from "../components/skeleton";
 import TeamSwitcher, { TeamsSwitcherStatus } from "../components/team_switcher";
 import { ThemeToggle } from "../components/theme_toggle";
@@ -396,7 +397,12 @@ export default function DashboardLayout({
           {isSandboxTeamId(teamId) ? (
             <SandboxBanner />
           ) : (
-            selectedTeam && <UsageThresholdBanner teamId={selectedTeam.id} />
+            selectedTeam && (
+              <>
+                <UsageThresholdBanner teamId={selectedTeam.id} />
+                <SignupConsentSaver teamId={selectedTeam.id} />
+              </>
+            )
           )}
         </div>
 

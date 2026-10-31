@@ -25,6 +25,7 @@ import (
 	"backend/libs/chquery"
 	"backend/libs/inet"
 	"backend/libs/posthog"
+	"backend/libs/resend"
 	"backend/libs/secret"
 	"backend/libs/slack"
 
@@ -110,6 +111,7 @@ type Config struct {
 	SlackOAuthStateSecret      string
 	AutumnSecretKey            string
 	AutumnWebhookSecret        string
+	DashboardProxySecret       string
 	PostHogAPIKey              string
 	PostHogHost                string
 	OtelServiceName            string
@@ -426,6 +428,33 @@ func NewConfig() *Config {
 		SecretKey: autumnSecretKey,
 	})
 
+	resendAPIKey, secErr := secret.FromEnvOrFile("RESEND_API_KEY")
+	if secErr != nil {
+		log.Printf("failed to read RESEND_API_KEY: %v", secErr)
+	}
+	if resendAPIKey == "" {
+		log.Println("RESEND_API_KEY env var is not set, mailing list options will be hidden")
+	}
+
+	resendMailingListSegmentID := os.Getenv("RESEND_MAILING_LIST_SEGMENT_ID")
+	if resendMailingListSegmentID == "" {
+		log.Println("RESEND_MAILING_LIST_SEGMENT_ID env var is not set, mailing list options will be hidden")
+	}
+
+	resend.Init(resend.Config{
+		APIKey:    resendAPIKey,
+		SegmentID: resendMailingListSegmentID,
+		APIURL:    os.Getenv("RESEND_API_URL"),
+	})
+
+	dashboardProxySecret, secErr := secret.FromEnvOrFile("DASHBOARD_PROXY_SECRET")
+	if secErr != nil {
+		log.Printf("failed to read DASHBOARD_PROXY_SECRET: %v", secErr)
+	}
+	if dashboardProxySecret == "" {
+		log.Println("DASHBOARD_PROXY_SECRET env var is not set, mailing list signups from the website will be disabled")
+	}
+
 	posthogAPIKey := os.Getenv("POSTHOG_API_KEY")
 	if posthogAPIKey == "" {
 		log.Println("POSTHOG_API_KEY env var is not set, PostHog events will not be sent")
@@ -496,6 +525,7 @@ func NewConfig() *Config {
 		SlackOAuthStateSecret:      slackOAuthStateSecret,
 		AutumnSecretKey:            autumnSecretKey,
 		AutumnWebhookSecret:        autumnWebhookSecret,
+		DashboardProxySecret:       dashboardProxySecret,
 		PostHogAPIKey:              posthogAPIKey,
 		PostHogHost:                posthogHost,
 		OtelServiceName:            otelServiceName,

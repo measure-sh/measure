@@ -4,11 +4,15 @@ import { emptyNotifPrefs } from "@/app/api/api_calls";
 import { Button } from "@/app/components/button";
 import { Checkbox } from "@/app/components/checkbox";
 import { Skeleton } from "@/app/components/skeleton";
+import { Switch } from "@/app/components/switch";
 import {
+  useMailingListPrefsQuery,
   useNotifPrefsQuery,
+  useSaveMailingListPrefsMutation,
   useSaveNotifPrefsMutation,
 } from "@/app/query/hooks";
 import { toastNegative, toastPositive } from "@/app/components/toast";
+import { isCloud } from "@/app/utils/env_utils";
 import { isSandboxTeamId } from "@/app/utils/sandbox";
 import { use, useState } from "react";
 
@@ -171,6 +175,53 @@ export default function Notifications({ params }: PageProps) {
           </Button>
         </div>
       )}
+
+      {!readOnly && <MailingListPref />}
+    </div>
+  );
+}
+
+// Saves on flip, separately from the Save button above, because the change
+// also goes to Resend.
+function MailingListPref() {
+  const prefsQuery = useMailingListPrefsQuery(isCloud());
+  const saveMutation = useSaveMailingListPrefsMutation();
+
+  if (!prefsQuery.data?.enabled) {
+    return null;
+  }
+
+  const handleChange = async (subscribed: boolean) => {
+    try {
+      await saveMutation.mutateAsync({ subscribed, attribution: "settings" });
+      toastPositive(
+        subscribed
+          ? "Subscribed to the Measure newsletter"
+          : "Unsubscribed from the Measure newsletter",
+      );
+    } catch (error) {
+      toastNegative(
+        "Couldn't update your newsletter subscription",
+        error instanceof Error ? error.message : undefined,
+      );
+    }
+  };
+
+  return (
+    <div className="pt-12">
+      <p className="font-display">Newsletter</p>
+      <div className="py-2" />
+      <div className="flex items-center gap-4">
+        <p className="font-body text-sm text-muted-foreground max-w-md">
+          Get the Measure newsletter by email.
+        </p>
+        <Switch
+          checked={prefsQuery.data.subscribed}
+          disabled={saveMutation.isPending}
+          onCheckedChange={handleChange}
+          aria-label="Measure newsletter"
+        />
+      </div>
     </div>
   );
 }

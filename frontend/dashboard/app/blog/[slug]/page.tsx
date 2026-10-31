@@ -87,7 +87,7 @@ export default async function Page(props: PageParams) {
       <div className="prose mt-8 min-w-0">
         <MDX components={getBlogMDXComponents()} />
       </div>
-      <PostFooter title={page.data.title} />
+      <PostFooter />
     </main>
   );
 }
