@@ -12,9 +12,11 @@ let mockIsCloud = true;
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
+  // Like React Query, a disabled query still returns data another component
+  // loaded under the same key.
   useMailingListPrefsQuery: (enabled: boolean) => {
     mockQueryEnabled = enabled;
-    return { data: enabled ? mockPrefs : undefined };
+    return { data: mockPrefs };
   },
   useSaveMailingListPrefsMutation: () => ({
     mutate: mockMutate,
@@ -57,6 +59,14 @@ describe("SignupConsentSaver", () => {
     render(<SignupConsentSaver teamId="team-1" />);
 
     expect(mockQueryEnabled).toBe(false);
+    expect(mockMutate).not.toHaveBeenCalled();
+  });
+
+  it("does not subscribe a user who unsubscribed when Settings loads their prefs", () => {
+    mockPrefs = { enabled: true, subscribed: false };
+
+    render(<SignupConsentSaver teamId="team-1" />);
+
     expect(mockMutate).not.toHaveBeenCalled();
   });
 

@@ -41,8 +41,10 @@ export default function SignupConsentSaver({ teamId }: { teamId: string }) {
   const prefs = prefsQuery.data;
 
   // Cleared even when saving fails, so it is never retried without asking.
+  // Prefs can arrive without consent when another page loads them, since the
+  // query cache is shared.
   useEffect(() => {
-    if (!prefs?.enabled || sent.current) {
+    if (!pending || !prefs?.enabled || sent.current) {
       return;
     }
     sent.current = true;
