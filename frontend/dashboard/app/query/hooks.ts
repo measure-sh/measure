@@ -7,6 +7,7 @@ import {
   changeAppNameFromServer,
   changeRoleFromServer,
   changeTeamNameFromServer,
+  confirmMailingListFromServer,
   createAppFromServer,
   createFunnelFromServer,
   createTeamFromServer,
@@ -45,6 +46,7 @@ import {
   fetchFunnelTrendFromServer,
   fetchHighMemoryUsageSessionsFromServer,
   fetchJourneyFromServer,
+  fetchMailingListPrefsFromServer,
   fetchMemoryUsageBreakdownFromServer,
   fetchMemoryUsagePlotFromServer,
   fetchMetricsFromServer,
@@ -54,8 +56,6 @@ import {
   fetchNetworkStatusCodesPlotFromServer,
   fetchNetworkTimelinePlotFromServer,
   fetchNetworkTrendsFromServer,
-  confirmMailingListFromServer,
-  fetchMailingListPrefsFromServer,
   fetchNotifPrefsFromServer,
   fetchPendingInvitesFromServer,
   fetchPinnedFunnelsFromServer,
@@ -81,12 +81,12 @@ import {
   resendPendingInviteFromServer,
   sendTestSlackAlertFromServer,
   setFunnelPinnedFromServer,
+  subscribeToMailingListFromServer,
   undoDowngradeFromServer,
   updateAppRetentionFromServer,
   updateAppThresholdPrefsFromServer,
   updateBugReportStatusFromServer,
   updateFunnelFromServer,
-  subscribeToMailingListFromServer,
   updateMailingListPrefsFromServer,
   updateNotifPrefsFromServer,
   updateSdkConfigFromServer,
@@ -1725,8 +1725,16 @@ export function useSaveMailingListPrefsMutation() {
 
 export function useSubscribeToMailingListMutation() {
   return useMutation({
-    mutationFn: (params: { email: string; attribution: string }) =>
-      subscribeToMailingListFromServer(params.email, params.attribution),
+    mutationFn: (params: {
+      email: string;
+      attribution: string;
+      turnstileToken: string;
+    }) =>
+      subscribeToMailingListFromServer(
+        params.email,
+        params.attribution,
+        params.turnstileToken,
+      ),
   });
 }
 

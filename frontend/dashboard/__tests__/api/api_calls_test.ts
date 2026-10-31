@@ -1314,14 +1314,15 @@ describe("slack and notifications", () => {
     expect(prefs).toEqual({ enabled: true, subscribed: false });
   });
 
-  it("subscribeToMailingListFromServer POSTs the email and attribution", async () => {
+  it("subscribeToMailingListFromServer POSTs the email, attribution and Turnstile token", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
-    await subscribeToMailingListFromServer("ada@example.com", "blog");
+    await subscribeToMailingListFromServer("ada@example.com", "blog", "tok");
     expect(lastFetchUrl()).toContain("/api/mailingList/subscribe");
     expect(lastFetchOpts().method).toBe("POST");
     expect(JSON.parse(lastFetchOpts().body)).toEqual({
       email: "ada@example.com",
       attribution: "blog",
+      turnstile_token: "tok",
     });
   });
 
@@ -1872,7 +1873,7 @@ describe("mutation functions: failure paths", () => {
     ["updateNotifPrefsFromServer", () => updateNotifPrefsFromServer({} as any)],
     [
       "subscribeToMailingListFromServer",
-      () => subscribeToMailingListFromServer("a@b.co", "blog"),
+      () => subscribeToMailingListFromServer("a@b.co", "blog", "tok"),
     ],
     ["confirmMailingListFromServer", () => confirmMailingListFromServer("t")],
     [

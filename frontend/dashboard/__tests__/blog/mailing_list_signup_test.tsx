@@ -25,6 +25,26 @@ jest.mock("@/app/query/hooks", () => ({
   }),
 }));
 
+// The fake check passes as soon as it renders, unless a test says it has not
+// finished yet.
+let mockTurnstileToken: string | null = "turnstile-token";
+const mockTurnstileReset = jest.fn();
+let mockTurnstileProps: any;
+
+jest.mock("@/app/components/turnstile", () => {
+  const React = require("react");
+  return {
+    __esModule: true,
+    default: React.forwardRef((props: any, ref: any) => {
+      const { onToken } = props;
+      mockTurnstileProps = props;
+      React.useImperativeHandle(ref, () => ({ reset: mockTurnstileReset }));
+      React.useEffect(() => onToken(mockTurnstileToken), [onToken]);
+      return null;
+    }),
+  };
+});
+
 jest.mock("@/app/components/button", () => ({
   Button: ({ children, loading, disabled, ...props }: any) => (
     <button disabled={disabled || loading} {...props}>
@@ -46,15 +66,22 @@ describe("MailingListSignup", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockIsSuccess = false;
+    mockTurnstileToken = "turnstile-token";
   });
 
-  it("subscribes the address and tracks the click", async () => {
-    render(<MailingListSignup attribution="blog" />);
+  it("subscribes the address with the Turnstile token and tracks the click", async () => {
+    render(
+      <MailingListSignup attribution="blog" turnstileSiteKey="site-key" />,
+    );
 
     await submit("ada@example.com");
 
     expect(mockMutate).toHaveBeenCalledWith(
-      { email: "ada@example.com", attribution: "blog" },
+      {
+        email: "ada@example.com",
+        attribution: "blog",
+        turnstileToken: "turnstile-token",
+      },
       expect.anything(),
     );
     expect(mockTrack).toHaveBeenCalledWith("blog_action_click", {
@@ -63,24 +90,69 @@ describe("MailingListSignup", () => {
     });
   });
 
-  it("shows the server's reason when it refuses", async () => {
-    mockMutate.mockImplementation((_params: any, opts: any) =>
-      opts.onError(
-        new ApiError(429, "Too many attempts. Please try again tomorrow."),
-      ),
+  it("waits for the Turnstile check before subscribing", async () => {
+    mockTurnstileToken = null;
+    render(
+      <MailingListSignup attribution="blog" turnstileSiteKey="site-key" />,
     );
-    render(<MailingListSignup attribution="blog" />);
 
     await submit("ada@example.com");
 
-    expect(screen.getByRole("alert")).toHaveTextContent("Too many attempts");
+    expect(mockMutate).not.toHaveBeenCalled();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Checking your browser",
+    );
+  });
+
+  it("asks the visitor to tick the checkbox when Cloudflare shows it, and clears the message once the check passes", async () => {
+    mockTurnstileToken = null;
+    render(
+      <MailingListSignup attribution="blog" turnstileSiteKey="site-key" />,
+    );
+
+    act(() => mockTurnstileProps.onCheckShown());
+    await submit("ada@example.com");
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      'Tick "Verify you are human" below, then subscribe.',
+    );
+
+    act(() => mockTurnstileProps.onToken("turnstile-token"));
+
+    expect(screen.queryByRole("alert")).toBeNull();
+  });
+
+  it("shows the server's reason when it refuses, and gets a fresh token", async () => {
+    mockMutate.mockImplementation((_params: any, opts: any) =>
+      opts.onError(
+        new ApiError(400, "We couldn't verify you're human. Please try again."),
+      ),
+    );
+    render(
+      <MailingListSignup attribution="blog" turnstileSiteKey="site-key" />,
+    );
+
+    await submit("ada@example.com");
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "We couldn't verify you're human",
+    );
+    expect(mockTurnstileReset).toHaveBeenCalledTimes(1);
+
+    // The fresh token that follows the reset leaves the server's reason up.
+    act(() => mockTurnstileProps.onToken("fresh-token"));
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "We couldn't verify you're human",
+    );
   });
 
   it("shows a general error when the request fails", async () => {
     mockMutate.mockImplementation((_params: any, opts: any) =>
       opts.onError(new Error("network")),
     );
-    render(<MailingListSignup attribution="blog" />);
+    render(
+      <MailingListSignup attribution="blog" turnstileSiteKey="site-key" />,
+    );
 
     await submit("ada@example.com");
 
@@ -89,7 +161,9 @@ describe("MailingListSignup", () => {
 
   it("asks the visitor to check their inbox once sent", () => {
     mockIsSuccess = true;
-    render(<MailingListSignup attribution="blog" />);
+    render(
+      <MailingListSignup attribution="blog" turnstileSiteKey="site-key" />,
+    );
 
     expect(screen.getByRole("status")).toHaveTextContent(/Check your inbox/);
     expect(screen.queryByRole("button", { name: "Subscribe" })).toBeNull();

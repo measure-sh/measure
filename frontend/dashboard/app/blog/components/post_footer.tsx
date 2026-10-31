@@ -3,11 +3,12 @@ import Link from "next/link";
 import MailingListSignup from "./mailing_list_signup";
 
 /**
- * End-of-post footer: a thanks note and, on Measure cloud, the mailing list
- * signup.
+ * End-of-post footer: a thanks note and, on Measure cloud with Turnstile set
+ * up, the mailing list signup.
  */
 export default function PostFooter() {
-  const mailingList = isCloud();
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+  const mailingList = isCloud() && !!turnstileSiteKey;
 
   return (
     <footer className="mt-12 flex flex-col items-start gap-6 border-t pt-10 pb-4">
@@ -21,7 +22,12 @@ export default function PostFooter() {
         {mailingList &&
           " If you enjoyed this post, subscribe to the Measure newsletter to get the next one in your inbox."}
       </p>
-      {mailingList && <MailingListSignup attribution="blog" />}
+      {mailingList && (
+        <MailingListSignup
+          attribution="blog"
+          turnstileSiteKey={turnstileSiteKey}
+        />
+      )}
     </footer>
   );
 }

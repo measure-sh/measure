@@ -1,5 +1,5 @@
 import PostFooter from "@/app/blog/components/post_footer";
-import { beforeEach, describe, expect, it } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 
@@ -16,11 +16,22 @@ jest.mock("@/app/blog/components/mailing_list_signup", () => ({
 }));
 
 describe("PostFooter", () => {
+  const originalSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+
   beforeEach(() => {
     mockIsCloud = true;
+    process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = "site-key";
   });
 
-  it("invites readers to subscribe on Measure cloud", () => {
+  afterEach(() => {
+    if (originalSiteKey === undefined) {
+      delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
+    } else {
+      process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY = originalSiteKey;
+    }
+  });
+
+  it("invites readers to subscribe on Measure cloud with Turnstile set up", () => {
     render(<PostFooter />);
 
     expect(screen.getByText(/Thanks for reading!/)).toHaveTextContent(
@@ -34,6 +45,18 @@ describe("PostFooter", () => {
 
   it("shows only the thanks note when self-hosted", () => {
     mockIsCloud = false;
+    render(<PostFooter />);
+
+    expect(screen.getByText(/Thanks for reading!/)).not.toHaveTextContent(
+      "subscribe",
+    );
+    expect(
+      screen.queryByRole("form", { name: "Newsletter signup" }),
+    ).toBeNull();
+  });
+
+  it("shows only the thanks note without a Turnstile site key", () => {
+    delete process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
     render(<PostFooter />);
 
     expect(screen.getByText(/Thanks for reading!/)).not.toHaveTextContent(

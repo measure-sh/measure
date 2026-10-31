@@ -1415,10 +1415,15 @@ export const updateMailingListPrefsFromServer = async (
 export const subscribeToMailingListFromServer = async (
   email: string,
   attribution: string,
+  turnstileToken: string,
 ) => {
   await request(`/api/mailingList/subscribe`, {
     method: "POST",
-    body: JSON.stringify({ email, attribution }),
+    body: JSON.stringify({
+      email,
+      attribution,
+      turnstile_token: turnstileToken,
+    }),
     failsWith: "Something went wrong. Please try again later.",
   });
 };
