@@ -34,7 +34,7 @@ create table if not exists span_metrics
 )
 engine = AggregatingMergeTree
 order by (team_id, app_id, app_version.1, app_version.2, span_name, timestamp, span_id)
-settings index_granularity = 8192
+settings index_granularity = 8192, allow_dimensions_outside_sorting_key = 1
 comment 'aggregated span metrics by a fixed time window';
 
 -- migrate:down

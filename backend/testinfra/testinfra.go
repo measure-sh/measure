@@ -24,7 +24,7 @@ import (
 const (
 	// Test database credentials.
 	postgresImage   = "postgres:16.3-alpine"
-	clickhouseImage = "clickhouse/clickhouse-server:26.6-alpine"
+	clickhouseImage = "clickhouse/clickhouse-server:26.8.36.3-alpine"
 	valkeyImage     = "valkey/valkey:9.0.0-alpine"
 	testDBUser      = "test"
 	testDBPassword  = "test"
