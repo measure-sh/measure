@@ -90,6 +90,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Check go.mod is tidy with `go.work` off (#4718) by @detj in #4718
 - (**backend**): Ignore go work sum (#4705) by @detj in #4705
 - (**backend**): Bump Go to 1.27.3 (#4646) by @detj in #4646
 - (**backend**): Bump Go to 1.27.1 (#4587) by @detj in #4587
