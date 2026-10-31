@@ -1,9 +1,6 @@
 package handlers
 
 import (
-	"crypto/sha256"
-	"crypto/subtle"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -12,11 +9,11 @@ import (
 	"net/http"
 	"net/mail"
 	"strings"
-	"time"
 
 	"backend/libs/email"
 	"backend/libs/measure"
 	"backend/libs/resend"
+	"backend/libs/turnstile"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -104,44 +101,14 @@ func (h Handlers) UpdateMailingListPrefs(c *gin.Context) {
 // sendEmail is a variable so tests can replace it and never send mail.
 var sendEmail = email.SendEmail
 
-// Daily limits on mailing list signup requests, per client IP, per email
-// address and overall.
-var mailingListLimits = struct {
-	perIP, perEmail, total int64
-}{perIP: 5, perEmail: 5, total: 500}
-
-// Headers the dashboard proxy on Vercel adds to every API request. The
-// client IP is only trusted on requests that carry the proxy secret.
-const (
-	dashboardProxySecretHeader = "X-Measure-Proxy-Secret"
-	dashboardClientIPHeader    = "X-Measure-Client-IP"
-)
-
 type mailingListSubscribePayload struct {
-	Email       string `json:"email"`
-	Attribution string `json:"attribution"`
+	Email          string `json:"email"`
+	Attribution    string `json:"attribution"`
+	TurnstileToken string `json:"turnstile_token"`
 }
 
 type mailingListConfirmPayload struct {
 	Token string `json:"token" binding:"required"`
-}
-
-// mailingListRequestAllowed answers the request and returns false when
-// mailing list signups are not set up, as on self-hosted installs, or when the
-// request did not come through the dashboard proxy.
-func mailingListRequestAllowed(h Handlers, c *gin.Context) bool {
-	cfg := h.Deps.Config
-	if !resend.Enabled() || cfg.DashboardProxySecret == "" {
-		c.JSON(http.StatusNotFound, gin.H{"error": "mailing list signups are not enabled"})
-		return false
-	}
-
-	got := c.GetHeader(dashboardProxySecretHeader)
-	if subtle.ConstantTimeCompare([]byte(got), []byte(cfg.DashboardProxySecret)) != 1 {
-		c.JSON(http.StatusForbidden, gin.H{"error": "mailing list requests must come through the dashboard"})
-		return false
-	}
-	return true
 }
 
 // SubscribeMailingList emails a confirmation link to the address. It answers
@@ -149,7 +116,8 @@ func mailingListRequestAllowed(h Handlers, c *gin.Context) bool {
 // does not reveal who is.
 func (h Handlers) SubscribeMailingList(c *gin.Context) {
 	deps := h.Deps
-	if !mailingListRequestAllowed(h, c) {
+	if !resend.Enabled() || !turnstile.Enabled() {
+		c.JSON(http.StatusNotFound, gin.H{"error": "mailing list signups are not enabled"})
 		return
 	}
 
@@ -176,37 +144,16 @@ func (h Handlers) SubscribeMailingList(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	// Each check counts the request, so the narrowest goes first and a client
-	// over its own limit does not use up the others. Keys hash the IP and
-	// address so neither is stored in Valkey.
-	hash := func(s string) string {
-		sum := sha256.Sum256([]byte(s))
-		return hex.EncodeToString(sum[:8])
+	// Each token works once, so a script has to pass a new check for every
+	// confirmation email it wants sent.
+	passed, err := turnstile.Verify(ctx, payload.TurnstileToken)
+	if err != nil {
+		mailingListUnavailable(c, err)
+		return
 	}
-	day := fmt.Sprint(time.Now().Unix() / int64((24 * time.Hour).Seconds()))
-	for _, limit := range []struct {
-		key string
-		max int64
-	}{
-		{"mailing_list:ip:" + hash(c.GetHeader(dashboardClientIPHeader)) + ":" + day, mailingListLimits.perIP},
-		{"mailing_list:email:" + hash(address) + ":" + day, mailingListLimits.perEmail},
-		{"mailing_list:total:" + day, mailingListLimits.total},
-	} {
-		count, err := deps.VK.Do(ctx, deps.VK.B().Incr().Key(limit.key).Build()).AsInt64()
-		if err != nil {
-			mailingListUnavailable(c, err)
-			return
-		}
-		if count == 1 {
-			if err := deps.VK.Do(ctx, deps.VK.B().Expire().Key(limit.key).Seconds(int64((24 * time.Hour).Seconds())).Build()).Error(); err != nil {
-				mailingListUnavailable(c, err)
-				return
-			}
-		}
-		if count > limit.max {
-			c.JSON(http.StatusTooManyRequests, gin.H{"error": "Too many attempts. Please try again tomorrow."})
-			return
-		}
+	if !passed {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "We couldn't verify you're human. Please try again."})
+		return
 	}
 
 	token, err := measure.RequestMailingListSignup(ctx, deps.PgPool, address, attribution)
@@ -231,7 +178,8 @@ func (h Handlers) SubscribeMailingList(c *gin.Context) {
 }
 
 func (h Handlers) ConfirmMailingList(c *gin.Context) {
-	if !mailingListRequestAllowed(h, c) {
+	if !resend.Enabled() {
+		c.JSON(http.StatusNotFound, gin.H{"error": "mailing list signups are not enabled"})
 		return
 	}
 

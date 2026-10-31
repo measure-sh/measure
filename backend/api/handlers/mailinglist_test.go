@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -17,8 +16,9 @@ import (
 	"backend/libs/email"
 	"backend/libs/measure"
 	resendtest "backend/libs/resend/testhelpers"
+	"backend/libs/turnstile"
+	turnstiletest "backend/libs/turnstile/testhelpers"
 
-	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/wneessen/go-mail"
@@ -331,19 +331,14 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 	})
 }
 
-const (
-	testProxySecret       = "test-dashboard-proxy-secret"
-	testMailingListClient = "203.0.113.7"
-)
-
 // enableMailingList turns public mailing list signups on for the duration of a
 // test, and captures every email instead of sending it.
 func enableMailingList(t *testing.T) *[]email.EmailInfo {
 	t.Helper()
 	resendtest.Enable(t)
+	turnstiletest.Enable(t)
 
-	origSecret, origOrigin, origFrom := deps.Config.DashboardProxySecret, deps.Config.SiteOrigin, deps.Config.TxEmailAddress
-	deps.Config.DashboardProxySecret = testProxySecret
+	origOrigin, origFrom := deps.Config.SiteOrigin, deps.Config.TxEmailAddress
 	deps.Config.SiteOrigin = "https://measure.test"
 	deps.Config.TxEmailAddress = "noreply@measure.test"
 
@@ -355,38 +350,31 @@ func enableMailingList(t *testing.T) *[]email.EmailInfo {
 	}
 
 	t.Cleanup(func() {
-		deps.Config.DashboardProxySecret, deps.Config.SiteOrigin, deps.Config.TxEmailAddress = origSecret, origOrigin, origFrom
+		deps.Config.SiteOrigin, deps.Config.TxEmailAddress = origOrigin, origFrom
 		sendEmail = origSend
 	})
 	return &sent
 }
 
-// newProxiedContext builds a request as the dashboard proxy forwards it,
-// from the visitor at clientIP.
-func newProxiedContext(method, path, clientIP string, body io.Reader) (*gin.Context, *httptest.ResponseRecorder) {
-	c, w := newTestGinContext(method, path, body)
-	c.Request.Header.Set(dashboardProxySecretHeader, testProxySecret)
-	c.Request.Header.Set(dashboardClientIPHeader, clientIP)
-	return c, w
-}
-
-func subscribeMailingList(t *testing.T, emailAddr string) *httptest.ResponseRecorder {
-	t.Helper()
-	return subscribeMailingListFrom(t, testMailingListClient, emailAddr)
-}
-
-func subscribeMailingListFrom(t *testing.T, clientIP, emailAddr string) *httptest.ResponseRecorder {
-	t.Helper()
-	body, _ := json.Marshal(map[string]string{"email": emailAddr, "attribution": "blog"})
-	c, w := newProxiedContext("POST", "/mailingList/subscribe", clientIP, strings.NewReader(string(body)))
+// postMailingListSubscribe sends a raw subscribe request body.
+func postMailingListSubscribe(body string) *httptest.ResponseRecorder {
+	c, w := newTestGinContext("POST", "/mailingList/subscribe", strings.NewReader(body))
 	h.SubscribeMailingList(c)
 	return w
+}
+
+// subscribeMailingList subscribes from the blog with a token that passes the
+// Turnstile check.
+func subscribeMailingList(t *testing.T, emailAddr string) *httptest.ResponseRecorder {
+	t.Helper()
+	body, _ := json.Marshal(map[string]string{"email": emailAddr, "attribution": "blog", "turnstile_token": turnstiletest.PassingToken})
+	return postMailingListSubscribe(string(body))
 }
 
 func confirmMailingList(t *testing.T, token string) *httptest.ResponseRecorder {
 	t.Helper()
 	body, _ := json.Marshal(map[string]string{"token": token})
-	c, w := newProxiedContext("POST", "/mailingList/confirm", testMailingListClient, strings.NewReader(string(body)))
+	c, w := newTestGinContext("POST", "/mailingList/confirm", strings.NewReader(string(body)))
 	h.ConfirmMailingList(c)
 	return w
 }
@@ -423,10 +411,10 @@ func getMailingListSignup(ctx context.Context, t *testing.T, emailAddr string) *
 func TestSubscribeMailingList(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("disabled without the dashboard proxy secret → 404", func(t *testing.T) {
+	t.Run("disabled without Turnstile → 404", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		sent := enableMailingList(t)
-		deps.Config.DashboardProxySecret = ""
+		turnstile.Init(turnstile.Config{})
 
 		if w := subscribeMailingList(t, "ada@example.com"); w.Code != http.StatusNotFound {
 			t.Fatalf("status = %d, want 404", w.Code)
@@ -436,19 +424,35 @@ func TestSubscribeMailingList(t *testing.T) {
 		}
 	})
 
-	t.Run("requests that skip the dashboard proxy → 403", func(t *testing.T) {
+	t.Run("a missing or failed Turnstile check is refused without an email", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		sent := enableMailingList(t)
 
-		for name, secret := range map[string]string{"missing": "", "wrong": "not-the-secret"} {
-			c, w := newTestGinContext("POST", "/mailingList/subscribe", strings.NewReader(`{"email":"ada@example.com"}`))
-			if secret != "" {
-				c.Request.Header.Set(dashboardProxySecretHeader, secret)
+		for name, body := range map[string]string{
+			"missing": `{"email": "ada@example.com", "attribution": "blog"}`,
+			"failed":  `{"email": "ada@example.com", "attribution": "blog", "turnstile_token": "bot"}`,
+		} {
+			if w := postMailingListSubscribe(body); w.Code != http.StatusBadRequest {
+				t.Errorf("%s token status = %d, want 400", name, w.Code)
 			}
-			h.SubscribeMailingList(c)
-			if w.Code != http.StatusForbidden {
-				t.Errorf("%s secret status = %d, want 403", name, w.Code)
-			}
+		}
+		if len(*sent) != 0 {
+			t.Errorf("emails = %d, want 0", len(*sent))
+		}
+		if s := getMailingListSignup(ctx, t, "ada@example.com"); s != nil {
+			t.Errorf("signup = %+v, want none", s)
+		}
+	})
+
+	t.Run("when Cloudflare cannot be reached nothing is sent → 500", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		sent := enableMailingList(t)
+		turnstiletest.MockVerify(t, func(context.Context, string) (bool, error) {
+			return false, errors.New("cloudflare down")
+		})
+
+		if w := subscribeMailingList(t, "ada@example.com"); w.Code != http.StatusInternalServerError {
+			t.Errorf("status = %d, want 500", w.Code)
 		}
 		if len(*sent) != 0 {
 			t.Errorf("emails = %d, want 0", len(*sent))
@@ -561,18 +565,17 @@ func TestSubscribeMailingList(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		sent := enableMailingList(t)
 
-		send := func(body string) int {
-			c, w := newProxiedContext("POST", "/mailingList/subscribe", testMailingListClient, strings.NewReader(body))
-			h.SubscribeMailingList(c)
-			return w.Code
+		send := func(attribution string) int {
+			body, _ := json.Marshal(map[string]string{"email": "ada@example.com", "attribution": attribution, "turnstile_token": turnstiletest.PassingToken})
+			return postMailingListSubscribe(string(body)).Code
 		}
-		if code := send(`{"email": "ada@example.com"}`); code != http.StatusBadRequest {
+		if code := send(""); code != http.StatusBadRequest {
 			t.Errorf("missing attribution status = %d, want 400", code)
 		}
-		if code := send(`{"email": "ada@example.com", "attribution": "  "}`); code != http.StatusBadRequest {
+		if code := send("  "); code != http.StatusBadRequest {
 			t.Errorf("blank attribution status = %d, want 400", code)
 		}
-		if code := send(`{"email": "ada@example.com", "attribution": "changelog"}`); code != http.StatusOK {
+		if code := send("changelog"); code != http.StatusOK {
 			t.Fatalf("status = %d, want 200", code)
 		}
 		if s := getMailingListSignup(ctx, t, "ada@example.com"); s == nil || s.Attribution != "changelog" {
@@ -596,86 +599,6 @@ func TestSubscribeMailingList(t *testing.T) {
 			t.Errorf("emails = %d, want 0", len(*sent))
 		}
 	})
-
-	t.Run("one address gets at most five emails a day", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		sent := enableMailingList(t)
-
-		for i := 0; i < 5; i++ {
-			if w := subscribeMailingListFrom(t, fmt.Sprintf("198.51.100.%d", i+1), "ada@example.com"); w.Code != http.StatusOK {
-				t.Fatalf("request %d status = %d", i+1, w.Code)
-			}
-		}
-		if w := subscribeMailingListFrom(t, "198.51.100.9", "ADA@example.com"); w.Code != http.StatusTooManyRequests {
-			t.Errorf("sixth status = %d, want 429", w.Code)
-		}
-		if len(*sent) != 5 {
-			t.Errorf("emails = %d, want 5", len(*sent))
-		}
-	})
-
-	t.Run("one visitor's IP gets at most five emails a day, others are not limited", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		sent := enableMailingList(t)
-
-		for i := 0; i < 6; i++ {
-			w := subscribeMailingListFrom(t, "198.51.100.1", fmt.Sprintf("reader%d@example.com", i))
-			want := http.StatusOK
-			if i == 5 {
-				want = http.StatusTooManyRequests
-			}
-			if w.Code != want {
-				t.Errorf("request %d status = %d, want %d", i+1, w.Code, want)
-			}
-		}
-		if w := subscribeMailingListFrom(t, "198.51.100.2", "reader5@example.com"); w.Code != http.StatusOK {
-			t.Errorf("other IP status = %d, want 200", w.Code)
-		}
-		if len(*sent) != 6 {
-			t.Errorf("emails = %d, want 6", len(*sent))
-		}
-	})
-
-	t.Run("the overall limit caps confirmation emails", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		sent := enableMailingList(t)
-		orig := mailingListLimits
-		mailingListLimits.total = 2
-		t.Cleanup(func() { mailingListLimits = orig })
-
-		for i, addr := range []string{"a@example.com", "b@example.com", "c@example.com"} {
-			w := subscribeMailingListFrom(t, fmt.Sprintf("198.51.100.%d", i+1), addr)
-			want := http.StatusOK
-			if i == 2 {
-				want = http.StatusTooManyRequests
-			}
-			if w.Code != want {
-				t.Errorf("%s status = %d, want %d", addr, w.Code, want)
-			}
-		}
-		if len(*sent) != 2 {
-			t.Errorf("emails = %d, want 2", len(*sent))
-		}
-	})
-
-	t.Run("a client over its own limit does not use up the overall limit", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		sent := enableMailingList(t)
-		orig := mailingListLimits
-		mailingListLimits.total = 6
-		t.Cleanup(func() { mailingListLimits = orig })
-
-		for i := 0; i < 10; i++ {
-			subscribeMailingListFrom(t, "198.51.100.1", fmt.Sprintf("bot%d@example.com", i))
-		}
-		if w := subscribeMailingListFrom(t, "198.51.100.2", "ada@example.com"); w.Code != http.StatusOK {
-			t.Errorf("reader status = %d, want 200", w.Code)
-		}
-		if len(*sent) != 6 {
-			t.Errorf("emails = %d, want 6 (5 for the bot, 1 for the reader)", len(*sent))
-		}
-	})
-
 }
 
 func TestConfirmMailingList(t *testing.T) {

@@ -28,6 +28,7 @@ import (
 	"backend/libs/resend"
 	"backend/libs/secret"
 	"backend/libs/slack"
+	"backend/libs/turnstile"
 
 	"cloud.google.com/go/cloudsqlconn"
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -111,7 +112,6 @@ type Config struct {
 	SlackOAuthStateSecret      string
 	AutumnSecretKey            string
 	AutumnWebhookSecret        string
-	DashboardProxySecret       string
 	ResendWebhookSecret        string
 	PostHogAPIKey              string
 	PostHogHost                string
@@ -455,13 +455,15 @@ func NewConfig() *Config {
 		log.Println("RESEND_WEBHOOK_SECRET env var is not set, unsubscribes from mailing list emails will not be recorded")
 	}
 
-	dashboardProxySecret, secErr := secret.FromEnvOrFile("DASHBOARD_PROXY_SECRET")
+	turnstileSecretKey, secErr := secret.FromEnvOrFile("TURNSTILE_SECRET_KEY")
 	if secErr != nil {
-		log.Printf("failed to read DASHBOARD_PROXY_SECRET: %v", secErr)
+		log.Printf("failed to read TURNSTILE_SECRET_KEY: %v", secErr)
 	}
-	if dashboardProxySecret == "" {
-		log.Println("DASHBOARD_PROXY_SECRET env var is not set, mailing list signups from the website will be disabled")
+	if turnstileSecretKey == "" {
+		log.Println("TURNSTILE_SECRET_KEY env var is not set, mailing list signups from the website will be disabled")
 	}
+
+	turnstile.Init(turnstile.Config{SecretKey: turnstileSecretKey})
 
 	posthogAPIKey := os.Getenv("POSTHOG_API_KEY")
 	if posthogAPIKey == "" {
@@ -533,7 +535,6 @@ func NewConfig() *Config {
 		SlackOAuthStateSecret:      slackOAuthStateSecret,
 		AutumnSecretKey:            autumnSecretKey,
 		AutumnWebhookSecret:        autumnWebhookSecret,
-		DashboardProxySecret:       dashboardProxySecret,
 		ResendWebhookSecret:        resendWebhookSecret,
 		PostHogAPIKey:              posthogAPIKey,
 		PostHogHost:                posthogHost,
