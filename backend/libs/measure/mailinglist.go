@@ -205,21 +205,57 @@ func ConfirmMailingListSignup(ctx context.Context, pg *pgxpool.Pool, token strin
 	if err := saveMailingListChange(ctx, pg, email, true, attribution); err != nil {
 		return err
 	}
+	fireMailingListEvent(mailingListUserID(ctx, pg, email), email, true, attribution)
 
-	user := sqlf.PostgreSQL.
+	return nil
+}
+
+// RecordMailingListUnsubscribe records an unsubscribe made in Resend through
+// the link in a mailing list email. Addresses that are not subscribed are
+// left alone, so unsubscribes made here are not recorded twice.
+func RecordMailingListUnsubscribe(ctx context.Context, pg *pgxpool.Pool, email string) error {
+	email = strings.ToLower(email)
+
+	stmt := sqlf.PostgreSQL.
+		Select("subscribed").
+		From("mailing_list_subscribers").
+		Where("email = ?", email)
+	defer stmt.Close()
+
+	var subscribed bool
+	err := pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&subscribed)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if !subscribed {
+		return nil
+	}
+
+	if err := saveMailingListChange(ctx, pg, email, false, MailingListAttributionUnsubscribeLink); err != nil {
+		return err
+	}
+	fireMailingListEvent(mailingListUserID(ctx, pg, email), email, false, MailingListAttributionUnsubscribeLink)
+	return nil
+}
+
+// mailingListUserID returns the id of the user with this address, or an
+// empty string for addresses that joined from the blog without an account.
+func mailingListUserID(ctx context.Context, pg *pgxpool.Pool, email string) string {
+	stmt := sqlf.PostgreSQL.
 		Select("id::text").
 		From("users").
 		Where("lower(email) = ?", email).
 		Limit(1)
-	defer user.Close()
+	defer stmt.Close()
 
 	var userID string
-	if err := pg.QueryRow(ctx, user.String(), user.Args()...).Scan(&userID); err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		log.Printf("mailing list: look up user for confirmed signup: %v", err)
+	if err := pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&userID); err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		log.Printf("mailing list: look up user for subscriber: %v", err)
 	}
-	fireMailingListEvent(userID, email, true, attribution)
-
-	return nil
+	return userID
 }
 
 func hashMailingListToken(token string) string {

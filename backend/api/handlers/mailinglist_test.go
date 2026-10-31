@@ -754,3 +754,94 @@ func TestConfirmMailingList(t *testing.T) {
 		}
 	})
 }
+
+func TestHandleResendWebhook(t *testing.T) {
+	ctx := context.Background()
+	const secret = "whsec_C2FVsBQIhrscChlQIMV+b5sSYspob7oD"
+
+	enable := func(t *testing.T) {
+		t.Helper()
+		resendtest.Enable(t)
+		orig := deps.Config.ResendWebhookSecret
+		deps.Config.ResendWebhookSecret = secret
+		t.Cleanup(func() { deps.Config.ResendWebhookSecret = orig })
+	}
+
+	post := func(payload []byte, headers http.Header) *httptest.ResponseRecorder {
+		c, w := newTestGinContext("POST", "/resend/webhook", strings.NewReader(string(payload)))
+		for k, v := range headers {
+			c.Request.Header[k] = v
+		}
+		h.HandleResendWebhook(c)
+		return w
+	}
+
+	contactUpdated := func(emailAddr string, unsubscribed bool) []byte {
+		return []byte(fmt.Sprintf(`{"type":"contact.updated","created_at":"2026-10-31T10:00:00.000Z","data":{"id":"e169aa45-1ecf-4183-9955-b1499d5701d3","audience_id":"78261eea-8f8b-4381-83c6-79fa7120f1cf","segment_ids":["seg_test"],"created_at":"2026-10-01T10:00:00.000Z","updated_at":"2026-10-31T10:00:00.000Z","email":%q,"first_name":"","last_name":"","unsubscribed":%t}}`, emailAddr, unsubscribed))
+	}
+
+	t.Run("a blog subscriber who unsubscribes through an email link is recorded", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		enable(t)
+		seedMailingListSubscriber(ctx, t, "ada@example.com", "blog")
+
+		payload := contactUpdated("Ada@example.com", true)
+		w := post(payload, signSvixWebhook(t, secret, "msg_unsub", payload))
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+		}
+		s := getMailingListSubscriber(ctx, t, "ada@example.com")
+		want := mailingListEvent{Subscribed: false, Attribution: measure.MailingListAttributionUnsubscribeLink}
+		if s == nil || s.Subscribed || len(s.Events) != 2 || s.lastEvent() != want {
+			t.Errorf("subscriber = %+v, want an unsubscribe through the email link appended", s)
+		}
+	})
+
+	t.Run("an unsubscribe already recorded here is not recorded again", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		enable(t)
+
+		userId := uuid.New()
+		seedUser(ctx, t, userId.String(), "ada@example.com")
+		seedMailingListSubscriber(ctx, t, "ada@example.com", "settings")
+		resendtest.MockUnsubscribe(t, func(context.Context, string) error { return nil })
+		if err := measure.SetMailingListSubscription(ctx, th.PgPool, userId, false, "settings"); err != nil {
+			t.Fatalf("unsubscribe from settings: %v", err)
+		}
+
+		payload := contactUpdated("ada@example.com", true)
+		if w := post(payload, signSvixWebhook(t, secret, "msg_settings", payload)); w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200", w.Code)
+		}
+		want := mailingListEvent{Subscribed: false, Attribution: "settings"}
+		if s := getMailingListSubscriber(ctx, t, "ada@example.com"); s == nil || len(s.Events) != 2 || s.lastEvent() != want {
+			t.Errorf("subscriber = %+v, want only the unsubscribe from settings", s)
+		}
+	})
+
+	t.Run("an invalid signature is refused and records nothing", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		enable(t)
+		seedMailingListSubscriber(ctx, t, "ada@example.com", "blog")
+
+		payload := contactUpdated("ada@example.com", true)
+		headers := signSvixWebhook(t, secret, "msg_forged", contactUpdated("someone@example.com", true))
+		if w := post(payload, headers); w.Code != http.StatusBadRequest {
+			t.Fatalf("status = %d, want 400", w.Code)
+		}
+		if s := getMailingListSubscriber(ctx, t, "ada@example.com"); s == nil || !s.Subscribed || len(s.Events) != 1 {
+			t.Errorf("subscriber = %+v, want unchanged", s)
+		}
+	})
+
+	t.Run("disabled without the webhook secret → 404", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		resendtest.Enable(t)
+
+		payload := contactUpdated("ada@example.com", true)
+		if w := post(payload, signSvixWebhook(t, secret, "msg_disabled", payload)); w.Code != http.StatusNotFound {
+			t.Fatalf("status = %d, want 404", w.Code)
+		}
+	})
+}

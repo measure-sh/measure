@@ -112,6 +112,7 @@ type Config struct {
 	AutumnSecretKey            string
 	AutumnWebhookSecret        string
 	DashboardProxySecret       string
+	ResendWebhookSecret        string
 	PostHogAPIKey              string
 	PostHogHost                string
 	OtelServiceName            string
@@ -447,6 +448,14 @@ func NewConfig() *Config {
 		APIURL:    os.Getenv("RESEND_API_URL"),
 	})
 
+	resendWebhookSecret, secErr := secret.FromEnvOrFile("RESEND_WEBHOOK_SECRET")
+	if secErr != nil {
+		log.Printf("failed to read RESEND_WEBHOOK_SECRET: %v", secErr)
+	}
+	if resendWebhookSecret == "" {
+		log.Println("RESEND_WEBHOOK_SECRET env var is not set, unsubscribes from mailing list emails will not be recorded")
+	}
+
 	dashboardProxySecret, secErr := secret.FromEnvOrFile("DASHBOARD_PROXY_SECRET")
 	if secErr != nil {
 		log.Printf("failed to read DASHBOARD_PROXY_SECRET: %v", secErr)
@@ -526,6 +535,7 @@ func NewConfig() *Config {
 		AutumnSecretKey:            autumnSecretKey,
 		AutumnWebhookSecret:        autumnWebhookSecret,
 		DashboardProxySecret:       dashboardProxySecret,
+		ResendWebhookSecret:        resendWebhookSecret,
 		PostHogAPIKey:              posthogAPIKey,
 		PostHogHost:                posthogHost,
 		OtelServiceName:            otelServiceName,

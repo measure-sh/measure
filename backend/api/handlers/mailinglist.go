@@ -4,8 +4,11 @@ import (
 	"crypto/sha256"
 	"crypto/subtle"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
 	"net/mail"
 	"strings"
@@ -252,6 +255,50 @@ func (h Handlers) ConfirmMailingList(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": "You're subscribed."})
+}
+
+// HandleResendWebhook records unsubscribes made through the link in a mailing
+// list email. Resend handles that link itself, so this webhook is how we hear
+// about them.
+func (h Handlers) HandleResendWebhook(c *gin.Context) {
+	deps := h.Deps
+	secret := deps.Config.ResendWebhookSecret
+	if !resend.Enabled() || secret == "" {
+		c.JSON(http.StatusNotFound, gin.H{"error": "mailing list webhooks are not enabled"})
+		return
+	}
+
+	payload, err := io.ReadAll(c.Request.Body)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
+		return
+	}
+
+	ev, err := resend.VerifyWebhook(c.Request.Header, payload, secret)
+	if err != nil {
+		log.Println("resend webhook verification failed:", err)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid signature"})
+		return
+	}
+
+	if ev.Type == resend.EventContactUpdated {
+		var data resend.ContactData
+		if err := json.Unmarshal(ev.Data, &data); err != nil {
+			log.Println("failed to parse contact.updated:", err)
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid contact data"})
+			return
+		}
+		if data.Unsubscribed {
+			// A 500 makes Resend retry the delivery.
+			if err := measure.RecordMailingListUnsubscribe(c.Request.Context(), deps.PgPool, data.Email); err != nil {
+				log.Println("failed to record mailing list unsubscribe:", err)
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to record unsubscribe"})
+				return
+			}
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{"received": true})
 }
 
 func mailingListUnavailable(c *gin.Context, err error) {
