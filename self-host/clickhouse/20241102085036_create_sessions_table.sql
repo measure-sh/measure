@@ -50,7 +50,7 @@ create table if not exists sessions
 engine = AggregatingMergeTree
 partition by toYYYYMM(first_event_timestamp)
 order by (team_id, app_id, app_version.1, app_version.2, session_id)
-settings index_granularity = 8192
+settings index_granularity = 8192, allow_dimensions_outside_sorting_key = 1
 comment 'aggregated app sessions';
 
 -- migrate:down
