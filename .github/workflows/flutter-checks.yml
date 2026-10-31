@@ -7,7 +7,6 @@ on:
   pull_request:
     paths:
       - "flutter/**"
-      - "android/measure-android/measure/api/**"
       - ".github/workflows/flutter-checks.yml"
   push:
     branches:

@@ -111,6 +111,18 @@ override fun getPackages(): List<ReactPackage> {
 }
 ```
 
+Initialize the native SDK in `MainApplication.onCreate()`. The JavaScript `Measure.init` doesn't start it:
+
+```kotlin
+import sh.measure.android.Measure
+import sh.measure.android.config.MeasureConfig
+
+override fun onCreate() {
+    super.onCreate()
+    Measure.init(this, MeasureConfig())
+}
+```
+
 #### iOS
 
 Add the pod to your `Podfile`:
@@ -119,27 +131,14 @@ Add the pod to your `Podfile`:
 pod 'MeasureReactNative', :path => '../node_modules/@measuresh/react-native'
 ```
 
-Initialize the SDK in `AppDelegate.swift`:
+Initialize the native SDK in `AppDelegate.swift`:
 
 ```swift
-import MeasureSDK
+import Measure
 
 // inside application(_:didFinishLaunchingWithOptions:)
-MeasureReactNative.initialize(
-    apiKey: "YOUR_API_KEY",
-    apiUrl: "YOUR_API_URL",
-    config: BaseMeasureConfig(enableFullCollectionMode: true)
-)
-```
-
-Or in `AppDelegate.mm` (Objective-C):
-
-```objc
-#import <MeasureReactNative/MeasureReactNative.h>
-
-// inside application:didFinishLaunchingWithOptions:
-[MeasureReactNative initializeWithApiKey:@"YOUR_API_KEY"
-                                  apiUrl:@"YOUR_API_URL"];
+let clientInfo = ClientInfo(apiKey: "YOUR_API_KEY", apiUrl: "YOUR_API_URL")
+Measure.initialize(with: clientInfo, config: BaseMeasureConfig())
 ```
 
 To upload symbol files after each Release build, add a Run Script phase in Xcode after the

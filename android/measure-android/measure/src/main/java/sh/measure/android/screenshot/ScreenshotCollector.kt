@@ -1,5 +1,6 @@
 package sh.measure.android.screenshot
 
+import android.annotation.SuppressLint
 import android.app.Activity
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.logger.LogLevel
@@ -37,6 +38,9 @@ internal class ScreenshotCollectorImpl(
     private val config: ConfigProvider,
 ) : ScreenshotCollector {
 
+    // Screenshots are taken while a crash is tracked, often on the crashing main thread, and
+    // must finish before the process dies. So compression runs on the calling thread.
+    @SuppressLint("ThreadConstraint")
     override fun takeScreenshot(): Screenshot? {
         if (lowMemoryCheck.isLowMemory()) {
             logger.log(LogLevel.Debug, "Unable to take screenshot, system has low memory.")
