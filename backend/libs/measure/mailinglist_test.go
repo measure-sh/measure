@@ -50,7 +50,7 @@ func TestMailingListEvents(t *testing.T) {
 				t.Errorf("%s distinct_id = %v, want the user id", event, evt["distinct_id"])
 			}
 			props, _ := evt["properties"].(map[string]any)
-			if props["source"] != MailingListSourceSubscriber || props["attribution"] != attribution || props["schema_version"] != "v1" {
+			if props["attribution"] != attribution || props["schema_version"] != "v1" {
 				t.Errorf("%s properties = %v, want attribution %s", event, props, attribution)
 			}
 		}

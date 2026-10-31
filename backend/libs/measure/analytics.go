@@ -97,14 +97,13 @@ func FireTeamCreatedEvent(ctx context.Context, user *User, team *Team) {
 // fireMailingListEvent fires `mailing_list_subscribed` or
 // `mailing_list_unsubscribed`. An address without a Measure account is sent as
 // a hash, without a person profile, so the address never reaches PostHog.
-func fireMailingListEvent(userID, email string, subscribed bool, source, attribution string) {
+func fireMailingListEvent(userID, email string, subscribed bool, attribution string) {
 	event := "mailing_list_unsubscribed"
 	if subscribed {
 		event = "mailing_list_subscribed"
 	}
 	props := map[string]any{
 		"schema_version": "v1",
-		"source":         source,
 		"attribution":    attribution,
 	}
 	distinctID := userID

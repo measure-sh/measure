@@ -20,9 +20,6 @@ import (
 	"github.com/leporo/sqlf"
 )
 
-// MailingListSourceSubscriber is the source of changes the subscriber makes.
-const MailingListSourceSubscriber = "subscriber"
-
 // MailingListAttributionUnsubscribeLink is the attribution of an
 // unsubscribe through the link in a mailing list email.
 const MailingListAttributionUnsubscribeLink = "unsubscribe_link"
@@ -56,7 +53,6 @@ func saveMailingListChange(ctx context.Context, pg *pgxpool.Pool, email string, 
 	event := sqlf.PostgreSQL.InsertInto("mailing_list_subscribe_events").
 		Set("subscriber_id", subscriberID).
 		Set("subscribed", subscribed).
-		Set("source", MailingListSourceSubscriber).
 		Set("attribution", attribution)
 	defer event.Close()
 
@@ -103,7 +99,7 @@ func MailingListSubscribed(ctx context.Context, pg *pgxpool.Pool, userId uuid.UU
 	if err := saveMailingListChange(ctx, pg, email, false, MailingListAttributionUnsubscribeLink); err != nil {
 		return false, err
 	}
-	fireMailingListEvent(userId.String(), email, false, MailingListSourceSubscriber, MailingListAttributionUnsubscribeLink)
+	fireMailingListEvent(userId.String(), email, false, MailingListAttributionUnsubscribeLink)
 	return false, nil
 }
 
@@ -135,7 +131,7 @@ func SetMailingListSubscription(ctx context.Context, pg *pgxpool.Pool, userId uu
 	if err := saveMailingListChange(ctx, pg, email, optIn, attribution); err != nil {
 		return err
 	}
-	fireMailingListEvent(userId.String(), email, optIn, MailingListSourceSubscriber, attribution)
+	fireMailingListEvent(userId.String(), email, optIn, attribution)
 	return nil
 }
 
@@ -221,7 +217,7 @@ func ConfirmMailingListSignup(ctx context.Context, pg *pgxpool.Pool, token strin
 	if err := pg.QueryRow(ctx, user.String(), user.Args()...).Scan(&userID); err != nil && !errors.Is(err, pgx.ErrNoRows) {
 		log.Printf("mailing list: look up user for confirmed signup: %v", err)
 	}
-	fireMailingListEvent(userID, email, true, MailingListSourceSubscriber, attribution)
+	fireMailingListEvent(userID, email, true, attribution)
 
 	return nil
 }

@@ -26,7 +26,6 @@ import (
 
 type mailingListEvent struct {
 	Subscribed  bool
-	Source      string
 	Attribution string
 }
 
@@ -57,14 +56,14 @@ func getMailingListSubscriber(ctx context.Context, t *testing.T, emailAddr strin
 		t.Fatalf("read mailing list subscriber: %v", err)
 	}
 	rows, err := th.PgPool.Query(ctx,
-		`select subscribed, source, coalesce(attribution, '') from mailing_list_subscribe_events where subscriber_id = $1 order by created_at`, id)
+		`select subscribed, coalesce(attribution, '') from mailing_list_subscribe_events where subscriber_id = $1 order by created_at`, id)
 	if err != nil {
 		t.Fatalf("read mailing list events: %v", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
 		var e mailingListEvent
-		if err := rows.Scan(&e.Subscribed, &e.Source, &e.Attribution); err != nil {
+		if err := rows.Scan(&e.Subscribed, &e.Attribution); err != nil {
 			t.Fatalf("scan mailing list event: %v", err)
 		}
 		s.Events = append(s.Events, e)
@@ -82,7 +81,7 @@ func seedMailingListSubscriber(ctx context.Context, t *testing.T, emailAddr, att
 		t.Fatalf("seed mailing list subscriber: %v", err)
 	}
 	if _, err := th.PgPool.Exec(ctx,
-		`insert into mailing_list_subscribe_events (subscriber_id, subscribed, source, attribution) values ($1, true, 'subscriber', $2)`, id, attribution); err != nil {
+		`insert into mailing_list_subscribe_events (subscriber_id, subscribed, attribution) values ($1, true, $2)`, id, attribution); err != nil {
 		t.Fatalf("seed mailing list event: %v", err)
 	}
 }
@@ -155,7 +154,7 @@ func TestGetMailingListPrefs(t *testing.T) {
 
 		wantJSON(t, get(userId), "subscribed", false)
 		s := getMailingListSubscriber(ctx, t, "ada@example.com")
-		want := mailingListEvent{Subscribed: false, Source: measure.MailingListSourceSubscriber, Attribution: measure.MailingListAttributionUnsubscribeLink}
+		want := mailingListEvent{Subscribed: false, Attribution: measure.MailingListAttributionUnsubscribeLink}
 		if s == nil || s.Subscribed || len(s.Events) != 2 || s.lastEvent() != want {
 			t.Errorf("subscriber = %+v, want an unsubscribe through the email link appended", s)
 		}
@@ -233,7 +232,7 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 			t.Errorf("subscribed %q, want ada@example.com", gotEmail)
 		}
 		s := getMailingListSubscriber(ctx, t, "ada@example.com")
-		want := mailingListEvent{Subscribed: true, Source: measure.MailingListSourceSubscriber, Attribution: "signup"}
+		want := mailingListEvent{Subscribed: true, Attribution: "signup"}
 		if s == nil || !s.Subscribed || len(s.Events) != 1 || s.lastEvent() != want {
 			t.Errorf("subscriber = %+v, want subscribed from signup", s)
 		}
@@ -262,7 +261,7 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 			t.Errorf("unsubscribed %q, want ada@example.com", unsubscribed)
 		}
 		s := getMailingListSubscriber(ctx, t, "ada@example.com")
-		want := mailingListEvent{Subscribed: false, Source: measure.MailingListSourceSubscriber, Attribution: "settings"}
+		want := mailingListEvent{Subscribed: false, Attribution: "settings"}
 		if s == nil || s.Subscribed || len(s.Events) != 2 || s.lastEvent() != want {
 			t.Errorf("subscriber = %+v, want an unsubscribe from settings appended", s)
 		}
@@ -698,7 +697,7 @@ func TestConfirmMailingList(t *testing.T) {
 			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
 		}
 		s := getMailingListSubscriber(ctx, t, "ada@example.com")
-		want := mailingListEvent{Subscribed: true, Source: measure.MailingListSourceSubscriber, Attribution: "blog"}
+		want := mailingListEvent{Subscribed: true, Attribution: "blog"}
 		if s == nil || !s.Subscribed || len(s.Events) != 1 || s.lastEvent() != want {
 			t.Errorf("subscriber = %+v, want subscribed from the blog", s)
 		}
