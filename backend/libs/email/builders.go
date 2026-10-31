@@ -42,7 +42,7 @@ func InviteNewUserEmail(inviterEmail, role, teamName string, validityDays int, s
 // MailingListConfirmEmail builds the email that confirms a mailing list signup.
 func MailingListConfirmEmail(siteOrigin, token string) (subject, body string) {
 	subject = "Confirm your subscription to the Measure newsletter"
-	msg := "Someone, hopefully you, asked to subscribe this address to the Measure newsletter. Confirm to start receiving it. Every newsletter email has a link to unsubscribe.<br/><br/>If this wasn't you, ignore this email and you won't be subscribed."
+	msg := "Thanks for signing up for the Measure newsletter. Please confirm your subscription to start receiving it. You can unsubscribe at any time using the link in every email.<br/><br/>If you didn't sign up, you can ignore this email and you won't be subscribed."
 	url := siteOrigin + "/mailing_list/confirm?token=" + token
 	body = RenderEmailBody(subject, MessageContent(msg), "Confirm subscription", url)
 	return

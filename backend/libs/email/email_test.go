@@ -753,7 +753,7 @@ func TestMailingListConfirmEmail(t *testing.T) {
 	if !strings.Contains(body, "ignore this email") {
 		t.Error("body missing what to do if the signup was not yours")
 	}
-	if !strings.Contains(body, "link to unsubscribe") {
+	if !strings.Contains(body, "unsubscribe at any time") {
 		t.Error("body missing that the subscriber can unsubscribe")
 	}
 }
