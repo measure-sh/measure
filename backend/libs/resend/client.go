@@ -36,17 +36,12 @@ type Config struct {
 	APIKey string
 	// SegmentID is the mailing list segment that Broadcasts are sent to.
 	SegmentID string
-	// APIURL replaces the default Resend API address when set.
-	APIURL string
 }
 
 // Init wires up the package-level client. Call once at service startup.
 func Init(cfg Config) {
 	apiKey = cfg.APIKey
 	segmentID = cfg.SegmentID
-	if cfg.APIURL != "" {
-		apiURL = cfg.APIURL
-	}
 }
 
 // Enabled reports whether contacts can be written to Resend.

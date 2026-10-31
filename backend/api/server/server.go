@@ -445,7 +445,6 @@ func NewConfig() *Config {
 	resend.Init(resend.Config{
 		APIKey:    resendAPIKey,
 		SegmentID: resendMailingListSegmentID,
-		APIURL:    os.Getenv("RESEND_API_URL"),
 	})
 
 	resendWebhookSecret, secErr := secret.FromEnvOrFile("RESEND_WEBHOOK_SECRET")
