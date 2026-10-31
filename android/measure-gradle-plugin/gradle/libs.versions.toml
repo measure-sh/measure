@@ -1,5 +1,5 @@
 [versions]
-kotlin = "1.9.21"
+kotlin = "2.2.10"
 # Lowest AGP version supported by the Measure Gradle Plugin.
 #noinspection AndroidGradlePluginVersion
 agp802 = "8.0.2"

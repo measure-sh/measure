@@ -110,11 +110,10 @@ fun SourceSetContainer.withName(name: String, f: SourceSet.() -> Unit) {
 abstract class AarToJarTransform : TransformAction<TransformParameters.None> {
 
     @InputArtifact
-    abstract fun getInputArtifact(): Provider<FileSystemLocation?>?
+    abstract fun getInputArtifact(): Provider<FileSystemLocation>
 
     override fun transform(outputs: TransformOutputs) {
-        val fileSystemLocation: FileSystemLocation? = getInputArtifact()!!.get()
-        val input = fileSystemLocation!!.asFile
+        val input = getInputArtifact().get().asFile
         val output = outputs.file(input.name.replace(".aar", ".jar"))
 
         ZipFile(input).use { zipFile ->
