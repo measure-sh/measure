@@ -222,6 +222,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**frontend**): Add minimum compose ui version for android by @abhaysood in #4715
 - Add expo release step to release checklist by @anupcowkur in #4578
 - Add gradle plugin step to cross-platform getting started guides by @anupcowkur
 - Add next steps section to getting started guide by @abhaysood in #4529
