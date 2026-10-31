@@ -7,7 +7,7 @@ import org.jetbrains.kotlin.gradle.tasks.CInteropProcess
 
 plugins {
     kotlin("multiplatform") version "2.3.20"
-    id("com.android.kotlin.multiplatform.library") version "8.13.0"
+    id("com.android.kotlin.multiplatform.library") version "9.5.0"
     id("com.vanniktech.maven.publish") version "0.34.0"
     id("com.diffplug.spotless") version "8.0.0"
     id("org.jetbrains.kotlinx.binary-compatibility-validator") version "0.18.1"
@@ -35,6 +35,9 @@ kotlin {
             jvmTarget.set(JvmTarget.JVM_11)
         }
         withHostTestBuilder { }
+        aarMetadata {
+            minCompileSdk = 34
+        }
     }
 
     listOf(iosX64(), iosArm64(), iosSimulatorArm64()).forEach { target ->

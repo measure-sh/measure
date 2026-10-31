@@ -1,6 +1,6 @@
 [versions]
-agp = "8.13.0"
-kotlin = "1.9.21"
+agp = "9.5.0"
+kotlin = "2.2.10"
 androidx-navigation = "2.9.5"
 androidx-activity = "1.9.3"
 androidx-fragment-ktx = "1.8.9"
@@ -31,9 +31,8 @@ junit = "4.13.2"
 mockito-kotlin = "5.1.0"
 robolectric = "4.16"
 orchestrator = "1.6.1"
-androidx-baselineprofile = "1.4.1"
+androidx-baselineprofile = "1.5.0"
 androidx-profileinstaller = "1.4.1"
-kolinx-binary-compatibility-validator = "0.18.0"
 mavenPublish = "0.34.0"
 
 [libraries]
@@ -84,10 +83,9 @@ androidx-activity = { group = "androidx.activity", name = "activity", version.re
 android-application = { id = "com.android.application", version.ref = "agp" }
 android-library = { id = "com.android.library", version.ref = "agp" }
 android-test = { id = "com.android.test", version.ref = "agp" }
-kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 kotlin-jvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
-kotlinx-binary-compatibility-validator = { id = "org.jetbrains.kotlinx.binary-compatibility-validator", version.ref = "kolinx-binary-compatibility-validator" }
 diffplug-spotless = { id = "com.diffplug.spotless", version.ref = "diffplug-spotless" }
 compose = { id = "org.jetbrains.compose", version.ref = "compose-plugin" }
 mavenPublish = { id = "com.vanniktech.maven.publish", version.ref = "mavenPublish" }
