@@ -7554,8 +7554,8 @@ paths:
       description: |
         Emails a confirmation link to the address. The address joins the
         mailing list only once its owner opens the link. The response is the same
-        whether or not the address is already subscribed. Each day allows 5
-        requests per address, 5 per client and 500 overall.
+        whether or not the address is already subscribed. Each request needs a
+        fresh Cloudflare Turnstile token from the signup form.
       security: []
       requestBody:
         required: true
@@ -7566,6 +7566,7 @@ paths:
               required:
                 - email
                 - attribution
+                - turnstile_token
               properties:
                 email:
                   type: string
@@ -7574,11 +7575,15 @@ paths:
                 attribution:
                   type: string
                   description: Where the signup form is, like `blog`.
+                turnstile_token:
+                  type: string
+                  description: Token from the Cloudflare Turnstile widget on the form. Each token works once.
             examples:
               request:
                 value:
                   email: ada@example.com
                   attribution: blog
+                  turnstile_token: 0.zX8t...
       responses:
         "200":
           description: The confirmation email was sent, or the address is already subscribed.
@@ -7594,13 +7599,9 @@ paths:
                   value:
                     ok: Check your inbox to confirm your subscription.
         "400":
-          description: The email address is not valid. Check the `error` field for more details.
-        "403":
-          description: The request did not come through the dashboard. Only the Measure website can call this endpoint.
+          description: The email address is not valid, or the Turnstile token is missing, used or invalid. Check the `error` field for more details.
         "404":
           description: Mailing list signups are not enabled.
-        "429":
-          description: Too many requests today for this address, from this client or overall.
         "500":
           description: Measure server encountered an unfortunate error. Report this to your server administrator.
   /mailingList/confirm:
@@ -7641,8 +7642,6 @@ paths:
                     ok: You're subscribed.
         "400":
           description: The link is invalid, already used or expired. Check the `error` field for more details.
-        "403":
-          description: The request did not come through the dashboard. Only the Measure website can call this endpoint.
         "404":
           description: Mailing list signups are not enabled.
         "500":
