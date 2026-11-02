@@ -114,6 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin (#4731) by @dependabot[bot] in #4731
 - (**deps**): Tidy go modules & refresh indirect deps (#4742) by @detj in #4742
 - (**deps**): Bump github.com/go-jose/go-jose/v4 (#4741) by @dependabot[bot] in #4741
 - (**deps**): Bump github.com/go-jose/go-jose/v4 in /backend/ingest (#4740) by @dependabot[bot] in #4740
