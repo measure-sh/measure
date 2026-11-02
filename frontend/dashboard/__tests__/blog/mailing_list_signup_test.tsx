@@ -64,6 +64,7 @@ async function submit(email: string) {
 const props = {
   title: "Subscribe to the Measure newsletter",
   description: "Once a month, we'll share what we shipped.",
+  listId: "newsletter",
   attribution: "blog",
   turnstileSiteKey: "site-key",
 };
@@ -83,6 +84,7 @@ describe("MailingListSignup", () => {
     expect(mockMutate).toHaveBeenCalledWith(
       {
         email: "ada@example.com",
+        listId: "newsletter",
         attribution: "blog",
         turnstileToken: "turnstile-token",
       },

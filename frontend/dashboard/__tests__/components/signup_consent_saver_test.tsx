@@ -26,7 +26,16 @@ jest.mock("@/app/query/hooks", () => ({
 describe("SignupConsentSaver", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockPrefs = { enabled: true, subscribed: false };
+    mockPrefs = {
+      enabled: true,
+      lists: [
+        {
+          list_id: "newsletter",
+          name: "Measure newsletter",
+          subscribed: false,
+        },
+      ],
+    };
     mockQueryEnabled = undefined;
     window.sessionStorage.clear();
   });
@@ -42,7 +51,7 @@ describe("SignupConsentSaver", () => {
     expect(container).toBeEmptyDOMElement();
     expect(mockMutate).toHaveBeenCalledTimes(1);
     expect(mockMutate).toHaveBeenCalledWith(
-      { subscribed: true, attribution: "signup" },
+      { listId: "newsletter", subscribed: true, attribution: "signup" },
       expect.anything(),
     );
     expect(window.sessionStorage.getItem(signupConsentKey)).toBeNull();
@@ -56,7 +65,16 @@ describe("SignupConsentSaver", () => {
   });
 
   it("does not subscribe a user who unsubscribed when Settings loads their prefs", () => {
-    mockPrefs = { enabled: true, subscribed: false };
+    mockPrefs = {
+      enabled: true,
+      lists: [
+        {
+          list_id: "newsletter",
+          name: "Measure newsletter",
+          subscribed: false,
+        },
+      ],
+    };
 
     render(<SignupConsentSaver teamId="team-1" />);
 
@@ -65,7 +83,12 @@ describe("SignupConsentSaver", () => {
 
   it("does not save for a user already subscribed", () => {
     window.sessionStorage.setItem(signupConsentKey, "1");
-    mockPrefs = { enabled: true, subscribed: true };
+    mockPrefs = {
+      enabled: true,
+      lists: [
+        { list_id: "newsletter", name: "Measure newsletter", subscribed: true },
+      ],
+    };
 
     render(<SignupConsentSaver teamId="team-1" />);
 
@@ -75,7 +98,16 @@ describe("SignupConsentSaver", () => {
 
   it("does nothing when the mailing list is not enabled", () => {
     window.sessionStorage.setItem(signupConsentKey, "1");
-    mockPrefs = { enabled: false, subscribed: false };
+    mockPrefs = {
+      enabled: false,
+      lists: [
+        {
+          list_id: "newsletter",
+          name: "Measure newsletter",
+          subscribed: false,
+        },
+      ],
+    };
 
     render(<SignupConsentSaver teamId="team-1" />);
 

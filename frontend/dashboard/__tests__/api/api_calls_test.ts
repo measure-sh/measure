@@ -75,6 +75,7 @@ import {
   fetchNetworkTimelinePlotFromServer,
   fetchNetworkTrendsFromServer,
   confirmMailingListFromServer,
+  fetchMailingListLinkSubscriptionsFromServer,
   fetchMailingListPrefsFromServer,
   fetchNotifPrefsFromServer,
   fetchPendingInvitesFromServer,
@@ -107,6 +108,7 @@ import {
   updateBugReportStatusFromServer,
   updateFunnelFromServer,
   subscribeToMailingListFromServer,
+  unsubscribeFromMailingListFromServer,
   updateMailingListPrefsFromServer,
   updateNotifPrefsFromServer,
   updateSdkConfigFromServer,
@@ -1305,24 +1307,66 @@ describe("slack and notifications", () => {
     expect(lastFetchOpts().method).toBe("PATCH");
   });
 
+  const newsletter = {
+    list_id: "newsletter",
+    name: "Measure newsletter",
+    subscribed: false,
+  };
+
   it("fetchMailingListPrefsFromServer hits /prefs/mailingList", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ enabled: true, subscribed: false }),
+      successResponse({ enabled: true, lists: [newsletter] }),
     );
     const prefs = await fetchMailingListPrefsFromServer();
     expect(lastFetchUrl()).toContain("/api/prefs/mailingList");
-    expect(prefs).toEqual({ enabled: true, subscribed: false });
+    expect(prefs).toEqual({ enabled: true, lists: [newsletter] });
   });
 
-  it("subscribeToMailingListFromServer POSTs the email, attribution and Turnstile token", async () => {
+  it("subscribeToMailingListFromServer POSTs the email, list, attribution and Turnstile token", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
-    await subscribeToMailingListFromServer("ada@example.com", "blog", "tok");
+    await subscribeToMailingListFromServer(
+      "ada@example.com",
+      "newsletter",
+      "blog",
+      "tok",
+    );
     expect(lastFetchUrl()).toContain("/api/mailingList/subscribe");
     expect(lastFetchOpts().method).toBe("POST");
     expect(JSON.parse(lastFetchOpts().body)).toEqual({
       email: "ada@example.com",
+      list_id: "newsletter",
       attribution: "blog",
       turnstile_token: "tok",
+    });
+  });
+
+  it("fetchMailingListLinkSubscriptionsFromServer sends the link's id and signature", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse({ lists: [newsletter] }),
+    );
+    const data = await fetchMailingListLinkSubscriptionsFromServer({
+      id: "sub-1",
+      sig: "a/b+c",
+    });
+    const url = new URL(lastFetchUrl(), "http://x");
+    expect(url.pathname).toBe("/api/mailingList/subscriptions");
+    expect(url.searchParams.get("id")).toBe("sub-1");
+    expect(url.searchParams.get("sig")).toBe("a/b+c");
+    expect(data).toEqual({ lists: [newsletter] });
+  });
+
+  it("unsubscribeFromMailingListFromServer POSTs the link and the list", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
+    await unsubscribeFromMailingListFromServer(
+      { id: "sub-1", sig: "sig" },
+      "newsletter",
+    );
+    expect(lastFetchUrl()).toContain("/api/mailingList/unsubscribe");
+    expect(lastFetchOpts().method).toBe("POST");
+    expect(JSON.parse(lastFetchOpts().body)).toEqual({
+      id: "sub-1",
+      sig: "sig",
+      list_id: "newsletter",
     });
   });
 
@@ -1336,10 +1380,11 @@ describe("slack and notifications", () => {
 
   it("updateMailingListPrefsFromServer PATCHes consent with its attribution", async () => {
     mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
-    await updateMailingListPrefsFromServer(true, "settings");
+    await updateMailingListPrefsFromServer("newsletter", true, "settings");
     expect(lastFetchUrl()).toContain("/api/prefs/mailingList");
     expect(lastFetchOpts().method).toBe("PATCH");
     expect(JSON.parse(lastFetchOpts().body)).toEqual({
+      list_id: "newsletter",
       subscribed: true,
       attribution: "settings",
     });
@@ -1873,12 +1918,21 @@ describe("mutation functions: failure paths", () => {
     ["updateNotifPrefsFromServer", () => updateNotifPrefsFromServer({} as any)],
     [
       "subscribeToMailingListFromServer",
-      () => subscribeToMailingListFromServer("a@b.co", "blog", "tok"),
+      () =>
+        subscribeToMailingListFromServer("a@b.co", "newsletter", "blog", "tok"),
     ],
     ["confirmMailingListFromServer", () => confirmMailingListFromServer("t")],
     [
       "updateMailingListPrefsFromServer",
-      () => updateMailingListPrefsFromServer(false, "settings"),
+      () => updateMailingListPrefsFromServer("newsletter", false, "settings"),
+    ],
+    [
+      "unsubscribeFromMailingListFromServer",
+      () =>
+        unsubscribeFromMailingListFromServer(
+          { id: "i", sig: "s" },
+          "newsletter",
+        ),
     ],
     ["updateSdkConfigFromServer", () => updateSdkConfigFromServer("a", {})],
     [

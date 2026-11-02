@@ -46,6 +46,7 @@ import {
   fetchFunnelTrendFromServer,
   fetchHighMemoryUsageSessionsFromServer,
   fetchJourneyFromServer,
+  fetchMailingListLinkSubscriptionsFromServer,
   fetchMailingListPrefsFromServer,
   fetchMemoryUsageBreakdownFromServer,
   fetchMemoryUsagePlotFromServer,
@@ -82,6 +83,7 @@ import {
   sendTestSlackAlertFromServer,
   setFunnelPinnedFromServer,
   subscribeToMailingListFromServer,
+  unsubscribeFromMailingListFromServer,
   undoDowngradeFromServer,
   updateAppRetentionFromServer,
   updateAppThresholdPrefsFromServer,
@@ -97,6 +99,7 @@ import {
   type FunnelDraft,
   type FunnelStepOutcome,
   type FunnelTrendPeriod,
+  type MailingListLink,
   type MemoryUsagePlotPoint,
   type PinnedFunnelsResponse,
 } from "@/app/api/api_calls";
@@ -1715,8 +1718,16 @@ export function useMailingListPrefsQuery(enabled = true) {
 export function useSaveMailingListPrefsMutation() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (params: { subscribed: boolean; attribution: string }) =>
-      updateMailingListPrefsFromServer(params.subscribed, params.attribution),
+    mutationFn: (params: {
+      listId: string;
+      subscribed: boolean;
+      attribution: string;
+    }) =>
+      updateMailingListPrefsFromServer(
+        params.listId,
+        params.subscribed,
+        params.attribution,
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["mailingListPrefs"] });
     },
@@ -1727,11 +1738,13 @@ export function useSubscribeToMailingListMutation() {
   return useMutation({
     mutationFn: (params: {
       email: string;
+      listId: string;
       attribution: string;
       turnstileToken: string;
     }) =>
       subscribeToMailingListFromServer(
         params.email,
+        params.listId,
         params.attribution,
         params.turnstileToken,
       ),
@@ -1741,6 +1754,28 @@ export function useSubscribeToMailingListMutation() {
 export function useConfirmMailingListMutation() {
   return useMutation({
     mutationFn: (token: string) => confirmMailingListFromServer(token),
+  });
+}
+
+export function useMailingListLinkSubscriptionsQuery(link: MailingListLink) {
+  return useQuery({
+    queryKey: ["mailingListLinkSubscriptions", link.id, link.sig] as const,
+    queryFn: () => fetchMailingListLinkSubscriptionsFromServer(link),
+    enabled: link.id !== "" && link.sig !== "",
+    retry: false,
+  });
+}
+
+export function useUnsubscribeFromMailingListMutation(link: MailingListLink) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (listId: string) =>
+      unsubscribeFromMailingListFromServer(link, listId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: ["mailingListLinkSubscriptions", link.id, link.sig],
+      });
+    },
   });
 }
 

@@ -1,5 +1,5 @@
 import { promiseParams } from "@/__tests__/helpers/promise_params";
-import ConfirmMailingList from "@/app/mailing_list/confirm/page";
+import ConfirmMailingList from "@/app/subscribe/confirm/page";
 import { ApiError } from "@/app/api/api_error";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";

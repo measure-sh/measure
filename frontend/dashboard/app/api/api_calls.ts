@@ -1387,10 +1387,20 @@ export const updateNotifPrefsFromServer = async (
   });
 };
 
-export type MailingListPrefs = {
-  // Whether the mailing list is set up on this server.
-  enabled: boolean;
+// The id of the Measure newsletter, the list the blog form and the login
+// checkbox subscribe to.
+export const newsletterListId = "newsletter";
+
+export type MailingListSubscription = {
+  list_id: string;
+  name: string;
   subscribed: boolean;
+};
+
+export type MailingListPrefs = {
+  // True only on Measure cloud.
+  enabled: boolean;
+  lists: MailingListSubscription[];
 };
 
 export const fetchMailingListPrefsFromServer = async () => {
@@ -1402,18 +1412,20 @@ export const fetchMailingListPrefsFromServer = async () => {
 };
 
 export const updateMailingListPrefsFromServer = async (
+  listId: string,
   subscribed: boolean,
   attribution: string,
 ) => {
   await request(`/api/prefs/mailingList`, {
     method: "PATCH",
-    body: JSON.stringify({ subscribed, attribution }),
+    body: JSON.stringify({ list_id: listId, subscribed, attribution }),
     failsWith: "Failed to update mailing list prefs",
   });
 };
 
 export const subscribeToMailingListFromServer = async (
   email: string,
+  listId: string,
   attribution: string,
   turnstileToken: string,
 ) => {
@@ -1421,6 +1433,7 @@ export const subscribeToMailingListFromServer = async (
     method: "POST",
     body: JSON.stringify({
       email,
+      list_id: listId,
       attribution,
       turnstile_token: turnstileToken,
     }),
@@ -1432,6 +1445,31 @@ export const confirmMailingListFromServer = async (token: string) => {
   await request(`/api/mailingList/confirm`, {
     method: "POST",
     body: JSON.stringify({ token }),
+    failsWith: "Something went wrong. Please try again later.",
+  });
+};
+
+// The subscriber id and signature from a link in a mailing list email.
+export type MailingListLink = { id: string; sig: string };
+
+export const fetchMailingListLinkSubscriptionsFromServer = async (
+  link: MailingListLink,
+) => {
+  const query = new URLSearchParams({ id: link.id, sig: link.sig });
+  const data = await request(`/api/mailingList/subscriptions?${query}`, {
+    failsWith: "Something went wrong. Please try again later.",
+  });
+
+  return data as { lists: MailingListSubscription[] };
+};
+
+export const unsubscribeFromMailingListFromServer = async (
+  link: MailingListLink,
+  listId: string,
+) => {
+  await request(`/api/mailingList/unsubscribe`, {
+    method: "POST",
+    body: JSON.stringify({ id: link.id, sig: link.sig, list_id: listId }),
     failsWith: "Something went wrong. Please try again later.",
   });
 };

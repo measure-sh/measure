@@ -1,6 +1,9 @@
 "use client";
 
-import { emptyNotifPrefs } from "@/app/api/api_calls";
+import {
+  emptyNotifPrefs,
+  type MailingListSubscription,
+} from "@/app/api/api_calls";
 import { Button } from "@/app/components/button";
 import { Checkbox } from "@/app/components/checkbox";
 import { Skeleton } from "@/app/components/skeleton";
@@ -188,13 +191,20 @@ function MailingListPref() {
     return null;
   }
 
-  const handleChange = async (subscribed: boolean) => {
+  const handleChange = async (
+    list: MailingListSubscription,
+    subscribed: boolean,
+  ) => {
     try {
-      await saveMutation.mutateAsync({ subscribed, attribution: "settings" });
+      await saveMutation.mutateAsync({
+        listId: list.list_id,
+        subscribed,
+        attribution: "settings",
+      });
       toastPositive(
         subscribed
-          ? "Subscribed to the Measure newsletter"
-          : "Unsubscribed from the Measure newsletter",
+          ? `Subscribed to the ${list.name}`
+          : `Unsubscribed from the ${list.name}`,
       );
     } catch (error) {
       toastNegative(
@@ -208,17 +218,19 @@ function MailingListPref() {
     <div className="pt-12">
       <p className="font-display">Newsletter</p>
       <div className="py-2" />
-      <div className="flex items-center gap-4">
-        <p className="font-body text-sm text-muted-foreground max-w-md">
-          Get the Measure newsletter by email
-        </p>
-        <Switch
-          checked={prefsQuery.data.subscribed}
-          disabled={saveMutation.isPending}
-          onCheckedChange={handleChange}
-          aria-label="Measure newsletter"
-        />
-      </div>
+      {prefsQuery.data.lists.map((list) => (
+        <div key={list.list_id} className="flex items-center gap-4">
+          <p className="font-body text-sm text-muted-foreground max-w-md">
+            Get the {list.name} by email
+          </p>
+          <Switch
+            checked={list.subscribed}
+            disabled={saveMutation.isPending}
+            onCheckedChange={(subscribed) => handleChange(list, subscribed)}
+            aria-label={list.name}
+          />
+        </div>
+      ))}
     </div>
   );
 }

@@ -11,17 +11,19 @@ import { useRef, useState, type FormEvent } from "react";
 import { deriveBlogSection } from "./blog_tracking";
 
 /**
- * Mailing list signup form. `attribution` records where it is shown, like
- * "blog".
+ * Signup form for the mailing list `listId`. `attribution` records where it
+ * is shown, like "blog".
  */
 export default function MailingListSignup({
   title,
   description,
+  listId,
   attribution,
   turnstileSiteKey,
 }: {
   title: string;
   description: string;
+  listId: string;
   attribution: string;
   turnstileSiteKey: string;
 }) {
@@ -55,7 +57,7 @@ export default function MailingListSignup({
     }
 
     subscribe.mutate(
-      { email, attribution, turnstileToken },
+      { email, listId, attribution, turnstileToken },
       {
         onError: (err) => {
           turnstileRef.current?.reset();

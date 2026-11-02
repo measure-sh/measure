@@ -1,3 +1,4 @@
+import { newsletterListId } from "@/app/api/api_calls";
 import Link from "next/link";
 import MailingListSignup from "./mailing_list_signup";
 
@@ -16,6 +17,7 @@ export function NewsletterSignupPanel() {
       <MailingListSignup
         title="Subscribe to the Measure newsletter"
         description="Once a month, we'll share what we shipped and our favorite mobile engineering reads."
+        listId={newsletterListId}
         attribution="blog"
         turnstileSiteKey={turnstileSiteKey}
       />

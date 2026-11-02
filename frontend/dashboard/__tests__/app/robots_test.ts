@@ -25,7 +25,8 @@ describe("robots", () => {
 
     expect(rule.allow).toBe("/");
     expect(rule.disallow).toContain("/yrtmlt/");
-    expect(rule.disallow).toContain("/mailing_list/");
+    expect(rule.disallow).toContain("/subscribe/confirm");
+    expect(rule.disallow).toContain("/unsubscribe");
     expect(rule.disallow).not.toContain("/api/");
     expect(rule.disallow).not.toContain("/auth/");
     expect(rule.disallow).not.toContain("/sandbox/");

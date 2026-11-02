@@ -21,7 +21,7 @@ export default function robots(): MetadataRoute.Robots {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/yrtmlt/", "/mailing_list/"],
+        disallow: ["/yrtmlt/", "/subscribe/confirm", "/unsubscribe"],
       },
     ],
     sitemap: `${CANONICAL_URL}/sitemap.xml`,

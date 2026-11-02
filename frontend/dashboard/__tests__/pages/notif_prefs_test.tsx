@@ -273,7 +273,16 @@ describe("Notifications page", () => {
     });
 
     it("is hidden when the mailing list is not enabled", () => {
-      mockMailingListPrefsData = { enabled: false, subscribed: false };
+      mockMailingListPrefsData = {
+        enabled: false,
+        lists: [
+          {
+            list_id: "newsletter",
+            name: "Measure newsletter",
+            subscribed: false,
+          },
+        ],
+      };
       render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
 
       expect(screen.queryByText("Newsletter")).not.toBeInTheDocument();
@@ -281,7 +290,16 @@ describe("Notifications page", () => {
     });
 
     it("is hidden for the sandbox team", () => {
-      mockMailingListPrefsData = { enabled: true, subscribed: false };
+      mockMailingListPrefsData = {
+        enabled: true,
+        lists: [
+          {
+            list_id: "newsletter",
+            name: "Measure newsletter",
+            subscribed: false,
+          },
+        ],
+      };
       render(
         <Notifications
           params={promiseParams({
@@ -294,7 +312,16 @@ describe("Notifications page", () => {
     });
 
     it("shows the user's current consent", () => {
-      mockMailingListPrefsData = { enabled: true, subscribed: true };
+      mockMailingListPrefsData = {
+        enabled: true,
+        lists: [
+          {
+            list_id: "newsletter",
+            name: "Measure newsletter",
+            subscribed: true,
+          },
+        ],
+      };
       render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
 
       expect(screen.getByText("Newsletter")).toBeInTheDocument();
@@ -302,7 +329,16 @@ describe("Notifications page", () => {
     });
 
     it("subscribes from settings when the switch is turned on", async () => {
-      mockMailingListPrefsData = { enabled: true, subscribed: false };
+      mockMailingListPrefsData = {
+        enabled: true,
+        lists: [
+          {
+            list_id: "newsletter",
+            name: "Measure newsletter",
+            subscribed: false,
+          },
+        ],
+      };
       mockMarketingMutateAsync.mockResolvedValue(undefined);
       render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
 
@@ -311,6 +347,7 @@ describe("Notifications page", () => {
       await Promise.resolve();
 
       expect(mockMarketingMutateAsync).toHaveBeenCalledWith({
+        listId: "newsletter",
         subscribed: true,
         attribution: "settings",
       });
@@ -320,7 +357,16 @@ describe("Notifications page", () => {
     });
 
     it("shows an error toast when saving fails", async () => {
-      mockMailingListPrefsData = { enabled: true, subscribed: true };
+      mockMailingListPrefsData = {
+        enabled: true,
+        lists: [
+          {
+            list_id: "newsletter",
+            name: "Measure newsletter",
+            subscribed: true,
+          },
+        ],
+      };
       mockMarketingMutateAsync.mockRejectedValue(new Error("boom"));
       render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
 
@@ -329,6 +375,7 @@ describe("Notifications page", () => {
       await Promise.resolve();
 
       expect(mockMarketingMutateAsync).toHaveBeenCalledWith({
+        listId: "newsletter",
         subscribed: false,
         attribution: "settings",
       });

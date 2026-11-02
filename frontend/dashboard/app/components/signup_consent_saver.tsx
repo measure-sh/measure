@@ -1,5 +1,6 @@
 "use client";
 
+import { newsletterListId } from "@/app/api/api_calls";
 import {
   useMailingListPrefsQuery,
   useSaveMailingListPrefsMutation,
@@ -42,12 +43,13 @@ export default function SignupConsentSaver({ teamId }: { teamId: string }) {
       return;
     }
     sent.current = true;
-    if (prefs.subscribed) {
+    const newsletter = prefs.lists.find((l) => l.list_id === newsletterListId);
+    if (!newsletter || newsletter.subscribed) {
       removeStorage(signupConsentKey);
       return;
     }
     saveMutation.mutate(
-      { subscribed: true, attribution: "signup" },
+      { listId: newsletterListId, subscribed: true, attribution: "signup" },
       { onSettled: () => removeStorage(signupConsentKey) },
     );
   }, [prefs, saveMutation]);

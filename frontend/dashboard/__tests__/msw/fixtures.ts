@@ -1449,7 +1449,9 @@ export function makeMailingListPrefsFixture(
 ) {
   return {
     enabled: true,
-    subscribed: false,
+    lists: [
+      { list_id: "newsletter", name: "Measure newsletter", subscribed: false },
+    ],
     ...overrides,
   };
 }
