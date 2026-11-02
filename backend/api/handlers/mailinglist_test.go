@@ -267,6 +267,26 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 		}
 	})
 
+	t.Run("saving the state the address already has records nothing", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		resendtest.Enable(t)
+		resendtest.MockSubscribe(t, func(context.Context, string, string) error { return nil })
+
+		userId := uuid.New()
+		seedUser(ctx, t, userId.String(), "ada@example.com")
+		seedMailingListSubscriber(ctx, t, "ada@example.com", "signup")
+
+		if w := patch(userId, `{"subscribed": true, "attribution": "settings"}`); w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200", w.Code)
+		}
+
+		s := getMailingListSubscriber(ctx, t, "ada@example.com")
+		want := mailingListEvent{Subscribed: true, Attribution: "signup"}
+		if s == nil || !s.Subscribed || len(s.Events) != 1 || s.lastEvent() != want {
+			t.Errorf("subscriber = %+v, want only the original subscribe from signup", s)
+		}
+	})
+
 	t.Run("a Resend failure records nothing → 500", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		resendtest.Enable(t)
@@ -504,9 +524,13 @@ func TestSubscribeMailingList(t *testing.T) {
 		if w := confirmMailingList(t, tokenFromEmail(t, (*sent)[0])); w.Code != http.StatusOK {
 			t.Fatalf("confirm status = %d", w.Code)
 		}
+		if s := getMailingListSignup(ctx, t, "ada@example.com"); s == nil || !s.Subscribed || s.HasToken {
+			t.Errorf("after confirming = %+v, want subscribed with the link used up", s)
+		}
 		s := getMailingListSubscriber(ctx, t, "ada@example.com")
-		if s == nil || !s.Subscribed || len(s.Events) != 2 || s.lastEvent().Attribution != "blog" {
-			t.Errorf("after confirming = %+v, want a second subscribe from the blog", s)
+		want := mailingListEvent{Subscribed: true, Attribution: "settings"}
+		if s == nil || len(s.Events) != 1 || s.lastEvent() != want {
+			t.Errorf("history = %+v, want only the original subscribe from settings", s)
 		}
 	})
 

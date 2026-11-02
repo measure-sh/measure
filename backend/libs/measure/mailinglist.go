@@ -25,13 +25,30 @@ import (
 const MailingListAttributionUnsubscribeLink = "unsubscribe_link"
 
 // saveMailingListChange sets whether the address is subscribed and records
-// the change in its history. Subscribing clears any pending confirmation.
-func saveMailingListChange(ctx context.Context, pg *pgxpool.Pool, email string, subscribed bool, attribution string) error {
+// the change in its history. It reports whether the address was subscribed
+// or unsubscribed by this call; saving the state it already has records
+// nothing, so the history only holds real changes. Subscribing clears any
+// pending confirmation either way.
+func saveMailingListChange(ctx context.Context, pg *pgxpool.Pool, email string, subscribed bool, attribution string) (bool, error) {
 	tx, err := pg.Begin(ctx)
 	if err != nil {
-		return err
+		return false, err
 	}
 	defer tx.Rollback(ctx)
+
+	// Locked, so two saves for the same address can't both see the old state.
+	current := sqlf.PostgreSQL.
+		Select("subscribed").
+		From("mailing_list_subscribers").
+		Where("email = ?", email).
+		Clause("for update")
+	defer current.Close()
+
+	wasSubscribed := false
+	err = tx.QueryRow(ctx, current.String(), current.Args()...).Scan(&wasSubscribed)
+	if err != nil && !errors.Is(err, pgx.ErrNoRows) {
+		return false, err
+	}
 
 	upsert := sqlf.PostgreSQL.InsertInto("mailing_list_subscribers").
 		Set("email", email).
@@ -47,7 +64,11 @@ func saveMailingListChange(ctx context.Context, pg *pgxpool.Pool, email string, 
 
 	var subscriberID string
 	if err := tx.QueryRow(ctx, upsert.String(), upsert.Args()...).Scan(&subscriberID); err != nil {
-		return err
+		return false, err
+	}
+
+	if wasSubscribed == subscribed {
+		return false, tx.Commit(ctx)
 	}
 
 	event := sqlf.PostgreSQL.InsertInto("mailing_list_subscribe_events").
@@ -57,9 +78,9 @@ func saveMailingListChange(ctx context.Context, pg *pgxpool.Pool, email string, 
 	defer event.Close()
 
 	if _, err := tx.Exec(ctx, event.String(), event.Args()...); err != nil {
-		return err
+		return false, err
 	}
-	return tx.Commit(ctx)
+	return true, tx.Commit(ctx)
 }
 
 // MailingListSubscribed reports whether the user's address is subscribed.
@@ -96,10 +117,13 @@ func MailingListSubscribed(ctx context.Context, pg *pgxpool.Pool, userId uuid.UU
 		return true, nil
 	}
 
-	if err := saveMailingListChange(ctx, pg, email, false, MailingListAttributionUnsubscribeLink); err != nil {
+	changed, err := saveMailingListChange(ctx, pg, email, false, MailingListAttributionUnsubscribeLink)
+	if err != nil {
 		return false, err
 	}
-	fireMailingListEvent(userId.String(), email, false, MailingListAttributionUnsubscribeLink)
+	if changed {
+		fireMailingListEvent(userId.String(), email, false, MailingListAttributionUnsubscribeLink)
+	}
 	return false, nil
 }
 
@@ -128,10 +152,13 @@ func SetMailingListSubscription(ctx context.Context, pg *pgxpool.Pool, userId uu
 		}
 	}
 
-	if err := saveMailingListChange(ctx, pg, email, optIn, attribution); err != nil {
+	changed, err := saveMailingListChange(ctx, pg, email, optIn, attribution)
+	if err != nil {
 		return err
 	}
-	fireMailingListEvent(userId.String(), email, optIn, attribution)
+	if changed {
+		fireMailingListEvent(userId.String(), email, optIn, attribution)
+	}
 	return nil
 }
 
@@ -202,10 +229,13 @@ func ConfirmMailingListSignup(ctx context.Context, pg *pgxpool.Pool, token strin
 	if err := resend.Subscribe(ctx, email, ""); err != nil {
 		return fmt.Errorf("failed to subscribe mailing list contact: %w", err)
 	}
-	if err := saveMailingListChange(ctx, pg, email, true, attribution); err != nil {
+	changed, err := saveMailingListChange(ctx, pg, email, true, attribution)
+	if err != nil {
 		return err
 	}
-	fireMailingListEvent(mailingListUserID(ctx, pg, email), email, true, attribution)
+	if changed {
+		fireMailingListEvent(mailingListUserID(ctx, pg, email), email, true, attribution)
+	}
 
 	return nil
 }
@@ -234,10 +264,13 @@ func RecordMailingListUnsubscribe(ctx context.Context, pg *pgxpool.Pool, email s
 		return nil
 	}
 
-	if err := saveMailingListChange(ctx, pg, email, false, MailingListAttributionUnsubscribeLink); err != nil {
+	changed, err := saveMailingListChange(ctx, pg, email, false, MailingListAttributionUnsubscribeLink)
+	if err != nil {
 		return err
 	}
-	fireMailingListEvent(mailingListUserID(ctx, pg, email), email, false, MailingListAttributionUnsubscribeLink)
+	if changed {
+		fireMailingListEvent(mailingListUserID(ctx, pg, email), email, false, MailingListAttributionUnsubscribeLink)
+	}
 	return nil
 }
 
