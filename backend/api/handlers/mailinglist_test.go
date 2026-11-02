@@ -123,7 +123,7 @@ func TestGetMailingListPrefs(t *testing.T) {
 
 	t.Run("a user who never opted in is not subscribed", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		enableCloud(t)
+		enableMailingListKey(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
@@ -141,7 +141,7 @@ func TestGetMailingListPrefs(t *testing.T) {
 
 	t.Run("an opted-in user is subscribed", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		enableCloud(t)
+		enableMailingListKey(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
@@ -154,7 +154,7 @@ func TestGetMailingListPrefs(t *testing.T) {
 
 	t.Run("a user whose address joined from the blog is subscribed", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		enableCloud(t)
+		enableMailingListKey(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "Ada@Example.com")
@@ -165,7 +165,7 @@ func TestGetMailingListPrefs(t *testing.T) {
 		}
 	})
 
-	t.Run("disabled outside Measure cloud", func(t *testing.T) {
+	t.Run("disabled without the unsubscribe key", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		userId := uuid.New()
@@ -200,7 +200,7 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 
 	t.Run("opting in records when and where", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		enableCloud(t)
+		enableMailingListKey(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "Ada@Example.com")
@@ -219,7 +219,7 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 
 	t.Run("opting out records when and where", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		enableCloud(t)
+		enableMailingListKey(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
@@ -239,7 +239,7 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 
 	t.Run("saving the state the address already has records nothing", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		enableCloud(t)
+		enableMailingListKey(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
@@ -258,7 +258,7 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 
 	t.Run("any attribution is recorded as sent", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		enableCloud(t)
+		enableMailingListKey(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
@@ -273,7 +273,7 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 
 	t.Run("an unknown list → 400", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		enableCloud(t)
+		enableMailingListKey(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
@@ -288,7 +288,7 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 
 	t.Run("missing attribution → 400", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		enableCloud(t)
+		enableMailingListKey(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
@@ -298,7 +298,7 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 		}
 	})
 
-	t.Run("disabled outside Measure cloud → 404", func(t *testing.T) {
+	t.Run("disabled without the unsubscribe key → 404", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		userId := uuid.New()
@@ -313,19 +313,22 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 	})
 }
 
-// enableCloud runs the test as Measure cloud, where the mailing list is on.
-func enableCloud(t *testing.T) {
+const testUnsubscribeKey = "test-unsubscribe-key"
+
+// enableMailingListKey turns the mailing list on for the test by setting the
+// unsubscribe key.
+func enableMailingListKey(t *testing.T) {
 	t.Helper()
-	orig := deps.Config.CloudEnv
-	deps.Config.CloudEnv = true
-	t.Cleanup(func() { deps.Config.CloudEnv = orig })
+	orig := deps.Config.MailingListUnsubscribeKey
+	deps.Config.MailingListUnsubscribeKey = testUnsubscribeKey
+	t.Cleanup(func() { deps.Config.MailingListUnsubscribeKey = orig })
 }
 
 // enableMailingList turns on public signups for the test and returns the
 // emails that would have been sent.
 func enableMailingList(t *testing.T) *[]email.EmailInfo {
 	t.Helper()
-	enableCloud(t)
+	enableMailingListKey(t)
 	turnstiletest.Enable(t)
 
 	origOrigin, origFrom := deps.Config.SiteOrigin, deps.Config.TxEmailAddress
@@ -650,15 +653,14 @@ func TestConfirmMailingList(t *testing.T) {
 
 func TestUnsubscribeMailingList(t *testing.T) {
 	ctx := context.Background()
-	const key = "test-unsubscribe-key"
+	const key = testUnsubscribeKey
 
 	enable := func(t *testing.T) {
 		t.Helper()
-		enableCloud(t)
-		origKey, origOrigin := deps.Config.MailingListUnsubscribeKey, deps.Config.SiteOrigin
-		deps.Config.MailingListUnsubscribeKey = key
+		enableMailingListKey(t)
+		origOrigin := deps.Config.SiteOrigin
 		deps.Config.SiteOrigin = "https://measure.test"
-		t.Cleanup(func() { deps.Config.MailingListUnsubscribeKey, deps.Config.SiteOrigin = origKey, origOrigin })
+		t.Cleanup(func() { deps.Config.SiteOrigin = origOrigin })
 	}
 
 	linkQuery := func(id uuid.UUID) string {
@@ -755,17 +757,6 @@ func TestUnsubscribeMailingList(t *testing.T) {
 		}
 	})
 
-	t.Run("without a key every link is refused", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		enable(t)
-		deps.Config.MailingListUnsubscribeKey = ""
-		id := seedMailingListSubscriber(ctx, t, "ada@example.com", "blog")
-
-		if w := fromPage(id, measure.SignMailingListUnsubscribe("", id)); w.Code != http.StatusBadRequest {
-			t.Fatalf("status = %d, want 400", w.Code)
-		}
-	})
-
 	t.Run("the page reads the link's lists", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		enable(t)
@@ -803,7 +794,7 @@ func TestUnsubscribeMailingList(t *testing.T) {
 		}
 	})
 
-	t.Run("disabled outside Measure cloud → 404", func(t *testing.T) {
+	t.Run("disabled without the unsubscribe key → 404", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		id := seedMailingListSubscriber(ctx, t, "ada@example.com", "blog")
 

@@ -433,7 +433,7 @@ func NewConfig() *Config {
 		log.Printf("failed to read MAILING_LIST_UNSUBSCRIBE_KEY: %v", secErr)
 	}
 	if mailingListUnsubscribeKey == "" {
-		log.Println("MAILING_LIST_UNSUBSCRIBE_KEY env var is not set, unsubscribe links in mailing list emails will not work")
+		log.Println("MAILING_LIST_UNSUBSCRIBE_KEY env var is not set, the mailing list will be off")
 	}
 
 	turnstileSecretKey, secErr := secret.FromEnvOrFile("TURNSTILE_SECRET_KEY")
