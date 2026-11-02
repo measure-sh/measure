@@ -19,7 +19,7 @@ require (
 	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/posthog/posthog-go v1.22.0
 	github.com/svix/svix-webhooks v1.95.2
-	github.com/valkey-io/valkey-go v1.0.75
+	github.com/valkey-io/valkey-go v1.0.79
 	github.com/wneessen/go-mail v0.7.3
 	go.opentelemetry.io/otel v1.47.0
 	go.opentelemetry.io/otel/trace v1.47.0
