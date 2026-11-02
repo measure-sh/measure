@@ -114,6 +114,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump github.com/go-jose/go-jose/v4 in /backend/symboloader (#4737) by @dependabot[bot] in #4737
 - (**deps**): Bump github.com/go-jose/go-jose/v4 (#4736) by @dependabot[bot] in #4736
 - (**deps**): Bump github.com/ClickHouse/clickhouse-go/v2 (#4694) by @dependabot[bot] in #4694
 - (**deps**): Bump fumadocs-openapi in /frontend/dashboard (#4702) by @dependabot[bot] in #4702
