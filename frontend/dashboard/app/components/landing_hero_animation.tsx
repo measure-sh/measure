@@ -4,7 +4,9 @@ import dynamic from "next/dynamic";
 import { useTheme } from "next-themes";
 import { useEffect, useState } from "react";
 
-const Lottie = dynamic(() => import("lottie-react"), { ssr: false });
+const Lottie = dynamic(() => import("lottie-react").then((mod) => mod.Lottie), {
+  ssr: false,
+});
 
 export default function LandingHeroAnimation() {
   const { resolvedTheme } = useTheme();
@@ -36,7 +38,18 @@ export default function LandingHeroAnimation() {
 
   return (
     <div className="w-80 h-80 md:w-md md:h-80">
-      {animationData && <Lottie animationData={animationData} />}
+      {/* lottie-react's stylesheet sets height: 100% on this element outside
+          Tailwind's cascade layers, so h-auto needs the important modifier.
+          The height then follows the animations' 6:5 aspect ratio and the
+          animation keeps the full width of the box. */}
+      {animationData && (
+        <Lottie
+          src={animationData}
+          autoplay
+          loop
+          className="aspect-6/5 h-auto! w-full"
+        />
+      )}
     </div>
   );
 }
