@@ -152,8 +152,11 @@ class MeasurePlugin : Plugin<Project> {
                     }
                     it.reactNativeBundleArchives.setFrom(rnBundleArchives)
                     it.enableNativeCrashReportingProperty.set(measure.enableNativeCrashReporting)
-                    if (measure.enableNativeCrashReporting) {
-                        it.nativeLibs.from(project.tasks.matching { task -> task.name == mergeNativeLibsTaskName(variant) })
+                    val mergeNativeLibsTask = mergeNativeLibsTaskName(variant)
+                    // Look the task up by name instead of filtering the task container, which
+                    // creates every task. Some AGP tasks (Compose Preview on AGP 9.5) fail on creation.
+                    if (measure.enableNativeCrashReporting && mergeNativeLibsTask in project.tasks.names) {
+                        it.nativeLibs.from(project.tasks.named(mergeNativeLibsTask))
                     }
                     it.buildMetadataFileProperty.set(appSizeFileProvider(project, variant))
                     it.retriesProperty.set(DEFAULT_RETRIES)

@@ -27,7 +27,7 @@ create table if not exists unhandled_exception_groups
 engine = AggregatingMergeTree
 partition by toYYYYMM(timestamp)
 order by (team_id, app_id, app_version.1, app_version.2, id)
-settings index_granularity = 8192
+settings index_granularity = 8192, allow_dimensions_outside_sorting_key = 1
 comment 'unhandled exception groups';
 
 -- migrate:down

@@ -4,11 +4,13 @@ on:
   pull_request:
     paths:
       - 'kmp/**'
+      - 'android/measure-android/**'
   push:
     branches:
       - 'main'
     paths:
       - 'kmp/**'
+      - 'android/measure-android/**'
 
 concurrency:
   group: kmp-checks-${{ github.ref }}

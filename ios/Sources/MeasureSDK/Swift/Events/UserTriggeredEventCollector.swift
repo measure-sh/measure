@@ -241,7 +241,7 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                                            attachments: attachments,
                                            userDefinedAttributes: userDefinedAttributes,
                                            threadName: nil,
-                                           needsReporting: signalSampler.shouldSampleHttpEvent())
+                                           needsReporting: needsReporting)
     }
 
     private func getContentType(headers: [String: String]?) -> String? {

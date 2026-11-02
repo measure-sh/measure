@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Expand session arrays with an ARRAY JOIN clause by @anupcowkur
 - (**backend**): Bind the suggestion window start as a query parameter by @anupcowkur in #4464
 - (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
+- (**frontend**): Count partial days for usage page in sandbox by @anupcowkur in #4720
 - (**frontend**): Tighten the gap between paginator buttons by @anupcowkur in #4673
 - (**frontend**): Stop highlighting build rows on hover by @anupcowkur in #4671
 - (**frontend**): Stop highlighting table headers on hover by @anupcowkur in #4672
@@ -90,6 +91,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Upgrade to clickhouse 26.8 (#4719) by @detj in #4719
+- (**backend**): Check go.mod is tidy with `go.work` off (#4718) by @detj in #4718
 - (**backend**): Ignore go work sum (#4705) by @detj in #4705
 - (**backend**): Bump Go to 1.27.3 (#4646) by @detj in #4646
 - (**backend**): Bump Go to 1.27.1 (#4587) by @detj in #4587
@@ -220,6 +223,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**frontend**): Add minimum compose ui version for android by @abhaysood in #4715
 - Add expo release step to release checklist by @anupcowkur in #4578
 - Add gradle plugin step to cross-platform getting started guides by @anupcowkur
 - Add next steps section to getting started guide by @abhaysood in #4529

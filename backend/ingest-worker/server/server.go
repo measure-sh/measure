@@ -367,7 +367,7 @@ func Init(config *ServerConfig) {
 
 	if gin.Mode() == gin.ReleaseMode {
 		chOpts.Settings = clickhouse.Settings{
-			"compatibility": "26.6",
+			"compatibility": "26.8",
 		}
 
 		chOpts.Compression = &clickhouse.Compression{

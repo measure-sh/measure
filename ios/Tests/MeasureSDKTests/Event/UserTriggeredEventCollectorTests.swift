@@ -19,6 +19,7 @@ final class UserTriggeredEventCollectorTests: XCTestCase {
     var sessionManager: MockSessionManager!
     var signalSampler: MockSignalSampler!
     var layoutSnapshotCollector: MockLayoutSnapshotCollector!
+    var exceptionGenerator: MockExceptionGenerator!
 
     override func setUp() {
         super.setUp()
@@ -29,12 +30,13 @@ final class UserTriggeredEventCollectorTests: XCTestCase {
         sessionManager = MockSessionManager()
         signalSampler = MockSignalSampler()
         layoutSnapshotCollector = MockLayoutSnapshotCollector()
+        exceptionGenerator = MockExceptionGenerator()
 
         collector = BaseUserTriggeredEventCollector(
             signalProcessor: signalProcessor,
             timeProvider: timeProvider,
             logger: logger,
-            exceptionGenerator: MockExceptionGenerator(),
+            exceptionGenerator: exceptionGenerator,
             attributeValueValidator: BaseAttributeValueValidator(configProvider: configProvider, logger: logger),
             configProvider: configProvider,
             sessionManager: sessionManager,
@@ -54,6 +56,7 @@ final class UserTriggeredEventCollectorTests: XCTestCase {
         sessionManager = nil
         signalSampler = nil
         layoutSnapshotCollector = nil
+        exceptionGenerator = nil
         super.tearDown()
     }
 
@@ -372,5 +375,24 @@ final class UserTriggeredEventCollectorTests: XCTestCase {
         collector.trackScreenView(String(repeating: "s", count: ValidationLimits.screenViewName), attributes: nil)
 
         XCTAssertNotNil(signalProcessor.data as? ScreenViewData)
+    }
+
+    func test_trackScreenView_usesJourneySampling() {
+        signalSampler.shouldTrackLaunchEventsReturnValue = true
+        signalSampler.shouldSampleTHttpEventValue = false
+
+        collector.trackScreenView("home", attributes: nil)
+
+        XCTAssertEqual(signalProcessor.needsReporting, true)
+    }
+
+    func test_trackException_usesHandledErrorSampling() {
+        exceptionGenerator.exception = Exception(exceptions: [ExceptionDetail(type: nil, message: nil, frames: nil, signal: nil, threadName: nil, threadSequence: 0, osBuildNumber: nil)], threads: nil, binaryImages: nil, framework: nil, severity: .handled, isCustom: nil, numCode: nil, code: nil, meta: nil)
+        signalSampler.sampledErrorSeverities = []
+        signalSampler.shouldSampleTHttpEventValue = true
+
+        collector.trackException(NSException(name: .genericException, reason: "test"), attributes: nil, framesToStrip: 0)
+
+        XCTAssertEqual(signalProcessor.needsReporting, false)
     }
 }

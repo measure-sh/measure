@@ -3580,7 +3580,7 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
     const monthStart = now.minus({ months: monthsAgo }).startOf("month");
     const monthEnd = monthsAgo === 0 ? now : monthStart.endOf("month");
     const from = onboardedAt > monthStart ? onboardedAt : monthStart;
-    const daysInMonth = Math.max(0, Math.round(monthEnd.diff(from).as("days")));
+    const daysInMonth = Math.max(0, monthEnd.diff(from).as("days"));
     const seed = `usage:${app.id}:${monthStart.toFormat("yyyy-MM")}`;
     const variance =
       0.9 + noise(stableInt(`${seed}:variance`, 0, 100000)) * 0.2;
