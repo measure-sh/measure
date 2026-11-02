@@ -8,7 +8,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -128,7 +127,7 @@ func SetMailingListSubscription(ctx context.Context, pg *pgxpool.Pool, userId uu
 		return err
 	}
 	if changed {
-		fireMailingListEvent(userId.String(), email, optIn, attribution)
+		fireMailingListEvent(optIn, attribution)
 	}
 	return nil
 }
@@ -202,7 +201,7 @@ func ConfirmMailingListSignup(ctx context.Context, pg *pgxpool.Pool, token strin
 		return err
 	}
 	if changed {
-		fireMailingListEvent(mailingListUserID(ctx, pg, email), email, true, attribution)
+		fireMailingListEvent(true, attribution)
 	}
 
 	return nil
@@ -236,26 +235,9 @@ func RecordMailingListUnsubscribe(ctx context.Context, pg *pgxpool.Pool, email s
 		return err
 	}
 	if changed {
-		fireMailingListEvent(mailingListUserID(ctx, pg, email), email, false, MailingListAttributionUnsubscribeLink)
+		fireMailingListEvent(false, MailingListAttributionUnsubscribeLink)
 	}
 	return nil
-}
-
-// mailingListUserID returns the id of the user with this address, or an
-// empty string if there is none.
-func mailingListUserID(ctx context.Context, pg *pgxpool.Pool, email string) string {
-	stmt := sqlf.PostgreSQL.
-		Select("id::text").
-		From("users").
-		Where("lower(email) = ?", email).
-		Limit(1)
-	defer stmt.Close()
-
-	var userID string
-	if err := pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&userID); err != nil && !errors.Is(err, pgx.ErrNoRows) {
-		log.Printf("mailing list: look up user for subscriber: %v", err)
-	}
-	return userID
 }
 
 func hashMailingListToken(token string) string {

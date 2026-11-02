@@ -2,8 +2,6 @@ package measure
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"log"
@@ -95,24 +93,18 @@ func FireTeamCreatedEvent(ctx context.Context, user *User, team *Team) {
 }
 
 // fireMailingListEvent fires `mailing_list_subscribed` or
-// `mailing_list_unsubscribed`. An address without a Measure account is
-// identified by its hash, without a person profile.
-func fireMailingListEvent(userID, email string, subscribed bool, attribution string) {
+// `mailing_list_unsubscribed`. All mailing list events share one distinct id
+// without a person profile, because only the counts and attribution matter.
+func fireMailingListEvent(subscribed bool, attribution string) {
 	event := "mailing_list_unsubscribed"
 	if subscribed {
 		event = "mailing_list_subscribed"
 	}
-	props := map[string]any{
-		"schema_version": "v1",
-		"attribution":    attribution,
-	}
-	distinctID := userID
-	if distinctID == "" {
-		sum := sha256.Sum256([]byte(email))
-		distinctID = "mailing_list:" + hex.EncodeToString(sum[:])
-		props["$process_person_profile"] = false
-	}
-	posthog.Capture(distinctID, event, props, nil)
+	posthog.Capture("mailing_list", event, map[string]any{
+		"schema_version":          "v1",
+		"attribution":             attribution,
+		"$process_person_profile": false,
+	}, nil)
 }
 
 // subscriptionCompositeID returns a stable identifier for a plan transition
