@@ -1387,8 +1387,7 @@ export const updateNotifPrefsFromServer = async (
   });
 };
 
-// The id of the Measure newsletter, the list the blog form and the login
-// checkbox subscribe to.
+// The id of the Measure newsletter, the list the blog form subscribes to.
 export const newsletterListId = "newsletter";
 
 export type MailingListSubscription = {

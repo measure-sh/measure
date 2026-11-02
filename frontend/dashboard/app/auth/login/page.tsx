@@ -2,8 +2,6 @@
 
 import { validateInvitesFromServer } from "@/app/api/api_calls";
 import { ApiError } from "@/app/api/api_error";
-import { Checkbox } from "@/app/components/checkbox";
-import { signupConsentKey } from "@/app/components/signup_consent_saver";
 import { fetchCurrentSession, type Session } from "@/app/query/hooks";
 import { useMeasureStoreRegistry } from "@/app/stores/provider";
 import { resetAllStores } from "@/app/stores/reset_all";
@@ -90,10 +88,7 @@ export default function Login(props: {
   const home = session ? `/${session.user.own_team_id}/overview` : "";
   const [loading, setLoading] = useState(!isMcp);
   const [inviteInvalid, setInviteInvalid] = useState(false);
-  const [mailingListConsent, setMailingListConsent] = useState(false);
   const router = useRouter();
-  const showMailingListConsent =
-    isCloud() && !isMcp && !loading && !session && !error && !message;
 
   useEffect(() => {
     if (isMcp || !inviteId) {
@@ -235,30 +230,6 @@ export default function Login(props: {
           <GitHubSignIn mcpAuthorizeUrl={mcpGitHubUrl} />
         )}
       </div>
-      {/* Unticked by default: GDPR doesn't count a pre-ticked box as consent. */}
-      {showMailingListConsent && (
-        <label
-          className="font-body text-sm flex items-start gap-3 mb-6 cursor-pointer"
-          style={{ width: "400px" }}
-        >
-          <Checkbox
-            className="mt-0.5"
-            checked={mailingListConsent}
-            onCheckedChange={(checked) => {
-              const consent = checked === true;
-              setMailingListConsent(consent);
-              try {
-                if (consent) {
-                  window.sessionStorage.setItem(signupConsentKey, "1");
-                } else {
-                  window.sessionStorage.removeItem(signupConsentKey);
-                }
-              } catch {}
-            }}
-          />
-          <span>Send me the Measure newsletter</span>
-        </label>
-      )}
       {/* Cloud only: self-hosted deployments aren't bound by these terms. */}
       {isCloud() && (
         <p className="font-body text-center text-sm text-muted-foreground max-w-100">
