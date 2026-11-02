@@ -1,7 +1,5 @@
-// Package testhelpers provides test-only helpers for swapping the
-// package-level turnstile.Verify function and configuration. Each helper
-// saves the current value, installs the test's value, and restores the
-// original on test cleanup.
+// Package testhelpers replaces the turnstile client in tests and restores it
+// on cleanup.
 //
 // Import as:
 //
@@ -26,8 +24,8 @@ func MockVerify(t *testing.T, fn func(ctx context.Context, token string) (bool, 
 	t.Cleanup(func() { turnstile.Verify = orig })
 }
 
-// Enable sets a test secret so turnstile.Enabled reports true, and installs a
-// fake that accepts only PassingToken, so no test reaches Cloudflare.
+// Enable makes turnstile.Enabled report true, with a fake that accepts only
+// PassingToken.
 func Enable(t *testing.T) {
 	t.Helper()
 	turnstile.Init(turnstile.Config{SecretKey: "turnstile_test"})

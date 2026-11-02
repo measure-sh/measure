@@ -180,8 +180,6 @@ export default function Notifications({ params }: PageProps) {
   );
 }
 
-// Saves on flip, separately from the Save button above, because the change
-// also goes to Resend.
 function MailingListPref() {
   const prefsQuery = useMailingListPrefsQuery();
   const saveMutation = useSaveMailingListPrefsMutation();

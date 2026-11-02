@@ -47,7 +47,6 @@ func (h Handlers) GetMailingListPrefs(c *gin.Context) {
 		return
 	}
 
-	// enabled is false without Resend, as on self-hosted installs.
 	c.JSON(http.StatusOK, gin.H{
 		"enabled":    resend.Enabled(),
 		"subscribed": subscribed,
@@ -98,7 +97,7 @@ func (h Handlers) UpdateMailingListPrefs(c *gin.Context) {
 	})
 }
 
-// sendEmail is a variable so tests can replace it and never send mail.
+// sendEmail is a variable so tests can replace it.
 var sendEmail = email.SendEmail
 
 type mailingListSubscribePayload struct {
@@ -111,9 +110,8 @@ type mailingListConfirmPayload struct {
 	Token string `json:"token" binding:"required"`
 }
 
-// SubscribeMailingList emails a confirmation link to the address. It answers
-// the same whether or not the address is already subscribed, so the form
-// does not reveal who is.
+// SubscribeMailingList emails a confirmation link to the address. It responds
+// the same way whether or not the address is already subscribed.
 func (h Handlers) SubscribeMailingList(c *gin.Context) {
 	deps := h.Deps
 	if !resend.Enabled() || !turnstile.Enabled() {
@@ -127,7 +125,7 @@ func (h Handlers) SubscribeMailingList(c *gin.Context) {
 		return
 	}
 
-	// Accept one bare address, like a@b.co, and nothing else.
+	// Only a bare address like a@b.co, without a display name.
 	input := strings.TrimSpace(payload.Email)
 	addr, err := mail.ParseAddress(input)
 	if len(input) > 254 || err != nil || addr.Name != "" || addr.Address != input || !strings.Contains(addr.Address, ".") {
@@ -144,8 +142,6 @@ func (h Handlers) SubscribeMailingList(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	// Each token works once, so a script has to pass a new check for every
-	// confirmation email it wants sent.
 	passed, err := turnstile.Verify(ctx, payload.TurnstileToken)
 	if err != nil {
 		mailingListUnavailable(c, err)
@@ -206,8 +202,7 @@ func (h Handlers) ConfirmMailingList(c *gin.Context) {
 }
 
 // HandleResendWebhook records unsubscribes made through the link in a mailing
-// list email. Resend handles that link itself, so this webhook is how we hear
-// about them.
+// list email.
 func (h Handlers) HandleResendWebhook(c *gin.Context) {
 	deps := h.Deps
 	secret := deps.Config.ResendWebhookSecret

@@ -1,9 +1,5 @@
 // Package resend is a client for the contacts API of resend.com, which holds
-// the mailing list.
-//
-// Call Init at startup. Subscribe, Unsubscribe and ContactSubscribed are
-// variables rather than plain funcs, so tests can swap in a fake and never
-// reach the real Resend API.
+// the mailing list. Call Init at startup.
 package resend
 
 import (
@@ -31,14 +27,12 @@ var (
 	httpClient = &http.Client{Timeout: 10 * time.Second}
 )
 
-// Config carries the startup parameters.
 type Config struct {
 	APIKey string
-	// SegmentID is the mailing list segment that Broadcasts are sent to.
+	// SegmentID is the segment that newsletters are sent to.
 	SegmentID string
 }
 
-// Init wires up the package-level client. Call once at service startup.
 func Init(cfg Config) {
 	apiKey = cfg.APIKey
 	segmentID = cfg.SegmentID
@@ -126,13 +120,12 @@ func do(ctx context.Context, opName, method, path string, body any, out any) (er
 	return nil
 }
 
-// The email is escaped so characters like + or / can't change the path.
+// contactPath returns the API path of a contact, with the email escaped.
 func contactPath(email string) string {
 	return "/contacts/" + url.PathEscape(email)
 }
 
-// subscribe creates the contact in the mailing list segment, or marks an
-// existing contact subscribed and adds it to the segment.
+// subscribe creates or resubscribes the contact and adds it to the segment.
 func subscribe(ctx context.Context, email, firstName string) error {
 	err := do(ctx, "resend.CreateContact", http.MethodPost, "/contacts", map[string]any{
 		"email":        email,
@@ -165,8 +158,7 @@ func subscribe(ctx context.Context, email, firstName string) error {
 	return err
 }
 
-// unsubscribe marks the contact unsubscribed rather than deleting it, so
-// Resend keeps refusing to send to it.
+// unsubscribe marks the contact unsubscribed rather than deleting it.
 func unsubscribe(ctx context.Context, email string) error {
 	err := do(ctx, "resend.UpdateContact", http.MethodPatch, contactPath(email), map[string]any{
 		"unsubscribed": true,

@@ -30,10 +30,9 @@ export interface TurnstileHandle {
 }
 
 /**
- * Cloudflare Turnstile check. It usually passes without the visitor doing
- * anything, and only shows a checkbox when Cloudflare is unsure. `onToken`
- * gets a token once it passes, and null when the token expires or fails.
- * `onCheckShown` is called when the checkbox appears.
+ * Cloudflare Turnstile widget. `onToken` gets a token once the check passes,
+ * and null when it expires or fails. `onCheckShown` is called when Cloudflare
+ * shows the checkbox.
  */
 const Turnstile = forwardRef<
   TurnstileHandle,
@@ -50,8 +49,6 @@ const Turnstile = forwardRef<
   const onCheckShownRef = useRef(onCheckShown);
   onCheckShownRef.current = onCheckShown;
 
-  // Each token works once, so the form resets the widget after every submit
-  // to get a fresh one.
   useImperativeHandle(ref, () => ({
     reset: () => {
       if (widgetIdRef.current && window.turnstile) {

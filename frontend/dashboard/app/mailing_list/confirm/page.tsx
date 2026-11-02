@@ -10,7 +10,7 @@ import { use } from "react";
 
 /**
  * Linked from the confirmation email. Confirming takes a click, so mail
- * scanners that open links cannot subscribe anyone.
+ * scanners that open links can't subscribe anyone.
  */
 export default function ConfirmMailingList(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;

@@ -71,8 +71,6 @@ func getMailingListSubscriber(ctx context.Context, t *testing.T, emailAddr strin
 	return &s
 }
 
-// seedMailingListSubscriber subscribes an address, with the event that
-// subscribed it.
 func seedMailingListSubscriber(ctx context.Context, t *testing.T, emailAddr, attribution string) {
 	t.Helper()
 	var id string
@@ -351,8 +349,8 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 	})
 }
 
-// enableMailingList turns public mailing list signups on for the duration of a
-// test, and captures every email instead of sending it.
+// enableMailingList turns on public signups for the test and returns the
+// emails that would have been sent.
 func enableMailingList(t *testing.T) *[]email.EmailInfo {
 	t.Helper()
 	resendtest.Enable(t)
@@ -376,15 +374,12 @@ func enableMailingList(t *testing.T) *[]email.EmailInfo {
 	return &sent
 }
 
-// postMailingListSubscribe sends a raw subscribe request body.
 func postMailingListSubscribe(body string) *httptest.ResponseRecorder {
 	c, w := newTestGinContext("POST", "/mailingList/subscribe", strings.NewReader(body))
 	h.SubscribeMailingList(c)
 	return w
 }
 
-// subscribeMailingList subscribes from the blog with a token that passes the
-// Turnstile check.
 func subscribeMailingList(t *testing.T, emailAddr string) *httptest.ResponseRecorder {
 	t.Helper()
 	body, _ := json.Marshal(map[string]string{"email": emailAddr, "attribution": "blog", "turnstile_token": turnstiletest.PassingToken})
@@ -548,7 +543,6 @@ func TestSubscribeMailingList(t *testing.T) {
 			t.Fatalf("first confirm status = %d", w.Code)
 		}
 
-		// Ada unsubscribes through Resend, then asks again from the blog.
 		w := subscribeMailingList(t, "ada@example.com")
 
 		if w.Code != http.StatusOK {

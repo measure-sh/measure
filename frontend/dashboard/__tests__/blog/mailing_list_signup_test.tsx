@@ -25,8 +25,7 @@ jest.mock("@/app/query/hooks", () => ({
   }),
 }));
 
-// The fake check passes as soon as it renders, unless a test says it has not
-// finished yet.
+// The fake Turnstile passes on render, unless a test sets the token to null.
 let mockTurnstileToken: string | null = "turnstile-token";
 const mockTurnstileReset = jest.fn();
 let mockTurnstileProps: any;

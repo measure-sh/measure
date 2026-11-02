@@ -8,8 +8,8 @@ import (
 	svix "github.com/svix/svix-webhooks/go"
 )
 
-// EventContactUpdated is sent whenever a contact changes, including when it
-// unsubscribes through the link in a mailing list email.
+// EventContactUpdated is sent when a contact changes, including when it
+// unsubscribes.
 const EventContactUpdated = "contact.updated"
 
 // Event is the shape of a Resend webhook event.
@@ -24,9 +24,9 @@ type ContactData struct {
 	Unsubscribed bool   `json:"unsubscribed"`
 }
 
-// VerifyWebhook validates the Svix signature on a Resend webhook payload and
-// returns the parsed Event. The secret is the webhook signing secret from the
-// Resend dashboard, which starts with "whsec_".
+// VerifyWebhook checks the Svix signature on a webhook payload and returns
+// the parsed Event. secret is the webhook signing secret, starting with
+// "whsec_".
 func VerifyWebhook(headers http.Header, body []byte, secret string) (*Event, error) {
 	wh, err := svix.NewWebhook(secret)
 	if err != nil {

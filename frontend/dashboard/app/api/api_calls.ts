@@ -1388,7 +1388,7 @@ export const updateNotifPrefsFromServer = async (
 };
 
 export type MailingListPrefs = {
-  // False where the mailing list isn't set up, as on self-hosted.
+  // Whether the mailing list is set up on this server.
   enabled: boolean;
   subscribed: boolean;
 };

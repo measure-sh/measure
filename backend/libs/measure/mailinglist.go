@@ -25,10 +25,8 @@ import (
 const MailingListAttributionUnsubscribeLink = "unsubscribe_link"
 
 // saveMailingListChange sets whether the address is subscribed and records
-// the change in its history. It reports whether the address was subscribed
-// or unsubscribed by this call; saving the state it already has records
-// nothing, so the history only holds real changes. Subscribing clears any
-// pending confirmation either way.
+// the change in its history. It reports whether the state changed; an
+// unchanged state is not recorded.
 func saveMailingListChange(ctx context.Context, pg *pgxpool.Pool, email string, subscribed bool, attribution string) (bool, error) {
 	tx, err := pg.Begin(ctx)
 	if err != nil {
@@ -83,10 +81,9 @@ func saveMailingListChange(ctx context.Context, pg *pgxpool.Pool, email string, 
 	return true, tx.Commit(ctx)
 }
 
-// MailingListSubscribed reports whether the user's address is subscribed.
-// An unsubscribe from an email link only reaches Resend, so a subscribed
-// address is checked there and the unsubscribe recorded. If Resend can't be
-// reached, the stored state is used.
+// MailingListSubscribed reports whether the user's address is subscribed. A
+// subscribed address is checked against Resend, and an unsubscribe found there
+// is recorded.
 func MailingListSubscribed(ctx context.Context, pg *pgxpool.Pool, userId uuid.UUID) (bool, error) {
 	stmt := sqlf.PostgreSQL.
 		Select("lower(u.email)").
@@ -127,8 +124,8 @@ func MailingListSubscribed(ctx context.Context, pg *pgxpool.Pool, userId uuid.UU
 	return false, nil
 }
 
-// SetMailingListSubscription subscribes or unsubscribes the user. Resend is
-// updated first and the change is saved only once it accepts.
+// SetMailingListSubscription subscribes or unsubscribes the user in Resend,
+// then saves the change.
 func SetMailingListSubscription(ctx context.Context, pg *pgxpool.Pool, userId uuid.UUID, optIn bool, attribution string) error {
 	user := &User{ID: new(string)}
 	*user.ID = userId.String()
@@ -138,8 +135,6 @@ func SetMailingListSubscription(ctx context.Context, pg *pgxpool.Pool, userId uu
 	if user.Name == nil {
 		user.Name = new(string)
 	}
-	// Lowercased here and in Resend, so lookups don't depend on the casing
-	// the sign-in provider used.
 	email := strings.ToLower(*user.Email)
 
 	if optIn {
@@ -170,10 +165,9 @@ var (
 	ErrMailingListTokenExpired = errors.New("mailing list confirmation link has expired")
 )
 
-// RequestMailingListSignup stores a pending signup from a public form and
-// returns the token to email to the address. The address is only subscribed
-// once its owner confirms. A new request replaces any earlier token, so only
-// the latest link works.
+// RequestMailingListSignup stores a pending signup and returns the
+// confirmation token to email to the address. A new request replaces any
+// earlier token.
 func RequestMailingListSignup(ctx context.Context, pg *pgxpool.Pool, email, attribution string) (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
@@ -181,7 +175,6 @@ func RequestMailingListSignup(ctx context.Context, pg *pgxpool.Pool, email, attr
 	}
 	token := base64.RawURLEncoding.EncodeToString(b)
 
-	// Only the hash is stored, so the table alone cannot confirm anyone.
 	stmt := sqlf.PostgreSQL.InsertInto("mailing_list_subscribers").
 		Set("email", strings.ToLower(email)).
 		Set("confirmation_token_hash", hashMailingListToken(token)).
@@ -201,9 +194,8 @@ func RequestMailingListSignup(ctx context.Context, pg *pgxpool.Pool, email, attr
 	return token, nil
 }
 
-// ConfirmMailingListSignup subscribes the address the token was sent to.
-// Resend is updated first and the subscription is saved only once it
-// accepts. Saving clears the token, so each link works once.
+// ConfirmMailingListSignup subscribes the address the token was sent to. Each
+// token works once.
 func ConfirmMailingListSignup(ctx context.Context, pg *pgxpool.Pool, token string) error {
 	stmt := sqlf.PostgreSQL.
 		Select("email").
@@ -240,9 +232,8 @@ func ConfirmMailingListSignup(ctx context.Context, pg *pgxpool.Pool, token strin
 	return nil
 }
 
-// RecordMailingListUnsubscribe records an unsubscribe made in Resend through
-// the link in a mailing list email. Addresses that are not subscribed are
-// left alone, so unsubscribes made here are not recorded twice.
+// RecordMailingListUnsubscribe records an unsubscribe made through the link in
+// a mailing list email. Addresses that are not subscribed are ignored.
 func RecordMailingListUnsubscribe(ctx context.Context, pg *pgxpool.Pool, email string) error {
 	email = strings.ToLower(email)
 
@@ -275,7 +266,7 @@ func RecordMailingListUnsubscribe(ctx context.Context, pg *pgxpool.Pool, email s
 }
 
 // mailingListUserID returns the id of the user with this address, or an
-// empty string for addresses that joined from the blog without an account.
+// empty string if there is none.
 func mailingListUserID(ctx context.Context, pg *pgxpool.Pool, email string) string {
 	stmt := sqlf.PostgreSQL.
 		Select("id::text").

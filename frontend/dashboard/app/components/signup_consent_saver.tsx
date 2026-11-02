@@ -7,8 +7,7 @@ import {
 import { isSandboxTeamId } from "@/app/utils/sandbox";
 import { useEffect, useRef, useState } from "react";
 
-// Set by the login page when the mailing list box is ticked. Session storage
-// keeps it across the sign-in redirect.
+// Set by the login page when the mailing list box is ticked.
 export const signupConsentKey = "measure_mailing_list_signup_consent";
 
 function removeStorage(key: string) {
@@ -22,8 +21,6 @@ function removeStorage(key: string) {
  * in the dashboard. Renders nothing.
  */
 export default function SignupConsentSaver({ teamId }: { teamId: string }) {
-  // Prefs are only fetched when there is consent to save, since reading them
-  // can call Resend.
   const [pending] = useState(() => {
     try {
       return window.sessionStorage.getItem(signupConsentKey) === "1";
@@ -40,8 +37,6 @@ export default function SignupConsentSaver({ teamId }: { teamId: string }) {
   const prefs = prefsQuery.data;
 
   // Cleared even when saving fails, so it is never retried without asking.
-  // Prefs can arrive without consent when another page loads them, since the
-  // query cache is shared.
   useEffect(() => {
     if (!pending || !prefs?.enabled || sent.current) {
       return;

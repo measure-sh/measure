@@ -1,7 +1,5 @@
-// Package testhelpers provides test-only mock helpers for swapping the
-// package-level resend.X function variables and configuration. Each helper
-// saves the current value, installs the test's value, and restores the
-// original on test cleanup.
+// Package testhelpers replaces the resend client in tests and restores it on
+// cleanup.
 //
 // Import as:
 //
@@ -41,8 +39,8 @@ func MockContactSubscribed(t *testing.T, fn func(ctx context.Context, email stri
 	t.Cleanup(func() { resend.ContactSubscribed = orig })
 }
 
-// Enable sets test credentials so resend.Enabled reports true. Any Resend
-// call the test does not mock fails it, so no test reaches the real API.
+// Enable makes resend.Enabled report true. Any call the test does not mock
+// fails the test.
 func Enable(t *testing.T) {
 	t.Helper()
 	resend.Init(resend.Config{APIKey: "re_test", SegmentID: "seg_test"})

@@ -174,18 +174,17 @@ func QueueEmailForTeam(ctx context.Context, pool *pgxpool.Pool, tx pgx.Tx, teamI
 }
 
 // RenderEmailBody produces a complete HTML email with the standard
-// Measure header, footer, and CTA button. Inboxes preview it with the
-// title, which is the first text in the body.
+// Measure header, footer, and CTA button.
 func RenderEmailBody(title, contentHTML, ctaText, ctaURL string) string {
 	return RenderEmailBodyWithPreview(title, "", contentHTML, ctaText, ctaURL)
 }
 
-// RenderEmailBodyWithPreview is RenderEmailBody with the text inboxes show
-// next to the subject. The preview is hidden in the email itself, and the
-// filler after it keeps the title from showing in the preview too.
+// RenderEmailBodyWithPreview is RenderEmailBody with a preview, the text
+// inboxes show next to the subject. The preview is hidden in the email body.
 func RenderEmailBodyWithPreview(title, preview, contentHTML, ctaText, ctaURL string) string {
 	previewHTML := ""
 	if preview != "" {
+		// The filler stops inboxes from showing body text after the preview.
 		previewHTML = fmt.Sprintf(`<div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">%s%s</div>`,
 			html.EscapeString(preview), strings.Repeat("&#847;&zwnj;&nbsp;", 100))
 	}

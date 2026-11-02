@@ -2,8 +2,8 @@ import Link from "next/link";
 import MailingListSignup from "./mailing_list_signup";
 
 /**
- * End-of-post footer: the mailing list signup where a Turnstile site key is
- * set, which only Measure cloud does, and a thanks note elsewhere.
+ * End-of-post footer: the mailing list signup when a Turnstile site key is
+ * set, otherwise a thanks note.
  */
 export default function PostFooter() {
   const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;

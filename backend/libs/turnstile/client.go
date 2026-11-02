@@ -1,8 +1,5 @@
-// Package turnstile checks Cloudflare Turnstile tokens, which prove a public
-// form was filled in by a person.
-//
-// Call Init at startup. Verify is a variable rather than a plain func, so
-// tests can swap in a fake and never reach Cloudflare.
+// Package turnstile verifies Cloudflare Turnstile tokens. Call Init at
+// startup.
 package turnstile
 
 import (
@@ -22,13 +19,11 @@ var (
 	httpClient = &http.Client{Timeout: 10 * time.Second}
 )
 
-// Config carries the startup parameters.
 type Config struct {
 	// SecretKey is the widget's secret key from the Cloudflare dashboard.
 	SecretKey string
 }
 
-// Init wires up the package-level client. Call once at service startup.
 func Init(cfg Config) {
 	secretKey = cfg.SecretKey
 }
@@ -38,8 +33,8 @@ func Enabled() bool {
 	return secretKey != ""
 }
 
-// verify reports whether Cloudflare accepts the token. Each token can be
-// checked once, so a second check of the same token fails.
+// verify reports whether Cloudflare accepts the token. A token can only be
+// verified once.
 func verify(ctx context.Context, token string) (bool, error) {
 	if token == "" {
 		return false, nil
@@ -74,8 +69,7 @@ func verify(ctx context.Context, token string) (bool, error) {
 		return false, fmt.Errorf("turnstile: decode response: %w", err)
 	}
 
-	// A bad secret is our mistake, not the visitor's, so it is an error
-	// rather than a refused token.
+	// A bad secret is a server error, not a failed check.
 	for _, code := range result.ErrorCodes {
 		if code == "missing-input-secret" || code == "invalid-input-secret" {
 			return false, fmt.Errorf("turnstile: %s", code)

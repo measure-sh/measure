@@ -240,7 +240,6 @@ func main() {
 		prefs.PATCH("mailingList", hdl.UpdateMailingListPrefs)
 	}
 
-	// Public, no login.
 	mailingList := r.Group("/mailingList")
 	{
 		mailingList.POST("/subscribe", hdl.SubscribeMailingList)
