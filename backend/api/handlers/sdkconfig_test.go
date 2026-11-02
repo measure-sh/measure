@@ -328,3 +328,85 @@ func TestGetConfigHistory_SkipsChangesWithOnlyUnknownKeys(t *testing.T) {
 		t.Errorf("meta = %+v, want a previous page and no next page", resp.Meta)
 	}
 }
+
+func patchConfigViaHandler(t *testing.T, appID uuid.UUID, userID, body string) (int, string) {
+	t.Helper()
+	c, w := newTestGinContext("PATCH", "/apps/"+appID.String()+"/config", strings.NewReader(body))
+	c.Set("userId", userID)
+	c.Params = gin.Params{{Key: "id", Value: appID.String()}}
+	h.PatchConfig(c)
+
+	var resp struct {
+		Error string `json:"error"`
+	}
+	_ = json.Unmarshal(w.Body.Bytes(), &resp)
+	return w.Code, resp.Error
+}
+
+func configColumn(ctx context.Context, t *testing.T, appID uuid.UUID, column string) int {
+	t.Helper()
+	var v int
+	if err := th.PgPool.QueryRow(ctx, "SELECT "+column+" FROM sdk_config WHERE app_id = $1", appID).Scan(&v); err != nil {
+		t.Fatalf("read %s: %v", column, err)
+	}
+	return v
+}
+
+var configRanges = []struct {
+	field    string
+	min, max int
+}{
+	{"error_replay_duration", minTimelineDurationSeconds, maxTimelineDurationSeconds},
+	{"anr_timeline_duration", minTimelineDurationSeconds, maxTimelineDurationSeconds},
+	{"bug_report_timeline_duration", minTimelineDurationSeconds, maxTimelineDurationSeconds},
+	{"app_hang_timeline_duration", minTimelineDurationSeconds, maxTimelineDurationSeconds},
+	{"memory_usage_interval", minIntervalSeconds, maxIntervalSeconds},
+	{"memory_usage_background_interval", minIntervalSeconds, maxIntervalSeconds},
+	{"app_hang_threshold_millis", minAppHangThresholdMillis, maxAppHangThresholdMillis},
+}
+
+func TestPatchConfigForApp_RejectsOutOfRangeValues(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	appID, userID := seedSdkConfig(ctx, t)
+
+	for _, r := range configRanges {
+		for _, value := range []int{r.min - 1, r.max + 1} {
+			t.Run(r.field+"="+strconv.Itoa(value), func(t *testing.T) {
+				before := configColumn(ctx, t, appID, r.field)
+
+				code, _ := patchConfigViaHandler(t, appID, userID, `{"`+r.field+`":`+strconv.Itoa(value)+`}`)
+
+				if code != http.StatusInternalServerError {
+					t.Errorf("status = %d, want %d", code, http.StatusInternalServerError)
+				}
+				if got := configColumn(ctx, t, appID, r.field); got != before {
+					t.Errorf("%s = %d, want unchanged %d", r.field, got, before)
+				}
+			})
+		}
+	}
+}
+
+func TestPatchConfigForApp_AcceptsRangeBoundaries(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	appID, userID := seedSdkConfig(ctx, t)
+
+	for _, r := range configRanges {
+		for _, value := range []int{r.min, r.max} {
+			t.Run(r.field+"="+strconv.Itoa(value), func(t *testing.T) {
+				code, msg := patchConfigViaHandler(t, appID, userID, `{"`+r.field+`":`+strconv.Itoa(value)+`}`)
+
+				if code != http.StatusOK {
+					t.Fatalf("status = %d, want %d, error %q", code, http.StatusOK, msg)
+				}
+				if got := configColumn(ctx, t, appID, r.field); got != value {
+					t.Errorf("%s = %d, want %d", r.field, got, value)
+				}
+			})
+		}
+	}
+}
