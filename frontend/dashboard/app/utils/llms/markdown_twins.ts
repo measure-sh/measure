@@ -1,7 +1,6 @@
-// The proxy needs to know which marketing pages have a page.md, but it
-// cannot look for the files at runtime: on hosts that deploy the proxy as
-// its own function, such as Vercel, the app/ folder is not deployed with
-// it. A test compares this list with the page.md files under app/ and
+// The proxy runs on every request and uses this list to tell which
+// marketing pages have a page.md, so it doesn't check the filesystem per
+// request. A test compares this list with the page.md files under app/ and
 // fails when one is added or removed without updating it.
 export const MARKDOWN_TWIN_PATHS: ReadonlySet<string> = new Set([
   "/",
