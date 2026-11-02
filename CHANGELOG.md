@@ -116,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump lucide-react in /frontend/dashboard by @dependabot[bot] in #4752
 - (**deps**): Bump the dashboard group by @dependabot[bot] in #4748
 - (**deps**): Update dependabot assignees by @anupcowkur in #4747
 - (**deps**): Bump undici from 6.28.1 to 8.12.2 in /frontend/dashboard by @dependabot[bot]
