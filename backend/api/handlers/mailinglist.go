@@ -121,7 +121,7 @@ func (h Handlers) SubscribeMailingList(c *gin.Context) {
 
 	var payload mailingListSubscribePayload
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Enter a valid email address."})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Enter a valid email address"})
 		return
 	}
 
@@ -129,7 +129,7 @@ func (h Handlers) SubscribeMailingList(c *gin.Context) {
 	input := strings.TrimSpace(payload.Email)
 	addr, err := mail.ParseAddress(input)
 	if len(input) > 254 || err != nil || addr.Name != "" || addr.Address != input || !strings.Contains(addr.Address, ".") {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Enter a valid email address."})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Enter a valid email address"})
 		return
 	}
 	address := strings.ToLower(addr.Address)
