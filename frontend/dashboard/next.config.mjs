@@ -51,11 +51,12 @@ const nextConfig = {
   // tracing and walks the Go backend and every node_modules alongside it.
   // Pinning the base to this folder keeps tracing to the dashboard.
   outputFileTracingRoot: import.meta.dirname,
-  // The /page-md/[...path] route handler reads the marketing page.md twins
-  // at runtime. Next's tracer can't infer these dynamic reads, so include
-  // them explicitly in the standalone output. Without this, the markdown
-  // representation of marketing pages would return 406 in production. Docs
-  // markdown doesn't need tracing: the /llms.docs route is fully static.
+  // The proxy and the /page-md/[...path] route handler look up the marketing
+  // page.md twins at runtime through paths built from the request URL, which
+  // Next's tracer can't follow, so the twins are included in the standalone
+  // output explicitly. Without them, marketing pages would have no markdown
+  // representation in production. Docs markdown doesn't need tracing: the
+  // /llms.docs route is fully static.
   outputFileTracingIncludes: {
     "/page-md/[...path]": ["./app/**/page.md"],
   },

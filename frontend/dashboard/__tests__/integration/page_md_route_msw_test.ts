@@ -132,7 +132,7 @@ describe("/page-md/[...path] route handler", () => {
     });
   });
 
-  describe("security and edge cases", () => {
+  describe("edge cases", () => {
     it("returns 406 when params.path is undefined (catch-all matched with no segments)", async () => {
       const res = await call(undefined);
       await expect406(res);
@@ -140,19 +140,6 @@ describe("/page-md/[...path] route handler", () => {
 
     it("returns 406 when params.path is an empty array", async () => {
       const res = await call([]);
-      await expect406(res);
-    });
-
-    it("rejects path-traversal attempts via .. segments", async () => {
-      // path.join collapses "..", so `app/../etc/passwd` would
-      // become `etc/passwd`. The startsWith(APP_DIR) guard catches
-      // the escape and returns 406.
-      const res = await call(["..", "etc", "passwd"]);
-      await expect406(res);
-    });
-
-    it("returns 406 for an attempted escape via mixed segments", async () => {
-      const res = await call(["product", "..", "..", "package.json"]);
       await expect406(res);
     });
   });

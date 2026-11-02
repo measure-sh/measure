@@ -10,13 +10,12 @@
  * sibling `page.md` in the same change. Visual-only components
  * (calculators, demos, icons, CTA buttons, layout chrome) are
  * intentionally omitted from the markdown; keep copy, prices, links,
- * and definitions aligned and drop the chrome. A new or removed
- * `page.md` also goes in `app/utils/llms/markdown_twins.ts`.
+ * and definitions aligned and drop the chrome.
  */
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 import { negotiate } from "@/app/utils/llms/content_negotiation";
-import { MARKDOWN_TWIN_PATHS } from "@/app/utils/llms/markdown_twins";
+import { hasMarkdownTwin } from "@/app/utils/llms/markdown_twins";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -58,7 +57,7 @@ function markdownRoute(pagePath: string): string | null {
   ) {
     return `/llms.blog${pagePath.slice("/blog".length)}`;
   }
-  if (MARKDOWN_TWIN_PATHS.has(pagePath)) {
+  if (hasMarkdownTwin(pagePath)) {
     return `/page-md${pagePath === "/" ? "/index" : pagePath}`;
   }
   return null;
