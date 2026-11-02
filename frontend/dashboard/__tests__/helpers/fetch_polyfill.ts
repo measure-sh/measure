@@ -1,8 +1,8 @@
 // jest-environment-jsdom replaces Node's Fetch API globals with placeholders
-// that throw on `new Response()` and `instanceof Request`, so undici's classes
-// go in instead. A live fetch is installed only for the integration suite
-// because the unit suite mocks fetch and an unmocked call there would reach
-// the network.
+// that throw on `new Response()` and `instanceof Request`, so the unit suite
+// gets undici's Request, Response and Headers instead. It gets no fetch because
+// its tests mock every call. The integration suite's test environment,
+// jsdom_native_fetch_environment.js, supplies Node's own fetch classes.
 Object.defineProperties(globalThis, {
   TextDecoder: {
     value: require("node:util").TextDecoder,
@@ -51,17 +51,8 @@ Object.defineProperties(globalThis, {
   },
 });
 
-const undici = require("undici");
-
-Object.defineProperties(globalThis, {
-  Headers: { value: undici.Headers, writable: true, configurable: true },
-  Request: { value: undici.Request, writable: true, configurable: true },
-  Response: { value: undici.Response, writable: true, configurable: true },
-});
-
 if ((globalThis as any).__JEST_INTEGRATION__) {
   Object.defineProperties(globalThis, {
-    fetch: { value: undici.fetch, writable: true, configurable: true },
     ResizeObserver: {
       value: class {
         observe() {}
@@ -71,6 +62,14 @@ if ((globalThis as any).__JEST_INTEGRATION__) {
       writable: true,
       configurable: true,
     },
+  });
+} else {
+  const undici = require("undici");
+
+  Object.defineProperties(globalThis, {
+    Headers: { value: undici.Headers, writable: true, configurable: true },
+    Request: { value: undici.Request, writable: true, configurable: true },
+    Response: { value: undici.Response, writable: true, configurable: true },
   });
 }
 

@@ -153,7 +153,7 @@ import { server } from "../msw/server";
 jest.spyOn(console, "log").mockImplementation(() => {});
 jest.spyOn(console, "error").mockImplementation(() => {});
 
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
