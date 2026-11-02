@@ -30,16 +30,17 @@ android {
     targetProjectPath = ":baseline-target"
 
     testOptions.managedDevices.localDevices {
-        create("pixel6Api31") {
-            device = "Pixel 6"
-            apiLevel = 31
+        create("pixel10Api37") {
+            device = "Pixel 10"
+            sdkVersion = 37
             systemImageSource = "aosp"
+            testedAbi = "x86_64"
         }
     }
 }
 
 baselineProfile {
-    managedDevices += "pixel6Api31"
+    managedDevices += "pixel10Api37"
     useConnectedDevices = false
 }
 
