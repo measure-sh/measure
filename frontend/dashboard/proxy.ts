@@ -1,5 +1,5 @@
 /**
- * Reverse proxies (`/api`, `/yrtmlt`) and markdown content negotiation.
+ * Reverse proxy (`/yrtmlt`) and markdown content negotiation.
  *
  * Docs pages, blog posts and the marketing pages with a hand-authored
  * `page.md` next to their `page.tsx` are also served as markdown, to
@@ -20,24 +20,6 @@ import { MARKDOWN_TWIN_PATHS } from "@/app/utils/llms/markdown_twins";
 
 export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
-
-  if (pathname.startsWith("/api")) {
-    // reverse proxy all API requests
-    const apiOrigin = process.env.API_BASE_URL;
-    if (!apiOrigin) {
-      throw new Error("API_BASE_URL is not set");
-    }
-    const apiOriginUrl = new URL(apiOrigin);
-
-    const url = request.nextUrl.clone();
-    url.protocol = apiOriginUrl.protocol;
-    url.pathname = pathname.replace("/api", "");
-    url.search = request.nextUrl.search;
-    url.hostname = apiOriginUrl.hostname;
-    url.port = apiOriginUrl.port;
-
-    return NextResponse.rewrite(url);
-  }
 
   if (pathname.startsWith("/yrtmlt/static/")) {
     const url = request.nextUrl.clone();
@@ -145,7 +127,6 @@ function negotiateRepresentation(request: NextRequest): NextResponse {
 
 export const config = {
   matcher: [
-    "/api/:path*",
     "/yrtmlt/:path*",
     // Route handlers and files in public/ are skipped, because negotiating
     // them as pages would return 406 to fetches that accept only JSON,
