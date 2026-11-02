@@ -14,7 +14,8 @@ const createJestConfig = nextJest({ dir: "./" });
 const integrationJestConfig = async () => {
   const baseConfig = await createJestConfig({
     clearMocks: true,
-    testEnvironment: "jsdom",
+    testEnvironment:
+      "<rootDir>/__tests__/helpers/jsdom_native_fetch_environment.js",
     moduleNameMapper: {
       "^@/(.*)$": "<rootDir>/$1",
     },
@@ -25,8 +26,6 @@ const integrationJestConfig = async () => {
       customExportConditions: ["node", "node-addons"],
     },
     globals: {
-      fetch: () => {},
-      Request: function () {},
       __JEST_INTEGRATION__: true,
     },
   })();
@@ -36,7 +35,7 @@ const integrationJestConfig = async () => {
     // Override next/jest's blanket node_modules ignore so MSW and its
     // ESM deps get transformed. All other node_modules are still skipped.
     transformIgnorePatterns: [
-      "/node_modules/(?!(msw|@mswjs|rettime|until-async|@bundled-es-modules|@open-draft)/)",
+      "/node_modules/(?!(msw|cookie|@msw|@mswjs|rettime|until-async|@bundled-es-modules|@open-draft)/)",
       "^.+\\.module\\.(css|sass|scss)$",
     ],
     // Skip Next.js build output so jest-haste-map doesn't see duplicate
