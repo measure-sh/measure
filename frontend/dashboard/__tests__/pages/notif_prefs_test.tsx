@@ -19,8 +19,8 @@ jest.mock("@/app/components/toast", () => ({
 jest.mock("@/app/api/api_calls", () => ({
   __esModule: true,
   emptyNotifPrefs: {
-    error_spike: true,
-    app_hang_spike: true,
+    fatal_error_spike: true,
+    anr_app_hang_spike: true,
     bug_report: true,
     daily_summary: true,
   },
@@ -78,8 +78,8 @@ jest.mock("next/link", () => ({
 }));
 
 const defaultNotifPrefs = {
-  error_spike: true,
-  app_hang_spike: true,
+  fatal_error_spike: true,
+  anr_app_hang_spike: true,
   bug_report: true,
   daily_summary: true,
 };
@@ -103,7 +103,7 @@ describe("Notifications page", () => {
     render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
 
     expect(screen.getByText("Crash Spike email")).toBeInTheDocument();
-    expect(screen.getByText("ANR spike email")).toBeInTheDocument();
+    expect(screen.getByText("ANR/App Hang Spike email")).toBeInTheDocument();
     expect(screen.getByText("Bug Reports")).toBeInTheDocument();
     expect(screen.getByText("Daily Summary")).toBeInTheDocument();
 
@@ -166,7 +166,7 @@ describe("Notifications page", () => {
 
     expect(screen.getByText("Crash Spike email")).toBeInTheDocument();
 
-    // Uncheck first checkbox (error_spike)
+    // Uncheck first checkbox (fatal_error_spike)
     const checkboxes = screen.getAllByRole("checkbox");
     fireEvent.click(checkboxes[0]);
 
@@ -176,8 +176,8 @@ describe("Notifications page", () => {
     // The mutateAsync should be called with the updated prefs
     expect(mockMutateAsync).toHaveBeenCalledWith({
       notifPrefs: {
-        error_spike: false,
-        app_hang_spike: true,
+        fatal_error_spike: false,
+        anr_app_hang_spike: true,
         bug_report: true,
         daily_summary: true,
       },
