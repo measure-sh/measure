@@ -2606,11 +2606,7 @@ type ScreenStep = {
   name: string;
   timestamp: string;
   kind:
-    | "activity"
-    | "fragment"
-    | "view_controller"
-    | "swift_ui"
-    | "screen_view";
+    "activity" | "fragment" | "view_controller" | "swift_ui" | "screen_view";
 };
 
 // A fragment detached from the activity on screen hands the screen back to

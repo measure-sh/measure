@@ -1984,9 +1984,7 @@ export function useSdkConfigHistoryQuery(
 type BillingInfoData = Awaited<ReturnType<typeof fetchBillingInfoFromServer>>;
 
 type RefetchInterval =
-  | number
-  | false
-  | ((q: Query<BillingInfoData>) => number | false);
+  number | false | ((q: Query<BillingInfoData>) => number | false);
 
 export function useBillingInfoQuery(
   teamId: string | undefined,

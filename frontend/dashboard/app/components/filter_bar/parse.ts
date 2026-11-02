@@ -44,12 +44,7 @@ type ParseError = {
 };
 
 type TokenKind =
-  | "key"
-  | "operator"
-  | "value"
-  | "logical"
-  | "paren"
-  | "punctuation";
+  "key" | "operator" | "value" | "logical" | "paren" | "punctuation";
 
 export type ExprToken = {
   kind: TokenKind;

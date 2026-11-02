@@ -14,11 +14,7 @@ interface PlatformLogo {
 }
 
 type Platform =
-  | "android"
-  | "ios"
-  | "react-native"
-  | "flutter"
-  | "kotlin-multiplatform";
+  "android" | "ios" | "react-native" | "flutter" | "kotlin-multiplatform";
 
 const platformLogos: Record<Platform, PlatformLogo> = {
   android: { src: "/images/android_logo.svg", width: 152, height: 89 },

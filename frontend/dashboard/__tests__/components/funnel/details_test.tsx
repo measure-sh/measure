@@ -32,9 +32,9 @@ type EditorProps = React.ComponentProps<typeof FunnelEditor>;
 
 jest.mock("next/navigation", () =>
   jest
-    .requireActual<
-      typeof import("@/__tests__/helpers/mock_router")
-    >("@/__tests__/helpers/mock_router")
+    .requireActual<typeof import("@/__tests__/helpers/mock_router")>(
+      "@/__tests__/helpers/mock_router",
+    )
     .nextNavigationMock(),
 );
 

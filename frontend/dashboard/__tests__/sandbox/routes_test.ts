@@ -1278,15 +1278,13 @@ const settingsCases: Case[] = [
       expect(data.bytes_used).toBe(thisMonth);
     },
   },
-  ...writeCalls.map(
-    ([path, method, body]): Case => ({
-      name: `${method} ${path} is disabled`,
-      method,
-      path,
-      body,
-      status: 403,
-    }),
-  ),
+  ...writeCalls.map(([path, method, body]): Case => ({
+    name: `${method} ${path} is disabled`,
+    method,
+    path,
+    body,
+    status: 403,
+  })),
 ];
 
 const FUNNELS_BASE = `/api/apps/${APP_ID}/funnels`;

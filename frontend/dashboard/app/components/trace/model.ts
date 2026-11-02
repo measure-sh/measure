@@ -55,14 +55,7 @@ export interface PreparedSpan extends Omit<Span, "checkpoints"> {
 }
 
 export type ChartColorName =
-  | "blue"
-  | "green"
-  | "amber"
-  | "violet"
-  | "pink"
-  | "teal"
-  | "red"
-  | "yellow";
+  "blue" | "green" | "amber" | "violet" | "pink" | "teal" | "red" | "yellow";
 
 export interface ThreadColor {
   name: ChartColorName;

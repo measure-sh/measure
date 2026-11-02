@@ -49,9 +49,7 @@ const errorQuery = {
 // The lists read only status, data and isFetching, so the stand-ins carry only
 // those.
 type ListQuery =
-  | ReturnType<typeof successQuery>
-  | typeof pendingQuery
-  | typeof errorQuery;
+  ReturnType<typeof successQuery> | typeof pendingQuery | typeof errorQuery;
 
 const stepError = (overrides: Partial<StepError> = {}): StepError => ({
   id: "group-1",

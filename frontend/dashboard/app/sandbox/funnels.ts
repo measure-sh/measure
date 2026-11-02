@@ -363,7 +363,10 @@ function pinnedResponse(bundle: AppBundle): Response {
   const seeds = seedsFor(bundle);
   return jsonResponse({
     results: pinnedIdsFor(bundle).map((id) =>
-      toFunnel(bundle, seeds.find((seed) => funnelId(bundle, seed) === id)!),
+      toFunnel(
+        bundle,
+        seeds.find((seed) => funnelId(bundle, seed) === id)!,
+      ),
     ),
   });
 }
