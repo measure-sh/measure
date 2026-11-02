@@ -98,7 +98,7 @@
     "@types/jest": "^30.0.0",
     "jest": "^30.5.2",
     "jest-environment-jsdom": "^30.5.2",
-    "msw": "^2.13.2",
+    "msw": "^3.0.3",
     "prettier": "3.9.10",
     "ts-node": "^10.9.2",
     "undici": "^8.12.3"
