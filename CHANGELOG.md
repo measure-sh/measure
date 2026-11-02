@@ -116,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Hold dashboard typescript at 5.x by @anupcowkur in #4756
 - (**deps**): Bump msw from 2.13.2 to 3.0.3 in /frontend/dashboard by @dependabot[bot]
 - (**deps**): Bump lottie-react in /frontend/dashboard by @dependabot[bot]
 - (**deps**): Bump lucide-react in /frontend/dashboard by @dependabot[bot] in #4752
