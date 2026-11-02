@@ -23,70 +23,71 @@ import (
 	"github.com/wneessen/go-mail"
 )
 
-type mailingListEvent struct {
+type mailingListChange struct {
 	ListID      string
 	Subscribed  bool
 	Attribution string
 }
 
-type mailingListSubscriber struct {
+type mailingListContact struct {
 	Subscribed bool
-	Events     []mailingListEvent
+	History    []mailingListChange
 }
 
-func (s *mailingListSubscriber) lastEvent() mailingListEvent {
-	if len(s.Events) == 0 {
-		return mailingListEvent{}
+func (s *mailingListContact) lastChange() mailingListChange {
+	if len(s.History) == 0 {
+		return mailingListChange{}
 	}
-	return s.Events[len(s.Events)-1]
+	return s.History[len(s.History)-1]
 }
 
-// getMailingListSubscriber reads an address's current state and its
-// history, oldest first, or nil when the address has no row.
-func getMailingListSubscriber(ctx context.Context, t *testing.T, emailAddr string) *mailingListSubscriber {
+// getMailingListContact reads whether the address's contact is subscribed to
+// the newsletter and its subscription history, oldest first, or nil when the
+// address has no contact.
+func getMailingListContact(ctx context.Context, t *testing.T, emailAddr string) *mailingListContact {
 	t.Helper()
-	var s mailingListSubscriber
+	var s mailingListContact
 	var id string
 	err := th.PgPool.QueryRow(ctx,
-		`select s.id, coalesce(l.subscribed, false) from mailing_list_subscribers s left join mailing_list_subscriptions l on l.subscriber_id = s.id and l.list_id = 'newsletter' where s.email = $1`, emailAddr).Scan(&id, &s.Subscribed)
+		`select c.id, coalesce(l.subscribed, false) from mailing_list_contacts c left join mailing_list_subscriptions l on l.contact_id = c.id and l.list_id = 'newsletter' where c.email = $1`, emailAddr).Scan(&id, &s.Subscribed)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil
 	}
 	if err != nil {
-		t.Fatalf("read mailing list subscriber: %v", err)
+		t.Fatalf("read mailing list contact: %v", err)
 	}
 	rows, err := th.PgPool.Query(ctx,
-		`select list_id, subscribed, coalesce(attribution, '') from mailing_list_subscribe_events where subscriber_id = $1 order by created_at`, id)
+		`select list_id, subscribed, coalesce(attribution, '') from mailing_list_subscription_history where contact_id = $1 order by changed_at`, id)
 	if err != nil {
-		t.Fatalf("read mailing list events: %v", err)
+		t.Fatalf("read mailing list subscription history: %v", err)
 	}
 	defer rows.Close()
 	for rows.Next() {
-		var e mailingListEvent
-		if err := rows.Scan(&e.ListID, &e.Subscribed, &e.Attribution); err != nil {
-			t.Fatalf("scan mailing list event: %v", err)
+		var c mailingListChange
+		if err := rows.Scan(&c.ListID, &c.Subscribed, &c.Attribution); err != nil {
+			t.Fatalf("scan mailing list subscription change: %v", err)
 		}
-		s.Events = append(s.Events, e)
+		s.History = append(s.History, c)
 	}
 	return &s
 }
 
-// seedMailingListSubscriber subscribes the address to the newsletter and
-// returns its subscriber id.
-func seedMailingListSubscriber(ctx context.Context, t *testing.T, emailAddr, attribution string) uuid.UUID {
+// seedMailingListContact creates a contact for the address subscribed to the
+// newsletter and returns its id.
+func seedMailingListContact(ctx context.Context, t *testing.T, emailAddr, attribution string) uuid.UUID {
 	t.Helper()
 	var id uuid.UUID
 	if err := th.PgPool.QueryRow(ctx,
-		`insert into mailing_list_subscribers (email) values ($1) returning id`, emailAddr).Scan(&id); err != nil {
-		t.Fatalf("seed mailing list subscriber: %v", err)
+		`insert into mailing_list_contacts (email) values ($1) returning id`, emailAddr).Scan(&id); err != nil {
+		t.Fatalf("seed mailing list contact: %v", err)
 	}
 	if _, err := th.PgPool.Exec(ctx,
-		`insert into mailing_list_subscriptions (subscriber_id, list_id, subscribed) values ($1, 'newsletter', true)`, id); err != nil {
+		`insert into mailing_list_subscriptions (contact_id, list_id, subscribed) values ($1, 'newsletter', true)`, id); err != nil {
 		t.Fatalf("seed mailing list subscription: %v", err)
 	}
 	if _, err := th.PgPool.Exec(ctx,
-		`insert into mailing_list_subscribe_events (subscriber_id, list_id, subscribed, attribution) values ($1, 'newsletter', true, $2)`, id, attribution); err != nil {
-		t.Fatalf("seed mailing list event: %v", err)
+		`insert into mailing_list_subscription_history (contact_id, list_id, subscribed, attribution) values ($1, 'newsletter', true, $2)`, id, attribution); err != nil {
+		t.Fatalf("seed mailing list subscription history: %v", err)
 	}
 	return id
 }
@@ -145,7 +146,7 @@ func TestGetMailingListPrefs(t *testing.T) {
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
-		seedMailingListSubscriber(ctx, t, "ada@example.com", "settings")
+		seedMailingListContact(ctx, t, "ada@example.com", "settings")
 
 		if !newsletterSubscribed(t, get(userId)) {
 			t.Error("not subscribed, want subscribed")
@@ -158,7 +159,7 @@ func TestGetMailingListPrefs(t *testing.T) {
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "Ada@Example.com")
-		seedMailingListSubscriber(ctx, t, "ada@example.com", "blog")
+		seedMailingListContact(ctx, t, "ada@example.com", "blog")
 
 		if !newsletterSubscribed(t, get(userId)) {
 			t.Error("not subscribed, want subscribed")
@@ -210,10 +211,10 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 		if w.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
 		}
-		s := getMailingListSubscriber(ctx, t, "ada@example.com")
-		want := mailingListEvent{ListID: "newsletter", Subscribed: true, Attribution: "signup"}
-		if s == nil || !s.Subscribed || len(s.Events) != 1 || s.lastEvent() != want {
-			t.Errorf("subscriber = %+v, want subscribed from signup", s)
+		s := getMailingListContact(ctx, t, "ada@example.com")
+		want := mailingListChange{ListID: "newsletter", Subscribed: true, Attribution: "signup"}
+		if s == nil || !s.Subscribed || len(s.History) != 1 || s.lastChange() != want {
+			t.Errorf("contact = %+v, want subscribed from signup", s)
 		}
 	})
 
@@ -223,17 +224,17 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
-		seedMailingListSubscriber(ctx, t, "ada@example.com", "settings")
+		seedMailingListContact(ctx, t, "ada@example.com", "settings")
 
 		w := patch(userId, `{"list_id": "newsletter", "subscribed": false, "attribution": "settings"}`)
 
 		if w.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200", w.Code)
 		}
-		s := getMailingListSubscriber(ctx, t, "ada@example.com")
-		want := mailingListEvent{ListID: "newsletter", Subscribed: false, Attribution: "settings"}
-		if s == nil || s.Subscribed || len(s.Events) != 2 || s.lastEvent() != want {
-			t.Errorf("subscriber = %+v, want an unsubscribe from settings appended", s)
+		s := getMailingListContact(ctx, t, "ada@example.com")
+		want := mailingListChange{ListID: "newsletter", Subscribed: false, Attribution: "settings"}
+		if s == nil || s.Subscribed || len(s.History) != 2 || s.lastChange() != want {
+			t.Errorf("contact = %+v, want an unsubscribe from settings appended", s)
 		}
 	})
 
@@ -243,16 +244,16 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
-		seedMailingListSubscriber(ctx, t, "ada@example.com", "signup")
+		seedMailingListContact(ctx, t, "ada@example.com", "signup")
 
 		if w := patch(userId, `{"list_id": "newsletter", "subscribed": true, "attribution": "settings"}`); w.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200", w.Code)
 		}
 
-		s := getMailingListSubscriber(ctx, t, "ada@example.com")
-		want := mailingListEvent{ListID: "newsletter", Subscribed: true, Attribution: "signup"}
-		if s == nil || !s.Subscribed || len(s.Events) != 1 || s.lastEvent() != want {
-			t.Errorf("subscriber = %+v, want only the original subscribe from signup", s)
+		s := getMailingListContact(ctx, t, "ada@example.com")
+		want := mailingListChange{ListID: "newsletter", Subscribed: true, Attribution: "signup"}
+		if s == nil || !s.Subscribed || len(s.History) != 1 || s.lastChange() != want {
+			t.Errorf("contact = %+v, want only the original subscribe from signup", s)
 		}
 	})
 
@@ -266,8 +267,8 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 		if w := patch(userId, `{"list_id": "newsletter", "subscribed": true, "attribution": "onboarding_email"}`); w.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200", w.Code)
 		}
-		if s := getMailingListSubscriber(ctx, t, "ada@example.com"); s == nil || s.lastEvent().Attribution != "onboarding_email" {
-			t.Errorf("subscriber = %+v, want attribution onboarding_email", s)
+		if s := getMailingListContact(ctx, t, "ada@example.com"); s == nil || s.lastChange().Attribution != "onboarding_email" {
+			t.Errorf("contact = %+v, want attribution onboarding_email", s)
 		}
 	})
 
@@ -281,8 +282,8 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 		if w := patch(userId, `{"list_id": "weekly", "subscribed": true, "attribution": "settings"}`); w.Code != http.StatusBadRequest {
 			t.Fatalf("status = %d, want 400", w.Code)
 		}
-		if s := getMailingListSubscriber(ctx, t, "ada@example.com"); s != nil {
-			t.Errorf("subscriber = %+v, want none", s)
+		if s := getMailingListContact(ctx, t, "ada@example.com"); s != nil {
+			t.Errorf("contact = %+v, want none", s)
 		}
 	})
 
@@ -307,8 +308,8 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 		if w := patch(userId, `{"list_id": "newsletter", "subscribed": true, "attribution": "settings"}`); w.Code != http.StatusNotFound {
 			t.Fatalf("status = %d, want 404", w.Code)
 		}
-		if s := getMailingListSubscriber(ctx, t, "ada@example.com"); s != nil {
-			t.Errorf("subscriber = %+v, want none", s)
+		if s := getMailingListContact(ctx, t, "ada@example.com"); s != nil {
+			t.Errorf("contact = %+v, want none", s)
 		}
 	})
 }
@@ -390,7 +391,7 @@ func getMailingListSignup(ctx context.Context, t *testing.T, emailAddr string) *
 	t.Helper()
 	var s mailingListSignup
 	err := th.PgPool.QueryRow(ctx,
-		`select coalesce(l.subscribed, false), s.confirmation_token_hash is not null, coalesce(s.confirmation_attribution, '') from mailing_list_subscribers s left join mailing_list_subscriptions l on l.subscriber_id = s.id and l.list_id = 'newsletter' where s.email = $1`, emailAddr).
+		`select coalesce(l.subscribed, false), c.confirmation_token_hash is not null, coalesce(c.confirmation_attribution, '') from mailing_list_contacts c left join mailing_list_subscriptions l on l.contact_id = c.id and l.list_id = 'newsletter' where c.email = $1`, emailAddr).
 		Scan(&s.Subscribed, &s.HasToken, &s.Attribution)
 	if err != nil {
 		return nil
@@ -477,7 +478,7 @@ func TestSubscribeMailingList(t *testing.T) {
 	t.Run("an address subscribed from the dashboard stays subscribed while it confirms", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		sent := enableMailingList(t)
-		seedMailingListSubscriber(ctx, t, "ada@example.com", "settings")
+		seedMailingListContact(ctx, t, "ada@example.com", "settings")
 
 		if w := subscribeMailingList(t, "ada@example.com"); w.Code != http.StatusOK {
 			t.Fatalf("status = %d", w.Code)
@@ -492,14 +493,14 @@ func TestSubscribeMailingList(t *testing.T) {
 		if s := getMailingListSignup(ctx, t, "ada@example.com"); s == nil || !s.Subscribed || s.HasToken {
 			t.Errorf("after confirming = %+v, want subscribed with the link used up", s)
 		}
-		s := getMailingListSubscriber(ctx, t, "ada@example.com")
-		want := mailingListEvent{ListID: "newsletter", Subscribed: true, Attribution: "settings"}
-		if s == nil || len(s.Events) != 1 || s.lastEvent() != want {
+		s := getMailingListContact(ctx, t, "ada@example.com")
+		want := mailingListChange{ListID: "newsletter", Subscribed: true, Attribution: "settings"}
+		if s == nil || len(s.History) != 1 || s.lastChange() != want {
 			t.Errorf("history = %+v, want only the original subscribe from settings", s)
 		}
 	})
 
-	t.Run("a subscriber who unsubscribed can subscribe again", func(t *testing.T) {
+	t.Run("a contact who unsubscribed can subscribe again", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		sent := enableMailingList(t)
 
@@ -612,10 +613,10 @@ func TestConfirmMailingList(t *testing.T) {
 		if w := confirmMailingList(t, token); w.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
 		}
-		s := getMailingListSubscriber(ctx, t, "ada@example.com")
-		want := mailingListEvent{ListID: "newsletter", Subscribed: true, Attribution: "blog"}
-		if s == nil || !s.Subscribed || len(s.Events) != 1 || s.lastEvent() != want {
-			t.Errorf("subscriber = %+v, want subscribed from the blog", s)
+		s := getMailingListContact(ctx, t, "ada@example.com")
+		want := mailingListChange{ListID: "newsletter", Subscribed: true, Attribution: "blog"}
+		if s == nil || !s.Subscribed || len(s.History) != 1 || s.lastChange() != want {
+			t.Errorf("contact = %+v, want subscribed from the blog", s)
 		}
 
 		// Each link works once.
@@ -638,7 +639,7 @@ func TestConfirmMailingList(t *testing.T) {
 		sent := enableMailingList(t)
 
 		subscribeMailingList(t, "ada@example.com")
-		if _, err := th.PgPool.Exec(ctx, `update mailing_list_subscribers set confirmation_expires_at = now() - interval '1 minute'`); err != nil {
+		if _, err := th.PgPool.Exec(ctx, `update mailing_list_contacts set confirmation_expires_at = now() - interval '1 minute'`); err != nil {
 			t.Fatalf("expire token: %v", err)
 		}
 
@@ -690,7 +691,7 @@ func TestUnsubscribeMailingList(t *testing.T) {
 	t.Run("the page's button unsubscribes and records the link", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		enable(t)
-		id := seedMailingListSubscriber(ctx, t, "ada@example.com", "blog")
+		id := seedMailingListContact(ctx, t, "ada@example.com", "blog")
 
 		w := fromPage(id, measure.SignMailingListUnsubscribe(key, id))
 
@@ -698,69 +699,69 @@ func TestUnsubscribeMailingList(t *testing.T) {
 			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
 		}
 		wantJSON(t, w, "ok", "You're unsubscribed.")
-		s := getMailingListSubscriber(ctx, t, "ada@example.com")
-		want := mailingListEvent{ListID: "newsletter", Subscribed: false, Attribution: measure.MailingListAttributionUnsubscribeLink}
-		if s == nil || s.Subscribed || len(s.Events) != 2 || s.lastEvent() != want {
-			t.Errorf("subscriber = %+v, want an unsubscribe through the link appended", s)
+		s := getMailingListContact(ctx, t, "ada@example.com")
+		want := mailingListChange{ListID: "newsletter", Subscribed: false, Attribution: measure.MailingListAttributionUnsubscribeLink}
+		if s == nil || s.Subscribed || len(s.History) != 2 || s.lastChange() != want {
+			t.Errorf("contact = %+v, want an unsubscribe through the link appended", s)
 		}
 	})
 
 	t.Run("a one-click unsubscribe from the inbox gets an empty 200", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		enable(t)
-		id := seedMailingListSubscriber(ctx, t, "ada@example.com", "blog")
+		id := seedMailingListContact(ctx, t, "ada@example.com", "blog")
 
 		w := oneClick(linkQuery(id))
 
 		if w.Code != http.StatusOK || w.Body.Len() != 0 {
 			t.Fatalf("status = %d, body = %q, want an empty 200", w.Code, w.Body.String())
 		}
-		if s := getMailingListSubscriber(ctx, t, "ada@example.com"); s == nil || s.Subscribed {
-			t.Errorf("subscriber = %+v, want unsubscribed", s)
+		if s := getMailingListContact(ctx, t, "ada@example.com"); s == nil || s.Subscribed {
+			t.Errorf("contact = %+v, want unsubscribed", s)
 		}
 	})
 
 	t.Run("unsubscribing again records nothing", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		enable(t)
-		id := seedMailingListSubscriber(ctx, t, "ada@example.com", "blog")
+		id := seedMailingListContact(ctx, t, "ada@example.com", "blog")
 
 		oneClick(linkQuery(id))
 		if w := oneClick(linkQuery(id)); w.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200", w.Code)
 		}
-		if s := getMailingListSubscriber(ctx, t, "ada@example.com"); s == nil || len(s.Events) != 2 {
-			t.Errorf("subscriber = %+v, want one unsubscribe", s)
+		if s := getMailingListContact(ctx, t, "ada@example.com"); s == nil || len(s.History) != 2 {
+			t.Errorf("contact = %+v, want one unsubscribe", s)
 		}
 	})
 
-	t.Run("a link with a wrong signature, another subscriber's signature or an unknown list is refused", func(t *testing.T) {
+	t.Run("a link with a wrong signature, another contact's signature or an unknown list is refused", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		enable(t)
-		id := seedMailingListSubscriber(ctx, t, "ada@example.com", "blog")
-		other := seedMailingListSubscriber(ctx, t, "grace@example.com", "blog")
+		id := seedMailingListContact(ctx, t, "ada@example.com", "blog")
+		other := seedMailingListContact(ctx, t, "grace@example.com", "blog")
 
 		for name, query := range map[string]string{
 			"wrong signature":   url.Values{"id": {id.String()}, "sig": {"forged"}, "list": {"newsletter"}}.Encode(),
-			"other subscriber":  url.Values{"id": {id.String()}, "sig": {measure.SignMailingListUnsubscribe(key, other)}, "list": {"newsletter"}}.Encode(),
+			"other contact":     url.Values{"id": {id.String()}, "sig": {measure.SignMailingListUnsubscribe(key, other)}, "list": {"newsletter"}}.Encode(),
 			"other key":         url.Values{"id": {id.String()}, "sig": {measure.SignMailingListUnsubscribe("another-key", id)}, "list": {"newsletter"}}.Encode(),
 			"unknown list":      url.Values{"id": {id.String()}, "sig": {measure.SignMailingListUnsubscribe(key, id)}, "list": {"weekly"}}.Encode(),
-			"not a subscriber":  linkQuery(uuid.New()),
+			"not a contact":     linkQuery(uuid.New()),
 			"missing signature": url.Values{"id": {id.String()}, "list": {"newsletter"}}.Encode(),
 		} {
 			if w := oneClick(query); w.Code != http.StatusBadRequest {
 				t.Errorf("%s: status = %d, want 400", name, w.Code)
 			}
 		}
-		if s := getMailingListSubscriber(ctx, t, "ada@example.com"); s == nil || !s.Subscribed || len(s.Events) != 1 {
-			t.Errorf("subscriber = %+v, want unchanged", s)
+		if s := getMailingListContact(ctx, t, "ada@example.com"); s == nil || !s.Subscribed || len(s.History) != 1 {
+			t.Errorf("contact = %+v, want unchanged", s)
 		}
 	})
 
 	t.Run("the page reads the link's lists", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		enable(t)
-		id := seedMailingListSubscriber(ctx, t, "ada@example.com", "blog")
+		id := seedMailingListContact(ctx, t, "ada@example.com", "blog")
 
 		w := subscriptions(linkQuery(id))
 
@@ -778,7 +779,7 @@ func TestUnsubscribeMailingList(t *testing.T) {
 	t.Run("opening the header's address in a browser goes to the page", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		enable(t)
-		id := seedMailingListSubscriber(ctx, t, "ada@example.com", "blog")
+		id := seedMailingListContact(ctx, t, "ada@example.com", "blog")
 
 		c, w := newTestGinContext("GET", "/mailingList/unsubscribe?"+linkQuery(id), nil)
 		h.RedirectMailingListUnsubscribe(c)
@@ -789,14 +790,14 @@ func TestUnsubscribeMailingList(t *testing.T) {
 		if got, want := w.Header().Get("Location"), "https://measure.test/unsubscribe?"+linkQuery(id); got != want {
 			t.Errorf("Location = %q, want %q", got, want)
 		}
-		if s := getMailingListSubscriber(ctx, t, "ada@example.com"); s == nil || !s.Subscribed {
-			t.Errorf("subscriber = %+v, want still subscribed", s)
+		if s := getMailingListContact(ctx, t, "ada@example.com"); s == nil || !s.Subscribed {
+			t.Errorf("contact = %+v, want still subscribed", s)
 		}
 	})
 
 	t.Run("disabled without the unsubscribe key → 404", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		id := seedMailingListSubscriber(ctx, t, "ada@example.com", "blog")
+		id := seedMailingListContact(ctx, t, "ada@example.com", "blog")
 
 		if w := oneClick(linkQuery(id)); w.Code != http.StatusNotFound {
 			t.Fatalf("status = %d, want 404", w.Code)

@@ -24,7 +24,7 @@ type MailingList struct {
 	Name string `json:"name"`
 }
 
-// MailingListSubscription is whether an address is subscribed to a list.
+// MailingListSubscription is whether a contact is subscribed to a list.
 type MailingListSubscription struct {
 	MailingList
 	Subscribed bool `json:"subscribed"`
@@ -55,9 +55,10 @@ var (
 	ErrMailingListLinkInvalid  = errors.New("mailing list unsubscribe link is invalid")
 )
 
-// saveMailingListChange sets whether the address is subscribed to the list
-// and records the change in its history. It reports whether the state
-// changed; an unchanged state is not recorded.
+// saveMailingListChange sets whether the address's contact is subscribed to
+// the list and records the change in the subscription history. It creates the
+// contact if needed. It reports whether the state changed; an unchanged state
+// is not recorded.
 func saveMailingListChange(ctx context.Context, pg *pgxpool.Pool, email, listID string, subscribed bool, attribution string) (bool, error) {
 	tx, err := pg.Begin(ctx)
 	if err != nil {
@@ -68,24 +69,24 @@ func saveMailingListChange(ctx context.Context, pg *pgxpool.Pool, email, listID 
 	// The upsert always updates the row, so it stays locked until the
 	// transaction ends and two saves for the same address run one after the
 	// other.
-	subscriber := sqlf.PostgreSQL.InsertInto("mailing_list_subscribers").
+	contact := sqlf.PostgreSQL.InsertInto("mailing_list_contacts").
 		Set("email", email).
 		Clause("on conflict (email) do update set updated_at = now()").
 		Returning("id")
-	defer subscriber.Close()
+	defer contact.Close()
 
-	var subscriberID string
-	if err := tx.QueryRow(ctx, subscriber.String(), subscriber.Args()...).Scan(&subscriberID); err != nil {
+	var contactID string
+	if err := tx.QueryRow(ctx, contact.String(), contact.Args()...).Scan(&contactID); err != nil {
 		return false, err
 	}
 
 	if subscribed {
-		clear := sqlf.PostgreSQL.Update("mailing_list_subscribers").
+		clear := sqlf.PostgreSQL.Update("mailing_list_contacts").
 			Set("confirmation_token_hash", nil).
 			Set("confirmation_expires_at", nil).
 			Set("confirmation_list_id", nil).
 			Set("confirmation_attribution", nil).
-			Where("id = ?", subscriberID).
+			Where("id = ?", contactID).
 			Where("confirmation_list_id = ?", listID)
 		defer clear.Close()
 
@@ -97,7 +98,7 @@ func saveMailingListChange(ctx context.Context, pg *pgxpool.Pool, email, listID 
 	current := sqlf.PostgreSQL.
 		Select("subscribed").
 		From("mailing_list_subscriptions").
-		Where("subscriber_id = ?", subscriberID).
+		Where("contact_id = ?", contactID).
 		Where("list_id = ?", listID)
 	defer current.Close()
 
@@ -108,10 +109,10 @@ func saveMailingListChange(ctx context.Context, pg *pgxpool.Pool, email, listID 
 	}
 
 	upsert := sqlf.PostgreSQL.InsertInto("mailing_list_subscriptions").
-		Set("subscriber_id", subscriberID).
+		Set("contact_id", contactID).
 		Set("list_id", listID).
 		Set("subscribed", subscribed).
-		Clause(`on conflict (subscriber_id, list_id) do update set
+		Clause(`on conflict (contact_id, list_id) do update set
 			subscribed = excluded.subscribed,
 			updated_at = now()`)
 	defer upsert.Close()
@@ -124,29 +125,30 @@ func saveMailingListChange(ctx context.Context, pg *pgxpool.Pool, email, listID 
 		return false, tx.Commit(ctx)
 	}
 
-	event := sqlf.PostgreSQL.InsertInto("mailing_list_subscribe_events").
-		Set("subscriber_id", subscriberID).
+	history := sqlf.PostgreSQL.InsertInto("mailing_list_subscription_history").
+		Set("contact_id", contactID).
 		Set("list_id", listID).
 		Set("subscribed", subscribed).
 		Set("attribution", attribution)
-	defer event.Close()
+	defer history.Close()
 
-	if _, err := tx.Exec(ctx, event.String(), event.Args()...); err != nil {
+	if _, err := tx.Exec(ctx, history.String(), history.Args()...); err != nil {
 		return false, err
 	}
 	return true, tx.Commit(ctx)
 }
 
-// mailingListSubscriptions returns every list with whether the subscriber is
-// subscribed to it. A list the subscriber never joined is not subscribed.
-func mailingListSubscriptions(ctx context.Context, pg *pgxpool.Pool, subscriberID string) ([]MailingListSubscription, error) {
+// mailingListSubscriptions returns every list with whether the contact is
+// subscribed to it. A list the contact never joined is not subscribed, and an
+// empty contactID means no contact exists yet.
+func mailingListSubscriptions(ctx context.Context, pg *pgxpool.Pool, contactID string) ([]MailingListSubscription, error) {
 	subscribed := map[string]bool{}
-	if subscriberID != "" {
+	if contactID != "" {
 		stmt := sqlf.PostgreSQL.
 			Select("list_id").
 			Select("subscribed").
 			From("mailing_list_subscriptions").
-			Where("subscriber_id = ?", subscriberID)
+			Where("contact_id = ?", contactID)
 		defer stmt.Close()
 
 		rows, err := pg.Query(ctx, stmt.String(), stmt.Args()...)
@@ -175,9 +177,9 @@ func mailingListSubscriptions(ctx context.Context, pg *pgxpool.Pool, subscriberI
 }
 
 // mailingListLinkEmail returns the address of a signed unsubscribe link's
-// subscriber, or ErrMailingListLinkInvalid.
-func mailingListLinkEmail(ctx context.Context, pg *pgxpool.Pool, key, subscriberID, sig string) (string, error) {
-	id, err := uuid.Parse(subscriberID)
+// contact, or ErrMailingListLinkInvalid.
+func mailingListLinkEmail(ctx context.Context, pg *pgxpool.Pool, key, contactID, sig string) (string, error) {
+	id, err := uuid.Parse(contactID)
 	// Anyone can sign a link with an empty key, so no link is valid without one.
 	if err != nil || key == "" {
 		return "", ErrMailingListLinkInvalid
@@ -188,7 +190,7 @@ func mailingListLinkEmail(ctx context.Context, pg *pgxpool.Pool, key, subscriber
 
 	stmt := sqlf.PostgreSQL.
 		Select("email").
-		From("mailing_list_subscribers").
+		From("mailing_list_contacts").
 		Where("id = ?", id)
 	defer stmt.Close()
 
@@ -215,28 +217,28 @@ func IsMailingList(id string) bool {
 	return false
 }
 
-// MailingListSubscriptions returns every list with whether the user's address
-// is subscribed to it.
+// MailingListSubscriptions returns every list with whether the contact with
+// the user's address is subscribed to it.
 func MailingListSubscriptions(ctx context.Context, pg *pgxpool.Pool, userId uuid.UUID) ([]MailingListSubscription, error) {
 	stmt := sqlf.PostgreSQL.
-		Select("coalesce(s.id::text, '')").
+		Select("coalesce(c.id::text, '')").
 		From("users u").
-		LeftJoin("mailing_list_subscribers s", "s.email = lower(u.email)").
+		LeftJoin("mailing_list_contacts c", "c.email = lower(u.email)").
 		Where("u.id = ?", userId)
 	defer stmt.Close()
 
-	var subscriberID string
-	if err := pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&subscriberID); err != nil {
+	var contactID string
+	if err := pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&contactID); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return nil, fmt.Errorf("no user found with id %s", userId)
 		}
 		return nil, err
 	}
-	return mailingListSubscriptions(ctx, pg, subscriberID)
+	return mailingListSubscriptions(ctx, pg, contactID)
 }
 
-// SetMailingListSubscription subscribes the user's address to the list, or
-// unsubscribes it.
+// SetMailingListSubscription subscribes the contact with the user's address to
+// the list, or unsubscribes it.
 func SetMailingListSubscription(ctx context.Context, pg *pgxpool.Pool, userId uuid.UUID, listID string, optIn bool, attribution string) error {
 	user := &User{ID: new(string)}
 	*user.ID = userId.String()
@@ -255,9 +257,9 @@ func SetMailingListSubscription(ctx context.Context, pg *pgxpool.Pool, userId uu
 	return nil
 }
 
-// RequestMailingListSignup stores a pending signup to the list and returns
-// the confirmation token to email to the address. A new request replaces any
-// earlier token.
+// RequestMailingListSignup stores a pending signup to the list on the
+// address's contact and returns the confirmation token to email to the
+// address. A new request replaces any earlier token.
 func RequestMailingListSignup(ctx context.Context, pg *pgxpool.Pool, email, listID, attribution string) (string, error) {
 	b := make([]byte, 32)
 	if _, err := rand.Read(b); err != nil {
@@ -265,7 +267,7 @@ func RequestMailingListSignup(ctx context.Context, pg *pgxpool.Pool, email, list
 	}
 	token := base64.RawURLEncoding.EncodeToString(b)
 
-	stmt := sqlf.PostgreSQL.InsertInto("mailing_list_subscribers").
+	stmt := sqlf.PostgreSQL.InsertInto("mailing_list_contacts").
 		Set("email", strings.ToLower(email)).
 		Set("confirmation_token_hash", hashMailingListToken(token)).
 		Set("confirmation_expires_at", time.Now().Add(MailingListConfirmationTTL)).
@@ -286,7 +288,7 @@ func RequestMailingListSignup(ctx context.Context, pg *pgxpool.Pool, email, list
 	return token, nil
 }
 
-// ConfirmMailingListSignup subscribes the address the token was sent to. Each
+// ConfirmMailingListSignup subscribes the contact the token was sent to. Each
 // token works once.
 func ConfirmMailingListSignup(ctx context.Context, pg *pgxpool.Pool, token string) error {
 	stmt := sqlf.PostgreSQL.
@@ -294,7 +296,7 @@ func ConfirmMailingListSignup(ctx context.Context, pg *pgxpool.Pool, token strin
 		Select("confirmation_expires_at").
 		Select("confirmation_list_id").
 		Select("confirmation_attribution").
-		From("mailing_list_subscribers").
+		From("mailing_list_contacts").
 		Where("confirmation_token_hash = ?", hashMailingListToken(token))
 	defer stmt.Close()
 
@@ -322,32 +324,32 @@ func ConfirmMailingListSignup(ctx context.Context, pg *pgxpool.Pool, token strin
 	return nil
 }
 
-// SignMailingListUnsubscribe returns the signature for a subscriber's
-// unsubscribe link. It covers the subscriber and not a list, so one link can
-// manage all of the subscriber's lists. Nothing is stored: the link is checked
+// SignMailingListUnsubscribe returns the signature for a contact's
+// unsubscribe link. It covers the contact and not a list, so one link can
+// manage all of the contact's lists. Nothing is stored: the link is checked
 // by signing again with the same key.
-func SignMailingListUnsubscribe(key string, subscriberID uuid.UUID) string {
+func SignMailingListUnsubscribe(key string, contactID uuid.UUID) string {
 	mac := hmac.New(sha256.New, []byte(key))
-	mac.Write([]byte("unsubscribe:" + subscriberID.String()))
+	mac.Write([]byte("unsubscribe:" + contactID.String()))
 	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 
-// MailingListLinkSubscriptions returns every list with whether the subscriber
-// of a signed unsubscribe link is subscribed to it.
-func MailingListLinkSubscriptions(ctx context.Context, pg *pgxpool.Pool, key, subscriberID, sig string) ([]MailingListSubscription, error) {
-	if _, err := mailingListLinkEmail(ctx, pg, key, subscriberID, sig); err != nil {
+// MailingListLinkSubscriptions returns every list with whether the contact of
+// a signed unsubscribe link is subscribed to it.
+func MailingListLinkSubscriptions(ctx context.Context, pg *pgxpool.Pool, key, contactID, sig string) ([]MailingListSubscription, error) {
+	if _, err := mailingListLinkEmail(ctx, pg, key, contactID, sig); err != nil {
 		return nil, err
 	}
-	return mailingListSubscriptions(ctx, pg, subscriberID)
+	return mailingListSubscriptions(ctx, pg, contactID)
 }
 
-// UnsubscribeMailingListLink unsubscribes the subscriber of a signed
-// unsubscribe link from the list.
-func UnsubscribeMailingListLink(ctx context.Context, pg *pgxpool.Pool, key, subscriberID, sig, listID string) error {
+// UnsubscribeMailingListLink unsubscribes the contact of a signed unsubscribe
+// link from the list.
+func UnsubscribeMailingListLink(ctx context.Context, pg *pgxpool.Pool, key, contactID, sig, listID string) error {
 	if !IsMailingList(listID) {
 		return ErrMailingListLinkInvalid
 	}
-	email, err := mailingListLinkEmail(ctx, pg, key, subscriberID, sig)
+	email, err := mailingListLinkEmail(ctx, pg, key, contactID, sig)
 	if err != nil {
 		return err
 	}

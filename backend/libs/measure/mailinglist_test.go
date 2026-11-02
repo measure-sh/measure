@@ -77,13 +77,13 @@ func TestMailingListEvents(t *testing.T) {
 		if err := SetMailingListSubscription(ctx, deps.PgPool, userID, MailingListNewsletter, true, "signup"); err != nil {
 			t.Fatalf("opt in: %v", err)
 		}
-		var subscriberID uuid.UUID
-		if err := deps.PgPool.QueryRow(ctx, `select id from mailing_list_subscribers where email = 'ada@example.com'`).Scan(&subscriberID); err != nil {
-			t.Fatalf("read subscriber: %v", err)
+		var contactID uuid.UUID
+		if err := deps.PgPool.QueryRow(ctx, `select id from mailing_list_contacts where email = 'ada@example.com'`).Scan(&contactID); err != nil {
+			t.Fatalf("read contact: %v", err)
 		}
 
-		sig := SignMailingListUnsubscribe("key", subscriberID)
-		if err := UnsubscribeMailingListLink(ctx, deps.PgPool, "key", subscriberID.String(), sig, MailingListNewsletter); err != nil {
+		sig := SignMailingListUnsubscribe("key", contactID)
+		if err := UnsubscribeMailingListLink(ctx, deps.PgPool, "key", contactID.String(), sig, MailingListNewsletter); err != nil {
 			t.Fatalf("unsubscribe: %v", err)
 		}
 		flushPostHog()

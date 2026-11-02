@@ -1448,7 +1448,7 @@ export const confirmMailingListFromServer = async (token: string) => {
   });
 };
 
-// The subscriber id and signature from a link in a mailing list email.
+// The contact id and signature from a link in a mailing list email.
 export type MailingListLink = { id: string; sig: string };
 
 export const fetchMailingListLinkSubscriptionsFromServer = async (

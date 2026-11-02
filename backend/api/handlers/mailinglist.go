@@ -33,9 +33,9 @@ type mailingListConfirmPayload struct {
 }
 
 type mailingListUnsubscribePayload struct {
-	SubscriberID string `json:"id"`
-	Sig          string `json:"sig"`
-	ListID       string `json:"list_id"`
+	ContactID string `json:"id"`
+	Sig       string `json:"sig"`
+	ListID    string `json:"list_id"`
 }
 
 const (
@@ -43,7 +43,7 @@ const (
 	unknownMailingList    = "list_id is not a known mailing list"
 
 	// unsubscribeLinkInvalid is shown for any link that fails the signature
-	// check, so a bad link reveals nothing about the subscriber.
+	// check, so a bad link reveals nothing about the contact.
 	unsubscribeLinkInvalid = "This unsubscribe link is invalid."
 )
 
@@ -238,7 +238,7 @@ func (h Handlers) ConfirmMailingList(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ok": "You're subscribed."})
 }
 
-// GetMailingListLinkSubscriptions returns the lists of the subscriber an
+// GetMailingListLinkSubscriptions returns the lists of the contact an
 // unsubscribe link was sent to, for the unsubscribe page.
 func (h Handlers) GetMailingListLinkSubscriptions(c *gin.Context) {
 	deps := h.Deps
@@ -272,7 +272,7 @@ func (h Handlers) RedirectMailingListUnsubscribe(c *gin.Context) {
 	c.Redirect(http.StatusFound, deps.Config.SiteOrigin+"/unsubscribe?"+c.Request.URL.RawQuery)
 }
 
-// UnsubscribeMailingList unsubscribes the subscriber of a signed link from a
+// UnsubscribeMailingList unsubscribes the contact of a signed link from a
 // list. The unsubscribe page sends the link's values as JSON. Inbox providers
 // send a one-click unsubscribe (RFC 8058) as a form POST to the address in
 // the email's List-Unsubscribe header, with the values in its query, and get
@@ -286,9 +286,9 @@ func (h Handlers) UnsubscribeMailingList(c *gin.Context) {
 
 	oneClick := c.Query("id") != ""
 	payload := mailingListUnsubscribePayload{
-		SubscriberID: c.Query("id"),
-		Sig:          c.Query("sig"),
-		ListID:       c.Query("list"),
+		ContactID: c.Query("id"),
+		Sig:       c.Query("sig"),
+		ListID:    c.Query("list"),
 	}
 	if !oneClick {
 		if err := c.ShouldBindJSON(&payload); err != nil {
@@ -297,7 +297,7 @@ func (h Handlers) UnsubscribeMailingList(c *gin.Context) {
 		}
 	}
 
-	err := measure.UnsubscribeMailingListLink(c.Request.Context(), deps.PgPool, deps.Config.MailingListUnsubscribeKey, payload.SubscriberID, payload.Sig, payload.ListID)
+	err := measure.UnsubscribeMailingListLink(c.Request.Context(), deps.PgPool, deps.Config.MailingListUnsubscribeKey, payload.ContactID, payload.Sig, payload.ListID)
 	switch {
 	case errors.Is(err, measure.ErrMailingListLinkInvalid):
 		c.JSON(http.StatusBadRequest, gin.H{"error": unsubscribeLinkInvalid})

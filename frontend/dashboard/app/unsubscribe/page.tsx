@@ -27,7 +27,7 @@ function errorMessage(error: unknown) {
 }
 
 /**
- * Linked from every mailing list email, with the subscriber's signed link and
+ * Linked from every mailing list email, with the contact's signed link and
  * the list the email was sent to. Unsubscribing takes a click, so mail
  * scanners that open links can't unsubscribe anyone.
  */
