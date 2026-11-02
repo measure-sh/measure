@@ -116,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump @c15t/scripts in /frontend/dashboard by @dependabot[bot] in #4704
 - (**deps**): Bump next by @dependabot[bot] in #4728
 - (**deps**): Bump @testing-library/jest-dom in /frontend/dashboard by @dependabot[bot] in #4701
 - (**deps**): Bump the dashboard group across 1 directory with 39 updates by @dependabot[bot]
