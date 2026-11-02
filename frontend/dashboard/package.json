@@ -64,7 +64,7 @@
     "fumadocs-openapi": "^12.5.5",
     "fumadocs-ui": "^16.14.4",
     "hast-util-to-jsx-runtime": "^2.3.6",
-    "lottie-react": "^2.4.1",
+    "lottie-react": "^3.1.2",
     "lucide-react": "^1.59.0",
     "luxon": "^3.7.2",
     "next": "^16.4.3",
