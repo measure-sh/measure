@@ -136,12 +136,7 @@ export type ExceptionSpec = {
 
 // What a successful response changes in the session's shop state.
 export type HttpEffect =
-  | "cart_add"
-  | "cart_update"
-  | "cart_remove"
-  | "coupon"
-  | "search"
-  | "order";
+  "cart_add" | "cart_update" | "cart_remove" | "coupon" | "search" | "order";
 
 // url, requestBody and responseBody may name session values in braces, such
 // as {product_id} or {cart_items}; a braced path segment is reported as * in

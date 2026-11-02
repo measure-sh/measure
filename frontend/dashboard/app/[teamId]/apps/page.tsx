@@ -741,11 +741,9 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
                     type={DropdownSelectType.SingleString}
                     title="Data Retention Period"
                     items={Array.from(retentionPeriodToDisplayTextMap.values())}
-                    initialSelected={
-                      retentionPeriodToDisplayTextMap.get(
-                        (appRetention ?? emptyAppRetention).retention!,
-                      )!
-                    }
+                    initialSelected={retentionPeriodToDisplayTextMap.get(
+                      (appRetention ?? emptyAppRetention).retention!,
+                    )!}
                     onChangeSelected={(item) =>
                       handleRetentionPeriodChange(item as string)
                     }
