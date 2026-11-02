@@ -51,6 +51,11 @@ updates:
     ignore:
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # TypeScript 7 has no compiler API, which the typescript-eslint
+      # version used by eslint-config-next requires. Remove this once
+      # typescript-eslint supports TypeScript 7.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
     directory: /e2e-tests
