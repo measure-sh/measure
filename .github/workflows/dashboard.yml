@@ -71,6 +71,32 @@ jobs:
       - name: Check Prettier formatting
         run: npm run format:check
 
+  build:
+    name: Build dashboard
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/dashboard
+    timeout-minutes: 15
+    env:
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+          check-latest: true
+
+      - name: Install dependencies for CI
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
   push:
     name: Build and push image
     runs-on: ubuntu-latest
