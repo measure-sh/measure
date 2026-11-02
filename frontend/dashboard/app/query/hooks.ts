@@ -7,6 +7,7 @@ import {
   changeAppNameFromServer,
   changeRoleFromServer,
   changeTeamNameFromServer,
+  confirmMailingListFromServer,
   createAppFromServer,
   createFunnelFromServer,
   createTeamFromServer,
@@ -45,6 +46,7 @@ import {
   fetchFunnelTrendFromServer,
   fetchHighMemoryUsageSessionsFromServer,
   fetchJourneyFromServer,
+  fetchMailingListPrefsFromServer,
   fetchMemoryUsageBreakdownFromServer,
   fetchMemoryUsagePlotFromServer,
   fetchMetricsFromServer,
@@ -79,11 +81,13 @@ import {
   resendPendingInviteFromServer,
   sendTestSlackAlertFromServer,
   setFunnelPinnedFromServer,
+  subscribeToMailingListFromServer,
   undoDowngradeFromServer,
   updateAppRetentionFromServer,
   updateAppThresholdPrefsFromServer,
   updateBugReportStatusFromServer,
   updateFunnelFromServer,
+  updateMailingListPrefsFromServer,
   updateNotifPrefsFromServer,
   updateSdkConfigFromServer,
   updateTeamSlackStatusFromServer,
@@ -1694,6 +1698,49 @@ export function useSaveNotifPrefsMutation() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["notifPrefs"] });
     },
+  });
+}
+
+// ─── Mailing List ───────────────────────────────────────────────────────
+
+export function useMailingListPrefsQuery(enabled = true) {
+  return useQuery({
+    queryKey: ["mailingListPrefs"] as const,
+    queryFn: () => fetchMailingListPrefsFromServer(),
+    enabled,
+    retry: false,
+  });
+}
+
+export function useSaveMailingListPrefsMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: { subscribed: boolean; attribution: string }) =>
+      updateMailingListPrefsFromServer(params.subscribed, params.attribution),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mailingListPrefs"] });
+    },
+  });
+}
+
+export function useSubscribeToMailingListMutation() {
+  return useMutation({
+    mutationFn: (params: {
+      email: string;
+      attribution: string;
+      turnstileToken: string;
+    }) =>
+      subscribeToMailingListFromServer(
+        params.email,
+        params.attribution,
+        params.turnstileToken,
+      ),
+  });
+}
+
+export function useConfirmMailingListMutation() {
+  return useMutation({
+    mutationFn: (token: string) => confirmMailingListFromServer(token),
   });
 }
 

@@ -92,6 +92,21 @@ func FireTeamCreatedEvent(ctx context.Context, user *User, team *Team) {
 	}, map[string]string{"team": teamID})
 }
 
+// fireMailingListEvent fires `mailing_list_subscribed` or
+// `mailing_list_unsubscribed`. All mailing list events share one distinct id
+// without a person profile, because only the counts and attribution matter.
+func fireMailingListEvent(subscribed bool, attribution string) {
+	event := "mailing_list_unsubscribed"
+	if subscribed {
+		event = "mailing_list_subscribed"
+	}
+	posthog.Capture("mailing_list", event, map[string]any{
+		"schema_version":          "v1",
+		"attribution":             attribution,
+		"$process_person_profile": false,
+	}, nil)
+}
+
 // subscriptionCompositeID returns a stable identifier for a plan transition
 // used as the PostHog subscription_id. Autumn webhook retries reproduce the
 // same composite, so downstream systems dedupe naturally.

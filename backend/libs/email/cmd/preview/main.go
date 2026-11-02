@@ -235,6 +235,11 @@ func main() {
 	_, body = email.UsageLimitEmail("Acme Corp", "team-abc", "https://measure.sh", 100, true)
 	add("20-usage-100-percent-enterprise.html", body)
 
+	// --- API: Mailing list ---
+
+	_, body = email.MailingListConfirmEmail("https://measure.sh", "tok_example")
+	add("21-mailing-list-confirm.html", body)
+
 	for _, e := range emails {
 		path := filepath.Join(dir, e.name)
 		if err := os.WriteFile(path, []byte(e.body), 0644); err != nil {

@@ -27,6 +27,7 @@ import (
 	"backend/libs/posthog"
 	"backend/libs/secret"
 	"backend/libs/slack"
+	"backend/libs/turnstile"
 
 	"cloud.google.com/go/cloudsqlconn"
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -425,6 +426,16 @@ func NewConfig() *Config {
 	autumn.Init(autumn.Config{
 		SecretKey: autumnSecretKey,
 	})
+
+	turnstileSecretKey, secErr := secret.FromEnvOrFile("TURNSTILE_SECRET_KEY")
+	if secErr != nil {
+		log.Printf("failed to read TURNSTILE_SECRET_KEY: %v", secErr)
+	}
+	if turnstileSecretKey == "" {
+		log.Println("TURNSTILE_SECRET_KEY env var is not set, mailing list signups from the website will be disabled")
+	}
+
+	turnstile.Init(turnstile.Config{SecretKey: turnstileSecretKey})
 
 	posthogAPIKey := os.Getenv("POSTHOG_API_KEY")
 	if posthogAPIKey == "" {

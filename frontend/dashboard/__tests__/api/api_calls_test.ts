@@ -74,6 +74,8 @@ import {
   fetchNetworkEndpointsFromServer,
   fetchNetworkTimelinePlotFromServer,
   fetchNetworkTrendsFromServer,
+  confirmMailingListFromServer,
+  fetchMailingListPrefsFromServer,
   fetchNotifPrefsFromServer,
   fetchPendingInvitesFromServer,
   fetchPinnedFunnelsFromServer,
@@ -104,6 +106,8 @@ import {
   updateAppThresholdPrefsFromServer,
   updateBugReportStatusFromServer,
   updateFunnelFromServer,
+  subscribeToMailingListFromServer,
+  updateMailingListPrefsFromServer,
   updateNotifPrefsFromServer,
   updateSdkConfigFromServer,
   updateTeamSlackStatusFromServer,
@@ -1300,6 +1304,46 @@ describe("slack and notifications", () => {
     await updateNotifPrefsFromServer({} as any);
     expect(lastFetchOpts().method).toBe("PATCH");
   });
+
+  it("fetchMailingListPrefsFromServer hits /prefs/mailingList", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse({ enabled: true, subscribed: false }),
+    );
+    const prefs = await fetchMailingListPrefsFromServer();
+    expect(lastFetchUrl()).toContain("/api/prefs/mailingList");
+    expect(prefs).toEqual({ enabled: true, subscribed: false });
+  });
+
+  it("subscribeToMailingListFromServer POSTs the email, attribution and Turnstile token", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
+    await subscribeToMailingListFromServer("ada@example.com", "blog", "tok");
+    expect(lastFetchUrl()).toContain("/api/mailingList/subscribe");
+    expect(lastFetchOpts().method).toBe("POST");
+    expect(JSON.parse(lastFetchOpts().body)).toEqual({
+      email: "ada@example.com",
+      attribution: "blog",
+      turnstile_token: "tok",
+    });
+  });
+
+  it("confirmMailingListFromServer POSTs the token", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
+    await confirmMailingListFromServer("tok_123");
+    expect(lastFetchUrl()).toContain("/api/mailingList/confirm");
+    expect(lastFetchOpts().method).toBe("POST");
+    expect(JSON.parse(lastFetchOpts().body)).toEqual({ token: "tok_123" });
+  });
+
+  it("updateMailingListPrefsFromServer PATCHes consent with its attribution", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({}));
+    await updateMailingListPrefsFromServer(true, "settings");
+    expect(lastFetchUrl()).toContain("/api/prefs/mailingList");
+    expect(lastFetchOpts().method).toBe("PATCH");
+    expect(JSON.parse(lastFetchOpts().body)).toEqual({
+      subscribed: true,
+      attribution: "settings",
+    });
+  });
 });
 
 // ========================================================================
@@ -1735,6 +1779,10 @@ describe("fetch functions: failure paths", () => {
     ],
     ["fetchNotifPrefsFromServer", () => fetchNotifPrefsFromServer()],
     [
+      "fetchMailingListPrefsFromServer",
+      () => fetchMailingListPrefsFromServer(),
+    ],
+    [
       "fetchNetworkEndpointsFromServer",
       () => fetchNetworkEndpointsFromServer("a", isoFrom, isoTo, null, "q"),
     ],
@@ -1823,6 +1871,15 @@ describe("mutation functions: failure paths", () => {
     ["changeAppNameFromServer", () => changeAppNameFromServer("a", "n")],
     ["changeAppApiKeyFromServer", () => changeAppApiKeyFromServer("a")],
     ["updateNotifPrefsFromServer", () => updateNotifPrefsFromServer({} as any)],
+    [
+      "subscribeToMailingListFromServer",
+      () => subscribeToMailingListFromServer("a@b.co", "blog", "tok"),
+    ],
+    ["confirmMailingListFromServer", () => confirmMailingListFromServer("t")],
+    [
+      "updateMailingListPrefsFromServer",
+      () => updateMailingListPrefsFromServer(false, "settings"),
+    ],
     ["updateSdkConfigFromServer", () => updateSdkConfigFromServer("a", {})],
     [
       "updateBugReportStatusFromServer",

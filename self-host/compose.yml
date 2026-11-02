@@ -54,6 +54,7 @@ services:
       - NEXT_PUBLIC_POSTHOG_API_KEY=${POSTHOG_API_KEY}
       - NEXT_PUBLIC_GTM_ID=${GTM_ID}
       - NEXT_PUBLIC_C15T_BACKEND_URL=${NEXT_PUBLIC_C15T_BACKEND_URL}
+      - NEXT_PUBLIC_TURNSTILE_SITE_KEY=${TURNSTILE_SITE_KEY:-}
       - LLM_DOCS_CHAT_KEY_FILE=/run/secrets/llm-docs-chat-key
       - LLM_MODEL=${LLM_AGENT_MODEL_SMALL:-}
     healthcheck:
@@ -135,6 +136,7 @@ services:
       - SLACK_CLIENT_SECRET_FILE=/run/secrets/slack-client-secret
       - SLACK_SIGNING_SECRET_FILE=/run/secrets/slack-signing-secret
       - SLACK_OAUTH_STATE_SECRET_FILE=/run/secrets/slack-oauth-state-secret
+      - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY:-}
       - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
       - POSTHOG_HOST=${POSTHOG_HOST:-}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}

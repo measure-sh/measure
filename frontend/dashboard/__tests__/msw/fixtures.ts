@@ -1442,6 +1442,18 @@ export function makeNotifPrefsFixture(overrides: Record<string, any> = {}) {
   };
 }
 
+// --- Mailing list preferences (GET /prefs/mailingList) ---
+
+export function makeMailingListPrefsFixture(
+  overrides: Record<string, any> = {},
+) {
+  return {
+    enabled: true,
+    subscribed: false,
+    ...overrides,
+  };
+}
+
 // --- Filter keys (GET /apps/:appId/filters/keys) ---
 
 export function makeFilterKeysFixture(overrides: Record<string, any> = {}) {

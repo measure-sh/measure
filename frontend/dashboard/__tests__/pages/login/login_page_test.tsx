@@ -3,7 +3,8 @@ import Login from "@/app/auth/login/page";
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { ApiError } from "@/app/api/api_error";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
+import { signupConsentKey } from "@/app/components/signup_consent_saver";
 
 const mockRouterReplace = jest.fn();
 const mockValidateInvites = jest.fn((_arg?: any) => Promise.resolve());
@@ -83,6 +84,7 @@ describe("Login Page", () => {
     mockFetchCurrentSession.mockReset();
     mockFetchCurrentSession.mockResolvedValue(null);
     mockResetAllStores.mockClear();
+    window.sessionStorage.clear();
     process.env.NEXT_PUBLIC_API_BASE_URL = "https://api.example.com";
     process.env.NEXT_PUBLIC_AGENT_BASE_URL = "https://agent.example.com";
   });
@@ -539,6 +541,69 @@ describe("Login Page", () => {
 
     expect(
       screen.queryByText(/By continuing, you agree to our/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("offers an unticked mailing list checkbox in cloud mode", async () => {
+    mockIsCloud = true;
+
+    await act(async () => {
+      render(<Login searchParams={promiseParams({})} />);
+    });
+
+    const checkbox = screen.getByRole("checkbox", {
+      name: /Send me the Measure newsletter/,
+    });
+    expect(checkbox).not.toBeChecked();
+    expect(window.sessionStorage.getItem(signupConsentKey)).toBeNull();
+  });
+
+  it("remembers mailing list consent across the sign-in redirect", async () => {
+    mockIsCloud = true;
+
+    await act(async () => {
+      render(<Login searchParams={promiseParams({})} />);
+    });
+
+    const checkbox = screen.getByRole("checkbox", {
+      name: /Send me the Measure newsletter/,
+    });
+    fireEvent.click(checkbox);
+    expect(checkbox).toBeChecked();
+    expect(window.sessionStorage.getItem(signupConsentKey)).toBe("1");
+
+    fireEvent.click(checkbox);
+    expect(window.sessionStorage.getItem(signupConsentKey)).toBeNull();
+  });
+
+  it("omits the mailing list checkbox when self-hosted", async () => {
+    await act(async () => {
+      render(<Login searchParams={promiseParams({})} />);
+    });
+
+    expect(
+      screen.queryByText(/Send me the Measure newsletter/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("omits the mailing list checkbox in MCP mode", () => {
+    mockIsCloud = true;
+
+    render(
+      <Login
+        searchParams={promiseParams({
+          mcp: "1",
+          response_type: "code",
+          client_id: "test_client",
+          redirect_uri: "http://localhost/cb",
+          state: "s",
+          code_challenge: "ch",
+        })}
+      />,
+    );
+
+    expect(
+      screen.queryByText(/Send me the Measure newsletter/),
     ).not.toBeInTheDocument();
   });
 });

@@ -236,6 +236,14 @@ func main() {
 	{
 		prefs.GET("notifPrefs", hdl.GetNotifPrefs)
 		prefs.PATCH("notifPrefs", hdl.UpdateNotifPrefs)
+		prefs.GET("mailingList", hdl.GetMailingListPrefs)
+		prefs.PATCH("mailingList", hdl.UpdateMailingListPrefs)
+	}
+
+	mailingList := r.Group("/mailingList")
+	{
+		mailingList.POST("/subscribe", hdl.SubscribeMailingList)
+		mailingList.POST("/confirm", hdl.ConfirmMailingList)
 	}
 
 	slack := r.Group("/slack")

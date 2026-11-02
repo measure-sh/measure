@@ -46,6 +46,7 @@ import {
   makeFunnelTrendFixture,
   makeHealthPlotFixture,
   makeJourneyFixture,
+  makeMailingListPrefsFixture,
   makeMetricsFixture,
   makeNetworkEndpointStatusCodesFixture,
   makeNetworkEndpointLatencyFixture,
@@ -395,6 +396,16 @@ export const handlers = [
   // 62. PATCH /api/prefs/notifPrefs
   http.patch("*/api/prefs/notifPrefs", () => {
     return HttpResponse.json({ ok: true });
+  }),
+
+  // 62b. GET /api/prefs/mailingList
+  http.get("*/api/prefs/mailingList", () => {
+    return HttpResponse.json(makeMailingListPrefsFixture());
+  }),
+
+  // 62c. PATCH /api/prefs/mailingList
+  http.patch("*/api/prefs/mailingList", () => {
+    return HttpResponse.json({ ok: "done" });
   }),
 
   // 62a. GET /api/auth/session (for UserAvatar component)

@@ -8,6 +8,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PostCard } from "../../components/post_card";
+import { NewsletterSignupPanel } from "../../components/post_footer";
 
 interface PageParams {
   params: Promise<{ tag: string }>;
@@ -44,6 +45,7 @@ export default async function Page(props: PageParams) {
           <PostCard key={post.slug} post={post} />
         ))}
       </div>
+      <NewsletterSignupPanel />
     </main>
   );
 }

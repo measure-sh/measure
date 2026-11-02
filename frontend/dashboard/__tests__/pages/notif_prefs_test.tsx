@@ -10,6 +10,8 @@ const mockMutateAsync = jest.fn();
 
 let mockNotifPrefsData: any = undefined;
 let mockNotifPrefsStatus: string = "pending";
+let mockMailingListPrefsData: any = undefined;
+const mockMarketingMutateAsync = jest.fn();
 
 jest.mock("@/app/components/toast", () => ({
   toastPositive: (...args: any[]) => mockToastPositive(...args),
@@ -40,6 +42,25 @@ jest.mock("@/app/query/hooks", () => ({
     mutateAsync: mockMutateAsync,
     isPending: false,
   }),
+  useMailingListPrefsQuery: () => ({
+    data: mockMailingListPrefsData,
+  }),
+  useSaveMailingListPrefsMutation: () => ({
+    mutateAsync: mockMarketingMutateAsync,
+    isPending: false,
+  }),
+}));
+
+jest.mock("@/app/components/switch", () => ({
+  Switch: ({ checked, onCheckedChange, ...props }: any) => (
+    <input
+      type="checkbox"
+      role="switch"
+      checked={checked}
+      onChange={() => onCheckedChange?.(!checked)}
+      {...props}
+    />
+  ),
 }));
 
 jest.mock("@/app/components/button", () => ({
@@ -89,6 +110,7 @@ describe("Notifications page", () => {
     jest.clearAllMocks();
     mockNotifPrefsData = undefined;
     mockNotifPrefsStatus = "pending";
+    mockMailingListPrefsData = undefined;
   });
 
   it("renders loading state initially", () => {
@@ -242,5 +264,78 @@ describe("Notifications page", () => {
     expect(
       screen.getByText(/Failed to fetch notification preferences/),
     ).toBeInTheDocument();
+  });
+
+  describe("mailing list", () => {
+    beforeEach(() => {
+      mockNotifPrefsStatus = "success";
+      mockNotifPrefsData = defaultNotifPrefs;
+    });
+
+    it("is hidden when the mailing list is not enabled", () => {
+      mockMailingListPrefsData = { enabled: false, subscribed: false };
+      render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
+
+      expect(screen.queryByText("Newsletter")).not.toBeInTheDocument();
+      expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+    });
+
+    it("is hidden for the sandbox team", () => {
+      mockMailingListPrefsData = { enabled: true, subscribed: false };
+      render(
+        <Notifications
+          params={promiseParams({
+            teamId: "sandbox",
+          })}
+        />,
+      );
+
+      expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+    });
+
+    it("shows the user's current consent", () => {
+      mockMailingListPrefsData = { enabled: true, subscribed: true };
+      render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
+
+      expect(screen.getByText("Newsletter")).toBeInTheDocument();
+      expect(screen.getByRole("switch")).toBeChecked();
+    });
+
+    it("subscribes from settings when the switch is turned on", async () => {
+      mockMailingListPrefsData = { enabled: true, subscribed: false };
+      mockMarketingMutateAsync.mockResolvedValue(undefined);
+      render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
+
+      fireEvent.click(screen.getByRole("switch"));
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockMarketingMutateAsync).toHaveBeenCalledWith({
+        subscribed: true,
+        attribution: "settings",
+      });
+      expect(mockToastPositive).toHaveBeenCalledWith(
+        "Subscribed to the Measure newsletter",
+      );
+    });
+
+    it("shows an error toast when saving fails", async () => {
+      mockMailingListPrefsData = { enabled: true, subscribed: true };
+      mockMarketingMutateAsync.mockRejectedValue(new Error("boom"));
+      render(<Notifications params={promiseParams({ teamId: "team-1" })} />);
+
+      fireEvent.click(screen.getByRole("switch"));
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(mockMarketingMutateAsync).toHaveBeenCalledWith({
+        subscribed: false,
+        attribution: "settings",
+      });
+      expect(mockToastNegative).toHaveBeenCalledWith(
+        "Couldn't update your newsletter subscription",
+        "boom",
+      );
+    });
   });
 });

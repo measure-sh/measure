@@ -6,6 +6,7 @@ import {
 } from "@/app/utils/blog_source";
 import { pageMetadata } from "@/app/utils/metadata";
 import type { Metadata } from "next";
+import { NewsletterSignupPanel } from "./components/post_footer";
 import PostsList from "./components/posts_list";
 
 const title = "Blog";
@@ -35,6 +36,7 @@ export default function Page() {
         <p className="text-fd-muted-foreground">{blogDescription}</p>
       </div>
       <PostsList posts={posts} tags={getAllBlogTags()} />
+      <NewsletterSignupPanel />
     </main>
   );
 }

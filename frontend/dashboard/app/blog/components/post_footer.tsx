@@ -1,54 +1,47 @@
-"use client";
-
-import { buttonVariants } from "@/app/components/button_variants";
-import { track } from "@/app/utils/analytics/track";
-import { cn } from "@/app/utils/shadcn_utils";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useState } from "react";
-import { deriveBlogSection } from "./blog_tracking";
+import MailingListSignup from "./mailing_list_signup";
 
 /**
- * End-of-post footer: a thanks note with a Share button (native share
- * sheet where the browser has one, copy-link fallback elsewhere).
+ * Mailing list signup panel, shown only when a Turnstile site key is set.
  */
-export default function PostFooter({ title }: { title: string }) {
-  const [copied, setCopied] = useState(false);
-  const blogSection = deriveBlogSection(usePathname());
+export function NewsletterSignupPanel() {
+  const turnstileSiteKey = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY;
 
-  async function share() {
-    track("blog_action_click", { action: "share", blog_section: blogSection });
-    const url = window.location.href;
-    if (typeof navigator.share === "function") {
-      try {
-        await navigator.share({ title, url });
-      } catch {
-        // The user closed the share sheet.
-      }
-      return;
-    }
-    await navigator.clipboard.writeText(url);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+  if (!turnstileSiteKey) {
+    return null;
   }
 
   return (
-    <footer className="mt-12 flex flex-col items-start gap-6 border-t pt-10 pb-4">
-      <p className="text-fd-muted-foreground">
-        Thanks for reading!{" "}
-        <Link href="/" className="text-fd-foreground underline">
-          Measure
-        </Link>{" "}
-        helps mobile developers monitor and fix bugs, crashes and performance
-        issues. If you enjoyed this post, please share it with your friends!
-      </p>
-      <button
-        type="button"
-        onClick={share}
-        className={cn(buttonVariants({ variant: "default" }))}
-      >
-        {copied ? "Link copied" : "Share"}
-      </button>
+    <footer className="mx-auto mt-12 flex w-full max-w-3xl flex-col items-center gap-3 rounded-lg bg-secondary p-8 text-center text-secondary-foreground">
+      <MailingListSignup
+        title="Subscribe to the Measure newsletter"
+        description="Once a month, we'll share what we shipped and our favorite mobile engineering reads."
+        attribution="blog"
+        turnstileSiteKey={turnstileSiteKey}
+      />
     </footer>
   );
+}
+
+/**
+ * End-of-post footer: the mailing list signup when a Turnstile site key is
+ * set, otherwise a thanks note.
+ */
+export default function PostFooter() {
+  if (!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
+    return (
+      <footer className="mt-12 border-t pt-10 pb-4">
+        <p className="text-fd-muted-foreground">
+          Thanks for reading!{" "}
+          <Link href="/" className="text-fd-foreground underline">
+            Measure
+          </Link>{" "}
+          helps mobile developers monitor and fix bugs, crashes and performance
+          issues.
+        </p>
+      </footer>
+    );
+  }
+
+  return <NewsletterSignupPanel />;
 }
