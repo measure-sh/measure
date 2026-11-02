@@ -11,14 +11,19 @@ import { useRef, useState, type FormEvent } from "react";
 import { deriveBlogSection } from "./blog_tracking";
 
 /**
- * Mailing list signup form. `attribution` says where it is shown, like
- * "blog". A Turnstile check guards it, and the address is only subscribed
- * once its owner confirms by email.
+ * Mailing list signup form with its title and description, which give way to
+ * a "check your inbox" note once the form is sent. `attribution` says where
+ * it is shown, like "blog". A Turnstile check guards it, and the address is
+ * only subscribed once its owner confirms by email.
  */
 export default function MailingListSignup({
+  title,
+  description,
   attribution,
   turnstileSiteKey,
 }: {
+  title: string;
+  description: string;
   attribution: string;
   turnstileSiteKey: string;
 }) {
@@ -78,54 +83,62 @@ export default function MailingListSignup({
 
   if (subscribe.isSuccess) {
     return (
-      <p className="text-fd-muted-foreground" role="status">
-        Check your inbox. We sent a link to {email} to confirm your
-        subscription.
-      </p>
+      <div role="status" className="flex flex-col items-center gap-3">
+        <h2 className="font-display text-2xl">Check your inbox</h2>
+        <p className="text-balance text-fd-muted-foreground">
+          We sent a link to{" "}
+          <span className="font-medium text-fd-foreground">{email}</span>. Open
+          it to confirm your subscription.
+        </p>
+      </div>
     );
   }
 
   return (
-    <form
-      onSubmit={handleSubmit}
-      className="flex w-full max-w-md flex-col gap-2"
-      aria-label="Newsletter signup"
-    >
-      <div className="flex gap-2">
-        <Input
-          id="mailing-list-email"
-          type="email"
-          name="email"
-          required
-          maxLength={254}
-          autoComplete="email"
-          placeholder="you@company.com"
-          aria-label="Email address"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          disabled={subscribe.isPending}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={message ? "mailing-list-error" : undefined}
+    <>
+      <h2 className="font-display text-2xl">{title}</h2>
+      <p className="text-balance text-fd-muted-foreground">{description}</p>
+      <form
+        onSubmit={handleSubmit}
+        className="mt-3 flex w-full max-w-md flex-col items-center gap-2"
+        aria-label="Newsletter signup"
+      >
+        <div className="flex w-full gap-2">
+          <Input
+            id="mailing-list-email"
+            type="email"
+            name="email"
+            required
+            maxLength={254}
+            autoComplete="email"
+            placeholder="you@company.com"
+            aria-label="Email address"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={subscribe.isPending}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={message ? "mailing-list-error" : undefined}
+          />
+          <Button type="submit" loading={subscribe.isPending}>
+            Subscribe
+          </Button>
+        </div>
+        <Turnstile
+          ref={turnstileRef}
+          siteKey={turnstileSiteKey}
+          onToken={handleToken}
+          onCheckShown={() => setCheckShown(true)}
         />
-        <Button type="submit" loading={subscribe.isPending}>
-          Subscribe
-        </Button>
-      </div>
-      <Turnstile
-        ref={turnstileRef}
-        siteKey={turnstileSiteKey}
-        onToken={handleToken}
-        onCheckShown={() => setCheckShown(true)}
-      />
-      {message && (
-        <p
-          id="mailing-list-error"
-          className="text-sm text-red-600"
-          role="alert"
-        >
-          {message}
-        </p>
-      )}
-    </form>
+        {message && (
+          <p
+            id="mailing-list-error"
+            className="text-sm text-red-600"
+            role="alert"
+          >
+            {message}
+          </p>
+        )}
+      </form>
+    </>
   );
 }

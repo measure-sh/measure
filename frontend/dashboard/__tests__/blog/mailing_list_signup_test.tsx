@@ -62,6 +62,13 @@ async function submit(email: string) {
   });
 }
 
+const props = {
+  title: "Subscribe to the Measure newsletter",
+  description: "Once a month, we'll share what we shipped.",
+  attribution: "blog",
+  turnstileSiteKey: "site-key",
+};
+
 describe("MailingListSignup", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -70,9 +77,7 @@ describe("MailingListSignup", () => {
   });
 
   it("subscribes the address with the Turnstile token and tracks the click", async () => {
-    render(
-      <MailingListSignup attribution="blog" turnstileSiteKey="site-key" />,
-    );
+    render(<MailingListSignup {...props} />);
 
     await submit("ada@example.com");
 
@@ -92,9 +97,7 @@ describe("MailingListSignup", () => {
 
   it("waits for the Turnstile check before subscribing", async () => {
     mockTurnstileToken = null;
-    render(
-      <MailingListSignup attribution="blog" turnstileSiteKey="site-key" />,
-    );
+    render(<MailingListSignup {...props} />);
 
     await submit("ada@example.com");
 
@@ -106,9 +109,7 @@ describe("MailingListSignup", () => {
 
   it("asks the visitor to tick the checkbox when Cloudflare shows it, and clears the message once the check passes", async () => {
     mockTurnstileToken = null;
-    render(
-      <MailingListSignup attribution="blog" turnstileSiteKey="site-key" />,
-    );
+    render(<MailingListSignup {...props} />);
 
     act(() => mockTurnstileProps.onCheckShown());
     await submit("ada@example.com");
@@ -128,9 +129,7 @@ describe("MailingListSignup", () => {
         new ApiError(400, "We couldn't verify you're human. Please try again."),
       ),
     );
-    render(
-      <MailingListSignup attribution="blog" turnstileSiteKey="site-key" />,
-    );
+    render(<MailingListSignup {...props} />);
 
     await submit("ada@example.com");
 
@@ -150,9 +149,7 @@ describe("MailingListSignup", () => {
     mockMutate.mockImplementation((_params: any, opts: any) =>
       opts.onError(new Error("network")),
     );
-    render(
-      <MailingListSignup attribution="blog" turnstileSiteKey="site-key" />,
-    );
+    render(<MailingListSignup {...props} />);
 
     await submit("ada@example.com");
 
@@ -161,11 +158,11 @@ describe("MailingListSignup", () => {
 
   it("asks the visitor to check their inbox once sent", () => {
     mockIsSuccess = true;
-    render(
-      <MailingListSignup attribution="blog" turnstileSiteKey="site-key" />,
-    );
+    render(<MailingListSignup {...props} />);
 
     expect(screen.getByRole("status")).toHaveTextContent(/Check your inbox/);
     expect(screen.queryByRole("button", { name: "Subscribe" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: props.title })).toBeNull();
+    expect(screen.queryByText(props.description)).toBeNull();
   });
 });
