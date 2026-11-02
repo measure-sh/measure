@@ -116,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump undici from 6.28.1 to 8.12.2 in /frontend/dashboard by @dependabot[bot]
 - (**deps**): Bump @c15t/scripts in /frontend/dashboard by @dependabot[bot] in #4704
 - (**deps**): Bump next by @dependabot[bot] in #4728
 - (**deps**): Bump @testing-library/jest-dom in /frontend/dashboard by @dependabot[bot] in #4701
@@ -176,6 +177,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4573) by @dependabot[bot] in #4573
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
+- (**frontend**): Add MessagePort to jest fetch polyfill by @anupcowkur in #4703
 - (**frontend**): Format with prettier 3.9.10 by @anupcowkur in #4732
 - (**frontend**): Remove dialog test page by @anupcowkur in #4677
 - (**frontend**): Add introductory blog for funnels by @anupcowkur in #4676
