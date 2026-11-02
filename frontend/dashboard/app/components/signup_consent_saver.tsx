@@ -4,7 +4,6 @@ import {
   useMailingListPrefsQuery,
   useSaveMailingListPrefsMutation,
 } from "@/app/query/hooks";
-import { isCloud } from "@/app/utils/env_utils";
 import { isSandboxTeamId } from "@/app/utils/sandbox";
 import { useEffect, useRef, useState } from "react";
 
@@ -33,7 +32,7 @@ export default function SignupConsentSaver({ teamId }: { teamId: string }) {
     }
   });
   const prefsQuery = useMailingListPrefsQuery(
-    pending && isCloud() && !isSandboxTeamId(teamId),
+    pending && !isSandboxTeamId(teamId),
   );
   const saveMutation = useSaveMailingListPrefsMutation();
   const sent = useRef(false);

@@ -12,7 +12,6 @@ import {
   useSaveNotifPrefsMutation,
 } from "@/app/query/hooks";
 import { toastNegative, toastPositive } from "@/app/components/toast";
-import { isCloud } from "@/app/utils/env_utils";
 import { isSandboxTeamId } from "@/app/utils/sandbox";
 import { use, useState } from "react";
 
@@ -184,7 +183,7 @@ export default function Notifications({ params }: PageProps) {
 // Saves on flip, separately from the Save button above, because the change
 // also goes to Resend.
 function MailingListPref() {
-  const prefsQuery = useMailingListPrefsQuery(isCloud());
+  const prefsQuery = useMailingListPrefsQuery();
   const saveMutation = useSaveMailingListPrefsMutation();
 
   if (!prefsQuery.data?.enabled) {

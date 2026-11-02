@@ -12,7 +12,6 @@ let mockNotifPrefsData: any = undefined;
 let mockNotifPrefsStatus: string = "pending";
 let mockMailingListPrefsData: any = undefined;
 const mockMarketingMutateAsync = jest.fn();
-let mockIsCloud = false;
 
 jest.mock("@/app/components/toast", () => ({
   toastPositive: (...args: any[]) => mockToastPositive(...args),
@@ -50,11 +49,6 @@ jest.mock("@/app/query/hooks", () => ({
     mutateAsync: mockMarketingMutateAsync,
     isPending: false,
   }),
-}));
-
-jest.mock("@/app/utils/env_utils", () => ({
-  __esModule: true,
-  isCloud: () => mockIsCloud,
 }));
 
 jest.mock("@/app/components/switch", () => ({
@@ -117,7 +111,6 @@ describe("Notifications page", () => {
     mockNotifPrefsData = undefined;
     mockNotifPrefsStatus = "pending";
     mockMailingListPrefsData = undefined;
-    mockIsCloud = false;
   });
 
   it("renders loading state initially", () => {
@@ -275,7 +268,6 @@ describe("Notifications page", () => {
 
   describe("mailing list", () => {
     beforeEach(() => {
-      mockIsCloud = true;
       mockNotifPrefsStatus = "success";
       mockNotifPrefsData = defaultNotifPrefs;
     });

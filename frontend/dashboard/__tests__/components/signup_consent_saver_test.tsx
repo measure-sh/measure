@@ -8,7 +8,6 @@ import { render } from "@testing-library/react";
 let mockPrefs: any = undefined;
 let mockQueryEnabled: boolean | undefined = undefined;
 const mockMutate = jest.fn();
-let mockIsCloud = true;
 
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
@@ -24,17 +23,11 @@ jest.mock("@/app/query/hooks", () => ({
   }),
 }));
 
-jest.mock("@/app/utils/env_utils", () => ({
-  __esModule: true,
-  isCloud: () => mockIsCloud,
-}));
-
 describe("SignupConsentSaver", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockPrefs = { enabled: true, subscribed: false };
     mockQueryEnabled = undefined;
-    mockIsCloud = true;
     window.sessionStorage.clear();
   });
 
@@ -89,13 +82,8 @@ describe("SignupConsentSaver", () => {
     expect(mockMutate).not.toHaveBeenCalled();
   });
 
-  it("does not fetch prefs on self-hosted or for the sandbox team", () => {
+  it("does not fetch prefs for the sandbox team", () => {
     window.sessionStorage.setItem(signupConsentKey, "1");
-    mockIsCloud = false;
-    render(<SignupConsentSaver teamId="team-1" />);
-    expect(mockQueryEnabled).toBe(false);
-
-    mockIsCloud = true;
     render(<SignupConsentSaver teamId="sandbox" />);
     expect(mockQueryEnabled).toBe(false);
   });
