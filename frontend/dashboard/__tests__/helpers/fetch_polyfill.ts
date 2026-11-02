@@ -44,6 +44,11 @@ Object.defineProperties(globalThis, {
     writable: true,
     configurable: true,
   },
+  MessagePort: {
+    value: require("node:worker_threads").MessagePort,
+    writable: true,
+    configurable: true,
+  },
 });
 
 const undici = require("undici");
