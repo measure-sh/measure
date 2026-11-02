@@ -116,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump the dashboard group across 1 directory with 39 updates by @dependabot[bot]
 - (**deps**): Bump github.com/valkey-io/valkey-go in /backend/agent (#4730) by @dependabot[bot] in #4730
 - (**deps**): Bump go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin (#4731) by @dependabot[bot] in #4731
 - (**deps**): Tidy go modules & refresh indirect deps (#4742) by @detj in #4742
@@ -172,6 +173,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4573) by @dependabot[bot] in #4573
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
+- (**frontend**): Format with prettier 3.9.10 by @anupcowkur in #4732
 - (**frontend**): Remove dialog test page by @anupcowkur in #4677
 - (**frontend**): Add introductory blog for funnels by @anupcowkur in #4676
 - (**frontend**): Use a download icon on the builds page by @anupcowkur in #4670
