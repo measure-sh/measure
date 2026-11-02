@@ -183,6 +183,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4573) by @dependabot[bot] in #4573
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
+- (**frontend**): Build dashboard on pull requests by @anupcowkur in #4761
 - (**frontend**): Run MSW integration tests on msw 3 by @anupcowkur in #4751
 - (**frontend**): Move landing hero to lottie-react 3 API by @anupcowkur in #4750
 - (**frontend**): Add MessagePort to jest fetch polyfill by @anupcowkur in #4703
