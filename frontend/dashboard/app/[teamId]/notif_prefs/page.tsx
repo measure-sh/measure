@@ -210,7 +210,7 @@ function MailingListPref() {
       <div className="py-2" />
       <div className="flex items-center gap-4">
         <p className="font-body text-sm text-muted-foreground max-w-md">
-          Get the Measure newsletter by email.
+          Get the Measure newsletter by email
         </p>
         <Switch
           checked={prefsQuery.data.subscribed}
