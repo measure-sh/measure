@@ -116,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump msw from 2.13.2 to 3.0.3 in /frontend/dashboard by @dependabot[bot]
 - (**deps**): Bump lottie-react in /frontend/dashboard by @dependabot[bot]
 - (**deps**): Bump lucide-react in /frontend/dashboard by @dependabot[bot] in #4752
 - (**deps**): Bump the dashboard group by @dependabot[bot] in #4748
@@ -181,6 +182,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4573) by @dependabot[bot] in #4573
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
+- (**frontend**): Run MSW integration tests on msw 3 by @anupcowkur in #4751
 - (**frontend**): Move landing hero to lottie-react 3 API by @anupcowkur in #4750
 - (**frontend**): Add MessagePort to jest fetch polyfill by @anupcowkur in #4703
 - (**frontend**): Format with prettier 3.9.10 by @anupcowkur in #4732
