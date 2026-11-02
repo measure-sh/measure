@@ -1,18 +1,14 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"log"
 	"net/http"
 	"net/mail"
 	"strings"
 
 	"backend/libs/email"
 	"backend/libs/measure"
-	"backend/libs/resend"
 	"backend/libs/turnstile"
 
 	"github.com/gin-gonic/gin"
@@ -48,14 +44,14 @@ func (h Handlers) GetMailingListPrefs(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"enabled":    resend.Enabled(),
+		"enabled":    deps.Config.IsCloud(),
 		"subscribed": subscribed,
 	})
 }
 
 func (h Handlers) UpdateMailingListPrefs(c *gin.Context) {
 	deps := h.Deps
-	if !resend.Enabled() {
+	if !deps.Config.IsCloud() {
 		c.JSON(http.StatusNotFound, gin.H{
 			"error": "mailing list is not enabled",
 		})
@@ -114,7 +110,7 @@ type mailingListConfirmPayload struct {
 // the same way whether or not the address is already subscribed.
 func (h Handlers) SubscribeMailingList(c *gin.Context) {
 	deps := h.Deps
-	if !resend.Enabled() || !turnstile.Enabled() {
+	if !deps.Config.IsCloud() || !turnstile.Enabled() {
 		c.JSON(http.StatusNotFound, gin.H{"error": "mailing list signups are not enabled"})
 		return
 	}
@@ -174,7 +170,7 @@ func (h Handlers) SubscribeMailingList(c *gin.Context) {
 }
 
 func (h Handlers) ConfirmMailingList(c *gin.Context) {
-	if !resend.Enabled() {
+	if !h.Deps.Config.IsCloud() {
 		c.JSON(http.StatusNotFound, gin.H{"error": "mailing list signups are not enabled"})
 		return
 	}
@@ -199,49 +195,6 @@ func (h Handlers) ConfirmMailingList(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": "You're subscribed."})
-}
-
-// HandleResendWebhook records unsubscribes made through the link in a mailing
-// list email.
-func (h Handlers) HandleResendWebhook(c *gin.Context) {
-	deps := h.Deps
-	secret := deps.Config.ResendWebhookSecret
-	if !resend.Enabled() || secret == "" {
-		c.JSON(http.StatusNotFound, gin.H{"error": "mailing list webhooks are not enabled"})
-		return
-	}
-
-	payload, err := io.ReadAll(c.Request.Body)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to read body"})
-		return
-	}
-
-	ev, err := resend.VerifyWebhook(c.Request.Header, payload, secret)
-	if err != nil {
-		log.Println("resend webhook verification failed:", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "invalid signature"})
-		return
-	}
-
-	if ev.Type == resend.EventContactUpdated {
-		var data resend.ContactData
-		if err := json.Unmarshal(ev.Data, &data); err != nil {
-			log.Println("failed to parse contact.updated:", err)
-			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid contact data"})
-			return
-		}
-		if data.Unsubscribed {
-			// A 500 makes Resend retry the delivery.
-			if err := measure.RecordMailingListUnsubscribe(c.Request.Context(), deps.PgPool, data.Email); err != nil {
-				log.Println("failed to record mailing list unsubscribe:", err)
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to record unsubscribe"})
-				return
-			}
-		}
-	}
-
-	c.JSON(http.StatusOK, gin.H{"received": true})
 }
 
 func mailingListUnavailable(c *gin.Context, err error) {

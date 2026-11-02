@@ -246,11 +246,6 @@ func main() {
 		mailingList.POST("/confirm", hdl.ConfirmMailingList)
 	}
 
-	resendWebhook := r.Group("/resend")
-	{
-		resendWebhook.POST("/webhook", hdl.HandleResendWebhook)
-	}
-
 	slack := r.Group("/slack")
 	{
 		slack.POST("/connect", hdl.ConnectTeamSlack)

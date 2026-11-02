@@ -25,7 +25,6 @@ import (
 	"backend/libs/chquery"
 	"backend/libs/inet"
 	"backend/libs/posthog"
-	"backend/libs/resend"
 	"backend/libs/secret"
 	"backend/libs/slack"
 	"backend/libs/turnstile"
@@ -112,7 +111,6 @@ type Config struct {
 	SlackOAuthStateSecret      string
 	AutumnSecretKey            string
 	AutumnWebhookSecret        string
-	ResendWebhookSecret        string
 	PostHogAPIKey              string
 	PostHogHost                string
 	OtelServiceName            string
@@ -429,32 +427,6 @@ func NewConfig() *Config {
 		SecretKey: autumnSecretKey,
 	})
 
-	resendAPIKey, secErr := secret.FromEnvOrFile("RESEND_API_KEY")
-	if secErr != nil {
-		log.Printf("failed to read RESEND_API_KEY: %v", secErr)
-	}
-	if resendAPIKey == "" {
-		log.Println("RESEND_API_KEY env var is not set, mailing list options will be hidden")
-	}
-
-	resendMailingListSegmentID := os.Getenv("RESEND_MAILING_LIST_SEGMENT_ID")
-	if resendMailingListSegmentID == "" {
-		log.Println("RESEND_MAILING_LIST_SEGMENT_ID env var is not set, mailing list options will be hidden")
-	}
-
-	resend.Init(resend.Config{
-		APIKey:    resendAPIKey,
-		SegmentID: resendMailingListSegmentID,
-	})
-
-	resendWebhookSecret, secErr := secret.FromEnvOrFile("RESEND_WEBHOOK_SECRET")
-	if secErr != nil {
-		log.Printf("failed to read RESEND_WEBHOOK_SECRET: %v", secErr)
-	}
-	if resendWebhookSecret == "" {
-		log.Println("RESEND_WEBHOOK_SECRET env var is not set, unsubscribes from mailing list emails will not be recorded")
-	}
-
 	turnstileSecretKey, secErr := secret.FromEnvOrFile("TURNSTILE_SECRET_KEY")
 	if secErr != nil {
 		log.Printf("failed to read TURNSTILE_SECRET_KEY: %v", secErr)
@@ -535,7 +507,6 @@ func NewConfig() *Config {
 		SlackOAuthStateSecret:      slackOAuthStateSecret,
 		AutumnSecretKey:            autumnSecretKey,
 		AutumnWebhookSecret:        autumnWebhookSecret,
-		ResendWebhookSecret:        resendWebhookSecret,
 		PostHogAPIKey:              posthogAPIKey,
 		PostHogHost:                posthogHost,
 		OtelServiceName:            otelServiceName,

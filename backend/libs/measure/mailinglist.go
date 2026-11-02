@@ -11,17 +11,11 @@ import (
 	"strings"
 	"time"
 
-	"backend/libs/resend"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/leporo/sqlf"
 )
-
-// MailingListAttributionUnsubscribeLink is the attribution of an
-// unsubscribe through the link in a mailing list email.
-const MailingListAttributionUnsubscribeLink = "unsubscribe_link"
 
 // saveMailingListChange sets whether the address is subscribed and records
 // the change in its history. It reports whether the state changed; an
@@ -99,28 +93,14 @@ func MailingListSubscribed(ctx context.Context, pg *pgxpool.Pool, userId uuid.UU
 	return subscribed, nil
 }
 
-// SetMailingListSubscription subscribes or unsubscribes the user in Resend,
-// then saves the change.
+// SetMailingListSubscription subscribes or unsubscribes the user's address.
 func SetMailingListSubscription(ctx context.Context, pg *pgxpool.Pool, userId uuid.UUID, optIn bool, attribution string) error {
 	user := &User{ID: new(string)}
 	*user.ID = userId.String()
 	if err := user.GetUserDetails(ctx, pg); err != nil {
 		return err
 	}
-	if user.Name == nil {
-		user.Name = new(string)
-	}
 	email := strings.ToLower(*user.Email)
-
-	if optIn {
-		if err := resend.Subscribe(ctx, email, user.FirstName()); err != nil {
-			return fmt.Errorf("failed to subscribe mailing list contact: %w", err)
-		}
-	} else {
-		if err := resend.Unsubscribe(ctx, email); err != nil {
-			return fmt.Errorf("failed to unsubscribe mailing list contact: %w", err)
-		}
-	}
 
 	changed, err := saveMailingListChange(ctx, pg, email, optIn, attribution)
 	if err != nil {
@@ -193,9 +173,6 @@ func ConfirmMailingListSignup(ctx context.Context, pg *pgxpool.Pool, token strin
 		return ErrMailingListTokenExpired
 	}
 
-	if err := resend.Subscribe(ctx, email, ""); err != nil {
-		return fmt.Errorf("failed to subscribe mailing list contact: %w", err)
-	}
 	changed, err := saveMailingListChange(ctx, pg, email, true, attribution)
 	if err != nil {
 		return err
@@ -204,39 +181,6 @@ func ConfirmMailingListSignup(ctx context.Context, pg *pgxpool.Pool, token strin
 		fireMailingListEvent(true, attribution)
 	}
 
-	return nil
-}
-
-// RecordMailingListUnsubscribe records an unsubscribe made through the link in
-// a mailing list email. Addresses that are not subscribed are ignored.
-func RecordMailingListUnsubscribe(ctx context.Context, pg *pgxpool.Pool, email string) error {
-	email = strings.ToLower(email)
-
-	stmt := sqlf.PostgreSQL.
-		Select("subscribed").
-		From("mailing_list_subscribers").
-		Where("email = ?", email)
-	defer stmt.Close()
-
-	var subscribed bool
-	err := pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&subscribed)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return nil
-	}
-	if err != nil {
-		return err
-	}
-	if !subscribed {
-		return nil
-	}
-
-	changed, err := saveMailingListChange(ctx, pg, email, false, MailingListAttributionUnsubscribeLink)
-	if err != nil {
-		return err
-	}
-	if changed {
-		fireMailingListEvent(false, MailingListAttributionUnsubscribeLink)
-	}
 	return nil
 }
 

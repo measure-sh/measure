@@ -136,9 +136,6 @@ services:
       - SLACK_CLIENT_SECRET_FILE=/run/secrets/slack-client-secret
       - SLACK_SIGNING_SECRET_FILE=/run/secrets/slack-signing-secret
       - SLACK_OAUTH_STATE_SECRET_FILE=/run/secrets/slack-oauth-state-secret
-      - RESEND_API_KEY=${RESEND_API_KEY:-}
-      - RESEND_MAILING_LIST_SEGMENT_ID=${RESEND_MAILING_LIST_SEGMENT_ID:-}
-      - RESEND_WEBHOOK_SECRET=${RESEND_WEBHOOK_SECRET:-}
       - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY:-}
       - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
       - POSTHOG_HOST=${POSTHOG_HOST:-}

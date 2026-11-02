@@ -6,7 +6,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
@@ -14,8 +13,6 @@ import (
 	"testing"
 
 	"backend/libs/email"
-	"backend/libs/measure"
-	resendtest "backend/libs/resend/testhelpers"
 	"backend/libs/turnstile"
 	turnstiletest "backend/libs/turnstile/testhelpers"
 
@@ -96,7 +93,7 @@ func TestGetMailingListPrefs(t *testing.T) {
 
 	t.Run("a user who never opted in is not subscribed", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		resendtest.Enable(t)
+		enableCloud(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
@@ -112,7 +109,7 @@ func TestGetMailingListPrefs(t *testing.T) {
 
 	t.Run("an opted-in user is subscribed", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		resendtest.Enable(t)
+		enableCloud(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
@@ -123,7 +120,7 @@ func TestGetMailingListPrefs(t *testing.T) {
 
 	t.Run("a user whose address joined from the blog is subscribed", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		resendtest.Enable(t)
+		enableCloud(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "Ada@Example.com")
@@ -132,7 +129,7 @@ func TestGetMailingListPrefs(t *testing.T) {
 		wantJSON(t, get(userId), "subscribed", true)
 	})
 
-	t.Run("disabled without Resend", func(t *testing.T) {
+	t.Run("disabled outside Measure cloud", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		userId := uuid.New()
@@ -165,26 +162,17 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 		return w
 	}
 
-	t.Run("opting in subscribes in Resend and records when and where", func(t *testing.T) {
+	t.Run("opting in records when and where", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		resendtest.Enable(t)
+		enableCloud(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "Ada@Example.com")
-
-		var gotEmail string
-		resendtest.MockSubscribe(t, func(_ context.Context, email, _ string) error {
-			gotEmail = email
-			return nil
-		})
 
 		w := patch(userId, `{"subscribed": true, "attribution": "signup"}`)
 
 		if w.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
-		}
-		if gotEmail != "ada@example.com" {
-			t.Errorf("subscribed %q, want ada@example.com", gotEmail)
 		}
 		s := getMailingListSubscriber(ctx, t, "ada@example.com")
 		want := mailingListEvent{Subscribed: true, Attribution: "signup"}
@@ -193,27 +181,18 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 		}
 	})
 
-	t.Run("opting out unsubscribes in Resend and records when and where", func(t *testing.T) {
+	t.Run("opting out records when and where", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		resendtest.Enable(t)
+		enableCloud(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
 		seedMailingListSubscriber(ctx, t, "ada@example.com", "settings")
 
-		unsubscribed := ""
-		resendtest.MockUnsubscribe(t, func(_ context.Context, email string) error {
-			unsubscribed = email
-			return nil
-		})
-
 		w := patch(userId, `{"subscribed": false, "attribution": "settings"}`)
 
 		if w.Code != http.StatusOK {
 			t.Fatalf("status = %d, want 200", w.Code)
-		}
-		if unsubscribed != "ada@example.com" {
-			t.Errorf("unsubscribed %q, want ada@example.com", unsubscribed)
 		}
 		s := getMailingListSubscriber(ctx, t, "ada@example.com")
 		want := mailingListEvent{Subscribed: false, Attribution: "settings"}
@@ -224,8 +203,7 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 
 	t.Run("saving the state the address already has records nothing", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		resendtest.Enable(t)
-		resendtest.MockSubscribe(t, func(context.Context, string, string) error { return nil })
+		enableCloud(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
@@ -242,31 +220,9 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 		}
 	})
 
-	t.Run("a Resend failure records nothing → 500", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		resendtest.Enable(t)
-
-		userId := uuid.New()
-		seedUser(ctx, t, userId.String(), "ada@example.com")
-
-		resendtest.MockSubscribe(t, func(context.Context, string, string) error {
-			return errors.New("resend down")
-		})
-
-		w := patch(userId, `{"subscribed": true, "attribution": "settings"}`)
-
-		if w.Code != http.StatusInternalServerError {
-			t.Fatalf("status = %d, want 500", w.Code)
-		}
-		if s := getMailingListSubscriber(ctx, t, "ada@example.com"); s != nil {
-			t.Errorf("subscriber = %+v, want none", s)
-		}
-	})
-
 	t.Run("any attribution is recorded as sent", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		resendtest.Enable(t)
-		resendtest.MockSubscribe(t, func(context.Context, string, string) error { return nil })
+		enableCloud(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
@@ -281,7 +237,7 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 
 	t.Run("missing attribution → 400", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		resendtest.Enable(t)
+		enableCloud(t)
 
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
@@ -291,7 +247,7 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 		}
 	})
 
-	t.Run("disabled without Resend → 404", func(t *testing.T) {
+	t.Run("disabled outside Measure cloud → 404", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		userId := uuid.New()
@@ -306,11 +262,19 @@ func TestUpdateMailingListPrefs(t *testing.T) {
 	})
 }
 
+// enableCloud runs the test as Measure cloud, where the mailing list is on.
+func enableCloud(t *testing.T) {
+	t.Helper()
+	orig := deps.Config.CloudEnv
+	deps.Config.CloudEnv = true
+	t.Cleanup(func() { deps.Config.CloudEnv = orig })
+}
+
 // enableMailingList turns on public signups for the test and returns the
 // emails that would have been sent.
 func enableMailingList(t *testing.T) *[]email.EmailInfo {
 	t.Helper()
-	resendtest.Enable(t)
+	enableCloud(t)
 	turnstiletest.Enable(t)
 
 	origOrigin, origFrom := deps.Config.SiteOrigin, deps.Config.TxEmailAddress
@@ -434,10 +398,6 @@ func TestSubscribeMailingList(t *testing.T) {
 	t.Run("a new address gets a confirmation email and is not subscribed yet", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		sent := enableMailingList(t)
-		resendtest.MockSubscribe(t, func(context.Context, string, string) error {
-			t.Error("Resend called before the address was confirmed")
-			return nil
-		})
 
 		w := subscribeMailingList(t, " Ada@Example.com ")
 
@@ -463,7 +423,6 @@ func TestSubscribeMailingList(t *testing.T) {
 	t.Run("an address subscribed from the dashboard stays subscribed while it confirms", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		sent := enableMailingList(t)
-		resendtest.MockSubscribe(t, func(context.Context, string, string) error { return nil })
 		seedMailingListSubscriber(ctx, t, "ada@example.com", "settings")
 
 		if w := subscribeMailingList(t, "ada@example.com"); w.Code != http.StatusOK {
@@ -489,15 +448,13 @@ func TestSubscribeMailingList(t *testing.T) {
 	t.Run("a subscriber who unsubscribed can subscribe again", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		sent := enableMailingList(t)
-		var subscribed []string
-		resendtest.MockSubscribe(t, func(_ context.Context, addr, _ string) error {
-			subscribed = append(subscribed, addr)
-			return nil
-		})
 
 		subscribeMailingList(t, "ada@example.com")
 		if w := confirmMailingList(t, tokenFromEmail(t, (*sent)[0])); w.Code != http.StatusOK {
 			t.Fatalf("first confirm status = %d", w.Code)
+		}
+		if _, err := th.PgPool.Exec(ctx, `update mailing_list_subscribers set subscribed = false`); err != nil {
+			t.Fatalf("unsubscribe: %v", err)
 		}
 
 		w := subscribeMailingList(t, "ada@example.com")
@@ -512,15 +469,14 @@ func TestSubscribeMailingList(t *testing.T) {
 		if w := confirmMailingList(t, tokenFromEmail(t, (*sent)[1])); w.Code != http.StatusOK {
 			t.Fatalf("second confirm status = %d", w.Code)
 		}
-		if len(subscribed) != 2 {
-			t.Errorf("Resend subscribes = %d, want 2 (the second re-subscribes)", len(subscribed))
+		if s := getMailingListSignup(ctx, t, "ada@example.com"); s == nil || !s.Subscribed {
+			t.Errorf("signup = %+v, want subscribed again", s)
 		}
 	})
 
 	t.Run("a repeat request replaces the earlier link", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		sent := enableMailingList(t)
-		resendtest.MockSubscribe(t, func(context.Context, string, string) error { return nil })
 
 		subscribeMailingList(t, "ada@example.com")
 		subscribeMailingList(t, "ada@example.com")
@@ -579,14 +535,9 @@ func TestSubscribeMailingList(t *testing.T) {
 func TestConfirmMailingList(t *testing.T) {
 	ctx := context.Background()
 
-	t.Run("the link subscribes the address in Resend", func(t *testing.T) {
+	t.Run("the link subscribes the address", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		sent := enableMailingList(t)
-		var subscribed []string
-		resendtest.MockSubscribe(t, func(_ context.Context, addr, _ string) error {
-			subscribed = append(subscribed, addr)
-			return nil
-		})
 
 		subscribeMailingList(t, "ada@example.com")
 		token := tokenFromEmail(t, (*sent)[0])
@@ -604,9 +555,6 @@ func TestConfirmMailingList(t *testing.T) {
 		if w := confirmMailingList(t, token); w.Code != http.StatusBadRequest {
 			t.Errorf("second status = %d, want 400", w.Code)
 		}
-		if len(subscribed) != 1 || subscribed[0] != "ada@example.com" {
-			t.Errorf("subscribed = %v, want [ada@example.com]", subscribed)
-		}
 	})
 
 	t.Run("an unknown token is refused", func(t *testing.T) {
@@ -621,10 +569,6 @@ func TestConfirmMailingList(t *testing.T) {
 	t.Run("an expired link is refused", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		sent := enableMailingList(t)
-		resendtest.MockSubscribe(t, func(context.Context, string, string) error {
-			t.Error("Resend called for an expired link")
-			return nil
-		})
 
 		subscribeMailingList(t, "ada@example.com")
 		if _, err := th.PgPool.Exec(ctx, `update mailing_list_subscribers set confirmation_expires_at = now() - interval '1 minute'`); err != nil {
@@ -638,108 +582,4 @@ func TestConfirmMailingList(t *testing.T) {
 		wantJSONContains(t, w, "error", "expired")
 	})
 
-	t.Run("a Resend failure leaves the signup unconfirmed → 500", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		sent := enableMailingList(t)
-		resendtest.MockSubscribe(t, func(context.Context, string, string) error { return errors.New("resend down") })
-
-		subscribeMailingList(t, "ada@example.com")
-		if w := confirmMailingList(t, tokenFromEmail(t, (*sent)[0])); w.Code != http.StatusInternalServerError {
-			t.Errorf("status = %d, want 500", w.Code)
-		}
-		if s := getMailingListSignup(ctx, t, "ada@example.com"); s == nil || s.Subscribed {
-			t.Errorf("signup = %+v, want unconfirmed", s)
-		}
-	})
-}
-
-func TestHandleResendWebhook(t *testing.T) {
-	ctx := context.Background()
-	const secret = "whsec_C2FVsBQIhrscChlQIMV+b5sSYspob7oD"
-
-	enable := func(t *testing.T) {
-		t.Helper()
-		resendtest.Enable(t)
-		orig := deps.Config.ResendWebhookSecret
-		deps.Config.ResendWebhookSecret = secret
-		t.Cleanup(func() { deps.Config.ResendWebhookSecret = orig })
-	}
-
-	post := func(payload []byte, headers http.Header) *httptest.ResponseRecorder {
-		c, w := newTestGinContext("POST", "/resend/webhook", strings.NewReader(string(payload)))
-		for k, v := range headers {
-			c.Request.Header[k] = v
-		}
-		h.HandleResendWebhook(c)
-		return w
-	}
-
-	contactUpdated := func(emailAddr string, unsubscribed bool) []byte {
-		return []byte(fmt.Sprintf(`{"type":"contact.updated","created_at":"2026-10-31T10:00:00.000Z","data":{"id":"e169aa45-1ecf-4183-9955-b1499d5701d3","audience_id":"78261eea-8f8b-4381-83c6-79fa7120f1cf","segment_ids":["seg_test"],"created_at":"2026-10-01T10:00:00.000Z","updated_at":"2026-10-31T10:00:00.000Z","email":%q,"first_name":"","last_name":"","unsubscribed":%t}}`, emailAddr, unsubscribed))
-	}
-
-	t.Run("a blog subscriber who unsubscribes through an email link is recorded", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		enable(t)
-		seedMailingListSubscriber(ctx, t, "ada@example.com", "blog")
-
-		payload := contactUpdated("Ada@example.com", true)
-		w := post(payload, signSvixWebhook(t, secret, "msg_unsub", payload))
-
-		if w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
-		}
-		s := getMailingListSubscriber(ctx, t, "ada@example.com")
-		want := mailingListEvent{Subscribed: false, Attribution: measure.MailingListAttributionUnsubscribeLink}
-		if s == nil || s.Subscribed || len(s.Events) != 2 || s.lastEvent() != want {
-			t.Errorf("subscriber = %+v, want an unsubscribe through the email link appended", s)
-		}
-	})
-
-	t.Run("an unsubscribe already recorded here is not recorded again", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		enable(t)
-
-		userId := uuid.New()
-		seedUser(ctx, t, userId.String(), "ada@example.com")
-		seedMailingListSubscriber(ctx, t, "ada@example.com", "settings")
-		resendtest.MockUnsubscribe(t, func(context.Context, string) error { return nil })
-		if err := measure.SetMailingListSubscription(ctx, th.PgPool, userId, false, "settings"); err != nil {
-			t.Fatalf("unsubscribe from settings: %v", err)
-		}
-
-		payload := contactUpdated("ada@example.com", true)
-		if w := post(payload, signSvixWebhook(t, secret, "msg_settings", payload)); w.Code != http.StatusOK {
-			t.Fatalf("status = %d, want 200", w.Code)
-		}
-		want := mailingListEvent{Subscribed: false, Attribution: "settings"}
-		if s := getMailingListSubscriber(ctx, t, "ada@example.com"); s == nil || len(s.Events) != 2 || s.lastEvent() != want {
-			t.Errorf("subscriber = %+v, want only the unsubscribe from settings", s)
-		}
-	})
-
-	t.Run("an invalid signature is refused and records nothing", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		enable(t)
-		seedMailingListSubscriber(ctx, t, "ada@example.com", "blog")
-
-		payload := contactUpdated("ada@example.com", true)
-		headers := signSvixWebhook(t, secret, "msg_forged", contactUpdated("someone@example.com", true))
-		if w := post(payload, headers); w.Code != http.StatusBadRequest {
-			t.Fatalf("status = %d, want 400", w.Code)
-		}
-		if s := getMailingListSubscriber(ctx, t, "ada@example.com"); s == nil || !s.Subscribed || len(s.Events) != 1 {
-			t.Errorf("subscriber = %+v, want unchanged", s)
-		}
-	})
-
-	t.Run("disabled without the webhook secret → 404", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		resendtest.Enable(t)
-
-		payload := contactUpdated("ada@example.com", true)
-		if w := post(payload, signSvixWebhook(t, secret, "msg_disabled", payload)); w.Code != http.StatusNotFound {
-			t.Fatalf("status = %d, want 404", w.Code)
-		}
-	})
 }

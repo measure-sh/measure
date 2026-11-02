@@ -4,25 +4,16 @@ package measure
 
 import (
 	"context"
-	"errors"
 	"testing"
-
-	resendtest "backend/libs/resend/testhelpers"
 
 	"github.com/google/uuid"
 )
 
 func TestMailingListEvents(t *testing.T) {
 	ctx := context.Background()
-	acceptResend := func(t *testing.T) {
-		resendtest.Enable(t)
-		resendtest.MockSubscribe(t, func(context.Context, string, string) error { return nil })
-		resendtest.MockUnsubscribe(t, func(context.Context, string) error { return nil })
-	}
 
 	t.Run("opting in and out from the dashboard fires both events with their attribution", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		acceptResend(t)
 		cap, cleanup := startPostHogStub(t)
 		defer cleanup()
 
@@ -52,56 +43,8 @@ func TestMailingListEvents(t *testing.T) {
 		}
 	})
 
-	t.Run("no event when Resend fails", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		resendtest.Enable(t)
-		resendtest.MockSubscribe(t, func(context.Context, string, string) error { return errors.New("resend down") })
-		cap, cleanup := startPostHogStub(t)
-		defer cleanup()
-
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "ada@example.com")
-
-		if err := SetMailingListSubscription(ctx, deps.PgPool, userID, true, "settings"); err == nil {
-			t.Fatal("want an error")
-		}
-		flushPostHog()
-
-		if cap.hasEvent("mailing_list_subscribed") {
-			t.Error("event fired although nothing was saved")
-		}
-	})
-
-	t.Run("an unsubscribe from an email link fires unsubscribed with the unsubscribe link attribution", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		acceptResend(t)
-		cap, cleanup := startPostHogStub(t)
-		defer cleanup()
-
-		userID := uuid.New()
-		seedUser(ctx, t, userID.String(), "ada@example.com")
-		if err := SetMailingListSubscription(ctx, deps.PgPool, userID, true, "signup"); err != nil {
-			t.Fatalf("opt in: %v", err)
-		}
-
-		if err := RecordMailingListUnsubscribe(ctx, deps.PgPool, "ada@example.com"); err != nil {
-			t.Fatalf("record unsubscribe: %v", err)
-		}
-		flushPostHog()
-
-		evt, found := cap.findEvent("mailing_list_unsubscribed")
-		if !found {
-			t.Fatal("mailing_list_unsubscribed not captured")
-		}
-		props, _ := evt["properties"].(map[string]any)
-		if props["attribution"] != MailingListAttributionUnsubscribeLink {
-			t.Errorf("attribution = %v, want %s", props["attribution"], MailingListAttributionUnsubscribeLink)
-		}
-	})
-
 	t.Run("confirming a blog signup fires subscribed with the blog attribution", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
-		acceptResend(t)
 		cap, cleanup := startPostHogStub(t)
 		defer cleanup()
 
