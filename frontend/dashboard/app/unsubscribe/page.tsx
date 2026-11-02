@@ -52,7 +52,7 @@ export default function Unsubscribe(props: {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 bg-background text-foreground">
-      <div className="w-full max-w-sm flex flex-col items-center gap-6 text-center">
+      <div className="w-full max-w-xl flex flex-col items-center gap-6 text-center">
         <Image
           src="/images/measure_logo_horizontal_black.svg"
           width={200}
@@ -82,16 +82,16 @@ export default function Unsubscribe(props: {
         ) : !list.subscribed || unsubscribe.isSuccess ? (
           <div className="flex flex-col gap-2" role="status">
             <p className="font-display text-2xl">You&apos;re unsubscribed</p>
-            <p className="font-body text-muted-foreground">
+            <p className="font-body text-muted-foreground text-balance">
               You won&apos;t get the {list.name} anymore.
             </p>
           </div>
         ) : (
           <div className="flex flex-col items-center gap-4">
-            <p className="font-display text-2xl">
+            <p className="font-display text-2xl text-balance">
               Unsubscribe from the {list.name}
             </p>
-            <p className="font-body text-muted-foreground">
+            <p className="font-body text-muted-foreground text-balance">
               You can subscribe again from the{" "}
               <Link href="/blog" className={underlineLinkStyle}>
                 blog
