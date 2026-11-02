@@ -5,7 +5,7 @@ go 1.27.3
 require (
 	backend/libs v0.0.0
 	cloud.google.com/go/cloudsqlconn v1.25.4
-	cloud.google.com/go/storage v1.62.0
+	cloud.google.com/go/storage v1.62.3
 	github.com/ClickHouse/clickhouse-go/v2 v2.49.0
 	github.com/aws/aws-sdk-go-v2 v1.41.6
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.100.0
@@ -29,8 +29,9 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.3.0 // indirect
 	cloud.google.com/go/compute/metadata v0.10.0 // indirect
 	cloud.google.com/go/iam v1.14.0 // indirect
-	cloud.google.com/go/monitoring v1.27.0 // indirect
+	cloud.google.com/go/monitoring v1.30.0 // indirect
 	cloud.google.com/go/sql v0.3.0 // indirect
+	cloud.google.com/go/trace v1.16.0 // indirect
 	github.com/ClickHouse/ch-go v0.74.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.34.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.56.0 // indirect
@@ -59,7 +60,7 @@ require (
 	github.com/gin-contrib/sse v1.1.1 // indirect
 	github.com/go-faster/city v1.0.1 // indirect
 	github.com/go-faster/errors v0.7.1 // indirect
-	github.com/go-jose/go-jose/v4 v4.1.4 // indirect
+	github.com/go-jose/go-jose/v4 v4.1.6 // indirect
 	github.com/go-logr/logr v1.4.4 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-playground/locales v0.14.1 // indirect
