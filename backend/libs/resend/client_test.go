@@ -154,35 +154,3 @@ func TestUnsubscribe(t *testing.T) {
 		}
 	})
 }
-
-func TestContactSubscribed(t *testing.T) {
-	ctx := context.Background()
-
-	t.Run("a subscribed contact is looked up by email", func(t *testing.T) {
-		reqs := setupTestServer(t, reply{http.StatusOK, `{"object":"contact","email":"ada+news@example.com","unsubscribed":false}`})
-
-		subscribed, err := contactSubscribed(ctx, "ada+news@example.com")
-		if err != nil || !subscribed {
-			t.Fatalf("subscribed = %v, err = %v, want true", subscribed, err)
-		}
-		if len(*reqs) != 1 || (*reqs)[0].Method != http.MethodGet || (*reqs)[0].Path != "/contacts/ada+news@example.com" {
-			t.Errorf("requests = %+v", *reqs)
-		}
-	})
-
-	t.Run("an unsubscribed contact is not subscribed", func(t *testing.T) {
-		setupTestServer(t, reply{http.StatusOK, `{"object":"contact","unsubscribed":true}`})
-
-		if subscribed, err := contactSubscribed(ctx, "ada@example.com"); err != nil || subscribed {
-			t.Fatalf("subscribed = %v, err = %v, want false", subscribed, err)
-		}
-	})
-
-	t.Run("an unknown contact is not subscribed", func(t *testing.T) {
-		setupTestServer(t, reply{http.StatusNotFound, `{}`})
-
-		if subscribed, err := contactSubscribed(ctx, "ada@example.com"); err != nil || subscribed {
-			t.Fatalf("subscribed = %v, err = %v, want false", subscribed, err)
-		}
-	})
-}

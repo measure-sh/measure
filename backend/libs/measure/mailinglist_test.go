@@ -76,10 +76,9 @@ func TestMailingListEvents(t *testing.T) {
 		}
 	})
 
-	t.Run("an unsubscribe found through Resend fires unsubscribed with the unsubscribe link attribution", func(t *testing.T) {
+	t.Run("an unsubscribe from an email link fires unsubscribed with the unsubscribe link attribution", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		acceptResend(t)
-		resendtest.MockContactSubscribed(t, func(context.Context, string) (bool, error) { return false, nil })
 		cap, cleanup := startPostHogStub(t)
 		defer cleanup()
 
@@ -89,8 +88,8 @@ func TestMailingListEvents(t *testing.T) {
 			t.Fatalf("opt in: %v", err)
 		}
 
-		if subscribed, err := MailingListSubscribed(ctx, deps.PgPool, userID); err != nil || subscribed {
-			t.Fatalf("subscribed = %v, err = %v, want false", subscribed, err)
+		if err := RecordMailingListUnsubscribe(ctx, deps.PgPool, "ada@example.com"); err != nil {
+			t.Fatalf("record unsubscribe: %v", err)
 		}
 		flushPostHog()
 

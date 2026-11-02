@@ -66,7 +66,7 @@ func statusIs(err error, codes ...int) bool {
 	return false
 }
 
-func do(ctx context.Context, opName, method, path string, body any, out any) (err error) {
+func do(ctx context.Context, opName, method, path string, body any) (err error) {
 	ctx, span := tracer.Start(ctx, opName)
 	defer span.End()
 	span.SetAttributes(attribute.String("http.method", method))
@@ -111,12 +111,6 @@ func do(ctx context.Context, opName, method, path string, body any, out any) (er
 		return &APIError{StatusCode: resp.StatusCode, Body: string(respBody)}
 	}
 
-	if out != nil && len(respBody) > 0 {
-		if err := json.Unmarshal(respBody, out); err != nil {
-			return fmt.Errorf("resend: decode response: %w", err)
-		}
-	}
-
 	return nil
 }
 
@@ -132,7 +126,7 @@ func subscribe(ctx context.Context, email, firstName string) error {
 		"first_name":   firstName,
 		"unsubscribed": false,
 		"segments":     []map[string]string{{"id": segmentID}},
-	}, nil)
+	})
 	if err == nil {
 		return nil
 	}
@@ -144,14 +138,14 @@ func subscribe(ctx context.Context, email, firstName string) error {
 	// A 4xx on create usually means the contact exists.
 	if err := do(ctx, "resend.UpdateContact", http.MethodPatch, contactPath(email), map[string]any{
 		"unsubscribed": false,
-	}, nil); err != nil {
+	}); err != nil {
 		return err
 	}
 
 	// Resend doesn't document the status for a contact already in the
 	// segment, so 409 and 422 count as done.
 	err = do(ctx, "resend.AddContactToSegment", http.MethodPost,
-		contactPath(email)+"/segments/"+url.PathEscape(segmentID), nil, nil)
+		contactPath(email)+"/segments/"+url.PathEscape(segmentID), nil)
 	if statusIs(err, http.StatusConflict, http.StatusUnprocessableEntity) {
 		return nil
 	}
@@ -162,31 +156,14 @@ func subscribe(ctx context.Context, email, firstName string) error {
 func unsubscribe(ctx context.Context, email string) error {
 	err := do(ctx, "resend.UpdateContact", http.MethodPatch, contactPath(email), map[string]any{
 		"unsubscribed": true,
-	}, nil)
+	})
 	if statusIs(err, http.StatusNotFound) {
 		return nil
 	}
 	return err
 }
 
-// contactSubscribed reports whether the contact exists and is not
-// unsubscribed.
-func contactSubscribed(ctx context.Context, email string) (bool, error) {
-	var contact struct {
-		Unsubscribed bool `json:"unsubscribed"`
-	}
-	err := do(ctx, "resend.GetContact", http.MethodGet, contactPath(email), nil, &contact)
-	if statusIs(err, http.StatusNotFound) {
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	return !contact.Unsubscribed, nil
-}
-
 var (
-	Subscribe         = subscribe
-	Unsubscribe       = unsubscribe
-	ContactSubscribed = contactSubscribed
+	Subscribe   = subscribe
+	Unsubscribe = unsubscribe
 )

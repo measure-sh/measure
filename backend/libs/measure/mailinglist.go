@@ -81,47 +81,23 @@ func saveMailingListChange(ctx context.Context, pg *pgxpool.Pool, email string, 
 	return true, tx.Commit(ctx)
 }
 
-// MailingListSubscribed reports whether the user's address is subscribed. A
-// subscribed address is checked against Resend, and an unsubscribe found there
-// is recorded.
+// MailingListSubscribed reports whether the user's address is subscribed.
 func MailingListSubscribed(ctx context.Context, pg *pgxpool.Pool, userId uuid.UUID) (bool, error) {
 	stmt := sqlf.PostgreSQL.
-		Select("lower(u.email)").
 		Select("coalesce(s.subscribed, false)").
 		From("users u").
 		LeftJoin("mailing_list_subscribers s", "s.email = lower(u.email)").
 		Where("u.id = ?", userId)
 	defer stmt.Close()
 
-	var email string
-	var optedIn bool
-	if err := pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&email, &optedIn); err != nil {
+	var subscribed bool
+	if err := pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&subscribed); err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			return false, fmt.Errorf("no user found with id %s", userId)
 		}
 		return false, err
 	}
-	if !optedIn || !resend.Enabled() {
-		return optedIn, nil
-	}
-
-	subscribed, err := resend.ContactSubscribed(ctx, email)
-	if err != nil {
-		log.Printf("mailing list: check Resend contact for user %s: %v", userId, err)
-		return true, nil
-	}
-	if subscribed {
-		return true, nil
-	}
-
-	changed, err := saveMailingListChange(ctx, pg, email, false, MailingListAttributionUnsubscribeLink)
-	if err != nil {
-		return false, err
-	}
-	if changed {
-		fireMailingListEvent(userId.String(), email, false, MailingListAttributionUnsubscribeLink)
-	}
-	return false, nil
+	return subscribed, nil
 }
 
 // SetMailingListSubscription subscribes or unsubscribes the user in Resend,

@@ -117,7 +117,6 @@ func TestGetMailingListPrefs(t *testing.T) {
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "ada@example.com")
 		seedMailingListSubscriber(ctx, t, "ada@example.com", "settings")
-		resendtest.MockContactSubscribed(t, func(context.Context, string) (bool, error) { return true, nil })
 
 		wantJSON(t, get(userId), "subscribed", true)
 	})
@@ -129,50 +128,8 @@ func TestGetMailingListPrefs(t *testing.T) {
 		userId := uuid.New()
 		seedUser(ctx, t, userId.String(), "Ada@Example.com")
 		seedMailingListSubscriber(ctx, t, "ada@example.com", "blog")
-		var looked string
-		resendtest.MockContactSubscribed(t, func(_ context.Context, email string) (bool, error) {
-			looked = email
-			return true, nil
-		})
 
 		wantJSON(t, get(userId), "subscribed", true)
-		if looked != "ada@example.com" {
-			t.Errorf("looked up %q, want the lowercased address", looked)
-		}
-	})
-
-	t.Run("a user who unsubscribed through an email link is not subscribed, and the record says so", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		resendtest.Enable(t)
-
-		userId := uuid.New()
-		seedUser(ctx, t, userId.String(), "ada@example.com")
-		seedMailingListSubscriber(ctx, t, "ada@example.com", "settings")
-		resendtest.MockContactSubscribed(t, func(context.Context, string) (bool, error) { return false, nil })
-
-		wantJSON(t, get(userId), "subscribed", false)
-		s := getMailingListSubscriber(ctx, t, "ada@example.com")
-		want := mailingListEvent{Subscribed: false, Attribution: measure.MailingListAttributionUnsubscribeLink}
-		if s == nil || s.Subscribed || len(s.Events) != 2 || s.lastEvent() != want {
-			t.Errorf("subscriber = %+v, want an unsubscribe through the email link appended", s)
-		}
-	})
-
-	t.Run("when Resend cannot be reached the record's answer is used", func(t *testing.T) {
-		defer cleanupAll(ctx, t)
-		resendtest.Enable(t)
-
-		userId := uuid.New()
-		seedUser(ctx, t, userId.String(), "ada@example.com")
-		seedMailingListSubscriber(ctx, t, "ada@example.com", "settings")
-		resendtest.MockContactSubscribed(t, func(context.Context, string) (bool, error) {
-			return false, errors.New("resend down")
-		})
-
-		wantJSON(t, get(userId), "subscribed", true)
-		if s := getMailingListSubscriber(ctx, t, "ada@example.com"); s == nil || !s.Subscribed || len(s.Events) != 1 {
-			t.Errorf("subscriber = %+v, want unchanged", s)
-		}
 	})
 
 	t.Run("disabled without Resend", func(t *testing.T) {

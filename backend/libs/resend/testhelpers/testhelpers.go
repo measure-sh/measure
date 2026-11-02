@@ -30,15 +30,6 @@ func MockUnsubscribe(t *testing.T, fn func(ctx context.Context, email string) er
 	t.Cleanup(func() { resend.Unsubscribe = orig })
 }
 
-// MockContactSubscribed swaps resend.ContactSubscribed for the duration of
-// the test.
-func MockContactSubscribed(t *testing.T, fn func(ctx context.Context, email string) (bool, error)) {
-	t.Helper()
-	orig := resend.ContactSubscribed
-	resend.ContactSubscribed = fn
-	t.Cleanup(func() { resend.ContactSubscribed = orig })
-}
-
 // Enable makes resend.Enabled report true. Any call the test does not mock
 // fails the test.
 func Enable(t *testing.T) {
@@ -53,9 +44,5 @@ func Enable(t *testing.T) {
 	MockUnsubscribe(t, func(_ context.Context, email string) error {
 		t.Errorf("unexpected Resend unsubscribe for %q, mock it with MockUnsubscribe", email)
 		return errors.New("unexpected Resend call")
-	})
-	MockContactSubscribed(t, func(_ context.Context, email string) (bool, error) {
-		t.Errorf("unexpected Resend contact lookup for %q, mock it with MockContactSubscribed", email)
-		return false, errors.New("unexpected Resend call")
 	})
 }
