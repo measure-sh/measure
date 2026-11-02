@@ -11,10 +11,8 @@ import { useRef, useState, type FormEvent } from "react";
 import { deriveBlogSection } from "./blog_tracking";
 
 /**
- * Mailing list signup form with its title and description, which give way to
- * a "check your inbox" note once the form is sent. `attribution` says where
- * it is shown, like "blog". A Turnstile check guards it, and the address is
- * only subscribed once its owner confirms by email.
+ * Mailing list signup form. `attribution` records where it is shown, like
+ * "blog".
  */
 export default function MailingListSignup({
   title,
@@ -71,8 +69,6 @@ export default function MailingListSignup({
     );
   }
 
-  // Shown until the check passes, unlike server errors, which stay until the
-  // next submit.
   const checkMessage =
     waitingForCheck && !turnstileToken
       ? checkShown
@@ -103,22 +99,33 @@ export default function MailingListSignup({
         className="mt-3 flex w-full max-w-md flex-col items-center gap-2"
         aria-label="Newsletter signup"
       >
-        <div className="flex w-full gap-2">
-          <Input
-            id="mailing-list-email"
-            type="email"
-            name="email"
-            required
-            maxLength={254}
-            autoComplete="email"
-            placeholder="you@company.com"
-            aria-label="Email address"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            disabled={subscribe.isPending}
-            aria-invalid={error ? true : undefined}
-            aria-describedby={message ? "mailing-list-error" : undefined}
-          />
+        <div className="flex w-full items-start gap-2">
+          <div className="flex flex-1 flex-col gap-1.5 text-left">
+            <Input
+              id="mailing-list-email"
+              type="email"
+              name="email"
+              required
+              maxLength={254}
+              autoComplete="email"
+              placeholder="you@company.com"
+              aria-label="Email address"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={subscribe.isPending}
+              aria-invalid={error ? true : undefined}
+              aria-describedby={message ? "mailing-list-error" : undefined}
+            />
+            {message && (
+              <p
+                id="mailing-list-error"
+                className="text-sm text-red-600"
+                role="alert"
+              >
+                {message}
+              </p>
+            )}
+          </div>
           <Button type="submit" loading={subscribe.isPending}>
             Subscribe
           </Button>
@@ -129,15 +136,6 @@ export default function MailingListSignup({
           onToken={handleToken}
           onCheckShown={() => setCheckShown(true)}
         />
-        {message && (
-          <p
-            id="mailing-list-error"
-            className="text-sm text-red-600"
-            role="alert"
-          >
-            {message}
-          </p>
-        )}
       </form>
     </>
   );
