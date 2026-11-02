@@ -174,9 +174,21 @@ func QueueEmailForTeam(ctx context.Context, pool *pgxpool.Pool, tx pgx.Tx, teamI
 }
 
 // RenderEmailBody produces a complete HTML email with the standard
-// Measure header, footer, and CTA button. This is the single function
-// that renders a full HTML document — all email types use this.
+// Measure header, footer, and CTA button. Inboxes preview it with the
+// title, which is the first text in the body.
 func RenderEmailBody(title, contentHTML, ctaText, ctaURL string) string {
+	return RenderEmailBodyWithPreview(title, "", contentHTML, ctaText, ctaURL)
+}
+
+// RenderEmailBodyWithPreview is RenderEmailBody with the text inboxes show
+// next to the subject. The preview is hidden in the email itself, and the
+// filler after it keeps the title from showing in the preview too.
+func RenderEmailBodyWithPreview(title, preview, contentHTML, ctaText, ctaURL string) string {
+	previewHTML := ""
+	if preview != "" {
+		previewHTML = fmt.Sprintf(`<div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">%s%s</div>`,
+			html.EscapeString(preview), strings.Repeat("&#847;&zwnj;&nbsp;", 100))
+	}
 	return fmt.Sprintf(`
 <!DOCTYPE html>
 <html>
@@ -198,6 +210,7 @@ func RenderEmailBody(title, contentHTML, ctaText, ctaURL string) string {
     <title>%s</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: 'Space Mono', monospace; line-height: 1.6; color: #333; background-color: #f8f9fa;">
+    %s
     <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
         <!-- Header -->
         <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%%" style="background-color: #000000;">
@@ -240,7 +253,7 @@ func RenderEmailBody(title, contentHTML, ctaText, ctaURL string) string {
         </div>
     </div>
 </body>
-</html>`, title, title, contentHTML, ctaURL, ctaText)
+</html>`, title, previewHTML, title, contentHTML, ctaURL, ctaText)
 }
 
 // MessageContent wraps a message in the standard styled content div.

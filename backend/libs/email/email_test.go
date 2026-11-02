@@ -756,6 +756,9 @@ func TestMailingListConfirmEmail(t *testing.T) {
 	if !strings.Contains(body, "unsubscribe at any time") {
 		t.Error("body missing that the subscriber can unsubscribe")
 	}
+	if !strings.Contains(body, `overflow: hidden; mso-hide: all;">Confirm your email to start getting the Measure newsletter.`) {
+		t.Error("body missing the hidden inbox preview")
+	}
 }
 
 func TestRemovedFromTeamEmail(t *testing.T) {

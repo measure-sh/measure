@@ -44,7 +44,8 @@ func MailingListConfirmEmail(siteOrigin, token string) (subject, body string) {
 	subject = "Confirm your subscription to the Measure newsletter"
 	msg := "Thanks for signing up for the Measure newsletter. Please confirm your subscription to start receiving it. You can unsubscribe at any time using the link in every email.<br/><br/>If you didn't sign up, you can ignore this email and you won't be subscribed."
 	url := siteOrigin + "/mailing_list/confirm?token=" + token
-	body = RenderEmailBody(subject, MessageContent(msg), "Confirm subscription", url)
+	preview := "Confirm your email to start getting the Measure newsletter."
+	body = RenderEmailBodyWithPreview(subject, preview, MessageContent(msg), "Confirm subscription", url)
 	return
 }
 
