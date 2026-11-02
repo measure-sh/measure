@@ -111,6 +111,7 @@ type Config struct {
 	SlackOAuthStateSecret      string
 	AutumnSecretKey            string
 	AutumnWebhookSecret        string
+	MailingListUnsubscribeKey  string
 	PostHogAPIKey              string
 	PostHogHost                string
 	OtelServiceName            string
@@ -427,6 +428,14 @@ func NewConfig() *Config {
 		SecretKey: autumnSecretKey,
 	})
 
+	mailingListUnsubscribeKey, secErr := secret.FromEnvOrFile("MAILING_LIST_UNSUBSCRIBE_KEY")
+	if secErr != nil {
+		log.Printf("failed to read MAILING_LIST_UNSUBSCRIBE_KEY: %v", secErr)
+	}
+	if mailingListUnsubscribeKey == "" {
+		log.Println("MAILING_LIST_UNSUBSCRIBE_KEY env var is not set, unsubscribe links in mailing list emails will not work")
+	}
+
 	turnstileSecretKey, secErr := secret.FromEnvOrFile("TURNSTILE_SECRET_KEY")
 	if secErr != nil {
 		log.Printf("failed to read TURNSTILE_SECRET_KEY: %v", secErr)
@@ -507,6 +516,7 @@ func NewConfig() *Config {
 		SlackOAuthStateSecret:      slackOAuthStateSecret,
 		AutumnSecretKey:            autumnSecretKey,
 		AutumnWebhookSecret:        autumnWebhookSecret,
+		MailingListUnsubscribeKey:  mailingListUnsubscribeKey,
 		PostHogAPIKey:              posthogAPIKey,
 		PostHogHost:                posthogHost,
 		OtelServiceName:            otelServiceName,

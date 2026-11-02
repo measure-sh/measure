@@ -244,6 +244,9 @@ func main() {
 	{
 		mailingList.POST("/subscribe", hdl.SubscribeMailingList)
 		mailingList.POST("/confirm", hdl.ConfirmMailingList)
+		mailingList.GET("/subscriptions", hdl.GetMailingListLinkSubscriptions)
+		mailingList.GET("/unsubscribe", hdl.RedirectMailingListUnsubscribe)
+		mailingList.POST("/unsubscribe", hdl.UnsubscribeMailingList)
 	}
 
 	slack := r.Group("/slack")

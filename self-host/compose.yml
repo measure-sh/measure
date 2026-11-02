@@ -137,6 +137,7 @@ services:
       - SLACK_SIGNING_SECRET_FILE=/run/secrets/slack-signing-secret
       - SLACK_OAUTH_STATE_SECRET_FILE=/run/secrets/slack-oauth-state-secret
       - TURNSTILE_SECRET_KEY=${TURNSTILE_SECRET_KEY:-}
+      - MAILING_LIST_UNSUBSCRIBE_KEY=${MAILING_LIST_UNSUBSCRIBE_KEY:-}
       - POSTHOG_API_KEY=${POSTHOG_API_KEY:-}
       - POSTHOG_HOST=${POSTHOG_HOST:-}
       - OTEL_SERVICE_NAME=${OTEL_SERVICE_NAME}

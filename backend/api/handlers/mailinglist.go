@@ -16,6 +16,7 @@ import (
 )
 
 type mailingListPrefsPayload struct {
+	ListID      string `json:"list_id" binding:"required"`
 	Subscribed  *bool  `json:"subscribed" binding:"required"`
 	Attribution string `json:"attribution" binding:"required"`
 }
@@ -33,7 +34,7 @@ func (h Handlers) GetMailingListPrefs(c *gin.Context) {
 		return
 	}
 
-	subscribed, err := measure.MailingListSubscribed(c.Request.Context(), deps.PgPool, userId)
+	lists, err := measure.MailingListSubscriptions(c.Request.Context(), deps.PgPool, userId)
 	if err != nil {
 		msg := `unable to fetch mailing list prefs`
 		fmt.Println(msg, err)
@@ -44,8 +45,8 @@ func (h Handlers) GetMailingListPrefs(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"enabled":    deps.Config.IsCloud(),
-		"subscribed": subscribed,
+		"enabled": deps.Config.IsCloud(),
+		"lists":   lists,
 	})
 }
 
@@ -71,15 +72,21 @@ func (h Handlers) UpdateMailingListPrefs(c *gin.Context) {
 
 	var payload mailingListPrefsPayload
 	if err := c.ShouldBindJSON(&payload); err != nil {
-		msg := `subscribed and attribution are required`
+		msg := `list_id, subscribed and attribution are required`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusBadRequest, gin.H{
 			"error": msg,
 		})
 		return
 	}
+	if !measure.IsMailingList(payload.ListID) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"error": fmt.Sprintf("unknown mailing list %q", payload.ListID),
+		})
+		return
+	}
 
-	if err := measure.SetMailingListSubscription(c.Request.Context(), deps.PgPool, userId, *payload.Subscribed, payload.Attribution); err != nil {
+	if err := measure.SetMailingListSubscription(c.Request.Context(), deps.PgPool, userId, payload.ListID, *payload.Subscribed, payload.Attribution); err != nil {
 		msg := `failed to update mailing list prefs`
 		fmt.Println(msg, err)
 		c.JSON(http.StatusInternalServerError, gin.H{
@@ -98,6 +105,7 @@ var sendEmail = email.SendEmail
 
 type mailingListSubscribePayload struct {
 	Email          string `json:"email"`
+	ListID         string `json:"list_id"`
 	Attribution    string `json:"attribution"`
 	TurnstileToken string `json:"turnstile_token"`
 }
@@ -130,6 +138,11 @@ func (h Handlers) SubscribeMailingList(c *gin.Context) {
 	}
 	address := strings.ToLower(addr.Address)
 
+	if !measure.IsMailingList(payload.ListID) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "list_id is not a known mailing list"})
+		return
+	}
+
 	attribution := strings.TrimSpace(payload.Attribution)
 	if attribution == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "attribution is required"})
@@ -148,7 +161,7 @@ func (h Handlers) SubscribeMailingList(c *gin.Context) {
 		return
 	}
 
-	token, err := measure.RequestMailingListSignup(ctx, deps.PgPool, address, attribution)
+	token, err := measure.RequestMailingListSignup(ctx, deps.PgPool, address, payload.ListID, attribution)
 	if err != nil {
 		mailingListUnavailable(c, err)
 		return
@@ -195,6 +208,92 @@ func (h Handlers) ConfirmMailingList(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"ok": "You're subscribed."})
+}
+
+// unsubscribeLinkInvalid is shown for any link that fails the signature
+// check, so a bad link reveals nothing about the subscriber.
+const unsubscribeLinkInvalid = "This unsubscribe link is invalid."
+
+type mailingListUnsubscribePayload struct {
+	SubscriberID string `json:"id"`
+	Sig          string `json:"sig"`
+	ListID       string `json:"list_id"`
+}
+
+// GetMailingListLinkSubscriptions returns the lists of the subscriber an
+// unsubscribe link was sent to, for the unsubscribe page.
+func (h Handlers) GetMailingListLinkSubscriptions(c *gin.Context) {
+	deps := h.Deps
+	if !deps.Config.IsCloud() {
+		c.JSON(http.StatusNotFound, gin.H{"error": "mailing list is not enabled"})
+		return
+	}
+
+	lists, err := measure.MailingListLinkSubscriptions(c.Request.Context(), deps.PgPool, deps.Config.MailingListUnsubscribeKey, c.Query("id"), c.Query("sig"))
+	switch {
+	case errors.Is(err, measure.ErrMailingListLinkInvalid):
+		c.JSON(http.StatusBadRequest, gin.H{"error": unsubscribeLinkInvalid})
+		return
+	case err != nil:
+		mailingListUnavailable(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"lists": lists})
+}
+
+// RedirectMailingListUnsubscribe sends a browser that opens the unsubscribe
+// header's address to the unsubscribe page.
+func (h Handlers) RedirectMailingListUnsubscribe(c *gin.Context) {
+	deps := h.Deps
+	if !deps.Config.IsCloud() {
+		c.JSON(http.StatusNotFound, gin.H{"error": "mailing list is not enabled"})
+		return
+	}
+
+	c.Redirect(http.StatusFound, deps.Config.SiteOrigin+"/unsubscribe?"+c.Request.URL.RawQuery)
+}
+
+// UnsubscribeMailingList unsubscribes the subscriber of a signed link from a
+// list. The unsubscribe page sends the link's values as JSON. Inbox providers
+// send a one-click unsubscribe (RFC 8058) as a form POST to the address in
+// the email's List-Unsubscribe header, with the values in its query, and get
+// an empty response.
+func (h Handlers) UnsubscribeMailingList(c *gin.Context) {
+	deps := h.Deps
+	if !deps.Config.IsCloud() {
+		c.JSON(http.StatusNotFound, gin.H{"error": "mailing list is not enabled"})
+		return
+	}
+
+	oneClick := c.Query("id") != ""
+	payload := mailingListUnsubscribePayload{
+		SubscriberID: c.Query("id"),
+		Sig:          c.Query("sig"),
+		ListID:       c.Query("list"),
+	}
+	if !oneClick {
+		if err := c.ShouldBindJSON(&payload); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": unsubscribeLinkInvalid})
+			return
+		}
+	}
+
+	err := measure.UnsubscribeMailingListLink(c.Request.Context(), deps.PgPool, deps.Config.MailingListUnsubscribeKey, payload.SubscriberID, payload.Sig, payload.ListID)
+	switch {
+	case errors.Is(err, measure.ErrMailingListLinkInvalid):
+		c.JSON(http.StatusBadRequest, gin.H{"error": unsubscribeLinkInvalid})
+		return
+	case err != nil:
+		mailingListUnavailable(c, err)
+		return
+	}
+
+	if oneClick {
+		c.Status(http.StatusOK)
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"ok": "You're unsubscribed."})
 }
 
 func mailingListUnavailable(c *gin.Context, err error) {

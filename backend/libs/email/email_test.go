@@ -747,7 +747,7 @@ func TestMailingListConfirmEmail(t *testing.T) {
 	if subject != "Confirm your subscription to the Measure newsletter" {
 		t.Errorf("subject = %q", subject)
 	}
-	if !strings.Contains(body, `href="https://measure.sh/mailing_list/confirm?token=tok_abc-123"`) {
+	if !strings.Contains(body, `href="https://measure.sh/subscribe/confirm?token=tok_abc-123"`) {
 		t.Error("body missing confirmation link")
 	}
 	if !strings.Contains(body, "ignore this email") {
