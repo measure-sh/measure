@@ -24,8 +24,24 @@ type MailingList struct {
 	Name string `json:"name"`
 }
 
-// MailingListNewsletter is the id of the Measure newsletter.
-const MailingListNewsletter = "newsletter"
+// MailingListSubscription is whether an address is subscribed to a list.
+type MailingListSubscription struct {
+	MailingList
+	Subscribed bool `json:"subscribed"`
+}
+
+const (
+	// MailingListNewsletter is the id of the Measure newsletter.
+	MailingListNewsletter = "newsletter"
+
+	// MailingListAttributionUnsubscribeLink is the attribution of an
+	// unsubscribe through the link or the unsubscribe header in a mailing list
+	// email.
+	MailingListAttributionUnsubscribeLink = "unsubscribe_link"
+
+	// MailingListConfirmationTTL is how long a confirmation link works.
+	MailingListConfirmationTTL = 48 * time.Hour
+)
 
 // MailingLists are the lists people can subscribe to, in the order they are
 // shown.
@@ -33,26 +49,11 @@ var MailingLists = []MailingList{
 	{ID: MailingListNewsletter, Name: "Measure newsletter"},
 }
 
-// IsMailingList reports whether id is one of MailingLists.
-func IsMailingList(id string) bool {
-	for _, l := range MailingLists {
-		if l.ID == id {
-			return true
-		}
-	}
-	return false
-}
-
-// MailingListSubscription is whether an address is subscribed to a list.
-type MailingListSubscription struct {
-	MailingList
-	Subscribed bool `json:"subscribed"`
-}
-
-// MailingListAttributionUnsubscribeLink is the attribution of an
-// unsubscribe through the link or the unsubscribe header in a mailing list
-// email.
-const MailingListAttributionUnsubscribeLink = "unsubscribe_link"
+var (
+	ErrMailingListTokenInvalid = errors.New("mailing list confirmation link is invalid")
+	ErrMailingListTokenExpired = errors.New("mailing list confirmation link has expired")
+	ErrMailingListLinkInvalid  = errors.New("mailing list unsubscribe link is invalid")
+)
 
 // saveMailingListChange sets whether the address is subscribed to the list
 // and records the change in its history. It reports whether the state
@@ -155,11 +156,11 @@ func mailingListSubscriptions(ctx context.Context, pg *pgxpool.Pool, subscriberI
 		defer rows.Close()
 		for rows.Next() {
 			var listID string
-			var on bool
-			if err := rows.Scan(&listID, &on); err != nil {
+			var isSubscribed bool
+			if err := rows.Scan(&listID, &isSubscribed); err != nil {
 				return nil, err
 			}
-			subscribed[listID] = on
+			subscribed[listID] = isSubscribed
 		}
 		if err := rows.Err(); err != nil {
 			return nil, err
@@ -171,6 +172,47 @@ func mailingListSubscriptions(ctx context.Context, pg *pgxpool.Pool, subscriberI
 		subscriptions = append(subscriptions, MailingListSubscription{MailingList: l, Subscribed: subscribed[l.ID]})
 	}
 	return subscriptions, nil
+}
+
+// mailingListLinkEmail returns the address of a signed unsubscribe link's
+// subscriber, or ErrMailingListLinkInvalid.
+func mailingListLinkEmail(ctx context.Context, pg *pgxpool.Pool, key, subscriberID, sig string) (string, error) {
+	id, err := uuid.Parse(subscriberID)
+	// Anyone can sign a link with an empty key, so no link is valid without one.
+	if err != nil || key == "" {
+		return "", ErrMailingListLinkInvalid
+	}
+	if !hmac.Equal([]byte(SignMailingListUnsubscribe(key, id)), []byte(sig)) {
+		return "", ErrMailingListLinkInvalid
+	}
+
+	stmt := sqlf.PostgreSQL.
+		Select("email").
+		From("mailing_list_subscribers").
+		Where("id = ?", id)
+	defer stmt.Close()
+
+	var email string
+	err = pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&email)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return "", ErrMailingListLinkInvalid
+	}
+	return email, err
+}
+
+func hashMailingListToken(token string) string {
+	sum := sha256.Sum256([]byte(token))
+	return hex.EncodeToString(sum[:])
+}
+
+// IsMailingList reports whether id is one of MailingLists.
+func IsMailingList(id string) bool {
+	for _, l := range MailingLists {
+		if l.ID == id {
+			return true
+		}
+	}
+	return false
 }
 
 // MailingListSubscriptions returns every list with whether the user's address
@@ -212,15 +254,6 @@ func SetMailingListSubscription(ctx context.Context, pg *pgxpool.Pool, userId uu
 	}
 	return nil
 }
-
-// MailingListConfirmationTTL is how long a confirmation link works.
-const MailingListConfirmationTTL = 48 * time.Hour
-
-var (
-	ErrMailingListTokenInvalid = errors.New("mailing list confirmation link is invalid")
-	ErrMailingListTokenExpired = errors.New("mailing list confirmation link has expired")
-	ErrMailingListLinkInvalid  = errors.New("mailing list unsubscribe link is invalid")
-)
 
 // RequestMailingListSignup stores a pending signup to the list and returns
 // the confirmation token to email to the address. A new request replaces any
@@ -299,31 +332,6 @@ func SignMailingListUnsubscribe(key string, subscriberID uuid.UUID) string {
 	return base64.RawURLEncoding.EncodeToString(mac.Sum(nil))
 }
 
-// mailingListLinkEmail returns the address of a signed unsubscribe link's
-// subscriber, or ErrMailingListLinkInvalid.
-func mailingListLinkEmail(ctx context.Context, pg *pgxpool.Pool, key, subscriberID, sig string) (string, error) {
-	id, err := uuid.Parse(subscriberID)
-	if err != nil || key == "" {
-		return "", ErrMailingListLinkInvalid
-	}
-	if !hmac.Equal([]byte(SignMailingListUnsubscribe(key, id)), []byte(sig)) {
-		return "", ErrMailingListLinkInvalid
-	}
-
-	stmt := sqlf.PostgreSQL.
-		Select("email").
-		From("mailing_list_subscribers").
-		Where("id = ?", id)
-	defer stmt.Close()
-
-	var email string
-	err = pg.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&email)
-	if errors.Is(err, pgx.ErrNoRows) {
-		return "", ErrMailingListLinkInvalid
-	}
-	return email, err
-}
-
 // MailingListLinkSubscriptions returns every list with whether the subscriber
 // of a signed unsubscribe link is subscribed to it.
 func MailingListLinkSubscriptions(ctx context.Context, pg *pgxpool.Pool, key, subscriberID, sig string) ([]MailingListSubscription, error) {
@@ -352,9 +360,4 @@ func UnsubscribeMailingListLink(ctx context.Context, pg *pgxpool.Pool, key, subs
 		fireMailingListEvent(listID, false, MailingListAttributionUnsubscribeLink)
 	}
 	return nil
-}
-
-func hashMailingListToken(token string) string {
-	sum := sha256.Sum256([]byte(token))
-	return hex.EncodeToString(sum[:])
 }

@@ -13,25 +13,19 @@ import (
 	"time"
 )
 
+type Config struct {
+	// SecretKey is the widget's secret key from the Cloudflare dashboard.
+	SecretKey string
+}
+
 var (
 	secretKey  string
 	verifyURL  = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 	httpClient = &http.Client{Timeout: 10 * time.Second}
 )
 
-type Config struct {
-	// SecretKey is the widget's secret key from the Cloudflare dashboard.
-	SecretKey string
-}
-
-func Init(cfg Config) {
-	secretKey = cfg.SecretKey
-}
-
-// Enabled reports whether tokens can be checked.
-func Enabled() bool {
-	return secretKey != ""
-}
+// Verify is a variable so tests can replace it.
+var Verify = verify
 
 // verify reports whether Cloudflare accepts the token. A token can only be
 // verified once.
@@ -78,4 +72,11 @@ func verify(ctx context.Context, token string) (bool, error) {
 	return result.Success, nil
 }
 
-var Verify = verify
+func Init(cfg Config) {
+	secretKey = cfg.SecretKey
+}
+
+// Enabled reports whether tokens can be checked.
+func Enabled() bool {
+	return secretKey != ""
+}
