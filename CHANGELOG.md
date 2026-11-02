@@ -92,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Add terminated to lifecycle_app.type comment by @anupcowkur in #4744
 - (**backend**): Reject out-of-range sdk config values (#4711) by @adwinross in #4711
 - (**backend**): Upgrade to clickhouse 26.8 (#4719) by @detj in #4719
 - (**backend**): Check go.mod is tidy with `go.work` off (#4718) by @detj in #4718
