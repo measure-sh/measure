@@ -36,7 +36,7 @@ jobs:
           cache: 'gradle'
 
       - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation@v3
+        uses: gradle/actions/wrapper-validation@v6
 
       - name: Check if version is snapshot
         id: check-snapshot

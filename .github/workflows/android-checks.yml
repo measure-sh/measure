@@ -34,7 +34,7 @@ jobs:
           java-version: ${{ env.JAVA_VERSION }}
           cache: 'gradle'
       - name: Validate Gradle wrapper
-        uses: gradle/actions/wrapper-validation@v3
+        uses: gradle/actions/wrapper-validation@v6
       - name: Run all checks
         run: ./gradlew check
 
