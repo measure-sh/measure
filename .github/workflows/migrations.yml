@@ -2,17 +2,23 @@
 # base branch, which databases may have already applied, and rolling it back
 # has to return the schema to what it was before the migration applied.
 name: Migrations
-on: pull_request
+on:
+  pull_request:
+  merge_group:
+    types: [checks_requested]
 
 permissions:
   contents: read
 
 env:
-  # For every open pull request, GitHub keeps a hidden commit that merges the
-  # pull request into the base branch, and actions/checkout checks out that
-  # commit. Its first parent, HEAD^1, is the latest commit on the base branch,
-  # so diffing HEAD^1 against HEAD lists what the pull request adds.
-  BASE: HEAD^1
+  # For pull requests, GitHub checks out a merge commit whose first parent is
+  # the latest base-branch commit. Comparing HEAD with HEAD^1 shows the
+  # migrations added by the pull request. In the merge queue, base_sha points
+  # to the commit being built on: the base branch for the first pull request,
+  # or the queued commit ahead of it for later requests. Migrations from
+  # earlier queued requests are treated as existing, so dbmate strict mode
+  # rejects a new migration with an older version.
+  BASE: ${{ github.event.merge_group.base_sha || 'HEAD^1' }}
   MIGRATION_DIRS: self-host/postgres self-host/clickhouse
 
 jobs:
@@ -26,6 +32,9 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 2
+      - name: Fetch the commit the merge queue builds on
+        if: github.event_name == 'merge_group'
+        run: git fetch --no-tags --depth=1 origin "$BASE"
       - name: Check whether the pull request changes migrations
         id: diff
         run: |
@@ -51,6 +60,9 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 2
+      - name: Fetch the commit the merge queue builds on
+        if: github.event_name == 'merge_group'
+        run: git fetch --no-tags --depth=1 origin "$BASE"
       - name: Apply, roll back and apply each new migration again
         run: |
           status=0
