@@ -213,6 +213,8 @@ final class BaseSignalProcessor: SignalProcessor {
             let resolvedNeedsReporting: Bool
             if configProvider.enableFullCollectionMode {
                 resolvedNeedsReporting = true
+            } else if configProvider.analyticsEventTypes.contains(event.type.rawValue) {
+                resolvedNeedsReporting = signalSampler.shouldTrackAnalyticsForInstallation(installationId: event.attributes?.installationId ?? "")
             } else if event.type == .memoryUsageAbsolute {
                 // Keep unsampled readings locally for session replays, as on Android.
                 resolvedNeedsReporting = signalSampler.shouldTrackMemoryUsageForSession(sessionId: event.sessionId)

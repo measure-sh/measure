@@ -285,7 +285,6 @@ final class SignalProcessorTests: XCTestCase {
 
     func testLaunchEventTracked_whenSessionShouldReportSessionIsTrue_evenIfSamplingIsFalse() {
         signalSampler.shouldTrackLaunchEventsReturnValue = false
-        signalSampler.shouldTrackJourneyEventsReturnValue = false
 
         signalProcessor = BaseSignalProcessor(logger: logger,
                                               idProvider: idProvider,
@@ -315,40 +314,8 @@ final class SignalProcessorTests: XCTestCase {
         XCTAssertEqual(signalStore.storedEvents.first?.needsReporting, true, "Event should be tracked when sessionShouldReportSession is true")
     }
 
-    func testJourneyEventTracked_whenSessionShouldReportSessionIsTrue_evenIfSamplingIsFalse() {
-        signalSampler.shouldTrackLaunchEventsReturnValue = false
-        signalSampler.shouldTrackJourneyEventsReturnValue = false
-
-        signalProcessor = BaseSignalProcessor(logger: logger,
-                                              idProvider: idProvider,
-                                              sessionManager: sessionManager,
-                                              attributeProcessors: [],
-                                              configProvider: configProvider,
-                                              timeProvider: timeProvider,
-                                              crashDataPersistence: crashDataPersistence,
-                                              signalStore: signalStore,
-                                              measureDispatchQueue: MockMeasureDispatchQueue(),
-                                              signalSampler: signalSampler,
-                                              exporter: exporter)
-        signalProcessor.track(
-            data: "Test",
-            timestamp: 1234,
-            type: .screenView,
-            attributes: nil,
-            sessionId: nil,
-            attachments: nil,
-            userDefinedAttributes: nil,
-            threadName: nil,
-            needsReporting: true,
-            synchronous: false
-        )
-
-        XCTAssertEqual(signalStore.storedEvents.first?.needsReporting, true, "Event should be tracked when sessionShouldReportSession is true")
-    }
-
     func testEventTracked_whenLaunchSamplingAllows_evenIfSessionShouldReportIsFalse() {
         signalSampler.shouldTrackLaunchEventsReturnValue = true
-        signalSampler.shouldTrackJourneyEventsReturnValue = false
 
         signalProcessor = BaseSignalProcessor(logger: logger,
                                               idProvider: idProvider,
@@ -376,38 +343,6 @@ final class SignalProcessorTests: XCTestCase {
         )
 
         XCTAssertEqual(signalStore.storedEvents.first?.needsReporting, true, "Event should be tracked when launch sampling allows it")
-    }
-
-    func testEventTracked_whenJourneySamplingAllows_evenIfSessionShouldReportIsFalse() {
-        signalSampler.shouldTrackLaunchEventsReturnValue = false
-        signalSampler.shouldTrackJourneyEventsReturnValue = true
-
-        signalProcessor = BaseSignalProcessor(logger: logger,
-                                              idProvider: idProvider,
-                                              sessionManager: sessionManager,
-                                              attributeProcessors: [],
-                                              configProvider: configProvider,
-                                              timeProvider: timeProvider,
-                                              crashDataPersistence: crashDataPersistence,
-                                              signalStore: signalStore,
-                                              measureDispatchQueue: MockMeasureDispatchQueue(),
-                                              signalSampler: signalSampler,
-                                              exporter: exporter)
-
-        signalProcessor.track(
-            data: "Test",
-            timestamp: 1234,
-            type: .screenView,
-            attributes: nil,
-            sessionId: nil,
-            attachments: nil,
-            userDefinedAttributes: nil,
-            threadName: nil,
-            needsReporting: true,
-            synchronous: false
-        )
-
-        XCTAssertEqual(signalStore.storedEvents.first?.needsReporting, true, "Event should be tracked when journey sampling allows it")
     }
 
     func testTrackUserTriggered_setsUserTriggeredTrue() {

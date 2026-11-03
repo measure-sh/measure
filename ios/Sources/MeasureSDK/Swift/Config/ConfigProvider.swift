@@ -133,7 +133,8 @@ final class BaseConfigProvider: ConfigProvider {
     var anrTimelineDurationSeconds: Number { dynamicConfig.anrTimelineDurationSeconds }
     var bugReportTimelineDurationSeconds: Number { dynamicConfig.bugReportTimelineDurationSeconds }
     var traceSamplingRate: Float { dynamicConfig.traceSamplingRate }
-    var journeySamplingRate: Float { dynamicConfig.journeySamplingRate }
+    var analyticsSamplingRate: Float { dynamicConfig.analyticsSamplingRate }
+    var analyticsEventTypes: [String] { dynamicConfig.analyticsEventTypes }
     var screenshotMaskLevel: ScreenshotMaskLevel { dynamicConfig.screenshotMaskLevel }
     var logAutocollectEnabled: Bool { dynamicConfig.logAutocollectEnabled }
     var logMinSeverity: Int { dynamicConfig.logMinSeverity }

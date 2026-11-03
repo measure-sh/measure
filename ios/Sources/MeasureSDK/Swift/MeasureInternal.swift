@@ -233,7 +233,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             }
             self.configProvider.setDynamicConfig(dynamicConfig)
 
-            self.sessionManager.onConfigLoaded()
             self.spanProcessor.onConfigLoaded()
             self.appLaunchCollector.onConfigLoaded()
             self.cpuUsageCollector.onConfigLoaded()

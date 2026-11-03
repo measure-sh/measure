@@ -57,7 +57,6 @@ final class MockConfigProvider: ConfigProvider {
     var anrTimelineDurationSeconds: Number
     var bugReportTimelineDurationSeconds: Number
     var traceSamplingRate: Float
-    var journeySamplingRate: Float
     var screenshotMaskLevel: ScreenshotMaskLevel
     var logAutocollectEnabled: Bool
     var logMinSeverity: Int
@@ -65,6 +64,8 @@ final class MockConfigProvider: ConfigProvider {
     var cpuUsageInterval: Number
     var memoryUsageInterval: Number
     var memoryUsageSessionSamplingRate: Float = DefaultConfig.memoryUsageSessionSamplingRate
+    var analyticsSamplingRate: Float = DefaultConfig.analyticsSamplingRate
+    var analyticsEventTypes: [String] = DefaultConfig.analyticsEvents.map(\.rawValue)
     var errorFatalTakeScreenshot: Bool
     var errorFatalReplayEnabled: Bool
     var errorUnhandledReplayEnabled: Bool
@@ -161,7 +162,6 @@ final class MockConfigProvider: ConfigProvider {
          anrTimelineDurationSeconds: Number = 300,
          bugReportTimelineDurationSeconds: Number = 300,
          traceSamplingRate: Float = 0.01,
-         journeySamplingRate: Float = 0.01,
          screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia,
          logAutocollectEnabled: Bool = true,
          logMinSeverity: Int = 8,
@@ -246,7 +246,6 @@ final class MockConfigProvider: ConfigProvider {
         self.anrTimelineDurationSeconds = anrTimelineDurationSeconds
         self.bugReportTimelineDurationSeconds = bugReportTimelineDurationSeconds
         self.traceSamplingRate = traceSamplingRate
-        self.journeySamplingRate = journeySamplingRate
         self.screenshotMaskLevel = screenshotMaskLevel
         self.logAutocollectEnabled = logAutocollectEnabled
         self.logMinSeverity = logMinSeverity
