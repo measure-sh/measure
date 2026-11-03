@@ -52,9 +52,10 @@ type Alert struct {
 type AlertType string
 
 const (
-	AlertTypeCrashSpike AlertType = "crash_spike"
-	AlertTypeAnrSpike   AlertType = "anr_spike"
-	AlertTypeBugReport  AlertType = "bug_report"
+	AlertTypeCrashSpike   AlertType = "crash_spike"
+	AlertTypeAnrSpike     AlertType = "anr_spike"
+	AlertTypeAppHangSpike AlertType = "app_hang_spike"
+	AlertTypeBugReport    AlertType = "bug_report"
 )
 
 type DailySummaryRow struct {
@@ -98,8 +99,8 @@ type AppThresholdPrefs struct {
 	ErrorSpikeMinRateThreshold  float64
 }
 
-func CreateCrashAndAnrAlerts(ctx context.Context) {
-	fmt.Println("Checking for Crash and ANR alerts...")
+func CreateCrashAnrAndAppHangAlerts(ctx context.Context) {
+	fmt.Println("Checking for crash, ANR and app hang alerts...")
 	teams, err := getActiveTeams(ctx)
 	if err != nil {
 		fmt.Printf("Error fetching teams: %v\n", err)
@@ -155,6 +156,7 @@ func CreateCrashAndAnrAlerts(ctx context.Context) {
 
 			createCrashAlertsForApp(ctx, team, app, from, to, sessionCount, prefs)
 			createAnrAlertsForApp(ctx, team, app, from, to, sessionCount, prefs)
+			createAppHangAlertsForApp(ctx, team, app, from, to, sessionCount, prefs)
 		}
 	}
 }
@@ -722,6 +724,8 @@ func scheduleEmailAlertsForteamMembers(ctx context.Context, alert Alert, message
 		subject, body = email.CrashSpikeAlertEmail(appName, message, url)
 	} else if alert.Type == string(AlertTypeAnrSpike) {
 		subject, body = email.AnrSpikeAlertEmail(appName, message, url)
+	} else if alert.Type == string(AlertTypeAppHangSpike) {
+		subject, body = email.AppHangSpikeAlertEmail(appName, message, url)
 	} else if alert.Type == string(AlertTypeBugReport) {
 		subject, body = email.BugReportAlertEmail(appName, alert.UserID, message, url)
 	} else {
@@ -771,6 +775,8 @@ func scheduleSlackAlertsForTeamChannels(ctx context.Context, alert Alert, messag
 		title = appName + " - Crash Spike Alert"
 	} else if alert.Type == string(AlertTypeAnrSpike) {
 		title = appName + " - ANR Spike Alert"
+	} else if alert.Type == string(AlertTypeAppHangSpike) {
+		title = appName + " - App Hang Spike Alert"
 	} else if alert.Type == string(AlertTypeBugReport) {
 		title = alertmsg.BugReportTitle(appName, alert.UserID)
 	}
@@ -1292,12 +1298,124 @@ func createAnrAlertsForApp(ctx context.Context, team Team, app App, from, to tim
 	}
 }
 
+func createAppHangAlertsForApp(ctx context.Context, team Team, app App, from, to time.Time, sessionCount uint64, prefs AppThresholdPrefs) {
+	appHangGroupStmt := sqlf.From("events final").
+		Select("`app_hang.fingerprint`, uniq(session_id) as app_hang_sessions").
+		Where("team_id = toUUID(?)", team.ID).
+		Where("app_id = toUUID(?)", app.ID).
+		Where("type = 'app_hang'").
+		Where("timestamp >= ? and timestamp <= ?", from, to).
+		GroupBy("`app_hang.fingerprint`")
+
+	defer appHangGroupStmt.Close()
+
+	appHangGroupRows, err := server.Server.ChPool.Query(ctx, appHangGroupStmt.String(), appHangGroupStmt.Args()...)
+	if err != nil {
+		fmt.Printf("Error fetching app hang group stats for app %v: %v\n", app.ID, err)
+		return
+	}
+	for appHangGroupRows.Next() {
+		var fingerprint string
+		var appHangGroupSessions uint64
+		if err := appHangGroupRows.Scan(&fingerprint, &appHangGroupSessions); err != nil {
+			fmt.Printf("Error scanning app hang group row: %v\n", err)
+			continue
+		}
+
+		inCooldown, err := isInCooldown(ctx, team.ID, app.ID, fingerprint, string(AlertTypeAppHangSpike), errorAlertCooldownPeriod)
+		if err != nil {
+			fmt.Printf("Error checking cooldown for app hang group %s: %v\n", fingerprint, err)
+			continue
+		}
+
+		if inCooldown {
+			continue
+		}
+
+		if appHangGroupSessions < uint64(prefs.ErrorSpikeMinCountThreshold) {
+			continue
+		}
+
+		var appHangGroupRate float64 = 0
+		if sessionCount > 0 {
+			appHangGroupRate = float64(appHangGroupSessions) / float64(sessionCount) * 100
+		}
+
+		if appHangGroupRate >= prefs.ErrorSpikeMinRateThreshold {
+			var fileName, methodName string
+			groupInfoStmt := sqlf.From("app_hang_groups final").
+				Select("argMax(file_name, timestamp)").
+				Select("argMax(method_name, timestamp)").
+				Where("team_id = toUUID(?)", team.ID).
+				Where("app_id = toUUID(?)", app.ID).
+				Where("id = ?", fingerprint)
+
+			defer groupInfoStmt.Close()
+
+			groupInfoRow := server.Server.ChPool.QueryRow(ctx, groupInfoStmt.String(), groupInfoStmt.Args()...)
+			err := groupInfoRow.Scan(&fileName, &methodName)
+			if err != nil {
+				fmt.Printf("Error fetching group info for %s: %v\n", fingerprint, err)
+				continue
+			}
+
+			file := fileName
+			if file == "" {
+				file = "unknown_file"
+			}
+			method := methodName
+			if method == "" {
+				method = "unknown_method"
+			}
+			alertMsg := alertmsg.AppHangSpikeMessage(file, method)
+			alertUrl := alertmsg.AppHangSpikeURL(server.Server.Config.SiteOrigin, team.ID.String(), app.ID.String(), fingerprint, fileName)
+
+			fmt.Printf("Inserting alert for app hang group %s\n", fingerprint)
+
+			alertID := uuid.New()
+			alertInsert := sqlf.PostgreSQL.InsertInto("alerts").
+				Set("id", alertID).
+				Set("team_id", team.ID).
+				Set("app_id", app.ID).
+				Set("entity_id", fingerprint).
+				Set("type", string(AlertTypeAppHangSpike)).
+				Set("message", alertMsg).
+				Set("url", alertUrl).
+				Set("created_at", time.Now()).
+				Set("updated_at", time.Now())
+
+			defer alertInsert.Close()
+
+			_, err = server.Server.PgPool.Exec(ctx, alertInsert.String(), alertInsert.Args()...)
+			if err != nil {
+				fmt.Printf("Error inserting alert for app hang group %s: %v\n", fingerprint, err)
+				continue
+			}
+
+			alert := Alert{
+				ID:       alertID,
+				TeamID:   team.ID,
+				AppID:    app.ID,
+				EntityID: fingerprint,
+				Type:     string(AlertTypeAppHangSpike),
+			}
+
+			scheduleEmailAlertsForteamMembers(ctx, alert, alertMsg, alertUrl, app.Name)
+			scheduleSlackAlertsForTeamChannels(ctx, alert, alertMsg, alertUrl, app.Name)
+		}
+	}
+
+	if appHangGroupRows != nil {
+		appHangGroupRows.Close()
+	}
+}
+
 // getNotifPrefByEmail looks up a user's notification preferences by email.
 // Returns all-true defaults if user or prefs not found.
-func getNotifPrefByEmail(ctx context.Context, userEmail string) (errorSpike, appHangSpike, bugReport, dailySummary bool) {
+func getNotifPrefByEmail(ctx context.Context, userEmail string) (fatalErrorSpike, anrAppHangSpike, bugReport, dailySummary bool) {
 	stmt := sqlf.PostgreSQL.
-		Select("np.error_spike").
-		Select("np.app_hang_spike").
+		Select("np.fatal_error_spike").
+		Select("np.anr_app_hang_spike").
 		Select("np.bug_report").
 		Select("np.daily_summary").
 		From("notif_prefs np").
@@ -1306,7 +1424,7 @@ func getNotifPrefByEmail(ctx context.Context, userEmail string) (errorSpike, app
 	defer stmt.Close()
 
 	err := server.Server.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).
-		Scan(&errorSpike, &appHangSpike, &bugReport, &dailySummary)
+		Scan(&fatalErrorSpike, &anrAppHangSpike, &bugReport, &dailySummary)
 	if err != nil {
 		fmt.Printf("No notif prefs found for email %s, defaulting to all-true: %v\n", userEmail, err)
 		return true, true, true, true
@@ -1323,13 +1441,13 @@ func shouldSendEmail(ctx context.Context, info email.EmailInfo) bool {
 		return true
 	}
 
-	errorSpike, appHangSpike, bugReport, dailySummary := getNotifPrefByEmail(ctx, info.To)
+	fatalErrorSpike, anrAppHangSpike, bugReport, dailySummary := getNotifPrefByEmail(ctx, info.To)
 
 	switch info.AlertType {
 	case string(AlertTypeCrashSpike):
-		return errorSpike
-	case string(AlertTypeAnrSpike):
-		return appHangSpike
+		return fatalErrorSpike
+	case string(AlertTypeAnrSpike), string(AlertTypeAppHangSpike):
+		return anrAppHangSpike
 	case string(AlertTypeBugReport):
 		return bugReport
 	case "daily_summary":

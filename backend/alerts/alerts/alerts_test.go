@@ -23,8 +23,9 @@ import (
 // testCrashFingerprint and testAnrFingerprint are exactly 32 characters to
 // match the FixedString(32) column type used in exception/ANR group tables.
 const (
-	testCrashFingerprint = "aabbccdd11223344aabbccdd11223344"
-	testAnrFingerprint   = "bbccddee22334455bbccddee22334455"
+	testCrashFingerprint   = "aabbccdd11223344aabbccdd11223344"
+	testAnrFingerprint     = "bbccddee22334455bbccddee22334455"
+	testAppHangFingerprint = "ccddeeff33445566ccddeeff33445566"
 )
 
 // --------------------------------------------------------------------------
@@ -55,7 +56,16 @@ func seedAnrSpike(ctx context.Context, t *testing.T, teamID, appID string, sessi
 	th.SeedAnrGroup(ctx, t, teamID, appID, testAnrFingerprint)
 }
 
-func TestCreateCrashAndAnrAlerts(t *testing.T) {
+func seedAppHangSpike(ctx context.Context, t *testing.T, teamID, appID string, sessionCount, killed, recovered int) {
+	t.Helper()
+	now := time.Now().UTC()
+	th.SeedGenericEvents(ctx, t, teamID, appID, sessionCount, now.Add(-30*time.Minute))
+	th.SeedEventRows(ctx, t, teamID, appID, killed, testinfra.EventRow{Type: "app_hang", AppHangState: "killed", Fingerprint: testAppHangFingerprint, Timestamp: now.Add(-5 * time.Minute)})
+	th.SeedEventRows(ctx, t, teamID, appID, recovered, testinfra.EventRow{Type: "app_hang", AppHangState: "recovered", Fingerprint: testAppHangFingerprint, Timestamp: now.Add(-5 * time.Minute)})
+	th.SeedAppHangGroup(ctx, t, teamID, appID, testAppHangFingerprint)
+}
+
+func TestCreateCrashAnrAndAppHangAlerts(t *testing.T) {
 	t.Run("no events creates no alerts", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
@@ -70,7 +80,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Empty App", 30)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countAlerts(ctx, t); got != 0 {
 			t.Errorf("want 0 alerts with no events, got %d", got)
@@ -99,7 +109,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		}
 		th.SeedExceptionGroup(ctx, t, teamID, appID, testCrashFingerprint)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 0 {
 			t.Errorf("want 0 crash alerts (count below threshold), got %d", got)
@@ -123,7 +133,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		// 110 crashes / 200 sessions = 55% rate (>> 0.5% threshold)
 		seedCrashSpike(ctx, t, teamID, appID, 200, 110)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 1 {
 			t.Errorf("want 1 crash spike alert, got %d", got)
@@ -156,7 +166,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		}
 		th.SeedExceptionGroup(ctx, t, teamID, appID, testCrashFingerprint)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 0 {
 			t.Errorf("want 0 crash spike alerts for handled exceptions, got %d", got)
@@ -180,7 +190,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		// 110 ANRs / 200 sessions = 55% rate (>> 0.5% threshold)
 		seedAnrSpike(ctx, t, teamID, appID, 200, 110)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countAlertsOfType(ctx, t, string(AlertTypeAnrSpike)); got != 1 {
 			t.Errorf("want 1 ANR spike alert, got %d", got)
@@ -215,7 +225,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		th.SeedExceptionGroup(ctx, t, teamID, appID, testCrashFingerprint)
 		th.SeedAnrGroup(ctx, t, teamID, appID, testAnrFingerprint)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 1 {
 			t.Errorf("want 1 crash spike alert, got %d", got)
@@ -241,13 +251,13 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		seedCrashSpike(ctx, t, teamID, appID, 200, 110)
 
 		// First run — alert created
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 1 {
 			t.Fatalf("first run: want 1 crash alert, got %d", got)
 		}
 
 		// Second run — suppressed by cooldown (errorAlertCooldownPeriod = 1 week)
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 1 {
 			t.Errorf("cooldown failed: want 1 crash alert after second run, got %d", got)
 		}
@@ -269,13 +279,13 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		seedAnrSpike(ctx, t, teamID, appID, 200, 110)
 
 		// First run — alert created
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 		if got := countAlertsOfType(ctx, t, string(AlertTypeAnrSpike)); got != 1 {
 			t.Fatalf("first run: want 1 ANR alert, got %d", got)
 		}
 
 		// Second run — suppressed by cooldown
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 		if got := countAlertsOfType(ctx, t, string(AlertTypeAnrSpike)); got != 1 {
 			t.Errorf("cooldown failed: want 1 ANR alert after second run, got %d", got)
 		}
@@ -297,7 +307,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		th.SeedTeamSlack(ctx, t, teamID, []string{"C0CRASHCHAN"})
 		seedCrashSpike(ctx, t, teamID, appID, 200, 110)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 1 {
 			t.Errorf("want 1 crash alert, got %d", got)
@@ -326,7 +336,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		// Only app1 has a spike; app2 has no events at all
 		seedCrashSpike(ctx, t, teamID, app1, 200, 110)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 1 {
 			t.Errorf("want 1 crash alert (for app1 only), got %d", got)
@@ -357,7 +367,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		seedCrashSpike(ctx, t, teamID, app1, 200, 110)
 		seedCrashSpike(ctx, t, teamID, app2, 200, 110)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		// Only app2 fires — app1 requires 500 crashes but only 110 occurred
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 1 {
@@ -373,7 +383,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		teamID := uuid.New().String()
 		th.SeedTeam(ctx, t, teamID, "No Apps Team")
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countAlerts(ctx, t); got != 0 {
 			t.Errorf("want 0 alerts, got %d", got)
@@ -402,7 +412,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		}
 		th.SeedAnrGroup(ctx, t, teamID, appID, testAnrFingerprint)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countAlertsOfType(ctx, t, string(AlertTypeAnrSpike)); got != 0 {
 			t.Errorf("want 0 ANR alerts when count < threshold, got %d", got)
@@ -431,7 +441,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		th.SeedGenericEvents(ctx, t, teamID, appID, 20001, now.Add(-30*time.Minute))
 		th.SeedExceptionGroup(ctx, t, teamID, appID, testCrashFingerprint)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 0 {
 			t.Errorf("want 0 crash alerts when rate < threshold, got %d", got)
@@ -460,7 +470,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		th.SeedGenericEvents(ctx, t, teamID, appID, 20001, now.Add(-30*time.Minute))
 		th.SeedAnrGroup(ctx, t, teamID, appID, testAnrFingerprint)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countAlertsOfType(ctx, t, string(AlertTypeAnrSpike)); got != 0 {
 			t.Errorf("want 0 ANR alerts when rate < threshold, got %d", got)
@@ -492,7 +502,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 		th.SeedExceptionGroup(ctx, t, teamID, appID, testCrashFingerprint)
 		th.SeedExceptionGroup(ctx, t, teamID, appID, testCrashFingerprint2)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 2 {
 			t.Errorf("want 2 crash alerts (one per fingerprint), got %d", got)
@@ -520,7 +530,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 			th.SeedIssueEvent(ctx, t, teamID, appID, "exception", "", true, now.Add(-5*time.Minute))
 		}
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 0 {
 			t.Errorf("want 0 crash alerts for handled exceptions, got %d", got)
@@ -553,7 +563,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 
 		seedCrashSpike(ctx, t, teamID, appID, 200, 110)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		// Expect 2 total crash alerts: the stale one + the new one
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 2 {
@@ -578,7 +588,7 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 
 		seedCrashSpike(ctx, t, teamID, appID, 200, 110)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 1 {
 			t.Errorf("want 1 crash alert, got %d", got)
@@ -605,10 +615,173 @@ func TestCreateCrashAndAnrAlerts(t *testing.T) {
 
 		seedCrashSpike(ctx, t, teamID, appID, 200, 110)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countPendingByChannel(ctx, t, "slack"); got != 0 {
 			t.Errorf("want 0 slack messages when channel list is empty, got %d", got)
+		}
+	})
+	t.Run("app hang spike fires when count and rate thresholds are both met", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Test Team")
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
+		th.SeedTeamSlack(ctx, t, teamID, []string{"C0APPHANGCHAN"})
+
+		seedAppHangSpike(ctx, t, teamID, appID, 200, 60, 50)
+
+		CreateCrashAnrAndAppHangAlerts(ctx)
+
+		if got := countAlertsOfType(ctx, t, string(AlertTypeAppHangSpike)); got != 1 {
+			t.Fatalf("want 1 app hang spike alert, got %d", got)
+		}
+		wantTitle := "Test App - App Hang Spike Alert"
+		if got := pendingEmailSubject(ctx, t); got != wantTitle {
+			t.Errorf("email subject = %q, want %q", got, wantTitle)
+		}
+		if got := pendingSlackHeader(ctx, t); got != "🚨 "+wantTitle {
+			t.Errorf("slack header = %q, want %q", got, "🚨 "+wantTitle)
+		}
+
+		var message, url string
+		if err := th.PgPool.QueryRow(ctx, "SELECT message, url FROM alerts WHERE type = $1", string(AlertTypeAppHangSpike)).Scan(&message, &url); err != nil {
+			t.Fatalf("read app hang alert: %v", err)
+		}
+		if want := "ViewController.swift: blockMainThread()"; message != want {
+			t.Errorf("message = %q, want %q", message, want)
+		}
+		if want := "/errors/" + appID + "/" + testAppHangFingerprint + "/ViewController.swift"; !strings.HasSuffix(url, want) {
+			t.Errorf("url = %q, want suffix %q", url, want)
+		}
+	})
+
+	t.Run("app hang group count below minimum threshold creates no alert", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Test Team")
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
+
+		// 50 sessions with an app hang < minimum count threshold (100)
+		seedAppHangSpike(ctx, t, teamID, appID, 200, 25, 25)
+
+		CreateCrashAnrAndAppHangAlerts(ctx)
+
+		if got := countAlertsOfType(ctx, t, string(AlertTypeAppHangSpike)); got != 0 {
+			t.Errorf("want 0 app hang alerts when count < threshold, got %d", got)
+		}
+	})
+
+	t.Run("app hang spike does not fire when rate is below 0.5% threshold", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Test Team")
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
+
+		// 110 sessions with an app hang / 30000 sessions = 0.37% rate (< 0.5% threshold)
+		seedAppHangSpike(ctx, t, teamID, appID, 30000, 60, 50)
+
+		CreateCrashAnrAndAppHangAlerts(ctx)
+
+		if got := countAlertsOfType(ctx, t, string(AlertTypeAppHangSpike)); got != 0 {
+			t.Errorf("want 0 app hang alerts when rate < threshold, got %d", got)
+		}
+	})
+
+	t.Run("many app hangs in one session count as one session", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Test Team")
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
+
+		// 150 app hangs, all in one session, among 200 sessions
+		now := time.Now().UTC()
+		th.SeedGenericEvents(ctx, t, teamID, appID, 200, now.Add(-30*time.Minute))
+		th.SeedEventRows(ctx, t, teamID, appID, 150, testinfra.EventRow{Type: "app_hang", AppHangState: "recovered", Fingerprint: testAppHangFingerprint, SessionID: uuid.New().String(), Timestamp: now.Add(-5 * time.Minute)})
+		th.SeedAppHangGroup(ctx, t, teamID, appID, testAppHangFingerprint)
+
+		CreateCrashAnrAndAppHangAlerts(ctx)
+
+		if got := countAlertsOfType(ctx, t, string(AlertTypeAppHangSpike)); got != 0 {
+			t.Errorf("want 0 app hang alerts when the hangs are from one session, got %d", got)
+		}
+	})
+
+	t.Run("killed and recovered app hangs of one group count toward one alert", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Test Team")
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
+
+		seedAppHangSpike(ctx, t, teamID, appID, 200, 60, 50)
+
+		CreateCrashAnrAndAppHangAlerts(ctx)
+
+		if got := countAlertsOfType(ctx, t, string(AlertTypeAppHangSpike)); got != 1 {
+			t.Errorf("want 1 app hang alert for the group, got %d", got)
+		}
+	})
+
+	t.Run("cooldown prevents duplicate app hang alert within one week", func(t *testing.T) {
+		ctx := context.Background()
+		setupAlertsTest(ctx, t)
+		defer cleanupAll(ctx, t)
+
+		teamID := uuid.New().String()
+		appID := uuid.New().String()
+		userID := uuid.New().String()
+
+		th.SeedTeam(ctx, t, teamID, "Test Team")
+		th.SeedUser(ctx, t, userID, "owner@example.com")
+		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
+		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
+
+		seedAppHangSpike(ctx, t, teamID, appID, 200, 60, 50)
+
+		CreateCrashAnrAndAppHangAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
+
+		if got := countAlertsOfType(ctx, t, string(AlertTypeAppHangSpike)); got != 1 {
+			t.Errorf("cooldown failed: want 1 app hang alert after second run, got %d", got)
 		}
 	})
 }
@@ -1869,7 +2042,7 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 		// 110 crashes / 200 sessions = 55% — meets default minCount=100 and rate=0.5%
 		seedCrashSpike(ctx, t, teamID, appID, 200, 110)
 
-		CreateCrashAndAnrAlerts(ctx)
+		CreateCrashAnrAndAppHangAlerts(ctx)
 
 		if got := countAlertsOfType(ctx, t, string(AlertTypeCrashSpike)); got != 1 {
 			t.Errorf("want 1 crash alert using default thresholds (no prefs row seeded), got %d", got)
@@ -3380,11 +3553,11 @@ func TestNotifPrefFiltering(t *testing.T) {
 		userID := uuid.New().String()
 		th.SeedUser(ctx, t, userID, "noprofs@example.com")
 
-		errorSpike, appHangSpike, bugReport, dailySummary := getNotifPrefByEmail(ctx, "noprofs@example.com")
+		fatalErrorSpike, anrAppHangSpike, bugReport, dailySummary := getNotifPrefByEmail(ctx, "noprofs@example.com")
 
-		if !errorSpike || !appHangSpike || !bugReport || !dailySummary {
-			t.Errorf("expected all-true defaults, got error_spike=%v, app_hang_spike=%v, bug_report=%v, daily_summary=%v",
-				errorSpike, appHangSpike, bugReport, dailySummary)
+		if !fatalErrorSpike || !anrAppHangSpike || !bugReport || !dailySummary {
+			t.Errorf("expected all-true defaults, got fatal_error_spike=%v, anr_app_hang_spike=%v, bug_report=%v, daily_summary=%v",
+				fatalErrorSpike, anrAppHangSpike, bugReport, dailySummary)
 		}
 	})
 
@@ -3393,11 +3566,11 @@ func TestNotifPrefFiltering(t *testing.T) {
 		setupAlertsTest(ctx, t)
 		defer cleanupAll(ctx, t)
 
-		errorSpike, appHangSpike, bugReport, dailySummary := getNotifPrefByEmail(ctx, "unknown@example.com")
+		fatalErrorSpike, anrAppHangSpike, bugReport, dailySummary := getNotifPrefByEmail(ctx, "unknown@example.com")
 
-		if !errorSpike || !appHangSpike || !bugReport || !dailySummary {
-			t.Errorf("expected all-true defaults for unknown email, got error_spike=%v, app_hang_spike=%v, bug_report=%v, daily_summary=%v",
-				errorSpike, appHangSpike, bugReport, dailySummary)
+		if !fatalErrorSpike || !anrAppHangSpike || !bugReport || !dailySummary {
+			t.Errorf("expected all-true defaults for unknown email, got fatal_error_spike=%v, anr_app_hang_spike=%v, bug_report=%v, daily_summary=%v",
+				fatalErrorSpike, anrAppHangSpike, bugReport, dailySummary)
 		}
 	})
 
@@ -3411,19 +3584,19 @@ func TestNotifPrefFiltering(t *testing.T) {
 
 		// Insert notif prefs with some disabled
 		_, err := th.PgPool.Exec(ctx,
-			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, false, true, false, true)",
+			"INSERT INTO notif_prefs (user_id, fatal_error_spike, anr_app_hang_spike, bug_report, daily_summary) VALUES ($1, false, true, false, true)",
 			userID)
 		if err != nil {
 			t.Fatalf("insert notif_prefs: %v", err)
 		}
 
-		errorSpike, appHangSpike, bugReport, dailySummary := getNotifPrefByEmail(ctx, "prefs@example.com")
+		fatalErrorSpike, anrAppHangSpike, bugReport, dailySummary := getNotifPrefByEmail(ctx, "prefs@example.com")
 
-		if errorSpike {
-			t.Error("error_spike should be false")
+		if fatalErrorSpike {
+			t.Error("fatal_error_spike should be false")
 		}
-		if !appHangSpike {
-			t.Error("app_hang_spike should be true")
+		if !anrAppHangSpike {
+			t.Error("anr_app_hang_spike should be true")
 		}
 		if bugReport {
 			t.Error("bug_report should be false")
@@ -3452,7 +3625,7 @@ func TestNotifPrefFiltering(t *testing.T) {
 		userID := uuid.New().String()
 		th.SeedUser(ctx, t, userID, "crash@example.com")
 		_, err := th.PgPool.Exec(ctx,
-			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, false, true, true, true)",
+			"INSERT INTO notif_prefs (user_id, fatal_error_spike, anr_app_hang_spike, bug_report, daily_summary) VALUES ($1, false, true, true, true)",
 			userID)
 		if err != nil {
 			t.Fatalf("insert notif_prefs: %v", err)
@@ -3460,11 +3633,11 @@ func TestNotifPrefFiltering(t *testing.T) {
 
 		info := email.EmailInfo{To: "crash@example.com", AlertType: string(AlertTypeCrashSpike)}
 		if shouldSendEmail(ctx, info) {
-			t.Error("should NOT send crash spike email when error_spike is false")
+			t.Error("should NOT send crash spike email when fatal_error_spike is false")
 		}
 	})
 
-	t.Run("shouldSendEmail respects app_hang_spike preference", func(t *testing.T) {
+	t.Run("shouldSendEmail respects anr_app_hang_spike preference for ANR and app hang spikes", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
 		defer cleanupAll(ctx, t)
@@ -3472,15 +3645,17 @@ func TestNotifPrefFiltering(t *testing.T) {
 		userID := uuid.New().String()
 		th.SeedUser(ctx, t, userID, "anr@example.com")
 		_, err := th.PgPool.Exec(ctx,
-			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, true, false, true, true)",
+			"INSERT INTO notif_prefs (user_id, fatal_error_spike, anr_app_hang_spike, bug_report, daily_summary) VALUES ($1, true, false, true, true)",
 			userID)
 		if err != nil {
 			t.Fatalf("insert notif_prefs: %v", err)
 		}
 
-		info := email.EmailInfo{To: "anr@example.com", AlertType: string(AlertTypeAnrSpike)}
-		if shouldSendEmail(ctx, info) {
-			t.Error("should NOT send app_hang_spike email when app_hang_spike is false")
+		for _, alertType := range []AlertType{AlertTypeAnrSpike, AlertTypeAppHangSpike} {
+			info := email.EmailInfo{To: "anr@example.com", AlertType: string(alertType)}
+			if shouldSendEmail(ctx, info) {
+				t.Errorf("should NOT send %s email when anr_app_hang_spike is false", alertType)
+			}
 		}
 	})
 
@@ -3492,7 +3667,7 @@ func TestNotifPrefFiltering(t *testing.T) {
 		userID := uuid.New().String()
 		th.SeedUser(ctx, t, userID, "bug@example.com")
 		_, err := th.PgPool.Exec(ctx,
-			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, true, true, false, true)",
+			"INSERT INTO notif_prefs (user_id, fatal_error_spike, anr_app_hang_spike, bug_report, daily_summary) VALUES ($1, true, true, false, true)",
 			userID)
 		if err != nil {
 			t.Fatalf("insert notif_prefs: %v", err)
@@ -3512,7 +3687,7 @@ func TestNotifPrefFiltering(t *testing.T) {
 		userID := uuid.New().String()
 		th.SeedUser(ctx, t, userID, "daily@example.com")
 		_, err := th.PgPool.Exec(ctx,
-			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, true, true, true, false)",
+			"INSERT INTO notif_prefs (user_id, fatal_error_spike, anr_app_hang_spike, bug_report, daily_summary) VALUES ($1, true, true, true, false)",
 			userID)
 		if err != nil {
 			t.Fatalf("insert notif_prefs: %v", err)
@@ -3543,7 +3718,7 @@ func TestNotifPrefFiltering(t *testing.T) {
 		userID := uuid.New().String()
 		th.SeedUser(ctx, t, userID, "allon@example.com")
 		_, err := th.PgPool.Exec(ctx,
-			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, true, true, true, true)",
+			"INSERT INTO notif_prefs (user_id, fatal_error_spike, anr_app_hang_spike, bug_report, daily_summary) VALUES ($1, true, true, true, true)",
 			userID)
 		if err != nil {
 			t.Fatalf("insert notif_prefs: %v", err)
@@ -3616,7 +3791,7 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 
 		// User opts out of crash spike emails
 		_, err := th.PgPool.Exec(ctx,
-			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, false, true, true, true)",
+			"INSERT INTO notif_prefs (user_id, fatal_error_spike, anr_app_hang_spike, bug_report, daily_summary) VALUES ($1, false, true, true, true)",
 			userID)
 		if err != nil {
 			t.Fatalf("insert notif_prefs: %v", err)
@@ -3664,7 +3839,7 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 
 		// User opts out of daily summary
 		_, err := th.PgPool.Exec(ctx,
-			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, true, true, true, false)",
+			"INSERT INTO notif_prefs (user_id, fatal_error_spike, anr_app_hang_spike, bug_report, daily_summary) VALUES ($1, true, true, true, false)",
 			userID)
 		if err != nil {
 			t.Fatalf("insert notif_prefs: %v", err)
@@ -3703,7 +3878,7 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 
 		// User has all prefs off — but usage emails have no AlertType
 		_, err := th.PgPool.Exec(ctx,
-			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, false, false, false, false)",
+			"INSERT INTO notif_prefs (user_id, fatal_error_spike, anr_app_hang_spike, bug_report, daily_summary) VALUES ($1, false, false, false, false)",
 			userID)
 		if err != nil {
 			t.Fatalf("insert notif_prefs: %v", err)
@@ -3749,7 +3924,7 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 
 		// User 1 opts out of crash spike
 		_, err := th.PgPool.Exec(ctx,
-			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, false, true, true, true)",
+			"INSERT INTO notif_prefs (user_id, fatal_error_spike, anr_app_hang_spike, bug_report, daily_summary) VALUES ($1, false, true, true, true)",
 			userOptedOut)
 		if err != nil {
 			t.Fatalf("insert notif_prefs: %v", err)
@@ -3757,7 +3932,7 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 
 		// User 2 keeps all defaults (opted in)
 		_, err = th.PgPool.Exec(ctx,
-			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, true, true, true, true)",
+			"INSERT INTO notif_prefs (user_id, fatal_error_spike, anr_app_hang_spike, bug_report, daily_summary) VALUES ($1, true, true, true, true)",
 			userOptedIn)
 		if err != nil {
 			t.Fatalf("insert notif_prefs: %v", err)
@@ -3816,9 +3991,9 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 		th.SeedTeamMembership(ctx, t, teamID, userID, "owner")
 		th.SeedApp(ctx, t, appID, teamID, "Test App", 30)
 
-		// User opts out of crash spike and daily summary, keeps app_hang_spike and bug_report
+		// User opts out of crash spike and daily summary, keeps anr_app_hang_spike and bug_report
 		_, err := th.PgPool.Exec(ctx,
-			"INSERT INTO notif_prefs (user_id, error_spike, app_hang_spike, bug_report, daily_summary) VALUES ($1, false, true, true, false)",
+			"INSERT INTO notif_prefs (user_id, fatal_error_spike, anr_app_hang_spike, bug_report, daily_summary) VALUES ($1, false, true, true, false)",
 			userID)
 		if err != nil {
 			t.Fatalf("insert notif_prefs: %v", err)
@@ -3855,9 +4030,9 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 		SendPendingAlertEmails(ctx)
 
 		// crash_spike and daily_summary should be deleted (opted out).
-		// app_hang_spike and bug_report should remain (opted in, send fails without mail server).
+		// anr_app_hang_spike and bug_report should remain (opted in, send fails without mail server).
 		if got := countPendingByChannel(ctx, t, "email"); got != 2 {
-			t.Errorf("want 2 pending emails (app_hang_spike + bug_report), got %d", got)
+			t.Errorf("want 2 pending emails (anr_app_hang_spike + bug_report), got %d", got)
 		}
 	})
 }

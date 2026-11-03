@@ -495,8 +495,8 @@ export const emptyTrace = {
 };
 
 export const emptyNotifPrefs = {
-  error_spike: true,
-  app_hang_spike: true,
+  fatal_error_spike: true,
+  anr_app_hang_spike: true,
   bug_report: true,
   daily_summary: true,
 };

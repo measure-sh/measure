@@ -67,8 +67,8 @@ export default function Notifications({ params }: PageProps) {
   };
 
   const areNotifPrefsSame =
-    notifPrefs.error_spike === updatedNotifPrefs.error_spike &&
-    notifPrefs.app_hang_spike === updatedNotifPrefs.app_hang_spike &&
+    notifPrefs.fatal_error_spike === updatedNotifPrefs.fatal_error_spike &&
+    notifPrefs.anr_app_hang_spike === updatedNotifPrefs.anr_app_hang_spike &&
     notifPrefs.bug_report === updatedNotifPrefs.bug_report &&
     notifPrefs.daily_summary === updatedNotifPrefs.daily_summary;
 
@@ -137,15 +137,15 @@ export default function Notifications({ params }: PageProps) {
             </div>
             <NotifRow
               rowTitle="Crash Spike email"
-              checked={updatedNotifPrefs.error_spike}
+              checked={updatedNotifPrefs.fatal_error_spike}
               disabled={readOnly}
-              handleChange={() => togglePref("error_spike")}
+              handleChange={() => togglePref("fatal_error_spike")}
             />
             <NotifRow
-              rowTitle="ANR spike email"
-              checked={updatedNotifPrefs.app_hang_spike}
+              rowTitle="ANR/App Hang Spike email"
+              checked={updatedNotifPrefs.anr_app_hang_spike}
               disabled={readOnly}
-              handleChange={() => togglePref("app_hang_spike")}
+              handleChange={() => togglePref("anr_app_hang_spike")}
             />
             <NotifRow
               rowTitle="Bug Reports"

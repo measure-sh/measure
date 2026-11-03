@@ -87,6 +87,14 @@ func AnrSpikeAlertEmail(appName, alertMsg, alertURL string) (subject, body strin
 	return
 }
 
+// AppHangSpikeAlertEmail builds the app hang spike alert email from the
+// plain text alert message.
+func AppHangSpikeAlertEmail(appName, alertMsg, alertURL string) (subject, body string) {
+	subject = appName + " - App Hang Spike Alert"
+	body = RenderEmailBody(escape(appName), PlainTextContent(alertMsg), "View in Dashboard", alertURL)
+	return
+}
+
 // BugReportAlertEmail builds the bug report alert email from the plain
 // text alert message. A non-empty userId is named in the subject.
 func BugReportAlertEmail(appName, userId, alertMsg, alertURL string) (subject, body string) {

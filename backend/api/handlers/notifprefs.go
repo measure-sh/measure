@@ -61,8 +61,8 @@ func (h Handlers) UpdateNotifPrefs(c *gin.Context) {
 		return
 	}
 
-	notifPref.ErrorSpike = payload.ErrorSpike
-	notifPref.AppHangSpike = payload.AppHangSpike
+	notifPref.FatalErrorSpike = payload.FatalErrorSpike
+	notifPref.AnrAppHangSpike = payload.AnrAppHangSpike
 	notifPref.BugReport = payload.BugReport
 	notifPref.DailySummary = payload.DailySummary
 
