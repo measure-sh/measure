@@ -8,6 +8,12 @@ A funnel is a sequence of [custom events](/docs/custom-events) that users go thr
 
 Funnels complement [journeys](/docs/journeys). Journeys let you explore what paths users take through your app whereas funnels track a predefined sequence of steps that consitute an important flow in your app.
 
+<Callout type="info">
+
+Requires Measure Android SDK **0.23.0** or later, or Measure iOS SDK **0.15.0** or later. Older versions only send custom events with a session replay, so funnels built from them have too few users to be useful.
+
+</Callout>
+
 ## Create a funnel
 
 Open Funnels on the dashboard and create a funnel with a name, its steps and a conversion window.
@@ -97,3 +103,7 @@ Reorder pinned funnels to change the order. Pinned funnels and their order are s
 ## Funnels over MCP
 
 Coding agents connected to Measure's [MCP server](/docs/mcp) can read funnels, their conversion, trend, cadence and friction, and create or edit funnels. See the full [tool list](/docs/mcp#available-tools).
+
+## Configuration options
+
+Funnels are built from custom events sent by sampled app installations. Set the share of installations that are sampled with the [analytics sampling rate](/docs/adaptive-capture#analytics-sampling) in app settings. Other installations only send custom events as part of a crash or bug report.

@@ -125,7 +125,7 @@ describe("Pricing page", () => {
     // At the default settings, 1,000 users opening the app 3 times a day.
     it.each([
       ["App opens per user per day", "6", "Session tracking events", "180K"],
-      ["Session length", "20", "Journey events", "1.8K"],
+      ["Session length", "20", "Analytics events", "1.8K"],
       ["Session length", "20", "Session replay events", "540K"],
       [
         "Sessions with an error",
@@ -136,7 +136,7 @@ describe("Pricing page", () => {
       ["Trace sampling rate", "1", "Performance spans", "9K"],
       ["Spans per session", "20", "Performance spans", "18"],
       ["Launch metrics sampling rate", "1", "Launch time events", "900"],
-      ["User journey sampling rate", "1", "Journey events", "45K"],
+      ["Analytics sampling rate", "1", "Analytics events", "45K"],
       ["HTTP sampling rate", "1", "HTTP events", "18K"],
       ["Requests per session", "40", "HTTP events", "360"],
     ])(

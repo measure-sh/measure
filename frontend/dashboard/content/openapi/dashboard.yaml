@@ -4620,6 +4620,8 @@ paths:
                 properties:
                   max_events_in_batch:
                     type: integer
+                    readOnly: true
+                    description: Fixed by Measure for every app. Cannot be changed.
                   error_replay_duration:
                     type: integer
                     minimum: 0
@@ -4652,6 +4654,8 @@ paths:
                       type: string
                   cpu_usage_interval:
                     type: integer
+                    readOnly: true
+                    description: Fixed by Measure for every app. Cannot be changed.
                   memory_usage_interval:
                     type: integer
                     minimum: 1
@@ -4712,6 +4716,8 @@ paths:
                     maximum: 100
                   gesture_click_take_snapshot:
                     type: boolean
+                    readOnly: true
+                    description: Fixed by Measure for every app. Cannot be changed.
                   http_sampling_rate:
                     type: number
                     minimum: 0
@@ -4736,6 +4742,16 @@ paths:
                     type: number
                     minimum: 0
                     maximum: 100
+                  analytics_sampling_rate:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+                  analytics_event_types:
+                    type: array
+                    items:
+                      type: string
+                    readOnly: true
+                    description: Fixed by Measure for every app. Cannot be changed.
               examples:
                 response:
                   value:
@@ -4773,6 +4789,14 @@ paths:
                     http_track_response_for_urls: []
                     http_blocked_headers: []
                     profile_sampling_rate: 100
+                    analytics_sampling_rate: 100
+                    analytics_event_types:
+                      - custom
+                      - lifecycle_activity
+                      - lifecycle_fragment
+                      - lifecycle_view_controller
+                      - lifecycle_swift_ui
+                      - screen_view
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
@@ -4807,7 +4831,7 @@ paths:
           application/json:
             schema:
               type: object
-              description: Any subset of the app config fields returned by `GET /apps/{id}/config`.
+              description: Any subset of the app config fields returned by `GET /apps/{id}/config`. Read-only fields are ignored.
               additionalProperties: true
             examples:
               request:

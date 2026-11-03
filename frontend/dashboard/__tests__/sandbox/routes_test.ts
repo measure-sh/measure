@@ -1084,6 +1084,7 @@ const settingsCases: Case[] = [
         bug_report_timeline_duration: true,
         launch_sampling_rate: true,
         journey_sampling_rate: true,
+        analytics_sampling_rate: true,
         http_sampling_rate: true,
         http_disable_event_for_urls: true,
         http_track_request_for_urls: true,
