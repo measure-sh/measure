@@ -116,6 +116,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump eslint from 9.39.4 to 10.13.0 in /frontend/dashboard by @dependabot[bot] in #4759
 - (**deps**): Bump the dashboard group across 1 directory with 5 updates by @dependabot[bot] in #4766
 - (**deps**): Hold dashboard typescript at 5.x by @anupcowkur in #4756
 - (**deps**): Bump msw from 2.13.2 to 3.0.3 in /frontend/dashboard by @dependabot[bot]
