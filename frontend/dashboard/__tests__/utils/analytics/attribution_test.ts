@@ -5,7 +5,6 @@
 
 import {
   captureGCLIDFromURL,
-  clearStoredGCLID,
   getStoredGCLID,
 } from "@/app/utils/analytics/attribution";
 import { afterEach, describe, expect, it } from "@jest/globals";
@@ -92,27 +91,5 @@ describe("getStoredGCLID", () => {
     setLocation("https://measure.sh/landing?gclid=hello-world");
     captureGCLIDFromURL();
     expect(getStoredGCLID()).toBe("hello-world");
-  });
-});
-
-// --------------------------------------------------------------------------
-// clearStoredGCLID — expires the cookie on consent withdrawal
-// --------------------------------------------------------------------------
-
-describe("clearStoredGCLID", () => {
-  it("removes a stored gclid", () => {
-    setLocation("https://measure.sh/landing?gclid=abc123");
-    captureGCLIDFromURL();
-    expect(getStoredGCLID()).toBe("abc123");
-
-    clearStoredGCLID();
-
-    expect(getStoredGCLID()).toBeNull();
-    expect(document.cookie).not.toMatch(/gclid=abc123/);
-  });
-
-  it("is a no-op when no gclid is stored", () => {
-    clearStoredGCLID();
-    expect(getStoredGCLID()).toBeNull();
   });
 });

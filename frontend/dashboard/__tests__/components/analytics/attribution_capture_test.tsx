@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { render, waitFor } from "@testing-library/react";
 
-jest.mock("@c15t/nextjs", () => ({
-  useConsentManager: jest.fn(),
+jest.mock("c15t/next", () => ({
+  useConsent: jest.fn(),
 }));
 
 jest.mock("@/app/utils/analytics/utm", () => ({
@@ -20,12 +20,12 @@ import {
 } from "@/app/components/analytics/attribution_capture";
 import { captureGCLIDFromURL } from "@/app/utils/analytics/attribution";
 import { captureUTMsFromURL } from "@/app/utils/analytics/utm";
-import { useConsentManager } from "@c15t/nextjs";
+import { useConsent } from "c15t/next";
 
 function mockConsent(granted: string[]) {
-  (useConsentManager as jest.Mock).mockReturnValue({
-    has: (category: string) => granted.includes(category),
-  });
+  (useConsent as jest.Mock).mockImplementation((category) =>
+    granted.includes(category as string),
+  );
 }
 
 beforeEach(() => {
@@ -50,7 +50,7 @@ describe("ConsentedAttributionCapture", () => {
     render(<ConsentedAttributionCapture />);
 
     await waitFor(() => {
-      expect(useConsentManager).toHaveBeenCalled();
+      expect(useConsent).toHaveBeenCalled();
     });
     expect(captureUTMsFromURL).not.toHaveBeenCalled();
     expect(captureGCLIDFromURL).not.toHaveBeenCalled();
@@ -81,6 +81,6 @@ describe("AttributionCapture", () => {
       expect(captureUTMsFromURL).toHaveBeenCalledTimes(1);
     });
     expect(captureGCLIDFromURL).toHaveBeenCalledTimes(1);
-    expect(useConsentManager).not.toHaveBeenCalled();
+    expect(useConsent).not.toHaveBeenCalled();
   });
 });
