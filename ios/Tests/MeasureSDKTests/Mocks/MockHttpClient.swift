@@ -11,6 +11,8 @@ import Foundation
 final class MockHttpClient: HttpClient {
     private(set) var sentUrls: [URL] = []
     private(set) var uploadedUrls: [URL] = []
+    private(set) var sentHeaders: [[String: String]] = []
+    private(set) var sentBodies: [Data] = []
 
     var sendResponse: HttpResponse = .success(body: nil, eTag: nil, cacheControl: nil)
     var uploadResponse: HttpResponse = .success(body: nil, eTag: nil, cacheControl: nil)
@@ -22,6 +24,8 @@ final class MockHttpClient: HttpClient {
         jsonBody: Data
     ) -> HttpResponse {
         sentUrls.append(url)
+        sentHeaders.append(headers)
+        sentBodies.append(jsonBody)
         return sendResponse
     }
 
