@@ -60,10 +60,6 @@ export class ConfigProvider implements IConfigProvider {
     return this.dynamicConfig.traceSamplingRate;
   }
 
-  get journeySamplingRate(): number {
-    return this.dynamicConfig.journeySamplingRate;
-  }
-
   get screenshotMaskLevel(): ScreenshotMaskLevel {
     return this.dynamicConfig.screenshotMaskLevel;
   }
