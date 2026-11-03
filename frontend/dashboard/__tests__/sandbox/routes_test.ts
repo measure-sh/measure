@@ -1234,8 +1234,8 @@ const settingsCases: Case[] = [
     status: 200,
     check: async (prefs) => {
       expect(prefs).toMatchObject({
-        error_spike: expect.any(Boolean),
-        app_hang_spike: expect.any(Boolean),
+        fatal_error_spike: expect.any(Boolean),
+        anr_app_hang_spike: expect.any(Boolean),
         bug_report: expect.any(Boolean),
         daily_summary: expect.any(Boolean),
       });

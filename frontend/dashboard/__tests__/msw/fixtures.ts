@@ -1537,8 +1537,8 @@ export function makeUsageFixture() {
 
 export function makeNotifPrefsFixture(overrides: Record<string, any> = {}) {
   return {
-    error_spike: true,
-    app_hang_spike: true,
+    fatal_error_spike: true,
+    anr_app_hang_spike: true,
     bug_report: false,
     daily_summary: true,
     ...overrides,

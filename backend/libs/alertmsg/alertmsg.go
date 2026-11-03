@@ -1,21 +1,38 @@
 // Package alertmsg builds the plain text messages, titles, and dashboard
-// URLs for crash spike, ANR spike, and bug report alerts. The alerts service
-// stores each message in the alerts table and hands the same string to
-// the email and Slack channels, so the builders emit no markup: each
-// channel applies its own formatting, email by escaping the text into
-// HTML and Slack by escaping mrkdwn control characters.
+// URLs for crash spike, ANR spike, app hang spike, and bug report alerts.
+// The alerts service stores each message in the alerts table and hands the
+// same string to the email and Slack channels, so the builders emit no
+// markup: each channel applies its own formatting, email by escaping the
+// text into HTML and Slack by escaping mrkdwn control characters.
 package alertmsg
 
-import "fmt"
+import (
+	"fmt"
+	"net/url"
+	"strings"
+)
 
 // CrashSpikeMessage builds the plain text message for a crash spike alert.
 func CrashSpikeMessage(file, method, message string) string {
-	return fmt.Sprintf("%s: %s() - %s", file, method, message)
+	return fmt.Sprintf("%s: %s - %s", file, formatMethodName(method), message)
 }
 
 // AnrSpikeMessage builds the plain text message for an ANR spike alert.
 func AnrSpikeMessage(file, method, message string) string {
-	return fmt.Sprintf("%s: %s() - %s", file, method, message)
+	return fmt.Sprintf("%s: %s - %s", file, formatMethodName(method), message)
+}
+
+// AppHangSpikeMessage builds the plain text message for an app hang spike alert.
+func AppHangSpikeMessage(file, method string) string {
+	return fmt.Sprintf("%s: %s", file, formatMethodName(method))
+}
+
+// formatMethodName adds "()" to a bare method name.
+func formatMethodName(method string) string {
+	if strings.HasSuffix(method, ")") || strings.HasSuffix(method, "]") {
+		return method
+	}
+	return method + "()"
 }
 
 // BugReportMessage builds the plain text message for a bug report alert.
@@ -60,6 +77,16 @@ func AnrSpikeURL(siteOrigin, teamId, appId, fingerprint, anrType, fileName strin
 		suffix = "@" + fileName
 	}
 	return fmt.Sprintf("%s/%s/errors/%s/%s/%s%s", siteOrigin, teamId, appId, fingerprint, anrType, suffix)
+}
+
+// AppHangSpikeURL builds the dashboard URL for an app hang spike alert. App
+// hang groups have no type, so the file name alone forms the error group
+// name segment of the dashboard route.
+func AppHangSpikeURL(siteOrigin, teamId, appId, fingerprint, fileName string) string {
+	if fileName == "" {
+		fileName = "unknown_file"
+	}
+	return fmt.Sprintf("%s/%s/errors/%s/%s/%s", siteOrigin, teamId, appId, fingerprint, url.PathEscape(fileName))
 }
 
 // BugReportURL builds the dashboard URL for a bug report alert.
