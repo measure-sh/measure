@@ -95,6 +95,8 @@ import sh.measure.android.utils.DefaultDebugProvider
 import sh.measure.android.utils.DefaultRuntimeProvider
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.IdProviderImpl
+import sh.measure.android.utils.InstallationIdProvider
+import sh.measure.android.utils.InstallationIdProviderImpl
 import sh.measure.android.utils.LocaleProvider
 import sh.measure.android.utils.LocaleProviderImpl
 import sh.measure.android.utils.LowMemoryCheck
@@ -179,7 +181,6 @@ internal class MeasureInitializerImpl(
         processInfo = processInfoProvider,
         configProvider = configProvider,
         packageInfoProvider = packageInfoProvider,
-        sampler = sampler,
     ),
     private val procProvider: ProcProvider = ProcProviderImpl(),
     private val debugProvider: DebugProvider = DefaultDebugProvider(),
@@ -224,9 +225,12 @@ internal class MeasureInitializerImpl(
         context = application,
         packageInfoProvider = packageInfoProvider,
     ),
-    private val installationIdAttributeProcessor: InstallationIdAttributeProcessor = InstallationIdAttributeProcessor(
+    override val installationIdProvider: InstallationIdProvider = InstallationIdProviderImpl(
         prefsStorage = prefsStorage,
         idProvider = idProvider,
+    ),
+    private val installationIdAttributeProcessor: InstallationIdAttributeProcessor = InstallationIdAttributeProcessor(
+        installationIdProvider = installationIdProvider,
     ),
     private val networkStateAttributeProcessor: NetworkStateAttributeProcessor = NetworkStateAttributeProcessor(
         networkStateProvider = networkStateProvider,
@@ -302,6 +306,7 @@ internal class MeasureInitializerImpl(
         configProvider = configProvider,
         exporter = exporter,
         sampler = sampler,
+        installationIdProvider = installationIdProvider,
     ),
     override val layoutSnapshotCollector: LayoutSnapshotCollector = LayoutSnapshotCollectorImpl(
         logger = logger,
@@ -390,7 +395,6 @@ internal class MeasureInitializerImpl(
         patchAttributeProcessor,
         spanDeviceAttributeProcessor,
         appAttributeProcessor,
-        installationIdAttributeProcessor,
         networkStateAttributeProcessor,
         powerStateAttributeProcessor,
         sessionAttributeProcessor,
@@ -558,6 +562,7 @@ internal interface MeasureInitializer {
     val shakeBugReportCollector: ShakeBugReportCollector
     val internalSignalCollector: InternalSignalCollector
     val spanAttributeProcessors: List<AttributeProcessor>
+    val installationIdProvider: InstallationIdProvider
     val fileStorage: FileStorage
     val periodicSignalStoreScheduler: PeriodicSignalStoreScheduler
 }

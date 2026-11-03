@@ -35,7 +35,8 @@ internal class PrefsStorageImpl(private val context: Context) : PrefsStorage {
     override fun getInstallationId(): String? = sharedPreferences.getString(Attribute.INSTALLATION_ID_KEY, null)
 
     override fun setInstallationId(installationId: String) {
-        sharedPreferences.edit { putString(Attribute.INSTALLATION_ID_KEY, installationId) }
+        // Written synchronously so no event is stored with an ID that isn't on disk yet.
+        sharedPreferences.edit(commit = true) { putString(Attribute.INSTALLATION_ID_KEY, installationId) }
     }
 
     override fun getUserId(): String? = sharedPreferences.getString(USER_ID_KEY, null)

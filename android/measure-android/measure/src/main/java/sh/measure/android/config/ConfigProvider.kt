@@ -122,8 +122,10 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
         get() = dynamicConfig.bugReportTimelineDurationSeconds
     override val traceSamplingRate: Float
         get() = dynamicConfig.traceSamplingRate
-    override val journeySamplingRate: Float
-        get() = dynamicConfig.journeySamplingRate
+    override val analyticsSamplingRate: Float
+        get() = dynamicConfig.analyticsSamplingRate
+    override val analyticsEventTypes: List<String>
+        get() = dynamicConfig.analyticsEventTypes
     override val screenshotMaskLevel: ScreenshotMaskLevel
         get() = dynamicConfig.screenshotMaskLevel
     override val logAutocollectEnabled: Boolean

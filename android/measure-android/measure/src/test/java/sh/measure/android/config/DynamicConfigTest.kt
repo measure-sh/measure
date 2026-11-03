@@ -12,13 +12,13 @@ internal class DynamicConfigTest {
     fun `omitted memory settings use defaults with older config payloads`() {
         val config = jsonSerializer.decodeFromString(
             DynamicConfig.serializer(),
-            """{"memory_usage_interval":10,"journey_sampling_rate":0}""",
+            """{"memory_usage_interval":10}""",
         )
 
         assertEquals(0.01f, config.memoryUsageSessionSamplingRate)
         assertEquals(10L, config.memoryUsageInterval)
         assertEquals(10L, config.memoryUsageBackgroundInterval)
-        assertEquals(0f, config.journeySamplingRate)
+        assertEquals(100f, config.analyticsSamplingRate)
     }
 
     @Test

@@ -7,15 +7,11 @@ import org.junit.Assert.assertThrows
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.mockito.Mockito.mock
-import org.mockito.kotlin.any
-import org.mockito.kotlin.never
 import org.mockito.kotlin.verify
-import sh.measure.android.config.DefaultConfig
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
 import sh.measure.android.fakes.FakePackageInfoProvider
 import sh.measure.android.fakes.FakeProcessInfoProvider
-import sh.measure.android.fakes.FakeSampler
 import sh.measure.android.fakes.ImmediateExecutorService
 import sh.measure.android.fakes.NoopLogger
 import sh.measure.android.storage.Database
@@ -29,7 +25,6 @@ class SessionManagerTest {
     private val executorService = ImmediateExecutorService(ResolvableFuture.create<Any>())
     private val logger = NoopLogger()
     private val database = mock<Database>()
-    private val sampler = FakeSampler()
     private val idProvider = FakeIdProvider()
     private val processInfo = FakeProcessInfoProvider()
     private val testClock = TestClock.create()
@@ -46,7 +41,6 @@ class SessionManagerTest {
         configProvider = configProvider,
         ioExecutor = executorService,
         packageInfoProvider = packageInfoProvider,
-        sampler = sampler,
     )
 
     @Test
@@ -174,33 +168,6 @@ class SessionManagerTest {
         // background time is reset
         sessionManager.onAppForeground()
         assertEquals(0L, sessionManager.appBackgroundTime)
-    }
-
-    @Test
-    fun `onConfigLoaded marks journey events as sampled if enabled`() {
-        sessionManager.init()
-        configProvider.enableFullCollectionMode = false
-
-        sampler.trackJourneyForSession = true
-
-        sessionManager.onConfigLoaded()
-
-        verify(database).sampleJourneyEvents(
-            sessionManager.getSessionId(),
-            DefaultConfig.JOURNEY_EVENTS,
-        )
-    }
-
-    @Test
-    fun `onConfigLoaded does not mark journey events as sampled if not enabled`() {
-        sessionManager.init()
-        configProvider.enableFullCollectionMode = false
-
-        sampler.trackJourneyForSession = false
-
-        sessionManager.onConfigLoaded()
-
-        verify(database, never()).sampleJourneyEvents(any(), any())
     }
 
     @Test

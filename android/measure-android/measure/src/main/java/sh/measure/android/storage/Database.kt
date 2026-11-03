@@ -75,11 +75,6 @@ internal interface Database : Closeable {
      */
     fun deleteSessionData(sessionId: String)
 
-    /**
-     * Updates all journey events for a given session as sampled.
-     */
-    fun sampleJourneyEvents(sessionId: String, journeyEventTypes: List<EventType>)
-
     // ========================================================================================
     // Events
     // ========================================================================================
@@ -500,22 +495,6 @@ internal class DatabaseImpl(
         } finally {
             writableDatabase.endTransaction()
         }
-    }
-
-    override fun sampleJourneyEvents(sessionId: String, journeyEventTypes: List<EventType>) {
-        if (journeyEventTypes.isEmpty()) return
-
-        val placeholders = journeyEventTypes.joinToString(",") { "?" }
-        val args = arrayOf(sessionId) + journeyEventTypes.map { it.value }.toTypedArray()
-
-        writableDatabase.update(
-            EventTable.TABLE_NAME,
-            ContentValues().apply {
-                put(EventTable.COL_SAMPLED, true)
-            },
-            "${EventTable.COL_SESSION_ID} = ? AND ${EventTable.COL_TYPE} IN ($placeholders)",
-            args,
-        )
     }
 
     // ========================================================================================
