@@ -249,6 +249,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :zap: Performance
 
+- (**backend**): Replay `analytics_events` backfill by day (#4775) by @detj in #4775
 - (**backend**): Read value suggestions from raw tables for 30 days only by @anupcowkur in #4446
 
 ### :recycle: Refactor
