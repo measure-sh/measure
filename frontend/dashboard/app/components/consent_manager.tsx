@@ -1,17 +1,20 @@
 "use client";
 
+import { googleTagManager } from "@c15t/integrations/google-tag-manager";
 import {
   ConsentBanner,
   ConsentDialog,
-  ConsentManagerProvider,
-  policyPackPresets,
+  ConsentProvider,
+  ConsentTheme,
+  type ConsentProviderOptions,
   type Theme,
-} from "@c15t/nextjs";
-import { googleTagManager } from "@c15t/scripts/google-tag-manager";
+} from "c15t/next";
+import { hosted, offline, policyRulePresets } from "c15t/react";
 import { PostHogProvider } from "../context/posthog";
-import { clearStoredGCLID } from "../utils/analytics/attribution";
-import { clearStoredUTMs } from "../utils/analytics/utm";
+import { GCLID_COOKIE_NAME } from "../utils/analytics/attribution";
+import { UTM_STORAGE_KEY } from "../utils/analytics/utm";
 import { isCloud } from "../utils/env_utils";
+import { work_sans } from "../utils/fonts";
 import {
   AttributionCapture,
   ConsentedAttributionCapture,
@@ -67,42 +70,53 @@ const measureTheme = {
     md: "calc(var(--radius) - 2px)",
     lg: "var(--radius)",
   },
-  typography: { fontFamily: "var(--font-work-sans)" },
-  slots: {
-    consentBannerTitle: "font-display",
-    consentDialogTitle: "font-display",
-    // c15t renders the legal links inside the description, sharing its slot —
-    // legalLinkClasses scopes the underline to the `<a>`s only.
-    consentBannerDescription: legalLinkClasses,
-    consentDialogDescription: legalLinkClasses,
-    // Reuse the dashboard's button styling. c15t keeps its own `.button`
-    // classes regardless of the slot, but they sit in `@layer components` so
-    // the app's utility classes win; border overrides cancel c15t's base
-    // border and its default stroke-mode inset shadow.
-    buttonPrimary: `${buttonVariants({ variant: "default" })} border-0 shadow-none`,
-    buttonSecondary: `${buttonVariants({ variant: "secondary" })} border-0.5 shadow-none`,
-    // c15t's switch is sized from CSS variables on its root — override them to
-    // match the dashboard switch (track 1.15rem x 2rem, thumb 1rem).
-    toggle: {
+  // ConsentTheme declares the tokens on :root, but next/font defines
+  // --font-work-sans on <body>, so a var() reference resolves to nothing there.
+  typography: { fontFamily: work_sans.style.fontFamily },
+} satisfies Theme;
+
+const measureComponents = {
+  banner: { title: { className: "font-display" } },
+  dialog: { title: { className: "font-display" } },
+  // c15t renders the legal links inside the description, so legalLinkClasses
+  // scopes the underline to the `<a>`s only.
+  description: {
+    banner: { className: legalLinkClasses },
+    dialog: { className: legalLinkClasses },
+  },
+  // c15t keeps its own button classes alongside these, but they sit in
+  // `@layer components`, so the app's utility classes win. The border overrides
+  // cancel c15t's base border and its default stroke-mode inset shadow.
+  button: {
+    primary: {
+      className: `${buttonVariants({ variant: "default" })} border-0 shadow-none`,
+    },
+    secondary: {
+      className: `${buttonVariants({ variant: "secondary" })} border-0.5 shadow-none`,
+    },
+  },
+  // c15t sizes its switch from CSS variables on the switch root, set here to
+  // match the dashboard switch.
+  switch: {
+    root: {
       style: {
         "--switch-height": "1.15rem",
         "--switch-width": "2rem",
         "--switch-thumb-size": "1rem",
         "--switch-padding": "0.075rem",
-      },
+      } as React.CSSProperties,
     },
   },
-} satisfies Theme;
+} satisfies ConsentProviderOptions["components"];
 
-// In offline mode, without local policy packs c15t always shows the opt-in
-// banner. These presets carry the jurisdiction rules so the `overrides`
-// country/region resolves to a real policy (GDPR / CCPA / …). In production
+// These presets carry the jurisdiction rules so the `overrides` country/region
+// resolves to a real policy (GDPR / CCPA / …) in offline mode. In production
 // the hosted backend handles this resolution instead.
-const offlinePolicyPacks = [
-  policyPackPresets.europeOptIn(),
-  policyPackPresets.californiaOptOut(),
-  policyPackPresets.quebecOptIn(),
-  policyPackPresets.worldNoBanner(),
+const offlinePolicyRules = [
+  policyRulePresets.europeOptIn(),
+  policyRulePresets.californiaOptOut(),
+  policyRulePresets.quebecOptIn(),
+  policyRulePresets.worldOptOutNoPrompt(),
 ];
 
 export function ConsentManager({ children }: { children: React.ReactNode }) {
@@ -113,15 +127,16 @@ export function ConsentManager({ children }: { children: React.ReactNode }) {
   // jurisdiction (from `overrides`); otherwise it runs hosted, but only in
   // cloud with a backend URL. Anything else — self-host, or a cloud build not
   // pointed at a backend — gets no c15t at all: no banner, no link, no trackers.
-  let init:
-    | { mode: "offline"; overrides: { country: string; region?: string } }
-    | { mode: "hosted"; backendURL: string };
+  let init: Pick<ConsentProviderOptions, "mode" | "overrides">;
   if (offlineMode) {
     // Jurisdiction to test: { country: "DE" } → GDPR (opt-in),
     // { country: "US", region: "CA" } → CCPA (opt-out), { country: "GB" } → UK.
-    init = { mode: "offline", overrides: { country: "DE" } };
+    init = {
+      mode: offline({ policyRules: offlinePolicyRules }),
+      overrides: { country: "DE" },
+    };
   } else if (isCloud() && backendURL) {
-    init = { mode: "hosted", backendURL };
+    init = { mode: hosted({ backendURL }) };
   } else {
     return (
       <>
@@ -132,28 +147,19 @@ export function ConsentManager({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <ConsentManagerProvider
+    <ConsentProvider
       options={{
         ...init,
-        // Offline mode needs the jurisdiction rules locally; the hosted backend
-        // supplies them in production.
-        ...(offlineMode
-          ? { offlinePolicy: { policyPacks: offlinePolicyPacks } }
-          : {}),
         consentCategories: ["necessary", "measurement", "marketing"],
         theme: measureTheme,
-        callbacks: {
-          // Withdrawal must also remove what earlier consent allowed us to
-          // store. onConsentChanged fires only on an explicit save that changes
-          // saved consent, so it stays clear of init, hydration & the auto grant
-          // path where nothing was withdrawn. Runs before c15t's revocation
-          // reload, so a synchronous clear completes.
-          onConsentChanged: ({ deniedCategories }) => {
-            if (!deniedCategories.includes("marketing")) {
-              return;
-            }
-            clearStoredUTMs();
-            clearStoredGCLID();
+        components: measureComponents,
+        // The attribution data may only be kept while marketing consent
+        // stands, so c15t deletes it whenever marketing ends up denied,
+        // whether by a visitor's save, an expired choice or a privacy signal.
+        clearOnRevocation: {
+          marketing: {
+            cookies: [GCLID_COOKIE_NAME],
+            localStorage: [UTM_STORAGE_KEY],
           },
         },
         legalLinks: {
@@ -165,13 +171,14 @@ export function ConsentManager({ children }: { children: React.ReactNode }) {
         scripts: isCloud() && gtmId ? [googleTagManager({ id: gtmId })] : [],
       }}
     >
-      {/* legalLinks must be an explicit array — c15t 2.1.0 renders no links
-          for the documented `undefined` default. URL comes from the provider's
-          `legalLinks` option above. `hideBranding` removes the c15t watermark. */}
+      {/* ConsentProvider doesn't turn measureTheme's tokens into CSS.
+          ConsentTheme writes them as CSS variables, and without it the banner
+          and dialog use c15t's default colours, fonts and radii. */}
+      <ConsentTheme theme={measureTheme} />
       <ConsentBanner hideBranding legalLinks={["privacyPolicy"]} />
       <ConsentDialog hideBranding legalLinks={["privacyPolicy"]} />
       <ConsentedAttributionCapture />
       <PostHogProvider proxyPath="/yrtmlt">{children}</PostHogProvider>
-    </ConsentManagerProvider>
+    </ConsentProvider>
   );
 }

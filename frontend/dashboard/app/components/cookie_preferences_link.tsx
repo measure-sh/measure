@@ -1,13 +1,13 @@
 "use client";
 
-import { ConsentDialogLink, useConsentManager } from "@c15t/nextjs";
+import { ConsentDialogLink } from "c15t/next";
 import { isConsentManaged } from "./consent_manager";
 
 /**
  * Wraps a trigger element so it opens the c15t consent dialog, letting a user
- * review or withdraw consent. Renders nothing unless c15t is running and has
- * resolved a jurisdiction that actually requires consent handling — there is
- * no dialog to open otherwise.
+ * review or withdraw consent. Renders nothing when c15t isn't running, and
+ * ConsentDialogLink renders nothing when the visitor's policy offers no
+ * preferences.
  */
 export function CookiePreferencesLink({
   children,
@@ -18,20 +18,13 @@ export function CookiePreferencesLink({
     return null;
   }
 
-  return <JurisdictionGatedLink>{children}</JurisdictionGatedLink>;
-}
-
-function JurisdictionGatedLink({ children }: { children: React.ReactNode }) {
-  // Render only once c15t has resolved the jurisdiction (`hasFetchedBanner`)
-  // and that jurisdiction needs consent handling (`model` non-null; null
-  // where there is no cookie law). A failed resolution leaves `hasFetchedBanner`
-  // false with `model` at its "opt-in" default — without that guard a dead
-  // link would linger with no banner behind it.
-  const { hasFetchedBanner, model } = useConsentManager();
-
-  if (!hasFetchedBanner || model == null) {
-    return null;
-  }
-
-  return <ConsentDialogLink asChild>{children}</ConsentDialogLink>;
+  // ConsentDialogLink applies a component part's classes to its child, by
+  // default the `button.secondary` part that ConsentManager styles for the
+  // banner and dialog buttons. `trigger.root` is c15t's floating preferences
+  // button, which isn't rendered or styled, so the child keeps its own styling.
+  return (
+    <ConsentDialogLink asChild slotKey="trigger.root">
+      {children}
+    </ConsentDialogLink>
+  );
 }

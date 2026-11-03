@@ -4,53 +4,53 @@ import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
 import type { ReactNode } from "react";
 
-// Captured so tests can invoke the consent callbacks the provider is handed.
-let providerOptions: {
-  mode: string;
+type ProviderOptions = {
+  mode: { kind: string };
   scripts?: unknown[];
-  callbacks?: {
-    onConsentChanged?: (payload: { deniedCategories: string[] }) => void;
-  };
-} | null = null;
+  clearOnRevocation?: unknown;
+};
 
-jest.mock("@c15t/nextjs", () => ({
-  ConsentManagerProvider: ({
+// Captured so tests can inspect the options the provider is handed.
+let providerOptions: ProviderOptions | null = null;
+
+jest.mock("c15t/next", () => ({
+  ConsentProvider: ({
     children,
     options,
   }: {
     children: ReactNode;
-    options: {
-      mode: string;
-      scripts?: unknown[];
-      callbacks?: {
-        onConsentChanged?: (payload: { deniedCategories: string[] }) => void;
-      };
-    };
+    options: ProviderOptions;
   }) => {
     providerOptions = options;
     return (
       <div
         data-testid="consent-provider"
-        data-mode={options.mode}
+        data-mode={options.mode.kind}
         data-script-count={options.scripts?.length ?? 0}
       >
         {children}
       </div>
     );
   },
+  ConsentTheme: () => null,
   ConsentBanner: () => <div data-testid="consent-banner" />,
   ConsentDialog: () => <div data-testid="consent-dialog" />,
   // Consumed by ConsentedAttributionCapture, mounted inside the provider.
-  useConsentManager: () => ({ has: () => false }),
-  policyPackPresets: {
+  useConsent: () => false,
+}));
+
+jest.mock("c15t/react", () => ({
+  hosted: () => ({ kind: "hosted" }),
+  offline: () => ({ kind: "offline" }),
+  policyRulePresets: {
     europeOptIn: () => ({}),
     californiaOptOut: () => ({}),
     quebecOptIn: () => ({}),
-    worldNoBanner: () => ({}),
+    worldOptOutNoPrompt: () => ({}),
   },
 }));
 
-jest.mock("@c15t/scripts/google-tag-manager", () => ({
+jest.mock("@c15t/integrations/google-tag-manager", () => ({
   googleTagManager: jest.fn((options: { id: string }) => ({
     id: "google-tag-manager",
     gtmId: options.id,
@@ -68,20 +68,20 @@ jest.mock("@/app/utils/env_utils", () => ({
   isCloud: jest.fn(),
 }));
 
-// The clear fns are asserted on directly; the capture fns are stubbed because
-// the attribution components mounted in both branches call them on mount.
+// The capture fns are stubbed because the attribution components mounted in
+// both branches call them on mount.
 jest.mock("@/app/utils/analytics/utm", () => ({
-  clearStoredUTMs: jest.fn(),
+  ...jest.requireActual("@/app/utils/analytics/utm"),
   captureUTMsFromURL: jest.fn(),
 }));
 
 jest.mock("@/app/utils/analytics/attribution", () => ({
-  clearStoredGCLID: jest.fn(),
+  ...jest.requireActual("@/app/utils/analytics/attribution"),
   captureGCLIDFromURL: jest.fn(),
 }));
 
-import { clearStoredGCLID } from "@/app/utils/analytics/attribution";
-import { clearStoredUTMs } from "@/app/utils/analytics/utm";
+import { GCLID_COOKIE_NAME } from "@/app/utils/analytics/attribution";
+import { UTM_STORAGE_KEY } from "@/app/utils/analytics/utm";
 import { isCloud } from "@/app/utils/env_utils";
 
 afterEach(() => {
@@ -202,34 +202,21 @@ if (offlineMode) {
 }
 
 describe("ConsentManager consent withdrawal", () => {
-  beforeEach(() => {
+  it("has c15t delete the stored attribution when marketing is denied", () => {
     (isCloud as jest.Mock).mockReturnValue(true);
     process.env.NEXT_PUBLIC_C15T_BACKEND_URL = "https://consent.example.com";
-    (clearStoredUTMs as jest.Mock).mockClear();
-    (clearStoredGCLID as jest.Mock).mockClear();
 
     render(
       <ConsentManager>
         <div data-testid="child" />
       </ConsentManager>,
     );
-  });
 
-  it("clears stored attribution when marketing consent is withdrawn", () => {
-    providerOptions?.callbacks?.onConsentChanged?.({
-      deniedCategories: ["marketing"],
+    expect(providerOptions?.clearOnRevocation).toEqual({
+      marketing: {
+        cookies: [GCLID_COOKIE_NAME],
+        localStorage: [UTM_STORAGE_KEY],
+      },
     });
-
-    expect(clearStoredUTMs).toHaveBeenCalledTimes(1);
-    expect(clearStoredGCLID).toHaveBeenCalledTimes(1);
-  });
-
-  it("keeps stored attribution when only analytics is withdrawn", () => {
-    providerOptions?.callbacks?.onConsentChanged?.({
-      deniedCategories: ["measurement"],
-    });
-
-    expect(clearStoredUTMs).not.toHaveBeenCalled();
-    expect(clearStoredGCLID).not.toHaveBeenCalled();
   });
 });

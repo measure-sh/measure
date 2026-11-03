@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef } from "react";
 
-import { useConsentManager } from "@c15t/nextjs";
+import { useConsent } from "c15t/next";
 import posthog from "posthog-js";
 import { PostHogProvider as PHProvider } from "posthog-js/react";
 import { isCloud } from "../utils/env_utils";
@@ -32,8 +32,7 @@ export function PostHogProvider({
   const apiKey = process.env.NEXT_PUBLIC_POSTHOG_API_KEY;
   const host =
     process.env.NEXT_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
-  const { has } = useConsentManager();
-  const measurementGranted = has("measurement");
+  const measurementGranted = useConsent("measurement");
 
   const shouldInit = isCloud() && !!apiKey;
   const initializedRef = useRef(false);
