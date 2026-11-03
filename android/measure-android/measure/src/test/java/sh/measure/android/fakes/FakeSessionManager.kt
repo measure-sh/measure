@@ -30,10 +30,6 @@ internal class FakeSessionManager : SessionManager {
         // no-op
     }
 
-    override fun onConfigLoaded() {
-        // no-op
-    }
-
     override fun markSessionWithAnr(sessionId: String, anrTimeMs: Long) {
         markedAnrSessions.add(sessionId to anrTimeMs)
     }

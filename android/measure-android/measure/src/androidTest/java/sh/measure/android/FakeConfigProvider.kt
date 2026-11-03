@@ -2,6 +2,7 @@ package sh.measure.android
 
 import android.hardware.SensorManager
 import sh.measure.android.config.ConfigProvider
+import sh.measure.android.config.DefaultConfig
 import sh.measure.android.config.DynamicConfig
 import sh.measure.android.config.MsrRequestHeadersProvider
 import sh.measure.android.config.ScreenshotMaskLevel
@@ -42,7 +43,6 @@ internal class FakeConfigProvider : ConfigProvider {
     override val estimatedEventSizeInKb: Int = 2
     override val maxDiskUsageInMb: Int = 50
     override val requestHeadersProvider: MsrRequestHeadersProvider? = null
-    override val journeySamplingRate: Float = 0.01f
     override val enableFullCollectionMode: Boolean = true
     override val enableDiagnosticMode: Boolean = false
 
@@ -53,6 +53,8 @@ internal class FakeConfigProvider : ConfigProvider {
     override val memoryUsageInterval: Long = 3000
     override val memoryUsageBackgroundInterval: Long = 10000
     override val memoryUsageSessionSamplingRate: Float = 100f
+    override val analyticsSamplingRate: Float = 100f
+    override val analyticsEventTypes: List<String> = DefaultConfig.ANALYTICS_EVENTS.map { it.value }
     override val errorFatalScreenshotEnabled: Boolean = true
     override val errorFatalReplayEnabled: Boolean = true
     override val errorUnhandledReplayEnabled: Boolean = false

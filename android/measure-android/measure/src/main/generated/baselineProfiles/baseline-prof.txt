@@ -129,7 +129,6 @@ HSPLsh/measure/android/SessionManagerImpl;->createNewSession()Ljava/lang/String;
 HSPLsh/measure/android/SessionManagerImpl;->getSessionId()Ljava/lang/String;
 HSPLsh/measure/android/SessionManagerImpl;->init()Ljava/lang/String;
 HSPLsh/measure/android/SessionManagerImpl;->onAppForeground()V
-HSPLsh/measure/android/SessionManagerImpl;->onConfigLoaded()V
 HSPLsh/measure/android/SessionManagerImpl;->storeSession$lambda$6(Lsh/measure/android/SessionManagerImpl;Ljava/lang/String;)Lkotlin/Unit;
 HSPLsh/measure/android/SessionManagerImpl;->storeSession(Ljava/lang/String;)V
 Lsh/measure/android/SessionManagerImpl$$ExternalSyntheticLambda1;
@@ -447,7 +446,6 @@ HSPLsh/measure/android/config/ConfigProviderImpl;->getCustomEventNameRegex()Ljav
 HSPLsh/measure/android/config/ConfigProviderImpl;->getEnableFullCollectionMode()Z
 HSPLsh/measure/android/config/ConfigProviderImpl;->getEnableLogging()Z
 HSPLsh/measure/android/config/ConfigProviderImpl;->getInMemorySignalsQueueFlushRateMs()J
-HSPLsh/measure/android/config/ConfigProviderImpl;->getJourneySamplingRate()F
 HSPLsh/measure/android/config/ConfigProviderImpl;->getLaunchSamplingRate()F
 HSPLsh/measure/android/config/ConfigProviderImpl;->getMaxCheckpointNameLength()I
 HSPLsh/measure/android/config/ConfigProviderImpl;->getMaxCheckpointsPerSpan()I
@@ -483,13 +481,11 @@ Lsh/measure/android/config/DefaultConfig;
 HSPLsh/measure/android/config/DefaultConfig;-><clinit>()V
 HSPLsh/measure/android/config/DefaultConfig;-><init>()V
 HSPLsh/measure/android/config/DefaultConfig;->getDISALLOWED_CUSTOM_HEADERS()Ljava/util/List;
-HSPLsh/measure/android/config/DefaultConfig;->getJOURNEY_EVENTS()Ljava/util/List;
 Lsh/measure/android/config/DynamicConfig;
 HSPLsh/measure/android/config/DynamicConfig;-><clinit>()V
 HSPLsh/measure/android/config/DynamicConfig;-><init>(IIIIFFLsh/measure/android/config/ScreenshotMaskLevel;JJZZFZLjava/util/List;Ljava/util/List;Ljava/util/List;Ljava/util/List;)V
 HSPLsh/measure/android/config/DynamicConfig;->getCpuUsageInterval()J
 HSPLsh/measure/android/config/DynamicConfig;->getHttpDisableEventForUrls()Ljava/util/List;
-HSPLsh/measure/android/config/DynamicConfig;->getJourneySamplingRate()F
 HSPLsh/measure/android/config/DynamicConfig;->getLaunchSamplingRate()F
 HSPLsh/measure/android/config/DynamicConfig;->getMaxEventsInBatch()I
 HSPLsh/measure/android/config/DynamicConfig;->getMemoryUsageInterval()J
@@ -1469,7 +1465,6 @@ HSPLsh/measure/android/utils/SamplerImpl;-><clinit>()V
 HSPLsh/measure/android/utils/SamplerImpl;-><init>(Lsh/measure/android/config/ConfigProvider;Lsh/measure/android/utils/Randomizer;)V
 HSPLsh/measure/android/utils/SamplerImpl;->shouldSampleLaunchEvent()Z
 HSPLsh/measure/android/utils/SamplerImpl;->shouldSampleTrace(Ljava/lang/String;)Z
-HSPLsh/measure/android/utils/SamplerImpl;->shouldTrackJourneyForSession(Ljava/lang/String;)Z
 HSPLsh/measure/android/utils/SamplerImpl;->stableSamplingValue(Ljava/lang/String;)F
 Lsh/measure/android/utils/Sleeper;
 Lsh/measure/android/utils/SystemClock;

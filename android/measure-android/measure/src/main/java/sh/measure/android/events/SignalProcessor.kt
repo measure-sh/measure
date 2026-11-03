@@ -9,7 +9,6 @@ import sh.measure.android.attributes.appendAttributes
 import sh.measure.android.attributes.truncateToLimits
 import sh.measure.android.bugreport.BugReportData
 import sh.measure.android.config.ConfigProvider
-import sh.measure.android.config.DefaultConfig
 import sh.measure.android.exceptions.ExceptionData
 import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.executors.MeasureExecutorService
@@ -23,6 +22,7 @@ import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.tracing.SpanData
 import sh.measure.android.tracing.isValidAttributeKey
 import sh.measure.android.utils.IdProvider
+import sh.measure.android.utils.InstallationIdProvider
 import sh.measure.android.utils.Sampler
 import sh.measure.android.utils.iso8601Timestamp
 import java.util.concurrent.RejectedExecutionException
@@ -155,6 +155,7 @@ internal class SignalProcessorImpl(
     private val screenshotCollector: ScreenshotCollector,
     private val configProvider: ConfigProvider,
     private val sampler: Sampler,
+    private val installationIdProvider: InstallationIdProvider,
 ) : SignalProcessor {
 
     override fun <T> trackUserTriggered(
@@ -369,7 +370,10 @@ internal class SignalProcessorImpl(
                 {
                     signalStore.store(
                         spanData.copy(
-                            attributes = spanData.attributes.toMutableMap().apply { truncateToLimits() },
+                            attributes = spanData.attributes.toMutableMap().apply {
+                                put(Attribute.INSTALLATION_ID_KEY, installationIdProvider.installationId)
+                                truncateToLimits()
+                            },
                         ),
                     )
                     if (logger.enabled) {
@@ -551,16 +555,16 @@ internal class SignalProcessorImpl(
         isSampled: Boolean,
     ): Boolean = when {
         configProvider.enableFullCollectionMode -> true
+        eventType.value in configProvider.analyticsEventTypes -> {
+            sampler.shouldTrackAnalyticsForInstallation(installationIdProvider.installationId)
+        }
+
         eventType == EventType.MEMORY_USAGE -> {
             sampler.shouldTrackMemoryUsageForSession(sessionId)
         }
 
         eventType == EventType.HTTP -> {
             sampler.shouldSampleHttpEvent()
-        }
-
-        eventType in DefaultConfig.JOURNEY_EVENTS -> {
-            sampler.shouldTrackJourneyForSession(sessionId)
         }
 
         else -> isSampled

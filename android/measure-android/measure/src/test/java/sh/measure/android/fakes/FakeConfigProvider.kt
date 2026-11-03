@@ -2,6 +2,7 @@ package sh.measure.android.fakes
 
 import android.hardware.SensorManager
 import sh.measure.android.config.ConfigProvider
+import sh.measure.android.config.DefaultConfig
 import sh.measure.android.config.DynamicConfig
 import sh.measure.android.config.MsrRequestHeadersProvider
 import sh.measure.android.config.ScreenshotMaskLevel
@@ -44,7 +45,6 @@ internal class FakeConfigProvider : ConfigProvider {
     override var anrTimelineDurationSeconds: Int = 300
     override var bugReportTimelineDurationSeconds: Int = 300
     override var traceSamplingRate: Float = 1f
-    override var journeySamplingRate: Float = 1f
     override var screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.AllTextAndMedia
     override var logAutocollectEnabled: Boolean = true
     override var logMinSeverity: Int = 8
@@ -53,6 +53,8 @@ internal class FakeConfigProvider : ConfigProvider {
     override var memoryUsageInterval: Long = 3
     override var memoryUsageBackgroundInterval: Long = 10
     override var memoryUsageSessionSamplingRate: Float = 100f
+    override var analyticsSamplingRate: Float = 100f
+    override var analyticsEventTypes: List<String> = DefaultConfig.ANALYTICS_EVENTS.map { it.value }
     override var errorFatalScreenshotEnabled: Boolean = true
     override var errorFatalReplayEnabled: Boolean = true
     override var errorUnhandledReplayEnabled: Boolean = false
