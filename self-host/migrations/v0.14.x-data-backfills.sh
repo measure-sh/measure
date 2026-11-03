@@ -270,7 +270,6 @@ clickhouse_query() {
       --host "$host" \
       --port 9440 \
       --secure \
-      --progress \
       --receive_timeout 3600 \
       --format TabSeparatedRaw \
       "$@"
@@ -282,7 +281,6 @@ clickhouse_query() {
       --user "$admin_user" \
       --password "$admin_password" \
       --database "$dbname" \
-      --progress \
       --receive_timeout 3600 \
       --format TabSeparatedRaw \
       "$@"
@@ -364,7 +362,7 @@ replay_events() {
             select 1
             from events
             where toYYYYMM(timestamp) = $part
-            order by (app_id, session_id, timestamp, id)
+            order by (team_id, app_id, attribute.app_version, attribute.app_build, timestamp, session_id, id)
             limit $CHUNK_SIZE offset $offset
           )
         "); then
@@ -390,7 +388,7 @@ replay_events() {
             *
           from events
           where toYYYYMM(timestamp) = $part
-          order by (app_id, session_id, timestamp, id)
+          order by (team_id, app_id, attribute.app_version, attribute.app_build, timestamp, session_id, id)
           limit $CHUNK_SIZE offset $offset
           settings
             min_insert_block_size_rows = 10484490,
@@ -416,7 +414,7 @@ replay_events() {
         from (
           select 1
           from events
-          order by (app_id, session_id, timestamp, id)
+          order by (team_id, app_id, attribute.app_version, attribute.app_build, timestamp, session_id, id)
           limit $CHUNK_SIZE offset $offset
         )
       "); then
@@ -441,7 +439,7 @@ replay_events() {
         select
           *
         from events
-        order by (app_id, session_id, timestamp, id)
+        order by (team_id, app_id, attribute.app_version, attribute.app_build, timestamp, session_id, id)
         limit $CHUNK_SIZE offset $offset
       "; then
         echo "  ✗ Insert failed at offset $offset"
