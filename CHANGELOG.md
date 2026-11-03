@@ -92,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Replace journey sampling with analytics sampling (#4764) by @abhaysood
 - (**backend**): Remove nonexistent column from events migration by @anupcowkur in #4773
 - (**backend**): Add codec to warm_launch.app_visible_uptime by @anupcowkur in #4745
 - (**backend**): Add terminated to lifecycle_app.type comment by @anupcowkur in #4744
@@ -186,6 +187,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4573) by @dependabot[bot] in #4573
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
+- (**frontend**): Replace journey with analytics sampling (#4764) by @abhaysood in #4764
 - (**frontend**): Upgrade c15t to v3 by @anupcowkur in #4772
 - (**frontend**): Look up markdown twins on disk by @anupcowkur in #4763
 - (**frontend**): Remove vercel leftovers by @anupcowkur in #4762
