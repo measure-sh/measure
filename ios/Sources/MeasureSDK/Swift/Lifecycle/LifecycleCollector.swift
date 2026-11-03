@@ -29,7 +29,6 @@ final class BaseLifecycleCollector: LifecycleCollector {
     private var isEnabled = AtomicBool(false)
     private var activeSpans: [String: Span] = [:]
     private let sessionManager: SessionManager
-    private let signalSampler: SignalSampler
     private let layoutSnapshotCollector: LayoutSnapshotCollector
     private var isAppLaunchForegroundTriggered = false
 
@@ -39,7 +38,6 @@ final class BaseLifecycleCollector: LifecycleCollector {
          configProvider: ConfigProvider,
          sessionManager: SessionManager,
          logger: Logger,
-         signalSampler: SignalSampler,
          layoutSnapshotCollector: LayoutSnapshotCollector) {
         self.signalProcessor = signalProcessor
         self.timeProvider = timeProvider
@@ -47,7 +45,6 @@ final class BaseLifecycleCollector: LifecycleCollector {
         self.configProvider = configProvider
         self.sessionManager = sessionManager
         self.logger = logger
-        self.signalSampler = signalSampler
         self.layoutSnapshotCollector = layoutSnapshotCollector
     }
 
@@ -201,7 +198,7 @@ final class BaseLifecycleCollector: LifecycleCollector {
                               attachments: attachments,
                               userDefinedAttributes: nil,
                               threadName: nil,
-                              needsReporting: signalSampler.shouldTrackJourneyForSession(sessionId: sessionManager.sessionId),
+                              needsReporting: false,
                               synchronous: false)
     }
 }

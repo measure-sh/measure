@@ -189,10 +189,8 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                                    timeProvider: self.timeProvider,
                                                                    configProvider: self.configProvider,
                                                                    sessionStore: self.sessionStore,
-                                                                   eventStore: self.eventStore,
                                                                    userDefaultStorage: self.userDefaultStorage,
-                                                                   versionCode: FrameworkInfo.version,
-                                                                   signalSampler: self.signalSampler)
+                                                                   versionCode: FrameworkInfo.version)
         self.exporter = exporter ?? MockExporter()
         self.appAttributeProcessor = appAttributeProcessor ?? AppAttributeProcessor()
         self.sysCtl = sysCtl ?? BaseSysCtl()
@@ -278,7 +276,6 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                          configProvider: self.configProvider,
                                                          sessionManager: self.sessionManager,
                                                          logger: self.logger,
-                                                         signalSampler: self.signalSampler,
                                                          layoutSnapshotCollector: self.layoutSnapshotCollector)
         self.cpuUsageCalculator = cpuUsageCalculator ?? BaseCpuUsageCalculator()
         self.memoryUsageCalculator = memoryUsageCalculator ?? BaseMemoryUsageCalculator()

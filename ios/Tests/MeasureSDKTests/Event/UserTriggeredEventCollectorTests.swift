@@ -377,13 +377,13 @@ final class UserTriggeredEventCollectorTests: XCTestCase {
         XCTAssertNotNil(signalProcessor.data as? ScreenViewData)
     }
 
-    func test_trackScreenView_usesJourneySampling() {
+    func test_trackScreenView_leavesReportingToAnalyticsSampling() {
         signalSampler.shouldTrackLaunchEventsReturnValue = true
-        signalSampler.shouldSampleTHttpEventValue = false
+        signalSampler.shouldSampleTHttpEventValue = true
 
         collector.trackScreenView("home", attributes: nil)
 
-        XCTAssertEqual(signalProcessor.needsReporting, true)
+        XCTAssertEqual(signalProcessor.needsReporting, false)
     }
 
     func test_trackException_usesHandledErrorSampling() {

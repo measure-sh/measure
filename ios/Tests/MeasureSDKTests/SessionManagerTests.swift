@@ -42,11 +42,8 @@ final class SessionManagerTests: XCTestCase {
                                             timeProvider: timeProvider,
                                             configProvider: configProvider,
                                             sessionStore: sessionStore,
-                                            eventStore: MockEventStore(),
                                             userDefaultStorage: userDefaultStorage,
-                                            versionCode: "1.0.0",
-                                            signalSampler: BaseSignalSampler(configProvider: configProvider,
-                                                                             randomizer: randomizer))
+                                            versionCode: "1.0.0")
         sessionManager.setOnSessionStarted { sessionId in
             self.signalProcessor.track(data: SessionStartData(),
                                        timestamp: self.sessionManager.getSessionStartTime()!,
@@ -221,11 +218,8 @@ final class SessionManagerTests: XCTestCase {
                                                          timeProvider: timeProvider,
                                                          configProvider: configProvider,
                                                          sessionStore: sessionStore,
-                                                         eventStore: MockEventStore(),
                                                          userDefaultStorage: userDefaultStorage,
-                                                         versionCode: "1.0.0",
-                                                         signalSampler: BaseSignalSampler(configProvider: configProvider,
-                                                                                          randomizer: randomizer))
+                                                         versionCode: "1.0.0")
 
         managerWithoutProcessor.start()
         XCTAssertNil(signalProcessor.type, "No event should be tracked if processor is nil.")
