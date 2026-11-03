@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"time"
 
+	"backend/libs/event"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -66,7 +68,6 @@ type ScreenshotMaskLevel string
 // A migration that renames or drops its column must also rename or remove that
 // key in measure.sdk_config_history.
 type SdkConfig struct {
-	MaxEventsInBatch               int                 `json:"max_events_in_batch"`
 	ErrorReplayDuration            int                 `json:"error_replay_duration"`
 	ANRTimelineDuration            int                 `json:"anr_timeline_duration"`
 	BugReportTimelineDuration      int                 `json:"bug_report_timeline_duration"`
@@ -76,7 +77,6 @@ type SdkConfig struct {
 	LogAutocollectEnabled          bool                `json:"log_autocollect_enabled"`
 	LogMinSeverity                 int                 `json:"log_min_severity"`
 	LogIgnorePatterns              []string            `json:"log_ignore_patterns"`
-	CPUUsageInterval               int                 `json:"cpu_usage_interval"`
 	MemoryUsageInterval            int                 `json:"memory_usage_interval"`
 	MemoryUsageBackgroundInterval  int                 `json:"memory_usage_background_interval"`
 	MemoryUsageSessionSamplingRate float64             `json:"memory_usage_session_sampling_rate"`
@@ -93,15 +93,34 @@ type SdkConfig struct {
 	AppHangSamplingRate            float64             `json:"app_hang_sampling_rate"`
 	AppHangReplayEnabled           bool                `json:"app_hang_replay_enabled"`
 	LaunchSamplingRate             float64             `json:"launch_sampling_rate"`
-	GestureClickTakeSnapshot       bool                `json:"gesture_click_take_snapshot"`
 	HTTPSamplingRate               float64             `json:"http_sampling_rate"`
 	HTTPDisableEventForURLs        []string            `json:"http_disable_event_for_urls"`
 	HTTPTrackRequestForURLs        []string            `json:"http_track_request_for_urls"`
 	HTTPTrackResponseForURLs       []string            `json:"http_track_response_for_urls"`
 	HTTPBlockedHeaders             []string            `json:"http_blocked_headers"`
 	ProfileSamplingRate            float64             `json:"profile_sampling_rate"`
+	AnalyticsSamplingRate          float64             `json:"analytics_sampling_rate"`
+	AnalyticsEventTypes            []string            `json:"analytics_event_types"`
 	UpdatedAt                      *time.Time          `json:"-"`
 	UpdatedBy                      *uuid.UUID          `json:"-"`
+}
+
+// These settings are the same for every app and can't be changed from
+// the dashboard, so they aren't stored in sdk_config.
+const (
+	maxEventsInBatch         = 10000
+	cpuUsageInterval         = 5
+	gestureClickTakeSnapshot = true
+)
+
+// analyticsEventTypes are the event types that count as analytics events.
+var analyticsEventTypes = []string{
+	event.TypeCustom,
+	event.TypeLifecycleActivity,
+	event.TypeLifecycleFragment,
+	event.TypeLifecycleViewController,
+	event.TypeLifecycleSwiftUI,
+	event.TypeScreenView,
 }
 
 // MarshalJSON emits the older crash_* keys alongside the error_* ones. They are derived
@@ -114,20 +133,27 @@ type SdkConfig struct {
 func (s SdkConfig) MarshalJSON() ([]byte, error) {
 	type config SdkConfig
 
+	s.AnalyticsEventTypes = analyticsEventTypes
+
 	return json.Marshal(struct {
 		config
-		CrashTimelineDuration int  `json:"crash_timeline_duration"`
-		CrashTakeScreenshot   bool `json:"crash_take_screenshot"`
+		MaxEventsInBatch         int  `json:"max_events_in_batch"`
+		CPUUsageInterval         int  `json:"cpu_usage_interval"`
+		GestureClickTakeSnapshot bool `json:"gesture_click_take_snapshot"`
+		CrashTimelineDuration    int  `json:"crash_timeline_duration"`
+		CrashTakeScreenshot      bool `json:"crash_take_screenshot"`
 	}{
-		config:                config(s),
-		CrashTimelineDuration: s.ErrorReplayDuration,
-		CrashTakeScreenshot:   s.ErrorFatalTakeScreenshot,
+		config:                   config(s),
+		MaxEventsInBatch:         maxEventsInBatch,
+		CPUUsageInterval:         cpuUsageInterval,
+		GestureClickTakeSnapshot: gestureClickTakeSnapshot,
+		CrashTimelineDuration:    s.ErrorReplayDuration,
+		CrashTakeScreenshot:      s.ErrorFatalTakeScreenshot,
 	})
 }
 
 // ConfigPatch is a partial SdkConfig update, nil fields are left unchanged.
 type ConfigPatch struct {
-	MaxEventsInBatch               *int                 `json:"max_events_in_batch,omitempty"`
 	ErrorReplayDuration            *int                 `json:"error_replay_duration,omitempty"`
 	ANRTimelineDuration            *int                 `json:"anr_timeline_duration,omitempty"`
 	BugReportTimelineDuration      *int                 `json:"bug_report_timeline_duration,omitempty"`
@@ -137,7 +163,6 @@ type ConfigPatch struct {
 	LogAutocollectEnabled          *bool                `json:"log_autocollect_enabled,omitempty"`
 	LogMinSeverity                 *int                 `json:"log_min_severity,omitempty"`
 	LogIgnorePatterns              *[]string            `json:"log_ignore_patterns,omitempty"`
-	CPUUsageInterval               *int                 `json:"cpu_usage_interval,omitempty"`
 	MemoryUsageInterval            *int                 `json:"memory_usage_interval,omitempty"`
 	MemoryUsageBackgroundInterval  *int                 `json:"memory_usage_background_interval,omitempty"`
 	MemoryUsageSessionSamplingRate *float64             `json:"memory_usage_session_sampling_rate,omitempty"`
@@ -154,13 +179,13 @@ type ConfigPatch struct {
 	AppHangSamplingRate            *float64             `json:"app_hang_sampling_rate,omitempty"`
 	AppHangReplayEnabled           *bool                `json:"app_hang_replay_enabled,omitempty"`
 	LaunchSamplingRate             *float64             `json:"launch_sampling_rate,omitempty"`
-	GestureClickSnapshot           *bool                `json:"gesture_click_take_snapshot,omitempty"`
 	HTTPSamplingRate               *float64             `json:"http_sampling_rate,omitempty"`
 	HTTPDisableEventForURLs        *[]string            `json:"http_disable_event_for_urls,omitempty"`
 	HTTPTrackRequestForURLs        *[]string            `json:"http_track_request_for_urls,omitempty"`
 	HTTPTrackResponseForURLs       *[]string            `json:"http_track_response_for_urls,omitempty"`
 	HTTPBlockedHeaders             *[]string            `json:"http_blocked_headers,omitempty"`
 	ProfileSamplingRate            *float64             `json:"profile_sampling_rate,omitempty"`
+	AnalyticsSamplingRate          *float64             `json:"analytics_sampling_rate,omitempty"`
 }
 
 // SdkConfigFieldChange is one field's value before & after a config update.
@@ -209,6 +234,7 @@ var historyFields = []historyField{
 	{"log_autocollect_enabled", func(c SdkConfig) any { return c.LogAutocollectEnabled }},
 	{"log_min_severity", func(c SdkConfig) any { return c.LogMinSeverity }},
 	{"log_ignore_patterns", func(c SdkConfig) any { return c.LogIgnorePatterns }},
+	{"analytics_sampling_rate", func(c SdkConfig) any { return c.AnalyticsSamplingRate }},
 }
 
 // Diff returns the historyFields settings whose values differ between before
@@ -256,7 +282,6 @@ func (s ScreenshotMaskLevel) IsValid() bool {
 // createDefaultConfig returns the SDK config new apps start with.
 func createDefaultConfig() SdkConfig {
 	return SdkConfig{
-		MaxEventsInBatch:               10000,
 		ErrorReplayDuration:            300,
 		ANRTimelineDuration:            300,
 		BugReportTimelineDuration:      300,
@@ -266,7 +291,6 @@ func createDefaultConfig() SdkConfig {
 		LogAutocollectEnabled:          false,
 		LogMinSeverity:                 16,
 		LogIgnorePatterns:              []string{},
-		CPUUsageInterval:               5,
 		MemoryUsageInterval:            5,
 		MemoryUsageBackgroundInterval:  10,
 		MemoryUsageSessionSamplingRate: 0.01,
@@ -283,13 +307,13 @@ func createDefaultConfig() SdkConfig {
 		AppHangSamplingRate:            100,
 		AppHangReplayEnabled:           true,
 		LaunchSamplingRate:             100,
-		GestureClickTakeSnapshot:       true,
 		HTTPSamplingRate:               100,
 		HTTPDisableEventForURLs:        []string{},
 		HTTPTrackRequestForURLs:        []string{},
 		HTTPTrackResponseForURLs:       []string{},
 		HTTPBlockedHeaders:             []string{},
 		ProfileSamplingRate:            100,
+		AnalyticsSamplingRate:          100,
 	}
 }
 
@@ -395,7 +419,6 @@ func SetCacheIfAbsent(ctx context.Context, vk valkey.Client, appID uuid.UUID, js
 // GetConfigFromDb returns an app's SDK config from Postgres.
 func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*SdkConfig, error) {
 	q := sqlf.PostgreSQL.
-		Select("max_events_in_batch").
 		Select("error_replay_duration").
 		Select("anr_timeline_duration").
 		Select("bug_report_timeline_duration").
@@ -405,7 +428,6 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 		Select("log_autocollect_enabled").
 		Select("log_min_severity").
 		Select("log_ignore_patterns").
-		Select("cpu_usage_interval").
 		Select("memory_usage_interval").
 		Select("memory_usage_background_interval").
 		Select("memory_usage_session_sampling_rate").
@@ -422,13 +444,13 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 		Select("app_hang_sampling_rate").
 		Select("app_hang_replay_enabled").
 		Select("launch_sampling_rate").
-		Select("gesture_click_take_snapshot").
 		Select("http_sampling_rate").
 		Select("http_disable_event_for_urls").
 		Select("http_track_request_for_urls").
 		Select("http_track_response_for_urls").
 		Select("http_blocked_headers").
 		Select("profile_sampling_rate").
+		Select("analytics_sampling_rate").
 		Select("updated_at").
 		Select("updated_by").
 		From("measure.sdk_config").
@@ -439,7 +461,6 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 	var sdkConfig SdkConfig
 
 	err := pg.QueryRow(ctx, q.String(), q.Args()...).Scan(
-		&sdkConfig.MaxEventsInBatch,
 		&sdkConfig.ErrorReplayDuration,
 		&sdkConfig.ANRTimelineDuration,
 		&sdkConfig.BugReportTimelineDuration,
@@ -449,7 +470,6 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 		&sdkConfig.LogAutocollectEnabled,
 		&sdkConfig.LogMinSeverity,
 		&sdkConfig.LogIgnorePatterns,
-		&sdkConfig.CPUUsageInterval,
 		&sdkConfig.MemoryUsageInterval,
 		&sdkConfig.MemoryUsageBackgroundInterval,
 		&sdkConfig.MemoryUsageSessionSamplingRate,
@@ -466,13 +486,13 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 		&sdkConfig.AppHangSamplingRate,
 		&sdkConfig.AppHangReplayEnabled,
 		&sdkConfig.LaunchSamplingRate,
-		&sdkConfig.GestureClickTakeSnapshot,
 		&sdkConfig.HTTPSamplingRate,
 		&sdkConfig.HTTPDisableEventForURLs,
 		&sdkConfig.HTTPTrackRequestForURLs,
 		&sdkConfig.HTTPTrackResponseForURLs,
 		&sdkConfig.HTTPBlockedHeaders,
 		&sdkConfig.ProfileSamplingRate,
+		&sdkConfig.AnalyticsSamplingRate,
 		&sdkConfig.UpdatedAt,
 		&sdkConfig.UpdatedBy,
 	)
@@ -571,7 +591,6 @@ func CreateConfig(ctx context.Context, tx pgx.Tx, teamID, appID uuid.UUID, creat
 		InsertInto("measure.sdk_config").
 		Set("team_id", teamID).
 		Set("app_id", appID).
-		Set("max_events_in_batch", config.MaxEventsInBatch).
 		Set("error_replay_duration", config.ErrorReplayDuration).
 		Set("anr_timeline_duration", config.ANRTimelineDuration).
 		Set("bug_report_timeline_duration", config.BugReportTimelineDuration).
@@ -581,7 +600,6 @@ func CreateConfig(ctx context.Context, tx pgx.Tx, teamID, appID uuid.UUID, creat
 		Set("log_autocollect_enabled", config.LogAutocollectEnabled).
 		Set("log_min_severity", config.LogMinSeverity).
 		Set("log_ignore_patterns", config.LogIgnorePatterns).
-		Set("cpu_usage_interval", config.CPUUsageInterval).
 		Set("memory_usage_interval", config.MemoryUsageInterval).
 		Set("memory_usage_background_interval", config.MemoryUsageBackgroundInterval).
 		Set("memory_usage_session_sampling_rate", config.MemoryUsageSessionSamplingRate).
@@ -598,13 +616,13 @@ func CreateConfig(ctx context.Context, tx pgx.Tx, teamID, appID uuid.UUID, creat
 		Set("app_hang_sampling_rate", config.AppHangSamplingRate).
 		Set("app_hang_replay_enabled", config.AppHangReplayEnabled).
 		Set("launch_sampling_rate", config.LaunchSamplingRate).
-		Set("gesture_click_take_snapshot", config.GestureClickTakeSnapshot).
 		Set("http_sampling_rate", config.HTTPSamplingRate).
 		Set("http_disable_event_for_urls", config.HTTPDisableEventForURLs).
 		Set("http_track_request_for_urls", config.HTTPTrackRequestForURLs).
 		Set("http_track_response_for_urls", config.HTTPTrackResponseForURLs).
 		Set("http_blocked_headers", config.HTTPBlockedHeaders).
 		Set("profile_sampling_rate", config.ProfileSamplingRate).
+		Set("analytics_sampling_rate", config.AnalyticsSamplingRate).
 		Set("updated_at", time.Now()).
 		Set("updated_by", createdBy)
 
