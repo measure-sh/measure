@@ -225,6 +225,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Drop unused initConfig prop from Onboarding by @anupcowkur
 - (**frontend**): Keep touch indicators on the correct replay screen (#4436) by @abhaysood in #4436
 - (**kmp**): Prepare sdk release 0.3.0 by @abhaysood in #4506
+- Order backfill replay by `events` sorting key (#4769) by @detj in #4769
 - Add weekly releases and jit vs aot blogs (#4680) by @abhaysood in #4680
 - Add why android and ios apps crash blog (#4635) by @abhaysood in #4635
 - Add dependabot & pin docker image tags (#4681) by @detj in #4681
