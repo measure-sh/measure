@@ -4,7 +4,9 @@ package sdkconfig
 
 import (
 	"context"
+	"encoding/json"
 	"os"
+	"slices"
 	"testing"
 	"time"
 
@@ -221,5 +223,27 @@ func TestGetCacheLegacyFieldMisses(t *testing.T) {
 	}
 	if data != string(freshJSON) {
 		t.Fatalf("expected %q, got %q", freshJSON, data)
+	}
+}
+
+func TestMarshalJSONAddsKeysThatAreNotStored(t *testing.T) {
+	data, err := json.Marshal(createDefaultConfig())
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+
+	var got struct {
+		MaxEventsInBatch    int      `json:"max_events_in_batch"`
+		AnalyticsEventTypes []string `json:"analytics_event_types"`
+	}
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	if got.MaxEventsInBatch != 10000 {
+		t.Errorf("max_events_in_batch = %d, want 10000", got.MaxEventsInBatch)
+	}
+	if !slices.Equal(got.AnalyticsEventTypes, analyticsEventTypes) {
+		t.Errorf("analytics_event_types = %v, want %v", got.AnalyticsEventTypes, analyticsEventTypes)
 	}
 }
