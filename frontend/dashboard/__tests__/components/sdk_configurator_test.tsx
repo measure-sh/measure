@@ -129,6 +129,7 @@ const mockInitialConfig = {
   trace_sampling_rate: 0.1,
   launch_sampling_rate: 0.1,
   journey_sampling_rate: 0.1,
+  analytics_sampling_rate: 100,
   http_sampling_rate: 0.1,
   http_disable_event_for_urls: [],
   http_track_request_for_urls: [],
@@ -189,7 +190,7 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByText("Traces")).toBeInTheDocument();
     expect(screen.getByText("Launch Metrics")).toBeInTheDocument();
     expect(screen.getByText("Profiles")).toBeInTheDocument();
-    expect(screen.getByText("User Journeys")).toBeInTheDocument();
+    expect(screen.getByText("Analytics")).toBeInTheDocument();
     expect(screen.getByText("HTTP")).toBeInTheDocument();
     expect(screen.getByText("Screenshot Masking")).toBeInTheDocument();
     expect(screen.getByText("Memory")).toBeInTheDocument();
@@ -324,7 +325,7 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByTestId("bug-reports-save-button")).toBeDisabled();
     expect(screen.getByTestId("traces-save-button")).toBeDisabled();
     expect(screen.getByTestId("launch-save-button")).toBeDisabled();
-    expect(screen.getByTestId("journey-save-button")).toBeDisabled();
+    expect(screen.getByTestId("analytics-save-button")).toBeDisabled();
     expect(screen.getByTestId("memory-save-button")).toBeDisabled();
     expect(screen.getByTestId("http-save-button")).toBeDisabled();
     expect(screen.getByTestId("masking-save-button")).toBeDisabled();
@@ -369,7 +370,7 @@ describe("SdkConfigurator Component", () => {
     ).toBeDisabled();
     expect(screen.getByTestId("trace-sampling-rate-input")).toBeDisabled();
     expect(screen.getByTestId("launch-sampling-rate-input")).toBeDisabled();
-    expect(screen.getByTestId("journey-sampling-rate-input")).toBeDisabled();
+    expect(screen.getByTestId("analytics-sampling-rate-input")).toBeDisabled();
     expect(screen.getByTestId("memory-usage-interval-input")).toBeDisabled();
     expect(
       screen.getByTestId("memory-usage-session-sampling-rate-input"),
@@ -1565,7 +1566,7 @@ describe("SdkConfigurator Component", () => {
     });
   });
 
-  it("saves journey config on confirmation", async () => {
+  it("saves analytics config on confirmation", async () => {
     simulateMutateSuccess();
 
     render(
@@ -1578,15 +1579,13 @@ describe("SdkConfigurator Component", () => {
       />,
     );
 
-    // Change journey sampling rate
-    const journeyInput = screen.getByTestId("journey-sampling-rate-input");
+    const analyticsInput = screen.getByTestId("analytics-sampling-rate-input");
     await act(async () => {
-      fireEvent.change(journeyInput, { target: { value: "0.25" } });
-      fireEvent.blur(journeyInput);
+      fireEvent.change(analyticsInput, { target: { value: "25" } });
+      fireEvent.blur(analyticsInput);
     });
 
-    // Click save and confirm
-    const saveButton = screen.getByTestId("journey-save-button");
+    const saveButton = screen.getByTestId("analytics-save-button");
     await act(async () => {
       fireEvent.click(saveButton);
     });
@@ -1607,7 +1606,7 @@ describe("SdkConfigurator Component", () => {
         {
           appId: "test-app-id",
           config: {
-            journey_sampling_rate: 0.25,
+            analytics_sampling_rate: 25,
           },
         },
         expect.any(Object),
@@ -1859,7 +1858,7 @@ describe("SdkConfigurator Component", () => {
     ).toBeDisabled();
     expect(screen.getByTestId("trace-sampling-rate-input")).toBeDisabled();
     expect(screen.getByTestId("launch-sampling-rate-input")).toBeDisabled();
-    expect(screen.getByTestId("journey-sampling-rate-input")).toBeDisabled();
+    expect(screen.getByTestId("analytics-sampling-rate-input")).toBeDisabled();
 
     // Check that textareas are disabled
     expect(screen.getByTestId("http-disable-urls-textarea")).toBeDisabled();
@@ -1878,7 +1877,7 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByTestId("bug-reports-save-button")).toBeDisabled();
     expect(screen.getByTestId("traces-save-button")).toBeDisabled();
     expect(screen.getByTestId("launch-save-button")).toBeDisabled();
-    expect(screen.getByTestId("journey-save-button")).toBeDisabled();
+    expect(screen.getByTestId("analytics-save-button")).toBeDisabled();
     expect(screen.getByTestId("http-save-button")).toBeDisabled();
     expect(screen.getByTestId("masking-save-button")).toBeDisabled();
   });
@@ -1911,7 +1910,7 @@ describe("SdkConfigurator Component", () => {
     expect(traceInput.value).toBe("100");
   });
 
-  it("limits journey sampling rate to max value of 100", async () => {
+  it("limits analytics sampling rate to max value of 100", async () => {
     render(
       <SdkConfigurator
         appId="test-app-id"
@@ -1922,21 +1921,21 @@ describe("SdkConfigurator Component", () => {
       />,
     );
 
-    const journeyInput = screen.getByTestId(
-      "journey-sampling-rate-input",
+    const analyticsInput = screen.getByTestId(
+      "analytics-sampling-rate-input",
     ) as HTMLInputElement;
 
     // Verify max attribute is set to 100
-    expect(journeyInput).toHaveAttribute("max", "100");
+    expect(analyticsInput).toHaveAttribute("max", "100");
 
     // Try to set value above 100
     await act(async () => {
-      fireEvent.change(journeyInput, { target: { value: "200" } });
-      fireEvent.blur(journeyInput);
+      fireEvent.change(analyticsInput, { target: { value: "200" } });
+      fireEvent.blur(analyticsInput);
     });
 
     // Value should be clamped to 100
-    expect(journeyInput.value).toBe("100");
+    expect(analyticsInput.value).toBe("100");
   });
 
   it("limits launch sampling rate to max value of 100", async () => {

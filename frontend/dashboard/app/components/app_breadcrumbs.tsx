@@ -57,7 +57,12 @@ const sectionInfo: Record<string, ReactNode> = {
   ),
   journeys: (
     <>
-      Journeys are built from screen views and custom events.{" "}
+      Journeys are built from sampled screen views and custom events. Sampling
+      rate can be changed using{" "}
+      <Link href="apps" className={underlineLinkStyle}>
+        analytics sampling
+      </Link>{" "}
+      in app settings.{" "}
       <Link href="/docs/journeys" className={underlineLinkStyle}>
         Learn more
       </Link>
@@ -65,7 +70,12 @@ const sectionInfo: Record<string, ReactNode> = {
   ),
   funnels: (
     <>
-      Funnels are built from custom events.{" "}
+      Funnels are built from sampled custom events. Sampling rate can be changed
+      using{" "}
+      <Link href="apps" className={underlineLinkStyle}>
+        analytics sampling
+      </Link>{" "}
+      in app settings.{" "}
       <Link href="/docs/funnels" className={underlineLinkStyle}>
         Learn more
       </Link>

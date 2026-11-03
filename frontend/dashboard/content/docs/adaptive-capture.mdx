@@ -33,7 +33,6 @@ Every app starts with these defaults:
 | App hang session replay duration (iOS) | 300 seconds (5 minutes)                                                           |
 | Bug report session replay duration   | 300                                                                                 |
 | Trace sampling rate                  | 100%                                                                                |
-| Journey sampling rate                | 100%                                                                                |
 | Launch metrics sampling rate         | 100%                                                                                |
 | Memory collection interval           | 5 seconds                                                                           |
 | Memory background collection interval (Android) | 10 seconds                                                                |
@@ -46,6 +45,8 @@ Every app starts with these defaults:
 | Automatic log collection             | false                                                                               |
 | Minimum log severity                 | Warning                                                                             |
 | Log ignore patterns                  | (empty)                                                                             |
+| Journey sampling rate (deprecated)   | 100%                                                                                |
+| Analytics sampling rate              | 100%                                                                                |
 
 ## Errors
 
@@ -139,13 +140,6 @@ Measure reports every trace by default. Set the sampling rate anywhere from 100%
 Launch metrics cover cold, warm, and hot launches, shown on the Overview page in the dashboard.
 Set a sampling rate to control how many sessions collect them. Every session collects launch
 metrics by default, and you can lower the rate to 0.001%.
-
-## Journey sampling
-
-Journey events power the Journey view in the dashboard. They cover screen view events on all
-platforms, activity and fragment lifecycle events on Android, and view controller lifecycle
-events on iOS. Set a sampling rate to control how many sessions collect them. Every session
-collects journey events by default, and you can lower the rate to 0.001%.
 
 ## Memory
 
@@ -286,3 +280,53 @@ above, dropping `debug` and `info`.
 
 List regular expressions to match against the log body. Any log whose body matches a pattern is
 discarded at the source.
+
+## Journey sampling
+
+<Callout type="warn">
+
+Journey sampling is deprecated in Measure Android SDK **0.23.0** and Measure iOS SDK **0.15.0**.
+[Analytics sampling](#analytics-sampling) replaces it.
+
+</Callout>
+
+Versions of your app built with an earlier SDK use journey sampling. It controls how many sessions
+send screen view and lifecycle events.
+
+The dashboard no longer shows a journey sampling setting. Set the
+[analytics sampling rate](#analytics-sampling) instead. These versions use that rate for journey
+sampling.
+
+They sample sessions at that rate.
+
+Until you change the analytics sampling rate, they keep their current journey rate.
+
+## Analytics sampling
+
+<Callout type="info">
+
+Requires Measure Android SDK **0.23.0** or later, or Measure iOS SDK **0.15.0** or later.
+
+</Callout>
+
+Analytics sampling controls how many installations send analytics events. Set a rate from 0% to
+100%. The default is 100%.
+
+Analytics events are used by funnels and journeys on the dashboard. They include these event
+types:
+
+* Custom events.
+* Screen view events.
+* Activity and fragment lifecycle events on Android.
+* View controller and SwiftUI lifecycle events on iOS.
+
+An installation is one install of your app on one device. Reinstalling the app creates a new
+installation. On Android, clearing the app's data also creates one. Android and iOS don't give apps
+a stable device ID, so a new installation can't be linked to an earlier one on the same device.
+
+The SDK picks installations at random at your sampling rate. A picked installation sends all of its
+analytics events. Other installations send them only inside a session replay collected for
+something else, like a crash.
+
+Raising the rate keeps the installations that are already sampled and adds more. Lowering it drops
+some of them.

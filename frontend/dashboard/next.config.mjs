@@ -152,7 +152,7 @@ const nextConfig = {
         permanent: true,
       },
       // Configuration Options was renamed Adaptive Capture. Forward the old
-      // flat URL; the browser carries anchors like #journey-sampling across.
+      // flat URL; the browser carries anchors like #analytics-sampling across.
       {
         source: "/docs/configuration-options",
         destination: "/docs/adaptive-capture",

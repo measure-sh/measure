@@ -149,6 +149,7 @@ const SANDBOX_SDK_CONFIG = {
   bug_report_timeline_duration: 30,
   launch_sampling_rate: 100,
   journey_sampling_rate: 100,
+  analytics_sampling_rate: 100,
   http_sampling_rate: 100,
   http_disable_event_for_urls: [] as string[],
   http_track_request_for_urls: [] as string[],
