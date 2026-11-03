@@ -203,6 +203,7 @@
 		AB10C0062F62000000000006 /* LogEventCollector.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10C0052F62000000000005 /* LogEventCollector.swift */; };
 		AB10C00A2F6200000000000A /* LogEventCollectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB10C0092F62000000000009 /* LogEventCollectorTests.swift */; };
 		AB21A0010000000000000001 /* MemorySessionSamplingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB21A0010000000000000002 /* MemorySessionSamplingTests.swift */; };
+		AB22A0010000000000000001 /* AnalyticsInstallationSamplingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB22A0010000000000000002 /* AnalyticsInstallationSamplingTests.swift */; };
 		BA50390E3E74F7E03BAFC26D /* PatchAttributeProcessor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CB572ECF81AD8F28A0EA9BE /* PatchAttributeProcessor.swift */; };
 		BAE73763450A4FED7D951E65 /* StringExtensionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 716C2CCA703E0FA626BBB2A9 /* StringExtensionTests.swift */; };
 		BBA746FEECE08F811DD767A7 /* ValidationLimits.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4BB2244CFA5D67AC12ACA73F /* ValidationLimits.swift */; };
@@ -644,6 +645,7 @@
 		AB10C0052F62000000000005 /* LogEventCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogEventCollector.swift; sourceTree = "<group>"; };
 		AB10C0092F62000000000009 /* LogEventCollectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LogEventCollectorTests.swift; sourceTree = "<group>"; };
 		AB21A0010000000000000002 /* MemorySessionSamplingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemorySessionSamplingTests.swift; sourceTree = "<group>"; };
+		AB22A0010000000000000002 /* AnalyticsInstallationSamplingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalyticsInstallationSamplingTests.swift; sourceTree = "<group>"; };
 		C3A0C116C0AFA0D309C25B57 /* LayoutSnapshotThrottler.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LayoutSnapshotThrottler.swift; sourceTree = "<group>"; };
 		CF03BF222F9CC218001F5CE3 /* MsrRedactViewHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrRedactViewHelper.swift; sourceTree = "<group>"; };
 		CF03BF242F9CC22B001F5CE3 /* MsrMaskModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MsrMaskModifier.swift; sourceTree = "<group>"; };
@@ -1332,6 +1334,7 @@
 				52B7F0F22D757F81001498BC /* CustomEventCollectorTests.swift */,
 				52B7F0F32D757F81001498BC /* EventProcessorTests.swift */,
 				AB21A0010000000000000002 /* MemorySessionSamplingTests.swift */,
+				AB22A0010000000000000002 /* AnalyticsInstallationSamplingTests.swift */,
 				69C4496A2DACC7BE00E44CF4 /* InternalSignalCollectorTests.swift */,
 				AB10C0092F62000000000009 /* LogEventCollectorTests.swift */,
 				CF4EA2D42EA243EB0020FC71 /* UserTriggeredEventCollectorTests.swift */,
@@ -2263,6 +2266,7 @@
 				52B7F1622D757F81001498BC /* MockMemoryUsageCalculator.swift in Sources */,
 				52B7F1442D757F81001498BC /* EventProcessorTests.swift in Sources */,
 				AB21A0010000000000000001 /* MemorySessionSamplingTests.swift in Sources */,
+				AB22A0010000000000000001 /* AnalyticsInstallationSamplingTests.swift in Sources */,
 				52B7F15D2D757F81001498BC /* MockSignalProcessor.swift in Sources */,
 				CF1BB4FA2DDEFD9F00588506 /* MockBugReportManager.swift in Sources */,
 				52B7F15A2D757F81001498BC /* MockCpuUsageCalculator.swift in Sources */,

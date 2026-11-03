@@ -70,7 +70,7 @@ export default function SdkConfigurator({
     traces: "idle",
     launch: "idle",
     profiling: "idle",
-    journey: "idle",
+    analytics: "idle",
     http: "idle",
     masking: "idle",
     logs: "idle",
@@ -91,7 +91,7 @@ export default function SdkConfigurator({
   const [tracesConfirmOpen, setTracesConfirmOpen] = useState(false);
   const [launchConfirmOpen, setLaunchConfirmOpen] = useState(false);
   const [profilingConfirmOpen, setProfilingConfirmOpen] = useState(false);
-  const [journeyConfirmOpen, setJourneyConfirmOpen] = useState(false);
+  const [analyticsConfirmOpen, setAnalyticsConfirmOpen] = useState(false);
   const [httpConfirmOpen, setHttpConfirmOpen] = useState(false);
   const [maskingConfirmOpen, setMaskingConfirmOpen] = useState(false);
   const [logsConfirmOpen, setLogsConfirmOpen] = useState(false);
@@ -166,10 +166,11 @@ export default function SdkConfigurator({
     !!sdkConfig &&
     !!originalSdkConfig &&
     sdkConfig.profile_sampling_rate !== originalSdkConfig.profile_sampling_rate;
-  const journeyChanged =
+  const analyticsChanged =
     !!sdkConfig &&
     !!originalSdkConfig &&
-    sdkConfig.journey_sampling_rate !== originalSdkConfig.journey_sampling_rate;
+    sdkConfig.analytics_sampling_rate !==
+      originalSdkConfig.analytics_sampling_rate;
   const httpChanged =
     !!sdkConfig &&
     !!originalSdkConfig &&
@@ -289,9 +290,9 @@ export default function SdkConfigurator({
       profile_sampling_rate: sdkConfig.profile_sampling_rate,
     });
   };
-  const handleSaveJourney = () => {
-    saveSection("journey", {
-      journey_sampling_rate: sdkConfig.journey_sampling_rate,
+  const handleSaveAnalytics = () => {
+    saveSection("analytics", {
+      analytics_sampling_rate: sdkConfig.analytics_sampling_rate,
     });
   };
   const handleSaveHttp = () => {
@@ -680,24 +681,24 @@ export default function SdkConfigurator({
     );
   };
 
-  const getJourneysConfirmBody = () => {
+  const getAnalyticsConfirmBody = () => {
     return (
       <div className="font-body">
         <p>
           Are you sure you want to update{" "}
-          <span className="font-display font-bold">User Journey settings</span>{" "}
-          for app <span className="font-display font-bold">{appName}</span>?
+          <span className="font-display font-bold">Analytics settings</span> for
+          app <span className="font-display font-bold">{appName}</span>?
         </p>
         <p className="mt-4">The following changes will be applied:</p>
         <ul className="mt-2 space-y-1 list-disc list-inside">
           <li>
-            Sampling rate:{" "}
+            Installation sampling rate:{" "}
             <span className="font-display font-bold">
-              {originalSdkConfig.journey_sampling_rate}%
+              {originalSdkConfig.analytics_sampling_rate}%
             </span>{" "}
             →{" "}
             <span className="font-display font-bold">
-              {sdkConfig.journey_sampling_rate}%
+              {sdkConfig.analytics_sampling_rate}%
             </span>
           </li>
         </ul>
@@ -1460,48 +1461,6 @@ export default function SdkConfigurator({
             </AccordionContent>
           </AccordionItem>
 
-          {/* User Journeys Accordion */}
-          <AccordionItem value="journeys" className="mt-2">
-            <AccordionTrigger className="font-body text-base">
-              User Journeys
-            </AccordionTrigger>
-            <AccordionContent className={accordionContentStyle}>
-              <div className="mt-2 space-y-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-body text-sm">
-                    Collect user journeys for
-                  </span>
-                  <SdkConfigNumericInput
-                    testId="journey-sampling-rate-input"
-                    value={sdkConfig.journey_sampling_rate}
-                    minValue={0}
-                    maxValue={100}
-                    step={0.01}
-                    type="float"
-                    onChange={(value) =>
-                      updateSdkConfig({ journey_sampling_rate: value })
-                    }
-                    disabled={!currentUserCanChangeAppSettings}
-                  />
-                  <span className="font-body text-sm">% sessions</span>
-                </div>
-                <div className="flex justify-end mt-2">
-                  <Button
-                    data-testid="journey-save-button"
-                    variant="outline"
-                    disabled={
-                      !currentUserCanChangeAppSettings || !journeyChanged
-                    }
-                    loading={sectionStatuses.journey === "saving"}
-                    onClick={() => setJourneyConfirmOpen(true)}
-                  >
-                    Save
-                  </Button>
-                </div>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-
           {/* HTTP Accordion */}
           <AccordionItem value="http" className="mt-2">
             <AccordionTrigger className="font-body text-base">
@@ -1882,6 +1841,62 @@ export default function SdkConfigurator({
               </div>
             </AccordionContent>
           </AccordionItem>
+
+          {/* Analytics Accordion */}
+          <AccordionItem value="analytics" className="mt-2">
+            <AccordionTrigger className="font-body text-base">
+              Analytics
+            </AccordionTrigger>
+            <AccordionContent className={accordionContentStyle}>
+              <div className="mt-2 space-y-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-body text-sm">
+                    Collect analytics events for
+                  </span>
+                  <SdkConfigNumericInput
+                    testId="analytics-sampling-rate-input"
+                    value={sdkConfig.analytics_sampling_rate}
+                    minValue={0}
+                    maxValue={100}
+                    step={0.01}
+                    type="float"
+                    onChange={(value) =>
+                      updateSdkConfig({ analytics_sampling_rate: value })
+                    }
+                    disabled={!currentUserCanChangeAppSettings}
+                  />
+                  <span className="font-body text-sm">% of installations</span>
+                  <InfoTooltip
+                    content={
+                      <>
+                        Sampling is applied per installation, requires Android
+                        SDK 0.23.0+ or iOS SDK 0.15.0+.{" "}
+                        <Link
+                          href="/docs/adaptive-capture#analytics-sampling"
+                          className={underlineLinkStyle}
+                        >
+                          Learn more
+                        </Link>
+                      </>
+                    }
+                  />
+                </div>
+                <div className="flex justify-end mt-2">
+                  <Button
+                    data-testid="analytics-save-button"
+                    variant="outline"
+                    disabled={
+                      !currentUserCanChangeAppSettings || !analyticsChanged
+                    }
+                    loading={sectionStatuses.analytics === "saving"}
+                    onClick={() => setAnalyticsConfirmOpen(true)}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
         </Accordion>
       </div>
 
@@ -1975,15 +1990,15 @@ export default function SdkConfigurator({
       />
 
       <DangerConfirmationDialog
-        body={getJourneysConfirmBody()}
-        open={journeyConfirmOpen}
+        body={getAnalyticsConfirmBody()}
+        open={analyticsConfirmOpen}
         affirmativeText="Yes, I'm sure"
         cancelText="Cancel"
         onAffirmativeAction={() => {
-          setJourneyConfirmOpen(false);
-          handleSaveJourney();
+          setAnalyticsConfirmOpen(false);
+          handleSaveAnalytics();
         }}
-        onCancelAction={() => setJourneyConfirmOpen(false)}
+        onCancelAction={() => setAnalyticsConfirmOpen(false)}
       />
 
       <DangerConfirmationDialog

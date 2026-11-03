@@ -47,26 +47,26 @@ func seedSdkConfig(ctx context.Context, t *testing.T) (appID uuid.UUID, userID s
 	return appID, userID
 }
 
-func patchMaxEvents(t *testing.T, deps *server.Deps, appID uuid.UUID, userID string, value int) error {
+func patchErrorReplayDuration(t *testing.T, deps *server.Deps, appID uuid.UUID, userID string, value int) error {
 	t.Helper()
 
-	body := strings.NewReader(`{"max_events_in_batch":` + strconv.Itoa(value) + `}`)
+	body := strings.NewReader(`{"error_replay_duration":` + strconv.Itoa(value) + `}`)
 	c, _ := newTestGinContext("PATCH", "/apps/"+appID.String()+"/config", body)
 	return PatchConfigForApp(c, deps, appID, userID)
 }
 
-func maxEventsInDb(ctx context.Context, t *testing.T, appID uuid.UUID) int {
+func errorReplayDurationInDb(ctx context.Context, t *testing.T, appID uuid.UUID) int {
 	t.Helper()
 
 	var n int
 	if err := th.PgPool.QueryRow(ctx,
-		`SELECT max_events_in_batch FROM sdk_config WHERE app_id = $1`, appID).Scan(&n); err != nil {
-		t.Fatalf("read max_events_in_batch: %v", err)
+		`SELECT error_replay_duration FROM sdk_config WHERE app_id = $1`, appID).Scan(&n); err != nil {
+		t.Fatalf("read error_replay_duration: %v", err)
 	}
 	return n
 }
 
-func cachedMaxEvents(ctx context.Context, t *testing.T, appID uuid.UUID) int {
+func cachedErrorReplayDuration(ctx context.Context, t *testing.T, appID uuid.UUID) int {
 	t.Helper()
 
 	data, err := sdkconfig.GetCache(ctx, th.VK, appID)
@@ -81,7 +81,7 @@ func cachedMaxEvents(ctx context.Context, t *testing.T, appID uuid.UUID) int {
 	if err := json.Unmarshal([]byte(data), &config); err != nil {
 		t.Fatalf("unmarshal cached config: %v", err)
 	}
-	return config.MaxEventsInBatch
+	return config.ErrorReplayDuration
 }
 
 func TestPatchConfigForApp_SlowReaderCannotOverwrite(t *testing.T) {
@@ -89,17 +89,17 @@ func TestPatchConfigForApp_SlowReaderCannotOverwrite(t *testing.T) {
 	defer cleanupAll(ctx, t)
 
 	appID, userID := seedSdkConfig(ctx, t)
-	staleJSON := []byte(`{"max_events_in_batch":1111}`)
+	staleJSON := []byte(`{"error_replay_duration":1111}`)
 
 	if err := sdkconfig.SetCacheIfAbsent(ctx, th.VK, appID, staleJSON); err != nil {
 		t.Fatalf("repopulate cache: %v", err)
 	}
 
-	if got := cachedMaxEvents(ctx, t, appID); got != 1111 {
-		t.Fatalf("cached max_events_in_batch = %d, want 1111, absent key was not populated", got)
+	if got := cachedErrorReplayDuration(ctx, t, appID); got != 1111 {
+		t.Fatalf("cached error_replay_duration = %d, want 1111, absent key was not populated", got)
 	}
 
-	if err := patchMaxEvents(t, deps, appID, userID, 4242); err != nil {
+	if err := patchErrorReplayDuration(t, deps, appID, userID, 1234); err != nil {
 		t.Fatalf("patch config: %v", err)
 	}
 
@@ -107,8 +107,8 @@ func TestPatchConfigForApp_SlowReaderCannotOverwrite(t *testing.T) {
 		t.Fatalf("repopulate cache: %v", err)
 	}
 
-	if got := cachedMaxEvents(ctx, t, appID); got != 4242 {
-		t.Errorf("cached max_events_in_batch = %d, want 4242", got)
+	if got := cachedErrorReplayDuration(ctx, t, appID); got != 1234 {
+		t.Errorf("cached error_replay_duration = %d, want 1234", got)
 	}
 }
 
@@ -121,12 +121,12 @@ func TestPatchConfigForApp_CacheFailureStillUpdates(t *testing.T) {
 	noCache := *deps
 	noCache.VK = nil
 
-	if err := patchMaxEvents(t, &noCache, appID, userID, 4242); err != nil {
+	if err := patchErrorReplayDuration(t, &noCache, appID, userID, 1234); err != nil {
 		t.Fatalf("patch config: %v", err)
 	}
 
-	if got := maxEventsInDb(ctx, t, appID); got != 4242 {
-		t.Errorf("max_events_in_batch = %d, want 4242", got)
+	if got := errorReplayDurationInDb(ctx, t, appID); got != 1234 {
+		t.Errorf("error_replay_duration = %d, want 1234", got)
 	}
 }
 
@@ -208,6 +208,32 @@ func TestPatchConfigForApp_RecordsChangedFields(t *testing.T) {
 	}
 	if got := changes["http_blocked_headers"]; len(got.Old.([]any)) != 0 || got.New.([]any)[0] != "x-token" {
 		t.Errorf("http_blocked_headers change = %+v, want [] to [x-token]", got)
+	}
+}
+
+func TestPatchConfigForApp_AnalyticsRateSetsJourneyRate(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	appID, userID := seedSdkConfig(ctx, t)
+	rates := func() (analytics, journey float64) {
+		t.Helper()
+		if err := th.PgPool.QueryRow(ctx,
+			`SELECT analytics_sampling_rate, journey_sampling_rate FROM sdk_config WHERE app_id = $1`,
+			appID).Scan(&analytics, &journey); err != nil {
+			t.Fatalf("read rates: %v", err)
+		}
+		return analytics, journey
+	}
+
+	patchConfig(t, appID, userID, `{"analytics_sampling_rate":25}`)
+	if analytics, journey := rates(); analytics != 25 || journey != 25 {
+		t.Errorf("rates = %v, %v, want 25, 25", analytics, journey)
+	}
+
+	patchConfig(t, appID, userID, `{"analytics_sampling_rate":5,"journey_sampling_rate":50}`)
+	if analytics, journey := rates(); analytics != 5 || journey != 50 {
+		t.Errorf("rates = %v, %v, want 5, 50", analytics, journey)
 	}
 }
 

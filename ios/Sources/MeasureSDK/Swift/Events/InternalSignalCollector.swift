@@ -220,7 +220,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector { // swiftlint:
                         attachments: attachments,
                         userDefinedAttributes: serializedUserDefinedAttributes,
                         threadName: threadName,
-                        needsReporting: signalSampler.shouldTrackJourneyForSession(sessionId: sessionId ?? sessionManager.sessionId),
+                        needsReporting: false,
                         synchronous: false
                     )
                 }

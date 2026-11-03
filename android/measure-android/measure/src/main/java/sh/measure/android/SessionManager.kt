@@ -2,7 +2,6 @@ package sh.measure.android
 
 import androidx.annotation.VisibleForTesting
 import sh.measure.android.config.ConfigProvider
-import sh.measure.android.config.DefaultConfig
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.logger.LogLevel
 import sh.measure.android.logger.Logger
@@ -13,7 +12,6 @@ import sh.measure.android.tracing.InternalTrace
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.PackageInfoProvider
 import sh.measure.android.utils.ProcessInfoProvider
-import sh.measure.android.utils.Sampler
 import sh.measure.android.utils.TimeProvider
 import java.util.concurrent.RejectedExecutionException
 
@@ -59,11 +57,6 @@ internal interface SessionManager {
      * Called when app goes to background
      */
     fun onAppBackground()
-
-    /**
-     * Called when config is loaded.
-     */
-    fun onConfigLoaded()
 
     /**
      * Records that [sessionId] experienced an ANR at [anrTimeMs], so that signals delivered
@@ -134,7 +127,6 @@ internal class SessionManagerImpl(
     private val timeProvider: TimeProvider,
     private val configProvider: ConfigProvider,
     private val packageInfoProvider: PackageInfoProvider,
-    private val sampler: Sampler,
 ) : SessionManager {
     private var sessionStartListener: SessionStartListener? = null
     private var sessionId: String? = null
@@ -185,28 +177,6 @@ internal class SessionManagerImpl(
             "SDK must be initialized before accessing session start time"
         }
         return startTime
-    }
-
-    override fun onConfigLoaded() {
-        val currentSessionId = sessionId ?: return
-        if (sampler.shouldTrackJourneyForSession(currentSessionId)) {
-            try {
-                ioExecutor.submit {
-                    InternalTrace.trace(
-                        { "msr-markSessionForJourneyTracking" },
-                        {
-                            database.sampleJourneyEvents(currentSessionId, DefaultConfig.JOURNEY_EVENTS)
-                        },
-                    )
-                }
-            } catch (e: RejectedExecutionException) {
-                logger.log(
-                    LogLevel.Error,
-                    "SessionManager: Failed to mark session for journey tracking",
-                    e,
-                )
-            }
-        }
     }
 
     override fun markSessionWithAnr(sessionId: String, anrTimeMs: Long) {

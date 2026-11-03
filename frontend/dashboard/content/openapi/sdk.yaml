@@ -2526,9 +2526,9 @@ paths:
                     minimum: 0
                     maximum: 100
                     description: >
-                      Sampling rate for sessions that should report journey events:
-                      `lifecycle_activity`, `lifecycle_fragment`,
-                      `lifecycle_view_controller` and `screen_view`.
+                      Sampling rate for sessions that should report journey events,
+                      read by SDKs before Android 0.23.0 and iOS 0.15.0. Newer SDKs
+                      sample journey events with `analytics_sampling_rate`.
                   screenshot_mask_level:
                     type: string
                     enum:
@@ -2682,6 +2682,20 @@ paths:
                     minimum: 0
                     maximum: 100
                     description: Sampling rate for profile events.
+                  analytics_sampling_rate:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+                    description: >
+                      Sampling rate for installations that should report the event
+                      types in `analytics_event_types`.
+                  analytics_event_types:
+                    type: array
+                    items:
+                      type: string
+                    description: >
+                      Event types sampled with `analytics_sampling_rate`. Fixed by
+                      Measure for every app.
               example:
                 max_events_in_batch: 1000
                 error_replay_duration: 300
@@ -2719,6 +2733,14 @@ paths:
                 http_track_response_for_urls: []
                 http_blocked_headers: []
                 profile_sampling_rate: 100
+                analytics_sampling_rate: 100
+                analytics_event_types:
+                  - custom
+                  - lifecycle_activity
+                  - lifecycle_fragment
+                  - lifecycle_view_controller
+                  - lifecycle_swift_ui
+                  - screen_view
         "304":
           description: The config has not changed, the body will be empty.
         "400":

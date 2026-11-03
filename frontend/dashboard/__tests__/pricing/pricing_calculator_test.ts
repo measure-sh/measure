@@ -19,7 +19,7 @@ const inputs: CalculatorInputs = {
   errorRatePercent: 1,
   perfSpanSamplePercent: 10,
   perfSpanCount: 5,
-  journeySamplePercent: 10,
+  analyticsSamplePercent: 10,
   httpSamplePercent: 10,
   httpRequestsPerSession: 20,
 };
@@ -29,7 +29,7 @@ const noSampling: CalculatorInputs = {
   launchSamplePercent: 0,
   errorRatePercent: 0,
   perfSpanSamplePercent: 0,
-  journeySamplePercent: 0,
+  analyticsSamplePercent: 0,
   httpSamplePercent: 0,
 };
 
@@ -66,15 +66,15 @@ describe("computeEventBreakdown", () => {
     expect(computeEventBreakdown(inputs).perfSpansPerDay).toBeCloseTo(1500);
   });
 
-  it("counts 10 journey events per session minute for sampled sessions", () => {
+  it("counts 10 analytics events per session minute for sampled installations", () => {
     // 3,000 sessions * 5 minutes * 10 events * 10%
-    expect(computeEventBreakdown(inputs).journeyEventsPerDay).toBeCloseTo(
+    expect(computeEventBreakdown(inputs).analyticsEventsPerDay).toBeCloseTo(
       15000,
     );
     // 3,000 sessions * 2 minutes * 10 events * 10%
     expect(
       computeEventBreakdown({ ...inputs, sessionLengthMinutes: 2 })
-        .journeyEventsPerDay,
+        .analyticsEventsPerDay,
     ).toBeCloseTo(6000);
   });
 
@@ -88,12 +88,12 @@ describe("computeEventBreakdown", () => {
       ...inputs,
       launchSamplePercent: 100,
       perfSpanSamplePercent: 100,
-      journeySamplePercent: 100,
+      analyticsSamplePercent: 100,
       httpSamplePercent: 100,
     });
     expect(events.launchPerDay).toBe(3000);
     expect(events.perfSpansPerDay).toBe(3000 * 5);
-    expect(events.journeyEventsPerDay).toBe(3000 * 5 * 10);
+    expect(events.analyticsEventsPerDay).toBe(3000 * 5 * 10);
     expect(events.httpEventsPerDay).toBe(3000 * 20);
   });
 
@@ -104,7 +104,7 @@ describe("computeEventBreakdown", () => {
       crashEventsPerDay: 0,
       sessionReplayEventsPerDay: 0,
       perfSpansPerDay: 0,
-      journeyEventsPerDay: 0,
+      analyticsEventsPerDay: 0,
       httpEventsPerDay: 0,
     });
   });
@@ -119,7 +119,7 @@ describe("computeBytesPerDay", () => {
       crashEventsPerDay: 3,
       sessionReplayEventsPerDay: 4,
       perfSpansPerDay: 5,
-      journeyEventsPerDay: 6,
+      analyticsEventsPerDay: 6,
       httpEventsPerDay: 7,
     };
     expect(computeBytesPerDay(events)).toBe(

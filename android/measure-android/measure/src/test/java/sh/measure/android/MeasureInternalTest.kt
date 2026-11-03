@@ -22,6 +22,9 @@ import sh.measure.android.attributes.PatchAttributeProcessor
 import sh.measure.android.config.DynamicConfig
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.executors.ExecutorServiceRegistry
+import sh.measure.android.executors.MeasureExecutorService
+import sh.measure.android.fakes.FakeInstallationIdProvider
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.utils.ManifestMetadata
 import sh.measure.android.utils.ValidationLimits
@@ -34,6 +37,8 @@ class MeasureInternalTest {
     private val sessionManager = mock<SessionManager>()
     private val signalProcessor = mock<SignalProcessor>()
     private val patchAttributeProcessor = PatchAttributeProcessor()
+    private val ioExecutor = mock<MeasureExecutorService>()
+    private val installationIdProvider = FakeInstallationIdProvider()
 
     private fun mockMeasureInitializer(): MeasureInitializer {
         val initializer = mock(MeasureInitializer::class.java)
@@ -71,7 +76,10 @@ class MeasureInternalTest {
         `when`(initializer.dataCleanupService).thenReturn(mock())
         `when`(initializer.powerStateProvider).thenReturn(mock())
         `when`(initializer.periodicSignalStoreScheduler).thenReturn(mock())
-        `when`(initializer.executorServiceRegistry).thenReturn(mock())
+        val executorServiceRegistry = mock<ExecutorServiceRegistry>()
+        `when`(executorServiceRegistry.ioExecutor()).thenReturn(ioExecutor)
+        `when`(initializer.executorServiceRegistry).thenReturn(executorServiceRegistry)
+        `when`(initializer.installationIdProvider).thenReturn(installationIdProvider)
         `when`(initializer.shakeBugReportCollector).thenReturn(mock())
         `when`(initializer.internalSignalCollector).thenReturn(mock())
         `when`(initializer.configLoader).thenReturn(mock())
@@ -136,7 +144,6 @@ class MeasureInternalTest {
         verify(initializer.configLoader).loadDynamicConfig(callbackCaptor.capture())
         callbackCaptor.firstValue.invoke(DynamicConfig())
 
-        verify(initializer.sessionManager).onConfigLoaded()
         verify(initializer.spanProcessor).onConfigLoaded()
         verify(initializer.appLaunchCollector).onConfigLoaded()
         verify(initializer.exporter).export()

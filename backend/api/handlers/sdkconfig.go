@@ -22,19 +22,19 @@ import (
 )
 
 // configColumns must stay ordered to match the scan in scanConfig.
-const configColumns = `max_events_in_batch, error_replay_duration, anr_timeline_duration,
+const configColumns = `error_replay_duration, anr_timeline_duration,
 	bug_report_timeline_duration, trace_sampling_rate, journey_sampling_rate,
 	screenshot_mask_level, log_autocollect_enabled, log_min_severity,
-	log_ignore_patterns, cpu_usage_interval, memory_usage_interval,
+	log_ignore_patterns, memory_usage_interval,
 	memory_usage_background_interval, memory_usage_session_sampling_rate,
 	error_fatal_take_screenshot, error_fatal_replay_enabled,
 	error_unhandled_replay_enabled, error_handled_replay_enabled,
 	error_fatal_sampling_rate, error_unhandled_sampling_rate, error_handled_sampling_rate,
 	anr_take_screenshot, app_hang_threshold_millis, app_hang_timeline_duration,
 	app_hang_sampling_rate, app_hang_replay_enabled, launch_sampling_rate,
-	gesture_click_take_snapshot, http_sampling_rate, http_disable_event_for_urls,
+	http_sampling_rate, http_disable_event_for_urls,
 	http_track_request_for_urls, http_track_response_for_urls, http_blocked_headers,
-	profile_sampling_rate, updated_at, updated_by`
+	profile_sampling_rate, analytics_sampling_rate, updated_at, updated_by`
 
 // Allowed ranges for SDK config values.
 const (
@@ -52,7 +52,6 @@ const (
 func scanConfig(row pgx.Row) (sdkconfig.SdkConfig, error) {
 	var config sdkconfig.SdkConfig
 	err := row.Scan(
-		&config.MaxEventsInBatch,
 		&config.ErrorReplayDuration,
 		&config.ANRTimelineDuration,
 		&config.BugReportTimelineDuration,
@@ -62,7 +61,6 @@ func scanConfig(row pgx.Row) (sdkconfig.SdkConfig, error) {
 		&config.LogAutocollectEnabled,
 		&config.LogMinSeverity,
 		&config.LogIgnorePatterns,
-		&config.CPUUsageInterval,
 		&config.MemoryUsageInterval,
 		&config.MemoryUsageBackgroundInterval,
 		&config.MemoryUsageSessionSamplingRate,
@@ -79,13 +77,13 @@ func scanConfig(row pgx.Row) (sdkconfig.SdkConfig, error) {
 		&config.AppHangSamplingRate,
 		&config.AppHangReplayEnabled,
 		&config.LaunchSamplingRate,
-		&config.GestureClickTakeSnapshot,
 		&config.HTTPSamplingRate,
 		&config.HTTPDisableEventForURLs,
 		&config.HTTPTrackRequestForURLs,
 		&config.HTTPTrackResponseForURLs,
 		&config.HTTPBlockedHeaders,
 		&config.ProfileSamplingRate,
+		&config.AnalyticsSamplingRate,
 		&config.UpdatedAt,
 		&config.UpdatedBy,
 	)
@@ -101,9 +99,6 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 
 	stmt := sqlf.PostgreSQL.Update("measure.sdk_config")
 
-	if patch.MaxEventsInBatch != nil {
-		stmt.Set("max_events_in_batch", *patch.MaxEventsInBatch)
-	}
 	if patch.ErrorReplayDuration != nil {
 		if *patch.ErrorReplayDuration < minTimelineDurationSeconds || *patch.ErrorReplayDuration > maxTimelineDurationSeconds {
 			return fmt.Errorf("error_replay_duration must be between %d-%d", minTimelineDurationSeconds, maxTimelineDurationSeconds)
@@ -148,9 +143,6 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 	}
 	if patch.LogIgnorePatterns != nil {
 		stmt.Set("log_ignore_patterns", *patch.LogIgnorePatterns)
-	}
-	if patch.CPUUsageInterval != nil {
-		stmt.Set("cpu_usage_interval", *patch.CPUUsageInterval)
 	}
 	if patch.MemoryUsageInterval != nil {
 		if *patch.MemoryUsageInterval < minIntervalSeconds || *patch.MemoryUsageInterval > maxIntervalSeconds {
@@ -230,9 +222,6 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		}
 		stmt.Set("launch_sampling_rate", *patch.LaunchSamplingRate)
 	}
-	if patch.GestureClickSnapshot != nil {
-		stmt.Set("gesture_click_take_snapshot", *patch.GestureClickSnapshot)
-	}
 	if patch.HTTPSamplingRate != nil {
 		if *patch.HTTPSamplingRate < minSamplingRate || *patch.HTTPSamplingRate > maxSamplingRate {
 			return fmt.Errorf("http_sampling_rate must be between %d-%d", minSamplingRate, maxSamplingRate)
@@ -256,6 +245,17 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 			return fmt.Errorf("profile_sampling_rate must be between %d-%d", minSamplingRate, maxSamplingRate)
 		}
 		stmt.Set("profile_sampling_rate", *patch.ProfileSamplingRate)
+	}
+	if patch.AnalyticsSamplingRate != nil {
+		if *patch.AnalyticsSamplingRate < 0 || *patch.AnalyticsSamplingRate > 100 {
+			return fmt.Errorf("analytics_sampling_rate must be between 0-100")
+		}
+		stmt.Set("analytics_sampling_rate", *patch.AnalyticsSamplingRate)
+		// SDKs released before analytics sampling read journey_sampling_rate
+		// instead, so they follow the same rate unless the patch sets one.
+		if patch.JourneySamplingRate == nil {
+			stmt.Set("journey_sampling_rate", *patch.AnalyticsSamplingRate)
+		}
 	}
 	// clock_timestamp() is read after the row lock is taken, so concurrent patches
 	// get updated_at in the order they write. Go's time.Now() and postgres now()

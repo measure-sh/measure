@@ -28,9 +28,13 @@ protocol DynamicConfig {
     /// Defaults to 100%, i.e. all traces.
     var traceSamplingRate: Float { get }
 
-    /// Sampling rate for sessions that should track journey events.
-    /// Defaults to 100%, i.e. all sessions.
-    var journeySamplingRate: Float { get }
+    /// Sampling rate in percentage for installations that should send analytics events.
+    /// Defaults to 100%.
+    var analyticsSamplingRate: Float { get }
+
+    /// Event types sampled with `analyticsSamplingRate`.
+    /// Defaults to `DefaultConfig.analyticsEvents`.
+    var analyticsEventTypes: [String] { get }
 
     /// Screenshot masking level.
     var screenshotMaskLevel: ScreenshotMaskLevel { get }
@@ -132,7 +136,8 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
     let anrTimelineDurationSeconds: Number
     let bugReportTimelineDurationSeconds: Number
     let traceSamplingRate: Float
-    let journeySamplingRate: Float
+    let analyticsSamplingRate: Float
+    let analyticsEventTypes: [String]
     let screenshotMaskLevel: ScreenshotMaskLevel
     let logAutocollectEnabled: Bool
     let logMinSeverity: Int
@@ -165,7 +170,8 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
          anrTimelineDurationSeconds: Number = DefaultConfig.anrTimelineDurationSeconds,
          bugReportTimelineDurationSeconds: Number = DefaultConfig.bugReportTimelineDurationSeconds,
          traceSamplingRate: Float = DefaultConfig.traceSamplingRate,
-         journeySamplingRate: Float = DefaultConfig.journeySamplingRate,
+         analyticsSamplingRate: Float = DefaultConfig.analyticsSamplingRate,
+         analyticsEventTypes: [String] = DefaultConfig.analyticsEvents.map(\.rawValue),
          screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel,
          logAutocollectEnabled: Bool = DefaultConfig.logAutocollectEnabled,
          logMinSeverity: Int = DefaultConfig.logMinSeverity,
@@ -198,7 +204,8 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         self.anrTimelineDurationSeconds = anrTimelineDurationSeconds
         self.bugReportTimelineDurationSeconds = bugReportTimelineDurationSeconds
         self.traceSamplingRate = traceSamplingRate
-        self.journeySamplingRate = journeySamplingRate
+        self.analyticsSamplingRate = analyticsSamplingRate
+        self.analyticsEventTypes = analyticsEventTypes
         self.screenshotMaskLevel = screenshotMaskLevel
         self.logAutocollectEnabled = logAutocollectEnabled
         self.logMinSeverity = logMinSeverity
@@ -237,7 +244,8 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         anrTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .anrTimelineDurationSeconds) ?? DefaultConfig.anrTimelineDurationSeconds
         bugReportTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .bugReportTimelineDurationSeconds) ?? DefaultConfig.bugReportTimelineDurationSeconds
         traceSamplingRate = try c.decodeIfPresent(Float.self, forKey: .traceSamplingRate) ?? DefaultConfig.traceSamplingRate
-        journeySamplingRate = try c.decodeIfPresent(Float.self, forKey: .journeySamplingRate) ?? DefaultConfig.journeySamplingRate
+        analyticsSamplingRate = try c.decodeIfPresent(Float.self, forKey: .analyticsSamplingRate) ?? DefaultConfig.analyticsSamplingRate
+        analyticsEventTypes = try c.decodeIfPresent([String].self, forKey: .analyticsEventTypes) ?? DefaultConfig.analyticsEvents.map(\.rawValue)
         screenshotMaskLevel = try c.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
         logAutocollectEnabled = try c.decodeIfPresent(Bool.self, forKey: .logAutocollectEnabled) ?? DefaultConfig.logAutocollectEnabled
         logMinSeverity = try c.decodeIfPresent(Int.self, forKey: .logMinSeverity) ?? DefaultConfig.logMinSeverity
@@ -279,7 +287,8 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         try c.encode(anrTimelineDurationSeconds, forKey: .anrTimelineDurationSeconds)
         try c.encode(bugReportTimelineDurationSeconds, forKey: .bugReportTimelineDurationSeconds)
         try c.encode(traceSamplingRate, forKey: .traceSamplingRate)
-        try c.encode(journeySamplingRate, forKey: .journeySamplingRate)
+        try c.encode(analyticsSamplingRate, forKey: .analyticsSamplingRate)
+        try c.encode(analyticsEventTypes, forKey: .analyticsEventTypes)
         try c.encode(screenshotMaskLevel, forKey: .screenshotMaskLevel)
         try c.encode(logAutocollectEnabled, forKey: .logAutocollectEnabled)
         try c.encode(logMinSeverity, forKey: .logMinSeverity)
@@ -318,7 +327,8 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         case anrTimelineDurationSeconds = "anr_timeline_duration"
         case bugReportTimelineDurationSeconds = "bug_report_timeline_duration"
         case traceSamplingRate = "trace_sampling_rate"
-        case journeySamplingRate = "journey_sampling_rate"
+        case analyticsSamplingRate = "analytics_sampling_rate"
+        case analyticsEventTypes = "analytics_event_types"
         case screenshotMaskLevel = "screenshot_mask_level"
         case logAutocollectEnabled = "log_autocollect_enabled"
         case logMinSeverity = "log_min_severity"

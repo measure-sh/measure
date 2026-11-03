@@ -10,8 +10,8 @@ import Foundation
 protocol SignalSampler {
     func shouldTrackLaunchEvents() -> Bool
     func shouldSampleTrace(_ traceId: String) -> Bool
-    func shouldTrackJourneyForSession(sessionId: String) -> Bool
     func shouldTrackMemoryUsageForSession(sessionId: String) -> Bool
+    func shouldTrackAnalyticsForInstallation(installationId: String) -> Bool
     func shouldSampleHttpEvent() -> Bool
     func shouldSampleError(_ severity: ExceptionSeverity) -> Bool
     func shouldSampleAppHang() -> Bool
@@ -20,7 +20,6 @@ protocol SignalSampler {
 final class BaseSignalSampler: SignalSampler {
     private let configProvider: ConfigProvider
     private let randomizer: Randomizer
-    private var shouldSampleUserJourney: Bool?
 
     init(configProvider: ConfigProvider, randomizer: Randomizer) {
         self.configProvider = configProvider
@@ -58,22 +57,6 @@ final class BaseSignalSampler: SignalSampler {
         return (idLo & Int64.max) < threshold
     }
 
-    func shouldTrackJourneyForSession(sessionId: String) -> Bool {
-        if configProvider.enableFullCollectionMode {
-            return true
-        }
-        let samplingRate = configProvider.journeySamplingRate / 100.0
-
-        if samplingRate == 0.0 {
-            return false
-        }
-        if samplingRate == 1.0 {
-            return true
-        }
-
-        return stableSamplingValue(sessionId: sessionId) < samplingRate
-    }
-
     func shouldTrackMemoryUsageForSession(sessionId: String) -> Bool {
         if configProvider.enableFullCollectionMode {
             return true
@@ -86,6 +69,20 @@ final class BaseSignalSampler: SignalSampler {
         }
 
         return stableSamplingValue(sessionId: sessionId) < rate / 100
+    }
+
+    func shouldTrackAnalyticsForInstallation(installationId: String) -> Bool {
+        if configProvider.enableFullCollectionMode {
+            return true
+        }
+
+        let rate = configProvider.analyticsSamplingRate
+        guard rate.isFinite, rate > 0 else { return false }
+        if rate >= 100 {
+            return true
+        }
+
+        return stableSamplingValue(sessionId: installationId) < rate / 100
     }
 
     func shouldSampleHttpEvent() -> Bool {

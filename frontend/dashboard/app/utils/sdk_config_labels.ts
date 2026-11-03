@@ -98,6 +98,10 @@ export const sdkConfigFieldLabels: Record<
   },
   profile_sampling_rate: { label: "Profiling sampling rate", unit: percent },
   journey_sampling_rate: { label: "User journey sampling rate", unit: percent },
+  analytics_sampling_rate: {
+    label: "Analytics installation sampling rate",
+    unit: percent,
+  },
   http_sampling_rate: { label: "HTTP sampling rate", unit: percent },
   http_disable_event_for_urls: { label: "Disabled HTTP events for URLs" },
   http_track_request_for_urls: { label: "Collect HTTP request for URLs" },

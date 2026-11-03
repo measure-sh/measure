@@ -17,9 +17,10 @@ struct DefaultConfig {
                                                     "msr-req-id",
                                                     "Authorization",
                                                     "Content-Length"]
-    static let journeyEvents: [EventType] = [.lifecycleSwiftUI,
-                                             .lifecycleViewController,
-                                             .screenView]
+    static let analyticsEvents: [EventType] = [.custom,
+                                               .lifecycleSwiftUI,
+                                               .lifecycleViewController,
+                                               .screenView]
     static let enableDiagnosticMode = false
     static let enableDiagnosticModeGesture = false
 
@@ -28,7 +29,7 @@ struct DefaultConfig {
     static let anrTimelineDurationSeconds: Number = 300
     static let bugReportTimelineDurationSeconds: Number = 300
     static let traceSamplingRate: Float = 100
-    static let journeySamplingRate: Float = 100
+    static let analyticsSamplingRate: Float = 100
     static let screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia
     static let logAutocollectEnabled: Bool = false
     static let logMinSeverity: Int = 16

@@ -40,8 +40,6 @@ Filters don't change the sample size. If a filter matches only a small number of
 
 To analyze a larger sample, select a shorter date range.
 
-The SDK also samples the screens used by Journeys according to the [journey sampling rate](/docs/adaptive-capture#journey-sampling). By default, it collects these screens from every session.
-
 ## Graph
 
 The graph represents screens and custom events as nodes. All sessions that end in a fatal error share a single fatal-error node. Links between nodes show how many users moved directly from one step to the next.
@@ -108,3 +106,7 @@ The selected date range applies to both the graph and the details for the select
 Coding agents connected to Measure's [MCP server](/docs/mcp) can read journeys, inspect the users who followed a path, and retrieve errors, traces, network requests, and sessions associated with a node, or a path.
 
 See the full [tool list](/docs/mcp#available-tools).
+
+## Configuration options
+
+Journeys are built from screen views and custom events sent by sampled app installations. Set the share of installations that are sampled with the [analytics sampling rate](/docs/adaptive-capture#analytics-sampling) in app settings. Other installations only send these events as part of a crash or bug report.

@@ -77,29 +77,6 @@ internal class SamplerImplTest {
     }
 
     @Test
-    fun `journey - 0 percent rate never samples`() {
-        configProvider.journeySamplingRate = 0f
-        assertFalse(sampler.shouldTrackJourneyForSession(UUID.randomUUID().toString()))
-    }
-
-    @Test
-    fun `journey - 100 percent rate always samples`() {
-        configProvider.journeySamplingRate = 100f
-        assertTrue(sampler.shouldTrackJourneyForSession(UUID.randomUUID().toString()))
-    }
-
-    @Test
-    fun `journey - same session id produces consistent sampling decision`() {
-        configProvider.journeySamplingRate = 50f
-        val sessionId = "1be7987d-2f06-4dab-b950-18163af2d012"
-
-        val firstResult = sampler.shouldTrackJourneyForSession(sessionId)
-        val secondResult = sampler.shouldTrackJourneyForSession(sessionId)
-
-        assertTrue(firstResult == secondResult)
-    }
-
-    @Test
     fun `full collection mode always tracks memory usage`() {
         configProvider.enableFullCollectionMode = true
         configProvider.memoryUsageSessionSamplingRate = 0f
@@ -121,6 +98,37 @@ internal class SamplerImplTest {
             sampler.shouldTrackMemoryUsageForSession(sessionId) ==
                 sampler.shouldTrackMemoryUsageForSession(sessionId),
         )
+    }
+
+    @Test
+    fun `full collection mode always tracks analytics`() {
+        configProvider.enableFullCollectionMode = true
+        configProvider.analyticsSamplingRate = 0f
+
+        assertTrue(sampler.shouldTrackAnalyticsForInstallation("1be7987d-2f06-4dab-b950-18163af2d012"))
+    }
+
+    @Test
+    fun `analytics - 0 percent rate never samples`() {
+        configProvider.analyticsSamplingRate = 0f
+        assertFalse(sampler.shouldTrackAnalyticsForInstallation(UUID.randomUUID().toString()))
+    }
+
+    @Test
+    fun `analytics - 100 percent rate always samples`() {
+        configProvider.analyticsSamplingRate = 100f
+        assertTrue(sampler.shouldTrackAnalyticsForInstallation(UUID.randomUUID().toString()))
+    }
+
+    @Test
+    fun `analytics - same installation id produces consistent sampling decision`() {
+        configProvider.analyticsSamplingRate = 50f
+        val installationId = "1be7987d-2f06-4dab-b950-18163af2d012"
+
+        val firstResult = sampler.shouldTrackAnalyticsForInstallation(installationId)
+        val secondResult = sampler.shouldTrackAnalyticsForInstallation(installationId)
+
+        assertTrue(firstResult == secondResult)
     }
 
     @Test

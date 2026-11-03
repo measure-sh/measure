@@ -365,7 +365,7 @@ export default function FunnelsOverview({ teamId }: { teamId: string }) {
           className="h-144"
           icon={FunnelIcon}
           title="No funnels yet"
-          description="Create a funnel to see how many users go through a sequence of events."
+          description="Create a funnel to see how many users go through a sequence of events. Analytics sampling requires Measure Android SDK 0.23.0+ or iOS SDK 0.15.0+, older versions only send custom events as part of a session replay."
           action={
             <Button
               variant="outline"
