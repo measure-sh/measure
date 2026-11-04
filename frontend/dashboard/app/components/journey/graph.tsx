@@ -9,7 +9,11 @@ import { useChartColor } from "@/app/utils/chart_utils";
 import { Maximize, X, ZoomIn, ZoomOut } from "lucide-react";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../button";
-import { PlotTooltipArea, PlotTooltipSwatch } from "../plot_tooltip";
+import {
+  PlotTooltipArea,
+  PlotTooltipSwatch,
+  useTooltipTaps,
+} from "../plot_tooltip";
 import { formatUsers, KIND_LABELS, shortName, useKindColours } from "./format";
 import { extendSelection, highlightOf } from "./highlight";
 import {
@@ -21,7 +25,7 @@ import {
   type View,
   zoomAround,
 } from "./graph_layout";
-import { LinkTooltip, NodeTooltip } from "./tooltips";
+import { LinkTooltip, linkTapKey, NodeTooltip, nodeTapKey } from "./tooltips";
 
 const KINDS: JourneyNode["kind"][] = ["screen", "event", "fatal"];
 const MAX_LABEL_CHARS = 20;
@@ -101,7 +105,60 @@ export default function JourneyGraph({
   const [moved, setMoved] = useState<{ journey: Journey; view: View } | null>(
     null,
   );
-  const [hover, setHover] = useState<Hover | null>(null);
+  // Hover state belongs to the journey it was set on. A new journey has its own
+  // nodes and links and refits the view, so a kept hover could describe a node
+  // or link the graph no longer shows.
+  const [hoverState, setHoverState] = useState<{
+    journey: Journey;
+    hover: Hover;
+  } | null>(null);
+  const hover =
+    hoverState !== null && hoverState.journey === journey
+      ? hoverState.hover
+      : null;
+  const setHover = (next: Hover | null) =>
+    setHoverState(next === null ? null : { journey, hover: next });
+  // A touch pointer enters on press and leaves on lift. So pointer enter and
+  // leave update hover only for a mouse or pen; on touch, a press on a node or
+  // link shows its tooltip, and a press elsewhere hides it.
+  const hoverWithoutTouch = (event: React.PointerEvent, next: Hover | null) => {
+    if (event.pointerType !== "touch") {
+      setHover(next);
+    }
+  };
+  const hoverOnTouch = (event: React.PointerEvent, next: Hover) => {
+    if (event.pointerType === "touch") {
+      setHover(next);
+    }
+  };
+  const tooltipTaps = useTooltipTaps();
+  // A finger lifts off the node or link, so its tooltip closes when the next
+  // tap selects it. A mouse stays over the target, so its tooltip stays open.
+  const pressPointerType = useRef<string | null>(null);
+  const closeTouchTooltip = () => {
+    if (pressPointerType.current === "touch") {
+      setHover(null);
+    }
+  };
+
+  // A touch pointer leaves a node or link when the finger lifts, so the hover
+  // stays until the next press outside the canvas.
+  useEffect(() => {
+    const doc = containerRef.current?.ownerDocument;
+    if (hover === null || !doc) {
+      return;
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        event.pointerType === "touch" &&
+        !containerRef.current?.contains(event.target as Node)
+      ) {
+        setHover(null);
+      }
+    };
+    doc.addEventListener("pointerdown", onPointerDown, true);
+    return () => doc.removeEventListener("pointerdown", onPointerDown, true);
+  }, [hover]);
   // Kept until the next press, so the click that follows a drag's release can
   // tell it ended a drag.
   const drag = useRef<Drag | null>(null);
@@ -208,52 +265,56 @@ export default function JourneyGraph({
     .sort((a, b) => LINK_ORDER[a.state] - LINK_ORDER[b.state]);
 
   return (
-    <PlotTooltipArea placement="corner">
-      <div className="flex h-full w-full flex-col overflow-hidden rounded-md border select-none">
-        <div className="flex items-center gap-2 border-b p-2">
-          {toolbarStart}
-          {onSelect && selection !== null && (
-            <Button
-              variant="outline"
-              size="icon"
-              type="button"
-              aria-label="Clear selection"
-              onClick={() => onSelect(null)}
-            >
-              <X className="h-4 w-4" />
-            </Button>
-          )}
-          <div className="ml-auto flex items-center gap-1">
-            {toolbarEnd}
-            <Button
-              variant="outline"
-              size="icon"
-              type="button"
-              aria-label="Zoom in"
-              onClick={() => zoomAt(size.width / 2, size.height / 2, 1.25)}
-            >
-              <ZoomIn className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              type="button"
-              aria-label="Zoom out"
-              onClick={() => zoomAt(size.width / 2, size.height / 2, 0.8)}
-            >
-              <ZoomOut className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="icon"
-              type="button"
-              aria-label="Fit to view"
-              onClick={() => setMoved(null)}
-            >
-              <Maximize className="h-4 w-4" />
-            </Button>
-          </div>
+    <div className="flex h-full w-full flex-col overflow-hidden rounded-md border select-none">
+      <div className="flex items-center gap-2 border-b p-2">
+        {toolbarStart}
+        {onSelect && selection !== null && (
+          <Button
+            variant="outline"
+            size="icon"
+            type="button"
+            aria-label="Clear selection"
+            onClick={() => onSelect(null)}
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        )}
+        <div className="ml-auto flex items-center gap-1">
+          {toolbarEnd}
+          <Button
+            variant="outline"
+            size="icon"
+            type="button"
+            aria-label="Zoom in"
+            onClick={() => zoomAt(size.width / 2, size.height / 2, 1.25)}
+          >
+            <ZoomIn className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            type="button"
+            aria-label="Zoom out"
+            onClick={() => zoomAt(size.width / 2, size.height / 2, 0.8)}
+          >
+            <ZoomOut className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="icon"
+            type="button"
+            aria-label="Fit to view"
+            onClick={() => setMoved(null)}
+          >
+            <Maximize className="h-4 w-4" />
+          </Button>
         </div>
+      </div>
+      <PlotTooltipArea
+        placement="corner"
+        className="contents"
+        taps={tooltipTaps}
+      >
         <div
           ref={containerRef}
           className="relative min-h-0 flex-1 overflow-hidden touch-none"
@@ -264,6 +325,12 @@ export default function JourneyGraph({
                 : dragging
                   ? "grabbing"
                   : "grab",
+          }}
+          onPointerDownCapture={(event) => {
+            pressPointerType.current = event.pointerType;
+            if (event.pointerType === "touch") {
+              setHover(null);
+            }
           }}
           onPointerDown={(event) => {
             if (event.button !== 0) {
@@ -301,7 +368,7 @@ export default function JourneyGraph({
             }
             setDragging(false);
           }}
-          onPointerLeave={() => setHover(null)}
+          onPointerLeave={(event) => hoverWithoutTouch(event, null)}
         >
           {placeholder !== undefined ? (
             <div className="absolute inset-0">{placeholder}</div>
@@ -351,12 +418,22 @@ export default function JourneyGraph({
                       stroke="transparent"
                       strokeWidth={Math.max(12, thickness(link.users) + 6)}
                       className={onSelect ? "cursor-pointer" : undefined}
-                      onPointerEnter={() =>
-                        !dragging && setHover({ kind: "link", link })
+                      onPointerEnter={(event) =>
+                        !dragging &&
+                        hoverWithoutTouch(event, { kind: "link", link })
                       }
-                      onPointerLeave={() => setHover(null)}
+                      onPointerLeave={(event) => hoverWithoutTouch(event, null)}
+                      onPointerDown={(event) =>
+                        hoverOnTouch(event, { kind: "link", link })
+                      }
                       onClick={() => {
-                        if (!wasDrag()) {
+                        if (
+                          !wasDrag() &&
+                          tooltipTaps.shouldAct(
+                            linkTapKey(link.source, link.target),
+                          )
+                        ) {
+                          closeTouchTooltip();
                           onSelect?.({
                             source: link.source,
                             target: link.target,
@@ -387,14 +464,22 @@ export default function JourneyGraph({
                       className={
                         onSelect ? "group/node cursor-pointer" : undefined
                       }
-                      onPointerEnter={() =>
-                        !dragging && setHover({ kind: "node", node })
+                      onPointerEnter={(event) =>
+                        !dragging &&
+                        hoverWithoutTouch(event, { kind: "node", node })
                       }
-                      onPointerLeave={() => setHover(null)}
+                      onPointerLeave={(event) => hoverWithoutTouch(event, null)}
+                      onPointerDown={(event) =>
+                        hoverOnTouch(event, { kind: "node", node })
+                      }
                       onClick={(event) => {
-                        if (wasDrag()) {
+                        if (
+                          wasDrag() ||
+                          !tooltipTaps.shouldAct(nodeTapKey(node.id))
+                        ) {
                           return;
                         }
+                        closeTouchTooltip();
                         const next = event.shiftKey
                           ? extendSelection(journey, selection, node)
                           : clickClears(node.id)
@@ -482,7 +567,11 @@ export default function JourneyGraph({
                           // click handler does not also select the node alone.
                           onClick={(event) => {
                             event.stopPropagation();
-                            if (!wasDrag()) {
+                            if (
+                              !wasDrag() &&
+                              tooltipTaps.shouldAct(nodeTapKey(node.id))
+                            ) {
+                              closeTouchTooltip();
                               onSelect?.(
                                 extendSelection(journey, selection, node),
                               );
@@ -546,40 +635,40 @@ export default function JourneyGraph({
             />
           ) : null}
         </div>
-        <div className="flex items-center justify-between gap-3 border-t px-3 py-2 text-xs text-muted-foreground font-body">
-          <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            {[
-              ...(summary ?? []),
-              <Gesture key="pan" keys={["Drag"]} action="pan" />,
-              <Gesture key="zoom" keys={["Ctrl", "Scroll"]} action="zoom" />,
-              onSelect && (
-                <Gesture
-                  key="path"
-                  keys={["Shift", "Click"]}
-                  action="build path"
-                />
-              ),
-            ]
-              .filter(Boolean)
-              .map((hint, i) => (
-                <Fragment key={i}>
-                  {i > 0 && <span aria-hidden>·</span>}
-                  {hint}
-                </Fragment>
-              ))}
-          </p>
-          <div className="flex items-center gap-3">
-            {KINDS.filter((kind) =>
-              journey.nodes.some((n) => n.kind === kind),
-            ).map((kind) => (
-              <span key={kind} className="flex items-center gap-1.5">
-                <PlotTooltipSwatch color={kindColours[kind]} />
-                {KIND_LABELS[kind]}
-              </span>
+      </PlotTooltipArea>
+      <div className="flex items-center justify-between gap-3 border-t px-3 py-2 text-xs text-muted-foreground font-body">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+          {[
+            ...(summary ?? []),
+            <Gesture key="pan" keys={["Drag"]} action="pan" />,
+            <Gesture key="zoom" keys={["Ctrl", "Scroll"]} action="zoom" />,
+            onSelect && (
+              <Gesture
+                key="path"
+                keys={["Shift", "Click"]}
+                action="build path"
+              />
+            ),
+          ]
+            .filter(Boolean)
+            .map((hint, i) => (
+              <Fragment key={i}>
+                {i > 0 && <span aria-hidden>·</span>}
+                {hint}
+              </Fragment>
             ))}
-          </div>
+        </p>
+        <div className="flex items-center gap-3">
+          {KINDS.filter((kind) =>
+            journey.nodes.some((n) => n.kind === kind),
+          ).map((kind) => (
+            <span key={kind} className="flex items-center gap-1.5">
+              <PlotTooltipSwatch color={kindColours[kind]} />
+              {KIND_LABELS[kind]}
+            </span>
+          ))}
         </div>
       </div>
-    </PlotTooltipArea>
+    </div>
   );
 }

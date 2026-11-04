@@ -13,6 +13,7 @@ import {
   it,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
+import { pointerDown } from "@/__tests__/helpers/pointer_events";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { DateTime, Settings } from "luxon";
 import { PlotTooltipArea } from "@/app/components/plot_tooltip";
@@ -21,6 +22,7 @@ const mockPush = jest.fn();
 const mockUseFunnelTrendQuery = jest.fn();
 let mockTheme = "light";
 let mockBarProps: any;
+let mockShownTooltipIndex: number | null = null;
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: jest.fn() }),
@@ -38,6 +40,8 @@ jest.mock("@/app/query/hooks", () => ({
 // jsdom cannot draw the canvas, so each bar is a button whose click event
 // reaches the chart's onClick and then bubbles to the plot, as a canvas click
 // does.
+// When mockShownTooltipIndex is set, the mock renders that bar's tooltip inside
+// the plot, as nivo does when a bar is hovered or tapped.
 jest.mock("@nivo/bar", () => ({
   ResponsiveBarCanvas: (props: any) => {
     mockBarProps = props;
@@ -50,6 +54,12 @@ jest.mock("@nivo/bar", () => ({
             onClick={(event) => props.onClick({ index }, event)}
           />
         ))}
+        {mockShownTooltipIndex !== null &&
+          props.tooltip({
+            data: props.data[mockShownTooltipIndex],
+            index: mockShownTooltipIndex,
+            color: "#000000",
+          })}
       </div>
     );
   },
@@ -176,6 +186,7 @@ afterAll(() => {
 beforeEach(() => {
   mockTheme = "light";
   mockBarProps = undefined;
+  mockShownTooltipIndex = null;
 });
 
 describe("FunnelPinnedCard metrics", () => {
@@ -583,6 +594,22 @@ describe("FunnelPinnedCard weekly plot", () => {
     expect(mockPush).toHaveBeenCalledWith(
       `${funnelPath}?from=funnels_overview_pinned`,
     );
+  });
+
+  it("opens the week only when tapping the bar with the visible tooltip, and opens nothing between bars", () => {
+    mockShownTooltipIndex = 1;
+    renderCard();
+    const tap = (target: Element) => {
+      pointerDown(target, "touch");
+      fireEvent.click(target);
+    };
+
+    tap(screen.getByRole("button", { name: "Bar 2" }));
+    tap(screen.getByTestId("bar-canvas"));
+    expect(mockPush).not.toHaveBeenCalled();
+    tap(screen.getByRole("button", { name: "Bar 1" }));
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockPush.mock.calls[0][0]).toContain("sd=2026-09-28");
   });
 
   it("opens nothing when the plot or a bar is clicked in reorder mode", () => {

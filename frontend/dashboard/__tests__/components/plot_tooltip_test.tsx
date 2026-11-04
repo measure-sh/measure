@@ -7,14 +7,23 @@ import {
   jest,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { pointerDown } from "@/__tests__/helpers/pointer_events";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 
 import {
   PlotTooltip,
   PlotTooltipArea,
   PlotTooltipShell,
   PlotTooltipSwatch,
+  type TooltipTaps,
   tooltipPosition,
+  useTooltipTaps,
 } from "@/app/components/plot_tooltip";
 
 describe("PlotTooltipShell", () => {
@@ -337,5 +346,82 @@ describe("PlotTooltipArea", () => {
     expect(tooltip.style.transform).toBe("translate(1132px, 286px)");
     unmount();
     iframe.remove();
+  });
+});
+
+describe("TooltipTaps", () => {
+  let tooltipTaps: TooltipTaps;
+
+  function Chart({ shownKey }: { shownKey: string | null }) {
+    tooltipTaps = useTooltipTaps();
+    return (
+      <PlotTooltipArea taps={tooltipTaps}>
+        <div data-testid="chart" />
+        {shownKey !== null && (
+          <PlotTooltip tapKey={shownKey}>
+            <p>{shownKey}</p>
+          </PlotTooltip>
+        )}
+      </PlotTooltipArea>
+    );
+  }
+
+  function pointerDownOnChart(pointerType: string) {
+    pointerDown(screen.getByTestId("chart"), pointerType);
+  }
+
+  it("acts on a mouse or pen click when no tooltip is visible", () => {
+    render(<Chart shownKey={null} />);
+
+    pointerDownOnChart("mouse");
+    expect(tooltipTaps.shouldAct("a")).toBe(true);
+    pointerDownOnChart("pen");
+    expect(tooltipTaps.shouldAct("a")).toBe(true);
+    expect(tooltipTaps.shouldAct(null)).toBe(true);
+  });
+
+  it("acts on a click with no preceding pointer event", () => {
+    render(<Chart shownKey={null} />);
+
+    expect(tooltipTaps.shouldAct("a")).toBe(true);
+  });
+
+  it("does not act on a target's first tap", () => {
+    render(<Chart shownKey={null} />);
+
+    pointerDownOnChart("touch");
+    expect(tooltipTaps.shouldAct("a")).toBe(false);
+  });
+
+  it("acts on a tap on the target with the visible tooltip", () => {
+    render(<Chart shownKey="a" />);
+
+    pointerDownOnChart("touch");
+    expect(tooltipTaps.shouldAct("a")).toBe(true);
+  });
+
+  it("does not act on another target or on a target with no tooltip", () => {
+    render(<Chart shownKey="a" />);
+
+    pointerDownOnChart("touch");
+    expect(tooltipTaps.shouldAct("b")).toBe(false);
+    expect(tooltipTaps.shouldAct(null)).toBe(false);
+  });
+
+  it("uses the tooltip that was visible when the tap started", () => {
+    const { rerender } = render(<Chart shownKey="a" />);
+
+    pointerDownOnChart("touch");
+    rerender(<Chart shownKey="b" />);
+    expect(tooltipTaps.shouldAct("a")).toBe(true);
+    expect(tooltipTaps.shouldAct("b")).toBe(false);
+  });
+
+  it("does not act on a target after its tooltip closes", () => {
+    const { rerender } = render(<Chart shownKey="a" />);
+
+    rerender(<Chart shownKey={null} />);
+    pointerDownOnChart("touch");
+    expect(tooltipTaps.shouldAct("a")).toBe(false);
   });
 });

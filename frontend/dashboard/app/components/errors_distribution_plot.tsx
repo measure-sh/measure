@@ -37,6 +37,7 @@ import {
   PlotTooltip,
   PlotTooltipArea,
   PlotTooltipSwatch,
+  useTooltipTaps,
 } from "./plot_tooltip";
 import { SkeletonPlot } from "./skeleton";
 
@@ -180,6 +181,7 @@ function DotGrid<Datum extends BarDatum>({
 }
 
 interface DistributionTooltipProps {
+  tapKey?: string;
   label: string;
   count: number;
   total: number;
@@ -187,12 +189,13 @@ interface DistributionTooltipProps {
 }
 
 const DistributionTooltip: React.FC<DistributionTooltipProps> = ({
+  tapKey,
   label,
   count,
   total,
   color,
 }) => (
-  <PlotTooltip className="px-4 py-2">
+  <PlotTooltip className="px-4 py-2" tapKey={tapKey}>
     <div className="flex flex-row items-center p-2">
       <PlotTooltipSwatch color={color} />
       <span className="px-2">
@@ -209,6 +212,13 @@ function valueKey(rank: number): string {
   return `value-${rank}`;
 }
 
+function segmentKey(
+  attribute: string | number,
+  segment: string | number,
+): string {
+  return `${attribute}:${segment}`;
+}
+
 interface SummaryChartProps {
   summary: AttributeDistribution[];
   onSelect: (attribute: DistributionAttribute) => void;
@@ -217,6 +227,7 @@ interface SummaryChartProps {
 // Keys are value ranks, since every attribute has different values.
 const SummaryChart: React.FC<SummaryChartProps> = ({ summary, onSelect }) => {
   const chartColors = useChartColors();
+  const tooltipTaps = useTooltipTaps();
   const ranks = Math.max(
     ...summary.map((distribution) => distribution.values.length),
   );
@@ -238,7 +249,7 @@ const SummaryChart: React.FC<SummaryChartProps> = ({ summary, onSelect }) => {
   );
 
   return (
-    <PlotTooltipArea>
+    <PlotTooltipArea taps={tooltipTaps}>
       <ResponsiveBar
         data={data}
         keys={keys}
@@ -262,15 +273,18 @@ const SummaryChart: React.FC<SummaryChartProps> = ({ summary, onSelect }) => {
         enableGridX={false}
         enableGridY={false}
         layers={[DotGrid, "axes", "bars"]}
-        onClick={({ indexValue }) =>
-          onSelect(indexValue as DistributionAttribute)
-        }
+        onClick={({ id, indexValue }) => {
+          if (tooltipTaps.shouldAct(segmentKey(indexValue, id))) {
+            onSelect(indexValue as DistributionAttribute);
+          }
+        }}
         tooltip={({ id, indexValue, value, color }) => {
           const distribution = byAttribute.get(
             indexValue as DistributionAttribute,
           )!;
           return (
             <DistributionTooltip
+              tapKey={segmentKey(indexValue, id)}
               label={
                 id === otherKey
                   ? otherLabel(distribution)

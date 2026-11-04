@@ -1,9 +1,32 @@
 import { ErrorsOverview } from "@/app/components/errors_overview";
 import "@testing-library/jest-dom";
-import { render, screen } from "@testing-library/react";
+import { pointerDown } from "@/__tests__/helpers/pointer_events";
+import { fireEvent, render, screen } from "@testing-library/react";
 
+let mockShownTooltipIndex: number | null = null;
+const mockPush = jest.fn();
+
+// jsdom cannot draw the canvas, so each bar is a button whose click event
+// reaches the chart's onClick and then bubbles to the plot, as a canvas click
+// does. When mockShownTooltipIndex is set, the mock renders that bar's tooltip
+// inside the plot, as nivo does when a bar is hovered or tapped.
 jest.mock("@nivo/bar", () => ({
-  ResponsiveBarCanvas: () => null,
+  ResponsiveBarCanvas: (props: any) => (
+    <div data-testid="bar-canvas">
+      {props.data.map((_: unknown, index: number) => (
+        <button
+          key={index}
+          aria-label={`Bar ${index}`}
+          onClick={(event) => props.onClick({ index }, event)}
+        />
+      ))}
+      {mockShownTooltipIndex !== null &&
+        props.tooltip({
+          data: props.data[mockShownTooltipIndex],
+          index: mockShownTooltipIndex,
+        })}
+    </div>
+  ),
 }));
 
 jest.mock("@/app/components/errors_overview_plot", () => ({
@@ -43,7 +66,7 @@ jest.mock("@/app/components/loading_bar", () => ({
 }));
 
 jest.mock("next/navigation", () => ({
-  useRouter: () => ({ push: jest.fn(), replace: jest.fn() }),
+  useRouter: () => ({ push: mockPush, replace: jest.fn() }),
   useSearchParams: () => new URLSearchParams(),
 }));
 
@@ -116,6 +139,11 @@ const appHang = () =>
   });
 
 describe("ErrorsOverview", () => {
+  beforeEach(() => {
+    mockShownTooltipIndex = null;
+    mockPush.mockClear();
+  });
+
   it("renders type and message, and links to type@file", () => {
     const container = renderWith([group({})]);
 
@@ -205,5 +233,41 @@ describe("ErrorsOverview", () => {
 
     expect(screen.getByLabelText("Repo.kt: load()")).toBeInTheDocument();
     expect(screen.getByText("Repo.kt: load()")).toBeInTheDocument();
+  });
+
+  describe("row trend chart", () => {
+    const trend = [
+      { datetime: "2026-01-01", instances: 2 },
+      { datetime: "2026-01-02", instances: 1 },
+    ];
+    const rawHrefOf = (container: HTMLElement) =>
+      container.querySelector("a[href]")!.getAttribute("href");
+
+    it("opens the error when a bar or the space between bars is clicked", () => {
+      const container = renderWith([group({ trend })]);
+
+      fireEvent.click(screen.getByRole("button", { name: "Bar 1" }));
+      fireEvent.click(screen.getByTestId("bar-canvas"));
+
+      expect(mockPush).toHaveBeenCalledTimes(2);
+      expect(mockPush).toHaveBeenNthCalledWith(1, rawHrefOf(container));
+      expect(mockPush).toHaveBeenNthCalledWith(2, rawHrefOf(container));
+    });
+
+    it("opens the error on a tap only when the bar’s tooltip is visible", () => {
+      mockShownTooltipIndex = 1;
+      const container = renderWith([group({ trend })]);
+      const tap = (target: Element) => {
+        pointerDown(target, "touch");
+        fireEvent.click(target);
+      };
+
+      tap(screen.getByRole("button", { name: "Bar 0" }));
+      tap(screen.getByTestId("bar-canvas"));
+      expect(mockPush).not.toHaveBeenCalled();
+      tap(screen.getByRole("button", { name: "Bar 1" }));
+      expect(mockPush).toHaveBeenCalledTimes(1);
+      expect(mockPush).toHaveBeenCalledWith(rawHrefOf(container));
+    });
   });
 });

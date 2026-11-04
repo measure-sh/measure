@@ -39,6 +39,7 @@ import {
   PlotTooltip,
   PlotTooltipArea,
   PlotTooltipSwatch,
+  useTooltipTaps,
 } from "./plot_tooltip";
 import { Switch } from "./switch";
 
@@ -2680,6 +2681,27 @@ const SessionReplayMetrics = memo(function SessionReplayMetrics({
     key: string;
     index: number;
   } | null>(null);
+  const tooltipTaps = useTooltipTaps();
+  const stripsRef = useRef<HTMLDivElement | null>(null);
+
+  // A touch pointer leaves the strip when the finger lifts, so it keeps the
+  // tap's hover until the next press outside the strips.
+  useEffect(() => {
+    const doc = stripsRef.current?.ownerDocument;
+    if (hover === null || !doc) {
+      return;
+    }
+    const onPointerDown = (event: PointerEvent) => {
+      if (
+        event.pointerType === "touch" &&
+        !stripsRef.current?.contains(event.target as Node)
+      ) {
+        setHover(null);
+      }
+    };
+    doc.addEventListener("pointerdown", onPointerDown, true);
+    return () => doc.removeEventListener("pointerdown", onPointerDown, true);
+  }, [hover]);
 
   const xFor = useCallback(
     (absMs: number) => ((absMs - startAbsMs) / durationMs) * plotWidth,
@@ -2744,6 +2766,9 @@ const SessionReplayMetrics = memo(function SessionReplayMetrics({
     return nearest;
   };
 
+  const pointTapKey = (strip: MetricStrip, index: number) =>
+    `${strip.key}:${index}`;
+
   const fractionFrom = (event: React.PointerEvent<HTMLDivElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     return Math.max(
@@ -2755,8 +2780,8 @@ const SessionReplayMetrics = memo(function SessionReplayMetrics({
   return (
     // The strips size themselves, so the area adds no box of its own and
     // doesn't take height away from the player above it.
-    <PlotTooltipArea className="contents">
-      <div className="flex flex-col gap-1 select-none">
+    <PlotTooltipArea className="contents" taps={tooltipTaps}>
+      <div ref={stripsRef} className="flex flex-col gap-1 select-none">
         {strips.map((strip) => {
           const hovered =
             hover !== null && hover.key === strip.key ? hover : null;
@@ -2767,7 +2792,11 @@ const SessionReplayMetrics = memo(function SessionReplayMetrics({
               aria-label={`${strip.title} usage`}
               className="relative rounded-md border border-border cursor-pointer touch-none"
               style={{ height: laneHeight }}
-              onPointerLeave={() => setHover(null)}
+              onPointerLeave={(event) => {
+                if (event.pointerType !== "touch") {
+                  setHover(null);
+                }
+              }}
               onPointerMove={(event) =>
                 setHover({
                   key: strip.key,
@@ -2778,7 +2807,13 @@ const SessionReplayMetrics = memo(function SessionReplayMetrics({
                 if (event.button !== 0) {
                   return;
                 }
-                onSeek(fractionFrom(event) * durationMs);
+                const fraction = fractionFrom(event);
+                const index = nearestTo(strip, fraction);
+                if (!tooltipTaps.shouldAct(pointTapKey(strip, index))) {
+                  setHover({ key: strip.key, index });
+                  return;
+                }
+                onSeek(fraction * durationMs);
               }}
             >
               <svg
@@ -2811,7 +2846,10 @@ const SessionReplayMetrics = memo(function SessionReplayMetrics({
               </p>
 
               {hovered !== null && (
-                <PlotTooltip className="px-4 py-2">
+                <PlotTooltip
+                  className="px-4 py-2"
+                  tapKey={pointTapKey(strip, hovered.index)}
+                >
                   <p>
                     Time:{" "}
                     {formatChartFormatTimestampToHumanReadable(

@@ -3,15 +3,29 @@ import FunnelChart from "@/app/components/funnel/chart";
 import { useChartColors } from "@/app/utils/chart_utils";
 import { beforeAll, beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { render, renderHook, screen } from "@testing-library/react";
+import { pointerDown } from "@/__tests__/helpers/pointer_events";
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+} from "@testing-library/react";
 import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 let lastFunnelProps: any = null;
+let mockShownTooltip: any = null;
 
+// When mockShownTooltip is set, the mock renders that part's tooltip inside
+// the chart, as nivo does when a part is hovered or tapped.
 jest.mock("@nivo/funnel", () => ({
   ResponsiveFunnel: (props: any) => {
     lastFunnelProps = props;
-    return <div data-testid="funnel-mock" />;
+    return (
+      <div data-testid="funnel-mock">
+        {mockShownTooltip && props.tooltip(mockShownTooltip)}
+      </div>
+    );
   },
 }));
 
@@ -36,6 +50,7 @@ beforeAll(() => {
 
 beforeEach(() => {
   lastFunnelProps = null;
+  mockShownTooltip = null;
 });
 
 const conversion: FunnelConversion = {
@@ -150,6 +165,20 @@ describe("FunnelChart", () => {
       const onSelectStep = renderChart();
       lastFunnelProps.onClick({ data: { id: 0 } });
       expect(onSelectStep).not.toHaveBeenCalled();
+    });
+
+    it("selects a step on a tap only when its tooltip is visible", () => {
+      mockShownTooltip = { part: { data: { id: 1 }, color: "#38bdf8" } };
+      const onSelectStep = renderChart();
+      const tap = (id: number) => {
+        pointerDown(screen.getByTestId("funnel-mock"), "touch");
+        act(() => lastFunnelProps.onClick({ data: { id } }));
+      };
+
+      tap(2);
+      expect(onSelectStep).not.toHaveBeenCalled();
+      tap(1);
+      expect(onSelectStep).toHaveBeenCalledWith(1);
     });
   });
 

@@ -1,13 +1,21 @@
 import type { FunnelCadence } from "@/app/api/api_calls";
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { pointerDown } from "@/__tests__/helpers/pointer_events";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 
 let lineProps: any = null;
+let mockShownTooltip: ((props: any) => any) | null = null;
 
+// When mockShownTooltip is set, the mock renders its tooltip inside the plot,
+// as nivo does when a point is hovered or tapped.
 jest.mock("@nivo/line", () => ({
   ResponsiveLineCanvas: (props: any) => {
     lineProps = props;
-    return <div data-testid="cadence-plot" />;
+    return (
+      <div data-testid="cadence-plot">
+        {mockShownTooltip && props.tooltip(mockShownTooltip(props))}
+      </div>
+    );
   },
 }));
 
@@ -86,6 +94,7 @@ function seriesIds() {
 
 beforeEach(() => {
   lineProps = null;
+  mockShownTooltip = null;
 });
 
 describe("FunnelCadencePlot", () => {
@@ -188,6 +197,27 @@ describe("FunnelCadencePlot", () => {
   it("opens the clicked weekday and hour", () => {
     const { props } = renderPlot();
     lineProps.onClick({ seriesId: "Wednesday", data: { x: 14 } });
+    expect(props.onSelectPoint).toHaveBeenCalledWith(3, 14);
+  });
+
+  it("opens a weekday and hour on a tap only when that point's tooltip is visible", () => {
+    mockShownTooltip = (plotProps) => ({
+      point: {
+        seriesId: "Wednesday",
+        seriesColor: "#38bdf8",
+        data: plotProps.data[2].data[14],
+      },
+    });
+    const { props } = renderPlot();
+    const tap = (seriesId: string, hour: number) => {
+      pointerDown(screen.getByTestId("cadence-plot"), "touch");
+      act(() => lineProps.onClick({ seriesId, data: { x: hour } }));
+    };
+
+    tap("Wednesday", 15);
+    tap("Thursday", 14);
+    expect(props.onSelectPoint).not.toHaveBeenCalled();
+    tap("Wednesday", 14);
     expect(props.onSelectPoint).toHaveBeenCalledWith(3, 14);
   });
 

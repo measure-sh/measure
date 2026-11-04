@@ -4,19 +4,29 @@ import { PlotTooltip, PlotTooltipSwatch } from "../plot_tooltip";
 import { Separator } from "../separator";
 import { linkStats, nodeStats, shortName, type Stat } from "./format";
 
+export function nodeTapKey(nodeId: string): string {
+  return `node:${nodeId}`;
+}
+
+export function linkTapKey(source: string, target: string): string {
+  return `link:${source}>${target}`;
+}
+
 function Tooltip({
+  tapKey,
   colour,
   title,
   stats,
   hint,
 }: {
+  tapKey: string;
   colour: string;
   title: ReactNode;
   stats: Stat[];
   hint?: string;
 }) {
   return (
-    <PlotTooltip>
+    <PlotTooltip tapKey={tapKey}>
       <div className="flex flex-row items-center gap-2 px-4 py-3">
         <PlotTooltipSwatch color={colour} />
         <p className="font-display text-sm">{title}</p>
@@ -68,6 +78,7 @@ export function NodeTooltip({
       : "Click to highlight paths and see details";
   return (
     <Tooltip
+      tapKey={nodeTapKey(node.id)}
       colour={colour}
       title={shortName(node.name)}
       stats={nodeStats(node)}
@@ -95,6 +106,7 @@ export function LinkTooltip({
 }) {
   return (
     <Tooltip
+      tapKey={linkTapKey(source.id, target.id)}
       colour={colour}
       title={
         <>

@@ -4,15 +4,23 @@ import {
   distributionAttributes,
 } from "@/app/query/hooks";
 import "@testing-library/jest-dom";
+import { pointerDown } from "@/__tests__/helpers/pointer_events";
 import { act, fireEvent, render, screen } from "@testing-library/react";
 import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 let lastBarProps: any = null;
+let mockShownTooltip: any = null;
 
+// When mockShownTooltip is set, the mock renders that bar's tooltip inside
+// the chart, as nivo does when a bar is hovered or tapped.
 jest.mock("@nivo/bar", () => ({
   ResponsiveBar: (props: any) => {
     lastBarProps = props;
-    return <div data-testid="bar-mock" />;
+    return (
+      <div data-testid="bar-mock">
+        {mockShownTooltip && props.tooltip(mockShownTooltip)}
+      </div>
+    );
   },
 }));
 
@@ -101,6 +109,7 @@ function renderTooltip(props: any) {
 describe("ErrorsDistributionPlot", () => {
   beforeEach(() => {
     lastBarProps = null;
+    mockShownTooltip = null;
   });
 
   it("renders loading state when query is pending", () => {
@@ -173,6 +182,26 @@ describe("ErrorsDistributionPlot", () => {
       lastBarProps.onClick({ indexValue: "device" });
     });
 
+    expect(onSelect).toHaveBeenCalledWith("device");
+  });
+
+  it("selects an attribute on a tap only when its segment's tooltip is visible", () => {
+    mockShownTooltip = {
+      id: "value-0",
+      indexValue: "device",
+      value: 50,
+      color: "#111",
+    };
+    const onSelect = jest.fn();
+    renderWithSummary({ onSelect });
+    const tap = (id: string) => {
+      pointerDown(screen.getByTestId("bar-mock"), "touch");
+      act(() => lastBarProps.onClick({ id, indexValue: "device" }));
+    };
+
+    tap("value-1");
+    expect(onSelect).not.toHaveBeenCalled();
+    tap("value-0");
     expect(onSelect).toHaveBeenCalledWith("device");
   });
 

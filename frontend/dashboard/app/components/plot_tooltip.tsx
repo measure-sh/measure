@@ -26,6 +26,12 @@ import { cn } from "@/app/utils/shadcn_utils";
 //    that it stays within the viewport. The area's `placement` preference and
 //    the available space decide which side of the pointer it goes on: above,
 //    below, left or right.
+// 5. Touch screens have no hover, so a tap that shows a tooltip also clicks the
+//    chart. A chart that acts on a press or click gives its area a TooltipTaps,
+//    gives each PlotTooltip the tapKey of its target, and checks `shouldAct`
+//    before it acts. A tap acts only if the tooltip visible when the tap starts
+//    has the tapped target's key. The first tap shows the tooltip; a second tap
+//    on the same target acts. Mouse and pen presses always act.
 
 // Gap between the pointer and the tooltip for each placement.
 const ABOVE_GAP = 14;
@@ -224,19 +230,64 @@ class TooltipLayer {
   }
 }
 
-const TooltipLayerContext = React.createContext<TooltipLayer | null>(null);
+const ANY_TARGET = Symbol("any target");
+
+export class TooltipTaps {
+  private shownKey: string | null = null;
+  private armedKey: string | null | typeof ANY_TARGET = ANY_TARGET;
+
+  pointerDown(pointerType: string) {
+    this.armedKey = pointerType === "touch" ? this.shownKey : ANY_TARGET;
+  }
+
+  show(key: string) {
+    this.shownKey = key;
+  }
+
+  hide(key: string) {
+    if (this.shownKey === key) {
+      this.shownKey = null;
+    }
+  }
+
+  // `key` is the tapKey of the tooltip shown by the tapped target, or null if
+  // the target has no tooltip.
+  shouldAct(key: string | null) {
+    return (
+      this.armedKey === ANY_TARGET || (key !== null && this.armedKey === key)
+    );
+  }
+}
+
+export function useTooltipTaps() {
+  const [tooltipTaps] = React.useState(() => new TooltipTaps());
+  return tooltipTaps;
+}
+
+const PlotTooltipContext = React.createContext<{
+  tooltipLayer: TooltipLayer;
+  tooltipTaps: TooltipTaps;
+} | null>(null);
 
 export function PlotTooltipArea({
   placement = "above",
   className = "size-full",
+  taps,
   children,
 }: {
   placement?: TooltipPlacement;
   className?: string;
+  taps?: TooltipTaps;
   children: React.ReactNode;
 }) {
   const [content, setContent] = React.useState<React.ReactNode>(null);
   const [tooltipLayer] = React.useState(() => new TooltipLayer(setContent));
+  const ownTaps = useTooltipTaps();
+  const tooltipTaps = taps ?? ownTaps;
+  const contextValue = React.useMemo(
+    () => ({ tooltipLayer, tooltipTaps }),
+    [tooltipLayer, tooltipTaps],
+  );
   const [body, setBody] = React.useState<HTMLElement | null>(null);
   const attachArea = React.useCallback((area: HTMLDivElement | null) => {
     setBody(area?.ownerDocument.body ?? null);
@@ -264,15 +315,22 @@ export function PlotTooltipArea({
     tooltipLayer.setPointer(event.clientX, event.clientY);
   };
 
+  // The area receives each tap's pointer event before the chart, so this
+  // records which tooltip was visible before the tap.
+  const recordPointerDown = (event: React.PointerEvent) => {
+    recordPointer(event);
+    tooltipTaps.pointerDown(event.pointerType);
+  };
+
   return (
-    <TooltipLayerContext.Provider value={tooltipLayer}>
+    <PlotTooltipContext.Provider value={contextValue}>
       {/* nivo's responsive charts size themselves from their parent element,
           so the area fills its container by default. */}
       <div
         ref={attachArea}
         className={className}
         onPointerOverCapture={recordPointer}
-        onPointerDownCapture={recordPointer}
+        onPointerDownCapture={recordPointerDown}
         onPointerMoveCapture={recordPointer}
       >
         {children}
@@ -287,7 +345,7 @@ export function PlotTooltipArea({
           </div>,
           body,
         )}
-    </TooltipLayerContext.Provider>
+    </PlotTooltipContext.Provider>
   );
 }
 
@@ -295,20 +353,31 @@ export function PlotTooltipArea({
 // so it cannot make the page scroll sideways.
 export function PlotTooltip({
   className,
+  tapKey,
   children,
 }: {
   className?: string;
+  tapKey?: string;
   children: React.ReactNode;
 }) {
-  const tooltipLayer = React.useContext(TooltipLayerContext);
-  if (!tooltipLayer) {
+  const context = React.useContext(PlotTooltipContext);
+  if (!context) {
     throw new Error("PlotTooltip must be used within a PlotTooltipArea.");
   }
+  const { tooltipLayer, tooltipTaps } = context;
 
   React.useLayoutEffect(() => {
     tooltipLayer.show();
     return () => tooltipLayer.hide();
   }, [tooltipLayer]);
+
+  React.useLayoutEffect(() => {
+    if (tapKey === undefined) {
+      return;
+    }
+    tooltipTaps.show(tapKey);
+    return () => tooltipTaps.hide(tapKey);
+  }, [tooltipTaps, tapKey]);
 
   React.useLayoutEffect(() => {
     tooltipLayer.setContent(
