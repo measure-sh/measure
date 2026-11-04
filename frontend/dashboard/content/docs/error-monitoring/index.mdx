@@ -137,7 +137,7 @@ import sh.measure.android.Measure
 try {
     methodThatThrows()
 } catch (e: Exception) {
-    Measure.trackHandledException(e)
+    Measure.trackError(e)
 }
 ```
 
@@ -208,7 +208,7 @@ Attach attributes to a handled error to record additional context about the erro
 import sh.measure.android.attributes.AttributesBuilder
 
 val attributes = AttributesBuilder().put("screen", "Login").build()
-Measure.trackHandledException(e, attributes)
+Measure.trackError(e, attributes)
 ```
 
 </Tab>

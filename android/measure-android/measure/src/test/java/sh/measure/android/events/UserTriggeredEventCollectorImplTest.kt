@@ -91,7 +91,7 @@ class UserTriggeredEventCollectorImplTest {
         val exception = Exception()
 
         userTriggeredEventCollector.register()
-        userTriggeredEventCollector.trackHandledException(exception, emptyMap())
+        userTriggeredEventCollector.trackError(exception, emptyMap())
         verify(signalProcessor).trackUserTriggered(
             data = any<ExceptionData>(),
             timestamp = eq(timeProvider.now()),
@@ -107,7 +107,7 @@ class UserTriggeredEventCollectorImplTest {
 
         userTriggeredEventCollector.register()
         val attributes = mapOf("key" to StringAttr("value"))
-        userTriggeredEventCollector.trackHandledException(exception, attributes)
+        userTriggeredEventCollector.trackError(exception, attributes)
         verify(signalProcessor).trackUserTriggered(
             data = any<ExceptionData>(),
             timestamp = eq(timeProvider.now()),
@@ -234,7 +234,7 @@ class UserTriggeredEventCollectorImplTest {
     fun `disables collection on unregistered`() {
         val exception = Exception()
         userTriggeredEventCollector.unregister()
-        userTriggeredEventCollector.trackHandledException(exception, emptyMap())
+        userTriggeredEventCollector.trackError(exception, emptyMap())
         verify(signalProcessor, never()).trackUserTriggered(
             any<ExceptionData>(),
             any(),

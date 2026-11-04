@@ -190,8 +190,8 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.userTriggeredEventCollector.trackScreenView(screenName, attributes)
     }
 
-    fun trackHandledException(throwable: Throwable, attributes: Map<String, AttributeValue>) {
-        measure.userTriggeredEventCollector.trackHandledException(throwable, attributes)
+    fun trackError(throwable: Throwable, attributes: Map<String, AttributeValue>) {
+        measure.userTriggeredEventCollector.trackError(throwable, attributes)
     }
 
     fun createSpan(name: String): SpanBuilder? = measure.spanCollector.createSpan(name)
