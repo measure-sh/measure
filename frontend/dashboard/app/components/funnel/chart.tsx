@@ -12,6 +12,7 @@ import {
   PlotTooltip,
   PlotTooltipArea,
   PlotTooltipSwatch,
+  useTooltipTaps,
 } from "../plot_tooltip";
 import { Separator } from "../separator";
 
@@ -57,7 +58,7 @@ function StepTooltip({
   }
 
   return (
-    <PlotTooltip>
+    <PlotTooltip tapKey={String(index)}>
       <div className="flex flex-row items-center px-4 py-3">
         <PlotTooltipSwatch color={color} />
         <span className="px-2 font-display">{step.event_name}</span>
@@ -133,6 +134,7 @@ export default function FunnelChart({
   onSelectStep,
 }: FunnelChartProps) {
   const colorOf = useStepColor();
+  const tooltipTaps = useTooltipTaps();
   const { steps } = conversion;
   // Event names can repeat across steps, so parts are keyed by position.
   const data: StepDatum[] = steps.map((step, i) => ({
@@ -143,7 +145,7 @@ export default function FunnelChart({
 
   return (
     <div className="w-full h-72 font-body cursor-pointer">
-      <PlotTooltipArea>
+      <PlotTooltipArea taps={tooltipTaps}>
         <ResponsiveFunnel
           data={data}
           direction="horizontal"
@@ -167,7 +169,10 @@ export default function FunnelChart({
             />
           )}
           onClick={(part) => {
-            if (part.data.id > 0) {
+            if (
+              part.data.id > 0 &&
+              tooltipTaps.shouldAct(String(part.data.id))
+            ) {
               onSelectStep(part.data.id);
             }
           }}

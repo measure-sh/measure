@@ -15,6 +15,7 @@ import {
   it,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
+import { pointerDown, pointerLeave } from "@/__tests__/helpers/pointer_events";
 import {
   act,
   fireEvent,
@@ -509,6 +510,128 @@ describe("JourneyGraph", () => {
       fireEvent.pointerEnter(nodeGroup("ProductActivity"));
       fireEvent.pointerLeave(canvasOf(container));
 
+      await waitFor(() => expect(screen.queryByText("Continuing")).toBeNull());
+    });
+  });
+
+  describe("touch", () => {
+    // A touch pointer leaves the pressed element on finger lift, before the
+    // click.
+    const tap = (target: Element) => {
+      pointerDown(target, "touch");
+      pointerLeave(target, "touch");
+      fireEvent.click(target);
+    };
+
+    it("shows a node tooltip on the first tap, then selects the node and hides the tooltip on the second", async () => {
+      renderGraph();
+
+      tap(nodeGroup("ProductActivity"));
+      expect(screen.getByText("Continuing")).toBeInTheDocument();
+      expect(onSelect).not.toHaveBeenCalled();
+
+      tap(nodeGroup("ProductActivity"));
+      expect(onSelect).toHaveBeenCalledWith({
+        node: "sh.measure.demo.ProductActivity",
+      });
+      await waitFor(() => expect(screen.queryByText("Continuing")).toBeNull());
+    });
+
+    it("shows a link tooltip on the first tap, then selects the link and hides the tooltip on the second", async () => {
+      const { container } = renderGraph();
+      const link = linkPaths(
+        container,
+        "sh.measure.demo.ProductActivity",
+        "add_to_cart",
+      ).hit;
+
+      tap(link);
+      expect(
+        screen.getByText("ProductActivity → add_to_cart"),
+      ).toBeInTheDocument();
+      expect(onSelect).not.toHaveBeenCalled();
+
+      tap(link);
+      expect(onSelect).toHaveBeenCalledWith({
+        source: "sh.measure.demo.ProductActivity",
+        target: "add_to_cart",
+      });
+      await waitFor(() =>
+        expect(screen.queryByText("ProductActivity → add_to_cart")).toBeNull(),
+      );
+    });
+
+    it("hides the tooltip on a tap elsewhere, then shows it on the next node tap without selecting the node", async () => {
+      const { container } = renderGraph();
+
+      tap(nodeGroup("ProductActivity"));
+      tap(canvasOf(container));
+      await waitFor(() => expect(screen.queryByText("Continuing")).toBeNull());
+
+      tap(nodeGroup("ProductActivity"));
+      expect(screen.getByText("Continuing")).toBeInTheDocument();
+      expect(onSelect).not.toHaveBeenCalled();
+    });
+
+    it("hides a tapped link tooltip when the journey changes", async () => {
+      const { container, rerender } = renderGraph();
+      tap(
+        linkPaths(container, "sh.measure.demo.ProductActivity", "add_to_cart")
+          .hit,
+      );
+      expect(
+        screen.getByText("ProductActivity → add_to_cart"),
+      ).toBeInTheDocument();
+
+      const withoutProduct: Journey = {
+        ...journey,
+        nodes: journey.nodes.filter(
+          (n) => n.id !== "sh.measure.demo.ProductActivity",
+        ),
+        links: journey.links.filter(
+          (l) =>
+            l.source !== "sh.measure.demo.ProductActivity" &&
+            l.target !== "sh.measure.demo.ProductActivity",
+        ),
+      };
+      rerender(
+        <JourneyGraph
+          journey={withoutProduct}
+          selection={null}
+          onSelect={onSelect}
+        />,
+      );
+
+      await waitFor(() =>
+        expect(screen.queryByText("ProductActivity → add_to_cart")).toBeNull(),
+      );
+    });
+
+    it("keeps a node tooltip open when a mouse click selects the node", () => {
+      renderGraph();
+      fireEvent.pointerEnter(nodeGroup("ProductActivity"));
+      pointerDown(nodeGroup("ProductActivity"), "mouse");
+      fireEvent.click(nodeGroup("ProductActivity"));
+
+      expect(onSelect).toHaveBeenCalledWith({
+        node: "sh.measure.demo.ProductActivity",
+      });
+      expect(screen.getByText("Continuing")).toBeInTheDocument();
+    });
+
+    it.each([
+      [
+        "the zoom in button",
+        () => screen.getByRole("button", { name: "Zoom in" }),
+      ],
+      ["the page", () => document.body],
+    ])("hides the tooltip when tapping %s", async (_, target) => {
+      renderGraph();
+
+      tap(nodeGroup("ProductActivity"));
+      expect(screen.getByText("Continuing")).toBeInTheDocument();
+
+      pointerDown(target(), "touch");
       await waitFor(() => expect(screen.queryByText("Continuing")).toBeNull());
     });
   });

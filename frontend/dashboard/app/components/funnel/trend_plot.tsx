@@ -29,6 +29,7 @@ import {
   PlotTooltip,
   PlotTooltipArea,
   PlotTooltipSwatch,
+  useTooltipTaps,
 } from "../plot_tooltip";
 import { Separator } from "../separator";
 import { SkeletonPlot } from "../skeleton";
@@ -134,6 +135,10 @@ function formatPeriod(datetime: string, period: FunnelTrendPeriod): string {
 }
 
 type TrendBuild = FunnelTrend["builds"][number];
+
+function periodKey(seriesId: string, index: number): string {
+  return `${seriesId}:${index}`;
+}
 
 function buildKey(build: TrendBuild): string {
   return `${build.version_name}:${build.version_code}:${build.patch_id ?? ""}`;
@@ -720,6 +725,8 @@ function TrendCharts({
     return value === null ? "No users" : formatValue(value, metric);
   };
 
+  const conversionTooltipTaps = useTooltipTaps();
+  const usersTooltipTaps = useTooltipTaps();
   const handleClick = (seriesId: string, index: number) =>
     onSelectPoint(
       trend.points[index].datetime,
@@ -756,7 +763,7 @@ function TrendCharts({
       {/* Build labels are drawn in the plot's top margin, so this keeps them
           as far below the dropdowns as the cadence plot. */}
       <div style={{ height: BUILD_LABEL_ROW_HEIGHT }} />
-      <PlotTooltipArea>
+      <PlotTooltipArea taps={conversionTooltipTaps}>
         <div
           className="relative w-full h-96 cursor-pointer"
           onMouseMoveCapture={(event) =>
@@ -802,15 +809,25 @@ function TrendCharts({
             enableGridX={false}
             enableGridY={false}
             onClick={(datum) => {
-              if ("seriesId" in datum) {
-                handleClick(
-                  datum.seriesId,
-                  hoveredRef.current ?? datum.data.index,
-                );
+              if (!("seriesId" in datum)) {
+                return;
+              }
+              const index = hoveredRef.current ?? datum.data.index;
+              if (
+                conversionTooltipTaps.shouldAct(
+                  periodKey(datum.seriesId, index),
+                )
+              ) {
+                handleClick(datum.seriesId, index);
               }
             }}
             tooltip={({ point }) => (
-              <PlotTooltip>
+              <PlotTooltip
+                tapKey={periodKey(
+                  point.seriesId,
+                  hoveredRef.current ?? point.data.index,
+                )}
+              >
                 <div className="flex flex-row items-center px-4 py-3">
                   <PlotTooltipSwatch color={point.seriesColor} />
                   <span className="px-2">
@@ -831,7 +848,7 @@ function TrendCharts({
           />
         </div>
       </PlotTooltipArea>
-      <PlotTooltipArea>
+      <PlotTooltipArea taps={usersTooltipTaps}>
         <div
           className="w-full h-44 cursor-pointer"
           onMouseMoveCapture={(event) =>
@@ -878,15 +895,23 @@ function TrendCharts({
             enableGridX={false}
             enableGridY={false}
             onClick={(datum) => {
-              if ("seriesId" in datum) {
-                handleClick(
-                  OVERALL_SERIES,
-                  hoveredRef.current ?? datum.data.index,
-                );
+              if (!("seriesId" in datum)) {
+                return;
+              }
+              const index = hoveredRef.current ?? datum.data.index;
+              if (
+                usersTooltipTaps.shouldAct(periodKey(datum.seriesId, index))
+              ) {
+                handleClick(OVERALL_SERIES, index);
               }
             }}
             tooltip={({ point }) => (
-              <PlotTooltip>
+              <PlotTooltip
+                tapKey={periodKey(
+                  point.seriesId,
+                  hoveredRef.current ?? point.data.index,
+                )}
+              >
                 <PeriodDetails
                   trend={trend}
                   builds={builds}

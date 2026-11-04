@@ -10,6 +10,7 @@ import { join } from "node:path";
 import { createActor, waitFor as machineWaitFor } from "xstate";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
+import { pointerDown } from "@/__tests__/helpers/pointer_events";
 import {
   containerScaleOf,
   fitInto,
@@ -2204,6 +2205,44 @@ describe("the player", () => {
         fireEvent.click(skip);
       });
       expect(skip.getAttribute("aria-checked")).toBe("true");
+    });
+
+    it("seeks from a strip on the second tap on the same point on touch", async () => {
+      const sample = makeSessionReplayFixture().memory_usage_absolute[0];
+      renderReplay({
+        ...fiveSecondSession,
+        memory_usage: [],
+        memory_usage_absolute: [0, 1, 2, 3, 4, 5].map((second) => ({
+          ...sample,
+          timestamp: `2026-04-10T10:00:0${second}Z`,
+        })),
+      });
+      const lane = await screen.findByRole("img", { name: "Memory usage" });
+      const slider = screen.getByRole("slider", { name: "Playhead" });
+      jest
+        .spyOn(lane, "getBoundingClientRect")
+        .mockReturnValue({ left: 0, width: 500 } as DOMRect);
+      const press = async (target: Element, pointerType: string, x = 0) => {
+        await act(async () => {
+          pointerDown(target, pointerType, { clientX: x });
+        });
+      };
+
+      await press(lane, "touch", 200);
+      expect(screen.getByText(/^Time:/)).toBeTruthy();
+      await press(lane, "touch", 300);
+      expect(slider.getAttribute("aria-valuenow")).toBe("0");
+
+      await press(document.body, "touch");
+      await waitFor(() => expect(screen.queryByText(/^Time:/)).toBeNull());
+      await press(lane, "touch", 300);
+      expect(slider.getAttribute("aria-valuenow")).toBe("0");
+
+      await press(lane, "touch", 300);
+      expect(slider.getAttribute("aria-valuenow")).toBe("3000");
+
+      await press(lane, "mouse", 100);
+      expect(slider.getAttribute("aria-valuenow")).toBe("1000");
     });
 
     it("draws a lane for each metric series the session carries", async () => {

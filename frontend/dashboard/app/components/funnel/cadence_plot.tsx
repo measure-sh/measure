@@ -26,6 +26,7 @@ import {
   PlotTooltip,
   PlotTooltipArea,
   PlotTooltipSwatch,
+  useTooltipTaps,
 } from "../plot_tooltip";
 import { Separator } from "../separator";
 import { SkeletonPlot } from "../skeleton";
@@ -69,6 +70,10 @@ type ScaleWithTicks = {
   ticks: (count: number) => unknown[];
 };
 
+function hourKey(weekday: string | number, hour: number): string {
+  return `${weekday}:${hour}`;
+}
+
 function hourLabel(hour: number): string {
   return DateTime.fromObject({ hour: hour % 24 })
     .toFormat("ha")
@@ -90,6 +95,7 @@ function HourLines({
   const gridOpacity = useChartGridOpacity();
   const colors = useChartColors();
   const muted = canvasTheme.axis.ticks.text.fill;
+  const tooltipTaps = useTooltipTaps();
 
   const allSeries = useMemo<HourSeries[]>(() => {
     const cells = new Map(
@@ -217,7 +223,7 @@ function HourLines({
             No days selected
           </p>
         )}
-        <PlotTooltipArea>
+        <PlotTooltipArea taps={tooltipTaps}>
           <ResponsiveLineCanvas
             data={series}
             curve="linear"
@@ -255,7 +261,10 @@ function HourLines({
             enableGridX={false}
             enableGridY={false}
             onClick={(datum) => {
-              if ("seriesId" in datum) {
+              if (
+                "seriesId" in datum &&
+                tooltipTaps.shouldAct(hourKey(datum.seriesId, datum.data.x))
+              ) {
                 onSelectPoint(
                   WEEKDAYS.indexOf(String(datum.seriesId)) + 1,
                   datum.data.x,
@@ -263,7 +272,7 @@ function HourLines({
               }
             }}
             tooltip={({ point }) => (
-              <PlotTooltip>
+              <PlotTooltip tapKey={hourKey(point.seriesId, point.data.x)}>
                 <div className="flex flex-row items-center px-4 py-3">
                   <PlotTooltipSwatch color={point.seriesColor} />
                   <span className="px-2">

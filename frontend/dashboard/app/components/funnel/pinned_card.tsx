@@ -29,6 +29,7 @@ import {
   PlotTooltip,
   PlotTooltipArea,
   PlotTooltipSwatch,
+  useTooltipTaps,
 } from "../plot_tooltip";
 import SimpleTooltip from "../simple_tooltip";
 import { Skeleton } from "../skeleton";
@@ -165,6 +166,7 @@ function WeeklyConversionPlot({
   href: string | null;
 }) {
   const router = useRouter();
+  const tooltipTaps = useTooltipTaps();
   const { resolvedTheme } = useTheme();
   const completeColor = resolvedTheme === "dark" ? "#a1a1a1" : "#a3a3a3";
   const incompleteColor = resolvedTheme === "dark" ? "#404040" : "#e5e5e5";
@@ -191,12 +193,12 @@ function WeeklyConversionPlot({
     <div
       className={`relative z-20 h-16 w-full border-b border-border ${href === null ? "" : "cursor-pointer"}`}
       onClick={() => {
-        if (href !== null) {
+        if (href !== null && tooltipTaps.shouldAct(null)) {
           router.push(href);
         }
       }}
     >
-      <PlotTooltipArea>
+      <PlotTooltipArea taps={tooltipTaps}>
         <ResponsiveBarCanvas
           data={data}
           keys={["conversion"]}
@@ -215,12 +217,12 @@ function WeeklyConversionPlot({
           enableLabel={false}
           onClick={(bar, event) => {
             event.stopPropagation();
-            if (href !== null) {
+            if (href !== null && tooltipTaps.shouldAct(String(bar.index))) {
               router.push(weekHref(href, points[bar.index]));
             }
           }}
           tooltip={({ data, index, color }) => (
-            <PlotTooltip className="px-4 py-2">
+            <PlotTooltip className="px-4 py-2" tapKey={String(index)}>
               <p className="p-2">
                 Week of{" "}
                 {DateTime.fromISO(String(data.datetime)).toFormat(

@@ -26,6 +26,7 @@ import {
   PlotTooltip,
   PlotTooltipArea,
   PlotTooltipSwatch,
+  useTooltipTaps,
 } from "./plot_tooltip";
 import RowLinkCell from "./row_link_cell";
 import { SkeletonListPage } from "./skeleton";
@@ -48,6 +49,74 @@ const {
 
 interface ErrorsOverviewProps {
   teamId: string;
+}
+
+// The chart sits above the row link so hovering a bar shows its tooltip,
+// and clicking the chart opens the error like the rest of the row.
+function ErrorTrendPlot({
+  trend,
+  href,
+  plotTimeGroup,
+  color,
+}: {
+  trend: { datetime: string; instances: number }[];
+  href: string;
+  plotTimeGroup: PlotTimeGroup;
+  color: string;
+}) {
+  const router = useRouter();
+  const tooltipTaps = useTooltipTaps();
+
+  return (
+    <div
+      data-testid="exception-row-trend"
+      className="relative z-20 pointer-events-auto cursor-pointer w-full h-4 border-b border-border"
+      onClick={() => {
+        if (tooltipTaps.shouldAct(null)) {
+          router.push(href);
+        }
+      }}
+    >
+      <PlotTooltipArea taps={tooltipTaps}>
+        <ResponsiveBarCanvas
+          data={trend}
+          keys={["instances"]}
+          indexBy="datetime"
+          colors={[color]}
+          margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+          padding={0.2}
+          valueScale={{ type: "linear", min: 0 }}
+          axisTop={null}
+          axisRight={null}
+          axisBottom={null}
+          axisLeft={null}
+          enableGridY={false}
+          enableLabel={false}
+          onClick={(bar, event) => {
+            event.stopPropagation();
+            if (tooltipTaps.shouldAct(String(bar.index))) {
+              router.push(href);
+            }
+          }}
+          tooltip={({ data, index }) => (
+            <PlotTooltip className="px-4 py-2" tapKey={String(index)}>
+              <p className="p-2">
+                Date:{" "}
+                {formatPlotTooltipDate(data.datetime.toString(), plotTimeGroup)}
+              </p>
+              <div className="flex flex-row items-center p-2">
+                <PlotTooltipSwatch color={color} />
+                <span className="px-2">
+                  {data.instances.toLocaleString()}{" "}
+                  {data.instances === 1 ? "instance" : "instances"}
+                </span>
+              </div>
+            </PlotTooltip>
+          )}
+        />
+      </PlotTooltipArea>
+    </div>
+  );
 }
 
 export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
@@ -301,60 +370,15 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                               </span>
                             </RowLinkCell>
                             <RowLinkCell href={href} className="w-[18%]">
-                              {/* The chart is raised above the row link so hovering a
-                                  bar shows its tooltip, and a click on it opens the
-                                  error like the rest of the row. */}
-                              <div
-                                data-testid="exception-row-trend"
-                                className="relative z-20 pointer-events-auto cursor-pointer w-full h-4 border-b border-border"
-                                onClick={() => router.push(href)}
-                              >
-                                <PlotTooltipArea>
-                                  <ResponsiveBarCanvas
-                                    data={trend ?? []}
-                                    keys={["instances"]}
-                                    indexBy="datetime"
-                                    colors={[trendColor]}
-                                    margin={{
-                                      top: 0,
-                                      right: 0,
-                                      bottom: 0,
-                                      left: 0,
-                                    }}
-                                    padding={0.2}
-                                    valueScale={{ type: "linear", min: 0 }}
-                                    axisTop={null}
-                                    axisRight={null}
-                                    axisBottom={null}
-                                    axisLeft={null}
-                                    enableGridY={false}
-                                    enableLabel={false}
-                                    tooltip={({ data }) => (
-                                      <PlotTooltip className="px-4 py-2">
-                                        <p className="p-2">
-                                          Date:{" "}
-                                          {formatPlotTooltipDate(
-                                            data.datetime.toString(),
-                                            errorsOverview.meta
-                                              .plot_time_group as PlotTimeGroup,
-                                          )}
-                                        </p>
-                                        <div className="flex flex-row items-center p-2">
-                                          <PlotTooltipSwatch
-                                            color={trendColor}
-                                          />
-                                          <span className="px-2">
-                                            {data.instances.toLocaleString()}{" "}
-                                            {data.instances === 1
-                                              ? "instance"
-                                              : "instances"}
-                                          </span>
-                                        </div>
-                                      </PlotTooltip>
-                                    )}
-                                  />
-                                </PlotTooltipArea>
-                              </div>
+                              <ErrorTrendPlot
+                                trend={trend ?? []}
+                                href={href}
+                                plotTimeGroup={
+                                  errorsOverview.meta
+                                    .plot_time_group as PlotTimeGroup
+                                }
+                                color={trendColor}
+                              />
                             </RowLinkCell>
                             <RowLinkCell
                               href={href}
