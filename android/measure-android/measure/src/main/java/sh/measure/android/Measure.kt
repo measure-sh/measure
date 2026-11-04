@@ -205,7 +205,7 @@ object Measure {
      * try {
      *    // Code that can throw an exception
      *  } catch (e: Exception) {
-     *    Measure.trackHandledException(e)
+     *    Measure.trackError(e)
      *  }
      * ```
      *
@@ -213,13 +213,31 @@ object Measure {
      * @param attributes Optional key-value pairs providing additional context to the event.
      */
     @JvmStatic
-    fun trackHandledException(
+    fun trackError(
         throwable: Throwable,
         attributes: Map<String, AttributeValue> = emptyMap(),
     ) {
         if (isInitialized) {
-            measure.trackHandledException(throwable, attributes)
+            measure.trackError(throwable, attributes)
         }
+    }
+
+    /**
+     * Track a handled exception.
+     *
+     * @param throwable The exception that was caught and handled.
+     * @param attributes Optional key-value pairs providing additional context to the event.
+     */
+    @Deprecated(
+        message = "Use trackError instead.",
+        replaceWith = ReplaceWith("Measure.trackError(throwable, attributes)"),
+    )
+    @JvmStatic
+    fun trackHandledException(
+        throwable: Throwable,
+        attributes: Map<String, AttributeValue> = emptyMap(),
+    ) {
+        trackError(throwable, attributes)
     }
 
     /**
