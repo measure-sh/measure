@@ -294,6 +294,85 @@ describe("PlotTooltipArea", () => {
     expect(layer()).toBeEmptyDOMElement();
   });
 
+  describe("on scroll", () => {
+    // jsdom has no layout, so the tests set each element's top edge and
+    // whether the area has a box of its own.
+    let tops: Map<Element, number>;
+    let areaHasBox: boolean;
+
+    beforeEach(() => {
+      tops = new Map();
+      areaHasBox = true;
+      jest
+        .spyOn(Element.prototype, "getBoundingClientRect")
+        .mockImplementation(function (this: Element) {
+          return { left: 0, top: tops.get(this) ?? 0 } as DOMRect;
+        });
+      jest
+        .spyOn(Element.prototype, "getClientRects")
+        .mockImplementation(function (this: Element) {
+          const hasBox = this.className === "size-full" && areaHasBox;
+          return (hasBox ? [{}] : []) as unknown as DOMRectList;
+        });
+    });
+
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    function area() {
+      return screen.getByTestId("chart").parentElement!;
+    }
+
+    function hover() {
+      const { rerender } = render(<Chart hovered={false} />);
+      pointer(screen.getByTestId("chart"), "pointermove", 500, 400);
+      rerender(<Chart hovered />);
+    }
+
+    it("moves the tooltip with the area as it scrolls", () => {
+      hover();
+      expect(layer().style.transform).toBe("translate(350px, 286px)");
+
+      tops.set(area(), -100);
+      fireEvent.scroll(document);
+      expect(layer().style.transform).toBe("translate(350px, 186px)");
+    });
+
+    it("tracks the first child when the area has no box", () => {
+      areaHasBox = false;
+      hover();
+
+      tops.set(area(), -100);
+      fireEvent.scroll(document);
+      expect(layer().style.transform).toBe("translate(350px, 286px)");
+
+      tops.set(screen.getByTestId("chart"), -100);
+      fireEvent.scroll(document);
+      expect(layer().style.transform).toBe("translate(350px, 186px)");
+    });
+
+    it("keeps the tooltip in place when a scroll doesn't move the area", () => {
+      hover();
+      fireEvent.scroll(document);
+      expect(layer().style.transform).toBe("translate(350px, 286px)");
+    });
+
+    it("disables the transition while scrolling and restores it on pointer move", async () => {
+      hover();
+      await act(() => new Promise((resolve) => requestAnimationFrame(resolve)));
+      expect(layer()).toHaveClass("transition-transform");
+
+      tops.set(area(), -100);
+      fireEvent.scroll(document);
+      expect(layer()).not.toHaveClass("transition-transform");
+
+      pointer(screen.getByTestId("chart"), "pointermove", 500, 300);
+      expect(layer()).toHaveClass("transition-transform");
+      expect(layer().style.transform).toBe("translate(350px, 186px)");
+    });
+  });
+
   it("throws when PlotTooltip is rendered outside PlotTooltipArea", () => {
     const consoleError = jest
       .spyOn(console, "error")
