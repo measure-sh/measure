@@ -32,7 +32,7 @@ struct SwiftUIDetailViewController: View {
     ]
 
     var body: some View {
-        MsrMoniterView("DetailListView") {
+        MsrMonitorView("DetailListView") {
             NavigationView {
                 VStack(spacing: 0) {
 
