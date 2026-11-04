@@ -200,7 +200,7 @@ class _FlutterDemoScreenState extends State<FlutterDemoScreen>
     try {
       throw _CustomException('Handled error caught by the app');
     } catch (error, stack) {
-      Measure.instance.trackHandledError(
+      Measure.instance.trackError(
         error,
         stack,
         attributes: AttributeBuilder().add('order_id', 'order-12345').build(),

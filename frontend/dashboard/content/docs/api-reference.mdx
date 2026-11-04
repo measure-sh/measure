@@ -263,7 +263,7 @@ import 'package:measure_flutter/measure_flutter.dart';
 try {
   methodThatThrows();
 } catch (e, stackTrace) {
-  Measure.instance.trackHandledError(e, stackTrace);
+  Measure.instance.trackError(e, stackTrace);
 }
 ```
 
@@ -327,7 +327,7 @@ Measure.trackError(error, attributes: ["screen": .string("Login")])
 import 'package:measure_flutter/measure_flutter.dart';
 
 final attributes = AttributeBuilder().add("screen", "Login").build();
-Measure.instance.trackHandledError(e, stackTrace, attributes: attributes);
+Measure.instance.trackError(e, stackTrace, attributes: attributes);
 ```
 
 </Tab>
