@@ -174,6 +174,21 @@ final class MeasureInternalTests: XCTestCase {
         // Test `trackError`
         measureInternal.trackError(NSError(domain: "Test", code: 1), attributes: [:])
         XCTAssertFalse(logger.logs.contains(where: { $0.contains("Event processed") }), "trackError should not proceed if not started")
+
+        measureInternal.trackError(NSException(name: .genericException, reason: "Test"), attributes: [:])
+        XCTAssertFalse(logger.logs.contains(where: { $0.contains("Event processed") }), "trackError with NSException should not proceed if not started")
+    }
+
+    func testTrackObjcError_logsUnsupportedType() {
+        measureInternal.start()
+        guard let logger = mockMeasureInitializer.logger as? MockLogger else {
+            XCTFail("Unexpected logger type.")
+            return
+        }
+
+        measureInternal.trackObjcError("not an error", attributes: nil)
+
+        XCTAssertTrue(logger.logs.contains("trackError: unsupported type String, expected NSError or NSException"))
     }
 
     func testApplicationWillEnterForeground_triggersExport() {

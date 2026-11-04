@@ -285,19 +285,24 @@ import UIKit
         return measureInternal.trackError(error, attributes: attributes)
     }
 
-    @objc func trackError(_ error: NSError, attributes: [String: Any]? = nil) {
+    func trackError(_ error: NSError, attributes: [String: Any]? = nil) {
         guard let measureInternal = self.measureInternal else { return }
         return measureInternal.trackError(error, attributes: attributes)
     }
 
-    func trackException(_ exception: NSException, attributes: [String: AttributeValue]? = nil) {
+    func trackError(_ exception: NSException, attributes: [String: AttributeValue]? = nil) {
         guard let measureInternal = self.measureInternal else { return }
-        return measureInternal.trackException(exception, attributes: attributes)
+        return measureInternal.trackError(exception, attributes: attributes)
     }
 
-    @objc func trackException(_ exception: NSException, attributes: [String: Any]? = nil) {
+    func trackError(_ exception: NSException, attributes: [String: Any]? = nil) {
         guard let measureInternal = self.measureInternal else { return }
-        return measureInternal.trackException(exception, attributes: attributes)
+        return measureInternal.trackError(exception, attributes: attributes)
+    }
+
+    func trackObjcError(_ error: Any, attributes: [String: Any]? = nil) {
+        guard let measureInternal = self.measureInternal else { return }
+        return measureInternal.trackObjcError(error, attributes: attributes)
     }
 
     func internalGetAttachmentDirectory() -> String? {
@@ -936,7 +941,7 @@ extension Measure {
     /// - Parameters:
     ///   - error: The `NSError` instance to track. Ideal for errors coming from Apple frameworks or Objective-C code.
     ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. file path, HTTP status, method name).
-    @objc public static func trackError(_ error: NSError, attributes: [String: Any]? = nil) {
+    public static func trackError(_ error: NSError, attributes: [String: Any]? = nil) {
         Measure.shared.trackError(error, attributes: attributes)
     }
 
@@ -944,16 +949,43 @@ extension Measure {
     /// - Parameters:
     ///   - exception: The NSException instance to track.
     ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. request ID, user action, component).
-    public static func trackException(_ exception: NSException, attributes: [String: AttributeValue]? = nil) {
-        Measure.shared.trackException(exception, attributes: attributes)
+    public static func trackError(_ exception: NSException, attributes: [String: AttributeValue]? = nil) {
+        Measure.shared.trackError(exception, attributes: attributes)
     }
 
     /// Tracks a handled NSException and records it as part of the monitoring system.
     /// - Parameters:
     ///   - exception: The NSException instance to track.
     ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. request ID, user action, component).
+    public static func trackError(_ exception: NSException, attributes: [String: Any]? = nil) {
+        Measure.shared.trackError(exception, attributes: attributes)
+    }
+
+    /// Tracks a handled `NSError` or `NSException` from Objective-C. Any other type is ignored.
+    /// - Parameters:
+    ///   - error: The `NSError` or `NSException` instance to track.
+    ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. request ID, user action, component).
+    @available(swift, obsoleted: 1.0, message: "Use trackError(_:attributes:) with an Error or NSException.")
+    @objc(trackError:attributes:) public static func objcTrackError(_ error: Any, attributes: [String: Any]? = nil) {
+        Measure.shared.trackObjcError(error, attributes: attributes)
+    }
+
+    /// Tracks a handled NSException and records it as part of the monitoring system.
+    /// - Parameters:
+    ///   - exception: The NSException instance to track.
+    ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. request ID, user action, component).
+    @available(*, deprecated, renamed: "trackError(_:attributes:)")
+    public static func trackException(_ exception: NSException, attributes: [String: AttributeValue]? = nil) {
+        Measure.shared.trackError(exception, attributes: attributes)
+    }
+
+    /// Tracks a handled NSException and records it as part of the monitoring system.
+    /// - Parameters:
+    ///   - exception: The NSException instance to track.
+    ///   - attributes: Optional key-value pairs for additional metadata about the error (e.g. request ID, user action, component).
+    @available(*, deprecated, message: "Use trackError(_:attributes:) instead.")
     @objc public static func trackException(_ exception: NSException, attributes: [String: Any]? = nil) {
-        Measure.shared.trackException(exception, attributes: attributes)
+        Measure.shared.trackError(exception, attributes: attributes)
     }
 
     /// An internal method get the directory path wheere attachments are stored, used by cross-platform frameworks
