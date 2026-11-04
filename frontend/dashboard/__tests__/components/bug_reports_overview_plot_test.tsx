@@ -1,6 +1,7 @@
 import BugReportsOverviewPlot from "@/app/components/bug_reports_overview_plot";
 import "@testing-library/jest-dom";
 import { render, screen, waitFor } from "@testing-library/react";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 let lastLineProps: any = null;
 
@@ -167,6 +168,7 @@ describe("BugReportsOverviewPlot", () => {
           data: { ...datum, xFormatted: "2025-02-01" },
         },
       }),
+      { wrapper: PlotTooltipArea },
     );
     expect(getByText("v1 - 3 bug reports")).toBeInTheDocument();
     expect(getByText("v2 - 1 bug report")).toBeInTheDocument();

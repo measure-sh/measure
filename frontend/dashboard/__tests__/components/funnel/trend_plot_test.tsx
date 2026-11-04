@@ -56,6 +56,7 @@ import FunnelTrendPlot, {
   FunnelTrendMetric,
 } from "@/app/components/funnel/trend_plot";
 import { gridDotPositions } from "@/app/utils/chart_utils";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 type TrendPoint = FunnelTrend["points"][number];
 type TrendBuild = FunnelTrend["builds"][number];
@@ -189,7 +190,7 @@ function isSelected(label: string) {
 }
 
 function renderTooltip(lineProps: any, seriesId: string, index: number) {
-  const { container } = render(
+  render(
     lineProps.tooltip({
       point: {
         seriesId,
@@ -197,8 +198,10 @@ function renderTooltip(lineProps: any, seriesId: string, index: number) {
         data: lineProps.data[0].data[index],
       },
     }),
+    { wrapper: PlotTooltipArea },
   );
-  return container;
+  // A test can render multiple tooltips, so this reads the last one rendered.
+  return screen.getAllByRole("tooltip", { hidden: true }).at(-1)!;
 }
 
 function tooltipText(lineProps: any, seriesId: string, index: number) {

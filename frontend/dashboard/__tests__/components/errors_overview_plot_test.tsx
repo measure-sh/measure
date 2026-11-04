@@ -1,6 +1,7 @@
 import ErrorsOverviewPlot from "@/app/components/errors_overview_plot";
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 let lastLineProps: any = null;
 
@@ -154,6 +155,7 @@ describe("ErrorsOverviewPlot", () => {
           data: { ...datum, xFormatted: "2026-02-01T01:00:00" },
         },
       }),
+      { wrapper: PlotTooltipArea },
     );
     expect(getByText("3.1.0 - 5 instances")).toBeInTheDocument();
     expect(getByText("3.0.0 - 1 instance")).toBeInTheDocument();

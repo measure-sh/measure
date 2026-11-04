@@ -1,6 +1,6 @@
 import type { JourneyNode } from "@/app/api/api_calls";
 import { Fragment, type ReactNode } from "react";
-import { PlotTooltipShell, PlotTooltipSwatch } from "../plot_tooltip";
+import { PlotTooltip, PlotTooltipSwatch } from "../plot_tooltip";
 import { Separator } from "../separator";
 import { linkStats, nodeStats, shortName, type Stat } from "./format";
 
@@ -16,7 +16,7 @@ function Tooltip({
   hint?: string;
 }) {
   return (
-    <PlotTooltipShell>
+    <PlotTooltip>
       <div className="flex flex-row items-center gap-2 px-4 py-3">
         <PlotTooltipSwatch color={colour} />
         <p className="font-display text-sm">{title}</p>
@@ -42,7 +42,7 @@ function Tooltip({
           </p>
         </>
       )}
-    </PlotTooltipShell>
+    </PlotTooltip>
   );
 }
 

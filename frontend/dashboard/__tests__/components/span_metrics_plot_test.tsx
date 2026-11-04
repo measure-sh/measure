@@ -43,6 +43,7 @@ jest.mock("@/app/components/tab_select", () => ({
 }));
 
 import SpanMetricsPlot from "@/app/components/span_metrics_plot";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 const plotDates = {
   startDate: "2026-02-01T00:00:00Z",
@@ -144,9 +145,10 @@ describe("SpanMetricsPlot", () => {
         },
       },
     });
-    const { container } = render(tooltip);
-    expect(container.textContent).toContain("Date:");
-    expect(container.textContent).toContain("(p50)");
+    render(tooltip, { wrapper: PlotTooltipArea });
+    const tooltipDiv = screen.getByRole("tooltip", { hidden: true });
+    expect(tooltipDiv.textContent).toContain("Date:");
+    expect(tooltipDiv.textContent).toContain("(p50)");
   });
 
   it("uses hour axis configuration for multi-day ranges", async () => {

@@ -22,7 +22,11 @@ import {
 import { numberToKMB } from "../../utils/number_utils";
 import DropdownSelect, { DropdownSelectType } from "../dropdown_select";
 import EmptyState from "../empty_state";
-import { PlotTooltipShell, PlotTooltipSwatch } from "../plot_tooltip";
+import {
+  PlotTooltip,
+  PlotTooltipArea,
+  PlotTooltipSwatch,
+} from "../plot_tooltip";
 import { Separator } from "../separator";
 import { SkeletonPlot } from "../skeleton";
 import { formatShare } from "./format";
@@ -213,74 +217,76 @@ function HourLines({
             No days selected
           </p>
         )}
-        <ResponsiveLineCanvas
-          data={series}
-          curve="linear"
-          theme={canvasTheme}
-          colors={({ id }) => colorOf(id)}
-          layers={["axes", drawLines, "mesh"]}
-          margin={{
-            top: TOP_MARGIN,
-            right: RIGHT_MARGIN,
-            bottom: bottomMargin,
-            left: leftMargin,
-          }}
-          xScale={{ type: "linear", min: 0, max: HOURS.length - 1 }}
-          yScale={{ type: "linear", min: 0, max: "auto", nice: true }}
-          axisTop={null}
-          axisRight={null}
-          axisBottom={{
-            tickSize: CHART_TICK_SIZE,
-            tickPadding: CHART_TICK_PADDING,
-            tickValues: LABELED_HOURS,
-            format: (value) => hourLabel(Number(value)),
-            legend: "Hour of Day",
-            legendOffset: bottomMargin - CHART_TEXT_SIZE / 2,
-            legendPosition: "middle",
-          }}
-          axisLeft={{
-            tickSize: CHART_TICK_SIZE,
-            tickPadding: CHART_TICK_PADDING,
-            tickValues: CHART_VALUE_TICK_COUNT,
-            format: (value) => `${value}%`,
-            legend: "Conversion",
-            legendOffset: -(leftMargin - CHART_TEXT_SIZE / 2),
-            legendPosition: "middle",
-          }}
-          enableGridX={false}
-          enableGridY={false}
-          onClick={(datum) => {
-            if ("seriesId" in datum) {
-              onSelectPoint(
-                WEEKDAYS.indexOf(String(datum.seriesId)) + 1,
-                datum.data.x,
-              );
-            }
-          }}
-          tooltip={({ point }) => (
-            <PlotTooltipShell>
-              <div className="flex flex-row items-center px-4 py-3">
-                <PlotTooltipSwatch color={point.seriesColor} />
-                <span className="px-2">
-                  {point.seriesId} -{" "}
-                  {formatShare(point.data.converted, point.data.users)}
-                </span>
-              </div>
-              <Separator />
-              <div className="px-4 py-3 flex flex-col gap-2">
-                <p>
-                  Hour: {hourLabel(point.data.x)} to{" "}
-                  {hourLabel(point.data.x + 1)}
-                </p>
-                <p>Users entered: {numberToKMB(point.data.users)}</p>
-                <p>Users converted: {numberToKMB(point.data.converted)}</p>
-                <p className="text-muted-foreground">
-                  Click to open last {point.seriesId} in Breakdown view
-                </p>
-              </div>
-            </PlotTooltipShell>
-          )}
-        />
+        <PlotTooltipArea>
+          <ResponsiveLineCanvas
+            data={series}
+            curve="linear"
+            theme={canvasTheme}
+            colors={({ id }) => colorOf(id)}
+            layers={["axes", drawLines, "mesh"]}
+            margin={{
+              top: TOP_MARGIN,
+              right: RIGHT_MARGIN,
+              bottom: bottomMargin,
+              left: leftMargin,
+            }}
+            xScale={{ type: "linear", min: 0, max: HOURS.length - 1 }}
+            yScale={{ type: "linear", min: 0, max: "auto", nice: true }}
+            axisTop={null}
+            axisRight={null}
+            axisBottom={{
+              tickSize: CHART_TICK_SIZE,
+              tickPadding: CHART_TICK_PADDING,
+              tickValues: LABELED_HOURS,
+              format: (value) => hourLabel(Number(value)),
+              legend: "Hour of Day",
+              legendOffset: bottomMargin - CHART_TEXT_SIZE / 2,
+              legendPosition: "middle",
+            }}
+            axisLeft={{
+              tickSize: CHART_TICK_SIZE,
+              tickPadding: CHART_TICK_PADDING,
+              tickValues: CHART_VALUE_TICK_COUNT,
+              format: (value) => `${value}%`,
+              legend: "Conversion",
+              legendOffset: -(leftMargin - CHART_TEXT_SIZE / 2),
+              legendPosition: "middle",
+            }}
+            enableGridX={false}
+            enableGridY={false}
+            onClick={(datum) => {
+              if ("seriesId" in datum) {
+                onSelectPoint(
+                  WEEKDAYS.indexOf(String(datum.seriesId)) + 1,
+                  datum.data.x,
+                );
+              }
+            }}
+            tooltip={({ point }) => (
+              <PlotTooltip>
+                <div className="flex flex-row items-center px-4 py-3">
+                  <PlotTooltipSwatch color={point.seriesColor} />
+                  <span className="px-2">
+                    {point.seriesId} -{" "}
+                    {formatShare(point.data.converted, point.data.users)}
+                  </span>
+                </div>
+                <Separator />
+                <div className="px-4 py-3 flex flex-col gap-2">
+                  <p>
+                    Hour: {hourLabel(point.data.x)} to{" "}
+                    {hourLabel(point.data.x + 1)}
+                  </p>
+                  <p>Users entered: {numberToKMB(point.data.users)}</p>
+                  <p>Users converted: {numberToKMB(point.data.converted)}</p>
+                  <p className="text-muted-foreground">
+                    Click to open last {point.seriesId} in Breakdown view
+                  </p>
+                </div>
+              </PlotTooltip>
+            )}
+          />
+        </PlotTooltipArea>
       </div>
     </div>
   );

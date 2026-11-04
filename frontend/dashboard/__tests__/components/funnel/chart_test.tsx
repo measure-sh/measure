@@ -4,6 +4,7 @@ import { useChartColors } from "@/app/utils/chart_utils";
 import { beforeAll, beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { render, renderHook, screen } from "@testing-library/react";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 let lastFunnelProps: any = null;
 
@@ -55,7 +56,9 @@ function renderChart(onSelectStep = jest.fn()) {
 function renderTooltip(index: number, color = "#38bdf8") {
   renderChart();
   const Tooltip = lastFunnelProps.tooltip;
-  return render(<Tooltip part={{ data: { id: index }, color }} />);
+  return render(<Tooltip part={{ data: { id: index }, color }} />, {
+    wrapper: PlotTooltipArea,
+  });
 }
 
 function rowValue(label: string): string | null {
@@ -152,9 +155,11 @@ describe("FunnelChart", () => {
 
   describe("step tooltip", () => {
     it("shows the step's event name and color", () => {
-      const { container } = renderTooltip(1, "#fbbf24");
+      renderTooltip(1, "#fbbf24");
       expect(screen.getByText("add_to_cart")).toBeInTheDocument();
-      const swatch = container.querySelector(".rounded-full") as HTMLElement;
+      const swatch = screen
+        .getByRole("tooltip", { hidden: true })
+        .querySelector(".rounded-full") as HTMLElement;
       expect(swatch.style.backgroundColor).toBe("rgb(251, 191, 36)");
     });
 

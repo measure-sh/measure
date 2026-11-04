@@ -15,6 +15,7 @@ import {
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { DateTime, Settings } from "luxon";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 const mockPush = jest.fn();
 const mockUseFunnelTrendQuery = jest.fn();
@@ -498,14 +499,17 @@ describe("FunnelPinnedCard weekly plot", () => {
     mockTrend(points);
   });
 
-  const renderTooltip = (index: number) =>
+  const renderTooltip = (index: number) => {
     render(
       mockBarProps.tooltip({
         data: mockBarProps.data[index],
         index,
         color: "#000000",
       }),
-    ).container;
+      { wrapper: PlotTooltipArea },
+    );
+    return screen.getByRole("tooltip", { hidden: true });
+  };
 
   it("plots every week's conversion, with zero for a week nobody entered", () => {
     renderCard();

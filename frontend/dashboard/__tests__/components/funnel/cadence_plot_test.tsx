@@ -45,6 +45,7 @@ jest.mock("@/app/components/command", () => ({
 }));
 
 import FunnelCadencePlot from "@/app/components/funnel/cadence_plot";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 const cadence: FunnelCadence = {
   sample_percent: 100,
@@ -167,7 +168,7 @@ describe("FunnelCadencePlot", () => {
 
   it("shows the day, hour and users of the hovered point", () => {
     renderPlot();
-    const { container } = render(
+    render(
       lineProps.tooltip({
         point: {
           seriesId: "Monday",
@@ -175,11 +176,13 @@ describe("FunnelCadencePlot", () => {
           data: lineProps.data[0].data[9],
         },
       }),
+      { wrapper: PlotTooltipArea },
     );
-    expect(container.textContent).toContain("Monday - 3.0%");
-    expect(container.textContent).toContain("Hour: 9am to 10am");
-    expect(container.textContent).toContain("Users entered: 400");
-    expect(container.textContent).toContain("Users converted: 12");
+    const tooltipDiv = screen.getByRole("tooltip", { hidden: true });
+    expect(tooltipDiv.textContent).toContain("Monday - 3.0%");
+    expect(tooltipDiv.textContent).toContain("Hour: 9am to 10am");
+    expect(tooltipDiv.textContent).toContain("Users entered: 400");
+    expect(tooltipDiv.textContent).toContain("Users converted: 12");
   });
 
   it("opens the clicked weekday and hour", () => {

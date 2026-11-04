@@ -33,7 +33,11 @@ import {
 } from "../utils/chart_utils";
 import { Button } from "./button";
 import EmptyState from "./empty_state";
-import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
+import {
+  PlotTooltip,
+  PlotTooltipArea,
+  PlotTooltipSwatch,
+} from "./plot_tooltip";
 import { SkeletonPlot } from "./skeleton";
 
 const demoValues: Record<DistributionAttribute, [string, number][]> = {
@@ -188,7 +192,7 @@ const DistributionTooltip: React.FC<DistributionTooltipProps> = ({
   total,
   color,
 }) => (
-  <PlotTooltipShell className="px-4 py-2">
+  <PlotTooltip className="px-4 py-2">
     <div className="flex flex-row items-center p-2">
       <PlotTooltipSwatch color={color} />
       <span className="px-2">
@@ -196,7 +200,7 @@ const DistributionTooltip: React.FC<DistributionTooltipProps> = ({
         ({formatShare(count, total)})
       </span>
     </div>
-  </PlotTooltipShell>
+  </PlotTooltip>
 );
 
 const otherKey = "other";
@@ -234,50 +238,52 @@ const SummaryChart: React.FC<SummaryChartProps> = ({ summary, onSelect }) => {
   );
 
   return (
-    <ResponsiveBar
-      data={data}
-      keys={keys}
-      indexBy="attribute"
-      theme={chartTheme}
-      colors={chartColors}
-      margin={chartMargin}
-      padding={summaryPadding}
-      axisTop={null}
-      axisRight={null}
-      axisBottom={{
-        legend: "Attributes",
-        tickPadding: 10,
-        legendOffset: 96,
-        tickRotation: 60,
-        legendPosition: "middle",
-        format: (attribute) => byAttribute.get(attribute)?.label ?? "",
-      }}
-      axisLeft={errorInstancesAxis}
-      enableLabel={false}
-      enableGridX={false}
-      enableGridY={false}
-      layers={[DotGrid, "axes", "bars"]}
-      onClick={({ indexValue }) =>
-        onSelect(indexValue as DistributionAttribute)
-      }
-      tooltip={({ id, indexValue, value, color }) => {
-        const distribution = byAttribute.get(
-          indexValue as DistributionAttribute,
-        )!;
-        return (
-          <DistributionTooltip
-            label={
-              id === otherKey
-                ? otherLabel(distribution)
-                : distribution.values[keys.indexOf(String(id))].label
-            }
-            count={value}
-            total={distribution.total}
-            color={color}
-          />
-        );
-      }}
-    />
+    <PlotTooltipArea>
+      <ResponsiveBar
+        data={data}
+        keys={keys}
+        indexBy="attribute"
+        theme={chartTheme}
+        colors={chartColors}
+        margin={chartMargin}
+        padding={summaryPadding}
+        axisTop={null}
+        axisRight={null}
+        axisBottom={{
+          legend: "Attributes",
+          tickPadding: 10,
+          legendOffset: 96,
+          tickRotation: 60,
+          legendPosition: "middle",
+          format: (attribute) => byAttribute.get(attribute)?.label ?? "",
+        }}
+        axisLeft={errorInstancesAxis}
+        enableLabel={false}
+        enableGridX={false}
+        enableGridY={false}
+        layers={[DotGrid, "axes", "bars"]}
+        onClick={({ indexValue }) =>
+          onSelect(indexValue as DistributionAttribute)
+        }
+        tooltip={({ id, indexValue, value, color }) => {
+          const distribution = byAttribute.get(
+            indexValue as DistributionAttribute,
+          )!;
+          return (
+            <DistributionTooltip
+              label={
+                id === otherKey
+                  ? otherLabel(distribution)
+                  : distribution.values[keys.indexOf(String(id))].label
+              }
+              count={value}
+              total={distribution.total}
+              color={color}
+            />
+          );
+        }}
+      />
+    </PlotTooltipArea>
   );
 };
 
@@ -296,39 +302,41 @@ const AttributeChart: React.FC<AttributeChartProps> = ({ distribution }) => {
   }));
 
   return (
-    <ResponsiveBar
-      data={data}
-      keys={["count"]}
-      indexBy="id"
-      theme={chartTheme}
-      colors={chartColors}
-      colorBy="indexValue"
-      margin={chartMargin}
-      padding={attributeChartPadding(data.length)}
-      axisTop={null}
-      axisRight={null}
-      axisBottom={{
-        legend: distribution.label,
-        tickPadding: 10,
-        legendOffset: 96,
-        tickRotation: 60,
-        legendPosition: "middle",
-        format: (id) => truncateLabel(data[Number(id)].label),
-      }}
-      axisLeft={errorInstancesAxis}
-      enableLabel={false}
-      enableGridX={false}
-      enableGridY={false}
-      layers={[DotGrid, "axes", "bars"]}
-      tooltip={({ data: datum, value, color }) => (
-        <DistributionTooltip
-          label={datum.label}
-          count={value}
-          total={distribution.total}
-          color={color}
-        />
-      )}
-    />
+    <PlotTooltipArea>
+      <ResponsiveBar
+        data={data}
+        keys={["count"]}
+        indexBy="id"
+        theme={chartTheme}
+        colors={chartColors}
+        colorBy="indexValue"
+        margin={chartMargin}
+        padding={attributeChartPadding(data.length)}
+        axisTop={null}
+        axisRight={null}
+        axisBottom={{
+          legend: distribution.label,
+          tickPadding: 10,
+          legendOffset: 96,
+          tickRotation: 60,
+          legendPosition: "middle",
+          format: (id) => truncateLabel(data[Number(id)].label),
+        }}
+        axisLeft={errorInstancesAxis}
+        enableLabel={false}
+        enableGridX={false}
+        enableGridY={false}
+        layers={[DotGrid, "axes", "bars"]}
+        tooltip={({ data: datum, value, color }) => (
+          <DistributionTooltip
+            label={datum.label}
+            count={value}
+            total={distribution.total}
+            color={color}
+          />
+        )}
+      />
+    </PlotTooltipArea>
   );
 };
 

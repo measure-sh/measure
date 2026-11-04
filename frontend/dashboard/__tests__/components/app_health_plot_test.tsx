@@ -1,6 +1,7 @@
 import AppHealthPlot from "@/app/components/app_health_plot";
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 let lastLineProps: any = null;
 
@@ -133,9 +134,10 @@ describe("AppHealthPlot", () => {
       },
     });
 
-    const { container } = render(tooltip);
-    expect(container.textContent).toContain("Sessions - 1,200");
-    expect(container.textContent).toContain("Crashes - 2");
+    render(tooltip, { wrapper: PlotTooltipArea });
+    const tooltipDiv = screen.getByRole("tooltip", { hidden: true });
+    expect(tooltipDiv.textContent).toContain("Sessions - 1,200");
+    expect(tooltipDiv.textContent).toContain("Crashes - 2");
   });
 
   it("colors app hangs like ANRs", () => {
