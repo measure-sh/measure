@@ -54,6 +54,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Expand session arrays with an ARRAY JOIN clause by @anupcowkur
 - (**backend**): Bind the suggestion window start as a query parameter by @anupcowkur in #4464
 - (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
+- (**frontend**): Show chart tooltips before acting on touch taps by @anupcowkur in #4789
 - (**frontend**): Keep chart tooltips inside the window by @anupcowkur in #4788
 - (**frontend**): Hide backend URL behind API route handler (#4735) by @detj in #4735
 - (**frontend**): Count partial days for usage page in sandbox by @anupcowkur in #4720
