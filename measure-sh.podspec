@@ -22,7 +22,7 @@ Pod::Spec.new do |spec|
     "ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModelV1ToV2.xcmappingmodel"
   ]
   spec.frameworks   = "Foundation", "UIKit", "CoreData"
-  spec.dependency "KSCrash", "~> 2.5"
+  spec.dependency "KSCrash", "2.6.1"
 
   spec.subspec 'WebP' do |ss|
     ss.source_files = [
