@@ -8,6 +8,11 @@ RUN --mount=type=cache,target=/root/.npm \
 FROM node:24-slim AS builder
 WORKDIR /app
 
+# posthog-cli verifies TLS against the system trust store, absent in slim
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy dependencies
 COPY --from=deps /app/node_modules ./node_modules
 
