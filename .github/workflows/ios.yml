@@ -2,15 +2,34 @@ on:
   pull_request:
     paths:
       - 'ios/**'
+      - 'Package.swift'
+      - 'measure-sh.podspec'
+      - '.github/scripts/check-ios-kscrash-pins.sh'
+      - '.github/workflows/ios.yml'
   push:
     branches:
       - 'main'
     paths:
       - 'ios/**'
+      - 'Package.swift'
+      - 'measure-sh.podspec'
+      - '.github/scripts/check-ios-kscrash-pins.sh'
+      - '.github/workflows/ios.yml'
     tags:
       - 'ios-*'
 
 jobs:
+  ios_kscrash_pins:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Check KSCrash pins match
+        run: .github/scripts/check-ios-kscrash-pins.sh
+
   ios_lint_and_tests:
     runs-on: macos-15
     permissions:
@@ -51,12 +70,10 @@ jobs:
       - name: Build Measure SDK
         run: |
           xcodebuild build \
-            -project ios/MeasureSDK.xcodeproj \
             -scheme Measure \
             -sdk iphonesimulator \
             -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.2' \
-            ONLY_ACTIVE_ARCH=YES \
-            SKIP_TESTING=YES
+            ONLY_ACTIVE_ARCH=YES
 
       - name: Run Unit Tests
         run: |
