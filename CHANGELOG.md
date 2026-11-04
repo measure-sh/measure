@@ -92,6 +92,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Switch country lookup to IPinfo Lite database by @detj in #4784
 - (**backend**): Replace journey sampling with analytics sampling (#4764) by @abhaysood
 - (**backend**): Remove nonexistent column from events migration by @anupcowkur in #4773
 - (**backend**): Add codec to warm_launch.app_visible_uptime by @anupcowkur in #4745
