@@ -22,7 +22,11 @@ import ErrorsOverviewPlot from "./errors_overview_plot";
 import LoadingBar from "./loading_bar";
 import Paginator from "./paginator";
 import Pill, { PillType } from "./pill";
-import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
+import {
+  PlotTooltip,
+  PlotTooltipArea,
+  PlotTooltipSwatch,
+} from "./plot_tooltip";
 import RowLinkCell from "./row_link_cell";
 import { SkeletonListPage } from "./skeleton";
 import {
@@ -305,47 +309,51 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                                 className="relative z-20 pointer-events-auto cursor-pointer w-full h-4 border-b border-border"
                                 onClick={() => router.push(href)}
                               >
-                                <ResponsiveBarCanvas
-                                  data={trend ?? []}
-                                  keys={["instances"]}
-                                  indexBy="datetime"
-                                  colors={[trendColor]}
-                                  margin={{
-                                    top: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    left: 0,
-                                  }}
-                                  padding={0.2}
-                                  valueScale={{ type: "linear", min: 0 }}
-                                  axisTop={null}
-                                  axisRight={null}
-                                  axisBottom={null}
-                                  axisLeft={null}
-                                  enableGridY={false}
-                                  enableLabel={false}
-                                  tooltip={({ data }) => (
-                                    <PlotTooltipShell className="px-4 py-2">
-                                      <p className="p-2">
-                                        Date:{" "}
-                                        {formatPlotTooltipDate(
-                                          data.datetime.toString(),
-                                          errorsOverview.meta
-                                            .plot_time_group as PlotTimeGroup,
-                                        )}
-                                      </p>
-                                      <div className="flex flex-row items-center p-2">
-                                        <PlotTooltipSwatch color={trendColor} />
-                                        <span className="px-2">
-                                          {data.instances.toLocaleString()}{" "}
-                                          {data.instances === 1
-                                            ? "instance"
-                                            : "instances"}
-                                        </span>
-                                      </div>
-                                    </PlotTooltipShell>
-                                  )}
-                                />
+                                <PlotTooltipArea>
+                                  <ResponsiveBarCanvas
+                                    data={trend ?? []}
+                                    keys={["instances"]}
+                                    indexBy="datetime"
+                                    colors={[trendColor]}
+                                    margin={{
+                                      top: 0,
+                                      right: 0,
+                                      bottom: 0,
+                                      left: 0,
+                                    }}
+                                    padding={0.2}
+                                    valueScale={{ type: "linear", min: 0 }}
+                                    axisTop={null}
+                                    axisRight={null}
+                                    axisBottom={null}
+                                    axisLeft={null}
+                                    enableGridY={false}
+                                    enableLabel={false}
+                                    tooltip={({ data }) => (
+                                      <PlotTooltip className="px-4 py-2">
+                                        <p className="p-2">
+                                          Date:{" "}
+                                          {formatPlotTooltipDate(
+                                            data.datetime.toString(),
+                                            errorsOverview.meta
+                                              .plot_time_group as PlotTimeGroup,
+                                          )}
+                                        </p>
+                                        <div className="flex flex-row items-center p-2">
+                                          <PlotTooltipSwatch
+                                            color={trendColor}
+                                          />
+                                          <span className="px-2">
+                                            {data.instances.toLocaleString()}{" "}
+                                            {data.instances === 1
+                                              ? "instance"
+                                              : "instances"}
+                                          </span>
+                                        </div>
+                                      </PlotTooltip>
+                                    )}
+                                  />
+                                </PlotTooltipArea>
                               </div>
                             </RowLinkCell>
                             <RowLinkCell

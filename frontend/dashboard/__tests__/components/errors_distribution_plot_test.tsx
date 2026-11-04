@@ -5,6 +5,7 @@ import {
 } from "@/app/query/hooks";
 import "@testing-library/jest-dom";
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 let lastBarProps: any = null;
 
@@ -92,7 +93,9 @@ function renderDevice(attributeQuery: any, onSelect = jest.fn()) {
 }
 
 function renderTooltip(props: any) {
-  return render(lastBarProps.tooltip(props)).container.textContent;
+  render(lastBarProps.tooltip(props), { wrapper: PlotTooltipArea });
+  // A test can render multiple tooltips, so this reads the last one rendered.
+  return screen.getAllByRole("tooltip", { hidden: true }).at(-1)!.textContent;
 }
 
 describe("ErrorsDistributionPlot", () => {

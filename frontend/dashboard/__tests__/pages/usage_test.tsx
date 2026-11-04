@@ -208,13 +208,14 @@ jest.mock("@nivo/pie", () => ({
   },
 }));
 
-// Mock the tooltip shell so rendering a captured tooltip element needs no
-// real chart styling.
+// Mock the tooltip so a captured tooltip element can render without chart
+// styling or positioning.
 jest.mock("@/app/components/plot_tooltip", () => ({
   __esModule: true,
-  PlotTooltipShell: ({ children }: any) => (
-    <div data-testid="plot-tooltip-shell">{children}</div>
+  PlotTooltip: ({ children }: any) => (
+    <div data-testid="plot-tooltip">{children}</div>
   ),
+  PlotTooltipArea: ({ children }: any) => <>{children}</>,
 }));
 
 // Mock DropdownSelect — renders the current selection and one button per
@@ -572,7 +573,7 @@ describe("Usage Page", () => {
     });
     render(<>{tooltip}</>);
 
-    expect(screen.getByTestId("plot-tooltip-shell")).toBeInTheDocument();
+    expect(screen.getByTestId("plot-tooltip")).toBeInTheDocument();
     expect(screen.getByText("My App")).toBeInTheDocument();
     expect(screen.getByText("Sessions: 6200")).toBeInTheDocument();
     expect(screen.getByText("Events: 15000")).toBeInTheDocument();

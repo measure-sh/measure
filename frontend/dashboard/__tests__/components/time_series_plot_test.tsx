@@ -5,7 +5,8 @@ import TimeSeriesPlot, {
 } from "@/app/components/time_series_plot";
 import { numberToKMB } from "@/app/utils/number_utils";
 import "@testing-library/jest-dom";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 let lastLineProps: any = null;
 
@@ -125,7 +126,7 @@ describe("TimeSeriesPlot", () => {
 
   it("shows the hovered series and the date in the tooltip", () => {
     renderPlot({});
-    const { container } = render(
+    render(
       lastLineProps.tooltip({
         point: {
           seriesId: "1.0.0",
@@ -133,10 +134,12 @@ describe("TimeSeriesPlot", () => {
           data: { xFormatted: "2026-02-01T01:00:00", y: 3 },
         },
       }),
+      { wrapper: PlotTooltipArea },
     );
-    expect(container.textContent).toContain("1.0.0 - 3");
-    expect(container.textContent).not.toContain("2.0.0");
-    expect(container.textContent).toContain("Date:");
+    const tooltipDiv = screen.getByRole("tooltip", { hidden: true });
+    expect(tooltipDiv.textContent).toContain("1.0.0 - 3");
+    expect(tooltipDiv.textContent).not.toContain("2.0.0");
+    expect(tooltipDiv.textContent).toContain("Date:");
   });
 });
 
@@ -151,7 +154,7 @@ describe("TimeSeriesPlot tooltip with every series", () => {
       showAllSeriesInTooltip: true,
     });
     const hovered = lastLineProps.data[0].data[0];
-    const { container } = render(
+    render(
       lastLineProps.tooltip({
         point: {
           seriesId: "2xx",
@@ -159,10 +162,12 @@ describe("TimeSeriesPlot tooltip with every series", () => {
           data: { ...hovered, xFormatted: "2026-02-01T01:00:00" },
         },
       }),
+      { wrapper: PlotTooltipArea },
     );
-    expect(container.textContent).toContain("2xx - 90");
-    expect(container.textContent).toContain("4xx - 10");
-    expect(container.textContent).not.toContain("5xx");
+    const tooltipDiv = screen.getByRole("tooltip", { hidden: true });
+    expect(tooltipDiv.textContent).toContain("2xx - 90");
+    expect(tooltipDiv.textContent).toContain("4xx - 10");
+    expect(tooltipDiv.textContent).not.toContain("5xx");
   });
 
   it("fades the rows of the series that are not hovered", () => {
@@ -182,6 +187,7 @@ describe("TimeSeriesPlot tooltip with every series", () => {
           data: { ...hovered, xFormatted: "2026-02-01T01:00:00" },
         },
       }),
+      { wrapper: PlotTooltipArea },
     );
     expect(getByText("2xx - 90").parentElement).toHaveClass("opacity-20");
     expect(getByText("4xx - 10").parentElement).not.toHaveClass("opacity-20");
@@ -190,7 +196,7 @@ describe("TimeSeriesPlot tooltip with every series", () => {
 
 describe("TimeSeriesPlot tooltip total", () => {
   function renderTooltip() {
-    const { container } = render(
+    render(
       lastLineProps.tooltip({
         point: {
           seriesId: "1.0.0",
@@ -198,8 +204,9 @@ describe("TimeSeriesPlot tooltip total", () => {
           data: { xFormatted: "2026-02-01T01:00:00", y: 3, total_count: 1200 },
         },
       }),
+      { wrapper: PlotTooltipArea },
     );
-    return container.textContent;
+    return screen.getByRole("tooltip", { hidden: true }).textContent;
   }
 
   it("shows the total when the chart gives one", () => {

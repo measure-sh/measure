@@ -25,7 +25,11 @@ import { Card } from "../card";
 import { DateRange } from "../filter_bar/date_range_select";
 import FunnelSteps from "./steps";
 import Pill from "../pill";
-import { PlotTooltipShell, PlotTooltipSwatch } from "../plot_tooltip";
+import {
+  PlotTooltip,
+  PlotTooltipArea,
+  PlotTooltipSwatch,
+} from "../plot_tooltip";
 import SimpleTooltip from "../simple_tooltip";
 import { Skeleton } from "../skeleton";
 
@@ -192,50 +196,56 @@ function WeeklyConversionPlot({
         }
       }}
     >
-      <ResponsiveBarCanvas
-        data={data}
-        keys={["conversion"]}
-        indexBy="datetime"
-        colors={({ index }) =>
-          points[index].complete ? completeColor : incompleteColor
-        }
-        margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-        padding={0.2}
-        valueScale={{ type: "linear", min: 0 }}
-        axisTop={null}
-        axisRight={null}
-        axisBottom={null}
-        axisLeft={null}
-        enableGridY={false}
-        enableLabel={false}
-        onClick={(bar, event) => {
-          event.stopPropagation();
-          if (href !== null) {
-            router.push(weekHref(href, points[bar.index]));
+      <PlotTooltipArea>
+        <ResponsiveBarCanvas
+          data={data}
+          keys={["conversion"]}
+          indexBy="datetime"
+          colors={({ index }) =>
+            points[index].complete ? completeColor : incompleteColor
           }
-        }}
-        tooltip={({ data, index, color }) => (
-          <PlotTooltipShell className="px-4 py-2">
-            <p className="p-2">
-              Week of{" "}
-              {DateTime.fromISO(String(data.datetime)).toFormat("d MMM, yyyy")}
-              {points[index].complete ? "" : " · Still converting"}
-            </p>
-            <div className="flex flex-row items-center p-2">
-              <PlotTooltipSwatch color={color} />
-              <span className="px-2">
-                {data.entered === 0
-                  ? "No users entered"
-                  : `${data.conversion}% conversion`}
-              </span>
-            </div>
-            <p className="p-2">
-              Users entered: {numberToKMB(Number(data.entered))}
-            </p>
-            <p className="p-2 text-muted-foreground">Click to open this week</p>
-          </PlotTooltipShell>
-        )}
-      />
+          margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+          padding={0.2}
+          valueScale={{ type: "linear", min: 0 }}
+          axisTop={null}
+          axisRight={null}
+          axisBottom={null}
+          axisLeft={null}
+          enableGridY={false}
+          enableLabel={false}
+          onClick={(bar, event) => {
+            event.stopPropagation();
+            if (href !== null) {
+              router.push(weekHref(href, points[bar.index]));
+            }
+          }}
+          tooltip={({ data, index, color }) => (
+            <PlotTooltip className="px-4 py-2">
+              <p className="p-2">
+                Week of{" "}
+                {DateTime.fromISO(String(data.datetime)).toFormat(
+                  "d MMM, yyyy",
+                )}
+                {points[index].complete ? "" : " · Still converting"}
+              </p>
+              <div className="flex flex-row items-center p-2">
+                <PlotTooltipSwatch color={color} />
+                <span className="px-2">
+                  {data.entered === 0
+                    ? "No users entered"
+                    : `${data.conversion}% conversion`}
+                </span>
+              </div>
+              <p className="p-2">
+                Users entered: {numberToKMB(Number(data.entered))}
+              </p>
+              <p className="p-2 text-muted-foreground">
+                Click to open this week
+              </p>
+            </PlotTooltip>
+          )}
+        />
+      </PlotTooltipArea>
     </div>
   );
 }

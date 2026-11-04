@@ -35,7 +35,11 @@ import { toastNegative } from "./toast";
 import { buttonVariants } from "./button_variants";
 import CodeBlock, { CODE_BLOCK_CARD_CLASS } from "./code_block";
 import Pill, { pillMark, PillType } from "./pill";
-import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
+import {
+  PlotTooltip,
+  PlotTooltipArea,
+  PlotTooltipSwatch,
+} from "./plot_tooltip";
 import { Switch } from "./switch";
 
 type Tilt = { xDegrees: number; yDegrees: number };
@@ -2675,8 +2679,6 @@ const SessionReplayMetrics = memo(function SessionReplayMetrics({
   const [hover, setHover] = useState<{
     key: string;
     index: number;
-    clientX: number;
-    clientY: number;
   } | null>(null);
 
   const xFor = useCallback(
@@ -2751,72 +2753,65 @@ const SessionReplayMetrics = memo(function SessionReplayMetrics({
   };
 
   return (
-    <div className="flex flex-col gap-1 select-none">
-      {strips.map((strip) => {
-        const hovered =
-          hover !== null && hover.key === strip.key ? hover : null;
-        return (
-          <div
-            key={strip.key}
-            role="img"
-            aria-label={`${strip.title} usage`}
-            className="relative rounded-md border border-border cursor-pointer touch-none"
-            style={{ height: laneHeight }}
-            onPointerLeave={() => setHover(null)}
-            onPointerMove={(event) =>
-              setHover({
-                key: strip.key,
-                index: nearestTo(strip, fractionFrom(event)),
-                clientX: event.clientX,
-                clientY: event.clientY,
-              })
-            }
-            onPointerDown={(event) => {
-              if (event.button !== 0) {
-                return;
+    // The strips size themselves, so the area adds no box of its own and
+    // doesn't take height away from the player above it.
+    <PlotTooltipArea className="contents">
+      <div className="flex flex-col gap-1 select-none">
+        {strips.map((strip) => {
+          const hovered =
+            hover !== null && hover.key === strip.key ? hover : null;
+          return (
+            <div
+              key={strip.key}
+              role="img"
+              aria-label={`${strip.title} usage`}
+              className="relative rounded-md border border-border cursor-pointer touch-none"
+              style={{ height: laneHeight }}
+              onPointerLeave={() => setHover(null)}
+              onPointerMove={(event) =>
+                setHover({
+                  key: strip.key,
+                  index: nearestTo(strip, fractionFrom(event)),
+                })
               }
-              onSeek(fractionFrom(event) * durationMs);
-            }}
-          >
-            <svg
-              viewBox={`0 0 ${plotWidth} ${plotHeight}`}
-              preserveAspectRatio="none"
-              className="block w-full h-full"
+              onPointerDown={(event) => {
+                if (event.button !== 0) {
+                  return;
+                }
+                onSeek(fractionFrom(event) * durationMs);
+              }}
             >
-              {seriesLines.get(strip.key)}
-              {hovered !== null && (
-                <line
-                  x1={xFor(strip.times[hovered.index].absMs)}
-                  x2={xFor(strip.times[hovered.index].absMs)}
-                  y1={0}
-                  y2={plotHeight}
-                  stroke="currentColor"
-                  strokeWidth={1}
-                  vectorEffect="non-scaling-stroke"
-                  className="text-foreground/40"
-                />
-              )}
-              <MetricsPlayheadLine
-                actor={actor}
-                startAbsMs={startAbsMs}
-                xFor={xFor}
-              />
-            </svg>
-
-            <p className="absolute top-0.5 left-1.5 text-[10px] leading-none text-muted-foreground pointer-events-none">
-              {strip.title}
-            </p>
-
-            {hovered !== null && (
-              <div
-                className="fixed z-50 pointer-events-none"
-                style={{
-                  left: hovered.clientX,
-                  top: hovered.clientY,
-                  translate: "-50% -100%",
-                }}
+              <svg
+                viewBox={`0 0 ${plotWidth} ${plotHeight}`}
+                preserveAspectRatio="none"
+                className="block w-full h-full"
               >
-                <PlotTooltipShell className="px-4 py-2 mb-3">
+                {seriesLines.get(strip.key)}
+                {hovered !== null && (
+                  <line
+                    x1={xFor(strip.times[hovered.index].absMs)}
+                    x2={xFor(strip.times[hovered.index].absMs)}
+                    y1={0}
+                    y2={plotHeight}
+                    stroke="currentColor"
+                    strokeWidth={1}
+                    vectorEffect="non-scaling-stroke"
+                    className="text-foreground/40"
+                  />
+                )}
+                <MetricsPlayheadLine
+                  actor={actor}
+                  startAbsMs={startAbsMs}
+                  xFor={xFor}
+                />
+              </svg>
+
+              <p className="absolute top-0.5 left-1.5 text-[10px] leading-none text-muted-foreground pointer-events-none">
+                {strip.title}
+              </p>
+
+              {hovered !== null && (
+                <PlotTooltip className="px-4 py-2">
                   <p>
                     Time:{" "}
                     {formatChartFormatTimestampToHumanReadable(
@@ -2840,13 +2835,13 @@ const SessionReplayMetrics = memo(function SessionReplayMetrics({
                         </p>
                       </div>
                     ))}
-                </PlotTooltipShell>
-              </div>
-            )}
-          </div>
-        );
-      })}
-    </div>
+                </PlotTooltip>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </PlotTooltipArea>
   );
 });
 

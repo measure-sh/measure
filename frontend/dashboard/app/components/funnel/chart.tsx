@@ -8,7 +8,11 @@ import { formatShare } from "./format";
 import { useStepColor } from "./step_color";
 import { numberToKMB } from "../../utils/number_utils";
 import { formatMillisToHumanReadable } from "../../utils/time_utils";
-import { PlotTooltipShell, PlotTooltipSwatch } from "../plot_tooltip";
+import {
+  PlotTooltip,
+  PlotTooltipArea,
+  PlotTooltipSwatch,
+} from "../plot_tooltip";
 import { Separator } from "../separator";
 
 function StepTooltip({
@@ -53,7 +57,7 @@ function StepTooltip({
   }
 
   return (
-    <PlotTooltipShell>
+    <PlotTooltip>
       <div className="flex flex-row items-center px-4 py-3">
         <PlotTooltipSwatch color={color} />
         <span className="px-2 font-display">{step.event_name}</span>
@@ -69,7 +73,7 @@ function StepTooltip({
           </Fragment>
         ))}
       </div>
-    </PlotTooltipShell>
+    </PlotTooltip>
   );
 }
 
@@ -139,34 +143,36 @@ export default function FunnelChart({
 
   return (
     <div className="w-full h-72 font-body cursor-pointer">
-      <ResponsiveFunnel
-        data={data}
-        direction="horizontal"
-        margin={{ top: 20, right: 0, bottom: 20, left: 0 }}
-        spacing={8}
-        shapeBlending={0.66}
-        colors={(datum) => colorOf(datum.id)}
-        borderWidth={20}
-        borderOpacity={0.35}
-        valueFormat={(value) => numberToKMB(value)}
-        labelColor={{ from: "color", modifiers: [["darker", 3]] }}
-        layers={["parts", PartLabels]}
-        currentPartSizeExtension={10}
-        currentBorderWidth={28}
-        theme={chartTheme}
-        tooltip={({ part }) => (
-          <StepTooltip
-            conversion={conversion}
-            index={part.data.id}
-            color={part.color}
-          />
-        )}
-        onClick={(part) => {
-          if (part.data.id > 0) {
-            onSelectStep(part.data.id);
-          }
-        }}
-      />
+      <PlotTooltipArea>
+        <ResponsiveFunnel
+          data={data}
+          direction="horizontal"
+          margin={{ top: 20, right: 0, bottom: 20, left: 0 }}
+          spacing={8}
+          shapeBlending={0.66}
+          colors={(datum) => colorOf(datum.id)}
+          borderWidth={20}
+          borderOpacity={0.35}
+          valueFormat={(value) => numberToKMB(value)}
+          labelColor={{ from: "color", modifiers: [["darker", 3]] }}
+          layers={["parts", PartLabels]}
+          currentPartSizeExtension={10}
+          currentBorderWidth={28}
+          theme={chartTheme}
+          tooltip={({ part }) => (
+            <StepTooltip
+              conversion={conversion}
+              index={part.data.id}
+              color={part.color}
+            />
+          )}
+          onClick={(part) => {
+            if (part.data.id > 0) {
+              onSelectStep(part.data.id);
+            }
+          }}
+        />
+      </PlotTooltipArea>
     </div>
   );
 }

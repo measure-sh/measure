@@ -7,17 +7,9 @@ import type {
 } from "@/app/api/api_calls";
 import { useChartColor } from "@/app/utils/chart_utils";
 import { Maximize, X, ZoomIn, ZoomOut } from "lucide-react";
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "react";
-import { createPortal } from "react-dom";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../button";
-import { PlotTooltipSwatch } from "../plot_tooltip";
+import { PlotTooltipArea, PlotTooltipSwatch } from "../plot_tooltip";
 import { formatUsers, KIND_LABELS, shortName, useKindColours } from "./format";
 import { extendSelection, highlightOf } from "./highlight";
 import {
@@ -36,11 +28,6 @@ const MAX_LABEL_CHARS = 20;
 // Moving the pointer further than this between press and release counts as a
 // drag, so the release doesn't also click the node or link under it.
 const DRAG_THRESHOLD = 4;
-const TOOLTIP_OFFSET = 12;
-// A tooltip closer than this to the right or bottom edge of the window opens
-// on the other side of the pointer, so it stays on screen.
-const TOOLTIP_FLIP_X = 280;
-const TOOLTIP_FLIP_Y = 240;
 const FIT_INSET = { top: 16, bottom: 16 };
 
 type LinkState = "default" | "lit" | "dimmed" | "selected";
@@ -54,10 +41,9 @@ const LINK_ORDER: Record<LinkState, number> = {
   selected: 3,
 };
 
-// A hover's x and y are the pointer's position in the window.
 type Hover =
-  | { kind: "node"; node: JourneyNode; x: number; y: number }
-  | { kind: "link"; link: Journey["links"][number]; x: number; y: number };
+  | { kind: "node"; node: JourneyNode }
+  | { kind: "link"; link: Journey["links"][number] };
 
 type Drag = { startX: number; startY: number; view: View; dragged: boolean };
 
@@ -109,12 +95,6 @@ export default function JourneyGraph({
   const chartColor = useChartColor();
   const kindColours = useKindColours();
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const [tooltipRoot, setTooltipRoot] = useState<HTMLElement | null>(null);
-  const attachContainer = useCallback((element: HTMLDivElement | null) => {
-    containerRef.current = element;
-    setTooltipRoot(element?.ownerDocument.body ?? null);
-  }, []);
-  const tooltipWindow = tooltipRoot?.ownerDocument.defaultView ?? window;
   const [size, setSize] = useState({ width: 0, height: 0 });
   // The view the user panned or zoomed to, kept only for the journey it was
   // made on, so a new journey starts fitted to the container.
@@ -228,415 +208,378 @@ export default function JourneyGraph({
     .sort((a, b) => LINK_ORDER[a.state] - LINK_ORDER[b.state]);
 
   return (
-    <div className="flex h-full w-full flex-col overflow-hidden rounded-md border select-none">
-      <div className="flex items-center gap-2 border-b p-2">
-        {toolbarStart}
-        {onSelect && selection !== null && (
-          <Button
-            variant="outline"
-            size="icon"
-            type="button"
-            aria-label="Clear selection"
-            onClick={() => onSelect(null)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        )}
-        <div className="ml-auto flex items-center gap-1">
-          {toolbarEnd}
-          <Button
-            variant="outline"
-            size="icon"
-            type="button"
-            aria-label="Zoom in"
-            onClick={() => zoomAt(size.width / 2, size.height / 2, 1.25)}
-          >
-            <ZoomIn className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            type="button"
-            aria-label="Zoom out"
-            onClick={() => zoomAt(size.width / 2, size.height / 2, 0.8)}
-          >
-            <ZoomOut className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="outline"
-            size="icon"
-            type="button"
-            aria-label="Fit to view"
-            onClick={() => setMoved(null)}
-          >
-            <Maximize className="h-4 w-4" />
-          </Button>
+    <PlotTooltipArea placement="corner">
+      <div className="flex h-full w-full flex-col overflow-hidden rounded-md border select-none">
+        <div className="flex items-center gap-2 border-b p-2">
+          {toolbarStart}
+          {onSelect && selection !== null && (
+            <Button
+              variant="outline"
+              size="icon"
+              type="button"
+              aria-label="Clear selection"
+              onClick={() => onSelect(null)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+          <div className="ml-auto flex items-center gap-1">
+            {toolbarEnd}
+            <Button
+              variant="outline"
+              size="icon"
+              type="button"
+              aria-label="Zoom in"
+              onClick={() => zoomAt(size.width / 2, size.height / 2, 1.25)}
+            >
+              <ZoomIn className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              type="button"
+              aria-label="Zoom out"
+              onClick={() => zoomAt(size.width / 2, size.height / 2, 0.8)}
+            >
+              <ZoomOut className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              type="button"
+              aria-label="Fit to view"
+              onClick={() => setMoved(null)}
+            >
+              <Maximize className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
-      </div>
-      <div
-        ref={attachContainer}
-        className="relative min-h-0 flex-1 overflow-hidden touch-none"
-        style={{
-          cursor:
-            placeholder !== undefined
-              ? undefined
-              : dragging
-                ? "grabbing"
-                : "grab",
-        }}
-        onPointerDown={(event) => {
-          if (event.button !== 0) {
-            return;
-          }
-          const p = pointerAt(event);
-          drag.current = {
-            startX: p.x,
-            startY: p.y,
-            view: viewRef.current,
-            dragged: false,
-          };
-        }}
-        onPointerMove={(event) => {
-          const p = pointerAt(event);
-          const d = drag.current;
-          if (d !== null && event.buttons === 1) {
-            const dx = p.x - d.startX;
-            const dy = p.y - d.startY;
-            if (!d.dragged && Math.hypot(dx, dy) > DRAG_THRESHOLD) {
-              d.dragged = true;
-              setDragging(true);
-              setHover(null);
-              event.currentTarget.setPointerCapture(event.pointerId);
-            }
-            if (d.dragged) {
-              setView({ ...d.view, x: d.view.x + dx, y: d.view.y + dy });
+        <div
+          ref={containerRef}
+          className="relative min-h-0 flex-1 overflow-hidden touch-none"
+          style={{
+            cursor:
+              placeholder !== undefined
+                ? undefined
+                : dragging
+                  ? "grabbing"
+                  : "grab",
+          }}
+          onPointerDown={(event) => {
+            if (event.button !== 0) {
               return;
             }
-          }
-          // The pointer can leave a node or link and move again before the next
-          // render, so the move reads the hover through an updater and doesn't
-          // bring back a tooltip the leave cleared.
-          setHover((h) =>
-            h === null ? null : { ...h, x: event.clientX, y: event.clientY },
-          );
-        }}
-        onPointerUp={(event) => {
-          if (wasDrag()) {
-            event.currentTarget.releasePointerCapture(event.pointerId);
-          }
-          setDragging(false);
-        }}
-        onPointerLeave={() => setHover(null)}
-      >
-        {placeholder !== undefined ? (
-          <div className="absolute inset-0">{placeholder}</div>
-        ) : (
-          <svg width={size.width} height={size.height} className="block">
-            <defs>
-              {Object.entries(linkStyles).map(([state, style]) => (
-                <marker
-                  key={state}
-                  id={`journey-arrow-${state}`}
-                  viewBox="0 0 10 10"
-                  refX="9"
-                  refY="5"
-                  markerUnits="userSpaceOnUse"
-                  markerWidth="11"
-                  markerHeight="11"
-                  orient="auto"
-                >
-                  <path
-                    d="M0,0 L10,5 L0,10 z"
-                    fill={style.colour}
-                    fillOpacity={
-                      state === "dimmed"
-                        ? style.opacity
-                        : Math.min(1, style.opacity + 0.25)
-                    }
-                  />
-                </marker>
-              ))}
-            </defs>
-            <g transform={`translate(${view.x},${view.y}) scale(${view.k})`}>
-              {links.map(({ link, state, path }) => (
-                <g key={`${link.source}>${link.target}`}>
-                  <path
-                    d={path}
-                    fill="none"
-                    stroke={linkStyles[state].colour}
-                    strokeOpacity={linkStyles[state].opacity}
-                    strokeWidth={thickness(link.users)}
-                    markerEnd={`url(#journey-arrow-${state})`}
-                  />
-                  {/* A wider, invisible copy of the link that takes the pointer,
-                      so thin links are easy to hover and click. */}
-                  <path
-                    d={path}
-                    fill="none"
-                    stroke="transparent"
-                    strokeWidth={Math.max(12, thickness(link.users) + 6)}
-                    className={onSelect ? "cursor-pointer" : undefined}
-                    onPointerEnter={(event) =>
-                      !dragging &&
-                      setHover({
-                        kind: "link",
-                        link,
-                        x: event.clientX,
-                        y: event.clientY,
-                      })
-                    }
-                    onPointerLeave={() => setHover(null)}
-                    onClick={() => {
-                      if (!wasDrag()) {
-                        onSelect?.({
-                          source: link.source,
-                          target: link.target,
-                        });
-                      }
-                    }}
-                  />
-                </g>
-              ))}
-              {[...layout.boxes.values()].map(({ node, x, y }) => {
-                const colour = kindColours[node.kind];
-                const isSelected = highlight.isSelectedNode(node.id);
-                const stepLabel = pathSteps.get(node.id)?.join(",");
-                const isNext =
-                  onSelect !== undefined && highlight.isNextNode(node.id);
-                const isLit = highlight.isLitNode(node.id);
-                return (
-                  <g
-                    key={node.id}
-                    transform={`translate(${x},${y})`}
-                    opacity={
-                      !highlight.active || isSelected ? 1 : isLit ? 0.85 : 0.12
-                    }
-                    className={
-                      onSelect ? "group/node cursor-pointer" : undefined
-                    }
-                    onPointerEnter={(event) =>
-                      !dragging &&
-                      setHover({
-                        kind: "node",
-                        node,
-                        x: event.clientX,
-                        y: event.clientY,
-                      })
-                    }
-                    onPointerLeave={() => setHover(null)}
-                    onClick={(event) => {
-                      if (wasDrag()) {
-                        return;
-                      }
-                      const next = event.shiftKey
-                        ? extendSelection(journey, selection, node)
-                        : clickClears(node.id)
-                          ? null
-                          : { node: node.id };
-                      if (next !== selection) {
-                        onSelect?.(next);
-                      }
-                    }}
+            const p = pointerAt(event);
+            drag.current = {
+              startX: p.x,
+              startY: p.y,
+              view: viewRef.current,
+              dragged: false,
+            };
+          }}
+          onPointerMove={(event) => {
+            const p = pointerAt(event);
+            const d = drag.current;
+            if (d !== null && event.buttons === 1) {
+              const dx = p.x - d.startX;
+              const dy = p.y - d.startY;
+              if (!d.dragged && Math.hypot(dx, dy) > DRAG_THRESHOLD) {
+                d.dragged = true;
+                setDragging(true);
+                setHover(null);
+                event.currentTarget.setPointerCapture(event.pointerId);
+              }
+              if (d.dragged) {
+                setView({ ...d.view, x: d.view.x + dx, y: d.view.y + dy });
+                return;
+              }
+            }
+          }}
+          onPointerUp={(event) => {
+            if (wasDrag()) {
+              event.currentTarget.releasePointerCapture(event.pointerId);
+            }
+            setDragging(false);
+          }}
+          onPointerLeave={() => setHover(null)}
+        >
+          {placeholder !== undefined ? (
+            <div className="absolute inset-0">{placeholder}</div>
+          ) : (
+            <svg width={size.width} height={size.height} className="block">
+              <defs>
+                {Object.entries(linkStyles).map(([state, style]) => (
+                  <marker
+                    key={state}
+                    id={`journey-arrow-${state}`}
+                    viewBox="0 0 10 10"
+                    refX="9"
+                    refY="5"
+                    markerUnits="userSpaceOnUse"
+                    markerWidth="11"
+                    markerHeight="11"
+                    orient="auto"
                   >
-                    <rect
-                      width={NODE_WIDTH}
-                      height={NODE_HEIGHT}
-                      rx={8}
-                      fill="var(--background)"
+                    <path
+                      d="M0,0 L10,5 L0,10 z"
+                      fill={style.colour}
+                      fillOpacity={
+                        state === "dimmed"
+                          ? style.opacity
+                          : Math.min(1, style.opacity + 0.25)
+                      }
                     />
-                    <rect
-                      width={NODE_WIDTH}
-                      height={NODE_HEIGHT}
-                      rx={8}
-                      fill={colour}
-                      fillOpacity={isSelected ? 0.3 : 0.1}
-                      stroke={colour}
-                      strokeWidth={isSelected ? 2 : 1.5}
+                  </marker>
+                ))}
+              </defs>
+              <g transform={`translate(${view.x},${view.y}) scale(${view.k})`}>
+                {links.map(({ link, state, path }) => (
+                  <g key={`${link.source}>${link.target}`}>
+                    <path
+                      d={path}
+                      fill="none"
+                      stroke={linkStyles[state].colour}
+                      strokeOpacity={linkStyles[state].opacity}
+                      strokeWidth={thickness(link.users)}
+                      markerEnd={`url(#journey-arrow-${state})`}
+                    />
+                    {/* A wider, invisible copy of the link that takes the pointer,
+                      so thin links are easy to hover and click. */}
+                    <path
+                      d={path}
+                      fill="none"
+                      stroke="transparent"
+                      strokeWidth={Math.max(12, thickness(link.users) + 6)}
+                      className={onSelect ? "cursor-pointer" : undefined}
+                      onPointerEnter={() =>
+                        !dragging && setHover({ kind: "link", link })
+                      }
+                      onPointerLeave={() => setHover(null)}
+                      onClick={() => {
+                        if (!wasDrag()) {
+                          onSelect?.({
+                            source: link.source,
+                            target: link.target,
+                          });
+                        }
+                      }}
+                    />
+                  </g>
+                ))}
+                {[...layout.boxes.values()].map(({ node, x, y }) => {
+                  const colour = kindColours[node.kind];
+                  const isSelected = highlight.isSelectedNode(node.id);
+                  const stepLabel = pathSteps.get(node.id)?.join(",");
+                  const isNext =
+                    onSelect !== undefined && highlight.isNextNode(node.id);
+                  const isLit = highlight.isLitNode(node.id);
+                  return (
+                    <g
+                      key={node.id}
+                      transform={`translate(${x},${y})`}
+                      opacity={
+                        !highlight.active || isSelected
+                          ? 1
+                          : isLit
+                            ? 0.85
+                            : 0.12
+                      }
                       className={
-                        isSelected
-                          ? undefined
-                          : "transition-[fill-opacity] group-hover/node:[fill-opacity:0.2] group-active/node:[fill-opacity:0.3]"
+                        onSelect ? "group/node cursor-pointer" : undefined
                       }
-                    />
-                    <text
-                      x={12}
-                      y={18}
-                      fontSize={12}
-                      fill="var(--foreground)"
-                      className="font-body"
-                    >
-                      {label(node.name)}
-                    </text>
-                    <text
-                      x={12}
-                      y={34}
-                      fontSize={11}
-                      fill={
-                        isLit ? "var(--foreground)" : "var(--muted-foreground)"
+                      onPointerEnter={() =>
+                        !dragging && setHover({ kind: "node", node })
                       }
-                      fillOpacity={isLit ? 0.8 : 1}
-                      className="font-body"
+                      onPointerLeave={() => setHover(null)}
+                      onClick={(event) => {
+                        if (wasDrag()) {
+                          return;
+                        }
+                        const next = event.shiftKey
+                          ? extendSelection(journey, selection, node)
+                          : clickClears(node.id)
+                            ? null
+                            : { node: node.id };
+                        if (next !== selection) {
+                          onSelect?.(next);
+                        }
+                      }}
                     >
-                      {formatUsers(node.users)}
-                    </text>
-                    {stepLabel && (
-                      <g transform={`translate(${NODE_WIDTH - 8},0)`}>
-                        <rect
-                          x={-stepLabel.length * 3.5 - 7}
-                          y={-9}
-                          width={stepLabel.length * 7 + 14}
-                          height={18}
-                          rx={9}
-                          fill={colour}
-                          stroke={colour}
-                          strokeWidth={1.5}
-                        />
-                        <text
-                          y={4}
-                          fontSize={11}
-                          textAnchor="middle"
-                          fill="var(--background)"
-                          className="font-body"
-                        >
-                          {stepLabel}
-                        </text>
-                      </g>
-                    )}
-                    {!stepLabel && isNext && (
-                      <g
-                        transform={`translate(${NODE_WIDTH - 8},0)`}
-                        aria-label={`Add ${shortName(node.name)} to the path`}
-                        className="group"
-                        style={{ "--badge": colour } as React.CSSProperties}
-                        // A click on the plus adds the node to the path, like a
-                        // shift-click. The click stops here, so the node's own
-                        // click handler does not also select the node alone.
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          if (!wasDrag()) {
-                            onSelect?.(
-                              extendSelection(journey, selection, node),
-                            );
-                          }
-                        }}
+                      <rect
+                        width={NODE_WIDTH}
+                        height={NODE_HEIGHT}
+                        rx={8}
+                        fill="var(--background)"
+                      />
+                      <rect
+                        width={NODE_WIDTH}
+                        height={NODE_HEIGHT}
+                        rx={8}
+                        fill={colour}
+                        fillOpacity={isSelected ? 0.3 : 0.1}
+                        stroke={colour}
+                        strokeWidth={isSelected ? 2 : 1.5}
+                        className={
+                          isSelected
+                            ? undefined
+                            : "transition-[fill-opacity] group-hover/node:[fill-opacity:0.2] group-active/node:[fill-opacity:0.3]"
+                        }
+                      />
+                      <text
+                        x={12}
+                        y={18}
+                        fontSize={12}
+                        fill="var(--foreground)"
+                        className="font-body"
                       >
-                        {/* A CSS transform replaces the transform attribute of
-                            the same element. Thus the hover and press scale is on
-                            this inner group, and the outer group keeps the plus
-                            in position. */}
-                        <g className="origin-center transition-transform transform-fill group-hover:scale-125 group-active:scale-90">
+                        {label(node.name)}
+                      </text>
+                      <text
+                        x={12}
+                        y={34}
+                        fontSize={11}
+                        fill={
+                          isLit
+                            ? "var(--foreground)"
+                            : "var(--muted-foreground)"
+                        }
+                        fillOpacity={isLit ? 0.8 : 1}
+                        className="font-body"
+                      >
+                        {formatUsers(node.users)}
+                      </text>
+                      {stepLabel && (
+                        <g transform={`translate(${NODE_WIDTH - 8},0)`}>
                           <rect
-                            x={-10.5}
+                            x={-stepLabel.length * 3.5 - 7}
                             y={-9}
-                            width={21}
+                            width={stepLabel.length * 7 + 14}
                             height={18}
                             rx={9}
-                            fill="var(--background)"
+                            fill={colour}
                             stroke={colour}
                             strokeWidth={1.5}
-                            className="transition-colors group-hover:fill-(--badge)"
                           />
                           <text
                             y={4}
                             fontSize={11}
                             textAnchor="middle"
-                            fill={colour}
-                            className="font-body transition-colors group-hover:fill-background"
+                            fill="var(--background)"
+                            className="font-body"
                           >
-                            +
+                            {stepLabel}
                           </text>
                         </g>
-                      </g>
-                    )}
-                  </g>
-                );
-              })}
-            </g>
-          </svg>
-        )}
-
-        {/* The tooltip renders into the body of the graph's document, so it
-            can extend past the graph's edges, which clip everything inside
-            them. A demo's graph is in an iframe, which has its own body,
-            and the tooltip flips at the edges of the iframe's window. */}
-        {hover !== null &&
-          tooltipRoot !== null &&
-          createPortal(
-            <div
-              className="pointer-events-none fixed z-50"
-              style={{
-                left: hover.x + TOOLTIP_OFFSET,
-                top: hover.y + TOOLTIP_OFFSET,
-                transform: `translate(${
-                  hover.x > tooltipWindow.innerWidth - TOOLTIP_FLIP_X
-                    ? `calc(-100% - ${TOOLTIP_OFFSET * 2}px)`
-                    : "0"
-                }, ${
-                  hover.y > tooltipWindow.innerHeight - TOOLTIP_FLIP_Y
-                    ? `calc(-100% - ${TOOLTIP_OFFSET * 2}px)`
-                    : "0"
-                })`,
-              }}
-            >
-              {hover.kind === "node" ? (
-                <NodeTooltip
-                  node={hover.node}
-                  colour={kindColours[hover.node.kind]}
-                  clears={clickClears(hover.node.id)}
-                  clickable={onSelect !== undefined}
-                  extendable={
-                    onSelect !== undefined &&
-                    highlight.isNextNode(hover.node.id)
-                  }
-                />
-              ) : (
-                <LinkTooltip
-                  source={layout.boxes.get(hover.link.source)!.node}
-                  target={layout.boxes.get(hover.link.target)!.node}
-                  colour={
-                    kindColours[layout.boxes.get(hover.link.source)!.node.kind]
-                  }
-                  users={hover.link.users}
-                  clickable={onSelect !== undefined}
-                />
-              )}
-            </div>,
-            tooltipRoot,
+                      )}
+                      {!stepLabel && isNext && (
+                        <g
+                          transform={`translate(${NODE_WIDTH - 8},0)`}
+                          aria-label={`Add ${shortName(node.name)} to the path`}
+                          className="group"
+                          style={{ "--badge": colour } as React.CSSProperties}
+                          // A click on the plus adds the node to the path, like a
+                          // shift-click. The click stops here, so the node's own
+                          // click handler does not also select the node alone.
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            if (!wasDrag()) {
+                              onSelect?.(
+                                extendSelection(journey, selection, node),
+                              );
+                            }
+                          }}
+                        >
+                          {/* A CSS transform replaces the transform attribute of
+                            the same element. Thus the hover and press scale is on
+                            this inner group, and the outer group keeps the plus
+                            in position. */}
+                          <g className="origin-center transition-transform transform-fill group-hover:scale-125 group-active:scale-90">
+                            <rect
+                              x={-10.5}
+                              y={-9}
+                              width={21}
+                              height={18}
+                              rx={9}
+                              fill="var(--background)"
+                              stroke={colour}
+                              strokeWidth={1.5}
+                              className="transition-colors group-hover:fill-(--badge)"
+                            />
+                            <text
+                              y={4}
+                              fontSize={11}
+                              textAnchor="middle"
+                              fill={colour}
+                              className="font-body transition-colors group-hover:fill-background"
+                            >
+                              +
+                            </text>
+                          </g>
+                        </g>
+                      )}
+                    </g>
+                  );
+                })}
+              </g>
+            </svg>
           )}
-      </div>
-      <div className="flex items-center justify-between gap-3 border-t px-3 py-2 text-xs text-muted-foreground font-body">
-        <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          {[
-            ...(summary ?? []),
-            <Gesture key="pan" keys={["Drag"]} action="pan" />,
-            <Gesture key="zoom" keys={["Ctrl", "Scroll"]} action="zoom" />,
-            onSelect && (
-              <Gesture
-                key="path"
-                keys={["Shift", "Click"]}
-                action="build path"
-              />
-            ),
-          ]
-            .filter(Boolean)
-            .map((hint, i) => (
-              <Fragment key={i}>
-                {i > 0 && <span aria-hidden>·</span>}
-                {hint}
-              </Fragment>
+
+          {hover?.kind === "node" ? (
+            <NodeTooltip
+              node={hover.node}
+              colour={kindColours[hover.node.kind]}
+              clears={clickClears(hover.node.id)}
+              clickable={onSelect !== undefined}
+              extendable={
+                onSelect !== undefined && highlight.isNextNode(hover.node.id)
+              }
+            />
+          ) : hover?.kind === "link" ? (
+            <LinkTooltip
+              source={layout.boxes.get(hover.link.source)!.node}
+              target={layout.boxes.get(hover.link.target)!.node}
+              colour={
+                kindColours[layout.boxes.get(hover.link.source)!.node.kind]
+              }
+              users={hover.link.users}
+              clickable={onSelect !== undefined}
+            />
+          ) : null}
+        </div>
+        <div className="flex items-center justify-between gap-3 border-t px-3 py-2 text-xs text-muted-foreground font-body">
+          <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            {[
+              ...(summary ?? []),
+              <Gesture key="pan" keys={["Drag"]} action="pan" />,
+              <Gesture key="zoom" keys={["Ctrl", "Scroll"]} action="zoom" />,
+              onSelect && (
+                <Gesture
+                  key="path"
+                  keys={["Shift", "Click"]}
+                  action="build path"
+                />
+              ),
+            ]
+              .filter(Boolean)
+              .map((hint, i) => (
+                <Fragment key={i}>
+                  {i > 0 && <span aria-hidden>·</span>}
+                  {hint}
+                </Fragment>
+              ))}
+          </p>
+          <div className="flex items-center gap-3">
+            {KINDS.filter((kind) =>
+              journey.nodes.some((n) => n.kind === kind),
+            ).map((kind) => (
+              <span key={kind} className="flex items-center gap-1.5">
+                <PlotTooltipSwatch color={kindColours[kind]} />
+                {KIND_LABELS[kind]}
+              </span>
             ))}
-        </p>
-        <div className="flex items-center gap-3">
-          {KINDS.filter((kind) =>
-            journey.nodes.some((n) => n.kind === kind),
-          ).map((kind) => (
-            <span key={kind} className="flex items-center gap-1.5">
-              <PlotTooltipSwatch color={kindColours[kind]} />
-              {KIND_LABELS[kind]}
-            </span>
-          ))}
+          </div>
         </div>
       </div>
-    </div>
+    </PlotTooltipArea>
   );
 }

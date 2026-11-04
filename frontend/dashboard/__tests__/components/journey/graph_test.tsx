@@ -15,7 +15,13 @@ import {
   it,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 
 const WIDTH = 800;
 const HEIGHT = 400;
@@ -422,7 +428,7 @@ describe("JourneyGraph", () => {
   });
 
   describe("tooltips", () => {
-    it("shows a node's stats and what a click does while it is hovered", () => {
+    it("shows a node's stats and what a click does while it is hovered", async () => {
       renderGraph();
       fireEvent.pointerEnter(nodeGroup("ProductActivity"));
 
@@ -435,7 +441,7 @@ describe("JourneyGraph", () => {
 
       fireEvent.pointerLeave(nodeGroup("ProductActivity"));
 
-      expect(screen.queryByText("Continuing")).toBeNull();
+      await waitFor(() => expect(screen.queryByText("Continuing")).toBeNull());
     });
 
     it("says a shift-click adds a node that a link from the selection leads to", () => {
@@ -498,47 +504,12 @@ describe("JourneyGraph", () => {
       expect(screen.queryByText(/^Click to/)).toBeNull();
     });
 
-    it("flips the tooltip at the edge of the window of the graph's document", () => {
-      const iframe = document.createElement("iframe");
-      document.body.appendChild(iframe);
-      const frameWindow = iframe.contentWindow!;
-      Object.defineProperty(frameWindow, "innerWidth", { value: 1440 });
-      Object.defineProperty(frameWindow, "innerHeight", { value: 900 });
-      (frameWindow as any).PointerEvent = MockPointerEvent;
-      // The page around the iframe is wider than the iframe.
-      const innerWidth = jest.replaceProperty(window, "innerWidth", 1920);
-      const container = frameWindow.document.createElement("div");
-      frameWindow.document.body.appendChild(container);
-      const { unmount } = render(
-        <JourneyGraph journey={journey} onSelect={onSelect} />,
-        {
-          container,
-        },
-      );
-
-      const text = Array.from(container.querySelectorAll("text")).find(
-        (el) => el.textContent === "ProductActivity",
-      )!;
-      fireEvent.pointerEnter(text.closest("g")!, {
-        clientX: 1300,
-        clientY: 100,
-      });
-
-      const tooltip = Array.from(
-        frameWindow.document.body.querySelectorAll<HTMLElement>("div.fixed"),
-      ).find((el) => el.textContent?.includes("Continuing"))!;
-      expect(tooltip.style.transform).toMatch(/^translate\(calc\(-100%/);
-      unmount();
-      iframe.remove();
-      innerWidth.restore();
-    });
-
-    it("hides the tooltip when the pointer leaves the graph", () => {
+    it("hides the tooltip when the pointer leaves the graph", async () => {
       const { container } = renderGraph();
       fireEvent.pointerEnter(nodeGroup("ProductActivity"));
       fireEvent.pointerLeave(canvasOf(container));
 
-      expect(screen.queryByText("Continuing")).toBeNull();
+      await waitFor(() => expect(screen.queryByText("Continuing")).toBeNull());
     });
   });
 

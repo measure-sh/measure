@@ -31,7 +31,7 @@ import {
 import { isSandboxTeamId } from "@/app/utils/sandbox";
 import { chartTheme, useChartColors } from "@/app/utils/chart_utils";
 import { underlineLinkStyle } from "@/app/utils/shared_styles";
-import { PlotTooltipShell } from "@/app/components/plot_tooltip";
+import { PlotTooltip, PlotTooltipArea } from "@/app/components/plot_tooltip";
 import { ResponsivePie } from "@nivo/pie";
 
 import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialog";
@@ -400,57 +400,62 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
           )}
           {!monthHasNoUsage && (
             <div className="w-full h-144 border border-dashed border-border rounded-sm">
-              <ResponsivePie
-                data={selectedMonthUsage}
-                theme={chartTheme}
-                animate
-                margin={{ top: 80, right: 80, bottom: 80, left: 80 }}
-                innerRadius={0.7}
-                enableArcLabels={false}
-                arcLinkLabel={(d) => `${d.label}`}
-                padAngle={0.7}
-                cornerRadius={3}
-                activeOuterRadiusOffset={8}
-                colors={chartColors}
-                arcLinkLabelsSkipAngle={10}
-                arcLinkLabelsThickness={2}
-                arcLinkLabelsColor={{ from: "color" }}
-                tooltip={({ datum: { id, label, value, color } }) => {
-                  return (
-                    <PlotTooltipShell className="px-4 py-2">
-                      <p
-                        className="text-sm font-semibold"
-                        style={{
-                          color:
-                            resolvedTheme === "dark"
-                              ? color
-                              : `color-mix(in oklch, ${color} 80%, black)`,
-                        }}
-                      >
-                        {label}
-                      </p>
-                      <div className="py-0.5" />
-                      <p className="text-xs">Sessions: {value}</p>
-                      <p className="text-xs">
-                        Events:{" "}
-                        {selectedMonthUsage?.find((i) => i.id === id)!.events!}
-                      </p>
-                      <p className="text-xs">
-                        Spans:{" "}
-                        {selectedMonthUsage?.find((i) => i.id === id)!.spans}
-                      </p>
-                    </PlotTooltipShell>
-                  );
-                }}
-                legends={[]}
-                layers={[
-                  "arcs",
-                  "arcLabels",
-                  "arcLinkLabels",
-                  "legends",
-                  CenteredMetric,
-                ]}
-              />
+              <PlotTooltipArea>
+                <ResponsivePie
+                  data={selectedMonthUsage}
+                  theme={chartTheme}
+                  animate
+                  margin={{ top: 80, right: 80, bottom: 80, left: 80 }}
+                  innerRadius={0.7}
+                  enableArcLabels={false}
+                  arcLinkLabel={(d) => `${d.label}`}
+                  padAngle={0.7}
+                  cornerRadius={3}
+                  activeOuterRadiusOffset={8}
+                  colors={chartColors}
+                  arcLinkLabelsSkipAngle={10}
+                  arcLinkLabelsThickness={2}
+                  arcLinkLabelsColor={{ from: "color" }}
+                  tooltip={({ datum: { id, label, value, color } }) => {
+                    return (
+                      <PlotTooltip className="px-4 py-2">
+                        <p
+                          className="text-sm font-semibold"
+                          style={{
+                            color:
+                              resolvedTheme === "dark"
+                                ? color
+                                : `color-mix(in oklch, ${color} 80%, black)`,
+                          }}
+                        >
+                          {label}
+                        </p>
+                        <div className="py-0.5" />
+                        <p className="text-xs">Sessions: {value}</p>
+                        <p className="text-xs">
+                          Events:{" "}
+                          {
+                            selectedMonthUsage?.find((i) => i.id === id)!
+                              .events!
+                          }
+                        </p>
+                        <p className="text-xs">
+                          Spans:{" "}
+                          {selectedMonthUsage?.find((i) => i.id === id)!.spans}
+                        </p>
+                      </PlotTooltip>
+                    );
+                  }}
+                  legends={[]}
+                  layers={[
+                    "arcs",
+                    "arcLabels",
+                    "arcLinkLabels",
+                    "legends",
+                    CenteredMetric,
+                  ]}
+                />
+              </PlotTooltipArea>
             </div>
           )}
         </div>
