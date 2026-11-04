@@ -32,6 +32,9 @@ import { cn } from "@/app/utils/shadcn_utils";
 //    before it acts. A tap acts only if the tooltip visible when the tap starts
 //    has the tapped target's key. The first tap shows the tooltip; a second tap
 //    on the same target acts. Mouse and pen presses always act.
+// 6. Scrolling sends no pointer events, so the tooltip stays open while
+//    the recorded pointer position becomes stale. The area adjusts that
+//    position by how far it moved, keeping the tooltip beside its point.
 
 // Gap between the pointer and the tooltip for each placement.
 const ABOVE_GAP = 14;
@@ -96,6 +99,8 @@ class TooltipLayer {
   private element: HTMLDivElement | null = null;
   private placement: TooltipPlacement = "above";
   private pointer: Point | null = null;
+  private anchor: Element | null = null;
+  private anchorOrigin: Point | null = null;
   private tooltipSize: Size | null = null;
   private viewportSize: Size = { width: 0, height: 0 };
   private shownCount = 0;
@@ -137,12 +142,45 @@ class TooltipLayer {
 
   setPointer(x: number, y: number) {
     this.pointer = { x, y };
+    this.anchorOrigin = this.anchor ? viewportOrigin(this.anchor) : null;
+    if (this.visible) {
+      this.element?.classList.add(...TRANSITION_CLASSES);
+    }
     if (this.shownCount > 0) {
       this.place();
     }
   }
 
-  watchViewport(win: Window) {
+  private followScroll() {
+    const anchor = this.anchor;
+    const from = this.anchorOrigin;
+    if (this.shownCount === 0 || !this.pointer || !anchor || !from) {
+      return;
+    }
+    const to = viewportOrigin(anchor);
+    if (to.x === from.x && to.y === from.y) {
+      return;
+    }
+    this.pointer = {
+      x: this.pointer.x + to.x - from.x,
+      y: this.pointer.y + to.y - from.y,
+    };
+    this.anchorOrigin = to;
+    // The slide transition would make the tooltip trail behind the
+    // scrolling chart, so it is turned off here. The next pointer event
+    // turns it back on.
+    this.element?.classList.remove(...TRANSITION_CLASSES);
+    this.element?.ownerDocument.defaultView?.cancelAnimationFrame(
+      this.animationFrame,
+    );
+    this.place();
+  }
+
+  watchViewport(win: Window, area: HTMLElement) {
+    // An area with display: contents has no box of its own, so use its
+    // first child to track the chart's position.
+    this.anchor =
+      area.getClientRects().length > 0 ? area : area.firstElementChild;
     const read = () => {
       this.viewportSize = {
         width: win.document.documentElement.clientWidth,
@@ -150,9 +188,19 @@ class TooltipLayer {
       };
       this.place();
     };
+    // Scroll events don't bubble, so listen on the window in capture
+    // phase to receive scrolls from elements containing the chart.
+    const followScroll = () => this.followScroll();
     read();
     win.addEventListener("resize", read);
-    return () => win.removeEventListener("resize", read);
+    win.addEventListener("scroll", followScroll, {
+      capture: true,
+      passive: true,
+    });
+    return () => {
+      win.removeEventListener("resize", read);
+      win.removeEventListener("scroll", followScroll, { capture: true });
+    };
   }
 
   show() {
@@ -230,6 +278,11 @@ class TooltipLayer {
   }
 }
 
+function viewportOrigin(element: Element): Point {
+  const rect = element.getBoundingClientRect();
+  return { x: rect.left, y: rect.top };
+}
+
 const ANY_TARGET = Symbol("any target");
 
 export class TooltipTaps {
@@ -288,10 +341,8 @@ export function PlotTooltipArea({
     () => ({ tooltipLayer, tooltipTaps }),
     [tooltipLayer, tooltipTaps],
   );
-  const [body, setBody] = React.useState<HTMLElement | null>(null);
-  const attachArea = React.useCallback((area: HTMLDivElement | null) => {
-    setBody(area?.ownerDocument.body ?? null);
-  }, []);
+  const [area, setArea] = React.useState<HTMLDivElement | null>(null);
+  const body = area?.ownerDocument.body;
   const attachLayer = React.useCallback(
     (element: HTMLDivElement | null) => tooltipLayer.setElement(element),
     [tooltipLayer],
@@ -302,12 +353,12 @@ export function PlotTooltipArea({
   }, [tooltipLayer, placement]);
 
   React.useEffect(() => {
-    const win = body?.ownerDocument.defaultView;
-    if (!win) {
+    const win = area?.ownerDocument.defaultView;
+    if (!area || !win) {
       return;
     }
-    return tooltipLayer.watchViewport(win);
-  }, [tooltipLayer, body]);
+    return tooltipLayer.watchViewport(win, area);
+  }, [tooltipLayer, area]);
 
   // Touch screens don't fire pointermove on tap, so pointerover and pointerdown
   // also record the pointer position.
@@ -327,7 +378,7 @@ export function PlotTooltipArea({
       {/* nivo's responsive charts size themselves from their parent element,
           so the area fills its container by default. */}
       <div
-        ref={attachArea}
+        ref={setArea}
         className={className}
         onPointerOverCapture={recordPointer}
         onPointerDownCapture={recordPointerDown}
