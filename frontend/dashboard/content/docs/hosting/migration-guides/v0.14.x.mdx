@@ -23,7 +23,7 @@ cd ~/measure/self-host
 ```
 
 ```sh
-sudo docker compose -f compose.yml -f compose.prod.yml --profile init --profile migrate down --remove-orphans
+sudo docker compose -f compose.yml -f compose.prod.yml --profile migrate down --remove-orphans
 ```
 
 ## 2. Perform the upgrade
@@ -61,20 +61,8 @@ sudo ./install.sh
 
 Perform this step to complete the migration. Measure dashboard will not work properly until this script is run.
 
-Stop the cleanup service while the script runs. The cleanup deletes data past its retention period, and deleting data during the backfill can make the script skip events.
-
-```sh
-sudo docker compose -f compose.yml -f compose.prod.yml stop cleanup
-```
-
 ```sh
 sudo ./migrations/v0.14.x-data-backfills.sh
 ```
 
 If the script fails, it prints a command that resumes the backfill from the chunk that failed. Run that command.
-
-When the script completes, start the cleanup service again.
-
-```sh
-sudo docker compose -f compose.yml -f compose.prod.yml start cleanup
-```
