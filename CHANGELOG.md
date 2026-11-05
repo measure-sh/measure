@@ -269,6 +269,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**frontend**): Simplify v0.14.x self-host migration steps by @detj in #4799
 - (**frontend**): Add minimum compose ui version for android by @abhaysood in #4715
 - Clarify spike thresholds are defaults by @anupcowkur in #4779
 - Add expo release step to release checklist by @anupcowkur in #4578
