@@ -101,6 +101,8 @@ jobs:
         with:
           context: backend/symboloader
           file: backend/symboloader/dockerfile
+          build-contexts: |
+            libs=backend/libs
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: |
