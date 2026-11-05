@@ -160,6 +160,10 @@ export default function FunnelChart({
           layers={["parts", PartLabels]}
           currentPartSizeExtension={10}
           currentBorderWidth={28}
+          // nivo restarts each part's path animation from its previous target.
+          // If hover changes mid-animation, the part flashes before resizing.
+          // So we just turn it off to avoid a buggy animation.
+          animate={false}
           theme={chartTheme}
           tooltip={({ part }) => (
             <StepTooltip
