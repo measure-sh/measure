@@ -233,6 +233,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Replace the legacy filter bar on the apps page by @anupcowkur in #4468
 - (**frontend**): Drop unused initConfig prop from Onboarding by @anupcowkur
 - (**frontend**): Keep touch indicators on the correct replay screen (#4436) by @abhaysood in #4436
+- (**kmp**): Rename trackHandledException to trackError by @adwinross in #4794
 - (**kmp**): Prepare sdk release 0.3.0 by @abhaysood in #4506
 - Order backfill replay by `events` sorting key (#4769) by @detj in #4769
 - Add weekly releases and jit vs aot blogs (#4680) by @abhaysood in #4680
