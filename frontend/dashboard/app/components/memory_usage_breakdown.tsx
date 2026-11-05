@@ -44,7 +44,7 @@ export default function MemoryUsageBreakdown({
         />
       )}
       {status === "success" && !!data?.length && (
-        <Table className="font-display">
+        <Table className="font-display max-lg:min-w-140">
           <TableHeader>
             <TableRow>
               <TableHead>Device total memory</TableHead>

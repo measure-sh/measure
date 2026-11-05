@@ -245,7 +245,7 @@ export default function NetworkTrends({
       {effectiveStatus === "success" && activeTabData.length > 0 && (
         <>
           <div className="py-6" />
-          <Table className="font-display select-none">
+          <Table className="font-display select-none max-lg:min-w-140">
             <TableHeader>
               <TableRow>
                 <TableHead style={{ width: "55%" }}>Endpoint</TableHead>

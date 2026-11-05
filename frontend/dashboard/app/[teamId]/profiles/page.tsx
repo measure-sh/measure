@@ -229,7 +229,7 @@ export default function ProfilesPage({ params }: PageProps) {
             <LoadingBar />
           </div>
           <div className="py-4" />
-          <Table className="font-display select-none">
+          <Table className="font-display select-none max-lg:min-w-190">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50%]">Profile Trigger</TableHead>

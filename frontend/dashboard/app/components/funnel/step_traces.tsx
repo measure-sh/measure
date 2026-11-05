@@ -60,6 +60,7 @@ export default function FunnelStepTraces({
       isFetching={isFetching}
       offset={offset}
       noun="traces"
+      tableClassName="max-lg:min-w-190"
       icon={Timer}
       columns={6}
       header={

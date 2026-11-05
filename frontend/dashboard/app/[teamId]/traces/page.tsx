@@ -144,7 +144,7 @@ export default function TracesOverview(props: {
                 >
                   <LoadingBar />
                 </div>
-                <Table className="font-display select-none">
+                <Table className="font-display select-none max-lg:min-w-180">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[60%]">Trace</TableHead>
