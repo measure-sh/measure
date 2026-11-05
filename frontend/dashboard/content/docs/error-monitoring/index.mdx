@@ -190,7 +190,7 @@ import sh.measure.kmp.Measure
 try {
     methodThatThrows()
 } catch (e: Exception) {
-    Measure.trackHandledException(e)
+    Measure.trackError(e)
 }
 ```
 
@@ -240,7 +240,7 @@ Measure.trackError({ error: e, attributes: { screen: "Login" } });
 import sh.measure.kmp.attributes.AttributesBuilder
 
 val attributes = AttributesBuilder().put("screen", "Login").build()
-Measure.trackHandledException(e, attributes)
+Measure.trackError(e, attributes)
 ```
 
 </Tab>

@@ -25,8 +25,16 @@ actual object Measure {
         AndroidMeasure.trackScreenView(screenName, attributes.toAndroid())
     }
 
+    actual fun trackError(throwable: Throwable, attributes: Map<String, AttributeValue>) {
+        AndroidMeasure.trackError(throwable, attributes.toAndroid())
+    }
+
+    @Deprecated(
+        message = "Use trackError instead.",
+        replaceWith = ReplaceWith("Measure.trackError(throwable, attributes)"),
+    )
     actual fun trackHandledException(throwable: Throwable, attributes: Map<String, AttributeValue>) {
-        AndroidMeasure.trackHandledException(throwable, attributes.toAndroid())
+        trackError(throwable, attributes)
     }
 
     actual fun trackEvent(

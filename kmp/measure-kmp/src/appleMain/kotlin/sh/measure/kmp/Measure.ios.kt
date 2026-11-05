@@ -24,8 +24,8 @@ import sh.measure.ios.bindings.start
 import sh.measure.ios.bindings.startSpanWithName
 import sh.measure.ios.bindings.stop
 import sh.measure.ios.bindings.trackBugReportWithDescription
+import sh.measure.ios.bindings.trackError
 import sh.measure.ios.bindings.trackEvent
-import sh.measure.ios.bindings.trackException
 import sh.measure.ios.bindings.trackHttpEventObjcWithUrl
 import sh.measure.ios.bindings.trackScreenView
 import sh.measure.kmp.attributes.AttributeValue
@@ -59,14 +59,25 @@ actual object Measure {
         IosMeasure.trackScreenView(screenName, attributes.toNative())
     }
 
+    actual fun trackError(
+        throwable: Throwable,
+        attributes: Map<String, AttributeValue>,
+    ) {
+        IosMeasure.trackError(
+            throwable.asNSException(appendCausedBy = true),
+            attributes.toNative(),
+        )
+    }
+
+    @Deprecated(
+        message = "Use trackError instead.",
+        replaceWith = ReplaceWith("Measure.trackError(throwable, attributes)"),
+    )
     actual fun trackHandledException(
         throwable: Throwable,
         attributes: Map<String, AttributeValue>,
     ) {
-        IosMeasure.trackException(
-            throwable.asNSException(appendCausedBy = true),
-            attributes.toNative(),
-        )
+        trackError(throwable, attributes)
     }
 
     actual fun trackEvent(
