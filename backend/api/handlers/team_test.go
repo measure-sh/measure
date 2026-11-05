@@ -6,6 +6,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -152,9 +153,9 @@ func TestRemoveTeamMember(t *testing.T) {
 			return &autumn.Customer{ID: custID, Email: "original-owner@test.com"}, nil
 		})
 		var updatedCustomerID, updatedEmail string
-		autumntest.MockUpdateCustomer(t, func(_ context.Context, customerID, email string) error {
-			updatedCustomerID = customerID
-			updatedEmail = email
+		autumntest.MockUpdateCustomer(t, func(_ context.Context, req autumn.UpdateCustomerRequest) error {
+			updatedCustomerID = req.CustomerID
+			updatedEmail = req.Email
 			return nil
 		})
 
@@ -192,7 +193,7 @@ func TestRemoveTeamMember(t *testing.T) {
 			return &autumn.Customer{ID: custID, Email: "finance@test.com"}, nil
 		})
 		updateCalled := false
-		autumntest.MockUpdateCustomer(t, func(_ context.Context, _, _ string) error {
+		autumntest.MockUpdateCustomer(t, func(_ context.Context, _ autumn.UpdateCustomerRequest) error {
 			updateCalled = true
 			return nil
 		})
@@ -353,8 +354,8 @@ func TestChangeMemberRole(t *testing.T) {
 			return &autumn.Customer{ID: custID, Email: "original-owner@test.com"}, nil
 		})
 		var updatedEmail string
-		autumntest.MockUpdateCustomer(t, func(_ context.Context, _, email string) error {
-			updatedEmail = email
+		autumntest.MockUpdateCustomer(t, func(_ context.Context, req autumn.UpdateCustomerRequest) error {
+			updatedEmail = req.Email
 			return nil
 		})
 
@@ -1042,6 +1043,52 @@ func TestRenameTeam(t *testing.T) {
 		}
 		if got := teamNameInDB(ctx, t, teamID); got != "renamed-team" {
 			t.Errorf("name = %q, want renamed-team (trimmed)", got)
+		}
+	})
+
+	t.Run("rename updates the autumn customer name", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		ownerID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		var gotReq autumn.UpdateCustomerRequest
+		autumntest.MockUpdateCustomer(t, func(_ context.Context, req autumn.UpdateCustomerRequest) error {
+			gotReq = req
+			return nil
+		})
+
+		c, w := newRenameContext(ownerID, teamID, `{"name":"  renamed-team  "}`)
+		h.RenameTeam(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+		}
+		want := autumn.UpdateCustomerRequest{CustomerID: custID, Name: "renamed-team"}
+		if gotReq != want {
+			t.Errorf("autumn request = %+v, want %+v", gotReq, want)
+		}
+	})
+
+	t.Run("autumn failure does not fail the rename", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+
+		ownerID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+		seedTeamAutumnCustomer(ctx, t, teamID, uuid.New().String())
+
+		autumntest.MockUpdateCustomer(t, func(_ context.Context, _ autumn.UpdateCustomerRequest) error {
+			return errors.New("autumn unavailable")
+		})
+
+		c, w := newRenameContext(ownerID, teamID, `{"name":"renamed-team"}`)
+		h.RenameTeam(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+		}
+		if got := teamNameInDB(ctx, t, teamID); got != "renamed-team" {
+			t.Errorf("name = %q, want renamed-team", got)
 		}
 	})
 
