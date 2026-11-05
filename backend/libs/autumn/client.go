@@ -159,11 +159,7 @@ func getCustomer(ctx context.Context, customerID string) (*Customer, error) {
 	return &out, nil
 }
 
-func updateCustomer(ctx context.Context, customerID, email string) error {
-	req := updateCustomerRequest{
-		CustomerID: customerID,
-		Email:      email,
-	}
+func updateCustomer(ctx context.Context, req UpdateCustomerRequest) error {
 	return do(ctx, "autumn-update-customer", http.MethodPost, "/v1/customers.update", req, nil)
 }
 

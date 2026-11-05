@@ -52,7 +52,7 @@ func MockUpdate(t *testing.T, fn func(ctx context.Context, req autumn.UpdateRequ
 }
 
 // MockUpdateCustomer swaps autumn.UpdateCustomer for the duration of the test.
-func MockUpdateCustomer(t *testing.T, fn func(ctx context.Context, customerID, email string) error) {
+func MockUpdateCustomer(t *testing.T, fn func(ctx context.Context, req autumn.UpdateCustomerRequest) error) {
 	t.Helper()
 	orig := autumn.UpdateCustomer
 	autumn.UpdateCustomer = fn

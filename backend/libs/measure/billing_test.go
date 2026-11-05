@@ -839,7 +839,7 @@ func TestSyncBillingEmailOnOwnerExit(t *testing.T) {
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{ID: custID, Email: "finance@example.com"}, nil
 		})
-		autumntest.MockUpdateCustomer(t, func(_ context.Context, _, _ string) error {
+		autumntest.MockUpdateCustomer(t, func(_ context.Context, _ autumn.UpdateCustomerRequest) error {
 			t.Error("UpdateCustomer called for a non-matching email")
 			return nil
 		})
@@ -870,9 +870,9 @@ func TestSyncBillingEmailOnOwnerExit(t *testing.T) {
 			return &autumn.Customer{ID: custID, Email: "Departed@Example.com"}, nil
 		})
 		var gotCustomerID, gotEmail string
-		autumntest.MockUpdateCustomer(t, func(_ context.Context, customerID, email string) error {
-			gotCustomerID = customerID
-			gotEmail = email
+		autumntest.MockUpdateCustomer(t, func(_ context.Context, req autumn.UpdateCustomerRequest) error {
+			gotCustomerID = req.CustomerID
+			gotEmail = req.Email
 			return nil
 		})
 
@@ -898,13 +898,74 @@ func TestSyncBillingEmailOnOwnerExit(t *testing.T) {
 		autumntest.MockGetCustomer(t, func(_ context.Context, _ string) (*autumn.Customer, error) {
 			return &autumn.Customer{ID: custID, Email: "departed@example.com"}, nil
 		})
-		autumntest.MockUpdateCustomer(t, func(_ context.Context, _, _ string) error {
+		autumntest.MockUpdateCustomer(t, func(_ context.Context, _ autumn.UpdateCustomerRequest) error {
 			t.Error("UpdateCustomer called with no remaining owner")
 			return nil
 		})
 
 		if err := SyncBillingEmailOnOwnerExit(ctx, deps.PgPool, true, teamID, "departed@example.com"); err == nil {
 			t.Fatal("expected error, got nil")
+		}
+	})
+}
+
+// --------------------------------------------------------------------------
+// SyncBillingName
+// --------------------------------------------------------------------------
+
+func TestSyncBillingName(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("billing disabled is a no-op", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		seedTeamAutumnCustomer(ctx, t, teamID, uuid.New().String())
+
+		autumntest.MockUpdateCustomer(t, func(_ context.Context, _ autumn.UpdateCustomerRequest) error {
+			t.Error("UpdateCustomer called with billing disabled")
+			return nil
+		})
+
+		if err := SyncBillingName(ctx, deps.PgPool, false, teamID, "renamed-team"); err != nil {
+			t.Fatalf("SyncBillingName: %v", err)
+		}
+	})
+
+	t.Run("team without autumn customer is a no-op", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+
+		autumntest.MockUpdateCustomer(t, func(_ context.Context, _ autumn.UpdateCustomerRequest) error {
+			t.Error("UpdateCustomer called without an autumn customer")
+			return nil
+		})
+
+		if err := SyncBillingName(ctx, deps.PgPool, true, teamID, "renamed-team"); err != nil {
+			t.Fatalf("SyncBillingName: %v", err)
+		}
+	})
+
+	t.Run("sends the new name to the team's customer and leaves the email out", func(t *testing.T) {
+		defer cleanupAll(ctx, t)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, testTeamName)
+		custID := uuid.New().String()
+		seedTeamAutumnCustomer(ctx, t, teamID, custID)
+
+		var gotReq autumn.UpdateCustomerRequest
+		autumntest.MockUpdateCustomer(t, func(_ context.Context, req autumn.UpdateCustomerRequest) error {
+			gotReq = req
+			return nil
+		})
+
+		if err := SyncBillingName(ctx, deps.PgPool, true, teamID, "renamed-team"); err != nil {
+			t.Fatalf("SyncBillingName: %v", err)
+		}
+		want := autumn.UpdateCustomerRequest{CustomerID: custID, Name: "renamed-team"}
+		if gotReq != want {
+			t.Errorf("request = %+v, want %+v", gotReq, want)
 		}
 	})
 }

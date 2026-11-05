@@ -809,6 +809,10 @@ func (h Handlers) RenameTeam(c *gin.Context) {
 		return
 	}
 
+	if err := measure.SyncBillingName(c.Request.Context(), deps.PgPool, deps.Config.IsBillingEnabled(), teamId, name); err != nil {
+		fmt.Println("failed to sync billing name after team rename:", err)
+	}
+
 	c.JSON(http.StatusOK, gin.H{"ok": "team was renamed"})
 }
 
