@@ -332,7 +332,7 @@ private fun demos(onOpenHttp: () -> Unit, onOpenLog: () -> Unit): List<DemoItem>
         title = "Handled Exception",
         description = "Reports a handled RuntimeException",
     ) { _ ->
-        Measure.trackHandledException(RuntimeException("handled-from-kmp"))
+        Measure.trackError(RuntimeException("handled-from-kmp"))
     },
     ActionDemo(
         title = "Create Span",
