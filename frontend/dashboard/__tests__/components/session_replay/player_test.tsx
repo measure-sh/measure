@@ -5,46 +5,12 @@ import {
   screen,
   waitFor,
 } from "@testing-library/react";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { createActor, waitFor as machineWaitFor } from "xstate";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ReactElement } from "react";
 import { pointerDown } from "@/__tests__/helpers/pointer_events";
-import {
-  containerScaleOf,
-  fitInto,
-  imageSizeOf,
-  layerCountOf,
-  treeOutlineWidthPx,
-  ringOnStageAt,
-  sourceSizeOf,
-  viewBoxOf,
-  stagePointFrom,
-  tiltScaleFor,
-  ringPositionAt,
-  sessionReplayMachine,
-  StageAttachment,
-  replayFrom,
-  replayEventsFrom,
-  demoSession,
-  shownAttachmentRefOf,
-  attachmentRefIndexAt,
-  windowedAttachmentRefs,
-  defaultReplayAccent,
-  formatOffset,
-  formatSkipped,
-  tickOffsetMs,
-  idleSkipThresholdMs,
-  projectedExtent,
-  sessionEventTitle,
-  type LayoutElement,
-  type Attachment,
-} from "@/app/components/session_replay";
-import SessionReplay from "@/app/components/session_replay";
 import { makeSessionReplayFixture } from "@/__tests__/msw/fixtures";
-import { PillType } from "@/app/components/pill";
 import posthog from "posthog-js";
+import SessionReplay from "@/app/components/session_replay/player";
 
 // jsdom has no layout, so it leaves this unimplemented. The player observes
 // its stage for resizes.
@@ -77,1621 +43,8 @@ jest.mock("@/app/components/code_block", () => ({
   default: ({ code }: any) => <pre>{code}</pre>,
 }));
 
-// The snapshot the marketing demo ships, which follows the SDK's convention of
-// absolute coordinates within the root.
-const demoLayout: LayoutElement = JSON.parse(
-  readFileSync(
-    join(process.cwd(), "public/snapshots/demo_snapshot_discount_click.json"),
-    "utf8",
-  ),
-);
-
-const start = "2026-05-26T10:00:00.000Z";
-const at = (seconds: number) =>
-  new Date(Date.parse(start) + seconds * 1000).toISOString();
-
-function timelineWith(events: any[], traces: any[] = []) {
-  return { threads: { main: events }, traces };
-}
-
-function attachment(type: string, name: string) {
-  return { id: name, name, type, key: "k", location: `https://cdn/${name}` };
-}
-
-function nodesOf(node: any, out: any[] = []): any[] {
-  out.push(node);
-  (node.childNodes ?? []).forEach((child: any) => nodesOf(child, out));
-  return out;
-}
-
-function classesOf(fullSnapshot: any): string[] {
-  return nodesOf(fullSnapshot.data.node)
-    .map((n) => n.attributes?.class)
-    .filter(Boolean);
-}
-
-describe("replayEventsFrom", () => {
-  it("merges threads and traces into one stream ordered by time", () => {
-    const events = replayEventsFrom(
-      timelineWith(
-        [
-          { event_type: "gesture_click", timestamp: at(3) },
-          { event_type: "lifecycle_app", timestamp: at(1) },
-        ],
-        [{ thread_name: "main", trace_name: "t", start_time: at(2) }],
-      ),
-    );
-
-    expect(events.map((e) => e.eventType)).toEqual([
-      "lifecycle_app",
-      "trace",
-      "gesture_click",
-    ]);
-  });
-
-  it("names the thread of every event, and of a trace that left it out", () => {
-    const events = replayEventsFrom(
-      timelineWith(
-        [{ event_type: "gesture_click", timestamp: at(1) }],
-        [
-          { thread_name: "msr-default", trace_name: "t", start_time: at(2) },
-          { trace_name: "u", start_time: at(3) },
-        ],
-      ),
-    );
-
-    // An event's thread is the group it arrived under. A trace names its own,
-    // and one that left it out takes the same filler the SDKs use.
-    expect(events.map((e) => e.thread)).toEqual([
-      "main",
-      "msr-default",
-      "unknown",
-    ]);
-  });
-
-  it("gives colliding events distinct keys", () => {
-    const events = replayEventsFrom(
-      timelineWith([
-        { event_type: "lifecycle_view_controller", timestamp: at(1) },
-        { event_type: "lifecycle_view_controller", timestamp: at(1) },
-      ]),
-    );
-
-    expect(new Set(events.map((e) => e.key)).size).toBe(2);
-  });
-});
-
-describe("attachment refs", () => {
-  const attachmentRefsOf = (events: any[]) =>
-    replayFrom(timelineWith(events)).attachmentRefs;
-
-  it("keeps every attachment, layout trees first, then wireframes, then images", () => {
-    const attachmentRefs = attachmentRefsOf([
-      {
-        event_type: "gesture_click",
-        timestamp: at(1),
-        attachments: [
-          attachment("screenshot", "shot.webp"),
-          attachment("layout_snapshot", "snapshot.svg"),
-          attachment("layout_snapshot_json", "b.json"),
-          attachment("layout_snapshot_json", "a.json"),
-        ],
-      },
-    ]);
-
-    // Layout trees, then SVG wireframes, then raster images, and within a
-    // kind the order the event carries them. The first is what plays; the rest
-    // are what the switcher offers.
-    expect(attachmentRefs.map((attachmentRef) => attachmentRef.url)).toEqual([
-      "https://cdn/b.json",
-      "https://cdn/a.json",
-      "https://cdn/snapshot.svg",
-      "https://cdn/shot.webp",
-    ]);
-    expect(attachmentRefs.map((attachmentRef) => attachmentRef.format)).toEqual(
-      ["layout", "layout", "svg", "raster"],
-    );
-  });
-
-  it("takes a screenshot from a crash as readily as from a gesture", () => {
-    const attachmentRefs = attachmentRefsOf([
-      {
-        event_type: "exception",
-        timestamp: at(1),
-        attachments: [attachment("screenshot", "shot.webp")],
-      },
-    ]);
-
-    expect(attachmentRefs.map((attachmentRef) => attachmentRef.format)).toEqual(
-      ["raster"],
-    );
-  });
-
-  it("falls back to the wireframe, reading its format from the name", () => {
-    const attachmentRefs = attachmentRefsOf([
-      {
-        event_type: "gesture_click",
-        timestamp: at(1),
-        attachments: [attachment("layout_snapshot", "snapshot.svg")],
-      },
-    ]);
-
-    expect(attachmentRefs[0].format).toBe("svg");
-  });
-
-  it("ignores an attachment without an id to file it under", () => {
-    const attachmentRefs = attachmentRefsOf([
-      {
-        event_type: "gesture_click",
-        timestamp: at(1),
-        attachments: [
-          {
-            name: "a.json",
-            type: "layout_snapshot_json",
-            location: "https://cdn/a.json",
-          },
-          attachment("layout_snapshot_json", "b.json"),
-        ],
-      },
-    ]);
-
-    expect(attachmentRefs.map((attachmentRef) => attachmentRef.id)).toEqual([
-      "b.json",
-    ]);
-  });
-
-  it("ignores an attachment without a location to fetch", () => {
-    const attachmentRefs = attachmentRefsOf([
-      {
-        event_type: "gesture_click",
-        timestamp: at(1),
-        attachments: [
-          { id: "a", name: "snapshot.svg", type: "layout_snapshot" },
-          attachment("layout_snapshot_json", "snapshot.json"),
-        ],
-      },
-    ]);
-
-    expect(attachmentRefs.map((attachmentRef) => attachmentRef.format)).toEqual(
-      ["layout"],
-    );
-  });
-});
-
-describe("attachment ref groups", () => {
-  const withAttachments = (seconds: number, ...names: string[]) => ({
-    event_type: "gesture_click",
-    timestamp: at(seconds),
-    attachments: names.map((name) => attachment("layout_snapshot_json", name)),
-  });
-  const plain = (seconds: number) => ({
-    event_type: "lifecycle_app",
-    timestamp: at(seconds),
-  });
-
-  it("collects an event's attachments into one group, in the order it offers them", () => {
-    const replay = replayFrom(
-      timelineWith([
-        withAttachments(1, "b.json", "a.json"),
-        withAttachments(2, "c.json"),
-      ]),
-    );
-
-    expect(
-      replay.attachmentRefGroups.map((group) =>
-        group.attachmentRefs.map((attachmentRef) => attachmentRef.url),
-      ),
-    ).toEqual([
-      ["https://cdn/b.json", "https://cdn/a.json"],
-      ["https://cdn/c.json"],
-    ]);
-    expect(replay.attachmentRefGroups.map((group) => group.eventIndex)).toEqual(
-      [0, 1],
-    );
-  });
-
-  it("holds an attachment over the events that follow it until a newer one", () => {
-    const replay = replayFrom(
-      timelineWith([
-        withAttachments(1, "a.json"),
-        plain(2),
-        withAttachments(3, "b.json"),
-      ]),
-    );
-
-    expect(replay.shownAttachmentRefGroupIndexByEventIndex).toEqual([0, 0, 1]);
-  });
-
-  it("leaves the events before the first attachment with none to show", () => {
-    const replay = replayFrom(
-      timelineWith([plain(1), withAttachments(2, "a.json")]),
-    );
-
-    expect(replay.shownAttachmentRefGroupIndexByEventIndex).toEqual([
-      undefined,
-      0,
-    ]);
-  });
-});
-
-describe("the demo session", () => {
-  it("gives every one of its screens an id of its own", () => {
-    // Attachments are cached under the id the session gives them, so two screens
-    // sharing an id would draw as one screen shown twice.
-    const ids = replayFrom(demoSession).attachmentRefs.map(
-      (attachmentRef) => attachmentRef.id,
-    );
-
-    expect(ids.length).toBeGreaterThan(1);
-    expect(new Set(ids).size).toBe(ids.length);
-  });
-});
-
-describe("the attachment window", () => {
-  const attachmentRefsAt = (...seconds: number[]) =>
-    seconds.map((second, index) => ({
-      eventIndex: index,
-      eventKey: `k${index}`,
-      orderIndex: 0,
-      id: `a${index}`,
-      atOffsetMs: second * 1000,
-      url: `https://cdn/a${index}`,
-      format: "layout" as const,
-      type: "layout_snapshot_json" as const,
-    }));
-
-  it("centres on the attachment the playhead has reached, or the next one due", () => {
-    const attachmentRefs = attachmentRefsAt(0, 5, 10);
-
-    expect(attachmentRefIndexAt(attachmentRefs, 5000)).toBe(1);
-    expect(attachmentRefIndexAt(attachmentRefs, 6000)).toBe(2);
-    expect(attachmentRefIndexAt(attachmentRefs, 99_000)).toBe(3);
-  });
-
-  it("offers the attachments nearest the playhead first", () => {
-    const attachmentRefs = attachmentRefsAt(0, 1, 2, 3, 4);
-
-    expect(
-      windowedAttachmentRefs(attachmentRefs, 2, 5).map(
-        (attachmentRef) => attachmentRef.id,
-      ),
-    ).toEqual(["a2", "a1", "a3", "a0", "a4"]);
-  });
-
-  it("reaches no further than the radius, at either end of the session", () => {
-    const attachmentRefs = attachmentRefsAt(0, 1, 2, 3, 4);
-
-    expect(
-      windowedAttachmentRefs(attachmentRefs, 2, 1).map(
-        (attachmentRef) => attachmentRef.id,
-      ),
-    ).toEqual(["a2", "a1", "a3"]);
-    expect(
-      windowedAttachmentRefs(attachmentRefs, 0, 2).map(
-        (attachmentRef) => attachmentRef.id,
-      ),
-    ).toEqual(["a0", "a1", "a2"]);
-  });
-
-  it("works back from the end when the playhead is past the last attachment", () => {
-    const attachmentRefs = attachmentRefsAt(0, 1, 2);
-
-    expect(
-      windowedAttachmentRefs(attachmentRefs, 3, 1).map(
-        (attachmentRef) => attachmentRef.id,
-      ),
-    ).toEqual(["a2"]);
-  });
-});
-
-describe("replayFrom", () => {
-  const timeline = timelineWith([
-    { event_type: "lifecycle_app", timestamp: at(0) },
-    { event_type: "gesture_click", timestamp: at(2), x: 40, y: 100 },
-    { event_type: "lifecycle_app", timestamp: at(10) },
-  ]);
-  const events = replayEventsFrom(timeline);
-
-  it("spans the whole session", () => {
-    const replay = replayFrom(timeline);
-
-    expect(replay.startAbsMs).toBe(events[0].timeAbsMs);
-    expect(replay.durationMs).toBe(10_000);
-    expect(replay.events).toHaveLength(3);
-  });
-
-  it("carries each event's thread onto its row", () => {
-    const rows = replayFrom({
-      threads: {
-        main: [{ event_type: "gesture_click", timestamp: at(0) }],
-        "com.apple.main-thread": [
-          { event_type: "lifecycle_view_controller", timestamp: at(1) },
-        ],
-        "msr-default": [{ event_type: "http", timestamp: at(2) }],
-      },
-      traces: [],
-    }).rows;
-
-    expect(rows.map((row) => row.threadName)).toEqual([
-      "main",
-      "com.apple.main-thread",
-      "msr-default",
-    ]);
-  });
-
-  it("reads a launch as how long it took", () => {
-    const rows = replayFrom(
-      timelineWith([
-        { event_type: "cold_launch", timestamp: at(0), duration: 238 },
-        { event_type: "warm_launch", timestamp: at(1), duration: 9174 },
-        { event_type: "hot_launch", timestamp: at(2) },
-      ]),
-    ).rows;
-
-    expect(rows[0].title).toBe("238ms");
-    expect(rows[1].title).toBe("9.174s");
-    // A launch that reports no duration keeps its pill and says no more.
-    expect(rows[2].title).toBe("");
-    expect(rows[2].pillType).toBe(PillType.SessionEventHotLaunch);
-  });
-
-  it("shows app hang message with duration and state", () => {
-    const rows = replayFrom(
-      timelineWith([
-        {
-          event_type: "app_hang",
-          thread_name: "main",
-          duration: 5090,
-          state: "recovered",
-          method_name: "ViewController.blockMainThread()",
-          file_name: "ViewController.swift",
-          timestamp: at(0),
-        },
-        {
-          event_type: "app_hang",
-          thread_name: "main",
-          duration: 8000,
-          state: "killed",
-          method_name: "ViewController.blockMainThread()",
-          file_name: "ViewController.swift",
-          timestamp: at(1),
-        },
-      ]),
-    ).rows;
-
-    expect(rows[0].title).toBe("Main thread blocked for 5.1s");
-    expect(rows[0].pillType).toBe(PillType.SessionEventAppHang);
-    expect(rows[1].title).toBe("Main thread blocked for 8s, app killed");
-    expect(rows[1].pillType).toBe(PillType.SessionEventAppHang);
-  });
-
-  it("reads a network change as the move from one network to the next", () => {
-    const rows = replayFrom(
-      timelineWith([
-        {
-          event_type: "network_change",
-          timestamp: at(1),
-          previous_network_type: "cellular",
-          previous_network_generation: "4g",
-          network_type: "wifi",
-          network_generation: "unknown",
-        },
-        {
-          event_type: "network_change",
-          timestamp: at(2),
-          previous_network_type: "",
-          network_type: "cellular",
-          network_generation: "5g",
-        },
-      ]),
-    ).rows;
-
-    expect(rows[0].title).toBe("cellular (4g) to wifi");
-    expect(rows[0].pillType).toBe(PillType.SessionEventNetworkChange);
-    // The pill carries the label, so the row keeps its own text empty.
-    expect(rows[0].pillText).toBeNull();
-    // A missing previous network still names the one being moved to.
-    expect(rows[1].title).toBe("unknown to cellular (5g)");
-  });
-
-  it("gives every event a row the list can render without formatting", () => {
-    const replay = replayFrom(timeline);
-
-    expect(replay.rows).toHaveLength(replay.events.length);
-    expect(replay.rows[1].atOffsetLabel).toBe("0:02.000");
-    expect(replay.rows[1].pillType).toBe(PillType.SessionEventGestureClick);
-  });
-
-  it("slices at every event and at every touch release", () => {
-    const replay = replayFrom(timeline);
-
-    expect(replay.slices.map((slice) => slice.startOffsetMs)).toEqual([
-      0, 2000, 2220, 10_000,
-    ]);
-    expect(replay.slices.map((slice) => slice.eventIndex)).toEqual([
-      0, 1, 1, 2,
-    ]);
-  });
-
-  it("matches the touch indicator to the highlighted gesture", () => {
-    const replay = replayFrom(
-      timelineWith([
-        { event_type: "gesture_click", timestamp: at(1), x: 10, y: 10 },
-        { event_type: "gesture_click", timestamp: at(1), x: 90, y: 90 },
-      ]),
-    );
-
-    // Two gestures in one millisecond share a slice, and the slice names the
-    // later of them, so the ring has to come from that same gesture.
-    expect(replay.touches).toHaveLength(2);
-    expect(replay.slices[0].eventIndex).toBe(1);
-    expect(replay.slices[0].touchIndex).toBe(1);
-    expect(replay.touches[1].from).toEqual({ x: 90, y: 90 });
-  });
-
-  it("shows the touch indicator from press to release", () => {
-    const replay = replayFrom(timeline);
-
-    expect(replay.slices[0].touchIndex).toBeNull();
-    expect(replay.slices[1].touchIndex).toBe(0);
-    expect(replay.slices[2].touchIndex).toBeNull();
-  });
-
-  it("removes the tap indicator when the app opens a new screen", () => {
-    const replay = replayFrom(
-      timelineWith([
-        {
-          event_type: "gesture_click",
-          timestamp: at(1),
-          x: 10,
-          y: 10,
-          attachments: [attachment("layout_snapshot_json", "tapped.json")],
-        },
-        { event_type: "lifecycle_activity", timestamp: at(1.05) },
-        {
-          event_type: "screen_view",
-          timestamp: at(1.12),
-          attachments: [attachment("layout_snapshot_json", "opened.json")],
-        },
-      ]),
-    );
-
-    // The screen view lands well inside the tap's 220ms hold. The lifecycle
-    // event between the two brings no screen of its own, so the tap's is still
-    // on the stage there and keeps the ring.
-    expect(
-      replay.slices.map((slice) => [slice.startOffsetMs, slice.touchIndex]),
-    ).toEqual([
-      [0, 0],
-      [50, 0],
-      [120, null],
-      [220, null],
-    ]);
-  });
-
-  it("continues to show touch indicators when the screen stays the same", () => {
-    const replay = replayFrom(
-      timelineWith([
-        {
-          event_type: "screen_view",
-          timestamp: at(1),
-          attachments: [attachment("layout_snapshot_json", "list.json")],
-        },
-        { event_type: "gesture_scroll", timestamp: at(2), x: 40, y: 300 },
-      ]),
-    );
-
-    // Only a tap records a screen of its own, so the screen view's is the one
-    // the scroll was made on and the one it is drawn against.
-    expect(replay.shownAttachmentRefGroupIndexByEventIndex).toEqual([0, 0]);
-    expect(
-      replay.slices.map((slice) => [slice.startOffsetMs, slice.touchIndex]),
-    ).toEqual([
-      [0, null],
-      [1000, 0],
-      [1220, null],
-    ]);
-  });
-
-  it("turns a gesture into a pressed touch that releases after a hold", () => {
-    const replay = replayFrom(timeline);
-
-    expect(replay.touches).toHaveLength(1);
-    const touch = replay.touches[0];
-    expect(touch.pressOffsetMs).toBe(2000);
-    expect(touch.releaseOffsetMs).toBe(2220);
-    expect(touch.to).toEqual(touch.from);
-    expect(touch.from).toEqual({ x: 40, y: 100 });
-  });
-
-  it("keeps a touch in the coordinates the device reported", () => {
-    const scrolled = timelineWith([
-      {
-        event_type: "gesture_scroll",
-        timestamp: at(1),
-        x: 40,
-        y: 300,
-        end_x: 60,
-        end_y: 100,
-      },
-      { event_type: "lifecycle_app", timestamp: at(3) },
-    ]);
-    const replay = replayFrom(scrolled);
-
-    const touch = replay.touches[0];
-    expect(touch.from).toEqual({ x: 40, y: 300 });
-    expect(touch.to).toEqual({ x: 60, y: 100 });
-    expect(touch.releaseOffsetMs).toBe(touch.pressOffsetMs + 320);
-  });
-
-  it("taps rather than drags when a gesture did not travel", () => {
-    const tapped = timelineWith([
-      {
-        event_type: "gesture_click",
-        timestamp: at(1),
-        x: 40,
-        y: 300,
-        end_x: 40,
-        end_y: 300,
-      },
-      { event_type: "lifecycle_app", timestamp: at(3) },
-    ]);
-    const replay = replayFrom(tapped);
-
-    expect(replay.touches[0].to).toEqual(replay.touches[0].from);
-    expect(replay.touches[0].releaseOffsetMs).toBe(
-      replay.touches[0].pressOffsetMs + 220,
-    );
-  });
-
-  it("extends the timeline past a session-ending tap so its ring can release", () => {
-    const replay = replayFrom(
-      timelineWith([
-        { event_type: "lifecycle_app", timestamp: at(0) },
-        { event_type: "gesture_click", timestamp: at(10), x: 40, y: 100 },
-      ]),
-    );
-
-    expect(replay.durationMs).toBe(10_220);
-    expect(replay.slices[replay.slices.length - 1].startOffsetMs).toBe(10_220);
-    expect(replay.slices[replay.slices.length - 1].touchIndex).toBeNull();
-  });
-
-  it("ends at a swipe's release even when a later tap releases sooner", () => {
-    const replay = replayFrom(
-      timelineWith([
-        { event_type: "lifecycle_app", timestamp: at(0) },
-        {
-          event_type: "gesture_scroll",
-          timestamp: at(10),
-          x: 40,
-          y: 100,
-          end_x: 40,
-          end_y: 300,
-        },
-        { event_type: "gesture_click", timestamp: at(10.05), x: 40, y: 100 },
-      ]),
-    );
-
-    expect(replay.durationMs).toBe(10_320);
-  });
-
-  it("has nothing to play when the session carries no events", () => {
-    const replay = replayFrom(timelineWith([]));
-
-    expect(replay.durationMs).toBe(0);
-    expect(replay.slices).toHaveLength(0);
-  });
-});
-
-describe("fitInto", () => {
-  it("keeps its aspect and clears the bands the overlays sit in", () => {
-    const fit = fitInto({ width: 200, height: 400 }, 1000, 1000);
-
-    expect(fit.widthPercent).toBeCloseTo(fit.heightPercent / 2);
-    // Below the switcher and the notice, above the turn hint.
-    expect(fit.topPercent).toBeGreaterThanOrEqual(4.4);
-    expect(fit.topPercent + fit.heightPercent).toBeLessThanOrEqual(97.2);
-    expect(fit.leftPercent).toBeCloseTo((100 - fit.widthPercent) / 2);
-  });
-
-  it("fills the width when the attachment is wider than it is tall", () => {
-    const fit = fitInto({ width: 400, height: 200 }, 1000, 1000);
-
-    expect(fit.heightPercent).toBeCloseTo(fit.widthPercent / 2);
-    expect(fit.widthPercent).toBeLessThanOrEqual(94.4);
-  });
-
-  it("gives the same box to two attachments of one screen at different resolutions", () => {
-    const screenshot = fitInto({ width: 1170, height: 2532 }, 1000, 1000);
-    const wireframe = fitInto({ width: 390, height: 844 }, 1000, 1000);
-
-    // The boxes coincide, so the picture holds still when the switcher is
-    // used. Only the space each maps gestures from differs.
-    expect(screenshot.leftPercent).toBeCloseTo(wireframe.leftPercent);
-    expect(screenshot.topPercent).toBeCloseTo(wireframe.topPercent);
-    expect(screenshot.widthPercent).toBeCloseTo(wireframe.widthPercent);
-    expect(screenshot.heightPercent).toBeCloseTo(wireframe.heightPercent);
-  });
-});
-
-describe("imageSizeOf", () => {
-  // jsdom loads no images, so this stands in for one. It records what is
-  // assigned to src and hands back the instance so a test can decode it.
-  const trackingImage = () => {
-    const assigned: string[] = [];
-    const instances: any[] = [];
-    const original = (globalThis as any).Image;
-    (globalThis as any).Image = class {
-      naturalWidth = 200;
-      naturalHeight = 400;
-      onload: (() => void) | null = null;
-      onerror: (() => void) | null = null;
-      constructor() {
-        instances.push(this);
-      }
-      set src(url: string) {
-        assigned.push(url);
-      }
-    };
-    return {
-      assigned,
-      instances,
-      restore: () => {
-        (globalThis as any).Image = original;
-      },
-    };
-  };
-
-  it("drops the image source when the fetch is aborted", async () => {
-    const { assigned, restore } = trackingImage();
-    try {
-      // An abort that only settled the promise would leave the browser
-      // downloading a screenshot nobody is waiting for, holding bandwidth
-      // against the ones the playhead is heading towards.
-      const controller = new AbortController();
-      const size = imageSizeOf("https://cdn/shot.webp", controller.signal);
-      const reason = new Error("attachment fetch timed out");
-      controller.abort(reason);
-
-      await expect(size).rejects.toBe(reason);
-      expect(assigned).toEqual(["https://cdn/shot.webp", ""]);
-    } finally {
-      restore();
-    }
-  });
-
-  it("leaves the image source alone once it has been measured", async () => {
-    const { assigned, instances, restore } = trackingImage();
-    try {
-      const controller = new AbortController();
-      const size = imageSizeOf("https://cdn/shot.webp", controller.signal);
-      instances[0].onload();
-
-      await expect(size).resolves.toEqual({ width: 200, height: 400 });
-      expect(assigned).toEqual(["https://cdn/shot.webp"]);
-    } finally {
-      restore();
-    }
-  });
-});
-
-describe("sourceSizeOf", () => {
-  it("divides an Apple screenshot into the points its gestures use", () => {
-    expect(
-      sourceSizeOf(
-        { width: 1179, height: 2556 },
-        {
-          os_name: "ios",
-          device_density: 3,
-        },
-      ),
-    ).toEqual({ width: 393, height: 852 });
-  });
-
-  it("leaves Android alone, where both are already pixels", () => {
-    expect(
-      sourceSizeOf(
-        { width: 1080, height: 2400 },
-        {
-          os_name: "android",
-          device_density: 3,
-        },
-      ),
-    ).toEqual({ width: 1080, height: 2400 });
-  });
-
-  it("leaves an Apple screenshot alone when the density is missing", () => {
-    expect(
-      sourceSizeOf({ width: 1179, height: 2556 }, { os_name: "ios" }),
-    ).toEqual({ width: 1179, height: 2556 });
-  });
-});
-
-describe("viewBoxOf", () => {
-  it("reads the width and height a wireframe is drawn at", () => {
-    expect(viewBoxOf('<svg viewBox="0 0 300 600">')).toEqual({
-      width: 300,
-      height: 600,
-    });
-  });
-
-  it("reads a viewBox written with commas", () => {
-    expect(viewBoxOf("<svg viewBox='0,0,300,600'>")).toEqual({
-      width: 300,
-      height: 600,
-    });
-  });
-
-  it.each([
-    ["no viewBox at all", "<svg><rect/></svg>"],
-    ["a viewBox short of four numbers", '<svg viewBox="0 0 300">'],
-    [
-      "a viewBox carrying something other than numbers",
-      '<svg viewBox="0 0 a 600">',
-    ],
-    ["a viewBox with no area to draw in", '<svg viewBox="0 0 0 600">'],
-  ])("has no size to give for %s", (_case, svg) => {
-    expect(viewBoxOf(svg)).toBeNull();
-  });
-});
-
-describe("stagePointFrom", () => {
-  it("maps a gesture through the box its attachment was given", () => {
-    const fit = fitInto({ width: 200, height: 400 }, 1000, 1000);
-
-    const centre = stagePointFrom({ x: 100, y: 200 }, fit);
-    expect(centre.xPercent).toBeCloseTo(50);
-    expect(centre.yPercent).toBeCloseTo(fit.topPercent + fit.heightPercent / 2);
-  });
-
-  it("maps a gesture to the same place on a 3x screenshot as on a wireframe", () => {
-    const attributes = { os_name: "ios", device_density: 3 };
-    const screenshot = fitInto(
-      sourceSizeOf({ width: 1170, height: 2532 }, attributes),
-      1000,
-      1000,
-    );
-    const wireframe = fitInto({ width: 390, height: 844 }, 1000, 1000);
-
-    expect(stagePointFrom({ x: 195, y: 422 }, screenshot)).toEqual(
-      stagePointFrom({ x: 195, y: 422 }, wireframe),
-    );
-  });
-});
-
-describe("tiltScaleFor", () => {
-  const fit = fitInto({ width: 390, height: 844 }, 1000, 1000);
-
-  it("pulls back by nothing while the attachment is at rest", () => {
-    expect(tiltScaleFor(12, fit, { xDegrees: 0, yDegrees: 0 })).toBe(1);
-  });
-
-  it("pulls back far enough to keep a full tilt inside the stage", () => {
-    const scale = tiltScaleFor(12, fit, { xDegrees: -40, yDegrees: 40 });
-
-    expect(scale).toBeLessThan(1);
-    expect(scale).toBeGreaterThan(0.2);
-  });
-
-  it("gives a narrow attachment the same pull-back as a wide one", () => {
-    // The lift is a share of the width the attachment was given, so a screen
-    // fitted into a third of the stage turns at the same proportions as one
-    // that fills it.
-    const narrow = fitInto({ width: 390, height: 844 }, 3000, 1000);
-    const wide = fitInto({ width: 390, height: 844 }, 1000, 1000);
-    const tilt = { xDegrees: -20, yDegrees: 35 };
-
-    expect(tiltScaleFor(16, narrow, tilt)).toBeCloseTo(
-      tiltScaleFor(16, wide, tilt),
-      1,
-    );
-  });
-
-  it("pulls back further for a deeper tree", () => {
-    expect(tiltScaleFor(16, fit, { xDegrees: -40, yDegrees: 40 })).toBeLessThan(
-      tiltScaleFor(4, fit, { xDegrees: -40, yDegrees: 40 }),
-    );
-  });
-
-  it("leaves an attachment that cannot tilt at full size", () => {
-    expect(tiltScaleFor(null, fit, { xDegrees: -40, yDegrees: 40 })).toBe(1);
-  });
-});
-
-describe("treeOutlineWidthPx", () => {
-  it("asks for the same width in device pixels whatever the display", () => {
-    expect(treeOutlineWidthPx(2, 1) * 2).toBeCloseTo(2.5);
-    expect(treeOutlineWidthPx(1.8, 1) * 1.8).toBeCloseTo(2.5);
-  });
-
-  it("widens the request when a scaled ancestor shrinks the stage", () => {
-    expect(treeOutlineWidthPx(2, 0.5)).toBeCloseTo(
-      treeOutlineWidthPx(2, 1) * 2,
-    );
-  });
-
-  it("stays at a whole pixel on a display that has no room to spare", () => {
-    expect(treeOutlineWidthPx(1, 1)).toBe(2.5);
-    expect(treeOutlineWidthPx(8, 1)).toBe(1);
-  });
-});
-
-describe("containerScaleOf", () => {
-  const viewOf = (frames: { rect: number; offset: number }[]): Window => {
-    const build = (index: number): Window =>
-      ({
-        frameElement:
-          index >= frames.length
-            ? null
-            : ({
-                offsetWidth: frames[index].offset,
-                getBoundingClientRect: () => ({ width: frames[index].rect }),
-                ownerDocument: { defaultView: build(index + 1) },
-              } as unknown as HTMLElement),
-      }) as Window;
-    return build(0);
-  };
-
-  it("reports no scaling for a document that stands on its own", () => {
-    expect(containerScaleOf(viewOf([]))).toBe(1);
-  });
-
-  it("reads the scale a transformed frame applies", () => {
-    expect(containerScaleOf(viewOf([{ rect: 800, offset: 1000 }]))).toBeCloseTo(
-      0.8,
-    );
-  });
-
-  it("multiplies the scales of nested frames", () => {
-    expect(
-      containerScaleOf(
-        viewOf([
-          { rect: 800, offset: 1000 },
-          { rect: 250, offset: 500 },
-        ]),
-      ),
-    ).toBeCloseTo(0.4);
-  });
-
-  it("stops at a frame it cannot measure", () => {
-    expect(
-      containerScaleOf(
-        viewOf([
-          { rect: 800, offset: 1000 },
-          { rect: 250, offset: 0 },
-        ]),
-      ),
-    ).toBeCloseTo(0.8);
-  });
-});
-
-describe("ringPositionAt", () => {
-  const tap = {
-    eventIndex: 0,
-    pressOffsetMs: 1000,
-    releaseOffsetMs: 1220,
-    from: { x: 10, y: 10 },
-    to: { x: 10, y: 10 },
-  };
-  const swipe = {
-    eventIndex: 1,
-    pressOffsetMs: 2000,
-    releaseOffsetMs: 2320,
-    from: { x: 0, y: 0 },
-    to: { x: 100, y: 0 },
-  };
-
-  it("is at the touch position during the hold", () => {
-    expect(ringPositionAt(tap, 1100)).toEqual({ x: 10, y: 10 });
-  });
-
-  it("interpolates a swipe's travel", () => {
-    expect(ringPositionAt(swipe, 2160).x).toBeCloseTo(50);
-  });
-
-  it("holds at the lift point once the travel is done", () => {
-    expect(ringPositionAt(swipe, 2320).x).toBeCloseTo(100);
-  });
-});
-
-describe("the stage frames", () => {
-  const countNodes = (node: LayoutElement): number =>
-    1 +
-    (node.children ?? []).reduce((sum, child) => sum + countNodes(child), 0);
-
-  const layoutFrame: Attachment = {
-    id: "layout",
-    sourceSize: { width: demoLayout.width, height: demoLayout.height },
-    layerCount: layerCountOf(demoLayout),
-    content: { kind: "layout", root: demoLayout },
-  };
-
-  it("renders every element of the tree as a node", () => {
-    const { container } = render(
-      <StageAttachment
-        imageUrl="https://cdn/shot.webp"
-        attachment={layoutFrame}
-        hidden={false}
-        accent="#00ff00"
-        fit={fitInto(
-          { width: demoLayout.width, height: demoLayout.height },
-          demoLayout.width,
-          demoLayout.height,
-        )}
-        stageWidthPx={demoLayout.width}
-      />,
-    );
-
-    expect(container.querySelectorAll("[data-label]")).toHaveLength(
-      countNodes(demoLayout),
-    );
-  });
-
-  it("marks the tapped element and leaves exactly one target", () => {
-    const { container } = render(
-      <StageAttachment
-        imageUrl="https://cdn/shot.webp"
-        attachment={layoutFrame}
-        hidden={false}
-        accent="#00ff00"
-        fit={fitInto(
-          { width: demoLayout.width, height: demoLayout.height },
-          demoLayout.width,
-          demoLayout.height,
-        )}
-        stageWidthPx={demoLayout.width}
-      />,
-    );
-
-    const targets = [
-      ...container.querySelectorAll<HTMLElement>("[data-label]"),
-    ].filter((node) => node.className.includes("bg-primary/30"));
-    expect(targets).toHaveLength(1);
-  });
-
-  it("positions nodes at their own absolute coordinates", () => {
-    const child = (demoLayout.children ?? [])[0];
-    const { container } = render(
-      <StageAttachment
-        imageUrl="https://cdn/shot.webp"
-        attachment={layoutFrame}
-        hidden={false}
-        accent="#00ff00"
-        fit={fitInto(
-          { width: demoLayout.width, height: demoLayout.height },
-          demoLayout.width,
-          demoLayout.height,
-        )}
-        stageWidthPx={demoLayout.width}
-      />,
-    );
-
-    const styles = [...container.querySelectorAll<HTMLElement>("[data-label]")];
-    expect(
-      styles.some(
-        (node) =>
-          node.style.left === `${child.x}px` &&
-          node.style.top === `${child.y}px`,
-      ),
-    ).toBe(true);
-  });
-
-  it("wraps the tree in a turnable layer", () => {
-    const { container } = render(
-      <StageAttachment
-        imageUrl="https://cdn/shot.webp"
-        attachment={layoutFrame}
-        hidden={false}
-        accent="#00ff00"
-        fit={fitInto(
-          { width: demoLayout.width, height: demoLayout.height },
-          demoLayout.width,
-          demoLayout.height,
-        )}
-        stageWidthPx={demoLayout.width}
-      />,
-    );
-
-    const layout = container.firstElementChild?.firstElementChild;
-    expect(layout?.firstElementChild?.className).toContain("transform-3d");
-  });
-
-  it("lifts nested nodes along z by their depth", () => {
-    const { container } = render(
-      <StageAttachment
-        imageUrl="https://cdn/shot.webp"
-        attachment={layoutFrame}
-        hidden={false}
-        accent="#00ff00"
-        fit={fitInto(
-          { width: demoLayout.width, height: demoLayout.height },
-          demoLayout.width,
-          demoLayout.height,
-        )}
-        stageWidthPx={demoLayout.width}
-      />,
-    );
-
-    const transforms = [
-      ...container.querySelectorAll<HTMLElement>("[data-label]"),
-    ].map((node) => node.style.transform);
-    expect(
-      transforms.every((transform) =>
-        transform.includes("translateZ(calc(var(--msr-depth, 0)"),
-      ),
-    ).toBe(true);
-    expect(new Set(transforms).size).toBeGreaterThan(1);
-  });
-
-  it("hides an attachment that is not the one on show", () => {
-    const { container } = render(
-      <StageAttachment
-        imageUrl="https://cdn/shot.webp"
-        attachment={layoutFrame}
-        hidden={true}
-        accent="#00ff00"
-        fit={fitInto(
-          { width: demoLayout.width, height: demoLayout.height },
-          demoLayout.width,
-          demoLayout.height,
-        )}
-        stageWidthPx={demoLayout.width}
-      />,
-    );
-
-    expect(container.firstElementChild?.hasAttribute("hidden")).toBe(true);
-  });
-
-  it("recolours an SVG wireframe with the accent", () => {
-    const svgAttachment = {
-      id: "wireframe",
-      sourceSize: { width: 100, height: 200 },
-      layerCount: null,
-      content: {
-        kind: "svg",
-        markup: '<svg viewBox="0 0 100 200"><rect stroke="#fef08a"/></svg>',
-      },
-    } as Attachment;
-    const { container } = render(
-      <StageAttachment
-        imageUrl="https://cdn/shot.webp"
-        attachment={svgAttachment}
-        hidden={false}
-        accent="#00ff00"
-        fit={fitInto({ width: 100, height: 200 }, 100, 200)}
-        stageWidthPx={100}
-      />,
-    );
-
-    const img = container.querySelector("img");
-    expect(img?.getAttribute("src")).toContain(encodeURIComponent("#00ff00"));
-    expect(img?.getAttribute("src")).not.toContain(
-      encodeURIComponent("#fef08a"),
-    );
-  });
-});
-
-describe("projectedExtent", () => {
-  const box = { width: 200, height: 400, depth: 0 };
-  const perspective = 940;
-
-  it("is the box itself when the tree is not turned", () => {
-    const extent = projectedExtent(
-      box,
-      { xDegrees: 0, yDegrees: 0 },
-      perspective,
-    );
-    expect(extent.width).toBeCloseTo(200);
-    expect(extent.height).toBeCloseTo(400);
-  });
-
-  it("grows with the depth the layers are lifted to", () => {
-    const flatStack = projectedExtent(
-      box,
-      { xDegrees: 0, yDegrees: 20 },
-      perspective,
-    );
-    const liftedStack = projectedExtent(
-      { ...box, depth: 120 },
-      { xDegrees: 0, yDegrees: 20 },
-      perspective,
-    );
-    expect(liftedStack.width).toBeGreaterThan(flatStack.width);
-  });
-
-  it("narrows a plane turned away from the viewer", () => {
-    // No depth to lift, so turning only foreshortens.
-    const extent = projectedExtent(
-      box,
-      { xDegrees: 0, yDegrees: 45 },
-      perspective,
-    );
-    expect(extent.width).toBeLessThan(box.width);
-  });
-});
-
-describe("formatOffset", () => {
-  it.each([
-    [0, "0:00.000"],
-    [1234, "0:01.234"],
-    [61_007, "1:01.007"],
-  ])("formats %ims as %s", (ms, expected) => {
-    expect(formatOffset(ms)).toBe(expected);
-  });
-});
-
-describe("app hang titles", () => {
-  it.each([
-    [5090, "recovered", "Main thread blocked for 5.1s"],
-    [2000, "recovered", "Main thread blocked for 2s"],
-    [12_400, "recovered", "Main thread blocked for 12s"],
-    [950, "recovered", "Main thread blocked for 1s"],
-  ])("reads %ims as %s", (duration, state, expected) => {
-    expect(sessionEventTitle("app_hang", { duration, state })).toBe(expected);
-  });
-
-  it("says so when the app never recovered", () => {
-    expect(
-      sessionEventTitle("app_hang", { duration: 8000, state: "killed" }),
-    ).toBe("Main thread blocked for 8s, app killed");
-  });
-
-  it("show messages without duration", () => {
-    expect(sessionEventTitle("app_hang", { state: "recovered" })).toBe(
-      "Main thread blocked",
-    );
-    expect(sessionEventTitle("app_hang", { state: "killed" })).toBe(
-      "Main thread blocked, app killed",
-    );
-  });
-
-  it("returns a title when only a duration is given", () => {
-    expect(sessionEventTitle("app_hang", { duration: 3000 })).not.toBe("");
-  });
-});
-
-describe("idle stretches", () => {
-  const timeline = timelineWith([
-    { event_type: "cold_launch", timestamp: at(0) },
-    { event_type: "lifecycle_activity", timestamp: at(1) },
-    { event_type: "gesture_click", timestamp: at(2) },
-    { event_type: "http", timestamp: at(20) },
-    { event_type: "trim_memory", timestamp: at(40) },
-    { event_type: "error", timestamp: at(60), severity: "unhandled" },
-    { event_type: "anr", timestamp: at(70) },
-    { event_type: "bug_report", timestamp: at(80) },
-    { event_type: "trim_memory", timestamp: at(90) },
-  ]);
-  const events = replayEventsFrom(timeline);
-  const startMs = events[0].timeAbsMs;
-  const durationMs = events[events.length - 1].timeAbsMs - startMs;
-
-  const sliceAt = (offsetMs: number) => {
-    const replay = replayFrom(timeline);
-    return {
-      replay,
-      slice: replay.slices.findLast(
-        (slice) => slice.startOffsetMs <= offsetMs,
-      )!,
-    };
-  };
-
-  it("skips a stretch that carries events but leaves the screen alone", () => {
-    // The events between the gesture and the error are a network call and a
-    // memory trim, neither of which puts anything new on the screen.
-    const { slice } = sliceAt(3000);
-
-    expect(slice.skipToOffsetMs).toBe(59_500);
-  });
-
-  it.each(["screen_view", "lifecycle_activity", "lifecycle_app"])(
-    "stops at a %s, which can carry a layout snapshot",
-    (eventType) => {
-      const replay = replayFrom(
-        timelineWith([
-          { event_type: "gesture_click", timestamp: at(0) },
-          {
-            event_type: eventType,
-            timestamp: at(30),
-            name: "Checkout",
-            type: "resumed",
-          },
-          { event_type: "gesture_click", timestamp: at(60) },
-        ]),
-      );
-
-      expect(replay.slices[0].skipToOffsetMs).toBe(29_500);
-    },
-  );
-
-  it("plays through a wait short enough to sit out", () => {
-    const shortWait = replayFrom(
-      timelineWith([
-        { event_type: "gesture_click", timestamp: at(0) },
-        { event_type: "gesture_click", timestamp: at(3) },
-      ]),
-    );
-
-    expect(idleSkipThresholdMs).toBe(5000);
-    expect(shortWait.slices[0].skipToOffsetMs).toBeNull();
-  });
-
-  it("runs to the end once no activity is left to watch", () => {
-    const { replay, slice } = sliceAt(80_000);
-
-    expect(slice.skipToOffsetMs).toBe(replay.durationMs);
-  });
-
-  it("stays put when the end is already in reach", () => {
-    const { slice } = sliceAt(90_000);
-
-    expect(slice.skipToOffsetMs).toBeNull();
-  });
-});
-
-describe("tickOffsetMs", () => {
-  it("advances by the time a frame took", () => {
-    expect(tickOffsetMs(1000, 16, 1, 60_000)).toBe(1016);
-  });
-
-  it("advances by the playback speed on top of that", () => {
-    expect(tickOffsetMs(1000, 16, 4, 60_000)).toBe(1064);
-  });
-
-  it("caps a frame that stood for a tab left in the background", () => {
-    // Thirty seconds away from the tab, and the playhead moves on by the cap
-    // rather than by the whole stretch.
-    expect(tickOffsetMs(1000, 30_000, 1, 600_000)).toBe(1250);
-    expect(tickOffsetMs(1000, 30_000, 4, 600_000)).toBe(2000);
-  });
-
-  it("stops at the end of the replay", () => {
-    expect(tickOffsetMs(59_900, 200, 4, 60_000)).toBe(60_000);
-  });
-});
-
-describe("formatSkipped", () => {
-  it.each([
-    [12_000, "12s"],
-    [59_600, "1m 0s"],
-    [331_000, "5m 31s"],
-    [600_000, "10m 0s"],
-  ])("says %ims as %s", (ms, expected) => {
-    expect(formatSkipped(ms)).toBe(expected);
-  });
-});
-
-describe("the machine", () => {
-  const tenIdleSeconds = {
-    threads: {
-      main: [
-        { event_type: "lifecycle_app", timestamp: "2026-04-10T10:00:00Z" },
-        { event_type: "lifecycle_app", timestamp: "2026-04-10T10:00:10Z" },
-      ],
-    },
-    traces: [],
-  };
-
-  const tiltableMachine = sessionReplayMachine.provide({
-    guards: { isShownAttachmentTiltable: () => true },
-  });
-
-  async function readyMachine(session: unknown = tenIdleSeconds) {
-    const actor = createActor(sessionReplayMachine).start();
-    actor.send({ type: "replay.received", session });
-    await machineWaitFor(actor, (s) => s.matches("ready"), { timeout: 2000 });
-    return actor;
-  }
-
-  it("is ready to play the moment the session arrives", async () => {
-    const actor = createActor(sessionReplayMachine).start();
-    actor.send({ type: "replay.received", session: tenIdleSeconds });
-
-    // The replay is built from the session in one pass, so playback is ready
-    // while the attachments are still on their way.
-    expect(actor.getSnapshot().matches({ ready: { playback: "paused" } })).toBe(
-      true,
-    );
-    actor.send({ type: "user.seek", toOffsetMs: 3000 });
-    expect(actor.getSnapshot().context.playheadOffsetMs).toBe(3000);
-    actor.send({ type: "user.toggle" });
-    expect(
-      actor.getSnapshot().matches({ ready: { playback: "playing" } }),
-    ).toBe(true);
-    actor.stop();
-  });
-
-  const twoAttachments = timelineWith([
-    {
-      event_type: "gesture_click",
-      timestamp: at(0),
-      x: 1,
-      y: 1,
-      attachments: [
-        attachment("layout_snapshot_json", "tree.json"),
-        attachment("screenshot", "shot.webp"),
-      ],
-    },
-  ]);
-
-  it("calls for the attachment the session lists first", async () => {
-    const actor = await readyMachine(twoAttachments);
-
-    expect(shownAttachmentRefOf(actor.getSnapshot().context)?.id).toBe(
-      "tree.json",
-    );
-    actor.stop();
-  });
-
-  it("calls for the attachment the switcher was pointed at", async () => {
-    const actor = await readyMachine(twoAttachments);
-
-    actor.send({ type: "user.selectAttachment", index: 1 });
-
-    expect(shownAttachmentRefOf(actor.getSnapshot().context)?.id).toBe(
-      "shot.webp",
-    );
-    actor.stop();
-  });
-
-  it("turns a layout tree and leaves a screenshot flat", async () => {
-    const actor = await readyMachine(twoAttachments);
-    const press = {
-      type: "user.pointerDown" as const,
-      x: 10,
-      y: 10,
-      button: 0,
-      screenScale: 1,
-    };
-
-    // The stage plays the layout tree first, which has layers to turn.
-    actor.send(press);
-    expect(
-      actor.getSnapshot().matches({ ready: { inspection: "dragging" } }),
-    ).toBe(true);
-    actor.send({ type: "user.pointerUp" });
-
-    // The switcher moves to the screenshot of the same screen, which is flat.
-    actor.send({ type: "user.selectAttachment", index: 1 });
-    actor.send(press);
-    expect(
-      actor.getSnapshot().matches({ ready: { inspection: "dragging" } }),
-    ).toBe(false);
-    actor.stop();
-  });
-
-  it("starts a drag on a primary press and ends it when the slice changes", async () => {
-    const actor = createActor(tiltableMachine).start();
-    actor.send({ type: "replay.received", session: tenIdleSeconds });
-    await machineWaitFor(actor, (s) => s.matches("ready"), { timeout: 2000 });
-    actor.send({
-      type: "user.pointerDown",
-      x: 10,
-      y: 10,
-      button: 0,
-      screenScale: 1,
-    });
-    expect(
-      actor.getSnapshot().matches({ ready: { inspection: "dragging" } }),
-    ).toBe(true);
-    expect(actor.getSnapshot().context.dragOrigin).not.toBeNull();
-
-    actor.send({ type: "slice.changed" });
-    expect(actor.getSnapshot().matches({ ready: { inspection: "idle" } })).toBe(
-      true,
-    );
-    expect(actor.getSnapshot().context.dragOrigin).toBeNull();
-    actor.stop();
-  });
-
-  it("ignores a press that is not the primary button", async () => {
-    const actor = createActor(tiltableMachine).start();
-    actor.send({ type: "replay.received", session: tenIdleSeconds });
-    await machineWaitFor(actor, (s) => s.matches("ready"), { timeout: 2000 });
-    actor.send({
-      type: "user.pointerDown",
-      x: 10,
-      y: 10,
-      button: 2,
-      screenScale: 1,
-    });
-    expect(actor.getSnapshot().matches({ ready: { inspection: "idle" } })).toBe(
-      true,
-    );
-    actor.stop();
-  });
-
-  it("ends a drag when a move reports every button released", async () => {
-    const actor = createActor(tiltableMachine).start();
-    actor.send({ type: "replay.received", session: tenIdleSeconds });
-    await machineWaitFor(actor, (s) => s.matches("ready"), { timeout: 2000 });
-    actor.send({
-      type: "user.pointerDown",
-      x: 10,
-      y: 10,
-      button: 0,
-      screenScale: 1,
-    });
-    actor.send({
-      type: "user.pointerMove",
-      x: 20,
-      y: 10,
-      buttons: 0,
-      hoverLabel: null,
-    });
-    expect(actor.getSnapshot().matches({ ready: { inspection: "idle" } })).toBe(
-      true,
-    );
-    actor.stop();
-  });
-
-  it("turns the tilt pose with a drag, scaled by the press's screen scale", async () => {
-    const actor = createActor(tiltableMachine).start();
-    actor.send({ type: "replay.received", session: tenIdleSeconds });
-    await machineWaitFor(actor, (s) => s.matches("ready"), { timeout: 2000 });
-    const resting = actor.getSnapshot().context.tilt;
-    actor.send({
-      type: "user.pointerDown",
-      x: 10,
-      y: 10,
-      button: 0,
-      screenScale: 1,
-    });
-    actor.send({
-      type: "user.pointerMove",
-      x: 20,
-      y: 10,
-      buttons: 1,
-      hoverLabel: null,
-    });
-    expect(actor.getSnapshot().context.tilt).toEqual({
-      xDegrees: resting.xDegrees,
-      yDegrees: resting.yDegrees + 5,
-    });
-    actor.stop();
-  });
-
-  it("remembers which group the switcher's pick belongs to", async () => {
-    const actor = await readyMachine();
-    actor.send({ type: "user.selectAttachment", index: 2 });
-
-    // This session lists no attachments, so the pick has no group to belong to.
-    // It carries a null key, and the stage shows the first attachment of
-    // whichever group it reaches.
-    expect(actor.getSnapshot().context.attachmentSwitcher).toEqual({
-      eventKey: null,
-      shownIndex: 2,
-    });
-    actor.stop();
-  });
-
-  it("jumps an idle gap on a tick and reports the skipped stretch", async () => {
-    const actor = await readyMachine();
-    actor.send({ type: "user.toggleIdleSkip" });
-    actor.send({ type: "user.toggle" });
-    actor.send({ type: "clock.tick", clockOffsetMs: 1 });
-
-    // The lifecycle event closing the session can carry a layout snapshot, so
-    // the jump stops short of it rather than running to the end.
-    expect(actor.getSnapshot().context.playheadOffsetMs).toBe(9500);
-    expect(actor.getSnapshot().context.skippedIdleMs).toBe(9499);
-    expect(actor.getSnapshot().matches({ ready: { notice: "visible" } })).toBe(
-      true,
-    );
-    actor.stop();
-  });
-
-  it("plays on after skipping a gap in the middle of a session", async () => {
-    // The target sits inside the slice that carries it, so the playhead lands
-    // back on that same slice. Playback has to carry on from there rather than
-    // taking the jump again on the next tick.
-    const actor = await readyMachine({
-      threads: {
-        main: [
-          {
-            event_type: "gesture_click",
-            thread_name: "main",
-            x: 1,
-            y: 1,
-            timestamp: "2026-04-10T10:00:00Z",
-          },
-          {
-            event_type: "gesture_click",
-            thread_name: "main",
-            x: 1,
-            y: 1,
-            timestamp: "2026-04-10T10:01:00Z",
-          },
-        ],
-      },
-      traces: [],
-    });
-    actor.send({ type: "user.toggleIdleSkip" });
-    actor.send({ type: "user.seek", toOffsetMs: 1000 });
-    actor.send({ type: "user.toggle" });
-    actor.send({ type: "clock.tick", clockOffsetMs: 1016 });
-
-    expect(actor.getSnapshot().context.playheadOffsetMs).toBe(59_500);
-    expect(actor.getSnapshot().context.skippedIdleMs).toBe(58_484);
-
-    actor.send({ type: "clock.tick", clockOffsetMs: 59_516 });
-    expect(actor.getSnapshot().context.playheadOffsetMs).toBe(59_516);
-    expect(
-      actor.getSnapshot().matches({ ready: { playback: "playing" } }),
-    ).toBe(true);
-    actor.stop();
-  });
-
-  it("rewinds when play is pressed after seeking to the end", async () => {
-    const actor = await readyMachine();
-    const durationMs = actor.getSnapshot().context.replay!.durationMs;
-    actor.send({ type: "user.seek", toOffsetMs: durationMs });
-    actor.send({ type: "user.toggle" });
-
-    expect(actor.getSnapshot().context.playheadOffsetMs).toBe(0);
-    expect(
-      actor.getSnapshot().matches({ ready: { playback: "playing" } }),
-    ).toBe(true);
-    actor.stop();
-  });
-
-  it("ends the run when a tick reaches the duration, and plays again from the start", async () => {
-    const actor = await readyMachine();
-    actor.send({ type: "user.toggle" });
-    actor.send({ type: "clock.tick", clockOffsetMs: 99999 });
-    expect(actor.getSnapshot().matches({ ready: { playback: "ended" } })).toBe(
-      true,
-    );
-    expect(actor.getSnapshot().context.playheadOffsetMs).toBe(10000);
-
-    actor.send({ type: "user.toggle" });
-    expect(
-      actor.getSnapshot().matches({ ready: { playback: "playing" } }),
-    ).toBe(true);
-    expect(actor.getSnapshot().context.playheadOffsetMs).toBe(0);
-    actor.stop();
-  });
-
-  it("ignores a clock tick while paused", async () => {
-    const actor = await readyMachine();
-    actor.send({ type: "user.seek", toOffsetMs: 4000 });
-    actor.send({ type: "clock.tick", clockOffsetMs: 99999 });
-    expect(actor.getSnapshot().matches({ ready: { playback: "paused" } })).toBe(
-      true,
-    );
-    expect(actor.getSnapshot().context.playheadOffsetMs).toBe(4000);
-    actor.stop();
-  });
-
-  it("shows the skip notice and hides it after the delay", async () => {
-    const quickNotice = sessionReplayMachine.provide({
-      delays: { noticeDelay: 20 },
-    });
-    const actor = createActor(quickNotice).start();
-    actor.send({ type: "replay.received", session: tenIdleSeconds });
-    await machineWaitFor(actor, (s) => s.matches("ready"), { timeout: 2000 });
-
-    actor.send({ type: "user.toggleIdleSkip" });
-    actor.send({ type: "user.toggle" });
-    actor.send({ type: "clock.tick", clockOffsetMs: 1 });
-    expect(actor.getSnapshot().matches({ ready: { notice: "visible" } })).toBe(
-      true,
-    );
-
-    await machineWaitFor(
-      actor,
-      (s) => s.matches({ ready: { notice: "hidden" } }),
-      { timeout: 2000 },
-    );
-    expect(actor.getSnapshot().context.skippedIdleMs).toBeNull();
-    actor.stop();
-  });
-});
-
-describe("the player", () => {
-  // Attachments are cached under the session's id, and every fixture session
-  // carries the same one, so each test gets a store of its own.
+describe("session replay player", () => {
+  // Fixture sessions share an ID, so each test gets a fresh attachment cache.
   let queries = new QueryClient();
   beforeEach(() => {
     queries = new QueryClient();
@@ -1734,7 +87,7 @@ describe("the player", () => {
   };
 
   describe("event list", () => {
-    it("lists the session's events, each read out by its own rules", async () => {
+    it("shows the session's events with the correct titles", async () => {
       renderReplay();
 
       await waitFor(() => {
@@ -1779,14 +132,11 @@ describe("the player", () => {
       });
     });
 
-    it("keeps events that collide on type, thread and timestamp apart", async () => {
-      // Two view controller callbacks fired on the same thread in the same
-      // millisecond, so (event type, thread, timestamp) is not a unique
-      // identity; rows keyed on it alone share a React key and trigger the
-      // "Encountered two children with the same key" warning. The file-level
-      // spy is read directly rather than replaced, because restoring a spy of
-      // this test's own would put the real console.error back and let every
-      // test after this one print again.
+    it("renders events with matching types, threads and timestamps separately", async () => {
+      // These callbacks share a thread and timestamp, so those fields and the
+      // event type do not uniquely identify a row. Using them as the React key
+      // would trigger a duplicate-key warning. Read the file-level spy directly
+      // so restoring a local spy cannot re-enable console errors for later tests.
       const consoleError = console.error as jest.Mock<void, unknown[]>;
 
       renderReplay({
@@ -1851,7 +201,7 @@ describe("the player", () => {
       });
     });
 
-    it("opens one event at a time, so a second click moves the details", async () => {
+    it("shows details for only the selected event", async () => {
       renderReplay();
 
       const lifecycleRow = (
@@ -1874,8 +224,8 @@ describe("the player", () => {
       await waitFor(() => {
         const text = document.body.textContent ?? "";
         expect(text).toContain("trace_id");
-        // A trace carries no event_type row, so its absence is the lifecycle
-        // event's details having closed.
+        // Traces have no event_type row, so its absence confirms the lifecycle
+        // event details have closed.
         expect(text).not.toContain("event_type");
       });
     });
@@ -2207,7 +557,7 @@ describe("the player", () => {
       expect(skip.getAttribute("aria-checked")).toBe("true");
     });
 
-    it("seeks from a strip on the second tap on the same point on touch", async () => {
+    it("seeks from a strip on the second touch at the same point", async () => {
       const sample = makeSessionReplayFixture().memory_usage_absolute[0];
       renderReplay({
         ...fiveSecondSession,
@@ -2407,8 +757,7 @@ describe("the player", () => {
     });
   });
 
-  // jsdom has no network, so the stub decides which attachment locations
-  // load.
+  // jsdom has no network, so this stub controls which attachment requests load.
   const stubFetch = () => {
     const original = (globalThis as any).fetch;
     (globalThis as any).fetch = jest.fn(async (url: unknown) => {
@@ -2422,8 +771,8 @@ describe("the player", () => {
     };
   };
 
-  // One tap carrying whichever attachments a test needs. The stub above decides
-  // which locations can be fetched, so tests that care pass their own.
+  // Build a tap with the attachments a test needs. The fetch stub controls
+  // which locations load.
   const tapWith = (
     attachments: { type: string; name: string; location?: string }[],
   ) => ({
@@ -2477,7 +826,7 @@ describe("the player", () => {
     expect(await screen.findByText("No captures in this session")).toBeTruthy();
   });
 
-  it("holds the empty-session message back until the replay is built", () => {
+  it("waits for the replay before showing the empty-session message", () => {
     // The session reaches the machine in an effect, so the first paint has no
     // replay to count attachments from and must say nothing either way.
     const { container } = renderReplay(
@@ -2507,11 +856,9 @@ describe("the player", () => {
     const originalFetch = global.fetch;
     global.fetch = jest.fn(() => new Promise(() => {})) as any;
     try {
-      // The replay opens on the lifecycle event, which carries no attachment and
-      // has no earlier one to fall back on, so the stage stays blank until the
-      // tap five seconds later. Nothing is being fetched for that position and
-      // the viewer is told nothing, rather than being told to wait for a
-      // attachment that this moment of the session never had.
+      // The replay opens on the lifecycle event, which has no attachment and
+      // no earlier one to fall back on. The viewer sees no loading or failure
+      // message because this moment of the session never had an attachment.
       renderReplay({
         threads: {
           main: [
@@ -2555,10 +902,10 @@ describe("the player", () => {
     }
   });
 
-  it("shows nothing on the stage at any point when an attachment is fetched quickly", async () => {
+  it("never shows a loading message for a quickly fetched attachment", async () => {
     const original = (globalThis as any).fetch;
-    // Faster than the 200ms the stage waits, so no message is due, but slow
-    // enough that a stage showing one immediately would be caught at it.
+    // The 50 ms fetch finishes before the stage's 200 ms delay, but leaves
+    // enough time to catch a loading message shown immediately.
     (globalThis as any).fetch = jest.fn(
       () =>
         new Promise((resolve) =>
@@ -2575,9 +922,8 @@ describe("the player", () => {
     const restoreFetch = () => {
       (globalThis as any).fetch = original;
     };
-    // Checking the page once the attachment has been drawn would pass even for a
-    // message that appeared and disappeared along the way, so every change to
-    // the page is watched instead.
+    // Observe page changes so the test catches a loading message even if it
+    // disappears before the attachment is drawn.
     let everShown = false;
     const observer = new MutationObserver(() => {
       everShown ||=
@@ -2789,7 +1135,7 @@ describe("the player", () => {
     }
   });
 
-  it("asks for an attachment that failed once, however far the playhead travels", async () => {
+  it("does not fetch or report a failed attachment again when the window moves", async () => {
     (posthog.captureException as jest.Mock).mockClear();
     const original = (globalThis as any).fetch;
     const fetched = jest.fn(async () => ({ ok: false, status: 403 }));
@@ -2835,10 +1181,10 @@ describe("the player", () => {
         await new Promise((resolve) => setTimeout(resolve, 2000));
       });
 
-      // An attachment that failed holds no data, which counts as stale however long
-      // it is kept fresh for, so the window would fetch and report all thirty
-      // afresh on this pass. The one the playhead lands on is drawn again and
-      // gets one more attempt, which is the only traffic this pass allows.
+      // A query with no data counts as stale however long it is kept fresh,
+      // so without the window's check it would fetch and report all thirty
+      // attachments again on this pass. The attachment at the playhead is
+      // drawn again and gets one more attempt.
       expect(reportedAttachmentIds().filter((id) => id === "a0")).toEqual([
         "a0",
       ]);
@@ -2961,7 +1307,7 @@ describe("the player", () => {
     }
   });
 
-  // A tap and the screen it opened, which lands well inside the tap's hold.
+  // A screen view that occurs during the tap's hold.
   const tapThenScreenView = {
     threads: {
       main: [
@@ -3046,7 +1392,7 @@ describe("the player", () => {
     }
   });
 
-  // Six hundred taps a second apart, each carrying a screen.
+  // Six hundred taps, one second apart, each with a screen attachment.
   const sixHundredAttachments = {
     threads: {
       main: Array.from({ length: 600 }, (_, index) => ({
@@ -3072,7 +1418,7 @@ describe("the player", () => {
     traces: [],
   };
 
-  // One try and one retry, as attachmentFetchRetries has it.
+  // Each attachment gets one initial fetch and one retry.
   const attemptsPerAttachment = 2;
 
   const reportedAttachmentIds = (): string[] =>
@@ -3232,7 +1578,7 @@ describe("the player", () => {
     }
   });
 
-  it("draws a wireframe, recoloured, from the markup the session points at", async () => {
+  it("draws the session's wireframe markup with the accent color", async () => {
     const original = (globalThis as any).fetch;
     (globalThis as any).fetch = jest.fn(async () => ({
       ok: true,
@@ -3368,7 +1714,7 @@ describe("the player", () => {
     }
   });
 
-  it("records an attachment once, though the window and the stage both want it", async () => {
+  it("reports a failed attachment only once when the window and stage request it", async () => {
     (posthog.captureException as jest.Mock).mockClear();
     const original = (globalThis as any).fetch;
     (globalThis as any).fetch = jest.fn(async () => ({
@@ -3506,7 +1852,7 @@ describe("the player", () => {
     }
   });
 
-  it("holds together when a session carries no metrics, traces or events", async () => {
+  it("renders a session with no metrics, traces or events", async () => {
     renderReplay({
       cpu_usage: [],
       memory_usage: [],
