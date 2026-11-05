@@ -453,6 +453,7 @@ export function SelectionDetailsView({
           isFetching={errorsQuery?.isFetching}
           offset={offsets[ListTab.Errors]}
           noun="errors"
+          tableClassName="max-lg:min-w-125"
           icon={AlertTriangle}
           columns={3}
           header={
@@ -510,6 +511,7 @@ export function SelectionDetailsView({
           isFetching={tracesQuery?.isFetching}
           offset={offsets[ListTab.Traces]}
           noun="traces"
+          tableClassName="max-lg:min-w-125"
           icon={Timer}
           columns={4}
           header={
@@ -565,6 +567,7 @@ export function SelectionDetailsView({
           isFetching={networkQuery?.isFetching}
           offset={offsets[ListTab.Network]}
           noun="network requests"
+          tableClassName="max-lg:min-w-125"
           icon={Globe}
           columns={4}
           header={
@@ -627,6 +630,7 @@ export function SelectionDetailsView({
           isFetching={sessionsQuery?.isFetching}
           offset={offsets[ListTab.SessionReplays]}
           noun="session replays"
+          tableClassName="max-lg:min-w-140"
           icon={Video}
           columns={3}
           header={

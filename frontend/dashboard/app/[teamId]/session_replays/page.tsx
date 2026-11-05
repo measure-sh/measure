@@ -141,7 +141,7 @@ export default function SessionReplayOverview(props: {
                   <LoadingBar />
                 </div>
                 <div className="py-4" />
-                <Table className="font-display select-none">
+                <Table className="font-display select-none max-lg:min-w-140">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[60%]">Session Replay</TableHead>

@@ -64,6 +64,7 @@ export default function FunnelStepNetwork({
       isFetching={isFetching}
       offset={offset}
       noun="network requests"
+      tableClassName="max-lg:min-w-205"
       icon={Globe}
       columns={6}
       header={

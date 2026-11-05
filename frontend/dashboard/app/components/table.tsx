@@ -5,7 +5,9 @@ const Table = React.forwardRef<
   HTMLTableElement,
   React.HTMLAttributes<HTMLTableElement>
 >(({ className, ...props }, ref) => (
-  <div className="relative w-full overflow-auto">
+  // Keep the table's minimum width inside its scroll container so it doesn't
+  // widen the page on screens below lg.
+  <div className="relative w-full overflow-auto max-lg:contain-inline-size">
     <table
       ref={ref}
       className={cn("w-full table-fixed caption-bottom text-sm", className)}

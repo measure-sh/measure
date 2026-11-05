@@ -79,6 +79,7 @@ export default function FunnelStepErrors({
       isFetching={isFetching}
       offset={offset}
       noun="errors"
+      tableClassName="max-lg:min-w-175"
       icon={AlertTriangle}
       columns={5}
       header={

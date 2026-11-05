@@ -379,7 +379,7 @@ export default function FunnelsOverview({ teamId }: { teamId: string }) {
       )}
 
       {readyValue !== null && funnels && funnels.length > 0 && (
-        <Table className="table-auto font-display select-none overflow-hidden">
+        <Table className="table-auto font-display select-none overflow-hidden max-lg:min-w-180">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[25%]">Funnel</TableHead>

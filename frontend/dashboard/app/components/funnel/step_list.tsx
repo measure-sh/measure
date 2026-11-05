@@ -47,6 +47,7 @@ export function StepList<Item>({
   icon,
   columns,
   header,
+  tableClassName,
   children,
 }: {
   status: "pending" | "success" | "error";
@@ -58,6 +59,7 @@ export function StepList<Item>({
   icon: LucideIcon;
   columns: number;
   header: ReactNode;
+  tableClassName: string;
   children: (item: Item) => ReactNode;
 }) {
   const empty =
@@ -92,7 +94,9 @@ export function StepList<Item>({
       )}
 
       {status === "success" && data !== undefined && !empty && (
-        <Table className="font-display select-none overflow-hidden">
+        <Table
+          className={`font-display select-none overflow-hidden ${tableClassName}`}
+        >
           <TableHeader>
             <TableRow>{header}</TableRow>
           </TableHeader>

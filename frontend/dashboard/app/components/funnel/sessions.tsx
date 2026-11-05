@@ -119,6 +119,7 @@ function SessionList({
         isFetching={query.isFetching}
         offset={offset}
         noun="session replays"
+        tableClassName="max-lg:min-w-140"
         icon={Video}
         columns={3}
         header={

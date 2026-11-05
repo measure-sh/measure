@@ -141,7 +141,7 @@ export default function BugReportsOverview(props: {
                 >
                   <LoadingBar />
                 </div>
-                <Table className="font-display select-none">
+                <Table className="font-display select-none max-lg:min-w-140">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[60%]">Bug Report</TableHead>

@@ -244,7 +244,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                     left to make room for it. This is only visible when the
                     browser draws scrollbars that take up width; overlay
                     scrollbars stay hidden. */}
-                <Table className="font-display select-none overflow-hidden">
+                <Table className="font-display select-none overflow-hidden max-lg:min-w-250">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[40%]">Error</TableHead>
