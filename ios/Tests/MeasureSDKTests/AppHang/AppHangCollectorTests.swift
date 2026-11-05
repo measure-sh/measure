@@ -248,7 +248,7 @@ final class AppHangCollectorTests: XCTestCase {
 
         let appHang = try XCTUnwrap(trackedAppHang)
         XCTAssertEqual(appHang.exceptions.count, 1, "Only the main thread is captured.")
-        XCTAssertEqual(appHang.exceptions[0].threadName, "main")
+        XCTAssertEqual(appHang.exceptions[0].threadName, "com.apple.main-thread")
         XCTAssertEqual(appHang.exceptions[0].threadSequence, 0)
         XCTAssertEqual(appHang.exceptions[0].osBuildNumber, "22D72")
         XCTAssertEqual(appHang.exceptions[0].frames?.count, 1)

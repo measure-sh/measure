@@ -173,7 +173,7 @@ final class BaseAppHangCollector: AppHangCollector, AppHangCallbacks {
     }
 
     private func makeDetail(stack: AppHangStack) -> AppHangDetail {
-        AppHangDetail(threadName: "main",
+        AppHangDetail(threadName: "com.apple.main-thread",
                       threadSequence: 0,
                       osBuildNumber: sysCtl.getOsBuildNumber(),
                       frames: stack.frames)
