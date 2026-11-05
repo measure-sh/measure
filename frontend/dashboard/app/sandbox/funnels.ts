@@ -493,13 +493,16 @@ function completion(
   return (partial / converted(window) + full) / (oldest - youngest);
 }
 
-// How much a version's errors per session between two steps cut the step's
-// conversion. A crash ends the session, most users close the app on an ANR,
-// an unhandled error usually breaks the screen, and a handled one is only an
-// annoyance.
+// How much a version's errors per session between two steps reduce
+// conversion. A crash ends the session; most users close the app on an
+// ANR; an app hang ends it if the app is killed; an unhandled error
+// usually breaks the screen; a handled error is only an annoyance.
 function errorWeight(group: ErrorGroup): number {
   if (group.error_type === "anr") {
     return 15;
+  }
+  if (group.error_type === "app_hang") {
+    return 9;
   }
   switch (group.severity) {
     case "fatal":
@@ -511,16 +514,19 @@ function errorWeight(group: ErrorGroup): number {
   }
 }
 
-// How likely a user that hit an error between two steps is to still do the
-// step, compared with the step's other users. After a crash or an ANR the
-// user can only do the step by reopening the app within the conversion
-// window, and few do.
+// How likely users who hit an error between two steps are to still take
+// the step, compared with other users. After a crash or ANR, they must
+// reopen the app within the conversion window, and few do. After a hang,
+// they can continue unless the app was killed.
 function conversionAfterError(
   group: ErrorGroup,
   draw: (min: number, max: number) => number,
 ): number {
   if (group.error_type === "anr" || group.severity === "fatal") {
     return draw(0.1, 0.25);
+  }
+  if (group.error_type === "app_hang") {
+    return draw(0.3, 0.5);
   }
   return group.severity === "unhandled" ? draw(0.4, 0.6) : draw(0.7, 0.85);
 }

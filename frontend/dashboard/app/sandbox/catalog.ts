@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import type { FilterKey, FilterValue } from "../api/filter_types";
 import type { App, MemoryError, Profile } from "../api/api_calls";
 import { SANDBOX_TEAM_ID } from "../utils/sandbox";
+import { errorGroupPath, errorGroupTitle } from "../utils/error_utils";
 import { androidNativeScenario } from "./platforms/android";
 import {
   flutterAndroidScenario,
@@ -12,6 +13,7 @@ import { rnAndroidScenario, rnIosScenario } from "./platforms/react_native";
 import type {
   AppSpec,
   DeviceSpec,
+  AppHangState,
   ExceptionSpec,
   FrameSpec,
   HttpSpec,
@@ -129,6 +131,21 @@ export function validateScenario(s: PlatformScenario): string[] {
           if (spec.kind === "anr" && s.app.os !== "android") {
             problems.push(
               `${context} uses anr exception ${step.exception} on a non-android app`,
+            );
+          }
+          if (spec.kind === "app_hang" && s.app.os !== "ios") {
+            problems.push(
+              `${context} uses app hang ${step.exception} on a non-ios app`,
+            );
+          }
+          if (spec.kind === "app_hang" && step.hangState === undefined) {
+            problems.push(
+              `${context} runs app hang ${step.exception} without a hang state`,
+            );
+          }
+          if (spec.kind !== "app_hang" && step.hangState !== undefined) {
+            problems.push(
+              `${context} gives a hang state to ${step.exception}, which is not an app hang`,
             );
           }
         }
@@ -253,7 +270,14 @@ function exceptionProblems(spec: ExceptionSpec): string[] {
 
   const withFile = frames.filter((frame) => frame.file_name);
   const inApp = withFile.filter((frame) => frame.in_app);
-  const displayable = inApp.length > 0 ? inApp : withFile;
+  // The backend attributes an app hang to the first frame in the app.
+  const firstInApp = frames.find((frame) => frame.in_app);
+  const displayable =
+    spec.kind === "app_hang" && firstInApp
+      ? [firstInApp]
+      : inApp.length > 0
+        ? inApp
+        : withFile;
   const shown = displayable.some(
     (frame) =>
       frame.file_name === spec.file_name &&
@@ -321,9 +345,21 @@ function exceptionProblems(spec: ExceptionSpec): string[] {
     problems.push(`${where} carries binary images outside an apple exception`);
   }
 
+  if (spec.kind === "app_hang") {
+    if (spec.type !== "" || spec.message !== "") {
+      problems.push(`${where} has a type or message, which an app hang lacks`);
+    }
+    if (spec.threads.length > 0) {
+      problems.push(`${where} has other threads, which an app hang lacks`);
+    }
+    if (!spec.stacktrace.split("\n")[0].startsWith("\tat ")) {
+      problems.push(`${where} stacktrace does not start with a frame`);
+    }
+  }
+
   // The backend names an Apple group by its signal, or by the NSError domain
   // when it has no frames, and gives it no message.
-  if (spec.framework === "apple") {
+  if (spec.framework === "apple" && spec.kind !== "app_hang") {
     const signal = spec.exceptions[0]?.signal ?? "";
     const expected =
       spec.exceptions.length > 0 ? signal : (spec.error?.code ?? "");
@@ -482,6 +518,13 @@ export type ErrorInstance = {
     memory_error: MemoryError | null;
   } | null;
   anr: { title: string; stacktrace: string } | null;
+  app_hang: {
+    title: string;
+    stacktrace: string;
+    thread_name: string;
+    duration: number;
+    state: AppHangState;
+  } | null;
   severity: string;
   num_code: number | null;
   code: string;
@@ -501,7 +544,7 @@ export type ErrorGroup = {
   id: string;
   app_id: string;
   type: string;
-  error_type: "exception" | "anr";
+  error_type: "exception" | "anr" | "app_hang";
   severity: string;
   is_custom: boolean;
   message: string;
@@ -602,6 +645,12 @@ export type Metrics = {
     no_data: boolean;
     unselected_no_data: boolean;
   };
+  app_hang_free_sessions: {
+    app_hang_free_sessions: number;
+    unselected_app_hang_free_sessions: number;
+    no_data: boolean;
+    unselected_no_data: boolean;
+  } | null;
   perceived_anr_free_sessions: {
     perceived_anr_free_sessions: number;
     unselected_perceived_anr_free_sessions: number;
@@ -1118,6 +1167,7 @@ function buildSession(
 
   const memoryLoads: MemoryLoad[] = [];
   const backgrounded: [number, number][] = [];
+  const hangs: { fromMs: number; toMs: number; cpuBound: boolean }[] = [];
   function holdImages(kb: number): void {
     memoryLoads.push({ atMs: cursor.diff(start).as("milliseconds"), kb });
   }
@@ -2196,6 +2246,60 @@ function buildSession(
           `${app.name}: anr ${spec.key} used on a non-android app`,
         );
       }
+      // The main thread blocks while handling the step before the hang. The SDK
+      // reports the hang after APP_HANG_THRESHOLD_MS and measures its duration
+      // from when the main thread blocked. For a killed hang, duration ends at
+      // its last update before the app was killed.
+      if (spec.kind === "app_hang") {
+        const state = step.hangState!;
+        const durationMs =
+          state === "killed"
+            ? stableInt(`${seed}:hang`, 9_000, 16_000)
+            : stableInt(`${seed}:hang`, 2_400, 4_800);
+        const mainEvents = threads[mainThread] ?? [];
+        const lastMain = mainEvents[mainEvents.length - 1];
+        const blockedAt = lastMain
+          ? DateTime.min(
+              cursor,
+              DateTime.fromISO(lastMain.timestamp, { setZone: true }).plus({
+                milliseconds: stableInt(`${seed}:hangstart`, 20, 90),
+              }),
+            )
+          : cursor;
+        const timestamp = blockedAt
+          .plus({ milliseconds: APP_HANG_THRESHOLD_MS })
+          .toISO()!;
+        const threadName = spec.exceptions[0].thread_name!;
+        const hangEvent: GeneratedEvent = {
+          event_type: "app_hang",
+          user_defined_attribute: null,
+          thread_name: threadName,
+          group_id: stableUuid(`errorgroup:${app.id}:${spec.key}`),
+          duration: durationMs,
+          state,
+          method_name: spec.method_name,
+          file_name: spec.file_name,
+          line_number: spec.line_number,
+          stacktrace: spec.stacktrace,
+          foreground: spec.foreground,
+          attachments: [],
+          timestamp,
+        };
+        push(threadName, hangEvent);
+        errorHits.push({ key: spec.key, event: hangEvent, timestamp });
+        const fromMs = blockedAt.diff(start).as("milliseconds");
+        hangs.push({
+          fromMs,
+          toMs: fromMs + durationMs,
+          cpuBound: spec.cpuBound === true,
+        });
+        if (state === "killed") {
+          ended = true;
+        } else {
+          cursor = blockedAt.plus({ milliseconds: durationMs });
+        }
+        continue;
+      }
       function emitException(
         emitted: ExceptionSpec,
         attachments: ReturnType<typeof screenshotAttachment>[],
@@ -2360,6 +2464,7 @@ function buildSession(
     deviceTotalMemory,
     leaking: script.memoryLeak === true,
     backgrounded,
+    hangs,
     activityAt: (threads[mainThread] ?? []).map((event) =>
       DateTime.fromISO(String(event.timestamp)).diff(start).as("milliseconds"),
     ),
@@ -2471,6 +2576,7 @@ function memorySamples(input: {
   activityAt: number[];
   leaking: boolean;
   backgrounded: [number, number][];
+  hangs: { fromMs: number; toMs: number; cpuBound: boolean }[];
 }): {
   android: Record<string, unknown>[];
   ios: Record<string, unknown>[];
@@ -2524,7 +2630,21 @@ function memorySamples(input: {
   };
   let trimmed = false;
   let previousT: number | null = null;
+  // The iOS SDK samples with a main run loop timer. It can't fire while a
+  // hang blocks the main thread, so it fires once the hang ends.
+  const sampleTimes: number[] = [];
   for (let t = 0; t <= durationMs; t += 2000) {
+    if (!input.hangs.some((hang) => t >= hang.fromMs && t < hang.toMs)) {
+      sampleTimes.push(t);
+    }
+  }
+  for (const hang of input.hangs) {
+    if (hang.toMs <= durationMs) {
+      sampleTimes.push(hang.toMs);
+    }
+  }
+  sampleTimes.sort((a, b) => a - b);
+  for (const t of sampleTimes) {
     if (input.backgrounded.some(([from, to]) => t > from && t < to)) {
       continue;
     }
@@ -2544,13 +2664,17 @@ function memorySamples(input: {
       (at) => at > t - 2000 && at <= t,
     ).length;
     cpuDrift = cpuDrift * 0.7 + gauss() * 0.8;
+    const afterBusyHang = input.hangs.some(
+      (hang) => hang.cpuBound && hang.toMs === t,
+    );
     out.cpu.push({
       timestamp: ts,
-      value:
-        Math.round(
-          Math.max(0.4, Math.min(85, 4 + cpuDrift + Math.min(40, busy * 6))) *
-            10,
-        ) / 10,
+      value: afterBusyHang
+        ? stableInt(`${seed}:hangcpu:${t}`, 880, 990) / 10
+        : Math.round(
+            Math.max(0.4, Math.min(85, 4 + cpuDrift + Math.min(40, busy * 6))) *
+              10,
+          ) / 10,
     });
     if (android) {
       const live = javaLiveBase + cache * 0.15;
@@ -2685,6 +2809,8 @@ export function screenSequence(
   return sequence;
 }
 
+export const APP_HANG_THRESHOLD_MS = 2_000;
+
 const HANDLED_ERROR_RATE = 0.00417;
 const UNHANDLED_ERROR_RATE = 0.00286;
 
@@ -2724,8 +2850,8 @@ function launchMetric(
   };
 }
 
-// Crash and ANR free rates come from the same per-version group counts the
-// errors pages show, over the sessions each version ran in the range.
+// Crash, ANR, and app hang free rates use the per-version group counts
+// shown on the errors pages, divided by each version's sessions in range.
 export function computeMetrics(
   bundle: AppBundle,
   filterExpr: string | null,
@@ -2750,9 +2876,13 @@ export function computeMetrics(
   const unselectedNoData =
     selected.length === 0 || unselected.length === 0 || unselectedSessions <= 0;
 
-  const failures = (kind: "exception" | "anr", names: string[]) =>
+  const failures = (kind: ErrorGroup["error_type"], names: string[]) =>
     bundle.errorGroups
-      .filter((g) => g.error_type === kind && g.severity === "fatal")
+      .filter(
+        (g) =>
+          g.error_type === kind &&
+          (kind !== "exception" || g.severity === "fatal"),
+      )
       .reduce((sum, g) => sum + groupCount(bundle, g, range, names), 0);
   const pct = (rate: number) => Math.round(rate * 1000) / 10;
   const freeRate = (count: number, sessions: number) =>
@@ -2762,6 +2892,8 @@ export function computeMetrics(
   const otherCrashes = unselectedNoData ? 0 : failures("exception", unselected);
   const anrs = failures("anr", selected);
   const otherAnrs = unselectedNoData ? 0 : failures("anr", unselected);
+  const hangs = failures("app_hang", selected);
+  const otherHangs = unselectedNoData ? 0 : failures("app_hang", unselected);
   const perceivedCrashShare =
     (1 - app.perceivedCrashFreeRate) / (1 - app.crashFreeRate);
   const perceivedAnrShare = 0.75;
@@ -2769,6 +2901,7 @@ export function computeMetrics(
     off ? 0 : freeRate(count, sessions);
 
   const hasAnr = app.anrFreeRate !== undefined;
+  const hasAppHang = app.appHangFreeRate !== undefined;
   const launch = bundle.launchP95;
 
   return {
@@ -2783,6 +2916,18 @@ export function computeMetrics(
           anr_free_sessions: side(anrs, selectedSessions, noData),
           unselected_anr_free_sessions: side(
             otherAnrs,
+            unselectedSessions,
+            unselectedNoData,
+          ),
+          no_data: noData,
+          unselected_no_data: unselectedNoData,
+        }
+      : null,
+    app_hang_free_sessions: hasAppHang
+      ? {
+          app_hang_free_sessions: side(hangs, selectedSessions, noData),
+          unselected_app_hang_free_sessions: side(
+            otherHangs,
             unselectedSessions,
             unselectedNoData,
           ),
@@ -2933,6 +3078,9 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
   const anrKeys = keyEntries
     .filter(([, g]) => g.spec.kind === "anr")
     .map(([key]) => key);
+  const appHangKeys = keyEntries
+    .filter(([, g]) => g.spec.kind === "app_hang")
+    .map(([key]) => key);
   const unhandledKeys = keyEntries
     .filter(
       ([, g]) => g.spec.kind === "exception" && g.spec.severity === "unhandled",
@@ -2955,6 +3103,12 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
       ? 0
       : Math.round(
           app.dailySessions * REFERENCE_WINDOW_DAYS * (1 - app.anrFreeRate),
+        );
+  const appHangTotal =
+    appHangKeys.length === 0 || app.appHangFreeRate === undefined
+      ? 0
+      : Math.round(
+          app.dailySessions * REFERENCE_WINDOW_DAYS * (1 - app.appHangFreeRate),
         );
   const handledTotal =
     handledKeys.length === 0
@@ -3007,6 +3161,7 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
   const countByKey = new Map<string, number>([
     ...scaledCountsFor(crashKeys, crashTotal),
     ...scaledCountsFor(anrKeys, anrTotal),
+    ...scaledCountsFor(appHangKeys, appHangTotal),
     ...scaledCountsFor(handledKeys, handledTotal),
     ...scaledCountsFor(unhandledKeys, unhandledTotal),
   ]);
@@ -3032,11 +3187,12 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
           screen = entry.name;
         }
       }
+      const isAppHang = g.spec.kind === "app_hang";
       const instances: ErrorInstance[] = g.instances.map((inst, i) => ({
         id: stableUuid(`errorinstance:${app.id}:${key}:${i}`),
         session_id: inst.session.sessionId,
         timestamp: inst.timestamp,
-        type: g.spec.type,
+        type: isAppHang ? "app_hang" : g.spec.type,
         // The SDK tracks a native crash on the thread that crashed.
         attribute:
           g.spec.framework === "ndk" && g.spec.exceptions[0]?.thread_name
@@ -3071,7 +3227,16 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
                 stacktrace: g.spec.stacktrace,
               }
             : null,
-        severity: g.spec.severity,
+        app_hang: isAppHang
+          ? {
+              title: errorGroupTitle(g.spec.file_name, g.spec.method_name),
+              stacktrace: g.spec.stacktrace,
+              thread_name: g.spec.exceptions[0].thread_name!,
+              duration: Number(inst.event.duration),
+              state: inst.event.state as AppHangState,
+            }
+          : null,
+        severity: isAppHang ? "" : g.spec.severity,
         num_code: g.spec.error?.num_code ?? null,
         code: g.spec.error?.code ?? "",
         meta: g.spec.error?.meta ?? null,
@@ -3083,12 +3248,13 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
           frames: t.frames.map((f) => frameToString(f, g.spec.framework)),
         })),
       }));
+      // The backend gives app hang groups no type, message, or severity.
       return {
         id,
         app_id: app.id,
         type: g.spec.type,
-        error_type: g.spec.kind === "anr" ? "anr" : ("exception" as const),
-        severity: g.spec.severity,
+        error_type: g.spec.kind,
+        severity: isAppHang ? "" : g.spec.severity,
         is_custom: false,
         message: g.spec.message,
         method_name: g.spec.method_name,
@@ -3247,12 +3413,11 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
   const ALERT_COOLDOWN_DAYS = 7;
   const alerts: Alert[] = [];
   for (const group of errorGroups) {
-    if (group.severity !== "fatal") {
+    const isAppHang = group.error_type === "app_hang";
+    if (group.severity !== "fatal" && !isAppHang) {
       continue;
     }
-    const url = `/${SANDBOX_TEAM_ID}/errors/${app.id}/${group.id}/${encodeURIComponent(
-      group.type + (group.file_name ? `@${group.file_name}` : ""),
-    )}`;
+    const url = errorGroupPath(SANDBOX_TEAM_ID, app.id, group);
     let lastFired: DateTime | null = null;
     for (const instance of [...group.instances].sort((a, b) =>
       b.timestamp.localeCompare(a.timestamp),
@@ -3270,8 +3435,14 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
         team_id: SANDBOX_TEAM_ID,
         app_id: app.id,
         entity_id: group.id,
-        type: group.error_type === "anr" ? "anr_spike" : "crash_spike",
-        message: spikeMessage(group),
+        type: isAppHang
+          ? "app_hang_spike"
+          : group.error_type === "anr"
+            ? "anr_spike"
+            : "crash_spike",
+        message: isAppHang
+          ? errorGroupTitle(group.file_name, group.method_name)
+          : spikeMessage(group),
         url,
         created_at: instance.timestamp,
         updated_at: instance.timestamp,

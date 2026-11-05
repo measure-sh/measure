@@ -104,6 +104,15 @@ const K = {
     ["eq"],
     "full_list",
   ),
+  appHangState: key(
+    "app_hang_state",
+    "State",
+    "Whether the app was killed during the hang or recovered from it.",
+    "App Hang",
+    "enum",
+    ["in", "not_in"],
+    "full_list",
+  ),
   sessionEvents: key(
     "session_events",
     "Events",
@@ -330,6 +339,7 @@ const KEY_GROUP_ORDER = [
   "Network",
   "Location",
   "Custom",
+  "App Hang",
 ];
 
 function keyGroupsOf(keys: FilterKey[]): string[] {
@@ -348,7 +358,12 @@ const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
     K.userId,
     ...deviceTailKeys,
   ],
-  error_group_events: [...versionKeys, K.userId, ...deviceTailKeys],
+  error_group_events: [
+    ...versionKeys,
+    K.userId,
+    ...deviceTailKeys,
+    K.appHangState,
+  ],
   sessions: [
     K.sessionEvents,
     K.sessionForegroundBackground,
@@ -514,7 +529,14 @@ function actualValuesFor(
 }
 
 const STATIC_VALUES_BY_KEY: Record<string, FilterValue[]> = {
-  error_type: values(["Crash", "ANR", "Handled Error", "Unhandled Error"]),
+  error_type: values([
+    "Crash",
+    "ANR",
+    "Handled Error",
+    "Unhandled Error",
+    "App Hang",
+  ]),
+  app_hang_state: values(["Killed", "Recovered"]),
   memory_error: values(["true", "false"]),
   http_method: values(["get", "post", "put", "patch", "delete"]),
   mapping_type: values(["proguard", "dsym", "elf_debug", "jsbundle"]),
@@ -528,6 +550,8 @@ const STATIC_VALUES_BY_KEY: Record<string, FilterValue[]> = {
     "unhandled_error",
     "handled_error",
     "anr",
+    "recovered_app_hang",
+    "killed_app_hang",
     "bug_report",
     "user_interaction",
   ]),
@@ -569,12 +593,17 @@ export const overviewRoutes: SandboxRoute[] = [
       const app = bundle.scenario.app;
       const names = selectedNames(app, filterExpr);
       const dataStart = bundle.dataStart;
-      const fatalTotal = (errorType: ErrorGroup["error_type"]) =>
+      const failureTotal = (errorType: ErrorGroup["error_type"]) =>
         bundle.errorGroups
-          .filter((g) => g.error_type === errorType && g.severity === "fatal")
+          .filter(
+            (g) =>
+              g.error_type === errorType &&
+              (errorType !== "exception" || g.severity === "fatal"),
+          )
           .reduce((sum, g) => sum + groupCount(bundle, g, range, names), 0);
-      const crashesTotal = fatalTotal("exception");
-      const anrsTotal = fatalTotal("anr");
+      const crashesTotal = failureTotal("exception");
+      const anrsTotal = failureTotal("anr");
+      const appHangsTotal = failureTotal("app_hang");
       const sessions = scaledSeries(
         range,
         app.dailySessions * 30,
@@ -602,6 +631,16 @@ export const overviewRoutes: SandboxRoute[] = [
             anrsTotal,
             dataStart,
             `health:anrs:${app.id}`,
+            sessions,
+          ),
+        },
+        {
+          id: "app_hangs",
+          data: derivedSeries(
+            range,
+            appHangsTotal,
+            dataStart,
+            `health:app_hangs:${app.id}`,
             sessions,
           ),
         },

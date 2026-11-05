@@ -19,6 +19,7 @@ import {
 } from "./query";
 import { countryOf, deviceAttributeBag, matchesFilterExpr } from "./filter";
 import { distributeTotal, scaledSeries, windowCoverage } from "./aggregate";
+import { errorGroupTitle } from "../utils/error_utils";
 import {
   adoptionOf,
   groupCount as versionedGroupCount,
@@ -29,6 +30,9 @@ import {
 export function errorTypeLabel(group: ErrorGroup): string {
   if (group.error_type === "anr") {
     return "ANR";
+  }
+  if (group.error_type === "app_hang") {
+    return "App Hang";
   }
   if (group.severity === "unhandled") {
     return "Unhandled Error";
@@ -46,6 +50,11 @@ function instanceAttributes(
   return {
     error_type: errorTypeLabel(group),
     memory_error: group.memory_error,
+    app_hang_state: instance.app_hang
+      ? instance.app_hang.state === "killed"
+        ? "Killed"
+        : "Recovered"
+      : undefined,
     ...deviceAttributeBag(instance.attribute),
   };
 }
@@ -137,8 +146,12 @@ function viewLabel(event: GeneratedEvent): string {
   return id && target ? `${named} (${target})` : named;
 }
 
-// Mirrors the backend's description of each event type in a common path.
-function pathDescription(event: GeneratedEvent): string {
+// Mirrors how the backend describes each event type in a common path. The
+// backend names an app hang's state only when all analyzed hangs share it.
+function pathDescription(
+  event: GeneratedEvent,
+  hangStates: Set<unknown>,
+): string {
   const cls = String(event.class_name ?? "unknown");
   switch (event.event_type) {
     case "error": {
@@ -152,6 +165,11 @@ function pathDescription(event: GeneratedEvent): string {
     }
     case "anr":
       return `ANR: ${exceptionSummary(event)}`;
+    case "app_hang": {
+      const label =
+        hangStates.size === 1 ? `App hang (${event.state})` : "App hang";
+      return `${label}: ${errorGroupTitle(String(event.file_name), String(event.method_name))}`;
+    }
     case "app_exit":
       return `App exited: ${event.reason}`;
     case "gesture_click":
@@ -225,21 +243,28 @@ function commonPathFor(
     number,
     Map<string, { thread: string; sessions: number }>
   >();
-  for (const [sessionId, errorAt] of sessions) {
+  const pathsBySession = [...sessions].map(([sessionId, errorAt]) => {
     const detail = bundle.sessions.find(
       (s) => s.list.session_id === sessionId,
     )?.detail;
-    if (!detail) {
-      continue;
-    }
-    const events = Object.values(detail.threads)
+    return detail
+      ? Object.values(detail.threads)
+          .flat()
+          .filter((event) => event.timestamp <= errorAt)
+          .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+          .slice(0, COMMON_PATH_SESSION_LIMIT)
+      : [];
+  });
+  const hangStates = new Set(
+    pathsBySession
       .flat()
-      .filter((event) => event.timestamp <= errorAt)
-      .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
-      .slice(0, COMMON_PATH_SESSION_LIMIT);
+      .filter((event) => event.event_type === "app_hang")
+      .map((event) => event.state),
+  );
+  for (const events of pathsBySession) {
     events.forEach((event, i) => {
       const steps = byPosition.get(i + 1) ?? new Map();
-      const description = pathDescription(event);
+      const description = pathDescription(event, hangStates);
       const step = steps.get(description) ?? {
         thread: event.thread_name,
         sessions: 0,
@@ -562,11 +587,13 @@ export const errorsRoutes: SandboxRoute[] = [
       }
       const range = parseRange(url);
       const filterExpr = url.searchParams.get("filter_expr");
-      const items = group.instances.filter(
-        (i) =>
-          isWithinRange(i.timestamp, range) &&
-          matchesFilterExpr(instanceAttributes(group, i), filterExpr),
-      );
+      const items = group.instances
+        .filter(
+          (i) =>
+            isWithinRange(i.timestamp, range) &&
+            matchesFilterExpr(instanceAttributes(group, i), filterExpr),
+        )
+        .sort((a, b) => b.timestamp.localeCompare(a.timestamp));
       const { items: page, hasNext, hasPrev } = paginate(items, url);
       return jsonResponse({
         meta: { next: hasNext, previous: hasPrev },

@@ -1349,6 +1349,418 @@ const iosExceptions: ExceptionSpec[] = [
   },
 ];
 
+const reviewsLayoutHang: ExceptionSpec = {
+  key: "reviews_layout_hang",
+  kind: "app_hang",
+  cpuBound: true,
+  type: "",
+  message: "",
+  severity: "fatal",
+  handled: false,
+  foreground: true,
+  framework: "apple",
+  exceptions: [
+    {
+      type: "",
+      message: "",
+      thread_name: "com.apple.main-thread",
+      thread_sequence: 0,
+      os_build_number: "22C161",
+      frames: [
+        {
+          frame_index: 0,
+          binary_name: "libsystem_malloc.dylib",
+          binary_address: "00000001aa30c000",
+          symbol_address: "00000001aa30f2a8",
+          offset: 120,
+          method_name: "_malloc_zone_malloc_instrumented_or_legacy",
+          in_app: false,
+        },
+        {
+          frame_index: 1,
+          binary_name: "CoreText",
+          binary_address: "00000001a3a7c000",
+          symbol_address: "00000001a3aa51c4",
+          offset: 412,
+          method_name: "TStorageRange::SetStorageSubRange(TLine&, CFRange)",
+          in_app: false,
+        },
+        {
+          frame_index: 2,
+          binary_name: "CoreText",
+          binary_address: "00000001a3a7c000",
+          symbol_address: "00000001a3a9c87c",
+          offset: 1528,
+          method_name:
+            "TTypesetter::FinishEncodedLine(TLine&, TCharStream const&)",
+          in_app: false,
+        },
+        {
+          frame_index: 3,
+          binary_name: "CoreText",
+          binary_address: "00000001a3a7c000",
+          symbol_address: "00000001a3a9a1f0",
+          offset: 236,
+          method_name: "CTTypesetterCreateWithAttributedStringAndOptions",
+          in_app: false,
+        },
+        {
+          frame_index: 4,
+          binary_name: "CoreText",
+          binary_address: "00000001a3a7c000",
+          symbol_address: "00000001a3ab4d38",
+          offset: 504,
+          method_name: "CTFramesetterSuggestFrameSizeWithConstraints",
+          in_app: false,
+        },
+        {
+          frame_index: 5,
+          binary_name: "UIFoundation",
+          binary_address: "00000001a3e1c000",
+          symbol_address: "00000001a3e4a6c0",
+          offset: 1876,
+          method_name: "__NSStringDrawingEngine",
+          in_app: false,
+        },
+        {
+          frame_index: 6,
+          binary_name: "UIFoundation",
+          binary_address: "00000001a3e1c000",
+          symbol_address: "00000001a3e49e14",
+          offset: 196,
+          method_name:
+            "-[NSAttributedString(NSExtendedStringDrawing) boundingRectWithSize:options:context:]",
+          in_app: false,
+        },
+        {
+          frame_index: 7,
+          binary_name: "AcmeApp",
+          binary_address: "0000000102f34000",
+          symbol_address: "0000000102f81d64",
+          offset: 368,
+          method_name: "static ReviewCell.height(for: Review, width: CGFloat)",
+          file_name: "ReviewCell.swift",
+          line_num: 58,
+          in_app: true,
+        },
+        {
+          frame_index: 8,
+          binary_name: "AcmeApp",
+          binary_address: "0000000102f34000",
+          symbol_address: "0000000102f84a1c",
+          offset: 112,
+          method_name:
+            "closure #1 in ReviewsViewController.measureRows(for: [Review])",
+          file_name: "ReviewsViewController.swift",
+          line_num: 112,
+          in_app: true,
+        },
+        {
+          frame_index: 9,
+          binary_name: "AcmeApp",
+          binary_address: "0000000102f34000",
+          symbol_address: "0000000102f84b70",
+          offset: 236,
+          method_name: "specialized Collection.map<A>(_:)",
+          file_name: "<compiler-generated>",
+          in_app: true,
+        },
+        {
+          frame_index: 10,
+          binary_name: "AcmeApp",
+          binary_address: "0000000102f34000",
+          symbol_address: "0000000102f8478c",
+          offset: 148,
+          method_name: "ReviewsViewController.measureRows(for: [Review])",
+          file_name: "ReviewsViewController.swift",
+          line_num: 108,
+          in_app: true,
+        },
+        {
+          frame_index: 11,
+          binary_name: "AcmeApp",
+          binary_address: "0000000102f34000",
+          symbol_address: "0000000102f8402c",
+          offset: 204,
+          method_name: "ReviewsViewController.show(_: [Review])",
+          file_name: "ReviewsViewController.swift",
+          line_num: 71,
+          in_app: true,
+        },
+        {
+          frame_index: 12,
+          binary_name: "AcmeApp",
+          binary_address: "0000000102f34000",
+          symbol_address: "0000000102f7f6a0",
+          offset: 156,
+          method_name:
+            "ProductDetailViewController.selectTab(_: ProductDetailTab)",
+          file_name: "ProductDetailViewController.swift",
+          line_num: 188,
+          in_app: true,
+        },
+        {
+          frame_index: 13,
+          binary_name: "AcmeApp",
+          binary_address: "0000000102f34000",
+          symbol_address: "0000000102f7f4d8",
+          offset: 72,
+          method_name:
+            "ProductDetailViewController.tableView(_: UITableView, didSelectRowAt: IndexPath)",
+          file_name: "ProductDetailViewController.swift",
+          line_num: 174,
+          in_app: true,
+        },
+        {
+          frame_index: 14,
+          binary_name: "AcmeApp",
+          binary_address: "0000000102f34000",
+          symbol_address: "0000000102f7f430",
+          offset: 64,
+          method_name:
+            "@objc ProductDetailViewController.tableView(_: UITableView, didSelectRowAt: IndexPath)",
+          file_name: "<compiler-generated>",
+          in_app: true,
+        },
+        {
+          frame_index: 15,
+          binary_name: "UIKitCore",
+          binary_address: "00000001a25c4000",
+          symbol_address: "00000001a28c2f14",
+          offset: 1352,
+          method_name:
+            "-[UITableView _selectRowAtIndexPath:animated:scrollPosition:notifyDelegate:isCellMultiSelect:deselectPrevious:]",
+          in_app: false,
+        },
+        {
+          frame_index: 16,
+          binary_name: "UIKitCore",
+          binary_address: "00000001a25c4000",
+          symbol_address: "00000001a28d1a40",
+          offset: 216,
+          method_name:
+            "-[UITableView _userSelectRowAtPendingSelectionIndexPath:]",
+          in_app: false,
+        },
+        {
+          frame_index: 17,
+          binary_name: "UIKitCore",
+          binary_address: "00000001a25c4000",
+          symbol_address: "00000001a2701c88",
+          offset: 104,
+          method_name: "_runAfterCACommitDeferredBlocks",
+          in_app: false,
+        },
+        {
+          frame_index: 18,
+          binary_name: "UIKitCore",
+          binary_address: "00000001a25c4000",
+          symbol_address: "00000001a2701a10",
+          offset: 80,
+          method_name: "_cleanUpAfterCAFlushAndRunDeferredBlocks",
+          in_app: false,
+        },
+        {
+          frame_index: 19,
+          binary_name: "UIKitCore",
+          binary_address: "00000001a25c4000",
+          symbol_address: "00000001a2701b3c",
+          offset: 76,
+          method_name: "_afterCACommitHandler",
+          in_app: false,
+        },
+        {
+          frame_index: 20,
+          binary_name: "CoreFoundation",
+          binary_address: "000000019c9f3000",
+          symbol_address: "000000019ca580a8",
+          offset: 36,
+          method_name:
+            "__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__",
+          in_app: false,
+        },
+        {
+          frame_index: 21,
+          binary_name: "CoreFoundation",
+          binary_address: "000000019c9f3000",
+          symbol_address: "000000019ca57f30",
+          offset: 548,
+          method_name: "__CFRunLoopDoObservers",
+          in_app: false,
+        },
+        {
+          frame_index: 22,
+          binary_name: "CoreFoundation",
+          binary_address: "000000019c9f3000",
+          symbol_address: "000000019ca55e24",
+          offset: 1584,
+          method_name: "__CFRunLoopRun",
+          in_app: false,
+        },
+        {
+          frame_index: 23,
+          binary_name: "CoreFoundation",
+          binary_address: "000000019c9f3000",
+          symbol_address: "000000019ca55774",
+          offset: 588,
+          method_name: "CFRunLoopRunSpecific",
+          in_app: false,
+        },
+        {
+          frame_index: 24,
+          binary_name: "GraphicsServices",
+          binary_address: "0000000241f42000",
+          symbol_address: "0000000241f449bc",
+          offset: 164,
+          method_name: "GSEventRunModal",
+          in_app: false,
+        },
+        {
+          frame_index: 25,
+          binary_name: "UIKitCore",
+          binary_address: "00000001a25c4000",
+          symbol_address: "00000001a277bc3c",
+          offset: 816,
+          method_name: "-[UIApplication _run]",
+          in_app: false,
+        },
+        {
+          frame_index: 26,
+          binary_name: "UIKitCore",
+          binary_address: "00000001a25c4000",
+          symbol_address: "00000001a277be64",
+          offset: 340,
+          method_name: "UIApplicationMain",
+          in_app: false,
+        },
+        {
+          frame_index: 27,
+          binary_name: "AcmeApp",
+          binary_address: "0000000102f34000",
+          symbol_address: "0000000102f7e2c8",
+          offset: 92,
+          method_name: "static AppDelegate.$main()",
+          file_name: "<compiler-generated>",
+          in_app: true,
+        },
+        {
+          frame_index: 28,
+          binary_name: "AcmeApp",
+          binary_address: "0000000102f34000",
+          symbol_address: "0000000102f7e310",
+          offset: 24,
+          method_name: "main",
+          file_name: "AppDelegate.swift",
+          line_num: 18,
+          in_app: true,
+        },
+        {
+          frame_index: 29,
+          binary_name: "dyld",
+          binary_address: "00000001bd0f4000",
+          symbol_address: "00000001bd0f5d1c",
+          offset: 2724,
+          method_name: "start",
+          in_app: false,
+        },
+      ],
+    },
+  ],
+  threads: [],
+  binary_images: [
+    {
+      name: "AcmeApp",
+      arch: "arm64e",
+      uuid: "8f2c1a6e3b4d4e1a9c2f1a2b3c4d5e6f",
+      path: "/private/var/containers/Bundle/Application/1A2B3C4D-5E6F-7A8B-9C0D-1E2F3A4B5C6D/AcmeApp.app/AcmeApp",
+    },
+    {
+      name: "CoreFoundation",
+      arch: "arm64e",
+      uuid: "6fc1e77958463275bf66955738404cf6",
+      path: "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+    },
+    {
+      name: "CoreText",
+      arch: "arm64e",
+      uuid: "a41f7c2e9b583d16b0e47f2a6c9d1e38",
+      path: "/System/Library/Frameworks/CoreText.framework/CoreText",
+    },
+    {
+      name: "dyld",
+      arch: "arm64e",
+      uuid: "6c9a1e278d533f41b2a60e7c4d91b2f5",
+      path: "/usr/lib/dyld",
+    },
+    {
+      name: "GraphicsServices",
+      arch: "arm64e",
+      uuid: "67164c20442f320b924e83c661869ab7",
+      path: "/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices",
+    },
+    {
+      name: "libsystem_malloc.dylib",
+      arch: "arm64e",
+      uuid: "8d3b6f1e2a5c3b7d9e0f1a2b3c4d5e6f",
+      path: "/usr/lib/system/libsystem_malloc.dylib",
+    },
+    {
+      name: "UIFoundation",
+      arch: "arm64e",
+      uuid: "c7e25a91d3f64b08a1b9e0d4f2c63a57",
+      path: "/System/Library/PrivateFrameworks/UIFoundation.framework/UIFoundation",
+    },
+    {
+      name: "UIKitCore",
+      arch: "arm64e",
+      uuid: "e83e034727d734bdb0d351666dfdfd76",
+      path: "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+    },
+  ],
+  file_name: "ReviewCell.swift",
+  method_name: "static ReviewCell.height(for: Review, width: CGFloat)",
+  line_number: 58,
+  stacktrace: `\tat   0   libsystem_malloc.dylib        0x00000001aa30c000   _malloc_zone_malloc_instrumented_or_legacy + 120
+\tat   1   CoreText                      0x00000001a3a7c000   TStorageRange::SetStorageSubRange(TLine&, CFRange) + 412
+\tat   2   CoreText                      0x00000001a3a7c000   TTypesetter::FinishEncodedLine(TLine&, TCharStream c... + 1528
+    Full symbol:TTypesetter::FinishEncodedLine(TLine&, TCharStream const&)
+\tat   3   CoreText                      0x00000001a3a7c000   CTTypesetterCreateWithAttributedStringAndOptions + 236
+\tat   4   CoreText                      0x00000001a3a7c000   CTFramesetterSuggestFrameSizeWithConstraints + 504
+\tat   5   UIFoundation                  0x00000001a3e1c000   __NSStringDrawingEngine + 1876
+\tat   6   UIFoundation                  0x00000001a3e1c000   -[NSAttributedString(NSExtendedStringDrawing) boundi... + 196
+    Full symbol:-[NSAttributedString(NSExtendedStringDrawing) boundingRectWithSize:options:context:]
+\tat   7   AcmeApp                       0x0000000102f34000   static ReviewCell.height(for: Review, width: CGFloat)   (ReviewCell.swift:58)
+\tat   8   AcmeApp                       0x0000000102f34000   closure #1 in ReviewsViewController.measureRows(for:...   (ReviewsViewController.swift:112)
+    Full symbol:closure #1 in ReviewsViewController.measureRows(for: [Review])
+\tat   9   AcmeApp                       0x0000000102f34000   specialized Collection.map<A>(_:)   (<compiler-generated>)
+\tat  10   AcmeApp                       0x0000000102f34000   ReviewsViewController.measureRows(for: [Review])   (ReviewsViewController.swift:108)
+\tat  11   AcmeApp                       0x0000000102f34000   ReviewsViewController.show(_: [Review])   (ReviewsViewController.swift:71)
+\tat  12   AcmeApp                       0x0000000102f34000   ProductDetailViewController.selectTab(_: ProductDeta...   (ProductDetailViewController.swift:188)
+    Full symbol:ProductDetailViewController.selectTab(_: ProductDetailTab)
+\tat  13   AcmeApp                       0x0000000102f34000   ProductDetailViewController.tableView(_: UITableView...   (ProductDetailViewController.swift:174)
+    Full symbol:ProductDetailViewController.tableView(_: UITableView, didSelectRowAt: IndexPath)
+\tat  14   AcmeApp                       0x0000000102f34000   @objc ProductDetailViewController.tableView(_: UITab...   (<compiler-generated>)
+    Full symbol:@objc ProductDetailViewController.tableView(_: UITableView, didSelectRowAt: IndexPath)
+\tat  15   UIKitCore                     0x00000001a25c4000   -[UITableView _selectRowAtIndexPath:animated:scrollP... + 1352
+    Full symbol:-[UITableView _selectRowAtIndexPath:animated:scrollPosition:notifyDelegate:isCellMultiSelect:deselectPrevious:]
+\tat  16   UIKitCore                     0x00000001a25c4000   -[UITableView _userSelectRowAtPendingSelectionIndexP... + 216
+    Full symbol:-[UITableView _userSelectRowAtPendingSelectionIndexPath:]
+\tat  17   UIKitCore                     0x00000001a25c4000   _runAfterCACommitDeferredBlocks + 104
+\tat  18   UIKitCore                     0x00000001a25c4000   _cleanUpAfterCAFlushAndRunDeferredBlocks + 80
+\tat  19   UIKitCore                     0x00000001a25c4000   _afterCACommitHandler + 76
+\tat  20   CoreFoundation                0x000000019c9f3000   __CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_F... + 36
+    Full symbol:__CFRUNLOOP_IS_CALLING_OUT_TO_AN_OBSERVER_CALLBACK_FUNCTION__
+\tat  21   CoreFoundation                0x000000019c9f3000   __CFRunLoopDoObservers + 548
+\tat  22   CoreFoundation                0x000000019c9f3000   __CFRunLoopRun + 1584
+\tat  23   CoreFoundation                0x000000019c9f3000   CFRunLoopRunSpecific + 588
+\tat  24   GraphicsServices              0x0000000241f42000   GSEventRunModal + 164
+\tat  25   UIKitCore                     0x00000001a25c4000   -[UIApplication _run] + 816
+\tat  26   UIKitCore                     0x00000001a25c4000   UIApplicationMain + 340
+\tat  27   AcmeApp                       0x0000000102f34000   static AppDelegate.$main()   (<compiler-generated>)
+\tat  28   AcmeApp                       0x0000000102f34000   main   (AppDelegate.swift:18)
+\tat  29   dyld                          0x00000001bd0f4000   start + 2724`,
+};
+
 export const iosNativeScenario: PlatformScenario = {
   ids: { product: "numbered", orderPrefix: "o_" },
   app: {
@@ -1368,6 +1780,7 @@ export const iosNativeScenario: PlatformScenario = {
     createdDaysAgo: 214,
     dailySessions: 310_000,
     crashFreeRate: 0.99483,
+    appHangFreeRate: 0.99712,
     perceivedCrashFreeRate: 0.99817,
   },
   ui: {
@@ -1750,7 +2163,7 @@ export const iosNativeScenario: PlatformScenario = {
       requestBody: '{"promotions":true}',
     },
   ],
-  exceptions: iosExceptions,
+  exceptions: [...iosExceptions, reviewsLayoutHang],
 
   spans: shopSpans({
     worker: "com.apple.root.default-qos",
@@ -1822,6 +2235,7 @@ export const iosNativeScenario: PlatformScenario = {
       cartHandled: {
         loadFailure: [{ kind: "exception", exception: "cart_request_timeout" }],
       },
+      reviewsHang: "reviews_layout_hang",
       reports: {
         profile: (j) =>
           j
@@ -1853,6 +2267,7 @@ export const iosNativeScenario: PlatformScenario = {
         search: "search_and_browse",
         quick_purchase: "quick_purchase",
         profile: "profile_browse",
+        reviews_hang: "reviews_hang",
       },
     },
   ),
@@ -1924,9 +2339,9 @@ export const iosNativeScenario: PlatformScenario = {
       launch: "warm",
     },
     {
-      flow: "full_purchase",
+      flow: "reviews_hang",
       user: 4,
-      version: 1,
+      version: 0,
       agoMinutes: 9000,
       launch: "hot",
     },

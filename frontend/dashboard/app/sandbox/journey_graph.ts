@@ -10,7 +10,7 @@ import type {
 } from "../api/api_calls";
 import { selectedNames, sessionsIn } from "./adoption";
 import { catalog, screenSequence } from "./catalog";
-import type { AppBundle } from "./catalog";
+import type { AppBundle, ErrorGroup } from "./catalog";
 import { groupCount, groupSessionsAndUsers } from "./errors";
 import { matchesFilterExpr, sessionAttributeBag } from "./filter";
 import { rangeDays, sessionsPerUser } from "./funnels";
@@ -51,6 +51,13 @@ type SampleSession = {
 // A stretch of one session that a node's or a link's lists cover.
 type Window = { session: SampleSession; from: number; to: number };
 
+// The share of a group's errors that end the session: every fatal crash
+// and ANR, plus hangs during which the app was killed. Most hangs recover,
+// and groups have too few samples to measure the share, so it is fixed.
+export function killedShare(group: ErrorGroup): number {
+  return group.error_type === "app_hang" ? 0.2 : 1;
+}
+
 const fatalTimesCache = new WeakMap<AppBundle, Map<string, number>>();
 
 // The time of each session's first fatal crash, ANR or app hang, which ends
@@ -62,10 +69,10 @@ function fatalTimes(bundle: AppBundle): Map<string, number> {
   }
   const times = new Map<string, number>();
   for (const group of bundle.errorGroups) {
-    if (group.severity !== "fatal") {
-      continue;
-    }
     for (const instance of group.instances) {
+      if (group.severity !== "fatal" && instance.app_hang?.state !== "killed") {
+        continue;
+      }
       const time = DateTime.fromISO(instance.timestamp).toMillis();
       const earliest = times.get(instance.session_id);
       if (earliest === undefined || time < earliest) {
@@ -148,9 +155,11 @@ function sampleSessions(bundle: AppBundle, url: URL): SampleSession[] {
   const fatalDraws = drawsOf(true);
   const otherDraws = drawsOf(false);
   const fatalUsers = bundle.errorGroups
-    .filter((g) => g.severity === "fatal")
+    .filter((g) => g.severity === "fatal" || g.error_type === "app_hang")
     .reduce((sum, g) => {
-      const count = groupCount(bundle, g, range, filterExpr);
+      const count = Math.round(
+        groupCount(bundle, g, range, filterExpr) * killedShare(g),
+      );
       return count === 0 ? sum : sum + groupSessionsAndUsers(g, count).users;
     }, 0);
   const fatalTotal = fatalDraws === 0 ? 0 : Math.min(total, fatalUsers);
