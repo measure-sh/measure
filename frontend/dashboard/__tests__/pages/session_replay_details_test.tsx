@@ -28,7 +28,7 @@ jest.mock("@/app/utils/analytics/track", () => ({
   track: (...args: any[]) => trackMock(...args),
 }));
 
-jest.mock("@/app/components/session_replay", () => ({
+jest.mock("@/app/components/session_replay/player", () => ({
   __esModule: true,
   default: (props: any) => (
     <div data-testid="session-replay-mock">

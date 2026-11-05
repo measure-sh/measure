@@ -20,7 +20,7 @@ const OverviewDemo = dynamic(
   { ssr: false },
 );
 const TraceDetails = dynamic(() => import("./trace/details"), { ssr: false });
-const SessionReplay = dynamic(() => import("./session_replay"), {
+const SessionReplay = dynamic(() => import("./session_replay/player"), {
   ssr: false,
 });
 const ErrorsDetailsView = dynamic(

@@ -1,6 +1,6 @@
 "use client";
 
-import SessionReplay from "@/app/components/session_replay";
+import SessionReplay from "@/app/components/session_replay/player";
 import { Skeleton } from "@/app/components/skeleton";
 import { useSessionReplayQuery } from "@/app/query/hooks";
 import { track } from "@/app/utils/analytics/track";
