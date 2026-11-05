@@ -1,5 +1,5 @@
 import { SANDBOX_TEAM_ID } from "../utils/sandbox";
-import { catalog } from "./catalog";
+import { APP_HANG_THRESHOLD_MS, catalog } from "./catalog";
 import {
   isWithinRange,
   jsonResponse,
@@ -142,7 +142,7 @@ const SANDBOX_SDK_CONFIG = {
   error_handled_sampling_rate: 10,
   anr_timeline_duration: 30,
   anr_take_screenshot: true,
-  app_hang_threshold_millis: 2000,
+  app_hang_threshold_millis: APP_HANG_THRESHOLD_MS,
   app_hang_timeline_duration: 30,
   app_hang_sampling_rate: 100,
   app_hang_replay_enabled: true,

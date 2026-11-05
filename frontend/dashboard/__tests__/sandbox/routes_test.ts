@@ -202,7 +202,12 @@ const FILTER_KEYS: Record<string, string[]> = {
     "user_id",
     ...DEVICE_KEYS,
   ],
-  error_group_events: [...VERSION_KEYS, "user_id", ...DEVICE_KEYS],
+  error_group_events: [
+    ...VERSION_KEYS,
+    "user_id",
+    ...DEVICE_KEYS,
+    "app_hang_state",
+  ],
   sessions: [
     "session_events",
     "session_foreground_background",
@@ -280,6 +285,7 @@ const overviewCases: Case[] = [
     check: (data) => {
       expect(data.map((s: any) => s.id).sort()).toEqual([
         "anrs",
+        "app_hangs",
         "crashes",
         "sessions",
       ]);
@@ -328,6 +334,7 @@ const overviewCases: Case[] = [
         "Device",
         "Network",
         "Location",
+        "App Hang",
       ]);
       for (const [entity, names] of Object.entries(FILTER_KEYS)) {
         const { json } = await fetchJson(

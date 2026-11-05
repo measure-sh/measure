@@ -649,7 +649,13 @@ export class Journey {
 
   inspect(
     card: string,
-    opts: { size?: number; reviews?: boolean; addToCart?: boolean } = {},
+    opts: {
+      size?: number;
+      reviews?: boolean;
+      addToCart?: boolean;
+      // Steps run while the reviews tab renders.
+      reviewsHang?: StepSpec[];
+    } = {},
   ): this {
     this.openProduct(card);
     if (opts.size !== undefined) {
@@ -657,7 +663,7 @@ export class Journey {
     }
     this.scroll();
     if (opts.reviews) {
-      this.tap("tab_reviews");
+      this.tap("tab_reviews").add(opts.reviewsHang);
     }
     if (opts.addToCart) {
       this.tap("btn_add_to_cart").http("cart_add").custom("added_to_cart", {
@@ -844,6 +850,9 @@ export function standardFlows(
     listCrash?: StepSpec[];
     detailCrash?: Crash;
     detailAnr?: StepSpec[];
+    // The app hang blocks the main thread while the reviews tab renders.
+    // The search flow recovers; in another flow, the app is killed during it.
+    reviewsHang?: string;
     cartHandled: {
       coupon?: { code: string; failure: StepSpec[] };
       loadFailure?: StepSpec[];
@@ -875,7 +884,19 @@ export function standardFlows(
         .open()
         .skimHome(["card_product_4"])
         .search(true, "running")
-        .inspect("row_result_1", { size: 2, reviews: true })
+        .inspect("row_result_1", {
+          size: 2,
+          reviews: true,
+          reviewsHang: story.reviewsHang
+            ? [
+                {
+                  kind: "exception",
+                  exception: story.reviewsHang,
+                  hangState: "recovered",
+                },
+              ]
+            : undefined,
+        })
         .background(38_000)
         .openProduct("row_result_3")
         .scroll()
@@ -963,6 +984,26 @@ export function standardFlows(
         })
         .add(story.detailAnr)
         .build(key("detail_anr"), "Product detail, ANR decoding hero image"),
+    );
+  }
+
+  if (key("reviews_hang") && story.reviewsHang) {
+    flows.push(
+      J()
+        .open()
+        .skimHome(["card_product_6"])
+        .seeAll()
+        .category(1)
+        .inspect("card_product_3", { size: 2 })
+        .openProduct("card_product_0")
+        .scroll()
+        .tap("tab_reviews")
+        .add({
+          kind: "exception",
+          exception: story.reviewsHang,
+          hangState: "killed",
+        })
+        .build(key("reviews_hang"), "Product reviews, app killed during hang"),
     );
   }
 
