@@ -69,7 +69,11 @@ import FunnelFriction, {
   FrictionListsView,
 } from "./friction";
 import FunnelCadencePlot from "./cadence_plot";
-import FunnelSessions, { outcomeParams, SessionsOutcome } from "./sessions";
+import FunnelSessions, {
+  FunnelSessionsDemo,
+  outcomeParams,
+  SessionsOutcome,
+} from "./sessions";
 import FunnelSteps from "./steps";
 import FunnelTrendPlot, { FunnelTrendMetric } from "./trend_plot";
 import Pill from "../pill";
@@ -416,6 +420,12 @@ export function FunnelDetailsDemo({
               }
             />
           </div>
+          <div className="py-8" />
+          <FunnelSessionsDemo
+            conversion={demoConversion}
+            selectedStep={selectedStep}
+            onSelectStep={selectStep}
+          />
         </>
       )}
     </div>

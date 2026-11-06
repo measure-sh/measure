@@ -5,6 +5,8 @@ import type {
   FunnelConversion,
   FunnelStepErrorsResponse,
   FunnelStepNetworkResponse,
+  FunnelStepOutcome,
+  FunnelStepSessionsResponse,
   FunnelStepTracesResponse,
   FunnelTrend,
   FunnelTrendPeriod,
@@ -13,6 +15,7 @@ import {
   FUNNEL_STEP_LIST_LIMIT,
   type RootSpanMetricsQuantile,
 } from "../../query/hooks";
+import { stableInt, stableUuid } from "../../sandbox/query";
 
 const CONVERSION_WINDOW_SECONDS = 3600;
 
@@ -448,6 +451,53 @@ export function demoStepNetwork(
     }))
     .sort((a, b) => b.dropped - a.dropped);
   return page(endpoints, offset);
+}
+
+// These sessions start with the first selected step and either reach the last
+// one or drop off. Converted sessions last at least as long as the median time
+// between those steps, keeping their durations consistent with the chart.
+export function demoStepSessions(
+  step: number | null,
+  outcome: FunnelStepOutcome,
+): FunnelStepSessionsResponse {
+  const { steps } = demoConversion;
+  const from = step === null ? 0 : step - 1;
+  const to = step === null ? steps.length - 1 : step;
+  const users =
+    outcome === "converted"
+      ? steps[to].users
+      : steps[from].users - steps[to].users;
+  const medianSeconds = steps
+    .slice(from + 1, to + 1)
+    .reduce((sum, s) => sum + (s.median_seconds_from_previous ?? 0), 0);
+  const count = Math.min(5, Math.ceil(users / 20));
+  const now = DateTime.now();
+  return {
+    meta: { next: false, previous: false },
+    sample_percent: demoConversion.sample_percent,
+    results: Array.from({ length: count }, (_, i) => {
+      // Including the step and outcome in the seed keeps each selection's
+      // sessions consistent across visits.
+      const seed = `funneldemo:${step}:${outcome}:${i}`;
+      const seconds =
+        outcome === "converted"
+          ? stableInt(
+              `${seed}:steps`,
+              Math.round(medianSeconds * 0.6),
+              Math.round(medianSeconds * 2.5),
+            ) + stableInt(`${seed}:rest`, 30, 240)
+          : stableInt(`${seed}:duration`, 20, 600);
+      return {
+        session_id: stableUuid(`${seed}:session`),
+        installation_id: stableUuid(`${seed}:installation`),
+        user_id: `usr_${stableInt(`${seed}:user`, 100_000, 189_999)}`,
+        first_event_time: now
+          .minus({ minutes: i * 23 + stableInt(`${seed}:start`, 0, 16) })
+          .toISO()!,
+        duration: seconds * 1000,
+      };
+    }),
+  };
 }
 
 const uploadedAt = (daysAgo: number) =>

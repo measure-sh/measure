@@ -194,6 +194,7 @@ jest.mock("@/app/components/funnel/sessions", () => ({
   __esModule: true,
   SessionsOutcome: { Dropped: "Dropped off", Converted: "Converted" },
   outcomeParams: { "Dropped off": "dropped", Converted: "converted" },
+  FunnelSessionsDemo: () => null,
   default: (props: SessionsProps) => {
     mockSessions(props);
     return (
