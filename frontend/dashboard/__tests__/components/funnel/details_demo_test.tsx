@@ -34,9 +34,12 @@ jest.mock("@/app/components/funnel/trend_plot", () => ({
   default: (props: TrendPlotProps) => {
     mockTrendPlot(props);
     return (
-      <button onClick={() => props.onSelectPoint("2026-01-05", 2)}>
-        trend point
-      </button>
+      <>
+        <button onClick={() => props.onSelectPoint("2026-01-05", 2)}>
+          trend point
+        </button>
+        {props.controls}
+      </>
     );
   },
 }));
@@ -47,7 +50,12 @@ jest.mock("@/app/components/funnel/cadence_plot", () => ({
   default: (props: CadencePlotProps) => {
     mockCadencePlot(props);
     return (
-      <button onClick={() => props.onSelectPoint(3, 14)}>cadence point</button>
+      <>
+        <button onClick={() => props.onSelectPoint(3, 14)}>
+          cadence point
+        </button>
+        {props.controls}
+      </>
     );
   },
 }));

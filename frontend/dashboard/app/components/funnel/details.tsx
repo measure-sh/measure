@@ -228,82 +228,84 @@ type CadenceSpan = (typeof CADENCE_SPANS)[number];
 function FunnelViewHeader({
   view,
   onSelectView,
-  metric,
-  onSelectMetric,
-  period,
-  onSelectPeriod,
-  cadenceSpan,
-  onSelectCadenceSpan,
   sample,
   summary,
 }: {
   view: FunnelView;
   onSelectView: (view: FunnelView) => void;
-  metric: FunnelTrendMetric;
-  onSelectMetric: (metric: FunnelTrendMetric) => void;
-  period: Period;
-  onSelectPeriod: (period: Period) => void;
-  cadenceSpan: CadenceSpan;
-  onSelectCadenceSpan: (span: CadenceSpan) => void;
   sample?: React.ReactNode;
   summary: string | undefined;
 }) {
   return (
-    <>
-      <div className="flex flex-wrap w-full items-center justify-between gap-4">
+    <div className="flex flex-wrap w-full items-end justify-between gap-4">
+      <div className="flex flex-col">
         <p className="font-display text-xl whitespace-nowrap">{view}</p>
-        <div className="flex items-center gap-2 whitespace-nowrap">
-          {view === FunnelView.Trend && (
-            <>
-              <TabSelect
-                items={Object.values(FunnelTrendMetric)}
-                selected={metric}
-                onChangeSelected={(item) =>
-                  onSelectMetric(item as FunnelTrendMetric)
-                }
-              />
-              <ControlSeparator />
-              <TabSelect
-                items={PERIODS.map((p) => p.label)}
-                selected={period.label}
-                onChangeSelected={(label) =>
-                  onSelectPeriod(PERIODS.find((p) => p.label === label)!)
-                }
-              />
-              <ControlSeparator />
-            </>
-          )}
-          {view === FunnelView.Cadence && (
-            <>
-              <TabSelect
-                items={CADENCE_SPANS.map((span) => span.label)}
-                selected={cadenceSpan.label}
-                onChangeSelected={(label) =>
-                  onSelectCadenceSpan(
-                    CADENCE_SPANS.find((span) => span.label === label)!,
-                  )
-                }
-              />
-              <ControlSeparator />
-            </>
-          )}
-          {sample !== undefined && (
-            <>
-              {sample}
-              <ControlSeparator />
-            </>
-          )}
-          <TabSelect
-            items={Object.values(FunnelView)}
-            selected={view}
-            onChangeSelected={(item) => onSelectView(item as FunnelView)}
-          />
-        </div>
+        <p className="font-body text-sm text-muted-foreground">
+          {summary ?? " "}
+        </p>
       </div>
-      <p className="font-body text-sm text-muted-foreground">
-        {summary ?? " "}
-      </p>
-    </>
+      <div className="flex items-center gap-2 whitespace-nowrap ml-auto">
+        {sample !== undefined && (
+          <>
+            {sample}
+            <ControlSeparator />
+          </>
+        )}
+        <TabSelect
+          items={Object.values(FunnelView)}
+          selected={view}
+          onChangeSelected={(item) => onSelectView(item as FunnelView)}
+        />
+      </div>
+    </div>
+  );
+}
+
+function TrendControls({
+  metric,
+  onSelectMetric,
+  period,
+  onSelectPeriod,
+}: {
+  metric: FunnelTrendMetric;
+  onSelectMetric: (metric: FunnelTrendMetric) => void;
+  period: Period;
+  onSelectPeriod: (period: Period) => void;
+}) {
+  return (
+    <div className="flex items-center gap-2 whitespace-nowrap">
+      <TabSelect
+        items={Object.values(FunnelTrendMetric)}
+        selected={metric}
+        onChangeSelected={(item) => onSelectMetric(item as FunnelTrendMetric)}
+      />
+      <ControlSeparator />
+      <TabSelect
+        items={PERIODS.map((p) => p.label)}
+        selected={period.label}
+        onChangeSelected={(label) =>
+          onSelectPeriod(PERIODS.find((p) => p.label === label)!)
+        }
+      />
+    </div>
+  );
+}
+
+function CadenceControls({
+  cadenceSpan,
+  onSelectCadenceSpan,
+}: {
+  cadenceSpan: CadenceSpan;
+  onSelectCadenceSpan: (span: CadenceSpan) => void;
+}) {
+  return (
+    <TabSelect
+      items={CADENCE_SPANS.map((span) => span.label)}
+      selected={cadenceSpan.label}
+      onChangeSelected={(label) =>
+        onSelectCadenceSpan(CADENCE_SPANS.find((span) => span.label === label)!)
+      }
+    />
   );
 }
 
@@ -349,12 +351,6 @@ export function FunnelDetailsDemo({
         <FunnelViewHeader
           view={view}
           onSelectView={setView}
-          metric={metric}
-          onSelectMetric={setMetric}
-          period={period}
-          onSelectPeriod={setPeriod}
-          cadenceSpan={cadenceSpan}
-          onSelectCadenceSpan={setCadenceSpan}
           summary={
             view === FunnelView.Breakdown
               ? conversionSummary(demoConversion)
@@ -374,6 +370,14 @@ export function FunnelDetailsDemo({
             status="success"
             trend={trend}
             onSelectPoint={(_, step) => openInBreakdown(step)}
+            controls={
+              <TrendControls
+                metric={metric}
+                onSelectMetric={setMetric}
+                period={period}
+                onSelectPeriod={setPeriod}
+              />
+            }
           />
         )}
         {view === FunnelView.Cadence && (
@@ -381,6 +385,12 @@ export function FunnelDetailsDemo({
             status="success"
             hours={cadence}
             onSelectPoint={() => openInBreakdown(null)}
+            controls={
+              <CadenceControls
+                cadenceSpan={cadenceSpan}
+                onSelectCadenceSpan={setCadenceSpan}
+              />
+            }
           />
         )}
       </div>
@@ -741,16 +751,6 @@ export default function FunnelDetails({
                 );
                 setPageUrlKey(viewUrlKey, selected);
               }}
-              metric={metric}
-              onSelectMetric={(metric) => setPageUrlKey(metricUrlKey, metric)}
-              period={period}
-              onSelectPeriod={(period) =>
-                setPageUrlKey(periodUrlKey, period.period)
-              }
-              cadenceSpan={cadenceSpan}
-              onSelectCadenceSpan={(span) =>
-                setPageUrlKey(weeksUrlKey, String(span.weeks))
-              }
               sample={
                 <SamplePercent
                   percent={viewQuery.data?.sample_percent}
@@ -818,6 +818,18 @@ export default function FunnelDetails({
                 error={trendQuery.error}
                 trend={trendQuery.data}
                 onSelectPoint={handleSelectTrendPoint}
+                controls={
+                  <TrendControls
+                    metric={metric}
+                    onSelectMetric={(metric) =>
+                      setPageUrlKey(metricUrlKey, metric)
+                    }
+                    period={period}
+                    onSelectPeriod={(period) =>
+                      setPageUrlKey(periodUrlKey, period.period)
+                    }
+                  />
+                }
               />
             )}
 
@@ -827,6 +839,14 @@ export default function FunnelDetails({
                 error={cadenceQuery.error}
                 hours={cadenceQuery.data}
                 onSelectPoint={handleSelectCadencePoint}
+                controls={
+                  <CadenceControls
+                    cadenceSpan={cadenceSpan}
+                    onSelectCadenceSpan={(span) =>
+                      setPageUrlKey(weeksUrlKey, String(span.weeks))
+                    }
+                  />
+                }
               />
             )}
           </div>
