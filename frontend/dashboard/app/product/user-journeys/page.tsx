@@ -47,8 +47,8 @@ export default function ProductUserJourneys() {
         screenshot: {
           src: "/images/product_screenshots/user_journeys.webp",
           alt: "A user journey graph in Measure showing how users move between screens and which routes are most affected by issues",
-          width: 1568,
-          height: 1510,
+          width: 2264,
+          height: 1800,
         },
       }}
       ctaLocation="product_user_journeys"

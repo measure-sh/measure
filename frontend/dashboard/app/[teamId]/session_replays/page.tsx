@@ -147,7 +147,7 @@ export default function SessionReplayOverview(props: {
                       <TableHead className="w-[20%] text-center">
                         Start Time
                       </TableHead>
-                      <TableHead className="w-[20%] text-center">
+                      <TableHead className="w-[20%] text-right">
                         Duration
                       </TableHead>
                     </TableRow>
@@ -233,7 +233,7 @@ export default function SessionReplayOverview(props: {
                                 </p>
                               </div>
                             </TableCell>
-                            <TableCell className="w-[20%] text-center truncate select-none relative p-0">
+                            <TableCell className="w-[20%] text-right truncate select-none relative p-0">
                               <Link
                                 href={sessionHref}
                                 className="absolute inset-0 z-10 cursor-pointer"

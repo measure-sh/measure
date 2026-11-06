@@ -74,7 +74,7 @@ export default function FunnelStepTraces({
             Drop-off Duration ({quantile})
           </TableHead>
           <TableHead className="w-[13%] text-center">Conversions</TableHead>
-          <TableHead className="w-[13%] text-center">Drop-offs</TableHead>
+          <TableHead className="w-[13%] text-right">Drop-offs</TableHead>
         </>
       }
     >

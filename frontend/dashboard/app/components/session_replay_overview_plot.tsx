@@ -20,7 +20,7 @@ const SessionReplayOverviewPlot: React.FC<{
   return (
     <div
       data-testid="sessions-plot"
-      className="flex font-body items-center justify-center w-full h-144"
+      className="flex font-body items-center justify-center w-full h-64 2xl:h-96"
     >
       {status === "pending" && <SkeletonPlot />}
       {status === "error" && (

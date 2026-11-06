@@ -51,7 +51,7 @@ export default function MemoryUsageBreakdown({
               <TableHead className="text-center">p50</TableHead>
               <TableHead className="text-center">p90</TableHead>
               <TableHead className="text-center">p95</TableHead>
-              <TableHead className="text-center">Sessions</TableHead>
+              <TableHead className="text-right">Sessions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="font-body tabular-nums">
@@ -71,7 +71,7 @@ export default function MemoryUsageBreakdown({
                 <TableCell className="text-center">
                   {formatMemoryKilobytes(row.p95)}
                 </TableCell>
-                <TableCell className="text-center">
+                <TableCell className="text-right">
                   {row.session_count.toLocaleString()}
                 </TableCell>
               </TableRow>

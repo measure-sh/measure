@@ -8,6 +8,7 @@ import { queryErrorMessage } from "../../api/api_error";
 import { urlFiltersKeyMap } from "../../stores/filters_store";
 import { formatShare } from "./format";
 import { numberToKMB } from "../../utils/number_utils";
+import { cn } from "../../utils/shadcn_utils";
 import { formatMillisToHumanReadable } from "../../utils/time_utils";
 import EmptyState from "../empty_state";
 import LoadingBar from "../loading_bar";
@@ -202,7 +203,7 @@ export function CountCell({
   count: number;
 }) {
   return (
-    <StepCell href={href} className={`${className} text-center truncate`}>
+    <StepCell href={href} className={cn("text-center truncate", className)}>
       {numberToKMB(count)}
     </StepCell>
   );
@@ -219,16 +220,16 @@ export function OutcomeCells({
   item: StepOutcomes;
   outcomes: StepOutcomes;
 }) {
-  const share = (count: number, total: number) => (
-    <StepCell href={href} className={`${className} text-center truncate`}>
+  const share = (count: number, total: number, align: string) => (
+    <StepCell href={href} className={`${className} ${align} truncate`}>
       <p>{formatShare(count, total)}</p>
       <p className="text-xs text-muted-foreground">{numberToKMB(count)}</p>
     </StepCell>
   );
   return (
     <>
-      {share(item.converted, outcomes.converted)}
-      {share(item.dropped, outcomes.dropped)}
+      {share(item.converted, outcomes.converted, "text-center")}
+      {share(item.dropped, outcomes.dropped, "text-right")}
     </>
   );
 }

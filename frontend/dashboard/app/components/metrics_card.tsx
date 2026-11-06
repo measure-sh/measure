@@ -32,7 +32,7 @@ const STYLES = {
     trendContainer: "flex flex-row items-center",
     iconTextGap: "gap-2",
     spacer: "py-1",
-    cardSize: "w-full md:w-[300px] h-fit",
+    cardSize: "w-full h-fit",
     cardContent: "p-4 h-[100px] relative",
     cardFooter: "p-4",
     contentFlex: "flex flex-col h-full",

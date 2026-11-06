@@ -46,13 +46,13 @@ export default function ProductFunnels() {
       }
       demo={{
         frame: "scaled",
-        heightClassName: "h-[1080px]",
+        heightClassName: "h-[860px]",
         content: <FunnelsDemo />,
         screenshot: {
           src: "/images/product_screenshots/funnels.webp",
           alt: "A Measure funnel showing how many users reach each step of a checkout, with the errors, traces and network requests that can cause drop-offs",
           width: 2300,
-          height: 2268,
+          height: 2130,
         },
       }}
       ctaLocation="product_funnels"

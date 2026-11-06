@@ -259,7 +259,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                       <TableHead className="w-[10%] text-center">
                         Sessions
                       </TableHead>
-                      <TableHead className="w-[10%] text-center">
+                      <TableHead className="w-[10%] text-right">
                         Users
                       </TableHead>
                     </TableRow>
@@ -397,7 +397,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                             </RowLinkCell>
                             <RowLinkCell
                               href={href}
-                              className="w-[10%] text-center truncate"
+                              className="w-[10%] text-right truncate"
                             >
                               <span data-testid="exception-row-users">
                                 {users === 0 ? "–" : numberToKMB(users)}

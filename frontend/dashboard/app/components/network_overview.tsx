@@ -372,7 +372,7 @@ function NetworkOverviewSections({
       <div className="w-full">
         <p className="font-display text-xl">Status Distribution</p>
         <div className="py-2" />
-        <div className="flex font-body items-center justify-center w-full h-144">
+        <div className="flex font-body items-center justify-center w-full h-64 2xl:h-96">
           {(statusPlotStatus === "pending" ||
             (statusPlotStatus === "success" && !shouldRenderStatusPlot)) && (
             <SkeletonPlot />

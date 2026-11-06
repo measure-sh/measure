@@ -46,9 +46,9 @@ A connection between two steps is counted only when a user moves directly from o
 
 The graph lays out screens and custom events as nodes, each with its user count, and draws a link wherever users moved from one step to the next. Hovering a node breaks its count down into users who continued and users who dropped off, along with the median time since the previous step. Hovering a link shows how many users took it.
 
-![Journey graph of an iOS shopping app with the order_placed node hovered, showing 53.56K users, 46.14K continuing and 7.42K dropping off](/blog/assets/mobile-app-journeys-graph.webp)
+![Journey graph of an iOS shopping app with the order_placed node hovered, showing 48.18K users, 39.07K continuing and 9.11K dropping off](/blog/assets/mobile-app-journeys-graph.webp)
 
-In this shopping app, 77.5K users reached HomeViewController and 53.81K started checkout. Hovering `order_placed` shows that 7.42K of the 53.56K users who placed an order, 14%, ended their session right after, while the other 46.14K went on to another step. By default, the graph shows the screens and events with the most users, and you can choose which ones to display with **Select Nodes**.
+In this shopping app, 77.5K users reached HomeViewController and 48.36K started checkout. Hovering `order_placed` shows that 9.11K of the 48.18K users who placed an order, 19%, ended their session right after, while the other 39.07K went on to another step. By default, the graph shows the screens and events with the most users, and you can choose which ones to display with **Select Nodes**.
 
 ## Paths
 
@@ -56,17 +56,17 @@ A single node shows everything that happened on a screen or after an event. To n
 
 ![Journey graph with a highlighted path from CheckoutViewController through checkout_started, PaymentViewController and payment_submitted to a fatal error](/blog/assets/mobile-app-journeys-path.webp)
 
-The path above goes from CheckoutViewController through `checkout_started`, PaymentViewController and `payment_submitted`, and ends in a fatal error. For each path, Measure shows how many users followed it from start to finish. Here, it's 247 users, or 0.5% of the users who reached CheckoutViewController. That's a small share, but they're users who submitted a payment and didn't get to place their order.
+The path above goes from CheckoutViewController through `checkout_started`, PaymentViewController and `payment_submitted`, and ends in a fatal error. For each path, Measure shows how many users followed it from start to finish. Here, it's 179 users, or 0.4% of the users who reached CheckoutViewController. That's a small share, but they're users who submitted a payment and didn't get to place their order.
 
 ## Errors, traces and network
 
 Selecting a node, link or path opens its details below the graph, with three lists of potential issues for users who went through it.
 
-![Path details listing the 247 users who followed the path, the conversion from CheckoutViewController, and a SIGTRAP crash in PaymentViewController](/blog/assets/mobile-app-journeys-path-details.webp)
+![Path details listing the 179 users who followed the path, the conversion from CheckoutViewController, and a SIGTRAP crash in PaymentViewController](/blog/assets/mobile-app-journeys-path-details.webp)
 
 **Errors** has the crashes, ANRs, app hangs and handled errors in the selection, counted by occurrences and by users. **Traces** has the root spans that began within, with their durations at the selected percentile. **Network** groups the requests made in it by URL pattern and shows their latency. Each list is sorted by the number of users affected.
 
-For the path above, all 247 users hit the same crash, a `SIGTRAP` in `PaymentViewController.placeOrderTapped(_:)`, right after submitting their payment. A `SIGTRAP` on iOS usually means the Swift runtime stopped the app on purpose, like when a force unwrap finds `nil` or a precondition fails, and the crash happened inside `placeOrderTapped(_:)`, the action behind the Place order button.
+For the path above, all 179 users hit the same crash, a `SIGTRAP` in `PaymentViewController.placeOrderTapped(_:)`, right after submitting their payment. A `SIGTRAP` on iOS usually means the Swift runtime stopped the app on purpose, like when a force unwrap finds `nil` or a precondition fails, and the crash happened inside `placeOrderTapped(_:)`, the action behind the Place order button.
 
 ## Session Replays
 

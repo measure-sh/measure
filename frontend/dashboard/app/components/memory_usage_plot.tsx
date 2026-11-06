@@ -38,7 +38,7 @@ export default function MemoryUsagePlot({
     <section className="w-full font-body">
       <p className="font-display text-xl">Memory Usage</p>
       <div className="py-2" />
-      <div className="flex items-center justify-center w-full h-144">
+      <div className="flex items-center justify-center w-full h-64 2xl:h-96">
         {status === "pending" && <SkeletonPlot />}
         {status === "error" && (
           <p className="text-lg font-display text-center p-4">

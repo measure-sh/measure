@@ -98,7 +98,7 @@ function DurationCell({
   ms: number;
 }) {
   return (
-    <StepCell href={href} className={`${className} text-center truncate`}>
+    <StepCell href={href} className={`${className} text-right truncate`}>
       {formatMillisToHumanReadable(ms)}
     </StepCell>
   );
@@ -460,7 +460,7 @@ export function SelectionDetailsView({
             <>
               <TableHead className="w-[70%]">Error</TableHead>
               <TableHead className="w-[15%] text-center">Instances</TableHead>
-              <TableHead className="w-[15%] text-center">Users</TableHead>
+              <TableHead className="w-[15%] text-right">Users</TableHead>
             </>
           }
         >
@@ -494,7 +494,7 @@ export function SelectionDetailsView({
                 />
                 <CountCell
                   href={href}
-                  className="w-[15%]"
+                  className="w-[15%] text-right"
                   count={error.users}
                 />
               </StepRow>
@@ -519,7 +519,7 @@ export function SelectionDetailsView({
               <TableHead className="w-[55%]">Trace</TableHead>
               <TableHead className="w-[15%] text-center">Instances</TableHead>
               <TableHead className="w-[15%] text-center">Users</TableHead>
-              <TableHead className="w-[15%] text-center">
+              <TableHead className="w-[15%] text-right">
                 Duration ({quantile})
               </TableHead>
             </>
@@ -575,7 +575,7 @@ export function SelectionDetailsView({
               <TableHead className="w-[55%]">Endpoint</TableHead>
               <TableHead className="w-[15%] text-center">Requests</TableHead>
               <TableHead className="w-[15%] text-center">Users</TableHead>
-              <TableHead className="w-[15%] text-center">
+              <TableHead className="w-[15%] text-right">
                 Latency ({quantile})
               </TableHead>
             </>
@@ -639,7 +639,7 @@ export function SelectionDetailsView({
                 User ID / Installation ID
               </TableHead>
               <TableHead className="w-[20%] text-center">Start Time</TableHead>
-              <TableHead className="w-[20%] text-center">Duration</TableHead>
+              <TableHead className="w-[20%] text-right">Duration</TableHead>
             </>
           }
         >
@@ -676,7 +676,7 @@ export function SelectionDetailsView({
                     {formatDateToHumanReadableTime(session.first_event_time)}
                   </p>
                 </StepCell>
-                <StepCell href={href} className="w-[20%] text-center">
+                <StepCell href={href} className="w-[20%] text-right">
                   {session.duration === 0
                     ? "N/A"
                     : formatMillisToHumanReadable(session.duration)}

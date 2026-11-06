@@ -500,7 +500,7 @@ export default function TeamOverview(props: {
       )}
 
       {teamsQuery.status === "success" && (
-        <div className="flex flex-col items-start">
+        <div className="flex flex-col items-start w-full">
           {/* Dialog for confirming pending invite resend */}
           <DangerConfirmationDialog
             body={
@@ -830,7 +830,7 @@ export default function TeamOverview(props: {
 
                       {/* Show change role button if not current user */}
                       {id !== currentUserId && (
-                        <TableCell>
+                        <TableCell className="w-px">
                           <Button
                             variant="outline"
                             disabled={
@@ -868,7 +868,7 @@ export default function TeamOverview(props: {
 
                       {/* Show remove member button if not current user */}
                       {id !== currentUserId && (
-                        <TableCell>
+                        <TableCell className="w-px text-right">
                           <Button
                             variant="outline"
                             disabled={
@@ -970,7 +970,7 @@ export default function TeamOverview(props: {
                         <TableCell className="text-center">
                           {formatDateToHumanReadableDateTime(valid_until)}
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="w-px">
                           <Button
                             variant="outline"
                             disabled={
@@ -992,7 +992,7 @@ export default function TeamOverview(props: {
                             Resend
                           </Button>
                         </TableCell>
-                        <TableCell>
+                        <TableCell className="w-px text-right">
                           <Button
                             variant="outline"
                             disabled={

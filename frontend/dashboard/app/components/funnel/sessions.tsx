@@ -131,7 +131,7 @@ function SessionListView({
           <>
             <TableHead className="w-[60%]">User ID / Installation ID</TableHead>
             <TableHead className="w-[20%] text-center">Start Time</TableHead>
-            <TableHead className="w-[20%] text-center">Duration</TableHead>
+            <TableHead className="w-[20%] text-right">Duration</TableHead>
           </>
         }
       >
@@ -167,7 +167,7 @@ function SessionListView({
                   {formatDateToHumanReadableTime(session.first_event_time)}
                 </p>
               </StepCell>
-              <StepCell href={href} className="w-[20%] text-center">
+              <StepCell href={href} className="w-[20%] text-right">
                 {session.duration === 0
                   ? "N/A"
                   : formatMillisToHumanReadable(session.duration)}

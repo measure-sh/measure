@@ -42,8 +42,8 @@ export default function ProductNetworkPerformance() {
         screenshot: {
           src: "/images/product_screenshots/network_performance.webp",
           alt: "The Measure network performance view showing HTTP status distribution over time and the slowest endpoints by latency",
-          width: 2278,
-          height: 1916,
+          width: 2300,
+          height: 1470,
         },
       }}
       ctaLocation="product_network_performance"
