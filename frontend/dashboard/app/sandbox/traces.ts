@@ -1,5 +1,6 @@
 import { catalog, percentile } from "./catalog";
 import type { AppBundle, SessionAttribute, SpanListRow } from "./catalog";
+import { hasSessionReplay } from "./sessions";
 import {
   bucketsForRange,
   formatBucket,
@@ -150,7 +151,10 @@ export const tracesRoutes: SandboxRoute[] = [
       if (!trace) {
         return jsonResponse({ error: "Trace not found" }, 404);
       }
-      return jsonResponse(trace);
+      return jsonResponse({
+        ...trace,
+        has_replay: hasSessionReplay(params.appId, trace.session_id),
+      });
     },
   },
 ];

@@ -580,20 +580,22 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
                       View Session Replay
                     </div>
                   ) : (
-                    <Link
-                      key={firstResult.id}
-                      href={`/${teamId}/session_replays/${appId}/${firstResult.session_id}?from=error_details`}
-                      className={cn(
-                        buttonVariants({ variant: "outline" }),
-                        "justify-center w-fit",
-                      )}
-                    >
-                      View Session Replay
-                    </Link>
+                    firstResult.has_replay && (
+                      <Link
+                        key={firstResult.id}
+                        href={`/${teamId}/session_replays/${appId}/${firstResult.session_id}?from=error_details`}
+                        className={cn(
+                          buttonVariants({ variant: "outline" }),
+                          "justify-center w-fit",
+                        )}
+                      >
+                        View Session Replay
+                      </Link>
+                    )
                   )}
                   {!demo && (
                     <>
-                      <div className="px-2" />
+                      {firstResult.has_replay && <div className="px-2" />}
                       <CopyAgentPrompt
                         appId={appId}
                         appName={appName}

@@ -14,6 +14,14 @@ import {
 import { scaledSeries } from "./aggregate";
 import { adoptionOf } from "./adoption";
 
+export function hasSessionReplay(appId: string, sessionId: string): boolean {
+  return (
+    catalog()
+      .appById.get(appId)
+      ?.sessions.some((s) => s.list.session_id === sessionId) ?? false
+  );
+}
+
 function sessionsListResponse(appId: string, url: URL): Response {
   const bundle = catalog().appById.get(appId);
   if (!bundle) {

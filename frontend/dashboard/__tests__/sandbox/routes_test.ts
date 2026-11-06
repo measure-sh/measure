@@ -665,6 +665,7 @@ const errorsCases: Case[] = [
     check: (data) => {
       expect(data.results).toHaveLength(1);
       expect(data.results[0].id).toBe(firstGroup.instances[0].id);
+      expect(data.results[0].has_replay).toBe(true);
     },
   },
   {
@@ -739,6 +740,7 @@ const bugReportsCases: Case[] = [
     check: (data) => {
       expect(data.event_id).toBe(firstBugReport.event_id);
       expect(data.attachments.length).toBeGreaterThan(0);
+      expect(data.has_replay).toBe(true);
     },
   },
   {
@@ -815,6 +817,7 @@ const tracesCases: Case[] = [
       );
       expect(res.status).toBe(200);
       expect(trace.trace_id).toBe(traceId);
+      expect(trace.has_replay).toBe(true);
       expect(trace.spans.length).toBeGreaterThan(1);
       expect(trace.spans.some((s: any) => s.parent_id === "")).toBe(true);
     },
