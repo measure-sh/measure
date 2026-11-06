@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.15.0] - 2026-11-06
+
+### :bug: Bug fixes
+
+
+- (**ios**): Report logs only in replay windows by @adwinross in #4807
+- (**ios**): Use com.apple.main-thread as the app hang thread name by @adwinross in #4803
+- (**ios**): Pin kscrash to 2.6.1 by @adwinross in #4782
+- (**ios**): Use the right sampling for user-triggered events by @abhaysood in #4717
+- (**ios**): Report crashes that happen before the first event (#4669) by @adwinross in #4669
+
+### :hammer: Misc
+
+
+- (**ios**): Rename trackException to trackError by @adwinross in #4785
+- (**ios**): Sample analytics events by installation (#4764) by @abhaysood
+- (**ios**): Cap exception messages at 8192 characters (#4706) by @abhaysood
+
+### :sparkles: New features
+
+
+- (**ios**): Detect and report app hangs by @adwinross
+
 ## [ios-v0.14.2] - 2026-10-08
 
 ### :bug: Bug fixes
@@ -475,6 +498,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677) by @adwinross in #1677
 - (**ios**): Initial project setup  (#1034) by @adwinross in #1034
 
+[ios-v0.15.0]: https://github.com/measure-sh/measure/compare/ios-v0.14.2..ios-v0.15.0
 [ios-v0.14.2]: https://github.com/measure-sh/measure/compare/ios-v0.14.1..ios-v0.14.2
 [ios-v0.14.1]: https://github.com/measure-sh/measure/compare/ios-v0.14.0..ios-v0.14.1
 [ios-v0.14.0]: https://github.com/measure-sh/measure/compare/ios-v0.13.2..ios-v0.14.0
