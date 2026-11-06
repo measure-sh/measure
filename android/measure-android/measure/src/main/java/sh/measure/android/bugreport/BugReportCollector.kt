@@ -58,6 +58,12 @@ internal interface BugReportCollector {
     fun setBugReportFlowInactive()
     fun getPendingScreenshot(): PendingScreenshot?
     fun discardPendingScreenshot(screenshot: PendingScreenshot)
+
+    /**
+     * Lets go of [screenshot] without deleting its file, once the bug report screen has taken
+     * the encoded screenshot as one of its attachments.
+     */
+    fun releasePendingScreenshot(screenshot: PendingScreenshot)
 }
 
 internal class BugReportCollectorImpl internal constructor(
@@ -101,6 +107,12 @@ internal class BugReportCollectorImpl internal constructor(
             pendingScreenshot = null
         }
         screenshot.discard()
+    }
+
+    override fun releasePendingScreenshot(screenshot: PendingScreenshot) {
+        if (pendingScreenshot === screenshot) {
+            pendingScreenshot = null
+        }
     }
 
     override fun setBugReportFlowActive() {
