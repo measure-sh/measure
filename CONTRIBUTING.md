@@ -525,17 +525,11 @@ We use git tags and [semver](https://semver.org/) for versioning.
 
 ## Release process
 
-To trigger a release, create a signed git tag using [git-cliff](https://git-cliff.org/) and push the tag. Here's a one liner.
+1. Actions tab → "Prepare release" → Run workflow. Optionally set a version; leave empty to let git-cliff pick the next one from commits. A `-` suffix like `v1.2.0-rc.1` makes a prerelease.
+2. Review & merge the `chore: prepare release vX.Y.Z` PR.
+3. Merging tags the merge commit, creates the GitHub release & publishes images.
 
-```sh
-# bash/zsh
-VERSION=$(git cliff --bumped-version --github-token $(gh auth token)) && git tag -s $VERSION -m $VERSION && git push origin $VERSION
-```
-
-```fish
-# fish
-set VERSION (git cliff --bumped-version --github-token (gh auth token)) && git tag -s $VERSION -m $VERSION && git push origin $VERSION
-```
+Both runs use the `release` environment. If it requires reviewers, approve each run when it waits.
 
 ## Manually managed versions
 

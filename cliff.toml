@@ -63,6 +63,7 @@ commit_parsers = [
   { message = "^.*\\(flutter\\):", skip = true },
   { message = "^.*\\(rn\\):", skip = true },
   { message = "^docs", group = "<!-- 7 -->:books: Documentation", default_scope = "other" },
+  { message = "^chore: prepare release", skip = true },
   { message = "^chore", group = "<!-- 2 -->:hammer: Misc", default_scope = "other" },
   { message = "^feat", group = "<!-- 0 -->:sparkles: New features" },
   { message = "^test", group = "<!-- 3 -->:test_tube: Testing", skip = true },
