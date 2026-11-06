@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :recycle: Refactor
 
+- (**backend**): Remove BugReportDisplay type by @anupcowkur in #4811
 - (**frontend**): Split session replay into modules by @anupcowkur in #4804
 
 ## [0.14.0] - 2026-11-05
