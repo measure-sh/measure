@@ -30,12 +30,6 @@ type BugReportDetail struct {
 	HasReplay bool `json:"has_replay"`
 }
 
-// BugReportDisplay provides a convenient
-// wrapper over BugReport for display purposes.
-type BugReportDisplay struct {
-	*BugReport
-}
-
 // BugReportInstance represents an entity
 // for plotting bug report instances.
 type BugReportInstance struct {
