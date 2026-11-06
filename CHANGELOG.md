@@ -7,10 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### :sparkles: New features
+
+- (**frontend**): Add session replays to the funnels demo by @anupcowkur
+
 ### :hammer: Misc
 
 - (**backend**): Pass `libs` build context to symboloader image build by @detj in #4800
 - (**deps**): Update vulnarable react native and frank app dependancies by @adwinross in #4812
+- (**frontend**): Recapture crash screenshots by @anupcowkur in #4818
+- (**frontend**): Use more space on large screens by @anupcowkur
+- (**frontend**): Move funnel controls into plot toolbars by @anupcowkur
+- (**frontend**): Fit usage chart on small screens by @anupcowkur
+- (**frontend**): Stack app thresholds on small screens by @anupcowkur
+- (**frontend**): Align list and section spacing by @anupcowkur
+- (**frontend**): Remove hover highlight from team rows by @anupcowkur
 - (**frontend**): Add app hangs to the sandbox by @anupcowkur in #4802
 - Hide session replay button when no replay is available by @anupcowkur in #4809
 
