@@ -20,6 +20,24 @@ import {
 } from "@testing-library/react";
 import { http } from "msw";
 
+// useIsMobile reads window.matchMedia, which jsdom does not implement.
+// Rendering the usage page without this stub throws.
+if (typeof window.matchMedia === "undefined") {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: jest.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    })),
+  });
+}
+
 jest.mock("posthog-js", () => ({
   __esModule: true,
   default: {

@@ -193,6 +193,12 @@ jest.mock("next-themes", () => ({
 // the latest render so tests can call the arcLinkLabel and tooltip functions
 // the page passes in.
 let mockPieProps: any = null;
+// Lets tests render the page in its small-screen layout.
+let mockIsMobile = false;
+jest.mock("@/app/utils/use_mobile", () => ({
+  useIsMobile: () => mockIsMobile,
+}));
+
 jest.mock("@nivo/pie", () => ({
   ResponsivePie: (props: any) => {
     mockPieProps = props;
@@ -369,6 +375,7 @@ describe("Usage Page", () => {
     jest.clearAllMocks();
     jest.useFakeTimers();
     mockPieProps = null;
+    mockIsMobile = false;
 
     // Reset store to defaults
     useUsageStore.setState({
@@ -578,6 +585,43 @@ describe("Usage Page", () => {
     expect(screen.getByText("Sessions: 6200")).toBeInTheDocument();
     expect(screen.getByText("Events: 15000")).toBeInTheDocument();
     expect(screen.getByText("Spans: 9500")).toBeInTheDocument();
+  });
+
+  it("shows the selected month's totals in the center of the pie", async () => {
+    useUsageStore.setState({ usageState: "loaded", usage: rawUsage });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    expect(screen.getByText("Sessions: 8700")).toBeInTheDocument();
+    expect(screen.getByText("Events: 20000")).toBeInTheDocument();
+    expect(screen.getByText("Spans: 13000")).toBeInTheDocument();
+  });
+
+  it("shows app names around the pie on large screens", async () => {
+    useUsageStore.setState({ usageState: "loaded", usage: rawUsage });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    expect(mockPieProps.enableArcLinkLabels).toBe(true);
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  it("lists app names below the pie on small screens", async () => {
+    mockIsMobile = true;
+    useUsageStore.setState({ usageState: "loaded", usage: rawUsage });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    expect(mockPieProps.enableArcLinkLabels).toBe(false);
+    expect(
+      screen.getAllByRole("listitem").map((item) => item.textContent),
+    ).toEqual(["My App", "Other App"]);
   });
 
   // ---- Billing section ----

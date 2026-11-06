@@ -37,6 +37,7 @@ import { ResponsivePie } from "@nivo/pie";
 import DangerConfirmationDialog from "@/app/components/danger_confirmation_dialog";
 import { navigateTo } from "@/app/utils/navigation";
 import { toastNegative, toastPositive } from "@/app/components/toast";
+import { useIsMobile } from "@/app/utils/use_mobile";
 import { ChartPie } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -310,37 +311,18 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
     }
   };
 
-  // @ts-ignore
-  const CenteredMetric = ({ centerX, centerY }) => {
-    let totalSessions = 0;
-    let totalEvents = 0;
-    let totalSpans = 0;
-    selectedMonthUsage.forEach((appMonthlyUsage) => {
-      totalSessions += appMonthlyUsage.value;
-      totalEvents += appMonthlyUsage.events;
-      totalSpans += appMonthlyUsage.spans;
-    });
-
-    return (
-      <text
-        x={centerX}
-        y={centerY}
-        textAnchor="middle"
-        dominantBaseline="central"
-        className="font-display font-semibold fill-foreground"
-      >
-        <tspan className="text-2xl" x={centerX} dy="-0.7em">
-          Sessions: {totalSessions}
-        </tspan>
-        <tspan className="text-sm" x={centerX} dy="2em">
-          Events: {totalEvents}
-        </tspan>
-        <tspan className="text-sm" x={centerX} dy="1.4em">
-          Spans: {totalSpans}
-        </tspan>
-      </text>
-    );
-  };
+  const isMobile = useIsMobile();
+  // App names around the pie do not fit on small screens. A legend below the
+  // pie lists them there, leaving room for the pie to fill the chart area.
+  const pieMargin = isMobile ? 16 : 80;
+  const totals = selectedMonthUsage.reduce(
+    (sum, appMonthlyUsage) => ({
+      sessions: sum.sessions + appMonthlyUsage.value,
+      events: sum.events + appMonthlyUsage.events,
+      spans: sum.spans + appMonthlyUsage.spans,
+    }),
+    { sessions: 0, events: 0, spans: 0 },
+  );
 
   const usageIsError = usageStatus === "error";
   const usageIsLoading = usageStatus === "pending";
@@ -399,14 +381,22 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
             />
           )}
           {!monthHasNoUsage && (
-            <div className="w-full h-144 border border-dashed border-border rounded-sm">
+            <div
+              className={`relative w-full h-144 border border-dashed border-border rounded-sm`}
+            >
               <PlotTooltipArea>
                 <ResponsivePie
                   data={selectedMonthUsage}
                   theme={chartTheme}
                   animate
-                  margin={{ top: 80, right: 80, bottom: 80, left: 80 }}
+                  margin={{
+                    top: pieMargin,
+                    right: pieMargin,
+                    bottom: pieMargin,
+                    left: pieMargin,
+                  }}
                   innerRadius={0.7}
+                  enableArcLinkLabels={!isMobile}
                   enableArcLabels={false}
                   arcLinkLabel={(d) => `${d.label}`}
                   padAngle={0.7}
@@ -447,16 +437,35 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
                     );
                   }}
                   legends={[]}
-                  layers={[
-                    "arcs",
-                    "arcLabels",
-                    "arcLinkLabels",
-                    "legends",
-                    CenteredMetric,
-                  ]}
                 />
               </PlotTooltipArea>
+              {/* Equal margins on each side of the pie keep the center of
+                  this box aligned with the pie's center. */}
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 pointer-events-none font-display font-semibold text-center">
+                <p className="text-base md:text-2xl">
+                  Sessions: {totals.sessions}
+                </p>
+                <p className="text-xs md:text-sm">Events: {totals.events}</p>
+                <p className="text-xs md:text-sm">Spans: {totals.spans}</p>
+              </div>
             </div>
+          )}
+          {!monthHasNoUsage && isMobile && (
+            <ul className="mt-4 flex flex-col gap-2 font-body text-sm">
+              {selectedMonthUsage.map((appUsage, index) => (
+                <li key={appUsage.id} className="flex items-center gap-2">
+                  {/* Keep the legend colors in the same order as the pie
+                      slices. */}
+                  <span
+                    className="size-3 shrink-0 rounded-full"
+                    style={{
+                      backgroundColor: chartColors[index % chartColors.length],
+                    }}
+                  />
+                  {appUsage.label}
+                </li>
+              ))}
+            </ul>
           )}
         </div>
       )}
