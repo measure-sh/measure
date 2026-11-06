@@ -773,7 +773,10 @@ export default function TeamOverview(props: {
                       current_user_can_remove_member: boolean;
                     };
                   }) => (
-                    <TableRow key={id} className="font-body">
+                    <TableRow
+                      key={id}
+                      className="font-body hover:bg-transparent"
+                    >
                       <TableCell className="min-w-96 truncate">
                         {email}
                       </TableCell>
@@ -948,7 +951,10 @@ export default function TeamOverview(props: {
                       role: string;
                       valid_until: string;
                     }) => (
-                      <TableRow key={id} className="font-body">
+                      <TableRow
+                        key={id}
+                        className="font-body hover:bg-transparent"
+                      >
                         <TableCell className="truncate" title={email}>
                           {email}
                         </TableCell>
