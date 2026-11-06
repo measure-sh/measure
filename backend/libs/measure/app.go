@@ -2283,7 +2283,7 @@ func (a App) GetTrace(ctx context.Context, rch driver.Conn, traceId string) (tra
 
 // GetBugReportsWithFilter provides bug reports that match the filter
 // expression, newest first, in a paginated fashion.
-func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, flt *filter.Filter) (bugReports []BugReportDisplay, next, previous bool, err error) {
+func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, flt *filter.Filter) (bugReports []BugReport, next, previous bool, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.
 		From("bug_reports final").
@@ -2335,8 +2335,7 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, flt *
 	defer rows.Close()
 
 	for rows.Next() {
-		var bugReport BugReportDisplay
-		bugReport.BugReport = new(BugReport)
+		var bugReport BugReport
 		bugReport.Attribute = new(event.Attribute)
 		bugReport.AppID = flt.AppID
 
