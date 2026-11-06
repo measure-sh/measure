@@ -72,6 +72,12 @@
         @"credit_balance": @1000,
         @"latitude": @30.2661403415387};
     [Measure trackScreenView:@"ObjcViewController" attributes:userAttributes];
+    [Measure logWarning:@"ObjcDetailViewController appeared" attributes:@{}];
+}
+
+- (void)viewDidDisappear:(BOOL)animated {
+    [super viewDidDisappear:animated];
+    [Measure logWarning:@"ObjcDetailViewController disappeared" attributes:@{}];
 }
 
 // MARK: - Create Table Header with Buttons

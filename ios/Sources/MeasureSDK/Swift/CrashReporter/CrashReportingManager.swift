@@ -28,6 +28,8 @@ final class BaseCrashReportingManager: CrashReportManager {
     private let sysCtl: SysCtl
     private let configProvider: ConfigProvider
     private let signalSampler: SignalSampler
+    private let sessionStore: SessionStore
+    private let timeProvider: TimeProvider
     let hasPendingCrashReport: Bool
 
     init(logger: Logger,
@@ -37,7 +39,9 @@ final class BaseCrashReportingManager: CrashReportManager {
          idProvider: IdProvider,
          sysCtl: SysCtl,
          configProvider: ConfigProvider,
-         signalSampler: SignalSampler) {
+         signalSampler: SignalSampler,
+         sessionStore: SessionStore,
+         timeProvider: TimeProvider) {
         self.logger = logger
         self.signalProcessor = signalProcessor
         self.crashDataPersistence = crashDataPersistence
@@ -47,6 +51,8 @@ final class BaseCrashReportingManager: CrashReportManager {
         self.sysCtl = sysCtl
         self.configProvider = configProvider
         self.signalSampler = signalSampler
+        self.sessionStore = sessionStore
+        self.timeProvider = timeProvider
     }
 
     func trackException(completion: (() -> Void)?) {
@@ -69,6 +75,11 @@ final class BaseCrashReportingManager: CrashReportManager {
         let crashDataAttributes = exceptionData.crashDataAttributes
         if let attributes = crashDataAttributes.attribute, let sessionId = crashDataAttributes.sessionId {
             exception.foreground = crashDataAttributes.isForeground
+            // The crash belongs to the previous session, so use its start time instead of the
+            // current session's, which is later than the crash.
+            if let session = sessionStore.getSession(byId: sessionId) {
+                attributes.sessionStartTime = timeProvider.iso8601Timestamp(timeInMillis: session.createdAt)
+            }
             signalProcessor.track(data: exception,
                                   timestamp: Number(date.timeIntervalSince1970 * 1000),
                                   type: .exception,
@@ -102,8 +113,7 @@ final class BaseCrashReportingManager: CrashReportManager {
 
             let formatter = CrashDataFormatter(reportDict, sysCtl: sysCtl)
             let exception = formatter.getException()
-            let timestamp = (reportDict["report"] as? [String: Any])?["timestamp"] as? TimeInterval
-            let date = timestamp.map { Date(timeIntervalSince1970: $0) } ?? Date()
+            let date = Self.crashDate(from: reportDict)
             let crashDataAttributes = crashDataPersistence.readCrashData(from: reportDict)
             return (exception, date, crashDataAttributes)
         }
@@ -117,8 +127,7 @@ final class BaseCrashReportingManager: CrashReportManager {
             let formatter  = CrashDataFormatter(reportDict, sysCtl: sysCtl)
             let exception  = formatter.getException(severity: .fatal)
 
-            let timestamp = (reportDict["report"] as? [String: Any])?["timestamp"] as? TimeInterval
-            let date = timestamp.map { Date(timeIntervalSince1970: $0) } ?? Date()
+            let date = Self.crashDate(from: reportDict)
             let crashDataAttributes = crashDataPersistence.readCrashData(from: reportDict)
 
             return (exception, date, crashDataAttributes)
@@ -127,4 +136,28 @@ final class BaseCrashReportingManager: CrashReportManager {
             return (nil, nil, (attribute: nil, sessionId: nil, isForeground: nil))
         }
     }
+
+    /// Returns the time of the crash from the report, or the current time if it is missing.
+    /// KSCrash's report store converts `report.timestamp` to an ISO 8601 string when reading a
+    /// report, with microseconds (`2026-11-06T08:14:14.123456Z`) or without (`2026-11-06T08:14:14Z`).
+    static func crashDate(from reportDict: [String: Any]) -> Date {
+        guard let timestamp = (reportDict["report"] as? [String: Any])?["timestamp"] as? String else {
+            return Date()
+        }
+        return fractionalSecondsFormatter.date(from: timestamp)
+            ?? secondsFormatter.date(from: timestamp)
+            ?? Date()
+    }
+
+    private static let fractionalSecondsFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let secondsFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
 }

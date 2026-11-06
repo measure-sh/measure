@@ -64,6 +64,6 @@ final class BaseLogEventCollector: LogEventCollector {
                                            attachments: nil,
                                            userDefinedAttributes: userDefinedAttributes,
                                            threadName: nil,
-                                           needsReporting: true)
+                                           needsReporting: false)
     }
 }
