@@ -88,7 +88,7 @@ export default function FunnelStepErrors({
           <TableHead className="w-[11%] text-center">Instances</TableHead>
           <TableHead className="w-[11%] text-center">Users</TableHead>
           <TableHead className="w-[14%] text-center">Conversions</TableHead>
-          <TableHead className="w-[14%] text-center">Drop-offs</TableHead>
+          <TableHead className="w-[14%] text-right">Drop-offs</TableHead>
         </>
       }
     >

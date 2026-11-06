@@ -148,7 +148,7 @@ export default function BugReportsOverview(props: {
                       <TableHead className="w-[20%] text-center">
                         Time
                       </TableHead>
-                      <TableHead className="w-[20%] text-center">
+                      <TableHead className="w-[20%] text-right">
                         Status
                       </TableHead>
                     </TableRow>
@@ -239,7 +239,7 @@ export default function BugReportsOverview(props: {
                                 </p>
                               </div>
                             </TableCell>
-                            <TableCell className="w-[20%] text-center relative p-0">
+                            <TableCell className="w-[20%] text-right relative p-0">
                               <Link
                                 href={bugReportHref}
                                 className="absolute inset-0 z-10 cursor-pointer"
@@ -247,7 +247,7 @@ export default function BugReportsOverview(props: {
                                 aria-hidden="true"
                                 style={{ display: "block" }}
                               />
-                              <div className="pointer-events-none p-4 items-center flex justify-center">
+                              <div className="pointer-events-none p-4 items-center flex justify-end">
                                 <Pill
                                   type={
                                     status === 0

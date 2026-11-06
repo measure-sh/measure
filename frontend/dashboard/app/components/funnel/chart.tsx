@@ -144,7 +144,7 @@ export default function FunnelChart({
   }));
 
   return (
-    <div className="w-full h-72 font-body cursor-pointer">
+    <div className="w-full h-56 2xl:h-72 font-body cursor-pointer">
       <PlotTooltipArea taps={tooltipTaps}>
         <ResponsiveFunnel
           data={data}

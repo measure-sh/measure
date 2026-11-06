@@ -77,7 +77,7 @@ const MetricsOverview: React.FC<MetricsOverviewProps> = ({
   gapClassName = "gap-16",
 }) => {
   return (
-    <div className={`flex flex-wrap ${gapClassName} w-full justify-center`}>
+    <div className={`grid grid-cols-1 md:grid-cols-3 ${gapClassName} w-full`}>
       <MetricsCard
         type="app_adoption"
         status={status}

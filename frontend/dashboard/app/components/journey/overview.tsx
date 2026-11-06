@@ -54,7 +54,7 @@ export function JourneysDemo({ hideTitle = false }: { hideTitle?: boolean }) {
         {hideTitle ? "" : "User Journeys"}
       </p>
       {!hideTitle && <div className="py-4" />}
-      <div className="w-full h-120">
+      <div className="w-full h-120 2xl:h-180">
         <JourneyGraph
           journey={demoJourney}
           selection={selection}
@@ -294,7 +294,7 @@ export default function JourneysOverview({ teamId }: { teamId: string }) {
 
       {readyValue !== null && filterExprIssues === null && (
         <>
-          <div className="w-full h-120">
+          <div className="w-full h-120 2xl:h-180">
             <JourneyGraph
               journey={shownJourney}
               selection={selection}

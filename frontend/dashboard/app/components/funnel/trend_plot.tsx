@@ -299,6 +299,9 @@ interface FunnelTrendPlotProps {
   // which is null for the Overall line.
   onSelectPoint: (datetime: string, step: number | null) => void;
   controls?: ReactNode;
+  // Demo frames are narrower than the 2xl breakpoint, so use the large-screen
+  // heights to fill them.
+  demo?: boolean;
 }
 
 export default function FunnelTrendPlot({
@@ -309,9 +312,11 @@ export default function FunnelTrendPlot({
   trend,
   onSelectPoint,
   controls,
+  demo = false,
 }: FunnelTrendPlotProps) {
   const empty =
     trend !== undefined && trend.points.every((p) => p.steps[0].users === 0);
+  const placeholderHeight = demo ? "h-183.5" : "h-123.5 2xl:h-183.5";
   // The selections live here because the charts unmount while a new period or
   // filter loads. We keep a build unselected if a new trend also has the build.
   // If user switches date range and gets a trend without the unselected build,
@@ -341,12 +346,16 @@ export default function FunnelTrendPlot({
         <div className="flex w-full justify-end mb-4">{controls}</div>
       )}
       {status === "pending" && (
-        <div className="flex items-center justify-center w-full h-144">
+        <div
+          className={`flex items-center justify-center w-full ${placeholderHeight}`}
+        >
           <SkeletonPlot />
         </div>
       )}
       {status === "error" && (
-        <div className="flex items-center justify-center w-full h-144">
+        <div
+          className={`flex items-center justify-center w-full ${placeholderHeight}`}
+        >
           <p className="text-lg font-display text-center p-4">
             {queryErrorMessage(
               error,
@@ -360,7 +369,7 @@ export default function FunnelTrendPlot({
           icon={ChartLine}
           title="No users entered this funnel"
           description="Try different filters"
-          className="h-144"
+          className={placeholderHeight}
         />
       )}
       {status === "success" && !empty && trend && (
@@ -374,6 +383,7 @@ export default function FunnelTrendPlot({
           onChangeUnselectedBuildKeys={setUnselectedBuildKeys}
           onSelectPoint={onSelectPoint}
           controls={controls}
+          demo={demo}
         />
       )}
     </div>
@@ -390,6 +400,7 @@ function TrendCharts({
   onChangeUnselectedBuildKeys,
   onSelectPoint,
   controls,
+  demo,
 }: {
   period: FunnelTrendPeriod;
   metric: FunnelTrendMetric;
@@ -400,6 +411,7 @@ function TrendCharts({
   onChangeUnselectedBuildKeys: (unselectedBuildKeys: Set<string>) => void;
   onSelectPoint: (datetime: string, step: number | null) => void;
   controls: ReactNode;
+  demo: boolean;
 }) {
   const canvasTheme = useChartCanvasTheme();
   const gridOpacity = useChartGridOpacity();
@@ -783,7 +795,7 @@ function TrendCharts({
       <div style={{ height: BUILD_LABEL_ROW_HEIGHT }} />
       <PlotTooltipArea taps={conversionTooltipTaps}>
         <div
-          className="relative w-full h-96 cursor-pointer"
+          className={`relative w-full ${demo ? "h-120" : "h-72 2xl:h-120"} cursor-pointer`}
           onMouseMoveCapture={(event) =>
             trackHover(event, TOP_MARGIN, CONVERSION_BOTTOM_MARGIN)
           }
@@ -868,7 +880,7 @@ function TrendCharts({
       </PlotTooltipArea>
       <PlotTooltipArea taps={usersTooltipTaps}>
         <div
-          className="w-full h-44 cursor-pointer"
+          className={`w-full ${demo ? "h-52" : "h-40 2xl:h-52"} cursor-pointer`}
           onMouseMoveCapture={(event) =>
             trackHover(event, ENTERED_TOP_MARGIN, enteredBottomMargin)
           }

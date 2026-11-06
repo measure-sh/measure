@@ -60,12 +60,12 @@ const features = [
   },
   {
     title: "App Health",
-    heightClassName: "h-243.75",
+    heightClassName: "h-230",
     screenshot: {
       src: "/images/product_screenshots/app_health.webp",
       alt: "The Measure app health dashboard showing crash rate, ANR rate, launch time and app size metrics with trends over time",
       width: 2300,
-      height: 1996,
+      height: 1826,
     },
     description: (
       <>
@@ -137,8 +137,8 @@ const features = [
     screenshot: {
       src: "/images/product_screenshots/user_journeys.webp",
       alt: "A user journey graph in Measure showing how users move between screens and which routes are most affected by issues",
-      width: 1568,
-      height: 1510,
+      width: 2264,
+      height: 1800,
     },
     description: (
       <>
@@ -151,12 +151,12 @@ const features = [
   },
   {
     title: "Funnels",
-    heightClassName: "h-287.5",
+    heightClassName: "h-229.5",
     screenshot: {
       src: "/images/product_screenshots/funnels.webp",
       alt: "A Measure funnel showing how many users reach each step of a checkout, with the errors, traces and network requests that can cause drop-offs",
       width: 2300,
-      height: 2268,
+      height: 2130,
     },
     description: (
       <>
@@ -172,8 +172,8 @@ const features = [
     screenshot: {
       src: "/images/product_screenshots/network_performance.webp",
       alt: "The Measure network performance view showing HTTP status distribution over time and the slowest endpoints by latency",
-      width: 2278,
-      height: 1916,
+      width: 2300,
+      height: 1470,
     },
     description: (
       <>

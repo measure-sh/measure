@@ -78,7 +78,7 @@ export default function FunnelStepNetwork({
             Drop-off Latency ({quantile})
           </TableHead>
           <TableHead className="w-[13%] text-center">Conversions</TableHead>
-          <TableHead className="w-[13%] text-center">Drop-offs</TableHead>
+          <TableHead className="w-[13%] text-right">Drop-offs</TableHead>
         </>
       }
     >

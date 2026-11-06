@@ -67,7 +67,7 @@ const NetworkLatencyPlot: React.FC<NetworkLatencyPlotProps> = ({
   }, [data, quantile]);
 
   return (
-    <div className="flex font-body items-center justify-center w-full h-144">
+    <div className="flex font-body items-center justify-center w-full h-full">
       <div className="flex flex-col w-full h-full">
         <div className="flex flex-col w-full items-end p-2">
           <TabSelect

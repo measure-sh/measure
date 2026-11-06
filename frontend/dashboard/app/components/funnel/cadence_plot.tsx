@@ -86,12 +86,14 @@ function HourLines({
   onChangeUnselectedWeekdays,
   onSelectPoint,
   controls,
+  heightClassName,
 }: {
   hours: FunnelCadence["hours"];
   unselectedWeekdays: Set<string>;
   onChangeUnselectedWeekdays: (unselectedWeekdays: Set<string>) => void;
   onSelectPoint: (weekday: number, hour: number) => void;
   controls: ReactNode;
+  heightClassName: string;
 }) {
   const canvasTheme = useChartCanvasTheme();
   const gridOpacity = useChartGridOpacity();
@@ -220,7 +222,7 @@ function HourLines({
         />
         {controls}
       </div>
-      <div className="relative w-full h-136 cursor-pointer">
+      <div className={`relative w-full ${heightClassName} cursor-pointer`}>
         {series.length === 0 && (
           <p className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground pointer-events-none">
             No days selected
@@ -310,18 +312,22 @@ export default function FunnelCadencePlot({
   hours,
   onSelectPoint,
   controls,
+  demo = false,
 }: {
   status: "pending" | "error" | "success";
   error?: unknown;
   hours: FunnelCadence | undefined;
   onSelectPoint: (weekday: number, hour: number) => void;
   controls?: ReactNode;
+  // Uses the large-screen height at every width, matching FunnelTrendPlot.
+  demo?: boolean;
 }) {
   // The unselected weekdays live here because the lines unmount while a new span
   // or filter loads.
   const [unselectedWeekdays, setUnselectedWeekdays] = useState<Set<string>>(
     () => new Set(),
   );
+  const plotHeight = demo ? "h-183.5" : "h-123.5 2xl:h-183.5";
 
   return (
     <div className="flex flex-col font-body items-center justify-center w-full">
@@ -329,12 +335,16 @@ export default function FunnelCadencePlot({
         <div className="flex w-full justify-end mb-4">{controls}</div>
       )}
       {status === "pending" && (
-        <div className="flex items-center justify-center w-full h-144">
+        <div
+          className={`flex items-center justify-center w-full ${plotHeight}`}
+        >
           <SkeletonPlot />
         </div>
       )}
       {status === "error" && (
-        <div className="flex items-center justify-center w-full h-144">
+        <div
+          className={`flex items-center justify-center w-full ${plotHeight}`}
+        >
           <p className="text-lg font-display text-center p-4">
             {queryErrorMessage(
               error,
@@ -348,7 +358,7 @@ export default function FunnelCadencePlot({
           icon={Clock}
           title="No users entered this funnel"
           description="Try different filters"
-          className="h-144"
+          className={plotHeight}
         />
       )}
       {status === "success" && hours && hours.hours.length > 0 && (
@@ -358,6 +368,7 @@ export default function FunnelCadencePlot({
           onChangeUnselectedWeekdays={setUnselectedWeekdays}
           onSelectPoint={onSelectPoint}
           controls={controls}
+          heightClassName={plotHeight}
         />
       )}
     </div>

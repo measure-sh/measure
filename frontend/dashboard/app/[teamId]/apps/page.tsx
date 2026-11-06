@@ -305,7 +305,7 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
 
       {/* Loading State */}
       {pageDataLoading && (
-        <div className="w-full max-w-6xl font-body mt-8">
+        <div className="w-full font-body mt-8">
           {/* App Info */}
           <div className="flex flex-col">
             <Skeleton className="h-4 w-32" />
@@ -393,7 +393,7 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
 
       {/* Main UI - Only show when both APIs succeed and SDK config is loaded */}
       {pageDataSuccess && (
-        <div className="w-full max-w-6xl">
+        <div className="w-full">
           {/* Dialog for confirming app name change */}
           <DangerConfirmationDialog
             body={

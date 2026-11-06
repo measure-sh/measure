@@ -374,6 +374,7 @@ export function FunnelDetailsDemo({
             status="success"
             trend={trend}
             onSelectPoint={(_, step) => openInBreakdown(step)}
+            demo
             controls={
               <TrendControls
                 metric={metric}
@@ -389,6 +390,7 @@ export function FunnelDetailsDemo({
             status="success"
             hours={cadence}
             onSelectPoint={() => openInBreakdown(null)}
+            demo
             controls={
               <CadenceControls
                 cadenceSpan={cadenceSpan}
@@ -788,12 +790,12 @@ export default function FunnelDetails({
             {view === FunnelView.Breakdown && (
               <>
                 {conversionQuery.isPending && (
-                  <div className="flex font-body items-center justify-center w-full h-72">
+                  <div className="flex font-body items-center justify-center w-full h-56 2xl:h-72">
                     <SkeletonPlot />
                   </div>
                 )}
                 {conversionQuery.isError && filterExprIssues === null && (
-                  <div className="flex font-body items-center justify-center w-full h-72">
+                  <div className="flex font-body items-center justify-center w-full h-56 2xl:h-72">
                     <p className="text-lg font-display text-center p-4">
                       {queryErrorMessage(
                         conversionQuery.error,

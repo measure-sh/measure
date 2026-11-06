@@ -315,6 +315,7 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
   // App names around the pie do not fit on small screens. A legend below the
   // pie lists them there, leaving room for the pie to fill the chart area.
   const pieMargin = isMobile ? 16 : 80;
+  const chartHeight = "h-96 md:h-144 2xl:h-180";
   const totals = selectedMonthUsage.reduce(
     (sum, appMonthlyUsage) => ({
       sessions: sum.sessions + appMonthlyUsage.value,
@@ -348,7 +349,7 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
           icon={ChartPie}
           title="No usage found"
           description="Usage shows up here once your apps send events"
-          className="h-144"
+          className={chartHeight}
         />
       )}
 
@@ -357,8 +358,10 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
         <div className="flex flex-col items-start w-full">
           <Skeleton className="h-9 w-37.5" />
           <div className="py-4" />
-          <div className="w-full h-144 flex items-center justify-center">
-            <Skeleton className="w-72 h-72 rounded-full" />
+          <div
+            className={`w-full ${chartHeight} flex items-center justify-center`}
+          >
+            <Skeleton className="w-72 h-72 2xl:w-96 2xl:h-96 rounded-full" />
           </div>
         </div>
       )}
@@ -377,12 +380,12 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
               icon={ChartPie}
               title="No usage found"
               description="Try a different month"
-              className="h-144"
+              className={chartHeight}
             />
           )}
           {!monthHasNoUsage && (
             <div
-              className={`relative w-full h-144 border border-dashed border-border rounded-sm`}
+              className={`relative w-full ${chartHeight} border border-dashed border-border rounded-sm`}
             >
               <PlotTooltipArea>
                 <ResponsivePie

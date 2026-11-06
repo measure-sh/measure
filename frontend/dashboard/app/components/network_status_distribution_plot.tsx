@@ -62,7 +62,7 @@ const NetworkStatusDistributionPlot: React.FC<
   }, [data]);
 
   return (
-    <div className="flex font-body items-center justify-center w-full h-144">
+    <div className="flex font-body items-center justify-center w-full h-full">
       <div className="size-full">
         <TimeSeriesPlot
           data={plot}
