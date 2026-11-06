@@ -44,6 +44,27 @@ final class AttributeProcessorTests: XCTestCase {
         XCTAssertEqual(attributes.deviceName, "iPhone 14")
     }
 
+    func testSessionAttributeProcessor_setsCurrentSessionStartTime() {
+        let sessionManager = MockSessionManager()
+        sessionManager.sessionStartTime = 1_700_000_000_000
+        let attributes = Attributes()
+
+        SessionAttributeProcessor(sessionManager: sessionManager, timeProvider: BaseTimeProvider()).appendAttributes(attributes)
+
+        XCTAssertEqual(attributes.sessionStartTime, "2023-11-14T22:13:20.000Z")
+    }
+
+    func testSessionAttributeProcessor_keepsExistingSessionStartTime() {
+        let sessionManager = MockSessionManager()
+        sessionManager.sessionStartTime = 1_700_000_000_000
+        let attributes = Attributes()
+        attributes.sessionStartTime = "2023-11-14T22:00:00.000Z"
+
+        SessionAttributeProcessor(sessionManager: sessionManager, timeProvider: BaseTimeProvider()).appendAttributes(attributes)
+
+        XCTAssertEqual(attributes.sessionStartTime, "2023-11-14T22:00:00.000Z")
+    }
+
     func testNoopWhenEmptyListOfProcessorsIsPassed() {
         let attributes = Attributes()
 

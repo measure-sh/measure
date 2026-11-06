@@ -18,6 +18,7 @@ final class CrashReportingManagerTests: XCTestCase {
     var signalSampler: MockSignalSampler!
     var crashReportingManager: BaseCrashReportingManager!
     var sysCtl: MockSysCtl!
+    var sessionStore: MockSessionStore!
 
     override func setUp() {
         super.setUp()
@@ -33,6 +34,7 @@ final class CrashReportingManagerTests: XCTestCase {
         configProvider = MockConfigProvider()
         signalSampler = MockSignalSampler()
         sysCtl = MockSysCtl()
+        sessionStore = MockSessionStore()
     }
 
     override func tearDown() {
@@ -48,7 +50,7 @@ final class CrashReportingManagerTests: XCTestCase {
         super.tearDown()
     }
 
-    private func makeReportDict(timestamp: TimeInterval? = 1_700_000_000) -> [String: Any] {
+    private func makeReportDict(timestamp: String? = "2023-11-14T22:13:20Z") -> [String: Any] {
         var report: [String: Any] = [
             "crash": ["error": [:], "threads": []] as [String: Any],
             "binary_images": [],
@@ -162,12 +164,37 @@ final class CrashReportingManagerTests: XCTestCase {
         XCTAssertEqual(exception?.foreground, false)
     }
 
-    func test_trackException_usesReportTimestampInMilliseconds() {
-        let ts: TimeInterval = 1_700_000_000
+    func test_trackException_usesReportTimestampWithFractionalSeconds() {
         reporter.hasPendingCrashReport = true
-        reporter.reportToReturn = makeReportDict(timestamp: ts)
+        reporter.reportToReturn = makeReportDict(timestamp: "2023-11-14T22:13:20.123456Z")
         trackException()
-        XCTAssertEqual(signalProcessor.timestamp, Number(ts * 1000))
+        XCTAssertEqual(signalProcessor.timestamp, 1_700_000_000_123)
+    }
+
+    func test_trackException_usesReportTimestampWithoutFractionalSeconds() {
+        reporter.hasPendingCrashReport = true
+        reporter.reportToReturn = makeReportDict(timestamp: "2023-11-14T22:13:20Z")
+        trackException()
+        XCTAssertEqual(signalProcessor.timestamp, 1_700_000_000_000)
+    }
+
+    func test_trackException_usesCrashedSessionStartTime() {
+        sessionStore.insertSession(SessionEntity(sessionId: "session-123",
+                                                 pid: 1,
+                                                 createdAt: 1_700_000_000_000,
+                                                 needsReporting: false,
+                                                 crashed: false))
+        reporter.hasPendingCrashReport = true
+        reporter.reportToReturn = makeReportDict()
+        trackException()
+        XCTAssertEqual(signalProcessor.attributes?.sessionStartTime, "2023-11-14T22:13:20.000Z")
+    }
+
+    func test_trackException_leavesSessionStartTimeUnsetWhenSessionIsNotFound() {
+        reporter.hasPendingCrashReport = true
+        reporter.reportToReturn = makeReportDict()
+        trackException()
+        XCTAssertNil(signalProcessor.attributes?.sessionStartTime)
     }
 
     func test_trackException_clearsCrashReporterDataAfterTracking() {
@@ -248,7 +275,7 @@ final class CrashReportingManagerTests: XCTestCase {
             ] as [String: Any],
             "binary_images": [],
             "system": [:],
-            "report": ["timestamp": 1_700_000_000]
+            "report": ["timestamp": "2023-11-14T22:13:20Z"]
         ]
         reporter.hasPendingCrashReport = true
         reporter.allReportsToReturn = [nativeNSExceptionReport]
@@ -258,7 +285,7 @@ final class CrashReportingManagerTests: XCTestCase {
         XCTAssertTrue(reporter.loadCrashReportCalled)
     }
     
-     private func makeKotlinCrashReport(timestamp: TimeInterval = 1_700_000_000) -> [String: Any] {
+     private func makeKotlinCrashReport(timestamp: String = "2023-11-14T22:13:20Z") -> [String: Any] {
          return [
              "crash": [
                  "error": [
@@ -275,7 +302,7 @@ final class CrashReportingManagerTests: XCTestCase {
          ]
      }
 
-     private func makeSignalReport(timestamp: TimeInterval = 1_700_000_000) -> [String: Any] {
+     private func makeSignalReport(timestamp: String = "2023-11-14T22:13:20Z") -> [String: Any] {
          return [
              "crash": [
                  "error": [
@@ -297,7 +324,9 @@ final class CrashReportingManagerTests: XCTestCase {
                                                           idProvider: idProvider,
                                                           sysCtl: sysCtl,
                                                           configProvider: configProvider,
-                                                          signalSampler: signalSampler)
+                                                          signalSampler: signalSampler,
+                                                          sessionStore: sessionStore,
+                                                          timeProvider: BaseTimeProvider())
         crashReportingManager.trackException {}
     }
 }

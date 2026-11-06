@@ -92,6 +92,12 @@ struct SwiftUIDetailViewController: View {
                 }
             }
         }
+        .onAppear {
+            Measure.logWarning("SwiftUIDetailViewController appeared")
+        }
+        .onDisappear {
+            Measure.logWarning("SwiftUIDetailViewController disappeared")
+        }
     }
 
     // MARK: - Crash Triggers

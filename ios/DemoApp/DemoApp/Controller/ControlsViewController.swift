@@ -121,4 +121,14 @@ class ControlsViewController: UIViewController {
     @IBAction func showDatePickerAction(_ sender: UIButton) {
         showDatePicker()
     }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        Measure.logWarning("ControlsViewController appeared")
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        Measure.logWarning("ControlsViewController disappeared")
+    }
 }

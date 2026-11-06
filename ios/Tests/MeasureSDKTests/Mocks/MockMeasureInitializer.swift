@@ -248,7 +248,9 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                                                   idProvider: self.idProvider,
                                                                                   sysCtl: self.sysCtl,
                                                                                   configProvider: self.configProvider,
-                                                                                  signalSampler: self.signalSampler)
+                                                                                  signalSampler: self.signalSampler,
+                                                                                  sessionStore: self.sessionStore,
+                                                                                  timeProvider: self.timeProvider)
         self.spanProcessor = spanProcessor ?? BaseSpanProcessor(logger: self.logger,
                                                signalProcessor: self.signalProcessor,
                                                attributeProcessors: attributeProcessors,

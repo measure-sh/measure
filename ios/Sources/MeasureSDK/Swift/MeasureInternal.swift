@@ -217,10 +217,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         }
         self.crashDataPersistence.sessionId = sessionManager.sessionId
         let group = DispatchGroup()
-        group.enter()
-        self.crashReportManager.trackException {
-            group.leave()
-        }
         registerAlwaysOnCollectors()
         if configProvider.autoStart {
             start()
@@ -238,6 +234,10 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             self.cpuUsageCollector.onConfigLoaded()
             self.memoryUsageCollector.onConfigLoaded()
             self.appHangCollector.onConfigLoaded()
+            group.leave()
+        }
+        group.enter()
+        self.crashReportManager.trackException {
             group.leave()
         }
         group.notify(queue: .main) { [weak self] in

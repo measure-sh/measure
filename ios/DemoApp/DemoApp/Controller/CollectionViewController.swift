@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import Measure
 
 class CollectionViewController: UIViewController {
     enum Section: Int, CaseIterable {
@@ -108,6 +109,16 @@ class CollectionViewController: UIViewController {
         snapshot.appendItems(verticalItems, toSection: .vertical)
 
         dataSource.apply(snapshot, animatingDifferences: false)
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        Measure.logWarning("CollectionViewController appeared")
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+        Measure.logWarning("CollectionViewController disappeared")
     }
 }
 
