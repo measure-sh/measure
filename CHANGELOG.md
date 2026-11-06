@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - (**backend**): Pass `libs` build context to symboloader image build by @detj in #4800
 - (**frontend**): Add app hangs to the sandbox by @anupcowkur in #4802
+- Hide session replay button when no replay is available by @anupcowkur in #4809
 
 ### :recycle: Refactor
 
