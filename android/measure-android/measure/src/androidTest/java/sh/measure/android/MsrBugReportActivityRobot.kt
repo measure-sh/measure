@@ -20,6 +20,7 @@ import org.junit.Assert
 import sh.measure.android.bugreport.ShakeBugReportCollector
 import sh.measure.android.config.MeasureConfig
 import sh.measure.android.events.EventType
+import java.util.concurrent.Callable
 
 internal class MsrBugReportActivityRobot {
     private val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -27,6 +28,7 @@ internal class MsrBugReportActivityRobot {
     private val device = UiDevice.getInstance(instrumentation)
     private val signalStore = FakeSignalStore()
     private val shakeDetector = FakeShakeDetector()
+    private lateinit var initializer: TestMeasureInitializer
 
     fun initializeMeasure(config: MeasureConfig = MeasureConfig()): TestMeasureInitializer {
         val initializer = TestMeasureInitializer(
@@ -38,6 +40,7 @@ internal class MsrBugReportActivityRobot {
             signalStore = signalStore,
         )
         Measure.initForInstrumentationTest(initializer)
+        this.initializer = initializer
         return initializer
     }
 
@@ -91,12 +94,24 @@ internal class MsrBugReportActivityRobot {
 
     fun assetBugReportTracked(attachmentCount: Int = 0, userDefinedAttrCount: Int = 0) {
         device.waitForIdle()
+        waitForIoExecutor()
         val event = signalStore.trackedEvents.find {
             it.type == EventType.BUG_REPORT
         }
         Assert.assertNotNull(event)
         Assert.assertEquals(attachmentCount, event?.attachments?.size)
         Assert.assertEquals(userDefinedAttrCount, event?.userDefinedAttributes?.size)
+    }
+
+    /**
+     * Sending a bug report queues a task on the IO executor, and that task queues another one
+     * that stores the report. The IO executor runs one task at a time in order, so waiting for
+     * two empty tasks waits for the report to be stored.
+     */
+    private fun waitForIoExecutor() {
+        repeat(2) {
+            initializer.executorServiceRegistry.ioExecutor().submit(Callable {}).get()
+        }
     }
 
     fun triggerConfigurationChange() {

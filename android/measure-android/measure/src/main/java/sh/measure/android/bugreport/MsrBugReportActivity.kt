@@ -184,24 +184,32 @@ internal class MsrBugReportActivity : ComponentActivity() {
     }
 
     /**
-     * Shows the screenshot captured for this flow while it is still being encoded. Its file does
-     * not exist yet, so the thumbnail comes from the in memory preview.
+     * Shows the screenshot captured for this flow from its in memory preview, so that opening
+     * the screen never waits on reading its file. The screenshot may finish encoding before or
+     * after this screen opens.
      */
     private fun showPendingScreenshot() {
-        val screenshot = bugReportCollector.getPendingScreenshot()
-            ?.takeIf { it.isEncoding() } ?: return
+        val screenshot = bugReportCollector.getPendingScreenshot() ?: return
         val preview = screenshot.preview ?: return
+        val encoded = screenshot.encodedAttachment()
+        if (!screenshot.isEncoding() && encoded == null) {
+            return
+        }
         val view = ScreenshotView(this)
         view.setImageFromBitmap(preview)
         view.setRemoveClickListener { removePendingScreenshot(view) }
         slScreenshotsContainer.addView(view)
         pendingScreenshot = screenshot
         pendingScreenshotView = view
-        screenshot.setListener(::onScreenshotEncoded)
+        if (encoded != null) {
+            onScreenshotEncoded(screenshot, encoded)
+        } else {
+            screenshot.setListener { attachment -> onScreenshotEncoded(screenshot, attachment) }
+        }
         updateAddImageClickListener()
     }
 
-    private fun onScreenshotEncoded(attachment: ParcelableAttachment?) {
+    private fun onScreenshotEncoded(screenshot: PendingScreenshot, attachment: ParcelableAttachment?) {
         val view = pendingScreenshotView
         pendingScreenshot = null
         pendingScreenshotView = null
@@ -210,12 +218,22 @@ internal class MsrBugReportActivity : ComponentActivity() {
             updateAddImageClickListener()
             return
         }
-        attachments.add(attachment)
+        takeEncodedScreenshot(screenshot, attachment)
         view?.setRemoveClickListener {
             attachments.remove(attachment)
             slScreenshotsContainer.removeView(view)
             updateAddImageClickListener()
         }
+    }
+
+    /**
+     * Makes the encoded screenshot one of this screen's attachments, which are kept across
+     * configuration changes. The collector lets go of it so that a recreated screen does not add
+     * it a second time.
+     */
+    private fun takeEncodedScreenshot(screenshot: PendingScreenshot, attachment: ParcelableAttachment) {
+        attachments.add(attachment)
+        bugReportCollector.releasePendingScreenshot(screenshot)
     }
 
     private fun removePendingScreenshot(view: ScreenshotView) {
