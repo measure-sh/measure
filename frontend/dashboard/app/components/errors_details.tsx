@@ -439,7 +439,7 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
           />
         </div>
 
-        <div className="py-8" />
+        <div className="py-4" />
 
         {status === "error" && filterExprIssues === null && (
           <p className="font-body text-sm">
@@ -786,7 +786,7 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
             </div>
           </div>
 
-          <div className="py-8" />
+          <div className="py-4" />
           <Skeleton className="h-8 w-32" />
           <div className="flex flex-col gap-3 w-full py-4">
             <Skeleton className="h-4 w-full" />

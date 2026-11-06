@@ -193,7 +193,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
               />
             </div>
             {shouldRenderTimelinePlot && (
-              <div className="py-8">
+              <div className="pt-4 pb-8">
                 <NetworkTimelinePlot data={timelineQuery.data!} />
               </div>
             )}

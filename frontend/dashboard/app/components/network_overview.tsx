@@ -293,7 +293,7 @@ export default function NetworkOverview({
               }
             />
           </div>
-          <div className="py-4" />
+          <div className="py-2" />
           <NetworkEndpointSearch
             key={teamId}
             teamId={teamId}
@@ -414,7 +414,7 @@ function NetworkOverviewSections({
           <InfoTooltip content={timelineTooltip} />
         </div>
         {shouldRenderTimeline && (
-          <div className="py-8">
+          <div className="pt-4 pb-8">
             <NetworkTimelinePlot data={timelinePlotData!} />
           </div>
         )}

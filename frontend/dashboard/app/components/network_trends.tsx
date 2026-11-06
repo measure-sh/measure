@@ -237,14 +237,14 @@ export default function NetworkTrends({
           tabButtons}
       </div>
       {effectiveStatus === "pending" && (
-        <div className="w-full mt-6" style={{ minHeight: 480 }}>
+        <div className="w-full mt-4" style={{ minHeight: 480 }}>
           <LoadingBar />
         </div>
       )}
 
       {effectiveStatus === "success" && activeTabData.length > 0 && (
         <>
-          <div className="py-6" />
+          <div className="py-2" />
           <Table className="font-display select-none max-lg:min-w-140">
             <TableHeader>
               <TableRow>
