@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 - (**backend**): Pass `libs` build context to symboloader image build by @detj in #4800
+- (**deps**): Update vulnarable react native and frank app dependancies by @adwinross in #4812
 - (**frontend**): Add app hangs to the sandbox by @anupcowkur in #4802
 - Hide session replay button when no replay is available by @anupcowkur in #4809
 
