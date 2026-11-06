@@ -3,7 +3,7 @@
 import { type LineCustomCanvasLayer, ResponsiveLineCanvas } from "@nivo/line";
 import { Clock } from "lucide-react";
 import { DateTime } from "luxon";
-import { useCallback, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import type { FunnelCadence } from "../../api/api_calls";
 import { queryErrorMessage } from "../../api/api_error";
 import {
@@ -85,11 +85,13 @@ function HourLines({
   unselectedWeekdays,
   onChangeUnselectedWeekdays,
   onSelectPoint,
+  controls,
 }: {
   hours: FunnelCadence["hours"];
   unselectedWeekdays: Set<string>;
   onChangeUnselectedWeekdays: (unselectedWeekdays: Set<string>) => void;
   onSelectPoint: (weekday: number, hour: number) => void;
+  controls: ReactNode;
 }) {
   const canvasTheme = useChartCanvasTheme();
   const gridOpacity = useChartGridOpacity();
@@ -195,7 +197,7 @@ function HourLines({
 
   return (
     <div className="flex flex-col w-full">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <DropdownSelect
           type={DropdownSelectType.MultiString}
           title="Select Days"
@@ -216,6 +218,7 @@ function HourLines({
             )
           }
         />
+        {controls}
       </div>
       <div className="relative w-full h-136 cursor-pointer">
         {series.length === 0 && (
@@ -306,11 +309,13 @@ export default function FunnelCadencePlot({
   error,
   hours,
   onSelectPoint,
+  controls,
 }: {
   status: "pending" | "error" | "success";
   error?: unknown;
   hours: FunnelCadence | undefined;
   onSelectPoint: (weekday: number, hour: number) => void;
+  controls?: ReactNode;
 }) {
   // The unselected weekdays live here because the lines unmount while a new span
   // or filter loads.
@@ -320,6 +325,9 @@ export default function FunnelCadencePlot({
 
   return (
     <div className="flex flex-col font-body items-center justify-center w-full">
+      {!(status === "success" && hours && hours.hours.length > 0) && (
+        <div className="flex w-full justify-end mb-4">{controls}</div>
+      )}
       {status === "pending" && (
         <div className="flex items-center justify-center w-full h-144">
           <SkeletonPlot />
@@ -349,6 +357,7 @@ export default function FunnelCadencePlot({
           unselectedWeekdays={unselectedWeekdays}
           onChangeUnselectedWeekdays={setUnselectedWeekdays}
           onSelectPoint={onSelectPoint}
+          controls={controls}
         />
       )}
     </div>

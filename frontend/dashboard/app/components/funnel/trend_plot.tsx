@@ -3,7 +3,14 @@
 import { type LineCustomCanvasLayer, ResponsiveLineCanvas } from "@nivo/line";
 import { ChartLine } from "lucide-react";
 import { DateTime } from "luxon";
-import { type MouseEvent, useCallback, useMemo, useRef, useState } from "react";
+import {
+  type MouseEvent,
+  type ReactNode,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { FunnelTrend, FunnelTrendPeriod } from "../../api/api_calls";
 import { queryErrorMessage } from "../../api/api_error";
 import {
@@ -291,6 +298,7 @@ interface FunnelTrendPlotProps {
   // Called with the start of the clicked period and the clicked line's step,
   // which is null for the Overall line.
   onSelectPoint: (datetime: string, step: number | null) => void;
+  controls?: ReactNode;
 }
 
 export default function FunnelTrendPlot({
@@ -300,6 +308,7 @@ export default function FunnelTrendPlot({
   error,
   trend,
   onSelectPoint,
+  controls,
 }: FunnelTrendPlotProps) {
   const empty =
     trend !== undefined && trend.points.every((p) => p.steps[0].users === 0);
@@ -328,6 +337,9 @@ export default function FunnelTrendPlot({
 
   return (
     <div className="flex flex-col font-body items-center justify-center w-full">
+      {!(status === "success" && !empty && trend) && (
+        <div className="flex w-full justify-end mb-4">{controls}</div>
+      )}
       {status === "pending" && (
         <div className="flex items-center justify-center w-full h-144">
           <SkeletonPlot />
@@ -361,6 +373,7 @@ export default function FunnelTrendPlot({
           unselectedBuildKeys={unselectedBuildKeys}
           onChangeUnselectedBuildKeys={setUnselectedBuildKeys}
           onSelectPoint={onSelectPoint}
+          controls={controls}
         />
       )}
     </div>
@@ -376,6 +389,7 @@ function TrendCharts({
   unselectedBuildKeys,
   onChangeUnselectedBuildKeys,
   onSelectPoint,
+  controls,
 }: {
   period: FunnelTrendPeriod;
   metric: FunnelTrendMetric;
@@ -385,6 +399,7 @@ function TrendCharts({
   unselectedBuildKeys: Set<string>;
   onChangeUnselectedBuildKeys: (unselectedBuildKeys: Set<string>) => void;
   onSelectPoint: (datetime: string, step: number | null) => void;
+  controls: ReactNode;
 }) {
   const canvasTheme = useChartCanvasTheme();
   const gridOpacity = useChartGridOpacity();
@@ -735,30 +750,33 @@ function TrendCharts({
 
   return (
     <div className="flex flex-col w-full">
-      <div className="flex flex-wrap gap-2">
-        <DropdownSelect
-          type={DropdownSelectType.MultiString}
-          title="Select Steps"
-          items={specs.map((spec) => ({
-            value: spec.id,
-            label: spec.label,
-            color: spec.color,
-          }))}
-          initialSelected={visible}
-          onChangeSelected={(ids) => showOnly(ids as string[])}
-        />
-        {trend.builds.length > 0 && (
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="flex flex-wrap gap-2">
           <DropdownSelect
             type={DropdownSelectType.MultiString}
-            title="Select Builds"
-            items={trend.builds.map((build) => ({
-              value: buildKey(build),
-              label: buildText(build),
+            title="Select Steps"
+            items={specs.map((spec) => ({
+              value: spec.id,
+              label: spec.label,
+              color: spec.color,
             }))}
-            initialSelected={visibleBuilds}
-            onChangeSelected={(keys) => showOnlyBuilds(keys as string[])}
+            initialSelected={visible}
+            onChangeSelected={(ids) => showOnly(ids as string[])}
           />
-        )}
+          {trend.builds.length > 0 && (
+            <DropdownSelect
+              type={DropdownSelectType.MultiString}
+              title="Select Builds"
+              items={trend.builds.map((build) => ({
+                value: buildKey(build),
+                label: buildText(build),
+              }))}
+              initialSelected={visibleBuilds}
+              onChangeSelected={(keys) => showOnlyBuilds(keys as string[])}
+            />
+          )}
+        </div>
+        {controls}
       </div>
       {/* Build labels are drawn in the plot's top margin, so this keeps them
           as far below the dropdowns as the cadence plot. */}

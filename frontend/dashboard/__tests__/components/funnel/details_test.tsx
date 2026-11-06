@@ -146,6 +146,7 @@ jest.mock("@/app/components/funnel/trend_plot", () => ({
         >
           select overall point
         </button>
+        {props.controls}
       </div>
     );
   },
@@ -156,10 +157,15 @@ jest.mock("@/app/components/funnel/cadence_plot", () => ({
   __esModule: true,
   default: ({
     onSelectPoint,
+    controls,
   }: {
     onSelectPoint: (weekday: number, hour: number) => void;
+    controls: React.ReactNode;
   }) => (
-    <button onClick={() => onSelectPoint(3, 14)}>select cadence point</button>
+    <>
+      <button onClick={() => onSelectPoint(3, 14)}>select cadence point</button>
+      {controls}
+    </>
   ),
 }));
 
@@ -340,8 +346,7 @@ const lastProps = <P,>(mock: jest.Mock<void, [P]>) =>
   mock.mock.calls.at(-1)![0];
 
 const summary = (title: string) =>
-  screen.getByText(title, { selector: "p" }).parentElement!.nextElementSibling!
-    .textContent;
+  screen.getByText(title, { selector: "p" }).nextElementSibling!.textContent;
 
 const openedRange = () => {
   const { dateRange } = mockOnChange.mock.calls[0][0];
