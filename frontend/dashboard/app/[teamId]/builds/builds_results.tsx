@@ -81,11 +81,10 @@ export default function BuildsResults({
             />
           </div>
           <div
-            className={`py-1 w-full ${query.isFetching ? "visible" : "invisible"}`}
+            className={`py-4 w-full ${query.isFetching ? "visible" : "invisible"}`}
           >
             <LoadingBar />
           </div>
-          <div className="py-4" />
           <BuildsTable
             builds={builds.results}
             downloadsDisabled={downloadsDisabled}

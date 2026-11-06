@@ -91,7 +91,7 @@ export default function HighMemoryUsageSessions({
             />
           </div>
           <div
-            className={`w-full py-3 ${isFetching ? "visible" : "invisible"}`}
+            className={`py-4 w-full ${isFetching ? "visible" : "invisible"}`}
           >
             <LoadingBar />
           </div>

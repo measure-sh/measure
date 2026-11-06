@@ -331,11 +331,10 @@ export default function FunnelsOverview({ teamId }: { teamId: string }) {
             />
           </div>
           <div
-            className={`py-1 w-full ${funnelsQuery.isFetching && !funnelsQuery.isPending ? "visible" : "invisible"}`}
+            className={`py-4 w-full ${funnelsQuery.isFetching && !funnelsQuery.isPending ? "visible" : "invisible"}`}
           >
             <LoadingBar />
           </div>
-          <div className="py-2" />
         </>
       )}
 

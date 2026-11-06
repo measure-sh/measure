@@ -68,11 +68,10 @@ export function StepList<Item>({
   return (
     <div className="w-full font-body">
       <div
-        className={`py-1 w-full ${isFetching && status !== "pending" ? "visible" : "invisible"}`}
+        className={`py-4 w-full ${isFetching && status !== "pending" ? "visible" : "invisible"}`}
       >
         <LoadingBar />
       </div>
-      <div className="py-2" />
 
       {status === "pending" && <SkeletonTable rows={5} columns={columns} />}
 

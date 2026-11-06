@@ -232,11 +232,10 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                   />
                 </div>
                 <div
-                  className={`py-1 w-full ${isFetching ? "visible" : "invisible"}`}
+                  className={`py-4 w-full ${isFetching ? "visible" : "invisible"}`}
                 >
                   <LoadingBar />
                 </div>
-                <div className="py-4" />
                 {/* When a trend tooltip opens on the last row, it extends below
                     the table for one frame before it moves above the cursor.
                     Without the clip, Table's scrollable container shows a

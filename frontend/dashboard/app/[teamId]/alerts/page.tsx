@@ -116,11 +116,10 @@ export default function AlertsOverview(props: {
             />
           </div>
           <div
-            className={`py-1 w-full ${isFetching ? "visible" : "invisible"}`}
+            className={`py-4 w-full ${isFetching ? "visible" : "invisible"}`}
           >
             <LoadingBar />
           </div>
-          <div className="py-4" />
           <Table className="font-display select-none max-lg:min-w-125">
             <TableHeader>
               <TableRow>
