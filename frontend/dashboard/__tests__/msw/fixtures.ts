@@ -610,6 +610,7 @@ export function makeExceptionInstanceFixture(
       {
         id: "instance-001",
         session_id: "sess-crash-001",
+        has_replay: true,
         timestamp: "2026-04-10T10:30:00Z",
         type: "java.lang.NullPointerException",
         thread_name: "main",
@@ -828,6 +829,7 @@ export function makeBugReportDetailFixture(
     app_id: "b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f",
     event_id: "evt-br-001",
     status: 0,
+    has_replay: true,
     description: "App crashes when tapping checkout button",
     timestamp: "2026-04-10T14:30:00Z",
     updated_at: "2026-04-10T14:30:00Z",
@@ -1027,6 +1029,7 @@ export function makeTraceDetailFixture(overrides: Record<string, any> = {}) {
     app_id: "b5f3e8a1-6c2d-4f9a-8e7b-1a2b3c4d5e6f",
     trace_id: "trace-001",
     session_id: "sess-trace-001",
+    has_replay: true,
     user_id: "user-trace-123",
     start_time: "2026-04-10T14:30:00Z",
     end_time: "2026-04-10T14:30:01.187Z",

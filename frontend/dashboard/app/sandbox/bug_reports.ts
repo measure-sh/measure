@@ -10,6 +10,7 @@ import {
 import { deviceAttributeBag, matchFraction, matchesFilterExpr } from "./filter";
 import { scaledSeries } from "./aggregate";
 import { adoptionOf } from "./adoption";
+import { hasSessionReplay } from "./sessions";
 
 function bugReportAttributes(report: BugReport): Record<string, unknown> {
   return {
@@ -100,6 +101,7 @@ export const bugReportsRoutes: SandboxRoute[] = [
       return jsonResponse({
         ...report,
         user_defined_attribute: report.user_defined_attribute,
+        has_replay: hasSessionReplay(params.appId, report.session_id),
       });
     },
   },

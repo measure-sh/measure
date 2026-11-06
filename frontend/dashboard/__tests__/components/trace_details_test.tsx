@@ -105,6 +105,7 @@ function mockTraceDataObj() {
     app_id: "app-1",
     trace_id: "trace-abc",
     session_id: "session-xyz",
+    has_replay: true,
     user_id: "user-1",
     start_time: "2024-01-01T00:00:00Z",
     end_time: "2024-01-01T00:01:00Z",
@@ -237,6 +238,21 @@ describe("TraceDetails", () => {
           "/team-1/session_replays/app-1/session-xyz?from=trace_details",
         );
       });
+    });
+
+    it("hides the session replay link when the session has no replay", async () => {
+      mockTraceData = { ...mockTraceDataObj(), has_replay: false };
+      await act(async () => {
+        render(
+          <TraceDetails
+            params={{ teamId: "team-1", appId: "app-1", traceId: "trace-abc" }}
+          />,
+        );
+      });
+      await waitFor(() => {
+        expect(screen.getByTestId("trace-waterfall")).toBeInTheDocument();
+      });
+      expect(screen.queryByText("View Session Replay")).not.toBeInTheDocument();
     });
   });
 

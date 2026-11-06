@@ -1,5 +1,6 @@
 import type { ExceptionGroupCommonPath } from "@/app/query/hooks";
 import { catalog } from "./catalog";
+import { hasSessionReplay } from "./sessions";
 import type {
   AppBundle,
   ErrorGroup,
@@ -597,7 +598,10 @@ export const errorsRoutes: SandboxRoute[] = [
       const { items: page, hasNext, hasPrev } = paginate(items, url);
       return jsonResponse({
         meta: { next: hasNext, previous: hasPrev },
-        results: page,
+        results: page.map((i) => ({
+          ...i,
+          has_replay: hasSessionReplay(params.appId, i.session_id),
+        })),
       });
     },
   },

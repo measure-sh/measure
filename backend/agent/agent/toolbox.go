@@ -467,7 +467,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_error
 		newTool(&mcpsdk.Tool{
 			Name:        "get_error",
-			Description: "Get individual error events (exception or ANR) for a specific error group. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorGroupEventsEntity) + ".",
+			Description: "Get individual error events (exception or ANR) for a specific error group. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorGroupEventsEntity) + ". Each event includes has_replay, indicating whether a session replay is available for its session.",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorInput](mcpErrorGroupEventsFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorInput) (*mcpsdk.CallToolResult, any, error) {
@@ -597,7 +597,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_bug_report
 		newTool(&mcpsdk.Tool{
 			Name:        "get_bug_report",
-			Description: "Get a single bug report with full details",
+			Description: "Get a single bug report with full details, including whether a session replay is available for its session",
 			InputSchema: mcpMustInferSchema[mcpGetBugReportInput](),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetBugReportInput) (*mcpsdk.CallToolResult, any, error) {
@@ -647,7 +647,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_trace
 		newTool(&mcpsdk.Tool{
 			Name:        "get_trace",
-			Description: "Get full trace with all child spans",
+			Description: "Get a full trace with all child spans, including whether a session replay is available for its session",
 			InputSchema: mcpMustInferSchema[mcpGetTraceInput](),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetTraceInput) (*mcpsdk.CallToolResult, any, error) {

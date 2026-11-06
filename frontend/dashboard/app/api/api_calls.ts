@@ -329,6 +329,7 @@ export const emptyErrorsOverviewResponse = {
 const emptyErrorGroupDetailsItem = {
   id: "",
   session_id: "",
+  has_replay: false,
   timestamp: "",
   type: "",
   attribute: {
@@ -464,6 +465,7 @@ export const emptyTrace = {
   app_id: "",
   trace_id: "",
   session_id: "",
+  has_replay: false,
   user_id: "",
   start_time: "",
   end_time: "",
@@ -594,6 +596,7 @@ export type BuildFile = Build["files"][number];
 
 export const emptyBugReport = {
   session_id: "",
+  has_replay: false,
   app_id: "",
   event_id: "",
   status: 0,
