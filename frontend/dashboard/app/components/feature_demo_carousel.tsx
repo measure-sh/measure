@@ -83,7 +83,7 @@ const features = [
       src: "/images/product_screenshots/crashes_and_anrs.webp",
       alt: "A crash detail view in Measure showing the stacktrace, affected sessions and distribution across devices and app versions",
       width: 2300,
-      height: 1996,
+      height: 1998,
     },
     description: (
       <>
