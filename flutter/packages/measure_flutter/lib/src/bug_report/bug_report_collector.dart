@@ -70,6 +70,14 @@ class BugReportCollector {
         );
         description = description.substring(0, maxDescriptionLength);
       }
+      final maxAttachments = _configProvider.maxAttachmentsInBugReport;
+      if (attachments.length > maxAttachments) {
+        _logger.log(
+          LogLevel.warning,
+          'Bug report has more than $maxAttachments attachments, the extra attachments will be dropped',
+        );
+        attachments = attachments.take(maxAttachments).toList();
+      }
       final validAttributes = dropInvalidAttributes(
         'bug_report',
         attributes,
