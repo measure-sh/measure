@@ -54,6 +54,7 @@ export function deviceAttributeBag(attribute: {
   app_build?: string;
   user_id?: string;
   device_name?: string;
+  device_model?: string;
   device_manufacturer?: string;
   device_locale?: string;
   os_name?: string;
@@ -67,6 +68,7 @@ export function deviceAttributeBag(attribute: {
     version_code: attribute.app_build,
     user_id: attribute.user_id,
     device_name: attribute.device_name,
+    device_model: attribute.device_model,
     device_manufacturer: attribute.device_manufacturer,
     locale: attribute.device_locale,
     country: countryOf(attribute.device_locale),

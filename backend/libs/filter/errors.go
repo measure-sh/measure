@@ -50,8 +50,9 @@ var errorEventsKeys = []Key{
 	userID,
 	osName,
 	osVersion,
-	deviceName,
+	deviceModel,
 	deviceManufacturer,
+	deviceName,
 	locale,
 	networkType,
 	networkGeneration,
@@ -79,6 +80,12 @@ var appHangStatePredicates = map[string]string{
 // a memory error.
 const MemoryErrorSQL = "(type = 'exception' and `exception.memory_error` != '')"
 
+// ErrorTypeSQL returns the condition matching an error_type value, such as
+// ErrorTypeCrash.
+func ErrorTypeSQL(errorType string) string {
+	return errorTypePredicates[errorType]
+}
+
 var memoryErrorPredicates = map[string]string{
 	"true":  MemoryErrorSQL,
 	"false": "not " + MemoryErrorSQL,
@@ -96,6 +103,7 @@ var errorEventsColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]
 	osName.Name:             {expr: "`attribute.os_name`"},
 	osVersion.Name:          {expr: "`attribute.os_version`"},
 	deviceName.Name:         {expr: "`attribute.device_name`"},
+	deviceModel.Name:        {expr: "`attribute.device_model`"},
 	deviceManufacturer.Name: {expr: "`attribute.device_manufacturer`"},
 	locale.Name:             {expr: "`attribute.device_locale`"},
 	networkType.Name:        {expr: "`attribute.network_type`"},

@@ -48,7 +48,7 @@ export type PendingInvite = {
 };
 
 // Sample percentiles per time bucket and app version/build, across device tiers.
-// Memory values use KB (1024 bytes); version is formatted as "version (build)".
+// Memory values are in KiB (1024 bytes).
 export type MemoryUsagePlotPoint = {
   version: string;
   datetime: string;
@@ -2642,4 +2642,121 @@ export const fetchFunnelTrendFromServer = async (
     `/api/apps/${appId}/funnels/${funnelId}/trend?${params.toString()}`,
     { failsWith: "Failed to fetch funnel trend" },
   );
+};
+
+// ─── Devices ─────────────────────────────────────────────────────────────
+
+// device_name is the most common name reported by a model's rows, since a model
+// can have multiple names.
+export type DeviceRowBase = {
+  device_manufacturer: string;
+  device_model: string;
+  device_name: string;
+};
+
+export type DeviceSessionsRow = DeviceRowBase & {
+  session_count: number;
+  percent_of_sessions: number;
+};
+
+export type DeviceErrorsRow = DeviceRowBase & {
+  crash_count: number;
+  anr_count: number;
+  app_hang_count: number;
+  non_fatal_count: number;
+  error_count: number;
+  session_count: number;
+};
+
+// Durations are measured in milliseconds.
+export type DeviceDurationRow = DeviceRowBase & {
+  p50: number | null;
+  p90: number | null;
+  p95: number | null;
+  count: number;
+};
+
+// Memory values use KB (1024 bytes).
+export type DeviceMemoryRow = DeviceRowBase & {
+  p50: number | null;
+  p90: number | null;
+  p95: number | null;
+  session_count: number;
+  sample_count: number;
+};
+
+export type DeviceSessionsPlotPoint = {
+  device_manufacturer: string;
+  device_model: string;
+  datetime: string;
+  session_count: number;
+};
+
+export type LaunchType = "cold_launch" | "warm_launch" | "hot_launch";
+
+export type DevicesList =
+  "sessions" | "errors" | "launches" | "spans" | "memory";
+
+// "desc" ranks devices from highest to lowest by the list's metric.
+export type DevicesOrder = "desc" | "asc";
+
+export type DevicesPercentile = "p50" | "p90" | "p95";
+
+export type DevicesPage<Row> = {
+  results: Row[];
+  meta: { next: boolean; previous: boolean };
+};
+
+export const fetchDevicesListFromServer = async <Row>(
+  list: DevicesList,
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  order: DevicesOrder,
+  limit: number,
+  offset: number,
+  extra: Record<string, string> = {},
+): Promise<DevicesPage<Row>> => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    order,
+    limit: String(limit),
+    offset: String(offset),
+    ...extra,
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+
+  const failsWith = `Failed to fetch devices by ${list}`;
+  const data = await request(`/api/apps/${appId}/devices/${list}?${params}`, {
+    failsWith,
+  });
+  if (data === null) {
+    throw new RequestError(failsWith);
+  }
+  return data as DevicesPage<Row>;
+};
+
+export const fetchDevicesSessionsPlotFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+): Promise<DeviceSessionsPlotPoint[] | null> => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    plot_time_group: getPlotTimeGroupForRange(startDate, endDate),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+
+  return await request(`/api/apps/${appId}/devices/plots/sessions?${params}`, {
+    failsWith: "Failed to fetch sessions by device",
+  });
 };

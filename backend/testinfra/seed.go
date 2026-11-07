@@ -336,6 +336,10 @@ type EventRow struct {
 	MemoryUsed      uint64
 	MemoryMax       uint64
 	MemoryAvailable *uint64
+
+	// LaunchDuration is written only for cold_launch, warm_launch, and
+	// hot_launch events, to the duration column for that launch type.
+	LaunchDuration uint32
 }
 
 func (r EventRow) filled() EventRow {
@@ -556,6 +560,10 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 		cols = append(cols, "`memory_usage.anon_rss`", "`memory_usage.swap`")
 		vals = append(vals, optionalKBLit(row.MemoryAnonRSS), optionalKBLit(row.MemorySwap))
 	}
+	if row.Type == "cold_launch" || row.Type == "warm_launch" || row.Type == "hot_launch" {
+		cols = append(cols, "`"+row.Type+".duration`")
+		vals = append(vals, strconv.FormatUint(uint64(row.LaunchDuration), 10))
+	}
 	if row.Type == "memory_usage_absolute" {
 		cols = append(cols, "`memory_usage_absolute.used_memory`", "`memory_usage_absolute.max_memory`")
 		vals = append(vals, strconv.FormatUint(row.MemoryUsed, 10), strconv.FormatUint(row.MemoryMax, 10))
@@ -624,6 +632,7 @@ type SpanRow struct {
 	DeviceLocale       string
 	DeviceManufacturer string
 	DeviceName         string
+	DeviceModel        string
 	Checkpoints        []string
 }
 
@@ -697,6 +706,7 @@ func (h *TestHelper) SeedSpanRows(ctx context.Context, t *testing.T, teamID, app
 		"`attribute.country_code`", "`attribute.network_provider`",
 		"`attribute.network_type`", "`attribute.network_generation`",
 		"`attribute.device_locale`", "`attribute.device_manufacturer`", "`attribute.device_name`",
+		"`attribute.device_model`",
 		"`attribute.device_low_power_mode`", "`attribute.device_thermal_throttling_enabled`",
 	}
 	vals := []string{
@@ -710,6 +720,7 @@ func (h *TestHelper) SeedSpanRows(ctx context.Context, t *testing.T, teamID, app
 		quote(row.CountryCode), quote(row.NetworkProvider),
 		quote(row.NetworkType), quote(row.NetworkGeneration),
 		quote(row.DeviceLocale), quote(row.DeviceManufacturer), quote(row.DeviceName),
+		quote(row.DeviceModel),
 		"false", "false",
 	}
 

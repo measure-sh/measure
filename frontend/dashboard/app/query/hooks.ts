@@ -26,6 +26,8 @@ import {
   fetchBuildsFromServer,
   fetchCheckoutSessionFromServer,
   fetchCustomerPortalUrlFromServer,
+  fetchDevicesListFromServer,
+  fetchDevicesSessionsPlotFromServer,
   fetchErrorsAttributeDistributionPlotFromServer,
   fetchErrorGroupCommonPathFromServer,
   fetchErrorsDetailsFromServer,
@@ -93,6 +95,9 @@ import {
   updateSdkConfigFromServer,
   updateTeamSlackStatusFromServer,
   type AttributeDistributionResponse,
+  type DeviceSessionsPlotPoint,
+  type DevicesList,
+  type DevicesOrder,
   type ErrorDistributionResponse,
   type Funnel,
   type FunnelDraft,
@@ -2328,4 +2333,80 @@ export async function fetchCustomerPortalUrl(
     }
     return { error: "Request was cancelled." };
   }
+}
+
+// ─── Devices ─────────────────────────────────────────────────────────────
+
+export const DEVICES_LIST_LIMIT = 5;
+
+export function useDevicesListQuery<Row>(
+  list: DevicesList,
+  params: FilterParams | null,
+  order: DevicesOrder,
+  offset: number,
+  extra: Record<string, string> = {},
+  enabled: boolean = true,
+) {
+  return useQuery({
+    queryKey: [
+      "devices",
+      list,
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+      order,
+      offset,
+      extra,
+    ] as const,
+    queryFn: () =>
+      fetchDevicesListFromServer<Row>(
+        list,
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+        order,
+        DEVICES_LIST_LIMIT,
+        offset,
+        extra,
+      ),
+    enabled: params !== null && enabled,
+    placeholderData: keepPreviousData,
+    retry: false,
+  });
+}
+
+export function useDevicesSessionsPlotQuery(params: FilterParams | null) {
+  return useQuery({
+    queryKey: [
+      "devicesSessionsPlot",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+    ] as const,
+    queryFn: () =>
+      fetchDevicesSessionsPlotFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+      ),
+    enabled: params !== null,
+    retry: false,
+  });
+}
+
+export function transformDevicesSessionsPlotData(
+  rawData: DeviceSessionsPlotPoint[],
+) {
+  const pointsByDevice = new Map<string, { x: string; y: number }[]>();
+  for (const point of rawData) {
+    const id = `${point.device_manufacturer} ${point.device_model}`;
+    const data = pointsByDevice.get(id) ?? [];
+    data.push({ x: point.datetime, y: point.session_count });
+    pointsByDevice.set(id, data);
+  }
+  return Array.from(pointsByDevice, ([id, data]) => ({ id, data }));
 }

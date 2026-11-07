@@ -247,7 +247,7 @@ func TestSpansEntityOffersEverySpanKey(t *testing.T) {
 		"version_name", "version_code", "patch_version", "patch_id",
 		"span_status",
 		"os_name", "os_version",
-		"device_name", "device_manufacturer", "locale",
+		"device_model", "device_manufacturer", "device_name", "locale",
 		"network_type", "network_generation", "network_provider",
 		"country",
 	}
@@ -983,7 +983,7 @@ func TestErrorsEntityOffersEveryErrorKey(t *testing.T) {
 		"version_name", "version_code", "patch_version", "patch_id",
 		"user_id",
 		"os_name", "os_version",
-		"device_name", "device_manufacturer", "locale",
+		"device_model", "device_manufacturer", "device_name", "locale",
 		"network_type", "network_generation", "network_provider",
 		"country",
 	}

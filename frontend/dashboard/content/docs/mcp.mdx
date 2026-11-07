@@ -206,7 +206,7 @@ List all apps the authenticated user has access to.
 
 ### `get_filter_keys`
 
-List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, funnels or builds): the vocabulary a filter expression is written with.
+List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels or builds): the vocabulary a filter expression is written with.
 
 ### `get_filter_values`
 
@@ -267,6 +267,30 @@ Get a breakdown of memory usage by different device memory tiers. Returns p50/p9
 ### `get_high_memory_sessions`
 
 Get a paginated list of sessions with high memory usage. Use `get_session` to connect a returned session ID to user actions, screens, and errors.
+
+### `get_device_sessions_over_time`
+
+Get session counts over time for the five device models with the most sessions.
+
+### `get_devices_by_sessions`
+
+Get device models ranked by session count.
+
+### `get_devices_by_errors`
+
+Get device models ranked by error count.
+
+### `get_devices_by_launch_time`
+
+Get device models ranked by app launch time.
+
+### `get_devices_by_span_duration`
+
+Get device models ranked by root span duration.
+
+### `get_devices_by_memory_usage`
+
+Get device models ranked by memory usage.
 
 ### `get_bug_reports`
 

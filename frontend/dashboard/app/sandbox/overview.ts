@@ -248,6 +248,15 @@ const K = {
     ["in", "not_in", "contains", "starts_with"],
     "sample",
   ),
+  deviceModel: key(
+    "device_model",
+    "Device model",
+    "The model of the device, such as Pixel 8 or iPhone 15.",
+    "Device",
+    "string",
+    ["in", "not_in", "contains", "starts_with"],
+    "sample",
+  ),
   deviceManufacturer: key(
     "device_manufacturer",
     "Device manufacturer",
@@ -347,6 +356,20 @@ function keyGroupsOf(keys: FilterKey[]): string[] {
   return KEY_GROUP_ORDER.filter((group) => present.has(group));
 }
 
+// Entities that offer device_model, which the devices page links to.
+const deviceModelTailKeys: FilterKey[] = [
+  K.osName,
+  K.osVersion,
+  K.deviceModel,
+  K.deviceManufacturer,
+  K.deviceName,
+  K.locale,
+  K.networkType,
+  K.networkGeneration,
+  K.networkProvider,
+  K.country,
+];
+
 const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
   app_health: [K.versionName, K.versionCode],
   journeys: [...versionKeys, ...deviceTailKeys],
@@ -356,12 +379,12 @@ const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
     K.memoryError,
     ...versionKeys,
     K.userId,
-    ...deviceTailKeys,
+    ...deviceModelTailKeys,
   ],
   error_group_events: [
     ...versionKeys,
     K.userId,
-    ...deviceTailKeys,
+    ...deviceModelTailKeys,
     K.appHangState,
   ],
   sessions: [
@@ -390,8 +413,9 @@ const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
     ...versionKeys,
     K.osName,
     K.osVersion,
-    K.deviceName,
+    K.deviceModel,
     K.deviceManufacturer,
+    K.deviceName,
     K.deviceTotalMemory,
   ],
   profiles: [
@@ -399,15 +423,25 @@ const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
     ...versionKeys,
     K.userId,
     K.osVersion,
-    K.deviceName,
+    K.deviceModel,
     K.deviceManufacturer,
+    K.deviceName,
   ],
   network: [K.httpMethod, ...versionKeys, ...deviceTailKeys],
   builds: [K.mappingType, ...versionKeys],
-  spans: [K.spanStatus, ...versionKeys, ...deviceTailKeys],
+  spans: [K.spanStatus, ...versionKeys, ...deviceModelTailKeys],
   // The backend advertises no filter keys for alerts, so the alerts page renders
   // its filter bar as unavailable.
   alerts: [],
+  devices: [
+    K.versionName,
+    K.versionCode,
+    K.osName,
+    K.osVersion,
+    K.deviceModel,
+    K.deviceManufacturer,
+    K.deviceName,
+  ],
 };
 
 const FILTER_KEYS_BY_ENTITY: Record<
@@ -438,6 +472,8 @@ function appWideValues(bundle: AppBundle, keyName: string): string[] | null {
       return distinct(attrs.map((a) => a.os_version));
     case "device_name":
       return distinct(attrs.map((a) => a.device_name));
+    case "device_model":
+      return distinct(attrs.map((a) => a.device_model));
     case "device_manufacturer":
       return distinct(attrs.map((a) => a.device_manufacturer));
     case "locale":
