@@ -714,7 +714,6 @@ internal class SignalProcessorTest {
                 "valid_key" to StringAttr("value"),
                 "invalid key!" to StringAttr("value"),
             ),
-            userTriggered = true,
             attributes = mutableMapOf(),
         )
 
@@ -723,6 +722,23 @@ internal class SignalProcessorTest {
             mapOf("valid_key" to StringAttr("value")),
             signalStore.trackedEvents.first().userDefinedAttributes,
         )
+    }
+
+    @Test
+    fun `trackBugReport stores event with the given thread name and triggers export`() {
+        signalProcessor.trackBugReport(
+            data = TestData.getBugReportData(),
+            type = EventType.BUG_REPORT,
+            timestamp = 9856564654L,
+            attachments = mutableListOf(),
+            userDefinedAttributes = mutableMapOf(),
+            attributes = mutableMapOf(),
+            threadName = "main",
+        )
+
+        assertEquals(1, signalStore.trackedEvents.size)
+        assertEquals("main", signalStore.trackedEvents.first().attributes[Attribute.THREAD_NAME])
+        verify(exporter).export()
     }
 
     @Test

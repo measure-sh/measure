@@ -134,14 +134,14 @@ internal class BugReportCollectorImpl internal constructor(
                         val eventAttachments =
                             (parcelableAttachments + pending).toEventAttachments() +
                                 uris.toEventAttachments(appContext)
-                        signalProcessor.track(
+                        signalProcessor.trackBugReport(
                             data = BugReportData(description = description),
-                            timestamp = timestamp,
                             type = EventType.BUG_REPORT,
+                            timestamp = timestamp,
                             attachments = eventAttachments.toMutableList(),
-                            threadName = threadName,
                             userDefinedAttributes = attributes ?: mutableMapOf(),
-                            isSampled = true,
+                            attributes = mutableMapOf(),
+                            threadName = threadName,
                         )
                     },
                 )

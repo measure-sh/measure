@@ -462,6 +462,7 @@ internal class TestMeasureInitializer(
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         configProvider = configProvider,
+        sessionManager = sessionManager,
     ),
     override val shakeBugReportCollector: ShakeBugReportCollector = ShakeBugReportCollector(
         shakeDetector = AccelerometerShakeDetector(
