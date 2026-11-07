@@ -41,7 +41,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'
@@ -135,7 +135,7 @@ jobs:
           submodules: recursive
       - name: Switch to Xcode 26.4
         run: sudo xcode-select -switch /Applications/Xcode_26.4.app
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: 'temurin'

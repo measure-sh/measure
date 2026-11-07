@@ -30,7 +30,7 @@ jobs:
           fetch-depth: 0
           token: ${{ secrets.SDK_RELEASE }}
 
-      - uses: actions/setup-java@v3
+      - uses: actions/setup-java@v6
         with:
           java-version: ${{ env.JAVA_VERSION }}
           distribution: ${{ env.JAVA_DISTRIBUTION }}
