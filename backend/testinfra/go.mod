@@ -4,7 +4,7 @@ go 1.27.3
 
 require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.49.0
-	github.com/amacneil/dbmate/v2 v2.36.0
+	github.com/amacneil/dbmate/v2 v2.37.0
 	github.com/aws/aws-sdk-go-v2 v1.41.6
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.15
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.100.0
