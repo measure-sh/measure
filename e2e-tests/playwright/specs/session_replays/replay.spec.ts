@@ -16,11 +16,7 @@ async function expectEvent(
 
 const LOG_SEVERITIES = ["Debug", "Info", "Warning", "Error", "Fatal"];
 
-function selectLog(
-  replay: SessionReplayPage,
-  body: string,
-  severity: string,
-) {
+function selectLog(replay: SessionReplayPage, body: string, severity: string) {
   return replay
     .selectEvent("log", new RegExp(body))
     .filter({ hasText: `Log: ${severity}` })
@@ -62,9 +58,7 @@ test.describe("session replay", () => {
 
   test("handled error event links to error details", async () => {
     const error = replay.selectError(/./).first();
-    await expect(
-      replay.selectEventPill(error, "Handled Error"),
-    ).toBeVisible();
+    await expect(replay.selectEventPill(error, "Handled Error")).toBeVisible();
     await error.click();
     await replay.openErrorDetails();
   });
@@ -200,11 +194,7 @@ test.describe("session replay", () => {
 
   test.describe("ios", { tag: "@ios" }, () => {
     test("renders the ios-only events", async () => {
-      await expectEvent(
-        replay,
-        "lifecycle_view_controller",
-        "View Controller",
-      );
+      await expectEvent(replay, "lifecycle_view_controller", "View Controller");
     });
 
     test("custom event renders its name", async () => {

@@ -163,9 +163,9 @@ async function runSpecsForTarget(
   for (const spec of specs) {
     const maestroPassed = await runMaestro(target, spec, repoRoot, failures);
     if (!maestroPassed) {
-      log.scope(`web: ${target.device}:${spec}`).info(
-        "skipping Playwright tests because the Maestro flow failed",
-      );
+      log
+        .scope(`web: ${target.device}:${spec}`)
+        .info("skipping Playwright tests because the Maestro flow failed");
       continue;
     }
     const result = await runPlaywright(target, spec, repoRoot, flags, failures);
