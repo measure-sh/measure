@@ -2,6 +2,8 @@ package sh.measure.android.exporter
 
 import okhttp3.mockwebserver.MockResponse
 import okhttp3.mockwebserver.MockWebServer
+import okio.GzipSource
+import okio.buffer
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -43,7 +45,8 @@ class HttpUrlConnectionClientTest {
         assertEquals("PUT", request.method)
         assertEquals("application/json", request.headers["Content-Type"])
         assertEquals("Bearer token", request.headers["Authorization"])
-        val body = request.body.readUtf8()
+        assertEquals("gzip", request.headers["Content-Encoding"])
+        val body = GzipSource(request.body).buffer().readUtf8()
         assertEquals("""{"events":[],"spans":[]}""", body)
         assertTrue(result is HttpResponse.Success)
     }
@@ -190,7 +193,7 @@ class HttpUrlConnectionClientTest {
 
         // then
         val request = mockWebServer.takeRequest()
-        val body = request.body.readUtf8()
+        val body = GzipSource(request.body).buffer().readUtf8()
         assertEquals("""{"events":[{"id":"1","type":"test"}],"spans":[]}""", body)
         assertTrue(result is HttpResponse.Success)
     }
@@ -229,7 +232,7 @@ class HttpUrlConnectionClientTest {
         assertEquals("PUT", redirectedRequest.method)
         assertEquals("/redirected", redirectedRequest.path)
 
-        val redirectedBody = redirectedRequest.body.readUtf8()
+        val redirectedBody = GzipSource(redirectedRequest.body).buffer().readUtf8()
         assertEquals("""{"key":"value"}""", redirectedBody)
     }
 

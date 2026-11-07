@@ -44,14 +44,19 @@ final class BaseNetworkClient: NetworkClient {
         }
 
         let jsonBody = buildBatchPayload(events: serializedEvents, spans: serializedSpans)
+        guard let gzippedBody = jsonBody.gzipped() else {
+            logger.internalLog(level: .error, message: "NetworkClient: Failed to gzip event batch.", error: nil, data: nil)
+            return .error(.unknownError("Failed to gzip event batch"))
+        }
 
         return httpClient.sendJsonRequest(url: baseUrl.appendingPathComponent(eventsEndpoint),
                                           method: .put,
                                           headers: [
                                             authorization: "\(bearer) \(apiKey)",
-                                            msrRequestId: batchId
+                                            msrRequestId: batchId,
+                                            contentEncodingHeader: gzipContentEncoding
                                           ],
-                                          jsonBody: jsonBody)
+                                          jsonBody: gzippedBody)
     }
 
     func getConfig(eTag: String?) -> ConfigResponse {

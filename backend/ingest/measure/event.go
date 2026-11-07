@@ -32,11 +32,11 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// maxBatchSize is the maximum allowed payload
+// MaxBatchSize is the maximum allowed payload
 // size of event request in bytes. Kept under the bus
 // per-message cap of 10,000,000 bytes to leave headroom
 // for the IngestBatch wrapper & JSON re-encoding.
-var maxBatchSize = 9_000_000
+var MaxBatchSize = 9_000_000
 
 var ingestBatchPublishCount metric.Int64Counter
 
@@ -785,8 +785,8 @@ func (e eventreq) validate() error {
 	// only the event payload counts toward the size limit.
 	// attachments upload directly to storage and are not part
 	// of the payload.
-	if e.payloadSize >= uint64(maxBatchSize) {
-		return fmt.Errorf(`payload cannot exceed maximum allowed size of %d`, maxBatchSize)
+	if e.payloadSize >= uint64(MaxBatchSize) {
+		return fmt.Errorf(`payload cannot exceed maximum allowed size of %d`, MaxBatchSize)
 	}
 
 	return nil
