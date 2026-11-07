@@ -8,6 +8,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
+import org.mockito.kotlin.isNull
 import org.mockito.kotlin.verify
 import sh.measure.android.attributes.StringAttr
 import sh.measure.android.bugreport.BugReportData
@@ -135,8 +136,8 @@ class UserTriggeredEventCollectorImplTest {
             timestamp = eq(timeProvider.now()),
             attachments = attachmentsCaptor.capture(),
             userDefinedAttributes = any(),
-            userTriggered = eq(true),
             attributes = any(),
+            threadName = isNull(),
         )
         Assert.assertEquals(1, attachmentsCaptor.firstValue.size)
     }
@@ -157,7 +158,6 @@ class UserTriggeredEventCollectorImplTest {
             timestamp = timeProvider.now(),
             attachments = mutableListOf(),
             userDefinedAttributes = mutableMapOf(),
-            userTriggered = true,
             attributes = mutableMapOf(),
         )
     }
@@ -193,7 +193,6 @@ class UserTriggeredEventCollectorImplTest {
             timestamp = timeProvider.now(),
             attachments = mutableListOf(),
             userDefinedAttributes = mutableMapOf(),
-            userTriggered = true,
             attributes = mutableMapOf(),
         )
     }

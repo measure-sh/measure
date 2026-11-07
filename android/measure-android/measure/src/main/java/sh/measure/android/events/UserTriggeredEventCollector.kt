@@ -88,7 +88,6 @@ internal class UserTriggeredEventCollectorImpl(
             timestamp = timestamp,
             attachments = attachments,
             userDefinedAttributes = attributes,
-            userTriggered = true,
             attributes = mutableMapOf(),
         )
     }

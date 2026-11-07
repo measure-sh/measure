@@ -139,8 +139,8 @@ internal interface SignalProcessor {
         timestamp: Long,
         attachments: MutableList<Attachment>,
         userDefinedAttributes: MutableMap<String, AttributeValue>,
-        userTriggered: Boolean,
         attributes: MutableMap<String, Any?>,
+        threadName: String? = null,
     )
 }
 
@@ -393,10 +393,10 @@ internal class SignalProcessorImpl(
         timestamp: Long,
         attachments: MutableList<Attachment>,
         userDefinedAttributes: MutableMap<String, AttributeValue>,
-        userTriggered: Boolean,
         attributes: MutableMap<String, Any?>,
+        threadName: String?,
     ) {
-        val thread = Thread.currentThread().name
+        val thread = threadName ?: Thread.currentThread().name
         ioExecutor.submit {
             val event = createEvent(
                 data = data,

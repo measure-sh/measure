@@ -20,7 +20,6 @@ import org.mockito.Mockito.any
 import org.mockito.Mockito.mock
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
-import org.mockito.kotlin.isNull
 import org.mockito.kotlin.verify
 import org.robolectric.Robolectric
 import org.robolectric.Shadows.shadowOf
@@ -145,17 +144,14 @@ class BugReportCollectorImplTest {
         executor.runAll()
 
         val attachmentsCaptor = argumentCaptor<MutableList<Attachment>>()
-        verify(signalProcessor).track(
+        verify(signalProcessor).trackBugReport(
             data = eq(BugReportData("description")),
-            timestamp = eq(timeProvider.now()),
             type = eq(EventType.BUG_REPORT),
-            attributes = eq(emptyMap<String, Any?>().toMutableMap()),
-            userDefinedAttributes = eq(emptyMap()),
+            timestamp = eq(timeProvider.now()),
             attachments = attachmentsCaptor.capture(),
+            userDefinedAttributes = eq(mutableMapOf()),
+            attributes = eq(mutableMapOf()),
             threadName = any(),
-            sessionId = isNull(),
-            userTriggered = eq(false),
-            isSampled = eq(true),
         )
         assertEquals(1, attachmentsCaptor.firstValue.size)
     }
@@ -172,17 +168,14 @@ class BugReportCollectorImplTest {
         executor.runAll()
 
         val attachmentsCaptor = argumentCaptor<MutableList<Attachment>>()
-        verify(signalProcessor).track(
+        verify(signalProcessor).trackBugReport(
             data = eq(BugReportData("description")),
-            timestamp = eq(timeProvider.now()),
             type = eq(EventType.BUG_REPORT),
-            attributes = eq(emptyMap<String, Any?>().toMutableMap()),
-            userDefinedAttributes = eq(emptyMap()),
+            timestamp = eq(timeProvider.now()),
             attachments = attachmentsCaptor.capture(),
+            userDefinedAttributes = eq(mutableMapOf()),
+            attributes = eq(mutableMapOf()),
             threadName = any(),
-            sessionId = isNull(),
-            userTriggered = eq(false),
-            isSampled = eq(true),
         )
         assertEquals(0, attachmentsCaptor.firstValue.size)
     }
@@ -213,17 +206,14 @@ class BugReportCollectorImplTest {
         bugReportCollector.track(application, description, attachments, uris)
 
         // Then
-        verify(signalProcessor).track(
+        verify(signalProcessor).trackBugReport(
             data = eq(BugReportData(description)),
-            timestamp = eq(timeProvider.now()),
             type = eq(EventType.BUG_REPORT),
-            attributes = eq(emptyMap<String, Any?>().toMutableMap()),
-            userDefinedAttributes = eq(emptyMap()),
+            timestamp = eq(timeProvider.now()),
             attachments = attachmentsCaptor.capture(),
+            userDefinedAttributes = eq(mutableMapOf()),
+            attributes = eq(mutableMapOf()),
             threadName = any(),
-            sessionId = isNull(),
-            userTriggered = eq(false),
-            isSampled = eq(true),
         )
         assertEquals(5, attachmentsCaptor.firstValue.size)
     }
