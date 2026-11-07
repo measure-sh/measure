@@ -10,9 +10,9 @@ React Native demo screens, so all four are exercised with no extra setup.
 
 Tests are organized by spec (e.g. `errors`, `bug_report`,
 `session_timeline`). Each spec pairs a Maestro orchestrator
-(`maestro/specs/<spec>/<device>/main.yaml`), where <device> either 
-`android` or `ios`, with a Playwright dashboard test (`playwright/specs/<spec>/`); 
-the runner derives both paths from the spec name. 
+(`maestro/specs/<spec>/<device>/main.yaml`), where <device> either
+`android` or `ios`, with a Playwright dashboard test (`playwright/specs/<spec>/`);
+the runner derives both paths from the spec name.
 
 If a Maestro flow fails, the runner skips that spec's Playwright tests because
 their event data may be incomplete, records the failure, and continues with the
