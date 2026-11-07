@@ -1,5 +1,6 @@
 import { jsonResponse, SandboxRoute } from "./query";
 import { bugReportsRoutes } from "./bug_reports";
+import { devicesRoutes } from "./devices";
 import { errorsRoutes } from "./errors";
 import { funnelsRoutes } from "./funnels";
 import { journeyRoutes } from "./journey_graph";
@@ -23,6 +24,7 @@ const routes: SandboxRoute[] = [
   ...networkRoutes,
   ...memoryRoutes,
   ...profilesRoutes,
+  ...devicesRoutes,
   ...settingsRoutes,
 ];
 

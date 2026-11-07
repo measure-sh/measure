@@ -135,6 +135,14 @@ func main() {
 		// profiles
 		apps.GET(":id/profiles", hdl.GetProfilesOverview)
 
+		// devices
+		apps.GET(":id/devices/sessions", hdl.GetDevicesSessions)
+		apps.GET(":id/devices/plots/sessions", hdl.GetDevicesSessionsPlot)
+		apps.GET(":id/devices/errors", hdl.GetDevicesErrors)
+		apps.GET(":id/devices/launches", hdl.GetDevicesLaunches)
+		apps.GET(":id/devices/spans", hdl.GetDevicesSpans)
+		apps.GET(":id/devices/memory", hdl.GetDevicesMemory)
+
 		// spans & traces
 		apps.GET(":id/spans/roots/names", hdl.GetRootSpanNames)
 		apps.GET(":id/spans", hdl.GetSpansForSpanName)

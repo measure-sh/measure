@@ -132,6 +132,12 @@ function buildInitNavData(): { navMain: NavSection[] } {
             isActive: false,
             external: false,
           },
+          {
+            title: "Devices",
+            url: "devices",
+            isActive: false,
+            external: false,
+          },
         ],
       },
       {

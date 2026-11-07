@@ -39,6 +39,8 @@ tags:
     description: Memory trends by app version, device-tier percentiles and high-memory sessions.
   - name: Profiles
     description: Profiles captured on Android by trigger-based profiling.
+  - name: Devices
+    description: Sessions, errors, launch time, span duration and memory usage by device model.
   - name: Traces
     description: Root spans, span listings and traces.
   - name: Bug Reports
@@ -1282,6 +1284,7 @@ paths:
               - app_health
               - memory
               - profiles
+              - devices
               - funnels
         - name: key
           in: query
@@ -1414,6 +1417,7 @@ paths:
               - app_health
               - memory
               - profiles
+              - devices
               - funnels
         - name: key_name
           in: query
@@ -3651,6 +3655,365 @@ paths:
                         type: perfetto_trace
                         key: 66b50d91-f120-4f2f-941c-6a7c33129ef0.perfetto-trace
                         location: http://localhost:9111/msr-attachments-sandbox/66b50d91-f120-4f2f-941c-6a7c33129ef0.perfetto-trace
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/devices/plots/sessions:
+    get:
+      operationId: getDevicesSessionsPlot
+      tags:
+        - Devices
+      summary: Plot sessions by device over time
+      description: |
+        Returns session counts by time bucket for the five device models with the most sessions in the date range.
+
+        - A device is identified by its manufacturer and model. Sessions without a device model are excluded.
+        - Each session is counted once, in the bucket where it started. Sessions that started before `from` are counted in the first bucket. As a result, each device’s plotted counts add up to its `session_count` in `/apps/{id}/devices/sessions`.
+        - Buckets with no sessions are omitted.
+        - Results are cached for up to 10 minutes.
+      parameters:
+        - *a1
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/Timezone"
+        - $ref: "#/components/parameters/PlotTimeGroup"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeviceSessionsPlotPoint"
+              example:
+                - device_manufacturer: Google
+                  device_model: Pixel 8
+                  datetime: 2026-09-10
+                  session_count: 1200
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/devices/sessions:
+    get:
+      operationId: getDevicesSessions
+      tags:
+        - Devices
+      summary: List device models by session count
+      description: |
+        Returns a page of device models, ranked by their session counts in the date range.
+
+        - A session is counted if it overlaps the date range. Sessions without a device model are excluded.
+        - `percent_of_sessions` is each device’s share of all matching sessions, including sessions on devices outside the current page.
+        - Results are cached for up to 10 minutes.
+      parameters:
+        - *a1
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/DevicesOrder"
+        - $ref: "#/components/parameters/DevicesLimit"
+        - $ref: "#/components/parameters/DevicesOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DeviceSessionsRow"
+                  meta:
+                    $ref: "#/components/schemas/DevicesPageMeta"
+              example:
+                results:
+                  - device_manufacturer: Google
+                    device_model: Pixel 8
+                    device_name: shiba
+                    session_count: 1200
+                    percent_of_sessions: 42.5
+                meta:
+                  next: true
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/devices/errors:
+    get:
+      operationId: getDevicesErrors
+      tags:
+        - Devices
+      summary: List device models by error count
+      description: |
+        Returns a page of device models, ranked by their error counts in the date range.
+
+        - Errors include crashes, ANRs, app hangs, and handled or unhandled exceptions.
+        - `session_count` is the number of sessions with at least one error.
+        - Results are cached for up to 10 minutes.
+      parameters:
+        - *a1
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/DevicesOrder"
+        - $ref: "#/components/parameters/DevicesLimit"
+        - $ref: "#/components/parameters/DevicesOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DeviceErrorsRow"
+                  meta:
+                    $ref: "#/components/schemas/DevicesPageMeta"
+              example:
+                results:
+                  - device_manufacturer: Google
+                    device_model: Pixel 8
+                    device_name: shiba
+                    crash_count: 4
+                    anr_count: 2
+                    app_hang_count: 0
+                    non_fatal_count: 12
+                    error_count: 18
+                    session_count: 9
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/devices/launches:
+    get:
+      operationId: getDevicesLaunches
+      tags:
+        - Devices
+      summary: List device models by launch duration
+      description: |
+        Returns a page of device models, ranked by a duration percentile for the selected launch type.
+
+        - Durations are in milliseconds. Launches without a duration are excluded.
+        - Results are cached for up to 10 minutes.
+      parameters:
+        - *a1
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - name: launch_type
+          in: query
+          required: false
+          description: App launch type to include.
+          schema:
+            type: string
+            default: cold_launch
+            enum:
+              - cold_launch
+              - warm_launch
+              - hot_launch
+        - $ref: "#/components/parameters/DevicesPercentile"
+        - $ref: "#/components/parameters/DevicesOrder"
+        - $ref: "#/components/parameters/DevicesLimit"
+        - $ref: "#/components/parameters/DevicesOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DeviceDurationRow"
+                  meta:
+                    $ref: "#/components/schemas/DevicesPageMeta"
+              example:
+                results:
+                  - device_manufacturer: Samsung
+                    device_model: SM-A546E
+                    device_name: a54x
+                    p50: 820
+                    p90: 1450
+                    p95: 1800
+                    count: 340
+                meta:
+                  next: true
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/devices/spans:
+    get:
+      operationId: getDevicesSpans
+      tags:
+        - Devices
+      summary: List device models by span duration
+      description: |
+        Returns a page of device models, ranked by a duration percentile for the selected span.
+
+        - Durations are in milliseconds.
+        - Spans recorded before device models were added to span metrics have no device model and are excluded.
+        - Results are cached for up to 10 minutes.
+      parameters:
+        - *a1
+        - name: span_name
+          in: query
+          required: true
+          description: Name of the span to include.
+          schema:
+            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/DevicesPercentile"
+        - $ref: "#/components/parameters/DevicesOrder"
+        - $ref: "#/components/parameters/DevicesLimit"
+        - $ref: "#/components/parameters/DevicesOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DeviceDurationRow"
+                  meta:
+                    $ref: "#/components/schemas/DevicesPageMeta"
+              example:
+                results:
+                  - device_manufacturer: Apple
+                    device_model: iPhone15,2
+                    device_name: iPhone
+                    p50: 310
+                    p90: 620
+                    p95: 790
+                    count: 1500
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/devices/memory:
+    get:
+      operationId: getDevicesMemory
+      tags:
+        - Devices
+      summary: List device models by memory usage
+      description: |
+        Returns a page of device models, ranked by a memory usage percentile.
+
+        - Values are in KB (1024 bytes). Android reports anonymous RSS plus swap; iOS and iPadOS report used memory.
+        - Percentiles are calculated from individual samples across all app states.
+        - Results are cached for up to 10 minutes.
+      parameters:
+        - *a1
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/DevicesPercentile"
+        - $ref: "#/components/parameters/DevicesOrder"
+        - $ref: "#/components/parameters/DevicesLimit"
+        - $ref: "#/components/parameters/DevicesOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DeviceMemoryRow"
+                  meta:
+                    $ref: "#/components/schemas/DevicesPageMeta"
+              example:
+                results:
+                  - device_manufacturer: Google
+                    device_model: Pixel 8
+                    device_name: shiba
+                    p50: 102400
+                    p90: 204800
+                    p95: 307200
+                    session_count: 30
+                    sample_count: 1200
                 meta:
                   next: false
                   previous: false
@@ -8105,6 +8468,48 @@ components:
           values in one condition.
         schema:
           type: string
+    DevicesOrder:
+      name: order
+      in: query
+      required: false
+      description: "`desc` puts the highest value first; `asc` puts the lowest value first. Ties are ordered by manufacturer, then model."
+      schema:
+        type: string
+        default: desc
+        enum:
+          - desc
+          - asc
+    DevicesPercentile:
+      name: percentile
+      in: query
+      required: false
+      description: Percentile used to rank devices. The response includes all three percentiles.
+      schema:
+        type: string
+        default: p95
+        enum:
+          - p50
+          - p90
+          - p95
+    DevicesLimit:
+      name: limit
+      in: query
+      required: false
+      description: Maximum number of devices to return. The dashboard requests 5.
+      schema:
+        type: integer
+        default: 10
+        minimum: 1
+        maximum: 1000
+    DevicesOffset:
+      name: offset
+      in: query
+      required: false
+      description: Number of devices to skip.
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
     JourneyNode:
       name: node
       in: query
@@ -8297,6 +8702,163 @@ components:
           minimum: 0
           description: Samples contributing to this tier across the whole date range and matching
             versions.
+    DevicesPageMeta:
+      type: object
+      required:
+        - next
+        - previous
+      properties:
+        next:
+          type: boolean
+          description: True if more devices follow this page.
+        previous:
+          type: boolean
+          description: True if devices precede this page.
+    DeviceSessionsRow:
+      type: object
+      required:
+        - device_manufacturer
+        - device_model
+        - device_name
+        - session_count
+        - percent_of_sessions
+      properties:
+        device_manufacturer: &devicesManufacturer
+          type: string
+          description: Device manufacturer.
+        device_model: &devicesModel
+          type: string
+          description: Device model, such as Pixel 8 or iPhone15,2.
+        device_name: &devicesName
+          type: string
+          description: The device name reported by most events for this model. A model may report more than one name.
+        session_count:
+          type: integer
+          minimum: 0
+          description: Sessions on the device that overlap the date range.
+        percent_of_sessions:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: The device's share of all matching sessions, as a percentage.
+    DeviceErrorsRow:
+      type: object
+      required:
+        - device_manufacturer
+        - device_model
+        - device_name
+        - crash_count
+        - anr_count
+        - app_hang_count
+        - non_fatal_count
+        - error_count
+        - session_count
+      properties:
+        device_manufacturer: *devicesManufacturer
+        device_model: *devicesModel
+        device_name: *devicesName
+        crash_count:
+          type: integer
+          minimum: 0
+        anr_count:
+          type: integer
+          minimum: 0
+          description: ANRs. Only Android reports these.
+        app_hang_count:
+          type: integer
+          minimum: 0
+          description: App hangs. Only iOS and iPadOS report these.
+        non_fatal_count:
+          type: integer
+          minimum: 0
+          description: Handled and unhandled exceptions.
+        error_count:
+          type: integer
+          minimum: 0
+          description: Total errors on the device.
+        session_count:
+          type: integer
+          minimum: 0
+          description: Sessions with at least one error.
+    DeviceDurationRow:
+      type: object
+      required:
+        - device_manufacturer
+        - device_model
+        - device_name
+        - p50
+        - p90
+        - p95
+        - count
+      properties:
+        device_manufacturer: *devicesManufacturer
+        device_model: *devicesModel
+        device_name: *devicesName
+        p50:
+          type:
+            - number
+            - "null"
+          description: Duration in milliseconds.
+        p90:
+          type:
+            - number
+            - "null"
+          description: Duration in milliseconds.
+        p95:
+          type:
+            - number
+            - "null"
+          description: Duration in milliseconds.
+        count:
+          type: integer
+          minimum: 0
+          description: Launches or spans on the device.
+    DeviceMemoryRow:
+      type: object
+      required:
+        - device_manufacturer
+        - device_model
+        - device_name
+        - p50
+        - p90
+        - p95
+        - session_count
+        - sample_count
+      properties:
+        device_manufacturer: *devicesManufacturer
+        device_model: *devicesModel
+        device_name: *devicesName
+        p50:
+          $ref: "#/components/schemas/MemoryUsageKB"
+        p90:
+          $ref: "#/components/schemas/MemoryUsageKB"
+        p95:
+          $ref: "#/components/schemas/MemoryUsageKB"
+        session_count:
+          type: integer
+          minimum: 0
+          description: Sessions with memory samples on the device.
+        sample_count:
+          type: integer
+          minimum: 0
+          description: Memory samples on the device.
+    DeviceSessionsPlotPoint:
+      type: object
+      required:
+        - device_manufacturer
+        - device_model
+        - datetime
+        - session_count
+      properties:
+        device_manufacturer: *devicesManufacturer
+        device_model: *devicesModel
+        datetime:
+          type: string
+          description: Start of the time bucket, formatted for the plot time group and requested timezone.
+        session_count:
+          type: integer
+          minimum: 0
+          description: Sessions on the device that started in this bucket.
     HighMemoryUsageSession:
       type: object
       required:

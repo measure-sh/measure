@@ -2628,6 +2628,8 @@ func TestMCPToolsList(t *testing.T) {
 		"get_error_common_path",
 		"get_sessions", "get_sessions_over_time", "get_session",
 		"get_memory_usage_over_time", "get_memory_usage_by_device_tier", "get_high_memory_sessions",
+		"get_device_sessions_over_time", "get_devices_by_sessions", "get_devices_by_errors",
+		"get_devices_by_launch_time", "get_devices_by_span_duration", "get_devices_by_memory_usage",
 		"get_bug_reports", "get_bug_reports_over_time", "get_bug_report",
 		"update_bug_report_status",
 		"get_root_span_names", "get_span_instances", "get_span_metrics_over_time",
@@ -3154,6 +3156,131 @@ func TestMCPMemoryTools(t *testing.T) {
 		keys := callMCPTool(t, rawToken, "get_filter_keys", map[string]any{"app_id": appID.String(), "entity": "memory"})
 		if isToolError(keys) || !strings.Contains(extractTextContent(t, keys), `"name":"app_state"`) {
 			t.Fatalf("memory filter keys = %s, want app_state", extractTextContent(t, keys))
+		}
+	})
+}
+
+func TestMCPDevicesTools(t *testing.T) {
+	ctx := context.Background()
+	cleanupAll(ctx, t)
+	userID := uuid.New()
+	seedUser(ctx, t, userID.String(), "devices@mcp.test")
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, "devices team")
+	seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+	appID := uuid.New()
+	seedApp(ctx, t, appID, teamID, 30)
+	rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+
+	base := time.Now().UTC().Add(-time.Hour).Truncate(time.Second)
+	sessionID := uuid.New().String()
+	anonRSS := uint64(2 * 1024 * 1024)
+	swap := uint64(0)
+	for _, row := range []testinfra.EventRow{
+		{Type: "exception", Severity: "fatal"},
+		{Type: "cold_launch", LaunchDuration: 500},
+		{Type: "memory_usage", MemoryAnonRSS: &anonRSS, MemorySwap: &swap, MemoryAppImportance: "foreground"},
+	} {
+		row.SessionID = sessionID
+		row.Timestamp = base
+		row.OSName = "android"
+		row.DeviceManufacturer = "Google"
+		row.DeviceModel = "Pixel 8"
+		row.DeviceName = "shiba"
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 1, row)
+	}
+	th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{
+		SpanName: "checkout", Status: 1, StartTime: base, SessionID: sessionID,
+		DeviceManufacturer: "Google", DeviceModel: "Pixel 8", DeviceName: "shiba",
+	})
+
+	args := func(extra map[string]any) map[string]any {
+		args := map[string]any{
+			"app_id": appID.String(),
+			// span_metrics rounds span start times down to the nearest 15
+			// minutes.
+			"from": base.Add(-15 * time.Minute).Format(time.RFC3339),
+			"to":   base.Add(time.Minute).Format(time.RFC3339),
+		}
+		for key, value := range extra {
+			args[key] = value
+		}
+		return args
+	}
+	type row struct {
+		DeviceManufacturer string `json:"device_manufacturer"`
+		DeviceModel        string `json:"device_model"`
+		DeviceName         string `json:"device_name"`
+		SessionCount       uint64 `json:"session_count"`
+		CrashCount         uint64 `json:"crash_count"`
+		Count              uint64 `json:"count"`
+		SampleCount        uint64 `json:"sample_count"`
+	}
+	list := func(t *testing.T, tool string, extra map[string]any) row {
+		t.Helper()
+		resp := callMCPTool(t, rawToken, tool, args(extra))
+		if isToolError(resp) {
+			t.Fatalf("%s returned an error: %s", tool, extractTextContent(t, resp))
+		}
+		var page struct {
+			Results []row           `json:"results"`
+			Meta    map[string]bool `json:"meta"`
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &page); err != nil {
+			t.Fatalf("unmarshal %s: %v", tool, err)
+		}
+		if len(page.Results) != 1 || page.Results[0].DeviceModel != "Pixel 8" || page.Results[0].DeviceName != "shiba" || page.Meta["next"] || page.Meta["previous"] {
+			t.Fatalf("%s = %#v, want one Pixel 8 row", tool, page)
+		}
+		return page.Results[0]
+	}
+
+	t.Run("lists each metric by device", func(t *testing.T) {
+		if got := list(t, "get_devices_by_sessions", nil); got.SessionCount != 1 {
+			t.Errorf("sessions = %d, want 1", got.SessionCount)
+		}
+		if got := list(t, "get_devices_by_errors", map[string]any{"order": "asc"}); got.CrashCount != 1 {
+			t.Errorf("crashes = %d, want 1", got.CrashCount)
+		}
+		if got := list(t, "get_devices_by_launch_time", map[string]any{"percentile": "p50"}); got.Count != 1 {
+			t.Errorf("launches = %d, want 1", got.Count)
+		}
+		if got := list(t, "get_devices_by_span_duration", map[string]any{"root_span_name": "checkout"}); got.Count != 1 {
+			t.Errorf("spans = %d, want 1", got.Count)
+		}
+		if got := list(t, "get_devices_by_memory_usage", nil); got.SampleCount != 1 {
+			t.Errorf("memory samples = %d, want 1", got.SampleCount)
+		}
+	})
+
+	t.Run("plots sessions by device", func(t *testing.T) {
+		resp := callMCPTool(t, rawToken, "get_device_sessions_over_time", args(map[string]any{"timezone": "UTC"}))
+		if isToolError(resp) {
+			t.Fatalf("plot returned an error: %s", extractTextContent(t, resp))
+		}
+		var points []row
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &points); err != nil {
+			t.Fatalf("unmarshal plot: %v", err)
+		}
+		if len(points) != 1 || points[0].DeviceModel != "Pixel 8" || points[0].SessionCount != 1 {
+			t.Fatalf("plot = %#v, want one Pixel 8 point with 1 session", points)
+		}
+	})
+
+	t.Run("rejects invalid inputs", func(t *testing.T) {
+		for _, tc := range []struct {
+			tool  string
+			extra map[string]any
+		}{
+			{"get_device_sessions_over_time", nil},
+			{"get_devices_by_sessions", map[string]any{"order": "sideways"}},
+			{"get_devices_by_launch_time", map[string]any{"launch_type": "lukewarm"}},
+			{"get_devices_by_memory_usage", map[string]any{"percentile": "p99"}},
+			{"get_devices_by_span_duration", nil},
+		} {
+			if resp := callMCPTool(t, rawToken, tc.tool, args(tc.extra)); !isToolError(resp) {
+				t.Errorf("%s with %v: want a tool error", tc.tool, tc.extra)
+			}
 		}
 	})
 }

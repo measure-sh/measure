@@ -49,6 +49,7 @@ var appFiltersColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]c
 	osName.Name:             {expr: "tupleElement(os_version, 1)"},
 	osVersion.Name:          {expr: "tupleElement(os_version, 2)"},
 	deviceName.Name:         {expr: "device_name"},
+	deviceModel.Name:        {expr: "device_model"},
 	deviceManufacturer.Name: {expr: "device_manufacturer"},
 	locale.Name:             {expr: "device_locale"},
 	networkType.Name:        {expr: "network_type"},

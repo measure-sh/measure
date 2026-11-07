@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"log"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -417,7 +418,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_filter_keys
 		newTool(&mcpsdk.Tool{
 			Name:        "get_filter_keys",
-			Description: "List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, funnels or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
+			Description: "List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
 			InputSchema: mcpMustInferSchema[mcpGetFilterKeysInput](),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFilterKeysInput) (*mcpsdk.CallToolResult, any, error) {
@@ -572,6 +573,66 @@ func commonTools(cfg *Config) []Tool {
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetHighMemorySessionsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetHighMemorySessions(ctx, in)
+		}),
+
+		// get_device_sessions_over_time
+		newTool(&mcpsdk.Tool{
+			Name:        "get_device_sessions_over_time",
+			Description: "Get session counts over time for the five device models with the most sessions. A device is a manufacturer and model pair. Each session is counted once, in the bucket where it started or, if it started before from, in the first bucket. The points for each device add up to its session_count in get_devices_by_sessions. " + mcpFilterExprToolsHint(filter.DevicesEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetDeviceSessionsOverTimeInput](mcpDevicesFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetDeviceSessionsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetDeviceSessionsOverTime(ctx, in)
+		}),
+
+		// get_devices_by_sessions
+		newTool(&mcpsdk.Tool{
+			Name:        "get_devices_by_sessions",
+			Description: "Get a paginated list of device models ranked by sessions that overlap the time range. percent_of_sessions is each device's share of all matching sessions. Sessions without a device model are excluded. " + mcpFilterExprToolsHint(filter.DevicesEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetDevicesBySessionsInput](mcpDevicesFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetDevicesBySessionsInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetDevicesBySessions(ctx, in)
+		}),
+
+		// get_devices_by_errors
+		newTool(&mcpsdk.Tool{
+			Name:        "get_devices_by_errors",
+			Description: "Get a paginated list of device models ranked by errors: crashes, ANRs, app hangs, and non-fatal exceptions. Results include counts for each error type and the number of sessions with an error. " + mcpFilterExprToolsHint(filter.DevicesEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetDevicesByErrorsInput](mcpDevicesFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetDevicesByErrorsInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetDevicesByErrors(ctx, in)
+		}),
+
+		// get_devices_by_launch_time
+		newTool(&mcpsdk.Tool{
+			Name:        "get_devices_by_launch_time",
+			Description: "Get a paginated list of device models ranked by app launch time for one launch type. Results include p50, p90, and p95 in milliseconds and the number of launches. " + mcpFilterExprToolsHint(filter.DevicesEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetDevicesByLaunchTimeInput](mcpDevicesFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetDevicesByLaunchTimeInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetDevicesByLaunchTime(ctx, in)
+		}),
+
+		// get_devices_by_span_duration
+		newTool(&mcpsdk.Tool{
+			Name:        "get_devices_by_span_duration",
+			Description: "Get a paginated list of device models ranked by the duration of one root span. Results include p50, p90, and p95 in milliseconds and the number of spans. Spans recorded before span metrics included the device model are excluded. Use get_root_span_names to list span names. " + mcpFilterExprToolsHint(filter.DevicesEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetDevicesBySpanDurationInput](mcpDevicesFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetDevicesBySpanDurationInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetDevicesBySpanDuration(ctx, in)
+		}),
+
+		// get_devices_by_memory_usage
+		newTool(&mcpsdk.Tool{
+			Name:        "get_devices_by_memory_usage",
+			Description: "Get a paginated list of device models ranked by memory usage, using samples from every app state. Results include p50, p90, and p95 in KiB, along with session and sample counts. " + mcpFilterExprToolsHint(filter.DevicesEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetDevicesByMemoryUsageInput](mcpDevicesFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetDevicesByMemoryUsageInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetDevicesByMemoryUsage(ctx, in)
 		}),
 
 		// get_bug_reports
@@ -980,6 +1041,7 @@ var (
 	mcpErrorGroupEventsFilterExprGrammar = mcpFilterExprGrammar(filter.ErrorGroupEventsEntity, "version_name:in:[1.2.0] AND os_name:in:[android]")
 	mcpAppHealthFilterExprGrammar        = mcpFilterExprGrammar(filter.AppHealthEntity, "version_name:in:[1.2.0] AND version_code:in:[120]")
 	mcpMemoryFilterExprGrammar           = mcpFilterExprGrammar(filter.MemoryEntity, "version_name:in:[1.2.0] AND app_state:eq:foreground")
+	mcpDevicesFilterExprGrammar          = mcpFilterExprGrammar(filter.DevicesEntity, "os_name:in:[android] AND device_manufacturer:in:[Samsung]")
 	mcpFunnelsFilterExprGrammar          = mcpFilterExprGrammar(filter.FunnelsEntity, "version_name:in:[1.2.0] AND country:in:[US]")
 )
 
@@ -1047,12 +1109,12 @@ func mcpMustInferSchema[T any]() json.RawMessage {
 type mcpListAppsInput struct{}
 type mcpGetFilterKeysInput struct {
 	AppID  string   `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, funnels or builds"`
+	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels or builds"`
 	Keys   []string `json:"keys,omitempty" jsonschema:"Key names you already know, for example from the user's request, to include in the result even when the listing is truncated"`
 }
 type mcpGetFilterValuesInput struct {
 	AppID   string `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, funnels or builds"`
+	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels or builds"`
 	KeyName string `json:"key_name" jsonschema:"Name of the filter key to list values for, as get_filter_keys returns it"`
 	Search  string `json:"search,omitempty" jsonschema:"Return only values containing this text"`
 	Limit   int    `json:"limit,omitempty" jsonschema:"Maximum number of values to return (default: 50, max: 200)"`
@@ -1151,6 +1213,64 @@ type mcpGetHighMemorySessionsInput struct {
 	FilterExpr string `json:"filter_expr,omitempty"`
 	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum sessions to return (default: 10, max: 30)"`
 	Offset     int    `json:"offset,omitempty" jsonschema:"Number of sessions to skip for pagination (default: 0)"`
+}
+type mcpGetDeviceSessionsOverTimeInput struct {
+	AppID         string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From          string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string `json:"filter_expr,omitempty"`
+	Timezone      string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
+	PlotTimeGroup string `json:"plot_time_group,omitempty" jsonschema:"Time bucket: minutes, hours, days or months (default: days)"`
+}
+type mcpGetDevicesBySessionsInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Order      string `json:"order,omitempty" jsonschema:"desc lists the device with the highest value first; asc lists the device with the lowest value first (default: desc)"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of devices to return (default: 10, max: 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of devices to skip when paginating (default: 0)"`
+}
+type mcpGetDevicesByErrorsInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Order      string `json:"order,omitempty" jsonschema:"desc lists the device with the highest value first; asc lists the device with the lowest value first (default: desc)"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of devices to return (default: 10, max: 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of devices to skip when paginating (default: 0)"`
+}
+type mcpGetDevicesByLaunchTimeInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	LaunchType string `json:"launch_type,omitempty" jsonschema:"Launch type: cold_launch, warm_launch, or hot_launch (default: cold_launch)"`
+	Percentile string `json:"percentile,omitempty" jsonschema:"Percentile to rank by: p50, p90, or p95 (default: p95). Each device has all three percentiles"`
+	Order      string `json:"order,omitempty" jsonschema:"desc lists the device with the highest value first; asc lists the device with the lowest value first (default: desc)"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of devices to return (default: 10, max: 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of devices to skip when paginating (default: 0)"`
+}
+type mcpGetDevicesBySpanDurationInput struct {
+	AppID        string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From         string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To           string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr   string `json:"filter_expr,omitempty"`
+	RootSpanName string `json:"root_span_name" jsonschema:"Name of the root span to query"`
+	Percentile   string `json:"percentile,omitempty" jsonschema:"Percentile to rank by: p50, p90, or p95 (default: p95). Each device has all three percentiles"`
+	Order        string `json:"order,omitempty" jsonschema:"desc lists the device with the highest value first; asc lists the device with the lowest value first (default: desc)"`
+	Limit        int    `json:"limit,omitempty" jsonschema:"Maximum number of devices to return (default: 10, max: 30)"`
+	Offset       int    `json:"offset,omitempty" jsonschema:"Number of devices to skip when paginating (default: 0)"`
+}
+type mcpGetDevicesByMemoryUsageInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Percentile string `json:"percentile,omitempty" jsonschema:"Percentile to rank by: p50, p90, or p95 (default: p95). Each device has all three percentiles"`
+	Order      string `json:"order,omitempty" jsonschema:"desc lists the device with the highest value first; asc lists the device with the lowest value first (default: desc)"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of devices to return (default: 10, max: 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of devices to skip when paginating (default: 0)"`
 }
 type mcpGetBugReportsInput struct {
 	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
@@ -2177,6 +2297,126 @@ func (c *Config) mcpGetHighMemorySessions(ctx context.Context, in mcpGetHighMemo
 	}
 	data, _ := json.Marshal(result)
 	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetDeviceSessionsOverTime(ctx context.Context, in mcpGetDeviceSessionsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
+	if in.Timezone == "" {
+		return nil, nil, fmt.Errorf("timezone is required for over time tools")
+	}
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.DevicesEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		flt.Timezone = in.Timezone
+		flt.PlotTimeGroup = in.PlotTimeGroup
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	app := measure.App{ID: &appID, TeamId: teamID}
+	points, err := app.GetDevicesSessionsPlotCached(ctx, c.Deps.VK, c.Deps.RchPool, flt)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to fetch device sessions over time: %w", err)
+	}
+	data, _ := json.Marshal(points)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+// mcpPrepareDevicesPage reads inputs shared by device list tools. An empty
+// percentile is valid for lists that do not rank by percentile.
+func (c *Config) mcpPrepareDevicesPage(ctx context.Context, rawAppID, from, to, filterExpr, order, percentile string, limit, offset int) (measure.App, *filter.Filter, measure.DevicesPage, error) {
+	var page measure.DevicesPage
+	switch order {
+	case "", "desc":
+	case "asc":
+		page.Ascending = true
+	default:
+		return measure.App{}, nil, page, fmt.Errorf("order must be desc or asc")
+	}
+	if percentile != "" && !slices.Contains(measure.DevicesPercentiles, percentile) {
+		return measure.App{}, nil, page, fmt.Errorf("percentile must be one of %s", strings.Join(measure.DevicesPercentiles, ", "))
+	}
+	page.Percentile = percentile
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.DevicesEntity, rawAppID, from, to, filterExpr, func(flt *filter.Filter) {
+		if limit <= 0 {
+			limit = 10
+		}
+		flt.Limit = min(limit, 30)
+		flt.Offset = max(offset, 0)
+	})
+	if err != nil {
+		return measure.App{}, nil, page, err
+	}
+	return measure.App{ID: &appID, TeamId: teamID}, flt, page, nil
+}
+
+func mcpDevicesPageResult[Row any](rows []Row, next, previous bool, err error, what string) (*mcpsdk.CallToolResult, any, error) {
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to fetch devices by %s: %w", what, err)
+	}
+	data, _ := json.Marshal(map[string]any{
+		"results": rows,
+		"meta": map[string]bool{
+			"next":     next,
+			"previous": previous,
+		},
+	})
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetDevicesBySessions(ctx context.Context, in mcpGetDevicesBySessionsInput) (*mcpsdk.CallToolResult, any, error) {
+	app, flt, page, err := c.mcpPrepareDevicesPage(ctx, in.AppID, in.From, in.To, in.FilterExpr, in.Order, "", in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	rows, next, previous, err := app.GetDevicesSessionsCached(ctx, c.Deps.VK, c.Deps.RchPool, flt, page)
+	return mcpDevicesPageResult(rows, next, previous, err, "sessions")
+}
+
+func (c *Config) mcpGetDevicesByErrors(ctx context.Context, in mcpGetDevicesByErrorsInput) (*mcpsdk.CallToolResult, any, error) {
+	app, flt, page, err := c.mcpPrepareDevicesPage(ctx, in.AppID, in.From, in.To, in.FilterExpr, in.Order, "", in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	rows, next, previous, err := app.GetDevicesErrorsCached(ctx, c.Deps.VK, c.Deps.RchPool, flt, page)
+	return mcpDevicesPageResult(rows, next, previous, err, "errors")
+}
+
+func (c *Config) mcpGetDevicesByLaunchTime(ctx context.Context, in mcpGetDevicesByLaunchTimeInput) (*mcpsdk.CallToolResult, any, error) {
+	launchType := in.LaunchType
+	if launchType == "" {
+		launchType = measure.LaunchTypes[0]
+	}
+	if !slices.Contains(measure.LaunchTypes, launchType) {
+		return nil, nil, fmt.Errorf("launch_type must be one of %s", strings.Join(measure.LaunchTypes, ", "))
+	}
+	app, flt, page, err := c.mcpPrepareDevicesPage(ctx, in.AppID, in.From, in.To, in.FilterExpr, in.Order, in.Percentile, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	rows, next, previous, err := app.GetDevicesLaunchesCached(ctx, c.Deps.VK, c.Deps.RchPool, flt, page, launchType)
+	return mcpDevicesPageResult(rows, next, previous, err, "launch time")
+}
+
+func (c *Config) mcpGetDevicesBySpanDuration(ctx context.Context, in mcpGetDevicesBySpanDurationInput) (*mcpsdk.CallToolResult, any, error) {
+	if in.RootSpanName == "" {
+		return nil, nil, fmt.Errorf("root_span_name is required")
+	}
+	app, flt, page, err := c.mcpPrepareDevicesPage(ctx, in.AppID, in.From, in.To, in.FilterExpr, in.Order, in.Percentile, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	rows, next, previous, err := app.GetDevicesSpansCached(ctx, c.Deps.VK, c.Deps.RchPool, flt, page, in.RootSpanName)
+	return mcpDevicesPageResult(rows, next, previous, err, "span duration")
+}
+
+func (c *Config) mcpGetDevicesByMemoryUsage(ctx context.Context, in mcpGetDevicesByMemoryUsageInput) (*mcpsdk.CallToolResult, any, error) {
+	app, flt, page, err := c.mcpPrepareDevicesPage(ctx, in.AppID, in.From, in.To, in.FilterExpr, in.Order, in.Percentile, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := app.Populate(ctx, c.Deps.PgPool); err != nil {
+		return nil, nil, fmt.Errorf("failed to populate app: %w", err)
+	}
+	rows, next, previous, err := app.GetDevicesMemoryCached(ctx, c.Deps.VK, c.Deps.RchPool, flt, page)
+	return mcpDevicesPageResult(rows, next, previous, err, "memory usage")
 }
 
 func (c *Config) mcpGetBugReports(ctx context.Context, in mcpGetBugReportsInput) (*mcpsdk.CallToolResult, any, error) {

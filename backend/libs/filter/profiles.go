@@ -15,8 +15,9 @@ var profilesKeys = []Key{
 	patchID,
 	userID,
 	osVersion,
-	deviceName,
+	deviceModel,
 	deviceManufacturer,
+	deviceName,
 }
 
 var profileEventsColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]column{
@@ -28,6 +29,7 @@ var profileEventsColumns = &Columns{dialect: dialectClickHouse, byKey: map[strin
 	userID.Name:             {expr: "`attribute.user_id`"},
 	osVersion.Name:          {expr: "`attribute.os_version`"},
 	deviceName.Name:         {expr: "`attribute.device_name`"},
+	deviceModel.Name:        {expr: "`attribute.device_model`"},
 	deviceManufacturer.Name: {expr: "`attribute.device_manufacturer`"},
 }}
 

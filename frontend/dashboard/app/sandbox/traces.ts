@@ -26,6 +26,7 @@ function spanAttributes(
     os_version: row.os_version,
     device_manufacturer: row.device_manufacturer,
     device_name: session?.device_name,
+    device_model: row.device_model,
     locale: session?.device_locale,
     country: session ? countryOf(session.device_locale) : undefined,
     network_type: session?.network_type,

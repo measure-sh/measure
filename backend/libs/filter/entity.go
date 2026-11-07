@@ -81,6 +81,8 @@ func FindByName(name string) (Entity, error) {
 		return MemoryEntity, nil
 	case ProfilesEntity.Name:
 		return ProfilesEntity, nil
+	case DevicesEntity.Name:
+		return DevicesEntity, nil
 	}
 
 	return Entity{}, fmt.Errorf("Unknown filter entity %q", name)
@@ -434,6 +436,19 @@ var (
 		Name:        "device_name",
 		Label:       "Device name",
 		Description: "The name of the device.",
+		KeyGroup:    KeyGroupDevice,
+		ValueType:   ValueTypeString,
+		Operators: []Operator{
+			OperatorIn, OperatorNotIn,
+			OperatorContains, OperatorStartsWith,
+		},
+		ValueSuggestionMode: ValueSuggestionModeSample,
+	}
+
+	deviceModel = Key{
+		Name:        "device_model",
+		Label:       "Device model",
+		Description: "The model of the device, such as Pixel 8 or iPhone 15.",
 		KeyGroup:    KeyGroupDevice,
 		ValueType:   ValueTypeString,
 		Operators: []Operator{
