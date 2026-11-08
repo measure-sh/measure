@@ -419,7 +419,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_filter_keys
 		newTool(&mcpsdk.Tool{
 			Name:        "get_filter_keys",
-			Description: "List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
+			Description: "List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels, builds or profiles), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
 			InputSchema: mcpMustInferSchema[mcpGetFilterKeysInput](),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFilterKeysInput) (*mcpsdk.CallToolResult, any, error) {
@@ -684,6 +684,16 @@ func commonTools(cfg *Config) []Tool {
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetBuildsInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetBuilds(ctx, in)
+		}),
+
+		// get_profiles
+		newTool(&mcpsdk.Tool{
+			Name:        "get_profiles",
+			Description: "Get an app's captured profiles, newest first. Profiles are available on Android 16 and later. Each profile includes its trigger (such as an ANR or app fully drawn), format, session_id, version_name, version_code, OS, and device. Profile files can't be downloaded or opened with this tool. Use dashboard_url to open the Profiles page filtered to the profile, where users can download it or open it in Perfetto. Lists all profiles unless filter_expr narrows the results; " + mcpFilterExprToolsHint(filter.ProfilesEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetProfilesInput](mcpProfilesFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetProfilesInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetProfiles(ctx, in)
 		}),
 
 		// get_root_span_names
@@ -1055,6 +1065,7 @@ var (
 	mcpDevicesFilterExprGrammar          = mcpFilterExprGrammar(filter.DevicesEntity, "os_name:in:[android] AND device_manufacturer:in:[Samsung]")
 	mcpFunnelsFilterExprGrammar          = mcpFilterExprGrammar(filter.FunnelsEntity, "version_name:in:[1.2.0] AND country:in:[US]")
 	mcpBuildsFilterExprGrammar           = mcpFilterExprGrammar(filter.BuildsEntity, "version_name:in:[1.2.0] AND mapping_type:in:[proguard]")
+	mcpProfilesFilterExprGrammar         = mcpFilterExprGrammar(filter.ProfilesEntity, "version_name:in:[1.2.0] AND profile_trigger:in:[anr]")
 )
 
 const mcpFunnelUsers = "Users are counted by installation id: each install of the app is one user, whatever user id the app has set."
@@ -1121,12 +1132,12 @@ func mcpMustInferSchema[T any]() json.RawMessage {
 type mcpListAppsInput struct{}
 type mcpGetFilterKeysInput struct {
 	AppID  string   `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels or builds"`
+	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels, builds or profiles"`
 	Keys   []string `json:"keys,omitempty" jsonschema:"Key names you already know, for example from the user's request, to include in the result even when the listing is truncated"`
 }
 type mcpGetFilterValuesInput struct {
 	AppID   string `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels or builds"`
+	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels, builds or profiles"`
 	KeyName string `json:"key_name" jsonschema:"Name of the filter key to list values for, as get_filter_keys returns it"`
 	Search  string `json:"search,omitempty" jsonschema:"Return only values containing this text"`
 	Limit   int    `json:"limit,omitempty" jsonschema:"Maximum number of values to return (default: 50, max: 200)"`
@@ -1413,6 +1424,14 @@ type mcpGetBuildsInput struct {
 	FilterExpr string `json:"filter_expr,omitempty"`
 	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of builds to return (defaults to 10; maximum 30)"`
 	Offset     int    `json:"offset,omitempty" jsonschema:"Number of builds to skip for pagination (defaults to 0)"`
+}
+type mcpGetProfilesInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of the capture time range (RFC3339; defaults to 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of the capture time range (RFC3339; defaults to now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of profiles to return (defaults to 10; maximum 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of profiles to skip for pagination (defaults to 0)"`
 }
 type mcpUpdateBugReportStatusInput struct {
 	AppID       string `json:"app_id" jsonschema:"UUID of the app"`
@@ -2957,6 +2976,88 @@ type mcpBuildFile struct {
 	MappingType string    `json:"mapping_type"`
 	FileSize    int64     `json:"filesize"`
 	LastUpdated time.Time `json:"last_updated"`
+}
+
+func (c *Config) mcpGetProfiles(ctx context.Context, in mcpGetProfilesInput) (*mcpsdk.CallToolResult, any, error) {
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.ProfilesEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		limit := in.Limit
+		if limit <= 0 {
+			limit = 10
+		}
+		if limit > 30 {
+			limit = 30
+		}
+		flt.Limit = limit
+		flt.Offset = in.Offset
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	app := measure.App{ID: &appID, TeamId: teamID}
+	profiles, _, _, err := app.GetProfilesWithFilter(ctx, c.Deps.RchPool, flt)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get profiles: %v", err)
+	}
+
+	origin := strings.TrimSuffix(c.Deps.Config.SiteOrigin, "/")
+	summaries := make([]mcpProfileSummary, len(profiles))
+	for i, profile := range profiles {
+		summaries[i] = mcpProfileSummary{
+			ID:                 profile.ID,
+			SessionID:          profile.SessionID,
+			Timestamp:          profile.Timestamp,
+			Trigger:            profile.Trigger,
+			Format:             profile.Format,
+			VersionName:        profile.Attribute.AppVersion,
+			VersionCode:        profile.Attribute.AppBuild,
+			OSName:             profile.Attribute.OSName,
+			OSVersion:          profile.Attribute.OSVersion,
+			DeviceManufacturer: profile.Attribute.DeviceManufacturer,
+			DeviceModel:        profile.Attribute.DeviceModel,
+			DeviceName:         profile.Attribute.DeviceName,
+		}
+		if origin != "" {
+			summaries[i].DashboardURL = profileDashboardURL(origin, teamID, appID, profile.Timestamp)
+		}
+	}
+	data, _ := json.Marshal(summaries)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+// profileDashboardURL links to the app's Profiles page with a time range
+// from the second of the profile timestamp through one second later. The
+// profiles filter has no profile ID key, so the time range selects the
+// profile. clickhouse-go sends range bounds to ClickHouse as whole seconds;
+// bounds at the millisecond timestamp therefore match no profile.
+func profileDashboardURL(origin string, teamID, appID uuid.UUID, timestamp time.Time) string {
+	start := timestamp.UTC().Truncate(time.Second)
+	query := url.Values{}
+	query.Set("a", appID.String())
+	query.Set("d", "Custom Range")
+	query.Set("sd", start.Format("2006-01-02T15:04:05.000Z"))
+	query.Set("ed", start.Add(time.Second).Format("2006-01-02T15:04:05.000Z"))
+	return fmt.Sprintf("%s/%s/profiles?%s", origin, teamID, query.Encode())
+}
+
+// mcpProfileSummary contains the fields returned for a profile by
+// get_profiles. It omits attachments because their storage locations require
+// sign-in. The dashboard link opens the Profiles page, where users can
+// download the profile or open it in Perfetto.
+type mcpProfileSummary struct {
+	ID                 uuid.UUID `json:"id"`
+	SessionID          uuid.UUID `json:"session_id"`
+	Timestamp          time.Time `json:"timestamp"`
+	Trigger            string    `json:"trigger"`
+	Format             string    `json:"format"`
+	VersionName        string    `json:"version_name"`
+	VersionCode        string    `json:"version_code"`
+	OSName             string    `json:"os_name"`
+	OSVersion          string    `json:"os_version"`
+	DeviceManufacturer string    `json:"device_manufacturer"`
+	DeviceModel        string    `json:"device_model"`
+	DeviceName         string    `json:"device_name"`
+	DashboardURL       string    `json:"dashboard_url,omitempty"`
 }
 
 // --------------------------------------------------------------------------

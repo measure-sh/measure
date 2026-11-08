@@ -98,20 +98,27 @@ func linksBuildFiles(release evalDevice) evalCheck {
 		if len(urls) == 0 {
 			return "no get_builds call returned a dashboard_url for " + release.appVersion
 		}
-		for _, url := range urls {
-			link := strings.Index(evalRun.answer, "]("+url+")")
-			if link < 0 {
-				continue
-			}
-			label := strings.LastIndex(evalRun.answer[:link], "[")
-			before := strings.TrimRight(evalRun.answer[:max(label, 0)], " ")
-			if before == "" || strings.HasSuffix(before, ":") || strings.HasSuffix(before, "\n") {
-				return "answer puts the link after a colon or on its own line instead of inside a sentence"
-			}
-			return ""
-		}
-		return "answer does not link the dashboard_url of " + release.appVersion + ": " + urls[0]
+		return linksInSentence(evalRun.answer, urls, "the dashboard_url of "+release.appVersion)
 	}
+}
+
+// linksInSentence checks that the answer contains a markdown link to one of
+// the URLs and that the link appears inside a sentence, not after a colon or
+// on its own line.
+func linksInSentence(answer string, urls []string, description string) string {
+	for _, url := range urls {
+		link := strings.Index(answer, "]("+url+")")
+		if link < 0 {
+			continue
+		}
+		label := strings.LastIndex(answer[:link], "[")
+		before := strings.TrimRight(answer[:max(label, 0)], " ")
+		if before == "" || strings.HasSuffix(before, ":") || strings.HasSuffix(before, "\n") {
+			return "answer puts the link after a colon or on its own line instead of inside a sentence"
+		}
+		return ""
+	}
+	return "answer does not link " + description + ": " + urls[0]
 }
 
 // evalBuildUpload is a mapping file uploaded for an Android release on a
