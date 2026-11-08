@@ -51,12 +51,10 @@ const ErrorsOverviewPlot: React.FC<{
             formatTick={numberToKMB}
             startDate={startDate}
             endDate={endDate}
-            xAxisTitle="Date"
-            yAxisTitle="Error instances"
             integerTicks
             showAllSeriesInTooltip
             formatTooltip={(seriesId, datum) =>
-              `${seriesId} - ${formatCount(Number(datum.y), "instance", "instances")}`
+              `${seriesId} - ${formatCount(Number(datum.y), "error", "errors")}`
             }
           />
         </div>

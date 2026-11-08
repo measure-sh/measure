@@ -114,14 +114,12 @@ describe("SpanMetricsPlot", () => {
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
     expect(lastLineProps.data[0].data[0].y).toBe(30);
-    // Component initializes with p50 (from useState default)
-    expect(lastLineProps.axisLeft.legend).toBe("Duration (p50)");
     expect(lastTabSelectProps.items).toEqual(["p50", "p90", "p95", "p99"]);
     expect(lastTabSelectProps.selected).toBe("p50");
 
     fireEvent.click(screen.getByTestId("quantile-p99"));
     await waitFor(() => expect(lastLineProps.data[0].data[0].y).toBe(40));
-    expect(lastLineProps.axisLeft.legend).toBe("Duration (p99)");
+    expect(lastTabSelectProps.selected).toBe("p99");
   });
 
   it("renders tooltip with human readable millis", async () => {

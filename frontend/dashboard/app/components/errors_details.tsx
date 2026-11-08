@@ -439,7 +439,7 @@ export const ErrorsDetailsView: React.FC<ErrorsDetailsViewProps> = ({
           />
         </div>
 
-        <div className="py-4" />
+        <div className="py-6" />
 
         {status === "error" && filterExprIssues === null && (
           <p className="font-body text-sm">
@@ -778,10 +778,10 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
       {filterStatus.kind === "loading" && (
         <div className="w-full">
           <div className="flex flex-col md:flex-row w-full">
-            <div className="flex font-body items-center justify-center w-full md:w-1/2 h-128">
+            <div className="flex font-body items-center justify-center w-full md:w-1/2 h-106">
               <SkeletonPlot />
             </div>
-            <div className="flex font-body items-center justify-center w-full md:w-1/2 h-128">
+            <div className="flex font-body items-center justify-center w-full md:w-1/2 h-106">
               <SkeletonPlot />
             </div>
           </div>

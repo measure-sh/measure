@@ -36,7 +36,18 @@ export default function MemoryUsagePlot({
 
   return (
     <section className="w-full font-body">
-      <p className="font-display text-xl">Memory Usage</p>
+      <div className="flex items-center justify-between">
+        <p className="font-display text-xl">Memory Usage</p>
+        {status === "success" && plot && plot.length > 0 && (
+          <TabSelect
+            items={Object.values(MemoryUsageQuantile)}
+            selected={quantile}
+            onChangeSelected={(item) =>
+              setQuantile(item as MemoryUsageQuantile)
+            }
+          />
+        )}
+      </div>
       <div className="py-2" />
       <div className="flex items-center justify-center w-full h-64 2xl:h-96">
         {status === "pending" && <SkeletonPlot />}
@@ -57,35 +68,19 @@ export default function MemoryUsagePlot({
           </div>
         )}
         {status === "success" && plot && plot.length > 0 && (
-          <div
-            data-testid="memory-usage-plot-data"
-            className="flex flex-col w-full h-full"
-          >
-            <div className="flex justify-end p-2">
-              <TabSelect
-                items={Object.values(MemoryUsageQuantile)}
-                selected={quantile}
-                onChangeSelected={(item) =>
-                  setQuantile(item as MemoryUsageQuantile)
-                }
-              />
-            </div>
-            <div className="flex-1 min-h-0">
-              <TimeSeriesPlot
-                data={plot}
-                plotTimeGroup={plotTimeGroup}
-                startDate={startDate}
-                endDate={endDate}
-                xAxisTitle="Date"
-                yAxisTitle="Memory usage"
-                formatTick={formatMemoryKilobytes}
-                tickLabelWidth={MEMORY_TICK_LABEL_WIDTH}
-                showAllSeriesInTooltip
-                formatTooltip={(seriesId, datum) =>
-                  `${seriesId} - ${formatMemoryKilobytes(Number(datum.y))}`
-                }
-              />
-            </div>
+          <div data-testid="memory-usage-plot-data" className="size-full">
+            <TimeSeriesPlot
+              data={plot}
+              plotTimeGroup={plotTimeGroup}
+              startDate={startDate}
+              endDate={endDate}
+              formatTick={formatMemoryKilobytes}
+              tickLabelWidth={MEMORY_TICK_LABEL_WIDTH}
+              showAllSeriesInTooltip
+              formatTooltip={(seriesId, datum) =>
+                `${seriesId} - ${formatMemoryKilobytes(Number(datum.y))} (${quantile})`
+              }
+            />
           </div>
         )}
       </div>

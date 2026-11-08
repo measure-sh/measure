@@ -107,7 +107,7 @@ const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
   return (
     <div
       data-testid="exception-detail-plot"
-      className="flex font-body items-center justify-center w-full md:w-1/2 h-128"
+      className="flex font-body items-center justify-center w-full md:w-1/2 h-106"
     >
       {effectiveStatus === "pending" && <SkeletonPlot />}
       {effectiveStatus === "error" && (
@@ -123,7 +123,7 @@ const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
         >
           <EmptyState
             icon={ChartLine}
-            title="No instances found"
+            title="No errors found"
             description="Try a wider time range or different filters"
             className="h-full"
           />
@@ -132,7 +132,7 @@ const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
       {effectiveStatus === "success" && plot !== null && plot !== undefined && (
         <div
           data-testid="exception-detail-plot-data"
-          className="size-full pt-6 pb-[79px]"
+          className="size-full pt-6 pb-[34px]"
         >
           <TimeSeriesPlot
             data={plot}
@@ -140,13 +140,11 @@ const ErrorsDetailsPlot: React.FC<ErrorsDetailsPlotProps> = ({
             formatTick={numberToKMB}
             startDate={startDate}
             endDate={endDate}
-            xAxisTitle="Date"
-            yAxisTitle="Error instances"
             integerTicks
             xTickRotation={60}
             showAllSeriesInTooltip
             formatTooltip={(seriesId, datum) =>
-              `${seriesId} - ${formatCount(Number(datum.y), "instance", "instances")}`
+              `${seriesId} - ${formatCount(Number(datum.y), "error", "errors")}`
             }
           />
         </div>

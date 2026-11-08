@@ -424,17 +424,21 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
                           {label}
                         </p>
                         <div className="py-0.5" />
-                        <p className="text-xs">Sessions: {value}</p>
+                        <p className="text-xs">
+                          Sessions: {numberToKMB(value)}
+                        </p>
                         <p className="text-xs">
                           Events:{" "}
-                          {
+                          {numberToKMB(
                             selectedMonthUsage?.find((i) => i.id === id)!
-                              .events!
-                          }
+                              .events!,
+                          )}
                         </p>
                         <p className="text-xs">
                           Spans:{" "}
-                          {selectedMonthUsage?.find((i) => i.id === id)!.spans}
+                          {numberToKMB(
+                            selectedMonthUsage?.find((i) => i.id === id)!.spans,
+                          )}
                         </p>
                       </PlotTooltip>
                     );
@@ -446,10 +450,14 @@ export default function Usage(props: { params: Promise<{ teamId: string }> }) {
                   this box aligned with the pie's center. */}
               <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 pointer-events-none font-display font-semibold text-center">
                 <p className="text-base md:text-2xl">
-                  Sessions: {totals.sessions}
+                  Sessions: {numberToKMB(totals.sessions)}
                 </p>
-                <p className="text-xs md:text-sm">Events: {totals.events}</p>
-                <p className="text-xs md:text-sm">Spans: {totals.spans}</p>
+                <p className="text-xs md:text-sm">
+                  Events: {numberToKMB(totals.events)}
+                </p>
+                <p className="text-xs md:text-sm">
+                  Spans: {numberToKMB(totals.spans)}
+                </p>
               </div>
             </div>
           )}

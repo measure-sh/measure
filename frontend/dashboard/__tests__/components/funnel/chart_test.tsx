@@ -194,7 +194,7 @@ describe("FunnelChart", () => {
 
     it("shows only users and conversion from start for the first step", () => {
       renderTooltip(0);
-      expect(rowValue("Users")).toBe((2000).toLocaleString());
+      expect(rowValue("Users")).toBe("2K");
       expect(rowValue("Conversion from start")).toBe("100%");
       expect(
         screen.queryByText("Conversion from previous step"),
@@ -208,7 +208,7 @@ describe("FunnelChart", () => {
       expect(rowValue("Users")).toBe("500");
       expect(rowValue("Conversion from start")).toBe("25%");
       expect(rowValue("Conversion from previous step")).toBe("25%");
-      expect(rowValue("Dropped")).toBe((1500).toLocaleString());
+      expect(rowValue("Dropped")).toBe("1.5K");
       expect(rowValue("Median time")).toBe("1m 30s");
     });
 

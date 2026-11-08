@@ -70,13 +70,11 @@ const NetworkStatusDistributionPlot: React.FC<
           formatTick={numberToKMB}
           startDate={startDate}
           endDate={endDate}
-          xAxisTitle="Date"
-          yAxisTitle="Requests"
           integerTicks
           colors={(id) => colorMap[id as keyof typeof colorMap] || "#888"}
           showAllSeriesInTooltip
           formatTooltip={(seriesId, datum) =>
-            `${seriesId}: ${formatCountWithShare(Number(datum.y), datum.total_count)}`
+            `${seriesId}: ${formatCountWithShare(Number(datum.y), datum.total_count, "request", "requests")}`
           }
           tooltipTotal={(datum) => datum.total_count}
         />

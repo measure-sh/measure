@@ -47,8 +47,6 @@ const SessionReplayOverviewPlot: React.FC<{
             formatTick={numberToKMB}
             startDate={startDate}
             endDate={endDate}
-            xAxisTitle="Date"
-            yAxisTitle="Session Replay"
             integerTicks
             showAllSeriesInTooltip
             formatTooltip={(seriesId, datum) =>

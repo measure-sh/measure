@@ -91,8 +91,13 @@ jest.mock("@/app/components/skeleton", () => ({
 
 jest.mock("@/app/components/network_latency_plot", () => ({
   __esModule: true,
+  LatencyQuantile: { p50: "p50", p90: "p90", p95: "p95", p99: "p99" },
   default: (props: any) => (
-    <div data-testid="latency-plot" data-time-group={props.plotTimeGroup} />
+    <div
+      data-testid="latency-plot"
+      data-time-group={props.plotTimeGroup}
+      data-quantile={props.quantile}
+    />
   ),
 }));
 
@@ -270,6 +275,21 @@ describe("NetworkDetails", () => {
         { datetime: "2026-04-01", total_count: 4, count_200: 3, count_404: 1 },
       ],
     });
+  });
+
+  it("passes the selected latency quantile to the latency plot", () => {
+    plotsLoaded();
+    renderDetails();
+
+    expect(screen.getByTestId("latency-plot")).toHaveAttribute(
+      "data-quantile",
+      "p95",
+    );
+    fireEvent.click(screen.getByText("p50"));
+    expect(screen.getByTestId("latency-plot")).toHaveAttribute(
+      "data-quantile",
+      "p50",
+    );
   });
 
   it("shows an empty state under each section when the endpoint has no data", () => {

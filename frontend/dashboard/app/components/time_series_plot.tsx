@@ -19,6 +19,7 @@ import {
   useChartGridOpacity,
   useChartColors,
 } from "../utils/chart_utils";
+import { numberToKMB } from "../utils/number_utils";
 import {
   formatMillisToHumanReadable,
   formatPlotTooltipDate,
@@ -78,13 +79,18 @@ type ScaleWithTicks = {
 };
 
 export function formatCount(count: number, singular: string, plural: string) {
-  return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
+  return `${numberToKMB(count)} ${count === 1 ? singular : plural}`;
 }
 
-export function formatCountWithShare(count: number, total: number) {
+export function formatCountWithShare(
+  count: number,
+  total: number,
+  singular: string,
+  plural: string,
+) {
   const share = total > 0 ? (count / total) * 100 : 0;
   const percent = share > 0 && share < 0.1 ? "<0.1" : share.toFixed(1);
-  return `${count.toLocaleString()} (${percent}%)`;
+  return `${formatCount(count, singular, plural)} (${percent}%)`;
 }
 
 export type TimeSeries = {
@@ -369,7 +375,7 @@ export default function TimeSeriesPlot<Series extends TimeSeries>({
               <div className="px-4 py-3">
                 {tooltipTotal && (
                   <p className="pb-2">
-                    Total: {tooltipTotal(point.data).toLocaleString()}
+                    Total: {numberToKMB(tooltipTotal(point.data))}
                   </p>
                 )}
                 <p>

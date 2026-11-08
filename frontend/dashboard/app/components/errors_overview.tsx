@@ -107,7 +107,7 @@ function ErrorTrendPlot({
               <div className="flex flex-row items-center p-2">
                 <PlotTooltipSwatch color={color} />
                 <span className="px-2">
-                  {data.instances.toLocaleString()}{" "}
+                  {numberToKMB(data.instances)}{" "}
                   {data.instances === 1 ? "instance" : "instances"}
                 </span>
               </div>
@@ -211,13 +211,13 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
       {readyValue !== null &&
         (status === "success" || status === "pending") && (
           <div className="flex flex-col items-center w-full">
-            <div className="py-2" />
+            <div className="py-4" />
             <ErrorsOverviewPlot
               startDate={readyValue.date.startDate}
               endDate={readyValue.date.endDate}
               query={errorsPlotQuery}
             />
-            <div className="py-4" />
+            <div className="py-6" />
             {!listEmpty && (
               <>
                 <div className="self-end">

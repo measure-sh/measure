@@ -20,7 +20,6 @@ import { numberToKMB } from "../utils/number_utils";
 import { cn } from "../utils/shadcn_utils";
 import {
   CHART_GRID_DOT_SIZE,
-  CHART_TEXT_SIZE,
   CHART_TICK_PADDING,
   CHART_TICK_SIZE,
   CHART_VALUE_TICK_COUNT,
@@ -121,9 +120,9 @@ function truncateLabel(label: string): string {
 
 // Both charts share these margins so their axes stay in place when the user
 // switches between them.
-const yAxisMargin = chartAxisMargin(COUNT_TICK_LABEL_WIDTH, true);
+const yAxisMargin = chartAxisMargin(COUNT_TICK_LABEL_WIDTH, false);
 
-const chartMargin = { top: 40, right: 20, bottom: 180, left: yAxisMargin };
+const chartMargin = { top: 40, right: 20, bottom: 92, left: yAxisMargin };
 
 const summaryPadding = 0.6;
 
@@ -143,9 +142,6 @@ const errorInstancesAxis = {
   tickValues: CHART_VALUE_TICK_COUNT,
   format: (value: number) =>
     Number.isInteger(value) ? numberToKMB(value) : "",
-  legend: "Error instances",
-  legendOffset: -(yAxisMargin - CHART_TEXT_SIZE / 2),
-  legendPosition: "middle" as const,
 };
 
 // Bars have no positions along the x axis for the grid to follow, so the dots
@@ -199,8 +195,8 @@ const DistributionTooltip: React.FC<DistributionTooltipProps> = ({
     <div className="flex flex-row items-center p-2">
       <PlotTooltipSwatch color={color} />
       <span className="px-2">
-        {label} - {numberToKMB(count)} {count === 1 ? "instance" : "instances"}{" "}
-        ({formatShare(count, total)})
+        {label} - {numberToKMB(count)} {count === 1 ? "error" : "errors"} (
+        {formatShare(count, total)})
       </span>
     </div>
   </PlotTooltip>
@@ -261,11 +257,8 @@ const SummaryChart: React.FC<SummaryChartProps> = ({ summary, onSelect }) => {
         axisTop={null}
         axisRight={null}
         axisBottom={{
-          legend: "Attributes",
           tickPadding: 10,
-          legendOffset: 96,
           tickRotation: 60,
-          legendPosition: "middle",
           format: (attribute) => byAttribute.get(attribute)?.label ?? "",
         }}
         axisLeft={errorInstancesAxis}
@@ -329,11 +322,8 @@ const AttributeChart: React.FC<AttributeChartProps> = ({ distribution }) => {
         axisTop={null}
         axisRight={null}
         axisBottom={{
-          legend: distribution.label,
           tickPadding: 10,
-          legendOffset: 96,
           tickRotation: 60,
-          legendPosition: "middle",
           format: (id) => truncateLabel(data[Number(id)].label),
         }}
         axisLeft={errorInstancesAxis}
@@ -379,7 +369,7 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
   return (
     <div
       data-testid="exception-distribution-plot"
-      className="flex font-body items-center justify-center w-full md:w-1/2 h-128 select-none"
+      className="flex font-body items-center justify-center w-full md:w-1/2 h-106 select-none"
     >
       {effectiveStatus === "pending" && <SkeletonPlot />}
       {effectiveStatus === "error" && (
@@ -395,7 +385,7 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
         >
           <EmptyState
             icon={ChartColumn}
-            title="No distribution data found"
+            title="No errors found"
             description="Try a wider time range or different filters"
             className="h-full"
           />

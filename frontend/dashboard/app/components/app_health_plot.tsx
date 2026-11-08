@@ -183,7 +183,7 @@ const AppHealthPlot: React.FC<AppHealthPlotProps> = ({
             integerTicks
             colors={(id) => colorMap[id as keyof typeof colorMap] || "#888"}
             formatTooltip={(seriesId, datum) =>
-              `${seriesId} - ${Number(datum.y).toLocaleString()}`
+              `${seriesId} - ${numberToKMB(Number(datum.y))}`
             }
           />
         </div>

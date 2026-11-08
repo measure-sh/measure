@@ -47,8 +47,6 @@ const BugReportsOverviewPlot: React.FC<{
             formatTick={numberToKMB}
             startDate={startDate}
             endDate={endDate}
-            xAxisTitle="Date"
-            yAxisTitle="Bug Reports"
             integerTicks
             showAllSeriesInTooltip
             formatTooltip={(seriesId, datum) =>

@@ -211,7 +211,7 @@ describe("TimeSeriesPlot tooltip total", () => {
 
   it("shows the total when the chart gives one", () => {
     renderPlot({ tooltipTotal: () => 1200 });
-    expect(renderTooltip()).toContain("Total: 1,200");
+    expect(renderTooltip()).toContain("Total: 1.2K");
   });
 
   it("leaves out the total otherwise", () => {
@@ -277,16 +277,27 @@ describe("formatCount", () => {
   it("uses the singular noun only for one", () => {
     expect(formatCount(1, "instance", "instances")).toBe("1 instance");
     expect(formatCount(0, "instance", "instances")).toBe("0 instances");
-    expect(formatCount(1200, "instance", "instances")).toBe("1,200 instances");
+    expect(formatCount(1200, "instance", "instances")).toBe("1.2K instances");
   });
 });
 
 describe("formatCountWithShare", () => {
   it("shows the count with its percentage of the total", () => {
-    expect(formatCountWithShare(25, 200)).toBe("25 (12.5%)");
-    expect(formatCountWithShare(0, 0)).toBe("0 (0.0%)");
-    expect(formatCountWithShare(0, 10000)).toBe("0 (0.0%)");
-    expect(formatCountWithShare(3, 10000)).toBe("3 (<0.1%)");
+    expect(formatCountWithShare(25, 200, "request", "requests")).toBe(
+      "25 requests (12.5%)",
+    );
+    expect(formatCountWithShare(1, 2, "request", "requests")).toBe(
+      "1 request (50.0%)",
+    );
+    expect(formatCountWithShare(0, 0, "request", "requests")).toBe(
+      "0 requests (0.0%)",
+    );
+    expect(formatCountWithShare(0, 10000, "request", "requests")).toBe(
+      "0 requests (0.0%)",
+    );
+    expect(formatCountWithShare(3, 10000, "request", "requests")).toBe(
+      "3 requests (<0.1%)",
+    );
   });
 });
 

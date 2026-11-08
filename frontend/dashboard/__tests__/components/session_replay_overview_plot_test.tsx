@@ -88,7 +88,6 @@ describe("SessionReplayOverviewPlot", () => {
     );
     expect(screen.getByTestId("sessions-plot-data")).toBeInTheDocument();
     expect(lastLineProps.xScale.precision).toBe("minute");
-    expect(lastLineProps.axisLeft.legend).toBe("Session Replay");
     expect(lastLineProps.data[0].data[0].y).toBe(2);
   });
 
