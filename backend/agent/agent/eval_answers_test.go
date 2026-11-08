@@ -982,9 +982,14 @@ func internalsPattern(ctx context.Context, t *testing.T, c *Config) *regexp.Rege
 	return regexp.MustCompile(`\b(` + strings.Join(names, "|") + `)\b|` + uuidPattern.String() + `|(?i)\b[0-9a-f]{32}\b|\{\{`)
 }
 
+// markdownLinkTarget matches the URL in a markdown link, which isn't shown
+// to the reader. Dashboard ids in the URL aren't shown as text.
+var markdownLinkTarget = regexp.MustCompile(`\]\([^)\s]+\)`)
+
 func hidesInternals(pattern *regexp.Regexp) evalCheck {
 	return func(evalRun evalRun) string {
-		if match := pattern.FindString(evalRun.answer); match != "" {
+		shown := markdownLinkTarget.ReplaceAllString(evalRun.answer, "]")
+		if match := pattern.FindString(shown); match != "" {
 			return fmt.Sprintf("answer shows internals: %q", match)
 		}
 		return ""

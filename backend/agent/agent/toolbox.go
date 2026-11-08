@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"reflect"
 	"slices"
 	"sort"
@@ -675,6 +676,16 @@ func commonTools(cfg *Config) []Tool {
 			return cfg.mcpUpdateBugReportStatus(ctx, in)
 		}),
 
+		// get_builds
+		newTool(&mcpsdk.Tool{
+			Name:        "get_builds",
+			Description: "Get an app's builds, newest first by upload time. Each build includes its version_name, version_code, patch_id, and the latest uploaded mapping file of each type, such as a ProGuard mapping or dSYM. from and to filter by mapping file upload time. Files can't be downloaded with this tool; dashboard_url opens the Builds page filtered to that build, where users can download its files. Lists all builds unless filter_expr narrows the results; " + mcpFilterExprToolsHint(filter.BuildsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetBuildsInput](mcpBuildsFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetBuildsInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetBuilds(ctx, in)
+		}),
+
 		// get_root_span_names
 		newTool(&mcpsdk.Tool{
 			Name:        "get_root_span_names",
@@ -1043,6 +1054,7 @@ var (
 	mcpMemoryFilterExprGrammar           = mcpFilterExprGrammar(filter.MemoryEntity, "version_name:in:[1.2.0] AND app_state:eq:foreground")
 	mcpDevicesFilterExprGrammar          = mcpFilterExprGrammar(filter.DevicesEntity, "os_name:in:[android] AND device_manufacturer:in:[Samsung]")
 	mcpFunnelsFilterExprGrammar          = mcpFilterExprGrammar(filter.FunnelsEntity, "version_name:in:[1.2.0] AND country:in:[US]")
+	mcpBuildsFilterExprGrammar           = mcpFilterExprGrammar(filter.BuildsEntity, "version_name:in:[1.2.0] AND mapping_type:in:[proguard]")
 )
 
 const mcpFunnelUsers = "Users are counted by installation id: each install of the app is one user, whatever user id the app has set."
@@ -1393,6 +1405,14 @@ type mcpGetJourneySessionsInput struct {
 type mcpGetErrorCommonPathInput struct {
 	AppID        string `json:"app_id" jsonschema:"UUID of the app to query"`
 	ErrorGroupID string `json:"error_group_id" jsonschema:"Fingerprint/ID of the error group"`
+}
+type mcpGetBuildsInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of the upload time range (RFC3339; defaults to 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of the upload time range (RFC3339; defaults to now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of builds to return (defaults to 10; maximum 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of builds to skip for pagination (defaults to 0)"`
 }
 type mcpUpdateBugReportStatusInput struct {
 	AppID       string `json:"app_id" jsonschema:"UUID of the app"`
@@ -2861,6 +2881,82 @@ func (c *Config) mcpUpdateBugReportStatus(ctx context.Context, in mcpUpdateBugRe
 	}
 
 	return mcpTextResult(`{"ok":"done"}`), nil, nil
+}
+
+func (c *Config) mcpGetBuilds(ctx context.Context, in mcpGetBuildsInput) (*mcpsdk.CallToolResult, any, error) {
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.BuildsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		limit := in.Limit
+		if limit <= 0 {
+			limit = 10
+		}
+		if limit > 30 {
+			limit = 30
+		}
+		flt.Limit = limit
+		flt.Offset = in.Offset
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	builds, _, _, err := measure.GetBuildsWithFilter(ctx, c.Deps.PgPool, flt)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get builds: %v", err)
+	}
+
+	origin := strings.TrimSuffix(c.Deps.Config.SiteOrigin, "/")
+	summaries := make([]mcpBuildSummary, len(builds))
+	for i, build := range builds {
+		summaries[i] = mcpBuildSummary{Build: build, Files: make([]mcpBuildFile, len(build.Files))}
+		if origin != "" {
+			summaries[i].DashboardURL = buildDashboardURL(origin, teamID, appID, flt.From, flt.To, build)
+		}
+		for j, file := range build.Files {
+			summaries[i].Files[j] = mcpBuildFile{ID: file.ID, MappingType: file.MappingType, FileSize: file.FileSize, LastUpdated: file.LastUpdated}
+		}
+	}
+	data, _ := json.Marshal(summaries)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+// buildDashboardURL links to the app's Builds page, filtered to this build
+// and the time range of the get_builds call.
+func buildDashboardURL(origin string, teamID, appID uuid.UUID, from, to time.Time, build measure.Build) string {
+	condition := func(key, value string) filter.ExprTree {
+		return filter.ExprTree{Condition: &filter.Condition{KeyName: key, Operator: filter.OperatorIn, Values: []filter.Value{{Text: value}}}}
+	}
+	exprTree := filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+		condition("version_name", build.VersionName),
+		condition("version_code", build.VersionCode),
+	}}
+	// Patch uploads have their own patch id and empty version columns.
+	if build.PatchID != "" {
+		exprTree = condition("patch_id", build.PatchID)
+	}
+
+	query := url.Values{}
+	query.Set("a", appID.String())
+	query.Set("d", "Custom Range")
+	query.Set("sd", from.UTC().Format(time.RFC3339))
+	query.Set("ed", to.UTC().Format(time.RFC3339))
+	query.Set("filter_expr", filter.FormatFilterExpr(&exprTree))
+	return fmt.Sprintf("%s/%s/builds?%s", origin, teamID, query.Encode())
+}
+
+// mcpBuildSummary is a build as listed by get_builds. Its files omit the
+// dashboard download path, which requires sign-in. The build links to the
+// dashboard's Builds page, where users can download the files.
+type mcpBuildSummary struct {
+	measure.Build
+	Files        []mcpBuildFile `json:"files"`
+	DashboardURL string         `json:"dashboard_url,omitempty"`
+}
+
+type mcpBuildFile struct {
+	ID          uuid.UUID `json:"id"`
+	MappingType string    `json:"mapping_type"`
+	FileSize    int64     `json:"filesize"`
+	LastUpdated time.Time `json:"last_updated"`
 }
 
 // --------------------------------------------------------------------------

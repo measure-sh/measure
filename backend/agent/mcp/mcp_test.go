@@ -2632,6 +2632,7 @@ func TestMCPToolsList(t *testing.T) {
 		"get_devices_by_launch_time", "get_devices_by_span_duration", "get_devices_by_memory_usage",
 		"get_bug_reports", "get_bug_reports_over_time", "get_bug_report",
 		"update_bug_report_status",
+		"get_builds",
 		"get_root_span_names", "get_span_instances", "get_span_metrics_over_time",
 		"get_trace", "get_alerts", "get_journey", "get_journey_nodes",
 		"get_journey_path_users", "get_journey_errors", "get_journey_traces",
@@ -4930,6 +4931,158 @@ func TestMCPGetBugReport(t *testing.T) {
 	})
 }
 
+func TestMCPGetBuilds(t *testing.T) {
+	ctx := context.Background()
+	setupToolTest := func(t *testing.T, email string) (uuid.UUID, uuid.UUID, string) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), email)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, email+" team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		return appID, teamID, rawToken
+	}
+	now := time.Now().UTC()
+	from := now.Add(-7 * 24 * time.Hour).Format(time.RFC3339)
+	to := now.Format(time.RFC3339)
+
+	seedBuild := func(t *testing.T, appID uuid.UUID, versionName, versionCode, mappingType string, uploaded time.Time) {
+		t.Helper()
+		mappingID := uuid.NewString()
+		th.SeedBuildMappingRow(ctx, t, mappingID, appID.String(), versionName, versionCode, mappingType, "mappings/"+mappingID, uuid.Nil.String(), "", uploaded)
+	}
+	type buildFile struct {
+		MappingType string `json:"mapping_type"`
+	}
+	type build struct {
+		VersionName  string      `json:"version_name"`
+		VersionCode  string      `json:"version_code"`
+		PatchID      string      `json:"patch_id"`
+		Files        []buildFile `json:"files"`
+		DashboardURL string      `json:"dashboard_url"`
+	}
+	getBuilds := func(t *testing.T, rawToken string, args map[string]any) []build {
+		t.Helper()
+		resp := callMCPTool(t, rawToken, "get_builds", args)
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		var builds []build
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &builds); err != nil {
+			t.Fatalf("unmarshal builds: %v", err)
+		}
+		return builds
+	}
+	versions := func(builds []build) []string {
+		versions := make([]string, len(builds))
+		for i, build := range builds {
+			mappingTypes := make([]string, len(build.Files))
+			for j, file := range build.Files {
+				mappingTypes[j] = file.MappingType
+			}
+			versions[i] = build.VersionName + ":" + strings.Join(mappingTypes, ",")
+		}
+		return versions
+	}
+
+	t.Run("missing app_id", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "builds@mcp.test")
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
+		resp := callMCPTool(t, rawToken, "get_builds", nil)
+		if !isToolError(resp) {
+			t.Error("want tool error for missing app_id")
+		}
+	})
+	t.Run("lists uploaded builds in range, newest first", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "buildslist@mcp.test")
+		seedBuild(t, appID, "1.2.0", "120", "proguard", now.Add(-time.Hour))
+		seedBuild(t, appID, "1.2.0", "120", "elf_debug", now.Add(-2*time.Hour))
+		seedBuild(t, appID, "1.1.0", "110", "proguard", now.Add(-3*time.Hour))
+		seedBuild(t, appID, "1.0.0", "100", "proguard", now.Add(-10*24*time.Hour))
+
+		got := versions(getBuilds(t, rawToken, map[string]any{"app_id": appID.String(), "from": from, "to": to}))
+		if !slices.Equal(got, []string{"1.2.0:elf_debug,proguard", "1.1.0:proguard"}) {
+			t.Fatalf("want [1.2.0:elf_debug,proguard 1.1.0:proguard], got %v", got)
+		}
+	})
+	t.Run("links each build to its files", func(t *testing.T) {
+		setConfig(t, func(c *server.Config) {
+			c.SiteOrigin = "https://dashboard.test"
+		})
+		appID, teamID, rawToken := setupToolTest(t, "buildsurl@mcp.test")
+		seedBuild(t, appID, "1.2.0", "120", "proguard", now.Add(-time.Hour))
+		seedBuild(t, appID, "1.2.0", "121", "proguard", now.Add(-2*time.Hour))
+		patchID := uuid.New()
+		th.SeedBuildMappingRow(ctx, t, uuid.NewString(), appID.String(), "", "", "proguard", "mappings/patch", patchID.String(), "1.2.0-patch.1", now.Add(-3*time.Hour))
+
+		resp := callMCPTool(t, rawToken, "get_builds", map[string]any{"app_id": appID.String(), "from": from, "to": to})
+		if text := extractTextContent(t, resp); isToolError(resp) || strings.Contains(text, "download_url") {
+			t.Fatalf("want builds without a download_url, got: %s", text)
+		}
+		builds := getBuilds(t, rawToken, map[string]any{"app_id": appID.String(), "from": from, "to": to})
+		if len(builds) != 3 {
+			t.Fatalf("want 3 builds, got %+v", builds)
+		}
+
+		for _, build := range builds {
+			link, err := url.Parse(build.DashboardURL)
+			if err != nil {
+				t.Fatalf("parse dashboard_url %q: %v", build.DashboardURL, err)
+			}
+			query := link.Query()
+			if link.Scheme+"://"+link.Host != "https://dashboard.test" || link.Path != "/"+teamID.String()+"/builds" || query.Get("a") != appID.String() || query.Get("d") != "Custom Range" {
+				t.Fatalf("dashboard_url %q should open the app's Builds page with a custom range", build.DashboardURL)
+			}
+
+			// The Builds page lists what get_builds returns for the same app,
+			// range and filter, so the link must select this build alone.
+			selected := getBuilds(t, rawToken, map[string]any{
+				"app_id": appID.String(), "from": query.Get("sd"), "to": query.Get("ed"), "filter_expr": query.Get("filter_expr"),
+			})
+			if len(selected) != 1 || selected[0].VersionCode != build.VersionCode || selected[0].PatchID != build.PatchID {
+				t.Errorf("dashboard_url %q selects %+v, want only the build %s/%s", build.DashboardURL, selected, build.VersionCode, build.PatchID)
+			}
+		}
+	})
+	t.Run("filters results", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "buildsexpr@mcp.test")
+		seedBuild(t, appID, "1.2.0", "120", "proguard", now.Add(-time.Hour))
+		seedBuild(t, appID, "1.1.0", "110", "proguard", now.Add(-2*time.Hour))
+
+		got := versions(getBuilds(t, rawToken, map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": "version_name:in:[1.1.0]"}))
+		if !slices.Equal(got, []string{"1.1.0:proguard"}) {
+			t.Fatalf("want [1.1.0:proguard], got %v", got)
+		}
+	})
+	t.Run("pages through builds", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "buildspage@mcp.test")
+		seedBuild(t, appID, "1.2.0", "120", "proguard", now.Add(-time.Hour))
+		seedBuild(t, appID, "1.1.0", "110", "proguard", now.Add(-2*time.Hour))
+
+		for offset, want := range []string{"1.2.0:proguard", "1.1.0:proguard"} {
+			got := versions(getBuilds(t, rawToken, map[string]any{"app_id": appID.String(), "from": from, "to": to, "limit": 1, "offset": offset}))
+			if !slices.Equal(got, []string{want}) {
+				t.Fatalf("offset %d: want [%s], got %v", offset, want, got)
+			}
+		}
+	})
+	t.Run("returns an issue for an invalid filter_expr", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "buildsexprbad@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_builds", map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": "bogus_key:in:x"})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for unknown filter key")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "Unknown key") || !strings.Contains(text, "bogus_key") {
+			t.Errorf("error text %q should name the unknown key", text)
+		}
+	})
+}
+
 func TestMCPGetRootSpanNames(t *testing.T) {
 	ctx := context.Background()
 	setupToolTest := func(t *testing.T, email string) (uuid.UUID, string) {
@@ -6074,6 +6227,7 @@ func TestMCPAccessControl(t *testing.T) {
 		{"get_bug_reports", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
 		{"get_bug_reports_over_time", map[string]any{"app_id": appA.String(), "timezone": "UTC", "from": from, "to": to}},
 		{"get_bug_report", map[string]any{"app_id": appA.String(), "bug_report_id": "br-1"}},
+		{"get_builds", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
 		{"get_root_span_names", map[string]any{"app_id": appA.String()}},
 		{"get_span_instances", map[string]any{"app_id": appA.String(), "root_span_name": "span-1", "from": from, "to": to}},
 		{"get_span_metrics_over_time", map[string]any{"app_id": appA.String(), "root_span_name": "span-1", "timezone": "UTC", "from": from, "to": to}},
@@ -6116,6 +6270,7 @@ func TestMCPInvalidAppIDFormat(t *testing.T) {
 		{"get_sessions", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_metrics", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_bug_reports", map[string]any{"app_id": "not-a-uuid"}},
+		{"get_builds", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_root_span_names", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_session", map[string]any{"app_id": "not-a-uuid", "session_id": "some-id"}},
 		{"get_bug_report", map[string]any{"app_id": "not-a-uuid", "bug_report_id": "some-id"}},
