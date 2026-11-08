@@ -582,9 +582,9 @@ describe("Usage Page", () => {
 
     expect(screen.getByTestId("plot-tooltip")).toBeInTheDocument();
     expect(screen.getByText("My App")).toBeInTheDocument();
-    expect(screen.getByText("Sessions: 6200")).toBeInTheDocument();
-    expect(screen.getByText("Events: 15000")).toBeInTheDocument();
-    expect(screen.getByText("Spans: 9500")).toBeInTheDocument();
+    expect(screen.getByText("Sessions: 6.2K")).toBeInTheDocument();
+    expect(screen.getByText("Events: 15K")).toBeInTheDocument();
+    expect(screen.getByText("Spans: 9.5K")).toBeInTheDocument();
   });
 
   it("shows the selected month's totals in the center of the pie", async () => {
@@ -594,9 +594,9 @@ describe("Usage Page", () => {
       render(<Usage params={promiseParams({ teamId: "team1" })} />);
     });
 
-    expect(screen.getByText("Sessions: 8700")).toBeInTheDocument();
-    expect(screen.getByText("Events: 20000")).toBeInTheDocument();
-    expect(screen.getByText("Spans: 13000")).toBeInTheDocument();
+    expect(screen.getByText("Sessions: 8.7K")).toBeInTheDocument();
+    expect(screen.getByText("Events: 20K")).toBeInTheDocument();
+    expect(screen.getByText("Spans: 13K")).toBeInTheDocument();
   });
 
   it("shows app names around the pie on large screens", async () => {

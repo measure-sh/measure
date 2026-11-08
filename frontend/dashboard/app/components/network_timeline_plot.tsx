@@ -209,13 +209,13 @@ const NetworkTimelinePlot: React.FC<Props> = ({ data }) => {
             inactiveOpacity={resolvedTheme === "dark" ? 0.9 : 0.7}
             borderWidth={1}
             borderColor={resolvedTheme === "dark" ? "#000000" : "#ffffff"}
-            margin={{ top: 20, right: 40, bottom: 120, left: 180 }}
+            margin={{ top: 20, right: 40, bottom: 110, left: 180 }}
             axisTop={null}
             axisRight={null}
             axisBottom={{
               legend: "Time Since Session Start",
               legendPosition: "middle",
-              legendOffset: 100,
+              legendOffset: 90,
               tickPadding: 10,
               tickRotation: 45,
               tickValues,

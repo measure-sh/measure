@@ -316,7 +316,7 @@ export default function FunnelTrendPlot({
 }: FunnelTrendPlotProps) {
   const empty =
     trend !== undefined && trend.points.every((p) => p.steps[0].users === 0);
-  const placeholderHeight = demo ? "h-183.5" : "h-123.5 2xl:h-183.5";
+  const placeholderHeight = demo ? "h-186" : "h-126 2xl:h-186";
   // The selections live here because the charts unmount while a new period or
   // filter loads. We keep a build unselected if a new trend also has the build.
   // If user switches date range and gets a trend without the unselected build,
@@ -880,7 +880,7 @@ function TrendCharts({
       </PlotTooltipArea>
       <PlotTooltipArea taps={usersTooltipTaps}>
         <div
-          className={`w-full ${demo ? "h-52" : "h-40 2xl:h-52"} cursor-pointer`}
+          className={`w-full ${demo ? "h-54.5" : "h-42.5 2xl:h-54.5"} cursor-pointer`}
           onMouseMoveCapture={(event) =>
             trackHover(event, ENTERED_TOP_MARGIN, enteredBottomMargin)
           }

@@ -79,7 +79,7 @@ describe("BugReportsOverviewPlot", () => {
     expect(screen.getByTestId("bug-reports-plot-data")).toBeInTheDocument();
     expect(lastLineProps.data[0].id).toBe("v1");
     expect(lastLineProps.data[0].data[0].y).toBe(2);
-    expect(lastLineProps.axisLeft.legend).toBe("Bug Reports");
+    expect(lastLineProps.axisLeft.legend).toBeUndefined();
   });
 
   it("uses month-style axis formatting for long range", async () => {

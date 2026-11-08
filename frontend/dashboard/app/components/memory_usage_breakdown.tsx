@@ -2,7 +2,7 @@
 
 import type { useMemoryUsageBreakdownQuery } from "@/app/query/hooks";
 import { MemoryStick } from "lucide-react";
-import { formatMemoryKilobytes } from "../utils/number_utils";
+import { formatMemoryKilobytes, numberToKMB } from "../utils/number_utils";
 import EmptyState from "./empty_state";
 import { SkeletonTable } from "./skeleton";
 import {
@@ -72,7 +72,7 @@ export default function MemoryUsageBreakdown({
                   {formatMemoryKilobytes(row.p95)}
                 </TableCell>
                 <TableCell className="text-right">
-                  {row.session_count.toLocaleString()}
+                  {numberToKMB(row.session_count)}
                 </TableCell>
               </TableRow>
             ))}

@@ -127,7 +127,7 @@ export default function TracesOverview(props: {
               endDate={readyValue.date.endDate}
               query={spanMetricsPlotQuery}
             />
-            <div className="py-4" />
+            <div className="py-6" />
             {!listEmpty && (
               <>
                 <div className="self-end">

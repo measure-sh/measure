@@ -126,7 +126,7 @@ describe("ErrorsOverviewPlot", () => {
     expect(lastLineProps.xScale.precision).toBe("day");
   });
 
-  it("renders tooltip with instances/instance pluralization", () => {
+  it("renders tooltip with errors/error pluralization", () => {
     render(
       <ErrorsOverviewPlot
         {...plotDates}
@@ -157,7 +157,7 @@ describe("ErrorsOverviewPlot", () => {
       }),
       { wrapper: PlotTooltipArea },
     );
-    expect(getByText("3.1.0 - 5 instances")).toBeInTheDocument();
-    expect(getByText("3.0.0 - 1 instance")).toBeInTheDocument();
+    expect(getByText("3.1.0 - 5 errors")).toBeInTheDocument();
+    expect(getByText("3.0.0 - 1 error")).toBeInTheDocument();
   });
 });

@@ -113,13 +113,13 @@ export default function SessionReplayOverview(props: {
       {readyValue !== null &&
         (status === "success" || status === "pending") && (
           <div className="flex flex-col items-center w-full">
-            <div className="py-2" />
+            <div className="py-4" />
             <SessionReplayOverviewPlot
               startDate={readyValue.date.startDate}
               endDate={readyValue.date.endDate}
               query={sessionsPlotQuery}
             />
-            <div className="py-4" />
+            <div className="py-6" />
             {!listEmpty && (
               <>
                 <div className="self-end">

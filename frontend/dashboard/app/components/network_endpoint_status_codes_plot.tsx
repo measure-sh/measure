@@ -59,13 +59,11 @@ const NetworkEndpointStatusCodesPlot: React.FC<
           formatTick={numberToKMB}
           startDate={startDate}
           endDate={endDate}
-          xAxisTitle="Date"
-          yAxisTitle="Requests"
           integerTicks
           colors={(id) => statusCodeColor(Number(id))}
           showAllSeriesInTooltip
           formatTooltip={(seriesId, datum) =>
-            `${seriesId}: ${formatCountWithShare(Number(datum.y), datum.total_count)}`
+            `${seriesId}: ${formatCountWithShare(Number(datum.y), datum.total_count, "request", "requests")}`
           }
           tooltipTotal={(datum) => datum.total_count}
         />

@@ -54,8 +54,6 @@ export default function DevicesSessionsPlot({
             plotTimeGroup={plotTimeGroup}
             startDate={startDate}
             endDate={endDate}
-            xAxisTitle="Date"
-            yAxisTitle="Sessions"
             formatTick={numberToKMB}
             integerTicks
             showAllSeriesInTooltip

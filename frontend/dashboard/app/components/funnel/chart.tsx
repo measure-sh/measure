@@ -29,7 +29,7 @@ function StepTooltip({
   const step = steps[index];
   const previous = index === 0 ? null : steps[index - 1];
   const rows: { label: string; value: string; className?: string }[] = [
-    { label: "Users", value: step.users.toLocaleString() },
+    { label: "Users", value: numberToKMB(step.users) },
     {
       label: "Conversion from start",
       value: formatShare(step.users, steps[0].users),
@@ -43,7 +43,7 @@ function StepTooltip({
       },
       {
         label: "Dropped",
-        value: (previous.users - step.users).toLocaleString(),
+        value: numberToKMB(previous.users - step.users),
         className: "text-red-600 dark:text-red-400",
       },
     );

@@ -114,8 +114,8 @@ describe("MemoryUsagePlot", () => {
       }),
       { wrapper: PlotTooltipArea },
     );
-    expect(screen.getByText("1.2.3 (10) - 200.0 MB")).toBeInTheDocument();
-    expect(screen.getByText("1.2.3 (11) - 500.0 MB")).toBeInTheDocument();
+    expect(screen.getByText("1.2.3 (10) - 200.0 MB (p90)")).toBeInTheDocument();
+    expect(screen.getByText("1.2.3 (11) - 500.0 MB (p90)")).toBeInTheDocument();
   });
 
   it.each([null, []])("renders no data state for %p", (data) => {

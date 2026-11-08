@@ -132,7 +132,7 @@ describe("ErrorsDistributionPlot", () => {
         query={queryWith({ data: null, status: "success" })}
       />,
     );
-    expect(screen.getByText("No distribution data found")).toBeInTheDocument();
+    expect(screen.getByText("No errors found")).toBeInTheDocument();
   });
 
   it("stacks each attribute's values by rank with the other values on top", () => {
@@ -163,7 +163,7 @@ describe("ErrorsDistributionPlot", () => {
         value: 30,
         color: "#111",
       }),
-    ).toContain("Samsung - Galaxy S23 - 30 instances (30.0%)");
+    ).toContain("Samsung - Galaxy S23 - 30 errors (30.0%)");
     expect(
       renderTooltip({
         id: "other",
@@ -171,7 +171,7 @@ describe("ErrorsDistributionPlot", () => {
         value: 20,
         color: "#111",
       }),
-    ).toContain("Other (5 values) - 20 instances (20.0%)");
+    ).toContain("Other (5 values) - 20 errors (20.0%)");
   });
 
   it("selects the clicked attribute", () => {
@@ -223,7 +223,7 @@ describe("ErrorsDistributionPlot", () => {
     expect(summaryPadding).toBe(0.6);
     expect(lastBarProps.padding).toBeCloseTo(0.8);
     expect(lastBarProps.colorBy).toBe("indexValue");
-    expect(lastBarProps.axisBottom.legend).toBe("Device");
+    expect(lastBarProps.axisBottom.legend).toBeUndefined();
     expect(lastBarProps.data.map((d: any) => d.label)).toEqual([
       "Google - Pixel 8",
       "Samsung - Galaxy S23",
@@ -236,7 +236,7 @@ describe("ErrorsDistributionPlot", () => {
         value: 20,
         color: "#111",
       }),
-    ).toContain("Motorola - Razr - 20 instances (20.0%)");
+    ).toContain("Motorola - Razr - 20 errors (20.0%)");
   });
 
   it("goes back to all attributes", () => {

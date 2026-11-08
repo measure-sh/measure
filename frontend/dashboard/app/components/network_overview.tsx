@@ -186,7 +186,6 @@ export function NetworkOverviewDemo({
         {hideTitle ? "" : "Network Performance"}
       </p>
       {!hideTitle && <div className="py-4" />}
-      <div className="py-8" />
 
       <NetworkOverviewSections
         statusPlotStatus="success"

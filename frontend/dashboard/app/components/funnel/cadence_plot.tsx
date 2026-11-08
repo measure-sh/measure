@@ -327,7 +327,7 @@ export default function FunnelCadencePlot({
   const [unselectedWeekdays, setUnselectedWeekdays] = useState<Set<string>>(
     () => new Set(),
   );
-  const plotHeight = demo ? "h-183.5" : "h-123.5 2xl:h-183.5";
+  const plotHeight = demo ? "h-186" : "h-126 2xl:h-186";
 
   return (
     <div className="flex flex-col font-body items-center justify-center w-full">

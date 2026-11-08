@@ -58,7 +58,7 @@ describe("ErrorsDetailsPlot", () => {
         query={queryWith({ data: null, status: "success" })}
       />,
     );
-    expect(screen.getByText("No instances found")).toBeInTheDocument();
+    expect(screen.getByText("No errors found")).toBeInTheDocument();
   });
 
   it("renders chart with provided data on success", () => {
@@ -79,7 +79,7 @@ describe("ErrorsDetailsPlot", () => {
     expect(screen.getByTestId("line-mock")).toBeInTheDocument();
     expect(lastLineProps.data[0].id).toBe("3.1.0");
     expect(lastLineProps.data[0].data[0].y).toBe(8);
-    expect(lastLineProps.axisLeft.legend).toBe("Error instances");
+    expect(lastLineProps.axisLeft.legend).toBeUndefined();
   });
 
   it("uses demo data and bypasses query in demo mode", () => {
@@ -108,7 +108,7 @@ describe("ErrorsDetailsPlot", () => {
     expect(lastLineProps.xScale.precision).toBe("day");
   });
 
-  it("renders tooltip with instances/instance pluralization", () => {
+  it("renders tooltip with errors/error pluralization", () => {
     render(
       <ErrorsDetailsPlot
         {...plotDates}
@@ -139,7 +139,7 @@ describe("ErrorsDetailsPlot", () => {
       }),
       { wrapper: PlotTooltipArea },
     );
-    expect(getByText("3.1.0 - 5 instances")).toBeInTheDocument();
-    expect(getByText("3.0.0 - 1 instance")).toBeInTheDocument();
+    expect(getByText("3.1.0 - 5 errors")).toBeInTheDocument();
+    expect(getByText("3.0.0 - 1 error")).toBeInTheDocument();
   });
 });

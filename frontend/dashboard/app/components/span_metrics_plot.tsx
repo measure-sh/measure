@@ -51,33 +51,35 @@ const SpanMetricsPlot: React.FC<{
   }
 
   return (
-    <div className="flex font-body items-center justify-center w-full h-64 2xl:h-96">
-      {status === "pending" && <SkeletonPlot />}
-      {status === "error" && (
-        <p className="text-lg font-display text-center p-4">
-          Error fetching plot, please change filters or refresh page to try
-          again
-        </p>
-      )}
-      {status === "success" && plot === null && (
-        <EmptyState
-          icon={ChartGantt}
-          title="No traces found"
-          description="Try a wider time range or different filters"
-          className="h-full"
-        />
-      )}
+    <div className="w-full font-body">
       {status === "success" && plot !== null && plot !== undefined && (
-        <div className="flex flex-col w-full h-full">
-          <div className="flex flex-col w-full items-end p-2">
-            <TabSelect
-              items={Object.values(RootSpanMetricsQuantile)}
-              selected={quantile}
-              onChangeSelected={(item) =>
-                setQuantile(mapQuantileStringToQuantile(item as string))
-              }
-            />
-          </div>
+        <div className="flex justify-end pb-2">
+          <TabSelect
+            items={Object.values(RootSpanMetricsQuantile)}
+            selected={quantile}
+            onChangeSelected={(item) =>
+              setQuantile(mapQuantileStringToQuantile(item as string))
+            }
+          />
+        </div>
+      )}
+      <div className="flex items-center justify-center w-full h-64 2xl:h-96">
+        {status === "pending" && <SkeletonPlot />}
+        {status === "error" && (
+          <p className="text-lg font-display text-center p-4">
+            Error fetching plot, please change filters or refresh page to try
+            again
+          </p>
+        )}
+        {status === "success" && plot === null && (
+          <EmptyState
+            icon={ChartGantt}
+            title="No traces found"
+            description="Try a wider time range or different filters"
+            className="h-full"
+          />
+        )}
+        {status === "success" && plot !== null && plot !== undefined && (
           <div className="size-full">
             <TimeSeriesPlot
               data={plot}
@@ -86,16 +88,14 @@ const SpanMetricsPlot: React.FC<{
               tickLabelWidth={DURATION_TICK_LABEL_WIDTH}
               startDate={startDate}
               endDate={endDate}
-              xAxisTitle="Date"
-              yAxisTitle={`Duration (${quantile})`}
               showAllSeriesInTooltip
               formatTooltip={(seriesId, datum) =>
                 `${seriesId} - ${formatMillisToHumanReadable(Number(datum.y))} (${quantile})`
               }
             />
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };

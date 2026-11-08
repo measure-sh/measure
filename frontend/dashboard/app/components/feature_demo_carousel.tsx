@@ -151,7 +151,7 @@ const features = [
   },
   {
     title: "Funnels",
-    heightClassName: "h-229.5",
+    heightClassName: "h-232",
     screenshot: {
       src: "/images/product_screenshots/funnels.webp",
       alt: "A Measure funnel showing how many users reach each step of a checkout, with the errors, traces and network requests that can cause drop-offs",

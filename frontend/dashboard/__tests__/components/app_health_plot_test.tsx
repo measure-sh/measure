@@ -136,7 +136,7 @@ describe("AppHealthPlot", () => {
 
     render(tooltip, { wrapper: PlotTooltipArea });
     const tooltipDiv = screen.getByRole("tooltip", { hidden: true });
-    expect(tooltipDiv.textContent).toContain("Sessions - 1,200");
+    expect(tooltipDiv.textContent).toContain("Sessions - 1.2K");
     expect(tooltipDiv.textContent).toContain("Crashes - 2");
   });
 
