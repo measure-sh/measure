@@ -85,6 +85,14 @@ func TestToMrkdwn(t *testing.T) {
 		t.Fatalf("got:\n%s\nwant:\n%s", got, want)
 	}
 
+	t.Run("preserves a link's query string", func(t *testing.T) {
+		in := "Download it from the [dashboard](https://app.example.com/0196792a-0000-7000-8000-000000000000/builds?a=0196792b-0000-7000-8000-000000000000&d=Custom+Range&filter_expr=version_name%3Ain%3A2.3.0)."
+		want := "Download it from the <https://app.example.com/0196792a-0000-7000-8000-000000000000/builds?a=0196792b-0000-7000-8000-000000000000&amp;d=Custom+Range&amp;filter_expr=version_name%3Ain%3A2.3.0|dashboard>."
+		if got := toMrkdwn(in); got != want {
+			t.Fatalf("got %q want %q", got, want)
+		}
+	})
+
 	t.Run("markup characters are neutralized", func(t *testing.T) {
 		// An echoed "<!channel>" must render as text, never ping anyone.
 		in := "you asked me to repeat: <!channel> & sessions <30s"
