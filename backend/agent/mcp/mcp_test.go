@@ -2632,7 +2632,7 @@ func TestMCPToolsList(t *testing.T) {
 		"get_devices_by_launch_time", "get_devices_by_span_duration", "get_devices_by_memory_usage",
 		"get_bug_reports", "get_bug_reports_over_time", "get_bug_report",
 		"update_bug_report_status",
-		"get_builds",
+		"get_builds", "get_profiles",
 		"get_root_span_names", "get_span_instances", "get_span_metrics_over_time",
 		"get_trace", "get_alerts", "get_journey", "get_journey_nodes",
 		"get_journey_path_users", "get_journey_errors", "get_journey_traces",
@@ -5083,6 +5083,159 @@ func TestMCPGetBuilds(t *testing.T) {
 	})
 }
 
+func TestMCPGetProfiles(t *testing.T) {
+	ctx := context.Background()
+	setupToolTest := func(t *testing.T, email string) (uuid.UUID, uuid.UUID, string) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), email)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, email+" team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		return appID, teamID, rawToken
+	}
+	now := time.Now().UTC()
+	from := now.Add(-7 * 24 * time.Hour).Format(time.RFC3339)
+	to := now.Add(time.Minute).Format(time.RFC3339)
+
+	seedProfile := func(t *testing.T, teamID, appID uuid.UUID, versionName, trigger string, captured time.Time) {
+		t.Helper()
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+			Type: "profile", SessionID: uuid.NewString(), Timestamp: captured, AppVersion: versionName, AppBuild: "1",
+			ProfileTrigger: trigger, ProfileFormat: "perfetto_trace",
+			OSName: "android", OSVersion: "36", DeviceManufacturer: "Google", DeviceModel: "GKWS6", DeviceName: "Pixel 9",
+		})
+	}
+	type profile struct {
+		ID           string `json:"id"`
+		Trigger      string `json:"trigger"`
+		VersionName  string `json:"version_name"`
+		DeviceModel  string `json:"device_model"`
+		DeviceName   string `json:"device_name"`
+		DashboardURL string `json:"dashboard_url"`
+	}
+	getProfiles := func(t *testing.T, rawToken string, args map[string]any) []profile {
+		t.Helper()
+		resp := callMCPTool(t, rawToken, "get_profiles", args)
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		var profiles []profile
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &profiles); err != nil {
+			t.Fatalf("unmarshal profiles: %v", err)
+		}
+		return profiles
+	}
+	triggers := func(profiles []profile) []string {
+		triggers := make([]string, len(profiles))
+		for i, profile := range profiles {
+			triggers[i] = profile.VersionName + ":" + profile.Trigger
+		}
+		return triggers
+	}
+
+	t.Run("requires app_id", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "profiles@mcp.test")
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
+		resp := callMCPTool(t, rawToken, "get_profiles", nil)
+		if !isToolError(resp) {
+			t.Error("want tool error for missing app_id")
+		}
+	})
+	t.Run("lists profiles in range, newest first", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "profileslist@mcp.test")
+		seedProfile(t, teamID, appID, "1.2.0", "anr", now.Add(-time.Hour))
+		seedProfile(t, teamID, appID, "1.1.0", "app_fully_drawn", now.Add(-2*time.Hour))
+		seedProfile(t, teamID, appID, "1.0.0", "anr", now.Add(-10*24*time.Hour))
+
+		profiles := getProfiles(t, rawToken, map[string]any{"app_id": appID.String(), "from": from, "to": to})
+		if got := triggers(profiles); !slices.Equal(got, []string{"1.2.0:anr", "1.1.0:app_fully_drawn"}) {
+			t.Fatalf("want [1.2.0:anr 1.1.0:app_fully_drawn], got %v", got)
+		}
+		if profiles[0].DeviceModel != "GKWS6" || profiles[0].DeviceName != "Pixel 9" {
+			t.Errorf("want device model GKWS6 and device name Pixel 9, got %+v", profiles[0])
+		}
+	})
+	t.Run("links each profile to the Profiles page", func(t *testing.T) {
+		setConfig(t, func(c *server.Config) {
+			c.SiteOrigin = "https://dashboard.test"
+		})
+		appID, teamID, rawToken := setupToolTest(t, "profilesurl@mcp.test")
+		// A link covers the profile's second through one second later. Since
+		// the range end is inclusive, profiles one second apart would both
+		// match one link, so these profiles are seeded two seconds apart.
+		seedProfile(t, teamID, appID, "1.2.0", "anr", now.Add(-time.Hour))
+		seedProfile(t, teamID, appID, "1.2.0", "anr", now.Add(-time.Hour-2*time.Second))
+
+		resp := callMCPTool(t, rawToken, "get_profiles", map[string]any{"app_id": appID.String(), "from": from, "to": to})
+		if text := extractTextContent(t, resp); isToolError(resp) || strings.Contains(text, "attachments") || strings.Contains(text, "location") {
+			t.Fatalf("want profiles without attachments, got: %s", text)
+		}
+		profiles := getProfiles(t, rawToken, map[string]any{"app_id": appID.String(), "from": from, "to": to})
+		if len(profiles) != 2 {
+			t.Fatalf("want 2 profiles, got %+v", profiles)
+		}
+
+		for _, profile := range profiles {
+			link, err := url.Parse(profile.DashboardURL)
+			if err != nil {
+				t.Fatalf("parse dashboard_url %q: %v", profile.DashboardURL, err)
+			}
+			query := link.Query()
+			if link.Scheme+"://"+link.Host != "https://dashboard.test" || link.Path != "/"+teamID.String()+"/profiles" || query.Get("a") != appID.String() || query.Get("d") != "Custom Range" {
+				t.Fatalf("dashboard_url %q should open the app's Profiles page with a custom range", profile.DashboardURL)
+			}
+
+			// The Profiles page shows the profiles returned by get_profiles for the
+			// same app and time range. Since the filter has no profile ID key, the link's
+			// time range must select this profile alone.
+			selected := getProfiles(t, rawToken, map[string]any{
+				"app_id": appID.String(), "from": query.Get("sd"), "to": query.Get("ed"),
+			})
+			if len(selected) != 1 || selected[0].ID != profile.ID {
+				t.Errorf("dashboard_url %q selects %+v, want only the profile %s", profile.DashboardURL, selected, profile.ID)
+			}
+		}
+	})
+	t.Run("filters profiles", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "profilesexpr@mcp.test")
+		seedProfile(t, teamID, appID, "1.2.0", "anr", now.Add(-time.Hour))
+		seedProfile(t, teamID, appID, "1.2.0", "app_fully_drawn", now.Add(-2*time.Hour))
+
+		got := triggers(getProfiles(t, rawToken, map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": "profile_trigger:in:[app_fully_drawn]"}))
+		if !slices.Equal(got, []string{"1.2.0:app_fully_drawn"}) {
+			t.Fatalf("want [1.2.0:app_fully_drawn], got %v", got)
+		}
+	})
+	t.Run("paginates profiles", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "profilespage@mcp.test")
+		seedProfile(t, teamID, appID, "1.2.0", "anr", now.Add(-time.Hour))
+		seedProfile(t, teamID, appID, "1.1.0", "anr", now.Add(-2*time.Hour))
+
+		for offset, want := range []string{"1.2.0:anr", "1.1.0:anr"} {
+			got := triggers(getProfiles(t, rawToken, map[string]any{"app_id": appID.String(), "from": from, "to": to, "limit": 1, "offset": offset}))
+			if !slices.Equal(got, []string{want}) {
+				t.Fatalf("offset %d: want [%s], got %v", offset, want, got)
+			}
+		}
+	})
+	t.Run("reports an invalid filter_expr", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "profilesexprbad@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_profiles", map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": "bogus_key:in:x"})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for unknown filter key")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "Unknown key") || !strings.Contains(text, "bogus_key") {
+			t.Errorf("error text %q should name the unknown key", text)
+		}
+	})
+}
+
 func TestMCPGetRootSpanNames(t *testing.T) {
 	ctx := context.Background()
 	setupToolTest := func(t *testing.T, email string) (uuid.UUID, string) {
@@ -6228,6 +6381,7 @@ func TestMCPAccessControl(t *testing.T) {
 		{"get_bug_reports_over_time", map[string]any{"app_id": appA.String(), "timezone": "UTC", "from": from, "to": to}},
 		{"get_bug_report", map[string]any{"app_id": appA.String(), "bug_report_id": "br-1"}},
 		{"get_builds", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
+		{"get_profiles", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
 		{"get_root_span_names", map[string]any{"app_id": appA.String()}},
 		{"get_span_instances", map[string]any{"app_id": appA.String(), "root_span_name": "span-1", "from": from, "to": to}},
 		{"get_span_metrics_over_time", map[string]any{"app_id": appA.String(), "root_span_name": "span-1", "timezone": "UTC", "from": from, "to": to}},
@@ -6271,6 +6425,7 @@ func TestMCPInvalidAppIDFormat(t *testing.T) {
 		{"get_metrics", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_bug_reports", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_builds", map[string]any{"app_id": "not-a-uuid"}},
+		{"get_profiles", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_root_span_names", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_session", map[string]any{"app_id": "not-a-uuid", "session_id": "some-id"}},
 		{"get_bug_report", map[string]any{"app_id": "not-a-uuid", "bug_report_id": "some-id"}},
