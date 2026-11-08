@@ -1,0 +1,142 @@
+---
+title: "Off the Main Thread: October 2026"
+description: "October updates: funnels, iOS app hang reports, clearer ANR grouping, Android native crashes and production Perfetto traces."
+date: "2026-11-08"
+image: /blog/assets/off-the-main-thread-october-2026-hero.png
+author:
+  name: Abhay Sood
+  avatar: /images/profile_pics/profile_abhay.webp
+tags:
+  - product
+---
+
+![Year calendar with October highlighted](/blog/assets/off-the-main-thread-october-2026-hero.png)
+
+Grab a coffee. Here's what we've been building, writing and loving in October.
+
+## See where users drop off in your app 🪜
+
+Say conversion dropped after your last release. Was it a bug? Finding out usually means digging through crash reports, traces and network logs for the users who dropped off.
+
+Funnels show those crashes, traces and slow network requests next to the step where users dropped off. You can also watch their session replays.
+
+Read [Mobile App Funnels](/blog/mobile-app-funnels) for a walkthrough.
+
+<video
+  controls
+  muted
+  playsInline
+  preload="none"
+  poster="/blog/assets/off-the-main-thread-october-2026-funnels-poster.webp"
+  width={1280}
+  height={950}
+  className="w-full h-auto rounded-lg border"
+  aria-label="Picking the payment_submitted to order_placed step in a checkout funnel to see the errors users hit and the session replays of users who dropped off"
+>
+  <source src="/blog/assets/off-the-main-thread-october-2026-funnels.mp4" type="video/mp4" />
+  <a href="/blog/assets/off-the-main-thread-october-2026-funnels.mp4">Watch the funnels demo</a>
+</video>
+
+## Catch crashes in native code 💥
+
+The Android SDK now reports native crashes on Android 12 and above. It captures crashes in your C or C++ code and in SDKs with native libraries. Every native crash comes with a session replay, just like your Java and Kotlin crashes.
+
+Native crash reporting is off by default. Turn it on in the `measure` block of your app's `build.gradle.kts`:
+
+```kotlin
+measure {
+  enableNativeCrashReporting = true
+}
+```
+
+See the [native crash docs](/docs/error-monitoring#native-crashes-android) to set it up. To learn why native memory bugs crash with SIGSEGV and how to debug them, read our post on [SIGSEGV crashes on Android](/blog/sigsegv-crashes-android-gwp-asan).
+
+## Catch app hangs on iOS 🧊
+
+The iOS SDK reports a hang when the main thread stays blocked for at least 2 seconds. Each report includes the main thread's stack, the blocked duration and whether the app recovered or iOS killed it.
+
+The Errors page groups hangs by where the main thread was blocked. Hang events also appear in session replay, in the app hang free sessions count on the overview page and in the daily email. Change the threshold and sampling from the dashboard without shipping a new build.
+
+See [App hang reporting](/docs/error-monitoring#app-hang-reporting) for how detection works.
+
+<img
+  src="/blog/assets/off-the-main-thread-october-2026-app-hang-filter.webp"
+  alt="Errors page for an iOS app filtered to the App Hang error type, listing a hang in ReviewCell.swift"
+  width={915}
+  height={615}
+  className="w-full h-auto rounded-lg border"
+/>
+
+## Better grouping for ANRs 🔍
+
+On Android 11 and above, the SDK now collects the full ART thread dump for each ANR. We use it to group ANRs by the code that blocked the main thread, including when the main thread is waiting on a lock held by another thread.
+
+Read our post on [diagnosing ANRs in production](/blog/application-not-responding-android) for more on reading thread dumps.
+
+<img
+  src="/blog/assets/off-the-main-thread-october-2026-anr-groups.webp"
+  alt="Errors page filtered to ANRs, listing groups for a main thread blocked by another thread, a slow operation on the main thread and an idle main thread"
+  width={916}
+  height={378}
+  className="w-full h-auto rounded-lg border"
+/>
+
+## Perfetto traces from production 📈
+
+The Profiles page lists Perfetto traces and heap dumps captured on users' devices. Filter by trigger, then open a trace in Perfetto from the page.
+
+<video
+  controls
+  muted
+  playsInline
+  preload="none"
+  poster="/blog/assets/off-the-main-thread-october-2026-profiles-poster.webp"
+  width={1168}
+  height={584}
+  className="w-full h-auto rounded-lg border"
+  aria-label="Opening an app fully drawn profile from the Profiles page in Perfetto"
+>
+  <source src="/blog/assets/off-the-main-thread-october-2026-profiles.mp4" type="video/mp4" />
+  <a href="/blog/assets/off-the-main-thread-october-2026-profiles.mp4">Watch the Profiles page demo</a>
+</video>
+
+The Android SDK also supports Android 17 triggers. Android can capture a heap dump when your app runs out of memory, a trace of a slow cold start or a trace when it kills your app for using too much CPU.
+
+Read [Debug Android Performance in Production With Trigger-Based Profiling](/blog/android-trigger-based-profiling) to see how we use these traces.
+
+## Ask your coding agent about your app 🤖
+
+Connect our [MCP server](/docs/mcp) to Claude Code, Codex or Cursor and ask questions about your app in plain words. It can look into crashes, ANRs, sessions, traces, network requests and funnels. In the video below, Claude Code looks into a drop in orders. It creates a funnel, finds the release where conversion dropped and traces the drop to a crash in that release.
+
+<video
+  controls
+  muted
+  playsInline
+  preload="none"
+  poster="/blog/assets/off-the-main-thread-october-2026-mcp-funnel-poster.webp"
+  width={1400}
+  height={900}
+  className="w-full h-auto rounded-lg border"
+  aria-label="Claude Code using the MCP server to create an order funnel, find a conversion drop after release 4.12.0 and trace it to a crash in CheckoutViewModel"
+>
+  <source src="/blog/assets/off-the-main-thread-october-2026-mcp-funnel.mp4" type="video/mp4" />
+  <a href="/blog/assets/off-the-main-thread-october-2026-mcp-funnel.mp4">Watch the MCP demo</a>
+</video>
+
+## From the blog ✍️
+
+- [Mobile app funnels](/blog/mobile-app-funnels): track your app's core flows across releases and fix the issues that make users drop off.
+- [Trigger-based profiling](/blog/android-trigger-based-profiling): get Perfetto traces and heap dumps from users' devices when your app hits an ANR or runs out of memory.
+- [SIGSEGV and GWP-ASan](/blog/sigsegv-crashes-android-gwp-asan): why use after free and buffer overflow bugs crash with SIGSEGV and how GWP-ASan catches them in production.
+
+## Caught our eye 👀
+
+These caught our attention:
+
+- [Hawkeye at super.money](https://medium.com/super-tech/protecting-the-super-money-app-why-how-we-built-hawkeye-to-catch-performance-regressions-92dae1185d84) by Sahil Jena: how the super.money team runs every build on real phones with Perfetto to catch slow cold starts before release.
+- [Netflix's observability knowledge graph](https://netflixtechblog.com/ontology-driven-observability-building-an-end-to-end-knowledge-graph-at-netflix-scale-421392cf5adf) by Prasanna Vijayanathan and Renzo Sanchez-Silva: how Netflix links its observability data in a knowledge graph to trace a slow home screen back to its cause.
+- [A roast in Sunnyvale](https://www.youtube.com/shorts/fQgA8N2JUrk) by Austin Nasso: nothing to do with mobile apps, just a good laugh.
+
+## Tell us what you think
+
+If something doesn't work as you expect or you'd like us to build something, talk to us on [Discord](https://discord.gg/f6zGkBCt42) or open an issue on [GitHub](https://github.com/measure-sh/measure/issues).
