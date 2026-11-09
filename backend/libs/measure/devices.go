@@ -261,9 +261,9 @@ func (a App) GetDevicesErrors(ctx context.Context, rch driver.Conn, flt *filter.
 		return nil, false, false, err
 	}
 	defer stmt.Close()
-	nonFatal := filter.ErrorTypeSQL(filter.ErrorTypeHandledError) + " OR " + filter.ErrorTypeSQL(filter.ErrorTypeUnhandledError)
+	nonFatal := filter.HandledErrorSQL + " OR (type = 'exception' and `exception.severity` = 'unhandled')"
 	stmt.
-		Select("uniqExactIf(id, " + filter.ErrorTypeSQL(filter.ErrorTypeCrash) + ") AS crash_count").
+		Select("uniqExactIf(id, " + filter.CrashSQL + ") AS crash_count").
 		Select("uniqExactIf(id, type = 'anr') AS anr_count").
 		Select("uniqExactIf(id, type = 'app_hang') AS app_hang_count").
 		Select("uniqExactIf(id, " + nonFatal + ") AS non_fatal_count").

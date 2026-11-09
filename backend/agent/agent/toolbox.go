@@ -115,7 +115,7 @@ func (c *Config) loadTableSets(ctx context.Context) (*tableSets, error) {
 const schemaPrimer = `events and spans are the raw source tables; everything else derives from them.
 - events: one row per SDK event. The type column says which kind (exception, anr, http, cold_launch, gesture_click, screen_view, ...); each kind fills its own prefixed columns (exception.*, http.*, ...) and leaves the rest at defaults. attribute.* columns (app version, os, device, country) are on every row.
 - sessions: count distinct session_id on events; attribute.session_start_time is on every event of the session.
-- crashes: type = 'exception' and (exception.severity = 'fatal' or, on legacy rows with empty severity, exception.handled = false). ANRs: type = 'anr'.
+- crashes: ` + filter.CrashSQL + `. ANRs: type = 'anr'.
 - launch performance: cold_launch.duration, warm_launch.duration and hot_launch.duration on their event types.
 - network: type = 'http' with the http.* columns.
 - spans: one row per trace span; trace_id and parent_id link a trace, a root span has an empty parent_id.
