@@ -342,7 +342,7 @@ func TestGetErrorGroupDistributionKeepsMostFrequentValues(t *testing.T) {
 			ExceptionsJSON: `[{"type":"java.lang.RuntimeException","message":"Test error","frames":[]}]`,
 			Timestamp:      f.ts, AppVersion: "1.1.0", AppBuild: "110",
 			OSName: "android", OSVersion: "14", CountryCode: "US", NetworkType: "wifi",
-			DeviceLocale: "en-US", DeviceManufacturer: "TestCo", DeviceName: fmt.Sprintf("device-%d", i),
+			DeviceLocale: "en-US", DeviceManufacturer: "TestCo", DeviceModel: fmt.Sprintf("device-%d", i),
 		})
 	}
 
@@ -407,7 +407,7 @@ func TestGetErrorGroupSingleAttributeDistributionKeeps25Values(t *testing.T) {
 			Type: "exception", Fingerprint: fingerprint, Severity: "fatal",
 			ExceptionsJSON: `[{"type":"java.lang.RuntimeException","message":"Test error","frames":[]}]`,
 			Timestamp:      f.ts, OSName: "android", OSVersion: "14",
-			DeviceManufacturer: "TestCo", DeviceName: fmt.Sprintf("device-%02d", i),
+			DeviceManufacturer: "TestCo", DeviceModel: fmt.Sprintf("device-%02d", i),
 		})
 	}
 

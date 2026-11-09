@@ -4393,7 +4393,7 @@ func TestMCPGetErrorDistribution(t *testing.T) {
 			th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
 				Type: "exception", Fingerprint: fingerprint, Severity: "fatal",
 				Timestamp: now.Add(-time.Hour), OSName: "android", OSVersion: "14",
-				DeviceManufacturer: "TestCo", DeviceName: fmt.Sprintf("device-%d", i),
+				DeviceManufacturer: "TestCo", DeviceModel: fmt.Sprintf("device-%d", i),
 			})
 		}
 		args := map[string]any{"app_id": appID.String(), "error_group_id": fingerprint, "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)}
@@ -4431,11 +4431,11 @@ func TestMCPGetErrorDistribution(t *testing.T) {
 		appID, teamID, rawToken := setupToolTest(t, "edist6@mcp.test")
 		now := time.Now().UTC()
 		const fingerprint = "0000000000000000000000000000d158"
-		seed := func(count int, osName, deviceName string) {
+		seed := func(count int, osName, deviceModel string) {
 			th.SeedEventRows(ctx, t, teamID.String(), appID.String(), count, testinfra.EventRow{
 				Type: "exception", Fingerprint: fingerprint, Severity: "fatal",
 				Timestamp: now.Add(-time.Hour), OSName: osName, OSVersion: "1",
-				DeviceManufacturer: "TestCo", DeviceName: deviceName,
+				DeviceManufacturer: "TestCo", DeviceModel: deviceModel,
 			})
 		}
 		seed(3, "android", "pixel")

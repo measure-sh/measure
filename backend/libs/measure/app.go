@@ -687,7 +687,7 @@ var errorDistributionExprs = map[string]string{
 	"country":      "`inet.country_code`",
 	"network_type": "`attribute.network_type`",
 	"locale":       "`attribute.device_locale`",
-	"device":       "if(`attribute.device_manufacturer` = '' and `attribute.device_name` = '', '', concat(`attribute.device_manufacturer`, ' - ', `attribute.device_name`))",
+	"device":       "if(`attribute.device_manufacturer` = '' and `attribute.device_model` = '', '', concat(`attribute.device_manufacturer`, ' - ', `attribute.device_model`))",
 }
 
 func IsErrorDistributionAttribute(name string) bool {

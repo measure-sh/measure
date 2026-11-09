@@ -403,8 +403,8 @@ function attributeCountsFor(
     ),
     device: spread(
       "device",
-      pool((d) => `${d.device_manufacturer} - ${d.device_name}`),
-      attrs.map((a) => `${a.device_manufacturer} - ${a.device_name}`),
+      pool((d) => `${d.device_manufacturer} - ${d.device_model}`),
+      attrs.map((a) => `${a.device_manufacturer} - ${a.device_model}`),
     ),
   };
 }
