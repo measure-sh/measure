@@ -7,6 +7,7 @@ import (
 	"runtime/debug"
 
 	"github.com/gin-gonic/gin"
+	"github.com/klauspost/compress/gzip"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
@@ -116,6 +117,39 @@ func CapturePanic() gin.HandlerFunc {
 				c.Abort()
 			}
 		}()
+
+		c.Next()
+	}
+}
+
+// DecompressGzip decompresses request bodies sent with
+// Content-Encoding: gzip. Requests without that header pass
+// through unchanged, so older SDKs that send plain bodies keep
+// working. A body marked gzip that isn't valid gzip gets a 400.
+// maxSize caps the decompressed size so a small body can't
+// expand without bound.
+func DecompressGzip(maxSize int64) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.GetHeader("Content-Encoding") != "gzip" {
+			c.Next()
+			return
+		}
+
+		reader, err := gzip.NewReader(c.Request.Body)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error":   "failed to read gzip request body",
+				"details": err.Error(),
+			})
+			return
+		}
+		defer reader.Close()
+		reader.Multistream(false)
+
+		c.Request.Body = http.MaxBytesReader(c.Writer, reader, maxSize)
+		c.Request.Header.Del("Content-Encoding")
+		c.Request.Header.Del("Content-Length")
+		c.Request.ContentLength = -1
 
 		c.Next()
 	}

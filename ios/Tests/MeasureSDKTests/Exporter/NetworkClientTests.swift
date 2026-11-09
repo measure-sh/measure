@@ -34,6 +34,20 @@ final class NetworkClientTests: XCTestCase {
         super.tearDown()
     }
 
+    func testExecute_sendsGzippedBatch() throws {
+        let event = TestDataGenerator.generateEvents(type: EventType.custom.rawValue, customEvent: Data(#"{"name":"test"}"#.utf8))
+
+        _ = networkClient.execute(batchId: "batch1", events: [event], spans: [])
+
+        XCTAssertEqual(mockHttpClient.sentHeaders.first?["Content-Encoding"], "gzip")
+        let body = try XCTUnwrap(mockHttpClient.sentBodies.first)
+        // Foundation can decode the deflate data after the gzip header and trailer are removed.
+        let json = try (Data(body.dropFirst(10).dropLast(8)) as NSData).decompressed(using: .zlib) as Data
+        let payload = try XCTUnwrap(JSONSerialization.jsonObject(with: json) as? [String: Any])
+        let events = try XCTUnwrap(payload["events"] as? [[String: Any]])
+        XCTAssertEqual(events.first?["id"] as? String, "event1")
+    }
+
     func testGetConfig_success_parsesMaxAgeFromHeader() throws {
         mockHttpClient.sendResponse = .success(body: configBody, eTag: "etag", cacheControl: "max-age=600")
 

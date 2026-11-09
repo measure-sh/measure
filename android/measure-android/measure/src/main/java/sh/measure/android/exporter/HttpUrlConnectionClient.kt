@@ -1,6 +1,7 @@
 package sh.measure.android.exporter
 
 import okio.BufferedSink
+import okio.GzipSink
 import okio.buffer
 import okio.sink
 import okio.source
@@ -35,10 +36,8 @@ internal interface HttpClient {
 /**
  * An Http client that uses `HttpURLConnection` to send JSON requests.
  *
- * The main feature of this client is that it streams JSON content directly to the
- * socket, which allows to send large payloads without loading them entirely into the memory. It also
- * configures the `HttpUrlConnection` to `setChunkedStreamingMode` to avoid buffering the request
- * body in memory.
+ * It streams gzipped JSON to the socket and uses chunked transfer to avoid buffering large
+ * request bodies in memory.
  */
 internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient {
     private val connectionTimeoutMs = 60_000
@@ -65,10 +64,11 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
         var connection: HttpURLConnection? = null
         try {
             connection = createConnection(url, method, headers)
-            val outputStream = getOutputStream(connection)
             logger.log(LogLevel.Debug, "Sending request to measure: $url")
-            jsonWriter(outputStream)
-            outputStream.flush()
+            getOutputStream(connection).use { sink ->
+                jsonWriter(sink)
+                sink.flush()
+            }
             if (isRedirect(connection.responseCode)) {
                 val location = connection.getHeaderField("Location")
                     ?: throw IOException("Redirect location is missing")
@@ -212,6 +212,7 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
         connectTimeout = connectionTimeoutMs
         readTimeout = readTimeoutMs
         setRequestProperty("Content-Type", "application/json")
+        setRequestProperty("Content-Encoding", "gzip")
         headers.forEach { (key, value) -> setRequestProperty(key, value) }
     }
 
@@ -239,10 +240,13 @@ internal class HttpUrlConnectionClient(private val logger: Logger) : HttpClient 
         readTimeout = connectionTimeoutMs
     }
 
-    private fun getOutputStream(connection: HttpURLConnection): BufferedSink = if (logger.enabled) {
-        LoggingOutputStream(connection.outputStream, logger).sink().buffer()
-    } else {
-        connection.outputStream.sink().buffer()
+    private fun getOutputStream(connection: HttpURLConnection): BufferedSink {
+        val gzipSink = GzipSink(connection.outputStream.sink()).buffer()
+        return if (logger.enabled) {
+            LoggingOutputStream(gzipSink.outputStream(), logger).sink().buffer()
+        } else {
+            gzipSink
+        }
     }
 
     private fun getResponseBody(connection: HttpURLConnection): String? = try {
