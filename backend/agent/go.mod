@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/cloudsqlconn v1.25.4
 	cloud.google.com/go/pubsub/v2 v2.6.0
 	github.com/AfterShip/clickhouse-sql-parser v0.5.2
-	github.com/ClickHouse/clickhouse-go/v2 v2.49.0
+	github.com/ClickHouse/clickhouse-go/v2 v2.50.0
 	github.com/gin-gonic/gin v1.12.0
 	github.com/go-analyze/charts v0.6.4
 	github.com/golang-jwt/jwt/v5 v5.3.1
