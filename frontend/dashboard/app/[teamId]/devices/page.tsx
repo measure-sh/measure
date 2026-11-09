@@ -203,6 +203,7 @@ export default function DevicesPage({ params }: PageProps) {
             title="Sessions"
             description="Sessions by device"
             columns={sessionsColumns}
+            hrefOf={(row) => linkTo("session_replays", deviceConditions(row))}
           />
           <DevicesTable
             list="errors"

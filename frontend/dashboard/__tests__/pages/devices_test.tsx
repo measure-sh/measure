@@ -267,7 +267,7 @@ describe("DevicesPage", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("makes each row open the device's errors, profiles, traces and memory", () => {
+  it("makes each row open the device's session replays, errors, profiles, traces and memory", () => {
     setApp("android");
     render(<DevicesPage params={params} />);
     const device =
@@ -279,6 +279,10 @@ describe("DevicesPage", () => {
           .getAttribute("href")!,
         "http://localhost",
       );
+
+    const sessions = hrefOf("devices-sessions");
+    expect(sessions.pathname).toBe("/team-1/session_replays");
+    expect(sessions.searchParams.get("filter_expr")).toBe(device);
 
     const errors = hrefOf("devices-errors");
     expect(errors.pathname).toBe("/team-1/errors");
@@ -296,10 +300,6 @@ describe("DevicesPage", () => {
     const memory = hrefOf("devices-memory");
     expect(memory.pathname).toBe("/team-1/memory");
     expect(memory.searchParams.get("filter_expr")).toBe(device);
-
-    expect(
-      within(screen.getByTestId("devices-sessions")).queryByRole("link"),
-    ).not.toBeInTheDocument();
   });
 
   it("opens a row's page with the keyboard", () => {

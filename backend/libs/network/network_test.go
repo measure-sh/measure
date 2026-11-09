@@ -550,9 +550,9 @@ func TestFetchTrends(t *testing.T) {
 		now := time.Now().UTC().Truncate(15 * time.Minute)
 
 		// Endpoint A: high request count, low errors
-		seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users", "", uuid.Nil, 100, 95, 3, 2, now)
+		seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users", "", uuid.Nil, "", 100, 95, 3, 2, now)
 		// Endpoint B: low request count, high errors
-		seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/orders", "", uuid.Nil, 10, 2, 5, 3, now)
+		seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/orders", "", uuid.Nil, "", 10, 2, 5, 3, now)
 
 		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
@@ -611,7 +611,7 @@ func TestFetchTimelinePlot_Unscoped(t *testing.T) {
 	appID := uuid.New()
 	now := time.Now().UTC().Truncate(15 * time.Minute)
 
-	seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users", "", uuid.Nil, 50, 50, 0, 0, now)
+	seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users", "", uuid.Nil, "", 50, 50, 0, 0, now)
 
 	af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
@@ -647,7 +647,7 @@ func TestFetchTimelinePlot(t *testing.T) {
 		now := time.Now().UTC().Truncate(15 * time.Minute)
 
 		seedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users")
-		seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users", "", uuid.Nil, 50, 50, 0, 0, now)
+		seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users", "", uuid.Nil, "", 50, 50, 0, 0, now)
 
 		af := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), "")
 
@@ -722,32 +722,16 @@ func TestGetLatencyPlot_PatchFilter(t *testing.T) {
 	seedRequest(1, patchID, "1.0-patch.2")
 	seedRequest(2, uuid.Nil, "")
 
-	count := func(t *testing.T, filterExpr string) uint64 {
-		t.Helper()
-		flt := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), filterExpr)
-		result, err := GetLatencyPlot(
-			ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", flt,
-			"toStartOfHour(timestamp, ?)", "%Y-%m-%d %H:00:00",
-		)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		if len(result) != 1 {
-			t.Fatalf("expected 1 data point for %q, got %d", filterExpr, len(result))
-		}
-		return result[0]["count"].(uint64)
-	}
-
-	if got := count(t, ""); got != 3 {
+	if got := latencyRequestCount(ctx, t, appID, teamID, now, ""); got != 3 {
 		t.Errorf("unfiltered count = %d, want 3", got)
 	}
-	if got := count(t, "patch_id:in:"+patchID.String()); got != 2 {
+	if got := latencyRequestCount(ctx, t, appID, teamID, now, "patch_id:in:"+patchID.String()); got != 2 {
 		t.Errorf("patch_id count = %d, want 2", got)
 	}
-	if got := count(t, "patch_version:in:1.0-patch.2"); got != 2 {
+	if got := latencyRequestCount(ctx, t, appID, teamID, now, "patch_version:in:1.0-patch.2"); got != 2 {
 		t.Errorf("patch_version count = %d, want 2", got)
 	}
-	if got := count(t, "patch_id:is_not_set"); got != 1 {
+	if got := latencyRequestCount(ctx, t, appID, teamID, now, "patch_id:is_not_set"); got != 1 {
 		t.Errorf("is_not_set count = %d, want 1", got)
 	}
 }
@@ -761,37 +745,21 @@ func TestHttpMetricsPatchFilter(t *testing.T) {
 	now := time.Now().UTC().Truncate(15 * time.Minute)
 	patchID := uuid.New()
 
-	seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users", "1.0-patch.2", patchID, 50, 50, 0, 0, now)
-	seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/orders", "", uuid.Nil, 20, 20, 0, 0, now)
+	seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users", "1.0-patch.2", patchID, "", 50, 50, 0, 0, now)
+	seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/orders", "", uuid.Nil, "", 20, 20, 0, 0, now)
 
 	from, to := now.Add(-time.Hour), now.Add(time.Hour)
 
-	timelinePaths := func(t *testing.T, filterExpr string) []string {
-		t.Helper()
-		flt := networkFilter(t, appID, teamID, from, to, filterExpr)
-		resp, err := FetchTimelinePlot(ctx, deps.ChPool, appID, teamID, "", "", flt)
-		if err != nil {
-			t.Fatalf("unexpected error: %v", err)
-		}
-		paths := []string{}
-		for _, point := range resp.Points {
-			if !slices.Contains(paths, point.PathPattern) {
-				paths = append(paths, point.PathPattern)
-			}
-		}
-		return paths
-	}
-
-	if got := timelinePaths(t, ""); len(got) != 2 {
+	if got := timelinePaths(ctx, t, appID, teamID, from, to, ""); len(got) != 2 {
 		t.Errorf("unfiltered timeline paths = %v, want both endpoints", got)
 	}
-	if got := timelinePaths(t, "patch_id:in:"+patchID.String()); len(got) != 1 || got[0] != "/v1/users" {
+	if got := timelinePaths(ctx, t, appID, teamID, from, to, "patch_id:in:"+patchID.String()); len(got) != 1 || got[0] != "/v1/users" {
 		t.Errorf("patch_id timeline paths = %v, want [/v1/users]", got)
 	}
-	if got := timelinePaths(t, "patch_version:in:1.0-patch.2"); len(got) != 1 || got[0] != "/v1/users" {
+	if got := timelinePaths(ctx, t, appID, teamID, from, to, "patch_version:in:1.0-patch.2"); len(got) != 1 || got[0] != "/v1/users" {
 		t.Errorf("patch_version timeline paths = %v, want [/v1/users]", got)
 	}
-	if got := timelinePaths(t, "patch_id:is_not_set"); len(got) != 1 || got[0] != "/v1/orders" {
+	if got := timelinePaths(ctx, t, appID, teamID, from, to, "patch_id:is_not_set"); len(got) != 1 || got[0] != "/v1/orders" {
 		t.Errorf("is_not_set timeline paths = %v, want [/v1/orders]", got)
 	}
 
@@ -802,4 +770,96 @@ func TestHttpMetricsPatchFilter(t *testing.T) {
 	if len(trends.TrendsFrequency) != 1 || trends.TrendsFrequency[0].PathPattern != "/v1/users" {
 		t.Errorf("patch_id trends = %v, want only the patched endpoint", trends.TrendsFrequency)
 	}
+}
+
+func TestGetLatencyPlot_DeviceModelFilter(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	teamID := uuid.New()
+	appID := uuid.New()
+	now := time.Now().UTC().Truncate(time.Hour)
+
+	// http_events collapses rows sharing a domain and timestamp.
+	seedRequest := func(offset int, deviceModel string) {
+		th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+			Type:           "http",
+			Timestamp:      now.Add(time.Duration(offset) * time.Second),
+			HttpURL:        "https://api.example.com/v1/users",
+			HttpMethod:     "GET",
+			HttpStatusCode: 200,
+			HttpStartTime:  1000,
+			HttpEndTime:    1100,
+			DeviceModel:    deviceModel,
+		})
+	}
+	seedRequest(0, "Pixel 8")
+	seedRequest(1, "Pixel 8")
+	seedRequest(2, "SM-S921B")
+
+	if got := latencyRequestCount(ctx, t, appID, teamID, now, `device_model:in:"Pixel 8"`); got != 2 {
+		t.Errorf("Pixel 8 count = %d, want 2", got)
+	}
+	if got := latencyRequestCount(ctx, t, appID, teamID, now, "device_model:in:SM-S921B"); got != 1 {
+		t.Errorf("SM-S921B count = %d, want 1", got)
+	}
+}
+
+func TestHttpMetricsDeviceModelFilter(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	teamID := uuid.New()
+	appID := uuid.New()
+	now := time.Now().UTC().Truncate(15 * time.Minute)
+
+	seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/users", "", uuid.Nil, "Pixel 8", 50, 50, 0, 0, now)
+	seedHttpMetrics(ctx, t, teamID.String(), appID.String(), "api.example.com", "/v1/orders", "", uuid.Nil, "SM-S921B", 20, 20, 0, 0, now)
+
+	from, to := now.Add(-time.Hour), now.Add(time.Hour)
+	const pixel = `device_model:in:"Pixel 8"`
+
+	if got := timelinePaths(ctx, t, appID, teamID, from, to, pixel); len(got) != 1 || got[0] != "/v1/users" {
+		t.Errorf("timeline paths = %v, want [/v1/users]", got)
+	}
+
+	trends, err := FetchTrends(ctx, deps.ChPool, appID, teamID, networkFilter(t, appID, teamID, from, to, pixel), 10)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(trends.TrendsFrequency) != 1 || trends.TrendsFrequency[0].PathPattern != "/v1/users" {
+		t.Errorf("trends = %v, want only the Pixel 8 endpoint", trends.TrendsFrequency)
+	}
+}
+
+func latencyRequestCount(ctx context.Context, t *testing.T, appID, teamID uuid.UUID, now time.Time, filterExpr string) uint64 {
+	t.Helper()
+	flt := networkFilter(t, appID, teamID, now.Add(-time.Hour), now.Add(time.Hour), filterExpr)
+	result, err := GetLatencyPlot(
+		ctx, deps.ChPool, appID, teamID, "api.example.com", "/v1/users", flt,
+		"toStartOfHour(timestamp, ?)", "%Y-%m-%d %H:00:00",
+	)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(result) != 1 {
+		t.Fatalf("expected 1 data point for %q, got %d", filterExpr, len(result))
+	}
+	return result[0]["count"].(uint64)
+}
+
+func timelinePaths(ctx context.Context, t *testing.T, appID, teamID uuid.UUID, from, to time.Time, filterExpr string) []string {
+	t.Helper()
+	flt := networkFilter(t, appID, teamID, from, to, filterExpr)
+	resp, err := FetchTimelinePlot(ctx, deps.ChPool, appID, teamID, "", "", flt)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	paths := []string{}
+	for _, point := range resp.Points {
+		if !slices.Contains(paths, point.PathPattern) {
+			paths = append(paths, point.PathPattern)
+		}
+	}
+	return paths
 }

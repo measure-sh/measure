@@ -177,17 +177,6 @@ const generalCases: Case[] = [
 const DEVICE_KEYS = [
   "os_name",
   "os_version",
-  "device_name",
-  "device_manufacturer",
-  "locale",
-  "network_type",
-  "network_generation",
-  "network_provider",
-  "country",
-];
-const DEVICE_MODEL_KEYS = [
-  "os_name",
-  "os_version",
   "device_model",
   "device_manufacturer",
   "device_name",
@@ -212,12 +201,12 @@ const FILTER_KEYS: Record<string, string[]> = {
     "memory_error",
     ...VERSION_KEYS,
     "user_id",
-    ...DEVICE_MODEL_KEYS,
+    ...DEVICE_KEYS,
   ],
   error_group_events: [
     ...VERSION_KEYS,
     "user_id",
-    ...DEVICE_MODEL_KEYS,
+    ...DEVICE_KEYS,
     "app_hang_state",
   ],
   sessions: [
@@ -262,7 +251,7 @@ const FILTER_KEYS: Record<string, string[]> = {
     "device_name",
   ],
   builds: ["mapping_type", ...VERSION_KEYS],
-  spans: ["span_status", ...VERSION_KEYS, ...DEVICE_MODEL_KEYS],
+  spans: ["span_status", ...VERSION_KEYS, ...DEVICE_KEYS],
   alerts: [],
   devices: [
     "version_name",

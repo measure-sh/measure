@@ -148,6 +148,7 @@ func seedHttpMetrics(
 			[toUUID('00000000-0000-0000-0000-000000000000')] AS patch_ids,
 			['samsung'] AS device_manufacturers,
 			['galaxy'] AS device_names,
+			['SM-S921B'] AS device_models,
 			['provider'] AS network_providers,
 			['wifi'] AS network_types,
 			['4g'] AS network_generations,

@@ -251,6 +251,48 @@ func TestGetJourneyFilters(t *testing.T) {
 	})
 }
 
+func TestGetJourneyFiltersByDeviceModel(t *testing.T) {
+	f := newJourneyFixture(t)
+
+	seedSession := func(deviceModel, lastScreen string, start int) {
+		installation, session := uuid.NewString(), uuid.NewString()
+		screen := func(name string, second int) {
+			f.seed(t, testinfra.EventRow{
+				Type: "lifecycle_activity", InstallationID: installation, SessionID: session, Timestamp: f.at(second),
+				DeviceModel: deviceModel, LifecycleActivityType: "resumed", LifecycleActivityClassName: name,
+			})
+		}
+		screen("Home", start)
+		th.SeedSpanRows(f.ctx, t, f.teamIDStr(), f.appIDStr(), 1, testinfra.SpanRow{
+			SpanName: "load_home", SessionID: session, InstallationID: installation,
+			StartTime: f.at(start + 1), Duration: 300 * time.Millisecond, DeviceModel: deviceModel,
+		})
+		screen(lastScreen, start+2)
+	}
+	seedSession("Pixel 8", "Detail", 0)
+	seedSession("SM-S921B", "Cart", 10)
+
+	exprTree := filter.ExprTree{Condition: &filter.Condition{
+		KeyName: "device_model", Operator: filter.OperatorIn, Values: []filter.Value{{Text: "Pixel 8"}},
+	}}
+
+	journey, err := GetJourney(f.ctx, nil, deps.RchPool, f.filter(&exprTree))
+	if err != nil {
+		t.Fatalf("GetJourney: %v", err)
+	}
+	if got, want := journeyLinkUsers(journey), map[string]uint64{"screen:Home > screen:Detail": 1}; !reflect.DeepEqual(got, want) {
+		t.Errorf("links = %v, want %v", got, want)
+	}
+
+	traces, err := GetJourneyTraces(f.ctx, nil, deps.RchPool, f.filter(&exprTree), JourneySelection{Node: "screen:Home"}, 0.5)
+	if err != nil {
+		t.Fatalf("GetJourneyTraces: %v", err)
+	}
+	if want := []JourneyTrace{{SpanName: "load_home", Count: 1, Users: 1, DurationMs: 300}}; !reflect.DeepEqual(traces.Results, want) {
+		t.Errorf("traces = %+v, want %+v", traces.Results, want)
+	}
+}
+
 func TestGetJourneyEndsSessionsOnKilledAppHangsOnly(t *testing.T) {
 	f := newJourneyFixture(t)
 	user := uuid.NewString()

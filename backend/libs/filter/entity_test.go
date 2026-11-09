@@ -314,7 +314,7 @@ func TestBugReportsEntityOffersEveryBugReportKey(t *testing.T) {
 		"version_name", "version_code", "patch_version", "patch_id",
 		"bug_report_status", "user_id", "bug_report_description", "session_id",
 		"os_name", "os_version",
-		"device_name", "device_manufacturer", "locale",
+		"device_model", "device_manufacturer", "device_name", "locale",
 		"network_type", "network_generation", "network_provider",
 		"country",
 	}
@@ -395,7 +395,7 @@ func TestJourneysEntityOffersEveryJourneyKey(t *testing.T) {
 
 	wanted := []string{
 		"version_name", "version_code", "patch_version", "patch_id",
-		"os_name", "os_version", "device_name", "device_manufacturer", "locale",
+		"os_name", "os_version", "device_model", "device_manufacturer", "device_name", "locale",
 		"network_type", "network_generation", "network_provider", "country",
 	}
 	for _, name := range wanted {
@@ -428,7 +428,7 @@ func TestFunnelsEntityOffersEveryFunnelKey(t *testing.T) {
 
 	wanted := []string{
 		"version_name", "version_code", "patch_version", "patch_id",
-		"os_name", "os_version", "device_name", "device_manufacturer", "locale",
+		"os_name", "os_version", "device_model", "device_manufacturer", "device_name", "locale",
 		"network_type", "network_generation", "network_provider", "country",
 	}
 	for _, name := range wanted {
@@ -520,7 +520,7 @@ func TestNetworkEntityOffersEveryNetworkKey(t *testing.T) {
 		"version_name", "version_code", "patch_version", "patch_id",
 		"http_method",
 		"os_name", "os_version",
-		"device_name", "device_manufacturer", "locale",
+		"device_model", "device_manufacturer", "device_name", "locale",
 		"network_type", "network_generation", "network_provider",
 		"country",
 	}
@@ -637,7 +637,7 @@ func TestSessionsEntityOffersEverySessionKey(t *testing.T) {
 		"session_events", "session_foreground_background", "device_total_memory", "session_custom_event", "session_log", "session_screen", "session_error_text",
 		"session_id", "user_id",
 		"os_name", "os_version",
-		"device_name", "device_manufacturer", "locale",
+		"device_model", "device_manufacturer", "device_name", "locale",
 		"network_type", "network_generation", "network_provider",
 		"country",
 	}
