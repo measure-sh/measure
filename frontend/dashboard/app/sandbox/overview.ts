@@ -323,8 +323,9 @@ const versionKeys: FilterKey[] = [
 const deviceTailKeys: FilterKey[] = [
   K.osName,
   K.osVersion,
-  K.deviceName,
+  K.deviceModel,
   K.deviceManufacturer,
+  K.deviceName,
   K.locale,
   K.networkType,
   K.networkGeneration,
@@ -356,20 +357,6 @@ function keyGroupsOf(keys: FilterKey[]): string[] {
   return KEY_GROUP_ORDER.filter((group) => present.has(group));
 }
 
-// Entities that offer device_model, which the devices page links to.
-const deviceModelTailKeys: FilterKey[] = [
-  K.osName,
-  K.osVersion,
-  K.deviceModel,
-  K.deviceManufacturer,
-  K.deviceName,
-  K.locale,
-  K.networkType,
-  K.networkGeneration,
-  K.networkProvider,
-  K.country,
-];
-
 const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
   app_health: [K.versionName, K.versionCode],
   journeys: [...versionKeys, ...deviceTailKeys],
@@ -379,12 +366,12 @@ const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
     K.memoryError,
     ...versionKeys,
     K.userId,
-    ...deviceModelTailKeys,
+    ...deviceTailKeys,
   ],
   error_group_events: [
     ...versionKeys,
     K.userId,
-    ...deviceModelTailKeys,
+    ...deviceTailKeys,
     K.appHangState,
   ],
   sessions: [
@@ -429,7 +416,7 @@ const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
   ],
   network: [K.httpMethod, ...versionKeys, ...deviceTailKeys],
   builds: [K.mappingType, ...versionKeys],
-  spans: [K.spanStatus, ...versionKeys, ...deviceModelTailKeys],
+  spans: [K.spanStatus, ...versionKeys, ...deviceTailKeys],
   // The backend advertises no filter keys for alerts, so the alerts page renders
   // its filter bar as unavailable.
   alerts: [],
@@ -521,6 +508,8 @@ function actualValuesFor(
         return distinct(reports.map((a) => countryOf(a.device_locale)));
       case "device_name":
         return distinct(reports.map((a) => a.device_name));
+      case "device_model":
+        return distinct(reports.map((a) => a.device_model));
       case "device_manufacturer":
         return distinct(reports.map((a) => a.device_manufacturer));
       case "locale":

@@ -100,10 +100,10 @@ func newSessionFixture(t *testing.T) (sessionFixture, time.Time) {
 		return row
 	}
 	th.SeedEventRows(ctx, t, f.teamID.String(), f.appID.String(), 1, attributed(testinfra.EventRow{
-		SessionID: f.alice.String(), UserID: "alice", CountryCode: "US", Timestamp: base.Add(5 * time.Minute),
+		SessionID: f.alice.String(), UserID: "alice", CountryCode: "US", DeviceModel: "Pixel 8", Timestamp: base.Add(5 * time.Minute),
 	}))
 	th.SeedEventRows(ctx, t, f.teamID.String(), f.appID.String(), 1, attributed(testinfra.EventRow{
-		SessionID: f.bob.String(), UserID: "bob", CountryCode: "IN", Timestamp: base.Add(6 * time.Minute),
+		SessionID: f.bob.String(), UserID: "bob", CountryCode: "IN", DeviceModel: "SM-S921B", Timestamp: base.Add(6 * time.Minute),
 	}))
 	th.SeedEventRows(ctx, t, f.teamID.String(), f.appID.String(), 1, testinfra.EventRow{
 		Type: "lifecycle_app", SessionID: f.background.String(),
@@ -249,6 +249,19 @@ func TestGetSessionsWithFilter(t *testing.T) {
 		exprTree = leaf("country", filter.OperatorIn, "US", "IN")
 		if got := list(t, &exprTree); !slices.Equal(got, []uuid.UUID{f.bob, f.alice}) {
 			t.Fatalf("want both attributed sessions, got %v", got)
+		}
+	})
+
+	t.Run("device model reads the session's model", func(t *testing.T) {
+		exprTree := leaf("device_model", filter.OperatorIn, "Pixel 8")
+		if got := list(t, &exprTree); !slices.Equal(got, []uuid.UUID{f.alice}) {
+			t.Fatalf("want alice's session, got %v", got)
+		}
+
+		exprTree = leaf("device_model", filter.OperatorNotIn, "Pixel 8")
+		got := list(t, &exprTree)
+		if slices.Contains(got, f.alice) || !slices.Contains(got, f.bob) {
+			t.Fatalf("want bob's session and not alice's, got %v", got)
 		}
 	})
 

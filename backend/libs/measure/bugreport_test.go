@@ -54,6 +54,7 @@ func newBugReportFixture(t *testing.T) (bugReportFixture, time.Time) {
 		UserID:             "alice",
 		DeviceManufacturer: "Google",
 		DeviceName:         "pixel 4a",
+		DeviceModel:        "Pixel 4a",
 	})
 	th.SeedBugReportRow(ctx, t, teamID.String(), appID.String(), testinfra.BugReportRow{
 		EventID:            f.closedEventID.String(),
@@ -68,6 +69,7 @@ func newBugReportFixture(t *testing.T) (bugReportFixture, time.Time) {
 		UserID:             "bob",
 		DeviceManufacturer: "Apple",
 		DeviceName:         "iPhone 15",
+		DeviceModel:        "iPhone 15 Pro",
 	})
 	th.SeedBugReportRow(ctx, t, teamID.String(), otherAppID.String(), testinfra.BugReportRow{
 		Timestamp:   base,
@@ -143,6 +145,14 @@ func TestGetBugReportsWithFilter(t *testing.T) {
 
 	t.Run("os name filter reads the version tuple", func(t *testing.T) {
 		exprTree := leaf("os_name", filter.OperatorIn, "iOS")
+		got := bugReportVersions(t, f.newFilter(from, to, &exprTree), f)
+		if len(got) != 1 || got[0] != "v2" {
+			t.Fatalf("want [v2], got %v", got)
+		}
+	})
+
+	t.Run("device model filter", func(t *testing.T) {
+		exprTree := leaf("device_model", filter.OperatorIn, "iPhone 15 Pro")
 		got := bugReportVersions(t, f.newFilter(from, to, &exprTree), f)
 		if len(got) != 1 || got[0] != "v2" {
 			t.Fatalf("want [v2], got %v", got)

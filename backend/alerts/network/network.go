@@ -340,6 +340,7 @@ func insertAggregatedMetrics(ctx context.Context, teamID, appID uuid.UUID, from,
 		Select("groupUniqArray(e.`attribute.patch_id`)").
 		Select("groupUniqArray(e.`attribute.device_manufacturer`)").
 		Select("groupUniqArray(e.`attribute.device_name`)").
+		Select("groupUniqArray(e.`attribute.device_model`)").
 		Select("groupUniqArray(e.`attribute.network_provider`)").
 		Select("groupUniqArray(e.`attribute.network_type`)").
 		Select("groupUniqArray(e.`attribute.network_generation`)").

@@ -462,7 +462,7 @@ func TestDeviceModelValues(t *testing.T) {
 		})
 	}
 
-	for _, entity := range []Entity{DevicesEntity, ErrorsEntity, MemoryEntity, ProfilesEntity} {
+	for _, entity := range []Entity{DevicesEntity, ErrorsEntity, MemoryEntity, ProfilesEntity, JourneysEntity, FunnelsEntity, SessionsEntity, NetworkEntity} {
 		valueList, err := entity.SuggestKeyValues(ctx, pgPool, chConn, teamID, appID, IndexKeysByName(entity.Keys)["device_model"], ValueRequest{})
 		if err != nil {
 			t.Fatalf("%s: fetch values: %v", entity.Name, err)
