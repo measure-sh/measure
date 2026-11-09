@@ -2,6 +2,8 @@ package middleware
 
 import (
 	"bytes"
+	"compress/gzip"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -91,5 +93,77 @@ func TestCaptureErrorBodyRouter(t *testing.T) {
 	}
 	if !strings.Contains(rec.Body.String(), "boom") {
 		t.Fatalf("expected client body to contain error, got %q", rec.Body.String())
+	}
+}
+
+// decompressRouter echoes the request body after DecompressGzip.
+func decompressRouter(maxSize int64) *gin.Engine {
+	gin.SetMode(gin.TestMode)
+	r := gin.New()
+	r.PUT("/events", DecompressGzip(maxSize), func(c *gin.Context) {
+		body, err := io.ReadAll(c.Request.Body)
+		if err != nil {
+			c.String(http.StatusBadRequest, err.Error())
+			return
+		}
+		c.String(http.StatusOK, string(body))
+	})
+	return r
+}
+
+func gzipped(t *testing.T, s string) *bytes.Buffer {
+	var buf bytes.Buffer
+	w := gzip.NewWriter(&buf)
+	if _, err := w.Write([]byte(s)); err != nil {
+		t.Fatal(err)
+	}
+	if err := w.Close(); err != nil {
+		t.Fatal(err)
+	}
+	return &buf
+}
+
+func TestDecompressGzipDecodesBody(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPut, "/events", gzipped(t, `{"events":[]}`))
+	req.Header.Set("Content-Encoding", "gzip")
+	w := httptest.NewRecorder()
+	decompressRouter(1<<20).ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK || w.Body.String() != `{"events":[]}` {
+		t.Fatalf("got %d %q", w.Code, w.Body.String())
+	}
+}
+
+func TestDecompressGzipPassesUncompressedBody(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPut, "/events", strings.NewReader(`{"events":[]}`))
+	w := httptest.NewRecorder()
+	decompressRouter(1<<20).ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK || w.Body.String() != `{"events":[]}` {
+		t.Fatalf("got %d %q", w.Code, w.Body.String())
+	}
+}
+
+func TestDecompressGzipStopsAtMaxSize(t *testing.T) {
+	req := httptest.NewRequest(http.MethodPut, "/events", gzipped(t, strings.Repeat("a", 1024)))
+	req.Header.Set("Content-Encoding", "gzip")
+	w := httptest.NewRecorder()
+	decompressRouter(100).ServeHTTP(w, req)
+
+	if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "request body too large") {
+		t.Fatalf("got %d %q", w.Code, w.Body.String())
+	}
+}
+
+func TestDecompressGzipReadsOnlyFirstMember(t *testing.T) {
+	body := gzipped(t, `{"events":[]}`)
+	body.Write(gzipped(t, `{"extra":true}`).Bytes())
+	req := httptest.NewRequest(http.MethodPut, "/events", body)
+	req.Header.Set("Content-Encoding", "gzip")
+	w := httptest.NewRecorder()
+	decompressRouter(1<<20).ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK || w.Body.String() != `{"events":[]}` {
+		t.Fatalf("got %d %q", w.Code, w.Body.String())
 	}
 }
