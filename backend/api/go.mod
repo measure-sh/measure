@@ -35,7 +35,7 @@ require (
 	cloud.google.com/go/compute/metadata v0.10.0 // indirect
 	cloud.google.com/go/iam v1.14.0 // indirect
 	cloud.google.com/go/monitoring v1.30.0 // indirect
-	cloud.google.com/go/pubsub/v2 v2.6.0 // indirect
+	cloud.google.com/go/pubsub/v2 v2.8.0 // indirect
 	cloud.google.com/go/sql v0.3.0 // indirect
 	cloud.google.com/go/storage v1.62.3 // indirect
 	github.com/ClickHouse/ch-go v0.74.0 // indirect
