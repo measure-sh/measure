@@ -4,7 +4,7 @@ go 1.27.3
 
 require (
 	cloud.google.com/go/compute/metadata v0.10.0
-	cloud.google.com/go/pubsub/v2 v2.6.0
+	cloud.google.com/go/pubsub/v2 v2.8.0
 	cloud.google.com/go/storage v1.62.3
 	github.com/ClickHouse/clickhouse-go/v2 v2.50.0
 	github.com/apache/iggy/foreign/go v0.7.0

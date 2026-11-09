@@ -6,7 +6,7 @@ require (
 	backend/libs v0.0.0
 	cloud.google.com/go/auth v0.24.1
 	cloud.google.com/go/cloudsqlconn v1.25.4
-	cloud.google.com/go/pubsub/v2 v2.6.0
+	cloud.google.com/go/pubsub/v2 v2.8.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.50.0
 	github.com/aws/aws-sdk-go-v2 v1.41.6
 	github.com/aws/aws-sdk-go-v2/credentials v1.19.15
