@@ -123,13 +123,11 @@ func TestValidateAgentSQL(t *testing.T) {
 		// An empty query has no placeholders.
 		{``, "placeholder"},
 		// IN can take a table name, so raw and dotted names there are table
-		// reads, in every operator spelling. GLOBAL NOT IN does not parse in
-		// this parser version; pin that so an upgrade that starts accepting
-		// it gets noticed.
+		// reads, in every operator spelling.
 		{`select count(*) from {{events}} where session_id in spans`, "via the {{spans}} placeholder"},
 		{`select count(*) from {{events}} where session_id not in spans`, "via the {{spans}} placeholder"},
 		{`select count(*) from {{events}} where session_id global in spans`, "via the {{spans}} placeholder"},
-		{`select count(*) from {{events}} where session_id global not in spans`, "invalid SQL"},
+		{`select count(*) from {{events}} where session_id global not in spans`, "via the {{spans}} placeholder"},
 		{`select count(*) from {{events}} where session_id in system.one`, "cross-database"},
 		// A placeholder that is not used as a table never reaches expansion.
 		{`select count(*) from {{events}} where screen = 'see {{spans}} here'`, "must be a table"},
