@@ -2947,6 +2947,7 @@ function buildFlows(
     detailAnr: includeAnrFlow
       ? [{ kind: "exception", exception: "android_anr" }]
       : undefined,
+    reviewsHang: includeAnrFlow ? undefined : "secure_storage_hang",
     cartHandled: {
       loadFailure: [
         {
@@ -2970,6 +2971,7 @@ function buildFlows(
       cart_handled: "cart_timeout",
       cart_bug: "bug_report_flow",
       detail_anr: "heavy_build_anr",
+      reviews_hang: "reviews_hang",
     },
   });
   flows.push(
@@ -3359,6 +3361,400 @@ export const flutterAndroidScenario: PlatformScenario = {
   threadNames,
 };
 
+const secureStorageHang: ExceptionSpec = {
+  key: "secure_storage_hang",
+  kind: "app_hang",
+  type: "",
+  message: "",
+  severity: "fatal",
+  handled: false,
+  foreground: true,
+  framework: "apple",
+  exceptions: [
+    {
+      type: "",
+      message: "",
+      thread_name: "com.apple.main-thread",
+      thread_sequence: 0,
+      os_build_number: "22C161",
+      frames: [
+        {
+          frame_index: 0,
+          binary_name: "libsystem_kernel.dylib",
+          binary_address: "00000001e6b4c000",
+          symbol_address: "00000001e6b55cd4",
+          offset: 8,
+          method_name: "mach_msg2_trap",
+          in_app: false,
+        },
+        {
+          frame_index: 1,
+          binary_name: "libsystem_kernel.dylib",
+          binary_address: "00000001e6b4c000",
+          symbol_address: "00000001e6b5630c",
+          offset: 76,
+          method_name: "mach_msg2_internal",
+          in_app: false,
+        },
+        {
+          frame_index: 2,
+          binary_name: "libsystem_kernel.dylib",
+          binary_address: "00000001e6b4c000",
+          symbol_address: "00000001e6b55f34",
+          offset: 236,
+          method_name: "mach_msg_overwrite",
+          in_app: false,
+        },
+        {
+          frame_index: 3,
+          binary_name: "libsystem_kernel.dylib",
+          binary_address: "00000001e6b4c000",
+          symbol_address: "00000001e6b56388",
+          offset: 24,
+          method_name: "mach_msg",
+          in_app: false,
+        },
+        {
+          frame_index: 4,
+          binary_name: "libdispatch.dylib",
+          binary_address: "000000019be30000",
+          symbol_address: "000000019be6a3d0",
+          offset: 412,
+          method_name: "_dispatch_mach_send_and_wait_for_reply",
+          in_app: false,
+        },
+        {
+          frame_index: 5,
+          binary_name: "libdispatch.dylib",
+          binary_address: "000000019be30000",
+          symbol_address: "000000019be6a85c",
+          offset: 60,
+          method_name: "dispatch_mach_send_with_result_and_wait_for_reply",
+          in_app: false,
+        },
+        {
+          frame_index: 6,
+          binary_name: "libxpc.dylib",
+          binary_address: "00000001fb8a8000",
+          symbol_address: "00000001fb8b15d8",
+          offset: 132,
+          method_name: "xpc_connection_send_message_with_reply_sync",
+          in_app: false,
+        },
+        {
+          frame_index: 7,
+          binary_name: "Security",
+          binary_address: "00000001a7b2c000",
+          symbol_address: "00000001a7b6f3c4",
+          offset: 312,
+          method_name: "securityd_message_with_reply_sync",
+          in_app: false,
+        },
+        {
+          frame_index: 8,
+          binary_name: "Security",
+          binary_address: "00000001a7b2c000",
+          symbol_address: "00000001a7b6e7a0",
+          offset: 156,
+          method_name: "securityd_send_sync_and_do",
+          in_app: false,
+        },
+        {
+          frame_index: 9,
+          binary_name: "Security",
+          binary_address: "00000001a7b2c000",
+          symbol_address: "00000001a7b4d128",
+          offset: 1104,
+          method_name: "_SecItemCopyMatching",
+          in_app: false,
+        },
+        {
+          frame_index: 10,
+          binary_name: "Security",
+          binary_address: "00000001a7b2c000",
+          symbol_address: "00000001a7b4a95c",
+          offset: 600,
+          method_name: "SecItemCopyMatching",
+          in_app: false,
+        },
+        {
+          frame_index: 11,
+          binary_name: "AcmeFlutter",
+          binary_address: "0000000104b7c000",
+          symbol_address: "0000000104bf2a58",
+          offset: 296,
+          method_name: "SecureStoragePlugin.read(key: String)",
+          file_name: "SecureStoragePlugin.swift",
+          line_num: 88,
+          in_app: true,
+        },
+        {
+          frame_index: 12,
+          binary_name: "AcmeFlutter",
+          binary_address: "0000000104b7c000",
+          symbol_address: "0000000104bf2470",
+          offset: 412,
+          method_name:
+            "SecureStoragePlugin.handle(_: FlutterMethodCall, result: FlutterResult)",
+          file_name: "SecureStoragePlugin.swift",
+          line_num: 37,
+          in_app: true,
+        },
+        {
+          frame_index: 13,
+          binary_name: "AcmeFlutter",
+          binary_address: "0000000104b7c000",
+          symbol_address: "0000000104bf2310",
+          offset: 52,
+          method_name:
+            "@objc SecureStoragePlugin.handle(_: FlutterMethodCall, result: FlutterResult)",
+          file_name: "<compiler-generated>",
+          in_app: true,
+        },
+        {
+          frame_index: 14,
+          binary_name: "Flutter",
+          binary_address: "0000000106a10000",
+          symbol_address: "0000000106c2cbd4",
+          offset: 60,
+          method_name:
+            "__45-[FlutterMethodChannel setMethodCallHandler:]_block_invoke",
+          in_app: false,
+        },
+        {
+          frame_index: 15,
+          binary_name: "Flutter",
+          binary_address: "0000000106a10000",
+          symbol_address: "0000000106c2a118",
+          offset: 148,
+          method_name:
+            "invocation function for block in flutter::PlatformMessageHandlerIos::HandlePlatformMessage(std::unique_ptr<flutter::PlatformMessage>)",
+          in_app: false,
+        },
+        {
+          frame_index: 16,
+          binary_name: "libdispatch.dylib",
+          binary_address: "000000019be30000",
+          symbol_address: "000000019be4be5c",
+          offset: 32,
+          method_name: "_dispatch_call_block_and_release",
+          in_app: false,
+        },
+        {
+          frame_index: 17,
+          binary_name: "libdispatch.dylib",
+          binary_address: "000000019be30000",
+          symbol_address: "000000019be561e4",
+          offset: 20,
+          method_name: "_dispatch_client_callout",
+          in_app: false,
+        },
+        {
+          frame_index: 18,
+          binary_name: "libdispatch.dylib",
+          binary_address: "000000019be30000",
+          symbol_address: "000000019be4a2c0",
+          offset: 764,
+          method_name: "_dispatch_main_queue_drain",
+          in_app: false,
+        },
+        {
+          frame_index: 19,
+          binary_name: "libdispatch.dylib",
+          binary_address: "000000019be30000",
+          symbol_address: "000000019be49fb8",
+          offset: 44,
+          method_name: "_dispatch_main_queue_callback_4CF",
+          in_app: false,
+        },
+        {
+          frame_index: 20,
+          binary_name: "CoreFoundation",
+          binary_address: "000000019c9f3000",
+          symbol_address: "000000019ca57d18",
+          offset: 16,
+          method_name: "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__",
+          in_app: false,
+        },
+        {
+          frame_index: 21,
+          binary_name: "CoreFoundation",
+          binary_address: "000000019c9f3000",
+          symbol_address: "000000019ca55e24",
+          offset: 1996,
+          method_name: "__CFRunLoopRun",
+          in_app: false,
+        },
+        {
+          frame_index: 22,
+          binary_name: "CoreFoundation",
+          binary_address: "000000019c9f3000",
+          symbol_address: "000000019ca55774",
+          offset: 588,
+          method_name: "CFRunLoopRunSpecific",
+          in_app: false,
+        },
+        {
+          frame_index: 23,
+          binary_name: "GraphicsServices",
+          binary_address: "0000000241f42000",
+          symbol_address: "0000000241f449bc",
+          offset: 164,
+          method_name: "GSEventRunModal",
+          in_app: false,
+        },
+        {
+          frame_index: 24,
+          binary_name: "UIKitCore",
+          binary_address: "00000001a25c4000",
+          symbol_address: "00000001a277bc3c",
+          offset: 816,
+          method_name: "-[UIApplication _run]",
+          in_app: false,
+        },
+        {
+          frame_index: 25,
+          binary_name: "UIKitCore",
+          binary_address: "00000001a25c4000",
+          symbol_address: "00000001a277be64",
+          offset: 340,
+          method_name: "UIApplicationMain",
+          in_app: false,
+        },
+        {
+          frame_index: 26,
+          binary_name: "AcmeFlutter",
+          binary_address: "0000000104b7c000",
+          symbol_address: "0000000104bd61c0",
+          offset: 92,
+          method_name: "static AppDelegate.$main()",
+          file_name: "<compiler-generated>",
+          in_app: true,
+        },
+        {
+          frame_index: 27,
+          binary_name: "AcmeFlutter",
+          binary_address: "0000000104b7c000",
+          symbol_address: "0000000104bd6204",
+          offset: 24,
+          method_name: "main",
+          file_name: "AppDelegate.swift",
+          line_num: 9,
+          in_app: true,
+        },
+        {
+          frame_index: 28,
+          binary_name: "dyld",
+          binary_address: "00000001bd0f4000",
+          symbol_address: "00000001bd0f5d1c",
+          offset: 2724,
+          method_name: "start",
+          in_app: false,
+        },
+      ],
+    },
+  ],
+  threads: [],
+  binary_images: [
+    {
+      name: "AcmeFlutter",
+      arch: "arm64e",
+      uuid: "7c1d2e3f4a5b4c6d8e9f0a1b2c3d4e5f",
+      path: "/private/var/containers/Bundle/Application/9A8B7C6D-5E4F-4A3B-2C1D-0E9F8A7B6C5D/AcmeFlutter.app/AcmeFlutter",
+    },
+    {
+      name: "CoreFoundation",
+      arch: "arm64e",
+      uuid: "6fc1e77958463275bf66955738404cf6",
+      path: "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+    },
+    {
+      name: "dyld",
+      arch: "arm64e",
+      uuid: "6c9a1e278d533f41b2a60e7c4d91b2f5",
+      path: "/usr/lib/dyld",
+    },
+    {
+      name: "Flutter",
+      arch: "arm64e",
+      uuid: "3e8a1c245d7b4f6e9a0b2c3d4e5f6a7b",
+      path: "/private/var/containers/Bundle/Application/9A8B7C6D-5E4F-4A3B-2C1D-0E9F8A7B6C5D/AcmeFlutter.app/Frameworks/Flutter.framework/Flutter",
+    },
+    {
+      name: "GraphicsServices",
+      arch: "arm64e",
+      uuid: "67164c20442f320b924e83c661869ab7",
+      path: "/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices",
+    },
+    {
+      name: "libdispatch.dylib",
+      arch: "arm64e",
+      uuid: "ef0492a68ca538f097bbdf9bdb54c17a",
+      path: "/usr/lib/system/libdispatch.dylib",
+    },
+    {
+      name: "libsystem_kernel.dylib",
+      arch: "arm64e",
+      uuid: "5ea2a24297863af8b8a97899ecc711c8",
+      path: "/usr/lib/system/libsystem_kernel.dylib",
+    },
+    {
+      name: "libxpc.dylib",
+      arch: "arm64e",
+      uuid: "e5a7c9b13d2f4e6081a3c5e7f9b1d3f5",
+      path: "/usr/lib/system/libxpc.dylib",
+    },
+    {
+      name: "Security",
+      arch: "arm64e",
+      uuid: "2b9d4e6f81a03c5e97d1f4a6b8c0e2d4",
+      path: "/System/Library/Frameworks/Security.framework/Security",
+    },
+    {
+      name: "UIKitCore",
+      arch: "arm64e",
+      uuid: "e83e034727d734bdb0d351666dfdfd76",
+      path: "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+    },
+  ],
+  file_name: "SecureStoragePlugin.swift",
+  method_name: "SecureStoragePlugin.read(key: String)",
+  line_number: 88,
+  stacktrace: `\tat   0   libsystem_kernel.dylib        0x00000001e6b4c000   mach_msg2_trap + 8
+\tat   1   libsystem_kernel.dylib        0x00000001e6b4c000   mach_msg2_internal + 76
+\tat   2   libsystem_kernel.dylib        0x00000001e6b4c000   mach_msg_overwrite + 236
+\tat   3   libsystem_kernel.dylib        0x00000001e6b4c000   mach_msg + 24
+\tat   4   libdispatch.dylib             0x000000019be30000   _dispatch_mach_send_and_wait_for_reply + 412
+\tat   5   libdispatch.dylib             0x000000019be30000   dispatch_mach_send_with_result_and_wait_for_reply + 60
+\tat   6   libxpc.dylib                  0x00000001fb8a8000   xpc_connection_send_message_with_reply_sync + 132
+\tat   7   Security                      0x00000001a7b2c000   securityd_message_with_reply_sync + 312
+\tat   8   Security                      0x00000001a7b2c000   securityd_send_sync_and_do + 156
+\tat   9   Security                      0x00000001a7b2c000   _SecItemCopyMatching + 1104
+\tat  10   Security                      0x00000001a7b2c000   SecItemCopyMatching + 600
+\tat  11   AcmeFlutter                   0x0000000104b7c000   SecureStoragePlugin.read(key: String)   (SecureStoragePlugin.swift:88)
+\tat  12   AcmeFlutter                   0x0000000104b7c000   SecureStoragePlugin.handle(_: FlutterMethodCall, res...   (SecureStoragePlugin.swift:37)
+    Full symbol:SecureStoragePlugin.handle(_: FlutterMethodCall, result: FlutterResult)
+\tat  13   AcmeFlutter                   0x0000000104b7c000   @objc SecureStoragePlugin.handle(_: FlutterMethodCal...   (<compiler-generated>)
+    Full symbol:@objc SecureStoragePlugin.handle(_: FlutterMethodCall, result: FlutterResult)
+\tat  14   Flutter                       0x0000000106a10000   __45-[FlutterMethodChannel setMethodCallHandler:]_bl... + 60
+    Full symbol:__45-[FlutterMethodChannel setMethodCallHandler:]_block_invoke
+\tat  15   Flutter                       0x0000000106a10000   invocation function for block in flutter::PlatformMe... + 148
+    Full symbol:invocation function for block in flutter::PlatformMessageHandlerIos::HandlePlatformMessage(std::unique_ptr<flutter::PlatformMessage>)
+\tat  16   libdispatch.dylib             0x000000019be30000   _dispatch_call_block_and_release + 32
+\tat  17   libdispatch.dylib             0x000000019be30000   _dispatch_client_callout + 20
+\tat  18   libdispatch.dylib             0x000000019be30000   _dispatch_main_queue_drain + 764
+\tat  19   libdispatch.dylib             0x000000019be30000   _dispatch_main_queue_callback_4CF + 44
+\tat  20   CoreFoundation                0x000000019c9f3000   __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ + 16
+\tat  21   CoreFoundation                0x000000019c9f3000   __CFRunLoopRun + 1996
+\tat  22   CoreFoundation                0x000000019c9f3000   CFRunLoopRunSpecific + 588
+\tat  23   GraphicsServices              0x0000000241f42000   GSEventRunModal + 164
+\tat  24   UIKitCore                     0x00000001a25c4000   -[UIApplication _run] + 816
+\tat  25   UIKitCore                     0x00000001a25c4000   UIApplicationMain + 340
+\tat  26   AcmeFlutter                   0x0000000104b7c000   static AppDelegate.$main()   (<compiler-generated>)
+\tat  27   AcmeFlutter                   0x0000000104b7c000   main   (AppDelegate.swift:9)
+\tat  28   dyld                          0x00000001bd0f4000   start + 2724`,
+};
+
 export const flutterIosScenario: PlatformScenario = {
   ids: { product: "numbered", orderPrefix: "ord_" },
   app: {
@@ -3377,6 +3773,7 @@ export const flutterIosScenario: PlatformScenario = {
     createdDaysAgo: 165,
     dailySessions: 95_000,
     crashFreeRate: 0.99773,
+    appHangFreeRate: 0.99805,
     perceivedCrashFreeRate: 0.99912,
   },
   host: { className: "FlutterViewController", lifecycle: "view_controller" },
@@ -3406,7 +3803,7 @@ export const flutterIosScenario: PlatformScenario = {
     { person: 30, device: 4, locale: "en_US" },
   ],
   http,
-  exceptions: [...dartExceptions, iosPluginCrash],
+  exceptions: [...dartExceptions, iosPluginCrash, secureStorageHang],
   spans: iosSpans,
   flows: buildFlows(false, "ios_share_crash", {
     cart: (j) =>
@@ -3490,7 +3887,7 @@ export const flutterIosScenario: PlatformScenario = {
       launch: "hot",
     },
     {
-      flow: "browse_and_purchase",
+      flow: "reviews_hang",
       user: 1,
       version: 1,
       agoMinutes: 20000,

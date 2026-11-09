@@ -227,6 +227,7 @@ const appHangStateKey = {
 const sampleErrorEvent = {
   id: "event-1",
   session_id: "sess-1",
+  has_replay: true,
   timestamp: "2026-04-10T10:30:00Z",
   type: "java.lang.NullPointerException",
   attribute: {
@@ -461,6 +462,16 @@ describe("ErrorGroupDetails page", () => {
       "href",
       "/123/session_replays/app-1/sess-1?from=error_details",
     );
+  });
+
+  it("hides the View Session Replay link when the session has no replay", () => {
+    detailsLoaded({
+      ...sampleErrorsDetails,
+      results: [{ ...sampleErrorEvent, has_replay: false }],
+    });
+    renderPage();
+
+    expect(screen.queryByText("View Session Replay")).not.toBeInTheDocument();
   });
 
   it("shows an error message when the details query errors", () => {

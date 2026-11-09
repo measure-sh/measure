@@ -17,6 +17,7 @@ final class SessionAttributeProcessor: AttributeProcessor {
     }
 
     func appendAttributes(_ attribute: Attributes) {
+        guard attribute.sessionStartTime == nil else { return }
         if let sessionStartTime = sessionManager.getSessionStartTime() {
             attribute.sessionStartTime = timeProvider.iso8601Timestamp(timeInMillis: sessionStartTime)
         }

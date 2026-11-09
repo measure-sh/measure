@@ -25,6 +25,11 @@ jest.mock("@/app/api/api_calls", () => {
     fetchErrorsAttributeDistributionPlotFromServer: jest.fn(),
     fetchErrorGroupCommonPathFromServer: jest.fn(),
     fetchFunnelsFromServer: jest.fn(),
+    fetchJourneyFromServer: jest.fn(),
+    fetchJourneyErrorsFromServer: jest.fn(),
+    fetchJourneyNetworkFromServer: jest.fn(),
+    fetchJourneySessionsFromServer: jest.fn(),
+    fetchJourneyTracesFromServer: jest.fn(),
     fetchPinnedFunnelsFromServer: jest.fn(),
     setFunnelPinnedFromServer: jest.fn(),
     reorderPinnedFunnelsFromServer: jest.fn(),
@@ -92,6 +97,9 @@ import {
   fetchFunnelStepSessionsFromServer,
   fetchFunnelStepTracesFromServer,
   fetchFunnelTrendFromServer,
+  fetchJourneyFromServer,
+  fetchJourneyErrorsFromServer,
+  fetchJourneyTracesFromServer,
   fetchPinnedFunnelsFromServer,
   fetchRootSpanNamesFromServer,
   fetchSpanMetricsPlotFromServer,
@@ -109,6 +117,7 @@ import {
   fetchCurrentSession,
   FUNNEL_STEP_LIST_LIMIT,
   FUNNELS_LIMIT,
+  JOURNEY_LIST_LIMIT,
   RootSpanMetricsQuantile,
   signOut,
   type FilterParams,
@@ -135,6 +144,9 @@ import {
   useFunnelStepSessionsQuery,
   useFunnelStepTracesQuery,
   useFunnelTrendQuery,
+  useJourneyErrorsQuery,
+  useJourneyTracesQuery,
+  useJourneyQuery,
   usePinnedFunnelsQuery,
   useReorderPinnedFunnelsMutation,
   useRootSpanNamesQuery,
@@ -168,6 +180,9 @@ const mockFetchErrorsAttributeDistributionPlot =
 const mockFetchErrorGroupCommonPath =
   fetchErrorGroupCommonPathFromServer as jest.Mock;
 const mockFetchFunnels = fetchFunnelsFromServer as jest.Mock;
+const mockFetchJourney = fetchJourneyFromServer as jest.Mock;
+const mockFetchJourneyErrors = fetchJourneyErrorsFromServer as jest.Mock;
+const mockFetchJourneyTraces = fetchJourneyTracesFromServer as jest.Mock;
 const mockFetchPinnedFunnels = fetchPinnedFunnelsFromServer as jest.Mock;
 const mockSetFunnelPinned = setFunnelPinnedFromServer as jest.Mock;
 const mockReorderPinnedFunnels = reorderPinnedFunnelsFromServer as jest.Mock;
@@ -1625,7 +1640,7 @@ describe("funnel queries", () => {
     ],
     [
       "useFunnelStepErrorsQuery",
-      () => useFunnelStepErrorsQuery(funnelParams, "f1", 1, 0, false),
+      () => useFunnelStepErrorsQuery(funnelParams, null, "f1", 1, 0, false),
       mockFetchFunnelStepErrors,
     ],
     [
@@ -1633,6 +1648,7 @@ describe("funnel queries", () => {
       () =>
         useFunnelStepTracesQuery(
           funnelParams,
+          null,
           "f1",
           1,
           RootSpanMetricsQuantile.p50,
@@ -1646,6 +1662,7 @@ describe("funnel queries", () => {
       () =>
         useFunnelStepNetworkQuery(
           funnelParams,
+          null,
           "f1",
           1,
           RootSpanMetricsQuantile.p50,
@@ -1722,7 +1739,7 @@ describe("funnel queries", () => {
     ],
     [
       "useFunnelStepErrorsQuery",
-      (offset) => useFunnelStepErrorsQuery(funnelParams, "f1", 1, offset),
+      (offset) => useFunnelStepErrorsQuery(funnelParams, null, "f1", 1, offset),
       mockFetchFunnelStepErrors,
     ],
     [
@@ -1730,6 +1747,7 @@ describe("funnel queries", () => {
       (offset) =>
         useFunnelStepTracesQuery(
           funnelParams,
+          null,
           "f1",
           1,
           RootSpanMetricsQuantile.p95,
@@ -1742,6 +1760,7 @@ describe("funnel queries", () => {
       (offset) =>
         useFunnelStepNetworkQuery(
           funnelParams,
+          null,
           "f1",
           1,
           RootSpanMetricsQuantile.p95,
@@ -1830,6 +1849,7 @@ type FunnelResultProps = {
   withBuilds: boolean;
   outcome: FunnelStepOutcome;
   weeks: number;
+  samplePercent: number | null;
 };
 
 const resultProps: FunnelResultProps = {
@@ -1842,6 +1862,7 @@ const resultProps: FunnelResultProps = {
   withBuilds: true,
   outcome: "dropped",
   weeks: 4,
+  samplePercent: 25,
 };
 
 const resultPropChanges: Record<string, Partial<FunnelResultProps>> = {
@@ -1853,6 +1874,7 @@ const resultPropChanges: Record<string, Partial<FunnelResultProps>> = {
   builds: { withBuilds: false },
   outcome: { outcome: "converted" },
   weeks: { weeks: 12 },
+  "sample percent": { samplePercent: 50 },
   app: { params: { ...funnelParams, appId: "app-2" } },
   "start date": {
     params: { ...funnelParams, startDate: "2025-12-01T00:00:00Z" },
@@ -1888,7 +1910,13 @@ const resultQueries: {
   {
     name: "useFunnelStepErrorsQuery",
     useResult: (p) =>
-      useFunnelStepErrorsQuery(p.params, p.funnelId, p.step, p.offset),
+      useFunnelStepErrorsQuery(
+        p.params,
+        p.samplePercent,
+        p.funnelId,
+        p.step,
+        p.offset,
+      ),
     fetch: mockFetchFunnelStepErrors,
     fetchArgs: (p) => [
       p.params.appId,
@@ -1897,10 +1925,11 @@ const resultQueries: {
       p.params.startDate,
       p.params.endDate,
       p.params.filterExpr,
+      p.samplePercent,
       FUNNEL_STEP_LIST_LIMIT,
       p.offset,
     ],
-    refetchesOn: ["funnel", "step", "page", ...rangeChanges],
+    refetchesOn: ["funnel", "step", "page", "sample percent", ...rangeChanges],
   },
   ...(
     [
@@ -1918,7 +1947,14 @@ const resultQueries: {
   ).map(([name, useStepQuery, fetch]) => ({
     name,
     useResult: (p: FunnelResultProps) =>
-      useStepQuery(p.params, p.funnelId, p.step, p.quantile, p.offset),
+      useStepQuery(
+        p.params,
+        p.samplePercent,
+        p.funnelId,
+        p.step,
+        p.quantile,
+        p.offset,
+      ),
     fetch,
     fetchArgs: (p: FunnelResultProps) => [
       p.params.appId,
@@ -1928,10 +1964,18 @@ const resultQueries: {
       p.params.startDate,
       p.params.endDate,
       p.params.filterExpr,
+      p.samplePercent,
       FUNNEL_STEP_LIST_LIMIT,
       p.offset,
     ],
-    refetchesOn: ["funnel", "step", "quantile", "page", ...rangeChanges],
+    refetchesOn: [
+      "funnel",
+      "step",
+      "quantile",
+      "page",
+      "sample percent",
+      ...rangeChanges,
+    ],
   })),
   {
     name: "useFunnelTrendQuery",
@@ -1952,6 +1996,7 @@ const resultQueries: {
     useResult: (p) =>
       useFunnelStepSessionsQuery(
         p.params,
+        p.samplePercent,
         p.funnelId,
         p.step,
         p.outcome,
@@ -1966,10 +2011,18 @@ const resultQueries: {
       p.params.startDate,
       p.params.endDate,
       p.params.filterExpr,
+      p.samplePercent,
       FUNNEL_STEP_LIST_LIMIT,
       p.offset,
     ],
-    refetchesOn: ["funnel", "step", "outcome", "page", ...rangeChanges],
+    refetchesOn: [
+      "funnel",
+      "step",
+      "outcome",
+      "page",
+      "sample percent",
+      ...rangeChanges,
+    ],
   },
   {
     name: "useFunnelCadenceQuery",
@@ -2084,9 +2137,10 @@ function useFunnelResults() {
   } = resultProps;
   return {
     conversion: useFunnelConversionQuery(params, funnelId),
-    stepErrors: useFunnelStepErrorsQuery(params, funnelId, step, offset),
+    stepErrors: useFunnelStepErrorsQuery(params, null, funnelId, step, offset),
     stepTraces: useFunnelStepTracesQuery(
       params,
+      null,
       funnelId,
       step,
       quantile,
@@ -2094,6 +2148,7 @@ function useFunnelResults() {
     ),
     stepNetwork: useFunnelStepNetworkQuery(
       params,
+      null,
       funnelId,
       step,
       quantile,
@@ -2102,6 +2157,7 @@ function useFunnelResults() {
     trend: useFunnelTrendQuery(params, funnelId, period, withBuilds),
     stepSessions: useFunnelStepSessionsQuery(
       params,
+      null,
       funnelId,
       step,
       outcome,
@@ -2437,5 +2493,131 @@ describe("useDeleteFunnelMutation", () => {
       funnel: 0,
     });
     expect(fetchCounts(listFetches, "app-2")).toEqual(noListFetches);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────
+// Journeys
+// ─────────────────────────────────────────────────────────────────────────
+
+const journeyParams: FilterParams = {
+  appId: "app-1",
+  startDate: "2026-01-01T00:00:00Z",
+  endDate: "2026-01-02T00:00:00Z",
+  filterExpr: "version_name:in:1.2.0",
+};
+
+describe("useJourneyQuery", () => {
+  it("does not fetch without filter params", () => {
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useJourneyQuery(null), { wrapper });
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchJourney).not.toHaveBeenCalled();
+  });
+
+  it("fetches the journey for the filter params", async () => {
+    const journey = { nodes: [], links: [], sample_percent: 100 };
+    mockFetchJourney.mockResolvedValueOnce(journey);
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(() => useJourneyQuery(journeyParams), {
+      wrapper,
+    });
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    expect(mockFetchJourney).toHaveBeenCalledWith(
+      "app-1",
+      "2026-01-01T00:00:00Z",
+      "2026-01-02T00:00:00Z",
+      "version_name:in:1.2.0",
+    );
+    expect(result.current.data).toBe(journey);
+  });
+});
+
+describe("useJourneyErrorsQuery", () => {
+  it("does not fetch while disabled", () => {
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () =>
+        useJourneyErrorsQuery(
+          journeyParams,
+          null,
+          { node: "CartActivity" },
+          0,
+          false,
+        ),
+      { wrapper },
+    );
+
+    expect(result.current.fetchStatus).toBe("idle");
+    expect(mockFetchJourneyErrors).not.toHaveBeenCalled();
+  });
+
+  it("shows the last page while it fetches another", async () => {
+    const firstPage = {
+      meta: { next: true, previous: false },
+      results: [{ id: "first" }],
+    };
+    mockFetchJourneyErrors
+      .mockResolvedValueOnce(firstPage)
+      // The second page stays pending, so the hook stays mid-fetch.
+      .mockReturnValueOnce(new Promise(() => {}));
+
+    const { wrapper } = makeWrapper();
+    const { result, rerender } = renderHook(
+      ({ offset }) =>
+        useJourneyErrorsQuery(
+          journeyParams,
+          null,
+          { node: "CartActivity" },
+          offset,
+        ),
+      { wrapper, initialProps: { offset: 0 } },
+    );
+    await waitFor(() => expect(result.current.status).toBe("success"));
+
+    rerender({ offset: JOURNEY_LIST_LIMIT });
+
+    await waitFor(() =>
+      expect(mockFetchJourneyErrors).toHaveBeenCalledTimes(2),
+    );
+    expect(result.current.isFetching).toBe(true);
+    expect(result.current.data).toBe(firstPage);
+  });
+});
+
+describe("useJourneyTracesQuery", () => {
+  it("fetches a page of the list for the selection in the sample of the journey", async () => {
+    const response = { meta: { next: false, previous: true }, results: [] };
+    mockFetchJourneyTraces.mockResolvedValueOnce(response);
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () =>
+        useJourneyTracesQuery(
+          journeyParams,
+          25,
+          { source: "CartActivity", target: "checkout" },
+          RootSpanMetricsQuantile.p95,
+          5,
+        ),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    expect(mockFetchJourneyTraces).toHaveBeenCalledWith(
+      "app-1",
+      "2026-01-01T00:00:00Z",
+      "2026-01-02T00:00:00Z",
+      "version_name:in:1.2.0",
+      25,
+      { source: "CartActivity", target: "checkout" },
+      RootSpanMetricsQuantile.p95,
+      JOURNEY_LIST_LIMIT,
+      5,
+    );
+    expect(result.current.data).toBe(response);
   });
 });

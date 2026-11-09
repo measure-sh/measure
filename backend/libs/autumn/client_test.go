@@ -61,7 +61,7 @@ func TestGetOrCreateCustomer(t *testing.T) {
 }
 
 func TestUpdateCustomer(t *testing.T) {
-	var gotBody updateCustomerRequest
+	var gotBody UpdateCustomerRequest
 	cleanup := setupTestServer(t, func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost || r.URL.Path != "/v1/customers.update" {
 			t.Errorf("unexpected request: %s %s", r.Method, r.URL.Path)
@@ -74,7 +74,7 @@ func TestUpdateCustomer(t *testing.T) {
 	})
 	defer cleanup()
 
-	if err := updateCustomer(context.Background(), "cust_123", "new-owner@test.com"); err != nil {
+	if err := updateCustomer(context.Background(), UpdateCustomerRequest{CustomerID: "cust_123", Email: "new-owner@test.com", Name: "renamed-team"}); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 	if gotBody.CustomerID != "cust_123" {
@@ -82,6 +82,9 @@ func TestUpdateCustomer(t *testing.T) {
 	}
 	if gotBody.Email != "new-owner@test.com" {
 		t.Errorf("email = %q, want new-owner@test.com", gotBody.Email)
+	}
+	if gotBody.Name != "renamed-team" {
+		t.Errorf("name = %q, want renamed-team", gotBody.Name)
 	}
 }
 

@@ -196,6 +196,12 @@ describe("BugReport", () => {
         "/test-team/session_replays/app-br-1/sess-br-001?from=bug_report_details",
       );
     });
+
+    it("hides the session replay link when the session has no replay", () => {
+      setBugReport({ has_replay: false });
+      renderBugReport();
+      expect(screen.queryByText("View Session Replay")).not.toBeInTheDocument();
+    });
   });
 
   describe("status toggle button", () => {

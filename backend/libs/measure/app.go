@@ -687,7 +687,7 @@ var errorDistributionExprs = map[string]string{
 	"country":      "`inet.country_code`",
 	"network_type": "`attribute.network_type`",
 	"locale":       "`attribute.device_locale`",
-	"device":       "if(`attribute.device_manufacturer` = '' and `attribute.device_name` = '', '', concat(`attribute.device_manufacturer`, ' - ', `attribute.device_name`))",
+	"device":       "if(`attribute.device_manufacturer` = '' and `attribute.device_model` = '', '', concat(`attribute.device_manufacturer`, ' - ', `attribute.device_model`))",
 }
 
 func IsErrorDistributionAttribute(name string) bool {
@@ -896,6 +896,45 @@ func unmarshalANR(anr *event.ANR, exceptions, threads, subject, threadDump strin
 	}
 
 	return nil
+}
+
+// sessionsWithReplay returns sessions in sessionIDs with more than ownEvents
+// events, excluding session_start. ownEvents is the number of events added by
+// the caller's item; a session with only session_start and that item has no
+// replay.
+func (a App) sessionsWithReplay(ctx context.Context, rch driver.Conn, sessionIDs []uuid.UUID, ownEvents uint64) (withReplay map[uuid.UUID]bool, err error) {
+	withReplay = map[uuid.UUID]bool{}
+	if len(sessionIDs) == 0 {
+		return
+	}
+
+	stmt := sqlf.
+		From("sessions").
+		Select("session_id").
+		Where("team_id = toUUID(?)", a.TeamId).
+		Where("app_id = toUUID(?)", a.ID).
+		Where("session_id in ?", sessionIDs).
+		GroupBy("session_id").
+		Having("sum(event_count) - sumMap(event_type_counts)['session_start'] > ?", ownEvents)
+
+	defer stmt.Close()
+
+	rows, err := rch.Query(ctx, stmt.String(), stmt.Args()...)
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var sessionID uuid.UUID
+		if err = rows.Scan(&sessionID); err != nil {
+			return
+		}
+		withReplay[sessionID] = true
+	}
+
+	err = rows.Err()
+	return
 }
 
 // GetErrorsWithFilter reads one error group's matching events, newest first.
@@ -1191,6 +1230,34 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 		previous = true
 	}
 
+	sessionIDs := make([]uuid.UUID, 0, len(events))
+	for _, v := range events {
+		switch x := v.(type) {
+		case *event.EventException:
+			sessionIDs = append(sessionIDs, x.SessionID)
+		case *event.EventANR:
+			sessionIDs = append(sessionIDs, x.SessionID)
+		case *event.EventAppHang:
+			sessionIDs = append(sessionIDs, x.SessionID)
+		}
+	}
+
+	withReplay, err := a.sessionsWithReplay(ctx, rch, sessionIDs, 1)
+	if err != nil {
+		return
+	}
+
+	for _, v := range events {
+		switch x := v.(type) {
+		case *event.EventException:
+			x.HasReplay = withReplay[x.SessionID]
+		case *event.EventANR:
+			x.HasReplay = withReplay[x.SessionID]
+		case *event.EventAppHang:
+			x.HasReplay = withReplay[x.SessionID]
+		}
+	}
+
 	return
 }
 
@@ -1321,14 +1388,15 @@ func (a App) GetSizeMetrics(ctx context.Context, pg *pgxpool.Pool, rch driver.Co
 	return size, nil
 }
 
-// GetIssueFreeMetrics computes crash and anr free sessions
-// percentage for the selected app versions and, separately,
-// for the unselected app versions.
+// GetIssueFreeMetrics computes crash, anr and app hang free
+// sessions percentage for the selected app versions and,
+// separately, for the unselected app versions.
 //
 // - Crash free sessions
 // - Perceived crash free sessions
 // - ANR free sessions
 // - Perceived ANR free sessions
+// - App hang free sessions
 func (a App) GetIssueFreeMetrics(
 	ctx context.Context,
 	rch driver.Conn,
@@ -1338,6 +1406,7 @@ func (a App) GetIssueFreeMetrics(
 	perceivedCrashFree *metrics.PerceivedCrashFreeSession,
 	anrFree *metrics.ANRFreeSession,
 	perceivedANRFree *metrics.PerceivedANRFreeSession,
+	appHangFree *metrics.AppHangFreeSession,
 	err error,
 ) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
@@ -1348,6 +1417,8 @@ func (a App) GetIssueFreeMetrics(
 	case opsys.Android:
 		anrFree = &metrics.ANRFreeSession{}
 		perceivedANRFree = &metrics.PerceivedANRFreeSession{}
+	case opsys.AppleFamily:
+		appHangFree = &metrics.AppHangFreeSession{}
 	}
 
 	predicate, err := appMetricsPredicate(flt)
@@ -1365,6 +1436,8 @@ func (a App) GetIssueFreeMetrics(
 	switch a.Family() {
 	case opsys.Android:
 		columns = append(columns, "anr_sessions", "perceived_anr_sessions")
+	case opsys.AppleFamily:
+		columns = append(columns, "app_hang_sessions")
 	}
 
 	for _, column := range columns {
@@ -1388,6 +1461,7 @@ func (a App) GetIssueFreeMetrics(
 		perceivedCrashSelected, perceivedCrashUnselected uint64
 		anrSelected, anrUnselected                       uint64
 		perceivedANRSelected, perceivedANRUnselected     uint64
+		appHangSelected, appHangUnselected               uint64
 	)
 
 	dest := []any{
@@ -1402,6 +1476,8 @@ func (a App) GetIssueFreeMetrics(
 	switch a.Family() {
 	case opsys.Android:
 		dest = append(dest, &anrSelected, &anrUnselected, &perceivedANRSelected, &perceivedANRUnselected)
+	case opsys.AppleFamily:
+		dest = append(dest, &appHangSelected, &appHangUnselected)
 	}
 
 	if err = rch.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(dest...); err != nil {
@@ -1416,6 +1492,8 @@ func (a App) GetIssueFreeMetrics(
 		case opsys.Android:
 			anrFree.ANRFreeSessions = math.NaN()
 			perceivedANRFree.ANRFreeSessions = math.NaN()
+		case opsys.AppleFamily:
+			appHangFree.AppHangFreeSessions = math.NaN()
 		}
 	} else {
 		crashFree.CrashFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(crashSelected) / float64(selected))) * 100)
@@ -1425,6 +1503,8 @@ func (a App) GetIssueFreeMetrics(
 		case opsys.Android:
 			anrFree.ANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(anrSelected) / float64(selected))) * 100)
 			perceivedANRFree.ANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedANRSelected) / float64(selected))) * 100)
+		case opsys.AppleFamily:
+			appHangFree.AppHangFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(appHangSelected) / float64(selected))) * 100)
 		}
 	}
 
@@ -1436,6 +1516,8 @@ func (a App) GetIssueFreeMetrics(
 		case opsys.Android:
 			anrFree.UnselectedANRFreeSessions = math.NaN()
 			perceivedANRFree.UnselectedANRFreeSessions = math.NaN()
+		case opsys.AppleFamily:
+			appHangFree.UnselectedAppHangFreeSessions = math.NaN()
 		}
 	} else {
 		crashFree.UnselectedCrashFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(crashUnselected) / float64(unselected))) * 100)
@@ -1445,6 +1527,8 @@ func (a App) GetIssueFreeMetrics(
 		case opsys.Android:
 			anrFree.UnselectedANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(anrUnselected) / float64(unselected))) * 100)
 			perceivedANRFree.UnselectedANRFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(perceivedANRUnselected) / float64(unselected))) * 100)
+		case opsys.AppleFamily:
+			appHangFree.UnselectedAppHangFreeSessions = numeric.RoundTwoDecimalsFloat64((1 - (float64(appHangUnselected) / float64(unselected))) * 100)
 		}
 	}
 
@@ -1455,6 +1539,8 @@ func (a App) GetIssueFreeMetrics(
 	case opsys.Android:
 		anrFree.SetNoData()
 		perceivedANRFree.SetNoData()
+	case opsys.AppleFamily:
+		appHangFree.SetNoData()
 	}
 
 	return
@@ -2186,12 +2272,18 @@ func (a App) GetTrace(ctx context.Context, rch driver.Conn, traceId string) (tra
 	trace.NetworkType = spans[0].Attributes.NetworkType
 	trace.Spans = spanDisplays
 
+	withReplay, err := a.sessionsWithReplay(ctx, rch, []uuid.UUID{trace.SessionID}, 0)
+	if err != nil {
+		return
+	}
+	trace.HasReplay = withReplay[trace.SessionID]
+
 	return
 }
 
 // GetBugReportsWithFilter provides bug reports that match the filter
 // expression, newest first, in a paginated fashion.
-func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, flt *filter.Filter) (bugReports []BugReportDisplay, next, previous bool, err error) {
+func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, flt *filter.Filter) (bugReports []BugReport, next, previous bool, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.
 		From("bug_reports final").
@@ -2243,8 +2335,7 @@ func (a App) GetBugReportsWithFilter(ctx context.Context, rch driver.Conn, flt *
 	defer rows.Close()
 
 	for rows.Next() {
-		var bugReport BugReportDisplay
-		bugReport.BugReport = new(BugReport)
+		var bugReport BugReport
 		bugReport.Attribute = new(event.Attribute)
 		bugReport.AppID = flt.AppID
 
@@ -2360,7 +2451,7 @@ func (a App) GetBugReportInstancesPlot(ctx context.Context, rch driver.Conn, flt
 }
 
 // GetBugReport fetches a bug report by its event id.
-func (a App) GetBugReportById(ctx context.Context, rch driver.Conn, presign event.PreSignConfig, bugReportId string) (bugReport BugReport, err error) {
+func (a App) GetBugReportById(ctx context.Context, rch driver.Conn, presign event.PreSignConfig, bugReportId string) (bugReport BugReportDetail, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	stmt := sqlf.
 		From("bug_reports final").
@@ -2455,6 +2546,12 @@ func (a App) GetBugReportById(ctx context.Context, rch driver.Conn, presign even
 			}
 		}
 	}
+
+	withReplay, err := a.sessionsWithReplay(ctx, rch, []uuid.UUID{bugReport.SessionID}, 1)
+	if err != nil {
+		return
+	}
+	bugReport.HasReplay = withReplay[bugReport.SessionID]
 
 	return
 }

@@ -113,13 +113,13 @@ export default function BugReportsOverview(props: {
       {readyValue !== null &&
         (status === "success" || status === "pending") && (
           <div className="flex flex-col items-center w-full">
-            <div className="py-2" />
+            <div className="py-4" />
             <BugReportsOverviewPlot
               startDate={readyValue.date.startDate}
               endDate={readyValue.date.endDate}
               query={bugReportsPlotQuery}
             />
-            <div className="py-4" />
+            <div className="py-6" />
             {!listEmpty && (
               <>
                 <div className="self-end">
@@ -141,14 +141,14 @@ export default function BugReportsOverview(props: {
                 >
                   <LoadingBar />
                 </div>
-                <Table className="font-display select-none">
+                <Table className="font-display select-none max-lg:min-w-140">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[60%]">Bug Report</TableHead>
                       <TableHead className="w-[20%] text-center">
                         Time
                       </TableHead>
-                      <TableHead className="w-[20%] text-center">
+                      <TableHead className="w-[20%] text-right">
                         Status
                       </TableHead>
                     </TableRow>
@@ -239,7 +239,7 @@ export default function BugReportsOverview(props: {
                                 </p>
                               </div>
                             </TableCell>
-                            <TableCell className="w-[20%] text-center relative p-0">
+                            <TableCell className="w-[20%] text-right relative p-0">
                               <Link
                                 href={bugReportHref}
                                 className="absolute inset-0 z-10 cursor-pointer"
@@ -247,7 +247,7 @@ export default function BugReportsOverview(props: {
                                 aria-hidden="true"
                                 style={{ display: "block" }}
                               />
-                              <div className="pointer-events-none p-4 items-center flex justify-center">
+                              <div className="pointer-events-none p-4 items-center flex justify-end">
                                 <Pill
                                   type={
                                     status === 0

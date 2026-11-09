@@ -90,6 +90,8 @@ import sh.measure.android.utils.DefaultRuntimeProvider
 import sh.measure.android.utils.DefaultSleeper
 import sh.measure.android.utils.IdProvider
 import sh.measure.android.utils.IdProviderImpl
+import sh.measure.android.utils.InstallationIdProvider
+import sh.measure.android.utils.InstallationIdProviderImpl
 import sh.measure.android.utils.LocaleProvider
 import sh.measure.android.utils.LocaleProviderImpl
 import sh.measure.android.utils.LowMemoryCheck
@@ -163,7 +165,6 @@ internal class TestMeasureInitializer(
         configProvider = configProvider,
         ioExecutor = executorServiceRegistry.ioExecutor(),
         packageInfoProvider = packageInfoProvider,
-        sampler = sampler,
     ),
     private val procProvider: ProcProvider = ProcProviderImpl(),
     private val debugProvider: DebugProvider = DefaultDebugProvider(),
@@ -203,9 +204,12 @@ internal class TestMeasureInitializer(
         context = application,
         packageInfoProvider = packageInfoProvider,
     ),
-    private val installationIdAttributeProcessor: InstallationIdAttributeProcessor = InstallationIdAttributeProcessor(
+    override val installationIdProvider: InstallationIdProvider = InstallationIdProviderImpl(
         prefsStorage = prefsStorage,
         idProvider = idProvider,
+    ),
+    private val installationIdAttributeProcessor: InstallationIdAttributeProcessor = InstallationIdAttributeProcessor(
+        installationIdProvider = installationIdProvider,
     ),
     private val networkStateAttributeProcessor: NetworkStateAttributeProcessor = NetworkStateAttributeProcessor(
         networkStateProvider = networkStateProvider,
@@ -276,6 +280,7 @@ internal class TestMeasureInitializer(
         configProvider = configProvider,
         exporter = exporter,
         sampler = sampler,
+        installationIdProvider = installationIdProvider,
     ),
     override val layoutSnapshotCollector: LayoutSnapshotCollector = LayoutSnapshotCollectorImpl(
         logger = logger,
@@ -457,6 +462,7 @@ internal class TestMeasureInitializer(
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         configProvider = configProvider,
+        sessionManager = sessionManager,
     ),
     override val shakeBugReportCollector: ShakeBugReportCollector = ShakeBugReportCollector(
         shakeDetector = AccelerometerShakeDetector(

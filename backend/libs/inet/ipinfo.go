@@ -119,7 +119,7 @@ func CountryCode(ip net.IP) (countryCode string, err error) {
 		return
 	}
 
-	countryCode = record["country"]
+	countryCode = record["country_code"]
 
 	return
 }

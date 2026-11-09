@@ -1,6 +1,6 @@
 // swift-interface-format-version: 1.0
 // swift-compiler-version: Apple Swift version 6.3.2 effective-5.10 (swiftlang-6.3.2.1.108 clang-2100.1.1.101)
-// swift-module-flags: -target arm64-apple-ios13.0-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -Onone -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name Measure
+// swift-module-flags: -target arm64-apple-ios13.0-simulator -enable-objc-interop -enable-library-evolution -swift-version 5 -O -enable-experimental-feature DebugDescriptionMacro -enable-bare-slash-regex -module-name Measure
 // swift-module-flags-ignorable: -no-verify-emitted-module-interface -formal-cxx-interoperability-mode=off -interface-compiler-version 6.3.2
 import AVKit
 import CoreData
@@ -390,8 +390,14 @@ extension Measure.Measure {
   @objc public static func trackBugReport(description: Swift.String, attachments: [Measure.MsrAttachment] = [], attributes: [Swift.String : Any]? = nil)
   @objc public static func captureScreenshot(for viewController: UIKit.UIViewController, completion: @escaping (Measure.MsrAttachment?) -> Swift.Void)
   public static func trackError(_ error: any Swift.Error, attributes: [Swift.String : Measure.AttributeValue]? = nil)
-  @objc public static func trackError(_ error: Foundation.NSError, attributes: [Swift.String : Any]? = nil)
+  public static func trackError(_ error: Foundation.NSError, attributes: [Swift.String : Any]? = nil)
+  public static func trackError(_ exception: Foundation.NSException, attributes: [Swift.String : Measure.AttributeValue]? = nil)
+  public static func trackError(_ exception: Foundation.NSException, attributes: [Swift.String : Any]? = nil)
+  @available(swift, obsoleted: 1.0, message: "Use trackError(_:attributes:) with an Error or NSException.")
+  @objc(trackError:attributes:) public static func objcTrackError(_ error: Any, attributes: [Swift.String : Any]? = nil)
+  @available(*, deprecated, renamed: "trackError(_:attributes:)")
   public static func trackException(_ exception: Foundation.NSException, attributes: [Swift.String : Measure.AttributeValue]? = nil)
+  @available(*, deprecated, message: "Use trackError(_:attributes:) instead.")
   @objc public static func trackException(_ exception: Foundation.NSException, attributes: [Swift.String : Any]? = nil)
   public static func internalGetAttachmentDirectory() -> Swift.String?
   public static func internalEncodeWebP(pixels: Foundation.Data, width: Swift.Int, height: Swift.Int, completion: @escaping (Foundation.Data?) -> Swift.Void)

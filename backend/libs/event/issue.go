@@ -28,6 +28,7 @@ type EventANR struct {
 	Severity    Severity       `json:"severity"`
 	Attachments []Attachment   `json:"attachments"`
 	Threads     []ThreadView   `json:"threads"`
+	HasReplay   bool           `json:"has_replay"`
 }
 
 type ANRView struct {
@@ -58,6 +59,7 @@ type EventException struct {
 	Attachments          []Attachment       `json:"attachments"`
 	Threads              []ThreadView       `json:"threads"`
 	UserDefinedAttribute udattr.UDAttribute `json:"user_defined_attribute"`
+	HasReplay            bool               `json:"has_replay"`
 }
 
 type ExceptionView struct {
@@ -95,6 +97,7 @@ type EventAppHang struct {
 	AppHangView AppHangView    `json:"app_hang"`
 	Attachments []Attachment   `json:"attachments"`
 	Threads     []ThreadView   `json:"threads"`
+	HasReplay   bool           `json:"has_replay"`
 }
 
 type AppHangView struct {

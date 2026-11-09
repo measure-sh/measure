@@ -2186,6 +2186,371 @@ ProductDetailScreen@src/screens/ProductDetailScreen.tsx:158:12
 	at java.lang.Thread.run(Thread.java:1012)`,
 };
 
+const reviewTextHang: ExceptionSpec = {
+  key: "review_text_hang",
+  kind: "app_hang",
+  cpuBound: true,
+  type: "",
+  message: "",
+  severity: "fatal",
+  handled: false,
+  foreground: true,
+  framework: "apple",
+  exceptions: [
+    {
+      type: "",
+      message: "",
+      thread_name: "com.apple.main-thread",
+      thread_sequence: 0,
+      os_build_number: "22C161",
+      frames: [
+        {
+          frame_index: 0,
+          binary_name: "libsystem_malloc.dylib",
+          binary_address: "00000001aa30c000",
+          symbol_address: "00000001aa30f2a8",
+          offset: 120,
+          method_name: "_malloc_zone_malloc_instrumented_or_legacy",
+          in_app: false,
+        },
+        {
+          frame_index: 1,
+          binary_name: "CoreText",
+          binary_address: "00000001a3a7c000",
+          symbol_address: "00000001a3aa51c4",
+          offset: 412,
+          method_name: "TStorageRange::SetStorageSubRange(TLine&, CFRange)",
+          in_app: false,
+        },
+        {
+          frame_index: 2,
+          binary_name: "CoreText",
+          binary_address: "00000001a3a7c000",
+          symbol_address: "00000001a3a9c87c",
+          offset: 1528,
+          method_name:
+            "TTypesetter::FinishEncodedLine(TLine&, TCharStream const&)",
+          in_app: false,
+        },
+        {
+          frame_index: 3,
+          binary_name: "CoreText",
+          binary_address: "00000001a3a7c000",
+          symbol_address: "00000001a3a9a1f0",
+          offset: 236,
+          method_name: "CTTypesetterCreateWithAttributedStringAndOptions",
+          in_app: false,
+        },
+        {
+          frame_index: 4,
+          binary_name: "CoreText",
+          binary_address: "00000001a3a7c000",
+          symbol_address: "00000001a3ab4d38",
+          offset: 504,
+          method_name: "CTFramesetterSuggestFrameSizeWithConstraints",
+          in_app: false,
+        },
+        {
+          frame_index: 5,
+          binary_name: "UIFoundation",
+          binary_address: "00000001a3e1c000",
+          symbol_address: "00000001a3e4a6c0",
+          offset: 1876,
+          method_name: "__NSStringDrawingEngine",
+          in_app: false,
+        },
+        {
+          frame_index: 6,
+          binary_name: "UIFoundation",
+          binary_address: "00000001a3e1c000",
+          symbol_address: "00000001a3e49e14",
+          offset: 196,
+          method_name:
+            "-[NSAttributedString(NSExtendedStringDrawing) boundingRectWithSize:options:context:]",
+          in_app: false,
+        },
+        {
+          frame_index: 7,
+          binary_name: "AcmeRN",
+          binary_address: "0000000102d18000",
+          symbol_address: "0000000102d61f48",
+          offset: 384,
+          method_name:
+            "ReviewTextModule.measureHeights(_: [String], width: Double, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock)",
+          file_name: "ReviewTextModule.swift",
+          line_num: 41,
+          in_app: true,
+        },
+        {
+          frame_index: 8,
+          binary_name: "AcmeRN",
+          binary_address: "0000000102d18000",
+          symbol_address: "0000000102d62210",
+          offset: 168,
+          method_name:
+            "@objc ReviewTextModule.measureHeights(_: [String], width: Double, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock)",
+          file_name: "<compiler-generated>",
+          in_app: true,
+        },
+        {
+          frame_index: 9,
+          binary_name: "CoreFoundation",
+          binary_address: "000000019c9f3000",
+          symbol_address: "000000019ca0d2c4",
+          offset: 148,
+          method_name: "__invoking___",
+          in_app: false,
+        },
+        {
+          frame_index: 10,
+          binary_name: "CoreFoundation",
+          binary_address: "000000019c9f3000",
+          symbol_address: "000000019ca0cf30",
+          offset: 428,
+          method_name: "-[NSInvocation invoke]",
+          in_app: false,
+        },
+        {
+          frame_index: 11,
+          binary_name: "AcmeRN",
+          binary_address: "0000000102d18000",
+          symbol_address: "0000000102ecac88",
+          offset: 1012,
+          method_name: "-[RCTModuleMethod invokeWithBridge:module:arguments:]",
+          file_name: "RCTModuleMethod.mm",
+          line_num: 637,
+          in_app: true,
+        },
+        {
+          frame_index: 12,
+          binary_name: "AcmeRN",
+          binary_address: "0000000102d18000",
+          symbol_address: "0000000102ecca10",
+          offset: 1500,
+          method_name:
+            "facebook::react::invokeInner(RCTBridge*, RCTModuleData*, unsigned int, folly::dynamic const&, int)",
+          file_name: "RCTNativeModule.mm",
+          line_num: 184,
+          in_app: true,
+        },
+        {
+          frame_index: 13,
+          binary_name: "AcmeRN",
+          binary_address: "0000000102d18000",
+          symbol_address: "0000000102eccc90",
+          offset: 92,
+          method_name:
+            "facebook::react::RCTNativeModule::invoke(unsigned int, folly::dynamic&&, int)::$_0::operator()() const",
+          file_name: "RCTNativeModule.mm",
+          line_num: 100,
+          in_app: true,
+        },
+        {
+          frame_index: 14,
+          binary_name: "libdispatch.dylib",
+          binary_address: "000000019be30000",
+          symbol_address: "000000019be4be5c",
+          offset: 32,
+          method_name: "_dispatch_call_block_and_release",
+          in_app: false,
+        },
+        {
+          frame_index: 15,
+          binary_name: "libdispatch.dylib",
+          binary_address: "000000019be30000",
+          symbol_address: "000000019be561e4",
+          offset: 20,
+          method_name: "_dispatch_client_callout",
+          in_app: false,
+        },
+        {
+          frame_index: 16,
+          binary_name: "libdispatch.dylib",
+          binary_address: "000000019be30000",
+          symbol_address: "000000019be4a2c0",
+          offset: 764,
+          method_name: "_dispatch_main_queue_drain",
+          in_app: false,
+        },
+        {
+          frame_index: 17,
+          binary_name: "libdispatch.dylib",
+          binary_address: "000000019be30000",
+          symbol_address: "000000019be49fb8",
+          offset: 44,
+          method_name: "_dispatch_main_queue_callback_4CF",
+          in_app: false,
+        },
+        {
+          frame_index: 18,
+          binary_name: "CoreFoundation",
+          binary_address: "000000019c9f3000",
+          symbol_address: "000000019ca57d18",
+          offset: 16,
+          method_name: "__CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__",
+          in_app: false,
+        },
+        {
+          frame_index: 19,
+          binary_name: "CoreFoundation",
+          binary_address: "000000019c9f3000",
+          symbol_address: "000000019ca55e24",
+          offset: 1996,
+          method_name: "__CFRunLoopRun",
+          in_app: false,
+        },
+        {
+          frame_index: 20,
+          binary_name: "CoreFoundation",
+          binary_address: "000000019c9f3000",
+          symbol_address: "000000019ca55774",
+          offset: 588,
+          method_name: "CFRunLoopRunSpecific",
+          in_app: false,
+        },
+        {
+          frame_index: 21,
+          binary_name: "GraphicsServices",
+          binary_address: "0000000241f42000",
+          symbol_address: "0000000241f449bc",
+          offset: 164,
+          method_name: "GSEventRunModal",
+          in_app: false,
+        },
+        {
+          frame_index: 22,
+          binary_name: "UIKitCore",
+          binary_address: "00000001a25c4000",
+          symbol_address: "00000001a277bc3c",
+          offset: 816,
+          method_name: "-[UIApplication _run]",
+          in_app: false,
+        },
+        {
+          frame_index: 23,
+          binary_name: "UIKitCore",
+          binary_address: "00000001a25c4000",
+          symbol_address: "00000001a277be64",
+          offset: 340,
+          method_name: "UIApplicationMain",
+          in_app: false,
+        },
+        {
+          frame_index: 24,
+          binary_name: "AcmeRN",
+          binary_address: "0000000102d18000",
+          symbol_address: "0000000102d352c4",
+          offset: 24,
+          method_name: "main",
+          in_app: true,
+        },
+        {
+          frame_index: 25,
+          binary_name: "dyld",
+          binary_address: "00000001bd0f4000",
+          symbol_address: "00000001bd0f5d1c",
+          offset: 2724,
+          method_name: "start",
+          in_app: false,
+        },
+      ],
+    },
+  ],
+  threads: [],
+  binary_images: [
+    {
+      name: "AcmeRN",
+      arch: "arm64e",
+      uuid: "b41d8e2c7a9f4c3d85e60f1a2b3c4d5e",
+      path: "/private/var/containers/Bundle/Application/5C6D7E8F-9A0B-4C1D-8E2F-3A4B5C6D7E8F/AcmeRN.app/AcmeRN",
+    },
+    {
+      name: "CoreFoundation",
+      arch: "arm64e",
+      uuid: "6fc1e77958463275bf66955738404cf6",
+      path: "/System/Library/Frameworks/CoreFoundation.framework/CoreFoundation",
+    },
+    {
+      name: "CoreText",
+      arch: "arm64e",
+      uuid: "a41f7c2e9b583d16b0e47f2a6c9d1e38",
+      path: "/System/Library/Frameworks/CoreText.framework/CoreText",
+    },
+    {
+      name: "dyld",
+      arch: "arm64e",
+      uuid: "6c9a1e278d533f41b2a60e7c4d91b2f5",
+      path: "/usr/lib/dyld",
+    },
+    {
+      name: "GraphicsServices",
+      arch: "arm64e",
+      uuid: "67164c20442f320b924e83c661869ab7",
+      path: "/System/Library/PrivateFrameworks/GraphicsServices.framework/GraphicsServices",
+    },
+    {
+      name: "libdispatch.dylib",
+      arch: "arm64e",
+      uuid: "ef0492a68ca538f097bbdf9bdb54c17a",
+      path: "/usr/lib/system/libdispatch.dylib",
+    },
+    {
+      name: "libsystem_malloc.dylib",
+      arch: "arm64e",
+      uuid: "8d3b6f1e2a5c3b7d9e0f1a2b3c4d5e6f",
+      path: "/usr/lib/system/libsystem_malloc.dylib",
+    },
+    {
+      name: "UIFoundation",
+      arch: "arm64e",
+      uuid: "c7e25a91d3f64b08a1b9e0d4f2c63a57",
+      path: "/System/Library/PrivateFrameworks/UIFoundation.framework/UIFoundation",
+    },
+    {
+      name: "UIKitCore",
+      arch: "arm64e",
+      uuid: "e83e034727d734bdb0d351666dfdfd76",
+      path: "/System/Library/PrivateFrameworks/UIKitCore.framework/UIKitCore",
+    },
+  ],
+  file_name: "ReviewTextModule.swift",
+  method_name:
+    "ReviewTextModule.measureHeights(_: [String], width: Double, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock)",
+  line_number: 41,
+  stacktrace: `\tat   0   libsystem_malloc.dylib        0x00000001aa30c000   _malloc_zone_malloc_instrumented_or_legacy + 120
+\tat   1   CoreText                      0x00000001a3a7c000   TStorageRange::SetStorageSubRange(TLine&, CFRange) + 412
+\tat   2   CoreText                      0x00000001a3a7c000   TTypesetter::FinishEncodedLine(TLine&, TCharStream c... + 1528
+    Full symbol:TTypesetter::FinishEncodedLine(TLine&, TCharStream const&)
+\tat   3   CoreText                      0x00000001a3a7c000   CTTypesetterCreateWithAttributedStringAndOptions + 236
+\tat   4   CoreText                      0x00000001a3a7c000   CTFramesetterSuggestFrameSizeWithConstraints + 504
+\tat   5   UIFoundation                  0x00000001a3e1c000   __NSStringDrawingEngine + 1876
+\tat   6   UIFoundation                  0x00000001a3e1c000   -[NSAttributedString(NSExtendedStringDrawing) boundi... + 196
+    Full symbol:-[NSAttributedString(NSExtendedStringDrawing) boundingRectWithSize:options:context:]
+\tat   7   AcmeRN                        0x0000000102d18000   ReviewTextModule.measureHeights(_: [String], width: ...   (ReviewTextModule.swift:41)
+    Full symbol:ReviewTextModule.measureHeights(_: [String], width: Double, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock)
+\tat   8   AcmeRN                        0x0000000102d18000   @objc ReviewTextModule.measureHeights(_: [String], w...   (<compiler-generated>)
+    Full symbol:@objc ReviewTextModule.measureHeights(_: [String], width: Double, resolve: @escaping RCTPromiseResolveBlock, reject: @escaping RCTPromiseRejectBlock)
+\tat   9   CoreFoundation                0x000000019c9f3000   __invoking___ + 148
+\tat  10   CoreFoundation                0x000000019c9f3000   -[NSInvocation invoke] + 428
+\tat  11   AcmeRN                        0x0000000102d18000   -[RCTModuleMethod invokeWithBridge:module:arguments:]   (RCTModuleMethod.mm:637)
+\tat  12   AcmeRN                        0x0000000102d18000   facebook::react::invokeInner(RCTBridge*, RCTModuleDa...   (RCTNativeModule.mm:184)
+    Full symbol:facebook::react::invokeInner(RCTBridge*, RCTModuleData*, unsigned int, folly::dynamic const&, int)
+\tat  13   AcmeRN                        0x0000000102d18000   facebook::react::RCTNativeModule::invoke(unsigned in...   (RCTNativeModule.mm:100)
+    Full symbol:facebook::react::RCTNativeModule::invoke(unsigned int, folly::dynamic&&, int)::$_0::operator()() const
+\tat  14   libdispatch.dylib             0x000000019be30000   _dispatch_call_block_and_release + 32
+\tat  15   libdispatch.dylib             0x000000019be30000   _dispatch_client_callout + 20
+\tat  16   libdispatch.dylib             0x000000019be30000   _dispatch_main_queue_drain + 764
+\tat  17   libdispatch.dylib             0x000000019be30000   _dispatch_main_queue_callback_4CF + 44
+\tat  18   CoreFoundation                0x000000019c9f3000   __CFRUNLOOP_IS_SERVICING_THE_MAIN_DISPATCH_QUEUE__ + 16
+\tat  19   CoreFoundation                0x000000019c9f3000   __CFRunLoopRun + 1996
+\tat  20   CoreFoundation                0x000000019c9f3000   CFRunLoopRunSpecific + 588
+\tat  21   GraphicsServices              0x0000000241f42000   GSEventRunModal + 164
+\tat  22   UIKitCore                     0x00000001a25c4000   -[UIApplication _run] + 816
+\tat  23   UIKitCore                     0x00000001a25c4000   UIApplicationMain + 340
+\tat  24   AcmeRN                        0x0000000102d18000   main + 24
+\tat  25   dyld                          0x00000001bd0f4000   start + 2724`,
+};
+
 const iosJsFatalCrash: ExceptionSpec = {
   key: "js_fatal_native",
   kind: "exception",
@@ -3039,6 +3404,7 @@ function buildFlows(
     detailAnr: includeAnr
       ? [{ kind: "exception", exception: "main_thread_blocked" }]
       : undefined,
+    reviewsHang: includeAnr ? undefined : "review_text_hang",
     cartHandled: {
       afterOpen: [
         { kind: "http", http: "cart_sync", outcome: "failure" },
@@ -3060,6 +3426,7 @@ function buildFlows(
       login: "login_profile",
       profile: "browse_profile",
       anr_home: "anr_session",
+      reviews_hang: "reviews_hang",
     },
   });
   flows.push(
@@ -3079,7 +3446,19 @@ function buildFlows(
     new Journey(b, startup)
       .open()
       .search(true, "hiking")
-      .inspect("row_result_3", { size: 1, reviews: true })
+      .inspect("row_result_3", {
+        size: 1,
+        reviews: true,
+        reviewsHang: includeAnr
+          ? undefined
+          : [
+              {
+                kind: "exception",
+                exception: "review_text_hang",
+                hangState: "recovered",
+              },
+            ],
+      })
       .inspect("row_result_0", { size: 2, addToCart: true })
       .openCart()
       .checkout({
@@ -3130,6 +3509,7 @@ const iosApp: AppSpec = {
   createdDaysAgo: 210,
   dailySessions: 120_000,
   crashFreeRate: 0.99138,
+  appHangFreeRate: 0.99641,
   perceivedCrashFreeRate: 0.99461,
 };
 
@@ -3250,10 +3630,10 @@ const iosSessions: SessionScript[] = [
     launch: "cold",
   },
   {
-    flow: "clean_browse_checkout",
+    flow: "reviews_hang",
     user: 1,
     version: 1,
-    agoMinutes: 20000,
+    agoMinutes: 240,
     launch: "warm",
   },
   {
@@ -3353,7 +3733,7 @@ export const rnIosScenario: PlatformScenario = {
     { person: 28, device: 4, locale: "en_US" },
   ],
   http: httpSpecsFor("URLSession"),
-  exceptions: [...jsExceptions, iosJsFatalCrash],
+  exceptions: [...jsExceptions, iosJsFatalCrash, reviewTextHang],
   spans: iosSpans,
   flows: buildFlows(
     false,

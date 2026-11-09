@@ -1,41 +1,81 @@
 name: Release
 
+run-name: Release by @${{ github.actor }}
+
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
+    paths: [CHANGELOG.md]
 
 jobs:
+  parse:
+    name: Parse release commit
+    runs-on: ubuntu-latest
+    permissions: {}
+    outputs:
+      version: ${{ steps.parse.outputs.version }}
+      triggered_by: ${{ steps.parse.outputs.triggered_by }}
+    steps:
+      - name: Parse release commit
+        id: parse
+        env:
+          MESSAGE: ${{ github.event.head_commit.message }}
+        run: |
+          SUBJECT="$(printf '%s\n' "$MESSAGE" | head -n1)"
+          RE='^chore: prepare release (v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?)( \(#[0-9]+\))?$'
+          VERSION=""
+          if [[ "$SUBJECT" =~ $RE ]]; then
+            VERSION="${BASH_REMATCH[1]}"
+          fi
+          TRIGGERED_BY="$(printf '%s\n' "$MESSAGE" | grep -E -m1 '^Triggered-by: @[A-Za-z0-9-]+(\[bot\])?$' | cut -d' ' -f2- || true)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "triggered_by=$TRIGGERED_BY" >> "$GITHUB_OUTPUT"
+
   create-release:
     name: Create release
+    needs: parse
+    if: needs.parse.outputs.version != ''
     runs-on: ubuntu-latest
+    environment: release
     permissions:
       contents: write
     steps:
+      - name: Create app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
       - name: Checkout repository
         uses: actions/checkout@v7
         with:
-          ref: "main"
+          ref: ${{ github.sha }}
           fetch-depth: 0
-          token: ${{ secrets.CHANGELOG_PUSH_TOKEN }}
+          token: ${{ steps.app-token.outputs.token }}
 
-      - name: Generate changelog
-        uses: orhun/git-cliff-action@v4
-        with:
-          config: cliff.toml
-          args: --verbose --bump
+      - name: Tag release
         env:
-          OUTPUT: CHANGELOG.md
-          GITHUB_REPO: ${{ github.repository }}
-
-      - name: Commit changelog
+          VERSION: ${{ needs.parse.outputs.version }}
+          TRIGGERED_BY: ${{ needs.parse.outputs.triggered_by }}
+          ACTOR: ${{ github.actor }}
         run: |
-          git config user.name 'github-actions[bot]'
-          git config user.email 'github-actions[bot]@users.noreply.github.com'
-          set +e
-          git add CHANGELOG.md
-          git commit -m "ci: update changelog"
-          git push
+          if git rev-parse -q --verify "refs/tags/$VERSION" > /dev/null; then
+            echo "Tag $VERSION already exists" >&2
+            exit 1
+          fi
+          git config user.name 'measure-release[bot]'
+          git config user.email 'measure-release[bot]@users.noreply.github.com'
+          {
+            echo "$VERSION"
+            echo
+            echo "Merged-by: @$ACTOR"
+            if [[ -n "$TRIGGERED_BY" ]]; then
+              echo "Triggered-by: $TRIGGERED_BY"
+            fi
+          } > "$RUNNER_TEMP/tag-message.txt"
+          git tag -a "$VERSION" -F "$RUNNER_TEMP/tag-message.txt"
+          git push origin "refs/tags/$VERSION"
 
       - name: Generate release notes
         uses: orhun/git-cliff-action@v4
@@ -50,11 +90,15 @@ jobs:
       - name: Create release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ github.ref_name }}
           NOTES: ${{ steps.git-cliff.outputs.content }}
+          VERSION: ${{ needs.parse.outputs.version }}
         run: |
-          gh release create "$TAG" \
-            --title "$TAG" \
-            ${{ contains(github.ref_name, '-') && '--prerelease' || ''}} \
+          FLAGS=()
+          if [[ "$VERSION" == *-* ]]; then
+            FLAGS+=(--prerelease)
+          fi
+          gh release create "$VERSION" \
+            --title "$VERSION" \
             --notes "$NOTES" \
-            --verify-tag
+            --verify-tag \
+            "${FLAGS[@]}"

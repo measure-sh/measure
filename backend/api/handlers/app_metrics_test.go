@@ -155,3 +155,70 @@ func TestGetAppMetrics(t *testing.T) {
 		}
 	})
 }
+
+func TestGetAppMetricsAppHangFreeSessions(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	ownerID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
+	ts := time.Now().UTC().Add(-time.Hour)
+
+	seedAppWithOS := func(t *testing.T, osName string) uuid.UUID {
+		t.Helper()
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 90)
+		if _, err := h.Deps.PgPool.Exec(ctx, "UPDATE apps SET os_names = $1 WHERE id = $2", []string{osName}, appID); err != nil {
+			t.Fatalf("set os_names: %v", err)
+		}
+		// Three sessions of which one saw an app hang.
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 2, testinfra.EventRow{AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{Type: "app_hang", AppHangState: "killed", AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+		return appID
+	}
+
+	read := func(t *testing.T, appID uuid.UUID) map[string]json.RawMessage {
+		t.Helper()
+		c, w := newAppMetricsContext(ownerID, appID, "")
+		h.GetAppMetrics(c)
+
+		if w.Code != http.StatusOK {
+			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
+		}
+
+		var body map[string]json.RawMessage
+		if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
+			t.Fatalf("unmarshal response: %v; body=%s", err, w.Body.String())
+		}
+		return body
+	}
+
+	t.Run("an iOS app reports app hang free sessions", func(t *testing.T) {
+		body := read(t, seedAppWithOS(t, "ios"))
+
+		var appHangFree struct {
+			AppHangFreeSessions float64 `json:"app_hang_free_sessions"`
+			NoData              bool    `json:"no_data"`
+			UnselectedNoData    bool    `json:"unselected_no_data"`
+		}
+		if err := json.Unmarshal(body["app_hang_free_sessions"], &appHangFree); err != nil {
+			t.Fatalf("unmarshal app_hang_free_sessions: %v", err)
+		}
+		if want := 66.67; appHangFree.AppHangFreeSessions != want || appHangFree.NoData {
+			t.Errorf("app_hang_free_sessions = %+v, want %v", appHangFree, want)
+		}
+		if !appHangFree.UnselectedNoData {
+			t.Error("unselected_no_data = false, want true")
+		}
+		if got := string(body["anr_free_sessions"]); got != "null" {
+			t.Errorf("anr_free_sessions = %s, want null", got)
+		}
+	})
+
+	t.Run("an Android app has no app hang free sessions", func(t *testing.T) {
+		body := read(t, seedAppWithOS(t, "android"))
+
+		if got := string(body["app_hang_free_sessions"]); got != "null" {
+			t.Errorf("app_hang_free_sessions = %s, want null", got)
+		}
+	})
+}

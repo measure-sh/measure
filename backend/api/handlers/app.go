@@ -6,23 +6,18 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"sort"
 	"strconv"
 	"time"
 
 	"backend/api/server"
-	"backend/libs/ambient"
 	"backend/libs/chquery"
 	"backend/libs/config"
 	"backend/libs/event"
 	"backend/libs/filter"
-	"backend/libs/group"
-	"backend/libs/journey"
 	"backend/libs/logcomment"
 	"backend/libs/measure"
 	"backend/libs/metrics"
 	"backend/libs/network"
-	"backend/libs/opsys"
 	"backend/libs/sdkconfig"
 	"backend/libs/timeline"
 
@@ -47,191 +42,6 @@ func presignConfig(deps *server.Deps) event.PreSignConfig {
 		AttachmentOrigin:           deps.Config.AttachmentOrigin,
 		Origin:                     deps.Config.APIOrigin,
 	}
-}
-
-func (h Handlers) GetAppJourney(c *gin.Context) {
-	deps := h.Deps
-	app, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
-		entity:   filter.JourneysEntity,
-		appScope: *measure.ScopeAppRead,
-		logRoot:  logcomment.Journeys,
-		logName:  "journey",
-	})
-	if !ok {
-		return
-	}
-
-	if err := app.Populate(ctx, deps.PgPool); err != nil {
-		msg := `failed to fetch app details`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	// bigraph keeps both directions of a transition; an absent value leaves
-	// the graph one-directional.
-	var graphOptions struct {
-		BiGraph bool `form:"bigraph"`
-	}
-	if err := c.ShouldBindQuery(&graphOptions); err != nil {
-		fmt.Println(err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
-	}
-
-	ctx = ambient.WithTeamId(ctx, app.TeamId)
-
-	msg := `failed to compute app's journey`
-
-	g, err := app.GetJourneyGraph(ctx, deps.RchPool, &flt)
-	if err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-		return
-	}
-
-	lc := logcomment.New(2)
-	lc.MustPut(logcomment.Root, logcomment.Journeys)
-
-	settings := clickhouse.Settings{
-		"log_comment": lc.String(),
-	}
-
-	crashFingerprints, anrFingerprints := journeyFingerprints(g.Issues)
-
-	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "fatal_exception_groups"))
-
-	exceptionGroups, err := group.GetExceptionGroupsFromFingerprints(ctx, deps.RchPool, &flt, crashFingerprints)
-	if err != nil {
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
-		return
-	}
-
-	crashTitles := make(map[string]string, len(exceptionGroups))
-	for i := range exceptionGroups {
-		crashTitles[exceptionGroups[i].ID] = exceptionGroups[i].GetDisplayTitle()
-	}
-
-	anrTitles := map[string]string{}
-
-	if app.Family() == opsys.Android {
-		ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "anr_groups"))
-
-		anrGroups, err := group.GetANRGroupsFromFingerprints(ctx, deps.RchPool, &flt, anrFingerprints)
-		if err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
-			return
-		}
-
-		for i := range anrGroups {
-			anrTitles[anrGroups[i].ID] = anrGroups[i].GetDisplayTitle()
-		}
-	}
-
-	result := journey.Build(g, &journey.Options{
-		BiGraph: graphOptions.BiGraph,
-	})
-
-	var nodes []journeyNode
-	for _, name := range result.Nodes {
-		nodes = append(nodes, journeyNode{
-			ID: name,
-			Issues: gin.H{
-				"crashes": journeyIssues(result.Crashes[name], crashTitles),
-				"anrs":    journeyIssues(result.ANRs[name], anrTitles),
-			},
-		})
-	}
-
-	var links []journeyLink
-	for _, edge := range result.Edges {
-		links = append(links, journeyLink{
-			Source: edge.Source,
-			Target: edge.Target,
-			Value:  edge.Sessions,
-		})
-	}
-
-	totalIssues := uint64(0)
-	for i := range g.Issues {
-		totalIssues += g.Issues[i].Count
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"totalIssues": totalIssues,
-		"nodes":       nodes,
-		"links":       links,
-	})
-}
-
-// journeyLink is a transition between two journey nodes.
-type journeyLink struct {
-	Source string `json:"source"`
-	Target string `json:"target"`
-	Value  uint64 `json:"value"`
-}
-
-// journeyIssue is a crash or ANR group attached to a journey node.
-type journeyIssue struct {
-	ID    string `json:"id"`
-	Title string `json:"title"`
-	Count uint64 `json:"count"`
-}
-
-// journeyNode is a node of the journey graph & its issues.
-type journeyNode struct {
-	ID     string `json:"id"`
-	Issues gin.H  `json:"issues"`
-}
-
-// journeyFingerprints splits the graph's issue fingerprints by kind. The group
-// lookups dedupe their input themselves.
-func journeyFingerprints(issues []measure.JourneyIssue) (crashes, anrs []string) {
-	for i := range issues {
-		if issues[i].IsANR {
-			anrs = append(anrs, issues[i].Fingerprint)
-			continue
-		}
-		crashes = append(crashes, issues[i].Fingerprint)
-	}
-
-	return
-}
-
-// journeyIssues titles a node's issues, dropping those with no matching group.
-// Issues are ordered by count descending.
-func journeyIssues(nodeIssues []journey.Issue, titles map[string]string) (issues []journeyIssue) {
-	issues = []journeyIssue{}
-
-	for _, issue := range nodeIssues {
-		title, ok := titles[issue.Fingerprint]
-		if !ok {
-			continue
-		}
-		issues = append(issues, journeyIssue{
-			ID:    issue.Fingerprint,
-			Title: title,
-			Count: issue.Count,
-		})
-	}
-
-	sort.Slice(issues, func(i, j int) bool {
-		return issues[i].Count > issues[j].Count
-	})
-
-	return
 }
 
 func (h Handlers) GetAppMetrics(c *gin.Context) {
@@ -293,8 +103,9 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 	var perceivedCrashFree *metrics.PerceivedCrashFreeSession
 	var anrFree *metrics.ANRFreeSession
 	var perceivedANRFree *metrics.PerceivedANRFreeSession
+	var appHangFree *metrics.AppHangFreeSession
 	metricsGroup.Go(func() (err error) {
-		crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err = app.GetIssueFreeMetrics(metricsSettings("issue_free"), deps.RchPool, &flt)
+		crashFree, perceivedCrashFree, anrFree, perceivedANRFree, appHangFree, err = app.GetIssueFreeMetrics(metricsSettings("issue_free"), deps.RchPool, &flt)
 		if err != nil {
 			err = fmt.Errorf("failed to fetch issue free metrics: %w", err)
 		}
@@ -354,6 +165,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 		"anr_free_sessions":             anrFree,
 		"perceived_crash_free_sessions": perceivedCrashFree,
 		"perceived_anr_free_sessions":   perceivedANRFree,
+		"app_hang_free_sessions":        appHangFree,
 	})
 }
 

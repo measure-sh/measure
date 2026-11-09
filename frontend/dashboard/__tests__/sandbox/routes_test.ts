@@ -1,6 +1,11 @@
 import { handleSandboxRequest } from "@/app/sandbox/handlers";
-import { catalog, dailyBugReports } from "@/app/sandbox/catalog";
+import {
+  catalog,
+  dailyBugReports,
+  screenSequence,
+} from "@/app/sandbox/catalog";
 import type { SdkConfig } from "@/app/api/api_calls";
+import { sessionsPerUser } from "@/app/sandbox/funnels";
 import {
   DEVICE_MEMORY_TIERS,
   deviceMemoryTier,
@@ -172,8 +177,9 @@ const generalCases: Case[] = [
 const DEVICE_KEYS = [
   "os_name",
   "os_version",
-  "device_name",
+  "device_model",
   "device_manufacturer",
+  "device_name",
   "locale",
   "network_type",
   "network_generation",
@@ -188,7 +194,7 @@ const VERSION_KEYS = [
 ];
 const FILTER_KEYS: Record<string, string[]> = {
   app_health: ["version_name", "version_code"],
-  journeys: VERSION_KEYS,
+  journeys: [...VERSION_KEYS, ...DEVICE_KEYS],
   funnels: [...VERSION_KEYS, ...DEVICE_KEYS],
   errors: [
     "error_type",
@@ -197,7 +203,12 @@ const FILTER_KEYS: Record<string, string[]> = {
     "user_id",
     ...DEVICE_KEYS,
   ],
-  error_group_events: [...VERSION_KEYS, "user_id", ...DEVICE_KEYS],
+  error_group_events: [
+    ...VERSION_KEYS,
+    "user_id",
+    ...DEVICE_KEYS,
+    "app_hang_state",
+  ],
   sessions: [
     "session_events",
     "session_foreground_background",
@@ -224,8 +235,9 @@ const FILTER_KEYS: Record<string, string[]> = {
     ...VERSION_KEYS,
     "os_name",
     "os_version",
-    "device_name",
+    "device_model",
     "device_manufacturer",
+    "device_name",
     "device_total_memory",
   ],
   network: ["http_method", ...VERSION_KEYS, ...DEVICE_KEYS],
@@ -234,12 +246,22 @@ const FILTER_KEYS: Record<string, string[]> = {
     ...VERSION_KEYS,
     "user_id",
     "os_version",
-    "device_name",
+    "device_model",
     "device_manufacturer",
+    "device_name",
   ],
   builds: ["mapping_type", ...VERSION_KEYS],
   spans: ["span_status", ...VERSION_KEYS, ...DEVICE_KEYS],
   alerts: [],
+  devices: [
+    "version_name",
+    "version_code",
+    "os_name",
+    "os_version",
+    "device_model",
+    "device_manufacturer",
+    "device_name",
+  ],
 };
 const FREE_TEXT_KEYS = [
   "session_log",
@@ -275,6 +297,7 @@ const overviewCases: Case[] = [
     check: (data) => {
       expect(data.map((s: any) => s.id).sort()).toEqual([
         "anrs",
+        "app_hangs",
         "crashes",
         "sessions",
       ]);
@@ -288,37 +311,10 @@ const overviewCases: Case[] = [
     },
   },
   {
-    name: "returns nodes and links shaped for the journey component on GET /journey",
-    path: `/api/apps/${APP_ID}/journey`,
+    name: "returns no_data metrics for a range before the app's first session",
+    path: `/api/apps/${APP_ID}/metrics?${EMPTY_RANGE}`,
     status: 200,
-    check: (data) => {
-      expect(data.links.length).toBeGreaterThan(0);
-      expect(data.nodes.length).toBeGreaterThan(0);
-      for (const link of data.links) {
-        expect(typeof link.source).toBe("string");
-        expect(typeof link.target).toBe("string");
-        expect(link.value).toEqual(expect.any(Number));
-      }
-      expect(data.totalIssues).toEqual(expect.any(Number));
-      expect(
-        data.nodes.some((node: any) => node.issues.crashes.length > 0),
-      ).toBe(true);
-    },
-  },
-  {
-    name: "returns the backend's empty journey and no_data metrics for a range before the app's first session",
-    path: `/api/apps/${APP_ID}/journey?${EMPTY_RANGE}`,
-    status: 200,
-    check: async (data) => {
-      const empty = { totalIssues: 0, nodes: null, links: null };
-      expect(data).toEqual(empty);
-      const { json: unmatched } = await fetchJson(
-        withFilter(`/api/apps/${APP_ID}/journey`, "version_name:in:9.9.9"),
-      );
-      expect(unmatched).toEqual(empty);
-      const { json: metrics } = await fetchJson(
-        `/api/apps/${APP_ID}/metrics?${EMPTY_RANGE}`,
-      );
+    check: (metrics) => {
       expect(metrics.adoption.no_data).toBe(true);
       expect(metrics.crash_free_sessions).toEqual({
         crash_free_sessions: 0,
@@ -350,6 +346,7 @@ const overviewCases: Case[] = [
         "Device",
         "Network",
         "Location",
+        "App Hang",
       ]);
       for (const [entity, names] of Object.entries(FILTER_KEYS)) {
         const { json } = await fetchJson(
@@ -680,6 +677,7 @@ const errorsCases: Case[] = [
     check: (data) => {
       expect(data.results).toHaveLength(1);
       expect(data.results[0].id).toBe(firstGroup.instances[0].id);
+      expect(data.results[0].has_replay).toBe(true);
     },
   },
   {
@@ -754,6 +752,7 @@ const bugReportsCases: Case[] = [
     check: (data) => {
       expect(data.event_id).toBe(firstBugReport.event_id);
       expect(data.attachments.length).toBeGreaterThan(0);
+      expect(data.has_replay).toBe(true);
     },
   },
   {
@@ -830,6 +829,7 @@ const tracesCases: Case[] = [
       );
       expect(res.status).toBe(200);
       expect(trace.trace_id).toBe(traceId);
+      expect(trace.has_replay).toBe(true);
       expect(trace.spans.length).toBeGreaterThan(1);
       expect(trace.spans.some((s: any) => s.parent_id === "")).toBe(true);
     },
@@ -1106,6 +1106,7 @@ const settingsCases: Case[] = [
         bug_report_timeline_duration: true,
         launch_sampling_rate: true,
         journey_sampling_rate: true,
+        analytics_sampling_rate: true,
         http_sampling_rate: true,
         http_disable_event_for_urls: true,
         http_track_request_for_urls: true,
@@ -1256,8 +1257,8 @@ const settingsCases: Case[] = [
     status: 200,
     check: async (prefs) => {
       expect(prefs).toMatchObject({
-        error_spike: expect.any(Boolean),
-        app_hang_spike: expect.any(Boolean),
+        fatal_error_spike: expect.any(Boolean),
+        anr_app_hang_spike: expect.any(Boolean),
         bug_report: expect.any(Boolean),
         daily_summary: expect.any(Boolean),
       });
@@ -1300,15 +1301,13 @@ const settingsCases: Case[] = [
       expect(data.bytes_used).toBe(thisMonth);
     },
   },
-  ...writeCalls.map(
-    ([path, method, body]): Case => ({
-      name: `${method} ${path} is disabled`,
-      method,
-      path,
-      body,
-      status: 403,
-    }),
-  ),
+  ...writeCalls.map(([path, method, body]): Case => ({
+    name: `${method} ${path} is disabled`,
+    method,
+    path,
+    body,
+    status: 403,
+  })),
 ];
 
 const FUNNELS_BASE = `/api/apps/${APP_ID}/funnels`;
@@ -2401,6 +2400,473 @@ const funnelsCases: Case[] = [
   },
 ];
 
+const JOURNEY_BASE = `/api/apps/${APP_ID}/journey`;
+const SHOWN_NODES = 50;
+const SHOWN_LINKS = 200;
+const JOURNEY_LISTS = ["errors", "traces", "network", "sessions"];
+
+function journeyParams(extra: Record<string, string> = {}) {
+  return wideRangeParams({
+    limit: "100",
+    offset: "0",
+    quantile: "p95",
+    ...extra,
+  }).toString();
+}
+
+async function journeyOf(filterExpr?: string): Promise<any> {
+  const path = `${JOURNEY_BASE}?${wideRangeParams().toString()}`;
+  const { json } = await fetchJson(
+    filterExpr === undefined ? path : withFilter(path, filterExpr),
+  );
+  return json;
+}
+
+const linkParams = (link: any) => ({
+  source: link.source,
+  target: link.target,
+});
+
+const pathParams = (path: string[]) => {
+  const params = new URLSearchParams(journeyParams());
+  for (const node of path) {
+    params.append("path", node);
+  }
+  return params.toString();
+};
+
+async function pathUsersOf(path: string[]): Promise<number> {
+  const { res, json } = await fetchJson(
+    `${JOURNEY_BASE}/path?${pathParams(path)}`,
+  );
+  expect(res.status).toBe(200);
+  return json.users;
+}
+
+const journeyUsers = (journey: any) =>
+  journey.nodes.reduce((sum: number, n: any) => sum + n.users, 0);
+
+function expectSortedByUsers(results: any[]) {
+  const users = results.map((r) => r.users);
+  expect(users).toEqual([...users].sort((a, b) => b - a));
+}
+
+const journeyCases: Case[] = [
+  {
+    name: "returns screens, custom events and one fatal error node, each link joining two of them",
+    path: `${JOURNEY_BASE}?${wideRangeParams().toString()}`,
+    status: 200,
+    check: (data) => {
+      expect(data.nodes.length).toBeGreaterThan(0);
+      expect(data.nodes.length).toBeLessThanOrEqual(SHOWN_NODES + 1);
+      expect(data.links.length).toBeGreaterThan(0);
+      expect(data.links.length).toBeLessThanOrEqual(SHOWN_LINKS);
+      expect(new Set(data.nodes.map((n: any) => n.kind))).toEqual(
+        new Set(["screen", "event", "fatal"]),
+      );
+      expect(data.nodes.filter((n: any) => n.kind === "fatal")).toHaveLength(1);
+      const byId = new Map<string, any>(data.nodes.map((n: any) => [n.id, n]));
+      expect(byId.size).toBe(data.nodes.length);
+      for (const node of data.nodes) {
+        expect(node.id).toBe(node.kind === "fatal" ? "fatal" : node.name);
+        expect(Number.isInteger(node.step)).toBe(true);
+        expect(node.step).toBeGreaterThanOrEqual(0);
+        expect(node.users).toBeGreaterThan(0);
+        expect(node.continuing).toBeGreaterThanOrEqual(0);
+        expect(node.continuing).toBeLessThanOrEqual(node.users);
+        if (node.median_ms_from_previous !== null) {
+          expect(node.median_ms_from_previous).toBeGreaterThanOrEqual(0);
+        }
+      }
+      const steps = data.nodes.map((n: any) => n.step);
+      expect(steps).toEqual([...steps].sort((a, b) => a - b));
+      const keys = data.links.map((l: any) => `${l.source}>${l.target}`);
+      expect(new Set(keys).size).toBe(keys.length);
+      for (const link of data.links) {
+        expect(link.source).not.toBe(link.target);
+        const source = byId.get(link.source);
+        const target = byId.get(link.target);
+        expect(source).toBeDefined();
+        expect(target).toBeDefined();
+        expect(link.users).toBeGreaterThan(0);
+        // A user counts once towards a link and once towards each of its
+        // nodes, and each count is rounded on its own.
+        expect(link.users).toBeLessThanOrEqual(source.users + 1);
+        expect(link.users).toBeLessThanOrEqual(target.users + 1);
+      }
+    },
+  },
+  {
+    name: "counts users, so no node has more users than the app has in the range",
+    path: `${JOURNEY_BASE}?${wideRangeParams().toString()}`,
+    status: 200,
+    check: (data) => {
+      const users =
+        (bundle.scenario.app.dailySessions * 30) / sessionsPerUser(30);
+      for (const node of data.nodes) {
+        expect(node.users).toBeLessThanOrEqual(Math.ceil(users));
+      }
+    },
+  },
+  {
+    name: "links the last screen or custom event before each fatal error to the fatal error node, which ends the session",
+    path: `${JOURNEY_BASE}?${wideRangeParams().toString()}`,
+    status: 200,
+    check: (data) => {
+      const fatal = data.nodes.find((n: any) => n.kind === "fatal");
+      expect(fatal.continuing).toBe(0);
+      expect(data.links.some((l: any) => l.source === fatal.id)).toBe(false);
+      const into = data.links.filter((l: any) => l.target === fatal.id);
+      const sources = new Set(into.map((l: any) => l.source));
+      const intoTotal = into.reduce((sum: number, l: any) => sum + l.users, 0);
+      expect(Math.abs(intoTotal - fatal.users)).toBeLessThanOrEqual(
+        into.length,
+      );
+      const fatalAt = new Map<string, string>();
+      for (const group of bundle.errorGroups) {
+        if (group.severity !== "fatal") {
+          continue;
+        }
+        for (const instance of group.instances) {
+          const earliest = fatalAt.get(instance.session_id);
+          if (earliest === undefined || instance.timestamp < earliest) {
+            fatalAt.set(instance.session_id, instance.timestamp);
+          }
+        }
+      }
+      expect(fatalAt.size).toBeGreaterThan(0);
+      const millis = (iso: string) => DateTime.fromISO(iso).toMillis();
+      for (const session of bundle.sessions) {
+        const at = fatalAt.get(session.list.session_id);
+        if (at === undefined) {
+          continue;
+        }
+        const steps = [
+          ...screenSequence(
+            session.detail,
+            bundle.scenario.threadNames.main,
+          ).map((s) => ({ name: s.name, time: millis(s.timestamp) })),
+          ...Object.values(session.detail.threads)
+            .flat()
+            .filter((e) => e.event_type === "custom")
+            .map((e) => ({
+              name: String(e.name),
+              time: millis(String(e.timestamp)),
+            })),
+        ]
+          .filter((step) => step.time <= millis(at))
+          .sort((a, b) => a.time - b.time);
+        if (steps.length > 0) {
+          expect(sources).toContain(steps[steps.length - 1].name);
+        }
+      }
+    },
+  },
+  {
+    name: "narrows the journey to the users a filter matches, and returns an empty journey when it matches none",
+    path: `${JOURNEY_BASE}?${wideRangeParams().toString()}`,
+    status: 200,
+    check: async (all) => {
+      const one = await journeyOf(`version_name:in:${latestVersion}`);
+      expect(journeyUsers(one)).toBeGreaterThan(0);
+      expect(journeyUsers(one)).toBeLessThan(journeyUsers(all));
+      expect(await journeyOf("version_name:in:9.9.9")).toEqual({
+        nodes: [],
+        links: [],
+        sample_percent: 100,
+      });
+      const { json: unknown } = await fetchJson(
+        `/api/apps/does-not-exist/journey?${wideRangeParams().toString()}`,
+      );
+      expect(unknown).toEqual({ nodes: [], links: [] });
+    },
+  },
+  {
+    name: "returns an empty journey for a range before the app's first session",
+    path: `${JOURNEY_BASE}?${EMPTY_RANGE}`,
+    status: 200,
+    check: (data) => {
+      expect(data).toEqual({ nodes: [], links: [], sample_percent: 100 });
+    },
+  },
+  {
+    name: "returns 404 on the journey lists without a node, a link's source and target or a path of two nodes, or for an unknown app",
+    path: `${JOURNEY_BASE}?${wideRangeParams().toString()}`,
+    status: 200,
+    check: async (data) => {
+      const link = data.links[0];
+      for (const route of JOURNEY_LISTS) {
+        for (const [base, extra] of [
+          [JOURNEY_BASE, {}],
+          [JOURNEY_BASE, { source: link.source }],
+          [JOURNEY_BASE, { target: link.target }],
+          [JOURNEY_BASE, { path: link.source }],
+          ["/api/apps/does-not-exist/journey", { node: data.nodes[0].id }],
+        ] as const) {
+          const { res, json } = await fetchJson(
+            `${base}/${route}?${journeyParams(extra)}`,
+          );
+          expect(res.status).toBe(404);
+          expect(json.error).toBe("Journey node, link or path not found");
+        }
+      }
+    },
+  },
+  {
+    name: "returns 404 on the journey path without two nodes, or for an unknown app",
+    path: `${JOURNEY_BASE}?${wideRangeParams().toString()}`,
+    status: 200,
+    check: async (data) => {
+      const link = data.links[0];
+      for (const url of [
+        `${JOURNEY_BASE}/path?${pathParams([])}`,
+        `${JOURNEY_BASE}/path?${pathParams([link.source])}`,
+        `/api/apps/does-not-exist/journey/path?${pathParams([link.source, link.target])}`,
+      ]) {
+        const { res, json } = await fetchJson(url);
+        expect(res.status).toBe(404);
+        expect(json.error).toBe("Journey path not found");
+      }
+    },
+  },
+  {
+    name: "gives a path of two nodes the users and lists of its link",
+    path: `${JOURNEY_BASE}?${wideRangeParams().toString()}`,
+    status: 200,
+    check: async (data) => {
+      for (const link of data.links.slice(0, 10)) {
+        const path = [link.source, link.target];
+        // Both counts are rounded sums of the same user weights.
+        expect(
+          Math.abs((await pathUsersOf(path)) - link.users),
+        ).toBeLessThanOrEqual(1);
+        for (const route of JOURNEY_LISTS) {
+          const { json: alongPath } = await fetchJson(
+            `${JOURNEY_BASE}/${route}?${pathParams(path)}`,
+          );
+          const { json: alongLink } = await fetchJson(
+            `${JOURNEY_BASE}/${route}?${journeyParams(linkParams(link))}`,
+          );
+          expect(alongPath).toEqual(alongLink);
+        }
+      }
+    },
+  },
+  {
+    name: "counts fewer users or the same for a longer path, and none for a path that goes on after the fatal error",
+    path: `${JOURNEY_BASE}?${wideRangeParams().toString()}`,
+    status: 200,
+    check: async (data) => {
+      const first = data.links[0];
+      const next = data.links.find(
+        (l: any) => l.source === first.target && l.target !== first.source,
+      );
+      const short = await pathUsersOf([first.source, first.target]);
+      const long = await pathUsersOf([first.source, first.target, next.target]);
+      expect(long).toBeGreaterThan(0);
+      expect(long).toBeLessThanOrEqual(short);
+
+      const intoFatal = data.links.find((l: any) => l.target === "fatal");
+      expect(
+        await pathUsersOf([intoFatal.source, "fatal", intoFatal.source]),
+      ).toBe(0);
+    },
+  },
+  {
+    name: "lists the error groups, root spans, endpoints and sessions along a path, each with no more users than the path",
+    path: `${JOURNEY_BASE}?${wideRangeParams().toString()}`,
+    status: 200,
+    check: async (data) => {
+      const first = data.links[0];
+      const next = data.links.find(
+        (l: any) => l.source === first.target && l.target !== first.source,
+      );
+      const path = [first.source, first.target, next.target];
+      const users = await pathUsersOf(path);
+      let listed = 0;
+      for (const route of JOURNEY_LISTS) {
+        const { res, json } = await fetchJson(
+          `${JOURNEY_BASE}/${route}?${pathParams(path)}`,
+        );
+        expect(res.status).toBe(200);
+        listed += json.results.length;
+        if (route !== "sessions") {
+          expectSortedByUsers(json.results);
+          for (const item of json.results) {
+            expect(item.users).toBeLessThanOrEqual(users + 1);
+          }
+        }
+      }
+      expect(listed).toBeGreaterThan(0);
+    },
+  },
+  {
+    name: "lists the error groups, root spans and endpoints seen at a node or along a link, most users first, each with no more users than the selection",
+    path: `${JOURNEY_BASE}?${wideRangeParams().toString()}`,
+    status: 200,
+    check: async (data) => {
+      const groupIds = new Set(bundle.errorGroups.map((g) => g.id));
+      const listed: Record<string, number> = {
+        errors: 0,
+        traces: 0,
+        network: 0,
+      };
+      const selections = [
+        ...data.nodes.map((n: any) => ({
+          selection: { node: n.id },
+          users: n.users,
+        })),
+        ...data.links.map((l: any) => ({
+          selection: linkParams(l),
+          users: l.users,
+        })),
+      ];
+      for (const { selection, users } of selections) {
+        for (const route of Object.keys(listed)) {
+          const { res, json } = await fetchJson(
+            `${JOURNEY_BASE}/${route}?${journeyParams(selection)}`,
+          );
+          expect(res.status).toBe(200);
+          listed[route] += json.results.length;
+          expectSortedByUsers(json.results);
+          for (const item of json.results) {
+            expect(item.users).toBeGreaterThan(0);
+            expect(item.count).toBeGreaterThanOrEqual(item.users);
+            // Both counts are rounded sums of the same user weights.
+            expect(item.users).toBeLessThanOrEqual(users + 1);
+          }
+          if (route === "errors") {
+            for (const error of json.results) {
+              expect(groupIds.has(error.id)).toBe(true);
+            }
+          } else if (route === "traces") {
+            for (const trace of json.results) {
+              expect(bundle.rootSpanNames).toContain(trace.span_name);
+              expect(trace.duration_ms).toBeGreaterThan(0);
+            }
+          } else {
+            for (const endpoint of json.results) {
+              expect(endpoint.latency_ms).toBeGreaterThan(0);
+            }
+          }
+        }
+      }
+      for (const count of Object.values(listed)) {
+        expect(count).toBeGreaterThan(0);
+      }
+    },
+  },
+  {
+    name: "lists only fatal errors on the fatal error node",
+    path: `${JOURNEY_BASE}?${wideRangeParams().toString()}`,
+    status: 200,
+    check: async (data) => {
+      const fatal = data.nodes.find((n: any) => n.kind === "fatal");
+      const { json } = await fetchJson(
+        `${JOURNEY_BASE}/errors?${journeyParams({ node: fatal.id })}`,
+      );
+      expect(json.results.length).toBeGreaterThan(0);
+      for (const error of json.results) {
+        expect(error.severity).toBe("fatal");
+      }
+    },
+  },
+  {
+    name: "lists each session that reached a node or made a move once, newest visit first",
+    path: `${JOURNEY_BASE}?${wideRangeParams().toString()}`,
+    status: 200,
+    check: async (data) => {
+      const sessionIds = new Set(bundle.sessions.map((s) => s.list.session_id));
+      for (const selection of [
+        { node: data.nodes[0].id },
+        linkParams(data.links[0]),
+      ]) {
+        const { json } = await fetchJson(
+          `${JOURNEY_BASE}/sessions?${journeyParams(selection)}`,
+        );
+        expect(json.results.length).toBeGreaterThan(0);
+        const ids = json.results.map((s: any) => s.session_id);
+        expect(new Set(ids).size).toBe(ids.length);
+        for (const session of json.results) {
+          expect(sessionIds.has(session.session_id)).toBe(true);
+          expect(session.duration).toBeGreaterThan(0);
+        }
+      }
+    },
+  },
+  {
+    name: "honours limit and offset on the journey lists",
+    path: `${JOURNEY_BASE}?${wideRangeParams().toString()}`,
+    status: 200,
+    check: async (data) => {
+      const selection = { node: data.nodes[0].id };
+      const { json: all } = await fetchJson(
+        `${JOURNEY_BASE}/sessions?${journeyParams(selection)}`,
+      );
+      expect(all.results.length).toBeGreaterThan(2);
+      const page = async (offset: number) =>
+        (
+          await fetchJson(
+            `${JOURNEY_BASE}/sessions?${journeyParams({
+              ...selection,
+              limit: "2",
+              offset: String(offset),
+            })}`,
+          )
+        ).json;
+      const first = await page(0);
+      expectPage(first, { length: 2, next: true, previous: false });
+      const second = await page(2);
+      expect(second.meta.previous).toBe(true);
+      expect([...first.results, ...second.results]).toEqual(
+        all.results.slice(0, first.results.length + second.results.length),
+      );
+    },
+  },
+  {
+    name: "rejects a missing or unknown quantile on journey traces and network with 400, and orders quantiles",
+    path: `${JOURNEY_BASE}?${wideRangeParams().toString()}`,
+    status: 200,
+    check: async (data) => {
+      const selections = data.nodes.map((n: any) => ({ node: n.id }));
+      for (const route of ["traces", "network"]) {
+        for (const quantile of ["", "p75", "constructor"]) {
+          const { res, json } = await fetchJson(
+            `${JOURNEY_BASE}/${route}?${journeyParams({ ...selections[0], quantile })}`,
+          );
+          expect(res.status).toBe(400);
+          expect(json.error).toBe(
+            "quantile must be one of p50, p90, p95 or p99",
+          );
+        }
+        const field = route === "traces" ? "duration_ms" : "latency_ms";
+        const key = (item: any) =>
+          route === "traces"
+            ? item.span_name
+            : `${item.domain}${item.path_pattern}`;
+        let compared = 0;
+        for (const selection of selections) {
+          const at = async (quantile: string) =>
+            (
+              await fetchJson(
+                `${JOURNEY_BASE}/${route}?${journeyParams({ ...selection, quantile })}`,
+              )
+            ).json.results;
+          const p50 = await at("p50");
+          const p99 = new Map<string, number>(
+            (await at("p99")).map((item: any) => [key(item), item[field]]),
+          );
+          for (const item of p50) {
+            expect(item[field]).toBeLessThanOrEqual(p99.get(key(item))!);
+            compared++;
+          }
+        }
+        expect(compared).toBeGreaterThan(0);
+      }
+    },
+  },
+];
+
 describe("general sandbox routes", () => {
   it.each(generalCases)("$name", run);
 });
@@ -2440,6 +2906,10 @@ describe("sandbox settings routes", () => {
 describe("funnels sandbox routes", () => {
   afterEach(restoreSeededPins);
   it.each(funnelsCases)("$name", run);
+});
+
+describe("journey sandbox routes", () => {
+  it.each(journeyCases)("$name", run);
 });
 
 const sixHourRange = rangeParams(6 * 60);

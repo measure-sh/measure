@@ -223,7 +223,26 @@ func SyncBillingEmailOnOwnerExit(ctx context.Context, pg *pgxpool.Pool, billingE
 		return fmt.Errorf("no owner left on team %s to receive billing email", teamID)
 	}
 
-	return autumn.UpdateCustomer(ctx, customerID, owner.Email)
+	return autumn.UpdateCustomer(ctx, autumn.UpdateCustomerRequest{CustomerID: customerID, Email: owner.Email})
+}
+
+// SyncBillingName sets a team's Autumn customer name to the team's name.
+// Stripe copies the customer name into each invoice when the invoice is
+// finalized, so a stale name shows on later invoices.
+func SyncBillingName(ctx context.Context, pg *pgxpool.Pool, billingEnabled bool, teamID uuid.UUID, name string) error {
+	if !billingEnabled {
+		return nil
+	}
+
+	customerID, err := GetAutumnCustomerID(ctx, pg, teamID)
+	if err != nil {
+		return err
+	}
+	if customerID == "" {
+		return nil
+	}
+
+	return autumn.UpdateCustomer(ctx, autumn.UpdateCustomerRequest{CustomerID: customerID, Name: name})
 }
 
 // resetAppsRetention resets all apps for a team to the given retention.

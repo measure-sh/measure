@@ -27,4 +27,5 @@ enum ValidationLimits {
     static let screenViewName = 1024
     static let httpClient = 32
     static let exceptionMetaBytes = 4096
+    static let exceptionMessage = 8192
 }

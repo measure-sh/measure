@@ -2,7 +2,7 @@
 
 import type { useMemoryUsageBreakdownQuery } from "@/app/query/hooks";
 import { MemoryStick } from "lucide-react";
-import { formatMemoryKilobytes } from "../utils/number_utils";
+import { formatMemoryKilobytes, numberToKMB } from "../utils/number_utils";
 import EmptyState from "./empty_state";
 import { SkeletonTable } from "./skeleton";
 import {
@@ -44,14 +44,14 @@ export default function MemoryUsageBreakdown({
         />
       )}
       {status === "success" && !!data?.length && (
-        <Table className="font-display">
+        <Table className="font-display max-lg:min-w-140">
           <TableHeader>
             <TableRow>
               <TableHead>Device total memory</TableHead>
               <TableHead className="text-center">p50</TableHead>
               <TableHead className="text-center">p90</TableHead>
               <TableHead className="text-center">p95</TableHead>
-              <TableHead className="text-center">Sessions</TableHead>
+              <TableHead className="text-right">Sessions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody className="font-body tabular-nums">
@@ -71,8 +71,8 @@ export default function MemoryUsageBreakdown({
                 <TableCell className="text-center">
                   {formatMemoryKilobytes(row.p95)}
                 </TableCell>
-                <TableCell className="text-center">
-                  {row.session_count.toLocaleString()}
+                <TableCell className="text-right">
+                  {numberToKMB(row.session_count)}
                 </TableCell>
               </TableRow>
             ))}

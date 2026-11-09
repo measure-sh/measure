@@ -39,6 +39,8 @@ tags:
     description: Memory trends by app version, device-tier percentiles and high-memory sessions.
   - name: Profiles
     description: Profiles captured on Android by trigger-based profiling.
+  - name: Devices
+    description: Sessions, errors, launch time, span duration and memory usage by device model.
   - name: Traces
     description: Root spans, span listings and traces.
   - name: Bug Reports
@@ -375,13 +377,20 @@ paths:
       operationId: getAppJourney
       tags:
         - Apps
-      summary: Fetch an app's issue journey map
+      summary: Fetch an app's journey
       description: |
-        Fetch an app's issue journey map, optionally narrowed by a filter
-        expression. Filter time range using `from` & `to` query string
-        parameters.
+        Returns the screens and custom events users went through, as a graph of nodes and the links between them.
+
+        - Users are counted by installation id, and each counts once towards a node and once towards a link, however many times or sessions they reached it.
+        - A step is a screen or a custom event. Several events in a row for one screen or custom event count as one step.
+        - A session that ends in a fatal crash, ANR or an app hang that killed the app ends in the node of kind `fatal`, and the steps after that error are left out.
+        - A link counts the users that moved from its source to its target in the same session at least once.
+        - The 500 nodes reached by the most users are returned, along with the node of kind `fatal`. The `max_links` links between those nodes taken by the most users are returned, along with every link to the node of kind `fatal`.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. The more events the range has, the smaller the share of installations sampled.
+        - `sample_percent` is the percent of the app's installations in the sample, or null when the query found no rows.
       parameters:
-        - name: id
+        - &journeyAppId
+          name: id
           in: path
           required: true
           description: App's UUID.
@@ -391,12 +400,15 @@ paths:
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/FilterExpr"
-        - name: bigraph
+        - name: max_links
           in: query
           required: false
-          description: Choose journey's directionality. `1` or `true` keeps both directions of a transition. Default is `0`, a unidirectional graph.
+          description: Number of links to return, from 1 to 5000. Defaults to 5000. Links to the node of kind `fatal` are returned in addition.
           schema:
-            type: string
+            type: integer
+            minimum: 1
+            maximum: 5000
+            default: 5000
       responses:
         "200":
           description: Successful response, no errors.
@@ -404,9 +416,51 @@ paths:
             application/json:
               schema:
                 type: object
+                required:
+                  - nodes
+                  - links
+                  - sample_percent
                 properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
+                  nodes:
+                    type: array
+                    description: Nodes in order of their step.
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: The kind, a colon and the name, such as `screen:MainActivity` or `event:add_to_cart`. The id of the fatal error node is `fatal`.
+                        name:
+                          type: string
+                          description: Screen name, custom event name, or `Fatal error`.
+                        kind:
+                          type: string
+                          enum:
+                            - screen
+                            - event
+                            - fatal
+                        step:
+                          type: integer
+                          description: Median step at which users first reached the node in a session, counting the first step as 0.
+                        users:
+                          type: integer
+                          description: Users that reached the node.
+                        continuing:
+                          type: integer
+                          description: Users that went on from the node to another step of the same session at least once.
+                        median_ms_from_previous:
+                          type:
+                            - number
+                            - "null"
+                          description: Median time from the previous step in milliseconds. Null when the node was only ever a first step.
                   links:
                     type: array
+                    description: Links with the most users first.
                     items:
                       type: object
                       properties:
@@ -414,65 +468,470 @@ paths:
                           type: string
                         target:
                           type: string
-                        value:
-                          type: number
-                  nodes:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: string
-                        issues:
-                          type: object
-                          properties:
-                            anrs:
-                              type: array
-                              items:
-                                type: object
-                                additionalProperties: true
-                            crashes:
-                              type: array
-                              items:
-                                type: object
-                                properties:
-                                  id:
-                                    type: string
-                                  title:
-                                    type: string
-                                  count:
-                                    type: number
-                  totalIssues:
-                    type: number
-              examples:
-                response:
-                  value:
-                    links:
-                      - source: au.com.shiftyjelly.pocketcasts.ui.MainActivity
-                        target: au.com.shiftyjelly.pocketcasts.player.view.PlayerContainerFragment
-                        value: 4
-                      - source: au.com.shiftyjelly.pocketcasts.account.onboarding.OnboardingActivity
-                        target: au.com.shiftyjelly.pocketcasts.ui.MainActivity
-                        value: 1
-                    nodes:
-                      - id: au.com.shiftyjelly.pocketcasts.ui.MainActivity
-                        issues:
-                          anrs: []
-                          crashes: []
-                      - id: au.com.shiftyjelly.pocketcasts.discover.view.DiscoverFragment
-                        issues:
-                          anrs: []
-                          crashes:
-                            - id: 018f5c68-6fe0-75c9-81ba-b36871c8b5fa
-                              title: java.lang.IllegalStateException
-                              count: 18
-                    totalIssues: 30
+                        users:
+                          type: integer
+              example:
+                sample_percent: 100
+                nodes:
+                  - id: screen:MainActivity
+                    name: MainActivity
+                    kind: screen
+                    step: 0
+                    users: 1200
+                    continuing: 1100
+                    median_ms_from_previous: null
+                  - id: event:add_to_cart
+                    name: add_to_cart
+                    kind: event
+                    step: 2
+                    users: 430
+                    continuing: 400
+                    median_ms_from_previous: 5300
+                  - id: fatal
+                    name: Fatal error
+                    kind: fatal
+                    step: 3
+                    users: 12
+                    continuing: 0
+                    median_ms_from_previous: 2100
+                links:
+                  - source: screen:MainActivity
+                    target: event:add_to_cart
+                    users: 410
+                  - source: event:add_to_cart
+                    target: fatal
+                    users: 9
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
           description: Either the user's access token is invalid or has expired.
         "403":
           description: Requester does not have access to this resource.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/journey/path:
+    get:
+      operationId: getAppJourneyPathUsers
+      tags:
+        - Apps
+      summary: Fetch the users that went through a journey path
+      description: |
+        Returns how many users went through a path of two or more nodes of the journey in one or more sessions. A session goes through a path when its steps include the path's nodes one after another.
+
+        - Counts come from a sample of the app's installations and are scaled up to all installations. The more events the range has, the smaller the share of installations sampled. Pass the journey's `sample_percent` as `sample_percent` to read the same installations as the journey.
+      parameters:
+        - *journeyAppId
+        - name: path
+          in: query
+          required: true
+          description: The ids of the nodes of the path, in order. Give one parameter for each node, and two or more nodes.
+          schema:
+            type: array
+            minItems: 2
+            items:
+              type: string
+          style: form
+          explode: true
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/JourneySamplePercent"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - users
+                  - sample_percent
+                properties:
+                  users:
+                    type: integer
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
+              example:
+                users: 37
+                sample_percent: 100
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/journey/errors:
+    get:
+      operationId: getAppJourneyErrors
+      tags:
+        - Apps
+      summary: Fetch errors of a journey node, link or path
+      description: |
+        Returns the error groups of the errors that happened during a node, a link or a path of the journey. The groups that the most users hit come first.
+
+        - A node covers the time from reaching it until the session's next step, or until the session ends after its last step.
+        - A link or a path covers the time from its first node to its last node, each time a session goes through it.
+        - Pass `node`, or `source` and `target`, or two or more `path` parameters.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. Pass the journey's `sample_percent` as `sample_percent` to read the same installations as the journey.
+      parameters:
+        - *journeyAppId
+        - $ref: "#/components/parameters/JourneyNode"
+        - $ref: "#/components/parameters/JourneySource"
+        - $ref: "#/components/parameters/JourneyTarget"
+        - $ref: "#/components/parameters/JourneyPath"
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/JourneySamplePercent"
+        - $ref: "#/components/parameters/FunnelLimit"
+        - $ref: "#/components/parameters/FunnelOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                  - sample_percent
+                properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: string
+                          description: Error group id.
+                        type:
+                          type: string
+                          description: Exception class or ANR type. Empty for an app hang.
+                        error_type:
+                          type: string
+                          enum:
+                            - exception
+                            - anr
+                            - app_hang
+                        severity:
+                          type: string
+                          description: Empty for an app hang.
+                          enum:
+                            - fatal
+                            - unhandled
+                            - handled
+                            - ""
+                        message:
+                          type: string
+                          description: Empty for an app hang.
+                        method_name:
+                          type: string
+                        file_name:
+                          type: string
+                        count:
+                          type: integer
+                          description: Errors in the group.
+                        users:
+                          type: integer
+                          description: Users that hit the group.
+                  meta: &journeyPageMeta
+                    type: object
+                    required:
+                      - next
+                      - previous
+                    properties:
+                      next:
+                        type: boolean
+                      previous:
+                        type: boolean
+              example:
+                sample_percent: 100
+                results:
+                  - id: 9f2c4e1a7b3d5f60
+                    type: java.lang.IllegalStateException
+                    error_type: exception
+                    severity: fatal
+                    message: Payment sheet is not attached
+                    method_name: onPaymentResult
+                    file_name: CheckoutActivity.kt
+                    count: 42
+                    users: 37
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/journey/traces:
+    get:
+      operationId: getAppJourneyTraces
+      tags:
+        - Apps
+      summary: Fetch traces of a journey node, link or path
+      description: |
+        Returns the root spans that started during a node, a link or a path of the journey, with the quantile of their durations. The span names recorded by the most users come first. The time a node, link or path covers is described under the journey errors.
+
+        - Counts come from a sample of the app's installations and are scaled up to all installations. Pass the journey's `sample_percent` as `sample_percent` to read the same installations as the journey.
+      parameters:
+        - *journeyAppId
+        - $ref: "#/components/parameters/JourneyNode"
+        - $ref: "#/components/parameters/JourneySource"
+        - $ref: "#/components/parameters/JourneyTarget"
+        - $ref: "#/components/parameters/JourneyPath"
+        - $ref: "#/components/parameters/FunnelQuantile"
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/JourneySamplePercent"
+        - $ref: "#/components/parameters/FunnelLimit"
+        - $ref: "#/components/parameters/FunnelOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                  - sample_percent
+                properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        span_name:
+                          type: string
+                        count:
+                          type: integer
+                          description: Spans recorded.
+                        users:
+                          type: integer
+                          description: Users that recorded the span.
+                        duration_ms:
+                          type: number
+                          description: Duration quantile in milliseconds.
+                  meta: *journeyPageMeta
+              example:
+                sample_percent: 100
+                results:
+                  - span_name: checkout.load_payment_methods
+                    count: 820
+                    users: 604
+                    duration_ms: 640
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/journey/network:
+    get:
+      operationId: getAppJourneyNetwork
+      tags:
+        - Apps
+      summary: Fetch network requests of a journey node, link or path
+      description: |
+        Returns the URL patterns of the network requests made during a node, a link or a path of the journey, with the quantile of their latencies. The patterns requested by the most users come first. The time a node, link or path covers is described under the journey errors.
+
+        - A request counts once for each pattern its path matches.
+        - Requests that got no response, and requests that took over a minute, are left out.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. Pass the journey's `sample_percent` as `sample_percent` to read the same installations as the journey.
+      parameters:
+        - *journeyAppId
+        - $ref: "#/components/parameters/JourneyNode"
+        - $ref: "#/components/parameters/JourneySource"
+        - $ref: "#/components/parameters/JourneyTarget"
+        - $ref: "#/components/parameters/JourneyPath"
+        - $ref: "#/components/parameters/FunnelQuantile"
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/JourneySamplePercent"
+        - $ref: "#/components/parameters/FunnelLimit"
+        - $ref: "#/components/parameters/FunnelOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                  - sample_percent
+                properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        domain:
+                          type: string
+                        path_pattern:
+                          type: string
+                        count:
+                          type: integer
+                          description: Requests made.
+                        users:
+                          type: integer
+                          description: Users that made the request.
+                        latency_ms:
+                          type: number
+                          description: Latency quantile in milliseconds.
+                  meta: *journeyPageMeta
+              example:
+                sample_percent: 100
+                results:
+                  - domain: api.example.com
+                    path_pattern: /v1/cart/*
+                    count: 1530
+                    users: 600
+                    latency_ms: 420.25
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/journey/sessions:
+    get:
+      operationId: getAppJourneySessions
+      tags:
+        - Apps
+      summary: Fetch sessions of a journey node, link or path
+      description: |
+        Returns the sessions that reached a node, or went through a link or a path, of the journey. The sessions that did so most recently come first.
+
+        - Only the sessions of a sample of the app's installations are listed. Pass the journey's `sample_percent` as `sample_percent` to list the sessions of the same installations as the journey.
+      parameters:
+        - *journeyAppId
+        - $ref: "#/components/parameters/JourneyNode"
+        - $ref: "#/components/parameters/JourneySource"
+        - $ref: "#/components/parameters/JourneyTarget"
+        - $ref: "#/components/parameters/JourneyPath"
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/JourneySamplePercent"
+        - $ref: "#/components/parameters/FunnelLimit"
+        - $ref: "#/components/parameters/FunnelOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                  - sample_percent
+                properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
+                  results:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        session_id:
+                          type: string
+                          format: uuid
+                        installation_id:
+                          type: string
+                          format: uuid
+                        user_id:
+                          type: string
+                          description: The latest user id the app set on the session's screens and custom events. Empty when none was set.
+                        first_event_time:
+                          type: string
+                          format: date-time
+                        duration:
+                          type: integer
+                          description: Session duration in milliseconds.
+                  meta: *journeyPageMeta
+              example:
+                sample_percent: 100
+                results:
+                  - session_id: 8d5a6d39-4c76-43d3-aecd-650e2c36f9c2
+                    installation_id: 1e6f0b2a-9c4d-4a7e-b3f5-62d8c0a9e174
+                    user_id: user-4821
+                    first_event_time: 2026-10-12T14:03:11Z
+                    duration: 184000
+                meta:
+                  next: true
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -503,6 +962,10 @@ paths:
         version name, since a download size belongs to a single build. A
         version with several builds in the range reports its most recently
         seen build.
+
+        `anr_free_sessions` and `perceived_anr_free_sessions` are null for iOS
+        apps, and `app_hang_free_sessions` is null for Android apps. App hang
+        free sessions count killed and recovered app hangs alike.
       parameters:
         - name: id
           in: path
@@ -599,6 +1062,19 @@ paths:
                         type: boolean
                       unselected_no_data:
                         type: boolean
+                  app_hang_free_sessions:
+                    type:
+                      - object
+                      - "null"
+                    properties:
+                      app_hang_free_sessions:
+                        type: number
+                      unselected_app_hang_free_sessions:
+                        type: number
+                      no_data:
+                        type: boolean
+                      unselected_no_data:
+                        type: boolean
                   sizes:
                     type: object
                     description: Reports a size only when the app versions with data in the range share a single version name; a version with several builds reports its most recent build.
@@ -663,6 +1139,7 @@ paths:
                       unselected_perceived_crash_free_sessions: 98.9
                       no_data: false
                       unselected_no_data: false
+                    app_hang_free_sessions: null
                     sizes:
                       average_app_size: 26298701
                       selected_app_size: 25887094
@@ -693,17 +1170,18 @@ paths:
       description: |
         Fetch an app's health overview instances plot, optionally narrowed by
         a filter expression over the app version. The response is a time
-        series of three metrics bucketed by datetime: sessions, crashes (fatal
-        exceptions) & ANRs.
+        series of four metrics bucketed by datetime: sessions, crashes (fatal
+        exceptions), ANRs & app hangs.
 
         `from` & `to` will default to a last 7 days time range if not
         supplied. `timezone` is required and decides which day a bucket falls
         in.
 
-        The response is an array of three series identified by `id`:
-        `sessions`, `crashes` & `anrs`. Each series holds a sparse list of
-        datetime buckets that had data, so a bucket with no crashes or ANRs is
-        simply absent from that series.
+        The response is an array of four series identified by `id`:
+        `sessions`, `crashes`, `anrs` & `app_hangs`. Each series holds a sparse
+        list of datetime buckets that had data, so a bucket with no crashes,
+        ANRs or app hangs is simply absent from that series. `app_hangs`
+        counts killed and recovered app hangs alike.
       parameters:
         - name: id
           in: path
@@ -729,7 +1207,7 @@ paths:
                   properties:
                     id:
                       type: string
-                      description: Series identifier, one of `sessions`, `crashes` or `anrs`.
+                      description: Series identifier, one of `sessions`, `crashes`, `anrs` or `app_hangs`.
                     data:
                       type: array
                       items:
@@ -756,6 +1234,8 @@ paths:
                       data:
                         - datetime: "2024-10-02"
                           instances: 4
+                    - id: app_hangs
+                      data: []
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
@@ -804,6 +1284,7 @@ paths:
               - app_health
               - memory
               - profiles
+              - devices
               - funnels
         - name: key
           in: query
@@ -936,6 +1417,7 @@ paths:
               - app_health
               - memory
               - profiles
+              - devices
               - funnels
         - name: key_name
           in: query
@@ -1375,6 +1857,9 @@ paths:
                           type: string
                         session_id:
                           type: string
+                        has_replay:
+                          type: boolean
+                          description: "Whether the session has events other than `session_start` and this error, indicating that a session replay is available."
                         timestamp:
                           type: string
                         type:
@@ -1551,6 +2036,7 @@ paths:
                     results:
                       - id: a1b2c3d4-e5f6-7890-abcd-ef1234567890
                         session_id: f1e2d3c4-b5a6-7890-abcd-ef1234567890
+                        has_replay: true
                         timestamp: "2025-06-13T14:08:58.228662166Z"
                         type: exception
                         attribute:
@@ -1592,6 +2078,7 @@ paths:
                               - android.view.View.performClick(View.java:7448)
                       - id: b2c3d4e5-f6a7-8901-bcde-f12345678901
                         session_id: c3d4e5f6-a7b8-9012-cdef-123456789012
+                        has_replay: true
                         timestamp: "2025-06-13T15:22:11.104Z"
                         type: anr
                         attribute:
@@ -1617,6 +2104,7 @@ paths:
                               - android.app.Activity.performResume(Activity.java:8121)
                       - id: d4e5f6a7-b8c9-0123-def0-234567890123
                         session_id: e5f6a7b8-c9d0-1234-ef01-345678901234
+                        has_replay: true
                         timestamp: "2025-06-13T16:40:02.518Z"
                         type: anr
                         attribute:
@@ -1642,6 +2130,7 @@ paths:
                               - "  - waiting to lock <0x053dd6df> (a java.lang.Object) held by thread 46"
                       - id: 6b1f0c52-3d4e-4a7b-9c2d-8e5f1a0b3c4d
                         session_id: 7c2a1d63-4e5f-4b8c-8d3e-9f6a2b1c4d5e
+                        has_replay: true
                         timestamp: "2025-06-13T16:52:44.103Z"
                         type: app_hang
                         attribute:
@@ -3179,6 +3668,365 @@ paths:
           description: Rate limit of the requester has crossed maximum limits.
         "500":
           description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/devices/plots/sessions:
+    get:
+      operationId: getDevicesSessionsPlot
+      tags:
+        - Devices
+      summary: Plot sessions by device over time
+      description: |
+        Returns session counts by time bucket for the five device models with the most sessions in the date range.
+
+        - A device is identified by its manufacturer and model. Sessions without a device model are excluded.
+        - Each session is counted once, in the bucket where it started. Sessions that started before `from` are counted in the first bucket. As a result, each device’s plotted counts add up to its `session_count` in `/apps/{id}/devices/sessions`.
+        - Buckets with no sessions are omitted.
+        - Results are cached for up to 10 minutes.
+      parameters:
+        - *a1
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/Timezone"
+        - $ref: "#/components/parameters/PlotTimeGroup"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/DeviceSessionsPlotPoint"
+              example:
+                - device_manufacturer: Google
+                  device_model: Pixel 8
+                  datetime: 2026-09-10
+                  session_count: 1200
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/devices/sessions:
+    get:
+      operationId: getDevicesSessions
+      tags:
+        - Devices
+      summary: List device models by session count
+      description: |
+        Returns a page of device models, ranked by their session counts in the date range.
+
+        - A session is counted if it overlaps the date range. Sessions without a device model are excluded.
+        - `percent_of_sessions` is each device’s share of all matching sessions, including sessions on devices outside the current page.
+        - Results are cached for up to 10 minutes.
+      parameters:
+        - *a1
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/DevicesOrder"
+        - $ref: "#/components/parameters/DevicesLimit"
+        - $ref: "#/components/parameters/DevicesOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DeviceSessionsRow"
+                  meta:
+                    $ref: "#/components/schemas/DevicesPageMeta"
+              example:
+                results:
+                  - device_manufacturer: Google
+                    device_model: Pixel 8
+                    device_name: shiba
+                    session_count: 1200
+                    percent_of_sessions: 42.5
+                meta:
+                  next: true
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/devices/errors:
+    get:
+      operationId: getDevicesErrors
+      tags:
+        - Devices
+      summary: List device models by error count
+      description: |
+        Returns a page of device models, ranked by their error counts in the date range.
+
+        - Errors include crashes, ANRs, app hangs, and handled or unhandled exceptions.
+        - `session_count` is the number of sessions with at least one error.
+        - Results are cached for up to 10 minutes.
+      parameters:
+        - *a1
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/DevicesOrder"
+        - $ref: "#/components/parameters/DevicesLimit"
+        - $ref: "#/components/parameters/DevicesOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DeviceErrorsRow"
+                  meta:
+                    $ref: "#/components/schemas/DevicesPageMeta"
+              example:
+                results:
+                  - device_manufacturer: Google
+                    device_model: Pixel 8
+                    device_name: shiba
+                    crash_count: 4
+                    anr_count: 2
+                    app_hang_count: 0
+                    non_fatal_count: 12
+                    error_count: 18
+                    session_count: 9
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/devices/launches:
+    get:
+      operationId: getDevicesLaunches
+      tags:
+        - Devices
+      summary: List device models by launch duration
+      description: |
+        Returns a page of device models, ranked by a duration percentile for the selected launch type.
+
+        - Durations are in milliseconds. Launches without a duration are excluded.
+        - Results are cached for up to 10 minutes.
+      parameters:
+        - *a1
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - name: launch_type
+          in: query
+          required: false
+          description: App launch type to include.
+          schema:
+            type: string
+            default: cold_launch
+            enum:
+              - cold_launch
+              - warm_launch
+              - hot_launch
+        - $ref: "#/components/parameters/DevicesPercentile"
+        - $ref: "#/components/parameters/DevicesOrder"
+        - $ref: "#/components/parameters/DevicesLimit"
+        - $ref: "#/components/parameters/DevicesOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DeviceDurationRow"
+                  meta:
+                    $ref: "#/components/schemas/DevicesPageMeta"
+              example:
+                results:
+                  - device_manufacturer: Samsung
+                    device_model: SM-A546E
+                    device_name: a54x
+                    p50: 820
+                    p90: 1450
+                    p95: 1800
+                    count: 340
+                meta:
+                  next: true
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/devices/spans:
+    get:
+      operationId: getDevicesSpans
+      tags:
+        - Devices
+      summary: List device models by span duration
+      description: |
+        Returns a page of device models, ranked by a duration percentile for the selected span.
+
+        - Durations are in milliseconds.
+        - Spans recorded before device models were added to span metrics have no device model and are excluded.
+        - Results are cached for up to 10 minutes.
+      parameters:
+        - *a1
+        - name: span_name
+          in: query
+          required: true
+          description: Name of the span to include.
+          schema:
+            type: string
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/DevicesPercentile"
+        - $ref: "#/components/parameters/DevicesOrder"
+        - $ref: "#/components/parameters/DevicesLimit"
+        - $ref: "#/components/parameters/DevicesOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DeviceDurationRow"
+                  meta:
+                    $ref: "#/components/schemas/DevicesPageMeta"
+              example:
+                results:
+                  - device_manufacturer: Apple
+                    device_model: iPhone15,2
+                    device_name: iPhone
+                    p50: 310
+                    p90: 620
+                    p95: 790
+                    count: 1500
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
+  /apps/{id}/devices/memory:
+    get:
+      operationId: getDevicesMemory
+      tags:
+        - Devices
+      summary: List device models by memory usage
+      description: |
+        Returns a page of device models, ranked by a memory usage percentile.
+
+        - Values are in KB (1024 bytes). Android reports anonymous RSS plus swap; iOS and iPadOS report used memory.
+        - Percentiles are calculated from individual samples across all app states.
+        - Results are cached for up to 10 minutes.
+      parameters:
+        - *a1
+        - $ref: "#/components/parameters/From"
+        - $ref: "#/components/parameters/To"
+        - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/DevicesPercentile"
+        - $ref: "#/components/parameters/DevicesOrder"
+        - $ref: "#/components/parameters/DevicesLimit"
+        - $ref: "#/components/parameters/DevicesOffset"
+      responses:
+        "200":
+          description: Successful response, no errors.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - results
+                  - meta
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/DeviceMemoryRow"
+                  meta:
+                    $ref: "#/components/schemas/DevicesPageMeta"
+              example:
+                results:
+                  - device_manufacturer: Google
+                    device_model: Pixel 8
+                    device_name: shiba
+                    p50: 102400
+                    p90: 204800
+                    p95: 307200
+                    session_count: 30
+                    sample_count: 1200
+                meta:
+                  next: false
+                  previous: false
+        "400":
+          description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
+        "401":
+          description: Either the user's access token is invalid or has expired.
+        "403":
+          description: Requester does not have access to this resource.
+        "429":
+          description: Rate limit of the requester has crossed maximum limits.
+        "500":
+          description: Measure server encountered an unfortunate error. Report this to your server administrator.
   /apps/{id}/spans/plots/metrics:
     get:
       operationId: getMetricsPlotForSpanName
@@ -3290,6 +4138,9 @@ paths:
                     type: string
                   session_id:
                     type: string
+                  has_replay:
+                    type: boolean
+                    description: "Whether the session has events other than `session_start`, indicating that a session replay is available."
                   user_id:
                     type: string
                   start_time:
@@ -3344,6 +4195,7 @@ paths:
                     app_id: e963e98a-aca9-4bab-bd62-70a74801384e
                     trace_id: e0826847053bb9e539c9dc4d4da793ad
                     session_id: 9b33b3cd-2588-46b4-9b1e-19d7d2c462fa
+                    has_replay: true
                     user_id: ""
                     start_time: "2024-11-18T14:14:55.491Z"
                     end_time: "2024-11-18T14:14:55.573Z"
@@ -3607,6 +4459,9 @@ paths:
                 properties:
                   session_id:
                     type: string
+                  has_replay:
+                    type: boolean
+                    description: "Whether the session has events other than `session_start` and this bug report, indicating that a session replay is available."
                   app_id:
                     type: string
                   event_id:
@@ -3649,6 +4504,7 @@ paths:
                 response:
                   value:
                     session_id: a2768feb-59cd-433f-bf00-d36ab297eddb
+                    has_replay: true
                     app_id: 47cf0390-b11c-4e1f-8f8a-770bf9c159bb
                     event_id: eaaa0100-0e27-4706-9705-53b5d0b537ef
                     status: 0
@@ -3805,6 +4661,7 @@ paths:
                           type: string
                         type:
                           type: string
+                          description: Alert type, one of `crash_spike`, `anr_spike`, `app_hang_spike` or `bug_report`.
                         message:
                           type: string
                         url:
@@ -3838,6 +4695,15 @@ paths:
                         url: http://localhost:3000/29f0f5b2-f03f-4dbe-bd18-acf163b91965/crashes/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/f94859bc4b47fbf05b4eec2a300de0a4/sh.measure.sample.CustomException@ExceptionDemoActivity
                         created_at: "2025-07-10T11:35:48.057192Z"
                         updated_at: "2025-07-10T11:35:48.057192Z"
+                      - id: 2b1c7f0e-5d3a-4c8e-9f61-0a7d4e2b9c13
+                        team_id: 29f0f5b2-f03f-4dbe-bd18-acf163b91965
+                        app_id: 19e26d60-2ad8-4ef7-8aab-333e1f5377fc
+                        entity_id: f96f51a5e1883e544a4056933384663b
+                        type: app_hang_spike
+                        message: "ViewController.swift: blockMainThread()"
+                        url: http://localhost:3000/29f0f5b2-f03f-4dbe-bd18-acf163b91965/errors/19e26d60-2ad8-4ef7-8aab-333e1f5377fc/f96f51a5e1883e544a4056933384663b/ViewController.swift:%20blockMainThread%28%29
+                        created_at: "2025-07-10T11:35:48.051210Z"
+                        updated_at: "2025-07-10T11:35:48.051210Z"
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
@@ -4132,12 +4998,20 @@ paths:
                 properties:
                   max_events_in_batch:
                     type: integer
+                    readOnly: true
+                    description: Fixed by Measure for every app. Cannot be changed.
                   error_replay_duration:
                     type: integer
+                    minimum: 0
+                    maximum: 3600
                   anr_timeline_duration:
                     type: integer
+                    minimum: 0
+                    maximum: 3600
                   bug_report_timeline_duration:
                     type: integer
+                    minimum: 0
+                    maximum: 3600
                   trace_sampling_rate:
                     type: number
                     minimum: 0
@@ -4158,12 +5032,18 @@ paths:
                       type: string
                   cpu_usage_interval:
                     type: integer
+                    readOnly: true
+                    description: Fixed by Measure for every app. Cannot be changed.
                   memory_usage_interval:
                     type: integer
+                    minimum: 1
+                    maximum: 3600
                     default: 5
                     description: Memory usage measurement interval in seconds while the app is in the foreground.
                   memory_usage_background_interval:
                     type: integer
+                    minimum: 1
+                    maximum: 3600
                     default: 10
                     description: Memory usage measurement interval in seconds while an Android app is in the background. iOS/iPadOS stops collecting in the background.
                   memory_usage_session_sampling_rate:
@@ -4196,8 +5076,12 @@ paths:
                     type: boolean
                   app_hang_threshold_millis:
                     type: integer
+                    minimum: 1000
+                    maximum: 30000
                   app_hang_timeline_duration:
                     type: integer
+                    minimum: 0
+                    maximum: 3600
                   app_hang_sampling_rate:
                     type: number
                     minimum: 0
@@ -4210,6 +5094,8 @@ paths:
                     maximum: 100
                   gesture_click_take_snapshot:
                     type: boolean
+                    readOnly: true
+                    description: Fixed by Measure for every app. Cannot be changed.
                   http_sampling_rate:
                     type: number
                     minimum: 0
@@ -4234,6 +5120,16 @@ paths:
                     type: number
                     minimum: 0
                     maximum: 100
+                  analytics_sampling_rate:
+                    type: number
+                    minimum: 0
+                    maximum: 100
+                  analytics_event_types:
+                    type: array
+                    items:
+                      type: string
+                    readOnly: true
+                    description: Fixed by Measure for every app. Cannot be changed.
               examples:
                 response:
                   value:
@@ -4271,6 +5167,14 @@ paths:
                     http_track_response_for_urls: []
                     http_blocked_headers: []
                     profile_sampling_rate: 100
+                    analytics_sampling_rate: 100
+                    analytics_event_types:
+                      - custom
+                      - lifecycle_activity
+                      - lifecycle_fragment
+                      - lifecycle_view_controller
+                      - lifecycle_swift_ui
+                      - screen_view
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":
@@ -4305,7 +5209,7 @@ paths:
           application/json:
             schema:
               type: object
-              description: Any subset of the app config fields returned by `GET /apps/{id}/config`.
+              description: Any subset of the app config fields returned by `GET /apps/{id}/config`. Read-only fields are ignored.
               additionalProperties: true
             examples:
               request:
@@ -5384,6 +6288,8 @@ paths:
         - A user is counted when they did the first step between `from` and `to`. Their later steps can come after `to`, within the conversion window.
         - A user reaches a step when they do it within the conversion window of their first step, after reaching the step before it.
         - A `from` or `to` with seconds, such as one taken from the current time, is rounded down to the minute, or to ten minutes when the range is a day or more, so that repeated requests can share a cached result. A `from` or `to` on a whole minute is used as sent.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. The more events the range has, the smaller the share of installations sampled.
+        - `sample_percent` is the percent of the app's installations in the sample, or null when the query found no rows.
       parameters:
         - *funnelAppId
         - *funnelId
@@ -5398,8 +6304,14 @@ paths:
               schema:
                 type: object
                 required:
+                  - sample_percent
                   - steps
                 properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
                   steps:
                     type: array
                     description: One entry for each step of the funnel, in order.
@@ -5413,6 +6325,7 @@ paths:
                               type: string
                         - $ref: "#/components/schemas/FunnelStepUsers"
               example:
+                sample_percent: 100
                 steps:
                   - event_name: view_cart
                     users: 1200
@@ -5431,6 +6344,8 @@ paths:
           description: Requester does not have access to this resource.
         "404":
           description: Funnel does not exist in this app.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -5447,6 +6362,8 @@ paths:
         - Weeks start on Monday.
         - Users that did the first step near the end of a period can still convert after it ends, so a period is `complete` once a conversion window has passed since its end.
         - `from` and `to` are ignored.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. The more events the range has, the smaller the share of installations sampled.
+        - `sample_percent` is the percent of the app's installations in the sample, or null when the query found no rows.
       parameters:
         - *funnelAppId
         - *funnelId
@@ -5476,10 +6393,16 @@ paths:
               schema:
                 type: object
                 required:
+                  - sample_percent
                   - event_names
                   - points
                   - builds
                 properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
                   event_names:
                     type: array
                     description: The funnel's step event names, in order.
@@ -5541,6 +6464,7 @@ paths:
                           type: string
                           format: date-time
               example:
+                sample_percent: 29.7
                 event_names:
                   - view_cart
                   - start_checkout
@@ -5580,6 +6504,8 @@ paths:
           description: Requester does not have access to this resource.
         "404":
           description: Funnel does not exist in this app.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -5596,6 +6522,8 @@ paths:
         - The weeks end at the start of the latest week whose users have all had a full conversion window, so every hour is counted the same number of times and no user is still converting.
         - Hours without users are left out.
         - `from` and `to` are ignored.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. The more events the range has, the smaller the share of installations sampled.
+        - `sample_percent` is the percent of the app's installations in the sample, or null when the query found no rows.
       parameters:
         - *funnelAppId
         - *funnelId
@@ -5617,10 +6545,16 @@ paths:
               schema:
                 type: object
                 required:
+                  - sample_percent
                   - from
                   - to
                   - hours
                 properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
                   from:
                     type: string
                     format: date-time
@@ -5655,6 +6589,7 @@ paths:
                           type: integer
                           description: Users of this hour that reached the last step.
               example:
+                sample_percent: 29.7
                 from: 2026-09-14T00:00:00+05:30
                 to: 2026-10-12T00:00:00+05:30
                 hours:
@@ -5674,6 +6609,8 @@ paths:
           description: Requester does not have access to this resource.
         "404":
           description: Funnel does not exist in this app.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -5691,6 +6628,7 @@ paths:
         - Users are counted by installation id, and counted when they did the funnel's first step between `from` and `to`. Their attempt can come after `to`, within the conversion window.
         - The filter applies to the errors as it does to the step events.
         - A `from` or `to` with seconds, such as one taken from the current time, is rounded down to the minute, or to ten minutes when the range is a day or more, so that repeated requests can share a cached result. A `from` or `to` on a whole minute is used as sent.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. The more events the range has, the smaller the share of installations sampled. Pass the conversion's `sample_percent` as `sample_percent` to read the same installations as the conversion.
       parameters:
         - *funnelAppId
         - *funnelId
@@ -5698,6 +6636,7 @@ paths:
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/FunnelSamplePercent"
         - $ref: "#/components/parameters/FunnelLimit"
         - $ref: "#/components/parameters/FunnelOffset"
       responses:
@@ -5710,7 +6649,13 @@ paths:
                 required:
                   - results
                   - meta
+                  - sample_percent
                 properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
                   results:
                     type: array
                     items:
@@ -5766,6 +6711,7 @@ paths:
                       previous:
                         type: boolean
               example:
+                sample_percent: 100
                 results:
                   - id: 9f2c4e1a7b3d5f60
                     type: java.lang.IllegalStateException
@@ -5789,6 +6735,8 @@ paths:
           description: Requester does not have access to this resource.
         "404":
           description: Funnel does not exist in this app.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -5805,6 +6753,7 @@ paths:
         - A user's attempt starts when they reach the earlier step and ends when they reach the next one or, if they never do, when their conversion window runs out.
         - Users are counted by installation id, and counted when they did the funnel's first step between `from` and `to`. Their attempt can come after `to`, within the conversion window.
         - A `from` or `to` with seconds, such as one taken from the current time, is rounded down to the minute, or to ten minutes when the range is a day or more, so that repeated requests can share a cached result. A `from` or `to` on a whole minute is used as sent.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. The more events the range has, the smaller the share of installations sampled. Pass the conversion's `sample_percent` as `sample_percent` to read the same installations as the conversion.
       parameters:
         - *funnelAppId
         - *funnelId
@@ -5813,6 +6762,7 @@ paths:
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/FunnelSamplePercent"
         - $ref: "#/components/parameters/FunnelLimit"
         - $ref: "#/components/parameters/FunnelOffset"
       responses:
@@ -5825,7 +6775,13 @@ paths:
                 required:
                   - results
                   - meta
+                  - sample_percent
                 properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
                   results:
                     type: array
                     items:
@@ -5854,6 +6810,7 @@ paths:
                           description: Duration quantile for users that converted. Null when none of them recorded the span.
                   meta: *funnelPageMeta
               example:
+                sample_percent: 100
                 results:
                   - span_name: checkout.load_payment_methods
                     count: 820
@@ -5872,6 +6829,8 @@ paths:
           description: Requester does not have access to this resource.
         "404":
           description: Funnel does not exist in this app.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -5890,6 +6849,7 @@ paths:
         - A request counts once for each pattern its path matches.
         - Requests that got no response, and requests that took over a minute, are left out.
         - A `from` or `to` with seconds, such as one taken from the current time, is rounded down to the minute, or to ten minutes when the range is a day or more, so that repeated requests can share a cached result. A `from` or `to` on a whole minute is used as sent.
+        - Counts come from a sample of the app's installations and are scaled up to all installations. The more events the range has, the smaller the share of installations sampled. Pass the conversion's `sample_percent` as `sample_percent` to read the same installations as the conversion.
       parameters:
         - *funnelAppId
         - *funnelId
@@ -5898,6 +6858,7 @@ paths:
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/FunnelSamplePercent"
         - $ref: "#/components/parameters/FunnelLimit"
         - $ref: "#/components/parameters/FunnelOffset"
       responses:
@@ -5910,7 +6871,13 @@ paths:
                 required:
                   - results
                   - meta
+                  - sample_percent
                 properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
                   results:
                     type: array
                     items:
@@ -5941,6 +6908,7 @@ paths:
                           description: Latency quantile for users that converted. Null when none of them made the request.
                   meta: *funnelPageMeta
               example:
+                sample_percent: 100
                 results:
                   - domain: api.example.com
                     path_pattern: /v1/cart/*
@@ -5960,6 +6928,8 @@ paths:
           description: Requester does not have access to this resource.
         "404":
           description: Funnel does not exist in this app.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -5975,9 +6945,9 @@ paths:
 
         - A user's attempt starts when they reach the earlier step and ends when they reach the next one or, if they never do, when their conversion window runs out.
         - Users are counted by installation id, and counted when they did the funnel's first step between `from` and `to`. Their attempt can come after `to`, within the conversion window.
-        - A session is listed when it has an event during its user's attempt, so a user that got from one step to the next across sessions has each of them listed.
-        - Sessions whose only events are session starts are left out.
+        - A session is listed when it has a screen, custom event, tap or scroll, app launch, move to the foreground or background, error, network request or root span during its user's attempt, so a user that got from one step to the next across sessions has each of them listed.
         - A `from` or `to` with seconds, such as one taken from the current time, is rounded down to the minute, or to ten minutes when the range is a day or more, so that repeated requests can share a cached result. A `from` or `to` on a whole minute is used as sent.
+        - Only the sessions of a sample of the app's installations are listed. When the range has few events, the sample has every installation, so every matching session is listed. Pass the conversion's `sample_percent` as `sample_percent` to list the sessions of the same installations as the conversion.
       parameters:
         - *funnelAppId
         - *funnelId
@@ -5994,6 +6964,7 @@ paths:
         - $ref: "#/components/parameters/From"
         - $ref: "#/components/parameters/To"
         - $ref: "#/components/parameters/FilterExpr"
+        - $ref: "#/components/parameters/FunnelSamplePercent"
         - $ref: "#/components/parameters/FunnelLimit"
         - $ref: "#/components/parameters/FunnelOffset"
       responses:
@@ -6006,7 +6977,13 @@ paths:
                 required:
                   - results
                   - meta
+                  - sample_percent
                 properties:
+                  sample_percent:
+                    type:
+                      - number
+                      - "null"
+                    description: Percent of the app's installations in the sample, from above 0 to 100. Null when the query found no rows, since the sample can't be told then, and a small sample can miss installations that exist.
                   results:
                     type: array
                     items:
@@ -6030,6 +7007,7 @@ paths:
                           description: Session duration in milliseconds.
                   meta: *funnelPageMeta
               example:
+                sample_percent: 100
                 results:
                   - session_id: 8d5a6d39-4c76-43d3-aecd-650e2c36f9c2
                     installation_id: 1e6f0b2a-9c4d-4a7e-b3f5-62d8c0a9e174
@@ -6047,6 +7025,8 @@ paths:
           description: Requester does not have access to this resource.
         "404":
           description: Funnel does not exist in this app.
+        "422":
+          description: The query needed more memory or time than the server allows. Try a shorter time range or narrower filters, or try again later.
         "429":
           description: Rate limit of the requester has crossed maximum limits.
         "500":
@@ -7341,9 +8321,9 @@ paths:
               schema:
                 type: object
                 properties:
-                  error_spike:
+                  fatal_error_spike:
                     type: boolean
-                  app_hang_spike:
+                  anr_app_hang_spike:
                     type: boolean
                   bug_report:
                     type: boolean
@@ -7356,8 +8336,8 @@ paths:
               examples:
                 response:
                   value:
-                    error_spike: true
-                    app_hang_spike: true
+                    fatal_error_spike: true
+                    anr_app_hang_spike: true
                     bug_report: true
                     daily_summary: true
                     created_at: "2024-01-01T00:00:00Z"
@@ -7387,14 +8367,14 @@ paths:
             schema:
               type: object
               required:
-                - error_spike
-                - app_hang_spike
+                - fatal_error_spike
+                - anr_app_hang_spike
                 - bug_report
                 - daily_summary
               properties:
-                error_spike:
+                fatal_error_spike:
                   type: boolean
-                app_hang_spike:
+                anr_app_hang_spike:
                   type: boolean
                 bug_report:
                   type: boolean
@@ -7403,8 +8383,8 @@ paths:
             examples:
               request:
                 value:
-                  error_spike: true
-                  app_hang_spike: true
+                  fatal_error_spike: true
+                  anr_app_hang_spike: true
                   bug_report: false
                   daily_summary: true
       responses:
@@ -7488,6 +8468,80 @@ components:
           values in one condition.
         schema:
           type: string
+    DevicesOrder:
+      name: order
+      in: query
+      required: false
+      description: "`desc` puts the highest value first; `asc` puts the lowest value first. Ties are ordered by manufacturer, then model."
+      schema:
+        type: string
+        default: desc
+        enum:
+          - desc
+          - asc
+    DevicesPercentile:
+      name: percentile
+      in: query
+      required: false
+      description: Percentile used to rank devices. The response includes all three percentiles.
+      schema:
+        type: string
+        default: p95
+        enum:
+          - p50
+          - p90
+          - p95
+    DevicesLimit:
+      name: limit
+      in: query
+      required: false
+      description: Maximum number of devices to return. The dashboard requests 5.
+      schema:
+        type: integer
+        default: 10
+        minimum: 1
+        maximum: 1000
+    DevicesOffset:
+      name: offset
+      in: query
+      required: false
+      description: Number of devices to skip.
+      schema:
+        type: integer
+        default: 0
+        minimum: 0
+    JourneyNode:
+      name: node
+      in: query
+      required: false
+      description: The id of a node of the journey.
+      schema:
+        type: string
+    JourneySource:
+      name: source
+      in: query
+      required: false
+      description: The id of the node where a link of the journey starts. Pass it with `target`.
+      schema:
+        type: string
+    JourneyTarget:
+      name: target
+      in: query
+      required: false
+      description: The id of the node where a link of the journey ends. Pass it with `source`.
+      schema:
+        type: string
+    JourneyPath:
+      name: path
+      in: query
+      required: false
+      description: The ids of the nodes of a path of the journey, in order. Give one parameter for each node, and two or more nodes.
+      schema:
+        type: array
+        items:
+          type: string
+      style: form
+      explode: true
     FunnelStep:
       name: step
       in: query
@@ -7509,6 +8563,24 @@ components:
           - p90
           - p95
           - p99
+    JourneySamplePercent:
+      name: sample_percent
+      in: query
+      required: false
+      description: The `sample_percent` of the journey for the same range and filter, so that the result covers the same installations as the journey. Without it, the query takes a sample of its own, which can cover fewer installations when events were added to the range after the journey was read.
+      schema:
+        type: number
+        exclusiveMinimum: 0
+        maximum: 100
+    FunnelSamplePercent:
+      name: sample_percent
+      in: query
+      required: false
+      description: The `sample_percent` of the funnel's conversion for the same range and filter, so that the result covers the same installations as the conversion. Without it, the query takes a sample of its own, which can cover fewer installations when events were added to the range after the conversion was read.
+      schema:
+        type: number
+        exclusiveMinimum: 0
+        maximum: 100
     FunnelLimit:
       name: limit
       in: query
@@ -7630,6 +8702,163 @@ components:
           minimum: 0
           description: Samples contributing to this tier across the whole date range and matching
             versions.
+    DevicesPageMeta:
+      type: object
+      required:
+        - next
+        - previous
+      properties:
+        next:
+          type: boolean
+          description: True if more devices follow this page.
+        previous:
+          type: boolean
+          description: True if devices precede this page.
+    DeviceSessionsRow:
+      type: object
+      required:
+        - device_manufacturer
+        - device_model
+        - device_name
+        - session_count
+        - percent_of_sessions
+      properties:
+        device_manufacturer: &devicesManufacturer
+          type: string
+          description: Device manufacturer.
+        device_model: &devicesModel
+          type: string
+          description: Device model, such as Pixel 8 or iPhone15,2.
+        device_name: &devicesName
+          type: string
+          description: The device name reported by most events for this model. A model may report more than one name.
+        session_count:
+          type: integer
+          minimum: 0
+          description: Sessions on the device that overlap the date range.
+        percent_of_sessions:
+          type: number
+          minimum: 0
+          maximum: 100
+          description: The device's share of all matching sessions, as a percentage.
+    DeviceErrorsRow:
+      type: object
+      required:
+        - device_manufacturer
+        - device_model
+        - device_name
+        - crash_count
+        - anr_count
+        - app_hang_count
+        - non_fatal_count
+        - error_count
+        - session_count
+      properties:
+        device_manufacturer: *devicesManufacturer
+        device_model: *devicesModel
+        device_name: *devicesName
+        crash_count:
+          type: integer
+          minimum: 0
+        anr_count:
+          type: integer
+          minimum: 0
+          description: ANRs. Only Android reports these.
+        app_hang_count:
+          type: integer
+          minimum: 0
+          description: App hangs. Only iOS and iPadOS report these.
+        non_fatal_count:
+          type: integer
+          minimum: 0
+          description: Handled and unhandled exceptions.
+        error_count:
+          type: integer
+          minimum: 0
+          description: Total errors on the device.
+        session_count:
+          type: integer
+          minimum: 0
+          description: Sessions with at least one error.
+    DeviceDurationRow:
+      type: object
+      required:
+        - device_manufacturer
+        - device_model
+        - device_name
+        - p50
+        - p90
+        - p95
+        - count
+      properties:
+        device_manufacturer: *devicesManufacturer
+        device_model: *devicesModel
+        device_name: *devicesName
+        p50:
+          type:
+            - number
+            - "null"
+          description: Duration in milliseconds.
+        p90:
+          type:
+            - number
+            - "null"
+          description: Duration in milliseconds.
+        p95:
+          type:
+            - number
+            - "null"
+          description: Duration in milliseconds.
+        count:
+          type: integer
+          minimum: 0
+          description: Launches or spans on the device.
+    DeviceMemoryRow:
+      type: object
+      required:
+        - device_manufacturer
+        - device_model
+        - device_name
+        - p50
+        - p90
+        - p95
+        - session_count
+        - sample_count
+      properties:
+        device_manufacturer: *devicesManufacturer
+        device_model: *devicesModel
+        device_name: *devicesName
+        p50:
+          $ref: "#/components/schemas/MemoryUsageKB"
+        p90:
+          $ref: "#/components/schemas/MemoryUsageKB"
+        p95:
+          $ref: "#/components/schemas/MemoryUsageKB"
+        session_count:
+          type: integer
+          minimum: 0
+          description: Sessions with memory samples on the device.
+        sample_count:
+          type: integer
+          minimum: 0
+          description: Memory samples on the device.
+    DeviceSessionsPlotPoint:
+      type: object
+      required:
+        - device_manufacturer
+        - device_model
+        - datetime
+        - session_count
+      properties:
+        device_manufacturer: *devicesManufacturer
+        device_model: *devicesModel
+        datetime:
+          type: string
+          description: Start of the time bucket, formatted for the plot time group and requested timezone.
+        session_count:
+          type: integer
+          minimum: 0
+          description: Sessions on the device that started in this bucket.
     HighMemoryUsageSession:
       type: object
       required:

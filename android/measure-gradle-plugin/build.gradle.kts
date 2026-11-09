@@ -1,5 +1,6 @@
 import com.diffplug.gradle.spotless.SpotlessExtension
 import com.vanniktech.maven.publish.GradlePublishPlugin
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     alias(libs.plugins.kotlin.jvm)
@@ -68,6 +69,13 @@ mavenPublishing {
 
 kotlin {
     jvmToolchain(11)
+    // Keep the published Kotlin metadata and stdlib dependency readable by the Kotlin embedded in
+    // older Gradle versions, even though building against Gradle 9 needs a newer compiler.
+    coreLibrariesVersion = "1.9.21"
+    compilerOptions {
+        languageVersion.set(KotlinVersion.KOTLIN_1_9)
+        apiVersion.set(KotlinVersion.KOTLIN_1_9)
+    }
 }
 
 extensions.configure<SpotlessExtension>("spotless") {

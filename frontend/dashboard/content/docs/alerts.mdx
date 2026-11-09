@@ -1,16 +1,16 @@
 ---
 title: "Alerts"
-seoTitle: "Crash, ANR, and Bug Report Alerts over Email and Slack"
-description: "Get alerted on crash spikes, ANR spikes, and new bug reports, and receive daily summaries of core app metrics over email and Slack."
+seoTitle: "Crash, ANR, App Hang, and Bug Report Alerts over Email and Slack"
+description: "Get alerted on crash spikes, ANR spikes, app hang spikes, and new bug reports, and receive daily summaries of core app metrics over email and Slack."
 ---
 
-Measure alerts you over email and Slack when crashes or ANRs spike and when users file bug reports. A daily summary tracks how core metrics change day over day.
+Measure alerts you over email and Slack when crashes, ANRs, or app hangs spike and when users file bug reports. A daily summary tracks how core metrics change day over day.
 
 ## Alert types
 
-### Crash and ANR spikes
+### Crash, ANR, and App Hang spikes
 
-Crashes and ANRs are [grouped into issues](/docs/error-monitoring/grouping). Spikes are detected per issue. An alert is sent when a single issue occurs at least 100 times in an hour and those occurrences amount to at least 0.5% of that hour's sessions.
+Crashes, ANRs, and App Hangs are [grouped into issues](/docs/error-monitoring/grouping). Spikes are detected per issue. By default, an alert is sent when a single issue occurs at least 100 times in an hour and those occurrences amount to at least 0.5% of that hour's sessions.
 
 Both thresholds can be changed per app from the Apps page on the dashboard.
 
@@ -22,7 +22,7 @@ Every new [bug report](/docs/bug-reports) triggers an alert with the report's de
 
 ### Daily summary
 
-Once a day, you get a summary for your team covering the previous day's core metrics for each of your apps: sessions, crash-free sessions, ANR-free sessions, and cold, warm, and hot launch times. Each metric is compared with the day before, and apps are ordered by session count so the busiest ones come first. Apps that recorded no data that day are left out.
+Once a day, you get a summary for your team covering the previous day's core metrics for each of your apps: sessions, crash-free sessions, ANR-free sessions on Android, app-hang-free sessions on iOS, and cold, warm, and hot launch times. Each metric is compared with the day before, and apps are ordered by session count so the busiest ones come first. Apps that recorded no data that day are left out.
 
 ## Channels
 

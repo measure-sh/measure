@@ -13,7 +13,9 @@ import { useTheme } from "next-themes";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Funnel, FunnelTrend } from "../../api/api_calls";
+import { isQueryOverLimit } from "../../api/api_error";
 import { type FilterParams, useFunnelTrendQuery } from "../../query/hooks";
+import { formatSamplePercent } from "../sample_percent";
 import { urlFiltersKeyMap } from "../../stores/filters_store";
 import { formatConversionWindow, funnelHref, trendPeriodRange } from "./format";
 import { numberToKMB } from "../../utils/number_utils";
@@ -23,7 +25,12 @@ import { Card } from "../card";
 import { DateRange } from "../filter_bar/date_range_select";
 import FunnelSteps from "./steps";
 import Pill from "../pill";
-import { PlotTooltipShell, PlotTooltipSwatch } from "../plot_tooltip";
+import {
+  PlotTooltip,
+  PlotTooltipArea,
+  PlotTooltipSwatch,
+  useTooltipTaps,
+} from "../plot_tooltip";
 import SimpleTooltip from "../simple_tooltip";
 import { Skeleton } from "../skeleton";
 
@@ -159,6 +166,7 @@ function WeeklyConversionPlot({
   href: string | null;
 }) {
   const router = useRouter();
+  const tooltipTaps = useTooltipTaps();
   const { resolvedTheme } = useTheme();
   const completeColor = resolvedTheme === "dark" ? "#a1a1a1" : "#a3a3a3";
   const incompleteColor = resolvedTheme === "dark" ? "#404040" : "#e5e5e5";
@@ -185,55 +193,61 @@ function WeeklyConversionPlot({
     <div
       className={`relative z-20 h-16 w-full border-b border-border ${href === null ? "" : "cursor-pointer"}`}
       onClick={() => {
-        if (href !== null) {
+        if (href !== null && tooltipTaps.shouldAct(null)) {
           router.push(href);
         }
       }}
     >
-      <ResponsiveBarCanvas
-        data={data}
-        keys={["conversion"]}
-        indexBy="datetime"
-        colors={({ index }) =>
-          points[index].complete ? completeColor : incompleteColor
-        }
-        margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
-        padding={0.2}
-        valueScale={{ type: "linear", min: 0 }}
-        axisTop={null}
-        axisRight={null}
-        axisBottom={null}
-        axisLeft={null}
-        enableGridY={false}
-        enableLabel={false}
-        onClick={(bar, event) => {
-          event.stopPropagation();
-          if (href !== null) {
-            router.push(weekHref(href, points[bar.index]));
+      <PlotTooltipArea taps={tooltipTaps}>
+        <ResponsiveBarCanvas
+          data={data}
+          keys={["conversion"]}
+          indexBy="datetime"
+          colors={({ index }) =>
+            points[index].complete ? completeColor : incompleteColor
           }
-        }}
-        tooltip={({ data, index, color }) => (
-          <PlotTooltipShell className="px-4 py-2">
-            <p className="p-2">
-              Week of{" "}
-              {DateTime.fromISO(String(data.datetime)).toFormat("d MMM, yyyy")}
-              {points[index].complete ? "" : " · Still converting"}
-            </p>
-            <div className="flex flex-row items-center p-2">
-              <PlotTooltipSwatch color={color} />
-              <span className="px-2">
-                {data.entered === 0
-                  ? "No users entered"
-                  : `${data.conversion}% conversion`}
-              </span>
-            </div>
-            <p className="p-2">
-              Users entered: {numberToKMB(Number(data.entered))}
-            </p>
-            <p className="p-2 text-muted-foreground">Click to open this week</p>
-          </PlotTooltipShell>
-        )}
-      />
+          margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+          padding={0.2}
+          valueScale={{ type: "linear", min: 0 }}
+          axisTop={null}
+          axisRight={null}
+          axisBottom={null}
+          axisLeft={null}
+          enableGridY={false}
+          enableLabel={false}
+          onClick={(bar, event) => {
+            event.stopPropagation();
+            if (href !== null && tooltipTaps.shouldAct(String(bar.index))) {
+              router.push(weekHref(href, points[bar.index]));
+            }
+          }}
+          tooltip={({ data, index, color }) => (
+            <PlotTooltip className="px-4 py-2" tapKey={String(index)}>
+              <p className="p-2">
+                Week of{" "}
+                {DateTime.fromISO(String(data.datetime)).toFormat(
+                  "d MMM, yyyy",
+                )}
+                {points[index].complete ? "" : " · Still converting"}
+              </p>
+              <div className="flex flex-row items-center p-2">
+                <PlotTooltipSwatch color={color} />
+                <span className="px-2">
+                  {data.entered === 0
+                    ? "No users entered"
+                    : `${data.conversion}% conversion`}
+                </span>
+              </div>
+              <p className="p-2">
+                Users entered: {numberToKMB(Number(data.entered))}
+              </p>
+              <p className="p-2 text-muted-foreground">
+                Click to open this week
+              </p>
+            </PlotTooltip>
+          )}
+        />
+      </PlotTooltipArea>
     </div>
   );
 }
@@ -307,11 +321,16 @@ export default function FunnelPinnedCard({
         <div className="flex items-start justify-between gap-4">
           <div className="flex flex-col gap-3 min-w-0">
             <p className="font-display text-lg truncate">{funnel.name}</p>
-            <div className="flex items-center gap-2 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 min-w-0">
               <FunnelSteps funnel={funnel} />
               <Pill>
                 {`Conversion window: ${formatConversionWindow(funnel.conversion_window_seconds)}`}
               </Pill>
+              {trendQuery.data && (
+                <Pill>
+                  {`Sampled at: ${formatSamplePercent(trendQuery.data.sample_percent)}`}
+                </Pill>
+              )}
             </div>
           </div>
           {reordering ? (
@@ -358,7 +377,9 @@ export default function FunnelPinnedCard({
 
         {trendQuery.isError && (
           <p className="text-sm text-muted-foreground">
-            Error fetching weekly conversion, please refresh page to try again
+            {isQueryOverLimit(trendQuery.error)
+              ? "This funnel is too large to show here. Click it to see details and adjust the date range."
+              : "Error fetching weekly conversion, please refresh page to try again"}
           </p>
         )}
 

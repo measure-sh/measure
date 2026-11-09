@@ -34,9 +34,12 @@ jest.mock("@/app/components/funnel/trend_plot", () => ({
   default: (props: TrendPlotProps) => {
     mockTrendPlot(props);
     return (
-      <button onClick={() => props.onSelectPoint("2026-01-05", 2)}>
-        trend point
-      </button>
+      <>
+        <button onClick={() => props.onSelectPoint("2026-01-05", 2)}>
+          trend point
+        </button>
+        {props.controls}
+      </>
     );
   },
 }));
@@ -47,7 +50,12 @@ jest.mock("@/app/components/funnel/cadence_plot", () => ({
   default: (props: CadencePlotProps) => {
     mockCadencePlot(props);
     return (
-      <button onClick={() => props.onSelectPoint(3, 14)}>cadence point</button>
+      <>
+        <button onClick={() => props.onSelectPoint(3, 14)}>
+          cadence point
+        </button>
+        {props.controls}
+      </>
     );
   },
 }));
@@ -56,6 +64,9 @@ import { FunnelDetailsDemo } from "@/app/components/funnel/details";
 
 const lastProps = <T,>(mock: jest.Mock<void, [T]>): T =>
   mock.mock.calls[mock.mock.calls.length - 1][0];
+
+// Both lists have a step selector that follows the step chosen on the chart.
+const stepSelects = (label: string) => screen.queryAllByText(label);
 
 // Every list stays mounted, and the errors list comes first.
 const listedErrors = () =>
@@ -78,7 +89,7 @@ describe("FunnelDetailsDemo", () => {
       screen.getByText("24% converted · 2.96K of 12.48K users"),
     ).toBeInTheDocument();
     expect(screen.getByTestId("funnel-chart")).toBeInTheDocument();
-    expect(screen.getByText("Overall")).toBeInTheDocument();
+    expect(stepSelects("Overall")).toHaveLength(2);
     expect(listedErrors()).toEqual([
       "CartRepository.kt: syncCart()",
       "ProductGalleryAdapter.kt: onBindViewHolder()",
@@ -100,7 +111,8 @@ describe("FunnelDetailsDemo", () => {
   it("pages through the errors", () => {
     render(<FunnelDetailsDemo />);
 
-    fireEvent.click(screen.getByText("Next"));
+    // The errors list comes first, so its paginator is the first “Next” button.
+    fireEvent.click(screen.getAllByText("Next")[0]);
 
     expect(listedErrors()).toEqual([
       "ProductDetailActivity.kt: onCreate()",
@@ -115,7 +127,7 @@ describe("FunnelDetailsDemo", () => {
 
     fireEvent.click(screen.getByText("fourth step"));
 
-    expect(screen.queryByText("Overall")).not.toBeInTheDocument();
+    expect(stepSelects("Overall")).toHaveLength(0);
     expect(listedErrors()).toEqual([
       "CheckoutViewModel.kt: applyCoupon()",
       "AddressFormFragment.kt: validatePostcode()",
@@ -128,7 +140,7 @@ describe("FunnelDetailsDemo", () => {
 
     fireEvent.click(screen.getByText("first step"));
 
-    expect(screen.getByText("Overall")).toBeInTheDocument();
+    expect(stepSelects("Overall")).toHaveLength(2);
     expect(listedErrors()).toHaveLength(5);
   });
 
@@ -163,6 +175,26 @@ describe("FunnelDetailsDemo", () => {
 
     fireEvent.click(screen.getByText("cadence point"));
     expect(screen.getByTestId("funnel-chart")).toBeInTheDocument();
-    expect(screen.getByText("Overall")).toBeInTheDocument();
+    expect(stepSelects("Overall")).toHaveLength(2);
+  });
+
+  it("lists five sessions with a user ID for each outcome", () => {
+    render(<FunnelDetailsDemo />);
+    const sessionUsers = () =>
+      [
+        ...[...document.querySelectorAll("table")]
+          .at(-1)!
+          .querySelectorAll("tbody tr"),
+      ].map((row) => row.querySelector("td p")!.textContent);
+
+    const dropped = sessionUsers();
+    expect(dropped).toHaveLength(5);
+    expect(dropped.every((user) => user!.startsWith("usr_"))).toBe(true);
+
+    fireEvent.click(screen.getByText("Converted"));
+
+    const converted = sessionUsers();
+    expect(converted).toHaveLength(5);
+    expect(converted).not.toEqual(dropped);
   });
 });

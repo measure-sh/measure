@@ -27,6 +27,7 @@ const sectionTitles: Record<string, string> = {
   network: "Network",
   memory: "Memory",
   profiles: "Profiles",
+  devices: "Devices",
   apps: "Apps",
   builds: "Builds",
   team: "Team",
@@ -57,19 +58,26 @@ const sectionInfo: Record<string, ReactNode> = {
   ),
   journeys: (
     <>
-      Journeys are approximated based on sampled journey events.{" "}
-      <Link
-        href="/docs/adaptive-capture#journey-sampling"
-        className={underlineLinkStyle}
-      >
+      Journeys are built from sampled screen views and custom events. Sampling
+      rate can be changed using{" "}
+      <Link href="apps" className={underlineLinkStyle}>
+        analytics sampling
+      </Link>{" "}
+      in app settings.{" "}
+      <Link href="/docs/journeys" className={underlineLinkStyle}>
         Learn more
       </Link>
     </>
   ),
   funnels: (
     <>
-      Funnels are built from custom events.{" "}
-      <Link href="/docs/custom-events" className={underlineLinkStyle}>
+      Funnels are built from sampled custom events. Sampling rate can be changed
+      using{" "}
+      <Link href="apps" className={underlineLinkStyle}>
+        analytics sampling
+      </Link>{" "}
+      in app settings.{" "}
+      <Link href="/docs/funnels" className={underlineLinkStyle}>
         Learn more
       </Link>
     </>

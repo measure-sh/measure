@@ -1,4 +1,4 @@
-const GCLID_COOKIE_NAME = "gclid";
+export const GCLID_COOKIE_NAME = "gclid";
 const GCLID_MAX_AGE_SECONDS = 60 * 60 * 24 * 90;
 
 // parseCookieValue extracts a single cookie value by name from a raw cookie
@@ -38,15 +38,4 @@ export function getStoredGCLID(): string | null {
     return null;
   }
   return parseCookieValue(document.cookie, GCLID_COOKIE_NAME);
-}
-
-// clearStoredGCLID expires the cookie. Called when marketing consent is
-// withdrawn: the gclid may only be kept while that consent stands. Path must
-// match the one captureGCLIDFromURL wrote or the browser keeps the cookie.
-// No-op in SSR.
-export function clearStoredGCLID(): void {
-  if (typeof window === "undefined") {
-    return;
-  }
-  document.cookie = `${GCLID_COOKIE_NAME}=; Max-Age=0; Path=/`;
 }

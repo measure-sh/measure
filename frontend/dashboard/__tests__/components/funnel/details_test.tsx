@@ -32,9 +32,9 @@ type EditorProps = React.ComponentProps<typeof FunnelEditor>;
 
 jest.mock("next/navigation", () =>
   jest
-    .requireActual<
-      typeof import("@/__tests__/helpers/mock_router")
-    >("@/__tests__/helpers/mock_router")
+    .requireActual<typeof import("@/__tests__/helpers/mock_router")>(
+      "@/__tests__/helpers/mock_router",
+    )
     .nextNavigationMock(),
 );
 
@@ -55,6 +55,8 @@ const mockUseFunnelCadenceQuery = jest.fn((..._args: unknown[]) => ({
 }));
 jest.mock("@/app/query/hooks", () => ({
   __esModule: true,
+  RootSpanMetricsQuantile:
+    jest.requireActual("@/app/query/hooks").RootSpanMetricsQuantile,
   useAuthzAndMembersQuery: (...args: unknown[]) =>
     mockUseAuthzAndMembersQuery(...args),
   useFunnelQuery: (...args: unknown[]) => mockUseFunnelQuery(...args),
@@ -144,6 +146,7 @@ jest.mock("@/app/components/funnel/trend_plot", () => ({
         >
           select overall point
         </button>
+        {props.controls}
       </div>
     );
   },
@@ -154,10 +157,15 @@ jest.mock("@/app/components/funnel/cadence_plot", () => ({
   __esModule: true,
   default: ({
     onSelectPoint,
+    controls,
   }: {
     onSelectPoint: (weekday: number, hour: number) => void;
+    controls: React.ReactNode;
   }) => (
-    <button onClick={() => onSelectPoint(3, 14)}>select cadence point</button>
+    <>
+      <button onClick={() => onSelectPoint(3, 14)}>select cadence point</button>
+      {controls}
+    </>
   ),
 }));
 
@@ -186,6 +194,7 @@ jest.mock("@/app/components/funnel/sessions", () => ({
   __esModule: true,
   SessionsOutcome: { Dropped: "Dropped off", Converted: "Converted" },
   outcomeParams: { "Dropped off": "dropped", Converted: "converted" },
+  FunnelSessionsDemo: () => null,
   default: (props: SessionsProps) => {
     mockSessions(props);
     return (
@@ -320,6 +329,8 @@ function setUp({
     filterParams,
     onChange: mockOnChange,
     setPageUrlKey: mockSetPageUrlKey,
+    setPageUrlKeys: mockRouter.setPageUrlKeys,
+    discardPageUrlKeys: mockRouter.discardPageUrlKeys,
   });
 }
 
@@ -336,8 +347,7 @@ const lastProps = <P,>(mock: jest.Mock<void, [P]>) =>
   mock.mock.calls.at(-1)![0];
 
 const summary = (title: string) =>
-  screen.getByText(title, { selector: "p" }).parentElement!.nextElementSibling!
-    .textContent;
+  screen.getByText(title, { selector: "p" }).nextElementSibling!.textContent;
 
 const openedRange = () => {
   const { dateRange } = mockOnChange.mock.calls[0][0];
@@ -408,6 +418,18 @@ describe("FunnelDetails header", () => {
 });
 
 describe("FunnelDetails Breakdown view", () => {
+  it("shows the percent of users the conversion read", () => {
+    setUp({
+      conversionQuery: queryState("success", {
+        ...conversion([1000, 400, 250]),
+        sample_percent: 29.67,
+      }),
+    });
+    renderDetails();
+
+    expect(screen.getByText("Sampled at: 30%")).toBeInTheDocument();
+  });
+
   it("is the default view and queries conversion with the filters", () => {
     renderDetails();
 
@@ -460,7 +482,7 @@ describe("FunnelDetails Breakdown view", () => {
 
     expect(
       screen.getByText(
-        "Error fetching plot, please change filters or refresh page to try again",
+        "Error fetching plot. Please refresh page or change filters to try again.",
       ),
     ).toBeInTheDocument();
     expect(summary("Breakdown")).toBe(NBSP);
@@ -501,7 +523,7 @@ describe("FunnelDetails Breakdown view", () => {
 
     fireEvent.click(screen.getByTestId("funnel-chart"));
 
-    expect(mockSetPageUrlKey).toHaveBeenCalledWith("fs", "2");
+    expect(mockRouter.urlParams().fs).toBe("2");
     expect(lastProps(mockFriction).selectedStep).toBe(2);
   });
 
@@ -510,7 +532,7 @@ describe("FunnelDetails Breakdown view", () => {
 
     fireEvent.click(screen.getByText("friction step"));
 
-    expect(mockSetPageUrlKey).toHaveBeenCalledWith("fs", "2");
+    expect(mockRouter.urlParams().fs).toBe("2");
     expect(lastProps(mockFriction).selectedStep).toBe(2);
   });
 
@@ -542,7 +564,7 @@ describe("FunnelDetails Breakdown view", () => {
 
     fireEvent.click(screen.getByText("sessions step"));
 
-    expect(mockSetPageUrlKey).toHaveBeenCalledWith("fs", "2");
+    expect(mockRouter.urlParams().fs).toBe("2");
     expect(lastProps(mockFriction).selectedStep).toBe(2);
     expect(lastProps(mockSessions).selectedStep).toBe(2);
   });
@@ -553,7 +575,7 @@ describe("FunnelDetails Breakdown view", () => {
 
     fireEvent.click(screen.getByText("sessions outcome"));
 
-    expect(mockSetPageUrlKey).toHaveBeenCalledWith("fo", "Converted");
+    expect(mockRouter.urlParams().fo).toBe("Converted");
     expect(lastProps(mockSessions).outcome).toBe("Converted");
   });
 
@@ -608,6 +630,167 @@ describe("FunnelDetails Breakdown view", () => {
     ).not.toBeInTheDocument();
     expect(screen.queryByTestId("funnel-chart")).not.toBeInTheDocument();
     expect(screen.queryByTestId("friction")).not.toBeInTheDocument();
+  });
+});
+
+describe("FunnelDetails list pages", () => {
+  it("reads the percentile and each list's page from the URL", () => {
+    renderDetails("fq=p95&foe=10&fot=20&fon=30&fos=40");
+
+    expect(lastProps(mockFriction).quantile).toBe("p95");
+    expect(lastProps(mockFriction).offsets).toEqual({
+      Errors: 10,
+      Traces: 20,
+      Network: 30,
+    });
+    expect(lastProps(mockSessions).offset).toBe(40);
+  });
+
+  it.each([
+    ["a negative page", "foe=-10&fq=p42"],
+    ["a fraction", "foe=1.5&fq="],
+    ["a non-number", "foe=ten&fq=P95"],
+  ])("falls back to p50 and the first page for %s", (_, search) => {
+    renderDetails(search);
+
+    expect(lastProps(mockFriction).quantile).toBe("p50");
+    expect(lastProps(mockFriction).offsets.Errors).toBe(0);
+  });
+
+  it("writes a list's page and the percentile to the URL", () => {
+    renderDetails();
+
+    act(() => lastProps(mockFriction).onChangeOffset("Traces" as never, 10));
+    act(() => lastProps(mockFriction).onSelectQuantile("p90" as never));
+    act(() => lastProps(mockSessions).onChangeOffset(20));
+
+    expect(mockRouter.urlParams()).toMatchObject({
+      fot: "10",
+      fq: "p90",
+      fos: "20",
+    });
+    expect(lastProps(mockFriction).offsets.Traces).toBe(10);
+    expect(lastProps(mockSessions).offset).toBe(20);
+  });
+
+  it("leaves the first page out of the URL", () => {
+    renderDetails("fot=10&fos=20");
+
+    act(() => lastProps(mockFriction).onChangeOffset("Traces" as never, 0));
+    act(() => lastProps(mockSessions).onChangeOffset(0));
+
+    expect(mockRouter.urlParams()).not.toHaveProperty("fot");
+    expect(mockRouter.urlParams()).not.toHaveProperty("fos");
+  });
+
+  it("goes back to the first page of every list and keeps the percentile when the step changes", () => {
+    renderDetails("fq=p95&foe=10&fot=20&fon=30&fos=40");
+
+    fireEvent.click(screen.getByText("friction step"));
+
+    expect(mockRouter.urlParams()).toEqual({ fs: "2", fq: "p95" });
+  });
+
+  it("keeps each list's page when the selected step is chosen again", () => {
+    renderDetails("fs=2&foe=10&fos=40");
+
+    fireEvent.click(screen.getByText("friction step"));
+
+    expect(mockRouter.urlParams()).toEqual({ fs: "2", foe: "10", fos: "40" });
+  });
+
+  it("goes back to the first page of every list when the filters change", () => {
+    renderDetails("fq=p95&foe=10&fot=20&fon=30&fos=40");
+
+    act(() => lastProps(mockFilterBar).onChange({ filterExpr: "x:eq:1" }));
+
+    expect(mockOnChange).toHaveBeenCalledWith({ filterExpr: "x:eq:1" });
+    expect(mockRouter.urlParams()).toEqual({ fq: "p95" });
+  });
+
+  it("goes back to the first page of session replays when the outcome changes", () => {
+    renderDetails("foe=10&fos=40");
+
+    fireEvent.click(screen.getByText("sessions outcome"));
+
+    expect(mockRouter.urlParams()).toEqual({ fo: "Converted", foe: "10" });
+  });
+});
+
+describe("FunnelDetails URL cleanup", () => {
+  it("removes unknown values from the URL and keeps known ones", () => {
+    renderDetails(
+      "fv=Graph&fp=hour&fw=2&fm=Revenue&fl=Logs&fo=Both&fq=p42&foe=five&fot=-5&fon=0&fos=10",
+    );
+
+    expect(mockRouter.urlParams()).toEqual({ fos: "10" });
+  });
+
+  it("keeps known values in the URL", () => {
+    const search =
+      "fv=Breakdown&fp=month&fw=12&fm=Conversion&fl=Traces&fo=Converted&fq=p95&foe=5&fs=2";
+    renderDetails(search);
+
+    expect(mockRouter.urlParams()).toEqual(
+      Object.fromEntries(new URLSearchParams(search)),
+    );
+  });
+
+  it.each([
+    ["step zero", "fs=0"],
+    ["a fraction", "fs=1.5"],
+    ["a non-number", "fs=two"],
+  ])("removes %s from the URL straight away", (_, search) => {
+    setUp({ conversionQuery: queryState("pending") });
+    renderDetails(search);
+
+    expect(mockRouter.urlParams()).toEqual({});
+  });
+
+  it("removes a step past the last transition once the conversion loads", () => {
+    setUp({ conversionQuery: queryState("pending") });
+    const view = renderDetails("fs=3");
+    expect(mockRouter.urlParams()).toEqual({ fs: "3" });
+
+    setUp();
+    view.rerender(
+      <FunnelDetails teamId="team-1" appId="app-1" funnelId="funnel-1" />,
+    );
+
+    expect(mockRouter.urlParams()).toEqual({});
+  });
+
+  it("keeps a step in the URL while a saved edit's steps differ from the conversion's", () => {
+    setUp({
+      funnelQuery: queryState("success", {
+        ...funnel,
+        steps: funnel.steps.slice(0, 2),
+      }),
+    });
+    renderDetails("fs=2");
+
+    expect(mockRouter.urlParams()).toEqual({ fs: "2" });
+  });
+
+  it("keeps a step in the URL while the conversion is the one of the previous filters", () => {
+    setUp({
+      conversionQuery: {
+        ...queryState("success", conversion([1000, 400])),
+        isPlaceholderData: true,
+      } as ReturnType<typeof queryState>,
+    });
+    renderDetails("fs=2");
+
+    expect(mockRouter.urlParams()).toEqual({ fs: "2" });
+  });
+
+  it("sends a list that comes back empty past its first page back to the first page", () => {
+    renderDetails("fot=10&fos=20&foe=5");
+
+    act(() => lastProps(mockFriction).onPastLastPage("Traces" as never));
+    act(() => lastProps(mockSessions).onPastLastPage());
+
+    expect(mockRouter.urlParams()).toEqual({ foe: "5" });
   });
 });
 
@@ -802,10 +985,7 @@ describe("FunnelDetails Trend view", () => {
       start: Date.parse("2026-01-05T00:00:00.000Z"),
       end: Date.parse("2026-01-12T00:00:00.000Z"),
     });
-    expect(mockSetPageUrlKey.mock.calls).toEqual([
-      ["fs", "2"],
-      ["fv", "Breakdown"],
-    ]);
+    expect(mockRouter.urlParams()).toMatchObject({ fs: "2", fv: "Breakdown" });
     expect(lastProps(mockFriction).selectedStep).toBe(2);
     expect(window.scrollTo).toHaveBeenCalledWith({
       top: 0,
@@ -830,10 +1010,10 @@ describe("FunnelDetails Trend view", () => {
     fireEvent.click(screen.getByText("select overall point"));
 
     expect(mockOnChange).toHaveBeenCalledTimes(1);
-    expect(mockSetPageUrlKey.mock.calls).toEqual([
-      ["fs", "overall"],
-      ["fv", "Breakdown"],
-    ]);
+    expect(mockRouter.urlParams()).toMatchObject({
+      fs: "overall",
+      fv: "Breakdown",
+    });
     expect(window.scrollTo).toHaveBeenCalledWith({
       top: 0,
       behavior: "instant",
@@ -851,10 +1031,10 @@ describe("FunnelDetails Trend view", () => {
       start: new Date(2026, 8, 30, 14).valueOf(),
       end: new Date(2026, 8, 30, 15).valueOf(),
     });
-    expect(mockSetPageUrlKey.mock.calls).toEqual([
-      ["fs", "overall"],
-      ["fv", "Breakdown"],
-    ]);
+    expect(mockRouter.urlParams()).toMatchObject({
+      fs: "overall",
+      fv: "Breakdown",
+    });
     expect(window.scrollTo).toHaveBeenCalledWith({
       top: 0,
       behavior: "instant",

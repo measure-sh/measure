@@ -133,53 +133,46 @@ describe("AppBreadcrumbs", () => {
       );
     });
 
-    it("shows a sampling-info tooltip on the journeys section", async () => {
-      mockPathname = "/team-123/journeys";
-      render(<AppBreadcrumbs />);
+    const openInfoTooltip = async () => {
       const trigger = document.querySelector(
         '[data-slot="tooltip-trigger"].lucide-info',
       ) as HTMLElement;
       expect(trigger).toBeTruthy();
       fireEvent.focus(trigger);
-      const content = await waitFor(() => {
+      return waitFor(() => {
         const el = document.querySelector('[data-slot="tooltip-content"]');
         if (!el) {
           throw new Error("tooltip content not visible");
         }
         return el as HTMLElement;
       });
-      expect(content.textContent).toContain(
-        "Journeys are approximated based on sampled journey events",
-      );
-      expect(content.querySelector("a")).toHaveAttribute(
-        "href",
-        "/docs/adaptive-capture#journey-sampling",
-      );
-    });
+    };
 
-    it("shows a custom-events tooltip on the funnels section", async () => {
-      mockPathname = "/team-123/funnels";
-      render(<AppBreadcrumbs />);
-      const trigger = document.querySelector(
-        '[data-slot="tooltip-trigger"].lucide-info',
-      ) as HTMLElement;
-      expect(trigger).toBeTruthy();
-      fireEvent.focus(trigger);
-      const content = await waitFor(() => {
-        const el = document.querySelector('[data-slot="tooltip-content"]');
-        if (!el) {
-          throw new Error("tooltip content not visible");
-        }
-        return el as HTMLElement;
-      });
-      expect(content.textContent).toContain(
-        "Funnels are built from custom events",
-      );
-      expect(content.querySelector("a")).toHaveAttribute(
-        "href",
-        "/docs/custom-events",
-      );
-    });
+    it.each([
+      [
+        "journeys",
+        "Journeys are built from sampled screen views and custom events. Sampling rate can be changed using analytics sampling in app settings. Learn more",
+        "/docs/journeys",
+      ],
+      [
+        "funnels",
+        "Funnels are built from sampled custom events. Sampling rate can be changed using analytics sampling in app settings. Learn more",
+        "/docs/funnels",
+      ],
+    ])(
+      "explains the analytics sampling rate on the %s section",
+      async (section, text, docsHref) => {
+        mockPathname = `/team-123/${section}`;
+        render(<AppBreadcrumbs />);
+        const content = await openInfoTooltip();
+        expect(content.textContent).toContain(text);
+        const links = content.querySelectorAll("a");
+        expect(links[0]).toHaveTextContent("analytics sampling");
+        expect(links[0]).toHaveAttribute("href", "apps");
+        expect(links[1]).toHaveTextContent("Learn more");
+        expect(links[1]).toHaveAttribute("href", docsHref);
+      },
+    );
 
     it("shows no info tooltip on sections without info", () => {
       mockPathname = "/team-123/errors";

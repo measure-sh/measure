@@ -206,7 +206,7 @@ List all apps the authenticated user has access to.
 
 ### `get_filter_keys`
 
-List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, funnels or builds): the vocabulary a filter expression is written with.
+List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels or builds): the vocabulary a filter expression is written with.
 
 ### `get_filter_values`
 
@@ -214,11 +214,11 @@ List the values a filter key can be set to for an app.
 
 ### `get_metrics`
 
-Get app metrics including adoption, crash-free/ANR-free sessions and launch performance (cold/warm/hot p95).
+Get app metrics including adoption, crash-free/ANR-free/app-hang-free sessions and launch performance (cold/warm/hot p95).
 
 ### `get_app_health_over_time`
 
-Get the app health timeline: sessions, crashes (fatal exceptions) and ANRs bucketed over time.
+Get the app health timeline: sessions, crashes (fatal exceptions), ANRs and app hangs bucketed over time.
 
 ### `get_errors`
 
@@ -268,6 +268,30 @@ Get a breakdown of memory usage by different device memory tiers. Returns p50/p9
 
 Get a paginated list of sessions with high memory usage. Use `get_session` to connect a returned session ID to user actions, screens, and errors.
 
+### `get_device_sessions_over_time`
+
+Get session counts over time for the five device models with the most sessions.
+
+### `get_devices_by_sessions`
+
+Get device models ranked by session count.
+
+### `get_devices_by_errors`
+
+Get device models ranked by error count.
+
+### `get_devices_by_launch_time`
+
+Get device models ranked by app launch time.
+
+### `get_devices_by_span_duration`
+
+Get device models ranked by root span duration.
+
+### `get_devices_by_memory_usage`
+
+Get device models ranked by memory usage.
+
 ### `get_bug_reports`
 
 Get bug reports for an app, ordered by most recent first.
@@ -283,6 +307,14 @@ Get a single bug report with full details.
 ### `update_bug_report_status`
 
 Update the status of a bug report (open or closed).
+
+### `get_builds`
+
+Get builds for an app, ordered by most recent upload first.
+
+### `get_profiles`
+
+Get captured profiles for an app, newest first.
 
 ### `get_root_span_names`
 
@@ -306,7 +338,31 @@ Get alerts for an app, ordered by most recent first.
 
 ### `get_journey`
 
-Get user journeys for an app as a graph of screens.
+Get user journeys for an app as a graph of screens and custom events.
+
+### `get_journey_nodes`
+
+Get the screens and custom events of an app's journey with their number of users, which `get_journey` can be filtered on.
+
+### `get_journey_path_users`
+
+Get how many users went through a journey path.
+
+### `get_journey_errors`
+
+Get the errors users hit on a journey node or a path.
+
+### `get_journey_traces`
+
+Get the root spans recorded on a journey node or a path.
+
+### `get_journey_network`
+
+Get the network requests made on a journey node or a path.
+
+### `get_journey_sessions`
+
+Get the sessions that went through a journey node or a path.
 
 ### `get_funnels`
 

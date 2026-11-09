@@ -1,5 +1,5 @@
 import { SANDBOX_TEAM_ID } from "../utils/sandbox";
-import { catalog } from "./catalog";
+import { APP_HANG_THRESHOLD_MS, catalog } from "./catalog";
 import {
   isWithinRange,
   jsonResponse,
@@ -142,13 +142,14 @@ const SANDBOX_SDK_CONFIG = {
   error_handled_sampling_rate: 10,
   anr_timeline_duration: 30,
   anr_take_screenshot: true,
-  app_hang_threshold_millis: 2000,
+  app_hang_threshold_millis: APP_HANG_THRESHOLD_MS,
   app_hang_timeline_duration: 30,
   app_hang_sampling_rate: 100,
   app_hang_replay_enabled: true,
   bug_report_timeline_duration: 30,
   launch_sampling_rate: 100,
   journey_sampling_rate: 100,
+  analytics_sampling_rate: 100,
   http_sampling_rate: 100,
   http_disable_event_for_urls: [] as string[],
   http_track_request_for_urls: [] as string[],
@@ -313,8 +314,8 @@ function handleBuilds(ctx: SandboxRouteContext, appId: string): Response {
 }
 
 const SANDBOX_NOTIF_PREFS = {
-  error_spike: true,
-  app_hang_spike: true,
+  fatal_error_spike: true,
+  anr_app_hang_spike: true,
   bug_report: true,
   daily_summary: true,
 };

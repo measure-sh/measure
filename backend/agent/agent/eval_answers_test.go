@@ -982,9 +982,14 @@ func internalsPattern(ctx context.Context, t *testing.T, c *Config) *regexp.Rege
 	return regexp.MustCompile(`\b(` + strings.Join(names, "|") + `)\b|` + uuidPattern.String() + `|(?i)\b[0-9a-f]{32}\b|\{\{`)
 }
 
+// markdownLinkTarget matches the URL in a markdown link, which isn't shown
+// to the reader. Dashboard ids in the URL aren't shown as text.
+var markdownLinkTarget = regexp.MustCompile(`\]\([^)\s]+\)`)
+
 func hidesInternals(pattern *regexp.Regexp) evalCheck {
 	return func(evalRun evalRun) string {
-		if match := pattern.FindString(evalRun.answer); match != "" {
+		shown := markdownLinkTarget.ReplaceAllString(evalRun.answer, "]")
+		if match := pattern.FindString(shown); match != "" {
 			return fmt.Sprintf("answer shows internals: %q", match)
 		}
 		return ""
@@ -1034,6 +1039,43 @@ func staysWithinApps(apps ...uuid.UUID) evalCheck {
 				if !slices.ContainsFunc(apps, func(a uuid.UUID) bool { return a.String() == id }) {
 					return fmt.Sprintf("%s queried app %s", toolCall.Function.Name, id)
 				}
+			}
+		}
+		return ""
+	}
+}
+
+// passesSamplePercent fails a run that calls one of lists after source
+// without the sample_percent of the last result of source, so that the list
+// covers the same users. Calls that returned an error are left out.
+func passesSamplePercent(source string, lists ...string) evalCheck {
+	return func(evalRun evalRun) string {
+		var samplePercent *float64
+		for _, toolCall := range evalRun.toolCalls {
+			result := evalRun.toolResults[toolCall.ID]
+			if strings.HasPrefix(result, "error:") {
+				continue
+			}
+			if toolCall.Function.Name == source {
+				var sourceResult struct {
+					SamplePercent *float64 `json:"sample_percent"`
+				}
+				if json.Unmarshal([]byte(result), &sourceResult) == nil {
+					samplePercent = sourceResult.SamplePercent
+				}
+				continue
+			}
+			if samplePercent == nil || !slices.Contains(lists, toolCall.Function.Name) {
+				continue
+			}
+			var args struct {
+				SamplePercent *float64 `json:"sample_percent"`
+			}
+			if json.Unmarshal([]byte(toolCall.Function.Arguments), &args) != nil || args.SamplePercent == nil {
+				return fmt.Sprintf("%s did not pass the sample_percent %v of %s", toolCall.Function.Name, *samplePercent, source)
+			}
+			if *args.SamplePercent != *samplePercent {
+				return fmt.Sprintf("%s passed the sample_percent %v, want %v from %s", toolCall.Function.Name, *args.SamplePercent, *samplePercent, source)
 			}
 		}
 		return ""

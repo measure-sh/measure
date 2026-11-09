@@ -19,13 +19,18 @@ import {
   useChartGridOpacity,
   useChartColors,
 } from "../utils/chart_utils";
+import { numberToKMB } from "../utils/number_utils";
 import {
   formatMillisToHumanReadable,
   formatPlotTooltipDate,
   getPlotTimeGroupNivoConfig,
   type PlotTimeGroup,
 } from "../utils/time_utils";
-import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
+import {
+  PlotTooltip,
+  PlotTooltipArea,
+  PlotTooltipSwatch,
+} from "./plot_tooltip";
 import { Separator } from "./separator";
 
 // A value with no value on either side has no line segment to show it, so it
@@ -74,13 +79,18 @@ type ScaleWithTicks = {
 };
 
 export function formatCount(count: number, singular: string, plural: string) {
-  return `${count.toLocaleString()} ${count === 1 ? singular : plural}`;
+  return `${numberToKMB(count)} ${count === 1 ? singular : plural}`;
 }
 
-export function formatCountWithShare(count: number, total: number) {
+export function formatCountWithShare(
+  count: number,
+  total: number,
+  singular: string,
+  plural: string,
+) {
   const share = total > 0 ? (count / total) * 100 : 0;
   const percent = share > 0 && share < 0.1 ? "<0.1" : share.toFixed(1);
-  return `${count.toLocaleString()} (${percent}%)`;
+  return `${formatCount(count, singular, plural)} (${percent}%)`;
 }
 
 export type TimeSeries = {
@@ -288,93 +298,95 @@ export default function TimeSeriesPlot<Series extends TimeSeries>({
   );
 
   return (
-    <ResponsiveLineCanvas
-      data={plotData as readonly Series[]}
-      curve="linear"
-      theme={canvasTheme}
-      colors={colors ? ({ id }) => colors(id) : chartColors}
-      layers={["axes", drawSeries, "mesh"]}
-      margin={{ top: 16, right: 24, bottom: bottomMargin, left: leftMargin }}
-      xFormat={timeConfig.xFormat}
-      xScale={{
-        format: timeConfig.xScaleFormat,
-        precision: timeConfig.xScalePrecision,
-        type: "time",
-        useUTC: false,
-        min: parseRangeDate(startDate),
-        max: parseRangeDate(endDate),
-      }}
-      yScale={{
-        type: "linear",
-        min: 0,
-        max: "auto",
-        nice: true,
-      }}
-      axisTop={null}
-      axisRight={null}
-      axisBottom={{
-        tickSize: CHART_TICK_SIZE,
-        tickPadding: CHART_TICK_PADDING,
-        tickRotation: xTickRotation,
-        format: (value) => formatTimeTick(value, plotTimeGroup),
-        tickValues: CHART_DATE_TICK_COUNT,
-        legend: xAxisTitle,
-        legendOffset: bottomMargin - CHART_TEXT_SIZE / 2,
-        legendPosition: "middle",
-      }}
-      axisLeft={{
-        tickSize: CHART_TICK_SIZE,
-        tickPadding: CHART_TICK_PADDING,
-        tickValues: wholeNumberTicks ?? CHART_VALUE_TICK_COUNT,
-        format: (value) =>
-          integerTicks && !Number.isInteger(value) ? "" : formatTick(value),
-        legend: yAxisTitle,
-        legendOffset: -(leftMargin - CHART_TEXT_SIZE / 2),
-        legendPosition: "middle",
-      }}
-      enableGridX={false}
-      enableGridY={false}
-      tooltip={({ point }) => {
-        const values: SeriesValue<Series>[] = showAllSeriesInTooltip
-          ? (point.data as unknown as { seriesAtDate: SeriesValue<Series>[] })
-              .seriesAtDate
-          : [
-              {
-                seriesId: point.seriesId,
-                color: point.seriesColor,
-                datum: point.data,
-              },
-            ];
-        return (
-          <PlotTooltipShell>
-            <div className="py-1">
-              {values.map((value) => (
-                <div
-                  className={`flex flex-row items-center px-4 py-2 ${value.seriesId === point.seriesId ? "" : "opacity-20"}`}
-                  key={value.seriesId}
-                >
-                  <PlotTooltipSwatch color={value.color} />
-                  <span className="px-2">
-                    {formatTooltip(value.seriesId, value.datum)}
-                  </span>
-                </div>
-              ))}
-            </div>
-            <Separator />
-            <div className="px-4 py-3">
-              {tooltipTotal && (
-                <p className="pb-2">
-                  Total: {tooltipTotal(point.data).toLocaleString()}
+    <PlotTooltipArea>
+      <ResponsiveLineCanvas
+        data={plotData as readonly Series[]}
+        curve="linear"
+        theme={canvasTheme}
+        colors={colors ? ({ id }) => colors(id) : chartColors}
+        layers={["axes", drawSeries, "mesh"]}
+        margin={{ top: 16, right: 24, bottom: bottomMargin, left: leftMargin }}
+        xFormat={timeConfig.xFormat}
+        xScale={{
+          format: timeConfig.xScaleFormat,
+          precision: timeConfig.xScalePrecision,
+          type: "time",
+          useUTC: false,
+          min: parseRangeDate(startDate),
+          max: parseRangeDate(endDate),
+        }}
+        yScale={{
+          type: "linear",
+          min: 0,
+          max: "auto",
+          nice: true,
+        }}
+        axisTop={null}
+        axisRight={null}
+        axisBottom={{
+          tickSize: CHART_TICK_SIZE,
+          tickPadding: CHART_TICK_PADDING,
+          tickRotation: xTickRotation,
+          format: (value) => formatTimeTick(value, plotTimeGroup),
+          tickValues: CHART_DATE_TICK_COUNT,
+          legend: xAxisTitle,
+          legendOffset: bottomMargin - CHART_TEXT_SIZE / 2,
+          legendPosition: "middle",
+        }}
+        axisLeft={{
+          tickSize: CHART_TICK_SIZE,
+          tickPadding: CHART_TICK_PADDING,
+          tickValues: wholeNumberTicks ?? CHART_VALUE_TICK_COUNT,
+          format: (value) =>
+            integerTicks && !Number.isInteger(value) ? "" : formatTick(value),
+          legend: yAxisTitle,
+          legendOffset: -(leftMargin - CHART_TEXT_SIZE / 2),
+          legendPosition: "middle",
+        }}
+        enableGridX={false}
+        enableGridY={false}
+        tooltip={({ point }) => {
+          const values: SeriesValue<Series>[] = showAllSeriesInTooltip
+            ? (point.data as unknown as { seriesAtDate: SeriesValue<Series>[] })
+                .seriesAtDate
+            : [
+                {
+                  seriesId: point.seriesId,
+                  color: point.seriesColor,
+                  datum: point.data,
+                },
+              ];
+          return (
+            <PlotTooltip>
+              <div className="py-1">
+                {values.map((value) => (
+                  <div
+                    className={`flex flex-row items-center px-4 py-2 ${value.seriesId === point.seriesId ? "" : "opacity-20"}`}
+                    key={value.seriesId}
+                  >
+                    <PlotTooltipSwatch color={value.color} />
+                    <span className="px-2">
+                      {formatTooltip(value.seriesId, value.datum)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <Separator />
+              <div className="px-4 py-3">
+                {tooltipTotal && (
+                  <p className="pb-2">
+                    Total: {numberToKMB(tooltipTotal(point.data))}
+                  </p>
+                )}
+                <p>
+                  Date:{" "}
+                  {formatPlotTooltipDate(point.data.xFormatted, plotTimeGroup)}
                 </p>
-              )}
-              <p>
-                Date:{" "}
-                {formatPlotTooltipDate(point.data.xFormatted, plotTimeGroup)}
-              </p>
-            </div>
-          </PlotTooltipShell>
-        );
-      }}
-    />
+              </div>
+            </PlotTooltip>
+          );
+        }}
+      />
+    </PlotTooltipArea>
   );
 }

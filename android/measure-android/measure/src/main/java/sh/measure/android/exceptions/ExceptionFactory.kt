@@ -1,5 +1,7 @@
 package sh.measure.android.exceptions
 
+import sh.measure.android.utils.ValidationLimits
+
 internal object ExceptionFactory {
     /**
      * Creates [ExceptionData] from a [Throwable].
@@ -19,7 +21,7 @@ internal object ExceptionFactory {
         while (error != null) {
             val exception = ExceptionUnit(
                 type = error.javaClass.name,
-                message = error.message,
+                message = error.message?.take(ValidationLimits.EXCEPTION_MESSAGE),
                 frames = error.stackTrace.trimStackTrace().map {
                     Frame(
                         class_name = it.className,

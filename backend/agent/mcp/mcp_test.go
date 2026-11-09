@@ -13,6 +13,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"maps"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -2627,10 +2628,15 @@ func TestMCPToolsList(t *testing.T) {
 		"get_error_common_path",
 		"get_sessions", "get_sessions_over_time", "get_session",
 		"get_memory_usage_over_time", "get_memory_usage_by_device_tier", "get_high_memory_sessions",
+		"get_device_sessions_over_time", "get_devices_by_sessions", "get_devices_by_errors",
+		"get_devices_by_launch_time", "get_devices_by_span_duration", "get_devices_by_memory_usage",
 		"get_bug_reports", "get_bug_reports_over_time", "get_bug_report",
 		"update_bug_report_status",
+		"get_builds", "get_profiles",
 		"get_root_span_names", "get_span_instances", "get_span_metrics_over_time",
-		"get_trace", "get_alerts", "get_journey",
+		"get_trace", "get_alerts", "get_journey", "get_journey_nodes",
+		"get_journey_path_users", "get_journey_errors", "get_journey_traces",
+		"get_journey_network", "get_journey_sessions",
 		"get_network_metrics_trends",
 		"get_network_status_codes_over_time",
 		"get_network_endpoint_status_codes_over_time",
@@ -2921,6 +2927,7 @@ func TestMCPGetAppHealthOverTime(t *testing.T) {
 		ts := now.Add(-1 * time.Hour)
 		// 5 plain sessions, 2 crash sessions (legacy fatal), 1 ANR session.
 		seedAppMetrics(ctx, t, teamID.String(), appID.String(), ts, 5, 2, 1)
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 2, testinfra.EventRow{Type: "app_hang", AppVersion: "v1", AppBuild: "1", Timestamp: ts})
 
 		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
 
@@ -2952,19 +2959,22 @@ func TestMCPGetAppHealthOverTime(t *testing.T) {
 			return total
 		}
 
-		for _, series := range []string{"sessions", "crashes", "anrs"} {
+		for _, series := range []string{"sessions", "crashes", "anrs", "app_hangs"} {
 			if _, ok := result[series]; !ok {
 				t.Errorf("response missing %q series", series)
 			}
 		}
-		if got := sumInstances("sessions"); got != 8 {
-			t.Errorf("sessions = %d, want 8 (5 generic + 2 crash + 1 anr)", got)
+		if got := sumInstances("sessions"); got != 10 {
+			t.Errorf("sessions = %d, want 10 (5 generic + 2 crash + 1 anr + 2 app hang)", got)
 		}
 		if got := sumInstances("crashes"); got != 2 {
 			t.Errorf("crashes = %d, want 2", got)
 		}
 		if got := sumInstances("anrs"); got != 1 {
 			t.Errorf("anrs = %d, want 1", got)
+		}
+		if got := sumInstances("app_hangs"); got != 2 {
+			t.Errorf("app_hangs = %d, want 2", got)
 		}
 	})
 
@@ -3026,7 +3036,7 @@ func TestMCPGetAppHealthOverTime(t *testing.T) {
 		if err := json.Unmarshal([]byte(content), &result); err != nil {
 			t.Fatalf("response is not the expected JSON object: %v\ncontent: %s", err, content)
 		}
-		for _, series := range []string{"sessions", "crashes", "anrs"} {
+		for _, series := range []string{"sessions", "crashes", "anrs", "app_hangs"} {
 			if len(result[series]) != 0 {
 				t.Errorf("%s = %v, want nothing for an unseeded version", series, result[series])
 			}
@@ -3147,6 +3157,131 @@ func TestMCPMemoryTools(t *testing.T) {
 		keys := callMCPTool(t, rawToken, "get_filter_keys", map[string]any{"app_id": appID.String(), "entity": "memory"})
 		if isToolError(keys) || !strings.Contains(extractTextContent(t, keys), `"name":"app_state"`) {
 			t.Fatalf("memory filter keys = %s, want app_state", extractTextContent(t, keys))
+		}
+	})
+}
+
+func TestMCPDevicesTools(t *testing.T) {
+	ctx := context.Background()
+	cleanupAll(ctx, t)
+	userID := uuid.New()
+	seedUser(ctx, t, userID.String(), "devices@mcp.test")
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, "devices team")
+	seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+	appID := uuid.New()
+	seedApp(ctx, t, appID, teamID, 30)
+	rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+
+	base := time.Now().UTC().Add(-time.Hour).Truncate(time.Second)
+	sessionID := uuid.New().String()
+	anonRSS := uint64(2 * 1024 * 1024)
+	swap := uint64(0)
+	for _, row := range []testinfra.EventRow{
+		{Type: "exception", Severity: "fatal"},
+		{Type: "cold_launch", LaunchDuration: 500},
+		{Type: "memory_usage", MemoryAnonRSS: &anonRSS, MemorySwap: &swap, MemoryAppImportance: "foreground"},
+	} {
+		row.SessionID = sessionID
+		row.Timestamp = base
+		row.OSName = "android"
+		row.DeviceManufacturer = "Google"
+		row.DeviceModel = "Pixel 8"
+		row.DeviceName = "shiba"
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 1, row)
+	}
+	th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{
+		SpanName: "checkout", Status: 1, StartTime: base, SessionID: sessionID,
+		DeviceManufacturer: "Google", DeviceModel: "Pixel 8", DeviceName: "shiba",
+	})
+
+	args := func(extra map[string]any) map[string]any {
+		args := map[string]any{
+			"app_id": appID.String(),
+			// span_metrics rounds span start times down to the nearest 15
+			// minutes.
+			"from": base.Add(-15 * time.Minute).Format(time.RFC3339),
+			"to":   base.Add(time.Minute).Format(time.RFC3339),
+		}
+		for key, value := range extra {
+			args[key] = value
+		}
+		return args
+	}
+	type row struct {
+		DeviceManufacturer string `json:"device_manufacturer"`
+		DeviceModel        string `json:"device_model"`
+		DeviceName         string `json:"device_name"`
+		SessionCount       uint64 `json:"session_count"`
+		CrashCount         uint64 `json:"crash_count"`
+		Count              uint64 `json:"count"`
+		SampleCount        uint64 `json:"sample_count"`
+	}
+	list := func(t *testing.T, tool string, extra map[string]any) row {
+		t.Helper()
+		resp := callMCPTool(t, rawToken, tool, args(extra))
+		if isToolError(resp) {
+			t.Fatalf("%s returned an error: %s", tool, extractTextContent(t, resp))
+		}
+		var page struct {
+			Results []row           `json:"results"`
+			Meta    map[string]bool `json:"meta"`
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &page); err != nil {
+			t.Fatalf("unmarshal %s: %v", tool, err)
+		}
+		if len(page.Results) != 1 || page.Results[0].DeviceModel != "Pixel 8" || page.Results[0].DeviceName != "shiba" || page.Meta["next"] || page.Meta["previous"] {
+			t.Fatalf("%s = %#v, want one Pixel 8 row", tool, page)
+		}
+		return page.Results[0]
+	}
+
+	t.Run("lists each metric by device", func(t *testing.T) {
+		if got := list(t, "get_devices_by_sessions", nil); got.SessionCount != 1 {
+			t.Errorf("sessions = %d, want 1", got.SessionCount)
+		}
+		if got := list(t, "get_devices_by_errors", map[string]any{"order": "asc"}); got.CrashCount != 1 {
+			t.Errorf("crashes = %d, want 1", got.CrashCount)
+		}
+		if got := list(t, "get_devices_by_launch_time", map[string]any{"percentile": "p50"}); got.Count != 1 {
+			t.Errorf("launches = %d, want 1", got.Count)
+		}
+		if got := list(t, "get_devices_by_span_duration", map[string]any{"root_span_name": "checkout"}); got.Count != 1 {
+			t.Errorf("spans = %d, want 1", got.Count)
+		}
+		if got := list(t, "get_devices_by_memory_usage", nil); got.SampleCount != 1 {
+			t.Errorf("memory samples = %d, want 1", got.SampleCount)
+		}
+	})
+
+	t.Run("plots sessions by device", func(t *testing.T) {
+		resp := callMCPTool(t, rawToken, "get_device_sessions_over_time", args(map[string]any{"timezone": "UTC"}))
+		if isToolError(resp) {
+			t.Fatalf("plot returned an error: %s", extractTextContent(t, resp))
+		}
+		var points []row
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &points); err != nil {
+			t.Fatalf("unmarshal plot: %v", err)
+		}
+		if len(points) != 1 || points[0].DeviceModel != "Pixel 8" || points[0].SessionCount != 1 {
+			t.Fatalf("plot = %#v, want one Pixel 8 point with 1 session", points)
+		}
+	})
+
+	t.Run("rejects invalid inputs", func(t *testing.T) {
+		for _, tc := range []struct {
+			tool  string
+			extra map[string]any
+		}{
+			{"get_device_sessions_over_time", nil},
+			{"get_devices_by_sessions", map[string]any{"order": "sideways"}},
+			{"get_devices_by_launch_time", map[string]any{"launch_type": "lukewarm"}},
+			{"get_devices_by_memory_usage", map[string]any{"percentile": "p99"}},
+			{"get_devices_by_span_duration", nil},
+		} {
+			if resp := callMCPTool(t, rawToken, tc.tool, args(tc.extra)); !isToolError(resp) {
+				t.Errorf("%s with %v: want a tool error", tc.tool, tc.extra)
+			}
 		}
 	})
 }
@@ -4043,6 +4178,69 @@ func TestMCPGetMetrics(t *testing.T) {
 			t.Errorf("adoption = %+v, want 3 of 4 at 75%%", result.Adoption)
 		}
 	})
+
+	getAppHangMetrics := func(t *testing.T, email, osName string) map[string]json.RawMessage {
+		t.Helper()
+		teamID, appID, rawToken := setupMetricsApp(t, email)
+		if _, err := th.PgPool.Exec(ctx, "UPDATE apps SET os_names = $1 WHERE id = $2", []string{osName}, appID); err != nil {
+			t.Fatalf("set os_names: %v", err)
+		}
+
+		now := time.Now().UTC()
+		ts := now.Add(-time.Hour)
+		// Three sessions of which one saw an app hang.
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 2, testinfra.EventRow{AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{Type: "app_hang", AppHangState: "killed", AppVersion: "v1", AppBuild: "1", Timestamp: ts})
+
+		resp := callMCPTool(t, rawToken, "get_metrics", map[string]any{
+			"app_id": appID.String(),
+			"from":   now.Add(-7 * 24 * time.Hour).Format(time.RFC3339),
+			"to":     now.Format(time.RFC3339),
+		})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+
+		var result map[string]json.RawMessage
+		content := extractTextContent(t, resp)
+		if err := json.Unmarshal([]byte(content), &result); err != nil {
+			t.Fatalf("response is not JSON object: %v\ncontent: %s", err, content)
+		}
+		return result
+	}
+
+	t.Run("an iOS app reports app hang free sessions", func(t *testing.T) {
+		result := getAppHangMetrics(t, "metios@mcp.test", "ios")
+
+		var appHangFree struct {
+			AppHangFreeSessions float64 `json:"app_hang_free_sessions"`
+			NoData              bool    `json:"no_data"`
+			UnselectedNoData    bool    `json:"unselected_no_data"`
+		}
+		if err := json.Unmarshal(result["app_hang_free_sessions"], &appHangFree); err != nil {
+			t.Fatalf("unmarshal app_hang_free_sessions: %v", err)
+		}
+		if want := 66.67; appHangFree.AppHangFreeSessions != want || appHangFree.NoData {
+			t.Errorf("app_hang_free_sessions = %+v, want %v", appHangFree, want)
+		}
+		if !appHangFree.UnselectedNoData {
+			t.Error("unselected_no_data = false, want true")
+		}
+		if _, ok := result["anr_free_sessions"]; ok {
+			t.Error("anr_free_sessions is present, want it absent for an iOS app")
+		}
+	})
+
+	t.Run("an Android app has no app hang free sessions", func(t *testing.T) {
+		result := getAppHangMetrics(t, "metandroid@mcp.test", "android")
+
+		if _, ok := result["app_hang_free_sessions"]; ok {
+			t.Error("app_hang_free_sessions is present, want it absent for an Android app")
+		}
+		if _, ok := result["anr_free_sessions"]; !ok {
+			t.Error("anr_free_sessions is absent, want it present for an Android app")
+		}
+	})
 }
 
 // The remaining tool tests (plot, distribution, sessions, bug reports, spans,
@@ -4195,7 +4393,7 @@ func TestMCPGetErrorDistribution(t *testing.T) {
 			th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
 				Type: "exception", Fingerprint: fingerprint, Severity: "fatal",
 				Timestamp: now.Add(-time.Hour), OSName: "android", OSVersion: "14",
-				DeviceManufacturer: "TestCo", DeviceName: fmt.Sprintf("device-%d", i),
+				DeviceManufacturer: "TestCo", DeviceModel: fmt.Sprintf("device-%d", i),
 			})
 		}
 		args := map[string]any{"app_id": appID.String(), "error_group_id": fingerprint, "from": now.Add(-7 * 24 * time.Hour).Format(time.RFC3339), "to": now.Format(time.RFC3339)}
@@ -4233,11 +4431,11 @@ func TestMCPGetErrorDistribution(t *testing.T) {
 		appID, teamID, rawToken := setupToolTest(t, "edist6@mcp.test")
 		now := time.Now().UTC()
 		const fingerprint = "0000000000000000000000000000d158"
-		seed := func(count int, osName, deviceName string) {
+		seed := func(count int, osName, deviceModel string) {
 			th.SeedEventRows(ctx, t, teamID.String(), appID.String(), count, testinfra.EventRow{
 				Type: "exception", Fingerprint: fingerprint, Severity: "fatal",
 				Timestamp: now.Add(-time.Hour), OSName: osName, OSVersion: "1",
-				DeviceManufacturer: "TestCo", DeviceName: deviceName,
+				DeviceManufacturer: "TestCo", DeviceModel: deviceModel,
 			})
 		}
 		seed(3, "android", "pixel")
@@ -4733,6 +4931,311 @@ func TestMCPGetBugReport(t *testing.T) {
 	})
 }
 
+func TestMCPGetBuilds(t *testing.T) {
+	ctx := context.Background()
+	setupToolTest := func(t *testing.T, email string) (uuid.UUID, uuid.UUID, string) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), email)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, email+" team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		return appID, teamID, rawToken
+	}
+	now := time.Now().UTC()
+	from := now.Add(-7 * 24 * time.Hour).Format(time.RFC3339)
+	to := now.Format(time.RFC3339)
+
+	seedBuild := func(t *testing.T, appID uuid.UUID, versionName, versionCode, mappingType string, uploaded time.Time) {
+		t.Helper()
+		mappingID := uuid.NewString()
+		th.SeedBuildMappingRow(ctx, t, mappingID, appID.String(), versionName, versionCode, mappingType, "mappings/"+mappingID, uuid.Nil.String(), "", uploaded)
+	}
+	type buildFile struct {
+		MappingType string `json:"mapping_type"`
+	}
+	type build struct {
+		VersionName  string      `json:"version_name"`
+		VersionCode  string      `json:"version_code"`
+		PatchID      string      `json:"patch_id"`
+		Files        []buildFile `json:"files"`
+		DashboardURL string      `json:"dashboard_url"`
+	}
+	getBuilds := func(t *testing.T, rawToken string, args map[string]any) []build {
+		t.Helper()
+		resp := callMCPTool(t, rawToken, "get_builds", args)
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		var builds []build
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &builds); err != nil {
+			t.Fatalf("unmarshal builds: %v", err)
+		}
+		return builds
+	}
+	versions := func(builds []build) []string {
+		versions := make([]string, len(builds))
+		for i, build := range builds {
+			mappingTypes := make([]string, len(build.Files))
+			for j, file := range build.Files {
+				mappingTypes[j] = file.MappingType
+			}
+			versions[i] = build.VersionName + ":" + strings.Join(mappingTypes, ",")
+		}
+		return versions
+	}
+
+	t.Run("missing app_id", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "builds@mcp.test")
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
+		resp := callMCPTool(t, rawToken, "get_builds", nil)
+		if !isToolError(resp) {
+			t.Error("want tool error for missing app_id")
+		}
+	})
+	t.Run("lists uploaded builds in range, newest first", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "buildslist@mcp.test")
+		seedBuild(t, appID, "1.2.0", "120", "proguard", now.Add(-time.Hour))
+		seedBuild(t, appID, "1.2.0", "120", "elf_debug", now.Add(-2*time.Hour))
+		seedBuild(t, appID, "1.1.0", "110", "proguard", now.Add(-3*time.Hour))
+		seedBuild(t, appID, "1.0.0", "100", "proguard", now.Add(-10*24*time.Hour))
+
+		got := versions(getBuilds(t, rawToken, map[string]any{"app_id": appID.String(), "from": from, "to": to}))
+		if !slices.Equal(got, []string{"1.2.0:elf_debug,proguard", "1.1.0:proguard"}) {
+			t.Fatalf("want [1.2.0:elf_debug,proguard 1.1.0:proguard], got %v", got)
+		}
+	})
+	t.Run("links each build to its files", func(t *testing.T) {
+		setConfig(t, func(c *server.Config) {
+			c.SiteOrigin = "https://dashboard.test"
+		})
+		appID, teamID, rawToken := setupToolTest(t, "buildsurl@mcp.test")
+		seedBuild(t, appID, "1.2.0", "120", "proguard", now.Add(-time.Hour))
+		seedBuild(t, appID, "1.2.0", "121", "proguard", now.Add(-2*time.Hour))
+		patchID := uuid.New()
+		th.SeedBuildMappingRow(ctx, t, uuid.NewString(), appID.String(), "", "", "proguard", "mappings/patch", patchID.String(), "1.2.0-patch.1", now.Add(-3*time.Hour))
+
+		resp := callMCPTool(t, rawToken, "get_builds", map[string]any{"app_id": appID.String(), "from": from, "to": to})
+		if text := extractTextContent(t, resp); isToolError(resp) || strings.Contains(text, "download_url") {
+			t.Fatalf("want builds without a download_url, got: %s", text)
+		}
+		builds := getBuilds(t, rawToken, map[string]any{"app_id": appID.String(), "from": from, "to": to})
+		if len(builds) != 3 {
+			t.Fatalf("want 3 builds, got %+v", builds)
+		}
+
+		for _, build := range builds {
+			link, err := url.Parse(build.DashboardURL)
+			if err != nil {
+				t.Fatalf("parse dashboard_url %q: %v", build.DashboardURL, err)
+			}
+			query := link.Query()
+			if link.Scheme+"://"+link.Host != "https://dashboard.test" || link.Path != "/"+teamID.String()+"/builds" || query.Get("a") != appID.String() || query.Get("d") != "Custom Range" {
+				t.Fatalf("dashboard_url %q should open the app's Builds page with a custom range", build.DashboardURL)
+			}
+
+			// The Builds page lists what get_builds returns for the same app,
+			// range and filter, so the link must select this build alone.
+			selected := getBuilds(t, rawToken, map[string]any{
+				"app_id": appID.String(), "from": query.Get("sd"), "to": query.Get("ed"), "filter_expr": query.Get("filter_expr"),
+			})
+			if len(selected) != 1 || selected[0].VersionCode != build.VersionCode || selected[0].PatchID != build.PatchID {
+				t.Errorf("dashboard_url %q selects %+v, want only the build %s/%s", build.DashboardURL, selected, build.VersionCode, build.PatchID)
+			}
+		}
+	})
+	t.Run("filters results", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "buildsexpr@mcp.test")
+		seedBuild(t, appID, "1.2.0", "120", "proguard", now.Add(-time.Hour))
+		seedBuild(t, appID, "1.1.0", "110", "proguard", now.Add(-2*time.Hour))
+
+		got := versions(getBuilds(t, rawToken, map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": "version_name:in:[1.1.0]"}))
+		if !slices.Equal(got, []string{"1.1.0:proguard"}) {
+			t.Fatalf("want [1.1.0:proguard], got %v", got)
+		}
+	})
+	t.Run("pages through builds", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "buildspage@mcp.test")
+		seedBuild(t, appID, "1.2.0", "120", "proguard", now.Add(-time.Hour))
+		seedBuild(t, appID, "1.1.0", "110", "proguard", now.Add(-2*time.Hour))
+
+		for offset, want := range []string{"1.2.0:proguard", "1.1.0:proguard"} {
+			got := versions(getBuilds(t, rawToken, map[string]any{"app_id": appID.String(), "from": from, "to": to, "limit": 1, "offset": offset}))
+			if !slices.Equal(got, []string{want}) {
+				t.Fatalf("offset %d: want [%s], got %v", offset, want, got)
+			}
+		}
+	})
+	t.Run("returns an issue for an invalid filter_expr", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "buildsexprbad@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_builds", map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": "bogus_key:in:x"})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for unknown filter key")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "Unknown key") || !strings.Contains(text, "bogus_key") {
+			t.Errorf("error text %q should name the unknown key", text)
+		}
+	})
+}
+
+func TestMCPGetProfiles(t *testing.T) {
+	ctx := context.Background()
+	setupToolTest := func(t *testing.T, email string) (uuid.UUID, uuid.UUID, string) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), email)
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, email+" team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+		return appID, teamID, rawToken
+	}
+	now := time.Now().UTC()
+	from := now.Add(-7 * 24 * time.Hour).Format(time.RFC3339)
+	to := now.Add(time.Minute).Format(time.RFC3339)
+
+	seedProfile := func(t *testing.T, teamID, appID uuid.UUID, versionName, trigger string, captured time.Time) {
+		t.Helper()
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+			Type: "profile", SessionID: uuid.NewString(), Timestamp: captured, AppVersion: versionName, AppBuild: "1",
+			ProfileTrigger: trigger, ProfileFormat: "perfetto_trace",
+			OSName: "android", OSVersion: "36", DeviceManufacturer: "Google", DeviceModel: "GKWS6", DeviceName: "Pixel 9",
+		})
+	}
+	type profile struct {
+		ID           string `json:"id"`
+		Trigger      string `json:"trigger"`
+		VersionName  string `json:"version_name"`
+		DeviceModel  string `json:"device_model"`
+		DeviceName   string `json:"device_name"`
+		DashboardURL string `json:"dashboard_url"`
+	}
+	getProfiles := func(t *testing.T, rawToken string, args map[string]any) []profile {
+		t.Helper()
+		resp := callMCPTool(t, rawToken, "get_profiles", args)
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		var profiles []profile
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &profiles); err != nil {
+			t.Fatalf("unmarshal profiles: %v", err)
+		}
+		return profiles
+	}
+	triggers := func(profiles []profile) []string {
+		triggers := make([]string, len(profiles))
+		for i, profile := range profiles {
+			triggers[i] = profile.VersionName + ":" + profile.Trigger
+		}
+		return triggers
+	}
+
+	t.Run("requires app_id", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "profiles@mcp.test")
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(time.Hour))
+		resp := callMCPTool(t, rawToken, "get_profiles", nil)
+		if !isToolError(resp) {
+			t.Error("want tool error for missing app_id")
+		}
+	})
+	t.Run("lists profiles in range, newest first", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "profileslist@mcp.test")
+		seedProfile(t, teamID, appID, "1.2.0", "anr", now.Add(-time.Hour))
+		seedProfile(t, teamID, appID, "1.1.0", "app_fully_drawn", now.Add(-2*time.Hour))
+		seedProfile(t, teamID, appID, "1.0.0", "anr", now.Add(-10*24*time.Hour))
+
+		profiles := getProfiles(t, rawToken, map[string]any{"app_id": appID.String(), "from": from, "to": to})
+		if got := triggers(profiles); !slices.Equal(got, []string{"1.2.0:anr", "1.1.0:app_fully_drawn"}) {
+			t.Fatalf("want [1.2.0:anr 1.1.0:app_fully_drawn], got %v", got)
+		}
+		if profiles[0].DeviceModel != "GKWS6" || profiles[0].DeviceName != "Pixel 9" {
+			t.Errorf("want device model GKWS6 and device name Pixel 9, got %+v", profiles[0])
+		}
+	})
+	t.Run("links each profile to the Profiles page", func(t *testing.T) {
+		setConfig(t, func(c *server.Config) {
+			c.SiteOrigin = "https://dashboard.test"
+		})
+		appID, teamID, rawToken := setupToolTest(t, "profilesurl@mcp.test")
+		// A link covers the profile's second through one second later. Since
+		// the range end is inclusive, profiles one second apart would both
+		// match one link, so these profiles are seeded two seconds apart.
+		seedProfile(t, teamID, appID, "1.2.0", "anr", now.Add(-time.Hour))
+		seedProfile(t, teamID, appID, "1.2.0", "anr", now.Add(-time.Hour-2*time.Second))
+
+		resp := callMCPTool(t, rawToken, "get_profiles", map[string]any{"app_id": appID.String(), "from": from, "to": to})
+		if text := extractTextContent(t, resp); isToolError(resp) || strings.Contains(text, "attachments") || strings.Contains(text, "location") {
+			t.Fatalf("want profiles without attachments, got: %s", text)
+		}
+		profiles := getProfiles(t, rawToken, map[string]any{"app_id": appID.String(), "from": from, "to": to})
+		if len(profiles) != 2 {
+			t.Fatalf("want 2 profiles, got %+v", profiles)
+		}
+
+		for _, profile := range profiles {
+			link, err := url.Parse(profile.DashboardURL)
+			if err != nil {
+				t.Fatalf("parse dashboard_url %q: %v", profile.DashboardURL, err)
+			}
+			query := link.Query()
+			if link.Scheme+"://"+link.Host != "https://dashboard.test" || link.Path != "/"+teamID.String()+"/profiles" || query.Get("a") != appID.String() || query.Get("d") != "Custom Range" {
+				t.Fatalf("dashboard_url %q should open the app's Profiles page with a custom range", profile.DashboardURL)
+			}
+
+			// The Profiles page shows the profiles returned by get_profiles for the
+			// same app and time range. Since the filter has no profile ID key, the link's
+			// time range must select this profile alone.
+			selected := getProfiles(t, rawToken, map[string]any{
+				"app_id": appID.String(), "from": query.Get("sd"), "to": query.Get("ed"),
+			})
+			if len(selected) != 1 || selected[0].ID != profile.ID {
+				t.Errorf("dashboard_url %q selects %+v, want only the profile %s", profile.DashboardURL, selected, profile.ID)
+			}
+		}
+	})
+	t.Run("filters profiles", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "profilesexpr@mcp.test")
+		seedProfile(t, teamID, appID, "1.2.0", "anr", now.Add(-time.Hour))
+		seedProfile(t, teamID, appID, "1.2.0", "app_fully_drawn", now.Add(-2*time.Hour))
+
+		got := triggers(getProfiles(t, rawToken, map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": "profile_trigger:in:[app_fully_drawn]"}))
+		if !slices.Equal(got, []string{"1.2.0:app_fully_drawn"}) {
+			t.Fatalf("want [1.2.0:app_fully_drawn], got %v", got)
+		}
+	})
+	t.Run("paginates profiles", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "profilespage@mcp.test")
+		seedProfile(t, teamID, appID, "1.2.0", "anr", now.Add(-time.Hour))
+		seedProfile(t, teamID, appID, "1.1.0", "anr", now.Add(-2*time.Hour))
+
+		for offset, want := range []string{"1.2.0:anr", "1.1.0:anr"} {
+			got := triggers(getProfiles(t, rawToken, map[string]any{"app_id": appID.String(), "from": from, "to": to, "limit": 1, "offset": offset}))
+			if !slices.Equal(got, []string{want}) {
+				t.Fatalf("offset %d: want [%s], got %v", offset, want, got)
+			}
+		}
+	})
+	t.Run("reports an invalid filter_expr", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "profilesexprbad@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_profiles", map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": "bogus_key:in:x"})
+		if !isToolError(resp) {
+			t.Fatal("want tool error for unknown filter key")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "Unknown key") || !strings.Contains(text, "bogus_key") {
+			t.Errorf("error text %q should name the unknown key", text)
+		}
+	})
+}
+
 func TestMCPGetRootSpanNames(t *testing.T) {
 	ctx := context.Background()
 	setupToolTest := func(t *testing.T, email string) (uuid.UUID, string) {
@@ -5162,13 +5665,92 @@ func TestMCPGetJourney(t *testing.T) {
 			t.Fatalf("want no nodes for a version never seen, got %v", got)
 		}
 	})
+	t.Run("max_links out of range", func(t *testing.T) {
+		appID, _, rawToken := setupToolTest(t, "journeylinks@mcp.test")
+		resp := callMCPTool(t, rawToken, "get_journey", map[string]any{"app_id": appID.String(), "from": from, "to": to, "max_links": 5001})
+		if !isToolError(resp) {
+			t.Error("want tool error for max_links above 5000")
+		}
+	})
+	t.Run("node_ids picks the nodes get_journey_nodes lists", func(t *testing.T) {
+		appID, teamID, rawToken := setupToolTest(t, "journeynodes@mcp.test")
+		// Each session has its own installation, so HomeActivity has 3 users,
+		// CartActivity 2 and SettingsActivity 1.
+		for _, screens := range [][]string{{"HomeActivity", "CartActivity", "SettingsActivity"}, {"HomeActivity", "CartActivity"}, {"HomeActivity"}} {
+			sessionID, installationID := uuid.NewString(), uuid.NewString()
+			for i, screen := range screens {
+				err := th.ChConn.Exec(ctx, "insert into measure.events (id, type, session_id, app_id, team_id, timestamp, `attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, `lifecycle_activity.type`, `lifecycle_activity.class_name`) values (?, 'lifecycle_activity', ?, ?, ?, ?, ?, 'v1', '1', 'resumed', ?)",
+					uuid.NewString(), sessionID, appID, teamID, now.Add(-time.Hour).Add(time.Duration(i)*time.Second), installationID, screen)
+				if err != nil {
+					t.Fatalf("seed screen: %v", err)
+				}
+			}
+		}
+		args := func(extra map[string]any) map[string]any {
+			args := map[string]any{"app_id": appID.String(), "from": from, "to": to}
+			maps.Copy(args, extra)
+			return args
+		}
+
+		var listed struct {
+			Nodes []struct {
+				ID    string `json:"id"`
+				Users uint64 `json:"users"`
+			} `json:"nodes"`
+		}
+		resp := callMCPTool(t, rawToken, "get_journey_nodes", args(nil))
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &listed); err != nil {
+			t.Fatalf("unmarshal journey nodes: %v", err)
+		}
+		got := []string{}
+		for _, node := range listed.Nodes {
+			got = append(got, fmt.Sprintf("%s %d", node.ID, node.Users))
+		}
+		if want := []string{"screen:HomeActivity 3", "screen:CartActivity 2", "screen:SettingsActivity 1"}; !slices.Equal(got, want) {
+			t.Fatalf("nodes = %v, want %v", got, want)
+		}
+
+		resp = callMCPTool(t, rawToken, "get_journey", args(map[string]any{"node_ids": []string{"screen:CartActivity", "screen:SettingsActivity"}}))
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		var journey measure.Journey
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &journey); err != nil {
+			t.Fatalf("unmarshal journey: %v", err)
+		}
+		if len(journey.Nodes) != 2 || len(journey.Links) != 1 || journey.Links[0].Source != "screen:CartActivity" || journey.Links[0].Target != "screen:SettingsActivity" {
+			t.Errorf("want CartActivity, SettingsActivity and the link between them, got %+v", journey)
+		}
+
+		resp = callMCPTool(t, rawToken, "get_journey", args(map[string]any{"max_links": 1}))
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &journey); err != nil {
+			t.Fatalf("unmarshal journey: %v", err)
+		}
+		if len(journey.Links) != 1 || journey.Links[0].Source != "screen:HomeActivity" || journey.Links[0].Target != "screen:CartActivity" {
+			t.Errorf("want the link from HomeActivity to CartActivity, the one with the most users, got %+v", journey.Links)
+		}
+
+		resp = callMCPTool(t, rawToken, "get_journey", args(map[string]any{"node_ids": []string{"screen:CartActivity", "screen:LoginActivity"}}))
+		if !isToolError(resp) {
+			t.Fatal("want tool error for a node the journey does not have")
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, "screen:LoginActivity") {
+			t.Errorf("error text %q should give the missing node", text)
+		}
+	})
 	t.Run("invalid filter_expr returns the issue", func(t *testing.T) {
 		appID, _, rawToken := setupToolTest(t, "journeyexprbad@mcp.test")
-		resp := callMCPTool(t, rawToken, "get_journey", map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": "os_name:in:android"})
+		resp := callMCPTool(t, rawToken, "get_journey", map[string]any{"app_id": appID.String(), "from": from, "to": to, "filter_expr": "user_id:in:alice"})
 		if !isToolError(resp) {
 			t.Fatal("want tool error for a key the journeys entity does not have")
 		}
-		if text := extractTextContent(t, resp); !strings.Contains(text, "Unknown key") || !strings.Contains(text, "os_name") {
+		if text := extractTextContent(t, resp); !strings.Contains(text, "Unknown key") || !strings.Contains(text, "user_id") {
 			t.Errorf("error text %q should name the unknown key", text)
 		}
 	})
@@ -5180,6 +5762,194 @@ func TestMCPGetJourney(t *testing.T) {
 		}
 		if text := extractTextContent(t, resp); !strings.Contains(text, "filter_expr could not be parsed") || !strings.Contains(text, "at position") {
 			t.Errorf("error text %q should report the parse failure and its position", text)
+		}
+	})
+}
+
+func TestMCPJourneySelection(t *testing.T) {
+	ctx := context.Background()
+	now := time.Now().UTC()
+	from := now.Add(-7 * 24 * time.Hour).Format(time.RFC3339)
+	to := now.Format(time.RFC3339)
+
+	cleanupAll(ctx, t)
+	t.Cleanup(func() { cleanupAll(ctx, t) })
+	userID := uuid.NewString()
+	seedUser(ctx, t, userID, "selection@journeys.mcp.test")
+	teamID := uuid.New()
+	seedTeam(ctx, t, teamID, "journeys team")
+	seedTeamMembership(ctx, t, teamID, userID, "viewer")
+	appID := uuid.New()
+	seedApp(ctx, t, appID, teamID, 30)
+	rawToken := seedMCPSession(ctx, t, userID, "c1", time.Now().Add(90*24*time.Hour))
+
+	appHang := strings.Repeat("b", 32)
+	th.SeedGroupRow(ctx, t, teamID.String(), appID.String(), testinfra.GroupRow{Table: "app_hang_groups", Fingerprint: appHang})
+	th.SeedUrlPattern(ctx, t, teamID.String(), appID.String(), "api.shop.com", "/cart")
+	start := now.Add(-2 * time.Hour)
+
+	seedEvent := func(sessionID, installationID string, row testinfra.EventRow) {
+		t.Helper()
+		row.SessionID = sessionID
+		row.InstallationID = installationID
+		row.AppVersion = "1.0.0"
+		th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, row)
+	}
+	seedSteps := func(sessionID, installationID string, names ...string) {
+		t.Helper()
+		for i, name := range names {
+			seedEvent(sessionID, installationID, testinfra.EventRow{Type: "custom", CustomName: name, Timestamp: start.Add(time.Duration(i) * time.Minute)})
+		}
+	}
+	// The session that purchases hangs, runs a span and requests the cart
+	// while at cart. The other session stops at cart.
+	purchased, purchasedInstallation := uuid.NewString(), uuid.NewString()
+	seedSteps(purchased, purchasedInstallation, "open", "cart", "purchase")
+	seedEvent(purchased, purchasedInstallation, testinfra.EventRow{Type: "app_hang", Fingerprint: appHang, Timestamp: start.Add(70 * time.Second)})
+	seedEvent(purchased, purchasedInstallation, testinfra.EventRow{
+		Type: "http", Timestamp: start.Add(90 * time.Second),
+		HttpURL: "https://api.shop.com/cart", HttpMethod: "get", HttpStatusCode: 200,
+		HttpStartTime: uint64(start.Add(90 * time.Second).UnixMilli()), HttpEndTime: uint64(start.Add(91 * time.Second).UnixMilli()),
+	})
+	th.SeedSpanRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.SpanRow{SpanName: "checkout", SessionID: purchased, InstallationID: purchasedInstallation, AppVersion: "1.0.0", StartTime: start.Add(80 * time.Second), Duration: time.Second})
+	stopped := uuid.NewString()
+	seedSteps(stopped, uuid.NewString(), "open", "cart")
+
+	args := func(extra map[string]any) map[string]any {
+		a := map[string]any{"app_id": appID.String(), "from": from, "to": to}
+		maps.Copy(a, extra)
+		return a
+	}
+	call := func(t *testing.T, tool string, extra map[string]any, out any) {
+		t.Helper()
+		resp := callMCPTool(t, rawToken, tool, args(extra))
+		if isToolError(resp) {
+			t.Fatalf("%s: unexpected tool error: %s", tool, extractTextContent(t, resp))
+		}
+		content := extractTextContent(t, resp)
+		if err := json.Unmarshal([]byte(content), out); err != nil {
+			t.Fatalf("%s: unmarshal %q: %v", tool, content, err)
+		}
+	}
+	callErr := func(t *testing.T, tool string, extra map[string]any, want string) {
+		t.Helper()
+		resp := callMCPTool(t, rawToken, tool, args(extra))
+		if !isToolError(resp) {
+			t.Fatalf("%s: want tool error containing %q, got %s", tool, want, extractTextContent(t, resp))
+		}
+		if text := extractTextContent(t, resp); !strings.Contains(text, want) {
+			t.Errorf("%s: error %q does not contain %q", tool, text, want)
+		}
+	}
+	cart := map[string]any{"node_id": "event:cart"}
+	cartToPurchase := map[string]any{"path": []string{"event:cart", "event:purchase"}}
+
+	t.Run("path users", func(t *testing.T) {
+		for path, want := range map[string]uint64{"event:open event:cart": 2, "event:open event:cart event:purchase": 1} {
+			var result struct {
+				Users uint64 `json:"users"`
+			}
+			call(t, "get_journey_path_users", map[string]any{"path": strings.Fields(path)}, &result)
+			if result.Users != want {
+				t.Errorf("users along %s = %d, want %d", path, result.Users, want)
+			}
+		}
+		callErr(t, "get_journey_path_users", map[string]any{"path": []string{"event:open"}}, "path must have two or more node ids")
+	})
+
+	t.Run("errors at a node and along a path", func(t *testing.T) {
+		for _, selection := range []map[string]any{cart, cartToPurchase} {
+			var result struct {
+				Errors        []measure.JourneyError `json:"errors"`
+				SamplePercent *float64               `json:"sample_percent"`
+			}
+			call(t, "get_journey_errors", selection, &result)
+			if len(result.Errors) != 1 || result.Errors[0].ID != appHang || result.Errors[0].Users != 1 {
+				t.Errorf("errors for %v = %+v, want the app hang of one user", selection, result.Errors)
+			}
+			if result.SamplePercent == nil || *result.SamplePercent != 100 {
+				t.Errorf("sample_percent for %v = %v, want 100", selection, result.SamplePercent)
+			}
+		}
+
+		var result struct {
+			Errors        []measure.JourneyError `json:"errors"`
+			SamplePercent *float64               `json:"sample_percent"`
+		}
+		call(t, "get_journey_errors", map[string]any{"node_id": "event:open"}, &result)
+		if len(result.Errors) != 0 || result.SamplePercent != nil {
+			t.Errorf("errors at open = %+v with sample_percent %v, want none and null", result.Errors, result.SamplePercent)
+		}
+	})
+
+	t.Run("spans and requests at a node", func(t *testing.T) {
+		var spans struct {
+			Spans []measure.JourneyTrace `json:"spans"`
+		}
+		call(t, "get_journey_traces", map[string]any{"node_id": "event:cart", "quantile": "p95"}, &spans)
+		if len(spans.Spans) != 1 || spans.Spans[0].SpanName != "checkout" {
+			t.Errorf("spans at cart = %+v, want checkout", spans.Spans)
+		}
+
+		var endpoints struct {
+			Endpoints []measure.JourneyEndpoint `json:"endpoints"`
+		}
+		call(t, "get_journey_network", cart, &endpoints)
+		if len(endpoints.Endpoints) != 1 || endpoints.Endpoints[0].Domain+endpoints.Endpoints[0].PathPattern != "api.shop.com/cart" {
+			t.Errorf("endpoints at cart = %+v, want api.shop.com/cart", endpoints.Endpoints)
+		}
+
+		callErr(t, "get_journey_traces", map[string]any{"node_id": "event:cart", "quantile": "p75"}, "quantile must be one of")
+		callErr(t, "get_journey_network", map[string]any{"node_id": "event:cart", "quantile": "p75"}, "quantile must be one of")
+	})
+
+	t.Run("sessions at a node and along a path", func(t *testing.T) {
+		sessions := func(t *testing.T, extra map[string]any) []string {
+			t.Helper()
+			var result struct {
+				Sessions []measure.FunnelStepSession `json:"sessions"`
+			}
+			call(t, "get_journey_sessions", extra, &result)
+			ids := []string{}
+			for _, session := range result.Sessions {
+				ids = append(ids, session.SessionID.String())
+			}
+			slices.Sort(ids)
+			return ids
+		}
+		both := []string{purchased, stopped}
+		slices.Sort(both)
+		if got := sessions(t, cart); !slices.Equal(got, both) {
+			t.Errorf("sessions at cart = %v, want %v", got, both)
+		}
+		if got := sessions(t, cartToPurchase); !slices.Equal(got, []string{purchased}) {
+			t.Errorf("sessions from cart to purchase = %v, want %s", got, purchased)
+		}
+		if got := sessions(t, map[string]any{"node_id": "event:cart", "limit": 1, "offset": 2}); len(got) != 0 {
+			t.Errorf("third page of sessions at cart = %v, want none", got)
+		}
+	})
+
+	t.Run("the lists and path users read the sample percent they are given", func(t *testing.T) {
+		var result struct {
+			Errors        []measure.JourneyError `json:"errors"`
+			SamplePercent *float64               `json:"sample_percent"`
+		}
+		call(t, "get_journey_errors", map[string]any{"node_id": "event:cart", "sample_percent": 100}, &result)
+		if len(result.Errors) != 1 || result.SamplePercent == nil || *result.SamplePercent != 100 {
+			t.Errorf("errors at cart = %+v with sample_percent %v, want the app hang at 100", result.Errors, result.SamplePercent)
+		}
+		for _, tool := range []string{"get_journey_errors", "get_journey_traces", "get_journey_network", "get_journey_sessions"} {
+			callErr(t, tool, map[string]any{"node_id": "event:cart", "sample_percent": -1}, "sample_percent must be above 0 and at most 100")
+		}
+		callErr(t, "get_journey_path_users", map[string]any{"path": []string{"event:open", "event:cart"}, "sample_percent": 101}, "sample_percent must be above 0 and at most 100")
+	})
+
+	t.Run("a selection is required", func(t *testing.T) {
+		for _, tool := range []string{"get_journey_errors", "get_journey_traces", "get_journey_network", "get_journey_sessions"} {
+			callErr(t, tool, nil, "node_id or a path of two or more node ids is required")
+			callErr(t, tool, map[string]any{"path": []string{"event:cart"}}, "node_id or a path of two or more node ids is required")
+			callErr(t, tool, map[string]any{"node_id": "event:cart", "path": []string{"event:cart", "event:purchase"}}, "give node_id or path, not both")
 		}
 	})
 }
@@ -5610,12 +6380,20 @@ func TestMCPAccessControl(t *testing.T) {
 		{"get_bug_reports", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
 		{"get_bug_reports_over_time", map[string]any{"app_id": appA.String(), "timezone": "UTC", "from": from, "to": to}},
 		{"get_bug_report", map[string]any{"app_id": appA.String(), "bug_report_id": "br-1"}},
+		{"get_builds", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
+		{"get_profiles", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
 		{"get_root_span_names", map[string]any{"app_id": appA.String()}},
 		{"get_span_instances", map[string]any{"app_id": appA.String(), "root_span_name": "span-1", "from": from, "to": to}},
 		{"get_span_metrics_over_time", map[string]any{"app_id": appA.String(), "root_span_name": "span-1", "timezone": "UTC", "from": from, "to": to}},
 		{"get_trace", map[string]any{"app_id": appA.String(), "trace_id": "trace-1"}},
 		{"get_alerts", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
 		{"get_journey", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
+		{"get_journey_nodes", map[string]any{"app_id": appA.String(), "from": from, "to": to}},
+		{"get_journey_path_users", map[string]any{"app_id": appA.String(), "path": []string{"screen:A", "screen:B"}, "from": from, "to": to}},
+		{"get_journey_errors", map[string]any{"app_id": appA.String(), "node_id": "screen:A", "from": from, "to": to}},
+		{"get_journey_traces", map[string]any{"app_id": appA.String(), "node_id": "screen:A", "from": from, "to": to}},
+		{"get_journey_network", map[string]any{"app_id": appA.String(), "node_id": "screen:A", "from": from, "to": to}},
+		{"get_journey_sessions", map[string]any{"app_id": appA.String(), "node_id": "screen:A", "from": from, "to": to}},
 	}
 
 	for _, tc := range toolCalls {
@@ -5646,12 +6424,20 @@ func TestMCPInvalidAppIDFormat(t *testing.T) {
 		{"get_sessions", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_metrics", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_bug_reports", map[string]any{"app_id": "not-a-uuid"}},
+		{"get_builds", map[string]any{"app_id": "not-a-uuid"}},
+		{"get_profiles", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_root_span_names", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_session", map[string]any{"app_id": "not-a-uuid", "session_id": "some-id"}},
 		{"get_bug_report", map[string]any{"app_id": "not-a-uuid", "bug_report_id": "some-id"}},
 		{"get_trace", map[string]any{"app_id": "not-a-uuid", "trace_id": "some-id"}},
 		{"get_alerts", map[string]any{"app_id": "not-a-uuid"}},
 		{"get_journey", map[string]any{"app_id": "not-a-uuid"}},
+		{"get_journey_nodes", map[string]any{"app_id": "not-a-uuid"}},
+		{"get_journey_path_users", map[string]any{"app_id": "not-a-uuid", "path": []string{"screen:A", "screen:B"}}},
+		{"get_journey_errors", map[string]any{"app_id": "not-a-uuid", "node_id": "screen:A"}},
+		{"get_journey_traces", map[string]any{"app_id": "not-a-uuid", "node_id": "screen:A"}},
+		{"get_journey_network", map[string]any{"app_id": "not-a-uuid", "node_id": "screen:A"}},
+		{"get_journey_sessions", map[string]any{"app_id": "not-a-uuid", "node_id": "screen:A"}},
 		{"get_error_common_path", map[string]any{"app_id": "not-a-uuid", "error_group_id": "fp-1"}},
 		{"update_bug_report_status", map[string]any{"app_id": "not-a-uuid", "bug_report_id": "some-id", "status": 1}},
 	}
@@ -6330,6 +7116,13 @@ func TestMCPFunnels(t *testing.T) {
 		if got := sessions(t, map[string]any{"outcome": "dropped"}); fmt.Sprint(got) != fmt.Sprint([]string{dropped}) {
 			t.Errorf("dropped sessions = %v, want %s", got, dropped)
 		}
+		if got := sessions(t, map[string]any{"outcome": "dropped", "sample_percent": 100}); fmt.Sprint(got) != fmt.Sprint([]string{dropped}) {
+			t.Errorf("dropped sessions in the conversion's sample = %v, want %s", got, dropped)
+		}
+		for _, tool := range []string{"get_funnel_step_errors", "get_funnel_step_traces", "get_funnel_step_network"} {
+			callErr(t, rawToken, tool, args(map[string]any{"sample_percent": 150}), "sample_percent must be above 0 and at most 100")
+		}
+		callErr(t, rawToken, "get_funnel_step_sessions", args(map[string]any{"outcome": "dropped", "sample_percent": 150}), "sample_percent must be above 0 and at most 100")
 		if got := sessions(t, map[string]any{"outcome": "dropped", "limit": 1, "offset": 1}); len(got) != 0 {
 			t.Errorf("second page of dropped sessions = %v, want none", got)
 		}

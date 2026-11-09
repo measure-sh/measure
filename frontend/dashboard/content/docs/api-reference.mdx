@@ -236,7 +236,7 @@ import sh.measure.android.Measure
 try {
     methodThatThrows()
 } catch (e: Exception) {
-    Measure.trackHandledException(e)
+    Measure.trackError(e)
 }
 ```
 
@@ -263,7 +263,7 @@ import 'package:measure_flutter/measure_flutter.dart';
 try {
   methodThatThrows();
 } catch (e, stackTrace) {
-  Measure.instance.trackHandledError(e, stackTrace);
+  Measure.instance.trackError(e, stackTrace);
 }
 ```
 
@@ -289,7 +289,7 @@ import sh.measure.kmp.Measure
 try {
     methodThatThrows()
 } catch (e: Exception) {
-    Measure.trackHandledException(e)
+    Measure.trackError(e)
 }
 ```
 
@@ -308,7 +308,7 @@ import sh.measure.android.Measure
 import sh.measure.android.attributes.AttributesBuilder
 
 val attributes = AttributesBuilder().put("screen", "Login").build()
-Measure.trackHandledException(e, attributes)
+Measure.trackError(e, attributes)
 ```
 
 </Tab>
@@ -327,7 +327,7 @@ Measure.trackError(error, attributes: ["screen": .string("Login")])
 import 'package:measure_flutter/measure_flutter.dart';
 
 final attributes = AttributeBuilder().add("screen", "Login").build();
-Measure.instance.trackHandledError(e, stackTrace, attributes: attributes);
+Measure.instance.trackError(e, stackTrace, attributes: attributes);
 ```
 
 </Tab>
@@ -347,7 +347,7 @@ import sh.measure.kmp.Measure
 import sh.measure.kmp.attributes.AttributesBuilder
 
 val attributes = AttributesBuilder().put("screen", "Login").build()
-Measure.trackHandledException(e, attributes)
+Measure.trackError(e, attributes)
 ```
 
 </Tab>

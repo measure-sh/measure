@@ -32,11 +32,14 @@ import (
 	"golang.org/x/sync/errgroup"
 )
 
-// maxBatchSize is the maximum allowed payload
+// MaxBatchSize is the maximum allowed payload
 // size of event request in bytes. Kept under the bus
 // per-message cap of 10,000,000 bytes to leave headroom
 // for the IngestBatch wrapper & JSON re-encoding.
-var maxBatchSize = 9_000_000
+const MaxBatchSize = 9_000_000
+
+// errPayloadTooLarge reports a batch over MaxBatchSize.
+var errPayloadTooLarge = errors.New("payload too large")
 
 var ingestBatchPublishCount metric.Int64Counter
 
@@ -785,11 +788,32 @@ func (e eventreq) validate() error {
 	// only the event payload counts toward the size limit.
 	// attachments upload directly to storage and are not part
 	// of the payload.
-	if e.payloadSize >= uint64(maxBatchSize) {
-		return fmt.Errorf(`payload cannot exceed maximum allowed size of %d`, maxBatchSize)
+	if e.payloadSize >= MaxBatchSize {
+		return errPayloadTooLarge
 	}
 
 	return nil
+}
+
+// respondPayloadError sends 413 when the batch is over
+// MaxBatchSize, whether the body read stopped at the
+// decompression cap or validate caught it. Every other error
+// gets a 400 with msg.
+func respondPayloadError(c *gin.Context, msg string, err error) {
+	fmt.Println(msg, err)
+
+	var maxBytesErr *http.MaxBytesError
+	if errors.As(err, &maxBytesErr) || errors.Is(err, errPayloadTooLarge) {
+		c.JSON(http.StatusRequestEntityTooLarge, gin.H{
+			"error": fmt.Sprintf("payload cannot exceed maximum allowed size of %d", MaxBatchSize),
+		})
+		return
+	}
+
+	c.JSON(http.StatusBadRequest, gin.H{
+		"error":   msg,
+		"details": err.Error(),
+	})
 }
 
 func PutEvents(c *gin.Context) {
@@ -860,11 +884,7 @@ func PutEvents(c *gin.Context) {
 		defer parseJSONSpan.End()
 
 		if err := c.ShouldBindJSON(&ingestPayload); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
+			respondPayloadError(c, msg, err)
 			return
 		}
 
@@ -874,22 +894,14 @@ func PutEvents(c *gin.Context) {
 		defer readRequestSpan.End()
 
 		if err := eventReq.readJsonRequest(&ingestPayload); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
+			respondPayloadError(c, msg, err)
 			return
 		}
 
 		readRequestSpan.End()
 	} else {
 		if err := eventReq.readMultipartRequest(c); err != nil {
-			fmt.Println(msg, err)
-			c.JSON(http.StatusBadRequest, gin.H{
-				"error":   msg,
-				"details": err.Error(),
-			})
+			respondPayloadError(c, msg, err)
 			return
 		}
 	}
@@ -941,12 +953,7 @@ func PutEvents(c *gin.Context) {
 	defer validateReqSpan.End()
 
 	if err := eventReq.validate(); err != nil {
-		msg := `failed to validate event request payload`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error":   msg,
-			"details": err.Error(),
-		})
+		respondPayloadError(c, `failed to validate event request payload`, err)
 		return
 	}
 

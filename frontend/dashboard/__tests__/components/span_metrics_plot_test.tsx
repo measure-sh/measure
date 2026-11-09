@@ -43,6 +43,7 @@ jest.mock("@/app/components/tab_select", () => ({
 }));
 
 import SpanMetricsPlot from "@/app/components/span_metrics_plot";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 const plotDates = {
   startDate: "2026-02-01T00:00:00Z",
@@ -113,14 +114,12 @@ describe("SpanMetricsPlot", () => {
       expect(screen.getByTestId("line-mock")).toBeInTheDocument(),
     );
     expect(lastLineProps.data[0].data[0].y).toBe(30);
-    // Component initializes with p50 (from useState default)
-    expect(lastLineProps.axisLeft.legend).toBe("Duration (p50)");
     expect(lastTabSelectProps.items).toEqual(["p50", "p90", "p95", "p99"]);
     expect(lastTabSelectProps.selected).toBe("p50");
 
     fireEvent.click(screen.getByTestId("quantile-p99"));
     await waitFor(() => expect(lastLineProps.data[0].data[0].y).toBe(40));
-    expect(lastLineProps.axisLeft.legend).toBe("Duration (p99)");
+    expect(lastTabSelectProps.selected).toBe("p99");
   });
 
   it("renders tooltip with human readable millis", async () => {
@@ -144,9 +143,10 @@ describe("SpanMetricsPlot", () => {
         },
       },
     });
-    const { container } = render(tooltip);
-    expect(container.textContent).toContain("Date:");
-    expect(container.textContent).toContain("(p50)");
+    render(tooltip, { wrapper: PlotTooltipArea });
+    const tooltipDiv = screen.getByRole("tooltip", { hidden: true });
+    expect(tooltipDiv.textContent).toContain("Date:");
+    expect(tooltipDiv.textContent).toContain("(p50)");
   });
 
   it("uses hour axis configuration for multi-day ranges", async () => {

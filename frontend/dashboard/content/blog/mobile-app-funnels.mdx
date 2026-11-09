@@ -49,9 +49,9 @@ A conversion can also span several sessions. With a one day window, a user who a
 
 The breakdown shows how many users reached each step in the selected date range. Hover to see conversion between steps, how many users dropped off, and the median time to progress from the previous step.
 
-![Funnel breakdown showing 60.57K users at the first step narrowing to 2.74K at the last, a 4.5% conversion](/blog/assets/mobile-app-funnels-breakdown.webp)
+![Funnel breakdown showing 108.9K users at the first step narrowing to 4.58K at the last, a 4.2% conversion](/blog/assets/mobile-app-funnels-breakdown.webp)
 
-In this checkout funnel, 60.57K users viewed a product and 2.74K placed an order. Most of the drop-off is between the first two steps, which is common for browsing, while the later steps lose fewer users. A large drop between two steps that should follow each other closely, like payment submitted and order placed, is usually worth a closer look.
+In this checkout funnel, 108.9K users viewed a product and 4.58K placed an order. Most of the drop-off is between the first two steps, which is common for browsing, while the later steps lose fewer users. A large drop between two steps that should follow each other closely, like payment submitted and order placed, is usually worth a closer look.
 
 ## Trends
 
@@ -81,7 +81,7 @@ For any step or the overall funnel, you can see:
 - **Traces** showing root spans, with their duration at p50, p90, p95 or p99 for the users who converted and for those who dropped off.
 - **Network** showing requests grouped by URL pattern, with their latency for both groups.
 
-Issues causing the highest drop-offs are shown first. In the list above, a crash in `ProductListActivity` affected 159 users, and 158 of them dropped off. A handled timeout in `validatePromoCode()` affected fewer users, but almost all of them left as well. Both are reasons users didn't finish checking out, and the drop-off count can help prioritize which to address first.
+Issues causing the highest drop-offs are shown first. In the list above, a crash in `ProductListActivity` affected 163 users, and 162 of them dropped off. A handled timeout in `validatePromoCode()` affected fewer users, but almost all of them left as well. Both are reasons users didn't finish checking out, and the drop-off count can help prioritize which to address first.
 
 Traces and network requests also follow the same behavior. If the payment request takes twice as long at p90 for the users who dropped off against those who converted, that's a reasonable starting point for a fuller investigation.
 

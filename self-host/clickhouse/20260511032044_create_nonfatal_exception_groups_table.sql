@@ -35,7 +35,7 @@ CREATE TABLE if not exists nonfatal_exception_groups
 ENGINE = AggregatingMergeTree
 PARTITION BY toYYYYMM(timestamp)
 ORDER BY (team_id, app_id, app_version.1, app_version.2, id)
-SETTINGS index_granularity = 8192
+SETTINGS index_granularity = 8192, allow_dimensions_outside_sorting_key = 1
 COMMENT 'nonfatal exception groups'
 
 

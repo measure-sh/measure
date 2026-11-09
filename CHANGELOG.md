@@ -9,6 +9,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :sparkles: New features
 
+- (**frontend**): Add session replays to the funnels demo by @anupcowkur
+
+### :hammer: Misc
+
+- (**backend**): Pass `libs` build context to symboloader image build by @detj in #4800
+- (**deps**): Update vulnarable react native and frank app dependancies by @adwinross in #4812
+- (**frontend**): Recapture crash screenshots by @anupcowkur in #4818
+- (**frontend**): Use more space on large screens by @anupcowkur
+- (**frontend**): Move funnel controls into plot toolbars by @anupcowkur
+- (**frontend**): Fit usage chart on small screens by @anupcowkur
+- (**frontend**): Stack app thresholds on small screens by @anupcowkur
+- (**frontend**): Align list and section spacing by @anupcowkur
+- (**frontend**): Remove hover highlight from team rows by @anupcowkur
+- (**frontend**): Add app hangs to the sandbox by @anupcowkur in #4802
+- Hide session replay button when no replay is available by @anupcowkur in #4809
+
+### :recycle: Refactor
+
+- (**backend**): Remove BugReportDisplay type by @anupcowkur in #4811
+- (**frontend**): Split session replay into modules by @anupcowkur in #4804
+
+## [0.14.0] - 2026-11-05
+
+### :sparkles: New features
+
 - (**backend**): Symbolicate and group android native crashes (#4615) by @abhaysood
 - (**backend**): Ingest and query app hangs by @adwinross
 - (**backend**): Show reporter user id in bug report alerts by @anupcowkur in #4600
@@ -54,6 +79,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Expand session arrays with an ARRAY JOIN clause by @anupcowkur
 - (**backend**): Bind the suggestion window start as a query parameter by @anupcowkur in #4464
 - (**backend**): Round crash free percentages instead of rounding up (#4409) by @NotAFlightRisk in #4409
+- (**frontend**): Keep dashboard tables readable on narrow screens by @anupcowkur in #4797
+- (**frontend**): Stop funnel chart parts flashing on hover by @anupcowkur in #4796
+- (**frontend**): Install ca-certificates in dashboard builder stage by @detj in #4793
+- (**frontend**): Keep chart tooltips aligned on scroll by @anupcowkur in #4792
+- (**frontend**): Show chart tooltips before acting on touch taps by @anupcowkur in #4789
+- (**frontend**): Keep chart tooltips inside the window by @anupcowkur in #4788
+- (**frontend**): Hide backend URL behind API route handler (#4735) by @detj in #4735
+- (**frontend**): Count partial days for usage page in sandbox by @anupcowkur in #4720
 - (**frontend**): Tighten the gap between paginator buttons by @anupcowkur in #4673
 - (**frontend**): Stop highlighting build rows on hover by @anupcowkur in #4671
 - (**frontend**): Stop highlighting table headers on hover by @anupcowkur in #4672
@@ -90,6 +123,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Sync autumn customer name on team rename by @anupcowkur in #4798
+- (**backend**): Switch country lookup to IPinfo Lite database by @detj in #4784
+- (**backend**): Replace journey sampling with analytics sampling (#4764) by @abhaysood
+- (**backend**): Remove nonexistent column from events migration by @anupcowkur in #4773
+- (**backend**): Add codec to warm_launch.app_visible_uptime by @anupcowkur in #4745
+- (**backend**): Add terminated to lifecycle_app.type comment by @anupcowkur in #4744
+- (**backend**): Reject out-of-range sdk config values (#4711) by @adwinross in #4711
+- (**backend**): Upgrade to clickhouse 26.8 (#4719) by @detj in #4719
+- (**backend**): Check go.mod is tidy with `go.work` off (#4718) by @detj in #4718
+- (**backend**): Ignore go work sum (#4705) by @detj in #4705
 - (**backend**): Bump Go to 1.27.3 (#4646) by @detj in #4646
 - (**backend**): Bump Go to 1.27.1 (#4587) by @detj in #4587
 - (**backend**): Upgrade clickhouse go driver & other deps (#4580) by @detj in #4580
@@ -108,6 +151,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**backend**): Simplify filters by @anupcowkur
 - (**backend**): Remove the legacy filter code by @anupcowkur in #4472
 - (**backend**): Add configurable concurrent Iggy processing (#4311) by @chaoliextern in #4311
+- (**deps**): Bump eslint from 9.39.4 to 10.13.0 in /frontend/dashboard by @dependabot[bot] in #4759
+- (**deps**): Bump the dashboard group across 1 directory with 5 updates by @dependabot[bot] in #4766
+- (**deps**): Hold dashboard typescript at 5.x by @anupcowkur in #4756
+- (**deps**): Bump msw from 2.13.2 to 3.0.3 in /frontend/dashboard by @dependabot[bot]
+- (**deps**): Bump lottie-react in /frontend/dashboard by @dependabot[bot]
+- (**deps**): Bump lucide-react in /frontend/dashboard by @dependabot[bot] in #4752
+- (**deps**): Bump the dashboard group by @dependabot[bot] in #4748
+- (**deps**): Update dependabot assignees by @anupcowkur in #4747
+- (**deps**): Bump undici from 6.28.1 to 8.12.2 in /frontend/dashboard by @dependabot[bot]
+- (**deps**): Bump @c15t/scripts in /frontend/dashboard by @dependabot[bot] in #4704
+- (**deps**): Bump next by @dependabot[bot] in #4728
+- (**deps**): Bump @testing-library/jest-dom in /frontend/dashboard by @dependabot[bot] in #4701
+- (**deps**): Bump the dashboard group across 1 directory with 39 updates by @dependabot[bot]
+- (**deps**): Bump github.com/valkey-io/valkey-go in /backend/agent (#4730) by @dependabot[bot] in #4730
+- (**deps**): Bump go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin (#4731) by @dependabot[bot] in #4731
+- (**deps**): Tidy go modules & refresh indirect deps (#4742) by @detj in #4742
+- (**deps**): Bump github.com/go-jose/go-jose/v4 (#4741) by @dependabot[bot] in #4741
+- (**deps**): Bump github.com/go-jose/go-jose/v4 in /backend/ingest (#4740) by @dependabot[bot] in #4740
+- (**deps**): Bump github.com/go-jose/go-jose/v4 in /backend/symboloader (#4737) by @dependabot[bot] in #4737
+- (**deps**): Bump github.com/go-jose/go-jose/v4 (#4736) by @dependabot[bot] in #4736
+- (**deps**): Bump github.com/ClickHouse/clickhouse-go/v2 (#4694) by @dependabot[bot] in #4694
+- (**deps**): Bump fumadocs-openapi in /frontend/dashboard (#4702) by @dependabot[bot] in #4702
+- (**deps**): Bump the dashboard-framework group (#4688) by @dependabot[bot] in #4688
+- (**deps**): Bump amacneil/dbmate in /self-host in the self-host group (#4684) by @dependabot[bot] in #4684
+- (**deps**): Bump cloud.google.com/go/cloudsqlconn in /backend/agent (#4686) by @dependabot[bot] in #4686
+- (**deps**): Bump github.com/go-analyze/charts in /backend/agent (#4695) by @dependabot[bot] in #4695
+- (**deps**): Bump the root-tooling group with 3 updates (#4685) by @dependabot[bot] in #4685
 - (**deps**): Bump esbuild from 0.28.0 to 0.28.2 in /e2e-tests (#4675) by @dependabot[bot] in #4675
 - (**deps**): Bump sharp from 0.35.4 to 0.35.5 in /frontend/dashboard (#4618) by @dependabot[bot] in #4618
 - (**deps**): Bump source-map-js in /frontend/dashboard (#4617) by @dependabot[bot] in #4617
@@ -150,6 +220,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4573) by @dependabot[bot] in #4573
 - (**deps-dev**): Bump js-yaml in /frontend/dashboard (#4461) by @dependabot[bot] in #4461
 - (**deps-dev**): Bump undici in /frontend/dashboard (#4400) by @dependabot[bot] in #4400
+- (**frontend**): Replace journey with analytics sampling (#4764) by @abhaysood in #4764
+- (**frontend**): Upgrade c15t to v3 by @anupcowkur in #4772
+- (**frontend**): Look up markdown twins on disk by @anupcowkur in #4763
+- (**frontend**): Remove vercel leftovers by @anupcowkur in #4762
+- (**frontend**): Build dashboard on pull requests by @anupcowkur in #4761
+- (**frontend**): Run MSW integration tests on msw 3 by @anupcowkur in #4751
+- (**frontend**): Move landing hero to lottie-react 3 API by @anupcowkur in #4750
+- (**frontend**): Add MessagePort to jest fetch polyfill by @anupcowkur in #4703
+- (**frontend**): Format with prettier 3.9.10 by @anupcowkur in #4732
 - (**frontend**): Remove dialog test page by @anupcowkur in #4677
 - (**frontend**): Add introductory blog for funnels by @anupcowkur in #4676
 - (**frontend**): Use a download icon on the builds page by @anupcowkur in #4670
@@ -182,7 +261,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Replace the legacy filter bar on the apps page by @anupcowkur in #4468
 - (**frontend**): Drop unused initConfig prop from Onboarding by @anupcowkur
 - (**frontend**): Keep touch indicators on the correct replay screen (#4436) by @abhaysood in #4436
+- (**kmp**): Rename trackHandledException to trackError by @adwinross in #4794
 - (**kmp**): Prepare sdk release 0.3.0 by @abhaysood in #4506
+- Order backfill replay by `events` sorting key (#4769) by @detj in #4769
+- Add weekly releases and jit vs aot blogs (#4680) by @abhaysood in #4680
+- Add why android and ios apps crash blog (#4635) by @abhaysood in #4635
 - Add dependabot & pin docker image tags (#4681) by @detj in #4681
 - Add android trigger-based profiling blog (#4629) by @abhaysood in #4629
 - Add anrs on android blog (#4584) by @abhaysood in #4584
@@ -200,6 +283,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :zap: Performance
 
+- (**backend**): Replay `analytics_events` backfill by day (#4775) by @detj in #4775
 - (**backend**): Read value suggestions from raw tables for 30 days only by @anupcowkur in #4446
 
 ### :recycle: Refactor
@@ -210,6 +294,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :books: Documentation
 
+- (**frontend**): Simplify v0.14.x self-host migration steps by @detj in #4799
+- (**frontend**): Add minimum compose ui version for android by @abhaysood in #4715
+- Clarify spike thresholds are defaults by @anupcowkur in #4779
 - Add expo release step to release checklist by @anupcowkur in #4578
 - Add gradle plugin step to cross-platform getting started guides by @anupcowkur
 - Add next steps section to getting started guide by @abhaysood in #4529
@@ -3260,7 +3347,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Replace team/:id/invite docs with /auth/invite docs by @anupcowkur in #367
 - (**webapp**): Add API docs for crash & ANR groups APIs by @anupcowkur in #350
 
-[unreleased]: https://github.com/measure-sh/measure/compare/v0.13.0..HEAD
+[unreleased]: https://github.com/measure-sh/measure/compare/v0.14.0..HEAD
+[0.14.0]: https://github.com/measure-sh/measure/compare/v0.13.0..v0.14.0
 [0.13.0]: https://github.com/measure-sh/measure/compare/v0.12.1..v0.13.0
 [0.12.1]: https://github.com/measure-sh/measure/compare/v0.12.0..v0.12.1
 [0.12.0]: https://github.com/measure-sh/measure/compare/v0.11.0..v0.12.0

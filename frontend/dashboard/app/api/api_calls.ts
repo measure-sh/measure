@@ -30,11 +30,6 @@ import { apiClient } from "./api_client";
 import { ApiError, RequestError } from "./api_error";
 import type { FilterKeysResponse, FilterValue } from "./filter_types";
 
-export enum JourneyType {
-  Paths,
-  Exceptions,
-}
-
 export type Team = {
   id: string;
   name: string;
@@ -53,7 +48,7 @@ export type PendingInvite = {
 };
 
 // Sample percentiles per time bucket and app version/build, across device tiers.
-// Memory values use KB (1024 bytes); version is formatted as "version (build)".
+// Memory values are in KiB (1024 bytes).
 export type MemoryUsagePlotPoint = {
   version: string;
   datetime: string;
@@ -166,38 +161,6 @@ export type App = {
   unique_identifier: string | null;
 };
 
-export const emptyJourney = {
-  links: [
-    {
-      source: "",
-      target: "",
-      value: 0,
-    },
-  ],
-  nodes: [
-    {
-      id: "au.com.shiftyjelly.pocketcasts.ui.MainActivity",
-      issues: {
-        anrs: [
-          {
-            id: "",
-            title: "",
-            count: 0,
-          },
-        ],
-        crashes: [
-          {
-            id: "",
-            title: "",
-            count: 0,
-          },
-        ],
-      },
-    },
-  ],
-  totalIssues: 0,
-};
-
 export const emptyMetrics = {
   adoption: {
     all_versions: 0,
@@ -211,6 +174,12 @@ export const emptyMetrics = {
     no_data: false,
     unselected_no_data: false,
   },
+  app_hang_free_sessions: null as {
+    app_hang_free_sessions: number;
+    unselected_app_hang_free_sessions: number;
+    no_data: boolean;
+    unselected_no_data: boolean;
+  } | null,
   cold_launch: {
     p95: 0,
     unselected_p95: 0,
@@ -360,6 +329,7 @@ export const emptyErrorsOverviewResponse = {
 const emptyErrorGroupDetailsItem = {
   id: "",
   session_id: "",
+  has_replay: false,
   timestamp: "",
   type: "",
   attribute: {
@@ -495,6 +465,7 @@ export const emptyTrace = {
   app_id: "",
   trace_id: "",
   session_id: "",
+  has_replay: false,
   user_id: "",
   start_time: "",
   end_time: "",
@@ -526,8 +497,8 @@ export const emptyTrace = {
 };
 
 export const emptyNotifPrefs = {
-  error_spike: true,
-  app_hang_spike: true,
+  fatal_error_spike: true,
+  anr_app_hang_spike: true,
   bug_report: true,
   daily_summary: true,
 };
@@ -625,6 +596,7 @@ export type BuildFile = Build["files"][number];
 
 export const emptyBugReport = {
   session_id: "",
+  has_replay: false,
   app_id: "",
   event_id: "",
   status: 0,
@@ -709,6 +681,7 @@ export type SdkConfig = {
   bug_report_timeline_duration: number;
   launch_sampling_rate: number;
   journey_sampling_rate: number;
+  analytics_sampling_rate: number;
   http_sampling_rate: number;
   http_disable_event_for_urls: string[];
   http_track_request_for_urls: string[];
@@ -868,13 +841,14 @@ export const fetchAppHealthPlotFromServer = async (
     return null;
   }
 
-  // The server returns three sparse series keyed by id: "sessions", "crashes"
-  // and "anrs", each with { datetime, instances } points. Collapse each into a
-  // date -> count map.
+  // The server returns four sparse series keyed by id: "sessions", "crashes",
+  // "anrs" and "app_hangs", each with { datetime, instances } points. Collapse
+  // each into a date -> count map.
   const dateMaps: Record<string, Record<string, number>> = {
     sessions: {},
     crashes: {},
     anrs: {},
+    app_hangs: {},
   };
   for (const series of data || []) {
     const dateMap = dateMaps[series.id];
@@ -887,12 +861,13 @@ export const fetchAppHealthPlotFromServer = async (
     }
   }
 
-  // Align all three series on the same sorted set of dates, zero-filling gaps.
+  // Align all four series on the same sorted set of dates, zero-filling gaps.
   const allDates = Array.from(
     new Set([
       ...Object.keys(dateMaps.sessions),
       ...Object.keys(dateMaps.crashes),
       ...Object.keys(dateMaps.anrs),
+      ...Object.keys(dateMaps.app_hangs),
     ]),
   ).sort();
 
@@ -911,6 +886,7 @@ export const fetchAppHealthPlotFromServer = async (
     buildSeries("Sessions", dateMaps.sessions),
     buildSeries("Crashes", dateMaps.crashes),
     buildSeries("ANRs", dateMaps.anrs),
+    buildSeries("App Hangs", dateMaps.app_hangs),
   ];
 
   // If all the series are empty, there is nothing to plot.
@@ -918,9 +894,9 @@ export const fetchAppHealthPlotFromServer = async (
     return null;
   }
 
-  // Remove ANRs if all y values are 0
+  // Remove ANRs and app hangs if all y values are 0
   const filteredResult = result.filter((series) => {
-    if (series.id === "ANRs") {
+    if (series.id === "ANRs" || series.id === "App Hangs") {
       return series.data.some((point) => point.y !== 0);
     }
     return true;
@@ -929,12 +905,100 @@ export const fetchAppHealthPlotFromServer = async (
   return filteredResult;
 };
 
-export const fetchJourneyFromServer = async (
-  appId: string,
+// Counts are of users. Each app installation counts as one user. The counts
+// include all the sessions of a user in the date range.
+// A node is one screen or custom event. Its step is the median step at which
+// users first reach it in a session.
+// A link counts the users that moved from its source to its target in the
+// same session at least once. A link does not join two sessions.
+// The node of kind "fatal" shows the crashes, ANRs and app hangs that end
+// sessions. Links to it come from the last screen or custom event of each of
+// these sessions.
+export type JourneyNodeKind = "screen" | "event" | "fatal";
+
+export type JourneyNode = {
+  id: string;
+  name: string;
+  kind: JourneyNodeKind;
+  step: number;
+  users: number;
+  // The users that went on from this screen or custom event to another step
+  // of the same session at least once.
+  continuing: number;
+  median_ms_from_previous: number | null;
+};
+
+export type Journey = {
+  nodes: JourneyNode[];
+  links: { source: string; target: string; users: number }[];
+  sample_percent: number | null;
+};
+
+export type JourneyLink = { source: string; target: string };
+
+// A path is a list of two or more nodes. A link goes from each node to the
+// next node. A session goes through a path when it makes all the moves of the
+// path in sequence. A path counts the users that went through it in one or
+// more sessions. Thus a path of two nodes counts the same users as its link.
+export type JourneyPath = { path: string[] };
+
+// The lists for a node cover the time sessions spent from reaching it until
+// their next step, and the lists for a link the time between its two nodes.
+// The lists for a path cover the time from its first node to its last node.
+// A session can go through a path more than once, and each time counts.
+export type JourneySelection = { node: string } | JourneyLink | JourneyPath;
+
+export type JourneyPathUsers = {
+  users: number;
+  sample_percent: number | null;
+};
+
+export type JourneyErrorsResponse = {
+  meta: { next: boolean; previous: boolean };
+  sample_percent: number | null;
+  results: {
+    id: string;
+    type: string;
+    error_type: "exception" | "anr" | "app_hang";
+    severity: string;
+    message: string;
+    method_name: string;
+    file_name: string;
+    count: number;
+    users: number;
+  }[];
+};
+
+export type JourneyTracesResponse = {
+  meta: { next: boolean; previous: boolean };
+  sample_percent: number | null;
+  results: {
+    span_name: string;
+    count: number;
+    users: number;
+    duration_ms: number;
+  }[];
+};
+
+export type JourneyNetworkResponse = {
+  meta: { next: boolean; previous: boolean };
+  sample_percent: number | null;
+  results: {
+    domain: string;
+    path_pattern: string;
+    count: number;
+    users: number;
+    latency_ms: number;
+  }[];
+};
+
+export type JourneySessionsResponse = FunnelStepSessionsResponse;
+
+function journeyParams(
   startDate: string,
   endDate: string,
   filterExpr: string | null,
-) => {
+): URLSearchParams {
   const params = new URLSearchParams({
     from: formatUserInputDateToServerFormat(startDate),
     to: formatUserInputDateToServerFormat(endDate),
@@ -943,10 +1007,152 @@ export const fetchJourneyFromServer = async (
   if (filterExpr) {
     params.set("filter_expr", filterExpr);
   }
+  return params;
+}
 
-  return await request(`/api/apps/${appId}/journey?${params.toString()}`, {
-    failsWith: "Failed to fetch journey",
-  });
+export const fetchJourneyFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+) => {
+  const params = journeyParams(startDate, endDate, filterExpr);
+  return await request<Journey>(
+    `/api/apps/${appId}/journey?${params.toString()}`,
+    { failsWith: "Failed to fetch journey" },
+  );
+};
+
+// A list sends the sample percent of the journey or funnel it shows more
+// about, so that it covers the same users.
+function setSamplePercent(
+  params: URLSearchParams,
+  samplePercent: number | null,
+) {
+  if (samplePercent !== null) {
+    params.set("sample_percent", String(samplePercent));
+  }
+}
+
+function setSelectionParams(
+  params: URLSearchParams,
+  selection: JourneySelection,
+) {
+  if ("node" in selection) {
+    params.set("node", selection.node);
+  } else if ("path" in selection) {
+    for (const node of selection.path) {
+      params.append("path", node);
+    }
+  } else {
+    params.set("source", selection.source);
+    params.set("target", selection.target);
+  }
+}
+
+export const fetchJourneyPathUsersFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  samplePercent: number | null,
+  path: string[],
+) => {
+  const params = journeyParams(startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
+  setSelectionParams(params, { path });
+  return await request<JourneyPathUsers>(
+    `/api/apps/${appId}/journey/path?${params.toString()}`,
+    { failsWith: "Failed to fetch journey path" },
+  );
+};
+
+export const fetchJourneyErrorsFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  samplePercent: number | null,
+  selection: JourneySelection,
+  limit: number,
+  offset: number,
+) => {
+  const params = journeyParams(startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
+  setSelectionParams(params, selection);
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  return await request<JourneyErrorsResponse>(
+    `/api/apps/${appId}/journey/errors?${params.toString()}`,
+    { failsWith: "Failed to fetch journey errors" },
+  );
+};
+
+export const fetchJourneyTracesFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  samplePercent: number | null,
+  selection: JourneySelection,
+  quantile: string,
+  limit: number,
+  offset: number,
+) => {
+  const params = journeyParams(startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
+  setSelectionParams(params, selection);
+  params.set("quantile", quantile);
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  return await request<JourneyTracesResponse>(
+    `/api/apps/${appId}/journey/traces?${params.toString()}`,
+    { failsWith: "Failed to fetch journey traces" },
+  );
+};
+
+export const fetchJourneyNetworkFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  samplePercent: number | null,
+  selection: JourneySelection,
+  quantile: string,
+  limit: number,
+  offset: number,
+) => {
+  const params = journeyParams(startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
+  setSelectionParams(params, selection);
+  params.set("quantile", quantile);
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  return await request<JourneyNetworkResponse>(
+    `/api/apps/${appId}/journey/network?${params.toString()}`,
+    { failsWith: "Failed to fetch journey network" },
+  );
+};
+
+export const fetchJourneySessionsFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  samplePercent: number | null,
+  selection: JourneySelection,
+  limit: number,
+  offset: number,
+) => {
+  const params = journeyParams(startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
+  setSelectionParams(params, selection);
+  params.set("limit", String(limit));
+  params.set("offset", String(offset));
+  return await request<JourneySessionsResponse>(
+    `/api/apps/${appId}/journey/sessions?${params.toString()}`,
+    { failsWith: "Failed to fetch journey sessions" },
+  );
 };
 
 export const fetchMetricsFromServer = async (
@@ -2069,10 +2275,12 @@ export type FunnelConversion = {
     users: number;
     median_seconds_from_previous: number | null;
   }[];
+  sample_percent: number | null;
 };
 
 export type FunnelStepErrorsResponse = {
   meta: { next: boolean; previous: boolean };
+  sample_percent: number | null;
   results: {
     id: string;
     type: string;
@@ -2090,6 +2298,7 @@ export type FunnelStepErrorsResponse = {
 
 export type FunnelStepTracesResponse = {
   meta: { next: boolean; previous: boolean };
+  sample_percent: number | null;
   results: {
     span_name: string;
     count: number;
@@ -2102,6 +2311,7 @@ export type FunnelStepTracesResponse = {
 
 export type FunnelStepNetworkResponse = {
   meta: { next: boolean; previous: boolean };
+  sample_percent: number | null;
   results: {
     domain: string;
     path_pattern: string;
@@ -2117,6 +2327,7 @@ export type FunnelStepOutcome = "dropped" | "converted";
 
 export type FunnelStepSessionsResponse = {
   meta: { next: boolean; previous: boolean };
+  sample_percent: number | null;
   results: {
     session_id: string;
     installation_id: string;
@@ -2146,6 +2357,7 @@ export type FunnelTrend = {
     patch_version: string | null;
     uploaded_at: string;
   }[];
+  sample_percent: number | null;
 };
 
 // Weekdays run from 1 for Monday to 7 for Sunday. The weekday and hour are
@@ -2154,6 +2366,7 @@ export type FunnelCadence = {
   from: string;
   to: string;
   hours: { weekday: number; hour: number; users: number; converted: number }[];
+  sample_percent: number | null;
 };
 
 export type FunnelsResponse = {
@@ -2325,10 +2538,12 @@ export const fetchFunnelStepErrorsFromServer = async (
   startDate: string,
   endDate: string,
   filterExpr: string | null,
+  samplePercent: number | null,
   limit: number,
   offset: number,
 ) => {
   const params = funnelStepParams(step, startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
   params.set("limit", String(limit));
   params.set("offset", String(offset));
   return await request<FunnelStepErrorsResponse>(
@@ -2345,10 +2560,12 @@ export const fetchFunnelStepSessionsFromServer = async (
   startDate: string,
   endDate: string,
   filterExpr: string | null,
+  samplePercent: number | null,
   limit: number,
   offset: number,
 ) => {
   const params = funnelStepParams(step, startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
   params.set("outcome", outcome);
   params.set("limit", String(limit));
   params.set("offset", String(offset));
@@ -2366,10 +2583,12 @@ export const fetchFunnelStepTracesFromServer = async (
   startDate: string,
   endDate: string,
   filterExpr: string | null,
+  samplePercent: number | null,
   limit: number,
   offset: number,
 ) => {
   const params = funnelStepParams(step, startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
   params.set("quantile", quantile);
   params.set("limit", String(limit));
   params.set("offset", String(offset));
@@ -2387,10 +2606,12 @@ export const fetchFunnelStepNetworkFromServer = async (
   startDate: string,
   endDate: string,
   filterExpr: string | null,
+  samplePercent: number | null,
   limit: number,
   offset: number,
 ) => {
   const params = funnelStepParams(step, startDate, endDate, filterExpr);
+  setSamplePercent(params, samplePercent);
   params.set("quantile", quantile);
   params.set("limit", String(limit));
   params.set("offset", String(offset));
@@ -2421,4 +2642,121 @@ export const fetchFunnelTrendFromServer = async (
     `/api/apps/${appId}/funnels/${funnelId}/trend?${params.toString()}`,
     { failsWith: "Failed to fetch funnel trend" },
   );
+};
+
+// ─── Devices ─────────────────────────────────────────────────────────────
+
+// device_name is the most common name reported by a model's rows, since a model
+// can have multiple names.
+export type DeviceRowBase = {
+  device_manufacturer: string;
+  device_model: string;
+  device_name: string;
+};
+
+export type DeviceSessionsRow = DeviceRowBase & {
+  session_count: number;
+  percent_of_sessions: number;
+};
+
+export type DeviceErrorsRow = DeviceRowBase & {
+  crash_count: number;
+  anr_count: number;
+  app_hang_count: number;
+  non_fatal_count: number;
+  error_count: number;
+  session_count: number;
+};
+
+// Durations are measured in milliseconds.
+export type DeviceDurationRow = DeviceRowBase & {
+  p50: number | null;
+  p90: number | null;
+  p95: number | null;
+  count: number;
+};
+
+// Memory values use KB (1024 bytes).
+export type DeviceMemoryRow = DeviceRowBase & {
+  p50: number | null;
+  p90: number | null;
+  p95: number | null;
+  session_count: number;
+  sample_count: number;
+};
+
+export type DeviceSessionsPlotPoint = {
+  device_manufacturer: string;
+  device_model: string;
+  datetime: string;
+  session_count: number;
+};
+
+export type LaunchType = "cold_launch" | "warm_launch" | "hot_launch";
+
+export type DevicesList =
+  "sessions" | "errors" | "launches" | "spans" | "memory";
+
+// "desc" ranks devices from highest to lowest by the list's metric.
+export type DevicesOrder = "desc" | "asc";
+
+export type DevicesPercentile = "p50" | "p90" | "p95";
+
+export type DevicesPage<Row> = {
+  results: Row[];
+  meta: { next: boolean; previous: boolean };
+};
+
+export const fetchDevicesListFromServer = async <Row>(
+  list: DevicesList,
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+  order: DevicesOrder,
+  limit: number,
+  offset: number,
+  extra: Record<string, string> = {},
+): Promise<DevicesPage<Row>> => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    order,
+    limit: String(limit),
+    offset: String(offset),
+    ...extra,
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+
+  const failsWith = `Failed to fetch devices by ${list}`;
+  const data = await request(`/api/apps/${appId}/devices/${list}?${params}`, {
+    failsWith,
+  });
+  if (data === null) {
+    throw new RequestError(failsWith);
+  }
+  return data as DevicesPage<Row>;
+};
+
+export const fetchDevicesSessionsPlotFromServer = async (
+  appId: string,
+  startDate: string,
+  endDate: string,
+  filterExpr: string | null,
+): Promise<DeviceSessionsPlotPoint[] | null> => {
+  const params = new URLSearchParams({
+    from: formatUserInputDateToServerFormat(startDate),
+    to: formatUserInputDateToServerFormat(endDate),
+    timezone: getTimeZoneForServer(),
+    plot_time_group: getPlotTimeGroupForRange(startDate, endDate),
+  });
+  if (filterExpr) {
+    params.set("filter_expr", filterExpr);
+  }
+
+  return await request(`/api/apps/${appId}/devices/plots/sessions?${params}`, {
+    failsWith: "Failed to fetch sessions by device",
+  });
 };

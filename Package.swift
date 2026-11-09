@@ -13,7 +13,7 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(url: "https://github.com/kstenerud/KSCrash.git", from: "2.5.1")
+        .package(url: "https://github.com/kstenerud/KSCrash.git", exact: "2.6.1")
     ],
     targets: [
         .target(

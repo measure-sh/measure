@@ -24,7 +24,7 @@ export const ERROR_EVENT_SIZE_KB = 50;
 export const DEFAULT_EVENT_SIZE_KB = 1;
 
 const EVENTS_PER_SESSION_MINUTE = 60;
-const JOURNEY_EVENTS_PER_MINUTE = 10;
+const ANALYTICS_EVENTS_PER_MINUTE = 10;
 
 export type CalculatorInputs = {
   dailyUsers: number;
@@ -34,7 +34,7 @@ export type CalculatorInputs = {
   errorRatePercent: number; // e.g. 0.5 means 0.5%
   perfSpanSamplePercent: number; // e.g. 0.01 means 0.01%
   perfSpanCount: number;
-  journeySamplePercent: number; // e.g. 0.01 means 0.01%
+  analyticsSamplePercent: number; // e.g. 0.01 means 0.01%
   httpSamplePercent: number; // e.g. 0.01 means 0.01%
   httpRequestsPerSession: number;
 };
@@ -45,7 +45,7 @@ export type EventBreakdown = {
   crashEventsPerDay: number;
   sessionReplayEventsPerDay: number;
   perfSpansPerDay: number;
-  journeyEventsPerDay: number;
+  analyticsEventsPerDay: number;
   httpEventsPerDay: number;
 };
 
@@ -68,7 +68,7 @@ export function computeEventBreakdown(
     errorRatePercent,
     perfSpanSamplePercent,
     perfSpanCount,
-    journeySamplePercent,
+    analyticsSamplePercent,
     httpSamplePercent,
     httpRequestsPerSession,
   } = inputs;
@@ -86,12 +86,12 @@ export function computeEventBreakdown(
     averageAppOpens *
     (perfSpanSamplePercent / 100) *
     perfSpanCount;
-  const journeyEventsPerDay =
+  const analyticsEventsPerDay =
     dailyUsers *
     averageAppOpens *
     sessionLengthMinutes *
-    JOURNEY_EVENTS_PER_MINUTE *
-    (journeySamplePercent / 100);
+    ANALYTICS_EVENTS_PER_MINUTE *
+    (analyticsSamplePercent / 100);
   const httpEventsPerDay =
     dailyUsers *
     averageAppOpens *
@@ -104,7 +104,7 @@ export function computeEventBreakdown(
     crashEventsPerDay,
     sessionReplayEventsPerDay,
     perfSpansPerDay,
-    journeyEventsPerDay,
+    analyticsEventsPerDay,
     httpEventsPerDay,
   };
 }
@@ -116,7 +116,7 @@ export function computeBytesPerDay(events: EventBreakdown): number {
       events.launchPerDay +
       events.sessionReplayEventsPerDay +
       events.perfSpansPerDay +
-      events.journeyEventsPerDay +
+      events.analyticsEventsPerDay +
       events.httpEventsPerDay) *
     DEFAULT_EVENT_SIZE_KB *
     1024;
@@ -150,7 +150,7 @@ export default function PricingCalculator() {
   const [perfSpanSamplePercent, setPerfSpanSamplePercent] = useState(0.01);
   const [perfSpanCount, setPerfSpanCount] = useState(10); // spans per session
   const [launchSamplePercent, setLaunchSamplePercent] = useState(0.01);
-  const [journeySamplePercent, setJourneySamplePercent] = useState(0.01);
+  const [analyticsSamplePercent, setAnalyticsSamplePercent] = useState(0.01);
   const [httpSamplePercent, setHttpSamplePercent] = useState(0.01);
   const [httpRequestsPerSession, setHttpRequestsPerSession] = useState(20);
 
@@ -162,7 +162,7 @@ export default function PricingCalculator() {
     errorRatePercent,
     perfSpanSamplePercent,
     perfSpanCount,
-    journeySamplePercent,
+    analyticsSamplePercent,
     httpSamplePercent,
     httpRequestsPerSession,
   });
@@ -174,7 +174,7 @@ export default function PricingCalculator() {
       crashEventsPerDay,
       sessionReplayEventsPerDay,
       perfSpansPerDay,
-      journeyEventsPerDay,
+      analyticsEventsPerDay,
       httpEventsPerDay,
     },
     totalGBPerMonth,
@@ -343,12 +343,12 @@ export default function PricingCalculator() {
             </div>
 
             <div className="space-y-8">
-              <h4 className={sectionHeadingStyle}>User Journeys</h4>
+              <h4 className={sectionHeadingStyle}>Analytics</h4>
               <SyncedInputSlider
-                label="User journey sampling rate"
-                description="Percentage of sessions that collect user journeys"
-                value={journeySamplePercent}
-                onChange={setJourneySamplePercent}
+                label="Analytics sampling rate"
+                description="Percentage of installations that send analytics events"
+                value={analyticsSamplePercent}
+                onChange={setAnalyticsSamplePercent}
                 min={0}
                 max={100}
                 step={percentStep}
@@ -434,10 +434,10 @@ export default function PricingCalculator() {
             </div>
             <div className="flex justify-between">
               <span className="text-secondary-foreground">
-                Journey events per month:
+                Analytics events per month:
               </span>
               <span className="font-display">
-                {formatNumber(Math.round(journeyEventsPerDay * 30))}
+                {formatNumber(Math.round(analyticsEventsPerDay * 30))}
               </span>
             </div>
             <div className="flex justify-between">

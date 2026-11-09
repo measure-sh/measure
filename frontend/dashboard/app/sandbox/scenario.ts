@@ -8,6 +8,7 @@ import type { ScreenKey, UiStyle } from "./layouts";
 export type OsName = "android" | "ios";
 export type Framework = "native" | "flutter" | "react_native";
 export type MappingType = "proguard" | "dsym" | "elf_debug" | "jsbundle";
+export type AppHangState = "recovered" | "killed";
 export type ExceptionFramework = "jvm" | "apple" | "dart" | "js" | "ndk";
 
 export type AppSpec = {
@@ -29,6 +30,7 @@ export type AppSpec = {
   dailySessions: number;
   crashFreeRate: number;
   anrFreeRate?: number;
+  appHangFreeRate?: number;
   perceivedCrashFreeRate: number;
 };
 
@@ -92,7 +94,7 @@ export type BinaryImageSpec = {
 
 export type ExceptionSpec = {
   key: string;
-  kind: "exception" | "anr";
+  kind: "exception" | "anr" | "app_hang";
   type: string;
   message: string;
   severity: "fatal" | "unhandled" | "handled";
@@ -127,6 +129,9 @@ export type ExceptionSpec = {
   // stack of its own, such as an NSError tracked without a stack.
   reportedOn?: string;
   nativeFollowUp?: string;
+  // Set when an app hang keeps a core busy, such as during text layout.
+  // Unset when the hang waits on another process.
+  cpuBound?: boolean;
   error?: {
     code: string;
     num_code: number;
@@ -136,12 +141,7 @@ export type ExceptionSpec = {
 
 // What a successful response changes in the session's shop state.
 export type HttpEffect =
-  | "cart_add"
-  | "cart_update"
-  | "cart_remove"
-  | "coupon"
-  | "search"
-  | "order";
+  "cart_add" | "cart_update" | "cart_remove" | "coupon" | "search" | "order";
 
 // url, requestBody and responseBody may name session values in braces, such
 // as {product_id} or {cart_items}; a braced path segment is reported as * in
@@ -233,7 +233,13 @@ export type StepSpec =
       // it, and a warm or hot launch runs these steps in its place.
       startup?: { otherwise: StepSpec[] };
     }
-  | { kind: "exception"; exception: string }
+  | {
+      kind: "exception";
+      exception: string;
+      // Set only for an app hang. A killed hang ends the session; a recovered
+      // hang lets the flow continue.
+      hangState?: AppHangState;
+    }
   | { kind: "bug_report"; description: string }
   | { kind: "background"; ms: number }
   | { kind: "wait"; ms: number };

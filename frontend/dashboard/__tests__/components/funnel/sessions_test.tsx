@@ -37,6 +37,7 @@ const params = {
 };
 
 const conversion = {
+  sample_percent: 37.5,
   steps: [
     { event_name: "view_cart", users: 10, median_seconds_from_previous: null },
     {
@@ -76,6 +77,8 @@ const listQuery = (
 const onSelectStep = jest.fn();
 const onSelectOutcome = jest.fn();
 const onOpenSession = jest.fn();
+const onChangeOffset = jest.fn();
+const onPastLastPage = jest.fn();
 
 function renderSessions(
   overrides: Partial<React.ComponentProps<typeof FunnelSessions>> = {},
@@ -92,6 +95,9 @@ function renderSessions(
       outcome={SessionsOutcome.Converted}
       onSelectOutcome={onSelectOutcome}
       onOpenSession={onOpenSession}
+      offset={0}
+      onChangeOffset={onChangeOffset}
+      onPastLastPage={onPastLastPage}
       {...overrides}
     />,
   );
@@ -150,11 +156,12 @@ describe("FunnelSessions", () => {
     expect(cells[2].textContent).toBe("N/A");
   });
 
-  it("queries the whole funnel when no step is selected", () => {
+  it("queries the whole funnel in the sample of the conversion when no step is selected", () => {
     renderSessions({ selectedStep: null });
 
     expect(mockUseFunnelStepSessionsQuery).toHaveBeenLastCalledWith(
       params,
+      37.5,
       "funnel-1",
       null,
       "converted",
@@ -162,53 +169,81 @@ describe("FunnelSessions", () => {
     );
   });
 
-  it("queries the selected step and outcome, and pages from the first page", () => {
-    renderSessions();
-    expect(mockUseFunnelStepSessionsQuery).toHaveBeenLastCalledWith(
-      params,
-      "funnel-1",
-      1,
-      "converted",
-      0,
-    );
+  it("queries the selected step, outcome and page", () => {
+    renderSessions({ offset: 10 });
 
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
     expect(mockUseFunnelStepSessionsQuery).toHaveBeenLastCalledWith(
       params,
+      37.5,
       "funnel-1",
       1,
       "converted",
-      5,
-    );
-
-    fireEvent.click(screen.getByText("Dropped off"));
-    expect(onSelectOutcome).toHaveBeenCalledWith(SessionsOutcome.Dropped);
-    expect(mockUseFunnelStepSessionsQuery).toHaveBeenLastCalledWith(
-      params,
-      "funnel-1",
-      1,
-      "converted",
-      0,
+      10,
     );
   });
 
-  it("pages back a page at a time", () => {
+  it("pages forward and back a page at a time", () => {
     mockUseFunnelStepSessionsQuery.mockReturnValue(
       listQuery([withUser], { next: true, previous: true }),
     );
+    renderSessions({ offset: 10 });
+
+    fireEvent.click(screen.getByRole("button", { name: "Next" }));
+    expect(onChangeOffset).toHaveBeenLastCalledWith(15);
+
+    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    expect(onChangeOffset).toHaveBeenLastCalledWith(5);
+  });
+
+  it("reports a list that comes back empty past its first page again after each render", () => {
+    mockUseFunnelStepSessionsQuery.mockReturnValue(listQuery([]));
+    const view = renderSessions({ offset: 10 });
+    expect(onPastLastPage).toHaveBeenCalledTimes(1);
+
+    view.rerender(
+      <FunnelSessions
+        teamId="team-1"
+        funnelId="funnel-1"
+        params={params}
+        conversion={conversion}
+        conversionFailed={false}
+        selectedStep={1}
+        onSelectStep={onSelectStep}
+        outcome={SessionsOutcome.Converted}
+        onSelectOutcome={onSelectOutcome}
+        onOpenSession={onOpenSession}
+        offset={10}
+        onChangeOffset={onChangeOffset}
+        onPastLastPage={onPastLastPage}
+      />,
+    );
+
+    expect(onPastLastPage).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps an empty first page", () => {
+    mockUseFunnelStepSessionsQuery.mockReturnValue(listQuery([]));
     renderSessions();
 
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    fireEvent.click(screen.getByRole("button", { name: "Next" }));
-    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    expect(onPastLastPage).not.toHaveBeenCalled();
+  });
 
-    expect(mockUseFunnelStepSessionsQuery).toHaveBeenLastCalledWith(
-      params,
-      "funnel-1",
-      1,
-      "converted",
-      5,
-    );
+  it("keeps a page while it shows the rows of the previous page", () => {
+    mockUseFunnelStepSessionsQuery.mockReturnValue({
+      ...listQuery([]),
+      isPlaceholderData: true,
+    });
+    renderSessions({ offset: 10 });
+
+    expect(onPastLastPage).not.toHaveBeenCalled();
+  });
+
+  it("reports a chosen outcome", () => {
+    renderSessions();
+
+    fireEvent.click(screen.getByText("Dropped off"));
+
+    expect(onSelectOutcome).toHaveBeenCalledWith(SessionsOutcome.Dropped);
   });
 
   it("shows an empty state when no users did the first step", () => {

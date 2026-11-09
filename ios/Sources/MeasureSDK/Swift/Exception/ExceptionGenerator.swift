@@ -21,10 +21,10 @@ import Foundation
 /// not useful to the caller.
 ///
 /// The correct value depends on the call path:
-/// - Swift `trackError(_:Error)`      → 3
-/// - ObjC  `trackError(_:NSError)`    → 4  (one extra frame for the `@objc` bridge)
-/// - Swift `trackException`           → 3
-/// - ObjC  `trackException`           → 4  (one extra frame for the `@objc` bridge)
+/// - Swift `trackError(_:Error)`        → 3
+/// - ObjC  `trackError(_:NSError)`      → 4  (one extra frame for the `@objc` bridge)
+/// - Swift `trackError(_:NSException)`  → 3
+/// - ObjC  `trackError(_:NSException)`  → 4  (one extra frame for the `@objc` bridge)
 ///
 /// If the Measure SDK is present as a dynamic framework (i.e. "Measure" or "Measure.dylib" appears
 /// in the crash report's binary images), stripping is skipped entirely.

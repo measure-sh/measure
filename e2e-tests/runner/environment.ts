@@ -168,9 +168,9 @@ async function launchEmulator(avd: string): Promise<void> {
     detached: true,
     stdio: "ignore",
   });
-  emulator.unref();
+  emulator.nodeChildProcess.unref();
   emulator.catch(() => {});
-  await once(emulator, "spawn");
+  await once(emulator.nodeChildProcess, "spawn");
 }
 
 async function androidAttached(): Promise<boolean> {

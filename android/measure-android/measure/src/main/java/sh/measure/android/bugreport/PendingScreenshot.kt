@@ -24,6 +24,12 @@ internal class PendingScreenshot(preview: Bitmap) {
 
     fun isEncoding(): Boolean = state == State.ENCODING
 
+    /**
+     * The encoded screenshot once encoding has finished, or null if it is still encoding, failed
+     * to encode or was discarded.
+     */
+    fun encodedAttachment(): ParcelableAttachment? = if (state == State.ENCODED) encoded else null
+
     fun setListener(listener: ((ParcelableAttachment?) -> Unit)?) {
         this.listener = listener
     }

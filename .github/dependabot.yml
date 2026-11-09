@@ -38,7 +38,7 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     assignees:
-      - detj
+      - anupcowkur
     rebase-strategy: auto
     versioning-strategy: increase
     groups:
@@ -50,6 +50,11 @@ updates:
         update-types: [minor, patch]
     ignore:
       - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # TypeScript 7 has no compiler API, which the typescript-eslint
+      # version used by eslint-config-next requires. Remove this once
+      # typescript-eslint supports TypeScript 7.
+      - dependency-name: typescript
         update-types: ["version-update:semver-major"]
 
   - package-ecosystem: npm
@@ -66,7 +71,7 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     assignees:
-      - detj
+      - abhaysood
     rebase-strategy: auto
     versioning-strategy: increase
     groups:
@@ -201,7 +206,7 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     assignees:
-      - detj
+      - abhaysood
     rebase-strategy: auto
 
   - package-ecosystem: gradle
@@ -218,7 +223,7 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     assignees:
-      - detj
+      - abhaysood
     rebase-strategy: auto
 
   - package-ecosystem: gradle
@@ -235,7 +240,7 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     assignees:
-      - detj
+      - abhaysood
     rebase-strategy: auto
 
   - package-ecosystem: gradle
@@ -252,7 +257,7 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     assignees:
-      - detj
+      - abhaysood
     rebase-strategy: auto
 
   - package-ecosystem: npm
@@ -269,7 +274,8 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     assignees:
-      - detj
+      - abhaysood
+      - adwinross
     rebase-strategy: auto
     versioning-strategy: increase
 
@@ -287,7 +293,8 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     assignees:
-      - detj
+      - abhaysood
+      - adwinross
     rebase-strategy: auto
     versioning-strategy: increase
     ignore:
@@ -307,7 +314,7 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     assignees:
-      - detj
+      - abhaysood
     rebase-strategy: auto
     ignore:
       - dependency-name: "*"
@@ -326,7 +333,7 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     assignees:
-      - detj
+      - abhaysood
     rebase-strategy: auto
     ignore:
       - dependency-name: "*"
@@ -345,7 +352,7 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     assignees:
-      - detj
+      - abhaysood
     rebase-strategy: auto
     ignore:
       - dependency-name: "*"
@@ -364,7 +371,8 @@ updates:
     commit-message:
       prefix: "chore(deps)"
     assignees:
-      - detj
+      - abhaysood
+      - adwinross
     rebase-strategy: auto
     ignore:
       - dependency-name: "*"

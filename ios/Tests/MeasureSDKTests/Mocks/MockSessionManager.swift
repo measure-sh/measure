@@ -10,7 +10,6 @@ import Foundation
 
 final class MockSessionManager: SessionManager {
     var sessionId: String
-    var shouldReportJourneyEvents: Bool
     private(set) var startCalled = false
     private(set) var signalProcessor: SignalProcessor?
     private(set) var applicationDidEnterBackgroundCalled = false
@@ -20,14 +19,12 @@ final class MockSessionManager: SessionManager {
     private(set) var onEventTrackedCallCount = 0
     private(set) var isPreviousSessionCrashed: Bool?
     private(set) var isCrashed = false
-    private(set) var onConfigLoadedCalled = false
     private(set) var trackedEvent: Any?
     var sessionStartTime: Number?
     var onSessionStartedCallback: ((String) -> Void)?
 
-    init(sessionId: String = "mock-session-id", shouldReportJourneyEvents: Bool = true) {
+    init(sessionId: String = "mock-session-id") {
         self.sessionId = sessionId
-        self.shouldReportJourneyEvents = shouldReportJourneyEvents
     }
 
     func start() {
@@ -62,10 +59,6 @@ final class MockSessionManager: SessionManager {
 
     func markCurrentSessionAsCrashed() {
         isCrashed = true
-    }
-
-    func onConfigLoaded() {
-        onConfigLoadedCalled = true
     }
 
     func setOnSessionStarted(_ callback: ((String) -> Void)?) {

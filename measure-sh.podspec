@@ -1,7 +1,7 @@
 Pod::Spec.new do |spec|
   spec.name         = "measure-sh"
   spec.module_name  = "Measure"
-  spec.version      = "0.14.2"
+  spec.version      = "0.15.0"
   spec.summary      = "Open source tool to monitor mobile apps"
   spec.homepage     = "https://github.com/measure-sh/measure.git"
   spec.license      = { :type => "Apache-2.0", :file => "LICENSE" }
@@ -22,7 +22,7 @@ Pod::Spec.new do |spec|
     "ios/Sources/MeasureSDK/Swift/XCDataModel/MeasureModelV1ToV2.xcmappingmodel"
   ]
   spec.frameworks   = "Foundation", "UIKit", "CoreData"
-  spec.dependency "KSCrash", "~> 2.5"
+  spec.dependency "KSCrash", "2.6.1"
 
   spec.subspec 'WebP' do |ss|
     ss.source_files = [

@@ -10,7 +10,6 @@ import {
   OutcomeCells,
   StepList,
   type StepOutcomes,
-  type StepListQuery,
   StepRow,
   useDateRangeParams,
 } from "./step_list";
@@ -21,7 +20,10 @@ type StepEndpoint = FunnelStepNetworkResponse["results"][number];
 export default function FunnelStepNetwork({
   teamId,
   appId,
-  query,
+  status,
+  data,
+  error,
+  isFetching,
   quantile,
   offset,
   outcomes,
@@ -30,7 +32,10 @@ export default function FunnelStepNetwork({
 }: {
   teamId: string;
   appId: string;
-  query: StepListQuery<FunnelStepNetworkResponse>;
+  status: "pending" | "success" | "error";
+  data: FunnelStepNetworkResponse | undefined;
+  error?: unknown;
+  isFetching?: boolean;
   quantile: RootSpanMetricsQuantile;
   offset: number;
   outcomes: StepOutcomes;
@@ -53,9 +58,13 @@ export default function FunnelStepNetwork({
 
   return (
     <StepList
-      query={query}
+      status={status}
+      data={data}
+      error={error}
+      isFetching={isFetching}
       offset={offset}
       noun="network requests"
+      tableClassName="max-lg:min-w-205"
       icon={Globe}
       columns={6}
       header={
@@ -69,7 +78,7 @@ export default function FunnelStepNetwork({
             Drop-off Latency ({quantile})
           </TableHead>
           <TableHead className="w-[13%] text-center">Conversions</TableHead>
-          <TableHead className="w-[13%] text-center">Drop-offs</TableHead>
+          <TableHead className="w-[13%] text-right">Drop-offs</TableHead>
         </>
       }
     >

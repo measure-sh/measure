@@ -1,10 +1,14 @@
 import type { FunnelTrend, FunnelTrendPeriod } from "@/app/api/api_calls";
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { pointerDown } from "@/__tests__/helpers/pointer_events";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 
 let conversionProps: any = null;
 let usersProps: any = null;
+let mockShownTooltip: ((props: any, isUsers: boolean) => any) | null = null;
 
+// When mockShownTooltip returns tooltip props for a plot, the mock renders the
+// tooltip inside that plot, as nivo does when a point is hovered or tapped.
 jest.mock("@nivo/line", () => ({
   ResponsiveLineCanvas: (props: any) => {
     const isUsers = props.axisLeft.legend === "Users";
@@ -13,7 +17,12 @@ jest.mock("@nivo/line", () => ({
     } else {
       conversionProps = props;
     }
-    return <div data-testid={isUsers ? "users-plot" : "conversion-plot"} />;
+    const shown = mockShownTooltip?.(props, isUsers);
+    return (
+      <div data-testid={isUsers ? "users-plot" : "conversion-plot"}>
+        {shown && props.tooltip(shown)}
+      </div>
+    );
   },
 }));
 
@@ -56,6 +65,7 @@ import FunnelTrendPlot, {
   FunnelTrendMetric,
 } from "@/app/components/funnel/trend_plot";
 import { gridDotPositions } from "@/app/utils/chart_utils";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 type TrendPoint = FunnelTrend["points"][number];
 type TrendBuild = FunnelTrend["builds"][number];
@@ -133,7 +143,13 @@ const points: TrendPoint[] = [
 const completePoints = points.map((p) => ({ ...p, complete: true }));
 
 function trendWith(overrides: Partial<FunnelTrend> = {}): FunnelTrend {
-  return { event_names: eventNames, points, builds: [], ...overrides };
+  return {
+    sample_percent: 100,
+    event_names: eventNames,
+    points,
+    builds: [],
+    ...overrides,
+  };
 }
 
 type PlotProps = Parameters<typeof FunnelTrendPlot>[0];
@@ -183,7 +199,7 @@ function isSelected(label: string) {
 }
 
 function renderTooltip(lineProps: any, seriesId: string, index: number) {
-  const { container } = render(
+  render(
     lineProps.tooltip({
       point: {
         seriesId,
@@ -191,8 +207,10 @@ function renderTooltip(lineProps: any, seriesId: string, index: number) {
         data: lineProps.data[0].data[index],
       },
     }),
+    { wrapper: PlotTooltipArea },
   );
-  return container;
+  // A test can render multiple tooltips, so this reads the last one rendered.
+  return screen.getAllByRole("tooltip", { hidden: true }).at(-1)!;
 }
 
 function tooltipText(lineProps: any, seriesId: string, index: number) {
@@ -332,6 +350,7 @@ beforeEach(() => {
   conversionProps = null;
   usersProps = null;
   mockResolvedTheme = "light";
+  mockShownTooltip = null;
 });
 
 describe("FunnelTrendPlot states", () => {
@@ -683,6 +702,37 @@ describe("FunnelTrendPlot hover and click", () => {
     renderPlot({ onSelectPoint });
     usersProps.onClick({ seriesId: "entered", data: { index: 2 } });
     expect(onSelectPoint).toHaveBeenCalledWith("2026-01-12T00:00:00", null);
+  });
+
+  it("opens a period on a tap only when its tooltip is visible in that plot", () => {
+    mockShownTooltip = (plotProps, isUsers) =>
+      isUsers
+        ? null
+        : {
+            point: {
+              seriesId: "step:2",
+              seriesColor: "#123456",
+              data: plotProps.data[0].data[1],
+            },
+          };
+    const onSelectPoint = jest.fn();
+    renderPlot({ onSelectPoint });
+    const tap = (
+      testId: string,
+      lineProps: any,
+      seriesId: string,
+      index: number,
+    ) => {
+      pointerDown(screen.getByTestId(testId), "touch");
+      act(() => lineProps.onClick({ seriesId, data: { index } }));
+    };
+
+    tap("conversion-plot", conversionProps, "step:2", 2);
+    tap("conversion-plot", conversionProps, "overall", 1);
+    tap("users-plot", usersProps, "entered", 1);
+    expect(onSelectPoint).not.toHaveBeenCalled();
+    tap("conversion-plot", conversionProps, "step:2", 1);
+    expect(onSelectPoint).toHaveBeenCalledWith("2026-01-11T00:00:00", 2);
   });
 
   it("ignores clicks that are not on a point", () => {

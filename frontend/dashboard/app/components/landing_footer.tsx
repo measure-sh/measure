@@ -420,7 +420,7 @@ export default function LandingFooter() {
                 type="button"
                 className={cn(
                   buttonVariants({ variant: "ghost" }),
-                  "font-display select-none w-full md:w-fit justify-start",
+                  "font-display select-none w-full md:w-fit justify-start cursor-pointer",
                 )}
               >
                 Cookie Preferences

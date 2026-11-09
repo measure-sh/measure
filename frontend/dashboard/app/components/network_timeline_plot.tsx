@@ -3,7 +3,7 @@
 import { Slider } from "@/app/components/slider";
 import { useChartCanvasTheme } from "@/app/utils/chart_utils";
 import { formatMillisToHumanReadable } from "@/app/utils/time_utils";
-import { PlotTooltipShell } from "@/app/components/plot_tooltip";
+import { PlotTooltip, PlotTooltipArea } from "@/app/components/plot_tooltip";
 import { ResponsiveHeatMapCanvas } from "@nivo/heatmap";
 import { useTheme } from "next-themes";
 import React, { useEffect, useMemo, useState } from "react";
@@ -188,55 +188,63 @@ const NetworkTimelinePlot: React.FC<Props> = ({ data }) => {
         </div>
       )}
       <div className="size-full" style={{ height: containerHeight }}>
-        <ResponsiveHeatMapCanvas
-          data={filteredHeatmapData}
-          theme={canvasTheme}
-          colors={
-            resolvedTheme === "dark"
-              ? { type: "diverging", colors: ["#cad8ea", "#5e98c4", "#1f77b4"] }
-              : { type: "diverging", colors: ["#fee6ce", "#fdae6b", "#e6550d"] }
-          }
-          emptyColor={resolvedTheme === "dark" ? "#1a1a1a" : "#f9f9f9"}
-          opacity={1}
-          activeOpacity={1}
-          inactiveOpacity={resolvedTheme === "dark" ? 0.9 : 0.7}
-          borderWidth={1}
-          borderColor={resolvedTheme === "dark" ? "#000000" : "#ffffff"}
-          margin={{ top: 20, right: 40, bottom: 120, left: 180 }}
-          axisTop={null}
-          axisRight={null}
-          axisBottom={{
-            legend: "Time Since Session Start",
-            legendPosition: "middle",
-            legendOffset: 100,
-            tickPadding: 10,
-            tickRotation: 45,
-            tickValues,
-          }}
-          axisLeft={{
-            tickSize: 0,
-            tickPadding: 8,
-            format: (value: string) =>
-              value.length > 32 ? value.slice(0, 29) + "..." : value,
-          }}
-          enableLabels={false}
-          hoverTarget="cell"
-          tooltip={({ cell }) => {
-            if (cell.value === null) return null;
-            const rangeLabel = (cell.data as any).rangeLabel as string;
-            return (
-              <PlotTooltipShell className="px-4 py-2">
-                <p className="font-semibold">{cell.serieId}</p>
-                <p className="mt-1">{rangeLabel}</p>
-                <p className="mt-0.5">
-                  {cell.value !== null ? Number(cell.value).toFixed(2) : "0"}{" "}
-                  avg. requests/session
-                </p>
-              </PlotTooltipShell>
-            );
-          }}
-          legends={[]}
-        />
+        <PlotTooltipArea>
+          <ResponsiveHeatMapCanvas
+            data={filteredHeatmapData}
+            theme={canvasTheme}
+            colors={
+              resolvedTheme === "dark"
+                ? {
+                    type: "diverging",
+                    colors: ["#cad8ea", "#5e98c4", "#1f77b4"],
+                  }
+                : {
+                    type: "diverging",
+                    colors: ["#fee6ce", "#fdae6b", "#e6550d"],
+                  }
+            }
+            emptyColor={resolvedTheme === "dark" ? "#1a1a1a" : "#f9f9f9"}
+            opacity={1}
+            activeOpacity={1}
+            inactiveOpacity={resolvedTheme === "dark" ? 0.9 : 0.7}
+            borderWidth={1}
+            borderColor={resolvedTheme === "dark" ? "#000000" : "#ffffff"}
+            margin={{ top: 20, right: 40, bottom: 110, left: 180 }}
+            axisTop={null}
+            axisRight={null}
+            axisBottom={{
+              legend: "Time Since Session Start",
+              legendPosition: "middle",
+              legendOffset: 90,
+              tickPadding: 10,
+              tickRotation: 45,
+              tickValues,
+            }}
+            axisLeft={{
+              tickSize: 0,
+              tickPadding: 8,
+              format: (value: string) =>
+                value.length > 32 ? value.slice(0, 29) + "..." : value,
+            }}
+            enableLabels={false}
+            hoverTarget="cell"
+            tooltip={({ cell }) => {
+              if (cell.value === null) return null;
+              const rangeLabel = (cell.data as any).rangeLabel as string;
+              return (
+                <PlotTooltip className="px-4 py-2">
+                  <p className="font-semibold">{cell.serieId}</p>
+                  <p className="mt-1">{rangeLabel}</p>
+                  <p className="mt-0.5">
+                    {cell.value !== null ? Number(cell.value).toFixed(2) : "0"}{" "}
+                    avg. requests/session
+                  </p>
+                </PlotTooltip>
+              );
+            }}
+            legends={[]}
+          />
+        </PlotTooltipArea>
       </div>
     </div>
   );

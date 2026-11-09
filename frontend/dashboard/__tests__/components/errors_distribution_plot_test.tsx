@@ -4,14 +4,23 @@ import {
   distributionAttributes,
 } from "@/app/query/hooks";
 import "@testing-library/jest-dom";
+import { pointerDown } from "@/__tests__/helpers/pointer_events";
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 let lastBarProps: any = null;
+let mockShownTooltip: any = null;
 
+// When mockShownTooltip is set, the mock renders that bar's tooltip inside
+// the chart, as nivo does when a bar is hovered or tapped.
 jest.mock("@nivo/bar", () => ({
   ResponsiveBar: (props: any) => {
     lastBarProps = props;
-    return <div data-testid="bar-mock" />;
+    return (
+      <div data-testid="bar-mock">
+        {mockShownTooltip && props.tooltip(mockShownTooltip)}
+      </div>
+    );
   },
 }));
 
@@ -92,12 +101,15 @@ function renderDevice(attributeQuery: any, onSelect = jest.fn()) {
 }
 
 function renderTooltip(props: any) {
-  return render(lastBarProps.tooltip(props)).container.textContent;
+  render(lastBarProps.tooltip(props), { wrapper: PlotTooltipArea });
+  // A test can render multiple tooltips, so this reads the last one rendered.
+  return screen.getAllByRole("tooltip", { hidden: true }).at(-1)!.textContent;
 }
 
 describe("ErrorsDistributionPlot", () => {
   beforeEach(() => {
     lastBarProps = null;
+    mockShownTooltip = null;
   });
 
   it("renders loading state when query is pending", () => {
@@ -120,7 +132,7 @@ describe("ErrorsDistributionPlot", () => {
         query={queryWith({ data: null, status: "success" })}
       />,
     );
-    expect(screen.getByText("No distribution data found")).toBeInTheDocument();
+    expect(screen.getByText("No errors found")).toBeInTheDocument();
   });
 
   it("stacks each attribute's values by rank with the other values on top", () => {
@@ -151,7 +163,7 @@ describe("ErrorsDistributionPlot", () => {
         value: 30,
         color: "#111",
       }),
-    ).toContain("Samsung - Galaxy S23 - 30 instances (30.0%)");
+    ).toContain("Samsung - Galaxy S23 - 30 errors (30.0%)");
     expect(
       renderTooltip({
         id: "other",
@@ -159,7 +171,7 @@ describe("ErrorsDistributionPlot", () => {
         value: 20,
         color: "#111",
       }),
-    ).toContain("Other (5 values) - 20 instances (20.0%)");
+    ).toContain("Other (5 values) - 20 errors (20.0%)");
   });
 
   it("selects the clicked attribute", () => {
@@ -170,6 +182,26 @@ describe("ErrorsDistributionPlot", () => {
       lastBarProps.onClick({ indexValue: "device" });
     });
 
+    expect(onSelect).toHaveBeenCalledWith("device");
+  });
+
+  it("selects an attribute on a tap only when its segment's tooltip is visible", () => {
+    mockShownTooltip = {
+      id: "value-0",
+      indexValue: "device",
+      value: 50,
+      color: "#111",
+    };
+    const onSelect = jest.fn();
+    renderWithSummary({ onSelect });
+    const tap = (id: string) => {
+      pointerDown(screen.getByTestId("bar-mock"), "touch");
+      act(() => lastBarProps.onClick({ id, indexValue: "device" }));
+    };
+
+    tap("value-1");
+    expect(onSelect).not.toHaveBeenCalled();
+    tap("value-0");
     expect(onSelect).toHaveBeenCalledWith("device");
   });
 
@@ -191,7 +223,7 @@ describe("ErrorsDistributionPlot", () => {
     expect(summaryPadding).toBe(0.6);
     expect(lastBarProps.padding).toBeCloseTo(0.8);
     expect(lastBarProps.colorBy).toBe("indexValue");
-    expect(lastBarProps.axisBottom.legend).toBe("Device");
+    expect(lastBarProps.axisBottom.legend).toBeUndefined();
     expect(lastBarProps.data.map((d: any) => d.label)).toEqual([
       "Google - Pixel 8",
       "Samsung - Galaxy S23",
@@ -204,7 +236,7 @@ describe("ErrorsDistributionPlot", () => {
         value: 20,
         color: "#111",
       }),
-    ).toContain("Motorola - Razr - 20 instances (20.0%)");
+    ).toContain("Motorola - Razr - 20 errors (20.0%)");
   });
 
   it("goes back to all attributes", () => {

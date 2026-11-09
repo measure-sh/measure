@@ -281,10 +281,8 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                  timeProvider: timeProvider,
                                                  configProvider: configProvider,
                                                  sessionStore: sessionStore,
-                                                 eventStore: eventStore,
                                                  userDefaultStorage: userDefaultStorage,
-                                                 versionCode: FrameworkInfo.version,
-                                                 signalSampler: signalSampler)
+                                                 versionCode: FrameworkInfo.version)
         self.appAttributeProcessor = AppAttributeProcessor()
         self.sysCtl = BaseSysCtl()
         self.deviceAttributeProcessor = DeviceAttributeProcessor(sysCtl: sysCtl)
@@ -350,7 +348,9 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                             idProvider: idProvider,
                                                             sysCtl: sysCtl,
                                                             configProvider: configProvider,
-                                                            signalSampler: signalSampler)
+                                                            signalSampler: signalSampler,
+                                                            sessionStore: sessionStore,
+                                                            timeProvider: timeProvider)
         self.gestureTargetFinder = BaseGestureTargetFinder()
         self.gestureCollector = BaseGestureCollector(logger: logger,
                                                      signalProcessor: signalProcessor,
@@ -380,7 +380,6 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                          configProvider: configProvider,
                                                          sessionManager: sessionManager,
                                                          logger: logger,
-                                                         signalSampler: signalSampler,
                                                          layoutSnapshotCollector: layoutSnapshotCollector)
         self.cpuUsageCalculator = BaseCpuUsageCalculator()
         self.memoryUsageCalculator = BaseMemoryUsageCalculator()
@@ -498,4 +497,4 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
         self.shakeDetector = AccelerometerShakeDetector(configProvider: configProvider)
         self.shakeBugReportCollector = ShakeBugReportCollector(shakeDetector: shakeDetector)
     }
-} // swiftlint:disable:this file_length
+}

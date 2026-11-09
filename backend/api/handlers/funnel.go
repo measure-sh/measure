@@ -214,15 +214,13 @@ func (h Handlers) GetFunnelConversion(c *gin.Context) {
 		return
 	}
 
-	steps, err := measure.GetFunnelConversionCached(ctx, h.Deps.VK, h.Deps.RchPool, funnel, &flt)
+	conversion, err := measure.GetFunnelConversionCached(ctx, h.Deps.VK, h.Deps.RchPool, funnel, &flt)
 	if err != nil {
-		msg := `error fetching funnel conversion`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		respondQueryError(c, `error fetching funnel conversion`, err)
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"steps": steps})
+	c.JSON(http.StatusOK, conversion)
 }
 
 // funnelStep loads the funnel in the path and reads the range of steps from
@@ -255,11 +253,12 @@ func (h Handlers) funnelStep(c *gin.Context, ctx context.Context, appID uuid.UUI
 
 func (h Handlers) GetFunnelStepErrors(c *gin.Context) {
 	_, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
-		entity:        filter.FunnelsEntity,
-		appScope:      *measure.ScopeFunnelRead,
-		logRoot:       logcomment.Funnels,
-		logName:       "step_errors",
-		useQueryCache: true,
+		entity:              filter.FunnelsEntity,
+		appScope:            *measure.ScopeFunnelRead,
+		logRoot:             logcomment.Funnels,
+		logName:             "step_errors",
+		useQueryCache:       true,
+		acceptSamplePercent: true,
 	})
 	if !ok {
 		return
@@ -269,30 +268,18 @@ func (h Handlers) GetFunnelStepErrors(c *gin.Context) {
 		return
 	}
 
-	stepErrors, next, previous, err := measure.GetFunnelStepErrorsCached(ctx, h.Deps.VK, h.Deps.RchPool, funnel, &flt, stepRange)
-	if err != nil {
-		msg := `error fetching funnel step errors`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"results": stepErrors,
-		"meta": gin.H{
-			"next":     next,
-			"previous": previous,
-		},
-	})
+	page, err := measure.GetFunnelStepErrorsCached(ctx, h.Deps.VK, h.Deps.RchPool, funnel, &flt, stepRange)
+	respondSampledPage(c, `error fetching funnel step errors`, page, err)
 }
 
 func (h Handlers) GetFunnelStepTraces(c *gin.Context) {
 	_, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
-		entity:        filter.FunnelsEntity,
-		appScope:      *measure.ScopeFunnelRead,
-		logRoot:       logcomment.Funnels,
-		logName:       "step_traces",
-		useQueryCache: true,
+		entity:              filter.FunnelsEntity,
+		appScope:            *measure.ScopeFunnelRead,
+		logRoot:             logcomment.Funnels,
+		logName:             "step_traces",
+		useQueryCache:       true,
+		acceptSamplePercent: true,
 	})
 	if !ok {
 		return
@@ -307,30 +294,18 @@ func (h Handlers) GetFunnelStepTraces(c *gin.Context) {
 		return
 	}
 
-	stepTraces, next, previous, err := measure.GetFunnelStepTracesCached(ctx, h.Deps.VK, h.Deps.RchPool, funnel, &flt, stepRange, quantile)
-	if err != nil {
-		msg := `error fetching funnel step traces`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"results": stepTraces,
-		"meta": gin.H{
-			"next":     next,
-			"previous": previous,
-		},
-	})
+	page, err := measure.GetFunnelStepTracesCached(ctx, h.Deps.VK, h.Deps.RchPool, funnel, &flt, stepRange, quantile)
+	respondSampledPage(c, `error fetching funnel step traces`, page, err)
 }
 
 func (h Handlers) GetFunnelStepNetwork(c *gin.Context) {
 	_, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
-		entity:        filter.FunnelsEntity,
-		appScope:      *measure.ScopeFunnelRead,
-		logRoot:       logcomment.Funnels,
-		logName:       "step_network",
-		useQueryCache: true,
+		entity:              filter.FunnelsEntity,
+		appScope:            *measure.ScopeFunnelRead,
+		logRoot:             logcomment.Funnels,
+		logName:             "step_network",
+		useQueryCache:       true,
+		acceptSamplePercent: true,
 	})
 	if !ok {
 		return
@@ -345,21 +320,8 @@ func (h Handlers) GetFunnelStepNetwork(c *gin.Context) {
 		return
 	}
 
-	stepEndpoints, next, previous, err := measure.GetFunnelStepNetworkCached(ctx, h.Deps.VK, h.Deps.RchPool, funnel, &flt, stepRange, quantile)
-	if err != nil {
-		msg := `error fetching funnel step network`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"results": stepEndpoints,
-		"meta": gin.H{
-			"next":     next,
-			"previous": previous,
-		},
-	})
+	page, err := measure.GetFunnelStepNetworkCached(ctx, h.Deps.VK, h.Deps.RchPool, funnel, &flt, stepRange, quantile)
+	respondSampledPage(c, `error fetching funnel step network`, page, err)
 }
 
 var funnelOutcomes = map[string]bool{
@@ -369,11 +331,12 @@ var funnelOutcomes = map[string]bool{
 
 func (h Handlers) GetFunnelStepSessions(c *gin.Context) {
 	_, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
-		entity:        filter.FunnelsEntity,
-		appScope:      *measure.ScopeFunnelRead,
-		logRoot:       logcomment.Funnels,
-		logName:       "step_sessions",
-		useQueryCache: true,
+		entity:              filter.FunnelsEntity,
+		appScope:            *measure.ScopeFunnelRead,
+		logRoot:             logcomment.Funnels,
+		logName:             "step_sessions",
+		useQueryCache:       true,
+		acceptSamplePercent: true,
 	})
 	if !ok {
 		return
@@ -388,21 +351,8 @@ func (h Handlers) GetFunnelStepSessions(c *gin.Context) {
 		return
 	}
 
-	stepSessions, next, previous, err := measure.GetFunnelStepSessionsCached(ctx, h.Deps.VK, h.Deps.RchPool, funnel, &flt, stepRange, converted)
-	if err != nil {
-		msg := `error fetching funnel step sessions`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
-		return
-	}
-
-	c.JSON(http.StatusOK, gin.H{
-		"results": stepSessions,
-		"meta": gin.H{
-			"next":     next,
-			"previous": previous,
-		},
-	})
+	page, err := measure.GetFunnelStepSessionsCached(ctx, h.Deps.VK, h.Deps.RchPool, funnel, &flt, stepRange, converted)
+	respondSampledPage(c, `error fetching funnel step sessions`, page, err)
 }
 
 func (h Handlers) GetFunnelTrend(c *gin.Context) {
@@ -436,9 +386,7 @@ func (h Handlers) GetFunnelTrend(c *gin.Context) {
 
 	trend, err := measure.GetFunnelTrendCached(ctx, h.Deps.VK, h.Deps.PgPool, h.Deps.RchPool, funnel, &flt, period, c.Query("builds") == "true")
 	if err != nil {
-		msg := `error fetching funnel trend`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		respondQueryError(c, `error fetching funnel trend`, err)
 		return
 	}
 
@@ -476,9 +424,7 @@ func (h Handlers) GetFunnelCadence(c *gin.Context) {
 
 	cadence, err := measure.GetFunnelCadenceCached(ctx, h.Deps.VK, h.Deps.RchPool, funnel, &flt, weeks)
 	if err != nil {
-		msg := `error fetching funnel cadence`
-		fmt.Println(msg, err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": msg})
+		respondQueryError(c, `error fetching funnel cadence`, err)
 		return
 	}
 

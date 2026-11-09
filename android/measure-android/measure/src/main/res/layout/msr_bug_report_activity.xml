@@ -56,6 +56,7 @@
         android:background="@null"
         android:gravity="top"
         android:hint="@string/msr_bug_report_hint"
+        android:importantForAutofill="no"
         android:inputType="textMultiLine"
         android:minLines="3"
         android:padding="16dp"

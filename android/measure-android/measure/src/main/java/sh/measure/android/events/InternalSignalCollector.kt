@@ -173,7 +173,6 @@ internal class InternalSignalCollector(
                         attributes = attributes,
                         userDefinedAttributes = userDefinedAttrs,
                         attachments = eventAttachments,
-                        userTriggered = userTriggered,
                     )
                 }
 

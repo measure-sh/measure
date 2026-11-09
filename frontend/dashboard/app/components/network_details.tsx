@@ -6,9 +6,12 @@ import FilterBar from "@/app/components/filter_bar/filter_bar";
 import { useFilterPage } from "@/app/components/filter_bar/use_filter_page";
 import InfoTooltip from "@/app/components/info_tooltip";
 import NetworkEndpointStatusCodesPlot from "@/app/components/network_endpoint_status_codes_plot";
-import NetworkLatencyPlot from "@/app/components/network_latency_plot";
+import NetworkLatencyPlot, {
+  LatencyQuantile,
+} from "@/app/components/network_latency_plot";
 import NetworkTimelinePlot from "@/app/components/network_timeline_plot";
 import { SkeletonListPage, SkeletonPlot } from "@/app/components/skeleton";
+import TabSelect from "@/app/components/tab_select";
 import {
   useNetworkEndpointStatusCodesQuery,
   useNetworkLatencyQuery,
@@ -19,6 +22,7 @@ import { getPlotTimeGroupForRange } from "@/app/utils/time_utils";
 import { ChartColumn, ChartGantt, ChartLine } from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useState } from "react";
 
 interface NetworkDetailsProps {
   params: { teamId: string };
@@ -28,6 +32,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
   const searchParams = useSearchParams();
   const domain = searchParams.get("domain") ?? "";
   const path = searchParams.get("path") ?? "";
+  const [latencyQuantile, setLatencyQuantile] = useState(LatencyQuantile.p95);
 
   const {
     value,
@@ -112,9 +117,20 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
         <>
           <div className="py-4" />
           <div className="w-full">
-            <p className="font-display text-xl">Latency</p>
+            <div className="flex items-center justify-between">
+              <p className="font-display text-xl">Latency</p>
+              {shouldRenderLatencyPlot && (
+                <TabSelect
+                  items={Object.values(LatencyQuantile)}
+                  selected={latencyQuantile}
+                  onChangeSelected={(item) =>
+                    setLatencyQuantile(item as LatencyQuantile)
+                  }
+                />
+              )}
+            </div>
             <div className="py-2" />
-            <div className="flex font-body items-center justify-center w-full h-144">
+            <div className="flex font-body items-center justify-center w-full h-64 2xl:h-96">
               {latencyStatus === "pending" && <SkeletonPlot />}
               {shouldRenderLatencyPlot && (
                 <NetworkLatencyPlot
@@ -122,6 +138,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
                   plotTimeGroup={plotTimeGroup}
                   startDate={readyValue?.date.startDate}
                   endDate={readyValue?.date.endDate}
+                  quantile={latencyQuantile}
                 />
               )}
               {latencyStatus === "nodata" && (
@@ -144,7 +161,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
           <div className="w-full">
             <p className="font-display text-xl">Status Codes</p>
             <div className="py-2" />
-            <div className="flex font-body items-center justify-center w-full h-144">
+            <div className="flex font-body items-center justify-center w-full h-64 2xl:h-96">
               {statusCodesStatus === "pending" && <SkeletonPlot />}
               {shouldRenderStatusCodesPlot && (
                 <NetworkEndpointStatusCodesPlot
@@ -193,7 +210,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
               />
             </div>
             {shouldRenderTimelinePlot && (
-              <div className="py-8">
+              <div className="pt-4 pb-8">
                 <NetworkTimelinePlot data={timelineQuery.data!} />
               </div>
             )}

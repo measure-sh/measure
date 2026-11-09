@@ -1,0 +1,89 @@
+name: Prepare release
+
+run-name: Prepare release ${{ inputs.version || '(next)' }} by @${{ github.actor }}
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version (e.g. v1.2.0 or v1.2.0-rc.1). Leave empty to let git-cliff pick."
+        required: false
+        type: string
+
+jobs:
+  prepare:
+    name: Prepare release PR
+    runs-on: ubuntu-latest
+    environment: release
+    permissions:
+      contents: read
+    steps:
+      - name: Create app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+          token: ${{ steps.app-token.outputs.token }}
+
+      - name: Compute next version
+        id: bumped
+        if: ${{ inputs.version == '' }}
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --bumped-version
+        env:
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Resolve version
+        id: version
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+          BUMPED_VERSION: ${{ steps.bumped.outputs.content }}
+        run: |
+          VERSION="$(echo "${INPUT_VERSION:-$BUMPED_VERSION}" | xargs)"
+          VERSION="v${VERSION#v}"
+          if ! [[ "$VERSION" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "Invalid version: $VERSION" >&2
+            exit 1
+          fi
+          if git rev-parse -q --verify "refs/tags/$VERSION" > /dev/null; then
+            echo "Tag $VERSION already exists" >&2
+            exit 1
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --verbose --tag ${{ steps.version.outputs.version }}
+        env:
+          OUTPUT: CHANGELOG.md
+          GITHUB_REPO: ${{ github.repository }}
+
+      - name: Create pull request
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ steps.app-token.outputs.token }}
+          branch: release/${{ steps.version.outputs.version }}
+          base: main
+          title: "chore: prepare release ${{ steps.version.outputs.version }}"
+          commit-message: |
+            chore: prepare release ${{ steps.version.outputs.version }}
+
+            Triggered-by: @${{ github.actor }}
+          add-paths: CHANGELOG.md
+          body: |
+            Updates CHANGELOG.md for ${{ steps.version.outputs.version }}.
+
+            Triggered by @${{ github.actor }}.
+
+            Merging this PR tags the merge commit & creates the GitHub release.

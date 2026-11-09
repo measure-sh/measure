@@ -104,6 +104,15 @@ const K = {
     ["eq"],
     "full_list",
   ),
+  appHangState: key(
+    "app_hang_state",
+    "State",
+    "Whether the app was killed during the hang or recovered from it.",
+    "App Hang",
+    "enum",
+    ["in", "not_in"],
+    "full_list",
+  ),
   sessionEvents: key(
     "session_events",
     "Events",
@@ -239,6 +248,15 @@ const K = {
     ["in", "not_in", "contains", "starts_with"],
     "sample",
   ),
+  deviceModel: key(
+    "device_model",
+    "Device model",
+    "The model of the device, such as Pixel 8 or iPhone 15.",
+    "Device",
+    "string",
+    ["in", "not_in", "contains", "starts_with"],
+    "sample",
+  ),
   deviceManufacturer: key(
     "device_manufacturer",
     "Device manufacturer",
@@ -305,8 +323,9 @@ const versionKeys: FilterKey[] = [
 const deviceTailKeys: FilterKey[] = [
   K.osName,
   K.osVersion,
-  K.deviceName,
+  K.deviceModel,
   K.deviceManufacturer,
+  K.deviceName,
   K.locale,
   K.networkType,
   K.networkGeneration,
@@ -330,6 +349,7 @@ const KEY_GROUP_ORDER = [
   "Network",
   "Location",
   "Custom",
+  "App Hang",
 ];
 
 function keyGroupsOf(keys: FilterKey[]): string[] {
@@ -339,7 +359,7 @@ function keyGroupsOf(keys: FilterKey[]): string[] {
 
 const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
   app_health: [K.versionName, K.versionCode],
-  journeys: versionKeys,
+  journeys: [...versionKeys, ...deviceTailKeys],
   funnels: [...versionKeys, ...deviceTailKeys],
   errors: [
     K.errorType,
@@ -348,7 +368,12 @@ const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
     K.userId,
     ...deviceTailKeys,
   ],
-  error_group_events: [...versionKeys, K.userId, ...deviceTailKeys],
+  error_group_events: [
+    ...versionKeys,
+    K.userId,
+    ...deviceTailKeys,
+    K.appHangState,
+  ],
   sessions: [
     K.sessionEvents,
     K.sessionForegroundBackground,
@@ -375,8 +400,9 @@ const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
     ...versionKeys,
     K.osName,
     K.osVersion,
-    K.deviceName,
+    K.deviceModel,
     K.deviceManufacturer,
+    K.deviceName,
     K.deviceTotalMemory,
   ],
   profiles: [
@@ -384,8 +410,9 @@ const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
     ...versionKeys,
     K.userId,
     K.osVersion,
-    K.deviceName,
+    K.deviceModel,
     K.deviceManufacturer,
+    K.deviceName,
   ],
   network: [K.httpMethod, ...versionKeys, ...deviceTailKeys],
   builds: [K.mappingType, ...versionKeys],
@@ -393,6 +420,15 @@ const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
   // The backend advertises no filter keys for alerts, so the alerts page renders
   // its filter bar as unavailable.
   alerts: [],
+  devices: [
+    K.versionName,
+    K.versionCode,
+    K.osName,
+    K.osVersion,
+    K.deviceModel,
+    K.deviceManufacturer,
+    K.deviceName,
+  ],
 };
 
 const FILTER_KEYS_BY_ENTITY: Record<
@@ -423,6 +459,8 @@ function appWideValues(bundle: AppBundle, keyName: string): string[] | null {
       return distinct(attrs.map((a) => a.os_version));
     case "device_name":
       return distinct(attrs.map((a) => a.device_name));
+    case "device_model":
+      return distinct(attrs.map((a) => a.device_model));
     case "device_manufacturer":
       return distinct(attrs.map((a) => a.device_manufacturer));
     case "locale":
@@ -470,6 +508,8 @@ function actualValuesFor(
         return distinct(reports.map((a) => countryOf(a.device_locale)));
       case "device_name":
         return distinct(reports.map((a) => a.device_name));
+      case "device_model":
+        return distinct(reports.map((a) => a.device_model));
       case "device_manufacturer":
         return distinct(reports.map((a) => a.device_manufacturer));
       case "locale":
@@ -514,7 +554,14 @@ function actualValuesFor(
 }
 
 const STATIC_VALUES_BY_KEY: Record<string, FilterValue[]> = {
-  error_type: values(["Crash", "ANR", "Handled Error", "Unhandled Error"]),
+  error_type: values([
+    "Crash",
+    "ANR",
+    "Handled Error",
+    "Unhandled Error",
+    "App Hang",
+  ]),
+  app_hang_state: values(["Killed", "Recovered"]),
   memory_error: values(["true", "false"]),
   http_method: values(["get", "post", "put", "patch", "delete"]),
   mapping_type: values(["proguard", "dsym", "elf_debug", "jsbundle"]),
@@ -528,6 +575,8 @@ const STATIC_VALUES_BY_KEY: Record<string, FilterValue[]> = {
     "unhandled_error",
     "handled_error",
     "anr",
+    "recovered_app_hang",
+    "killed_app_hang",
     "bug_report",
     "user_interaction",
   ]),
@@ -535,51 +584,6 @@ const STATIC_VALUES_BY_KEY: Record<string, FilterValue[]> = {
   device_total_memory: values(DEVICE_MEMORY_TIERS),
   app_state: values([...MEMORY_APP_STATES]),
 };
-
-// The backend builds the node and link slices only from sessions in range,
-// so an empty range serializes them as null.
-const EMPTY_JOURNEY = { totalIssues: 0, nodes: null, links: null };
-
-function journeyFor(
-  bundle: AppBundle,
-  range: SandboxRange,
-  filterExpr: string | null,
-) {
-  const names = selectedNames(bundle.scenario.app, filterExpr);
-  const coverage = versionCoverage(bundle, range, names);
-  if (coverage <= 0) {
-    return EMPTY_JOURNEY;
-  }
-  const groupById = new Map(bundle.errorGroups.map((g) => [g.id, g]));
-  const scaleIssue = (issue: { id: string; title: string; count: number }) => {
-    const group = groupById.get(issue.id);
-    return {
-      ...issue,
-      count: group ? groupCount(bundle, group, range, names) : 0,
-    };
-  };
-  const nodes = bundle.journey.nodes.map((node) => ({
-    ...node,
-    issues: {
-      crashes: node.issues.crashes.map(scaleIssue),
-      anrs: node.issues.anrs.map(scaleIssue),
-    },
-  }));
-  return {
-    links: bundle.journey.links.map((link) => ({
-      ...link,
-      value: Math.round(link.value * coverage),
-    })),
-    nodes,
-    totalIssues: nodes.reduce(
-      (sum, node) =>
-        sum +
-        node.issues.crashes.reduce((a, i) => a + i.count, 0) +
-        node.issues.anrs.reduce((a, i) => a + i.count, 0),
-      0,
-    ),
-  };
-}
 
 export const overviewRoutes: SandboxRoute[] = [
   {
@@ -614,12 +618,17 @@ export const overviewRoutes: SandboxRoute[] = [
       const app = bundle.scenario.app;
       const names = selectedNames(app, filterExpr);
       const dataStart = bundle.dataStart;
-      const fatalTotal = (errorType: ErrorGroup["error_type"]) =>
+      const failureTotal = (errorType: ErrorGroup["error_type"]) =>
         bundle.errorGroups
-          .filter((g) => g.error_type === errorType && g.severity === "fatal")
+          .filter(
+            (g) =>
+              g.error_type === errorType &&
+              (errorType !== "exception" || g.severity === "fatal"),
+          )
           .reduce((sum, g) => sum + groupCount(bundle, g, range, names), 0);
-      const crashesTotal = fatalTotal("exception");
-      const anrsTotal = fatalTotal("anr");
+      const crashesTotal = failureTotal("exception");
+      const anrsTotal = failureTotal("anr");
+      const appHangsTotal = failureTotal("app_hang");
       const sessions = scaledSeries(
         range,
         app.dailySessions * 30,
@@ -650,24 +659,17 @@ export const overviewRoutes: SandboxRoute[] = [
             sessions,
           ),
         },
+        {
+          id: "app_hangs",
+          data: derivedSeries(
+            range,
+            appHangsTotal,
+            dataStart,
+            `health:app_hangs:${app.id}`,
+            sessions,
+          ),
+        },
       ]);
-    },
-  },
-  {
-    method: "GET",
-    path: "/api/apps/:appId/journey",
-    handle: ({ params, url }) => {
-      const bundle = catalog().appById.get(params.appId);
-      if (!bundle) {
-        return jsonResponse(EMPTY_JOURNEY);
-      }
-      return jsonResponse(
-        journeyFor(
-          bundle,
-          parseRange(url),
-          url.searchParams.get("filter_expr"),
-        ),
-      );
     },
   },
   {

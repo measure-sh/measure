@@ -74,10 +74,11 @@ type createCustomerRequest struct {
 	Name  string `json:"name,omitempty"`
 }
 
-// updateCustomerRequest is the payload for POST /v1/customers.update.
-type updateCustomerRequest struct {
+// UpdateCustomerRequest is the payload for POST /v1/customers.update.
+type UpdateCustomerRequest struct {
 	CustomerID string `json:"customer_id"`
 	Email      string `json:"email,omitempty"`
+	Name       string `json:"name,omitempty"`
 }
 
 // AttachRequest is the payload for POST /v1/billing.attach.

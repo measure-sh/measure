@@ -18,26 +18,27 @@ import (
 )
 
 // HealthInstance is a single time-bucketed data point for one
-// series (sessions, crashes or ANRs) of the health overview plot.
+// series (sessions, crashes, ANRs or app hangs) of the health
+// overview plot.
 type HealthInstance struct {
 	DateTime  string
 	Instances uint64
 }
 
-// GetHealthPlotInstances computes the sessions, crashes and ANRs time
-// series for the health overview plot, bucketed by the filter's plot
-// time group.
-func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, flt *filter.Filter) (sessions, crashes, anrs []HealthInstance, err error) {
+// GetHealthPlotInstances computes the sessions, crashes, ANRs and app
+// hangs time series for the health overview plot, bucketed by the
+// filter's plot time group.
+func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, flt *filter.Filter) (sessions, crashes, anrs, appHangs []HealthInstance, err error) {
 	ctx = chquery.WithTeamScope(ctx, a.TeamId)
 	if flt.Timezone == "" {
-		return nil, nil, nil, errors.New("missing timezone filter")
+		return nil, nil, nil, nil, errors.New("missing timezone filter")
 	}
 
 	flt.SetDefaultPlotTimeGroupIfUnset()
 
 	groupExpr, err := GetPlotTimeGroupExpr("timestamp", flt.PlotTimeGroup)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	var healthGroup errgroup.Group
@@ -90,7 +91,7 @@ func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, flt *f
 		return rows.Err()
 	})
 
-	// crashes (fatal exceptions) & ANRs
+	// crashes (fatal exceptions), ANRs & app hangs
 	healthGroup.Go(func() (err error) {
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
@@ -103,10 +104,11 @@ func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, flt *f
 			Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
 			Select("countIf(type = ? and "+config.FatalExceptionExpr+") as crashes", event.TypeException).
 			Select("countIf(type = ?) as anrs", event.TypeANR).
+			Select("countIf(type = ?) as app_hangs", event.TypeAppHang).
 			Where("team_id = toUUID(?)", a.TeamId).
 			Where("app_id = toUUID(?)", a.ID).
 			Where("timestamp >= ? and timestamp <= ?", flt.From, flt.To).
-			Where("type in (?, ?)", event.TypeException, event.TypeANR)
+			Where("type in (?, ?, ?)", event.TypeException, event.TypeANR, event.TypeAppHang)
 		defer stmt.Close()
 
 		if flt.HasFilterExpr() {
@@ -129,8 +131,8 @@ func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, flt *f
 		for rows.Next() {
 			var datetimeBucket time.Time
 			var datetime string
-			var crashCount, anrCount uint64
-			if err := rows.Scan(&datetimeBucket, &datetime, &crashCount, &anrCount); err != nil {
+			var crashCount, anrCount, appHangCount uint64
+			if err := rows.Scan(&datetimeBucket, &datetime, &crashCount, &anrCount, &appHangCount); err != nil {
 				return err
 			}
 			if crashCount > 0 {
@@ -139,13 +141,16 @@ func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, flt *f
 			if anrCount > 0 {
 				anrs = append(anrs, HealthInstance{DateTime: datetime, Instances: anrCount})
 			}
+			if appHangCount > 0 {
+				appHangs = append(appHangs, HealthInstance{DateTime: datetime, Instances: appHangCount})
+			}
 		}
 
 		return rows.Err()
 	})
 
 	if err = healthGroup.Wait(); err != nil {
-		return nil, nil, nil, err
+		return nil, nil, nil, nil, err
 	}
 
 	return

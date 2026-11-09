@@ -14,9 +14,6 @@ export interface IDynamicConfig {
   /** Sampling rate for traces. Defaults to 100 */
   traceSamplingRate: number;
 
-  /** Sampling rate for sessions that should track journey events. Defaults to 100 */
-  journeySamplingRate: number;
-
   /** Screenshot masking level */
   screenshotMaskLevel: ScreenshotMaskLevel;
 
@@ -62,7 +59,6 @@ export class DynamicConfig implements IDynamicConfig {
   anrTimelineDurationSeconds: number;
   bugReportTimelineDurationSeconds: number;
   traceSamplingRate: number;
-  journeySamplingRate: number;
   screenshotMaskLevel: ScreenshotMaskLevel;
   logAutocollectEnabled: boolean;
   logMinSeverity: number;
@@ -83,7 +79,6 @@ export class DynamicConfig implements IDynamicConfig {
     this.bugReportTimelineDurationSeconds =
       values.bugReportTimelineDurationSeconds;
     this.traceSamplingRate = values.traceSamplingRate;
-    this.journeySamplingRate = values.journeySamplingRate;
     this.screenshotMaskLevel = values.screenshotMaskLevel;
     this.logAutocollectEnabled = values.logAutocollectEnabled;
     this.logMinSeverity = values.logMinSeverity;
@@ -105,7 +100,6 @@ export class DynamicConfig implements IDynamicConfig {
       anrTimelineDurationSeconds: 300,
       bugReportTimelineDurationSeconds: 300,
       traceSamplingRate: 100,
-      journeySamplingRate: 100,
       screenshotMaskLevel: ScreenshotMaskLevel.allTextAndMedia,
       logAutocollectEnabled: false,
       logMinSeverity: 16,
@@ -159,11 +153,6 @@ export class DynamicConfig implements IDynamicConfig {
         obj,
         'trace_sampling_rate',
         defaults.traceSamplingRate
-      ),
-      journeySamplingRate: numberOrDefault(
-        obj,
-        'journey_sampling_rate',
-        defaults.journeySamplingRate
       ),
       screenshotMaskLevel: screenshotMaskLevelOrDefault(
         obj,

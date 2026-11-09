@@ -1,13 +1,21 @@
 import type { FunnelCadence } from "@/app/api/api_calls";
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { pointerDown } from "@/__tests__/helpers/pointer_events";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 
 let lineProps: any = null;
+let mockShownTooltip: ((props: any) => any) | null = null;
 
+// When mockShownTooltip is set, the mock renders its tooltip inside the plot,
+// as nivo does when a point is hovered or tapped.
 jest.mock("@nivo/line", () => ({
   ResponsiveLineCanvas: (props: any) => {
     lineProps = props;
-    return <div data-testid="cadence-plot" />;
+    return (
+      <div data-testid="cadence-plot">
+        {mockShownTooltip && props.tooltip(mockShownTooltip(props))}
+      </div>
+    );
   },
 }));
 
@@ -45,8 +53,10 @@ jest.mock("@/app/components/command", () => ({
 }));
 
 import FunnelCadencePlot from "@/app/components/funnel/cadence_plot";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 const cadence: FunnelCadence = {
+  sample_percent: 100,
   from: "2026-10-05T00:00:00.000+05:30",
   to: "2026-10-12T00:00:00.000+05:30",
   hours: [
@@ -84,6 +94,7 @@ function seriesIds() {
 
 beforeEach(() => {
   lineProps = null;
+  mockShownTooltip = null;
 });
 
 describe("FunnelCadencePlot", () => {
@@ -166,7 +177,7 @@ describe("FunnelCadencePlot", () => {
 
   it("shows the day, hour and users of the hovered point", () => {
     renderPlot();
-    const { container } = render(
+    render(
       lineProps.tooltip({
         point: {
           seriesId: "Monday",
@@ -174,16 +185,39 @@ describe("FunnelCadencePlot", () => {
           data: lineProps.data[0].data[9],
         },
       }),
+      { wrapper: PlotTooltipArea },
     );
-    expect(container.textContent).toContain("Monday - 3.0%");
-    expect(container.textContent).toContain("Hour: 9am to 10am");
-    expect(container.textContent).toContain("Users entered: 400");
-    expect(container.textContent).toContain("Users converted: 12");
+    const tooltipDiv = screen.getByRole("tooltip", { hidden: true });
+    expect(tooltipDiv.textContent).toContain("Monday - 3.0%");
+    expect(tooltipDiv.textContent).toContain("Hour: 9am to 10am");
+    expect(tooltipDiv.textContent).toContain("Users entered: 400");
+    expect(tooltipDiv.textContent).toContain("Users converted: 12");
   });
 
   it("opens the clicked weekday and hour", () => {
     const { props } = renderPlot();
     lineProps.onClick({ seriesId: "Wednesday", data: { x: 14 } });
+    expect(props.onSelectPoint).toHaveBeenCalledWith(3, 14);
+  });
+
+  it("opens a weekday and hour on a tap only when that point's tooltip is visible", () => {
+    mockShownTooltip = (plotProps) => ({
+      point: {
+        seriesId: "Wednesday",
+        seriesColor: "#38bdf8",
+        data: plotProps.data[2].data[14],
+      },
+    });
+    const { props } = renderPlot();
+    const tap = (seriesId: string, hour: number) => {
+      pointerDown(screen.getByTestId("cadence-plot"), "touch");
+      act(() => lineProps.onClick({ seriesId, data: { x: hour } }));
+    };
+
+    tap("Wednesday", 15);
+    tap("Thursday", 14);
+    expect(props.onSelectPoint).not.toHaveBeenCalled();
+    tap("Wednesday", 14);
     expect(props.onSelectPoint).toHaveBeenCalledWith(3, 14);
   });
 

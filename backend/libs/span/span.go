@@ -165,6 +165,7 @@ type TraceDisplay struct {
 	DeviceModel        string        `json:"device_model"`
 	NetworkType        string        `json:"network_type"`
 	Spans              []SpanDisplay `json:"spans"  binding:"required"`
+	HasReplay          bool          `json:"has_replay"`
 }
 
 type TraceSessionTimelineDisplay struct {

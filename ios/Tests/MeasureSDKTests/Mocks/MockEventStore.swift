@@ -92,22 +92,6 @@ final class MockEventStore: EventStore {
         }
     }
 
-    func updateNeedsReportingForJourneyEvents(
-        sessionId: String,
-        needsReporting: Bool
-    ) {
-        lock.lock()
-        defer { lock.unlock() }
-
-        self.events = self.events.mapValues { event in
-            guard event.sessionId == sessionId else { return event }
-
-            var updated = event
-            updated.needsReporting = needsReporting
-            return updated
-        }
-    }
-
     func getEventsCount() -> Int {
         lock.lock()
         defer { lock.unlock() }

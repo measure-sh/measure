@@ -676,7 +676,7 @@ services:
       - minio-data:/data
 
   dbmate-postgres:
-    image: ghcr.io/amacneil/dbmate:2.36.0
+    image: ghcr.io/amacneil/dbmate:2.37.0
     profiles:
       - migrate
     environment:
@@ -695,7 +695,7 @@ services:
     command: ["migrate"]
 
   dbmate-clickhouse:
-    image: ghcr.io/amacneil/dbmate:2.36.0
+    image: ghcr.io/amacneil/dbmate:2.37.0
     profiles:
       - migrate
     environment:
@@ -787,7 +787,7 @@ services:
       - ./postgres/init-postgres.sh:/docker-entrypoint-initdb.d/init-postgres.sh
 
   clickhouse:
-    image: clickhouse/clickhouse-server:26.6-alpine
+    image: clickhouse/clickhouse-server:26.8.36.3-alpine
     environment:
       - CLICKHOUSE_DB=measure
       - CLICKHOUSE_USER=${CLICKHOUSE_USER}

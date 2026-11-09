@@ -536,7 +536,7 @@ func Connect(config *Config) *Deps {
 
 	if gin.Mode() == gin.ReleaseMode {
 		// read more: https://clickhouse.com/docs/operations/settings/settings#compatibility
-		compatibility := "26.6"
+		compatibility := "26.8"
 		chOpts.Settings = clickhouse.Settings{
 			"compatibility": compatibility,
 		}

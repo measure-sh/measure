@@ -134,8 +134,10 @@ const features: PlatformFeature[] = [
         <Link href="/product/user-journeys" className={underlineLinkStyle}>
           User Journeys
         </Link>
-        . Screen-to-screen movement is mapped for you into clear flow diagrams,
-        and the exception view shows you where issues degrade those flows.
+        . Each step users take is mapped for you into clear flow diagrams, and
+        selecting any screen or path shows you the errors, slow traces and
+        network requests that degrade those flows, along with session replays to
+        dive deeper.
         <br />
         <br />
         Not sure what to tackle first? See at a glance which paths matter most

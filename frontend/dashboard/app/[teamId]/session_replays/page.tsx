@@ -113,13 +113,13 @@ export default function SessionReplayOverview(props: {
       {readyValue !== null &&
         (status === "success" || status === "pending") && (
           <div className="flex flex-col items-center w-full">
-            <div className="py-2" />
+            <div className="py-4" />
             <SessionReplayOverviewPlot
               startDate={readyValue.date.startDate}
               endDate={readyValue.date.endDate}
               query={sessionsPlotQuery}
             />
-            <div className="py-4" />
+            <div className="py-6" />
             {!listEmpty && (
               <>
                 <div className="self-end">
@@ -136,19 +136,18 @@ export default function SessionReplayOverview(props: {
                   />
                 </div>
                 <div
-                  className={`py-1 w-full ${isFetching ? "visible" : "invisible"}`}
+                  className={`py-4 w-full ${isFetching ? "visible" : "invisible"}`}
                 >
                   <LoadingBar />
                 </div>
-                <div className="py-4" />
-                <Table className="font-display select-none">
+                <Table className="font-display select-none max-lg:min-w-140">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[60%]">Session Replay</TableHead>
                       <TableHead className="w-[20%] text-center">
                         Start Time
                       </TableHead>
-                      <TableHead className="w-[20%] text-center">
+                      <TableHead className="w-[20%] text-right">
                         Duration
                       </TableHead>
                     </TableRow>
@@ -234,7 +233,7 @@ export default function SessionReplayOverview(props: {
                                 </p>
                               </div>
                             </TableCell>
-                            <TableCell className="w-[20%] text-center truncate select-none relative p-0">
+                            <TableCell className="w-[20%] text-right truncate select-none relative p-0">
                               <Link
                                 href={sessionHref}
                                 className="absolute inset-0 z-10 cursor-pointer"

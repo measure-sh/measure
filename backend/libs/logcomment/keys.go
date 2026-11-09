@@ -67,3 +67,7 @@ const Profiles = "profiles"
 // Funnels is the root key for the `funnels`
 // logcomment.
 const Funnels = "funnels"
+
+// Devices is the root key for the `devices`
+// logcomment.
+const Devices = "devices"

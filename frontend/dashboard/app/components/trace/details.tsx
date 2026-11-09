@@ -116,7 +116,7 @@ export default function TraceDetails({
                 >
                   View Session Replay
                 </div>
-              ) : (
+              ) : displayTrace.has_replay ? (
                 <Link
                   href={`/${params.teamId}/session_replays/${params.appId}/${displayTrace.session_id}?from=trace_details`}
                   className={cn(
@@ -125,7 +125,7 @@ export default function TraceDetails({
                 >
                   View Session Replay
                 </Link>
-              )
+              ) : null
             }
           />
         </div>

@@ -40,7 +40,10 @@ func TestEvalFunnels(t *testing.T) {
 		for _, tools := range funnelCase.tools {
 			evalCase.checks = append(evalCase.checks, usesAnyTool(tools...))
 		}
-		evalCase.checks = append([]evalCheck{internals}, evalCase.checks...)
+		evalCase.checks = append([]evalCheck{
+			internals,
+			passesSamplePercent("get_funnel_conversion", "get_funnel_step_errors", "get_funnel_step_traces", "get_funnel_step_network", "get_funnel_step_sessions"),
+		}, evalCase.checks...)
 		evalCase.claims = append(evalCase.claims, evalShowsInternals)
 		evalCase.textDescription = evalCase.describeText() + "\nThe team's apps are Shopper for Android (com.shopper.android) and Shopper for iOS (com.shopper.ios).\n"
 		cases[i] = evalCase
@@ -612,11 +615,15 @@ func funnelEvalCases(funnelWorld funnelWorld) []funnelCase {
 	stepsInOrder := states(fmt.Sprintf("lists the steps %s, %s and %s in that order", checkoutFunnel.steps[0], checkoutFunnel.steps[1], checkoutFunnel.steps[2]),
 		eventNameAnchor(checkoutFunnel.steps[0]), eventNameAnchor(checkoutFunnel.steps[1]), eventNameAnchor(checkoutFunnel.steps[2]))
 	biggestDrop := states("says most users drop off between adding a product to the cart and completing the order")
+	// The seeded funnels are small enough that the sample has every user.
+	estimated := forbids("calls the counts estimates")
 	worstDay := states(fmt.Sprintf("names %s as the day with the lowest conversion", checkoutExpected.worstDate.Format("January 2")),
 		dateAnchor(checkoutExpected.worstDate))
 	busiestHour := states("says the most users enter on Tuesdays at 19:00 UTC",
 		patternAnchor("Tuesday", `(?i)\btue(s|sday|sdays)?\b`), patternAnchor("19:00", `(?i)\b19(:00)?\b|\b7\s*(pm|p\.m\.)`))
 	timeoutBlamed := forbids(fmt.Sprintf("says the %s is linked to users dropping off", timeout.exceptionClass()))
+	crashDropped := states(fmt.Sprintf("names the %s in %s as the error that %d users who dropped off hit", crash.exceptionClass(), crash.fileStem(), checkoutExpected.crashedDropped),
+		nameAnchor(crash.exceptionClass()), nameAnchor(crash.fileStem()), numberAnchor(checkoutExpected.crashedDropped))
 	homeSlower := forbids(fmt.Sprintf("says %s is slower for users who dropped off", checkoutHomeSpan))
 	cartSlower := forbids(fmt.Sprintf("says requests to %s are slower for users who dropped off", checkoutCartPath))
 	orderedListed := forbids(fmt.Sprintf("gives %s as one of the users who dropped off", checkoutExpected.latestOrdered), nameAnchor(checkoutExpected.latestOrdered))
@@ -700,6 +707,7 @@ func funnelEvalCases(funnelWorld funnelWorld) []funnelCase {
 					states(fmt.Sprintf("says %d users entered the funnel", checkoutExpected.entered), numberAnchor(checkoutExpected.entered)),
 					states(fmt.Sprintf("gives the funnel's conversion as %.1f%%, or a rounding of it", checkoutExpected.conversion()), percentAnchor(checkoutExpected.conversion(), 0.6)),
 					biggestDrop,
+					estimated,
 				},
 				fixtures: []judgeFixture{
 					{name: "conversion and drop-off given", text: fmt.Sprintf(
@@ -707,6 +715,9 @@ func funnelEvalCases(funnelWorld funnelWorld) []funnelCase {
 						checkoutExpected.entered, checkoutExpected.carted, checkoutExpected.ordered, checkoutExpected.conversion())},
 					{name: "wrong drop-off step", failsOn: biggestDrop, text: fmt.Sprintf(
 						"Over the last 7 days, %d users entered the Checkout funnel and %d completed it, a conversion of %.1f%%. Most users drop off between viewing a product and adding it to the cart.",
+						checkoutExpected.entered, checkoutExpected.ordered, checkoutExpected.conversion())},
+					{name: "counts called estimates", failsOn: estimated, text: fmt.Sprintf(
+						"Over the last 7 days, an estimated %d users entered the Checkout funnel and about %d completed the order, a conversion of %.1f%%. Most users drop off between adding to the cart and completing the order.",
 						checkoutExpected.entered, checkoutExpected.ordered, checkoutExpected.conversion())},
 				},
 			},
@@ -748,11 +759,7 @@ func funnelEvalCases(funnelWorld funnelWorld) []funnelCase {
 				questions: []string{"In the Android app's Checkout funnel over the last 7 days, which errors do users hit when they drop off between adding a product to the cart and completing the order?"},
 				mcpApps:   android,
 				checks:    reads(8),
-				claims: []evalClaim{
-					states(fmt.Sprintf("names the %s in %s as the error that %d users who dropped off hit", crash.exceptionClass(), crash.fileStem(), checkoutExpected.crashedDropped),
-						nameAnchor(crash.exceptionClass()), nameAnchor(crash.fileStem()), numberAnchor(checkoutExpected.crashedDropped)),
-					timeoutBlamed,
-				},
+				claims:    []evalClaim{crashDropped, timeoutBlamed},
 				fixtures: []judgeFixture{
 					{name: "drop-off error named", text: fmt.Sprintf(
 						"Users who dropped off between the cart and the order mostly hit the %s in %s: %d of them did. The %s in %s was hit only by users who went on to complete the order, so it is not behind the drop-off.",
@@ -763,6 +770,24 @@ func funnelEvalCases(funnelWorld funnelWorld) []funnelCase {
 				},
 			},
 			tools: [][]string{{"get_funnel_step_errors"}},
+		},
+		{
+			// The question doesn't give the step, so the model reads the
+			// conversion first, and the errors list then gets its sample
+			// percent.
+			evalCase: evalCase{
+				id:        "funnel-drop-off-errors",
+				questions: []string{"In the Android app's Checkout funnel over the last 7 days, at which step do most users drop off, and which errors do the users who drop off there hit?"},
+				mcpApps:   android,
+				checks:    reads(8),
+				claims:    []evalClaim{biggestDrop, crashDropped, timeoutBlamed},
+				fixtures: []judgeFixture{
+					{name: "drop-off step and error named", text: fmt.Sprintf(
+						"Most users drop off between adding a product to the cart and completing the order. %d of the users who dropped off there hit the %s in %s.",
+						checkoutExpected.crashedDropped, crash.exceptionClass(), crash.fileName)},
+				},
+			},
+			tools: [][]string{{"get_funnel_conversion"}, {"get_funnel_step_errors"}},
 		},
 		{
 			evalCase: evalCase{

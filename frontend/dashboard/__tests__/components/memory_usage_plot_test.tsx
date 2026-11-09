@@ -33,6 +33,7 @@ jest.mock("@/app/components/tab_select", () => ({
 }));
 
 import MemoryUsagePlot from "@/app/components/memory_usage_plot";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 const plotDates = {
   startDate: "2026-02-01T00:00:00Z",
@@ -111,9 +112,10 @@ describe("MemoryUsagePlot", () => {
           data: { ...datum, xFormatted: mockPlotPoint.datetime },
         },
       }),
+      { wrapper: PlotTooltipArea },
     );
-    expect(screen.getByText("1.2.3 (10) - 200.0 MB")).toBeInTheDocument();
-    expect(screen.getByText("1.2.3 (11) - 500.0 MB")).toBeInTheDocument();
+    expect(screen.getByText("1.2.3 (10) - 200.0 MB (p90)")).toBeInTheDocument();
+    expect(screen.getByText("1.2.3 (11) - 500.0 MB (p90)")).toBeInTheDocument();
   });
 
   it.each([null, []])("renders no data state for %p", (data) => {

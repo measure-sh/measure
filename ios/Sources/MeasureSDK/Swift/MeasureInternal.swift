@@ -217,10 +217,6 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         }
         self.crashDataPersistence.sessionId = sessionManager.sessionId
         let group = DispatchGroup()
-        group.enter()
-        self.crashReportManager.trackException {
-            group.leave()
-        }
         registerAlwaysOnCollectors()
         if configProvider.autoStart {
             start()
@@ -233,12 +229,15 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             }
             self.configProvider.setDynamicConfig(dynamicConfig)
 
-            self.sessionManager.onConfigLoaded()
             self.spanProcessor.onConfigLoaded()
             self.appLaunchCollector.onConfigLoaded()
             self.cpuUsageCollector.onConfigLoaded()
             self.memoryUsageCollector.onConfigLoaded()
             self.appHangCollector.onConfigLoaded()
+            group.leave()
+        }
+        group.enter()
+        self.crashReportManager.trackException {
             group.leave()
         }
         group.notify(queue: .main) { [weak self] in
@@ -455,17 +454,33 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         userTriggeredEventCollector.trackError(error, attributes: transformedAttributes, framesToStrip: objcErrorFramesToStrip)
     }
 
-    func trackException(_ exception: NSException, attributes: [String: AttributeValue]? = nil) {
+    func trackError(_ exception: NSException, attributes: [String: AttributeValue]? = nil) {
         guard isStarted else { return }
 
         userTriggeredEventCollector.trackException(exception, attributes: attributes, framesToStrip: swiftErrorFramesToStrip)
     }
 
-    func trackException(_ exception: NSException, attributes: [String: Any]? = nil) {
+    func trackError(_ exception: NSException, attributes: [String: Any]? = nil) {
         guard isStarted else { return }
 
         let transformedAttributes = attributeTransformer.transformAttributes(attributes)
         userTriggeredEventCollector.trackException(exception, attributes: transformedAttributes, framesToStrip: objcErrorFramesToStrip)
+    }
+
+    func trackObjcError(_ error: Any, attributes: [String: Any]? = nil) {
+        guard isStarted else { return }
+
+        let transformedAttributes = attributeTransformer.transformAttributes(attributes)
+        if let exception = error as? NSException {
+            userTriggeredEventCollector.trackException(exception, attributes: transformedAttributes, framesToStrip: objcErrorFramesToStrip)
+        } else if let nsError = error as? NSError {
+            userTriggeredEventCollector.trackError(nsError, attributes: transformedAttributes, framesToStrip: objcErrorFramesToStrip)
+        } else {
+            logger.log(level: .error,
+                       message: "trackError: unsupported type \(type(of: error)), expected NSError or NSException",
+                       error: nil,
+                       data: nil)
+        }
     }
 
     func getAttachmentDirectoryPath() -> String? {

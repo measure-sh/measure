@@ -1,36 +1,30 @@
-// The proxy needs to know which marketing pages have a page.md, but it
-// cannot look for the files at runtime: on hosts that deploy the proxy as
-// its own function, such as Vercel, the app/ folder is not deployed with
-// it. A test compares this list with the page.md files under app/ and
-// fails when one is added or removed without updating it.
-export const MARKDOWN_TWIN_PATHS: ReadonlySet<string> = new Set([
-  "/",
-  "/about",
-  "/bugsnag-alternative",
-  "/crashlytics-alternative",
-  "/datadog-alternative",
-  "/embrace-alternative",
-  "/for/android",
-  "/for/flutter",
-  "/for/ios",
-  "/for/ipados",
-  "/for/kmp",
-  "/for/react-native",
-  "/luciq-alternative",
-  "/new-relic-alternative",
-  "/pricing",
-  "/product/adaptive-capture",
-  "/product/agent",
-  "/product/app-health",
-  "/product/bug-reports",
-  "/product/crashes-and-anrs",
-  "/product/funnels",
-  "/product/mcp",
-  "/product/network-performance",
-  "/product/performance-traces",
-  "/product/session-replays",
-  "/product/user-journeys",
-  "/security",
-  "/sentry-alternative",
-  "/why-measure",
-]);
+import fs from "fs";
+import path from "path";
+
+const APP_DIR = path.join(process.cwd(), "app");
+
+// Page paths come from the request URL, so the bundler cannot tell which
+// files the fs calls below touch and would trace the entire repository into
+// the build output. The turbopackIgnore comments stop that, and
+// next.config.mjs lists the page.md files in outputFileTracingIncludes so
+// they still ship.
+
+function twinFile(pagePath: string): string | null {
+  const file = path.join(APP_DIR, pagePath, "page.md");
+  // path.join collapses ".." segments, so this check rejects any path
+  // outside APP_DIR.
+  return file.startsWith(`${APP_DIR}${path.sep}`) ? file : null;
+}
+
+export function hasMarkdownTwin(pagePath: string): boolean {
+  const file = twinFile(pagePath);
+  return file !== null && fs.existsSync(/*turbopackIgnore: true*/ file);
+}
+
+export function readMarkdownTwin(pagePath: string): string | null {
+  const file = twinFile(pagePath);
+  if (file === null || !fs.existsSync(/*turbopackIgnore: true*/ file)) {
+    return null;
+  }
+  return fs.readFileSync(/*turbopackIgnore: true*/ file, "utf-8");
+}

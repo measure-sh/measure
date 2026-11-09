@@ -107,6 +107,7 @@ import Measure
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         Measure.logError("Home Error")
+        Measure.logWarning("ViewController appeared")
 
         let attributes: [String: AttributeValue] = ["user_name": .string("Alice"),
                                                     "paid_user": .boolean(true),
@@ -124,6 +125,7 @@ import Measure
 
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
+        Measure.logWarning("ViewController disappeared")
 
         let attributes: [String: AttributeValue] = ["user_name": .string("Alice"),
                                                     "paid_user": .boolean(true),
@@ -591,7 +593,7 @@ import Measure
                 let exception = NSException(name: NSExceptionName(rawValue: "NamedException"),
                                             reason: "Something happened",
                                             userInfo: nil)
-                Measure.trackException(exception,
+                Measure.trackError(exception,
                                        attributes: ["swiftui": .boolean(true), "lat": .float(64.0), "long": .float(14.0), "string": .string("string")])
             }
         case "Track Handled NSError":
@@ -614,7 +616,7 @@ import Measure
             let exception = NSException(name: NSExceptionName(rawValue: "NamedException"),
                                         reason: "Something happened on main thread",
                                         userInfo: ["key": "value"])
-            Measure.trackException(exception, attributes: ["source": .string("swift-main-thread")])
+            Measure.trackError(exception, attributes: ["source": .string("swift-main-thread")])
         case "ObjC Runtime Lock Deadlock":
             replicateObjCRuntimeLockDeadlock()
         default:

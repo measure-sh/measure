@@ -22,25 +22,36 @@ import (
 )
 
 // configColumns must stay ordered to match the scan in scanConfig.
-const configColumns = `max_events_in_batch, error_replay_duration, anr_timeline_duration,
+const configColumns = `error_replay_duration, anr_timeline_duration,
 	bug_report_timeline_duration, trace_sampling_rate, journey_sampling_rate,
 	screenshot_mask_level, log_autocollect_enabled, log_min_severity,
-	log_ignore_patterns, cpu_usage_interval, memory_usage_interval,
+	log_ignore_patterns, memory_usage_interval,
 	memory_usage_background_interval, memory_usage_session_sampling_rate,
 	error_fatal_take_screenshot, error_fatal_replay_enabled,
 	error_unhandled_replay_enabled, error_handled_replay_enabled,
 	error_fatal_sampling_rate, error_unhandled_sampling_rate, error_handled_sampling_rate,
 	anr_take_screenshot, app_hang_threshold_millis, app_hang_timeline_duration,
 	app_hang_sampling_rate, app_hang_replay_enabled, launch_sampling_rate,
-	gesture_click_take_snapshot, http_sampling_rate, http_disable_event_for_urls,
+	http_sampling_rate, http_disable_event_for_urls,
 	http_track_request_for_urls, http_track_response_for_urls, http_blocked_headers,
-	profile_sampling_rate, updated_at, updated_by`
+	profile_sampling_rate, analytics_sampling_rate, updated_at, updated_by`
+
+// Allowed ranges for SDK config values.
+const (
+	minSamplingRate            = 0
+	maxSamplingRate            = 100
+	minTimelineDurationSeconds = 0
+	maxTimelineDurationSeconds = 3600
+	minIntervalSeconds         = 1
+	maxIntervalSeconds         = 3600
+	minAppHangThresholdMillis  = 1000
+	maxAppHangThresholdMillis  = 30000
+)
 
 // scanConfig reads a row selected with configColumns.
 func scanConfig(row pgx.Row) (sdkconfig.SdkConfig, error) {
 	var config sdkconfig.SdkConfig
 	err := row.Scan(
-		&config.MaxEventsInBatch,
 		&config.ErrorReplayDuration,
 		&config.ANRTimelineDuration,
 		&config.BugReportTimelineDuration,
@@ -50,7 +61,6 @@ func scanConfig(row pgx.Row) (sdkconfig.SdkConfig, error) {
 		&config.LogAutocollectEnabled,
 		&config.LogMinSeverity,
 		&config.LogIgnorePatterns,
-		&config.CPUUsageInterval,
 		&config.MemoryUsageInterval,
 		&config.MemoryUsageBackgroundInterval,
 		&config.MemoryUsageSessionSamplingRate,
@@ -67,13 +77,13 @@ func scanConfig(row pgx.Row) (sdkconfig.SdkConfig, error) {
 		&config.AppHangSamplingRate,
 		&config.AppHangReplayEnabled,
 		&config.LaunchSamplingRate,
-		&config.GestureClickTakeSnapshot,
 		&config.HTTPSamplingRate,
 		&config.HTTPDisableEventForURLs,
 		&config.HTTPTrackRequestForURLs,
 		&config.HTTPTrackResponseForURLs,
 		&config.HTTPBlockedHeaders,
 		&config.ProfileSamplingRate,
+		&config.AnalyticsSamplingRate,
 		&config.UpdatedAt,
 		&config.UpdatedBy,
 	)
@@ -89,27 +99,33 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 
 	stmt := sqlf.PostgreSQL.Update("measure.sdk_config")
 
-	if patch.MaxEventsInBatch != nil {
-		stmt.Set("max_events_in_batch", *patch.MaxEventsInBatch)
-	}
 	if patch.ErrorReplayDuration != nil {
+		if *patch.ErrorReplayDuration < minTimelineDurationSeconds || *patch.ErrorReplayDuration > maxTimelineDurationSeconds {
+			return fmt.Errorf("error_replay_duration must be between %d-%d", minTimelineDurationSeconds, maxTimelineDurationSeconds)
+		}
 		stmt.Set("error_replay_duration", *patch.ErrorReplayDuration)
 	}
 	if patch.ANRTimelineDuration != nil {
+		if *patch.ANRTimelineDuration < minTimelineDurationSeconds || *patch.ANRTimelineDuration > maxTimelineDurationSeconds {
+			return fmt.Errorf("anr_timeline_duration must be between %d-%d", minTimelineDurationSeconds, maxTimelineDurationSeconds)
+		}
 		stmt.Set("anr_timeline_duration", *patch.ANRTimelineDuration)
 	}
 	if patch.BugReportTimelineDuration != nil {
+		if *patch.BugReportTimelineDuration < minTimelineDurationSeconds || *patch.BugReportTimelineDuration > maxTimelineDurationSeconds {
+			return fmt.Errorf("bug_report_timeline_duration must be between %d-%d", minTimelineDurationSeconds, maxTimelineDurationSeconds)
+		}
 		stmt.Set("bug_report_timeline_duration", *patch.BugReportTimelineDuration)
 	}
 	if patch.TraceSamplingRate != nil {
-		if *patch.TraceSamplingRate < 0 || *patch.TraceSamplingRate > 100 {
-			return fmt.Errorf("trace_sampling_rate must be between 0-100")
+		if *patch.TraceSamplingRate < minSamplingRate || *patch.TraceSamplingRate > maxSamplingRate {
+			return fmt.Errorf("trace_sampling_rate must be between %d-%d", minSamplingRate, maxSamplingRate)
 		}
 		stmt.Set("trace_sampling_rate", *patch.TraceSamplingRate)
 	}
 	if patch.JourneySamplingRate != nil {
-		if *patch.JourneySamplingRate < 0 || *patch.JourneySamplingRate > 100 {
-			return fmt.Errorf("journey_sampling_rate must be between 0-100")
+		if *patch.JourneySamplingRate < minSamplingRate || *patch.JourneySamplingRate > maxSamplingRate {
+			return fmt.Errorf("journey_sampling_rate must be between %d-%d", minSamplingRate, maxSamplingRate)
 		}
 		stmt.Set("journey_sampling_rate", *patch.JourneySamplingRate)
 	}
@@ -128,18 +144,21 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 	if patch.LogIgnorePatterns != nil {
 		stmt.Set("log_ignore_patterns", *patch.LogIgnorePatterns)
 	}
-	if patch.CPUUsageInterval != nil {
-		stmt.Set("cpu_usage_interval", *patch.CPUUsageInterval)
-	}
 	if patch.MemoryUsageInterval != nil {
+		if *patch.MemoryUsageInterval < minIntervalSeconds || *patch.MemoryUsageInterval > maxIntervalSeconds {
+			return fmt.Errorf("memory_usage_interval must be between %d-%d", minIntervalSeconds, maxIntervalSeconds)
+		}
 		stmt.Set("memory_usage_interval", *patch.MemoryUsageInterval)
 	}
 	if patch.MemoryUsageBackgroundInterval != nil {
+		if *patch.MemoryUsageBackgroundInterval < minIntervalSeconds || *patch.MemoryUsageBackgroundInterval > maxIntervalSeconds {
+			return fmt.Errorf("memory_usage_background_interval must be between %d-%d", minIntervalSeconds, maxIntervalSeconds)
+		}
 		stmt.Set("memory_usage_background_interval", *patch.MemoryUsageBackgroundInterval)
 	}
 	if patch.MemoryUsageSessionSamplingRate != nil {
-		if *patch.MemoryUsageSessionSamplingRate < 0 || *patch.MemoryUsageSessionSamplingRate > 100 {
-			return fmt.Errorf("memory_usage_session_sampling_rate must be between 0-100")
+		if *patch.MemoryUsageSessionSamplingRate < minSamplingRate || *patch.MemoryUsageSessionSamplingRate > maxSamplingRate {
+			return fmt.Errorf("memory_usage_session_sampling_rate must be between %d-%d", minSamplingRate, maxSamplingRate)
 		}
 		stmt.Set("memory_usage_session_sampling_rate", *patch.MemoryUsageSessionSamplingRate)
 	}
@@ -156,20 +175,20 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		stmt.Set("error_handled_replay_enabled", *patch.ErrorHandledReplayEnabled)
 	}
 	if patch.ErrorFatalSamplingRate != nil {
-		if *patch.ErrorFatalSamplingRate < 0 || *patch.ErrorFatalSamplingRate > 100 {
-			return fmt.Errorf("error_fatal_sampling_rate must be between 0-100")
+		if *patch.ErrorFatalSamplingRate < minSamplingRate || *patch.ErrorFatalSamplingRate > maxSamplingRate {
+			return fmt.Errorf("error_fatal_sampling_rate must be between %d-%d", minSamplingRate, maxSamplingRate)
 		}
 		stmt.Set("error_fatal_sampling_rate", *patch.ErrorFatalSamplingRate)
 	}
 	if patch.ErrorUnhandledSamplingRate != nil {
-		if *patch.ErrorUnhandledSamplingRate < 0 || *patch.ErrorUnhandledSamplingRate > 100 {
-			return fmt.Errorf("error_unhandled_sampling_rate must be between 0-100")
+		if *patch.ErrorUnhandledSamplingRate < minSamplingRate || *patch.ErrorUnhandledSamplingRate > maxSamplingRate {
+			return fmt.Errorf("error_unhandled_sampling_rate must be between %d-%d", minSamplingRate, maxSamplingRate)
 		}
 		stmt.Set("error_unhandled_sampling_rate", *patch.ErrorUnhandledSamplingRate)
 	}
 	if patch.ErrorHandledSamplingRate != nil {
-		if *patch.ErrorHandledSamplingRate < 0 || *patch.ErrorHandledSamplingRate > 100 {
-			return fmt.Errorf("error_handled_sampling_rate must be between 0-100")
+		if *patch.ErrorHandledSamplingRate < minSamplingRate || *patch.ErrorHandledSamplingRate > maxSamplingRate {
+			return fmt.Errorf("error_handled_sampling_rate must be between %d-%d", minSamplingRate, maxSamplingRate)
 		}
 		stmt.Set("error_handled_sampling_rate", *patch.ErrorHandledSamplingRate)
 	}
@@ -177,14 +196,20 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		stmt.Set("anr_take_screenshot", *patch.ANRTakeScreenshot)
 	}
 	if patch.AppHangThresholdMillis != nil {
+		if *patch.AppHangThresholdMillis < minAppHangThresholdMillis || *patch.AppHangThresholdMillis > maxAppHangThresholdMillis {
+			return fmt.Errorf("app_hang_threshold_millis must be between %d-%d", minAppHangThresholdMillis, maxAppHangThresholdMillis)
+		}
 		stmt.Set("app_hang_threshold_millis", *patch.AppHangThresholdMillis)
 	}
 	if patch.AppHangTimelineDuration != nil {
+		if *patch.AppHangTimelineDuration < minTimelineDurationSeconds || *patch.AppHangTimelineDuration > maxTimelineDurationSeconds {
+			return fmt.Errorf("app_hang_timeline_duration must be between %d-%d", minTimelineDurationSeconds, maxTimelineDurationSeconds)
+		}
 		stmt.Set("app_hang_timeline_duration", *patch.AppHangTimelineDuration)
 	}
 	if patch.AppHangSamplingRate != nil {
-		if *patch.AppHangSamplingRate < 0 || *patch.AppHangSamplingRate > 100 {
-			return fmt.Errorf("app_hang_sampling_rate must be between 0-100")
+		if *patch.AppHangSamplingRate < minSamplingRate || *patch.AppHangSamplingRate > maxSamplingRate {
+			return fmt.Errorf("app_hang_sampling_rate must be between %d-%d", minSamplingRate, maxSamplingRate)
 		}
 		stmt.Set("app_hang_sampling_rate", *patch.AppHangSamplingRate)
 	}
@@ -192,17 +217,14 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		stmt.Set("app_hang_replay_enabled", *patch.AppHangReplayEnabled)
 	}
 	if patch.LaunchSamplingRate != nil {
-		if *patch.LaunchSamplingRate < 0 || *patch.LaunchSamplingRate > 100 {
-			return fmt.Errorf("launch_sampling_rate must be between 0-100")
+		if *patch.LaunchSamplingRate < minSamplingRate || *patch.LaunchSamplingRate > maxSamplingRate {
+			return fmt.Errorf("launch_sampling_rate must be between %d-%d", minSamplingRate, maxSamplingRate)
 		}
 		stmt.Set("launch_sampling_rate", *patch.LaunchSamplingRate)
 	}
-	if patch.GestureClickSnapshot != nil {
-		stmt.Set("gesture_click_take_snapshot", *patch.GestureClickSnapshot)
-	}
 	if patch.HTTPSamplingRate != nil {
-		if *patch.HTTPSamplingRate < 0 || *patch.HTTPSamplingRate > 100 {
-			return fmt.Errorf("http_sampling_rate must be between 0-100")
+		if *patch.HTTPSamplingRate < minSamplingRate || *patch.HTTPSamplingRate > maxSamplingRate {
+			return fmt.Errorf("http_sampling_rate must be between %d-%d", minSamplingRate, maxSamplingRate)
 		}
 		stmt.Set("http_sampling_rate", *patch.HTTPSamplingRate)
 	}
@@ -219,10 +241,21 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 		stmt.Set("http_blocked_headers", *patch.HTTPBlockedHeaders)
 	}
 	if patch.ProfileSamplingRate != nil {
-		if *patch.ProfileSamplingRate < 0 || *patch.ProfileSamplingRate > 100 {
-			return fmt.Errorf("profile_sampling_rate must be between 0-100")
+		if *patch.ProfileSamplingRate < minSamplingRate || *patch.ProfileSamplingRate > maxSamplingRate {
+			return fmt.Errorf("profile_sampling_rate must be between %d-%d", minSamplingRate, maxSamplingRate)
 		}
 		stmt.Set("profile_sampling_rate", *patch.ProfileSamplingRate)
+	}
+	if patch.AnalyticsSamplingRate != nil {
+		if *patch.AnalyticsSamplingRate < 0 || *patch.AnalyticsSamplingRate > 100 {
+			return fmt.Errorf("analytics_sampling_rate must be between 0-100")
+		}
+		stmt.Set("analytics_sampling_rate", *patch.AnalyticsSamplingRate)
+		// SDKs released before analytics sampling read journey_sampling_rate
+		// instead, so they follow the same rate unless the patch sets one.
+		if patch.JourneySamplingRate == nil {
+			stmt.Set("journey_sampling_rate", *patch.AnalyticsSamplingRate)
+		}
 	}
 	// clock_timestamp() is read after the row lock is taken, so concurrent patches
 	// get updated_at in the order they write. Go's time.Now() and postgres now()

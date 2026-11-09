@@ -11,11 +11,11 @@ import Foundation
 final class MockSignalSampler: SignalSampler {
     var shouldTrackLaunchEventsReturnValue: Bool = false
     var shouldTrackTraceReturnValue: Bool = false
-    var shouldTrackJourneyEventsReturnValue: Bool = false
     var shouldSampleTraceReturnValue: Bool = false
     var shouldSampleTHttpEventValue: Bool = false
     var shouldTrackMemoryUsageReturnValue: Bool = true
     var memorySessionIds: [String] = []
+    var shouldTrackAnalyticsReturnValue: Bool = true
     var sampledErrorSeverities: Set<ExceptionSeverity> = [.fatal, .unhandled]
     var shouldSampleAppHangReturnValue: Bool = true
 
@@ -27,10 +27,6 @@ final class MockSignalSampler: SignalSampler {
         return shouldTrackTraceReturnValue
     }
 
-    func shouldTrackJourneyForSession(sessionId: String) -> Bool {
-        shouldTrackLaunchEventsReturnValue
-    }
-
     func shouldTrackLaunchEvents() -> Bool {
         return shouldTrackLaunchEventsReturnValue
     }
@@ -40,6 +36,10 @@ final class MockSignalSampler: SignalSampler {
         return shouldTrackMemoryUsageReturnValue
     }
     
+    func shouldTrackAnalyticsForInstallation(installationId: String) -> Bool {
+        return shouldTrackAnalyticsReturnValue
+    }
+
     func shouldSampleTrace(_ traceId: String) -> Bool {
         return shouldSampleTraceReturnValue
     }

@@ -36,13 +36,13 @@ export default function ProductAppHealth() {
       }
       demo={{
         frame: "scaled",
-        heightClassName: "h-[940px]",
+        heightClassName: "h-[860px]",
         content: <OverviewDemo />,
         screenshot: {
           src: "/images/product_screenshots/app_health.webp",
           alt: "The Measure app health dashboard showing crash rate, ANR rate, launch time and app size metrics with trends over time",
           width: 2300,
-          height: 1996,
+          height: 1826,
         },
       }}
       ctaLocation="product_app_health"

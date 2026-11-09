@@ -16,18 +16,18 @@ jest.mock("@/app/utils/env_utils", () => ({
   isCloud: jest.fn(),
 }));
 
-jest.mock("@c15t/nextjs", () => ({
-  useConsentManager: jest.fn(),
+jest.mock("c15t/next", () => ({
+  useConsent: jest.fn(),
 }));
 
-import { useConsentManager } from "@c15t/nextjs";
+import { useConsent } from "c15t/next";
 import { isCloud } from "@/app/utils/env_utils";
 import posthog from "posthog-js";
 
 function mockConsent(granted: string[]) {
-  (useConsentManager as jest.Mock).mockReturnValue({
-    has: (category: string) => granted.includes(category),
-  });
+  (useConsent as jest.Mock).mockImplementation((category) =>
+    granted.includes(category as string),
+  );
 }
 
 beforeEach(() => {

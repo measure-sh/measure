@@ -1,7 +1,13 @@
 import { describe, expect, it } from "@jest/globals";
 import { DateTime } from "luxon";
 import type { AttributeDistributionResponse } from "@/app/api/api_calls";
-import { catalog, computeMetrics } from "@/app/sandbox/catalog";
+import {
+  APP_HANG_THRESHOLD_MS,
+  catalog,
+  computeMetrics,
+} from "@/app/sandbox/catalog";
+import { groupSessionsAndUsers } from "@/app/sandbox/errors";
+import { killedShare } from "@/app/sandbox/journey_graph";
 import type { GeneratedEvent } from "@/app/sandbox/catalog";
 import { decodeToken, orderTotals, parseState } from "@/app/sandbox/layouts";
 import type { SpanSpec } from "@/app/sandbox/scenario";
@@ -52,7 +58,6 @@ describe.each(apps)("catalog: $app.name", (bundle) => {
     bugReports,
     traces,
     rootSpanNames,
-    journey,
   } = bundle;
   const mainThread = scenario.threadNames.main;
   const allEvents = (session: (typeof sessions)[number]) =>
@@ -143,8 +148,9 @@ describe.each(apps)("catalog: $app.name", (bundle) => {
       }
       const crashed = events.some(
         (e) =>
-          (e.event_type === "error" || e.event_type === "anr") &&
-          e.severity === "fatal",
+          ((e.event_type === "error" || e.event_type === "anr") &&
+            e.severity === "fatal") ||
+          (e.event_type === "app_hang" && e.state === "killed"),
       );
       const last = events
         .filter((e) => e.event_type === "lifecycle_app")
@@ -251,8 +257,19 @@ describe.each(apps)("catalog: $app.name", (bundle) => {
       )!;
       const stacktrace =
         group.instances[0].exception?.stacktrace ??
-        group.instances[0].anr!.stacktrace;
+        group.instances[0].anr?.stacktrace ??
+        group.instances[0].app_hang!.stacktrace;
       expect(stacktrace).toBe(spec.stacktrace);
+      if (group.error_type === "app_hang") {
+        const frames = stacktrace
+          .split("\n")
+          .filter((line) => !line.startsWith("    Full symbol:"));
+        expect(frames.length).toBeGreaterThanOrEqual(12);
+        frames.forEach((line, i) =>
+          expect(line).toMatch(new RegExp(`^\tat +${i} {3}\\S`)),
+        );
+        continue;
+      }
       if (spec.exceptions.length === 0) {
         expect(spec.framework).toBe("apple");
         expect(group.type).toBe(spec.error!.code);
@@ -282,6 +299,64 @@ describe.each(apps)("catalog: $app.name", (bundle) => {
           expect(lines[0].endsWith(":")).toBe(true);
           expect(lines[1]).toMatch(/^ {2}0 {3}\S/);
           break;
+      }
+    }
+  });
+
+  it("gives each iOS app an app hang group, recovered in one session and killed in another", () => {
+    const hangs = errorGroups.filter((g) => g.error_type === "app_hang");
+    expect(hangs).toHaveLength(scenario.app.os === "ios" ? 1 : 0);
+    for (const group of hangs) {
+      expect([group.type, group.message, group.severity]).toEqual(["", "", ""]);
+      expect(group.instances.map((i) => i.app_hang!.state).sort()).toEqual([
+        "killed",
+        "recovered",
+      ]);
+      for (const instance of group.instances) {
+        const hang = instance.app_hang!;
+        expect(hang.thread_name).toBe(mainThread);
+        expect(hang.duration).toBeGreaterThan(2_000);
+        const session = sessions.find(
+          (s) => s.list.session_id === instance.session_id,
+        )!;
+        const later = allEvents(session).filter(
+          (e) => e.timestamp > instance.timestamp,
+        );
+        if (hang.state === "killed") {
+          expect(later).toHaveLength(0);
+        } else {
+          const end = DateTime.fromISO(instance.timestamp)
+            .minus({ milliseconds: APP_HANG_THRESHOLD_MS })
+            .plus({ milliseconds: hang.duration })
+            .toMillis();
+          for (const event of later) {
+            if (event.thread_name === mainThread) {
+              expect(
+                DateTime.fromISO(event.timestamp).toMillis(),
+              ).toBeGreaterThanOrEqual(end);
+            }
+          }
+          const start =
+            DateTime.fromISO(instance.timestamp).toMillis() -
+            APP_HANG_THRESHOLD_MS;
+          const spec = scenario.exceptions.find((e) => e.kind === "app_hang")!;
+          for (const samples of [
+            session.detail.cpu_usage,
+            session.detail.memory_usage_absolute ?? [],
+          ]) {
+            const times = samples.map((sample) =>
+              DateTime.fromISO(String(sample.timestamp)).toMillis(),
+            );
+            expect(times.filter((t) => t >= start && t < end)).toEqual([]);
+            expect(times).toContain(end);
+          }
+          const atEnd = session.detail.cpu_usage.find(
+            (sample) => DateTime.fromISO(sample.timestamp).toMillis() === end,
+          )!;
+          if (spec.cpuBound) {
+            expect(atEnd.value).toBeGreaterThan(85);
+          }
+        }
       }
     }
   });
@@ -367,7 +442,11 @@ describe.each(apps)("catalog: $app.name", (bundle) => {
     const sessionIds = new Set(sessions.map((s) => s.list.session_id));
     for (const session of sessions) {
       for (const event of allEvents(session)) {
-        if (event.event_type === "error" || event.event_type === "anr") {
+        if (
+          event.event_type === "error" ||
+          event.event_type === "anr" ||
+          event.event_type === "app_hang"
+        ) {
           expect(groupIds.has(String(event.group_id))).toBe(true);
         }
       }
@@ -428,9 +507,14 @@ describe.each(apps)("catalog: $app.name", (bundle) => {
     }
   });
 
-  it("raises alerts only for fatal crash and ANR groups and bug reports, each with a url that resolves", () => {
+  it("raises alerts only for fatal crash, ANR, and app hang groups and bug reports, each with a resolving URL", () => {
     for (const alert of bundle.alerts) {
-      expect(["crash_spike", "anr_spike", "bug_report"]).toContain(alert.type);
+      expect([
+        "crash_spike",
+        "anr_spike",
+        "app_hang_spike",
+        "bug_report",
+      ]).toContain(alert.type);
       if (alert.type === "bug_report") {
         const report = bugReports.find((r) => r.event_id === alert.entity_id);
         expect(report).toBeDefined();
@@ -446,6 +530,14 @@ describe.each(apps)("catalog: $app.name", (bundle) => {
       const group = errorGroups.find((g) => g.id === groupId);
       expect(group).toBeDefined();
       expect(group!.id).toBe(alert.entity_id);
+      if (group!.error_type === "app_hang") {
+        expect(alert.type).toBe("app_hang_spike");
+        expect(decodeURIComponent(encodedName)).toBe(group!.file_name);
+        expect(alert.message).toBe(
+          `${group!.file_name}: ${group!.method_name}`,
+        );
+        continue;
+      }
       expect(decodeURIComponent(encodedName)).toBe(
         group!.type + (group!.file_name ? `@${group!.file_name}` : ""),
       );
@@ -463,154 +555,6 @@ describe.each(apps)("catalog: $app.name", (bundle) => {
         .map((i) => i.timestamp)
         .sort()[0];
       expect(alert.created_at >= firstInstance).toBe(true);
-    }
-  });
-
-  it("gives every journey node id a screen name present in the app's sessions", () => {
-    expect(journey.nodes.length).toBeGreaterThan(0);
-    expect(journey.links.length).toBeGreaterThan(0);
-    for (const node of journey.nodes) {
-      const seenSomewhere = sessions.some((s) =>
-        allEvents(s).some(
-          (e) =>
-            (e.event_type === "lifecycle_activity" &&
-              e.class_name === node.id) ||
-            (e.event_type === "lifecycle_fragment" &&
-              e.class_name === node.id) ||
-            (e.event_type === "lifecycle_view_controller" &&
-              e.type === "viewDidAppear" &&
-              e.class_name === node.id) ||
-            (e.event_type === "lifecycle_swift_ui" &&
-              e.type === "on_appear" &&
-              e.class_name === node.id) ||
-            (e.event_type === "screen_view" && e.name === node.id),
-        ),
-      );
-      expect(seenSomewhere).toBe(true);
-    }
-  });
-
-  it("never lets a screen pass on more traffic than reached it", () => {
-    const monthlySessions = scenario.app.dailySessions * 30;
-    const sequences = sessions.map((s) =>
-      screenSequence(s.detail.threads[mainThread] ?? []).map((e) => e.name),
-    );
-    const entered = new Map<string, number>();
-    for (const sequence of sequences) {
-      const first = sequence[0];
-      if (first !== undefined) {
-        entered.set(first, (entered.get(first) ?? 0) + 1);
-      }
-    }
-    const entryTotal = Array.from(entered.values()).reduce((a, b) => a + b, 0);
-    const inflow = new Map<string, number>();
-    for (const [name, count] of entered) {
-      inflow.set(name, Math.round((count / entryTotal) * monthlySessions));
-    }
-    for (const link of journey.links) {
-      expect(link.value).toBeGreaterThanOrEqual(0);
-      inflow.set(link.target, (inflow.get(link.target) ?? 0) + link.value);
-    }
-    const outflow = new Map<string, number>();
-    for (const link of journey.links) {
-      outflow.set(link.source, (outflow.get(link.source) ?? 0) + link.value);
-    }
-    for (const [node, out] of outflow) {
-      // The slack covers rounding between the entry counts estimated here and the
-      // ones the journey was split from.
-      expect(out).toBeLessThanOrEqual((inflow.get(node) ?? 0) * 0.98 + 2);
-    }
-    const monthlyEntries = Array.from(entered.keys()).reduce(
-      (sum, name) =>
-        sum +
-        Math.round(((entered.get(name) ?? 0) / entryTotal) * monthlySessions),
-      0,
-    );
-    expect(Math.abs(monthlyEntries - monthlySessions)).toBeLessThanOrEqual(2);
-  });
-
-  it("sends a fixed share of sessions to the cart and on through checkout at the sandbox funnels' step rates", () => {
-    const keyOf = new Map<string, string>();
-    for (const spec of scenario.screens) {
-      for (const name of [
-        spec.key,
-        spec.label,
-        spec.className,
-        spec.routeName,
-      ]) {
-        if (name) {
-          keyOf.set(name, scenario.ui.screens[spec.key]);
-        }
-      }
-    }
-    const into = (target: string, source?: string) =>
-      journey.links
-        .filter(
-          (link) =>
-            keyOf.get(link.target) === target &&
-            (source === undefined
-              ? keyOf.get(link.source) !== target
-              : keyOf.get(link.source) === source),
-        )
-        .reduce((sum, link) => sum + link.value, 0);
-    // Each link varies by up to a tenth between apps and is rounded down to
-    // whole sessions, so the lower bound has extra room.
-    const cartShare = into("cart") / (scenario.app.dailySessions * 30);
-    expect(cartShare).toBeGreaterThan(0.025 * 0.88);
-    expect(cartShare).toBeLessThan(0.025 * 1.1);
-    for (const [source, target, rate] of [
-      ["cart", "checkout", 0.38],
-      ["checkout", "payment", 0.74],
-      ["payment", "order_confirmation", 0.9],
-    ] as const) {
-      const share = into(target, source) / into(source);
-      expect(share).toBeGreaterThan(rate * 0.9);
-      expect(share).toBeLessThan(rate * 1.1);
-    }
-  });
-
-  it("counts only fatal crash and ANR groups as journey issues", () => {
-    const listed = new Set(
-      journey.nodes.flatMap((node) => [
-        ...node.issues.crashes.map((i) => i.id),
-        ...node.issues.anrs.map((i) => i.id),
-      ]),
-    );
-    for (const group of errorGroups) {
-      if (group.severity !== "fatal") {
-        expect(listed.has(group.id)).toBe(false);
-      }
-    }
-    for (const node of journey.nodes) {
-      for (const issue of node.issues.crashes) {
-        const group = errorGroups.find((g) => g.id === issue.id)!;
-        expect(group.error_type).toBe("exception");
-        expect(group.severity).toBe("fatal");
-        expect(group.screen).toBe(node.id);
-        expect(issue.count).toBe(group.count);
-      }
-      for (const issue of node.issues.anrs) {
-        const group = errorGroups.find((g) => g.id === issue.id)!;
-        expect(group.error_type).toBe("anr");
-        expect(issue.count).toBe(group.count);
-      }
-    }
-    const fatalTotal = errorGroups
-      .filter((g) => g.severity === "fatal")
-      .reduce((sum, g) => sum + g.count, 0);
-    expect(journey.totalIssues).toBe(fatalTotal);
-  });
-
-  it("spreads journey traffic across screens rather than through one shell", () => {
-    const appearances = new Map<string, number>();
-    for (const link of journey.links) {
-      for (const node of [link.source, link.target]) {
-        appearances.set(node, (appearances.get(node) ?? 0) + 1);
-      }
-    }
-    // A host activity mistaken for a screen would be an end of nearly every link.
-    for (const count of appearances.values()) {
-      expect(count).toBeLessThan(journey.links.length * 0.6);
     }
   });
 
@@ -704,7 +648,7 @@ describe.each(apps)("catalog: $app.name", (bundle) => {
     }
   });
 
-  it("fills the metrics cards from the scenario, leaving the comparison side unset and the ANR cards to android", () => {
+  it("fills the metric cards from the scenario, leaves the comparison unset, shows ANR cards for Android, and the app hang card for iOS", () => {
     const metrics = computeMetrics(bundle, null, {
       from: world.builtAt.minus({ days: 30 }),
       to: world.builtAt,
@@ -734,6 +678,16 @@ describe.each(apps)("catalog: $app.name", (bundle) => {
     } else {
       expect(metrics.anr_free_sessions).toBeNull();
       expect(metrics.perceived_anr_free_sessions).toBeNull();
+    }
+    if (scenario.app.os === "ios") {
+      expect(
+        Math.abs(
+          metrics.app_hang_free_sessions!.app_hang_free_sessions -
+            Math.round(scenario.app.appHangFreeRate! * 1000) / 10,
+        ),
+      ).toBeLessThanOrEqual(0.1);
+    } else {
+      expect(metrics.app_hang_free_sessions).toBeNull();
     }
   });
 
@@ -841,6 +795,12 @@ describe.each(apps)("sandbox routes agree: $app.name", (bundle) => {
         Math.abs(idTotal(health, "crashes") - crashTotal(errors.results)),
       ).toBeLessThanOrEqual(2);
       expect(Math.abs(idTotal(health, "anrs") - anrs)).toBeLessThanOrEqual(2);
+      const appHangs = errors.results
+        .filter((g: any) => g.error_type === "app_hang")
+        .reduce((sum: number, g: any) => sum + g.count, 0);
+      expect(
+        Math.abs(idTotal(health, "app_hangs") - appHangs),
+      ).toBeLessThanOrEqual(2);
       for (const g of errors.results) {
         expect(
           g.trend.reduce((sum: number, p: any) => sum + p.instances, 0),
@@ -941,24 +901,38 @@ describe.each(apps)("sandbox routes agree: $app.name", (bundle) => {
       }
     });
 
-    it("hands the journey the same crash and ANR counts the errors list reports", async () => {
+    it("gives the journey's fatal error node the users reported by the errors list for fatal errors and killed app hangs", async () => {
       const journey = await get(`/api/apps/${appId}/journey?${query(range)}`);
       const errors = await get(
         `/api/apps/${appId}/errorGroups?${query(range, { limit: "50", offset: "0" })}`,
       );
-      const byId = new Map<string, number>(
-        errors.results.map((g: any) => [g.id, g.count]),
+      // Only hangs during which the app was killed end the session.
+      const killedUsers = (group: any) =>
+        groupSessionsAndUsers(
+          group,
+          Math.round(group.count * killedShare(group)),
+        ).users;
+      const fatalUsers = errors.results.reduce(
+        (sum: number, g: any) =>
+          sum +
+          (g.severity === "fatal"
+            ? g.users
+            : g.error_type === "app_hang"
+              ? killedUsers(g)
+              : 0),
+        0,
       );
-      let issues = 0;
-      for (const node of journey.nodes) {
-        for (const issue of [...node.issues.crashes, ...node.issues.anrs]) {
-          expect(
-            Math.abs(issue.count - (byId.get(issue.id) ?? -1)),
-          ).toBeLessThanOrEqual(1);
-          issues += issue.count;
-        }
-      }
-      expect(journey.totalIssues).toBe(issues);
+      const fatal = journey.nodes.filter((n: any) => n.kind === "fatal");
+      expect(fatal).toHaveLength(1);
+      expect(Math.abs(fatal[0].users - fatalUsers)).toBeLessThanOrEqual(1);
+      expect(fatal[0].continuing).toBe(0);
+      const intoFatal = journey.links
+        .filter((l: any) => l.target === fatal[0].id)
+        .reduce((sum: number, l: any) => sum + l.users, 0);
+      // Each link into the fatal node is rounded to whole users.
+      expect(Math.abs(intoFatal - fatal[0].users)).toBeLessThanOrEqual(
+        journey.links.length,
+      );
     });
 
     it("gives every root span a reading in every bucket with its percentiles in order", async () => {
@@ -1064,6 +1038,7 @@ describe.each(apps)("sandbox routes agree: $app.name", (bundle) => {
   it("ends a common path on the error's severity and the thread the error was recorded on", async () => {
     const prefixes: Record<string, string> = {
       anr: "ANR: ",
+      app_hang: "App hang: ",
       fatal: "Crash: ",
       unhandled: "Unhandled error: ",
       handled: "Handled error: ",
@@ -1072,7 +1047,9 @@ describe.each(apps)("sandbox routes agree: $app.name", (bundle) => {
       const path = await get(`/api/apps/${appId}/errorGroups/${group.id}/path`);
       const last = path.steps[path.steps.length - 1];
       const expected =
-        group.error_type === "anr" ? prefixes.anr : prefixes[group.severity];
+        group.error_type === "exception"
+          ? prefixes[group.severity]
+          : prefixes[group.error_type];
       expect(last.description.startsWith(expected)).toBe(true);
       const instance = group.instances[0];
       const event = Object.values(
@@ -1083,7 +1060,9 @@ describe.each(apps)("sandbox routes agree: $app.name", (bundle) => {
         .find(
           (e) =>
             e.timestamp === instance.timestamp &&
-            (e.event_type === "error" || e.event_type === "anr"),
+            (e.event_type === "error" ||
+              e.event_type === "anr" ||
+              e.event_type === "app_hang"),
         )!;
       expect(last.thread_name).toBe(event.thread_name);
       expect(last.confidence_pct).toBe(100);
@@ -1135,11 +1114,6 @@ describe.each(apps)("sandbox routes agree: $app.name", (bundle) => {
     expect(share).toBeLessThan(1);
     const metrics = await get(`/api/apps/${appId}/metrics?${filtered}`);
     expect(metrics.adoption.adoption / 100).toBeCloseTo(share, 2);
-    const journeyAll = await get(`/api/apps/${appId}/journey?${all}`);
-    const journeyOne = await get(`/api/apps/${appId}/journey?${filtered}`);
-    const linkTotal = (j: any) =>
-      j.links.reduce((sum: number, l: any) => sum + l.value, 0);
-    expect(linkTotal(journeyOne) / linkTotal(journeyAll)).toBeCloseTo(share, 2);
     const health = await get(
       `/api/apps/${appId}/health/plots/instances?${filtered}`,
     );

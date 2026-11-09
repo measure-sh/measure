@@ -107,6 +107,9 @@
     "react": ">=18.2.0",
     "react-native": ">=0.73.0"
   },
+  "resolutions": {
+    "minimatch@^9.0.4": "^11.0.1"
+  },
   "workspaces": [
     "react-native"
   ],

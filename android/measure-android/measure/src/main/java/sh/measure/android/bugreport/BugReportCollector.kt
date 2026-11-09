@@ -58,6 +58,12 @@ internal interface BugReportCollector {
     fun setBugReportFlowInactive()
     fun getPendingScreenshot(): PendingScreenshot?
     fun discardPendingScreenshot(screenshot: PendingScreenshot)
+
+    /**
+     * Lets go of [screenshot] without deleting its file, once the bug report screen has taken
+     * the encoded screenshot as one of its attachments.
+     */
+    fun releasePendingScreenshot(screenshot: PendingScreenshot)
 }
 
 internal class BugReportCollectorImpl internal constructor(
@@ -103,6 +109,12 @@ internal class BugReportCollectorImpl internal constructor(
         screenshot.discard()
     }
 
+    override fun releasePendingScreenshot(screenshot: PendingScreenshot) {
+        if (pendingScreenshot === screenshot) {
+            pendingScreenshot = null
+        }
+    }
+
     override fun setBugReportFlowActive() {
         isBugReportFlowActive.compareAndSet(false, true)
     }
@@ -134,14 +146,14 @@ internal class BugReportCollectorImpl internal constructor(
                         val eventAttachments =
                             (parcelableAttachments + pending).toEventAttachments() +
                                 uris.toEventAttachments(appContext)
-                        signalProcessor.track(
+                        signalProcessor.trackBugReport(
                             data = BugReportData(description = description),
-                            timestamp = timestamp,
                             type = EventType.BUG_REPORT,
+                            timestamp = timestamp,
                             attachments = eventAttachments.toMutableList(),
-                            threadName = threadName,
                             userDefinedAttributes = attributes ?: mutableMapOf(),
-                            isSampled = true,
+                            attributes = mutableMapOf(),
+                            threadName = threadName,
                         )
                     },
                 )

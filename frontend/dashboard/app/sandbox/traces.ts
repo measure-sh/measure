@@ -1,5 +1,6 @@
 import { catalog, percentile } from "./catalog";
 import type { AppBundle, SessionAttribute, SpanListRow } from "./catalog";
+import { hasSessionReplay } from "./sessions";
 import {
   bucketsForRange,
   formatBucket,
@@ -25,6 +26,7 @@ function spanAttributes(
     os_version: row.os_version,
     device_manufacturer: row.device_manufacturer,
     device_name: session?.device_name,
+    device_model: row.device_model,
     locale: session?.device_locale,
     country: session ? countryOf(session.device_locale) : undefined,
     network_type: session?.network_type,
@@ -150,7 +152,10 @@ export const tracesRoutes: SandboxRoute[] = [
       if (!trace) {
         return jsonResponse({ error: "Trace not found" }, 404);
       }
-      return jsonResponse(trace);
+      return jsonResponse({
+        ...trace,
+        has_replay: hasSessionReplay(params.appId, trace.session_id),
+      });
     },
   },
 ];

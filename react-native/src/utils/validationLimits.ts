@@ -7,6 +7,7 @@ export const ValidationLimits = {
   screenViewName: 1024,
   httpClient: 32,
   bugReportDescription: 4000,
+  exceptionMessage: 8192,
 
   maxUserDefinedAttributes: 100,
   maxUserDefinedAttributeKeyLength: 256,

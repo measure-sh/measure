@@ -3,9 +3,9 @@
  *
  * These cover the wiring between the page, the FilterBar and the journey
  * API: the request the page sends for what the bar settled on, the filter
- * expression a link carries, the plot type in the URL, and the error and
- * empty states. Chart rendering, the exceptions panel and node search are
- * covered by the component unit tests.
+ * expression a link carries, the list requests a selected node or link
+ * sends, and the error and empty states. The graph's layout, highlighting
+ * and panning are covered by the component unit tests.
  */
 import { mockRouter } from "@/__tests__/helpers/mock_router";
 import { promiseParams } from "@/__tests__/helpers/promise_params";
@@ -50,30 +50,8 @@ jest.mock("next/link", () => ({
   ),
 }));
 
-jest.mock("next-themes", () => ({
-  __esModule: true,
-  useTheme: () => ({ theme: "light" }),
-}));
-
-// Sankey chart needs real DOM layout. Stub with a data-testable div.
-jest.mock("@nivo/sankey", () => ({
-  __esModule: true,
-  ResponsiveSankey: ({ data }: any) => (
-    <div data-testid="nivo-sankey">
-      {data?.nodes?.map((node: any) => (
-        <span
-          key={node.id}
-          data-testid={`sankey-node-${node.id.split(".").pop()}`}
-        >
-          {node.id.split(".").pop()}
-        </span>
-      ))}
-    </div>
-  ),
-}));
-
-// The filter pickers are Radix popovers, which need a resize observer and
-// pointer capture that jsdom does not have.
+// The filter pickers, which are Radix popovers, and the journey graph need a
+// resize observer and pointer capture, which jsdom lacks.
 (globalThis as any).ResizeObserver = class {
   observe() {}
   unobserve() {}
@@ -91,7 +69,7 @@ import { server } from "../msw/server";
 jest.spyOn(console, "log").mockImplementation(() => {});
 jest.spyOn(console, "error").mockImplementation(() => {});
 
-beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
+beforeAll(() => server.listen({ onUnhandledFrame: "warn" }));
 afterEach(() => {
   server.resetHandlers();
   mockRouterPush.mockClear();
@@ -99,7 +77,8 @@ afterEach(() => {
 afterAll(() => server.close());
 
 // --- Store/component imports ---
-import UserJourneysPage from "@/app/[teamId]/journeys/page";
+import JourneysPage from "@/app/[teamId]/journeys/page";
+import { layOut, linkPath } from "@/app/components/journey/graph_layout";
 import { queryClient } from "@/app/query/query_client";
 import { createFiltersStore } from "@/app/stores/filters_store";
 import { createOnboardingStore } from "@/app/stores/onboarding_store";
@@ -140,7 +119,7 @@ function renderWithProviders(ui: React.ReactElement) {
 describe("Journeys page (MSW integration)", () => {
   function renderPage() {
     return renderWithProviders(
-      <UserJourneysPage params={promiseParams({ teamId: "test-team" })} />,
+      <JourneysPage params={promiseParams({ teamId: "test-team" })} />,
     );
   }
 
@@ -166,11 +145,33 @@ describe("Journeys page (MSW integration)", () => {
     return sent;
   }
 
-  async function waitForChart() {
-    await waitFor(
-      () => expect(screen.getByTestId("nivo-sankey")).toBeTruthy(),
-      { timeout: 5000 },
+  function recordListRequests() {
+    const sent: URL[] = [];
+    server.use(
+      http.get("*/api/apps/:appId/journey/:list", ({ request }) => {
+        sent.push(new URL(request.url));
+        return;
+      }),
     );
+    return sent;
+  }
+
+  async function waitForChart() {
+    await screen.findByText("MainActivity", {}, { timeout: 5000 });
+  }
+
+  const nodeGroup = (shortName: string) =>
+    screen
+      .getAllByText(shortName)
+      .find((el) => el.tagName === "text")!
+      .closest("g")!;
+
+  // Each link draws a visible path and then a wider, invisible one that takes
+  // the pointer, both along the curve the layout gives the link.
+  function linkHitPath(source: string, target: string) {
+    const { boxes } = layOut(makeJourneyFixture() as any);
+    const d = linkPath(boxes.get(source)!, boxes.get(target)!);
+    return document.querySelectorAll(`path[d="${d}"]`)[1];
   }
 
   const lastWrittenUrl = () => new URLSearchParams(window.location.search);
@@ -180,8 +181,10 @@ describe("Journeys page (MSW integration)", () => {
       renderPage();
       await waitForChart();
 
-      expect(screen.getByTestId("sankey-node-MainActivity")).toBeTruthy();
-      expect(screen.getByTestId("sankey-node-CartActivity")).toBeTruthy();
+      expect(screen.getByText("ProductListActivity")).toBeTruthy();
+      expect(screen.getByText("search_submitted")).toBeTruthy();
+      expect(screen.getByText("CartActivity")).toBeTruthy();
+      expect(nodeGroup("Fatal error")).toBeTruthy();
     });
 
     it("asks for the journey over the range it settled on", async () => {
@@ -195,7 +198,6 @@ describe("Journeys page (MSW integration)", () => {
       expect(sent[0].searchParams.get("to")).toMatch(/Z$/);
       expect(sent[0].searchParams.get("timezone")).toBeTruthy();
       expect(sent[0].searchParams.has("filter_expr")).toBe(false);
-      expect(sent[0].searchParams.has("bigraph")).toBe(false);
       expect(sent[0].searchParams.has("versions")).toBe(false);
     });
 
@@ -218,18 +220,17 @@ describe("Journeys page (MSW integration)", () => {
       expect(written.get("sd")).toBeNull();
       expect(written.get("ed")).toBeNull();
       expect(written.has("po")).toBe(false);
-      expect(written.has("jt")).toBe(false);
     });
 
-    it("shows the tabs and the search input with the chart", async () => {
+    it("fetches no lists until something is selected", async () => {
+      const sent = recordListRequests();
       renderPage();
       await waitForChart();
 
-      expect(screen.getByRole("button", { name: "Paths" }).className).toContain(
-        "bg-accent",
-      );
-      expect(screen.getByRole("button", { name: "Exceptions" })).toBeTruthy();
-      expect(screen.getByPlaceholderText("Search nodes...")).toBeTruthy();
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 200));
+      });
+      expect(sent).toHaveLength(0);
     });
   });
 
@@ -249,41 +250,119 @@ describe("Journeys page (MSW integration)", () => {
     });
   });
 
-  describe("the plot type", () => {
-    it("opens on the plot a link names and keeps it in the URL", async () => {
-      mockRouter.setUrl("jt=Exceptions");
-      renderPage();
-      await waitForChart();
-
-      expect(
-        screen.getByRole("button", { name: "Exceptions" }).className,
-      ).toContain("bg-accent");
-      expect(lastWrittenUrl().get("jt")).toBe("Exceptions");
-      expect(lastWrittenUrl().get("a")).toBe(appId);
-    });
-
-    it("a tab click writes the plot type into the URL without refetching", async () => {
-      const sent = recordJourneyRequests();
+  describe("selecting", () => {
+    it("lists the errors at a clicked node and the traces once that tab opens", async () => {
+      const sent = recordListRequests();
       renderPage();
       await waitForChart();
 
       await act(async () => {
-        fireEvent.click(screen.getByRole("button", { name: "Exceptions" }));
+        fireEvent.click(nodeGroup("ProductListActivity"));
       });
 
       expect(
-        screen.getByRole("button", { name: "Exceptions" }).className,
-      ).toContain("bg-accent");
-      const written = lastWrittenUrl();
-      expect(written.get("jt")).toBe("Exceptions");
-      expect(written.get("a")).toBe(appId);
-      expect(written.get("d")).toBe("Last 6 Hours");
-      expect(screen.getByTestId("sankey-node-MainActivity")).toBeTruthy();
+        await screen.findByRole("link", {
+          name: "ProductActivity.kt: onAddToCart()",
+        }),
+      ).toBeTruthy();
+      expect(sent).toHaveLength(1);
+      expect(sent[0].pathname).toBe(`/api/apps/${appId}/journey/errors`);
+      expect(sent[0].searchParams.get("node")).toBe(
+        "sh.measure.demo.ProductListActivity",
+      );
+      expect(sent[0].searchParams.get("limit")).toBe("5");
+      expect(sent[0].searchParams.get("offset")).toBe("0");
+
+      await act(async () => {
+        fireEvent.click(screen.getByRole("button", { name: "Traces" }));
+      });
+
+      expect(
+        await screen.findByRole("link", { name: "product_list_load" }),
+      ).toBeTruthy();
+      const traces = sent.find((url) => url.pathname.endsWith("/traces"))!;
+      expect(traces.searchParams.get("node")).toBe(
+        "sh.measure.demo.ProductListActivity",
+      );
+      expect(traces.searchParams.get("quantile")).toBe("p50");
+    });
+
+    it("lists the errors along a clicked link", async () => {
+      const sent = recordListRequests();
+      renderPage();
+      await waitForChart();
+
+      await act(async () => {
+        fireEvent.click(
+          linkHitPath("sh.measure.demo.ProductListActivity", "fatal"),
+        );
+      });
+
+      expect(
+        await screen.findByText(
+          "Errors, traces, network requests and session replays between ProductListActivity and the fatal error.",
+        ),
+      ).toBeTruthy();
+      await waitFor(() => expect(sent).toHaveLength(1));
+      expect(sent[0].searchParams.get("source")).toBe(
+        "sh.measure.demo.ProductListActivity",
+      );
+      expect(sent[0].searchParams.get("target")).toBe("fatal");
+      expect(sent[0].searchParams.has("node")).toBe(false);
+    });
+
+    it("writes the selection to the URL", async () => {
+      renderPage();
+      await waitForChart();
+
+      await act(async () => {
+        fireEvent.click(nodeGroup("CartActivity"));
+      });
+
+      expect(
+        await screen.findByText(
+          "Errors, traces, network requests and session replays between CartActivity and all immediate next steps.",
+        ),
+      ).toBeTruthy();
+      expect(new URLSearchParams(window.location.search).get("jn")).toBe(
+        "sh.measure.demo.CartActivity",
+      );
+    });
+
+    it("restores a selection, its list, quantile and page from the URL", async () => {
+      mockRouter.setUrl(
+        "jn=sh.measure.demo.CartActivity&jl=Traces&jq=p95&jot=5",
+      );
+      const sent = recordListRequests();
+      renderPage();
+      await waitForChart();
+
+      expect(
+        await screen.findByText(
+          "Errors, traces, network requests and session replays between CartActivity and all immediate next steps.",
+        ),
+      ).toBeTruthy();
+      await waitFor(() => expect(sent).toHaveLength(1));
+      expect(sent[0].pathname).toMatch(/\/journey\/traces$/);
+      expect(sent[0].searchParams.get("node")).toBe(
+        "sh.measure.demo.CartActivity",
+      );
+      expect(sent[0].searchParams.get("quantile")).toBe("p95");
+      expect(sent[0].searchParams.get("offset")).toBe("5");
+    });
+
+    it("ignores a selection in the URL that the journey doesn't have and removes it", async () => {
+      mockRouter.setUrl("jn=sh.measure.demo.MissingActivity");
+      const sent = recordListRequests();
+      renderPage();
+      await waitForChart();
 
       await act(async () => {
         await new Promise((r) => setTimeout(r, 200));
       });
-      expect(sent).toHaveLength(1);
+      expect(sent).toHaveLength(0);
+      expect(screen.queryByText(/Errors, traces, network requests/)).toBeNull();
+      expect(new URLSearchParams(window.location.search).has("jn")).toBe(false);
     });
   });
 
@@ -291,13 +370,13 @@ describe("Journeys page (MSW integration)", () => {
     it("says there is no journey data", async () => {
       server.use(
         http.get("*/api/apps/:appId/journey", () => {
-          return HttpResponse.json({ nodes: [], links: [], totalIssues: 0 });
+          return HttpResponse.json({ nodes: [], links: [] });
         }),
       );
       renderPage();
 
       expect(await screen.findByText("No journeys found")).toBeTruthy();
-      expect(screen.queryByTestId("nivo-sankey")).toBeNull();
+      expect(screen.queryByText("MainActivity")).toBeNull();
     });
   });
 
@@ -311,7 +390,29 @@ describe("Journeys page (MSW integration)", () => {
       renderPage();
 
       expect(await screen.findByText(/Error fetching journey/)).toBeTruthy();
-      expect(screen.queryByTestId("nivo-sankey")).toBeNull();
+      expect(screen.queryByText("MainActivity")).toBeNull();
+    });
+
+    it("shows the server's message when the journey is over the query limits", async () => {
+      server.use(
+        http.get("*/api/apps/:appId/journey", () =>
+          HttpResponse.json(
+            {
+              error:
+                "This query is larger than the current processing limits allow. Try a shorter date range or narrower filters, or run it again later.",
+            },
+            { status: 422 },
+          ),
+        ),
+      );
+      renderPage();
+
+      expect(
+        await screen.findByText(
+          "This query is larger than the current processing limits allow. Try a shorter date range or narrower filters, or run it again later.",
+        ),
+      ).toBeTruthy();
+      expect(screen.queryByText(/Error fetching journey/)).toBeNull();
     });
 
     it("shows a refused filter's issue in the bar, not the error message", async () => {

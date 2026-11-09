@@ -1,24 +1,20 @@
 "use client";
 
-import type { UseQueryResult } from "@tanstack/react-query";
 import type { LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { ReactNode } from "react";
+import { queryErrorMessage } from "../../api/api_error";
 import { urlFiltersKeyMap } from "../../stores/filters_store";
 import { formatShare } from "./format";
 import { numberToKMB } from "../../utils/number_utils";
+import { cn } from "../../utils/shadcn_utils";
 import { formatMillisToHumanReadable } from "../../utils/time_utils";
 import EmptyState from "../empty_state";
 import LoadingBar from "../loading_bar";
 import RowLinkCell from "../row_link_cell";
 import { SkeletonTable } from "../skeleton";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../table";
-
-export type StepListQuery<Data> = Pick<
-  UseQueryResult<Data>,
-  "data" | "status" | "isFetching"
->;
 
 // The users that did the previous step, split into those that did the
 // selected step and those that did not. Rows show their counts as a share of
@@ -43,41 +39,49 @@ export function useDateRangeParams(): URLSearchParams {
 }
 
 export function StepList<Item>({
-  query,
+  status,
+  data,
+  error,
+  isFetching = false,
   offset,
   noun,
   icon,
   columns,
   header,
+  tableClassName,
   children,
 }: {
-  query: StepListQuery<{ results: Item[] }>;
+  status: "pending" | "success" | "error";
+  data: { results: Item[] } | undefined;
+  error?: unknown;
+  isFetching?: boolean;
   offset: number;
   noun: string;
   icon: LucideIcon;
   columns: number;
   header: ReactNode;
+  tableClassName: string;
   children: (item: Item) => ReactNode;
 }) {
-  const { data, status, isFetching } = query;
   const empty =
     status === "success" && offset === 0 && data?.results.length === 0;
 
   return (
     <div className="w-full font-body">
       <div
-        className={`py-1 w-full ${isFetching && status !== "pending" ? "visible" : "invisible"}`}
+        className={`py-4 w-full ${isFetching && status !== "pending" ? "visible" : "invisible"}`}
       >
         <LoadingBar />
       </div>
-      <div className="py-2" />
 
       {status === "pending" && <SkeletonTable rows={5} columns={columns} />}
 
       {status === "error" && (
         <p className="text-sm">
-          Error fetching list of {noun}, please change filters or refresh page
-          to try again
+          {queryErrorMessage(
+            error,
+            `Error fetching list of ${noun}, please change filters or refresh page to try again`,
+          )}
         </p>
       )}
 
@@ -90,7 +94,9 @@ export function StepList<Item>({
       )}
 
       {status === "success" && data !== undefined && !empty && (
-        <Table className="font-display select-none overflow-hidden">
+        <Table
+          className={`font-display select-none overflow-hidden ${tableClassName}`}
+        >
           <TableHeader>
             <TableRow>{header}</TableRow>
           </TableHeader>
@@ -164,7 +170,7 @@ export function StepRow({
   );
 }
 
-function StepCell({
+export function StepCell({
   href,
   className,
   children,
@@ -197,7 +203,7 @@ export function CountCell({
   count: number;
 }) {
   return (
-    <StepCell href={href} className={`${className} text-center truncate`}>
+    <StepCell href={href} className={cn("text-center truncate", className)}>
       {numberToKMB(count)}
     </StepCell>
   );
@@ -214,16 +220,16 @@ export function OutcomeCells({
   item: StepOutcomes;
   outcomes: StepOutcomes;
 }) {
-  const share = (count: number, total: number) => (
-    <StepCell href={href} className={`${className} text-center truncate`}>
+  const share = (count: number, total: number, align: string) => (
+    <StepCell href={href} className={`${className} ${align} truncate`}>
       <p>{formatShare(count, total)}</p>
       <p className="text-xs text-muted-foreground">{numberToKMB(count)}</p>
     </StepCell>
   );
   return (
     <>
-      {share(item.converted, outcomes.converted)}
-      {share(item.dropped, outcomes.dropped)}
+      {share(item.converted, outcomes.converted, "text-center")}
+      {share(item.dropped, outcomes.dropped, "text-right")}
     </>
   );
 }

@@ -3,8 +3,16 @@
 import { type LineCustomCanvasLayer, ResponsiveLineCanvas } from "@nivo/line";
 import { ChartLine } from "lucide-react";
 import { DateTime } from "luxon";
-import { type MouseEvent, useCallback, useMemo, useRef, useState } from "react";
+import {
+  type MouseEvent,
+  type ReactNode,
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { FunnelTrend, FunnelTrendPeriod } from "../../api/api_calls";
+import { queryErrorMessage } from "../../api/api_error";
 import {
   CHART_DATE_TICK_COUNT,
   CHART_GRID_DOT_SIZE,
@@ -24,7 +32,12 @@ import { numberToKMB } from "../../utils/number_utils";
 import { formatMillisToHumanReadable } from "../../utils/time_utils";
 import DropdownSelect, { DropdownSelectType } from "../dropdown_select";
 import EmptyState from "../empty_state";
-import { PlotTooltipShell, PlotTooltipSwatch } from "../plot_tooltip";
+import {
+  PlotTooltip,
+  PlotTooltipArea,
+  PlotTooltipSwatch,
+  useTooltipTaps,
+} from "../plot_tooltip";
 import { Separator } from "../separator";
 import { SkeletonPlot } from "../skeleton";
 import {
@@ -129,6 +142,10 @@ function formatPeriod(datetime: string, period: FunnelTrendPeriod): string {
 }
 
 type TrendBuild = FunnelTrend["builds"][number];
+
+function periodKey(seriesId: string, index: number): string {
+  return `${seriesId}:${index}`;
+}
 
 function buildKey(build: TrendBuild): string {
   return `${build.version_name}:${build.version_code}:${build.patch_id ?? ""}`;
@@ -276,21 +293,30 @@ interface FunnelTrendPlotProps {
   period: FunnelTrendPeriod;
   metric: FunnelTrendMetric;
   status: "pending" | "error" | "success";
+  error?: unknown;
   trend: FunnelTrend | undefined;
   // Called with the start of the clicked period and the clicked line's step,
   // which is null for the Overall line.
   onSelectPoint: (datetime: string, step: number | null) => void;
+  controls?: ReactNode;
+  // Demo frames are narrower than the 2xl breakpoint, so use the large-screen
+  // heights to fill them.
+  demo?: boolean;
 }
 
 export default function FunnelTrendPlot({
   period,
   metric,
   status,
+  error,
   trend,
   onSelectPoint,
+  controls,
+  demo = false,
 }: FunnelTrendPlotProps) {
   const empty =
     trend !== undefined && trend.points.every((p) => p.steps[0].users === 0);
+  const placeholderHeight = demo ? "h-186" : "h-126 2xl:h-186";
   // The selections live here because the charts unmount while a new period or
   // filter loads. We keep a build unselected if a new trend also has the build.
   // If user switches date range and gets a trend without the unselected build,
@@ -316,16 +342,25 @@ export default function FunnelTrendPlot({
 
   return (
     <div className="flex flex-col font-body items-center justify-center w-full">
+      {!(status === "success" && !empty && trend) && (
+        <div className="flex w-full justify-end mb-4">{controls}</div>
+      )}
       {status === "pending" && (
-        <div className="flex items-center justify-center w-full h-144">
+        <div
+          className={`flex items-center justify-center w-full ${placeholderHeight}`}
+        >
           <SkeletonPlot />
         </div>
       )}
       {status === "error" && (
-        <div className="flex items-center justify-center w-full h-144">
+        <div
+          className={`flex items-center justify-center w-full ${placeholderHeight}`}
+        >
           <p className="text-lg font-display text-center p-4">
-            Error fetching plot, please change filters or refresh page to try
-            again
+            {queryErrorMessage(
+              error,
+              "Error fetching plot. Please refresh page or change filters to try again.",
+            )}
           </p>
         </div>
       )}
@@ -334,7 +369,7 @@ export default function FunnelTrendPlot({
           icon={ChartLine}
           title="No users entered this funnel"
           description="Try different filters"
-          className="h-144"
+          className={placeholderHeight}
         />
       )}
       {status === "success" && !empty && trend && (
@@ -347,6 +382,8 @@ export default function FunnelTrendPlot({
           unselectedBuildKeys={unselectedBuildKeys}
           onChangeUnselectedBuildKeys={setUnselectedBuildKeys}
           onSelectPoint={onSelectPoint}
+          controls={controls}
+          demo={demo}
         />
       )}
     </div>
@@ -362,6 +399,8 @@ function TrendCharts({
   unselectedBuildKeys,
   onChangeUnselectedBuildKeys,
   onSelectPoint,
+  controls,
+  demo,
 }: {
   period: FunnelTrendPeriod;
   metric: FunnelTrendMetric;
@@ -371,6 +410,8 @@ function TrendCharts({
   unselectedBuildKeys: Set<string>;
   onChangeUnselectedBuildKeys: (unselectedBuildKeys: Set<string>) => void;
   onSelectPoint: (datetime: string, step: number | null) => void;
+  controls: ReactNode;
+  demo: boolean;
 }) {
   const canvasTheme = useChartCanvasTheme();
   const gridOpacity = useChartGridOpacity();
@@ -711,6 +752,8 @@ function TrendCharts({
     return value === null ? "No users" : formatValue(value, metric);
   };
 
+  const conversionTooltipTaps = useTooltipTaps();
+  const usersTooltipTaps = useTooltipTaps();
   const handleClick = (seriesId: string, index: number) =>
     onSelectPoint(
       trend.points[index].datetime,
@@ -719,172 +762,198 @@ function TrendCharts({
 
   return (
     <div className="flex flex-col w-full">
-      <div className="flex flex-wrap gap-2">
-        <DropdownSelect
-          type={DropdownSelectType.MultiString}
-          title="Select Steps"
-          items={specs.map((spec) => ({
-            value: spec.id,
-            label: spec.label,
-            color: spec.color,
-          }))}
-          initialSelected={visible}
-          onChangeSelected={(ids) => showOnly(ids as string[])}
-        />
-        {trend.builds.length > 0 && (
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+        <div className="flex flex-wrap gap-2">
           <DropdownSelect
             type={DropdownSelectType.MultiString}
-            title="Select Builds"
-            items={trend.builds.map((build) => ({
-              value: buildKey(build),
-              label: buildText(build),
+            title="Select Steps"
+            items={specs.map((spec) => ({
+              value: spec.id,
+              label: spec.label,
+              color: spec.color,
             }))}
-            initialSelected={visibleBuilds}
-            onChangeSelected={(keys) => showOnlyBuilds(keys as string[])}
+            initialSelected={visible}
+            onChangeSelected={(ids) => showOnly(ids as string[])}
           />
-        )}
+          {trend.builds.length > 0 && (
+            <DropdownSelect
+              type={DropdownSelectType.MultiString}
+              title="Select Builds"
+              items={trend.builds.map((build) => ({
+                value: buildKey(build),
+                label: buildText(build),
+              }))}
+              initialSelected={visibleBuilds}
+              onChangeSelected={(keys) => showOnlyBuilds(keys as string[])}
+            />
+          )}
+        </div>
+        {controls}
       </div>
       {/* Build labels are drawn in the plot's top margin, so this keeps them
           as far below the dropdowns as the cadence plot. */}
       <div style={{ height: BUILD_LABEL_ROW_HEIGHT }} />
-      <div
-        className="relative w-full h-96 cursor-pointer"
-        onMouseMoveCapture={(event) =>
-          trackHover(event, TOP_MARGIN, CONVERSION_BOTTOM_MARGIN)
-        }
-        onMouseLeave={clearHover}
-      >
-        {series.length === 0 && (
-          <p className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground pointer-events-none">
-            No steps selected
-          </p>
-        )}
-        <ResponsiveLineCanvas
-          data={series}
-          curve="linear"
-          theme={canvasTheme}
-          colors={({ id }) => specById.get(id)?.color ?? foreground}
-          layers={["axes", drawLines, "mesh"]}
-          margin={{
-            top: TOP_MARGIN,
-            right: RIGHT_MARGIN,
-            bottom: CONVERSION_BOTTOM_MARGIN,
-            left: leftMargin,
-          }}
-          xScale={xScale}
-          yScale={{ type: "linear", min: 0, max: "auto", nice: true }}
-          axisTop={null}
-          axisRight={null}
-          axisBottom={null}
-          axisLeft={{
-            tickSize: CHART_TICK_SIZE,
-            tickPadding: CHART_TICK_PADDING,
-            tickValues: CHART_VALUE_TICK_COUNT,
-            format: (value) =>
-              metric === FunnelTrendMetric.Time
-                ? formatDurationTick(value)
-                : `${value}%`,
-            legend: metric === FunnelTrendMetric.Time ? "Median time" : metric,
-            legendOffset: -(leftMargin - CHART_TEXT_SIZE / 2),
-            legendPosition: "middle",
-          }}
-          enableGridX={false}
-          enableGridY={false}
-          onClick={(datum) => {
-            if ("seriesId" in datum) {
-              handleClick(
-                datum.seriesId,
-                hoveredRef.current ?? datum.data.index,
-              );
-            }
-          }}
-          tooltip={({ point }) => (
-            <PlotTooltipShell>
-              <div className="flex flex-row items-center px-4 py-3">
-                <PlotTooltipSwatch color={point.seriesColor} />
-                <span className="px-2">
-                  {specById.get(point.seriesId)!.label} -{" "}
-                  {hoveredValue(point.seriesId, point.data.index)}
-                </span>
-              </div>
-              <Separator />
-              <PeriodDetails
-                trend={trend}
-                builds={builds}
-                period={period}
-                index={hoveredRef.current ?? point.data.index}
-                step={specById.get(point.seriesId)?.step ?? null}
-              />
-            </PlotTooltipShell>
+      <PlotTooltipArea taps={conversionTooltipTaps}>
+        <div
+          className={`relative w-full ${demo ? "h-120" : "h-72 2xl:h-120"} cursor-pointer`}
+          onMouseMoveCapture={(event) =>
+            trackHover(event, TOP_MARGIN, CONVERSION_BOTTOM_MARGIN)
+          }
+          onMouseLeave={clearHover}
+        >
+          {series.length === 0 && (
+            <p className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground pointer-events-none">
+              No steps selected
+            </p>
           )}
-        />
-      </div>
-      <div
-        className="w-full h-44 cursor-pointer"
-        onMouseMoveCapture={(event) =>
-          trackHover(event, ENTERED_TOP_MARGIN, enteredBottomMargin)
-        }
-        onMouseLeave={clearHover}
-      >
-        <ResponsiveLineCanvas
-          data={entered}
-          curve="linear"
-          theme={canvasTheme}
-          colors={[foreground]}
-          layers={["axes", drawBars, "mesh"]}
-          margin={{
-            top: ENTERED_TOP_MARGIN,
-            right: RIGHT_MARGIN,
-            bottom: enteredBottomMargin,
-            left: leftMargin,
-          }}
-          xScale={xScale}
-          yScale={{ type: "linear", min: 0, max: "auto", nice: true }}
-          axisTop={null}
-          axisRight={null}
-          axisBottom={{
-            tickSize: CHART_TICK_SIZE,
-            tickPadding: CHART_TICK_PADDING,
-            tickRotation: X_TICK_ROTATION,
-            format: formatXTick,
-            tickValues: xTicks,
-            legend:
-              period === "day" ? "Day" : period === "week" ? "Week" : "Month",
-            legendOffset: enteredBottomMargin - CHART_TEXT_SIZE / 2,
-            legendPosition: "middle",
-          }}
-          axisLeft={{
-            tickSize: CHART_TICK_SIZE,
-            tickPadding: CHART_TICK_PADDING,
-            tickValues: ENTERED_TICK_COUNT,
-            format: (value) => numberToKMB(value),
-            legend: "Users",
-            legendOffset: -(leftMargin - CHART_TEXT_SIZE / 2),
-            legendPosition: "middle",
-          }}
-          enableGridX={false}
-          enableGridY={false}
-          onClick={(datum) => {
-            if ("seriesId" in datum) {
-              handleClick(
-                OVERALL_SERIES,
-                hoveredRef.current ?? datum.data.index,
-              );
-            }
-          }}
-          tooltip={({ point }) => (
-            <PlotTooltipShell>
-              <PeriodDetails
-                trend={trend}
-                builds={builds}
-                period={period}
-                index={hoveredRef.current ?? point.data.index}
-                step={null}
-              />
-            </PlotTooltipShell>
-          )}
-        />
-      </div>
+          <ResponsiveLineCanvas
+            data={series}
+            curve="linear"
+            theme={canvasTheme}
+            colors={({ id }) => specById.get(id)?.color ?? foreground}
+            layers={["axes", drawLines, "mesh"]}
+            margin={{
+              top: TOP_MARGIN,
+              right: RIGHT_MARGIN,
+              bottom: CONVERSION_BOTTOM_MARGIN,
+              left: leftMargin,
+            }}
+            xScale={xScale}
+            yScale={{ type: "linear", min: 0, max: "auto", nice: true }}
+            axisTop={null}
+            axisRight={null}
+            axisBottom={null}
+            axisLeft={{
+              tickSize: CHART_TICK_SIZE,
+              tickPadding: CHART_TICK_PADDING,
+              tickValues: CHART_VALUE_TICK_COUNT,
+              format: (value) =>
+                metric === FunnelTrendMetric.Time
+                  ? formatDurationTick(value)
+                  : `${value}%`,
+              legend:
+                metric === FunnelTrendMetric.Time ? "Median time" : metric,
+              legendOffset: -(leftMargin - CHART_TEXT_SIZE / 2),
+              legendPosition: "middle",
+            }}
+            enableGridX={false}
+            enableGridY={false}
+            onClick={(datum) => {
+              if (!("seriesId" in datum)) {
+                return;
+              }
+              const index = hoveredRef.current ?? datum.data.index;
+              if (
+                conversionTooltipTaps.shouldAct(
+                  periodKey(datum.seriesId, index),
+                )
+              ) {
+                handleClick(datum.seriesId, index);
+              }
+            }}
+            tooltip={({ point }) => (
+              <PlotTooltip
+                tapKey={periodKey(
+                  point.seriesId,
+                  hoveredRef.current ?? point.data.index,
+                )}
+              >
+                <div className="flex flex-row items-center px-4 py-3">
+                  <PlotTooltipSwatch color={point.seriesColor} />
+                  <span className="px-2">
+                    {specById.get(point.seriesId)!.label} -{" "}
+                    {hoveredValue(point.seriesId, point.data.index)}
+                  </span>
+                </div>
+                <Separator />
+                <PeriodDetails
+                  trend={trend}
+                  builds={builds}
+                  period={period}
+                  index={hoveredRef.current ?? point.data.index}
+                  step={specById.get(point.seriesId)?.step ?? null}
+                />
+              </PlotTooltip>
+            )}
+          />
+        </div>
+      </PlotTooltipArea>
+      <PlotTooltipArea taps={usersTooltipTaps}>
+        <div
+          className={`w-full ${demo ? "h-54.5" : "h-42.5 2xl:h-54.5"} cursor-pointer`}
+          onMouseMoveCapture={(event) =>
+            trackHover(event, ENTERED_TOP_MARGIN, enteredBottomMargin)
+          }
+          onMouseLeave={clearHover}
+        >
+          <ResponsiveLineCanvas
+            data={entered}
+            curve="linear"
+            theme={canvasTheme}
+            colors={[foreground]}
+            layers={["axes", drawBars, "mesh"]}
+            margin={{
+              top: ENTERED_TOP_MARGIN,
+              right: RIGHT_MARGIN,
+              bottom: enteredBottomMargin,
+              left: leftMargin,
+            }}
+            xScale={xScale}
+            yScale={{ type: "linear", min: 0, max: "auto", nice: true }}
+            axisTop={null}
+            axisRight={null}
+            axisBottom={{
+              tickSize: CHART_TICK_SIZE,
+              tickPadding: CHART_TICK_PADDING,
+              tickRotation: X_TICK_ROTATION,
+              format: formatXTick,
+              tickValues: xTicks,
+              legend:
+                period === "day" ? "Day" : period === "week" ? "Week" : "Month",
+              legendOffset: enteredBottomMargin - CHART_TEXT_SIZE / 2,
+              legendPosition: "middle",
+            }}
+            axisLeft={{
+              tickSize: CHART_TICK_SIZE,
+              tickPadding: CHART_TICK_PADDING,
+              tickValues: ENTERED_TICK_COUNT,
+              format: (value) => numberToKMB(value),
+              legend: "Users",
+              legendOffset: -(leftMargin - CHART_TEXT_SIZE / 2),
+              legendPosition: "middle",
+            }}
+            enableGridX={false}
+            enableGridY={false}
+            onClick={(datum) => {
+              if (!("seriesId" in datum)) {
+                return;
+              }
+              const index = hoveredRef.current ?? datum.data.index;
+              if (
+                usersTooltipTaps.shouldAct(periodKey(datum.seriesId, index))
+              ) {
+                handleClick(OVERALL_SERIES, index);
+              }
+            }}
+            tooltip={({ point }) => (
+              <PlotTooltip
+                tapKey={periodKey(
+                  point.seriesId,
+                  hoveredRef.current ?? point.data.index,
+                )}
+              >
+                <PeriodDetails
+                  trend={trend}
+                  builds={builds}
+                  period={period}
+                  index={hoveredRef.current ?? point.data.index}
+                  step={null}
+                />
+              </PlotTooltip>
+            )}
+          />
+        </div>
+      </PlotTooltipArea>
       <TrendLegend
         leftMargin={leftMargin}
         stillConverting={firstIncomplete !== -1}

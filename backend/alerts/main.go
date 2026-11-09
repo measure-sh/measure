@@ -85,11 +85,11 @@ func initCron(ctx context.Context) *cron.Cron {
 	fmt.Println("Scheduled daily summary job")
 
 	// run every hour
-	if _, err := cron.AddFunc("0 * * * *", func() { alerts.CreateCrashAndAnrAlerts(ctx) }); err != nil {
-		fmt.Printf("Failed to schedule hourly crash and ANR alert job: %v\n", err)
+	if _, err := cron.AddFunc("0 * * * *", func() { alerts.CreateCrashAnrAndAppHangAlerts(ctx) }); err != nil {
+		fmt.Printf("Failed to schedule hourly crash, ANR and app hang alert job: %v\n", err)
 	}
 
-	fmt.Println("Scheduled crash & ANR job")
+	fmt.Println("Scheduled crash, ANR & app hang job")
 
 	// run every 15m
 	if _, err := cron.AddFunc("*/15 * * * *", func() { alerts.CreateBugReportAlerts(ctx) }); err != nil {

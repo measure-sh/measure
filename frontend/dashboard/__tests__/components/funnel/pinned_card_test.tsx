@@ -1,4 +1,5 @@
 import type { Funnel, FunnelTrend } from "@/app/api/api_calls";
+import { ApiError } from "@/app/api/api_error";
 import FunnelPinnedCard, {
   FunnelPinButton,
 } from "@/app/components/funnel/pinned_card";
@@ -12,13 +13,16 @@ import {
   it,
 } from "@jest/globals";
 import "@testing-library/jest-dom";
+import { pointerDown } from "@/__tests__/helpers/pointer_events";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { DateTime, Settings } from "luxon";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 const mockPush = jest.fn();
 const mockUseFunnelTrendQuery = jest.fn();
 let mockTheme = "light";
 let mockBarProps: any;
+let mockShownTooltipIndex: number | null = null;
 
 jest.mock("next/navigation", () => ({
   useRouter: () => ({ push: mockPush, replace: jest.fn() }),
@@ -36,6 +40,8 @@ jest.mock("@/app/query/hooks", () => ({
 // jsdom cannot draw the canvas, so each bar is a button whose click event
 // reaches the chart's onClick and then bubbles to the plot, as a canvas click
 // does.
+// When mockShownTooltipIndex is set, the mock renders that bar's tooltip inside
+// the plot, as nivo does when a bar is hovered or tapped.
 jest.mock("@nivo/bar", () => ({
   ResponsiveBarCanvas: (props: any) => {
     mockBarProps = props;
@@ -48,6 +54,12 @@ jest.mock("@nivo/bar", () => ({
             onClick={(event) => props.onClick({ index }, event)}
           />
         ))}
+        {mockShownTooltipIndex !== null &&
+          props.tooltip({
+            data: props.data[mockShownTooltipIndex],
+            index: mockShownTooltipIndex,
+            color: "#000000",
+          })}
       </div>
     );
   },
@@ -113,12 +125,18 @@ const week3 = "2026-10-05T00:00:00Z";
 const mockTrend = (
   points: TrendPoint[],
   eventNames = funnel.steps.map((step) => step.event_name),
+  samplePercent = 100,
 ) =>
   mockUseFunnelTrendQuery.mockReturnValue({
     isPending: false,
     isError: false,
     isSuccess: true,
-    data: { event_names: eventNames, points, builds: [] },
+    data: {
+      event_names: eventNames,
+      points,
+      builds: [],
+      sample_percent: samplePercent,
+    },
   });
 
 const renderCard = (
@@ -168,6 +186,7 @@ afterAll(() => {
 beforeEach(() => {
   mockTheme = "light";
   mockBarProps = undefined;
+  mockShownTooltipIndex = null;
 });
 
 describe("FunnelPinnedCard metrics", () => {
@@ -374,6 +393,25 @@ describe("FunnelPinnedCard metrics", () => {
     ).toBeInTheDocument();
     expect(screen.queryByText("Users entered")).not.toBeInTheDocument();
   });
+
+  it("sends the user to the details page when the trend is over the query limits", () => {
+    mockUseFunnelTrendQuery.mockReturnValue({
+      isPending: false,
+      isError: true,
+      isSuccess: false,
+      error: new ApiError(422, "over the limits"),
+    });
+    renderCard();
+
+    expect(
+      screen.getByText(
+        "This funnel is too large to show here. Click it to see details and adjust the date range.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Error fetching weekly conversion/),
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe("FunnelPinnedCard header", () => {
@@ -389,6 +427,13 @@ describe("FunnelPinnedCard header", () => {
       "app_open > add_to_cart > purchase",
     );
     expect(screen.getByText("Conversion window: 1 day")).toBeInTheDocument();
+  });
+
+  it("shows the percent of users the trend read", () => {
+    mockTrend([], undefined, 29.67);
+    renderCard();
+
+    expect(screen.getByText("Sampled at: 30%")).toBeInTheDocument();
   });
 
   it("links to the funnel and offers unpin outside reorder mode", () => {
@@ -465,14 +510,17 @@ describe("FunnelPinnedCard weekly plot", () => {
     mockTrend(points);
   });
 
-  const renderTooltip = (index: number) =>
+  const renderTooltip = (index: number) => {
     render(
       mockBarProps.tooltip({
         data: mockBarProps.data[index],
         index,
         color: "#000000",
       }),
-    ).container;
+      { wrapper: PlotTooltipArea },
+    );
+    return screen.getByRole("tooltip", { hidden: true });
+  };
 
   it("plots every week's conversion, with zero for a week nobody entered", () => {
     renderCard();
@@ -546,6 +594,22 @@ describe("FunnelPinnedCard weekly plot", () => {
     expect(mockPush).toHaveBeenCalledWith(
       `${funnelPath}?from=funnels_overview_pinned`,
     );
+  });
+
+  it("opens the week only when tapping the bar with the visible tooltip, and opens nothing between bars", () => {
+    mockShownTooltipIndex = 1;
+    renderCard();
+    const tap = (target: Element) => {
+      pointerDown(target, "touch");
+      fireEvent.click(target);
+    };
+
+    tap(screen.getByRole("button", { name: "Bar 2" }));
+    tap(screen.getByTestId("bar-canvas"));
+    expect(mockPush).not.toHaveBeenCalled();
+    tap(screen.getByRole("button", { name: "Bar 1" }));
+    expect(mockPush).toHaveBeenCalledTimes(1);
+    expect(mockPush.mock.calls[0][0]).toContain("sd=2026-09-28");
   });
 
   it("opens nothing when the plot or a bar is clicked in reorder mode", () => {

@@ -30,9 +30,9 @@ import {
 } from "./device_memory";
 import type { MemoryAppState } from "./device_memory";
 
-const REFERENCE_WINDOW_DAYS = 30;
+export const REFERENCE_WINDOW_DAYS = 30;
 
-type SessionMemory = {
+export type SessionMemory = {
   list: SessionListEntry;
   detail: SessionDetail;
   samples: number[];
@@ -63,7 +63,7 @@ function requestedAppState(url: URL): MemoryAppState | null {
 
 // Without a filter every app state counts. iOS readings carry no app
 // importance, so the filter does not narrow them.
-function appStateView(bundle: AppBundle, url: URL): AppStateView {
+export function appStateView(bundle: AppBundle, url: URL): AppStateView {
   const requested =
     bundle.scenario.app.os === "android" ? requestedAppState(url) : null;
   if (requested === "foreground") {
@@ -78,7 +78,7 @@ function appStateView(bundle: AppBundle, url: URL): AppStateView {
   return { appState: "foreground", scale: 1, share: 1 };
 }
 
-function sessionMemory(
+export function sessionMemory(
   bundle: AppBundle,
   session: { list: SessionListEntry; detail: SessionDetail },
   view: AppStateView,
@@ -147,7 +147,7 @@ function visibleSessions(
     );
 }
 
-function inView(memory: SessionMemory, view: AppStateView): boolean {
+export function inView(memory: SessionMemory, view: AppStateView): boolean {
   return (
     view.share === 1 ||
     memory.high ||
@@ -158,7 +158,7 @@ function inView(memory: SessionMemory, view: AppStateView): boolean {
 
 // A pool of ten sessions would put a leaking session's samples in the p90, so
 // the percentiles come from the sessions that stay within the threshold.
-function typicalSamples(
+export function typicalSamples(
   sessions: SessionMemory[],
   fallback: SessionMemory[],
 ): number[] {
@@ -169,7 +169,7 @@ function typicalSamples(
   return pool.flatMap((memory) => memory.samples);
 }
 
-function percentilesOf(
+export function percentilesOf(
   samples: number[],
   factor: number,
 ): { p50: number; p90: number; p95: number; p99: number } {
@@ -184,7 +184,7 @@ function percentilesOf(
   };
 }
 
-function meanSamplesPerSession(sessions: SessionMemory[]): number {
+export function meanSamplesPerSession(sessions: SessionMemory[]): number {
   if (sessions.length === 0) {
     return 0;
   }

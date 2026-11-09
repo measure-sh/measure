@@ -16,7 +16,6 @@ protocol EventStore {
     func deleteEvents(sessionIds: [String])
     func getUnBatchedEvents(eventCount: Number, ascending: Bool, sessionId: String?) -> [String]
     func updateBatchId(_ batchId: String, for events: [String])
-    func updateNeedsReportingForJourneyEvents(sessionId: String, needsReporting: Bool)
     func getEventsCount() -> Int
     func getEventCount(forSessionId sessionId: String) -> Int
     func markTimelineForReporting(eventTimestampMillis: Int64, durationSeconds: Int64, sessionId: String)
@@ -242,31 +241,6 @@ final class BaseEventStore: EventStore { // swiftlint:disable:this type_body_len
                 try context.saveIfNeeded()
             } catch {
                 logger.internalLog(level: .error, message: "EventStore: Failed to update batchId for events.", error: error, data: nil)
-            }
-        }
-    }
-
-    func updateNeedsReportingForJourneyEvents(sessionId: String, needsReporting: Bool) {
-        guard let context = coreDataManager.backgroundContext else {
-            logger.internalLog(level: .error, message: "EventStore: Background context not available", error: nil, data: nil)
-            return
-        }
-
-        context.performAndWait {
-            let journeyEventTypes = DefaultConfig.journeyEvents.map { $0.rawValue }
-
-            let fetchRequest: NSFetchRequest<EventOb> = EventOb.fetchRequest()
-            fetchRequest.predicate = NSCompoundPredicate(andPredicateWithSubpredicates: [
-                NSPredicate(format: "sessionId == %@", sessionId),
-                NSPredicate(format: "type IN %@", journeyEventTypes)
-            ])
-
-            do {
-                let events = try context.fetch(fetchRequest)
-                events.forEach { $0.needsReporting = needsReporting }
-                try context.saveIfNeeded()
-            } catch {
-                logger.internalLog(level: .error, message: "EventStore: Failed to update needsReporting for journey events.", error: error, data: nil)
             }
         }
     }

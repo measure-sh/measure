@@ -1,0 +1,79 @@
+# Each migration a pull request adds has to apply after the migrations on the
+# base branch, which databases may have already applied, and rolling it back
+# has to return the schema to what it was before the migration applied.
+name: Migrations
+on:
+  pull_request:
+  merge_group:
+    types: [checks_requested]
+
+permissions:
+  contents: read
+
+env:
+  # For pull requests, GitHub checks out a merge commit whose first parent is
+  # the latest base-branch commit. Comparing HEAD with HEAD^1 shows the
+  # migrations added by the pull request. In the merge queue, base_sha points
+  # to the commit being built on: the base branch for the first pull request,
+  # or the queued commit ahead of it for later requests. Migrations from
+  # earlier queued requests are treated as existing, so dbmate strict mode
+  # rejects a new migration with an older version.
+  BASE: ${{ github.event.merge_group.base_sha || 'HEAD^1' }}
+  MIGRATION_DIRS: self-host/postgres self-host/clickhouse
+
+jobs:
+  changes:
+    name: Find migration changes
+    runs-on: ubuntu-latest
+    outputs:
+      migrations: ${{ steps.diff.outputs.migrations }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - name: Fetch the commit the merge queue builds on
+        if: github.event_name == 'merge_group'
+        run: git fetch --no-tags --depth=1 origin "$BASE"
+      - name: Check whether the pull request changes migrations
+        id: diff
+        run: |
+          # shellcheck disable=SC2086
+          if git diff --quiet "$BASE" HEAD -- $MIGRATION_DIRS; then
+            echo "migrations=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "migrations=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  # A required status check passes when its job is skipped, so pull requests
+  # without migration changes can merge while this job is required. Both
+  # engines run in this one job because GitHub reports a skipped matrix job
+  # under its unexpanded name, so required checks on per-engine names would
+  # stay pending.
+  check-migrations:
+    name: Check new migrations
+    needs: changes
+    if: needs.changes.outputs.migrations == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 2
+      - name: Fetch the commit the merge queue builds on
+        if: github.event_name == 'merge_group'
+        run: git fetch --no-tags --depth=1 origin "$BASE"
+      - name: Apply, roll back and apply each new migration again
+        run: |
+          status=0
+          for dir in $MIGRATION_DIRS; do
+            added=$(git diff --name-only --diff-filter=AR "$BASE" HEAD -- "$dir" \
+              | grep -E '/[0-9]{14}_[^/]*\.sql$' || true)
+            if [ -z "$added" ]; then
+              echo "The pull request adds no migrations to $dir."
+              continue
+            fi
+            # shellcheck disable=SC2086
+            .github/scripts/check-migrations.sh "$(basename "$dir")" $added || status=1
+          done
+          exit $status

@@ -6,6 +6,14 @@ description: "Track conversion and time between steps in your mobile app flows, 
 
 A funnel is a sequence of [custom events](/docs/custom-events) that users go through in your app, such as viewing a product, adding it to the cart and placing an order. Measure counts how many users reach each step and how long they take between steps. It also lists the errors, slow traces and network requests that the users who dropped off ran into.
 
+Funnels complement [journeys](/docs/journeys). Journeys let you explore what paths users take through your app whereas funnels track a predefined sequence of steps that consitute an important flow in your app.
+
+<Callout type="info">
+
+Requires Measure Android SDK **0.23.0** or later, or Measure iOS SDK **0.15.0** or later. Older versions only send custom events with a session replay, so funnels built from them have too few users to be useful.
+
+</Callout>
+
 ## Create a funnel
 
 Open Funnels on the dashboard and create a funnel with a name, its steps and a conversion window.
@@ -20,6 +28,14 @@ Owners, admins and developers can create, edit, delete and pin funnels. Viewers 
 ## How users are counted
 
 A user enters the funnel when they send the first step's event, and converts when they send the other steps in order within the conversion window. Other events in between don't affect the funnel. A user who starts the funnel several times in the selected date range is counted once, based on the last step they reached in the funnel. In **Trend**, a user is counted once in each period they started the funnel in.
+
+## Sampling
+
+For large amounts of data, a sample of users is analyzed and used to estimate results for all users, so funnels load quickly. When the date range has few events, every user is included. Conversion rates, drop-offs and times are calculated from the users in the sample.
+
+**Sampled at**, next to the view tabs, shows the percentage of users included in the analysis for the current view. The sample applies to Breakdown, Trend, Cadence, Friction and Session replays. Friction and Session replays use the same sample as Breakdown.
+
+Filters don't change the size of the sample, so a filter that matches few users can find no data in a small sample. When the sample finds no users, **Sampled at** shows "–", since an empty result from a sample doesn't mean there are no such users. You can choose a shorter date range to read a larger sample of users.
 
 ## Breakdown
 
@@ -59,7 +75,7 @@ The rows are sorted by drop-offs, highest first. Click on a row to open its deta
 
 ## Session replays
 
-Session replays lists the sessions of the users who converted, or of those who dropped off, between the selected steps.
+Session replays lists the sessions of the users in the sample who converted, or of those who dropped off, between the selected steps.
 
 A conversion can happen over several sessions. For example, with a 1 day conversion window, a user who adds a product to the cart in the morning and places the order in the evening converts, and both sessions are listed.
 
@@ -78,6 +94,8 @@ You can pin the funnels that are checked frequently to show them at the top of t
 * the median time to convert
 * the step with the biggest drop-off
 
+Each pinned card shows **Sampled at**, the percentage of users included in its analysis. You can click a pinned funnel to see its full details.
+
 Reorder pinned funnels to change the order. Pinned funnels and their order are shared by the whole team.
 
 ![Pinned funnels](/docs/assets/funnels-pinned.webp)
@@ -85,3 +103,7 @@ Reorder pinned funnels to change the order. Pinned funnels and their order are s
 ## Funnels over MCP
 
 Coding agents connected to Measure's [MCP server](/docs/mcp) can read funnels, their conversion, trend, cadence and friction, and create or edit funnels. See the full [tool list](/docs/mcp#available-tools).
+
+## Configuration options
+
+Funnels are built from custom events sent by sampled app installations. Set the share of installations that are sampled with the [analytics sampling rate](/docs/adaptive-capture#analytics-sampling) in app settings. Other installations only send custom events as part of a crash or bug report.

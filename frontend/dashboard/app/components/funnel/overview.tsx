@@ -36,6 +36,7 @@ import DebounceTextInput from "../debounce_text_input";
 import EmptyState from "../empty_state";
 import { appPlatform, funnelEventProps } from "./analytics";
 import FunnelEditor from "./editor";
+import InfoTooltip from "../info_tooltip";
 import FunnelPinnedCard, { FunnelPinButton } from "./pinned_card";
 import FunnelSteps from "./steps";
 import LoadingBar from "../loading_bar";
@@ -87,17 +88,20 @@ export default function FunnelsOverview({ teamId }: { teamId: string }) {
   const pinnedQuery = usePinnedFunnelsQuery(readyValue?.app.id);
   const setFunnelPinned = useSetFunnelPinnedMutation();
   const reorderPinned = useReorderPinnedFunnelsMutation();
-  // The order the user is arranging in reorder mode, or null outside it. The
-  // draft holds the app it was made for, so after switching apps it is
-  // neither shown nor saved for the new app.
+  // The pinned funnels in the order the user is arranging, and their app, or
+  // null outside reorder mode.
   const [reorderDraft, setReorderDraft] = useState<{
     appId: string;
     funnels: Funnel[];
   } | null>(null);
-  const reorderFunnels =
-    reorderDraft !== null && reorderDraft.appId === readyValue?.app.id
-      ? reorderDraft.funnels
-      : null;
+  const reorderFunnels = reorderDraft?.funnels ?? null;
+  // Clear draft on app switch.
+  const appId = value?.app.id;
+  const [draftAppId, setDraftAppId] = useState(appId);
+  if (appId !== undefined && appId !== draftAppId) {
+    setDraftAppId(appId);
+    setReorderDraft(null);
+  }
   const pinned = reorderFunnels ?? pinnedQuery.data?.results;
   const { data: authzAndMembers } = useAuthzAndMembersQuery(teamId);
   const canChangeFunnels = authzAndMembers?.can_change_funnels === true;
@@ -218,7 +222,10 @@ export default function FunnelsOverview({ teamId }: { teamId: string }) {
       {readyValue !== null && !noFunnels && (
         <>
           <div className="flex w-full items-center justify-between gap-4">
-            <p className="font-display text-xl">Pinned Funnels</p>
+            <div className="flex items-center gap-2">
+              <p className="font-display text-xl">Pinned Funnels</p>
+              <InfoTooltip content="Sampling rate on each card is the percentage of users included in the analysis. For large amounts of data, a sample of users is analyzed and used to estimate results for all users. Click a funnel to see full details." />
+            </div>
             {reorderFunnels !== null ? (
               <div className="flex gap-2">
                 <SimpleTooltip content="Cancel reorder" align="end">
@@ -324,11 +331,10 @@ export default function FunnelsOverview({ teamId }: { teamId: string }) {
             />
           </div>
           <div
-            className={`py-1 w-full ${funnelsQuery.isFetching && !funnelsQuery.isPending ? "visible" : "invisible"}`}
+            className={`py-4 w-full ${funnelsQuery.isFetching && !funnelsQuery.isPending ? "visible" : "invisible"}`}
           >
             <LoadingBar />
           </div>
-          <div className="py-2" />
         </>
       )}
 
@@ -358,7 +364,7 @@ export default function FunnelsOverview({ teamId }: { teamId: string }) {
           className="h-144"
           icon={FunnelIcon}
           title="No funnels yet"
-          description="Create a funnel to see how many users go through a sequence of events."
+          description="Create a funnel to see how many users go through a sequence of events. Analytics sampling requires Measure Android SDK 0.23.0+ or iOS SDK 0.15.0+, older versions only send custom events as part of a session replay."
           action={
             <Button
               variant="outline"
@@ -372,13 +378,11 @@ export default function FunnelsOverview({ teamId }: { teamId: string }) {
       )}
 
       {readyValue !== null && funnels && funnels.length > 0 && (
-        <Table className="font-display select-none overflow-hidden">
+        <Table className="table-auto font-display select-none overflow-hidden max-lg:min-w-180">
           <TableHeader>
             <TableRow>
               <TableHead className="w-[25%]">Funnel</TableHead>
               <TableHead className="w-[50%]">Steps</TableHead>
-              {/* These short columns take the width of their text, so the
-                  text stays on one line. */}
               <TableHead className="w-px whitespace-nowrap text-center">
                 Window
               </TableHead>

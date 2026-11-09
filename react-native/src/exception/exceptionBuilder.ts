@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import { parseStacktrace } from './stacktraceParser';
+import { ValidationLimits } from '../utils/validationLimits';
 
 const isHermesEnabled = (): boolean => !!(global as any).HermesInternal;
 
@@ -148,7 +149,7 @@ export function buildExceptionPayload(
 
   const exceptionDetail: ExceptionDetail = {
     type: parsed.type,
-    message: parsed.message,
+    message: parsed.message?.slice(0, ValidationLimits.exceptionMessage),
     frames,
     thread_name: 'main',
     thread_sequence: 0,

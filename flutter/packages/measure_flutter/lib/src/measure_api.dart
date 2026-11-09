@@ -47,6 +47,13 @@ abstract class MeasureApi {
 
   Future<void> stop();
 
+  void trackError(
+    Object error,
+    StackTrace stack, {
+    Map<String, AttributeValue> attributes,
+  });
+
+  @Deprecated('Use trackError instead.')
   void trackHandledError(
     Object error,
     StackTrace stack, {

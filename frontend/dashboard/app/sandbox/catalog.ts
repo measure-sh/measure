@@ -2,6 +2,7 @@ import { DateTime } from "luxon";
 import type { FilterKey, FilterValue } from "../api/filter_types";
 import type { App, MemoryError, Profile } from "../api/api_calls";
 import { SANDBOX_TEAM_ID } from "../utils/sandbox";
+import { errorGroupPath, errorGroupTitle } from "../utils/error_utils";
 import { androidNativeScenario } from "./platforms/android";
 import {
   flutterAndroidScenario,
@@ -12,6 +13,7 @@ import { rnAndroidScenario, rnIosScenario } from "./platforms/react_native";
 import type {
   AppSpec,
   DeviceSpec,
+  AppHangState,
   ExceptionSpec,
   FrameSpec,
   HttpSpec,
@@ -129,6 +131,21 @@ export function validateScenario(s: PlatformScenario): string[] {
           if (spec.kind === "anr" && s.app.os !== "android") {
             problems.push(
               `${context} uses anr exception ${step.exception} on a non-android app`,
+            );
+          }
+          if (spec.kind === "app_hang" && s.app.os !== "ios") {
+            problems.push(
+              `${context} uses app hang ${step.exception} on a non-ios app`,
+            );
+          }
+          if (spec.kind === "app_hang" && step.hangState === undefined) {
+            problems.push(
+              `${context} runs app hang ${step.exception} without a hang state`,
+            );
+          }
+          if (spec.kind !== "app_hang" && step.hangState !== undefined) {
+            problems.push(
+              `${context} gives a hang state to ${step.exception}, which is not an app hang`,
             );
           }
         }
@@ -253,7 +270,14 @@ function exceptionProblems(spec: ExceptionSpec): string[] {
 
   const withFile = frames.filter((frame) => frame.file_name);
   const inApp = withFile.filter((frame) => frame.in_app);
-  const displayable = inApp.length > 0 ? inApp : withFile;
+  // The backend attributes an app hang to the first frame in the app.
+  const firstInApp = frames.find((frame) => frame.in_app);
+  const displayable =
+    spec.kind === "app_hang" && firstInApp
+      ? [firstInApp]
+      : inApp.length > 0
+        ? inApp
+        : withFile;
   const shown = displayable.some(
     (frame) =>
       frame.file_name === spec.file_name &&
@@ -321,9 +345,21 @@ function exceptionProblems(spec: ExceptionSpec): string[] {
     problems.push(`${where} carries binary images outside an apple exception`);
   }
 
+  if (spec.kind === "app_hang") {
+    if (spec.type !== "" || spec.message !== "") {
+      problems.push(`${where} has a type or message, which an app hang lacks`);
+    }
+    if (spec.threads.length > 0) {
+      problems.push(`${where} has other threads, which an app hang lacks`);
+    }
+    if (!spec.stacktrace.split("\n")[0].startsWith("\tat ")) {
+      problems.push(`${where} stacktrace does not start with a frame`);
+    }
+  }
+
   // The backend names an Apple group by its signal, or by the NSError domain
   // when it has no frames, and gives it no message.
-  if (spec.framework === "apple") {
+  if (spec.framework === "apple" && spec.kind !== "app_hang") {
     const signal = spec.exceptions[0]?.signal ?? "";
     const expected =
       spec.exceptions.length > 0 ? signal : (spec.error?.code ?? "");
@@ -482,6 +518,13 @@ export type ErrorInstance = {
     memory_error: MemoryError | null;
   } | null;
   anr: { title: string; stacktrace: string } | null;
+  app_hang: {
+    title: string;
+    stacktrace: string;
+    thread_name: string;
+    duration: number;
+    state: AppHangState;
+  } | null;
   severity: string;
   num_code: number | null;
   code: string;
@@ -501,7 +544,7 @@ export type ErrorGroup = {
   id: string;
   app_id: string;
   type: string;
-  error_type: "exception" | "anr";
+  error_type: "exception" | "anr" | "app_hang";
   severity: string;
   is_custom: boolean;
   message: string;
@@ -542,20 +585,6 @@ export type HttpSample = {
   durationMs: number;
   sessionId: string;
   attribute: SessionAttribute;
-};
-
-export type JourneyNode = {
-  id: string;
-  issues: {
-    anrs: { id: string; title: string; count: number }[];
-    crashes: { id: string; title: string; count: number }[];
-  };
-};
-
-export type Journey = {
-  links: { source: string; target: string; value: number }[];
-  nodes: JourneyNode[];
-  totalIssues: number;
 };
 
 export type Alert = {
@@ -616,6 +645,12 @@ export type Metrics = {
     no_data: boolean;
     unselected_no_data: boolean;
   };
+  app_hang_free_sessions: {
+    app_hang_free_sessions: number;
+    unselected_app_hang_free_sessions: number;
+    no_data: boolean;
+    unselected_no_data: boolean;
+  } | null;
   perceived_anr_free_sessions: {
     perceived_anr_free_sessions: number;
     unselected_perceived_anr_free_sessions: number;
@@ -675,7 +710,6 @@ export type AppBundle = {
   rootSpanNames: string[];
   httpSamples: HttpSample[];
   networkEndpoints: Map<string, NetworkEndpointStats>;
-  journey: Journey;
   releases: Release[];
   launchP95: { cold: number; warm: number; hot: number };
   appSizeByVersion: Record<string, number>;
@@ -1133,6 +1167,7 @@ function buildSession(
 
   const memoryLoads: MemoryLoad[] = [];
   const backgrounded: [number, number][] = [];
+  const hangs: { fromMs: number; toMs: number; cpuBound: boolean }[] = [];
   function holdImages(kb: number): void {
     memoryLoads.push({ atMs: cursor.diff(start).as("milliseconds"), kb });
   }
@@ -2211,6 +2246,60 @@ function buildSession(
           `${app.name}: anr ${spec.key} used on a non-android app`,
         );
       }
+      // The main thread blocks while handling the step before the hang. The SDK
+      // reports the hang after APP_HANG_THRESHOLD_MS and measures its duration
+      // from when the main thread blocked. For a killed hang, duration ends at
+      // its last update before the app was killed.
+      if (spec.kind === "app_hang") {
+        const state = step.hangState!;
+        const durationMs =
+          state === "killed"
+            ? stableInt(`${seed}:hang`, 9_000, 16_000)
+            : stableInt(`${seed}:hang`, 2_400, 4_800);
+        const mainEvents = threads[mainThread] ?? [];
+        const lastMain = mainEvents[mainEvents.length - 1];
+        const blockedAt = lastMain
+          ? DateTime.min(
+              cursor,
+              DateTime.fromISO(lastMain.timestamp, { setZone: true }).plus({
+                milliseconds: stableInt(`${seed}:hangstart`, 20, 90),
+              }),
+            )
+          : cursor;
+        const timestamp = blockedAt
+          .plus({ milliseconds: APP_HANG_THRESHOLD_MS })
+          .toISO()!;
+        const threadName = spec.exceptions[0].thread_name!;
+        const hangEvent: GeneratedEvent = {
+          event_type: "app_hang",
+          user_defined_attribute: null,
+          thread_name: threadName,
+          group_id: stableUuid(`errorgroup:${app.id}:${spec.key}`),
+          duration: durationMs,
+          state,
+          method_name: spec.method_name,
+          file_name: spec.file_name,
+          line_number: spec.line_number,
+          stacktrace: spec.stacktrace,
+          foreground: spec.foreground,
+          attachments: [],
+          timestamp,
+        };
+        push(threadName, hangEvent);
+        errorHits.push({ key: spec.key, event: hangEvent, timestamp });
+        const fromMs = blockedAt.diff(start).as("milliseconds");
+        hangs.push({
+          fromMs,
+          toMs: fromMs + durationMs,
+          cpuBound: spec.cpuBound === true,
+        });
+        if (state === "killed") {
+          ended = true;
+        } else {
+          cursor = blockedAt.plus({ milliseconds: durationMs });
+        }
+        continue;
+      }
       function emitException(
         emitted: ExceptionSpec,
         attachments: ReturnType<typeof screenshotAttachment>[],
@@ -2375,6 +2464,7 @@ function buildSession(
     deviceTotalMemory,
     leaking: script.memoryLeak === true,
     backgrounded,
+    hangs,
     activityAt: (threads[mainThread] ?? []).map((event) =>
       DateTime.fromISO(String(event.timestamp)).diff(start).as("milliseconds"),
     ),
@@ -2486,6 +2576,7 @@ function memorySamples(input: {
   activityAt: number[];
   leaking: boolean;
   backgrounded: [number, number][];
+  hangs: { fromMs: number; toMs: number; cpuBound: boolean }[];
 }): {
   android: Record<string, unknown>[];
   ios: Record<string, unknown>[];
@@ -2539,7 +2630,21 @@ function memorySamples(input: {
   };
   let trimmed = false;
   let previousT: number | null = null;
+  // The iOS SDK samples with a main run loop timer. It can't fire while a
+  // hang blocks the main thread, so it fires once the hang ends.
+  const sampleTimes: number[] = [];
   for (let t = 0; t <= durationMs; t += 2000) {
+    if (!input.hangs.some((hang) => t >= hang.fromMs && t < hang.toMs)) {
+      sampleTimes.push(t);
+    }
+  }
+  for (const hang of input.hangs) {
+    if (hang.toMs <= durationMs) {
+      sampleTimes.push(hang.toMs);
+    }
+  }
+  sampleTimes.sort((a, b) => a - b);
+  for (const t of sampleTimes) {
     if (input.backgrounded.some(([from, to]) => t > from && t < to)) {
       continue;
     }
@@ -2559,13 +2664,17 @@ function memorySamples(input: {
       (at) => at > t - 2000 && at <= t,
     ).length;
     cpuDrift = cpuDrift * 0.7 + gauss() * 0.8;
+    const afterBusyHang = input.hangs.some(
+      (hang) => hang.cpuBound && hang.toMs === t,
+    );
     out.cpu.push({
       timestamp: ts,
-      value:
-        Math.round(
-          Math.max(0.4, Math.min(85, 4 + cpuDrift + Math.min(40, busy * 6))) *
-            10,
-        ) / 10,
+      value: afterBusyHang
+        ? stableInt(`${seed}:hangcpu:${t}`, 880, 990) / 10
+        : Math.round(
+            Math.max(0.4, Math.min(85, 4 + cpuDrift + Math.min(40, busy * 6))) *
+              10,
+          ) / 10,
     });
     if (android) {
       const live = javaLiveBase + cache * 0.15;
@@ -2621,17 +2730,13 @@ type ScreenStep = {
   name: string;
   timestamp: string;
   kind:
-    | "activity"
-    | "fragment"
-    | "view_controller"
-    | "swift_ui"
-    | "screen_view";
+    "activity" | "fragment" | "view_controller" | "swift_ui" | "screen_view";
 };
 
 // A fragment detached from the activity on screen hands the screen back to
 // that activity, which resumed earlier and so has no event of its own at that
 // moment, unless another screen resumes right after the detach.
-function screenSequence(
+export function screenSequence(
   detail: SessionDetail,
   mainThread: string,
 ): ScreenStep[] {
@@ -2704,40 +2809,14 @@ function screenSequence(
   return sequence;
 }
 
+export const APP_HANG_THRESHOLD_MS = 2_000;
+
 const HANDLED_ERROR_RATE = 0.00417;
 const UNHANDLED_ERROR_RATE = 0.00286;
 
 const BUG_REPORTS_PER_DAY_PER_100K_SESSIONS = 1.2;
 
 const REFERENCE_WINDOW_DAYS = 30;
-
-// The share of sessions on a screen that go on to another screen, the rest
-// leaving the app there. Shoppers often leave from a product or their cart,
-// and rarely in the middle of paying.
-const SCREEN_CONTINUE: Record<ScreenKey, number> = {
-  login: 0.92,
-  home: 0.74,
-  products: 0.78,
-  search: 0.72,
-  product_detail: 0.6,
-  cart: 0.68,
-  checkout: 0.84,
-  payment: 0.94,
-  order_confirmation: 0.45,
-  orders: 0.5,
-  profile: 0.6,
-};
-// A host activity or view controller only holds the app's screens.
-const HOST_CONTINUE = 0.95;
-const MAX_CONTINUE = 0.96;
-const CART_SESSION_SHARE = 0.025;
-// The share of sessions on a screen that take the next step of a purchase,
-// kept in line with the step rates of the sandbox funnels.
-const PURCHASE_STEP_RATE: Record<string, number> = {
-  "cart>checkout": 0.38,
-  "checkout>payment": 0.74,
-  "payment>order_confirmation": 0.9,
-};
 
 export function dailyBugReports(app: AppSpec): number {
   return Math.max(
@@ -2771,8 +2850,8 @@ function launchMetric(
   };
 }
 
-// Crash and ANR free rates come from the same per-version group counts the
-// errors pages show, over the sessions each version ran in the range.
+// Crash, ANR, and app hang free rates use the per-version group counts
+// shown on the errors pages, divided by each version's sessions in range.
 export function computeMetrics(
   bundle: AppBundle,
   filterExpr: string | null,
@@ -2797,9 +2876,13 @@ export function computeMetrics(
   const unselectedNoData =
     selected.length === 0 || unselected.length === 0 || unselectedSessions <= 0;
 
-  const failures = (kind: "exception" | "anr", names: string[]) =>
+  const failures = (kind: ErrorGroup["error_type"], names: string[]) =>
     bundle.errorGroups
-      .filter((g) => g.error_type === kind && g.severity === "fatal")
+      .filter(
+        (g) =>
+          g.error_type === kind &&
+          (kind !== "exception" || g.severity === "fatal"),
+      )
       .reduce((sum, g) => sum + groupCount(bundle, g, range, names), 0);
   const pct = (rate: number) => Math.round(rate * 1000) / 10;
   const freeRate = (count: number, sessions: number) =>
@@ -2809,6 +2892,8 @@ export function computeMetrics(
   const otherCrashes = unselectedNoData ? 0 : failures("exception", unselected);
   const anrs = failures("anr", selected);
   const otherAnrs = unselectedNoData ? 0 : failures("anr", unselected);
+  const hangs = failures("app_hang", selected);
+  const otherHangs = unselectedNoData ? 0 : failures("app_hang", unselected);
   const perceivedCrashShare =
     (1 - app.perceivedCrashFreeRate) / (1 - app.crashFreeRate);
   const perceivedAnrShare = 0.75;
@@ -2816,6 +2901,7 @@ export function computeMetrics(
     off ? 0 : freeRate(count, sessions);
 
   const hasAnr = app.anrFreeRate !== undefined;
+  const hasAppHang = app.appHangFreeRate !== undefined;
   const launch = bundle.launchP95;
 
   return {
@@ -2830,6 +2916,18 @@ export function computeMetrics(
           anr_free_sessions: side(anrs, selectedSessions, noData),
           unselected_anr_free_sessions: side(
             otherAnrs,
+            unselectedSessions,
+            unselectedNoData,
+          ),
+          no_data: noData,
+          unselected_no_data: unselectedNoData,
+        }
+      : null,
+    app_hang_free_sessions: hasAppHang
+      ? {
+          app_hang_free_sessions: side(hangs, selectedSessions, noData),
+          unselected_app_hang_free_sessions: side(
+            otherHangs,
             unselectedSessions,
             unselectedNoData,
           ),
@@ -2980,6 +3078,9 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
   const anrKeys = keyEntries
     .filter(([, g]) => g.spec.kind === "anr")
     .map(([key]) => key);
+  const appHangKeys = keyEntries
+    .filter(([, g]) => g.spec.kind === "app_hang")
+    .map(([key]) => key);
   const unhandledKeys = keyEntries
     .filter(
       ([, g]) => g.spec.kind === "exception" && g.spec.severity === "unhandled",
@@ -3002,6 +3103,12 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
       ? 0
       : Math.round(
           app.dailySessions * REFERENCE_WINDOW_DAYS * (1 - app.anrFreeRate),
+        );
+  const appHangTotal =
+    appHangKeys.length === 0 || app.appHangFreeRate === undefined
+      ? 0
+      : Math.round(
+          app.dailySessions * REFERENCE_WINDOW_DAYS * (1 - app.appHangFreeRate),
         );
   const handledTotal =
     handledKeys.length === 0
@@ -3054,6 +3161,7 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
   const countByKey = new Map<string, number>([
     ...scaledCountsFor(crashKeys, crashTotal),
     ...scaledCountsFor(anrKeys, anrTotal),
+    ...scaledCountsFor(appHangKeys, appHangTotal),
     ...scaledCountsFor(handledKeys, handledTotal),
     ...scaledCountsFor(unhandledKeys, unhandledTotal),
   ]);
@@ -3079,11 +3187,12 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
           screen = entry.name;
         }
       }
+      const isAppHang = g.spec.kind === "app_hang";
       const instances: ErrorInstance[] = g.instances.map((inst, i) => ({
         id: stableUuid(`errorinstance:${app.id}:${key}:${i}`),
         session_id: inst.session.sessionId,
         timestamp: inst.timestamp,
-        type: g.spec.type,
+        type: isAppHang ? "app_hang" : g.spec.type,
         // The SDK tracks a native crash on the thread that crashed.
         attribute:
           g.spec.framework === "ndk" && g.spec.exceptions[0]?.thread_name
@@ -3118,7 +3227,16 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
                 stacktrace: g.spec.stacktrace,
               }
             : null,
-        severity: g.spec.severity,
+        app_hang: isAppHang
+          ? {
+              title: errorGroupTitle(g.spec.file_name, g.spec.method_name),
+              stacktrace: g.spec.stacktrace,
+              thread_name: g.spec.exceptions[0].thread_name!,
+              duration: Number(inst.event.duration),
+              state: inst.event.state as AppHangState,
+            }
+          : null,
+        severity: isAppHang ? "" : g.spec.severity,
         num_code: g.spec.error?.num_code ?? null,
         code: g.spec.error?.code ?? "",
         meta: g.spec.error?.meta ?? null,
@@ -3130,12 +3248,13 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
           frames: t.frames.map((f) => frameToString(f, g.spec.framework)),
         })),
       }));
+      // The backend gives app hang groups no type, message, or severity.
       return {
         id,
         app_id: app.id,
         type: g.spec.type,
-        error_type: g.spec.kind === "anr" ? "anr" : ("exception" as const),
-        severity: g.spec.severity,
+        error_type: g.spec.kind,
+        severity: isAppHang ? "" : g.spec.severity,
         is_custom: false,
         message: g.spec.message,
         method_name: g.spec.method_name,
@@ -3265,170 +3384,6 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
     });
   }
 
-  const linkCounts = new Map<string, number>();
-  const nodeIds = new Set<string>();
-  for (const session of built) {
-    const sequence = screenSequence(session.detail, scenario.threadNames.main);
-    sequence.forEach((entry) => nodeIds.add(entry.name));
-    for (let i = 0; i < sequence.length - 1; i++) {
-      const key = `${sequence[i].name}\u0000${sequence[i + 1].name}`;
-      linkCounts.set(key, (linkCounts.get(key) ?? 0) + 1);
-    }
-  }
-  const nodes: JourneyNode[] = Array.from(nodeIds).map((id) => {
-    const issuesOn = (errorType: ErrorGroup["error_type"]) =>
-      errorGroups
-        .filter(
-          (g) =>
-            g.error_type === errorType &&
-            g.severity === "fatal" &&
-            g.screen === id,
-        )
-        .map((g) => ({
-          id: g.id,
-          title: groupTitle(g.type, g.file_name),
-          count: g.count,
-        }));
-    return {
-      id,
-      issues: { crashes: issuesOn("exception"), anrs: issuesOn("anr") },
-    };
-  });
-
-  const sequences = built.map((s) =>
-    screenSequence(s.detail, scenario.threadNames.main),
-  );
-  const reachByNode = new Map(
-    Array.from(nodeIds).map((id) => [
-      id,
-      sequences.filter((sequence) => sequence.some((e) => e.name === id))
-        .length,
-    ]),
-  );
-  const entryNodes = Array.from(nodeIds).map((id) => ({
-    id,
-    weight: sequences.filter((sequence) => sequence[0]?.name === id).length,
-  }));
-  const monthlySessions = Math.round(app.dailySessions * REFERENCE_WINDOW_DAYS);
-  const entryValues = distributeTotal(
-    monthlySessions,
-    entryNodes.map((n) => n.weight),
-  );
-  const inflow = new Map<string, number>(
-    entryNodes.map((n, i) => [n.id, entryValues[i]]),
-  );
-  const outgoingByNode = new Map<
-    string,
-    { target: string; weight: number }[]
-  >();
-  for (const [key, weight] of linkCounts) {
-    const [source, target] = key.split("\u0000");
-    const list = outgoingByNode.get(source) ?? [];
-    list.push({ target, weight });
-    outgoingByNode.set(source, list);
-  }
-  const order: string[] = [];
-  const queued = new Set<string>();
-  for (const entry of entryNodes.filter((n) => n.weight > 0)) {
-    order.push(entry.id);
-    queued.add(entry.id);
-  }
-  for (let i = 0; i < order.length; i++) {
-    for (const edge of outgoingByNode.get(order[i]) ?? []) {
-      if (!queued.has(edge.target)) {
-        queued.add(edge.target);
-        order.push(edge.target);
-      }
-    }
-  }
-  for (const id of nodeIds) {
-    if (!queued.has(id)) {
-      order.push(id);
-      queued.add(id);
-    }
-  }
-  const screenKeyOf = new Map<string, ScreenKey>();
-  for (const spec of scenario.screens) {
-    for (const name of [spec.key, spec.label, spec.className, spec.routeName]) {
-      if (name) {
-        screenKeyOf.set(name, scenario.ui.screens[spec.key]);
-      }
-    }
-  }
-  // Every app sends the same share of its sessions to the cart, which keeps
-  // the purchase screens in line with the sandbox funnels.
-  const isCartEntry = (source: string, target: string) =>
-    screenKeyOf.get(target) === "cart" && screenKeyOf.get(source) !== "cart";
-  const cartEntryWeight = Array.from(outgoingByNode).reduce(
-    (sum, [source, edges]) =>
-      sum +
-      edges
-        .filter((e) => isCartEntry(source, e.target))
-        .reduce((total, e) => total + e.weight, 0),
-    0,
-  );
-  const links: Journey["links"] = [];
-  for (const source of order) {
-    const edges = outgoingByNode.get(source) ?? [];
-    if (edges.length === 0) {
-      continue;
-    }
-    const sourceKey = screenKeyOf.get(source);
-    const jitter = (name: string) =>
-      stableInt(`journeylink:${app.id}:${source}:${name}`, 900, 1100) / 1000;
-    const available = inflow.get(source) ?? 0;
-    const continuing =
-      available *
-      Math.min(
-        MAX_CONTINUE,
-        (sourceKey ? SCREEN_CONTINUE[sourceKey] : HOST_CONTINUE) *
-          jitter("continue"),
-      );
-    // Purchase steps take a fixed share of the sessions. The other screens
-    // split the rest by how often the sample sessions moved to them.
-    const forward = edges.map((e) => {
-      if (isCartEntry(source, e.target)) {
-        return (
-          ((monthlySessions * CART_SESSION_SHARE * e.weight) /
-            cartEntryWeight) *
-          jitter(e.target)
-        );
-      }
-      const targetKey = screenKeyOf.get(e.target);
-      const rate =
-        sourceKey && targetKey
-          ? PURCHASE_STEP_RATE[`${sourceKey}>${targetKey}`]
-          : undefined;
-      return rate === undefined ? null : available * rate * jitter(e.target);
-    });
-    const forwardTotal = forward.reduce<number>((sum, v) => sum + (v ?? 0), 0);
-    const forwardScale =
-      forwardTotal > continuing ? continuing / forwardTotal : 1;
-    const rest = distributeTotal(
-      Math.max(0, Math.round(continuing - forwardTotal)),
-      edges.map((e, i) =>
-        forward[i] === null ? e.weight * jitter(e.target) : 0,
-      ),
-    );
-    edges.forEach((edge, i) => {
-      const value =
-        forward[i] === null ? rest[i] : Math.floor(forward[i]! * forwardScale);
-      links.push({ source, target: edge.target, value });
-      inflow.set(edge.target, (inflow.get(edge.target) ?? 0) + value);
-    });
-  }
-  const journey: Journey = {
-    links,
-    nodes,
-    totalIssues: nodes.reduce(
-      (sum, node) =>
-        sum +
-        node.issues.crashes.reduce((a, i) => a + i.count, 0) +
-        node.issues.anrs.reduce((a, i) => a + i.count, 0),
-      0,
-    ),
-  };
-
   function launchPercentile(kind: "cold" | "warm" | "hot"): number {
     const durations = built
       .map((s) =>
@@ -3458,12 +3413,11 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
   const ALERT_COOLDOWN_DAYS = 7;
   const alerts: Alert[] = [];
   for (const group of errorGroups) {
-    if (group.severity !== "fatal") {
+    const isAppHang = group.error_type === "app_hang";
+    if (group.severity !== "fatal" && !isAppHang) {
       continue;
     }
-    const url = `/${SANDBOX_TEAM_ID}/errors/${app.id}/${group.id}/${encodeURIComponent(
-      group.type + (group.file_name ? `@${group.file_name}` : ""),
-    )}`;
+    const url = errorGroupPath(SANDBOX_TEAM_ID, app.id, group);
     let lastFired: DateTime | null = null;
     for (const instance of [...group.instances].sort((a, b) =>
       b.timestamp.localeCompare(a.timestamp),
@@ -3481,8 +3435,14 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
         team_id: SANDBOX_TEAM_ID,
         app_id: app.id,
         entity_id: group.id,
-        type: group.error_type === "anr" ? "anr_spike" : "crash_spike",
-        message: spikeMessage(group),
+        type: isAppHang
+          ? "app_hang_spike"
+          : group.error_type === "anr"
+            ? "anr_spike"
+            : "crash_spike",
+        message: isAppHang
+          ? errorGroupTitle(group.file_name, group.method_name)
+          : spikeMessage(group),
         url,
         created_at: instance.timestamp,
         updated_at: instance.timestamp,
@@ -3580,7 +3540,7 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
     const monthStart = now.minus({ months: monthsAgo }).startOf("month");
     const monthEnd = monthsAgo === 0 ? now : monthStart.endOf("month");
     const from = onboardedAt > monthStart ? onboardedAt : monthStart;
-    const daysInMonth = Math.max(0, Math.round(monthEnd.diff(from).as("days")));
+    const daysInMonth = Math.max(0, monthEnd.diff(from).as("days"));
     const seed = `usage:${app.id}:${monthStart.toFormat("yyyy-MM")}`;
     const variance =
       0.9 + noise(stableInt(`${seed}:variance`, 0, 100000)) * 0.2;
@@ -3623,7 +3583,6 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
     rootSpanNames,
     httpSamples,
     networkEndpoints,
-    journey,
     releases,
     launchP95,
     appSizeByVersion,

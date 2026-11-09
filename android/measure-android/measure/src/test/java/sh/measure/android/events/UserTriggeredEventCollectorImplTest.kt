@@ -8,6 +8,7 @@ import org.mockito.kotlin.any
 import org.mockito.kotlin.anyOrNull
 import org.mockito.kotlin.argumentCaptor
 import org.mockito.kotlin.eq
+import org.mockito.kotlin.isNull
 import org.mockito.kotlin.verify
 import sh.measure.android.attributes.StringAttr
 import sh.measure.android.bugreport.BugReportData
@@ -91,7 +92,7 @@ class UserTriggeredEventCollectorImplTest {
         val exception = Exception()
 
         userTriggeredEventCollector.register()
-        userTriggeredEventCollector.trackHandledException(exception, emptyMap())
+        userTriggeredEventCollector.trackError(exception, emptyMap())
         verify(signalProcessor).trackUserTriggered(
             data = any<ExceptionData>(),
             timestamp = eq(timeProvider.now()),
@@ -107,7 +108,7 @@ class UserTriggeredEventCollectorImplTest {
 
         userTriggeredEventCollector.register()
         val attributes = mapOf("key" to StringAttr("value"))
-        userTriggeredEventCollector.trackHandledException(exception, attributes)
+        userTriggeredEventCollector.trackError(exception, attributes)
         verify(signalProcessor).trackUserTriggered(
             data = any<ExceptionData>(),
             timestamp = eq(timeProvider.now()),
@@ -135,8 +136,8 @@ class UserTriggeredEventCollectorImplTest {
             timestamp = eq(timeProvider.now()),
             attachments = attachmentsCaptor.capture(),
             userDefinedAttributes = any(),
-            userTriggered = eq(true),
             attributes = any(),
+            threadName = isNull(),
         )
         Assert.assertEquals(1, attachmentsCaptor.firstValue.size)
     }
@@ -157,7 +158,6 @@ class UserTriggeredEventCollectorImplTest {
             timestamp = timeProvider.now(),
             attachments = mutableListOf(),
             userDefinedAttributes = mutableMapOf(),
-            userTriggered = true,
             attributes = mutableMapOf(),
         )
     }
@@ -193,7 +193,6 @@ class UserTriggeredEventCollectorImplTest {
             timestamp = timeProvider.now(),
             attachments = mutableListOf(),
             userDefinedAttributes = mutableMapOf(),
-            userTriggered = true,
             attributes = mutableMapOf(),
         )
     }
@@ -234,7 +233,7 @@ class UserTriggeredEventCollectorImplTest {
     fun `disables collection on unregistered`() {
         val exception = Exception()
         userTriggeredEventCollector.unregister()
-        userTriggeredEventCollector.trackHandledException(exception, emptyMap())
+        userTriggeredEventCollector.trackError(exception, emptyMap())
         verify(signalProcessor, never()).trackUserTriggered(
             any<ExceptionData>(),
             any(),

@@ -300,10 +300,12 @@ type EventRow struct {
 	Description string
 
 	// ProfileTrigger and ProfileFormat are written only for Type "profile".
-	// For those events the seed also writes '[]' into the attachments column,
-	// because the profiles reader json-decodes that column.
-	ProfileTrigger string
-	ProfileFormat  string
+	// For those events the seed also writes ProfileAttachmentsJSON to the
+	// attachments column, which the profiles reader JSON-decodes. It defaults
+	// to '[]', meaning the profile has no attachments.
+	ProfileTrigger         string
+	ProfileFormat          string
+	ProfileAttachmentsJSON string
 
 	// Device/network attributes, written only when OSName is non-empty.
 	// app_filters_mv requires all nine of these non-empty to emit a row, so
@@ -336,6 +338,10 @@ type EventRow struct {
 	MemoryUsed      uint64
 	MemoryMax       uint64
 	MemoryAvailable *uint64
+
+	// LaunchDuration is written only for cold_launch, warm_launch, and
+	// hot_launch events, to the duration column for that launch type.
+	LaunchDuration uint32
 }
 
 func (r EventRow) filled() EventRow {
@@ -486,8 +492,12 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 	}
 
 	if row.Type == "profile" {
+		attachments := row.ProfileAttachmentsJSON
+		if attachments == "" {
+			attachments = "[]"
+		}
 		cols = append(cols, "`profile.trigger`", "`profile.format`", "attachments")
-		vals = append(vals, quote(row.ProfileTrigger), quote(row.ProfileFormat), "'[]'")
+		vals = append(vals, quote(row.ProfileTrigger), quote(row.ProfileFormat), quoteEscaped(attachments))
 	}
 
 	if row.HttpURL != "" {
@@ -555,6 +565,10 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 		vals = append(vals, quote(row.MemoryAppImportance))
 		cols = append(cols, "`memory_usage.anon_rss`", "`memory_usage.swap`")
 		vals = append(vals, optionalKBLit(row.MemoryAnonRSS), optionalKBLit(row.MemorySwap))
+	}
+	if row.Type == "cold_launch" || row.Type == "warm_launch" || row.Type == "hot_launch" {
+		cols = append(cols, "`"+row.Type+".duration`")
+		vals = append(vals, strconv.FormatUint(uint64(row.LaunchDuration), 10))
 	}
 	if row.Type == "memory_usage_absolute" {
 		cols = append(cols, "`memory_usage_absolute.used_memory`", "`memory_usage_absolute.max_memory`")
@@ -624,6 +638,7 @@ type SpanRow struct {
 	DeviceLocale       string
 	DeviceManufacturer string
 	DeviceName         string
+	DeviceModel        string
 	Checkpoints        []string
 }
 
@@ -697,6 +712,7 @@ func (h *TestHelper) SeedSpanRows(ctx context.Context, t *testing.T, teamID, app
 		"`attribute.country_code`", "`attribute.network_provider`",
 		"`attribute.network_type`", "`attribute.network_generation`",
 		"`attribute.device_locale`", "`attribute.device_manufacturer`", "`attribute.device_name`",
+		"`attribute.device_model`",
 		"`attribute.device_low_power_mode`", "`attribute.device_thermal_throttling_enabled`",
 	}
 	vals := []string{
@@ -710,6 +726,7 @@ func (h *TestHelper) SeedSpanRows(ctx context.Context, t *testing.T, teamID, app
 		quote(row.CountryCode), quote(row.NetworkProvider),
 		quote(row.NetworkType), quote(row.NetworkGeneration),
 		quote(row.DeviceLocale), quote(row.DeviceManufacturer), quote(row.DeviceName),
+		quote(row.DeviceModel),
 		"false", "false",
 	}
 
@@ -952,7 +969,7 @@ func (h *TestHelper) SeedNavigationEventInSession(ctx context.Context, t *testin
 }
 
 // SeedLifecycleActivityInSession inserts a lifecycle_activity event with a
-// known session_id, activity type & class name, feeding journey_mv.
+// known session_id, activity type & class name.
 func (h *TestHelper) SeedLifecycleActivityInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, activityType, className string, ts time.Time) {
 	t.Helper()
 	query := fmt.Sprintf(
@@ -969,7 +986,7 @@ func (h *TestHelper) SeedLifecycleActivityInSession(ctx context.Context, t *test
 }
 
 // SeedScreenViewInSession inserts a screen_view event with a known session_id
-// & screen name, feeding journey_mv.
+// & screen name.
 func (h *TestHelper) SeedScreenViewInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, screenName string, ts time.Time) {
 	t.Helper()
 	query := fmt.Sprintf(
@@ -986,7 +1003,7 @@ func (h *TestHelper) SeedScreenViewInSession(ctx context.Context, t *testing.T, 
 }
 
 // SeedLifecycleFragmentInSession inserts a lifecycle_fragment event with a
-// known session_id, fragment type & class name, feeding journey_mv.
+// known session_id, fragment type & class name.
 func (h *TestHelper) SeedLifecycleFragmentInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, fragmentType, className string, ts time.Time) {
 	t.Helper()
 	query := fmt.Sprintf(
@@ -1003,8 +1020,7 @@ func (h *TestHelper) SeedLifecycleFragmentInSession(ctx context.Context, t *test
 }
 
 // SeedLifecycleViewControllerInSession inserts a lifecycle_view_controller
-// event with a known session_id, view controller type & class name, feeding
-// journey_mv.
+// event with a known session_id, view controller type & class name.
 func (h *TestHelper) SeedLifecycleViewControllerInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, vcType, className string, ts time.Time) {
 	t.Helper()
 	query := fmt.Sprintf(
@@ -1021,7 +1037,7 @@ func (h *TestHelper) SeedLifecycleViewControllerInSession(ctx context.Context, t
 }
 
 // SeedLifecycleSwiftUIInSession inserts a lifecycle_swift_ui event with a known
-// session_id, SwiftUI type & class name, feeding journey_mv.
+// session_id, SwiftUI type & class name.
 func (h *TestHelper) SeedLifecycleSwiftUIInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, swiftUIType, className string, ts time.Time) {
 	t.Helper()
 	query := fmt.Sprintf(

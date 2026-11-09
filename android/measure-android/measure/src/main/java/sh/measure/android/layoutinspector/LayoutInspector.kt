@@ -14,6 +14,7 @@ import androidx.compose.ui.node.RootForTest
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.getAllSemanticsNodes
 import androidx.compose.ui.semantics.getOrNull
 import androidx.core.view.isNotEmpty
@@ -266,6 +267,16 @@ internal object LayoutInspector {
         override fun initialValue() = IntArray(2)
     }
 
+    // HideFromAccessibility was added in Compose UI 1.8. Looking it up once lets apps on older
+    // Compose skip the check instead of crashing.
+    private val hideFromAccessibilityKey: SemanticsPropertyKey<Unit>? by lazy(LazyThreadSafetyMode.PUBLICATION) {
+        try {
+            SemanticsProperties.HideFromAccessibility
+        } catch (e: NoSuchMethodError) {
+            null
+        }
+    }
+
     fun capture(rootView: View): LayoutSnapshot = captureInternal(rootView, null, null)
 
     fun capture(
@@ -412,7 +423,7 @@ internal object LayoutInspector {
 
         // Single-pass filter for valid nodes
         val validNodes = allNodes.filter { node ->
-            val isInvisible = node.config.getOrNull(SemanticsProperties.HideFromAccessibility) != null
+            val isInvisible = hideFromAccessibilityKey?.let { node.config.getOrNull(it) } != null
             val width = node.boundsInWindow.width.toInt()
             val height = node.boundsInWindow.height.toInt()
             !isInvisible && width > 0 && height > 0

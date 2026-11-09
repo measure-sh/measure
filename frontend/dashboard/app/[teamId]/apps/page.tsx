@@ -305,7 +305,7 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
 
       {/* Loading State */}
       {pageDataLoading && (
-        <div className="w-full max-w-6xl font-body mt-8">
+        <div className="w-full font-body mt-8">
           {/* App Info */}
           <div className="flex flex-col">
             <Skeleton className="h-4 w-32" />
@@ -393,7 +393,7 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
 
       {/* Main UI - Only show when both APIs succeed and SDK config is loaded */}
       {pageDataSuccess && (
-        <div className="w-full max-w-6xl">
+        <div className="w-full">
           {/* Dialog for confirming app name change */}
           <DangerConfirmationDialog
             body={
@@ -593,8 +593,8 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
             )}
             {thresholdPrefsStatus === "success" && (
               <div className="flex flex-col items-start mt-6 gap-3 w-full">
-                <div className="flex flex-row items-center gap-2">
-                  <p className="font-body text-sm w-80">
+                <div className="flex flex-col items-start gap-2 md:flex-row md:items-center">
+                  <p className="font-body text-sm md:w-84">
                     Error rates{" "}
                     <span className="text-green-600 dark:text-green-500 font-bold">
                       Good
@@ -622,8 +622,8 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
                     testId="error-good-threshold-input"
                   />
                 </div>
-                <div className="flex flex-row items-center gap-2">
-                  <p className="font-body text-sm w-80">
+                <div className="flex flex-col items-start gap-2 md:flex-row md:items-center">
+                  <p className="font-body text-sm md:w-84">
                     Error rates{" "}
                     <span className="text-yellow-600 dark:text-yellow-500 font-bold">
                       Caution
@@ -651,8 +651,8 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
                     testId="error-caution-threshold-input"
                   />
                 </div>
-                <div className="flex flex-row items-center gap-2 mt-6">
-                  <p className="font-body text-sm w-80">
+                <div className="flex flex-col items-start gap-2 md:flex-row md:items-center mt-6">
+                  <p className="font-body text-sm md:w-84">
                     Minimum error count to trigger a spike alert{" "}
                     <InfoTooltip
                       className="inline-block align-middle mt-0"
@@ -688,8 +688,8 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
                     testId="error-spike-min-count-threshold-input"
                   />
                 </div>
-                <div className="flex flex-row items-center gap-2">
-                  <p className="font-body text-sm w-80">
+                <div className="flex flex-col items-start gap-2 md:flex-row md:items-center">
+                  <p className="font-body text-sm md:w-84">
                     Spike alert threshold (%)
                   </p>
                   <SdkConfigNumericInput
@@ -741,11 +741,9 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
                     type={DropdownSelectType.SingleString}
                     title="Data Retention Period"
                     items={Array.from(retentionPeriodToDisplayTextMap.values())}
-                    initialSelected={
-                      retentionPeriodToDisplayTextMap.get(
-                        (appRetention ?? emptyAppRetention).retention!,
-                      )!
-                    }
+                    initialSelected={retentionPeriodToDisplayTextMap.get(
+                      (appRetention ?? emptyAppRetention).retention!,
+                    )!}
                     onChangeSelected={(item) =>
                       handleRetentionPeriodChange(item as string)
                     }

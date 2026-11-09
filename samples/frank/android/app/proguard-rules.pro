@@ -20,3 +20,8 @@
 -keepclassmembers class sh.measure.android.config.ConfigProviderImpl {
     public void setMeasureUrl(java.lang.String);
 }
+
+# WorkManager 2.9.1 pulls in Room 2.5, whose keep rule keeps RoomDatabase subclasses but not
+# their constructors. AGP 9's R8 then strips WorkDatabase_Impl's constructor and WorkManager
+# crashes at startup. Newer Room versions ship this rule themselves.
+-keep class * extends androidx.room.RoomDatabase { void <init>(); }

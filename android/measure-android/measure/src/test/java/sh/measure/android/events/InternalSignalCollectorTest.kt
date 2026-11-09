@@ -592,7 +592,6 @@ class InternalSignalCollectorTest {
             attributes = attributes,
             userDefinedAttributes = userDefinedAttrs,
             attachments = mutableListOf(),
-            userTriggered = userTriggered,
         )
     }
 
@@ -636,7 +635,6 @@ class InternalSignalCollectorTest {
             userDefinedAttributes = userDefinedAttrs,
             attachments = attachments.map { it.toEventAttachment(AttachmentType.SCREENSHOT) }
                 .toMutableList(),
-            userTriggered = userTriggered,
         )
     }
 

@@ -83,4 +83,19 @@ class ExceptionFactoryTest {
         assertEquals(ExceptionSeverity.Handled, handledException.severity)
         assertEquals(ExceptionSeverity.Fatal, fatalException.severity)
     }
+
+    @Test
+    fun `ExceptionFactory truncates exception messages to 8192 characters`() {
+        val exception = IllegalStateException("a".repeat(10_000), RuntimeException("b".repeat(10_000)))
+
+        val measureException = ExceptionFactory.createMeasureException(
+            exception,
+            severity = ExceptionSeverity.Handled,
+            thread = Thread.currentThread(),
+            foreground = true,
+        )
+
+        assertEquals("a".repeat(8192), measureException.exceptions[0].message)
+        assertEquals("b".repeat(8192), measureException.exceptions[1].message)
+    }
 }

@@ -15,8 +15,9 @@ var funnelsKeys = []Key{
 	patchID,
 	osName,
 	osVersion,
-	deviceName,
+	deviceModel,
 	deviceManufacturer,
+	deviceName,
 	locale,
 	networkType,
 	networkGeneration,
@@ -32,6 +33,7 @@ var funnelEventsColumns = &Columns{dialect: dialectClickHouse, byKey: map[string
 	osName.Name:             {expr: "`attribute.os_name`"},
 	osVersion.Name:          {expr: "`attribute.os_version`"},
 	deviceName.Name:         {expr: "`attribute.device_name`"},
+	deviceModel.Name:        {expr: "`attribute.device_model`"},
 	deviceManufacturer.Name: {expr: "`attribute.device_manufacturer`"},
 	locale.Name:             {expr: "`attribute.device_locale`"},
 	networkType.Name:        {expr: "`attribute.network_type`"},
@@ -51,7 +53,3 @@ var funnelCustomKeySource = customKeySource{
 	table:    "user_def_attrs",
 	idColumn: "session_id",
 }
-
-// FunnelSpansColumns rebinds the funnel keys onto the spans table, for the
-// queries that read the spans recorded by a funnel's installations.
-var FunnelSpansColumns = spansTableColumns

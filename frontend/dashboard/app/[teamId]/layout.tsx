@@ -132,6 +132,12 @@ function buildInitNavData(): { navMain: NavSection[] } {
             isActive: false,
             external: false,
           },
+          {
+            title: "Devices",
+            url: "devices",
+            isActive: false,
+            external: false,
+          },
         ],
       },
       {
@@ -401,7 +407,9 @@ export default function DashboardLayout({
         </div>
 
         <main className="flex justify-center">
-          <div className="w-full max-w-275 px-4 pb-24">{children}</div>
+          <div className="w-full max-w-400 px-4 md:px-8 xl:px-16 pb-24">
+            {children}
+          </div>
         </main>
       </SidebarInset>
     </SidebarProvider>

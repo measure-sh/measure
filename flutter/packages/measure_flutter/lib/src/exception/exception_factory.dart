@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:measure_flutter/src/exception/exception_data.dart';
 import 'package:measure_flutter/src/exception/exception_framework.dart';
 import 'package:measure_flutter/src/exception/exception_severity.dart';
+import 'package:measure_flutter/src/utils/validation_limits.dart';
 import 'package:stack_trace/stack_trace.dart';
 
 final class ExceptionFactory {
@@ -22,7 +23,10 @@ final class ExceptionFactory {
     final result = _parseStackTrace(stackTrace);
     final List<Trace> traces = result.traces;
     final type = details.exception.runtimeType.toString();
-    final message = _getMessage(details, type);
+    final fullMessage = _getMessage(details, type);
+    final message = fullMessage.length > ValidationLimits.exceptionMessage
+        ? fullMessage.substring(0, ValidationLimits.exceptionMessage)
+        : fullMessage;
     final List<ExceptionUnit> exceptions = [];
 
     if (traces.isNotEmpty) {

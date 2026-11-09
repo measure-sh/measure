@@ -40,6 +40,11 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
     private val uuidRegex = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
 
     fun init() {
+        // Resolved as the first task on the single-threaded io executor, so every
+        // event processed after it reads the installation ID from memory.
+        measure.executorServiceRegistry.ioExecutor().submit {
+            measure.installationIdProvider.installationId
+        }
         try {
             if (measure.configProvider.enableDiagnosticMode) {
                 val logsDir = measure.fileStorage.getSdkDebugLogsDirectory()
@@ -89,7 +94,6 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
             if (config != null) {
                 measure.configProvider.setDynamicConfig(config)
             }
-            measure.sessionManager.onConfigLoaded()
             measure.spanProcessor.onConfigLoaded()
             measure.appLaunchCollector.onConfigLoaded()
             mainHandler.post {
@@ -186,8 +190,8 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         measure.userTriggeredEventCollector.trackScreenView(screenName, attributes)
     }
 
-    fun trackHandledException(throwable: Throwable, attributes: Map<String, AttributeValue>) {
-        measure.userTriggeredEventCollector.trackHandledException(throwable, attributes)
+    fun trackError(throwable: Throwable, attributes: Map<String, AttributeValue>) {
+        measure.userTriggeredEventCollector.trackError(throwable, attributes)
     }
 
     fun createSpan(name: String): SpanBuilder? = measure.spanCollector.createSpan(name)

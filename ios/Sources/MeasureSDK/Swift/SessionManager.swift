@@ -10,7 +10,6 @@ import Foundation
 /// Protocol defining the requirements for initializing the SessionManager.
 protocol SessionManager {
     var sessionId: String { get }
-    var shouldReportJourneyEvents: Bool { get }
     func start()
     func applicationDidEnterBackground()
     func applicationWillEnterForeground()
@@ -18,7 +17,6 @@ protocol SessionManager {
     func onEventTracked<T: Codable>(_ event: Event<T>)
     func setPreviousSessionCrashed(_ crashed: Bool)
     func markCurrentSessionAsCrashed()
-    func onConfigLoaded()
     func getSessionStartTime() -> Number?
     func setOnSessionStarted(_ callback: ((String) -> Void)?)
 }
@@ -35,15 +33,12 @@ final class BaseSessionManager: SessionManager {
     private var appBackgroundTimeMs: Number
     private let configProvider: ConfigProvider
     private let sessionStore: SessionStore
-    private let eventStore: EventStore
     private let userDefaultStorage: UserDefaultStorage
     private var previousSessionCrashed = false
     private let versionCode: String
-    private let signalSampler: SignalSampler
     private var sessionStartTime: Number?
     private var onSessionStarted: ((String) -> Void)?
     private let previousSession: RecentSession?
-    var shouldReportJourneyEvents: Bool
 
     /// The current session ID.
     var sessionId: String {
@@ -60,21 +55,16 @@ final class BaseSessionManager: SessionManager {
          timeProvider: TimeProvider,
          configProvider: ConfigProvider,
          sessionStore: SessionStore,
-         eventStore: EventStore,
          userDefaultStorage: UserDefaultStorage,
-         versionCode: String,
-         signalSampler: SignalSampler) {
+         versionCode: String) {
         self.appBackgroundTimeMs = 0
         self.idProvider = idProvider
         self.logger = logger
         self.timeProvider = timeProvider
         self.configProvider = configProvider
         self.sessionStore = sessionStore
-        self.eventStore = eventStore
         self.userDefaultStorage = userDefaultStorage
         self.versionCode = versionCode
-        self.shouldReportJourneyEvents = false
-        self.signalSampler = signalSampler
         self.previousSession = userDefaultStorage.getRecentSession()
     }
 
@@ -150,24 +140,6 @@ final class BaseSessionManager: SessionManager {
             userDefaultStorage.setRecentSession(recentSession)
             sessionStore.updateNeedsReporting(sessionId: self.sessionId, needsReporting: true)
         }
-    }
-
-    func onConfigLoaded() {
-        guard let sessionId = currentSessionId else {
-            return
-        }
-
-        let shouldReport = signalSampler.shouldTrackJourneyForSession(sessionId: sessionId)
-
-        guard shouldReport else {
-            return
-        }
-
-        logger.internalLog(level: .debug, message: "SessionManager: Marking journey events session \(sessionId) for export after config load", error: nil, data: nil)
-
-        eventStore.updateNeedsReportingForJourneyEvents(sessionId: sessionId, needsReporting: true)
-
-        self.shouldReportJourneyEvents = true
     }
 
     func getSessionStartTime() -> Number? {

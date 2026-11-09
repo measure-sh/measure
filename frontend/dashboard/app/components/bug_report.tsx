@@ -249,14 +249,16 @@ export default function BugReport({
                 View Session Replay
               </div>
             ) : (
-              <Link
-                href={`/${params.teamId}/session_replays/${params.appId}/${displayBugReport.session_id}?from=bug_report_details`}
-                className={cn(buttonVariants({ variant: "outline" }))}
-              >
-                View Session Replay
-              </Link>
+              displayBugReport.has_replay && (
+                <Link
+                  href={`/${params.teamId}/session_replays/${params.appId}/${displayBugReport.session_id}?from=bug_report_details`}
+                  className={cn(buttonVariants({ variant: "outline" }))}
+                >
+                  View Session Replay
+                </Link>
+              )
             )}
-            <div className="px-2" />
+            {(demo || displayBugReport.has_replay) && <div className="px-2" />}
             <Button
               variant="outline"
               className="w-fit"

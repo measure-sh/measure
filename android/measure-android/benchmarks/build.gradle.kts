@@ -1,8 +1,5 @@
-import com.android.build.api.dsl.ManagedVirtualDevice
-
 plugins {
     alias(libs.plugins.android.test)
-    alias(libs.plugins.kotlin.android)
     alias(libs.plugins.androidx.baselineprofile)
 }
 
@@ -13,10 +10,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-
-    kotlinOptions {
-        jvmTarget = "11"
     }
 
     defaultConfig {
@@ -36,17 +29,18 @@ android {
 
     targetProjectPath = ":baseline-target"
 
-    testOptions.managedDevices.devices {
-        create<ManagedVirtualDevice>("pixel6Api31") {
-            device = "Pixel 6"
-            apiLevel = 31
+    testOptions.managedDevices.localDevices {
+        create("pixel10Api37") {
+            device = "Pixel 10"
+            sdkVersion = 37
             systemImageSource = "aosp"
+            testedAbi = "x86_64"
         }
     }
 }
 
 baselineProfile {
-    managedDevices += "pixel6Api31"
+    managedDevices += "pixel10Api37"
     useConnectedDevices = false
 }
 

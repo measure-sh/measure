@@ -54,6 +54,7 @@ export function deviceAttributeBag(attribute: {
   app_build?: string;
   user_id?: string;
   device_name?: string;
+  device_model?: string;
   device_manufacturer?: string;
   device_locale?: string;
   os_name?: string;
@@ -67,6 +68,7 @@ export function deviceAttributeBag(attribute: {
     version_code: attribute.app_build,
     user_id: attribute.user_id,
     device_name: attribute.device_name,
+    device_model: attribute.device_model,
     device_manufacturer: attribute.device_manufacturer,
     locale: attribute.device_locale,
     country: countryOf(attribute.device_locale),
@@ -136,6 +138,8 @@ export function sessionAttributeBag(
     has((event) => types.includes(event.event_type));
   const errorsOf = (severity: string) =>
     has((event) => event.event_type === "error" && event.severity === severity);
+  const appHangs = (state: string) =>
+    has((event) => event.event_type === "app_hang" && event.state === state);
   const appLifecycle = (type: string) =>
     has((event) => event.event_type === "lifecycle_app" && event.type === type);
   const sessionEvents = [
@@ -143,6 +147,8 @@ export function sessionAttributeBag(
     errorsOf("unhandled") && "unhandled_error",
     errorsOf("handled") && "handled_error",
     ofType(["anr"]) && "anr",
+    appHangs("recovered") && "recovered_app_hang",
+    appHangs("killed") && "killed_app_hang",
     ofType(["bug_report"]) && "bug_report",
     ofType(USER_INTERACTION_EVENTS) && "user_interaction",
   ];

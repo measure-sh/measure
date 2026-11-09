@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
 import { fireEvent, render, screen } from "@testing-library/react";
 import { type ReactNode, useState } from "react";
+import type { RootSpanMetricsQuantile } from "@/app/query/hooks";
 
 jest.mock("next/navigation", () =>
   require("@/__tests__/helpers/mock_router").nextNavigationMock(),
@@ -83,7 +84,10 @@ jest.mock("@/app/components/skeleton", () => ({
   SkeletonTable: () => <div data-testid="skeleton-table" />,
 }));
 
-import FunnelFriction, { FrictionList } from "@/app/components/funnel/friction";
+import FunnelFriction, {
+  FRICTION_FIRST_PAGES,
+  FrictionList,
+} from "@/app/components/funnel/friction";
 
 const params = {
   appId: "app-1",
@@ -93,6 +97,7 @@ const params = {
 };
 
 const conversion = {
+  sample_percent: 37.5,
   steps: [
     {
       event_name: "view_cart",
@@ -153,9 +158,10 @@ const stepEndpoint = {
 const onSelectStep = jest.fn();
 const onSelectList = jest.fn();
 const onOpenItem = jest.fn();
+const onPastLastPage = jest.fn();
 
-// Keeps the selected step and list in state, like the page that renders
-// FunnelFriction.
+// Keeps the selected step, list, percentile and pages in state, like the page
+// that renders FunnelFriction keeps them in the URL.
 function Harness({
   initialStep = 1 as number | null,
   initialList = FrictionList.Errors,
@@ -165,6 +171,8 @@ function Harness({
 }) {
   const [step, setStep] = useState(initialStep);
   const [list, setList] = useState(initialList);
+  const [quantile, setQuantile] = useState("p50" as RootSpanMetricsQuantile);
+  const [offsets, setOffsets] = useState(FRICTION_FIRST_PAGES);
   return (
     <FunnelFriction
       teamId="team-1"
@@ -183,6 +191,16 @@ function Harness({
         setList(next);
       }}
       onOpenItem={onOpenItem}
+      quantile={quantile}
+      onSelectQuantile={setQuantile}
+      offsets={offsets}
+      onChangeOffset={(list, offset) =>
+        setOffsets((current) => ({ ...current, [list]: offset }))
+      }
+      onPastLastPage={(list) => {
+        onPastLastPage(list);
+        setOffsets((current) => ({ ...current, [list]: 0 }));
+      }}
     />
   );
 }
@@ -286,19 +304,15 @@ describe("FunnelFriction step selector", () => {
     expect(screen.queryByTestId("step-option")).not.toBeInTheDocument();
   });
 
-  it("queries each list for the first page of a chosen transition, fetching only the shown one", () => {
-    mockUseFunnelStepErrorsQuery.mockReturnValue(
-      listQuery([stepError], { next: true }),
-    );
+  it("queries each list for a chosen transition, fetching only the shown one", () => {
     render(<Harness />);
-    fireEvent.click(button("Next"));
-    expect(lastArgs(mockUseFunnelStepErrorsQuery)[3]).toBe(5);
 
     fireEvent.click(openStepOptions()[2]);
 
     expect(onSelectStep).toHaveBeenCalledWith(2);
     expect(lastArgs(mockUseFunnelStepErrorsQuery)).toEqual([
       params,
+      37.5,
       "funnel-1",
       2,
       0,
@@ -306,6 +320,7 @@ describe("FunnelFriction step selector", () => {
     ]);
     expect(lastArgs(mockUseFunnelStepTracesQuery)).toEqual([
       params,
+      37.5,
       "funnel-1",
       2,
       "p50",
@@ -314,6 +329,7 @@ describe("FunnelFriction step selector", () => {
     ]);
     expect(lastArgs(mockUseFunnelStepNetworkQuery)).toEqual([
       params,
+      37.5,
       "funnel-1",
       2,
       "p50",
@@ -344,6 +360,7 @@ describe("FunnelFriction lists", () => {
     expect(onSelectStep).toHaveBeenCalledWith(null);
     expect(lastArgs(mockUseFunnelStepErrorsQuery)).toEqual([
       params,
+      37.5,
       "funnel-1",
       null,
       0,
@@ -351,6 +368,7 @@ describe("FunnelFriction lists", () => {
     ]);
     expect(lastArgs(mockUseFunnelStepTracesQuery)).toEqual([
       params,
+      37.5,
       "funnel-1",
       null,
       "p50",
@@ -359,6 +377,7 @@ describe("FunnelFriction lists", () => {
     ]);
     expect(lastArgs(mockUseFunnelStepNetworkQuery)).toEqual([
       params,
+      37.5,
       "funnel-1",
       null,
       "p50",
@@ -367,11 +386,12 @@ describe("FunnelFriction lists", () => {
     ]);
   });
 
-  it("queries each list for the selected step on the first page at p50, fetching only the shown one", () => {
+  it("queries each list for the selected step on the first page at p50 in the sample of the conversion, fetching only the shown one", () => {
     render(<Harness />);
 
     expect(lastArgs(mockUseFunnelStepErrorsQuery)).toEqual([
       params,
+      37.5,
       "funnel-1",
       1,
       0,
@@ -379,6 +399,7 @@ describe("FunnelFriction lists", () => {
     ]);
     expect(lastArgs(mockUseFunnelStepTracesQuery)).toEqual([
       params,
+      37.5,
       "funnel-1",
       1,
       "p50",
@@ -387,6 +408,7 @@ describe("FunnelFriction lists", () => {
     ]);
     expect(lastArgs(mockUseFunnelStepNetworkQuery)).toEqual([
       params,
+      37.5,
       "funnel-1",
       1,
       "p50",
@@ -468,12 +490,12 @@ describe("FunnelFriction lists", () => {
 
     fireEvent.click(button("p95"));
 
-    expect(lastArgs(mockUseFunnelStepTracesQuery).slice(3)).toEqual([
+    expect(lastArgs(mockUseFunnelStepTracesQuery).slice(4)).toEqual([
       "p95",
       0,
       true,
     ]);
-    expect(lastArgs(mockUseFunnelStepNetworkQuery).slice(3)).toEqual([
+    expect(lastArgs(mockUseFunnelStepNetworkQuery).slice(4)).toEqual([
       "p95",
       0,
       true,
@@ -533,13 +555,13 @@ describe("FunnelFriction pagination", () => {
     fireEvent.click(button("Next"));
     fireEvent.click(button("Next"));
 
-    expect(lastArgs(mockUseFunnelStepTracesQuery)[4]).toBe(10);
-    expect(lastArgs(mockUseFunnelStepErrorsQuery)[3]).toBe(0);
-    expect(lastArgs(mockUseFunnelStepNetworkQuery)[4]).toBe(0);
+    expect(lastArgs(mockUseFunnelStepTracesQuery)[5]).toBe(10);
+    expect(lastArgs(mockUseFunnelStepErrorsQuery)[4]).toBe(0);
+    expect(lastArgs(mockUseFunnelStepNetworkQuery)[5]).toBe(0);
 
     fireEvent.click(button("Previous"));
 
-    expect(lastArgs(mockUseFunnelStepTracesQuery)[4]).toBe(5);
+    expect(lastArgs(mockUseFunnelStepTracesQuery)[5]).toBe(5);
   });
 
   it("does not page back past the first page", () => {
@@ -550,7 +572,7 @@ describe("FunnelFriction pagination", () => {
 
     fireEvent.click(button("Previous"));
 
-    expect(lastArgs(mockUseFunnelStepErrorsQuery)[3]).toBe(0);
+    expect(lastArgs(mockUseFunnelStepErrorsQuery)[4]).toBe(0);
   });
 
   it("keeps each list's page when switching tabs", () => {
@@ -563,50 +585,42 @@ describe("FunnelFriction pagination", () => {
     fireEvent.click(button("Network"));
     fireEvent.click(button("Errors"));
 
-    expect(lastArgs(mockUseFunnelStepErrorsQuery)[3]).toBe(5);
+    expect(lastArgs(mockUseFunnelStepErrorsQuery)[4]).toBe(5);
   });
+});
 
-  it("keeps the percentile and goes back to the first page when the step changes", () => {
-    mockUseFunnelStepTracesQuery.mockReturnValue(
-      listQuery([stepTrace], { next: true }),
+describe("FunnelFriction past the last page", () => {
+  it("sends a list that comes back empty past its first page back to the first page", () => {
+    mockUseFunnelStepErrorsQuery.mockImplementation((...args: unknown[]) =>
+      args[4] === 0
+        ? listQuery([stepError], { next: true })
+        : listQuery([], { previous: true }),
     );
-    render(<Harness initialList={FrictionList.Traces} />);
-    fireEvent.click(button("p95"));
+    render(<Harness />);
+
     fireEvent.click(button("Next"));
 
-    fireEvent.click(openStepOptions()[0]);
-
-    expect(lastArgs(mockUseFunnelStepTracesQuery)).toEqual([
-      params,
-      "funnel-1",
-      null,
-      "p95",
-      0,
-      true,
-    ]);
-    expect(screen.getByText("Conversion Duration (p95)")).toBeInTheDocument();
+    expect(onPastLastPage).toHaveBeenCalledWith(FrictionList.Errors);
+    expect(lastArgs(mockUseFunnelStepErrorsQuery)[4]).toBe(0);
   });
 
-  it.each([
-    ["start date", { startDate: "2026-01-02T00:00:00Z" }],
-    ["end date", { endDate: "2026-02-01T00:00:00Z" }],
-    ["filter", { filterExpr: "os_name:in:android" }],
-  ])("goes back to the first page when the %s changes", (_, change) => {
-    mockUseFunnelStepErrorsQuery.mockReturnValue(
-      listQuery([stepError], { next: true }),
+  it("keeps an empty first page", () => {
+    mockUseFunnelStepErrorsQuery.mockReturnValue(listQuery([]));
+    render(<Harness />);
+
+    expect(onPastLastPage).not.toHaveBeenCalled();
+  });
+
+  it("keeps the page while the list shows the rows of the previous page", () => {
+    mockUseFunnelStepErrorsQuery.mockImplementation((...args: unknown[]) =>
+      args[4] === 0
+        ? listQuery([stepError], { next: true })
+        : { ...listQuery([]), isPlaceholderData: true },
     );
-    const { rerender } = render(<Harness />);
+    render(<Harness />);
+
     fireEvent.click(button("Next"));
 
-    const changed = { ...params, ...change };
-    rerender(<Harness sectionParams={changed} />);
-
-    expect(lastArgs(mockUseFunnelStepErrorsQuery)).toEqual([
-      changed,
-      "funnel-1",
-      1,
-      0,
-      true,
-    ]);
+    expect(onPastLastPage).not.toHaveBeenCalled();
   });
 });

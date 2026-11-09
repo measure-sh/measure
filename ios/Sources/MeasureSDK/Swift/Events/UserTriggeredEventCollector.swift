@@ -84,7 +84,6 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
         guard attributeValueValidator.validateAttributes(name: screenName, attributes: attributes) else { return }
 
         let timestamp = timeProvider.now()
-        let needsReporting = signalSampler.shouldTrackJourneyForSession(sessionId: sessionManager.sessionId)
         layoutSnapshotCollector.captureAttachment { [weak self] attachment in
             guard let self else { return }
             self.track(ScreenViewData(name: screenName),
@@ -92,7 +91,7 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                         timestamp: timestamp,
                         userDefinedAttributes: EventSerializer.serializeUserDefinedAttribute(attributes),
                         attachments: attachment == nil ? nil : [attachment!],
-                        needsReporting: needsReporting)
+                        needsReporting: false)
         }
     }
 
@@ -241,7 +240,7 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                                            attachments: attachments,
                                            userDefinedAttributes: userDefinedAttributes,
                                            threadName: nil,
-                                           needsReporting: signalSampler.shouldSampleHttpEvent())
+                                           needsReporting: needsReporting)
     }
 
     private func getContentType(headers: [String: String]?) -> String? {

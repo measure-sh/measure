@@ -23,11 +23,11 @@ func TestNewNotifPref(t *testing.T) {
 	if pref.UserId != userId {
 		t.Errorf("userId mismatch: expected %v, got %v", userId, pref.UserId)
 	}
-	if !pref.ErrorSpike {
-		t.Errorf("ErrorSpike should be true")
+	if !pref.FatalErrorSpike {
+		t.Errorf("FatalErrorSpike should be true")
 	}
-	if !pref.AppHangSpike {
-		t.Errorf("AppHangSpike should be true")
+	if !pref.AnrAppHangSpike {
+		t.Errorf("AnrAppHangSpike should be true")
 	}
 	if !pref.BugReport {
 		t.Errorf("BugReport should be true")
@@ -49,18 +49,18 @@ func TestNotifPrefMarshalJSON(t *testing.T) {
 	updatedAt := time.Date(2023, 4, 5, 12, 0, 0, 0, time.UTC)
 
 	pref := NotifPref{
-		UserId:       userId,
-		ErrorSpike:   true,
-		AppHangSpike: false,
-		BugReport:    true,
-		DailySummary: false,
-		CreatedAt:    createdAt,
-		UpdatedAt:    updatedAt,
+		UserId:          userId,
+		FatalErrorSpike: true,
+		AnrAppHangSpike: false,
+		BugReport:       true,
+		DailySummary:    false,
+		CreatedAt:       createdAt,
+		UpdatedAt:       updatedAt,
 	}
 
 	expectedJSON := `{
-		"error_spike": true,
-		"app_hang_spike": false,
+		"fatal_error_spike": true,
+		"anr_app_hang_spike": false,
 		"bug_report": true,
 		"daily_summary": false,
 		"created_at": "2023-04-04T12:00:00Z",
@@ -94,16 +94,16 @@ func TestNotifPrefString(t *testing.T) {
 	updatedAt := time.Date(2023, 4, 5, 12, 0, 0, 0, time.UTC)
 
 	pref := NotifPref{
-		UserId:       userId,
-		ErrorSpike:   true,
-		AppHangSpike: false,
-		BugReport:    true,
-		DailySummary: false,
-		CreatedAt:    createdAt,
-		UpdatedAt:    updatedAt,
+		UserId:          userId,
+		FatalErrorSpike: true,
+		AnrAppHangSpike: false,
+		BugReport:       true,
+		DailySummary:    false,
+		CreatedAt:       createdAt,
+		UpdatedAt:       updatedAt,
 	}
 
-	expectedString := fmt.Sprintf("NotifPref - userId: %s, error_spike: true, app_hang_spike: false, bug_report: true, daily_summary: false, created_at: %s, updated_at: %s", userId, createdAt, updatedAt)
+	expectedString := fmt.Sprintf("NotifPref - userId: %s, fatal_error_spike: true, anr_app_hang_spike: false, bug_report: true, daily_summary: false, created_at: %s, updated_at: %s", userId, createdAt, updatedAt)
 
 	trimmedExpected := strings.TrimSpace(expectedString)
 	trimmedActual := strings.TrimSpace(pref.String())
@@ -129,11 +129,11 @@ func TestCreateNotifPref(t *testing.T) {
 		t.Fatalf("GetNotifPref failed: %v", err)
 	}
 
-	if !pref.ErrorSpike {
-		t.Errorf("ErrorSpike should default to true")
+	if !pref.FatalErrorSpike {
+		t.Errorf("FatalErrorSpike should default to true")
 	}
-	if !pref.AppHangSpike {
-		t.Errorf("AppHangSpike should default to true")
+	if !pref.AnrAppHangSpike {
+		t.Errorf("AnrAppHangSpike should default to true")
 	}
 	if !pref.BugReport {
 		t.Errorf("BugReport should default to true")
@@ -169,7 +169,7 @@ func TestUpdateNotifPref(t *testing.T) {
 		t.Fatalf("GetNotifPref failed: %v", err)
 	}
 
-	pref.ErrorSpike = false
+	pref.FatalErrorSpike = false
 	pref.DailySummary = false
 	pref.UpdatedAt = time.Now()
 
@@ -182,11 +182,11 @@ func TestUpdateNotifPref(t *testing.T) {
 		t.Fatalf("GetNotifPref after update failed: %v", err)
 	}
 
-	if updated.ErrorSpike {
-		t.Errorf("ErrorSpike should be false after update")
+	if updated.FatalErrorSpike {
+		t.Errorf("FatalErrorSpike should be false after update")
 	}
-	if !updated.AppHangSpike {
-		t.Errorf("AppHangSpike should still be true")
+	if !updated.AnrAppHangSpike {
+		t.Errorf("AnrAppHangSpike should still be true")
 	}
 	if !updated.BugReport {
 		t.Errorf("BugReport should still be true")
@@ -214,7 +214,7 @@ func TestUpdateNotifPrefIsolation(t *testing.T) {
 
 	// Update user1's prefs
 	pref1, _ := GetNotifPref(deps.PgPool, userId1)
-	pref1.ErrorSpike = false
+	pref1.FatalErrorSpike = false
 	pref1.UpdatedAt = time.Now()
 	if err := pref1.Update(deps.PgPool); err != nil {
 		t.Fatalf("update user1 failed: %v", err)
@@ -226,11 +226,11 @@ func TestUpdateNotifPrefIsolation(t *testing.T) {
 		t.Fatalf("GetNotifPref user2 failed: %v", err)
 	}
 
-	if !pref2.ErrorSpike {
-		t.Errorf("user2 ErrorSpike should still be true")
+	if !pref2.FatalErrorSpike {
+		t.Errorf("user2 FatalErrorSpike should still be true")
 	}
-	if !pref2.AppHangSpike {
-		t.Errorf("user2 AppHangSpike should still be true")
+	if !pref2.AnrAppHangSpike {
+		t.Errorf("user2 AnrAppHangSpike should still be true")
 	}
 	if !pref2.BugReport {
 		t.Errorf("user2 BugReport should still be true")

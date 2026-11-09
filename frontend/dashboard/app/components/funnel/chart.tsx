@@ -8,7 +8,12 @@ import { formatShare } from "./format";
 import { useStepColor } from "./step_color";
 import { numberToKMB } from "../../utils/number_utils";
 import { formatMillisToHumanReadable } from "../../utils/time_utils";
-import { PlotTooltipShell, PlotTooltipSwatch } from "../plot_tooltip";
+import {
+  PlotTooltip,
+  PlotTooltipArea,
+  PlotTooltipSwatch,
+  useTooltipTaps,
+} from "../plot_tooltip";
 import { Separator } from "../separator";
 
 function StepTooltip({
@@ -24,7 +29,7 @@ function StepTooltip({
   const step = steps[index];
   const previous = index === 0 ? null : steps[index - 1];
   const rows: { label: string; value: string; className?: string }[] = [
-    { label: "Users", value: step.users.toLocaleString() },
+    { label: "Users", value: numberToKMB(step.users) },
     {
       label: "Conversion from start",
       value: formatShare(step.users, steps[0].users),
@@ -38,7 +43,7 @@ function StepTooltip({
       },
       {
         label: "Dropped",
-        value: (previous.users - step.users).toLocaleString(),
+        value: numberToKMB(previous.users - step.users),
         className: "text-red-600 dark:text-red-400",
       },
     );
@@ -53,7 +58,7 @@ function StepTooltip({
   }
 
   return (
-    <PlotTooltipShell>
+    <PlotTooltip tapKey={String(index)}>
       <div className="flex flex-row items-center px-4 py-3">
         <PlotTooltipSwatch color={color} />
         <span className="px-2 font-display">{step.event_name}</span>
@@ -69,7 +74,7 @@ function StepTooltip({
           </Fragment>
         ))}
       </div>
-    </PlotTooltipShell>
+    </PlotTooltip>
   );
 }
 
@@ -129,6 +134,7 @@ export default function FunnelChart({
   onSelectStep,
 }: FunnelChartProps) {
   const colorOf = useStepColor();
+  const tooltipTaps = useTooltipTaps();
   const { steps } = conversion;
   // Event names can repeat across steps, so parts are keyed by position.
   const data: StepDatum[] = steps.map((step, i) => ({
@@ -138,35 +144,44 @@ export default function FunnelChart({
   }));
 
   return (
-    <div className="w-full h-72 font-body cursor-pointer">
-      <ResponsiveFunnel
-        data={data}
-        direction="horizontal"
-        margin={{ top: 20, right: 0, bottom: 20, left: 0 }}
-        spacing={8}
-        shapeBlending={0.66}
-        colors={(datum) => colorOf(datum.id)}
-        borderWidth={20}
-        borderOpacity={0.35}
-        valueFormat={(value) => numberToKMB(value)}
-        labelColor={{ from: "color", modifiers: [["darker", 3]] }}
-        layers={["parts", PartLabels]}
-        currentPartSizeExtension={10}
-        currentBorderWidth={28}
-        theme={chartTheme}
-        tooltip={({ part }) => (
-          <StepTooltip
-            conversion={conversion}
-            index={part.data.id}
-            color={part.color}
-          />
-        )}
-        onClick={(part) => {
-          if (part.data.id > 0) {
-            onSelectStep(part.data.id);
-          }
-        }}
-      />
+    <div className="w-full h-56 2xl:h-72 font-body cursor-pointer">
+      <PlotTooltipArea taps={tooltipTaps}>
+        <ResponsiveFunnel
+          data={data}
+          direction="horizontal"
+          margin={{ top: 20, right: 0, bottom: 20, left: 0 }}
+          spacing={8}
+          shapeBlending={0.66}
+          colors={(datum) => colorOf(datum.id)}
+          borderWidth={20}
+          borderOpacity={0.35}
+          valueFormat={(value) => numberToKMB(value)}
+          labelColor={{ from: "color", modifiers: [["darker", 3]] }}
+          layers={["parts", PartLabels]}
+          currentPartSizeExtension={10}
+          currentBorderWidth={28}
+          // nivo restarts each part's path animation from its previous target.
+          // If hover changes mid-animation, the part flashes before resizing.
+          // So we just turn it off to avoid a buggy animation.
+          animate={false}
+          theme={chartTheme}
+          tooltip={({ part }) => (
+            <StepTooltip
+              conversion={conversion}
+              index={part.data.id}
+              color={part.color}
+            />
+          )}
+          onClick={(part) => {
+            if (
+              part.data.id > 0 &&
+              tooltipTaps.shouldAct(String(part.data.id))
+            ) {
+              onSelectStep(part.data.id);
+            }
+          }}
+        />
+      </PlotTooltipArea>
     </div>
   );
 }

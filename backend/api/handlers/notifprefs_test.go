@@ -32,8 +32,8 @@ func TestGetNotifPrefsHandler(t *testing.T) {
 		t.Fatalf("status = %d, want 200", w.Code)
 	}
 
-	wantJSON(t, w, "error_spike", true)
-	wantJSON(t, w, "app_hang_spike", true)
+	wantJSON(t, w, "fatal_error_spike", true)
+	wantJSON(t, w, "anr_app_hang_spike", true)
 	wantJSON(t, w, "bug_report", true)
 	wantJSON(t, w, "daily_summary", true)
 }
@@ -66,7 +66,7 @@ func TestUpdateNotifPrefsHandler(t *testing.T) {
 		t.Fatalf("CreateNotifPref failed: %v", err)
 	}
 
-	body := strings.NewReader(`{"error_spike": false, "app_hang_spike": true, "bug_report": false, "daily_summary": true}`)
+	body := strings.NewReader(`{"fatal_error_spike": false, "anr_app_hang_spike": true, "bug_report": false, "daily_summary": true}`)
 	c, w := newTestGinContext("PATCH", "/notifPrefs", body)
 	c.Set("userId", userId.String())
 
@@ -82,11 +82,11 @@ func TestUpdateNotifPrefsHandler(t *testing.T) {
 		t.Fatalf("GetNotifPref failed: %v", err)
 	}
 
-	if pref.ErrorSpike {
-		t.Errorf("ErrorSpike should be false")
+	if pref.FatalErrorSpike {
+		t.Errorf("FatalErrorSpike should be false")
 	}
-	if !pref.AppHangSpike {
-		t.Errorf("AppHangSpike should be true")
+	if !pref.AnrAppHangSpike {
+		t.Errorf("AnrAppHangSpike should be true")
 	}
 	if pref.BugReport {
 		t.Errorf("BugReport should be false")

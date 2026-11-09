@@ -22,12 +22,7 @@ import type {
 import FunnelStepErrors from "@/app/components/funnel/step_errors";
 import FunnelStepNetwork from "@/app/components/funnel/step_network";
 import FunnelStepTraces from "@/app/components/funnel/step_traces";
-import {
-  RootSpanMetricsQuantile,
-  type useFunnelStepErrorsQuery,
-  type useFunnelStepNetworkQuery,
-  type useFunnelStepTracesQuery,
-} from "@/app/query/hooks";
+import { RootSpanMetricsQuantile } from "@/app/query/hooks";
 
 type StepError = FunnelStepErrorsResponse["results"][number];
 type StepTrace = FunnelStepTracesResponse["results"][number];
@@ -54,9 +49,7 @@ const errorQuery = {
 // The lists read only status, data and isFetching, so the stand-ins carry only
 // those.
 type ListQuery =
-  | ReturnType<typeof successQuery>
-  | typeof pendingQuery
-  | typeof errorQuery;
+  ReturnType<typeof successQuery> | typeof pendingQuery | typeof errorQuery;
 
 const stepError = (overrides: Partial<StepError> = {}): StepError => ({
   id: "group-1",
@@ -99,7 +92,9 @@ function renderErrors(query: ListQuery, offset = 0) {
     <FunnelStepErrors
       teamId="team-1"
       appId="app-1"
-      query={query as ReturnType<typeof useFunnelStepErrorsQuery>}
+      status={query.status}
+      data={query.data as FunnelStepErrorsResponse | undefined}
+      isFetching={query.isFetching}
       offset={offset}
       outcomes={outcomes}
     />,
@@ -111,7 +106,9 @@ function renderTraces(query: ListQuery, demo = false, onOpenItem?: () => void) {
     <FunnelStepTraces
       teamId="team-1"
       appId="app-1"
-      query={query as ReturnType<typeof useFunnelStepTracesQuery>}
+      status={query.status}
+      data={query.data as FunnelStepTracesResponse | undefined}
+      isFetching={query.isFetching}
       quantile={RootSpanMetricsQuantile.p90}
       offset={0}
       outcomes={outcomes}
@@ -126,7 +123,9 @@ function renderNetwork(query: ListQuery) {
     <FunnelStepNetwork
       teamId="team-1"
       appId="app-1"
-      query={query as ReturnType<typeof useFunnelStepNetworkQuery>}
+      status={query.status}
+      data={query.data as FunnelStepNetworkResponse | undefined}
+      isFetching={query.isFetching}
       quantile={RootSpanMetricsQuantile.p95}
       offset={0}
       outcomes={outcomes}

@@ -20,7 +20,7 @@ const ErrorsOverviewPlot: React.FC<{
   return (
     <div
       data-testid="exceptions-plot"
-      className="flex font-body items-center justify-center w-full h-144"
+      className="flex font-body items-center justify-center w-full h-64 2xl:h-96"
     >
       {status === "pending" && (
         <div data-testid="exceptions-plot-skeleton" className="w-full h-full">
@@ -51,12 +51,10 @@ const ErrorsOverviewPlot: React.FC<{
             formatTick={numberToKMB}
             startDate={startDate}
             endDate={endDate}
-            xAxisTitle="Date"
-            yAxisTitle="Error instances"
             integerTicks
             showAllSeriesInTooltip
             formatTooltip={(seriesId, datum) =>
-              `${seriesId} - ${formatCount(Number(datum.y), "instance", "instances")}`
+              `${seriesId} - ${formatCount(Number(datum.y), "error", "errors")}`
             }
           />
         </div>

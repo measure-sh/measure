@@ -96,14 +96,14 @@ export default function Overview({ params }: { params: { teamId: string } }) {
 
       {readyValue !== null && (
         <>
-          <div className="py-8" />
+          <div className="py-4" />
           <AppHealthPlot
             status={healthPlotQuery.status}
             plot={healthPlotQuery.data}
             startDate={readyValue.date.startDate}
             endDate={readyValue.date.endDate}
           />
-          <div className="py-8" />
+          <div className="py-6" />
           <MetricsOverview
             status={metricsQuery.status}
             metrics={metrics}

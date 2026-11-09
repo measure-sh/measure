@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 380" width="1200" height="380" font-family="Work Sans, Helvetica, Arial, sans-serif">
+<style>text { font-variant-ligatures: none; font-feature-settings: "liga" 0, "calt" 0; }</style>
+<rect x="0.5" y="0.5" width="1199" height="379" rx="12" fill="#111111" stroke="#2a2a2a" stroke-width="1"/>
+<text x="60" y="68" font-size="26" font-weight="600" fill="#d4d4d4">Running <tspan font-family="Fira Code, Menlo, monospace" fill="#fafafa">mul-int v0, v1, v2</tspan></text>
+<text x="60" y="167" font-size="21" font-weight="600" fill="#fafafa">Interpreter</text>
+<rect x="270" y="124" width="118" height="72" rx="8" fill="#171717" fill-opacity="1" stroke="#ffffff1a"/>
+<text x="329.0" y="155" font-size="17" font-weight="400" fill="#d4d4d4" text-anchor="middle">read</text>
+<text x="329.0" y="177" font-size="17" font-weight="400" fill="#d4d4d4" text-anchor="middle">opcode</text>
+<rect x="400" y="124" width="118" height="72" rx="8" fill="#171717" fill-opacity="1" stroke="#ffffff1a"/>
+<text x="459.0" y="155" font-size="17" font-weight="400" fill="#d4d4d4" text-anchor="middle">jump to</text>
+<text x="459.0" y="177" font-size="17" font-weight="400" fill="#d4d4d4" text-anchor="middle">handler</text>
+<rect x="530" y="124" width="118" height="72" rx="8" fill="#171717" fill-opacity="1" stroke="#ffffff1a"/>
+<text x="589.0" y="166" font-size="17" font-weight="400" fill="#d4d4d4" text-anchor="middle">load v1</text>
+<rect x="660" y="124" width="118" height="72" rx="8" fill="#171717" fill-opacity="1" stroke="#ffffff1a"/>
+<text x="719.0" y="166" font-size="17" font-weight="400" fill="#d4d4d4" text-anchor="middle">load v2</text>
+<rect x="790" y="124" width="118" height="72" rx="8" fill="#00bcff" fill-opacity="0.9" stroke="#00bcff"/>
+<text x="849.0" y="166" font-size="17" font-weight="600" fill="#111111" text-anchor="middle">multiply</text>
+<rect x="920" y="124" width="118" height="72" rx="8" fill="#171717" fill-opacity="1" stroke="#ffffff1a"/>
+<text x="979.0" y="166" font-size="17" font-weight="400" fill="#d4d4d4" text-anchor="middle">store v0</text>
+<rect x="1050" y="124" width="118" height="72" rx="8" fill="#171717" fill-opacity="1" stroke="#ffffff1a"/>
+<text x="1109.0" y="166" font-size="17" font-weight="400" fill="#d4d4d4" text-anchor="middle">next</text>
+<text x="60" y="297" font-size="21" font-weight="600" fill="#fafafa">Compiled code</text>
+<rect x="790" y="254" width="118" height="72" rx="8" fill="#00bcff" fill-opacity="0.9" stroke="#00bcff"/>
+<text x="849.0" y="296" font-size="17" font-weight="600" fill="#111111" text-anchor="middle">multiply</text>
+<path d="M1168 206 V222 H270 V206" fill="none" stroke="#525252" stroke-width="2"/>
+<text x="719.0" y="226" font-size="16" fill="#d4d4d4" text-anchor="middle" paint-order="stroke" stroke="#111111" stroke-width="10">for every instruction, every time the method runs</text>
+</svg>

@@ -23,10 +23,11 @@ type BugReport struct {
 	Attachments          []event.Attachment `json:"attachments" binding:"required"`
 }
 
-// BugReportDisplay provides a convenient
-// wrapper over BugReport for display purposes.
-type BugReportDisplay struct {
-	*BugReport
+// BugReportDetail represents a bug report and whether its session has a
+// replay.
+type BugReportDetail struct {
+	BugReport
+	HasReplay bool `json:"has_replay"`
 }
 
 // BugReportInstance represents an entity

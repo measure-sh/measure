@@ -1,7 +1,9 @@
 import { jsonResponse, SandboxRoute } from "./query";
 import { bugReportsRoutes } from "./bug_reports";
+import { devicesRoutes } from "./devices";
 import { errorsRoutes } from "./errors";
 import { funnelsRoutes } from "./funnels";
+import { journeyRoutes } from "./journey_graph";
 import { memoryRoutes } from "./memory";
 import { networkRoutes } from "./network";
 import { overviewRoutes } from "./overview";
@@ -16,11 +18,13 @@ const routes: SandboxRoute[] = [
   ...sessionsRoutes,
   ...errorsRoutes,
   ...funnelsRoutes,
+  ...journeyRoutes,
   ...bugReportsRoutes,
   ...tracesRoutes,
   ...networkRoutes,
   ...memoryRoutes,
   ...profilesRoutes,
+  ...devicesRoutes,
   ...settingsRoutes,
 ];
 

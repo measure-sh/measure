@@ -186,7 +186,6 @@ export function NetworkOverviewDemo({
         {hideTitle ? "" : "Network Performance"}
       </p>
       {!hideTitle && <div className="py-4" />}
-      <div className="py-8" />
 
       <NetworkOverviewSections
         statusPlotStatus="success"
@@ -293,7 +292,7 @@ export default function NetworkOverview({
               }
             />
           </div>
-          <div className="py-4" />
+          <div className="py-2" />
           <NetworkEndpointSearch
             key={teamId}
             teamId={teamId}
@@ -372,7 +371,7 @@ function NetworkOverviewSections({
       <div className="w-full">
         <p className="font-display text-xl">Status Distribution</p>
         <div className="py-2" />
-        <div className="flex font-body items-center justify-center w-full h-144">
+        <div className="flex font-body items-center justify-center w-full h-64 2xl:h-96">
           {(statusPlotStatus === "pending" ||
             (statusPlotStatus === "success" && !shouldRenderStatusPlot)) && (
             <SkeletonPlot />
@@ -414,7 +413,7 @@ function NetworkOverviewSections({
           <InfoTooltip content={timelineTooltip} />
         </div>
         {shouldRenderTimeline && (
-          <div className="py-8">
+          <div className="pt-4 pb-8">
             <NetworkTimelinePlot data={timelinePlotData!} />
           </div>
         )}

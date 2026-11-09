@@ -124,6 +124,11 @@ final class CrashDataFormatterTests: XCTestCase {
         XCTAssertEqual(sut.parseExceptionReason(), "")
     }
 
+    func test_parseExceptionDetail_truncatesMessageTo8192Characters() {
+        let sut = makeFormatter(error: ["nsexception": ["reason": String(repeating: "a", count: 10_000)]])
+        XCTAssertEqual(sut.parseExceptionDetail(crashedThread: nil).message, String(repeating: "a", count: 8192))
+    }
+
     func test_parseSignalName_returnsSignalName() {
         let sut = makeFormatter(error: ["signal": ["name": "SIGABRT"]])
         XCTAssertEqual(sut.parseSignalName(), "SIGABRT")

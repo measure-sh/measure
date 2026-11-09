@@ -95,6 +95,7 @@ func seedHttpMetrics(
 	t *testing.T,
 	teamID, appID, domain, path, patchVersion string,
 	patchID uuid.UUID,
+	deviceModel string,
 	requestCount, count2xx, count4xx, count5xx uint64,
 	ts time.Time,
 ) {
@@ -118,6 +119,7 @@ func seedHttpMetrics(
 			[toUUID('%s')] AS patch_ids,
 			['samsung'] AS device_manufacturers,
 			['galaxy'] AS device_names,
+			['%s'] AS device_models,
 			['provider'] AS network_providers,
 			['wifi'] AS network_types,
 			['4g'] AS network_generations,
@@ -134,6 +136,7 @@ func seedHttpMetrics(
 		teamID, appID, tsStr,
 		domain, path,
 		patchVersion, patchID.String(),
+		deviceModel,
 		requestCount,
 		count2xx,
 		count4xx,

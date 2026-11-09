@@ -1,0 +1,68 @@
+---
+title: "Migration Guide for `v0.14.x`"
+seoTitle: "Self-Hosted Measure v0.14.x Migration Guide"
+description: "Migration guide for self-hosted Measure v0.14.x. Backfills the analytics events that Journeys and Funnels read."
+---
+
+Use this guide only when you are on less than `v0.14.0` and upgrading to `v0.14.x`.
+
+<Callout type="warn">
+
+Steps mentioned in this document will cause downtime.
+
+</Callout>
+
+Follow these steps when upgrading to `0.14.x`. There is some downtime involved. During the downtime SDKs would receive a `503 Service Unavailable` when sending sessions. Once the upgrade is complete, ingestion should resume normally. SDKs will retry sending unsent sessions automatically.
+
+## 1. Shutdown all Measure services
+
+SSH into the VM where Measure is hosted.
+
+```sh
+cd ~/measure/self-host
+```
+
+```sh
+sudo docker compose -f compose.yml -f compose.prod.yml --profile migrate down --remove-orphans
+```
+
+## 2. Perform the upgrade
+
+Visit [Releases](https://github.com/measure-sh/measure/releases) page to capture the latest tag matching the `v[MAJOR].[MINOR].[PATCH]` format. For example, `v0.14.0`.
+
+```sh
+cd ~/measure
+```
+
+```sh
+git reset --hard # only applies if you have local modifications
+```
+
+```sh
+git fetch --tags
+```
+
+```sh
+# replace <git-tag> with the chosen tag. example: v0.14.0
+git checkout <git-tag>
+```
+
+## 3. Start Measure services
+
+```sh
+cd ~/measure/self-host
+```
+
+```sh
+sudo ./install.sh
+```
+
+## 4. Run data back filling script
+
+Perform this step to complete the migration. Measure dashboard will not work properly until this script is run.
+
+```sh
+sudo ./migrations/v0.14.x-data-backfills.sh
+```
+
+If the script fails, it prints a command that resumes the backfill from the chunk that failed. Run that command.

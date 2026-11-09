@@ -20,7 +20,6 @@ import { numberToKMB } from "../utils/number_utils";
 import { cn } from "../utils/shadcn_utils";
 import {
   CHART_GRID_DOT_SIZE,
-  CHART_TEXT_SIZE,
   CHART_TICK_PADDING,
   CHART_TICK_SIZE,
   CHART_VALUE_TICK_COUNT,
@@ -33,7 +32,12 @@ import {
 } from "../utils/chart_utils";
 import { Button } from "./button";
 import EmptyState from "./empty_state";
-import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
+import {
+  PlotTooltip,
+  PlotTooltipArea,
+  PlotTooltipSwatch,
+  useTooltipTaps,
+} from "./plot_tooltip";
 import { SkeletonPlot } from "./skeleton";
 
 const demoValues: Record<DistributionAttribute, [string, number][]> = {
@@ -116,9 +120,9 @@ function truncateLabel(label: string): string {
 
 // Both charts share these margins so their axes stay in place when the user
 // switches between them.
-const yAxisMargin = chartAxisMargin(COUNT_TICK_LABEL_WIDTH, true);
+const yAxisMargin = chartAxisMargin(COUNT_TICK_LABEL_WIDTH, false);
 
-const chartMargin = { top: 40, right: 20, bottom: 180, left: yAxisMargin };
+const chartMargin = { top: 40, right: 20, bottom: 92, left: yAxisMargin };
 
 const summaryPadding = 0.6;
 
@@ -138,9 +142,6 @@ const errorInstancesAxis = {
   tickValues: CHART_VALUE_TICK_COUNT,
   format: (value: number) =>
     Number.isInteger(value) ? numberToKMB(value) : "",
-  legend: "Error instances",
-  legendOffset: -(yAxisMargin - CHART_TEXT_SIZE / 2),
-  legendPosition: "middle" as const,
 };
 
 // Bars have no positions along the x axis for the grid to follow, so the dots
@@ -176,6 +177,7 @@ function DotGrid<Datum extends BarDatum>({
 }
 
 interface DistributionTooltipProps {
+  tapKey?: string;
   label: string;
   count: number;
   total: number;
@@ -183,26 +185,34 @@ interface DistributionTooltipProps {
 }
 
 const DistributionTooltip: React.FC<DistributionTooltipProps> = ({
+  tapKey,
   label,
   count,
   total,
   color,
 }) => (
-  <PlotTooltipShell className="px-4 py-2">
+  <PlotTooltip className="px-4 py-2" tapKey={tapKey}>
     <div className="flex flex-row items-center p-2">
       <PlotTooltipSwatch color={color} />
       <span className="px-2">
-        {label} - {numberToKMB(count)} {count === 1 ? "instance" : "instances"}{" "}
-        ({formatShare(count, total)})
+        {label} - {numberToKMB(count)} {count === 1 ? "error" : "errors"} (
+        {formatShare(count, total)})
       </span>
     </div>
-  </PlotTooltipShell>
+  </PlotTooltip>
 );
 
 const otherKey = "other";
 
 function valueKey(rank: number): string {
   return `value-${rank}`;
+}
+
+function segmentKey(
+  attribute: string | number,
+  segment: string | number,
+): string {
+  return `${attribute}:${segment}`;
 }
 
 interface SummaryChartProps {
@@ -213,6 +223,7 @@ interface SummaryChartProps {
 // Keys are value ranks, since every attribute has different values.
 const SummaryChart: React.FC<SummaryChartProps> = ({ summary, onSelect }) => {
   const chartColors = useChartColors();
+  const tooltipTaps = useTooltipTaps();
   const ranks = Math.max(
     ...summary.map((distribution) => distribution.values.length),
   );
@@ -234,50 +245,52 @@ const SummaryChart: React.FC<SummaryChartProps> = ({ summary, onSelect }) => {
   );
 
   return (
-    <ResponsiveBar
-      data={data}
-      keys={keys}
-      indexBy="attribute"
-      theme={chartTheme}
-      colors={chartColors}
-      margin={chartMargin}
-      padding={summaryPadding}
-      axisTop={null}
-      axisRight={null}
-      axisBottom={{
-        legend: "Attributes",
-        tickPadding: 10,
-        legendOffset: 96,
-        tickRotation: 60,
-        legendPosition: "middle",
-        format: (attribute) => byAttribute.get(attribute)?.label ?? "",
-      }}
-      axisLeft={errorInstancesAxis}
-      enableLabel={false}
-      enableGridX={false}
-      enableGridY={false}
-      layers={[DotGrid, "axes", "bars"]}
-      onClick={({ indexValue }) =>
-        onSelect(indexValue as DistributionAttribute)
-      }
-      tooltip={({ id, indexValue, value, color }) => {
-        const distribution = byAttribute.get(
-          indexValue as DistributionAttribute,
-        )!;
-        return (
-          <DistributionTooltip
-            label={
-              id === otherKey
-                ? otherLabel(distribution)
-                : distribution.values[keys.indexOf(String(id))].label
-            }
-            count={value}
-            total={distribution.total}
-            color={color}
-          />
-        );
-      }}
-    />
+    <PlotTooltipArea taps={tooltipTaps}>
+      <ResponsiveBar
+        data={data}
+        keys={keys}
+        indexBy="attribute"
+        theme={chartTheme}
+        colors={chartColors}
+        margin={chartMargin}
+        padding={summaryPadding}
+        axisTop={null}
+        axisRight={null}
+        axisBottom={{
+          tickPadding: 10,
+          tickRotation: 60,
+          format: (attribute) => byAttribute.get(attribute)?.label ?? "",
+        }}
+        axisLeft={errorInstancesAxis}
+        enableLabel={false}
+        enableGridX={false}
+        enableGridY={false}
+        layers={[DotGrid, "axes", "bars"]}
+        onClick={({ id, indexValue }) => {
+          if (tooltipTaps.shouldAct(segmentKey(indexValue, id))) {
+            onSelect(indexValue as DistributionAttribute);
+          }
+        }}
+        tooltip={({ id, indexValue, value, color }) => {
+          const distribution = byAttribute.get(
+            indexValue as DistributionAttribute,
+          )!;
+          return (
+            <DistributionTooltip
+              tapKey={segmentKey(indexValue, id)}
+              label={
+                id === otherKey
+                  ? otherLabel(distribution)
+                  : distribution.values[keys.indexOf(String(id))].label
+              }
+              count={value}
+              total={distribution.total}
+              color={color}
+            />
+          );
+        }}
+      />
+    </PlotTooltipArea>
   );
 };
 
@@ -296,39 +309,38 @@ const AttributeChart: React.FC<AttributeChartProps> = ({ distribution }) => {
   }));
 
   return (
-    <ResponsiveBar
-      data={data}
-      keys={["count"]}
-      indexBy="id"
-      theme={chartTheme}
-      colors={chartColors}
-      colorBy="indexValue"
-      margin={chartMargin}
-      padding={attributeChartPadding(data.length)}
-      axisTop={null}
-      axisRight={null}
-      axisBottom={{
-        legend: distribution.label,
-        tickPadding: 10,
-        legendOffset: 96,
-        tickRotation: 60,
-        legendPosition: "middle",
-        format: (id) => truncateLabel(data[Number(id)].label),
-      }}
-      axisLeft={errorInstancesAxis}
-      enableLabel={false}
-      enableGridX={false}
-      enableGridY={false}
-      layers={[DotGrid, "axes", "bars"]}
-      tooltip={({ data: datum, value, color }) => (
-        <DistributionTooltip
-          label={datum.label}
-          count={value}
-          total={distribution.total}
-          color={color}
-        />
-      )}
-    />
+    <PlotTooltipArea>
+      <ResponsiveBar
+        data={data}
+        keys={["count"]}
+        indexBy="id"
+        theme={chartTheme}
+        colors={chartColors}
+        colorBy="indexValue"
+        margin={chartMargin}
+        padding={attributeChartPadding(data.length)}
+        axisTop={null}
+        axisRight={null}
+        axisBottom={{
+          tickPadding: 10,
+          tickRotation: 60,
+          format: (id) => truncateLabel(data[Number(id)].label),
+        }}
+        axisLeft={errorInstancesAxis}
+        enableLabel={false}
+        enableGridX={false}
+        enableGridY={false}
+        layers={[DotGrid, "axes", "bars"]}
+        tooltip={({ data: datum, value, color }) => (
+          <DistributionTooltip
+            label={datum.label}
+            count={value}
+            total={distribution.total}
+            color={color}
+          />
+        )}
+      />
+    </PlotTooltipArea>
   );
 };
 
@@ -357,7 +369,7 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
   return (
     <div
       data-testid="exception-distribution-plot"
-      className="flex font-body items-center justify-center w-full md:w-1/2 h-128 select-none"
+      className="flex font-body items-center justify-center w-full md:w-1/2 h-106 select-none"
     >
       {effectiveStatus === "pending" && <SkeletonPlot />}
       {effectiveStatus === "error" && (
@@ -373,7 +385,7 @@ const ErrorsDistributionPlot: React.FC<ErrorsDistributionPlotProps> = ({
         >
           <EmptyState
             icon={ChartColumn}
-            title="No distribution data found"
+            title="No errors found"
             description="Try a wider time range or different filters"
             className="h-full"
           />

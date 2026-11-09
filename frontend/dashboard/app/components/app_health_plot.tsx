@@ -149,12 +149,13 @@ const AppHealthPlot: React.FC<AppHealthPlotProps> = ({
         Sessions: chartColor.blue,
         Crashes: chartColor.red,
         ANRs: chartColor.amber,
+        "App Hangs": chartColor.amber,
       }) as const,
     [chartColor],
   );
 
   return (
-    <div className="flex font-body items-center justify-center w-full h-96">
+    <div className="flex font-body items-center justify-center w-full h-64 2xl:h-96">
       {status === "pending" && <SkeletonPlot />}
       {status === "error" && (
         <p className="text-lg font-display text-center p-4">
@@ -182,7 +183,7 @@ const AppHealthPlot: React.FC<AppHealthPlotProps> = ({
             integerTicks
             colors={(id) => colorMap[id as keyof typeof colorMap] || "#888"}
             formatTooltip={(seriesId, datum) =>
-              `${seriesId} - ${Number(datum.y).toLocaleString()}`
+              `${seriesId} - ${numberToKMB(Number(datum.y))}`
             }
           />
         </div>

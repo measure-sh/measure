@@ -91,11 +91,11 @@ export default function HighMemoryUsageSessions({
             />
           </div>
           <div
-            className={`w-full py-3 ${isFetching ? "visible" : "invisible"}`}
+            className={`py-4 w-full ${isFetching ? "visible" : "invisible"}`}
           >
             <LoadingBar />
           </div>
-          <Table className="font-display select-none">
+          <Table className="font-display select-none max-lg:min-w-140">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[50%]">
@@ -104,9 +104,7 @@ export default function HighMemoryUsageSessions({
                 <TableHead className="w-[30%] text-center">
                   Peak memory usage
                 </TableHead>
-                <TableHead className="w-[20%] text-center">
-                  Start time
-                </TableHead>
+                <TableHead className="w-[20%] text-right">Start time</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -182,7 +180,7 @@ export default function HighMemoryUsageSessions({
                           </p>
                         </div>
                       </TableCell>
-                      <TableCell className="relative w-[20%] p-0 text-center">
+                      <TableCell className="relative w-[20%] p-0 text-right">
                         <Link
                           href={href}
                           className="absolute inset-0 z-10 cursor-pointer"

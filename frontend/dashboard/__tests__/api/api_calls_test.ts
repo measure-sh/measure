@@ -65,6 +65,11 @@ import {
   fetchFunnelTrendFromServer,
   fetchHighMemoryUsageSessionsFromServer,
   fetchJourneyFromServer,
+  fetchJourneyErrorsFromServer,
+  fetchJourneyNetworkFromServer,
+  fetchJourneySessionsFromServer,
+  fetchJourneyTracesFromServer,
+  fetchJourneyPathUsersFromServer,
   fetchMemoryUsageBreakdownFromServer,
   fetchMemoryUsagePlotFromServer,
   fetchMetricsFromServer,
@@ -92,7 +97,6 @@ import {
   fetchTraceFromServer,
   fetchUsageFromServer,
   inviteMemberFromServer,
-  JourneyType,
   removeMemberFromServer,
   removePendingInviteFromServer,
   reorderPinnedFunnelsFromServer,
@@ -433,7 +437,6 @@ describe("fetchJourneyFromServer", () => {
     expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
     expect(url.searchParams.get("timezone")).toBeTruthy();
     expect(url.searchParams.has("filter_expr")).toBe(false);
-    expect(url.searchParams.has("bigraph")).toBe(false);
   });
 
   it("sends the filter expression when one is given", async () => {
@@ -451,6 +454,163 @@ describe("fetchJourneyFromServer", () => {
   it("throws on exception", async () => {
     mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
     await expect(call()).rejects.toThrow(RequestError);
+  });
+});
+
+// ========================================================================
+// fetchJourneyErrorsFromServer, fetchJourneyTracesFromServer,
+// fetchJourneyNetworkFromServer, fetchJourneySessionsFromServer
+// ========================================================================
+describe("journey list fetchers", () => {
+  const call = (
+    list: "errors" | "traces" | "network" | "sessions",
+    selection:
+      | { node: string }
+      | { source: string; target: string }
+      | { path: string[] },
+    quantile = "p50",
+    filterExpr: string | null = null,
+    samplePercent: number | null = null,
+  ) => {
+    const range = [
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      filterExpr,
+      samplePercent,
+      selection,
+    ] as const;
+    switch (list) {
+      case "errors":
+        return fetchJourneyErrorsFromServer(...range, 5, 10);
+      case "traces":
+        return fetchJourneyTracesFromServer(...range, quantile, 5, 10);
+      case "network":
+        return fetchJourneyNetworkFromServer(...range, quantile, 5, 10);
+      case "sessions":
+        return fetchJourneySessionsFromServer(...range, 5, 10);
+    }
+  };
+
+  it("sends a node selection, the range and the page in the URL", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await call("errors", { node: "CartActivity" });
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/journey/errors");
+    expect(url.searchParams.get("node")).toBe("CartActivity");
+    expect(url.searchParams.has("source")).toBe(false);
+    expect(url.searchParams.has("target")).toBe(false);
+    expect(url.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
+    expect(url.searchParams.get("timezone")).toBeTruthy();
+    expect(url.searchParams.get("limit")).toBe("5");
+    expect(url.searchParams.get("offset")).toBe("10");
+    expect(url.searchParams.has("quantile")).toBe(false);
+    expect(url.searchParams.has("filter_expr")).toBe(false);
+    expect(url.searchParams.has("sample_percent")).toBe(false);
+  });
+
+  it("sends the sample percent of the journey at full precision", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await call(
+      "sessions",
+      { node: "CartActivity" },
+      "p50",
+      null,
+      12.345678901234567,
+    );
+    expect(
+      new URL(lastFetchUrl(), "http://localhost").searchParams.get(
+        "sample_percent",
+      ),
+    ).toBe("12.345678901234567");
+  });
+
+  it("sends a link selection as its source and target", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await call("sessions", { source: "CartActivity", target: "checkout" });
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/journey/sessions");
+    expect(url.searchParams.get("source")).toBe("CartActivity");
+    expect(url.searchParams.get("target")).toBe("checkout");
+    expect(url.searchParams.has("node")).toBe(false);
+  });
+
+  it("sends a path selection as its nodes in order", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    await call("traces", { path: ["Home", "Cart", "Home"] }, "p50");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.searchParams.getAll("path")).toEqual(["Home", "Cart", "Home"]);
+    expect(url.searchParams.has("node")).toBe(false);
+    expect(url.searchParams.has("source")).toBe(false);
+  });
+
+  it.each(["traces", "network"] as const)(
+    "sends the quantile and filter expression for %s and returns the body",
+    async (list) => {
+      const body = { meta: { next: true, previous: false }, results: [] };
+      mockApiClientFetch.mockResolvedValueOnce(successResponse(body));
+      const result = await call(
+        list,
+        { node: "CartActivity" },
+        "p95",
+        "version_name:in:1.2.0",
+      );
+      const url = new URL(lastFetchUrl(), "http://localhost");
+      expect(url.pathname).toBe(`/api/apps/app-a/journey/${list}`);
+      expect(url.searchParams.get("quantile")).toBe("p95");
+      expect(url.searchParams.get("filter_expr")).toBe("version_name:in:1.2.0");
+      expect(result).toEqual(body);
+    },
+  );
+
+  it("throws on non-ok", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(errorResponse());
+    await expect(call("errors", { node: "CartActivity" })).rejects.toThrow(
+      ApiError,
+    );
+  });
+
+  it("throws on exception", async () => {
+    mockApiClientFetch.mockRejectedValueOnce(new Error("x"));
+    await expect(call("errors", { node: "CartActivity" })).rejects.toThrow(
+      RequestError,
+    );
+  });
+});
+
+// ========================================================================
+// fetchJourneyPathUsersFromServer
+// ========================================================================
+describe("fetchJourneyPathUsersFromServer", () => {
+  const call = (
+    filterExpr: string | null = null,
+    samplePercent: number | null = null,
+  ) =>
+    fetchJourneyPathUsersFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      filterExpr,
+      samplePercent,
+      ["Home", "Cart"],
+    );
+
+  it("sends the path, the range and the filter expression and returns the body", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(successResponse({ users: 42 }));
+    const result = await call("version_name:in:1.2.0");
+    const url = new URL(lastFetchUrl(), "http://localhost");
+    expect(url.pathname).toBe("/api/apps/app-a/journey/path");
+    expect(url.searchParams.getAll("path")).toEqual(["Home", "Cart"]);
+    expect(url.searchParams.get("from")).toBe("2026-04-01T00:00:00.000Z");
+    expect(url.searchParams.get("to")).toBe("2026-04-10T00:00:00.000Z");
+    expect(url.searchParams.get("filter_expr")).toBe("version_name:in:1.2.0");
+    expect(result).toEqual({ users: 42 });
+  });
+
+  it("throws on non-ok", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(errorResponse());
+    await expect(call()).rejects.toThrow(ApiError);
   });
 });
 
@@ -551,6 +711,48 @@ describe("fetchAppHealthPlotFromServer", () => {
         { id: "sessions", data: [{ datetime: "2026-01-01", instances: 100 }] },
         { id: "crashes", data: [{ datetime: "2026-01-01", instances: 10 }] },
         { id: "anrs", data: [{ datetime: "2026-01-01", instances: 0 }] },
+      ]),
+    );
+    const r = await fetchAppHealthPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      null,
+    );
+    expect(r?.map((s: any) => s.id)).toEqual(["Sessions", "Crashes"]);
+  });
+
+  it("maps the app hangs series to App Hangs and drops the empty ANRs", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse([
+        { id: "sessions", data: [{ datetime: "2026-01-01", instances: 100 }] },
+        { id: "crashes", data: [{ datetime: "2026-01-01", instances: 10 }] },
+        { id: "anrs", data: [] },
+        { id: "app_hangs", data: [{ datetime: "2026-01-01", instances: 3 }] },
+      ]),
+    );
+    const r = await fetchAppHealthPlotFromServer(
+      "app-a",
+      "2026-04-01T00:00:00.000Z",
+      "2026-04-10T00:00:00.000Z",
+      null,
+    );
+    expect(r?.map((s: any) => s.id)).toEqual([
+      "Sessions",
+      "Crashes",
+      "App Hangs",
+    ]);
+    const appHangs = r!.find((s: any) => s.id === "App Hangs");
+    expect(appHangs!.data.map((p: any) => p.y)).toEqual([3]);
+  });
+
+  it("drops the App Hangs series when all app hang values are zero", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse([
+        { id: "sessions", data: [{ datetime: "2026-01-01", instances: 100 }] },
+        { id: "crashes", data: [{ datetime: "2026-01-01", instances: 10 }] },
+        { id: "anrs", data: [] },
+        { id: "app_hangs", data: [{ datetime: "2026-01-01", instances: 0 }] },
       ]),
     );
     const r = await fetchAppHealthPlotFromServer(
@@ -2545,6 +2747,7 @@ describe("funnels", () => {
         offsetFrom,
         offsetTo,
         null,
+        null,
         5,
         10,
       );
@@ -2558,6 +2761,25 @@ describe("funnels", () => {
       expect(url.searchParams.get("offset")).toBe("10");
       expect(url.searchParams.has("quantile")).toBe(false);
       expect(url.searchParams.has("filter_expr")).toBe(false);
+      expect(url.searchParams.has("sample_percent")).toBe(false);
+    });
+
+    it("sends the sample percent of the conversion", async () => {
+      mockApiClientFetch.mockResolvedValueOnce(
+        successResponse({ results: [] }),
+      );
+      await fetchFunnelStepErrorsFromServer(
+        "app-a",
+        "f1",
+        2,
+        isoFrom,
+        isoTo,
+        null,
+        33.5,
+        5,
+        0,
+      );
+      expect(lastFetchParams().get("sample_percent")).toBe("33.5");
     });
 
     it("sends the filter expression when one is given and returns the body", async () => {
@@ -2570,6 +2792,7 @@ describe("funnels", () => {
         isoFrom,
         isoTo,
         "os_name:in:[android]",
+        null,
         5,
         10,
       );
@@ -2613,6 +2836,7 @@ describe("funnels", () => {
         offsetFrom,
         offsetTo,
         null,
+        null,
         5,
         15,
       );
@@ -2642,6 +2866,7 @@ describe("funnels", () => {
         isoFrom,
         isoTo,
         "network_type:eq:wifi",
+        null,
         5,
         0,
       );
@@ -2760,6 +2985,7 @@ describe("funnels", () => {
           isoFrom,
           isoTo,
           null,
+          null,
           5,
           0,
         ),
@@ -2776,6 +3002,7 @@ describe("funnels", () => {
           isoFrom,
           isoTo,
           null,
+          null,
           5,
           0,
         ),
@@ -2791,6 +3018,7 @@ describe("funnels", () => {
           "p95",
           isoFrom,
           isoTo,
+          null,
           null,
           5,
           0,

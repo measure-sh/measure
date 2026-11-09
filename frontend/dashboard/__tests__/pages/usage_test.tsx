@@ -193,6 +193,12 @@ jest.mock("next-themes", () => ({
 // the latest render so tests can call the arcLinkLabel and tooltip functions
 // the page passes in.
 let mockPieProps: any = null;
+// Lets tests render the page in its small-screen layout.
+let mockIsMobile = false;
+jest.mock("@/app/utils/use_mobile", () => ({
+  useIsMobile: () => mockIsMobile,
+}));
+
 jest.mock("@nivo/pie", () => ({
   ResponsivePie: (props: any) => {
     mockPieProps = props;
@@ -208,13 +214,14 @@ jest.mock("@nivo/pie", () => ({
   },
 }));
 
-// Mock the tooltip shell so rendering a captured tooltip element needs no
-// real chart styling.
+// Mock the tooltip so a captured tooltip element can render without chart
+// styling or positioning.
 jest.mock("@/app/components/plot_tooltip", () => ({
   __esModule: true,
-  PlotTooltipShell: ({ children }: any) => (
-    <div data-testid="plot-tooltip-shell">{children}</div>
+  PlotTooltip: ({ children }: any) => (
+    <div data-testid="plot-tooltip">{children}</div>
   ),
+  PlotTooltipArea: ({ children }: any) => <>{children}</>,
 }));
 
 // Mock DropdownSelect — renders the current selection and one button per
@@ -368,6 +375,7 @@ describe("Usage Page", () => {
     jest.clearAllMocks();
     jest.useFakeTimers();
     mockPieProps = null;
+    mockIsMobile = false;
 
     // Reset store to defaults
     useUsageStore.setState({
@@ -572,11 +580,48 @@ describe("Usage Page", () => {
     });
     render(<>{tooltip}</>);
 
-    expect(screen.getByTestId("plot-tooltip-shell")).toBeInTheDocument();
+    expect(screen.getByTestId("plot-tooltip")).toBeInTheDocument();
     expect(screen.getByText("My App")).toBeInTheDocument();
-    expect(screen.getByText("Sessions: 6200")).toBeInTheDocument();
-    expect(screen.getByText("Events: 15000")).toBeInTheDocument();
-    expect(screen.getByText("Spans: 9500")).toBeInTheDocument();
+    expect(screen.getByText("Sessions: 6.2K")).toBeInTheDocument();
+    expect(screen.getByText("Events: 15K")).toBeInTheDocument();
+    expect(screen.getByText("Spans: 9.5K")).toBeInTheDocument();
+  });
+
+  it("shows the selected month's totals in the center of the pie", async () => {
+    useUsageStore.setState({ usageState: "loaded", usage: rawUsage });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    expect(screen.getByText("Sessions: 8.7K")).toBeInTheDocument();
+    expect(screen.getByText("Events: 20K")).toBeInTheDocument();
+    expect(screen.getByText("Spans: 13K")).toBeInTheDocument();
+  });
+
+  it("shows app names around the pie on large screens", async () => {
+    useUsageStore.setState({ usageState: "loaded", usage: rawUsage });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    expect(mockPieProps.enableArcLinkLabels).toBe(true);
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  it("lists app names below the pie on small screens", async () => {
+    mockIsMobile = true;
+    useUsageStore.setState({ usageState: "loaded", usage: rawUsage });
+
+    await act(async () => {
+      render(<Usage params={promiseParams({ teamId: "team1" })} />);
+    });
+
+    expect(mockPieProps.enableArcLinkLabels).toBe(false);
+    expect(
+      screen.getAllByRole("listitem").map((item) => item.textContent),
+    ).toEqual(["My App", "Other App"]);
   });
 
   // ---- Billing section ----

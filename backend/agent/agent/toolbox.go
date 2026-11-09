@@ -7,7 +7,9 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"net/url"
 	"reflect"
+	"slices"
 	"sort"
 	"strings"
 	"sync"
@@ -417,7 +419,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_filter_keys
 		newTool(&mcpsdk.Tool{
 			Name:        "get_filter_keys",
-			Description: "List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, funnels or builds), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
+			Description: "List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels, builds or profiles), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
 			InputSchema: mcpMustInferSchema[mcpGetFilterKeysInput](),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFilterKeysInput) (*mcpsdk.CallToolResult, any, error) {
@@ -437,7 +439,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_metrics
 		newTool(&mcpsdk.Tool{
 			Name:        "get_metrics",
-			Description: "Get app metrics including adoption, crash-free/ANR-free sessions, launch performance (cold/warm/hot p95) and app size. Covers every app version unless filter_expr narrows it; each metric is reported for the selected versions and for the rest, and adoption is only meaningful against a specific version, so narrow to one with its version_code when reading it. App size is reported only when the versions with data in the range share a single version name, as the size of that version's most recent build; otherwise sizes has multiple_versions or no_data set. " + mcpFilterExprToolsHint(filter.AppHealthEntity) + ".",
+			Description: "Get app metrics including adoption, crash-free/ANR-free/app-hang-free sessions, launch performance (cold/warm/hot p95) and app size. Covers every app version unless filter_expr narrows it; each metric is reported for the selected versions and for the rest, and adoption is only meaningful against a specific version, so narrow to one with its version_code when reading it. App size is reported only when the versions with data in the range share a single version name, as the size of that version's most recent build; otherwise sizes has multiple_versions or no_data set. " + mcpFilterExprToolsHint(filter.AppHealthEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetMetricsInput](mcpAppHealthFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetMetricsInput) (*mcpsdk.CallToolResult, any, error) {
@@ -447,7 +449,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_app_health_over_time
 		newTool(&mcpsdk.Tool{
 			Name:        "get_app_health_over_time",
-			Description: "Get the app health timeline: sessions, crashes (fatal exceptions) and ANRs bucketed over time. This is the overview health plot. Covers every app version unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.AppHealthEntity) + ".",
+			Description: "Get the app health timeline: sessions, crashes (fatal exceptions), ANRs and app hangs bucketed over time. This is the overview health plot. Covers every app version unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.AppHealthEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetAppHealthOverTimeInput](mcpAppHealthFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetAppHealthOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
@@ -467,7 +469,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_error
 		newTool(&mcpsdk.Tool{
 			Name:        "get_error",
-			Description: "Get individual error events (exception or ANR) for a specific error group. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorGroupEventsEntity) + ".",
+			Description: "Get individual error events (exception or ANR) for a specific error group. Covers every event of the group unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.ErrorGroupEventsEntity) + ". Each event includes has_replay, indicating whether a session replay is available for its session.",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetErrorInput](mcpErrorGroupEventsFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetErrorInput) (*mcpsdk.CallToolResult, any, error) {
@@ -574,6 +576,66 @@ func commonTools(cfg *Config) []Tool {
 			return cfg.mcpGetHighMemorySessions(ctx, in)
 		}),
 
+		// get_device_sessions_over_time
+		newTool(&mcpsdk.Tool{
+			Name:        "get_device_sessions_over_time",
+			Description: "Get session counts over time for the five device models with the most sessions. A device is a manufacturer and model pair. Each session is counted once, in the bucket where it started or, if it started before from, in the first bucket. The points for each device add up to its session_count in get_devices_by_sessions. " + mcpFilterExprToolsHint(filter.DevicesEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetDeviceSessionsOverTimeInput](mcpDevicesFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetDeviceSessionsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetDeviceSessionsOverTime(ctx, in)
+		}),
+
+		// get_devices_by_sessions
+		newTool(&mcpsdk.Tool{
+			Name:        "get_devices_by_sessions",
+			Description: "Get a paginated list of device models ranked by sessions that overlap the time range. percent_of_sessions is each device's share of all matching sessions. Sessions without a device model are excluded. " + mcpFilterExprToolsHint(filter.DevicesEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetDevicesBySessionsInput](mcpDevicesFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetDevicesBySessionsInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetDevicesBySessions(ctx, in)
+		}),
+
+		// get_devices_by_errors
+		newTool(&mcpsdk.Tool{
+			Name:        "get_devices_by_errors",
+			Description: "Get a paginated list of device models ranked by errors: crashes, ANRs, app hangs, and non-fatal exceptions. Results include counts for each error type and the number of sessions with an error. " + mcpFilterExprToolsHint(filter.DevicesEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetDevicesByErrorsInput](mcpDevicesFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetDevicesByErrorsInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetDevicesByErrors(ctx, in)
+		}),
+
+		// get_devices_by_launch_time
+		newTool(&mcpsdk.Tool{
+			Name:        "get_devices_by_launch_time",
+			Description: "Get a paginated list of device models ranked by app launch time for one launch type. Results include p50, p90, and p95 in milliseconds and the number of launches. " + mcpFilterExprToolsHint(filter.DevicesEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetDevicesByLaunchTimeInput](mcpDevicesFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetDevicesByLaunchTimeInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetDevicesByLaunchTime(ctx, in)
+		}),
+
+		// get_devices_by_span_duration
+		newTool(&mcpsdk.Tool{
+			Name:        "get_devices_by_span_duration",
+			Description: "Get a paginated list of device models ranked by the duration of one root span. Results include p50, p90, and p95 in milliseconds and the number of spans. Spans recorded before span metrics included the device model are excluded. Use get_root_span_names to list span names. " + mcpFilterExprToolsHint(filter.DevicesEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetDevicesBySpanDurationInput](mcpDevicesFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetDevicesBySpanDurationInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetDevicesBySpanDuration(ctx, in)
+		}),
+
+		// get_devices_by_memory_usage
+		newTool(&mcpsdk.Tool{
+			Name:        "get_devices_by_memory_usage",
+			Description: "Get a paginated list of device models ranked by memory usage, using samples from every app state. Results include p50, p90, and p95 in KiB, along with session and sample counts. " + mcpFilterExprToolsHint(filter.DevicesEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetDevicesByMemoryUsageInput](mcpDevicesFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetDevicesByMemoryUsageInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetDevicesByMemoryUsage(ctx, in)
+		}),
+
 		// get_bug_reports
 		newTool(&mcpsdk.Tool{
 			Name:        "get_bug_reports",
@@ -597,7 +659,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_bug_report
 		newTool(&mcpsdk.Tool{
 			Name:        "get_bug_report",
-			Description: "Get a single bug report with full details",
+			Description: "Get a single bug report with full details, including whether a session replay is available for its session",
 			InputSchema: mcpMustInferSchema[mcpGetBugReportInput](),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetBugReportInput) (*mcpsdk.CallToolResult, any, error) {
@@ -612,6 +674,26 @@ func commonTools(cfg *Config) []Tool {
 			Annotations: &mcpsdk.ToolAnnotations{DestructiveHint: new(false), IdempotentHint: true},
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpUpdateBugReportStatusInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpUpdateBugReportStatus(ctx, in)
+		}),
+
+		// get_builds
+		newTool(&mcpsdk.Tool{
+			Name:        "get_builds",
+			Description: "Get an app's builds, newest first by upload time. Each build includes its version_name, version_code, patch_id, and the latest uploaded mapping file of each type, such as a ProGuard mapping or dSYM. from and to filter by mapping file upload time. Files can't be downloaded with this tool; dashboard_url opens the Builds page filtered to that build, where users can download its files. Lists all builds unless filter_expr narrows the results; " + mcpFilterExprToolsHint(filter.BuildsEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetBuildsInput](mcpBuildsFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetBuildsInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetBuilds(ctx, in)
+		}),
+
+		// get_profiles
+		newTool(&mcpsdk.Tool{
+			Name:        "get_profiles",
+			Description: "Get an app's captured profiles, newest first. Profiles are available on Android 16 and later. Each profile includes its trigger (such as an ANR or app fully drawn), format, session_id, version_name, version_code, OS, and device. Profile files can't be downloaded or opened with this tool. Use dashboard_url to open the Profiles page filtered to the profile, where users can download it or open it in Perfetto. Lists all profiles unless filter_expr narrows the results; " + mcpFilterExprToolsHint(filter.ProfilesEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetProfilesInput](mcpProfilesFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetProfilesInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetProfiles(ctx, in)
 		}),
 
 		// get_root_span_names
@@ -647,7 +729,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_trace
 		newTool(&mcpsdk.Tool{
 			Name:        "get_trace",
-			Description: "Get full trace with all child spans",
+			Description: "Get a full trace with all child spans, including whether a session replay is available for its session",
 			InputSchema: mcpMustInferSchema[mcpGetTraceInput](),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetTraceInput) (*mcpsdk.CallToolResult, any, error) {
@@ -667,11 +749,71 @@ func commonTools(cfg *Config) []Tool {
 		// get_journey
 		newTool(&mcpsdk.Tool{
 			Name:        "get_journey",
-			Description: "Get an app's journey as a graph of screens. Each link is a transition between consecutive screens within a session, valued by the number of sessions that made that transition. Covers every session unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
+			Description: "Get an app's journey. The journey is a graph of the screens and custom events that users went through. A node id is its kind, a colon and its name, such as screen:MainActivity or event:add_to_cart. A fatal crash, ANR or killed app hang ends a session in the node with id fatal. Users are app installations. Each node has the number of users that reached it and the number of users that went on to a different step. It also has the median step where users reached it first, and the median time from the previous step. Each link has the number of users that went from its source to its target in the same session. " + fmt.Sprintf("The graph has the %d screens and custom events with the most users, or the ones in node_ids, which get_journey_nodes lists. It has the max_links links with the most users between these nodes, and their links to the fatal node.", mcpJourneyNodes) + " " + mcpSampledWithPercent + " filter_expr narrows the sessions it covers; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneyInput](mcpJourneysFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyInput) (*mcpsdk.CallToolResult, any, error) {
 			return cfg.mcpGetJourney(ctx, in)
+		}),
+
+		// get_journey_nodes
+		newTool(&mcpsdk.Tool{
+			Name:        "get_journey_nodes",
+			Description: "List the screens and custom events of an app's journey, the most users first, with the id and the number of users of each. Users are app installations. Use it to find the node_ids to give get_journey. " + mcpSampledJourneyNode + " filter_expr narrows the sessions it covers; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneyNodesInput](mcpJourneysFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyNodesInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetJourneyNodes(ctx, in)
+		}),
+
+		// get_journey_path_users
+		newTool(&mcpsdk.Tool{
+			Name:        "get_journey_path_users",
+			Description: "Count the users that went along a path of an app's journey in one or more sessions. The path is two or more node ids from get_journey or get_journey_nodes, in the order a session went through them one right after the other. Users are app installations. get_journey has the users of each link, so use this for a path of three or more nodes. " + mcpSampledWithPercent + " " + mcpJourneyListSample + " filter_expr narrows the sessions it covers; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneyPathUsersInput](mcpJourneysFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyPathUsersInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetJourneyPathUsers(ctx, in)
+		}),
+
+		// get_journey_errors
+		newTool(&mcpsdk.Tool{
+			Name:        "get_journey_errors",
+			Description: "List the error groups (crashes, ANRs, app hangs and handled errors) that users hit at a node or along a path of an app's journey. " + mcpJourneySelection + " Each group has its error count and the users that hit it; the groups with the most users come first. get_error takes a group's id to show its events. " + mcpSampledWithPercent + " " + mcpJourneyListSample + " filter_expr narrows the sessions it covers; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneyErrorsInput](mcpJourneysFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyErrorsInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetJourneyErrors(ctx, in)
+		}),
+
+		// get_journey_traces
+		newTool(&mcpsdk.Tool{
+			Name:        "get_journey_traces",
+			Description: "List the root spans that started at a node or along a path of an app's journey. " + mcpJourneySelection + " Each span name has its span count, the users that recorded it, and the quantile of its duration in milliseconds; the span names with the most users come first. " + mcpSampledWithPercent + " " + mcpJourneyListSample + " filter_expr narrows the sessions it covers; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneyTracesInput](mcpJourneysFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyTracesInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetJourneyTraces(ctx, in)
+		}),
+
+		// get_journey_network
+		newTool(&mcpsdk.Tool{
+			Name:        "get_journey_network",
+			Description: "List the URL patterns of the network requests that users made at a node or along a path of an app's journey. " + mcpJourneySelection + " Each pattern has its request count, the users that requested it, and the quantile of its latency in milliseconds; the patterns with the most users come first. " + mcpSampledWithPercent + " " + mcpJourneyListSample + " filter_expr narrows the sessions it covers; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneyNetworkInput](mcpJourneysFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneyNetworkInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetJourneyNetwork(ctx, in)
+		}),
+
+		// get_journey_sessions
+		newTool(&mcpsdk.Tool{
+			Name:        "get_journey_sessions",
+			Description: "List the sessions that reached a node or went along a path of an app's journey. " + mcpJourneySelection + " installation_id identifies the user; user_id is the id the app set on the session, empty when none was set. The sessions that reached the node or started the path most recently come first. get_session takes a session's id to show what happened in it. " + mcpSampledSessions + " " + mcpJourneyListSample + " filter_expr narrows the sessions it covers; " + mcpFilterExprToolsHint(filter.JourneysEntity) + ".",
+			InputSchema: mcpMustInferFilterExprSchema[mcpGetJourneySessionsInput](mcpJourneysFilterExprGrammar),
+			Annotations: readOnlyTool,
+		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetJourneySessionsInput) (*mcpsdk.CallToolResult, any, error) {
+			return cfg.mcpGetJourneySessions(ctx, in)
 		}),
 
 		// get_network_metrics_trends
@@ -737,7 +879,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_pinned_funnels
 		newTool(&mcpsdk.Tool{
 			Name:        "get_pinned_funnels",
-			Description: "List an app's pinned funnels in their pinned order, which is the order the funnels page and the app's overview show them in.",
+			Description: "List an app's pinned funnels in their pinned order, which is the order the funnels page shows them in.",
 			InputSchema: mcpMustInferSchema[mcpGetPinnedFunnelsInput](),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetPinnedFunnelsInput) (*mcpsdk.CallToolResult, any, error) {
@@ -767,7 +909,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_funnel_conversion
 		newTool(&mcpsdk.Tool{
 			Name:        "get_funnel_conversion",
-			Description: "Get a funnel's conversion over a time range: for each step, the users that reached it and the median seconds they took to get there from the previous step. A user is counted when they did the first step within the range; their later steps can come after the range ends, within the conversion window. " + mcpFunnelRange + " " + mcpFunnelUsers + " Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			Description: "Get a funnel's conversion over a time range: for each step, the users that reached it and the median seconds they took to get there from the previous step. A user is counted when they did the first step within the range; their later steps can come after the range ends, within the conversion window. " + mcpFunnelRange + " " + mcpFunnelUsers + " " + mcpSampledWithPercent + " filter_expr narrows the users it covers; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelConversionInput](mcpFunnelsFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelConversionInput) (*mcpsdk.CallToolResult, any, error) {
@@ -777,7 +919,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_funnel_trend
 		newTool(&mcpsdk.Tool{
 			Name:        "get_funnel_trend",
-			Description: "Get a funnel's conversion in each of the last 30 days, 12 weeks or 12 months, ending with the current one, in the given timezone; weeks start on Monday. Each point has the users that reached each step, the median seconds to convert, and complete, which is false while users that entered the funnel in that period can still convert. include_builds adds the builds and patches first uploaded during the trend, to line changes in conversion up with releases. " + mcpFunnelUsers + " Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			Description: "Get a funnel's conversion in each of the last 30 days, 12 weeks or 12 months, ending with the current one, in the given timezone; weeks start on Monday. Each point has the users that reached each step, the median seconds to convert, and complete, which is false while users that entered the funnel in that period can still convert. include_builds adds the builds and patches first uploaded during the trend, to line changes in conversion up with releases. " + mcpFunnelUsers + " " + mcpSampledWithPercent + " filter_expr narrows the users it covers; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelTrendInput](mcpFunnelsFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelTrendInput) (*mcpsdk.CallToolResult, any, error) {
@@ -787,7 +929,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_funnel_cadence
 		newTool(&mcpsdk.Tool{
 			Name:        "get_funnel_cadence",
-			Description: "Get when users enter a funnel and how well they convert by hour of the week: for each weekday (1 for Monday to 7 for Sunday) and hour in the given timezone, the users that entered the funnel in it and how many of them converted. The weeks end at the latest week whose users have all had a full conversion window, and the result's from and to give the span they cover. " + mcpFunnelUsers + " Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			Description: "Get when users enter a funnel and how well they convert by hour of the week: for each weekday (1 for Monday to 7 for Sunday) and hour in the given timezone, the users that entered the funnel in it and how many of them converted. The weeks end at the latest week whose users have all had a full conversion window, and the result's from and to give the span they cover. " + mcpFunnelUsers + " " + mcpSampledWithPercent + " filter_expr narrows the users it covers; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelCadenceInput](mcpFunnelsFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelCadenceInput) (*mcpsdk.CallToolResult, any, error) {
@@ -797,7 +939,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_funnel_step_errors
 		newTool(&mcpsdk.Tool{
 			Name:        "get_funnel_step_errors",
-			Description: "List the error groups (crashes, ANRs, app hangs and handled errors) that users hit while trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " Each group has its error count, the users that hit it, and how many of them converted and how many dropped off; the groups with the most drop-offs come first. get_error takes a group's id to show its events. Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			Description: "List the error groups (crashes, ANRs, app hangs and handled errors) that users hit while trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " Each group has its error count, the users that hit it, and how many of them converted and how many dropped off; the groups with the most drop-offs come first. get_error takes a group's id to show its events. " + mcpSampledWithPercent + " " + mcpFunnelStepSample + " filter_expr narrows the users it covers; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelStepErrorsInput](mcpFunnelsFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelStepErrorsInput) (*mcpsdk.CallToolResult, any, error) {
@@ -807,7 +949,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_funnel_step_traces
 		newTool(&mcpsdk.Tool{
 			Name:        "get_funnel_step_traces",
-			Description: "List the root spans that started while users were trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " Each span name has its span count, how many of the users that recorded it converted and how many dropped off, and the quantile of its duration in milliseconds for each of the two groups, null when no user of the group recorded it. The span names recorded by the most users that dropped off come first. Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			Description: "List the root spans that started while users were trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " Each span name has its span count, how many of the users that recorded it converted and how many dropped off, and the quantile of its duration in milliseconds for each of the two groups, null when no user of the group recorded it. The span names recorded by the most users that dropped off come first. " + mcpSampledWithPercent + " " + mcpFunnelStepSample + " filter_expr narrows the users it covers; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelStepTracesInput](mcpFunnelsFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelStepTracesInput) (*mcpsdk.CallToolResult, any, error) {
@@ -817,7 +959,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_funnel_step_network
 		newTool(&mcpsdk.Tool{
 			Name:        "get_funnel_step_network",
-			Description: "List the URL patterns of the network requests that users made while trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " Each pattern has its request count, how many of the users that requested it converted and how many dropped off, and the quantile of its latency in milliseconds for each of the two groups, null when no user of the group requested it. The patterns requested by the most users that dropped off come first. Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			Description: "List the URL patterns of the network requests that users made while trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " Each pattern has its request count, how many of the users that requested it converted and how many dropped off, and the quantile of its latency in milliseconds for each of the two groups, null when no user of the group requested it. The patterns requested by the most users that dropped off come first. " + mcpSampledWithPercent + " " + mcpFunnelStepSample + " filter_expr narrows the users it covers; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelStepNetworkInput](mcpFunnelsFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelStepNetworkInput) (*mcpsdk.CallToolResult, any, error) {
@@ -827,7 +969,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_funnel_step_sessions
 		newTool(&mcpsdk.Tool{
 			Name:        "get_funnel_step_sessions",
-			Description: "List the sessions of the users that converted, or of those that dropped off, while trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " A session is listed when it has an event during its user's attempt. installation_id identifies the user the funnel counted; user_id is the id the app set on the session, empty when none was set. The users that started their attempt most recently come first, each with their sessions from oldest to newest. get_session takes a session's id to show what happened in it. Covers every user unless filter_expr narrows it; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
+			Description: "List the sessions of the users that converted, or of those that dropped off, while trying to get from one funnel step to the next, or through the whole funnel when step is omitted. " + mcpFunnelAttempt + " " + mcpFunnelRange + " " + mcpFunnelUsers + " A session is listed when it has a screen, custom event, tap or scroll, app launch, move to the foreground or background, error, network request or root span during its user's attempt. installation_id identifies the user the funnel counted; user_id is the id the app set on the session, empty when none was set. The users that started their attempt most recently come first, each with their sessions from oldest to newest. get_session takes a session's id to show what happened in it. " + mcpSampledSessions + " " + mcpFunnelStepSample + " filter_expr narrows the users it covers; " + mcpFilterExprToolsHint(filter.FunnelsEntity) + ".",
 			InputSchema: mcpMustInferFilterExprSchema[mcpGetFunnelStepSessionsInput](mcpFunnelsFilterExprGrammar),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelStepSessionsInput) (*mcpsdk.CallToolResult, any, error) {
@@ -867,7 +1009,7 @@ func commonTools(cfg *Config) []Tool {
 		// set_funnel_pinned
 		newTool(&mcpsdk.Tool{
 			Name:        "set_funnel_pinned",
-			Description: fmt.Sprintf("Pin a funnel after the app's other pinned funnels, or unpin it, and return it. Pinned funnels are shown first on the funnels page and on the app's overview. An app can have at most %d pinned funnels.", measure.MaxPinnedFunnels),
+			Description: fmt.Sprintf("Pin a funnel after the app's other pinned funnels, or unpin it, and return it. Pinned funnels are shown first on the funnels page. An app can have at most %d pinned funnels.", measure.MaxPinnedFunnels),
 			InputSchema: mcpMustInferSchema[mcpSetFunnelPinnedInput](),
 			Annotations: &mcpsdk.ToolAnnotations{DestructiveHint: new(false), IdempotentHint: true},
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpSetFunnelPinnedInput) (*mcpsdk.CallToolResult, any, error) {
@@ -920,10 +1062,27 @@ var (
 	mcpErrorGroupEventsFilterExprGrammar = mcpFilterExprGrammar(filter.ErrorGroupEventsEntity, "version_name:in:[1.2.0] AND os_name:in:[android]")
 	mcpAppHealthFilterExprGrammar        = mcpFilterExprGrammar(filter.AppHealthEntity, "version_name:in:[1.2.0] AND version_code:in:[120]")
 	mcpMemoryFilterExprGrammar           = mcpFilterExprGrammar(filter.MemoryEntity, "version_name:in:[1.2.0] AND app_state:eq:foreground")
+	mcpDevicesFilterExprGrammar          = mcpFilterExprGrammar(filter.DevicesEntity, "os_name:in:[android] AND device_manufacturer:in:[Samsung]")
 	mcpFunnelsFilterExprGrammar          = mcpFilterExprGrammar(filter.FunnelsEntity, "version_name:in:[1.2.0] AND country:in:[US]")
+	mcpBuildsFilterExprGrammar           = mcpFilterExprGrammar(filter.BuildsEntity, "version_name:in:[1.2.0] AND mapping_type:in:[proguard]")
+	mcpProfilesFilterExprGrammar         = mcpFilterExprGrammar(filter.ProfilesEntity, "version_name:in:[1.2.0] AND profile_trigger:in:[anr]")
 )
 
 const mcpFunnelUsers = "Users are counted by installation id: each install of the app is one user, whatever user id the app has set."
+
+// The journey and funnel tools read a sample of the app's installations,
+// which is a smaller share the more events the time range has.
+const (
+	mcpSampled            = "Counts come from a sample of users and are scaled up to all users, so they are estimates unless the sample has every user. The more events the time range has, the smaller the share of users sampled."
+	mcpSamplePercent      = "sample_percent is the percent of users in the sample, or null when the sample found no users, since a small sample can miss users that exist; 100 means the counts are exact."
+	mcpSampledWithPercent = mcpSampled + " " + mcpSamplePercent
+	mcpSampledSessions    = "The list has only the sessions of a sample of users. The more events the time range has, the smaller the share of users sampled. " + mcpSamplePercent
+	mcpSampledJourneyNode = mcpSampled + " get_journey with the same range and filter_expr gives the sample_percent."
+	mcpJourneyListSample  = "Pass the sample_percent of get_journey for the same range and filter_expr as sample_percent, so that the result covers the same users as the graph."
+	mcpFunnelStepSample   = "Pass the sample_percent of get_funnel_conversion for the same range and filter_expr as sample_percent, so that the result covers the same users as the conversion."
+)
+
+const mcpJourneySelection = "Give node_id for one screen or custom event, or path for two or more node ids that a session went through one right after the other, such as the source and target of a link; get_journey and get_journey_nodes give the node ids. For a node, the list covers each time a session was at the node, from reaching it to the session's next step, or to the session's end after its last step. For a path, it covers each time a session went along the path, from its first node to its last. Users are app installations."
 
 const mcpFunnelRange = "A from or to with seconds is rounded down to the minute, or to ten minutes when the range is a day or more; a from or to on a whole minute is used as sent."
 
@@ -973,12 +1132,12 @@ func mcpMustInferSchema[T any]() json.RawMessage {
 type mcpListAppsInput struct{}
 type mcpGetFilterKeysInput struct {
 	AppID  string   `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, funnels or builds"`
+	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels, builds or profiles"`
 	Keys   []string `json:"keys,omitempty" jsonschema:"Key names you already know, for example from the user's request, to include in the result even when the listing is truncated"`
 }
 type mcpGetFilterValuesInput struct {
 	AppID   string `json:"app_id" jsonschema:"UUID of the app to query"`
-	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, funnels or builds"`
+	Entity  string `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels, builds or profiles"`
 	KeyName string `json:"key_name" jsonschema:"Name of the filter key to list values for, as get_filter_keys returns it"`
 	Search  string `json:"search,omitempty" jsonschema:"Return only values containing this text"`
 	Limit   int    `json:"limit,omitempty" jsonschema:"Maximum number of values to return (default: 50, max: 200)"`
@@ -1078,6 +1237,64 @@ type mcpGetHighMemorySessionsInput struct {
 	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum sessions to return (default: 10, max: 30)"`
 	Offset     int    `json:"offset,omitempty" jsonschema:"Number of sessions to skip for pagination (default: 0)"`
 }
+type mcpGetDeviceSessionsOverTimeInput struct {
+	AppID         string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From          string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string `json:"filter_expr,omitempty"`
+	Timezone      string `json:"timezone" jsonschema:"Timezone for time bucketing (e.g. America/New_York)"`
+	PlotTimeGroup string `json:"plot_time_group,omitempty" jsonschema:"Time bucket: minutes, hours, days or months (default: days)"`
+}
+type mcpGetDevicesBySessionsInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Order      string `json:"order,omitempty" jsonschema:"desc lists the device with the highest value first; asc lists the device with the lowest value first (default: desc)"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of devices to return (default: 10, max: 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of devices to skip when paginating (default: 0)"`
+}
+type mcpGetDevicesByErrorsInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Order      string `json:"order,omitempty" jsonschema:"desc lists the device with the highest value first; asc lists the device with the lowest value first (default: desc)"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of devices to return (default: 10, max: 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of devices to skip when paginating (default: 0)"`
+}
+type mcpGetDevicesByLaunchTimeInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	LaunchType string `json:"launch_type,omitempty" jsonschema:"Launch type: cold_launch, warm_launch, or hot_launch (default: cold_launch)"`
+	Percentile string `json:"percentile,omitempty" jsonschema:"Percentile to rank by: p50, p90, or p95 (default: p95). Each device has all three percentiles"`
+	Order      string `json:"order,omitempty" jsonschema:"desc lists the device with the highest value first; asc lists the device with the lowest value first (default: desc)"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of devices to return (default: 10, max: 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of devices to skip when paginating (default: 0)"`
+}
+type mcpGetDevicesBySpanDurationInput struct {
+	AppID        string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From         string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To           string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr   string `json:"filter_expr,omitempty"`
+	RootSpanName string `json:"root_span_name" jsonschema:"Name of the root span to query"`
+	Percentile   string `json:"percentile,omitempty" jsonschema:"Percentile to rank by: p50, p90, or p95 (default: p95). Each device has all three percentiles"`
+	Order        string `json:"order,omitempty" jsonschema:"desc lists the device with the highest value first; asc lists the device with the lowest value first (default: desc)"`
+	Limit        int    `json:"limit,omitempty" jsonschema:"Maximum number of devices to return (default: 10, max: 30)"`
+	Offset       int    `json:"offset,omitempty" jsonschema:"Number of devices to skip when paginating (default: 0)"`
+}
+type mcpGetDevicesByMemoryUsageInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Percentile string `json:"percentile,omitempty" jsonschema:"Percentile to rank by: p50, p90, or p95 (default: p95). Each device has all three percentiles"`
+	Order      string `json:"order,omitempty" jsonschema:"desc lists the device with the highest value first; asc lists the device with the lowest value first (default: desc)"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of devices to return (default: 10, max: 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of devices to skip when paginating (default: 0)"`
+}
 type mcpGetBugReportsInput struct {
 	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
 	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
@@ -1129,14 +1346,92 @@ type mcpGetAlertsInput struct {
 	Offset int    `json:"offset,omitempty" jsonschema:"Number of alerts to skip for pagination (default: 0)"`
 }
 type mcpGetJourneyInput struct {
+	AppID      string   `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string   `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To         string   `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr string   `json:"filter_expr,omitempty"`
+	NodeIDs    []string `json:"node_ids,omitempty" jsonschema:"Ids of the screens and custom events the graph has, from get_journey_nodes (default: the ones with the most users)"`
+	MaxLinks   int      `json:"max_links,omitempty" jsonschema:"Number of links to return, the ones with the most users, from 1 to 5000 (default: 200)"`
+}
+type mcpGetJourneyNodesInput struct {
 	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
 	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
 	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
 	FilterExpr string `json:"filter_expr,omitempty"`
 }
+type mcpGetJourneyPathUsersInput struct {
+	AppID         string   `json:"app_id" jsonschema:"UUID of the app to query"`
+	Path          []string `json:"path" jsonschema:"Two or more node ids, in the order sessions went through them"`
+	From          string   `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string   `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string   `json:"filter_expr,omitempty"`
+	SamplePercent float64  `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_journey for the same range and filter_expr, so that the result covers the same users as the graph (default: a sample of its own)"`
+}
+type mcpGetJourneyErrorsInput struct {
+	AppID         string   `json:"app_id" jsonschema:"UUID of the app to query"`
+	NodeID        string   `json:"node_id,omitempty" jsonschema:"Id of the node to look at; give this or path"`
+	Path          []string `json:"path,omitempty" jsonschema:"Two or more node ids, in the order sessions went through them; give this or node_id"`
+	From          string   `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string   `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string   `json:"filter_expr,omitempty"`
+	SamplePercent float64  `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_journey for the same range and filter_expr, so that the result covers the same users as the graph (default: a sample of its own)"`
+	Limit         int      `json:"limit,omitempty" jsonschema:"Maximum number of error groups to return (default: 10, max: 30)"`
+	Offset        int      `json:"offset,omitempty" jsonschema:"Number of error groups to skip for pagination (default: 0)"`
+}
+type mcpGetJourneyTracesInput struct {
+	AppID         string   `json:"app_id" jsonschema:"UUID of the app to query"`
+	NodeID        string   `json:"node_id,omitempty" jsonschema:"Id of the node to look at; give this or path"`
+	Path          []string `json:"path,omitempty" jsonschema:"Two or more node ids, in the order sessions went through them; give this or node_id"`
+	Quantile      string   `json:"quantile,omitempty" jsonschema:"Quantile of the durations: p50, p90, p95 or p99 (default: p50)"`
+	From          string   `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string   `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string   `json:"filter_expr,omitempty"`
+	SamplePercent float64  `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_journey for the same range and filter_expr, so that the result covers the same users as the graph (default: a sample of its own)"`
+	Limit         int      `json:"limit,omitempty" jsonschema:"Maximum number of span names to return (default: 10, max: 30)"`
+	Offset        int      `json:"offset,omitempty" jsonschema:"Number of span names to skip for pagination (default: 0)"`
+}
+type mcpGetJourneyNetworkInput struct {
+	AppID         string   `json:"app_id" jsonschema:"UUID of the app to query"`
+	NodeID        string   `json:"node_id,omitempty" jsonschema:"Id of the node to look at; give this or path"`
+	Path          []string `json:"path,omitempty" jsonschema:"Two or more node ids, in the order sessions went through them; give this or node_id"`
+	Quantile      string   `json:"quantile,omitempty" jsonschema:"Quantile of the latencies: p50, p90, p95 or p99 (default: p50)"`
+	From          string   `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string   `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string   `json:"filter_expr,omitempty"`
+	SamplePercent float64  `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_journey for the same range and filter_expr, so that the result covers the same users as the graph (default: a sample of its own)"`
+	Limit         int      `json:"limit,omitempty" jsonschema:"Maximum number of URL patterns to return (default: 10, max: 30)"`
+	Offset        int      `json:"offset,omitempty" jsonschema:"Number of URL patterns to skip for pagination (default: 0)"`
+}
+type mcpGetJourneySessionsInput struct {
+	AppID         string   `json:"app_id" jsonschema:"UUID of the app to query"`
+	NodeID        string   `json:"node_id,omitempty" jsonschema:"Id of the node to look at; give this or path"`
+	Path          []string `json:"path,omitempty" jsonschema:"Two or more node ids, in the order sessions went through them; give this or node_id"`
+	From          string   `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string   `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string   `json:"filter_expr,omitempty"`
+	SamplePercent float64  `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_journey for the same range and filter_expr, so that the result covers the same users as the graph (default: a sample of its own)"`
+	Limit         int      `json:"limit,omitempty" jsonschema:"Maximum number of sessions to return (default: 10, max: 30)"`
+	Offset        int      `json:"offset,omitempty" jsonschema:"Number of sessions to skip for pagination (default: 0)"`
+}
 type mcpGetErrorCommonPathInput struct {
 	AppID        string `json:"app_id" jsonschema:"UUID of the app to query"`
 	ErrorGroupID string `json:"error_group_id" jsonschema:"Fingerprint/ID of the error group"`
+}
+type mcpGetBuildsInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of the upload time range (RFC3339; defaults to 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of the upload time range (RFC3339; defaults to now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of builds to return (defaults to 10; maximum 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of builds to skip for pagination (defaults to 0)"`
+}
+type mcpGetProfilesInput struct {
+	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
+	From       string `json:"from,omitempty" jsonschema:"Start of the capture time range (RFC3339; defaults to 7 days ago)"`
+	To         string `json:"to,omitempty" jsonschema:"End of the capture time range (RFC3339; defaults to now)"`
+	FilterExpr string `json:"filter_expr,omitempty"`
+	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of profiles to return (defaults to 10; maximum 30)"`
+	Offset     int    `json:"offset,omitempty" jsonschema:"Number of profiles to skip for pagination (defaults to 0)"`
 }
 type mcpUpdateBugReportStatusInput struct {
 	AppID       string `json:"app_id" jsonschema:"UUID of the app"`
@@ -1229,47 +1524,51 @@ type mcpGetFunnelCadenceInput struct {
 	FilterExpr string `json:"filter_expr,omitempty"`
 }
 type mcpGetFunnelStepErrorsInput struct {
-	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
-	FunnelID   string `json:"funnel_id" jsonschema:"UUID of the funnel"`
-	Step       *int   `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
-	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
-	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
-	FilterExpr string `json:"filter_expr,omitempty"`
-	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of error groups to return (default: 10, max: 30)"`
-	Offset     int    `json:"offset,omitempty" jsonschema:"Number of error groups to skip for pagination (default: 0)"`
+	AppID         string  `json:"app_id" jsonschema:"UUID of the app to query"`
+	FunnelID      string  `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	Step          *int    `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
+	From          string  `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string  `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string  `json:"filter_expr,omitempty"`
+	SamplePercent float64 `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_funnel_conversion for the same range and filter_expr, so that the result covers the same users as the conversion (default: a sample of its own)"`
+	Limit         int     `json:"limit,omitempty" jsonschema:"Maximum number of error groups to return (default: 10, max: 30)"`
+	Offset        int     `json:"offset,omitempty" jsonschema:"Number of error groups to skip for pagination (default: 0)"`
 }
 type mcpGetFunnelStepTracesInput struct {
-	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
-	FunnelID   string `json:"funnel_id" jsonschema:"UUID of the funnel"`
-	Step       *int   `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
-	Quantile   string `json:"quantile,omitempty" jsonschema:"Quantile of the durations: p50, p90, p95 or p99 (default: p50)"`
-	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
-	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
-	FilterExpr string `json:"filter_expr,omitempty"`
-	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of span names to return (default: 10, max: 30)"`
-	Offset     int    `json:"offset,omitempty" jsonschema:"Number of span names to skip for pagination (default: 0)"`
+	AppID         string  `json:"app_id" jsonschema:"UUID of the app to query"`
+	FunnelID      string  `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	Step          *int    `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
+	Quantile      string  `json:"quantile,omitempty" jsonschema:"Quantile of the durations: p50, p90, p95 or p99 (default: p50)"`
+	From          string  `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string  `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string  `json:"filter_expr,omitempty"`
+	SamplePercent float64 `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_funnel_conversion for the same range and filter_expr, so that the result covers the same users as the conversion (default: a sample of its own)"`
+	Limit         int     `json:"limit,omitempty" jsonschema:"Maximum number of span names to return (default: 10, max: 30)"`
+	Offset        int     `json:"offset,omitempty" jsonschema:"Number of span names to skip for pagination (default: 0)"`
 }
 type mcpGetFunnelStepNetworkInput struct {
-	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
-	FunnelID   string `json:"funnel_id" jsonschema:"UUID of the funnel"`
-	Step       *int   `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
-	Quantile   string `json:"quantile,omitempty" jsonschema:"Quantile of the latencies: p50, p90, p95 or p99 (default: p50)"`
-	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
-	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
-	FilterExpr string `json:"filter_expr,omitempty"`
-	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of URL patterns to return (default: 10, max: 30)"`
-	Offset     int    `json:"offset,omitempty" jsonschema:"Number of URL patterns to skip for pagination (default: 0)"`
+	AppID         string  `json:"app_id" jsonschema:"UUID of the app to query"`
+	FunnelID      string  `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	Step          *int    `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
+	Quantile      string  `json:"quantile,omitempty" jsonschema:"Quantile of the latencies: p50, p90, p95 or p99 (default: p50)"`
+	From          string  `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string  `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string  `json:"filter_expr,omitempty"`
+	SamplePercent float64 `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_funnel_conversion for the same range and filter_expr, so that the result covers the same users as the conversion (default: a sample of its own)"`
+	Limit         int     `json:"limit,omitempty" jsonschema:"Maximum number of URL patterns to return (default: 10, max: 30)"`
+	Offset        int     `json:"offset,omitempty" jsonschema:"Number of URL patterns to skip for pagination (default: 0)"`
 }
 type mcpGetFunnelStepSessionsInput struct {
-	AppID      string `json:"app_id" jsonschema:"UUID of the app to query"`
-	FunnelID   string `json:"funnel_id" jsonschema:"UUID of the funnel"`
-	Step       *int   `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
-	Outcome    string `json:"outcome" jsonschema:"Whose sessions to list: dropped or converted"`
-	From       string `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
-	To         string `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
-	FilterExpr string `json:"filter_expr,omitempty"`
-	Limit      int    `json:"limit,omitempty" jsonschema:"Maximum number of sessions to return (default: 10, max: 30)"`
-	Offset     int    `json:"offset,omitempty" jsonschema:"Number of sessions to skip for pagination (default: 0)"`
+	AppID         string  `json:"app_id" jsonschema:"UUID of the app to query"`
+	FunnelID      string  `json:"funnel_id" jsonschema:"UUID of the funnel"`
+	Step          *int    `json:"step,omitempty" jsonschema:"Index of the later of the two steps, the one users try to reach, counting the first step as 0: for a funnel with steps A, B and C, 1 looks at users getting from A to B, and 2 at users getting from B to C. From 1 to the number of steps minus 1 (default: the whole funnel)"`
+	Outcome       string  `json:"outcome" jsonschema:"Whose sessions to list: dropped or converted"`
+	From          string  `json:"from,omitempty" jsonschema:"Start of time range (RFC3339, default: 7 days ago)"`
+	To            string  `json:"to,omitempty" jsonschema:"End of time range (RFC3339, default: now)"`
+	FilterExpr    string  `json:"filter_expr,omitempty"`
+	SamplePercent float64 `json:"sample_percent,omitempty" jsonschema:"The sample_percent of get_funnel_conversion for the same range and filter_expr, so that the result covers the same users as the conversion (default: a sample of its own)"`
+	Limit         int     `json:"limit,omitempty" jsonschema:"Maximum number of sessions to return (default: 10, max: 30)"`
+	Offset        int     `json:"offset,omitempty" jsonschema:"Number of sessions to skip for pagination (default: 0)"`
 }
 type mcpCreateFunnelInput struct {
 	AppID                   string   `json:"app_id" jsonschema:"UUID of the app"`
@@ -1623,7 +1922,7 @@ func (c *Config) mcpGetMetrics(ctx context.Context, in mcpGetMetricsInput) (*mcp
 		return nil, nil, fmt.Errorf("failed to fetch adoption metrics: %w", err)
 	}
 
-	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, err := app.GetIssueFreeMetrics(ctx, deps.RchPool, flt)
+	crashFree, perceivedCrashFree, anrFree, perceivedANRFree, appHangFree, err := app.GetIssueFreeMetrics(ctx, deps.RchPool, flt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch issue free metrics: %w", err)
 	}
@@ -1657,6 +1956,10 @@ func (c *Config) mcpGetMetrics(ctx context.Context, in mcpGetMetricsInput) (*mcp
 			anrFree.UnselectedANRFreeSessions, anrFree.UnselectedNoData)
 		result["perceived_anr_free_sessions"] = metricResult("perceived_anr_free_sessions", perceivedANRFree.ANRFreeSessions, perceivedANRFree.NoData,
 			perceivedANRFree.UnselectedANRFreeSessions, perceivedANRFree.UnselectedNoData)
+	}
+	if appHangFree != nil {
+		result["app_hang_free_sessions"] = metricResult("app_hang_free_sessions", appHangFree.AppHangFreeSessions, appHangFree.NoData,
+			appHangFree.UnselectedAppHangFreeSessions, appHangFree.UnselectedNoData)
 	}
 
 	sizes, err := app.GetSizeMetrics(ctx, deps.PgPool, deps.RchPool, flt)
@@ -1706,7 +2009,7 @@ func (c *Config) mcpGetAppHealthOverTime(ctx context.Context, in mcpGetAppHealth
 	}
 
 	app := &measure.App{ID: &appID, TeamId: teamID}
-	sessions, crashes, anrs, plotErr := app.GetHealthPlotInstances(ctx, deps.RchPool, flt)
+	sessions, crashes, anrs, appHangs, plotErr := app.GetHealthPlotInstances(ctx, deps.RchPool, flt)
 	if plotErr != nil {
 		return nil, nil, fmt.Errorf("failed to get app health plot: %v", plotErr)
 	}
@@ -1723,9 +2026,10 @@ func (c *Config) mcpGetAppHealthOverTime(ctx context.Context, in mcpGetAppHealth
 	}
 
 	result := map[string]any{
-		"sessions": build(sessions),
-		"crashes":  build(crashes),
-		"anrs":     build(anrs),
+		"sessions":  build(sessions),
+		"crashes":   build(crashes),
+		"anrs":      build(anrs),
+		"app_hangs": build(appHangs),
 	}
 
 	data, _ := json.Marshal(result)
@@ -2034,6 +2338,126 @@ func (c *Config) mcpGetHighMemorySessions(ctx context.Context, in mcpGetHighMemo
 	return mcpTextResult(string(data)), nil, nil
 }
 
+func (c *Config) mcpGetDeviceSessionsOverTime(ctx context.Context, in mcpGetDeviceSessionsOverTimeInput) (*mcpsdk.CallToolResult, any, error) {
+	if in.Timezone == "" {
+		return nil, nil, fmt.Errorf("timezone is required for over time tools")
+	}
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.DevicesEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		flt.Timezone = in.Timezone
+		flt.PlotTimeGroup = in.PlotTimeGroup
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+	app := measure.App{ID: &appID, TeamId: teamID}
+	points, err := app.GetDevicesSessionsPlotCached(ctx, c.Deps.VK, c.Deps.RchPool, flt)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to fetch device sessions over time: %w", err)
+	}
+	data, _ := json.Marshal(points)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+// mcpPrepareDevicesPage reads inputs shared by device list tools. An empty
+// percentile is valid for lists that do not rank by percentile.
+func (c *Config) mcpPrepareDevicesPage(ctx context.Context, rawAppID, from, to, filterExpr, order, percentile string, limit, offset int) (measure.App, *filter.Filter, measure.DevicesPage, error) {
+	var page measure.DevicesPage
+	switch order {
+	case "", "desc":
+	case "asc":
+		page.Ascending = true
+	default:
+		return measure.App{}, nil, page, fmt.Errorf("order must be desc or asc")
+	}
+	if percentile != "" && !slices.Contains(measure.DevicesPercentiles, percentile) {
+		return measure.App{}, nil, page, fmt.Errorf("percentile must be one of %s", strings.Join(measure.DevicesPercentiles, ", "))
+	}
+	page.Percentile = percentile
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.DevicesEntity, rawAppID, from, to, filterExpr, func(flt *filter.Filter) {
+		if limit <= 0 {
+			limit = 10
+		}
+		flt.Limit = min(limit, 30)
+		flt.Offset = max(offset, 0)
+	})
+	if err != nil {
+		return measure.App{}, nil, page, err
+	}
+	return measure.App{ID: &appID, TeamId: teamID}, flt, page, nil
+}
+
+func mcpDevicesPageResult[Row any](rows []Row, next, previous bool, err error, what string) (*mcpsdk.CallToolResult, any, error) {
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to fetch devices by %s: %w", what, err)
+	}
+	data, _ := json.Marshal(map[string]any{
+		"results": rows,
+		"meta": map[string]bool{
+			"next":     next,
+			"previous": previous,
+		},
+	})
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetDevicesBySessions(ctx context.Context, in mcpGetDevicesBySessionsInput) (*mcpsdk.CallToolResult, any, error) {
+	app, flt, page, err := c.mcpPrepareDevicesPage(ctx, in.AppID, in.From, in.To, in.FilterExpr, in.Order, "", in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	rows, next, previous, err := app.GetDevicesSessionsCached(ctx, c.Deps.VK, c.Deps.RchPool, flt, page)
+	return mcpDevicesPageResult(rows, next, previous, err, "sessions")
+}
+
+func (c *Config) mcpGetDevicesByErrors(ctx context.Context, in mcpGetDevicesByErrorsInput) (*mcpsdk.CallToolResult, any, error) {
+	app, flt, page, err := c.mcpPrepareDevicesPage(ctx, in.AppID, in.From, in.To, in.FilterExpr, in.Order, "", in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	rows, next, previous, err := app.GetDevicesErrorsCached(ctx, c.Deps.VK, c.Deps.RchPool, flt, page)
+	return mcpDevicesPageResult(rows, next, previous, err, "errors")
+}
+
+func (c *Config) mcpGetDevicesByLaunchTime(ctx context.Context, in mcpGetDevicesByLaunchTimeInput) (*mcpsdk.CallToolResult, any, error) {
+	launchType := in.LaunchType
+	if launchType == "" {
+		launchType = measure.LaunchTypes[0]
+	}
+	if !slices.Contains(measure.LaunchTypes, launchType) {
+		return nil, nil, fmt.Errorf("launch_type must be one of %s", strings.Join(measure.LaunchTypes, ", "))
+	}
+	app, flt, page, err := c.mcpPrepareDevicesPage(ctx, in.AppID, in.From, in.To, in.FilterExpr, in.Order, in.Percentile, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	rows, next, previous, err := app.GetDevicesLaunchesCached(ctx, c.Deps.VK, c.Deps.RchPool, flt, page, launchType)
+	return mcpDevicesPageResult(rows, next, previous, err, "launch time")
+}
+
+func (c *Config) mcpGetDevicesBySpanDuration(ctx context.Context, in mcpGetDevicesBySpanDurationInput) (*mcpsdk.CallToolResult, any, error) {
+	if in.RootSpanName == "" {
+		return nil, nil, fmt.Errorf("root_span_name is required")
+	}
+	app, flt, page, err := c.mcpPrepareDevicesPage(ctx, in.AppID, in.From, in.To, in.FilterExpr, in.Order, in.Percentile, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	rows, next, previous, err := app.GetDevicesSpansCached(ctx, c.Deps.VK, c.Deps.RchPool, flt, page, in.RootSpanName)
+	return mcpDevicesPageResult(rows, next, previous, err, "span duration")
+}
+
+func (c *Config) mcpGetDevicesByMemoryUsage(ctx context.Context, in mcpGetDevicesByMemoryUsageInput) (*mcpsdk.CallToolResult, any, error) {
+	app, flt, page, err := c.mcpPrepareDevicesPage(ctx, in.AppID, in.From, in.To, in.FilterExpr, in.Order, in.Percentile, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := app.Populate(ctx, c.Deps.PgPool); err != nil {
+		return nil, nil, fmt.Errorf("failed to populate app: %w", err)
+	}
+	rows, next, previous, err := app.GetDevicesMemoryCached(ctx, c.Deps.VK, c.Deps.RchPool, flt, page)
+	return mcpDevicesPageResult(rows, next, previous, err, "memory usage")
+}
+
 func (c *Config) mcpGetBugReports(ctx context.Context, in mcpGetBugReportsInput) (*mcpsdk.CallToolResult, any, error) {
 	deps := c.Deps
 	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.BugReportsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
@@ -2225,42 +2649,202 @@ func (c *Config) mcpGetAlerts(ctx context.Context, in mcpGetAlertsInput) (*mcpsd
 	return mcpTextResult(string(data)), nil, nil
 }
 
+// get_journey gives this number of nodes, and this number of links when
+// max_links is not set, so the result stays small enough for a model to read.
+const (
+	mcpJourneyNodes        = 50
+	mcpJourneyDefaultLinks = 200
+)
+
+func (c *Config) mcpJourney(ctx context.Context, appID, from, to, filterExpr string) (measure.Journey, error) {
+	_, _, flt, err := c.mcpPrepareFilter(ctx, filter.JourneysEntity, appID, from, to, filterExpr, nil)
+	if err != nil {
+		return measure.Journey{}, err
+	}
+
+	journey, err := measure.GetJourney(ctx, c.Deps.VK, c.Deps.RchPool, flt)
+	if err != nil {
+		return measure.Journey{}, fmt.Errorf("failed to get journey: %v", err)
+	}
+	return journey, nil
+}
+
 func (c *Config) mcpGetJourney(ctx context.Context, in mcpGetJourneyInput) (*mcpsdk.CallToolResult, any, error) {
-	deps := c.Deps
-	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.JourneysEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
+	maxLinks := in.MaxLinks
+	if maxLinks == 0 {
+		maxLinks = mcpJourneyDefaultLinks
+	}
+	if maxLinks < 1 || maxLinks > measure.JourneyMaxLinks {
+		return nil, nil, fmt.Errorf("max_links must be from 1 to %d", measure.JourneyMaxLinks)
+	}
+
+	journey, err := c.mcpJourney(ctx, in.AppID, in.From, in.To, in.FilterExpr)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	app := &measure.App{ID: &appID, TeamId: teamID}
-	if err := app.Populate(ctx, deps.PgPool); err != nil {
+	if len(in.NodeIDs) == 0 {
+		journey = journey.Top(mcpJourneyNodes, maxLinks)
+	} else {
+		ids := map[string]bool{}
+		for _, node := range journey.Nodes {
+			ids[node.ID] = true
+		}
+		missing := []string{}
+		for _, id := range in.NodeIDs {
+			if !ids[id] {
+				missing = append(missing, id)
+			}
+		}
+		if len(missing) > 0 {
+			return nil, nil, fmt.Errorf("the journey has no nodes with the ids %s, get_journey_nodes lists its node ids", strings.Join(missing, ", "))
+		}
+		journey = journey.WithNodes(in.NodeIDs, maxLinks)
+	}
+
+	data, _ := json.Marshal(journey)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetJourneyNodes(ctx context.Context, in mcpGetJourneyNodesInput) (*mcpsdk.CallToolResult, any, error) {
+	journey, err := c.mcpJourney(ctx, in.AppID, in.From, in.To, in.FilterExpr)
+	if err != nil {
 		return nil, nil, err
 	}
-	journeyCtx := ambient.WithTeamId(ctx, teamID)
 
-	g, journeyErr := app.GetJourneyGraph(journeyCtx, deps.RchPool, flt)
-	if journeyErr != nil {
-		return nil, nil, fmt.Errorf("failed to get journey: %v", journeyErr)
+	type node struct {
+		ID    string `json:"id"`
+		Users uint64 `json:"users"`
 	}
-
-	type journeyNode struct {
-		Source string `json:"source"`
-		Target string `json:"target"`
-		Value  uint64 `json:"value"`
+	nodes := []node{}
+	for _, journeyNode := range journey.Nodes {
+		if journeyNode.Kind != "fatal" {
+			nodes = append(nodes, node{ID: journeyNode.ID, Users: journeyNode.Users})
+		}
 	}
+	sort.SliceStable(nodes, func(i, j int) bool {
+		return nodes[i].Users > nodes[j].Users
+	})
 
-	type result struct {
-		Nodes []string      `json:"nodes"`
-		Links []journeyNode `json:"links"`
-	}
-
-	var links []journeyNode
-	for _, edge := range g.Edges {
-		links = append(links, journeyNode{Source: edge.Source, Target: edge.Target, Value: edge.Sessions})
-	}
-
-	data, _ := json.Marshal(result{Nodes: g.Nodes, Links: links})
+	data, _ := json.Marshal(map[string]any{"nodes": nodes})
 	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpGetJourneyPathUsers(ctx context.Context, in mcpGetJourneyPathUsersInput) (*mcpsdk.CallToolResult, any, error) {
+	if len(in.Path) < 2 {
+		return nil, nil, fmt.Errorf("path must have two or more node ids")
+	}
+	_, _, flt, err := c.mcpPrepareFilter(ctx, filter.JourneysEntity, in.AppID, in.From, in.To, in.FilterExpr, nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	if err := mcpSetSamplePercent(flt, in.SamplePercent); err != nil {
+		return nil, nil, err
+	}
+	pathUsers, err := measure.GetJourneyPathUsers(ctx, c.Deps.VK, c.Deps.RchPool, flt, in.Path)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get journey path users: %v", err)
+	}
+	data, _ := json.Marshal(pathUsers)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+func (c *Config) mcpPrepareJourneySelection(ctx context.Context, rawAppID, nodeID string, path []string, from, to, filterExpr string, samplePercent float64, limit, offset int) (*filter.Filter, measure.JourneySelection, error) {
+	var selection measure.JourneySelection
+	switch {
+	case nodeID != "" && len(path) > 0:
+		return nil, selection, fmt.Errorf("give node_id or path, not both")
+	case nodeID != "":
+		selection.Node = nodeID
+	case len(path) >= 2:
+		selection.Path = path
+	default:
+		return nil, selection, fmt.Errorf("node_id or a path of two or more node ids is required")
+	}
+	_, _, flt, err := c.mcpPrepareFilter(ctx, filter.JourneysEntity, rawAppID, from, to, filterExpr, func(flt *filter.Filter) {
+		flt.Limit = mcpFunnelLimit(limit)
+		flt.Offset = offset
+	})
+	if err != nil {
+		return nil, selection, err
+	}
+	if err := mcpSetSamplePercent(flt, samplePercent); err != nil {
+		return nil, selection, err
+	}
+	return flt, selection, nil
+}
+
+// mcpSetSamplePercent sets the sample of a list tool from its sample_percent
+// input, which is zero when the caller leaves it out.
+func mcpSetSamplePercent(flt *filter.Filter, percent float64) error {
+	if percent == 0 {
+		return nil
+	}
+	return flt.SetSamplePercent(percent)
+}
+
+func mcpJourneyListResult(key string, list any, samplePercent *float64) *mcpsdk.CallToolResult {
+	data, _ := json.Marshal(map[string]any{
+		key:              list,
+		"sample_percent": samplePercent,
+	})
+	return mcpTextResult(string(data))
+}
+
+func (c *Config) mcpGetJourneyErrors(ctx context.Context, in mcpGetJourneyErrorsInput) (*mcpsdk.CallToolResult, any, error) {
+	flt, selection, err := c.mcpPrepareJourneySelection(ctx, in.AppID, in.NodeID, in.Path, in.From, in.To, in.FilterExpr, in.SamplePercent, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	page, err := measure.GetJourneyErrors(ctx, c.Deps.VK, c.Deps.RchPool, flt, selection)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get journey errors: %v", err)
+	}
+	return mcpJourneyListResult("errors", page.Results, page.SamplePercent), nil, nil
+}
+
+func (c *Config) mcpGetJourneyTraces(ctx context.Context, in mcpGetJourneyTracesInput) (*mcpsdk.CallToolResult, any, error) {
+	quantile, err := mcpFunnelQuantile(in.Quantile)
+	if err != nil {
+		return nil, nil, err
+	}
+	flt, selection, err := c.mcpPrepareJourneySelection(ctx, in.AppID, in.NodeID, in.Path, in.From, in.To, in.FilterExpr, in.SamplePercent, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	page, err := measure.GetJourneyTraces(ctx, c.Deps.VK, c.Deps.RchPool, flt, selection, quantile)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get journey traces: %v", err)
+	}
+	return mcpJourneyListResult("spans", page.Results, page.SamplePercent), nil, nil
+}
+
+func (c *Config) mcpGetJourneyNetwork(ctx context.Context, in mcpGetJourneyNetworkInput) (*mcpsdk.CallToolResult, any, error) {
+	quantile, err := mcpFunnelQuantile(in.Quantile)
+	if err != nil {
+		return nil, nil, err
+	}
+	flt, selection, err := c.mcpPrepareJourneySelection(ctx, in.AppID, in.NodeID, in.Path, in.From, in.To, in.FilterExpr, in.SamplePercent, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	page, err := measure.GetJourneyNetwork(ctx, c.Deps.VK, c.Deps.RchPool, flt, selection, quantile)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get journey network requests: %v", err)
+	}
+	return mcpJourneyListResult("endpoints", page.Results, page.SamplePercent), nil, nil
+}
+
+func (c *Config) mcpGetJourneySessions(ctx context.Context, in mcpGetJourneySessionsInput) (*mcpsdk.CallToolResult, any, error) {
+	flt, selection, err := c.mcpPrepareJourneySelection(ctx, in.AppID, in.NodeID, in.Path, in.From, in.To, in.FilterExpr, in.SamplePercent, in.Limit, in.Offset)
+	if err != nil {
+		return nil, nil, err
+	}
+	page, err := measure.GetJourneySessions(ctx, c.Deps.VK, c.Deps.RchPool, flt, selection)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get journey sessions: %v", err)
+	}
+	return mcpJourneyListResult("sessions", page.Results, page.SamplePercent), nil, nil
 }
 
 func (c *Config) mcpGetErrorCommonPath(ctx context.Context, in mcpGetErrorCommonPathInput) (*mcpsdk.CallToolResult, any, error) {
@@ -2316,6 +2900,164 @@ func (c *Config) mcpUpdateBugReportStatus(ctx context.Context, in mcpUpdateBugRe
 	}
 
 	return mcpTextResult(`{"ok":"done"}`), nil, nil
+}
+
+func (c *Config) mcpGetBuilds(ctx context.Context, in mcpGetBuildsInput) (*mcpsdk.CallToolResult, any, error) {
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.BuildsEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		limit := in.Limit
+		if limit <= 0 {
+			limit = 10
+		}
+		if limit > 30 {
+			limit = 30
+		}
+		flt.Limit = limit
+		flt.Offset = in.Offset
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	builds, _, _, err := measure.GetBuildsWithFilter(ctx, c.Deps.PgPool, flt)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get builds: %v", err)
+	}
+
+	origin := strings.TrimSuffix(c.Deps.Config.SiteOrigin, "/")
+	summaries := make([]mcpBuildSummary, len(builds))
+	for i, build := range builds {
+		summaries[i] = mcpBuildSummary{Build: build, Files: make([]mcpBuildFile, len(build.Files))}
+		if origin != "" {
+			summaries[i].DashboardURL = buildDashboardURL(origin, teamID, appID, flt.From, flt.To, build)
+		}
+		for j, file := range build.Files {
+			summaries[i].Files[j] = mcpBuildFile{ID: file.ID, MappingType: file.MappingType, FileSize: file.FileSize, LastUpdated: file.LastUpdated}
+		}
+	}
+	data, _ := json.Marshal(summaries)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+// buildDashboardURL links to the app's Builds page, filtered to this build
+// and the time range of the get_builds call.
+func buildDashboardURL(origin string, teamID, appID uuid.UUID, from, to time.Time, build measure.Build) string {
+	condition := func(key, value string) filter.ExprTree {
+		return filter.ExprTree{Condition: &filter.Condition{KeyName: key, Operator: filter.OperatorIn, Values: []filter.Value{{Text: value}}}}
+	}
+	exprTree := filter.ExprTree{LogicalOperator: filter.LogicalAnd, Children: []filter.ExprTree{
+		condition("version_name", build.VersionName),
+		condition("version_code", build.VersionCode),
+	}}
+	// Patch uploads have their own patch id and empty version columns.
+	if build.PatchID != "" {
+		exprTree = condition("patch_id", build.PatchID)
+	}
+
+	query := url.Values{}
+	query.Set("a", appID.String())
+	query.Set("d", "Custom Range")
+	query.Set("sd", from.UTC().Format(time.RFC3339))
+	query.Set("ed", to.UTC().Format(time.RFC3339))
+	query.Set("filter_expr", filter.FormatFilterExpr(&exprTree))
+	return fmt.Sprintf("%s/%s/builds?%s", origin, teamID, query.Encode())
+}
+
+// mcpBuildSummary is a build as listed by get_builds. Its files omit the
+// dashboard download path, which requires sign-in. The build links to the
+// dashboard's Builds page, where users can download the files.
+type mcpBuildSummary struct {
+	measure.Build
+	Files        []mcpBuildFile `json:"files"`
+	DashboardURL string         `json:"dashboard_url,omitempty"`
+}
+
+type mcpBuildFile struct {
+	ID          uuid.UUID `json:"id"`
+	MappingType string    `json:"mapping_type"`
+	FileSize    int64     `json:"filesize"`
+	LastUpdated time.Time `json:"last_updated"`
+}
+
+func (c *Config) mcpGetProfiles(ctx context.Context, in mcpGetProfilesInput) (*mcpsdk.CallToolResult, any, error) {
+	appID, teamID, flt, err := c.mcpPrepareFilter(ctx, filter.ProfilesEntity, in.AppID, in.From, in.To, in.FilterExpr, func(flt *filter.Filter) {
+		limit := in.Limit
+		if limit <= 0 {
+			limit = 10
+		}
+		if limit > 30 {
+			limit = 30
+		}
+		flt.Limit = limit
+		flt.Offset = in.Offset
+	})
+	if err != nil {
+		return nil, nil, err
+	}
+
+	app := measure.App{ID: &appID, TeamId: teamID}
+	profiles, _, _, err := app.GetProfilesWithFilter(ctx, c.Deps.RchPool, flt)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get profiles: %v", err)
+	}
+
+	origin := strings.TrimSuffix(c.Deps.Config.SiteOrigin, "/")
+	summaries := make([]mcpProfileSummary, len(profiles))
+	for i, profile := range profiles {
+		summaries[i] = mcpProfileSummary{
+			ID:                 profile.ID,
+			SessionID:          profile.SessionID,
+			Timestamp:          profile.Timestamp,
+			Trigger:            profile.Trigger,
+			Format:             profile.Format,
+			VersionName:        profile.Attribute.AppVersion,
+			VersionCode:        profile.Attribute.AppBuild,
+			OSName:             profile.Attribute.OSName,
+			OSVersion:          profile.Attribute.OSVersion,
+			DeviceManufacturer: profile.Attribute.DeviceManufacturer,
+			DeviceModel:        profile.Attribute.DeviceModel,
+			DeviceName:         profile.Attribute.DeviceName,
+		}
+		if origin != "" {
+			summaries[i].DashboardURL = profileDashboardURL(origin, teamID, appID, profile.Timestamp)
+		}
+	}
+	data, _ := json.Marshal(summaries)
+	return mcpTextResult(string(data)), nil, nil
+}
+
+// profileDashboardURL links to the app's Profiles page with a time range
+// from the second of the profile timestamp through one second later. The
+// profiles filter has no profile ID key, so the time range selects the
+// profile. clickhouse-go sends range bounds to ClickHouse as whole seconds;
+// bounds at the millisecond timestamp therefore match no profile.
+func profileDashboardURL(origin string, teamID, appID uuid.UUID, timestamp time.Time) string {
+	start := timestamp.UTC().Truncate(time.Second)
+	query := url.Values{}
+	query.Set("a", appID.String())
+	query.Set("d", "Custom Range")
+	query.Set("sd", start.Format("2006-01-02T15:04:05.000Z"))
+	query.Set("ed", start.Add(time.Second).Format("2006-01-02T15:04:05.000Z"))
+	return fmt.Sprintf("%s/%s/profiles?%s", origin, teamID, query.Encode())
+}
+
+// mcpProfileSummary contains the fields returned for a profile by
+// get_profiles. It omits attachments because their storage locations require
+// sign-in. The dashboard link opens the Profiles page, where users can
+// download the profile or open it in Perfetto.
+type mcpProfileSummary struct {
+	ID                 uuid.UUID `json:"id"`
+	SessionID          uuid.UUID `json:"session_id"`
+	Timestamp          time.Time `json:"timestamp"`
+	Trigger            string    `json:"trigger"`
+	Format             string    `json:"format"`
+	VersionName        string    `json:"version_name"`
+	VersionCode        string    `json:"version_code"`
+	OSName             string    `json:"os_name"`
+	OSVersion          string    `json:"os_version"`
+	DeviceManufacturer string    `json:"device_manufacturer"`
+	DeviceModel        string    `json:"device_model"`
+	DeviceName         string    `json:"device_name"`
+	DashboardURL       string    `json:"dashboard_url,omitempty"`
 }
 
 // --------------------------------------------------------------------------
@@ -2503,21 +3245,25 @@ func (c *Config) mcpResolveFunnelWriteAccess(ctx context.Context, rawAppID strin
 
 // mcpFunnelStepResult names the two steps a step tool covered next to its
 // list, so a caller that passed the wrong step can tell from the result.
-func mcpFunnelStepResult(funnel measure.Funnel, stepRange measure.FunnelStepRange, key string, list any) *mcpsdk.CallToolResult {
+func mcpFunnelStepResult(funnel measure.Funnel, stepRange measure.FunnelStepRange, key string, list any, samplePercent *float64) *mcpsdk.CallToolResult {
 	data, _ := json.Marshal(map[string]any{
-		"from_step": funnel.Steps[stepRange.From].EventName,
-		"to_step":   funnel.Steps[stepRange.To].EventName,
-		key:         list,
+		"from_step":      funnel.Steps[stepRange.From].EventName,
+		"to_step":        funnel.Steps[stepRange.To].EventName,
+		key:              list,
+		"sample_percent": samplePercent,
 	})
 	return mcpTextResult(string(data))
 }
 
-func (c *Config) mcpPrepareFunnelStep(ctx context.Context, rawAppID, rawFunnelID string, step *int, from, to, filterExpr string, limit, offset int) (measure.Funnel, *filter.Filter, measure.FunnelStepRange, error) {
+func (c *Config) mcpPrepareFunnelStep(ctx context.Context, rawAppID, rawFunnelID string, step *int, from, to, filterExpr string, samplePercent float64, limit, offset int) (measure.Funnel, *filter.Filter, measure.FunnelStepRange, error) {
 	appID, _, flt, err := c.mcpPrepareFilter(ctx, filter.FunnelsEntity, rawAppID, from, to, filterExpr, func(flt *filter.Filter) {
 		flt.Limit = mcpFunnelLimit(limit)
 		flt.Offset = offset
 	})
 	if err != nil {
+		return measure.Funnel{}, nil, measure.FunnelStepRange{}, err
+	}
+	if err := mcpSetSamplePercent(flt, samplePercent); err != nil {
 		return measure.Funnel{}, nil, measure.FunnelStepRange{}, err
 	}
 	funnel, err := c.mcpLoadFunnel(ctx, appID, rawFunnelID)
@@ -2616,11 +3362,11 @@ func (c *Config) mcpGetFunnelConversion(ctx context.Context, in mcpGetFunnelConv
 	if err != nil {
 		return nil, nil, err
 	}
-	steps, err := measure.GetFunnelConversionCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt)
+	conversion, err := measure.GetFunnelConversionCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get funnel conversion: %v", err)
 	}
-	data, _ := json.Marshal(map[string]any{"steps": steps})
+	data, _ := json.Marshal(conversion)
 	return mcpTextResult(string(data)), nil, nil
 }
 
@@ -2682,15 +3428,15 @@ func (c *Config) mcpGetFunnelCadence(ctx context.Context, in mcpGetFunnelCadence
 }
 
 func (c *Config) mcpGetFunnelStepErrors(ctx context.Context, in mcpGetFunnelStepErrorsInput) (*mcpsdk.CallToolResult, any, error) {
-	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.Limit, in.Offset)
+	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.SamplePercent, in.Limit, in.Offset)
 	if err != nil {
 		return nil, nil, err
 	}
-	stepErrors, _, _, err := measure.GetFunnelStepErrorsCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange)
+	page, err := measure.GetFunnelStepErrorsCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get funnel step errors: %v", err)
 	}
-	return mcpFunnelStepResult(funnel, stepRange, "errors", stepErrors), nil, nil
+	return mcpFunnelStepResult(funnel, stepRange, "errors", page.Results, page.SamplePercent), nil, nil
 }
 
 func (c *Config) mcpGetFunnelStepTraces(ctx context.Context, in mcpGetFunnelStepTracesInput) (*mcpsdk.CallToolResult, any, error) {
@@ -2698,15 +3444,15 @@ func (c *Config) mcpGetFunnelStepTraces(ctx context.Context, in mcpGetFunnelStep
 	if err != nil {
 		return nil, nil, err
 	}
-	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.Limit, in.Offset)
+	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.SamplePercent, in.Limit, in.Offset)
 	if err != nil {
 		return nil, nil, err
 	}
-	stepTraces, _, _, err := measure.GetFunnelStepTracesCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange, quantile)
+	page, err := measure.GetFunnelStepTracesCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange, quantile)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get funnel step traces: %v", err)
 	}
-	return mcpFunnelStepResult(funnel, stepRange, "spans", stepTraces), nil, nil
+	return mcpFunnelStepResult(funnel, stepRange, "spans", page.Results, page.SamplePercent), nil, nil
 }
 
 func (c *Config) mcpGetFunnelStepNetwork(ctx context.Context, in mcpGetFunnelStepNetworkInput) (*mcpsdk.CallToolResult, any, error) {
@@ -2714,15 +3460,15 @@ func (c *Config) mcpGetFunnelStepNetwork(ctx context.Context, in mcpGetFunnelSte
 	if err != nil {
 		return nil, nil, err
 	}
-	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.Limit, in.Offset)
+	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.SamplePercent, in.Limit, in.Offset)
 	if err != nil {
 		return nil, nil, err
 	}
-	stepEndpoints, _, _, err := measure.GetFunnelStepNetworkCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange, quantile)
+	page, err := measure.GetFunnelStepNetworkCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange, quantile)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get funnel step network requests: %v", err)
 	}
-	return mcpFunnelStepResult(funnel, stepRange, "endpoints", stepEndpoints), nil, nil
+	return mcpFunnelStepResult(funnel, stepRange, "endpoints", page.Results, page.SamplePercent), nil, nil
 }
 
 func (c *Config) mcpGetFunnelStepSessions(ctx context.Context, in mcpGetFunnelStepSessionsInput) (*mcpsdk.CallToolResult, any, error) {
@@ -2734,15 +3480,15 @@ func (c *Config) mcpGetFunnelStepSessions(ctx context.Context, in mcpGetFunnelSt
 	default:
 		return nil, nil, fmt.Errorf("outcome must be one of dropped or converted")
 	}
-	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.Limit, in.Offset)
+	funnel, flt, stepRange, err := c.mcpPrepareFunnelStep(ctx, in.AppID, in.FunnelID, in.Step, in.From, in.To, in.FilterExpr, in.SamplePercent, in.Limit, in.Offset)
 	if err != nil {
 		return nil, nil, err
 	}
-	stepSessions, _, _, err := measure.GetFunnelStepSessionsCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange, converted)
+	page, err := measure.GetFunnelStepSessionsCached(ctx, c.Deps.VK, c.Deps.RchPool, funnel, flt, stepRange, converted)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get funnel step sessions: %v", err)
 	}
-	return mcpFunnelStepResult(funnel, stepRange, "sessions", stepSessions), nil, nil
+	return mcpFunnelStepResult(funnel, stepRange, "sessions", page.Results, page.SamplePercent), nil, nil
 }
 
 func (c *Config) mcpCreateFunnel(ctx context.Context, in mcpCreateFunnelInput) (*mcpsdk.CallToolResult, any, error) {

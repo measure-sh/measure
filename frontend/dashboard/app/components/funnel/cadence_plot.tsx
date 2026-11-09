@@ -3,8 +3,9 @@
 import { type LineCustomCanvasLayer, ResponsiveLineCanvas } from "@nivo/line";
 import { Clock } from "lucide-react";
 import { DateTime } from "luxon";
-import { useCallback, useMemo, useState } from "react";
+import { type ReactNode, useCallback, useMemo, useState } from "react";
 import type { FunnelCadence } from "../../api/api_calls";
+import { queryErrorMessage } from "../../api/api_error";
 import {
   CHART_GRID_DOT_SIZE,
   CHART_TEXT_SIZE,
@@ -21,7 +22,12 @@ import {
 import { numberToKMB } from "../../utils/number_utils";
 import DropdownSelect, { DropdownSelectType } from "../dropdown_select";
 import EmptyState from "../empty_state";
-import { PlotTooltipShell, PlotTooltipSwatch } from "../plot_tooltip";
+import {
+  PlotTooltip,
+  PlotTooltipArea,
+  PlotTooltipSwatch,
+  useTooltipTaps,
+} from "../plot_tooltip";
 import { Separator } from "../separator";
 import { SkeletonPlot } from "../skeleton";
 import { formatShare } from "./format";
@@ -64,6 +70,10 @@ type ScaleWithTicks = {
   ticks: (count: number) => unknown[];
 };
 
+function hourKey(weekday: string | number, hour: number): string {
+  return `${weekday}:${hour}`;
+}
+
 function hourLabel(hour: number): string {
   return DateTime.fromObject({ hour: hour % 24 })
     .toFormat("ha")
@@ -75,16 +85,21 @@ function HourLines({
   unselectedWeekdays,
   onChangeUnselectedWeekdays,
   onSelectPoint,
+  controls,
+  heightClassName,
 }: {
   hours: FunnelCadence["hours"];
   unselectedWeekdays: Set<string>;
   onChangeUnselectedWeekdays: (unselectedWeekdays: Set<string>) => void;
   onSelectPoint: (weekday: number, hour: number) => void;
+  controls: ReactNode;
+  heightClassName: string;
 }) {
   const canvasTheme = useChartCanvasTheme();
   const gridOpacity = useChartGridOpacity();
   const colors = useChartColors();
   const muted = canvasTheme.axis.ticks.text.fill;
+  const tooltipTaps = useTooltipTaps();
 
   const allSeries = useMemo<HourSeries[]>(() => {
     const cells = new Map(
@@ -184,7 +199,7 @@ function HourLines({
 
   return (
     <div className="flex flex-col w-full">
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <DropdownSelect
           type={DropdownSelectType.MultiString}
           title="Select Days"
@@ -205,81 +220,87 @@ function HourLines({
             )
           }
         />
+        {controls}
       </div>
-      <div className="relative w-full h-136 cursor-pointer">
+      <div className={`relative w-full ${heightClassName} cursor-pointer`}>
         {series.length === 0 && (
           <p className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground pointer-events-none">
             No days selected
           </p>
         )}
-        <ResponsiveLineCanvas
-          data={series}
-          curve="linear"
-          theme={canvasTheme}
-          colors={({ id }) => colorOf(id)}
-          layers={["axes", drawLines, "mesh"]}
-          margin={{
-            top: TOP_MARGIN,
-            right: RIGHT_MARGIN,
-            bottom: bottomMargin,
-            left: leftMargin,
-          }}
-          xScale={{ type: "linear", min: 0, max: HOURS.length - 1 }}
-          yScale={{ type: "linear", min: 0, max: "auto", nice: true }}
-          axisTop={null}
-          axisRight={null}
-          axisBottom={{
-            tickSize: CHART_TICK_SIZE,
-            tickPadding: CHART_TICK_PADDING,
-            tickValues: LABELED_HOURS,
-            format: (value) => hourLabel(Number(value)),
-            legend: "Hour of Day",
-            legendOffset: bottomMargin - CHART_TEXT_SIZE / 2,
-            legendPosition: "middle",
-          }}
-          axisLeft={{
-            tickSize: CHART_TICK_SIZE,
-            tickPadding: CHART_TICK_PADDING,
-            tickValues: CHART_VALUE_TICK_COUNT,
-            format: (value) => `${value}%`,
-            legend: "Conversion",
-            legendOffset: -(leftMargin - CHART_TEXT_SIZE / 2),
-            legendPosition: "middle",
-          }}
-          enableGridX={false}
-          enableGridY={false}
-          onClick={(datum) => {
-            if ("seriesId" in datum) {
-              onSelectPoint(
-                WEEKDAYS.indexOf(String(datum.seriesId)) + 1,
-                datum.data.x,
-              );
-            }
-          }}
-          tooltip={({ point }) => (
-            <PlotTooltipShell>
-              <div className="flex flex-row items-center px-4 py-3">
-                <PlotTooltipSwatch color={point.seriesColor} />
-                <span className="px-2">
-                  {point.seriesId} -{" "}
-                  {formatShare(point.data.converted, point.data.users)}
-                </span>
-              </div>
-              <Separator />
-              <div className="px-4 py-3 flex flex-col gap-2">
-                <p>
-                  Hour: {hourLabel(point.data.x)} to{" "}
-                  {hourLabel(point.data.x + 1)}
-                </p>
-                <p>Users entered: {numberToKMB(point.data.users)}</p>
-                <p>Users converted: {numberToKMB(point.data.converted)}</p>
-                <p className="text-muted-foreground">
-                  Click to open last {point.seriesId} in Breakdown view
-                </p>
-              </div>
-            </PlotTooltipShell>
-          )}
-        />
+        <PlotTooltipArea taps={tooltipTaps}>
+          <ResponsiveLineCanvas
+            data={series}
+            curve="linear"
+            theme={canvasTheme}
+            colors={({ id }) => colorOf(id)}
+            layers={["axes", drawLines, "mesh"]}
+            margin={{
+              top: TOP_MARGIN,
+              right: RIGHT_MARGIN,
+              bottom: bottomMargin,
+              left: leftMargin,
+            }}
+            xScale={{ type: "linear", min: 0, max: HOURS.length - 1 }}
+            yScale={{ type: "linear", min: 0, max: "auto", nice: true }}
+            axisTop={null}
+            axisRight={null}
+            axisBottom={{
+              tickSize: CHART_TICK_SIZE,
+              tickPadding: CHART_TICK_PADDING,
+              tickValues: LABELED_HOURS,
+              format: (value) => hourLabel(Number(value)),
+              legend: "Hour of Day",
+              legendOffset: bottomMargin - CHART_TEXT_SIZE / 2,
+              legendPosition: "middle",
+            }}
+            axisLeft={{
+              tickSize: CHART_TICK_SIZE,
+              tickPadding: CHART_TICK_PADDING,
+              tickValues: CHART_VALUE_TICK_COUNT,
+              format: (value) => `${value}%`,
+              legend: "Conversion",
+              legendOffset: -(leftMargin - CHART_TEXT_SIZE / 2),
+              legendPosition: "middle",
+            }}
+            enableGridX={false}
+            enableGridY={false}
+            onClick={(datum) => {
+              if (
+                "seriesId" in datum &&
+                tooltipTaps.shouldAct(hourKey(datum.seriesId, datum.data.x))
+              ) {
+                onSelectPoint(
+                  WEEKDAYS.indexOf(String(datum.seriesId)) + 1,
+                  datum.data.x,
+                );
+              }
+            }}
+            tooltip={({ point }) => (
+              <PlotTooltip tapKey={hourKey(point.seriesId, point.data.x)}>
+                <div className="flex flex-row items-center px-4 py-3">
+                  <PlotTooltipSwatch color={point.seriesColor} />
+                  <span className="px-2">
+                    {point.seriesId} -{" "}
+                    {formatShare(point.data.converted, point.data.users)}
+                  </span>
+                </div>
+                <Separator />
+                <div className="px-4 py-3 flex flex-col gap-2">
+                  <p>
+                    Hour: {hourLabel(point.data.x)} to{" "}
+                    {hourLabel(point.data.x + 1)}
+                  </p>
+                  <p>Users entered: {numberToKMB(point.data.users)}</p>
+                  <p>Users converted: {numberToKMB(point.data.converted)}</p>
+                  <p className="text-muted-foreground">
+                    Click to open last {point.seriesId} in Breakdown view
+                  </p>
+                </div>
+              </PlotTooltip>
+            )}
+          />
+        </PlotTooltipArea>
       </div>
     </div>
   );
@@ -287,31 +308,48 @@ function HourLines({
 
 export default function FunnelCadencePlot({
   status,
+  error,
   hours,
   onSelectPoint,
+  controls,
+  demo = false,
 }: {
   status: "pending" | "error" | "success";
+  error?: unknown;
   hours: FunnelCadence | undefined;
   onSelectPoint: (weekday: number, hour: number) => void;
+  controls?: ReactNode;
+  // Uses the large-screen height at every width, matching FunnelTrendPlot.
+  demo?: boolean;
 }) {
   // The unselected weekdays live here because the lines unmount while a new span
   // or filter loads.
   const [unselectedWeekdays, setUnselectedWeekdays] = useState<Set<string>>(
     () => new Set(),
   );
+  const plotHeight = demo ? "h-186" : "h-126 2xl:h-186";
 
   return (
     <div className="flex flex-col font-body items-center justify-center w-full">
+      {!(status === "success" && hours && hours.hours.length > 0) && (
+        <div className="flex w-full justify-end mb-4">{controls}</div>
+      )}
       {status === "pending" && (
-        <div className="flex items-center justify-center w-full h-144">
+        <div
+          className={`flex items-center justify-center w-full ${plotHeight}`}
+        >
           <SkeletonPlot />
         </div>
       )}
       {status === "error" && (
-        <div className="flex items-center justify-center w-full h-144">
+        <div
+          className={`flex items-center justify-center w-full ${plotHeight}`}
+        >
           <p className="text-lg font-display text-center p-4">
-            Error fetching plot, please change filters or refresh page to try
-            again
+            {queryErrorMessage(
+              error,
+              "Error fetching plot. Please refresh page or change filters to try again.",
+            )}
           </p>
         </div>
       )}
@@ -320,7 +358,7 @@ export default function FunnelCadencePlot({
           icon={Clock}
           title="No users entered this funnel"
           description="Try different filters"
-          className="h-144"
+          className={plotHeight}
         />
       )}
       {status === "success" && hours && hours.hours.length > 0 && (
@@ -329,6 +367,8 @@ export default function FunnelCadencePlot({
           unselectedWeekdays={unselectedWeekdays}
           onChangeUnselectedWeekdays={setUnselectedWeekdays}
           onSelectPoint={onSelectPoint}
+          controls={controls}
+          heightClassName={plotHeight}
         />
       )}
     </div>

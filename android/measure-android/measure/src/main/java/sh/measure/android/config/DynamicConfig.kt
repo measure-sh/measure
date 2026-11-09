@@ -30,12 +30,6 @@ internal interface IDynamicConfig {
     val traceSamplingRate: Float
 
     /**
-     * Sampling rate in percentage for sessions that should track journey events. Defaults
-     * to 100%, which means all sessions will track journey events.
-     */
-    val journeySamplingRate: Float
-
-    /**
      * The screenshot mask level to be applied to screenshots. Defaults
      * to [ScreenshotMaskLevel.AllTextAndMedia].
      */
@@ -180,6 +174,18 @@ internal interface IDynamicConfig {
      * is an additional, remotely tunable cap on top of that.
      */
     val profileSamplingRate: Float
+
+    /**
+     * Sampling rate in percentage for installations that should send analytics events. Defaults
+     * to 100%.
+     */
+    val analyticsSamplingRate: Float
+
+    /**
+     * Event types sampled with [analyticsSamplingRate]. Defaults to
+     * [DefaultConfig.ANALYTICS_EVENTS].
+     */
+    val analyticsEventTypes: List<String>
 }
 
 @Serializable
@@ -206,9 +212,6 @@ internal data class DynamicConfig(
 
     @SerialName("trace_sampling_rate")
     override val traceSamplingRate: Float = 100f,
-
-    @SerialName("journey_sampling_rate")
-    override val journeySamplingRate: Float = 100f,
 
     @SerialName("screenshot_mask_level")
     override val screenshotMaskLevel: ScreenshotMaskLevel =
@@ -297,6 +300,12 @@ internal data class DynamicConfig(
 
     @SerialName("profile_sampling_rate")
     override val profileSamplingRate: Float = 100f,
+
+    @SerialName("analytics_sampling_rate")
+    override val analyticsSamplingRate: Float = 100f,
+
+    @SerialName("analytics_event_types")
+    override val analyticsEventTypes: List<String> = DefaultConfig.ANALYTICS_EVENTS.map { it.value },
 ) : IDynamicConfig {
     @Suppress("DEPRECATION")
     override val errorReplayDurationSeconds: Int

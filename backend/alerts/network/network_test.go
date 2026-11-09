@@ -233,6 +233,7 @@ func TestGenerateMetrics_InsertsAggregatedMetrics(t *testing.T) {
 		HttpEndTime:    1100,
 		PatchID:        patchID,
 		PatchVersion:   "1.0-patch.2",
+		DeviceModel:    "Pixel 8",
 	})
 
 	GenerateMetrics(ctx)
@@ -255,6 +256,18 @@ func TestGenerateMetrics_InsertsAggregatedMetrics(t *testing.T) {
 	}
 	if len(patchIDs) != 1 || patchIDs[0] != patchID {
 		t.Errorf("patch ids = %v, want [%s]", patchIDs, patchID)
+	}
+
+	var deviceModels []string
+	err = th.ChConn.QueryRow(ctx,
+		"SELECT groupUniqArrayArray(device_models) FROM http_metrics WHERE team_id = ? AND app_id = ?",
+		teamID, appID,
+	).Scan(&deviceModels)
+	if err != nil {
+		t.Fatalf("query aggregated device models: %v", err)
+	}
+	if len(deviceModels) != 1 || deviceModels[0] != "Pixel 8" {
+		t.Errorf("device models = %v, want [Pixel 8]", deviceModels)
 	}
 }
 

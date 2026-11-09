@@ -22,7 +22,12 @@ import ErrorsOverviewPlot from "./errors_overview_plot";
 import LoadingBar from "./loading_bar";
 import Paginator from "./paginator";
 import Pill, { PillType } from "./pill";
-import { PlotTooltipShell, PlotTooltipSwatch } from "./plot_tooltip";
+import {
+  PlotTooltip,
+  PlotTooltipArea,
+  PlotTooltipSwatch,
+  useTooltipTaps,
+} from "./plot_tooltip";
 import RowLinkCell from "./row_link_cell";
 import { SkeletonListPage } from "./skeleton";
 import {
@@ -44,6 +49,74 @@ const {
 
 interface ErrorsOverviewProps {
   teamId: string;
+}
+
+// The chart sits above the row link so hovering a bar shows its tooltip,
+// and clicking the chart opens the error like the rest of the row.
+function ErrorTrendPlot({
+  trend,
+  href,
+  plotTimeGroup,
+  color,
+}: {
+  trend: { datetime: string; instances: number }[];
+  href: string;
+  plotTimeGroup: PlotTimeGroup;
+  color: string;
+}) {
+  const router = useRouter();
+  const tooltipTaps = useTooltipTaps();
+
+  return (
+    <div
+      data-testid="exception-row-trend"
+      className="relative z-20 pointer-events-auto cursor-pointer w-full h-4 border-b border-border"
+      onClick={() => {
+        if (tooltipTaps.shouldAct(null)) {
+          router.push(href);
+        }
+      }}
+    >
+      <PlotTooltipArea taps={tooltipTaps}>
+        <ResponsiveBarCanvas
+          data={trend}
+          keys={["instances"]}
+          indexBy="datetime"
+          colors={[color]}
+          margin={{ top: 0, right: 0, bottom: 0, left: 0 }}
+          padding={0.2}
+          valueScale={{ type: "linear", min: 0 }}
+          axisTop={null}
+          axisRight={null}
+          axisBottom={null}
+          axisLeft={null}
+          enableGridY={false}
+          enableLabel={false}
+          onClick={(bar, event) => {
+            event.stopPropagation();
+            if (tooltipTaps.shouldAct(String(bar.index))) {
+              router.push(href);
+            }
+          }}
+          tooltip={({ data, index }) => (
+            <PlotTooltip className="px-4 py-2" tapKey={String(index)}>
+              <p className="p-2">
+                Date:{" "}
+                {formatPlotTooltipDate(data.datetime.toString(), plotTimeGroup)}
+              </p>
+              <div className="flex flex-row items-center p-2">
+                <PlotTooltipSwatch color={color} />
+                <span className="px-2">
+                  {numberToKMB(data.instances)}{" "}
+                  {data.instances === 1 ? "instance" : "instances"}
+                </span>
+              </div>
+            </PlotTooltip>
+          )}
+        />
+      </PlotTooltipArea>
+    </div>
+  );
 }
 
 export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
@@ -138,13 +211,13 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
       {readyValue !== null &&
         (status === "success" || status === "pending") && (
           <div className="flex flex-col items-center w-full">
-            <div className="py-2" />
+            <div className="py-4" />
             <ErrorsOverviewPlot
               startDate={readyValue.date.startDate}
               endDate={readyValue.date.endDate}
               query={errorsPlotQuery}
             />
-            <div className="py-4" />
+            <div className="py-6" />
             {!listEmpty && (
               <>
                 <div className="self-end">
@@ -159,11 +232,10 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                   />
                 </div>
                 <div
-                  className={`py-1 w-full ${isFetching ? "visible" : "invisible"}`}
+                  className={`py-4 w-full ${isFetching ? "visible" : "invisible"}`}
                 >
                   <LoadingBar />
                 </div>
-                <div className="py-4" />
                 {/* When a trend tooltip opens on the last row, it extends below
                     the table for one frame before it moves above the cursor.
                     Without the clip, Table's scrollable container shows a
@@ -171,7 +243,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                     left to make room for it. This is only visible when the
                     browser draws scrollbars that take up width; overlay
                     scrollbars stay hidden. */}
-                <Table className="font-display select-none overflow-hidden">
+                <Table className="font-display select-none overflow-hidden max-lg:min-w-250">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[40%]">Error</TableHead>
@@ -187,7 +259,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                       <TableHead className="w-[10%] text-center">
                         Sessions
                       </TableHead>
-                      <TableHead className="w-[10%] text-center">
+                      <TableHead className="w-[10%] text-right">
                         Users
                       </TableHead>
                     </TableRow>
@@ -297,56 +369,15 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                               </span>
                             </RowLinkCell>
                             <RowLinkCell href={href} className="w-[18%]">
-                              {/* The chart is raised above the row link so hovering a
-                                  bar shows its tooltip, and a click on it opens the
-                                  error like the rest of the row. */}
-                              <div
-                                data-testid="exception-row-trend"
-                                className="relative z-20 pointer-events-auto cursor-pointer w-full h-4 border-b border-border"
-                                onClick={() => router.push(href)}
-                              >
-                                <ResponsiveBarCanvas
-                                  data={trend ?? []}
-                                  keys={["instances"]}
-                                  indexBy="datetime"
-                                  colors={[trendColor]}
-                                  margin={{
-                                    top: 0,
-                                    right: 0,
-                                    bottom: 0,
-                                    left: 0,
-                                  }}
-                                  padding={0.2}
-                                  valueScale={{ type: "linear", min: 0 }}
-                                  axisTop={null}
-                                  axisRight={null}
-                                  axisBottom={null}
-                                  axisLeft={null}
-                                  enableGridY={false}
-                                  enableLabel={false}
-                                  tooltip={({ data }) => (
-                                    <PlotTooltipShell className="px-4 py-2">
-                                      <p className="p-2">
-                                        Date:{" "}
-                                        {formatPlotTooltipDate(
-                                          data.datetime.toString(),
-                                          errorsOverview.meta
-                                            .plot_time_group as PlotTimeGroup,
-                                        )}
-                                      </p>
-                                      <div className="flex flex-row items-center p-2">
-                                        <PlotTooltipSwatch color={trendColor} />
-                                        <span className="px-2">
-                                          {data.instances.toLocaleString()}{" "}
-                                          {data.instances === 1
-                                            ? "instance"
-                                            : "instances"}
-                                        </span>
-                                      </div>
-                                    </PlotTooltipShell>
-                                  )}
-                                />
-                              </div>
+                              <ErrorTrendPlot
+                                trend={trend ?? []}
+                                href={href}
+                                plotTimeGroup={
+                                  errorsOverview.meta
+                                    .plot_time_group as PlotTimeGroup
+                                }
+                                color={trendColor}
+                              />
                             </RowLinkCell>
                             <RowLinkCell
                               href={href}
@@ -366,7 +397,7 @@ export const ErrorsOverview: React.FC<ErrorsOverviewProps> = ({ teamId }) => {
                             </RowLinkCell>
                             <RowLinkCell
                               href={href}
-                              className="w-[10%] text-center truncate"
+                              className="w-[10%] text-right truncate"
                             >
                               <span data-testid="exception-row-users">
                                 {users === 0 ? "–" : numberToKMB(users)}

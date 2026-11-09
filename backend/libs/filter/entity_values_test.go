@@ -240,6 +240,7 @@ func seedSpans(ctx context.Context, t *testing.T) (teamID, appID, otherAppID uui
 		DeviceLocale:       "en-US",
 		DeviceManufacturer: "Google",
 		DeviceName:         "pixel 4a",
+		DeviceModel:        "Pixel 4a",
 		PatchID:            patchOne,
 		PatchVersion:       "1.2.0-patch.3",
 	})
@@ -324,6 +325,13 @@ func TestSpansValues(t *testing.T) {
 		got := texts(values)
 		if len(got) != 2 || got[0] != "iPhone 15" || got[1] != "pixel 4a" {
 			t.Errorf("want [iPhone 15, pixel 4a], got %v", got)
+		}
+	})
+
+	t.Run("device models leave out spans without a model", func(t *testing.T) {
+		values, _ := list(t, "device_model", ValueRequest{})
+		if got := texts(values); len(got) != 1 || got[0] != "Pixel 4a" {
+			t.Errorf("want [Pixel 4a], got %v", got)
 		}
 	})
 
@@ -439,4 +447,28 @@ func TestSpansValues(t *testing.T) {
 
 func init() {
 	log.SetOutput(os.Stdout)
+}
+
+func TestDeviceModelValues(t *testing.T) {
+	ctx := context.Background()
+	teamID, appID := uuid.New(), uuid.New()
+	th.SeedTeam(ctx, t, teamID.String(), "device model values team")
+	th.SeedApp(ctx, t, appID.String(), teamID.String(), "device model values app", 90)
+	for _, model := range []string{"Pixel 8", ""} {
+		th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+			OSName: "android", OSVersion: "14", CountryCode: "US",
+			NetworkProvider: "Verizon", NetworkType: "wifi", NetworkGeneration: "unknown", DeviceLocale: "en-US",
+			DeviceManufacturer: "Google", DeviceName: "shiba", DeviceModel: model,
+		})
+	}
+
+	for _, entity := range []Entity{DevicesEntity, ErrorsEntity, MemoryEntity, ProfilesEntity, JourneysEntity, FunnelsEntity, SessionsEntity, NetworkEntity} {
+		valueList, err := entity.SuggestKeyValues(ctx, pgPool, chConn, teamID, appID, IndexKeysByName(entity.Keys)["device_model"], ValueRequest{})
+		if err != nil {
+			t.Fatalf("%s: fetch values: %v", entity.Name, err)
+		}
+		if len(valueList.Values) != 1 || valueList.Values[0].Text != "Pixel 8" {
+			t.Errorf("%s: values = %v, want only Pixel 8 from app_filters", entity.Name, valueList.Values)
+		}
+	}
 }

@@ -13,7 +13,6 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.robolectric.annotation.Config
-import sh.measure.android.config.DefaultConfig
 import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.EventType
 import sh.measure.android.exporter.EventPacket
@@ -1347,65 +1346,6 @@ class DatabaseTest {
         ).use { assertEquals(0, it.count) }
         assertEquals(listOf("session-2", "session-1"), database.getRecentSessionIds(2))
         assertEquals(1, database.getEventsCount("session-2"))
-    }
-
-    @Test
-    fun `sampleJourneyEvents updates sampled flag for existing journey events`() {
-        // given
-        database.insertSession(TestData.getSessionEntity(id = "session-1"))
-
-        val activityLifecycleEvent = TestData.getEventEntity(
-            eventId = "event-1",
-            sessionId = "session-1",
-            type = EventType.LIFECYCLE_ACTIVITY,
-            isSampled = false,
-        )
-        val fragmentLifecycleEvent = TestData.getEventEntity(
-            eventId = "event-2",
-            sessionId = "session-1",
-            type = EventType.LIFECYCLE_FRAGMENT,
-            isSampled = false,
-        )
-        val screenViewEvent = TestData.getEventEntity(
-            eventId = "event-3",
-            sessionId = "session-1",
-            type = EventType.SCREEN_VIEW,
-            isSampled = false,
-        )
-        val nonJourneyEvent = TestData.getEventEntity(
-            eventId = "event-4",
-            sessionId = "session-1",
-            type = EventType.LIFECYCLE_APP,
-            isSampled = false,
-        )
-
-        database.insertEvent(activityLifecycleEvent)
-        database.insertEvent(fragmentLifecycleEvent)
-        database.insertEvent(screenViewEvent)
-        database.insertEvent(nonJourneyEvent)
-
-        // when
-        database.sampleJourneyEvents("session-1", DefaultConfig.JOURNEY_EVENTS)
-
-        // then
-        val db = database.readableDatabase
-        queryAllEvents(db).use { cursor ->
-            assertEquals(4, cursor.count)
-            while (cursor.moveToNext()) {
-                if (cursor.getString(cursor.getColumnIndex(EventTable.COL_ID)) == activityLifecycleEvent.id) {
-                    assertTrue(cursor.getInt(cursor.getColumnIndex(EventTable.COL_SAMPLED)) == 1)
-                }
-                if (cursor.getString(cursor.getColumnIndex(EventTable.COL_ID)) == fragmentLifecycleEvent.id) {
-                    assertTrue(cursor.getInt(cursor.getColumnIndex(EventTable.COL_SAMPLED)) == 1)
-                }
-                if (cursor.getString(cursor.getColumnIndex(EventTable.COL_ID)) == screenViewEvent.id) {
-                    assertTrue(cursor.getInt(cursor.getColumnIndex(EventTable.COL_SAMPLED)) == 1)
-                }
-                if (cursor.getString(cursor.getColumnIndex(EventTable.COL_ID)) == nonJourneyEvent.id) {
-                    assertTrue(cursor.getInt(cursor.getColumnIndex(EventTable.COL_SAMPLED)) == 0)
-                }
-            }
-        }
     }
 
     @Test

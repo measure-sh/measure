@@ -125,9 +125,32 @@ buildscript {
 apply plugin: "sh.measure.android.gradle"
 ```
 
+Initialize the native SDK in `MainApplication.onCreate()`. The JavaScript `Measure.init` doesn't start it, so without this call the app sends nothing:
+
+```kotlin
+// In android/app/src/main/java/.../MainApplication.kt
+import sh.measure.android.Measure
+import sh.measure.android.config.MeasureConfig
+
+override fun onCreate() {
+    super.onCreate()
+    Measure.init(this, MeasureConfig())
+    // ...
+}
+```
+
 **iOS**
 
 From the `ios` directory, run `pod install`.
+
+Initialize the native SDK in your `AppDelegate`'s `application(_:didFinishLaunchingWithOptions:)`:
+
+```swift
+import Measure
+
+let clientInfo = ClientInfo(apiKey: "<ios-api-key>", apiUrl: "<ios-api-url>")
+Measure.initialize(with: clientInfo, config: BaseMeasureConfig())
+```
 
 By default, the `measure-sh` iOS framework is integrated via Swift Package Manager (SPM) on React Native 0.75 and above. On older React Native versions it is integrated as a CocoaPods dependency automatically. If you'd prefer to integrate it as a CocoaPods dependency instead, add the following to the top of your `Podfile`:
 

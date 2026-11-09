@@ -24,7 +24,7 @@ func (h Handlers) GetHealthOverviewPlotInstances(c *gin.Context) {
 		return
 	}
 
-	sessions, crashes, anrs, err := app.GetHealthPlotInstances(ctx, deps.RchPool, &flt)
+	sessions, crashes, anrs, appHangs, err := app.GetHealthPlotInstances(ctx, deps.RchPool, &flt)
 	if err != nil {
 		msg := `failed to query data for health overview plot`
 		fmt.Println(msg, err)
@@ -54,5 +54,6 @@ func (h Handlers) GetHealthOverviewPlotInstances(c *gin.Context) {
 		build("sessions", sessions),
 		build("crashes", crashes),
 		build("anrs", anrs),
+		build("app_hangs", appHangs),
 	})
 }

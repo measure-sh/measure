@@ -36,6 +36,7 @@ func seedBugReports(ctx context.Context, t *testing.T) (teamID, appID, otherAppI
 		UserID:             "alice",
 		DeviceName:         "pixel 4a",
 		DeviceManufacturer: "Google",
+		DeviceModel:        "Pixel 4a",
 		PatchID:            patchOne,
 		PatchVersion:       "1.2.0-patch.3",
 	})
@@ -46,6 +47,7 @@ func seedBugReports(ctx context.Context, t *testing.T) (teamID, appID, otherAppI
 		UserID:             "bob",
 		DeviceName:         "iPhone 15",
 		DeviceManufacturer: "Apple",
+		DeviceModel:        "iPhone 15 Pro",
 		OSName:             "iOS",
 		OSVersion:          "17.4",
 		PatchID:            patchTwo,
@@ -97,6 +99,14 @@ func TestBugReportsValues(t *testing.T) {
 		got := texts(values)
 		if len(got) != 3 || got[0] != "Pixel" || got[1] != "iPhone 15" || got[2] != "pixel 4a" {
 			t.Errorf("want [Pixel, iPhone 15, pixel 4a], got %v", got)
+		}
+	})
+
+	t.Run("device models are read from the reports, most recently seen first", func(t *testing.T) {
+		values, _ := list(t, "device_model", ValueRequest{})
+		got := texts(values)
+		if len(got) != 3 || got[0] != "Pixel 6" || got[1] != "iPhone 15 Pro" || got[2] != "Pixel 4a" {
+			t.Errorf("want [Pixel 6, iPhone 15 Pro, Pixel 4a], got %v", got)
 		}
 	})
 

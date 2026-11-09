@@ -601,14 +601,14 @@ class Measure implements MeasureApi {
   ///   showErrorDialog('Network request failed');
   ///
   ///   // Track the handled error for monitoring
-  ///   Measure.instance.trackHandledError(error, stackTrace);
+  ///   Measure.instance.trackError(error, stackTrace);
   /// }
   /// ```
   ///
   /// **Note:** Unhandled exceptions are automatically tracked by the SDK.
   /// Only use this method for exceptions you explicitly catch.
   @override
-  Future<void> trackHandledError(
+  Future<void> trackError(
     Object error,
     StackTrace stack, {
     Map<String, AttributeValue> attributes = const {},
@@ -619,6 +619,17 @@ class Measure implements MeasureApi {
           severity: ExceptionSeverity.handled, attributes: attributes);
     }
     return Future.value();
+  }
+
+  /// Tracks a handled exception with its stack trace.
+  @Deprecated('Use trackError instead.')
+  @override
+  Future<void> trackHandledError(
+    Object error,
+    StackTrace stack, {
+    Map<String, AttributeValue> attributes = const {},
+  }) {
+    return trackError(error, stack, attributes: attributes);
   }
 
   /// Deliberately triggers a native crash for testing crash reporting functionality.

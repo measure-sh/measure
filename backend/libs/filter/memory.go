@@ -17,8 +17,9 @@ var memoryKeys = []Key{
 	patchID,
 	osName,
 	osVersion,
-	deviceName,
+	deviceModel,
 	deviceManufacturer,
+	deviceName,
 	deviceTotalMemory,
 }
 
@@ -31,6 +32,7 @@ var memoryEventsColumns = &Columns{dialect: dialectClickHouse, byKey: map[string
 	osName.Name:             {expr: "`attribute.os_name`"},
 	osVersion.Name:          {expr: "`attribute.os_version`"},
 	deviceName.Name:         {expr: "`attribute.device_name`"},
+	deviceModel.Name:        {expr: "`attribute.device_model`"},
 	deviceManufacturer.Name: {expr: "`attribute.device_manufacturer`"},
 	deviceTotalMemory.Name:  {kind: columnPredicates, predicates: devicememory.Predicates("if(type = 'memory_usage_absolute', `memory_usage_absolute.max_memory`, `attribute.device_total_memory`)")},
 }}

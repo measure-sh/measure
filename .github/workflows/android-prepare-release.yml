@@ -11,6 +11,11 @@ on:
         description: 'Next SNAPSHOT version (e.g., 0.10.0-SNAPSHOT)'
         required: true
         type: string
+      generate_baseline_profile:
+        description: 'Regenerate the baseline profile'
+        required: false
+        type: boolean
+        default: false
 
 env:
   JAVA_VERSION: 21
@@ -26,7 +31,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    timeout-minutes: 15
+    timeout-minutes: 45
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
@@ -84,6 +89,27 @@ jobs:
           KOTLIN_REPLACEMENT="implementation(\"sh.measure:measure-android:$VERSION\")"
           sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" getting-started/android.mdx
 
+      - uses: actions/setup-java@v6
+        if: inputs.generate_baseline_profile
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: ${{ env.JAVA_DISTRIBUTION }}
+          cache: 'gradle'
+
+      - name: Enable KVM
+        if: inputs.generate_baseline_profile
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Generate baseline profile
+        if: inputs.generate_baseline_profile
+        run: >
+          ./gradlew :measure:generateBaselineProfile
+          -Pandroid.testoptions.manageddevices.emulator.gpu=swiftshader_indirect
+          --no-configuration-cache --stacktrace
+
       - name: Create Pull Request
         uses: peter-evans/create-pull-request@v8
         with:
@@ -101,6 +127,7 @@ jobs:
             - Updated MEASURE_ANDROID_VERSION to ${{ inputs.version }} in kmp/measure-kmp/gradle.properties
             - Generated changelog for version ${{ inputs.version }}
             - Updated SDK version in the getting started docs
+            - Regenerated baseline profile: ${{ inputs.generate_baseline_profile }}
 
             <!-- release-meta
             NEXT_VERSION=${{ inputs.next_version }}

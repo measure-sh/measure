@@ -370,7 +370,7 @@ fun NativeAndroidScreen() {
                         .put("float_attr", 2.718f)
                         .put("boolean_attr", true)
                         .build()
-                    Measure.trackHandledException(e, attributes)
+                    Measure.trackError(e, attributes)
                     Toast.makeText(context, "Handled exception tracked", Toast.LENGTH_SHORT).show()
                 }
             },

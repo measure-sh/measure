@@ -1,6 +1,7 @@
 import SessionReplayOverviewPlot from "@/app/components/session_replay_overview_plot";
 import "@testing-library/jest-dom";
 import { render, screen, waitFor } from "@testing-library/react";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 let lastLineProps: any = null;
 
@@ -87,7 +88,6 @@ describe("SessionReplayOverviewPlot", () => {
     );
     expect(screen.getByTestId("sessions-plot-data")).toBeInTheDocument();
     expect(lastLineProps.xScale.precision).toBe("minute");
-    expect(lastLineProps.axisLeft.legend).toBe("Session Replay");
     expect(lastLineProps.data[0].data[0].y).toBe(2);
   });
 
@@ -178,7 +178,7 @@ describe("SessionReplayOverviewPlot", () => {
     );
 
     const datum = lastLineProps.data[0].data[0];
-    const { container, getByText } = render(
+    const { getByText } = render(
       lastLineProps.tooltip({
         point: {
           seriesId: lastLineProps.data[0].id,
@@ -186,10 +186,13 @@ describe("SessionReplayOverviewPlot", () => {
           data: { ...datum, xFormatted: "2026-02-23T01:00:00" },
         },
       }),
+      { wrapper: PlotTooltipArea },
     );
     expect(getByText("1.0.0 - 2 session replays")).toBeInTheDocument();
     expect(getByText("2.0.0 - 1 session replay")).toBeInTheDocument();
-    expect(container.textContent).toContain("Date:");
+    expect(screen.getByRole("tooltip", { hidden: true }).textContent).toContain(
+      "Date:",
+    );
   });
 
   it("hides stale chart while new range data is loading", async () => {

@@ -3,14 +3,29 @@ import FunnelChart from "@/app/components/funnel/chart";
 import { useChartColors } from "@/app/utils/chart_utils";
 import { beforeAll, beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { render, renderHook, screen } from "@testing-library/react";
+import { pointerDown } from "@/__tests__/helpers/pointer_events";
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+} from "@testing-library/react";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 let lastFunnelProps: any = null;
+let mockShownTooltip: any = null;
 
+// When mockShownTooltip is set, the mock renders that part's tooltip inside
+// the chart, as nivo does when a part is hovered or tapped.
 jest.mock("@nivo/funnel", () => ({
   ResponsiveFunnel: (props: any) => {
     lastFunnelProps = props;
-    return <div data-testid="funnel-mock" />;
+    return (
+      <div data-testid="funnel-mock">
+        {mockShownTooltip && props.tooltip(mockShownTooltip)}
+      </div>
+    );
   },
 }));
 
@@ -35,9 +50,11 @@ beforeAll(() => {
 
 beforeEach(() => {
   lastFunnelProps = null;
+  mockShownTooltip = null;
 });
 
 const conversion: FunnelConversion = {
+  sample_percent: 100,
   steps: [
     { event_name: "app_open", users: 2000, median_seconds_from_previous: null },
     { event_name: "add_to_cart", users: 500, median_seconds_from_previous: 90 },
@@ -54,7 +71,9 @@ function renderChart(onSelectStep = jest.fn()) {
 function renderTooltip(index: number, color = "#38bdf8") {
   renderChart();
   const Tooltip = lastFunnelProps.tooltip;
-  return render(<Tooltip part={{ data: { id: index }, color }} />);
+  return render(<Tooltip part={{ data: { id: index }, color }} />, {
+    wrapper: PlotTooltipArea,
+  });
 }
 
 function rowValue(label: string): string | null {
@@ -147,19 +166,35 @@ describe("FunnelChart", () => {
       lastFunnelProps.onClick({ data: { id: 0 } });
       expect(onSelectStep).not.toHaveBeenCalled();
     });
+
+    it("selects a step on a tap only when its tooltip is visible", () => {
+      mockShownTooltip = { part: { data: { id: 1 }, color: "#38bdf8" } };
+      const onSelectStep = renderChart();
+      const tap = (id: number) => {
+        pointerDown(screen.getByTestId("funnel-mock"), "touch");
+        act(() => lastFunnelProps.onClick({ data: { id } }));
+      };
+
+      tap(2);
+      expect(onSelectStep).not.toHaveBeenCalled();
+      tap(1);
+      expect(onSelectStep).toHaveBeenCalledWith(1);
+    });
   });
 
   describe("step tooltip", () => {
     it("shows the step's event name and color", () => {
-      const { container } = renderTooltip(1, "#fbbf24");
+      renderTooltip(1, "#fbbf24");
       expect(screen.getByText("add_to_cart")).toBeInTheDocument();
-      const swatch = container.querySelector(".rounded-full") as HTMLElement;
+      const swatch = screen
+        .getByRole("tooltip", { hidden: true })
+        .querySelector(".rounded-full") as HTMLElement;
       expect(swatch.style.backgroundColor).toBe("rgb(251, 191, 36)");
     });
 
     it("shows only users and conversion from start for the first step", () => {
       renderTooltip(0);
-      expect(rowValue("Users")).toBe((2000).toLocaleString());
+      expect(rowValue("Users")).toBe("2K");
       expect(rowValue("Conversion from start")).toBe("100%");
       expect(
         screen.queryByText("Conversion from previous step"),
@@ -173,7 +208,7 @@ describe("FunnelChart", () => {
       expect(rowValue("Users")).toBe("500");
       expect(rowValue("Conversion from start")).toBe("25%");
       expect(rowValue("Conversion from previous step")).toBe("25%");
-      expect(rowValue("Dropped")).toBe((1500).toLocaleString());
+      expect(rowValue("Dropped")).toBe("1.5K");
       expect(rowValue("Median time")).toBe("1m 30s");
     });
 

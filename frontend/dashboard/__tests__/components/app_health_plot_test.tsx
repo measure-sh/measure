@@ -1,6 +1,7 @@
 import AppHealthPlot from "@/app/components/app_health_plot";
 import "@testing-library/jest-dom";
 import { render, screen } from "@testing-library/react";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 let lastLineProps: any = null;
 
@@ -133,9 +134,29 @@ describe("AppHealthPlot", () => {
       },
     });
 
-    const { container } = render(tooltip);
-    expect(container.textContent).toContain("Sessions - 1,200");
-    expect(container.textContent).toContain("Crashes - 2");
+    render(tooltip, { wrapper: PlotTooltipArea });
+    const tooltipDiv = screen.getByRole("tooltip", { hidden: true });
+    expect(tooltipDiv.textContent).toContain("Sessions - 1.2K");
+    expect(tooltipDiv.textContent).toContain("Crashes - 2");
+  });
+
+  it("colors app hangs like ANRs", () => {
+    render(
+      <AppHealthPlot
+        {...plotDates}
+        status="success"
+        plot={[
+          {
+            id: "App Hangs",
+            data: [{ id: "h1", x: "2026-02-01T01:00:00", y: 3 }],
+          },
+        ]}
+      />,
+    );
+
+    const appHangsColor = lastLineProps.colors({ id: "App Hangs" });
+    expect(appHangsColor).not.toBe("#888");
+    expect(appHangsColor).toBe(lastLineProps.colors({ id: "ANRs" }));
   });
 
   it("uses fallback color for unknown series id", () => {

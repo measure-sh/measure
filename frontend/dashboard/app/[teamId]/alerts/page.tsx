@@ -116,16 +116,15 @@ export default function AlertsOverview(props: {
             />
           </div>
           <div
-            className={`py-1 w-full ${isFetching ? "visible" : "invisible"}`}
+            className={`py-4 w-full ${isFetching ? "visible" : "invisible"}`}
           >
             <LoadingBar />
           </div>
-          <div className="py-4" />
-          <Table className="font-display select-none">
+          <Table className="font-display select-none max-lg:min-w-125">
             <TableHeader>
               <TableRow>
                 <TableHead className="w-[60%]">Alert</TableHead>
-                <TableHead className="w-[20%] text-center">Time</TableHead>
+                <TableHead className="w-[20%] text-right">Time</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -172,7 +171,7 @@ export default function AlertsOverview(props: {
                           <p className="truncate select-none">{message}</p>
                         </div>
                       </TableCell>
-                      <TableCell className="w-[20%] text-center relative p-0">
+                      <TableCell className="w-[20%] text-right relative p-0">
                         <Link
                           href={url}
                           className="absolute inset-0 z-10 cursor-pointer"

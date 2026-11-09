@@ -20,6 +20,24 @@ import {
 } from "@testing-library/react";
 import { http } from "msw";
 
+// useIsMobile reads window.matchMedia, which jsdom does not implement.
+// Rendering the usage page without this stub throws.
+if (typeof window.matchMedia === "undefined") {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: jest.fn().mockImplementation((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addListener: jest.fn(),
+      removeListener: jest.fn(),
+      addEventListener: jest.fn(),
+      removeEventListener: jest.fn(),
+      dispatchEvent: jest.fn(),
+    })),
+  });
+}
+
 jest.mock("posthog-js", () => ({
   __esModule: true,
   default: {
@@ -137,22 +155,6 @@ jest.mock("@nivo/pie", () => ({
   ),
 }));
 
-jest.mock("@nivo/sankey", () => ({
-  __esModule: true,
-  ResponsiveSankey: ({ data }: any) => (
-    <div data-testid="nivo-sankey">
-      {data?.nodes?.map((node: any) => (
-        <span
-          key={node.id}
-          data-testid={`sankey-node-${node.id.split(".").pop()}`}
-        >
-          {node.id.split(".").pop()}
-        </span>
-      ))}
-    </div>
-  ),
-}));
-
 // Radix popovers need a resize observer and pointer capture, which jsdom lacks.
 (globalThis as any).ResizeObserver = class {
   observe() {}
@@ -169,7 +171,7 @@ import { server } from "../msw/server";
 jest.spyOn(console, "log").mockImplementation(() => {});
 jest.spyOn(console, "error").mockImplementation(() => {});
 
-beforeAll(() => server.listen({ onUnhandledRequest: "error" }));
+beforeAll(() => server.listen({ onUnhandledFrame: "error" }));
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 
@@ -179,7 +181,7 @@ import Builds from "@/app/[teamId]/builds/page";
 import BugReportsOverview from "@/app/[teamId]/bug_reports/page";
 import FunnelDetailsPage from "@/app/[teamId]/funnels/[appId]/[funnelId]/page";
 import FunnelsPage from "@/app/[teamId]/funnels/page";
-import UserJourneysPage from "@/app/[teamId]/journeys/page";
+import JourneysPage from "@/app/[teamId]/journeys/page";
 import Notifications from "@/app/[teamId]/notif_prefs/page";
 import SessionDetail from "@/app/[teamId]/session_replays/[appId]/[sessionId]/page";
 import SessionReplayOverview from "@/app/[teamId]/session_replays/page";
@@ -527,15 +529,14 @@ const cases: SandboxCase[] = [
     name: "Journeys",
     path: "/sandbox/journeys",
     render: () => (
-      <UserJourneysPage params={promiseParams({ teamId: "sandbox" })} />
+      <JourneysPage params={promiseParams({ teamId: "sandbox" })} />
     ),
     expect: async () => {
-      await waitFor(
-        () => expect(screen.getByTestId("nivo-sankey")).toBeTruthy(),
-        { timeout: 5000 },
-      );
-      expect(screen.getByTestId("sankey-node-CheckoutActivity")).toBeTruthy();
-      expect(screen.getByTestId("sankey-node-HomeActivity")).toBeTruthy();
+      expect(
+        await screen.findByText("CheckoutActivity", {}, { timeout: 5000 }),
+      ).toBeTruthy();
+      expect(screen.getByText("HomeActivity")).toBeTruthy();
+      expect(screen.getAllByText("Fatal error").length).toBeGreaterThan(0);
     },
   },
   {

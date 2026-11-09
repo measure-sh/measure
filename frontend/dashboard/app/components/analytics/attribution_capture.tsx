@@ -1,6 +1,6 @@
 "use client";
 
-import { useConsentManager } from "@c15t/nextjs";
+import { useConsent } from "c15t/next";
 import { useEffect } from "react";
 import { captureGCLIDFromURL } from "@/app/utils/analytics/attribution";
 import { captureUTMsFromURL } from "@/app/utils/analytics/utm";
@@ -20,11 +20,9 @@ export function AttributionCapture() {
   return null;
 }
 
-// Must render inside ConsentManagerProvider: useConsentManager throws without
-// it.
+// Must render inside ConsentProvider: useConsent throws without it.
 export function ConsentedAttributionCapture() {
-  const { has } = useConsentManager();
-  const granted = has("marketing");
+  const granted = useConsent("marketing");
 
   useEffect(() => {
     if (!granted) {

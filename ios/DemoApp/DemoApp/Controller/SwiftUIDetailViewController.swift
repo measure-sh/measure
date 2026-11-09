@@ -32,7 +32,7 @@ struct SwiftUIDetailViewController: View {
     ]
 
     var body: some View {
-        MsrMoniterView("DetailListView") {
+        MsrMonitorView("DetailListView") {
             NavigationView {
                 VStack(spacing: 0) {
 
@@ -91,6 +91,12 @@ struct SwiftUIDetailViewController: View {
                     .navigationBarTitle("SwiftUI View Controller", displayMode: .inline)
                 }
             }
+        }
+        .onAppear {
+            Measure.logWarning("SwiftUIDetailViewController appeared")
+        }
+        .onDisappear {
+            Measure.logWarning("SwiftUIDetailViewController disappeared")
         }
     }
 

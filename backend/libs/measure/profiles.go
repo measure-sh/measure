@@ -43,6 +43,7 @@ func (a App) GetProfilesWithFilter(ctx context.Context, rch driver.Conn, flt *fi
 		Select("`attribute.os_version`").
 		Select("`attribute.device_manufacturer`").
 		Select("`attribute.device_model`").
+		Select("`attribute.device_name`").
 		Select("attachments").
 		Where("team_id = toUUID(?)", a.TeamId).
 		Where("app_id = toUUID(?)", a.ID).
@@ -89,6 +90,7 @@ func (a App) GetProfilesWithFilter(ctx context.Context, rch driver.Conn, flt *fi
 			&profile.Attribute.OSVersion,
 			&profile.Attribute.DeviceManufacturer,
 			&profile.Attribute.DeviceModel,
+			&profile.Attribute.DeviceName,
 			&attachments,
 		); err != nil {
 			return

@@ -2,20 +2,21 @@
 
 import com.diffplug.gradle.spotless.SpotlessExtension
 import com.vanniktech.maven.publish.AndroidSingleVariantLibrary
+import org.jetbrains.kotlin.compose.compiler.gradle.ComposeFeatureFlag
+import org.jetbrains.kotlin.gradle.dsl.KotlinVersion
 
 plugins {
     alias(libs.plugins.android.library)
-    alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
-    alias(libs.plugins.kotlinx.binary.compatibility.validator)
     alias(libs.plugins.diffplug.spotless)
     alias(libs.plugins.mavenPublish)
     alias(libs.plugins.androidx.baselineprofile)
 }
 
-private val measureSdkVersion = properties["MEASURE_VERSION_NAME"] as String
-private val groupId = properties["GROUP"] as String
-private val artifactId = properties["MEASURE_ARTIFACT_ID"] as String
+private val measureSdkVersion = providers.gradleProperty("MEASURE_VERSION_NAME").get()
+private val groupId = providers.gradleProperty("GROUP").get()
+private val artifactId = providers.gradleProperty("MEASURE_ARTIFACT_ID").get()
 
 group = groupId
 
@@ -67,6 +68,9 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         testInstrumentationRunnerArguments["clearPackageData"] = "true"
         consumerProguardFiles("consumer-rules.pro")
+        aarMetadata {
+            minCompileSdk = 34
+        }
     }
 
     buildTypes {
@@ -84,9 +88,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
-    }
-    kotlinOptions {
-        jvmTarget = "11"
     }
     testOptions {
         unitTests {
@@ -107,18 +108,26 @@ android {
     packaging {
         jniLibs.pickFirsts += "**/libmeasure-ndk.so"
     }
-    composeOptions {
-        kotlinCompilerExtensionVersion = "1.5.7"
+}
+
+kotlin {
+    // Keep the published Kotlin metadata and stdlib dependency readable by consumers on older
+    // Kotlin versions, even though AGP requires a newer Kotlin Gradle plugin to build.
+    coreLibrariesVersion = "1.9.21"
+    compilerOptions {
+        languageVersion.set(KotlinVersion.KOTLIN_1_9)
+        apiVersion.set(KotlinVersion.KOTLIN_1_9)
     }
 }
 
+composeCompiler {
+    // Strong skipping makes the compiler call Composer.changedInstance, which only exists in
+    // Compose runtime 1.4+. Keep it off so apps on older Compose versions don't crash.
+    featureFlags.add(ComposeFeatureFlag.StrongSkipping.disabled())
+}
+
 extensions.configure<SpotlessExtension>("spotless") {
-    plugins.withId("org.jetbrains.kotlin.jvm") {
-        configureSpotlessKotlin(this@configure)
-    }
-    plugins.withId("org.jetbrains.kotlin.android") {
-        configureSpotlessKotlin(this@configure)
-    }
+    configureSpotlessKotlin(this)
     kotlinGradle {
         ktlint()
     }

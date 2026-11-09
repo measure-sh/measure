@@ -152,7 +152,7 @@ import { server } from "../msw/server";
 jest.spyOn(console, "log").mockImplementation(() => {});
 jest.spyOn(console, "error").mockImplementation(() => {});
 
-beforeAll(() => server.listen({ onUnhandledRequest: "warn" }));
+beforeAll(() => server.listen({ onUnhandledFrame: "warn" }));
 afterEach(() => {
   server.resetHandlers();
   mockRouterPush.mockClear();
@@ -1056,6 +1056,28 @@ describe("Funnel Details (MSW integration)", () => {
         (await screen.findByTestId("filter-issue", {}, { timeout: 5000 }))
           .textContent,
       ).toContain('Version "3.1.0" was never released');
+      expect(screen.queryByText(/Error fetching plot/)).toBeNull();
+    });
+
+    it("shows the server's message when the conversion is over the query limits", async () => {
+      record("get", "/:funnelId/conversion", () =>
+        HttpResponse.json(
+          {
+            error:
+              "This query is larger than the current processing limits allow. Try a shorter date range or narrower filters, or run it again later.",
+          },
+          { status: 422 },
+        ),
+      );
+      renderPage();
+
+      expect(
+        await screen.findByText(
+          "This query is larger than the current processing limits allow. Try a shorter date range or narrower filters, or run it again later.",
+          {},
+          { timeout: 5000 },
+        ),
+      ).toBeTruthy();
       expect(screen.queryByText(/Error fetching plot/)).toBeNull();
     });
   });

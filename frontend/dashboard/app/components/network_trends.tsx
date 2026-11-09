@@ -237,21 +237,23 @@ export default function NetworkTrends({
           tabButtons}
       </div>
       {effectiveStatus === "pending" && (
-        <div className="w-full mt-6" style={{ minHeight: 480 }}>
+        <div className="w-full mt-4" style={{ minHeight: 480 }}>
           <LoadingBar />
         </div>
       )}
 
       {effectiveStatus === "success" && activeTabData.length > 0 && (
         <>
-          <div className="py-6" />
-          <Table className="font-display select-none">
+          <div className="py-2" />
+          <Table className="font-display select-none max-lg:min-w-140">
             <TableHeader>
               <TableRow>
                 <TableHead style={{ width: "55%" }}>Endpoint</TableHead>
                 <TableHead style={{ width: "15%" }}>Latency (p95)</TableHead>
                 <TableHead style={{ width: "15%" }}>Error Rate %</TableHead>
-                <TableHead style={{ width: "15%" }}>Frequency</TableHead>
+                <TableHead className="text-right" style={{ width: "15%" }}>
+                  Frequency
+                </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -302,7 +304,9 @@ export default function NetworkTrends({
                       {formatMillisToHumanReadable(endpoint.p95_latency)}
                     </TableCell>
                     <TableCell>{`${endpoint.error_rate}%`}</TableCell>
-                    <TableCell>{numberToKMB(endpoint.frequency)}</TableCell>
+                    <TableCell className="text-right">
+                      {numberToKMB(endpoint.frequency)}
+                    </TableCell>
                   </TableRow>
                 );
               })}

@@ -1,6 +1,5 @@
 @import "tailwindcss";
 @import "tw-animate-css";
-@import "@c15t/nextjs/styles.css";
 /* Fumadocs docs UI: shadcn.css maps the fd-* tokens onto the app theme
    variables below, so the preset's global body/border preflight resolves to
    the existing palette and docs pages inherit the brand colors. */

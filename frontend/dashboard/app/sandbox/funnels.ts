@@ -35,8 +35,10 @@ import {
 import {
   jsonResponse,
   notAvailable,
-  paginate,
+  pageResponse,
+  parseQuantile,
   parseRange,
+  quantileOf,
   stableInt,
   stableUuid,
   unitInterval,
@@ -361,7 +363,10 @@ function pinnedResponse(bundle: AppBundle): Response {
   const seeds = seedsFor(bundle);
   return jsonResponse({
     results: pinnedIdsFor(bundle).map((id) =>
-      toFunnel(bundle, seeds.find((seed) => funnelId(bundle, seed) === id)!),
+      toFunnel(
+        bundle,
+        seeds.find((seed) => funnelId(bundle, seed) === id)!,
+      ),
     ),
   });
 }
@@ -429,11 +434,11 @@ function toFunnel(bundle: AppBundle, seed: FunnelSeed): Funnel {
 
 // Users come back over the days of a range, so a longer range has more
 // sessions per distinct user.
-function sessionsPerUser(days: number): number {
+export function sessionsPerUser(days: number): number {
   return Math.max(1, 1.6 * Math.pow(days, 0.45));
 }
 
-function rangeDays(from: DateTime, to: DateTime): number {
+export function rangeDays(from: DateTime, to: DateTime): number {
   return Math.max(0, to.diff(from).as("days"));
 }
 
@@ -488,13 +493,16 @@ function completion(
   return (partial / converted(window) + full) / (oldest - youngest);
 }
 
-// How much a version's errors per session between two steps cut the step's
-// conversion. A crash ends the session, most users close the app on an ANR,
-// an unhandled error usually breaks the screen, and a handled one is only an
-// annoyance.
+// How much a version's errors per session between two steps reduce
+// conversion. A crash ends the session; most users close the app on an
+// ANR; an app hang ends it if the app is killed; an unhandled error
+// usually breaks the screen; a handled error is only an annoyance.
 function errorWeight(group: ErrorGroup): number {
   if (group.error_type === "anr") {
     return 15;
+  }
+  if (group.error_type === "app_hang") {
+    return 9;
   }
   switch (group.severity) {
     case "fatal":
@@ -506,16 +514,19 @@ function errorWeight(group: ErrorGroup): number {
   }
 }
 
-// How likely a user that hit an error between two steps is to still do the
-// step, compared with the step's other users. After a crash or an ANR the
-// user can only do the step by reopening the app within the conversion
-// window, and few do.
+// How likely users who hit an error between two steps are to still take
+// the step, compared with other users. After a crash or ANR, they must
+// reopen the app within the conversion window, and few do. After a hang,
+// they can continue unless the app was killed.
 function conversionAfterError(
   group: ErrorGroup,
   draw: (min: number, max: number) => number,
 ): number {
   if (group.error_type === "anr" || group.severity === "fatal") {
     return draw(0.1, 0.25);
+  }
+  if (group.error_type === "app_hang") {
+    return draw(0.3, 0.5);
   }
   return group.severity === "unhandled" ? draw(0.4, 0.6) : draw(0.7, 0.85);
 }
@@ -843,6 +854,7 @@ function cadenceFor(
     0,
   );
   return {
+    sample_percent: 100,
     from: from.toISO()!,
     to: to.toISO()!,
     hours: cells
@@ -993,6 +1005,7 @@ function trendFor(
   }
 
   return {
+    sample_percent: 100,
     event_names: eventNamesOf(seed),
     points,
     builds: bundle.builds
@@ -1084,18 +1097,6 @@ function stepErrors(
     })
     .filter((error) => error.users > 0)
     .sort((a, b) => b.dropped - a.dropped);
-}
-
-const QUANTILES: Record<string, number> = {
-  p50: 0.5,
-  p90: 0.9,
-  p95: 0.95,
-  p99: 0.99,
-};
-
-function quantileOf(values: number[], q: number): number {
-  const sorted = [...values].sort((a, b) => a - b);
-  return sorted[Math.min(sorted.length - 1, Math.floor(sorted.length * q))];
 }
 
 // The count, users and timings of one span or endpoint between two steps.
@@ -1404,17 +1405,6 @@ function parseOutcome(url: URL): FunnelStepOutcome | Response {
   return outcome;
 }
 
-function parseQuantile(url: URL): number | Response {
-  const quantile = url.searchParams.get("quantile") ?? "";
-  if (!Object.hasOwn(QUANTILES, quantile)) {
-    return jsonResponse(
-      { error: "quantile must be one of p50, p90, p95 or p99" },
-      400,
-    );
-  }
-  return QUANTILES[quantile];
-}
-
 function parseStep(url: URL, seed: FunnelSeed): number | null | Response {
   const param = url.searchParams.get("step");
   if (param === null) {
@@ -1443,14 +1433,6 @@ function withFunnel(
     return jsonResponse({ error: "Funnel not found" }, 404);
   }
   return handle(bundle, seed);
-}
-
-function pageResponse<T>(items: T[], url: URL): Response {
-  const page = paginate(items, url);
-  return jsonResponse({
-    meta: { next: page.hasNext, previous: page.hasPrev },
-    results: page.items,
-  });
 }
 
 export const funnelsRoutes: SandboxRoute[] = [
@@ -1585,6 +1567,7 @@ export const funnelsRoutes: SandboxRoute[] = [
           url.searchParams.get("filter_expr"),
         );
         const conversion: FunnelConversion = {
+          sample_percent: 100,
           steps: eventNamesOf(seed).map((event_name, i) => ({
             event_name,
             users: totals.users[i],

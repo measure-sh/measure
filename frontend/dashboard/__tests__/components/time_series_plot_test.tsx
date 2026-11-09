@@ -5,7 +5,8 @@ import TimeSeriesPlot, {
 } from "@/app/components/time_series_plot";
 import { numberToKMB } from "@/app/utils/number_utils";
 import "@testing-library/jest-dom";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
+import { PlotTooltipArea } from "@/app/components/plot_tooltip";
 
 let lastLineProps: any = null;
 
@@ -125,7 +126,7 @@ describe("TimeSeriesPlot", () => {
 
   it("shows the hovered series and the date in the tooltip", () => {
     renderPlot({});
-    const { container } = render(
+    render(
       lastLineProps.tooltip({
         point: {
           seriesId: "1.0.0",
@@ -133,10 +134,12 @@ describe("TimeSeriesPlot", () => {
           data: { xFormatted: "2026-02-01T01:00:00", y: 3 },
         },
       }),
+      { wrapper: PlotTooltipArea },
     );
-    expect(container.textContent).toContain("1.0.0 - 3");
-    expect(container.textContent).not.toContain("2.0.0");
-    expect(container.textContent).toContain("Date:");
+    const tooltipDiv = screen.getByRole("tooltip", { hidden: true });
+    expect(tooltipDiv.textContent).toContain("1.0.0 - 3");
+    expect(tooltipDiv.textContent).not.toContain("2.0.0");
+    expect(tooltipDiv.textContent).toContain("Date:");
   });
 });
 
@@ -151,7 +154,7 @@ describe("TimeSeriesPlot tooltip with every series", () => {
       showAllSeriesInTooltip: true,
     });
     const hovered = lastLineProps.data[0].data[0];
-    const { container } = render(
+    render(
       lastLineProps.tooltip({
         point: {
           seriesId: "2xx",
@@ -159,10 +162,12 @@ describe("TimeSeriesPlot tooltip with every series", () => {
           data: { ...hovered, xFormatted: "2026-02-01T01:00:00" },
         },
       }),
+      { wrapper: PlotTooltipArea },
     );
-    expect(container.textContent).toContain("2xx - 90");
-    expect(container.textContent).toContain("4xx - 10");
-    expect(container.textContent).not.toContain("5xx");
+    const tooltipDiv = screen.getByRole("tooltip", { hidden: true });
+    expect(tooltipDiv.textContent).toContain("2xx - 90");
+    expect(tooltipDiv.textContent).toContain("4xx - 10");
+    expect(tooltipDiv.textContent).not.toContain("5xx");
   });
 
   it("fades the rows of the series that are not hovered", () => {
@@ -182,6 +187,7 @@ describe("TimeSeriesPlot tooltip with every series", () => {
           data: { ...hovered, xFormatted: "2026-02-01T01:00:00" },
         },
       }),
+      { wrapper: PlotTooltipArea },
     );
     expect(getByText("2xx - 90").parentElement).toHaveClass("opacity-20");
     expect(getByText("4xx - 10").parentElement).not.toHaveClass("opacity-20");
@@ -190,7 +196,7 @@ describe("TimeSeriesPlot tooltip with every series", () => {
 
 describe("TimeSeriesPlot tooltip total", () => {
   function renderTooltip() {
-    const { container } = render(
+    render(
       lastLineProps.tooltip({
         point: {
           seriesId: "1.0.0",
@@ -198,13 +204,14 @@ describe("TimeSeriesPlot tooltip total", () => {
           data: { xFormatted: "2026-02-01T01:00:00", y: 3, total_count: 1200 },
         },
       }),
+      { wrapper: PlotTooltipArea },
     );
-    return container.textContent;
+    return screen.getByRole("tooltip", { hidden: true }).textContent;
   }
 
   it("shows the total when the chart gives one", () => {
     renderPlot({ tooltipTotal: () => 1200 });
-    expect(renderTooltip()).toContain("Total: 1,200");
+    expect(renderTooltip()).toContain("Total: 1.2K");
   });
 
   it("leaves out the total otherwise", () => {
@@ -270,16 +277,27 @@ describe("formatCount", () => {
   it("uses the singular noun only for one", () => {
     expect(formatCount(1, "instance", "instances")).toBe("1 instance");
     expect(formatCount(0, "instance", "instances")).toBe("0 instances");
-    expect(formatCount(1200, "instance", "instances")).toBe("1,200 instances");
+    expect(formatCount(1200, "instance", "instances")).toBe("1.2K instances");
   });
 });
 
 describe("formatCountWithShare", () => {
   it("shows the count with its percentage of the total", () => {
-    expect(formatCountWithShare(25, 200)).toBe("25 (12.5%)");
-    expect(formatCountWithShare(0, 0)).toBe("0 (0.0%)");
-    expect(formatCountWithShare(0, 10000)).toBe("0 (0.0%)");
-    expect(formatCountWithShare(3, 10000)).toBe("3 (<0.1%)");
+    expect(formatCountWithShare(25, 200, "request", "requests")).toBe(
+      "25 requests (12.5%)",
+    );
+    expect(formatCountWithShare(1, 2, "request", "requests")).toBe(
+      "1 request (50.0%)",
+    );
+    expect(formatCountWithShare(0, 0, "request", "requests")).toBe(
+      "0 requests (0.0%)",
+    );
+    expect(formatCountWithShare(0, 10000, "request", "requests")).toBe(
+      "0 requests (0.0%)",
+    );
+    expect(formatCountWithShare(3, 10000, "request", "requests")).toBe(
+      "3 requests (<0.1%)",
+    );
   });
 });
 

@@ -17,6 +17,7 @@ import sh.measure.android.exceptions.ExceptionSeverity
 import sh.measure.android.exporter.Exporter
 import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeIdProvider
+import sh.measure.android.fakes.FakeInstallationIdProvider
 import sh.measure.android.fakes.FakeSampler
 import sh.measure.android.fakes.FakeSessionManager
 import sh.measure.android.fakes.FakeSignalStore
@@ -39,6 +40,7 @@ internal class SignalProcessorTest {
     private val screenshotCollector = mock<ScreenshotCollector>()
     private val configProvider = FakeConfigProvider()
     private val sampler = FakeSampler()
+    private val installationIdProvider = FakeInstallationIdProvider()
 
     private val signalProcessor = SignalProcessorImpl(
         logger = NoopLogger(),
@@ -51,6 +53,7 @@ internal class SignalProcessorTest {
         screenshotCollector = screenshotCollector,
         configProvider = configProvider,
         sampler = sampler,
+        installationIdProvider = installationIdProvider,
     )
 
     @Before
@@ -201,6 +204,7 @@ internal class SignalProcessorTest {
             screenshotCollector = screenshotCollector,
             configProvider = configProvider,
             sampler = sampler,
+            installationIdProvider = installationIdProvider,
         )
 
         signalProcessor.track(
@@ -244,6 +248,37 @@ internal class SignalProcessorTest {
             type = EventType.MEMORY_USAGE,
         )
         assertTrue(signalStore.trackedEvents.last().isSampled)
+    }
+
+    @Test
+    fun `custom event sampling uses the installation sampling decision`() {
+        configProvider.enableFullCollectionMode = false
+        sampler.trackAnalyticsForInstallation = false
+
+        signalProcessor.track(
+            data = CustomEventData("checkout_completed"),
+            timestamp = 1710746412L,
+            type = EventType.CUSTOM,
+        )
+
+        assertFalse(signalStore.trackedEvents.single().isSampled)
+        assertEquals(installationIdProvider.installationId, sampler.analyticsInstallationId)
+    }
+
+    @Test
+    fun `event types from config are sampled by installation`() {
+        configProvider.enableFullCollectionMode = false
+        configProvider.analyticsEventTypes = listOf(EventType.HTTP.value)
+        sampler.isHttpEventSampled = true
+        sampler.trackAnalyticsForInstallation = false
+
+        signalProcessor.track(
+            data = TestData.getHttpData(),
+            timestamp = 1710746412L,
+            type = EventType.HTTP,
+        )
+
+        assertFalse(signalStore.trackedEvents.single().isSampled)
     }
 
     @Test
@@ -313,7 +348,7 @@ internal class SignalProcessorTest {
             id = idProvider.id,
             sessionId = sessionManager.getSessionId(),
             userTriggered = true,
-            isSampled = sampler.trackJourneyForSession,
+            isSampled = sampler.trackAnalyticsForInstallation,
         ).apply {
             appendAttribute(Attribute.THREAD_NAME, Thread.currentThread().name)
         }
@@ -605,12 +640,14 @@ internal class SignalProcessorTest {
     }
 
     @Test
-    fun `trackSpan stores span`() {
+    fun `trackSpan stores span with the installation id`() {
         val spanData = TestData.getSpanData()
 
         signalProcessor.trackSpan(spanData)
 
-        assertTrue(signalStore.trackedSpans.contains(spanData))
+        val stored = signalStore.trackedSpans.single()
+        assertEquals(spanData.spanId, stored.spanId)
+        assertEquals(installationIdProvider.installationId, stored.attributes[Attribute.INSTALLATION_ID_KEY])
     }
 
     @Test
@@ -677,7 +714,6 @@ internal class SignalProcessorTest {
                 "valid_key" to StringAttr("value"),
                 "invalid key!" to StringAttr("value"),
             ),
-            userTriggered = true,
             attributes = mutableMapOf(),
         )
 
@@ -686,6 +722,23 @@ internal class SignalProcessorTest {
             mapOf("valid_key" to StringAttr("value")),
             signalStore.trackedEvents.first().userDefinedAttributes,
         )
+    }
+
+    @Test
+    fun `trackBugReport stores event with the given thread name and triggers export`() {
+        signalProcessor.trackBugReport(
+            data = TestData.getBugReportData(),
+            type = EventType.BUG_REPORT,
+            timestamp = 9856564654L,
+            attachments = mutableListOf(),
+            userDefinedAttributes = mutableMapOf(),
+            attributes = mutableMapOf(),
+            threadName = "main",
+        )
+
+        assertEquals(1, signalStore.trackedEvents.size)
+        assertEquals("main", signalStore.trackedEvents.first().attributes[Attribute.THREAD_NAME])
+        verify(exporter).export()
     }
 
     @Test

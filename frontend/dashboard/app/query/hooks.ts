@@ -26,6 +26,8 @@ import {
   fetchBuildsFromServer,
   fetchCheckoutSessionFromServer,
   fetchCustomerPortalUrlFromServer,
+  fetchDevicesListFromServer,
+  fetchDevicesSessionsPlotFromServer,
   fetchErrorsAttributeDistributionPlotFromServer,
   fetchErrorGroupCommonPathFromServer,
   fetchErrorsDetailsFromServer,
@@ -45,6 +47,11 @@ import {
   fetchFunnelTrendFromServer,
   fetchHighMemoryUsageSessionsFromServer,
   fetchJourneyFromServer,
+  fetchJourneyErrorsFromServer,
+  fetchJourneyNetworkFromServer,
+  fetchJourneySessionsFromServer,
+  fetchJourneyTracesFromServer,
+  fetchJourneyPathUsersFromServer,
   fetchMemoryUsageBreakdownFromServer,
   fetchMemoryUsagePlotFromServer,
   fetchMetricsFromServer,
@@ -88,11 +95,15 @@ import {
   updateSdkConfigFromServer,
   updateTeamSlackStatusFromServer,
   type AttributeDistributionResponse,
+  type DeviceSessionsPlotPoint,
+  type DevicesList,
+  type DevicesOrder,
   type ErrorDistributionResponse,
   type Funnel,
   type FunnelDraft,
   type FunnelStepOutcome,
   type FunnelTrendPeriod,
+  type JourneySelection,
   type MemoryUsagePlotPoint,
   type PinnedFunnelsResponse,
 } from "@/app/api/api_calls";
@@ -474,6 +485,7 @@ export function useJourneyQuery(params: FilterParams | null) {
       params?.endDate,
       params?.filterExpr,
     ] as const,
+    placeholderData: keepPreviousData,
     queryFn: () =>
       fetchJourneyFromServer(
         params!.appId,
@@ -482,6 +494,189 @@ export function useJourneyQuery(params: FilterParams | null) {
         params!.filterExpr,
       ),
     enabled: params !== null,
+    retry: false,
+  });
+}
+
+export const JOURNEY_LIST_LIMIT = 5;
+
+export function useJourneyErrorsQuery(
+  params: FilterParams,
+  samplePercent: number | null,
+  selection: JourneySelection,
+  paginationOffset: number,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      "journey",
+      params.appId,
+      "errors",
+      selection,
+      params.startDate,
+      params.endDate,
+      params.filterExpr,
+      samplePercent,
+      paginationOffset,
+    ] as const,
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      fetchJourneyErrorsFromServer(
+        params.appId,
+        params.startDate,
+        params.endDate,
+        params.filterExpr,
+        samplePercent,
+        selection,
+        JOURNEY_LIST_LIMIT,
+        paginationOffset,
+      ),
+    enabled,
+    retry: false,
+  });
+}
+
+export function useJourneyTracesQuery(
+  params: FilterParams,
+  samplePercent: number | null,
+  selection: JourneySelection,
+  quantile: RootSpanMetricsQuantile,
+  paginationOffset: number,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      "journey",
+      params.appId,
+      "traces",
+      selection,
+      quantile,
+      params.startDate,
+      params.endDate,
+      params.filterExpr,
+      samplePercent,
+      paginationOffset,
+    ] as const,
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      fetchJourneyTracesFromServer(
+        params.appId,
+        params.startDate,
+        params.endDate,
+        params.filterExpr,
+        samplePercent,
+        selection,
+        quantile,
+        JOURNEY_LIST_LIMIT,
+        paginationOffset,
+      ),
+    enabled,
+    retry: false,
+  });
+}
+
+export function useJourneyNetworkQuery(
+  params: FilterParams,
+  samplePercent: number | null,
+  selection: JourneySelection,
+  quantile: RootSpanMetricsQuantile,
+  paginationOffset: number,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      "journey",
+      params.appId,
+      "network",
+      selection,
+      quantile,
+      params.startDate,
+      params.endDate,
+      params.filterExpr,
+      samplePercent,
+      paginationOffset,
+    ] as const,
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      fetchJourneyNetworkFromServer(
+        params.appId,
+        params.startDate,
+        params.endDate,
+        params.filterExpr,
+        samplePercent,
+        selection,
+        quantile,
+        JOURNEY_LIST_LIMIT,
+        paginationOffset,
+      ),
+    enabled,
+    retry: false,
+  });
+}
+
+export function useJourneySessionsQuery(
+  params: FilterParams,
+  samplePercent: number | null,
+  selection: JourneySelection,
+  paginationOffset: number,
+  enabled = true,
+) {
+  return useQuery({
+    queryKey: [
+      "journey",
+      params.appId,
+      "sessions",
+      selection,
+      params.startDate,
+      params.endDate,
+      params.filterExpr,
+      samplePercent,
+      paginationOffset,
+    ] as const,
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      fetchJourneySessionsFromServer(
+        params.appId,
+        params.startDate,
+        params.endDate,
+        params.filterExpr,
+        samplePercent,
+        selection,
+        JOURNEY_LIST_LIMIT,
+        paginationOffset,
+      ),
+    enabled,
+    retry: false,
+  });
+}
+
+export function useJourneyPathUsersQuery(
+  params: FilterParams,
+  samplePercent: number | null,
+  path: string[],
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: [
+      "journey",
+      params.appId,
+      "path",
+      params.startDate,
+      params.endDate,
+      params.filterExpr,
+      samplePercent,
+      path,
+    ] as const,
+    queryFn: () =>
+      fetchJourneyPathUsersFromServer(
+        params.appId,
+        params.startDate,
+        params.endDate,
+        params.filterExpr,
+        samplePercent,
+        path,
+      ),
+    enabled,
     retry: false,
   });
 }
@@ -622,6 +817,7 @@ export const FUNNEL_STEP_LIST_LIMIT = 5;
 
 export function useFunnelStepErrorsQuery(
   params: FilterParams,
+  samplePercent: number | null,
   funnelId: string,
   step: number | null,
   paginationOffset: number,
@@ -637,6 +833,7 @@ export function useFunnelStepErrorsQuery(
       params.startDate,
       params.endDate,
       params.filterExpr,
+      samplePercent,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
@@ -648,6 +845,7 @@ export function useFunnelStepErrorsQuery(
         params.startDate,
         params.endDate,
         params.filterExpr,
+        samplePercent,
         FUNNEL_STEP_LIST_LIMIT,
         paginationOffset,
       ),
@@ -658,6 +856,7 @@ export function useFunnelStepErrorsQuery(
 
 export function useFunnelStepSessionsQuery(
   params: FilterParams,
+  samplePercent: number | null,
   funnelId: string,
   step: number | null,
   outcome: FunnelStepOutcome,
@@ -674,6 +873,7 @@ export function useFunnelStepSessionsQuery(
       params.startDate,
       params.endDate,
       params.filterExpr,
+      samplePercent,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
@@ -686,6 +886,7 @@ export function useFunnelStepSessionsQuery(
         params.startDate,
         params.endDate,
         params.filterExpr,
+        samplePercent,
         FUNNEL_STEP_LIST_LIMIT,
         paginationOffset,
       ),
@@ -695,6 +896,7 @@ export function useFunnelStepSessionsQuery(
 
 export function useFunnelStepTracesQuery(
   params: FilterParams,
+  samplePercent: number | null,
   funnelId: string,
   step: number | null,
   quantile: RootSpanMetricsQuantile,
@@ -712,6 +914,7 @@ export function useFunnelStepTracesQuery(
       params.startDate,
       params.endDate,
       params.filterExpr,
+      samplePercent,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
@@ -724,6 +927,7 @@ export function useFunnelStepTracesQuery(
         params.startDate,
         params.endDate,
         params.filterExpr,
+        samplePercent,
         FUNNEL_STEP_LIST_LIMIT,
         paginationOffset,
       ),
@@ -734,6 +938,7 @@ export function useFunnelStepTracesQuery(
 
 export function useFunnelStepNetworkQuery(
   params: FilterParams,
+  samplePercent: number | null,
   funnelId: string,
   step: number | null,
   quantile: RootSpanMetricsQuantile,
@@ -751,6 +956,7 @@ export function useFunnelStepNetworkQuery(
       params.startDate,
       params.endDate,
       params.filterExpr,
+      samplePercent,
       paginationOffset,
     ] as const,
     placeholderData: keepPreviousData,
@@ -763,6 +969,7 @@ export function useFunnelStepNetworkQuery(
         params.startDate,
         params.endDate,
         params.filterExpr,
+        samplePercent,
         FUNNEL_STEP_LIST_LIMIT,
         paginationOffset,
       ),
@@ -1782,9 +1989,7 @@ export function useSdkConfigHistoryQuery(
 type BillingInfoData = Awaited<ReturnType<typeof fetchBillingInfoFromServer>>;
 
 type RefetchInterval =
-  | number
-  | false
-  | ((q: Query<BillingInfoData>) => number | false);
+  number | false | ((q: Query<BillingInfoData>) => number | false);
 
 export function useBillingInfoQuery(
   teamId: string | undefined,
@@ -2128,4 +2333,80 @@ export async function fetchCustomerPortalUrl(
     }
     return { error: "Request was cancelled." };
   }
+}
+
+// ─── Devices ─────────────────────────────────────────────────────────────
+
+export const DEVICES_LIST_LIMIT = 5;
+
+export function useDevicesListQuery<Row>(
+  list: DevicesList,
+  params: FilterParams | null,
+  order: DevicesOrder,
+  offset: number,
+  extra: Record<string, string> = {},
+  enabled: boolean = true,
+) {
+  return useQuery({
+    queryKey: [
+      "devices",
+      list,
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+      order,
+      offset,
+      extra,
+    ] as const,
+    queryFn: () =>
+      fetchDevicesListFromServer<Row>(
+        list,
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+        order,
+        DEVICES_LIST_LIMIT,
+        offset,
+        extra,
+      ),
+    enabled: params !== null && enabled,
+    placeholderData: keepPreviousData,
+    retry: false,
+  });
+}
+
+export function useDevicesSessionsPlotQuery(params: FilterParams | null) {
+  return useQuery({
+    queryKey: [
+      "devicesSessionsPlot",
+      params?.appId,
+      params?.startDate,
+      params?.endDate,
+      params?.filterExpr,
+    ] as const,
+    queryFn: () =>
+      fetchDevicesSessionsPlotFromServer(
+        params!.appId,
+        params!.startDate,
+        params!.endDate,
+        params!.filterExpr,
+      ),
+    enabled: params !== null,
+    retry: false,
+  });
+}
+
+export function transformDevicesSessionsPlotData(
+  rawData: DeviceSessionsPlotPoint[],
+) {
+  const pointsByDevice = new Map<string, { x: string; y: number }[]>();
+  for (const point of rawData) {
+    const id = `${point.device_manufacturer} ${point.device_model}`;
+    const data = pointsByDevice.get(id) ?? [];
+    data.push({ x: point.datetime, y: point.session_count });
+    pointsByDevice.set(id, data);
+  }
+  return Array.from(pointsByDevice, ([id, data]) => ({ id, data }));
 }

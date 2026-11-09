@@ -127,4 +127,11 @@ final class BaseLogEventCollectorTests: XCTestCase {
         XCTAssertNil(signalProcessor.data)
     }
 
+    func testTrackLog_doesNotMarkLogForReporting() {
+        logEventCollector.enable()
+
+        logEventCollector.trackLog(body: "something happened", severity: .error, attributes: [:])
+
+        XCTAssertEqual(signalProcessor.needsReporting, false)
+    }
 }

@@ -4,7 +4,7 @@ import { useMemo } from "react";
 export const CHART_TEXT_SIZE = 11;
 export const CHART_TICK_SIZE = 5;
 export const CHART_TICK_PADDING = 8;
-const CHART_AXIS_TITLE_GAP = 32;
+const CHART_AXIS_TITLE_GAP = 42;
 // Fits a four-character count label like "150K".
 export const COUNT_TICK_LABEL_WIDTH = 26;
 export const CHART_VALUE_TICK_COUNT = 5;

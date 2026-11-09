@@ -281,6 +281,25 @@ void main() {
       expect(data.description, equals('d' * maxLength));
     });
 
+    test('keeps only the first attachments up to the maximum', () async {
+      (configProvider as FakeConfigProvider).maxAttachmentsInBugReport = 2;
+      final attachments = List.generate(
+        3,
+        (i) => MsrAttachment.fromBytes(
+          bytes: createTestPngBytes(),
+          type: AttachmentType.screenshot,
+          uuid: 'test$i-id',
+        ),
+      );
+
+      await collector.trackBugReport('description', attachments, {});
+
+      final event = signalProcessor.trackedEvents.single;
+      expect(
+          event.attachments!.map((a) => a.name), equals(['uuid-1', 'uuid-2']));
+      expect(fileStorage.storedFileCount, equals(2));
+    });
+
     test('drops invalid attributes and keeps the bug report', () async {
       final attributes = <String, AttributeValue>{
         'bad key!': StringAttr('value'),

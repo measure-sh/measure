@@ -25,7 +25,6 @@ final class LifecycleCollectorTests: XCTestCase {
     private var mockLogger: MockLogger!
     private var mockViewController: MockViewController!
     private var mockSessionManager: MockSessionManager!
-    private var mockSignalSampler: MockSignalSampler!
     private var mockLayoutSnapshotCollector: MockLayoutSnapshotCollector!
 
     override func setUp() {
@@ -37,7 +36,6 @@ final class LifecycleCollectorTests: XCTestCase {
         mockLogger = MockLogger()
         mockViewController = MockViewController()
         mockSessionManager = MockSessionManager()
-        mockSignalSampler = MockSignalSampler()
         mockLayoutSnapshotCollector = MockLayoutSnapshotCollector()
 
         lifecycleCollector = BaseLifecycleCollector(
@@ -47,7 +45,6 @@ final class LifecycleCollectorTests: XCTestCase {
             configProvider: mockConfigProvider,
             sessionManager: mockSessionManager,
             logger: mockLogger,
-            signalSampler: mockSignalSampler,
             layoutSnapshotCollector: mockLayoutSnapshotCollector
         )
     }
@@ -61,7 +58,6 @@ final class LifecycleCollectorTests: XCTestCase {
         mockLogger = nil
         mockViewController = nil
         mockSessionManager = nil
-        mockSignalSampler = nil
         mockLayoutSnapshotCollector = nil
         super.tearDown()
     }
@@ -314,21 +310,5 @@ final class LifecycleCollectorTests: XCTestCase {
 
         // Verify span was ended with OK status
         XCTAssertEqual(mockTracer.lastSpan?.status, .ok)
-    }
-
-    func testTrackEvent_whenSamplerReturnsFalse_needsReportingIsFalse() {
-        mockSignalSampler.shouldTrackLaunchEventsReturnValue = false
-
-        lifecycleCollector.applicationDidEnterBackground()
-
-        XCTAssertEqual(mockSignalProcessor.needsReporting, false, "needsReporting should be false when signal sampler returns false")
-    }
-
-    func testTrackEvent_whenSamplerReturnsTrue_needsReportingIsTrue() {
-        mockSignalSampler.shouldTrackLaunchEventsReturnValue = true
-
-        lifecycleCollector.applicationDidEnterBackground()
-
-        XCTAssertEqual(mockSignalProcessor.needsReporting, true, "needsReporting should be true when signal sampler returns true")
     }
 }

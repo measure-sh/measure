@@ -127,6 +127,7 @@ export default function TracesOverview(props: {
               endDate={readyValue.date.endDate}
               query={spanMetricsPlotQuery}
             />
+            <div className="py-6" />
             {!listEmpty && (
               <>
                 <div className="self-end">
@@ -144,7 +145,7 @@ export default function TracesOverview(props: {
                 >
                   <LoadingBar />
                 </div>
-                <Table className="font-display select-none">
+                <Table className="font-display select-none max-lg:min-w-180">
                   <TableHeader>
                     <TableRow>
                       <TableHead className="w-[60%]">Trace</TableHead>
@@ -154,7 +155,7 @@ export default function TracesOverview(props: {
                       <TableHead className="w-[10%] text-center">
                         Duration
                       </TableHead>
-                      <TableHead className="w-[10%] text-center">
+                      <TableHead className="w-[10%] text-right">
                         Status
                       </TableHead>
                     </TableRow>
@@ -242,7 +243,7 @@ export default function TracesOverview(props: {
                                 {formatMillisToHumanReadable(duration)}
                               </div>
                             </TableCell>
-                            <TableCell className="w-[10%] text-center truncate select-none relative p-0">
+                            <TableCell className="w-[10%] text-right truncate select-none relative p-0">
                               <Link
                                 href={traceHref}
                                 className="absolute inset-0 z-10 cursor-pointer"
@@ -250,7 +251,7 @@ export default function TracesOverview(props: {
                                 aria-hidden="true"
                                 style={{ display: "block" }}
                               />
-                              <div className="pointer-events-none p-4 flex justify-center">
+                              <div className="pointer-events-none p-4 flex justify-end">
                                 <Pill
                                   type={
                                     status === 1

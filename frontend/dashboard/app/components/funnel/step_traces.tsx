@@ -10,7 +10,6 @@ import {
   OutcomeCells,
   StepList,
   type StepOutcomes,
-  type StepListQuery,
   StepRow,
   useDateRangeParams,
 } from "./step_list";
@@ -19,7 +18,10 @@ import { TableHead } from "../table";
 export default function FunnelStepTraces({
   teamId,
   appId,
-  query,
+  status,
+  data,
+  error,
+  isFetching,
   quantile,
   offset,
   outcomes,
@@ -28,7 +30,10 @@ export default function FunnelStepTraces({
 }: {
   teamId: string;
   appId: string;
-  query: StepListQuery<FunnelStepTracesResponse>;
+  status: "pending" | "success" | "error";
+  data: FunnelStepTracesResponse | undefined;
+  error?: unknown;
+  isFetching?: boolean;
   quantile: RootSpanMetricsQuantile;
   offset: number;
   outcomes: StepOutcomes;
@@ -49,9 +54,13 @@ export default function FunnelStepTraces({
 
   return (
     <StepList
-      query={query}
+      status={status}
+      data={data}
+      error={error}
+      isFetching={isFetching}
       offset={offset}
       noun="traces"
+      tableClassName="max-lg:min-w-190"
       icon={Timer}
       columns={6}
       header={
@@ -65,7 +74,7 @@ export default function FunnelStepTraces({
             Drop-off Duration ({quantile})
           </TableHead>
           <TableHead className="w-[13%] text-center">Conversions</TableHead>
-          <TableHead className="w-[13%] text-center">Drop-offs</TableHead>
+          <TableHead className="w-[13%] text-right">Drop-offs</TableHead>
         </>
       }
     >

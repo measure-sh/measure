@@ -41,6 +41,15 @@ expect object Measure {
     /**
      * Tracks a handled exception.
      */
+    fun trackError(throwable: Throwable, attributes: Map<String, AttributeValue> = emptyMap())
+
+    /**
+     * Tracks a handled exception.
+     */
+    @Deprecated(
+        message = "Use trackError instead.",
+        replaceWith = ReplaceWith("Measure.trackError(throwable, attributes)"),
+    )
     fun trackHandledException(throwable: Throwable, attributes: Map<String, AttributeValue> = emptyMap())
 
     /**

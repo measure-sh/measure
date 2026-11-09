@@ -12,6 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"backend/testinfra"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 )
@@ -183,11 +185,11 @@ func TestGetHealthOverviewPlotInstancesHandler(t *testing.T) {
 					t.Fatalf("%s: status = %d, want 200, body: %s", role, w.Code, w.Body.String())
 				}
 
-				// Always three series, in order, even with no data.
+				// Always four series, in order, even with no data.
 				series := decodeHealthSeries(t, w)
-				wantIDs := []string{"sessions", "crashes", "anrs"}
+				wantIDs := []string{"sessions", "crashes", "anrs", "app_hangs"}
 				if len(series) != len(wantIDs) {
-					t.Fatalf("%s: got %d series, want 3: %s", role, len(series), w.Body.String())
+					t.Fatalf("%s: got %d series, want %d: %s", role, len(series), len(wantIDs), w.Body.String())
 				}
 				for i, want := range wantIDs {
 					if series[i].ID != want {
@@ -198,7 +200,7 @@ func TestGetHealthOverviewPlotInstancesHandler(t *testing.T) {
 		}
 	})
 
-	t.Run("returns sessions, crashes and ANRs counts", func(t *testing.T) {
+	t.Run("returns sessions, crashes, ANRs and app hangs counts", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
@@ -208,6 +210,7 @@ func TestGetHealthOverviewPlotInstancesHandler(t *testing.T) {
 		// within the default last-7-days window
 		ts := time.Now().UTC().Add(-1 * time.Hour)
 		seedAppMetrics(ctx, t, teamID.String(), appID.String(), ts, 10, 2, 1)
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 2, testinfra.EventRow{Type: "app_hang", AppVersion: "v1", AppBuild: "1", Timestamp: ts})
 
 		c, w := newTestGinContext("GET", "/apps/"+appID.String()+"/health/plots/instances?timezone=UTC", nil)
 		c.Set("userId", userID)
@@ -219,14 +222,17 @@ func TestGetHealthOverviewPlotInstancesHandler(t *testing.T) {
 			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
 		}
 		series := decodeHealthSeries(t, w)
-		if got := sumSeries(series, "sessions"); got != 13 {
-			t.Errorf("sessions = %d, want 13", got)
+		if got := sumSeries(series, "sessions"); got != 15 {
+			t.Errorf("sessions = %d, want 15", got)
 		}
 		if got := sumSeries(series, "crashes"); got != 2 {
 			t.Errorf("crashes = %d, want 2", got)
 		}
 		if got := sumSeries(series, "anrs"); got != 1 {
 			t.Errorf("anrs = %d, want 1", got)
+		}
+		if got := sumSeries(series, "app_hangs"); got != 2 {
+			t.Errorf("app_hangs = %d, want 2", got)
 		}
 	})
 
@@ -240,6 +246,7 @@ func TestGetHealthOverviewPlotInstancesHandler(t *testing.T) {
 		// The seed helpers tag every event with app_version v1 / build 1.
 		ts := time.Now().UTC().Add(-1 * time.Hour)
 		seedAppMetrics(ctx, t, teamID.String(), appID.String(), ts, 10, 2, 1)
+		seedEventRows(ctx, t, teamID.String(), appID.String(), 2, testinfra.EventRow{Type: "app_hang", AppVersion: "v1", AppBuild: "1", Timestamp: ts})
 
 		query := "timezone=UTC&filter_expr=" + url.QueryEscape("version_name:in:v2 AND version_code:in:2")
 		c, w := newTestGinContext("GET", "/apps/"+appID.String()+"/health/plots/instances?"+query, nil)
@@ -252,7 +259,7 @@ func TestGetHealthOverviewPlotInstancesHandler(t *testing.T) {
 			t.Fatalf("status = %d, want 200, body: %s", w.Code, w.Body.String())
 		}
 		series := decodeHealthSeries(t, w)
-		for _, id := range []string{"sessions", "crashes", "anrs"} {
+		for _, id := range []string{"sessions", "crashes", "anrs", "app_hangs"} {
 			if got := sumSeries(series, id); got != 0 {
 				t.Errorf("%s = %d, want 0 for an unseeded version", id, got)
 			}

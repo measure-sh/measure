@@ -18,7 +18,7 @@ import sh.measure.android.utils.ValidationLimits
 import java.util.concurrent.atomic.AtomicBoolean
 
 internal interface UserTriggeredEventCollector {
-    fun trackHandledException(throwable: Throwable, attributes: Map<String, AttributeValue>)
+    fun trackError(throwable: Throwable, attributes: Map<String, AttributeValue>)
     fun trackScreenView(screenName: String, attributes: Map<String, AttributeValue>)
     fun register()
     fun unregister()
@@ -88,7 +88,6 @@ internal class UserTriggeredEventCollectorImpl(
             timestamp = timestamp,
             attachments = attachments,
             userDefinedAttributes = attributes,
-            userTriggered = true,
             attributes = mutableMapOf(),
         )
     }
@@ -186,7 +185,7 @@ internal class UserTriggeredEventCollectorImpl(
         )
     }
 
-    override fun trackHandledException(
+    override fun trackError(
         throwable: Throwable,
         attributes: Map<String, AttributeValue>,
     ) {
