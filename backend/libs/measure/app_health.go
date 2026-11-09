@@ -102,7 +102,7 @@ func (a App) GetHealthPlotInstances(ctx context.Context, rch driver.Conn, flt *f
 		stmt := sqlf.From("events final").
 			Select(groupExpr.BucketExpr+" as datetime_bucket", flt.Timezone).
 			Select("formatDateTime(datetime_bucket, ?) as datetime", groupExpr.DatetimeFormat).
-			Select("countIf(type = ? and "+config.FatalExceptionExpr+") as crashes", event.TypeException).
+			Select("countIf("+filter.CrashSQL+") as crashes").
 			Select("countIf(type = ?) as anrs", event.TypeANR).
 			Select("countIf(type = ?) as app_hangs", event.TypeAppHang).
 			Where("team_id = toUUID(?)", a.TeamId).

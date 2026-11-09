@@ -63,10 +63,15 @@ var errorEventsKeys = []Key{
 // Rows written before the severity column existed have it empty; there
 // handled=false means the app died. So an unhandled non-fatal error only
 // matches rows that name their severity.
+const (
+	CrashSQL        = "(type = 'exception' and (`exception.severity` = 'fatal' or (`exception.severity` = '' and `exception.handled` = false)))"
+	HandledErrorSQL = "(type = 'exception' and (`exception.severity` = 'handled' or (`exception.severity` = '' and `exception.handled` = true)))"
+)
+
 var errorTypePredicates = map[string]string{
-	ErrorTypeCrash:          "(type = 'exception' and (`exception.severity` = 'fatal' or (`exception.severity` = '' and `exception.handled` = false)))",
+	ErrorTypeCrash:          CrashSQL,
 	ErrorTypeANR:            "(type = 'anr')",
-	ErrorTypeHandledError:   "(type = 'exception' and (`exception.severity` = 'handled' or (`exception.severity` = '' and `exception.handled` = true)))",
+	ErrorTypeHandledError:   HandledErrorSQL,
 	ErrorTypeUnhandledError: "(type = 'exception' and `exception.severity` = 'unhandled')",
 	ErrorTypeAppHang:        "(type = 'app_hang')",
 }
@@ -76,19 +81,9 @@ var appHangStatePredicates = map[string]string{
 	AppHangStateRecovered: "(type = 'app_hang' and `app_hang.state` = 'recovered')",
 }
 
-// MemoryErrorSQL matches exception events with
-// a memory error.
-const MemoryErrorSQL = "(type = 'exception' and `exception.memory_error` != '')"
-
-// ErrorTypeSQL returns the condition matching an error_type value, such as
-// ErrorTypeCrash.
-func ErrorTypeSQL(errorType string) string {
-	return errorTypePredicates[errorType]
-}
-
 var memoryErrorPredicates = map[string]string{
-	"true":  MemoryErrorSQL,
-	"false": "not " + MemoryErrorSQL,
+	"true":  "(type = 'exception' and `exception.memory_error` != '')",
+	"false": "not (type = 'exception' and `exception.memory_error` != '')",
 }
 
 var errorEventsColumns = &Columns{dialect: dialectClickHouse, byKey: map[string]column{

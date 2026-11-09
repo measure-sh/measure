@@ -16,8 +16,8 @@ import (
 	"backend/alerts/slack"
 	"backend/libs/alertmsg"
 	"backend/libs/autumn"
-	"backend/libs/config"
 	"backend/libs/email"
+	"backend/libs/filter"
 	"backend/libs/numeric"
 	libslack "backend/libs/slack"
 
@@ -1073,8 +1073,7 @@ func createCrashAlertsForApp(ctx context.Context, team Team, app App, from, to t
 		Select("`exception.fingerprint`, count() as crash_count").
 		Where("team_id = toUUID(?)", team.ID).
 		Where("app_id = toUUID(?)", app.ID).
-		Where("type = 'exception'").
-		Where(config.FatalExceptionExpr).
+		Where(filter.CrashSQL).
 		Where("timestamp >= ? and timestamp <= ?", from, to).
 		GroupBy("`exception.fingerprint`")
 

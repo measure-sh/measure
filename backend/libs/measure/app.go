@@ -222,7 +222,7 @@ const errorSourceTypeExpr = "multiIf(type = 'anr', 'anr', type = 'app_hang', 'ap
 // for an error row: a fatal exception goes to fatal_exception_groups, any
 // other exception to nonfatal_exception_groups, and an ANR or an app hang is
 // always fatal.
-const errorSeverityClassExpr = "multiIf(type in ('anr', 'app_hang'), 'fatal', `exception.severity` = 'fatal' or (`exception.severity` = '' and `exception.handled` = false), 'fatal', 'nonfatal')"
+const errorSeverityClassExpr = "multiIf(type in ('anr', 'app_hang'), 'fatal', " + filter.CrashSQL + ", 'fatal', 'nonfatal')"
 
 // errorFingerprintMatch matches the events of one error group.
 const errorFingerprintMatch = "((type = 'anr' and `anr.fingerprint` = ?) or (type = 'exception' and `exception.fingerprint` = ?) or (type = 'app_hang' and `app_hang.fingerprint` = ?))"
@@ -357,7 +357,7 @@ func (a App) GetErrorGroupsWithFilter(ctx context.Context, rch driver.Conn, flt 
 		Select("max(timestamp) as last_seen").
 		Select("uniq(`attribute.installation_id`) as users").
 		Select("uniq(session_id) as sessions").
-		Select("toBool(max(" + filter.MemoryErrorSQL + ")) as memory_error").
+		Select("toBool(max((type = 'exception' and `exception.memory_error` != ''))) as memory_error").
 		Where(errorFingerprintExpr + " != ''").
 		GroupBy("team_id").
 		GroupBy("app_id")
@@ -985,7 +985,7 @@ func (a App) GetErrorsWithFilter(ctx context.Context, rch driver.Conn, fingerpri
 			Select("if(exception.has_num_code OR exception.num_code != 0, exception.num_code, NULL) as num_code").
 			Select("exception.code as code").
 			Select("exception.meta as meta").
-			Select("if(exception.severity = '', if(exception.handled, 'handled', 'fatal'), exception.severity) as severity").
+			Select("multiIf("+filter.CrashSQL+", 'fatal', "+filter.HandledErrorSQL+", 'handled', exception.severity) as severity").
 			Select("attachments").
 			Select("user_defined_attribute").
 			Where("type = ?", event.TypeException).
