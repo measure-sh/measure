@@ -497,6 +497,7 @@ export default function FunnelDetails({
     apps,
     keys,
     keyGroups,
+    customKeysTruncated,
     keysUnavailable,
     status: filterStatus,
     filterParams,
@@ -737,6 +738,7 @@ export default function FunnelDetails({
         apps={apps}
         keys={keys}
         keyGroups={keyGroups}
+        customKeysTruncated={customKeysTruncated}
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
         showAppSelect={false}

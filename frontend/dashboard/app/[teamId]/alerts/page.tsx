@@ -38,6 +38,7 @@ export default function AlertsOverview(props: {
     apps,
     keys,
     keyGroups,
+    customKeysTruncated,
     keysUnavailable,
     status: filterStatus,
     filterParams,
@@ -73,6 +74,7 @@ export default function AlertsOverview(props: {
         apps={apps}
         keys={keys}
         keyGroups={keyGroups}
+        customKeysTruncated={customKeysTruncated}
         keysUnavailable={keysUnavailable}
         showFilterExpr={false}
         status={filterStatus}

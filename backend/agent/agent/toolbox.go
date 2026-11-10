@@ -420,7 +420,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_filter_keys
 		newTool(&mcpsdk.Tool{
 			Name:        "get_filter_keys",
-			Description: "List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels, builds or profiles), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
+			Description: "List the filter keys of an entity (spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels, builds or profiles), the vocabulary a filter_expr is written with: each key's name, label, description, key_group, value_type, operators and value_suggestion_mode, plus the key groups present. Custom keys are the app's user-defined attributes. When custom_keys_truncated is true in the result, more custom keys matched than the list contains. Call the tool again with a search string to find a custom key that is not in the list. Call this before writing a filter_expr; get_filter_values lists a key's suggested values.",
 			InputSchema: mcpMustInferSchema[mcpGetFilterKeysInput](),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFilterKeysInput) (*mcpsdk.CallToolResult, any, error) {
@@ -1134,7 +1134,8 @@ type mcpListAppsInput struct{}
 type mcpGetFilterKeysInput struct {
 	AppID  string   `json:"app_id" jsonschema:"UUID of the app to query"`
 	Entity string   `json:"entity" jsonschema:"The entity the filter is written against: spans, bug_reports, sessions, errors, error_group_events, journeys, network, app_health, memory, devices, funnels, builds or profiles"`
-	Keys   []string `json:"keys,omitempty" jsonschema:"Key names you already know, for example from the user's request, to include in the result even when the listing is truncated"`
+	Keys   []string `json:"keys,omitempty" jsonschema:"Include custom key names you know exactly, with the custom. prefix (for example custom.plan). These names are included even if they do not match search or the custom key list is truncated. Names the app has not reported are ignored"`
+	Search string   `json:"search,omitempty" jsonschema:"Use when you do not know the exact name. Returns only custom keys whose attribute name contains this text. The attribute name is the key name without the custom. prefix, and matching ignores case. Fixed keys are always returned"`
 }
 type mcpGetFilterValuesInput struct {
 	AppID   string `json:"app_id" jsonschema:"UUID of the app to query"`
@@ -1839,15 +1840,15 @@ func (c *Config) mcpGetFilterKeys(ctx context.Context, in mcpGetFilterKeysInput)
 	}
 
 	ctx = filter.WithFilterQuerySettings(ctx, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode, "filter_keys")
-	keys, keysTruncated, err := entity.ListKeys(ctx, c.Deps.RchPool, teamID, appID, in.Keys)
+	keys, customKeysTruncated, err := entity.ListKeys(ctx, c.Deps.RchPool, teamID, appID, in.Keys, in.Search)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get filter keys: %v", err)
 	}
 
 	result := map[string]any{
-		"keys":           keys,
-		"key_groups":     filter.ListKeyGroups(keys),
-		"keys_truncated": keysTruncated,
+		"keys":                  keys,
+		"key_groups":            filter.ListKeyGroups(keys),
+		"custom_keys_truncated": customKeysTruncated,
 	}
 	data, _ := json.Marshal(result)
 	return mcpTextResult(string(data)), nil, nil

@@ -687,6 +687,7 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
     apps,
     keys,
     keyGroups,
+    customKeysTruncated,
     keysUnavailable,
     status: filterStatus,
     filterParams,
@@ -763,6 +764,7 @@ export const ErrorsDetails: React.FC<ErrorsDetailsProps> = ({
         apps={apps}
         keys={keys}
         keyGroups={visibleKeyGroups}
+        customKeysTruncated={customKeysTruncated}
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
         showAppSelect={false}

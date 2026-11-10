@@ -284,12 +284,39 @@ describe("useFilterKeysQuery", () => {
     rerender({ names: ["custom.plan"] });
 
     await waitFor(() =>
-      expect(mockFetchFilterKeys).toHaveBeenLastCalledWith("app-1", "builds", [
-        "custom.plan",
-      ]),
+      expect(mockFetchFilterKeys).toHaveBeenLastCalledWith(
+        "app-1",
+        "builds",
+        ["custom.plan"],
+        "",
+      ),
     );
     expect(result.current.isFetching).toBe(true);
     expect(result.current.data?.keys).toEqual([{ name: "k1" }]);
+  });
+});
+
+describe("useFilterKeysQuery when searching", () => {
+  it("includes the search text in the request", async () => {
+    mockFetchFilterKeys.mockResolvedValueOnce({
+      keys: [{ name: "custom.plan" }],
+      key_groups: ["Custom"],
+      custom_keys_truncated: false,
+    });
+
+    const { wrapper } = makeWrapper();
+    const { result } = renderHook(
+      () => useFilterKeysQuery("app-1", "sessions", [], "plan"),
+      { wrapper },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe("success"));
+    expect(mockFetchFilterKeys).toHaveBeenLastCalledWith(
+      "app-1",
+      "sessions",
+      [],
+      "plan",
+    );
   });
 });
 

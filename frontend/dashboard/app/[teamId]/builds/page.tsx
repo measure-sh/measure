@@ -18,6 +18,7 @@ export default function Builds(props: { params: Promise<{ teamId: string }> }) {
     apps,
     keys,
     keyGroups,
+    customKeysTruncated,
     keysUnavailable,
     status,
     filterParams,
@@ -48,6 +49,7 @@ export default function Builds(props: { params: Promise<{ teamId: string }> }) {
         apps={apps}
         keys={keys}
         keyGroups={keyGroups}
+        customKeysTruncated={customKeysTruncated}
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
         status={status}

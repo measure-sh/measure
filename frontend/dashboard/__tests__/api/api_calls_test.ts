@@ -56,6 +56,7 @@ import {
   fetchCheckoutSessionFromServer,
   fetchCustomerPortalUrlFromServer,
   fetchFunnelConversionFromServer,
+  fetchFilterKeys,
   fetchFunnelEventNamesFromServer,
   fetchFunnelFromServer,
   fetchFunnelsFromServer,
@@ -2652,6 +2653,37 @@ describe("funnels", () => {
     await fetchFunnelEventNamesFromServer("app-a", "add to&cart");
     expect(lastFetchUrl()).toBe(
       "/api/apps/app-a/funnels/events?search=add+to%26cart",
+    );
+  });
+
+  it("fetchFilterKeys returns keys, groups, and the truncation flag", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse({
+        keys: [{ name: "custom.plan" }],
+        key_groups: ["Custom"],
+        custom_keys_truncated: true,
+      }),
+    );
+    const result = await fetchFilterKeys("app-a", "sessions", []);
+    expect(lastFetchUrl()).toBe("/api/apps/app-a/filters/keys?entity=sessions");
+    expect(result).toEqual({
+      keys: [{ name: "custom.plan" }],
+      key_groups: ["Custom"],
+      custom_keys_truncated: true,
+    });
+  });
+
+  it("fetchFilterKeys URL-encodes the search text", async () => {
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse({
+        keys: [],
+        key_groups: [],
+        custom_keys_truncated: false,
+      }),
+    );
+    await fetchFilterKeys("app-a", "sessions", [], "is premium&plan");
+    expect(lastFetchUrl()).toBe(
+      "/api/apps/app-a/filters/keys?entity=sessions&search=is%20premium%26plan",
     );
   });
 

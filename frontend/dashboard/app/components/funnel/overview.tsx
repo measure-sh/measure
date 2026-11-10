@@ -65,6 +65,7 @@ export default function FunnelsOverview({ teamId }: { teamId: string }) {
     apps,
     keys,
     keyGroups,
+    customKeysTruncated,
     keysUnavailable,
     status: filterStatus,
     filterParams,
@@ -196,6 +197,7 @@ export default function FunnelsOverview({ teamId }: { teamId: string }) {
             apps={apps}
             keys={keys}
             keyGroups={keyGroups}
+            customKeysTruncated={customKeysTruncated}
             keysUnavailable={keysUnavailable}
             status={filterStatus}
             showFilterExpr={false}

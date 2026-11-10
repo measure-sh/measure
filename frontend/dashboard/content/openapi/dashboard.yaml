@@ -1300,6 +1300,14 @@ paths:
             type: array
             items:
               type: string
+        - name: search
+          in: query
+          required: false
+          description: |
+            Filters custom keys by attribute name, ignoring case. Fixed keys
+            are always returned.
+          schema:
+            type: string
       responses:
         "200":
           description: Successful response, no errors.
@@ -1319,18 +1327,18 @@ paths:
                       them in. Every key's `key_group` is one of these.
                     items:
                       type: string
-                  keys_truncated:
+                  custom_keys_truncated:
                     type: boolean
                     description: |
-                      True when the app has more custom keys than the listing
-                      returns.
+                      True when more custom keys match than the response contains,
+                      either with or without the `search` parameter.
               examples:
                 response:
                   value:
                     key_groups:
                       - Version
                       - Build
-                    keys_truncated: false
+                    custom_keys_truncated: false
                     keys:
                       - name: version_name
                         label: App version

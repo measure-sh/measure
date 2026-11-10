@@ -43,6 +43,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
     apps,
     keys,
     keyGroups,
+    customKeysTruncated,
     keysUnavailable,
     status: filterStatus,
     filterParams,
@@ -74,6 +75,7 @@ export default function Overview({ params }: { params: { teamId: string } }) {
         apps={apps}
         keys={keys}
         keyGroups={keyGroups}
+        customKeysTruncated={customKeysTruncated}
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
         status={filterStatus}

@@ -17,7 +17,7 @@ import (
 // after the prefix is the attribute name as the app reported it.
 const CustomKeyPrefix = "custom."
 
-const CustomKeyLimit = 500
+const CustomKeyLimit = 50
 
 var customValueTypes = map[string]ValueType{
 	string(ValueTypeString):  ValueTypeString,
@@ -58,22 +58,23 @@ func CustomKey(rawName string, valueType ValueType) Key {
 	return key
 }
 
-// ListKeys returns the entity's fixed keys followed by the app's custom
-// keys, reporting whether the custom set was cut off at CustomKeyLimit. Any
-// names the caller passes that carry the custom prefix and did not make the
-// listing are resolved by name and appended.
-func (e Entity) ListKeys(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, names []string) ([]Key, bool, error) {
-	return e.listKeys(ctx, chPool, teamID, appID, names, CustomKeyLimit)
+// ListKeys returns the entity's fixed keys and the app's custom keys. It
+// reports whether the custom keys were cut off at CustomKeyLimit. A search
+// matches custom keys by attribute name; fixed keys are always returned.
+// Requested custom keys missing from the list are resolved by name and
+// appended.
+func (e Entity) ListKeys(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, names []string, search string) ([]Key, bool, error) {
+	return e.listKeys(ctx, chPool, teamID, appID, names, search, CustomKeyLimit)
 }
 
 // The fixed Keys slice is package-level state, so the merge reallocates to
 // leave it untouched.
-func (e Entity) listKeys(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, names []string, limit int) ([]Key, bool, error) {
+func (e Entity) listKeys(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, names []string, search string, limit int) ([]Key, bool, error) {
 	if e.CustomKeySource == nil {
 		return e.Keys, false, nil
 	}
 
-	customKeys, truncated, err := e.CustomKeySource.fetchKeys(ctx, chPool, teamID, appID, limit)
+	customKeys, truncated, err := e.CustomKeySource.fetchKeys(ctx, chPool, teamID, appID, search, limit)
 	if err != nil {
 		return nil, false, err
 	}

@@ -40,6 +40,7 @@ export default function TracesOverview(props: {
     apps,
     keys,
     keyGroups,
+    customKeysTruncated,
     keysUnavailable,
     spanNames,
     status: filterStatus,
@@ -89,6 +90,7 @@ export default function TracesOverview(props: {
         apps={apps}
         keys={keys}
         keyGroups={keyGroups}
+        customKeysTruncated={customKeysTruncated}
         keysUnavailable={keysUnavailable}
         spanNames={spanNames}
         filterExprIssues={filterExprIssues}

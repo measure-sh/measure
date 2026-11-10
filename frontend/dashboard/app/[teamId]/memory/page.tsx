@@ -52,6 +52,7 @@ export default function MemoryPage({ params }: PageProps) {
         apps={filter.apps}
         keys={filter.keys}
         keyGroups={filter.keyGroups}
+        customKeysTruncated={filter.customKeysTruncated}
         keysUnavailable={filter.keysUnavailable}
         filterExprIssues={filterExprIssues}
         onChange={filter.onChange}

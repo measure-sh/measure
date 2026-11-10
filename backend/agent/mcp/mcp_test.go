@@ -3800,8 +3800,8 @@ func TestMCPGetFilterKeys(t *testing.T) {
 				Label    string `json:"label"`
 				KeyGroup string `json:"key_group"`
 			} `json:"keys"`
-			KeyGroups     []string `json:"key_groups"`
-			KeysTruncated bool     `json:"keys_truncated"`
+			KeyGroups           []string `json:"key_groups"`
+			CustomKeysTruncated bool     `json:"custom_keys_truncated"`
 		}
 		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &result); err != nil {
 			t.Fatalf("parse filter keys response: %v", err)
@@ -3822,8 +3822,57 @@ func TestMCPGetFilterKeys(t *testing.T) {
 		if !slices.Contains(result.KeyGroups, "Custom") {
 			t.Errorf("want the Custom group listed, got %v", result.KeyGroups)
 		}
-		if result.KeysTruncated {
+		if result.CustomKeysTruncated {
 			t.Error("want the listing complete for one attribute")
+		}
+	})
+	t.Run("search filters custom keys and keeps fixed keys", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		userID := uuid.New()
+		seedUser(ctx, t, userID.String(), "fkeys5@mcp.test")
+		teamID := uuid.New()
+		seedTeam(ctx, t, teamID, "fkeys5 team")
+		seedTeamMembership(ctx, t, teamID, userID.String(), "owner")
+		appID := uuid.New()
+		seedApp(ctx, t, appID, teamID, 30)
+		rawToken := seedMCPSession(ctx, t, userID.String(), "c1", time.Now().Add(90*24*time.Hour))
+
+		seedSpanUDAttr(ctx, t, teamID.String(), appID.String(), testinfra.SpanUDAttrRow{Key: "plan", Value: "pro"})
+		seedSpanUDAttr(ctx, t, teamID.String(), appID.String(), testinfra.SpanUDAttrRow{Key: "tier", Value: "gold"})
+
+		resp := callMCPTool(t, rawToken, "get_filter_keys", map[string]any{
+			"app_id": appID.String(),
+			"entity": "spans",
+			"search": "PLA",
+		})
+		if isToolError(resp) {
+			t.Fatalf("unexpected tool error: %s", extractTextContent(t, resp))
+		}
+
+		var result struct {
+			Keys []struct {
+				Name     string `json:"name"`
+				KeyGroup string `json:"key_group"`
+			} `json:"keys"`
+		}
+		if err := json.Unmarshal([]byte(extractTextContent(t, resp)), &result); err != nil {
+			t.Fatalf("parse filter keys response: %v", err)
+		}
+
+		customNames := []string{}
+		fixedCount := 0
+		for _, key := range result.Keys {
+			if key.KeyGroup == "Custom" {
+				customNames = append(customNames, key.Name)
+			} else {
+				fixedCount++
+			}
+		}
+		if len(customNames) != 1 || customNames[0] != "custom.plan" {
+			t.Errorf("want custom.plan as the only custom key, got %v", customNames)
+		}
+		if fixedCount == 0 {
+			t.Error("want fixed keys in the result")
 		}
 	})
 	t.Run("a key requested through the keys input is included", func(t *testing.T) {

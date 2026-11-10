@@ -55,6 +55,7 @@ const keysLoaded: KeysQueryState = {
   data: {
     keys: [mappingTypeKey, versionKey],
     key_groups: ["Build", "Version"],
+    custom_keys_truncated: false,
   },
 };
 const keysPending: KeysQueryState = {

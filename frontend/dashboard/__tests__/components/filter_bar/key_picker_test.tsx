@@ -1,6 +1,6 @@
-import { describe, expect, it } from "@jest/globals";
+import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
 import "@testing-library/jest-dom";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import React from "react";
 
 // The real popover renders its content only while open, so this stub does the
@@ -78,6 +78,22 @@ jest.mock("@/app/components/button", () => ({
   ),
 }));
 
+jest.mock("@/app/components/skeleton", () => ({
+  __esModule: true,
+  Skeleton: (props: any) => <div data-testid="skeleton" {...props} />,
+}));
+
+const mockUseFilterKeysQuery = jest.fn();
+jest.mock("@/app/query/hooks", () => ({
+  __esModule: true,
+  useFilterKeysQuery: (
+    appId: string | undefined,
+    entity: string,
+    keyNames: string[],
+    search: string,
+  ) => mockUseFilterKeysQuery(appId, entity, keyNames, search),
+}));
+
 import type { FilterKey } from "@/app/api/filter_types";
 import KeyPicker, {
   OperatorPicker,
@@ -115,8 +131,11 @@ function openPicker(
   const onOpenChange = jest.fn();
   render(
     <KeyPicker
+      appId="app-1"
+      entity="sessions"
       keys={keys}
       keyGroups={keyGroups}
+      customKeysTruncated={false}
       selected={null}
       open
       onOpenChange={onOpenChange}
@@ -158,12 +177,28 @@ function chipHoldingASegment() {
   return chip;
 }
 
+const customKeysPending = {
+  data: undefined,
+  isPending: true,
+  isPlaceholderData: false,
+  isError: false,
+  isSuccess: false,
+};
+
 describe("KeyPicker", () => {
+  beforeEach(() => {
+    mockUseFilterKeysQuery.mockReset();
+    mockUseFilterKeysQuery.mockReturnValue(customKeysPending);
+  });
+
   it("shows nothing until it is opened", () => {
     render(
       <KeyPicker
+        appId="app-1"
+        entity="sessions"
         keys={keys}
         keyGroups={keyGroups}
+        customKeysTruncated={false}
         selected={null}
         open={false}
         onOpenChange={jest.fn()}
@@ -213,8 +248,11 @@ describe("KeyPicker", () => {
   it("falls back to the first group when the one picked is gone", () => {
     const { rerender } = render(
       <KeyPicker
+        appId="app-1"
+        entity="sessions"
         keys={keys}
         keyGroups={keyGroups}
+        customKeysTruncated={false}
         selected={null}
         open
         onOpenChange={jest.fn()}
@@ -226,8 +264,11 @@ describe("KeyPicker", () => {
 
     rerender(
       <KeyPicker
+        appId="app-1"
+        entity="sessions"
         keys={keys.filter((k) => k.key_group === "Version")}
         keyGroups={["Version"]}
+        customKeysTruncated={false}
         selected={null}
         open
         onOpenChange={jest.fn()}
@@ -276,8 +317,11 @@ describe("KeyPicker", () => {
   it("offers no tabs for an entity with one group", () => {
     render(
       <KeyPicker
+        appId="app-1"
+        entity="sessions"
         keys={keys.filter((k) => k.key_group === "Build")}
         keyGroups={["Build"]}
+        customKeysTruncated={false}
         selected={null}
         open
         onOpenChange={jest.fn()}
@@ -322,8 +366,11 @@ describe("KeyPicker", () => {
             lands here
           </button>
           <KeyPicker
+            appId="app-1"
+            entity="sessions"
             keys={keys}
             keyGroups={keyGroups}
+            customKeysTruncated={false}
             selected={null}
             open
             onOpenChange={jest.fn()}
@@ -351,8 +398,11 @@ describe("KeyPicker", () => {
           </button>
           <input data-testid="value-input" />
           <KeyPicker
+            appId="app-1"
+            entity="sessions"
             keys={keys}
             keyGroups={keyGroups}
+            customKeysTruncated={false}
             selected={null}
             open
             onOpenChange={jest.fn()}
@@ -399,10 +449,48 @@ describe("KeyPicker", () => {
       "Custom",
       "A user-defined attribute",
     );
+    const foundKey = key("custom.zone", "zone", "Custom", "An attribute");
     const withCustom = {
       keys: [...keys, customKey],
       keyGroups: [...keyGroups, "Custom"],
     };
+
+    // Without an app id, the query is disabled and has no data, matching the
+    // real hook's pending state.
+    function searchAnswer(answer: object) {
+      mockUseFilterKeysQuery.mockImplementation((appId) =>
+        appId === undefined ? customKeysPending : answer,
+      );
+    }
+
+    function searchFound(customKeys: FilterKey[], truncated = false) {
+      searchAnswer({
+        data: {
+          keys: [...keys, ...customKeys],
+          key_groups: withCustom.keyGroups,
+          custom_keys_truncated: truncated,
+        },
+        isPending: false,
+        isPlaceholderData: false,
+        isError: false,
+        isSuccess: true,
+      });
+    }
+
+    function waitOutTheDebounce() {
+      act(() => {
+        jest.advanceTimersByTime(500);
+      });
+    }
+
+    beforeEach(() => {
+      jest.useFakeTimers();
+      searchFound([foundKey]);
+    });
+
+    afterEach(() => {
+      jest.useRealTimers();
+    });
 
     it("shows the Custom tab, and the key by its raw name", () => {
       openPicker(withCustom);
@@ -420,6 +508,168 @@ describe("KeyPicker", () => {
       fireEvent.click(screen.getByTestId("filter-key-custom.is_premium"));
 
       expect(onSelect).toHaveBeenCalledWith(customKey);
+    });
+
+    it("shows the provided custom keys on the Custom tab without a request", () => {
+      openPicker(withCustom);
+
+      fireEvent.click(screen.getByTestId("tab-Custom"));
+
+      expect(screen.getByText("is_premium")).toBeInTheDocument();
+      expect(screen.queryByTestId("skeleton")).not.toBeInTheDocument();
+      expect(mockUseFilterKeysQuery).not.toHaveBeenCalledWith(
+        "app-1",
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it("does not search the server when the entity has no Custom group", () => {
+      openPicker();
+
+      search("premium");
+      waitOutTheDebounce();
+
+      expect(mockUseFilterKeysQuery).not.toHaveBeenCalledWith(
+        "app-1",
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+      );
+    });
+
+    it("sends the search to the server 500 ms after the last keystroke", () => {
+      openPicker(withCustom);
+
+      search(" premium ");
+      act(() => {
+        jest.advanceTimersByTime(499);
+      });
+
+      expect(mockUseFilterKeysQuery).not.toHaveBeenCalledWith(
+        "app-1",
+        expect.anything(),
+        expect.anything(),
+        expect.anything(),
+      );
+
+      act(() => {
+        jest.advanceTimersByTime(1);
+      });
+
+      expect(mockUseFilterKeysQuery).toHaveBeenLastCalledWith(
+        "app-1",
+        "sessions",
+        [],
+        "premium",
+      );
+    });
+
+    it("shows matching fixed keys and skeleton rows while custom keys load", () => {
+      openPicker(withCustom);
+
+      search("p");
+
+      expect(screen.getByText("Patch id")).toBeInTheDocument();
+      expect(screen.getByText("Custom", { selector: "p" })).toBeInTheDocument();
+      expect(screen.getAllByTestId("skeleton")).toHaveLength(2);
+      expect(screen.queryByText("is_premium")).not.toBeInTheDocument();
+    });
+
+    it("shows skeleton rows while the query holds the previous search's keys as placeholder data", () => {
+      searchAnswer({
+        data: {
+          keys: [...keys, foundKey],
+          key_groups: withCustom.keyGroups,
+          custom_keys_truncated: false,
+        },
+        isPending: false,
+        isPlaceholderData: true,
+        isError: false,
+        isSuccess: true,
+      });
+      openPicker(withCustom);
+
+      search("p");
+      waitOutTheDebounce();
+
+      expect(screen.getAllByTestId("skeleton")).toHaveLength(2);
+      expect(screen.queryByText("zone")).not.toBeInTheDocument();
+    });
+
+    it("shows the custom keys returned by the server", () => {
+      openPicker(withCustom);
+
+      search("p");
+      waitOutTheDebounce();
+
+      expect(screen.getByText("Custom", { selector: "p" })).toBeInTheDocument();
+      expect(screen.getByText("zone")).toBeInTheDocument();
+      expect(screen.queryByText("is_premium")).not.toBeInTheDocument();
+      expect(screen.queryByTestId("skeleton")).not.toBeInTheDocument();
+    });
+
+    it("shows no results only after the server responds", () => {
+      searchFound([]);
+      openPicker(withCustom);
+
+      search("nothing goes by this");
+
+      expect(screen.queryByText("No filters found")).not.toBeInTheDocument();
+
+      waitOutTheDebounce();
+
+      expect(screen.getByText("No filters found")).toBeInTheDocument();
+    });
+
+    it("shows an error when custom keys fail to load and keeps other matches", () => {
+      searchAnswer({
+        data: undefined,
+        isPending: false,
+        isPlaceholderData: false,
+        isError: true,
+        isSuccess: false,
+      });
+      openPicker(withCustom);
+
+      search("p");
+      waitOutTheDebounce();
+
+      expect(
+        screen.getByText(
+          "Couldn't load custom filters. Close and open this list to try again",
+        ),
+      ).toBeInTheDocument();
+      expect(screen.getByText("Patch id")).toBeInTheDocument();
+    });
+
+    it("shows a notice when the provided custom keys are truncated", () => {
+      openPicker({ ...withCustom, customKeysTruncated: true });
+
+      expect(screen.queryByText(/Showing the first/)).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByTestId("tab-Custom"));
+
+      expect(
+        screen.getByText(
+          "Showing the first 1 custom filters. Keep typing to narrow",
+        ),
+      ).toBeInTheDocument();
+    });
+
+    it("shows a notice when the search results are truncated", () => {
+      searchFound([foundKey], true);
+      openPicker(withCustom);
+
+      search("zo");
+      waitOutTheDebounce();
+
+      expect(
+        screen.getByText(
+          "Showing the first 1 custom filters. Keep typing to narrow",
+        ),
+      ).toBeInTheDocument();
     });
   });
 });

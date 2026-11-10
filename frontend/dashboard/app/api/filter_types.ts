@@ -40,11 +40,13 @@ export type FilterKey = {
   value_suggestion_mode: ValueSuggestionMode;
 };
 
-// The keys an entity can be filtered by. `key_groups` is in the order the
-// server wants the groups shown.
+// The keys available for an entity's filters. `key_groups` gives the order
+// in which to show the groups. `custom_keys_truncated` is true when the app has
+// more custom keys than this response contains.
 export type FilterKeysResponse = {
   keys: FilterKey[];
   key_groups: string[];
+  custom_keys_truncated: boolean;
 };
 
 export type FilterValue = {
