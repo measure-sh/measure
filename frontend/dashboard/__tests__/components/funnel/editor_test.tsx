@@ -374,11 +374,13 @@ describe("FunnelEditor", () => {
       });
     });
 
-    it("shows a loading message while event names load", () => {
+    it("shows skeleton rows while event names load", () => {
       mockEventNames = { data: undefined, isPending: true, isError: false };
       renderEditor();
       openPicker(0);
-      expect(screen.getByText("Loading...")).toBeInTheDocument();
+      expect(document.querySelectorAll('[data-slot="skeleton"]')).toHaveLength(
+        2,
+      );
       expect(screen.queryAllByRole("option")).toHaveLength(0);
     });
 

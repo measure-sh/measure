@@ -164,7 +164,7 @@ function ValueList({
         {query.isPending && (
           <div className="flex flex-col gap-2 p-2">
             <Skeleton className="h-5 w-full" />
-            <Skeleton className="h-5 w-2/3" />
+            <Skeleton className="h-5 w-full" />
           </div>
         )}
         {query.isError && (
