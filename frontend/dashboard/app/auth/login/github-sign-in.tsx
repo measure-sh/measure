@@ -5,11 +5,7 @@ import { Button } from "@/app/components/button";
 import { navigateTo } from "@/app/utils/navigation";
 import Image from "next/image";
 
-export default function GitHubSignIn({
-  mcpAuthorizeUrl,
-}: {
-  mcpAuthorizeUrl?: string;
-}) {
+export default function GitHubSignIn() {
   const doGitHubLogin = async () => {
     const { origin } = new URL(window.location.href);
     const { url, error } = await signInWithGitHub({
@@ -30,20 +26,12 @@ export default function GitHubSignIn({
     }
   };
 
-  const handleClick = () => {
-    if (mcpAuthorizeUrl) {
-      navigateTo(mcpAuthorizeUrl);
-      return;
-    }
-    doGitHubLogin();
-  };
-
   return (
     <Button
       variant="outline"
       size={"lg"}
       className="group justify-center w-full font-display border-2 border-border"
-      onClick={handleClick}
+      onClick={doGitHubLogin}
     >
       <Image
         src="/images/github_logo_black.svg"

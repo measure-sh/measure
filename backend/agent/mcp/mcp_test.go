@@ -11,6 +11,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"maps"
@@ -563,31 +564,6 @@ func TestMCPAuthorize(t *testing.T) {
 		}
 	})
 
-	t.Run("registered client redirects to the provider", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		setConfig(t, func(c *server.Config) {
-			c.OAuthGitHubKey = "test_gh_key"
-			c.AgentOrigin = "https://api.example.com"
-			c.SiteOrigin = "https://app.example.com"
-		})
-		seedMCPClient(ctx, t, "msr_client_registered", "Cursor", []string{"https://www.cursor.com/agents/mcp/oauth/callback"})
-
-		params := url.Values{
-			"response_type":  {"code"},
-			"client_id":      {"msr_client_registered"},
-			"redirect_uri":   {"https://www.cursor.com/agents/mcp/oauth/callback"},
-			"state":          {"mystate"},
-			"code_challenge": {"abc123"},
-			"provider":       {"github"},
-		}
-		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
-		h.MCPAuthorize(c)
-
-		if w.Code != http.StatusFound || !strings.Contains(w.Header().Get("Location"), "github.com/login/oauth/authorize") {
-			t.Fatalf("want 302 to GitHub, got %d: %s", w.Code, w.Body.String())
-		}
-	})
-
 	t.Run("registered client with another redirect_uri returns 400", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		seedMCPClient(ctx, t, "msr_client_registered2", "Cursor", []string{"https://www.cursor.com/agents/mcp/oauth/callback"})
@@ -776,100 +752,53 @@ func TestMCPAuthorize(t *testing.T) {
 		}
 	})
 
-	t.Run("no provider with a malformed metadata URL returns 400 before the login page", func(t *testing.T) {
-		cleanupAll(ctx, t)
-
-		params := url.Values{
-			"response_type":  {"code"},
-			"client_id":      {"https://claude.ai/"},
-			"redirect_uri":   {"http://localhost:9999/cb"},
-			"state":          {"mystate"},
-			"code_challenge": {"abc123"},
-		}
-		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
-		h.MCPAuthorize(c)
-
-		if w.Code != http.StatusBadRequest {
-			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
-		}
-	})
-
-	t.Run("no provider with an unregistered redirect_uri returns 400 before the login page", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		clientID := newTestClientMetadataServer(t, []string{"http://localhost:9999/cb"}, nil)
-
-		params := url.Values{
-			"response_type":  {"code"},
-			"client_id":      {clientID},
-			"redirect_uri":   {"https://evil.example.com/cb"},
-			"state":          {"mystate"},
-			"code_challenge": {"abc123"},
-		}
-		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
-		h.MCPAuthorize(c)
-
-		if w.Code != http.StatusBadRequest {
-			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
-		}
-	})
-
-	t.Run("no provider redirects to login page", func(t *testing.T) {
+	t.Run("valid request redirects to the consent page without the provider", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		setConfig(t, func(c *server.Config) {
+			c.AgentOrigin = "https://api.example.com"
 			c.SiteOrigin = "https://app.example.com"
 		})
 		clientID := newTestClientMetadataServer(t, []string{"http://localhost:9999/cb"}, nil)
 
-		params := url.Values{
-			"response_type":  {"code"},
-			"client_id":      {clientID},
-			"redirect_uri":   {"http://localhost:9999/cb"},
-			"state":          {"mystate"},
-			"code_challenge": {"abc123"},
-		}
-		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
-		h.MCPAuthorize(c)
+		for _, provider := range []string{"", "github", "google"} {
+			params := url.Values{
+				"response_type":  {"code"},
+				"client_id":      {clientID},
+				"redirect_uri":   {"http://localhost:9999/cb"},
+				"state":          {"mystate"},
+				"code_challenge": {"abc123"},
+				"resource":       {"https://api.example.com"},
+			}
+			if provider != "" {
+				params.Set("provider", provider)
+			}
+			c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
+			h.MCPAuthorize(c)
 
-		if w.Code != http.StatusFound {
-			t.Fatalf("want 302, got %d: %s", w.Code, w.Body.String())
-		}
-
-		loc := w.Header().Get("Location")
-		parsedLoc, err := url.Parse(loc)
-		if err != nil {
-			t.Fatalf("parse location: %v", err)
-		}
-
-		// Verify redirect goes to the configured SiteOrigin login page
-		if !strings.HasPrefix(loc, "https://app.example.com/auth/login?") {
-			t.Errorf("redirect location %q should start with site origin login path", loc)
-		}
-
-		// Verify mcp=1 flag is set
-		if parsedLoc.Query().Get("mcp") != "1" {
-			t.Error("redirect should include mcp=1 param")
-		}
-
-		// Verify all original OAuth params are preserved
-		q := parsedLoc.Query()
-		if q.Get("response_type") != "code" {
-			t.Errorf("response_type = %q, want code", q.Get("response_type"))
-		}
-		if q.Get("client_id") != clientID {
-			t.Errorf("client_id = %q, want %q", q.Get("client_id"), clientID)
-		}
-		if q.Get("redirect_uri") != "http://localhost:9999/cb" {
-			t.Errorf("redirect_uri = %q, want http://localhost:9999/cb", q.Get("redirect_uri"))
-		}
-		if q.Get("state") != "mystate" {
-			t.Errorf("state = %q, want mystate", q.Get("state"))
-		}
-		if q.Get("code_challenge") != "abc123" {
-			t.Errorf("code_challenge = %q, want abc123", q.Get("code_challenge"))
+			if w.Code != http.StatusFound {
+				t.Fatalf("provider %q: want 302, got %d: %s", provider, w.Code, w.Body.String())
+			}
+			loc := w.Header().Get("Location")
+			if !strings.HasPrefix(loc, "https://app.example.com/auth/mcp/authorize?") {
+				t.Fatalf("provider %q: location %q should be the consent page", provider, loc)
+			}
+			parsedLoc, _ := url.Parse(loc)
+			want := url.Values{}
+			for k, v := range params {
+				if k != "provider" {
+					want[k] = v
+				}
+			}
+			if got := parsedLoc.Query().Encode(); got != want.Encode() {
+				t.Errorf("provider %q: query = %q, want %q", provider, got, want.Encode())
+			}
+			if n, _ := deps.VK.Do(ctx, deps.VK.B().Dbsize().Build()).AsInt64(); n != 0 {
+				t.Errorf("provider %q: authorize must store nothing, found %d keys", provider, n)
+			}
 		}
 	})
 
-	t.Run("a failure after the redirect_uri check goes back to the client", func(t *testing.T) {
+	t.Run("duplicated redirect_uri redirects with only the validated value", func(t *testing.T) {
 		cleanupAll(ctx, t)
 		setConfig(t, func(c *server.Config) {
 			c.AgentOrigin = "https://api.example.com"
@@ -880,10 +809,9 @@ func TestMCPAuthorize(t *testing.T) {
 		params := url.Values{
 			"response_type":  {"code"},
 			"client_id":      {clientID},
-			"redirect_uri":   {"http://localhost:9999/cb"},
-			"state":          {"mystate"},
+			"redirect_uri":   {"http://localhost:9999/cb", "https://evil.example.com/cb"},
 			"code_challenge": {"abc123"},
-			"provider":       {"myspace"},
+			"unknown":        {"x"},
 		}
 		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
 		h.MCPAuthorize(c)
@@ -891,28 +819,15 @@ func TestMCPAuthorize(t *testing.T) {
 		if w.Code != http.StatusFound {
 			t.Fatalf("want 302, got %d: %s", w.Code, w.Body.String())
 		}
-		loc, parseErr := url.Parse(w.Header().Get("Location"))
-		if parseErr != nil {
-			t.Fatalf("parse redirect location: %v", parseErr)
+		loc, _ := url.Parse(w.Header().Get("Location"))
+		want := url.Values{
+			"response_type":  {"code"},
+			"client_id":      {clientID},
+			"redirect_uri":   {"http://localhost:9999/cb"},
+			"code_challenge": {"abc123"},
 		}
-		if got := loc.Scheme + "://" + loc.Host + loc.Path; got != "http://localhost:9999/cb" {
-			t.Errorf("sent to %q, want the client's redirect_uri", got)
-		}
-		q := loc.Query()
-		if q.Get("error") != "invalid_request" {
-			t.Errorf("error = %q, want invalid_request", q.Get("error"))
-		}
-		if q.Get("error_description") != "unsupported provider" {
-			t.Errorf("error_description = %q, want unsupported provider", q.Get("error_description"))
-		}
-		if q.Get("state") != "mystate" {
-			t.Errorf("state = %q, want mystate", q.Get("state"))
-		}
-		if q.Get("iss") != "https://api.example.com" {
-			t.Errorf("iss = %q, want https://api.example.com", q.Get("iss"))
-		}
-		if q.Get("code") != "" {
-			t.Error("an error response must not carry a code")
+		if got := loc.Query().Encode(); got != want.Encode() {
+			t.Errorf("query = %q, want %q", got, want.Encode())
 		}
 	})
 
@@ -941,103 +856,261 @@ func TestMCPAuthorize(t *testing.T) {
 			t.Errorf("an unchecked address must not be redirected to, got %q", loc)
 		}
 	})
+}
 
-	t.Run("provider=github redirects to GitHub OAuth with unified callback and mcp_ prefix", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		setConfig(t, func(c *server.Config) {
-			c.OAuthGitHubKey = "test_gh_key"
-			c.AgentOrigin = "https://api.example.com"
-			c.SiteOrigin = "https://app.example.com"
-		})
-		clientID := newTestClientMetadataServer(t, []string{"http://localhost:9999/cb"}, nil)
+// testAuthorizeBody returns a valid authorize request body.
+func testAuthorizeBody(clientID, redirectURI string, extra map[string]any) map[string]any {
+	body := map[string]any{
+		"response_type":  "code",
+		"client_id":      clientID,
+		"redirect_uri":   redirectURI,
+		"state":          "mystate",
+		"code_challenge": "abc123",
+	}
+	maps.Copy(body, extra)
+	return body
+}
 
-		params := url.Values{
-			"response_type":         {"code"},
-			"client_id":             {clientID},
-			"redirect_uri":          {"http://localhost:9999/cb"},
-			"state":                 {"mystate"},
-			"code_challenge":        {"abc123"},
-			"code_challenge_method": {"S256"},
-			"resource":              {"https://api.example.com/mcp"},
-			"provider":              {"github"},
-		}
-		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
-		h.MCPAuthorize(c)
+func TestMCPAuthorizeDetails(t *testing.T) {
+	ctx := context.Background()
 
-		if w.Code != http.StatusFound {
-			t.Fatalf("want 302, got %d: %s", w.Code, w.Body.String())
-		}
-
-		loc := w.Header().Get("Location")
-		if !strings.Contains(loc, "github.com/login/oauth/authorize") {
-			t.Errorf("redirect location %q should contain GitHub OAuth URL", loc)
-		}
-		if !strings.Contains(loc, "test_gh_key") {
-			t.Errorf("redirect location %q should contain GitHub client_id", loc)
-		}
-
-		// Verify unified callback URL uses SiteOrigin
-		parsedLoc, _ := url.Parse(loc)
-		redirectURI := parsedLoc.Query().Get("redirect_uri")
-		if redirectURI != "https://app.example.com/auth/callback/github" {
-			t.Errorf("redirect_uri = %q, want https://app.example.com/auth/callback/github", redirectURI)
-		}
-
-		// Verify state has mcp_ prefix
-		state := parsedLoc.Query().Get("state")
-		if !strings.HasPrefix(state, "mcp_") {
-			t.Errorf("state = %q, want mcp_ prefix", state)
-		}
-	})
-
-	t.Run("provider=google redirects to Google OAuth with unified callback and mcp_ prefix", func(t *testing.T) {
-		cleanupAll(ctx, t)
-		setConfig(t, func(c *server.Config) {
-			c.OAuthGoogleKey = "test_google_key"
-			c.OAuthGoogleSecret = "test_google_secret"
-			c.AgentOrigin = "https://api.example.com"
-			c.SiteOrigin = "https://app.example.com"
-		})
-		clientID := newTestClientMetadataServer(t, []string{"http://localhost:9999/cb"}, nil)
-
+	details := func(t *testing.T, clientID, redirectURI string) (int, map[string]any) {
+		t.Helper()
 		params := url.Values{
 			"response_type":  {"code"},
 			"client_id":      {clientID},
-			"redirect_uri":   {"http://localhost:9999/cb"},
+			"redirect_uri":   {redirectURI},
 			"state":          {"mystate"},
 			"code_challenge": {"abc123"},
-			"resource":       {"https://api.example.com"},
-			"provider":       {"google"},
 		}
-		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
-		h.MCPAuthorize(c)
+		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize/details", params)
+		h.MCPAuthorizeDetails(c)
+		var resp map[string]any
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		return w.Code, resp
+	}
 
-		if w.Code != http.StatusFound {
-			t.Fatalf("want 302, got %d: %s", w.Code, w.Body.String())
-		}
+	t.Run("registered client", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		seedMCPClient(ctx, t, "msr_client_details", "Cursor", []string{"https://www.cursor.com/cb"})
 
-		loc := w.Header().Get("Location")
-		if !strings.Contains(loc, "accounts.google.com/o/oauth2") {
-			t.Errorf("redirect location %q should contain Google OAuth URL", loc)
+		code, resp := details(t, "msr_client_details", "https://www.cursor.com/cb")
+		if code != http.StatusOK {
+			t.Fatalf("want 200, got %d: %v", code, resp)
 		}
-		if !strings.Contains(loc, "test_google_key") {
-			t.Errorf("redirect location %q should contain Google client_id", loc)
+		want := map[string]any{"client_name": "Cursor", "client_host": "", "redirect_uri": "https://www.cursor.com/cb", "redirect_host": "www.cursor.com", "redirect_is_loopback": false}
+		if !maps.Equal(resp, want) {
+			t.Errorf("got %v, want %v", resp, want)
 		}
-		if !strings.Contains(loc, "openid") {
-			t.Errorf("redirect location %q should contain openid scope", loc)
-		}
+	})
 
-		// Verify unified callback URL uses SiteOrigin
-		parsedLoc, _ := url.Parse(loc)
-		redirectURI := parsedLoc.Query().Get("redirect_uri")
-		if redirectURI != "https://app.example.com/auth/callback/google" {
-			t.Errorf("redirect_uri = %q, want https://app.example.com/auth/callback/google", redirectURI)
-		}
+	t.Run("metadata URL client with a loopback redirect fetches the document once", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		var fetches atomic.Int32
+		clientID := newTestClientMetadataServerWith(t, func(w http.ResponseWriter, selfURL string) {
+			fetches.Add(1)
+			json.NewEncoder(w).Encode(map[string]any{
+				"client_id":     selfURL,
+				"client_name":   "Test Client",
+				"redirect_uris": []string{"http://localhost/cb"},
+			})
+		})
 
-		// Verify state has mcp_ prefix
-		state := parsedLoc.Query().Get("state")
-		if !strings.HasPrefix(state, "mcp_") {
-			t.Errorf("state = %q, want mcp_ prefix", state)
+		code, resp := details(t, clientID, "http://localhost:3118/cb")
+		if code != http.StatusOK {
+			t.Fatalf("want 200, got %d: %v", code, resp)
+		}
+		u, _ := url.Parse(clientID)
+		want := map[string]any{"client_name": "Test Client", "client_host": u.Host, "redirect_uri": "http://localhost:3118/cb", "redirect_host": "localhost", "redirect_is_loopback": true}
+		if !maps.Equal(resp, want) {
+			t.Errorf("got %v, want %v", resp, want)
+		}
+		if n := fetches.Load(); n != 1 {
+			t.Errorf("metadata server hit %d times, want 1", n)
+		}
+	})
+
+	t.Run("custom scheme redirect reports the scheme", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		seedMCPClient(ctx, t, "msr_client_scheme", "Desktop", []string{"cursor://anysphere.cursor-mcp/oauth/callback"})
+
+		code, resp := details(t, "msr_client_scheme", "cursor://anysphere.cursor-mcp/oauth/callback")
+		if code != http.StatusOK || resp["redirect_host"] != "cursor" || resp["redirect_is_loopback"] != false {
+			t.Fatalf("got %d: %v", code, resp)
+		}
+	})
+
+	t.Run("unregistered redirect_uri returns 400", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		seedMCPClient(ctx, t, "msr_client_details2", "Cursor", []string{"https://www.cursor.com/cb"})
+
+		code, _ := details(t, "msr_client_details2", "https://evil.example.com/cb")
+		if code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d", code)
+		}
+	})
+}
+
+func TestMCPAuthorizeApprove(t *testing.T) {
+	ctx := context.Background()
+
+	approve := func(t *testing.T, extra map[string]any) (*httptest.ResponseRecorder, map[string]any) {
+		t.Helper()
+		clientID := newTestClientMetadataServer(t, []string{"http://localhost:9999/cb"}, nil)
+		c, w := newTestGinContextJSON("POST", "/oauth/authorize/approve", testAuthorizeBody(clientID, "http://localhost:9999/cb", extra))
+		h.MCPAuthorizeApprove(c)
+		var resp map[string]any
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		return w, resp
+	}
+
+	setup := func(t *testing.T) {
+		t.Helper()
+		cleanupAll(ctx, t)
+		setConfig(t, func(c *server.Config) {
+			c.OAuthGitHubKey = "test_gh_key"
+			c.OAuthGoogleKey = "test_google_key"
+			c.AgentOrigin = "https://api.example.com"
+			c.SiteOrigin = "https://app.example.com"
+		})
+	}
+
+	for _, tc := range []struct {
+		provider, authURL, callback, scope string
+	}{
+		{"github", "https://github.com/login/oauth/authorize", "https://app.example.com/auth/callback/github", "user:email"},
+		{"google", "https://accounts.google.com/o/oauth2/v2/auth", "https://app.example.com/auth/callback/google", "openid email profile"},
+	} {
+		t.Run(tc.provider+" returns provider URL & stores the binding hash", func(t *testing.T) {
+			setup(t)
+
+			w, resp := approve(t, map[string]any{"provider": tc.provider, "resource": "https://api.example.com/mcp"})
+			if w.Code != http.StatusOK {
+				t.Fatalf("want 200, got %d: %s", w.Code, w.Body.String())
+			}
+			oauthState, _ := resp["oauth_state"].(string)
+			binding, _ := resp["binding"].(string)
+			providerURL, _ := resp["provider_url"].(string)
+			if strings.HasPrefix(oauthState, "mcp_") || len(oauthState) != 32 || len(binding) != 64 {
+				t.Fatalf("unexpected oauth_state %q or binding %q", oauthState, binding)
+			}
+
+			u, err := url.Parse(providerURL)
+			if err != nil || !strings.HasPrefix(providerURL, tc.authURL+"?") {
+				t.Fatalf("provider_url %q should start with %s", providerURL, tc.authURL)
+			}
+			q := u.Query()
+			if q.Get("state") != "mcp_"+oauthState {
+				t.Errorf("state = %q, want mcp_%s", q.Get("state"), oauthState)
+			}
+			if q.Get("redirect_uri") != tc.callback {
+				t.Errorf("redirect_uri = %q, want %s", q.Get("redirect_uri"), tc.callback)
+			}
+			if q.Get("scope") != tc.scope {
+				t.Errorf("scope = %q, want %q", q.Get("scope"), tc.scope)
+			}
+			if q.Get("client_id") != "test_"+map[string]string{"github": "gh", "google": "google"}[tc.provider]+"_key" {
+				t.Errorf("client_id = %q", q.Get("client_id"))
+			}
+
+			raw, err := deps.VK.Do(ctx, deps.VK.B().Get().Key(mcpValkeyStateKey(oauthState)).Build()).ToString()
+			if err != nil {
+				t.Fatalf("state not stored: %v", err)
+			}
+			var payload mcpOAuthStatePayload
+			json.Unmarshal([]byte(raw), &payload)
+			sum := sha256.Sum256([]byte(binding))
+			if payload.BindingHash != hex.EncodeToString(sum[:]) {
+				t.Errorf("binding_hash = %q, want sha256 of the binding", payload.BindingHash)
+			}
+			if payload.Provider != tc.provider || payload.MCPState != "mystate" {
+				t.Errorf("payload = %+v", payload)
+			}
+		})
+	}
+
+	t.Run("approving twice yields distinct oauth_state & binding", func(t *testing.T) {
+		setup(t)
+
+		_, first := approve(t, map[string]any{"provider": "github"})
+		_, second := approve(t, map[string]any{"provider": "github"})
+		if first["oauth_state"] == second["oauth_state"] || first["binding"] == second["binding"] {
+			t.Errorf("approvals must differ: %v vs %v", first, second)
+		}
+	})
+
+	t.Run("unsupported provider returns 400 as JSON", func(t *testing.T) {
+		setup(t)
+
+		w, _ := approve(t, map[string]any{"provider": "myspace"})
+		if w.Code != http.StatusBadRequest || w.Header().Get("Location") != "" {
+			t.Fatalf("want 400 without redirect, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("unregistered redirect_uri returns 400", func(t *testing.T) {
+		setup(t)
+
+		w, _ := approve(t, map[string]any{"provider": "github", "redirect_uri": "http://localhost:9999/other"})
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+}
+
+func TestMCPAuthorizeDeny(t *testing.T) {
+	ctx := context.Background()
+
+	deny := func(t *testing.T, state string) *httptest.ResponseRecorder {
+		t.Helper()
+		clientID := newTestClientMetadataServer(t, []string{"http://localhost:9999/cb?x=1"}, nil)
+		body := testAuthorizeBody(clientID, "http://localhost:9999/cb?x=1", map[string]any{"state": state})
+		c, w := newTestGinContextJSON("POST", "/oauth/authorize/deny", body)
+		h.MCPAuthorizeDeny(c)
+		return w
+	}
+
+	t.Run("returns the client redirect with access_denied", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		setConfig(t, func(c *server.Config) { c.AgentOrigin = "https://api.example.com" })
+
+		w := deny(t, "mystate")
+		if w.Code != http.StatusOK {
+			t.Fatalf("want 200, got %d: %s", w.Code, w.Body.String())
+		}
+		var resp map[string]string
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		u, err := url.Parse(resp["redirect_url"])
+		if err != nil || u.Host != "localhost:9999" || u.Path != "/cb" {
+			t.Fatalf("redirect_url = %q", resp["redirect_url"])
+		}
+		q := u.Query()
+		if q.Get("error") != "access_denied" || q.Get("error_description") == "" || q.Get("x") != "1" ||
+			q.Get("state") != "mystate" || q.Get("iss") != "https://api.example.com" || q.Get("code") != "" {
+			t.Errorf("unexpected query %v", q)
+		}
+	})
+
+	t.Run("omits state when the client sent none", func(t *testing.T) {
+		cleanupAll(ctx, t)
+
+		w := deny(t, "")
+		var resp map[string]string
+		json.Unmarshal(w.Body.Bytes(), &resp)
+		u, _ := url.Parse(resp["redirect_url"])
+		if w.Code != http.StatusOK || u.Query().Has("state") {
+			t.Fatalf("want 200 without state, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("unregistered redirect_uri returns 400", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		clientID := newTestClientMetadataServer(t, []string{"http://localhost:9999/cb"}, nil)
+
+		c, w := newTestGinContextJSON("POST", "/oauth/authorize/deny", testAuthorizeBody(clientID, "https://evil.example.com/cb", nil))
+		h.MCPAuthorizeDeny(c)
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
 		}
 	})
 }
@@ -1087,11 +1160,86 @@ func TestMCPCallbackExchange(t *testing.T) {
 
 		storeTestStateWithProvider(ctx, t, "cbstate_nocode", "clientA", "http://localhost/cb", "challenge", "mcpstate1", "github")
 
-		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "", "state": "cbstate_nocode"})
+		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "", "state": "cbstate_nocode", "binding": testBinding})
 		h.MCPCallbackExchange(c)
 
 		if w.Code != http.StatusBadRequest {
 			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
+	t.Run("invalid consent binding returns 400 & mints no code", func(t *testing.T) {
+		mcpExchangeGitHubCodeFn = func(code, redirectURI, _, _ string) (string, error) {
+			return "ghtoken", nil
+		}
+		mcpGetGitHubUserFn = func(token string) (authsession.GitHubUser, error) {
+			return authsession.GitHubUser{Name: "Bind User", Email: "bind@example.com"}, nil
+		}
+
+		for _, tc := range []struct {
+			name        string
+			bindingHash string
+			binding     string
+		}{
+			{"missing binding", mcpBindingHash(testBinding), ""},
+			{"wrong binding", mcpBindingHash(testBinding), "another-binding"},
+			{"stored payload without a hash", "", testBinding},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				cleanupAll(ctx, t)
+				storeTestPayload(ctx, t, "cbstate_bind", mcpOAuthStatePayload{
+					ClientID:      "clientBind",
+					RedirectURI:   "http://localhost:9999/cb",
+					CodeChallenge: "challenge",
+					Provider:      "github",
+					BindingHash:   tc.bindingHash,
+				})
+
+				c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "ghcode", "state": "cbstate_bind", "binding": tc.binding})
+				h.MCPCallbackExchange(c)
+
+				if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "consent binding") {
+					t.Fatalf("want 400 for the binding, got %d: %s", w.Code, w.Body.String())
+				}
+				if n := countMCPAuthCodes(ctx, t, "clientBind"); n != 0 {
+					t.Errorf("minted %d auth codes, want 0", n)
+				}
+			})
+		}
+	})
+
+	t.Run("binding from another approval returns 400 & mints no code", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		setConfig(t, func(c *server.Config) {
+			c.OAuthGitHubKey = "test_gh_key"
+			c.AgentOrigin = "https://api.example.com"
+			c.SiteOrigin = "https://app.example.com"
+		})
+		mcpExchangeGitHubCodeFn = func(string, string, string, string) (string, error) { return "ghtoken", nil }
+		mcpGetGitHubUserFn = func(string) (authsession.GitHubUser, error) {
+			return authsession.GitHubUser{Name: "Cross User", Email: "cross@example.com"}, nil
+		}
+		clientID := newTestClientMetadataServer(t, []string{"http://localhost:9999/cb"}, nil)
+		approveOnce := func() (state, binding string) {
+			c, w := newTestGinContextJSON("POST", "/oauth/authorize/approve", testAuthorizeBody(clientID, "http://localhost:9999/cb", map[string]any{"provider": "github"}))
+			h.MCPAuthorizeApprove(c)
+			var resp map[string]any
+			json.Unmarshal(w.Body.Bytes(), &resp)
+			state, _ = resp["oauth_state"].(string)
+			binding, _ = resp["binding"].(string)
+			return state, binding
+		}
+		_, bindingA := approveOnce()
+		stateB, _ := approveOnce()
+
+		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "ghcode", "state": stateB, "binding": bindingA})
+		h.MCPCallbackExchange(c)
+
+		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "consent binding") {
+			t.Fatalf("want 400 for the binding, got %d: %s", w.Code, w.Body.String())
+		}
+		if n := countMCPAuthCodes(ctx, t, clientID); n != 0 {
+			t.Errorf("minted %d auth codes, want 0", n)
 		}
 	})
 
@@ -1112,7 +1260,7 @@ func TestMCPCallbackExchange(t *testing.T) {
 		redirectURI := "http://localhost:9999/cb"
 		storeTestStateWithProvider(ctx, t, "cbstate_gh", clientID, redirectURI, "challenge123", "mcpstate2", "github")
 
-		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "ghcode", "state": "cbstate_gh"})
+		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "ghcode", "state": "cbstate_gh", "binding": testBinding})
 		h.MCPCallbackExchange(c)
 
 		if w.Code != http.StatusOK {
@@ -1167,7 +1315,7 @@ func TestMCPCallbackExchange(t *testing.T) {
 		redirectURI := "http://localhost:9999/cb"
 		storeTestStateWithProvider(ctx, t, "cbstate_google", clientID, redirectURI, "challenge123", "mcpstate3", "google")
 
-		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "googlecode", "state": "cbstate_google"})
+		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "googlecode", "state": "cbstate_google", "binding": testBinding})
 		h.MCPCallbackExchange(c)
 
 		if w.Code != http.StatusOK {
@@ -1210,7 +1358,7 @@ func TestMCPCallbackExchange(t *testing.T) {
 		redirectURI := "http://localhost:9999/cb"
 		storeTestStateWithProvider(ctx, t, "cbstate_ghfail", clientID, redirectURI, "challenge", "mcpstate_fail", "github")
 
-		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "ghcode", "state": "cbstate_ghfail"})
+		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "ghcode", "state": "cbstate_ghfail", "binding": testBinding})
 		h.MCPCallbackExchange(c)
 
 		if w.Code != http.StatusInternalServerError {
@@ -1229,7 +1377,7 @@ func TestMCPCallbackExchange(t *testing.T) {
 		redirectURI := "http://localhost:9999/cb"
 		storeTestStateWithProvider(ctx, t, "cbstate_ghbadcode", clientID, redirectURI, "challenge", "mcpstate_badcode", "github")
 
-		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "usedcode", "state": "cbstate_ghbadcode"})
+		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "usedcode", "state": "cbstate_ghbadcode", "binding": testBinding})
 		h.MCPCallbackExchange(c)
 
 		if w.Code != http.StatusBadRequest {
@@ -1248,7 +1396,7 @@ func TestMCPCallbackExchange(t *testing.T) {
 		redirectURI := "http://localhost:9999/cb"
 		storeTestStateWithProvider(ctx, t, "cbstate_gfail", clientID, redirectURI, "challenge", "mcpstate_gfail", "google")
 
-		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "googlecode", "state": "cbstate_gfail"})
+		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "googlecode", "state": "cbstate_gfail", "binding": testBinding})
 		h.MCPCallbackExchange(c)
 
 		if w.Code != http.StatusInternalServerError {
@@ -1267,7 +1415,7 @@ func TestMCPCallbackExchange(t *testing.T) {
 		redirectURI := "http://localhost:9999/cb"
 		storeTestStateWithProvider(ctx, t, "cbstate_gbadcode", clientID, redirectURI, "challenge", "mcpstate_gbadcode", "google")
 
-		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "usedcode", "state": "cbstate_gbadcode"})
+		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "usedcode", "state": "cbstate_gbadcode", "binding": testBinding})
 		h.MCPCallbackExchange(c)
 
 		if w.Code != http.StatusBadRequest {
@@ -1293,7 +1441,7 @@ func TestMCPCallbackExchange(t *testing.T) {
 		redirectURI := "http://localhost:9999/cb"
 		storeTestStateWithProvider(ctx, t, "cbstate_replay", clientID, redirectURI, "challenge", "mcpstate_replay", "github")
 
-		body := map[string]any{"code": "ghcode", "state": "cbstate_replay"}
+		body := map[string]any{"code": "ghcode", "state": "cbstate_replay", "binding": testBinding}
 
 		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", body)
 		h.MCPCallbackExchange(c)
@@ -1335,7 +1483,7 @@ func TestMCPCallbackExchange(t *testing.T) {
 		redirectURI := "http://localhost:8888/cb"
 		storeTestStateWithProvider(ctx, t, "cbstate_existing", clientID, redirectURI, "", "mcpstate4", "github")
 
-		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "ghcode", "state": "cbstate_existing"})
+		c, w := newTestGinContextJSON("POST", "/mcp/auth/callback", map[string]any{"code": "ghcode", "state": "cbstate_existing", "binding": testBinding})
 		h.MCPCallbackExchange(c)
 
 		if w.Code != http.StatusOK {
@@ -7356,16 +7504,26 @@ func storeTestState(ctx context.Context, t *testing.T, state, clientID, redirect
 	storeTestStateWithProvider(ctx, t, state, clientID, redirectURI, codeChallenge, mcpState, "")
 }
 
-// storeTestStateWithProvider writes a Valkey MCP OAuth state with an explicit provider.
+// testBinding is the consent binding whose hash storeTestStateWithProvider stores.
+const testBinding = "test-binding"
+
+// storeTestStateWithProvider writes a Valkey MCP OAuth state with an explicit
+// provider & the hash of testBinding.
 func storeTestStateWithProvider(ctx context.Context, t *testing.T, state, clientID, redirectURI, codeChallenge, mcpState, provider string) {
 	t.Helper()
-	payload := mcpOAuthStatePayload{
+	storeTestPayload(ctx, t, state, mcpOAuthStatePayload{
 		MCPState:      mcpState,
 		ClientID:      clientID,
 		RedirectURI:   redirectURI,
 		CodeChallenge: codeChallenge,
 		Provider:      provider,
-	}
+		BindingHash:   mcpBindingHash(testBinding),
+	})
+}
+
+// storeTestPayload writes a Valkey MCP OAuth state payload as given.
+func storeTestPayload(ctx context.Context, t *testing.T, state string, payload mcpOAuthStatePayload) {
+	t.Helper()
 	if err := mcpStoreMCPStateInValkey(ctx, deps.VK, state, payload); err != nil {
 		t.Fatalf("store test state: %v", err)
 	}
@@ -7543,4 +7701,14 @@ func isToolError(resp map[string]any) bool {
 		return true
 	}
 	return false
+}
+
+// countMCPAuthCodes returns how many auth codes exist for a client.
+func countMCPAuthCodes(ctx context.Context, t *testing.T, clientID string) (n int) {
+	t.Helper()
+	err := th.PgPool.QueryRow(ctx, `SELECT count(*) FROM measure.mcp_auth_codes WHERE client_id = $1`, clientID).Scan(&n)
+	if err != nil {
+		t.Fatalf("count auth codes: %v", err)
+	}
+	return n
 }

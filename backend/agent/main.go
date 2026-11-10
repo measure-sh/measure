@@ -151,6 +151,9 @@ func main() {
 	r.GET("/.well-known/oauth-authorization-server", mcpH.MCPOAuthMetadata)
 	r.POST("/oauth/register", mcpH.MCPRegisterClient)
 	r.GET("/oauth/authorize", mcpH.MCPAuthorize)
+	r.GET("/oauth/authorize/details", mcpH.MCPAuthorizeDetails)
+	r.POST("/oauth/authorize/approve", mcpH.MCPAuthorizeApprove)
+	r.POST("/oauth/authorize/deny", mcpH.MCPAuthorizeDeny)
 	r.POST("/mcp/auth/callback", mcpH.MCPCallbackExchange)
 	r.POST("/oauth/token", mcpH.MCPToken)
 

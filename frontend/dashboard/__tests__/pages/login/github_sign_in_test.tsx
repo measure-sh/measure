@@ -45,24 +45,6 @@ describe("GitHubSignIn", () => {
     expect(logos.length).toBe(2); // black and white variants
   });
 
-  it("MCP mode redirects to mcpAuthorizeUrl on click", () => {
-    const mcpUrl =
-      "https://api.example.com/oauth/authorize?provider=github&client_id=test";
-    render(<GitHubSignIn mcpAuthorizeUrl={mcpUrl} />);
-    fireEvent.click(screen.getByText("Sign in with GitHub"));
-
-    expect(mockAssign).toHaveBeenCalledWith(mcpUrl);
-  });
-
-  it("MCP mode does not call signInWithGitHub", () => {
-    const mcpUrl =
-      "https://api.example.com/oauth/authorize?provider=github&client_id=test";
-    render(<GitHubSignIn mcpAuthorizeUrl={mcpUrl} />);
-    fireEvent.click(screen.getByText("Sign in with GitHub"));
-
-    expect(mockSignInWithGitHub).not.toHaveBeenCalled();
-  });
-
   it("normal mode calls signInWithGitHub on click", () => {
     render(<GitHubSignIn />);
     fireEvent.click(screen.getByText("Sign in with GitHub"));

@@ -7,11 +7,7 @@ import Image from "next/image";
 
 const googleClientID = process.env.NEXT_PUBLIC_OAUTH_GOOGLE_KEY;
 
-export default function GoogleSignIn({
-  mcpAuthorizeUrl,
-}: {
-  mcpAuthorizeUrl?: string;
-}) {
+export default function GoogleSignIn() {
   const doGoogleLogin = async () => {
     const { origin } = new URL(window.location.href);
     const state = encodeOAuthState("");
@@ -33,20 +29,12 @@ export default function GoogleSignIn({
     navigateTo(url.toString());
   };
 
-  const handleClick = () => {
-    if (mcpAuthorizeUrl) {
-      navigateTo(mcpAuthorizeUrl);
-      return;
-    }
-    doGoogleLogin();
-  };
-
   return (
     <Button
       variant="outline"
       size={"lg"}
       className="justify-center w-full font-display border-2 border-border"
-      onClick={handleClick}
+      onClick={doGoogleLogin}
     >
       <Image
         src="/images/google_logo.svg"
