@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getPosthogServer } from "../../../posthog-server";
-import { setCookiesFromJWT } from "../../cookie";
+import {
+  clearMcpBindingCookie,
+  isOAuthState,
+  readMcpBindingCookie,
+  setCookiesFromJWT,
+} from "../../cookie";
 
 export const dynamic = "force-dynamic";
 
@@ -39,21 +44,38 @@ export async function GET(request: Request) {
     if (!agentOrigin) {
       throw new Error("AGENT_BASE_URL is not set");
     }
+    const oauthState = state.slice(4);
+    if (!isOAuthState(oauthState)) {
+      err = "MCP GitHub callback failure: invalid state";
+      posthog.captureException(err, { source: "github_oauth_callback" });
+      console.log(err);
+      return NextResponse.redirect(errRedirectUrl, { status: 302 });
+    }
+    const binding = readMcpBindingCookie(
+      request.headers.get("cookie"),
+      oauthState,
+    );
     const mcpRes = await fetch(`${agentOrigin}/mcp/auth/callback`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ code, state: state.slice(4) }),
+      body: JSON.stringify({ code, state: oauthState, binding }),
     });
 
     if (!mcpRes.ok) {
       err = `MCP GitHub callback failure: ${mcpRes.status}`;
       posthog.captureException(err, { source: "github_oauth_callback" });
       console.log(err);
-      return NextResponse.redirect(errRedirectUrl, { status: 302 });
+      return clearMcpBindingCookie(
+        NextResponse.redirect(errRedirectUrl, { status: 302 }),
+        oauthState,
+      );
     }
 
     const mcpData = await mcpRes.json();
-    return NextResponse.redirect(mcpData.redirect_url, { status: 302 });
+    return clearMcpBindingCookie(
+      NextResponse.redirect(mcpData.redirect_url, { status: 302 }),
+      oauthState,
+    );
   }
 
   if (!apiOrigin) {

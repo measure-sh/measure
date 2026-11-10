@@ -4,8 +4,10 @@ process.env.AGENT_BASE_URL = "http://localhost:8084";
 
 import { beforeAll, beforeEach, describe, expect, it } from "@jest/globals";
 
+const mockCookieSet = jest.fn();
 const mockRedirect = jest.fn((_url: string | URL, _init?: any) => ({
   status: _init?.status ?? 307,
+  cookies: { set: mockCookieSet },
 }));
 
 jest.mock("next/server", () => ({
@@ -22,6 +24,7 @@ jest.mock("@/app/posthog-server", () => ({
 
 const mockSetCookies = jest.fn((_at: string, _rt: string, res: any) => res);
 jest.mock("@/app/auth/cookie", () => ({
+  ...jest.requireActual("@/app/auth/cookie"),
   setCookiesFromJWT: (...args: any[]) => mockSetCookies.apply(null, args),
 }));
 
@@ -38,6 +41,14 @@ function makeRequest(params: string, cookieHeader: string | null = null) {
   } as unknown as Request;
 }
 
+function expectBindingCleared() {
+  expect(mockCookieSet).toHaveBeenCalledWith(
+    "mcp_b_abc123",
+    "",
+    expect.objectContaining({ maxAge: 0 }),
+  );
+}
+
 // Silence console.log/error from the route handler during tests
 jest.spyOn(console, "log").mockImplementation(() => {});
 jest.spyOn(console, "error").mockImplementation(() => {});
@@ -52,6 +63,7 @@ describe("GitHub Callback Route", () => {
 
   beforeEach(() => {
     mockRedirect.mockClear();
+    mockCookieSet.mockClear();
     mockSetCookies.mockClear();
     mockFetch.mockReset();
   });
@@ -82,18 +94,39 @@ describe("GitHub Callback Route", () => {
       json: () => Promise.resolve({ redirect_url: mcpRedirectUrl }),
     });
 
-    await GET(makeRequest("?code=gh-code&state=mcp_abc123"));
+    await GET(
+      makeRequest(
+        "?code=gh-code&state=mcp_abc123",
+        `_ga=1; mcp_b_abc123=bind-1`,
+      ),
+    );
 
     // Should POST to MCP callback with state prefix stripped
     expect(mockFetch).toHaveBeenCalledWith(
       "http://localhost:8084/mcp/auth/callback",
       expect.objectContaining({
         method: "POST",
-        body: JSON.stringify({ code: "gh-code", state: "abc123" }),
+        body: JSON.stringify({
+          code: "gh-code",
+          state: "abc123",
+          binding: "bind-1",
+        }),
       }),
     );
 
     expect(mockRedirect).toHaveBeenCalledWith(mcpRedirectUrl, { status: 302 });
+    expectBindingCleared();
+  });
+
+  it("MCP flow: sends an empty binding when the cookie is absent", async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve({ redirect_url: "https://client/cb" }),
+    });
+
+    await GET(makeRequest("?code=gh-code&state=mcp_abc123", "_ga=1"));
+
+    expect(JSON.parse(mockFetch.mock.calls[0][1].body).binding).toBe("");
   });
 
   it("MCP flow: backend failure redirects to login with error", async () => {
@@ -105,7 +138,21 @@ describe("GitHub Callback Route", () => {
     const url = mockRedirect.mock.calls[0][0] as string;
     expect(url).toContain("/auth/login?error=");
     expect(mockRedirect.mock.calls[0][1]).toEqual({ status: 302 });
+    expectBindingCleared();
   });
+
+  it.each([["mcp_a;Domain=x"], ["mcp_a%0d%0ab"], ["mcp_"], ["mcp_ABC"]])(
+    "MCP flow: invalid state %s redirects to login without agent call or cookies",
+    async (state) => {
+      const res = await GET(makeRequest(`?code=c&state=${state}`));
+
+      expect(res.status).toBe(302);
+      expect(mockRedirect).toHaveBeenCalledTimes(1);
+      expect(mockRedirect.mock.calls[0][0]).toContain("/auth/login?error=");
+      expect(mockFetch).not.toHaveBeenCalled();
+      expect(mockCookieSet).not.toHaveBeenCalled();
+    },
+  );
 
   it("dashboard flow: exchanges code via backend and sets cookies", async () => {
     mockFetch.mockResolvedValueOnce({
@@ -217,7 +264,7 @@ describe("GitHub Callback Route", () => {
 
     await GET(
       makeRequest(
-        "?code=gh-code&state=mcp_xyz789",
+        "?code=gh-code&state=mcp_abc789",
         "_ga=GA1.1.111.222; gclid=gclid-abc",
       ),
     );

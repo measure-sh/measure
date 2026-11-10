@@ -8,6 +8,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"crypto/subtle"
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/hex"
@@ -105,6 +106,7 @@ type mcpOAuthStatePayload struct {
 	RedirectURI   string `json:"redirect_uri"`
 	CodeChallenge string `json:"code_challenge"`
 	Provider      string `json:"provider"`
+	BindingHash   string `json:"binding_hash"`
 }
 
 type mcpSession struct {
@@ -234,6 +236,7 @@ func mcpValidateResource(apiOrigin, resource string) error {
 // mcpClientMetadata is the part of a Client ID Metadata Document that is checked.
 type mcpClientMetadata struct {
 	ClientID     string   `json:"client_id"`
+	ClientName   string   `json:"client_name"`
 	RedirectURIs []string `json:"redirect_uris"`
 }
 
@@ -384,33 +387,40 @@ func mcpRegisterClient(ctx context.Context, deps *server.Deps, clientName string
 	return clientID, nil
 }
 
-// mcpClientRedirectURIs returns the redirect URIs a client may use, from its
-// metadata document or from its registration.
-func mcpClientRedirectURIs(ctx context.Context, deps *server.Deps, clientID string) ([]string, error) {
+// mcpClient is a client's display name & the redirect URIs it may use.
+type mcpClient struct {
+	name         string
+	redirectURIs []string
+}
+
+// mcpLookupClient returns a client from its metadata document or from its
+// registration. The name may be empty.
+func mcpLookupClient(ctx context.Context, deps *server.Deps, clientID string) (mcpClient, error) {
 	if mcpIsClientMetadataURL(clientID) {
 		meta, err := mcpFetchClientMetadata(ctx, clientID)
 		if err != nil {
-			return nil, err
+			return mcpClient{}, err
 		}
-		return meta.RedirectURIs, nil
+		return mcpClient{name: meta.ClientName, redirectURIs: meta.RedirectURIs}, nil
 	}
 
 	stmt := sqlf.PostgreSQL.
 		From("mcp_clients").
 		Select("redirect_uris").
+		Select("client_name").
 		Where("client_id = ?", clientID)
 	defer stmt.Close()
 
-	var registeredURIs []string
-	dbErr := deps.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&registeredURIs)
+	var client mcpClient
+	dbErr := deps.PgPool.QueryRow(ctx, stmt.String(), stmt.Args()...).Scan(&client.redirectURIs, &client.name)
 	if errors.Is(dbErr, pgx.ErrNoRows) {
-		return nil, &mcpHTTPError{Status: http.StatusBadRequest, Message: "unknown client_id"}
+		return mcpClient{}, &mcpHTTPError{Status: http.StatusBadRequest, Message: "unknown client_id"}
 	}
 	if dbErr != nil {
 		fmt.Printf("mcp: failed to look up client: %v\n", dbErr)
-		return nil, &mcpHTTPError{Status: http.StatusInternalServerError, Message: "failed to look up client"}
+		return mcpClient{}, &mcpHTTPError{Status: http.StatusInternalServerError, Message: "failed to look up client"}
 	}
-	return registeredURIs, nil
+	return client, nil
 }
 
 // mcpRedirectURIAllowed ignores the port on loopback URIs because native
@@ -457,64 +467,167 @@ func mcpIsLoopbackHost(host string) bool {
 	return host == "localhost" || host == "127.0.0.1" || host == "::1"
 }
 
-// mcpAuthorize stores OAuth state in Valkey and returns the provider OAuth
-// redirect URL.
-func mcpAuthorize(ctx context.Context, deps *server.Deps, provider, clientID, redirectURI, mcpState, codeChallenge string) (providerURL string, err error) {
-	vk := deps.VK
-	siteOrigin := deps.Config.SiteOrigin
+// mcpAuthorizeRequest carries the authorization parameters shared by the
+// consent endpoints. Provider is only read by approve.
+type mcpAuthorizeRequest struct {
+	ResponseType  string `json:"response_type" form:"response_type"`
+	ClientID      string `json:"client_id" form:"client_id"`
+	RedirectURI   string `json:"redirect_uri" form:"redirect_uri"`
+	State         string `json:"state" form:"state"`
+	CodeChallenge string `json:"code_challenge" form:"code_challenge"`
+	Resource      string `json:"resource" form:"resource"`
+	Provider      string `json:"provider" form:"provider"`
+}
 
+// mcpAuthorizeParams holds the validated authorization parameters.
+type mcpAuthorizeParams struct {
+	clientID      string
+	redirectURI   string
+	mcpState      string
+	codeChallenge string
+	resource      string
+	clientName    string
+}
+
+// mcpApproval is the result of an approved authorization.
+type mcpApproval struct {
+	ProviderURL string `json:"provider_url"`
+	OAuthState  string `json:"oauth_state"`
+	Binding     string `json:"binding"`
+}
+
+// mcpValidateAuthorizeRequest checks the request parameters & that the
+// redirect URI is registered for the client. It looks the client up once &
+// returns its name.
+func mcpValidateAuthorizeRequest(ctx context.Context, deps *server.Deps, req mcpAuthorizeRequest) (params mcpAuthorizeParams, err error) {
+	if req.ResponseType != "code" {
+		return params, &mcpHTTPError{Status: http.StatusBadRequest, Message: "unsupported response_type"}
+	}
+	if req.ClientID == "" {
+		return params, &mcpHTTPError{Status: http.StatusBadRequest, Message: "client_id is required"}
+	}
+	if req.RedirectURI == "" {
+		return params, &mcpHTTPError{Status: http.StatusBadRequest, Message: "redirect_uri is required"}
+	}
+	if mcpIsClientMetadataURL(req.ClientID) {
+		if err := mcpValidateClientID(req.ClientID); err != nil {
+			return params, err
+		}
+	}
+	if req.CodeChallenge == "" {
+		return params, &mcpHTTPError{Status: http.StatusBadRequest, Message: "code_challenge is required"}
+	}
+	if err := mcpValidateResource(deps.Config.AgentOrigin, req.Resource); err != nil {
+		return params, err
+	}
+
+	client, err := mcpLookupClient(ctx, deps, req.ClientID)
+	if err != nil {
+		return params, err
+	}
+	if !mcpRedirectURIAllowed(req.RedirectURI, client.redirectURIs) {
+		return params, &mcpHTTPError{Status: http.StatusBadRequest, Message: "redirect_uri not registered for this client"}
+	}
+
+	return mcpAuthorizeParams{
+		clientID:      req.ClientID,
+		redirectURI:   req.RedirectURI,
+		mcpState:      req.State,
+		codeChallenge: req.CodeChallenge,
+		resource:      req.Resource,
+		clientName:    client.name,
+	}, nil
+}
+
+// mcpRandomHex returns n random bytes hex encoded.
+func mcpRandomHex(n int) (string, error) {
+	buf := make([]byte, n)
+	if _, err := rand.Read(buf); err != nil {
+		return "", err
+	}
+	return hex.EncodeToString(buf), nil
+}
+
+// mcpBindingHash returns the hex SHA-256 of a consent binding.
+func mcpBindingHash(binding string) string {
+	sum := sha256.Sum256([]byte(binding))
+	return hex.EncodeToString(sum[:])
+}
+
+// mcpBindingMatches reports whether binding hashes to the stored hash.
+func mcpBindingMatches(binding, storedHash string) bool {
+	if binding == "" || storedHash == "" {
+		return false
+	}
+	return subtle.ConstantTimeCompare([]byte(mcpBindingHash(binding)), []byte(storedHash)) == 1
+}
+
+// mcpAuthorize stores OAuth state & a consent binding hash in Valkey and
+// returns the provider OAuth URL with the raw state & binding.
+func mcpAuthorize(ctx context.Context, deps *server.Deps, provider string, p mcpAuthorizeParams) (approval mcpApproval, err error) {
 	if provider != "github" && provider != "google" {
-		return "", &mcpHTTPError{Status: http.StatusBadRequest, Message: "unsupported provider"}
+		return approval, &mcpHTTPError{Status: http.StatusBadRequest, Message: "unsupported provider"}
 	}
 
-	stateBuf := make([]byte, 16)
-	if _, randErr := rand.Read(stateBuf); randErr != nil {
-		return "", &mcpHTTPError{Status: http.StatusInternalServerError, Message: "failed to generate state"}
+	oauthState, stateErr := mcpRandomHex(16)
+	if stateErr != nil {
+		return approval, &mcpHTTPError{Status: http.StatusInternalServerError, Message: "failed to generate state"}
 	}
-	oauthState := hex.EncodeToString(stateBuf)
+	binding, bindErr := mcpRandomHex(32)
+	if bindErr != nil {
+		return approval, &mcpHTTPError{Status: http.StatusInternalServerError, Message: "failed to generate binding"}
+	}
 
 	payload := mcpOAuthStatePayload{
-		MCPState:      mcpState,
-		ClientID:      clientID,
-		RedirectURI:   redirectURI,
-		CodeChallenge: codeChallenge,
+		MCPState:      p.mcpState,
+		ClientID:      p.clientID,
+		RedirectURI:   p.redirectURI,
+		CodeChallenge: p.codeChallenge,
 		Provider:      provider,
+		BindingHash:   mcpBindingHash(binding),
 	}
-	if storeErr := mcpStoreMCPStateInValkey(ctx, vk, oauthState, payload); storeErr != nil {
-		return "", &mcpHTTPError{Status: http.StatusInternalServerError, Message: "failed to store state"}
+	if storeErr := mcpStoreMCPStateInValkey(ctx, deps.VK, oauthState, payload); storeErr != nil {
+		return approval, &mcpHTTPError{Status: http.StatusInternalServerError, Message: "failed to store state"}
 	}
 
+	return mcpApproval{
+		ProviderURL: mcpProviderURL(deps, provider, oauthState),
+		OAuthState:  oauthState,
+		Binding:     binding,
+	}, nil
+}
+
+// mcpProviderURL builds the provider OAuth URL carrying the mcp_ prefixed
+// state. An unknown provider yields an empty string.
+func mcpProviderURL(deps *server.Deps, provider, oauthState string) string {
+	siteOrigin := deps.Config.SiteOrigin
 	switch provider {
 	case "github":
-		callbackURL := siteOrigin + "/auth/callback/github"
-		ghParams := url.Values{}
-		ghParams.Set("client_id", deps.Config.OAuthGitHubKey)
-		ghParams.Set("redirect_uri", callbackURL)
-		ghParams.Set("state", "mcp_"+oauthState)
-		ghParams.Set("scope", "user:email")
-		return "https://github.com/login/oauth/authorize?" + ghParams.Encode(), nil
-
+		params := url.Values{}
+		params.Set("client_id", deps.Config.OAuthGitHubKey)
+		params.Set("redirect_uri", siteOrigin+"/auth/callback/github")
+		params.Set("state", "mcp_"+oauthState)
+		params.Set("scope", "user:email")
+		return "https://github.com/login/oauth/authorize?" + params.Encode()
 	case "google":
-		callbackURL := siteOrigin + "/auth/callback/google"
-		gParams := url.Values{}
-		gParams.Set("client_id", deps.Config.OAuthGoogleKey)
-		gParams.Set("redirect_uri", callbackURL)
-		gParams.Set("state", "mcp_"+oauthState)
-		gParams.Set("response_type", "code")
-		gParams.Set("scope", "openid email profile")
-		gParams.Set("access_type", "offline")
-		gParams.Set("prompt", "consent")
-		return "https://accounts.google.com/o/oauth2/v2/auth?" + gParams.Encode(), nil
-
+		params := url.Values{}
+		params.Set("client_id", deps.Config.OAuthGoogleKey)
+		params.Set("redirect_uri", siteOrigin+"/auth/callback/google")
+		params.Set("state", "mcp_"+oauthState)
+		params.Set("response_type", "code")
+		params.Set("scope", "openid email profile")
+		params.Set("access_type", "offline")
+		params.Set("prompt", "consent")
+		return "https://accounts.google.com/o/oauth2/v2/auth?" + params.Encode()
 	default:
-		return "", &mcpHTTPError{Status: http.StatusBadRequest, Message: "unsupported provider"}
+		return ""
 	}
 }
 
 // mcpCallback exchanges an OAuth code for a token, finds or creates the
 // Measure user, inserts an MCP auth code, and returns the redirect URL
-// for the MCP client.
-func mcpCallback(ctx context.Context, deps *server.Deps, code, state string) (redirectURL string, err error) {
+// for the MCP client. The binding must match the hash stored at approval.
+func mcpCallback(ctx context.Context, deps *server.Deps, code, state, binding string) (redirectURL string, err error) {
 	pgPool := deps.PgPool
 	vk := deps.VK
 	siteOrigin := deps.Config.SiteOrigin
@@ -530,6 +643,10 @@ func mcpCallback(ctx context.Context, deps *server.Deps, code, state string) (re
 	var statePayload mcpOAuthStatePayload
 	if jsonErr := json.Unmarshal([]byte(val), &statePayload); jsonErr != nil {
 		return "", &mcpHTTPError{Status: http.StatusInternalServerError, Message: "failed to decode state"}
+	}
+
+	if !mcpBindingMatches(binding, statePayload.BindingHash) {
+		return "", &mcpHTTPError{Status: http.StatusBadRequest, Message: "invalid or missing consent binding"}
 	}
 
 	if code == "" {
@@ -1198,99 +1315,138 @@ func (h Handlers) MCPEndpointProtectedResourceMetadata(c *gin.Context) {
 	c.JSON(http.StatusOK, mcpProtectedResourceMetadata(deps.Config.AgentOrigin, mcpResourceURL(deps.Config.AgentOrigin)))
 }
 
-// MCPAuthorize handles GET /oauth/authorize.
-// When no provider query param is set, it redirects to the dashboard login page.
-// Otherwise it redirects to the chosen provider's OAuth flow.
+// MCPAuthorize handles GET /oauth/authorize. After validation it redirects to
+// the dashboard consent page with the validated parameters only.
 func (h Handlers) MCPAuthorize(c *gin.Context) {
-	deps := h.Deps
-	ctx := c.Request.Context()
-
-	responseType := c.Query("response_type")
-	clientID := c.Query("client_id")
-	redirectURI := c.Query("redirect_uri")
-	mcpState := c.Query("state")
-	codeChallenge := c.Query("code_challenge")
-	resource := c.Query("resource")
-	provider := c.Query("provider")
-
-	if responseType != "code" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "unsupported response_type"})
+	var req mcpAuthorizeRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
 		return
 	}
-	if clientID == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "client_id is required"})
-		return
-	}
-	if redirectURI == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "redirect_uri is required"})
-		return
-	}
-
-	if mcpIsClientMetadataURL(clientID) {
-		if err := mcpValidateClientID(clientID); err != nil {
-			mcpAbortWithError(c, err)
-			return
-		}
-	}
-	if codeChallenge == "" {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "code_challenge is required"})
-		return
-	}
-	if err := mcpValidateResource(deps.Config.AgentOrigin, resource); err != nil {
-		mcpAbortWithError(c, err)
-		return
-	}
-
-	// The login page names the client alongside the host the user will be sent
-	// back to, so an unregistered redirect URI has to be rejected before that
-	// page renders.
-	registeredURIs, err := mcpClientRedirectURIs(ctx, deps, clientID)
+	p, err := mcpValidateAuthorizeRequest(c.Request.Context(), h.Deps, req)
 	if err != nil {
 		mcpAbortWithError(c, err)
 		return
 	}
-	if !mcpRedirectURIAllowed(redirectURI, registeredURIs) {
-		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "redirect_uri not registered for this client"})
-		return
-	}
 
-	// No provider selected — redirect to the dashboard login page.
-	if provider == "" {
-		params := c.Request.URL.Query()
-		params.Set("mcp", "1")
-		loginURL := deps.Config.SiteOrigin + "/auth/login?" + params.Encode()
-		c.Redirect(http.StatusFound, loginURL)
-		return
-	}
-
-	providerURL, err := mcpAuthorize(ctx, deps, provider, clientID, redirectURI, mcpState, codeChallenge)
-	if err != nil {
-		mcpAbortAuthorize(c, deps.Config.AgentOrigin, redirectURI, mcpState, err)
-		return
-	}
-
-	fmt.Printf("mcp: authorize redirect issued (client=%s provider=%s)\n", clientID, provider)
-	c.Redirect(http.StatusFound, providerURL)
+	c.Redirect(http.StatusFound, h.Deps.Config.SiteOrigin+"/auth/mcp/authorize?"+mcpConsentQuery(p).Encode())
 }
 
-// mcpAbortAuthorize reports an authorization failure by sending the browser to
-// the client's redirect URI with the error in its query, which is where the MCP
-// client waits for the authorization code. Only call this once redirectURI has
-// passed mcpRedirectURIAllowed, since an address that has not been checked may
-// not belong to the client.
-func mcpAbortAuthorize(c *gin.Context, apiOrigin, redirectURI, state string, err error) {
-	code, desc := "server_error", "authorization failed"
-	var herr *mcpHTTPError
-	if errors.As(err, &herr) {
-		desc = herr.Message
-		switch {
-		case herr.OAuthError != "":
-			code = herr.OAuthError
-		case herr.Status < http.StatusInternalServerError:
-			code = "invalid_request"
-		}
+// mcpConsentQuery builds the consent page query from validated parameters.
+// Empty state & resource are omitted.
+func mcpConsentQuery(p mcpAuthorizeParams) url.Values {
+	q := url.Values{}
+	q.Set("response_type", "code")
+	q.Set("client_id", p.clientID)
+	q.Set("redirect_uri", p.redirectURI)
+	q.Set("code_challenge", p.codeChallenge)
+	if p.mcpState != "" {
+		q.Set("state", p.mcpState)
+	}
+	if p.resource != "" {
+		q.Set("resource", p.resource)
+	}
+	return q
+}
+
+// MCPAuthorizeDetails handles GET /oauth/authorize/details. It describes the
+// client & redirect target for the consent page.
+func (h Handlers) MCPAuthorizeDetails(c *gin.Context) {
+	var req mcpAuthorizeRequest
+	if err := c.ShouldBindQuery(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid request"})
+		return
+	}
+	p, err := mcpValidateAuthorizeRequest(c.Request.Context(), h.Deps, req)
+	if err != nil {
+		mcpAbortWithError(c, err)
+		return
 	}
 
+	redirectHost := mcpRedirectHost(p.redirectURI)
+	c.JSON(http.StatusOK, gin.H{
+		"client_name":          p.clientName,
+		"client_host":          mcpClientHost(p.clientID),
+		"redirect_uri":         p.redirectURI,
+		"redirect_host":        redirectHost,
+		"redirect_is_loopback": mcpIsLoopbackHost(redirectHost),
+	})
+}
+
+// MCPAuthorizeApprove handles POST /oauth/authorize/approve. It stores the
+// OAuth state & returns the provider URL with the state & consent binding.
+func (h Handlers) MCPAuthorizeApprove(c *gin.Context) {
+	var req mcpAuthorizeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+	p, err := mcpValidateAuthorizeRequest(c.Request.Context(), h.Deps, req)
+	if err != nil {
+		mcpAbortWithError(c, err)
+		return
+	}
+
+	approval, err := mcpAuthorize(c.Request.Context(), h.Deps, req.Provider, p)
+	if err != nil {
+		mcpAbortWithError(c, err)
+		return
+	}
+
+	fmt.Printf("mcp: authorize approved (client=%s provider=%s)\n", p.clientID, req.Provider)
+	c.JSON(http.StatusOK, approval)
+}
+
+// MCPAuthorizeDeny handles POST /oauth/authorize/deny. It returns the client
+// redirect URL carrying access_denied.
+func (h Handlers) MCPAuthorizeDeny(c *gin.Context) {
+	var req mcpAuthorizeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
+		return
+	}
+	p, err := mcpValidateAuthorizeRequest(c.Request.Context(), h.Deps, req)
+	if err != nil {
+		mcpAbortWithError(c, err)
+		return
+	}
+
+	target, err := mcpErrorRedirectURL(h.Deps.Config.AgentOrigin, p.redirectURI, p.mcpState, "access_denied", "the user denied the request")
+	if err != nil {
+		mcpAbortWithError(c, &mcpHTTPError{Status: http.StatusInternalServerError, Message: "failed to build redirect URL"})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"redirect_url": target})
+}
+
+// mcpClientHost returns the host of a metadata URL client_id & "" for other clients.
+func mcpClientHost(clientID string) string {
+	if !mcpIsClientMetadataURL(clientID) {
+		return ""
+	}
+	u, err := url.Parse(clientID)
+	if err != nil {
+		return ""
+	}
+	return u.Host
+}
+
+// mcpRedirectHost returns the hostname of an http(s) redirect URI & the
+// scheme for any other URI.
+func mcpRedirectHost(redirectURI string) string {
+	u, err := url.Parse(redirectURI)
+	if err != nil {
+		return ""
+	}
+	if u.Scheme == "http" || u.Scheme == "https" {
+		return u.Hostname()
+	}
+	return u.Scheme
+}
+
+// mcpErrorRedirectURL builds the client redirect URI carrying an
+// authorization error response.
+func mcpErrorRedirectURL(apiOrigin, redirectURI, state, code, desc string) (string, error) {
 	params := url.Values{}
 	params.Set("error", code)
 	params.Set("error_description", desc)
@@ -1298,25 +1454,21 @@ func mcpAbortAuthorize(c *gin.Context, apiOrigin, redirectURI, state string, err
 	if state != "" {
 		params.Set("state", state)
 	}
-	target, buildErr := mcpAppendRedirectParams(redirectURI, params)
-	if buildErr != nil {
-		mcpAbortWithError(c, err)
-		return
-	}
-	c.Redirect(http.StatusFound, target)
+	return mcpAppendRedirectParams(redirectURI, params)
 }
 
 // MCPCallbackExchange handles POST /mcp/auth/callback.
 // The frontend detects "mcp_" prefix on the OAuth state, strips it, and
-// POSTs {code, state} here. This handler exchanges the code, creates an
+// POSTs {code, state, binding} here. This handler exchanges the code, creates an
 // MCP auth code, and returns the redirect URL for the MCP client.
 func (h Handlers) MCPCallbackExchange(c *gin.Context) {
 	deps := h.Deps
 	ctx := c.Request.Context()
 
 	var req struct {
-		Code  string `json:"code"`
-		State string `json:"state"`
+		Code    string `json:"code"`
+		State   string `json:"state"`
+		Binding string `json:"binding"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "invalid request body"})
@@ -1328,7 +1480,7 @@ func (h Handlers) MCPCallbackExchange(c *gin.Context) {
 		return
 	}
 
-	redirectURL, err := mcpCallback(ctx, deps, req.Code, req.State)
+	redirectURL, err := mcpCallback(ctx, deps, req.Code, req.State, req.Binding)
 	if err != nil {
 		mcpAbortWithError(c, err)
 		return

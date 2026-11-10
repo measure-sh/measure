@@ -83,24 +83,6 @@ describe("GoogleSignIn", () => {
     expect(url.searchParams.get("scope")).toBe("openid email profile");
   });
 
-  it("MCP mode redirects to mcpAuthorizeUrl on click", () => {
-    const mcpUrl =
-      "https://api.example.com/oauth/authorize?provider=google&client_id=test";
-    render(<GoogleSignIn mcpAuthorizeUrl={mcpUrl} />);
-
-    fireEvent.click(screen.getByText("Sign in with Google"));
-    expect(mockAssign).toHaveBeenCalledWith(mcpUrl);
-  });
-
-  it("MCP mode does not call fetch init", () => {
-    const mcpUrl =
-      "https://api.example.com/oauth/authorize?provider=google&client_id=test";
-    render(<GoogleSignIn mcpAuthorizeUrl={mcpUrl} />);
-
-    fireEvent.click(screen.getByText("Sign in with Google"));
-    expect(mockFetch).not.toHaveBeenCalled();
-  });
-
   it("normal mode still redirects when fetch init returns non-ok", async () => {
     mockFetch.mockResolvedValueOnce({ ok: false, status: 500 });
 

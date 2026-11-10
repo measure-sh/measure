@@ -20,62 +20,6 @@ import GitHubSignIn from "./github-sign-in";
 import GoogleSignIn from "./google-sign-in";
 import Messages from "./messages";
 
-function buildMcpAuthorizeUrl(
-  searchParams: { [key: string]: string | string[] | undefined },
-  provider: string,
-): string {
-  const agentBaseUrl = process.env.NEXT_PUBLIC_AGENT_BASE_URL;
-  if (!agentBaseUrl) {
-    throw new Error("NEXT_PUBLIC_AGENT_BASE_URL is not set");
-  }
-  const params = new URLSearchParams();
-  for (const [key, value] of Object.entries(searchParams)) {
-    if (key === "mcp" || value === undefined) {
-      continue;
-    }
-    params.set(key, Array.isArray(value) ? value[0] : value);
-  }
-  params.set("provider", provider);
-  return `${agentBaseUrl}/oauth/authorize?${params.toString()}`;
-}
-
-function firstParam(
-  searchParams: { [key: string]: string | string[] | undefined },
-  key: string,
-): string {
-  const value = searchParams[key];
-  return (Array.isArray(value) ? value[0] : value) ?? "";
-}
-
-// The client_id is the URL of a self-published metadata document, so its host
-// is the only part of the client's identity the user can trust.
-function mcpClientHost(searchParams: {
-  [key: string]: string | string[] | undefined;
-}): string {
-  try {
-    const url = new URL(firstParam(searchParams, "client_id"));
-    return url.protocol === "https:" ? url.host : "";
-  } catch {
-    return "";
-  }
-}
-
-// A private-use scheme has no hostname, so it is named by its scheme instead.
-function mcpRedirectHost(searchParams: {
-  [key: string]: string | string[] | undefined;
-}): string {
-  let url: URL;
-  try {
-    url = new URL(firstParam(searchParams, "redirect_uri"));
-  } catch {
-    return "";
-  }
-  if (url.protocol !== "http:" && url.protocol !== "https:") {
-    return url.protocol.replace(/:$/, "");
-  }
-  return url.hostname;
-}
-
 export default function Login(props: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
@@ -83,15 +27,14 @@ export default function Login(props: {
   const error = searchParams["error"];
   const message = searchParams["message"];
   const inviteId = searchParams["inviteId"];
-  const isMcp = searchParams["mcp"] === "1";
   const [session, setSession] = useState<Session | null>(null);
   const home = session ? `/${session.user.own_team_id}/overview` : "";
-  const [loading, setLoading] = useState(!isMcp);
+  const [loading, setLoading] = useState(true);
   const [inviteInvalid, setInviteInvalid] = useState(false);
   const router = useRouter();
 
   useEffect(() => {
-    if (isMcp || !inviteId) {
+    if (!inviteId) {
       return;
     }
     const validateInvite = async () => {
@@ -108,25 +51,17 @@ export default function Login(props: {
       }
     };
     validateInvite();
-  }, [inviteId, isMcp]);
+  }, [inviteId]);
 
   const registry = useMeasureStoreRegistry();
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    if (isMcp) {
-      return;
-    }
-
     // Clear any leftover state from a previous user so the next sign-in starts fresh
     resetAllStores(registry, queryClient);
-  }, [isMcp]);
+  }, []);
 
   useEffect(() => {
-    if (isMcp) {
-      return;
-    }
-
     if (session) {
       router.replace(`/${session.user.own_team_id}/overview`);
       return;
@@ -169,15 +104,7 @@ export default function Login(props: {
       setLoading(false);
     };
     getSession();
-  }, [session, isMcp]);
-
-  const redirectHost = mcpRedirectHost(searchParams);
-  const mcpGitHubUrl = isMcp
-    ? buildMcpAuthorizeUrl(searchParams, "github")
-    : undefined;
-  const mcpGoogleUrl = isMcp
-    ? buildMcpAuthorizeUrl(searchParams, "google")
-    : undefined;
+  }, [session]);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 sm:px-6 lg:px-8 bg-background text-foreground">
@@ -200,35 +127,12 @@ export default function Login(props: {
           />
         </div>
 
-        {isMcp && (
-          <p className="font-body text-center text-sm text-muted-foreground">
-            Sign in to let{" "}
-            <span className="font-semibold text-foreground">
-              {mcpClientHost(searchParams) || "an MCP client"}
-            </span>{" "}
-            use Measure on your behalf.
-            {redirectHost !== "" && (
-              <>
-                {" "}
-                You will be sent back to{" "}
-                <span className="font-semibold text-foreground">
-                  {redirectHost}
-                </span>
-                .
-              </>
-            )}
-          </p>
-        )}
         {loading && <p className="font-body text-center">Loading...</p>}
         {home && <p className="font-body text-center">Logging in...</p>}
-        {!loading && !session && !error && !message && (
-          <GoogleSignIn mcpAuthorizeUrl={mcpGoogleUrl} />
-        )}
+        {!loading && !session && !error && !message && <GoogleSignIn />}
       </div>
       <div className="my-6 place-content-end" style={{ width: "400px" }}>
-        {!loading && !session && !error && !message && (
-          <GitHubSignIn mcpAuthorizeUrl={mcpGitHubUrl} />
-        )}
+        {!loading && !session && !error && !message && <GitHubSignIn />}
       </div>
       {/* Cloud only: self-hosted deployments aren't bound by these terms. */}
       {isCloud() && (
@@ -244,7 +148,7 @@ export default function Login(props: {
           .
         </p>
       )}
-      {!isMcp && inviteInvalid && (
+      {inviteInvalid && (
         <p className="font-display text-center text-sm p-2 my-4 text-red-600">
           Invalid or expired invite link.
         </p>
