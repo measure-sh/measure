@@ -39,3 +39,24 @@ func TestRunSQLRejectsIncompleteScope(t *testing.T) {
 		}
 	}
 }
+
+func TestRedactJWTSignatures(t *testing.T) {
+	jwt := "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.c2lnbmF0dXJl"
+	cases := []struct {
+		name, in, want string
+	}{
+		{"jwt", jwt, "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.[redacted]"},
+		{"bearer in message", "401 Bearer " + jwt + " rejected", "401 Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.[redacted] rejected"},
+		{"two jwts", jwt + " " + jwt, "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.[redacted] eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ.[redacted]"},
+		{"no signature", "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ", "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjMifQ"},
+		{"plain text", "select http.url from events", "select http.url from events"},
+		{"empty", "", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := redactJWTSignatures(tc.in); got != tc.want {
+				t.Errorf("got %q, want %q", got, tc.want)
+			}
+		})
+	}
+}
