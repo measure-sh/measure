@@ -536,11 +536,12 @@ func sameIDs(a, b []uuid.UUID) bool {
 // MaxSuggestFunnelEventNames is how many names are returned at once.
 const MaxSuggestFunnelEventNames = 50
 
-// SuggestFunnelEventNames returns the custom event names containing search
-// that the app sent in the last 30 days, most recently seen first. The query
-// reads every installation, because a sample would leave out the names that
-// only a few installations send.
-func SuggestFunnelEventNames(ctx context.Context, rch driver.Conn, teamID, appID uuid.UUID, search string) (names []string, err error) {
+// SuggestFunnelEventNames returns custom event names containing search that
+// were sent by the app in the last 30 days, ordered by most recently seen.
+// truncated indicates that more names matched than
+// MaxSuggestFunnelEventNames. The query checks every installation so it
+// includes names sent by only a few installations.
+func SuggestFunnelEventNames(ctx context.Context, rch driver.Conn, teamID, appID uuid.UUID, search string) (names []string, truncated bool, err error) {
 	ctx, span := startFunnelSpan(ctx, "funnel.event_names", appID,
 		attribute.String("funnel.team_id", teamID.String()),
 		attribute.Bool("funnel.search", search != ""))
@@ -566,11 +567,11 @@ func SuggestFunnelEventNames(ctx context.Context, rch driver.Conn, teamID, appID
 	}
 	stmt.GroupBy("event_name").
 		OrderBy("max(timestamp) desc", "event_name").
-		Limit(MaxSuggestFunnelEventNames)
+		Limit(MaxSuggestFunnelEventNames + 1)
 
 	rows, err := rch.Query(analyticsCtx(ctx, teamID, funnelMaxMemoryBytes), stmt.String(), stmt.Args()...)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query funnel event names: %w", err)
+		return nil, false, fmt.Errorf("failed to query funnel event names: %w", err)
 	}
 	defer rows.Close()
 
@@ -578,14 +579,20 @@ func SuggestFunnelEventNames(ctx context.Context, rch driver.Conn, teamID, appID
 	for rows.Next() {
 		var name string
 		if err := rows.Scan(&name); err != nil {
-			return nil, fmt.Errorf("failed to scan funnel event name: %w", err)
+			return nil, false, fmt.Errorf("failed to scan funnel event name: %w", err)
 		}
 		names = append(names, name)
 	}
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("failed to read funnel event names: %w", err)
+		return nil, false, fmt.Errorf("failed to read funnel event names: %w", err)
 	}
-	return names, nil
+
+	// The statement asks for one name beyond the limit, so an extra name
+	// indicates truncation without revealing how many more names matched.
+	if len(names) > MaxSuggestFunnelEventNames {
+		return names[:MaxSuggestFunnelEventNames], true, nil
+	}
+	return names, false, nil
 }
 
 type FunnelStepUsers struct {
