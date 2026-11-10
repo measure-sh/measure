@@ -152,6 +152,45 @@ func TestMCPRedirectURIAllowed(t *testing.T) {
 	}
 }
 
+func TestMCPValidateRedirectURI(t *testing.T) {
+	for _, tc := range []struct {
+		uri string
+		ok  bool
+	}{
+		{"http://localhost:3118/callback", true},
+		{"http://127.0.0.1:35647/callback/X6ijmKmlVwL5", true},
+		{"http://127.0.0.1/callback", true},
+		{"http://[::1]:8080/cb", true},
+		{"https://glama.ai/mcp/inspector/oauth/callback", true},
+		{"https://docs.superhuman.com/packsAuth/oauth2", true},
+		{"https://x.example/cb?a=1", true},
+		{"claude://claude.ai/mcp-auth-callback/sdk", true},
+		{"cursor://anysphere.cursor-mcp/oauth/callback", true},
+		{"autoclaw://connector/measure", true},
+		{"com.example.app:/cb", true},
+		{"localhost://x", true},
+		{"not a URI: AgentIndexProbe registration check", false},
+		{"javascript:alert(1)", false},
+		{"JavaScript:alert(1)", false},
+		{"data:text/html,x", false},
+		{"foo:bar", false},
+		{"http://evil.example/cb", false},
+		{"http://localhost.evil.com/cb", false},
+		{"http://LOCALHOST/cb", false},
+		{"https:///cb", false},
+		{"https://u:p@x.example/cb", false},
+		{"https://x.example/cb#f", false},
+		{"/relative/cb", false},
+		{"", false},
+		{"https://x.example/" + strings.Repeat("a", 2001), false},
+	} {
+		err := mcpValidateRedirectURI(tc.uri)
+		if (err == nil) != tc.ok {
+			t.Errorf("mcpValidateRedirectURI(%.60q) error = %v, want ok=%v", tc.uri, err, tc.ok)
+		}
+	}
+}
+
 func TestMCPRefuseNonPublicDial(t *testing.T) {
 	for _, tc := range []struct {
 		address string
@@ -451,6 +490,38 @@ func TestMCPRegisterClient(t *testing.T) {
 		}
 	})
 
+	t.Run("invalid redirect_uri is rejected & not stored", func(t *testing.T) {
+		cleanupAll(ctx, t)
+
+		body := `{"client_name":"Evil","redirect_uris":["javascript:alert(1)"]}`
+		c, w := newTestGinContext("POST", "/oauth/register", strings.NewReader(body))
+		h.MCPRegisterClient(c)
+
+		if w.Code != http.StatusBadRequest || !strings.Contains(w.Body.String(), "invalid_redirect_uri") {
+			t.Fatalf("want 400 invalid_redirect_uri, got %d: %s", w.Code, w.Body.String())
+		}
+		var n int
+		if err := th.PgPool.QueryRow(ctx, `SELECT count(*) FROM measure.mcp_clients WHERE client_name = 'Evil'`).Scan(&n); err != nil || n != 0 {
+			t.Fatalf("want no stored client, got n=%d err=%v", n, err)
+		}
+	})
+
+	t.Run("more than 10 redirect_uris is rejected", func(t *testing.T) {
+		cleanupAll(ctx, t)
+
+		uris := make([]string, 11)
+		for i := range uris {
+			uris[i] = fmt.Sprintf("https://x.example/cb%d", i)
+		}
+		raw, _ := json.Marshal(map[string]any{"client_name": "Many", "redirect_uris": uris})
+		c, w := newTestGinContext("POST", "/oauth/register", bytes.NewReader(raw))
+		h.MCPRegisterClient(c)
+
+		if w.Code != http.StatusBadRequest {
+			t.Fatalf("want 400, got %d: %s", w.Code, w.Body.String())
+		}
+	})
+
 	t.Run("duplicate registrations create distinct clients", func(t *testing.T) {
 		cleanupAll(ctx, t)
 
@@ -601,6 +672,9 @@ func TestMCPAuthorize(t *testing.T) {
 			{"no redirect uris", func(w http.ResponseWriter, selfURL string) {
 				json.NewEncoder(w).Encode(map[string]any{"client_id": selfURL, "redirect_uris": []string{}})
 			}, "no redirect_uris"},
+			{"invalid redirect uri", func(w http.ResponseWriter, selfURL string) {
+				json.NewEncoder(w).Encode(map[string]any{"client_id": selfURL, "redirect_uris": []string{"javascript:alert(1)"}})
+			}, "invalid redirect_uri"},
 		} {
 			t.Run(tc.name, func(t *testing.T) {
 				clientID := newTestClientMetadataServerWith(t, func(w http.ResponseWriter, selfURL string) { tc.serve(w, selfURL) })
@@ -658,9 +732,29 @@ func TestMCPAuthorize(t *testing.T) {
 		}
 	})
 
+	t.Run("stored dangerous redirect_uri is refused", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		seedMCPClient(ctx, t, "msr_client_js", "Evil", []string{"javascript:alert(1)"})
+
+		params := url.Values{
+			"response_type":  {"code"},
+			"client_id":      {"msr_client_js"},
+			"redirect_uri":   {"javascript:alert(1)"},
+			"state":          {"s"},
+			"code_challenge": {"abc123"},
+			"provider":       {"github"},
+		}
+		c, w := newTestGinContextWithQuery("GET", "/oauth/authorize", params)
+		h.MCPAuthorize(c)
+
+		if w.Code != http.StatusBadRequest || w.Header().Get("Location") != "" {
+			t.Fatalf("want 400 without Location, got %d %q: %s", w.Code, w.Header().Get("Location"), w.Body.String())
+		}
+	})
+
 	t.Run("redirect_uri not registered", func(t *testing.T) {
 		cleanupAll(ctx, t)
-		clientID := newTestClientMetadataServer(t, []string{"http://allowed.example.com/cb"}, nil)
+		clientID := newTestClientMetadataServer(t, []string{"https://allowed.example.com/cb"}, nil)
 
 		params := url.Values{
 			"response_type":  {"code"},
@@ -936,6 +1030,16 @@ func TestMCPAuthorizeDetails(t *testing.T) {
 
 		code, resp := details(t, "msr_client_scheme", "cursor://anysphere.cursor-mcp/oauth/callback")
 		if code != http.StatusOK || resp["redirect_host"] != "cursor" || resp["redirect_is_loopback"] != false {
+			t.Fatalf("got %d: %v", code, resp)
+		}
+	})
+
+	t.Run("localhost scheme is not loopback", func(t *testing.T) {
+		cleanupAll(ctx, t)
+		seedMCPClient(ctx, t, "msr_client_lh", "Sneaky", []string{"localhost://x"})
+
+		code, resp := details(t, "msr_client_lh", "localhost://x")
+		if code != http.StatusOK || resp["redirect_is_loopback"] != false {
 			t.Fatalf("got %d: %v", code, resp)
 		}
 	})
