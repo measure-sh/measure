@@ -376,6 +376,15 @@
         "code",
         "test"
       ]
+    },
+    {
+      "login": "ttyang57",
+      "name": "tty1",
+      "avatar_url": "https://avatars.githubusercontent.com/u/342121767?v=4",
+      "profile": "https://github.com/ttyang57",
+      "contributions": [
+        "security"
+      ]
     }
   ],
   "commitType": "docs"
