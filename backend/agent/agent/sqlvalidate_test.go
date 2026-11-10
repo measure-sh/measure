@@ -136,6 +136,12 @@ func TestValidateAgentSQL(t *testing.T) {
 		{`select x from {{spans}} array join (select id from app_metrics) as x`, "not queryable"},
 		// A real join chained after ARRAY JOIN operands is still a table join.
 		{`select c from {{spans}} array join checkpoints as c join events on 1=1`, "via the {{events}} placeholder"},
+		{`EXPLAIN SYNTAX select count(*) from {{events}}`, "only SELECT queries are allowed"},
+		{`select * from {{events}} into outfile 'x'`, "invalid SQL"},
+		{`select count(*) from {{events}} intersect select count(*) from events`, "via the {{events}} placeholder"},
+		{`select count(*) from {{events}} except select count(*) from events`, "via the {{events}} placeholder"},
+		{`select x from {{spans}} array join arrayMap(c -> (select count() from events), checkpoints) as x`, "via the {{events}} placeholder"},
+		{`select x from {{spans}} array join checkpoints as x where x in (select toString(id) from events)`, "via the {{events}} placeholder"},
 	}
 	for _, tc := range denied {
 		_, _, err := validateAgentSQL(tc.query, sets)

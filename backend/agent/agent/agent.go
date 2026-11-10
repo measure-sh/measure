@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"regexp"
 	"slices"
 	"strings"
 	"time"
@@ -818,13 +819,20 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, chartsOut 
 	return answer, charts, nil
 }
 
+// jwtSigRe matches a JWT, capturing header & payload apart from the signature.
+var jwtSigRe = regexp.MustCompile(`(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)\.[A-Za-z0-9_-]+`)
+
+// redactJWTSignatures replaces each JWT's signature with [redacted]. Header &
+// claims stay readable.
+func redactJWTSignatures(s string) string { return jwtSigRe.ReplaceAllString(s, "${1}.[redacted]") }
+
 // dispatchTool wraps runTool with a span and a log line per tool call.
 func (c *Config) dispatchTool(ctx context.Context, tc chatToolCall, teamID uuid.UUID, apps []measureApp) string {
 	start := time.Now()
 	ctx, span := tracer.Start(ctx, "agent.tool "+tc.Function.Name)
 	defer span.End()
 
-	result := c.runTool(ctx, tc, teamID, apps)
+	result := redactJWTSignatures(c.runTool(ctx, tc, teamID, apps))
 
 	failed := strings.HasPrefix(result, "error:")
 	if failed {
