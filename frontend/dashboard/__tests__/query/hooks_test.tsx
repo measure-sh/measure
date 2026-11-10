@@ -1839,6 +1839,25 @@ describe("funnel queries", () => {
     expect(result.current.isFetching).toBe(true);
     expect(result.current.data).toEqual(eventNames);
   });
+
+  it("fetches the new search after the initial request fails", async () => {
+    const eventNames = { results: ["purchase"], truncated: false };
+    mockFetchFunnelEventNames
+      .mockRejectedValueOnce(new Error("boom"))
+      .mockResolvedValueOnce(eventNames);
+
+    const { wrapper } = makeWrapper();
+    const { result, rerender } = renderHook(
+      ({ search }) => useFunnelEventNamesQuery("app-1", search),
+      { wrapper, initialProps: { search: "" } },
+    );
+    await waitFor(() => expect(result.current.status).toBe("error"));
+
+    rerender({ search: "pur" });
+
+    await waitFor(() => expect(result.current.data).toEqual(eventNames));
+    expect(mockFetchFunnelEventNames).toHaveBeenLastCalledWith("app-1", "pur");
+  });
 });
 
 type FunnelResultProps = {

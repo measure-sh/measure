@@ -386,7 +386,11 @@ describe("FunnelEditor", () => {
       mockEventNames = { data: undefined, isPending: false, isError: true };
       renderEditor();
       openPicker(0);
-      expect(screen.getByText("Failed to load events")).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          "Couldn't load events. Change the search text to try again",
+        ),
+      ).toBeInTheDocument();
     });
 
     it("asks the user to keep typing when more names matched than are shown", () => {
