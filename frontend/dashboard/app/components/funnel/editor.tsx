@@ -28,6 +28,7 @@ import {
 import DropdownSelect, { DropdownSelectType } from "../dropdown_select";
 import { Input } from "../input";
 import { Popover, PopoverContent, PopoverTrigger } from "../popover";
+import { Skeleton } from "../skeleton";
 import { toastNegative, toastPositive } from "../toast";
 
 const MIN_FUNNEL_STEPS = 2;
@@ -86,28 +87,33 @@ function EventPicker({
             placeholder="Search events..."
             className="h-10 p-1 border-0 rounded-md focus:ring-0 font-body text-sm"
           />
-          <CommandEmpty>
-            <div className="text-center px-4 py-2 text-sm text-muted-foreground font-body">
-              {eventNamesQuery.isPending ? (
-                "Loading..."
-              ) : eventNamesQuery.isError ? (
-                "Couldn't load events. Change the search text to try again"
-              ) : debouncedSearch === "" ? (
-                <>
-                  No custom events were sent in the last 30 days.{" "}
-                  <Link
-                    href="/docs/custom-events"
-                    className={underlineLinkStyle}
-                  >
-                    Learn how
-                  </Link>{" "}
-                  to send them from your app.
-                </>
-              ) : (
-                "No events found"
-              )}
+          {eventNamesQuery.isPending ? (
+            <div className="flex flex-col gap-2 p-2">
+              <Skeleton className="h-5 w-full" />
+              <Skeleton className="h-5 w-full" />
             </div>
-          </CommandEmpty>
+          ) : (
+            <CommandEmpty>
+              <div className="text-center px-4 py-2 text-sm text-muted-foreground font-body">
+                {eventNamesQuery.isError ? (
+                  "Couldn't load events. Change the search text to try again"
+                ) : debouncedSearch === "" ? (
+                  <>
+                    No custom events were sent in the last 30 days.{" "}
+                    <Link
+                      href="/docs/custom-events"
+                      className={underlineLinkStyle}
+                    >
+                      Learn how
+                    </Link>{" "}
+                    to send them from your app.
+                  </>
+                ) : (
+                  "No events found"
+                )}
+              </div>
+            </CommandEmpty>
+          )}
           <CommandGroup className="max-h-72 overflow-auto">
             {(eventNamesQuery.data?.results ?? []).map((name) => (
               <CommandItem
