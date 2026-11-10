@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.15.0] - 2026-11-10
 
 ### :sparkles: New features
 
@@ -13,8 +13,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**backend**): Clarify error categories in the agent schema primer by @anupcowkur in #4849
+- (**backend**): Add MCP tool to list profiles by @anupcowkur in #4838
+- (**backend**): Include device name in profiles list by @anupcowkur in #4837
+- (**backend**): Add MCP tool to list builds by @anupcowkur in #4836
+- (**backend**): Align testinfra with dbmate 2.37.0 by @anupcowkur in #4833
 - (**backend**): Pass `libs` build context to symboloader image build by @detj in #4800
+- (**deps**): Bump github.com/AfterShip/clickhouse-sql-parser by @dependabot[bot]
+- (**deps**): Bump gradle/actions from 3 to 6 by @dependabot[bot] in #4697
+- (**deps**): Resolve react native minimatch to 11.x by @adwinross in #4843
+- (**deps**): Bump gradle/gradle-build-action from 2 to 3 by @dependabot[bot] in #4698
+- (**deps**): Bump go.opentelemetry.io/otel/exporters/otlp/otlptrace by @dependabot[bot] in #4755
+- (**deps**): Bump go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc by @dependabot[bot] in #4754
+- (**deps**): Bump subosito/flutter-action by @dependabot[bot] in #4696
+- (**deps**): Bump cloud.google.com/go/pubsub/v2 in /backend/agent by @dependabot[bot] in #4692
+- (**deps**): Tidy backend/agent for clickhouse-go v2.50.0 by @detj in #4842
+- (**deps**): Bump github.com/ClickHouse/clickhouse-go/v2 by @dependabot[bot]
+- (**deps**): Bump actions/setup-java from 3 to 6 by @dependabot[bot] in #4699
+- (**deps**): Bump the dashboard group by @dependabot[bot] in #4840
+- (**deps**): Bump typescript from 5.9.3 to 7.0.2 in /e2e-tests by @dependabot[bot] in #4690
+- (**deps**): Bump @types/node from 22.19.19 to 26.6.5 in /e2e-tests by @dependabot[bot] in #4689
+- (**deps**): Bump execa from 9.6.1 to 10.1.1 in /e2e-tests by @dependabot[bot]
+- (**deps**): Bump the e2e group across 1 directory with 7 updates by @dependabot[bot]
 - (**deps**): Update vulnarable react native and frank app dependancies by @adwinross in #4812
+- (**frontend**): Standardize chart sizing, spacing, and number formats by @anupcowkur in #4835
+- (**frontend**): Add October 2026 what's new blog by @abhaysood in #4834
 - (**frontend**): Recapture crash screenshots by @anupcowkur in #4818
 - (**frontend**): Use more space on large screens by @anupcowkur
 - (**frontend**): Move funnel controls into plot toolbars by @anupcowkur
@@ -23,10 +46,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**frontend**): Align list and section spacing by @anupcowkur
 - (**frontend**): Remove hover highlight from team rows by @anupcowkur
 - (**frontend**): Add app hangs to the sandbox by @anupcowkur in #4802
+- Add device model filters to product entities by @anupcowkur in #4845
+- Gzip event batch requests (#4767) by @abhaysood in #4780
+- Unref the e2e emulator through execa 10's child process by @abhaysood in #4691
+- Format e2e tests with prettier by @abhaysood in #4687
 - Hide session replay button when no replay is available by @anupcowkur in #4809
 
 ### :recycle: Refactor
 
+- (**backend**): Share crash and handled error SQL conditions by @anupcowkur in #4847
 - (**backend**): Remove BugReportDisplay type by @anupcowkur in #4811
 - (**frontend**): Split session replay into modules by @anupcowkur in #4804
 
@@ -3347,7 +3375,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Replace team/:id/invite docs with /auth/invite docs by @anupcowkur in #367
 - (**webapp**): Add API docs for crash & ANR groups APIs by @anupcowkur in #350
 
-[unreleased]: https://github.com/measure-sh/measure/compare/v0.14.0..HEAD
+[0.15.0]: https://github.com/measure-sh/measure/compare/v0.14.0..v0.15.0
 [0.14.0]: https://github.com/measure-sh/measure/compare/v0.13.0..v0.14.0
 [0.13.0]: https://github.com/measure-sh/measure/compare/v0.12.1..v0.13.0
 [0.12.1]: https://github.com/measure-sh/measure/compare/v0.12.0..v0.12.1
