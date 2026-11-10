@@ -290,7 +290,11 @@ describe("DevicesPage", () => {
     expect(errors.searchParams.get("d")).toBe("Last 7 Days");
     expect(errors.searchParams.get("filter_expr")).toBe(device);
 
-    expect(hrefOf("devices-launches").pathname).toBe("/team-1/profiles");
+    const profiles = hrefOf("devices-launches");
+    expect(profiles.pathname).toBe("/team-1/profiles");
+    expect(profiles.searchParams.get("filter_expr")).toBe(
+      `${device} AND profile_trigger:in:[app_fully_drawn,cold_start]`,
+    );
 
     const traces = hrefOf("devices-spans");
     expect(traces.pathname).toBe("/team-1/traces");

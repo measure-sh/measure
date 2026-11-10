@@ -63,6 +63,14 @@ function deviceConditions(row: DeviceRowBase): ExprTree[] {
   ];
 }
 
+const launchProfileCondition: ExprTree = {
+  condition: {
+    key_name: "profile_trigger",
+    operator: "in",
+    values: [{ text: "app_fully_drawn" }, { text: "cold_start" }],
+  },
+};
+
 function formatDuration(millis: number | null): string {
   return millis === null
     ? "-"
@@ -241,7 +249,11 @@ export default function DevicesPage({ params }: PageProps) {
             ]}
             hrefOf={
               isAndroid
-                ? (row) => linkTo("profiles", deviceConditions(row))
+                ? (row) =>
+                    linkTo("profiles", [
+                      ...deviceConditions(row),
+                      launchProfileCondition,
+                    ])
                 : undefined
             }
           />
