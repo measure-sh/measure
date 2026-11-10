@@ -790,13 +790,14 @@ func (c *Config) runTurn(ctx context.Context, t turn) (answer string, chartsOut 
 				// Chart rendering is turn state, not a data tool: the image
 				// stays with the turn for delivery, the model only hears
 				// whether it worked.
-				chart, errText := renderChartCall(tc.Function.Arguments, len(charts))
-				if errText != "" {
-					result = errText
-				} else {
+				result = traceTool(ctx, tc.Function.Name, func(context.Context) string {
+					chart, errText := renderChartCall(tc.Function.Arguments, len(charts))
+					if errText != "" {
+						return errText
+					}
 					charts = append(charts, chart)
-					result = fmt.Sprintf("Chart %q rendered. It is posted below this reply: mention it as the chart below, never as an image above. A chart never replaces the numbers: always state the numbers the question asks for, such as totals, in your reply, and don't list every point the chart plots.", chart.title)
-				}
+					return fmt.Sprintf("Chart %q rendered. It is posted below this reply: mention it as the chart below, never as an image above. A chart never replaces the numbers: always state the numbers the question asks for, such as totals, in your reply, and don't list every point the chart plots.", chart.title)
+				})
 			} else {
 				result = c.dispatchTool(ctx, tc, t.teamID, apps)
 			}
@@ -826,13 +827,19 @@ var jwtSigRe = regexp.MustCompile(`(eyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)\.[A-Za-z0
 // claims stay readable.
 func redactJWTSignatures(s string) string { return jwtSigRe.ReplaceAllString(s, "${1}.[redacted]") }
 
-// dispatchTool wraps runTool with a span and a log line per tool call.
 func (c *Config) dispatchTool(ctx context.Context, tc chatToolCall, teamID uuid.UUID, apps []measureApp) string {
+	return traceTool(ctx, tc.Function.Name, func(ctx context.Context) string {
+		return redactJWTSignatures(c.runTool(ctx, tc, teamID, apps))
+	})
+}
+
+// traceTool runs a tool call in a span and logs how long it takes.
+func traceTool(ctx context.Context, name string, run func(context.Context) string) string {
 	start := time.Now()
-	ctx, span := tracer.Start(ctx, "agent.tool "+tc.Function.Name)
+	ctx, span := tracer.Start(ctx, "agent.tool "+name)
 	defer span.End()
 
-	result := redactJWTSignatures(c.runTool(ctx, tc, teamID, apps))
+	result := run(ctx)
 
 	failed := strings.HasPrefix(result, "error:")
 	if failed {
@@ -840,7 +847,7 @@ func (c *Config) dispatchTool(ctx context.Context, tc chatToolCall, teamID uuid.
 	}
 	span.SetAttributes(attribute.Int("agent.tool.result_chars", len(result)))
 	log.Printf("agent: tool %s duration=%s result_chars=%d failed=%v",
-		tc.Function.Name, time.Since(start).Round(time.Millisecond), len(result), failed)
+		name, time.Since(start).Round(time.Millisecond), len(result), failed)
 	return result
 }
 
