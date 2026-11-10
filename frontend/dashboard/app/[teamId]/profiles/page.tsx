@@ -196,20 +196,19 @@ export default function ProfilesPage({ params }: PageProps) {
         <EmptyState
           icon={Flame}
           title="No profiles found"
-          description="Try a wider time range or different filters"
-          className="h-144"
-          action={
-            <p className="text-xs text-muted-foreground">
-              Profiles are captured on Android 16 and above once profiling is
-              enabled in your app.{" "}
+          description={
+            <>
+              Try a wider time range or different filters. Profiles are captured
+              on Android 16 and above once profiling is enabled in your app.{" "}
               <Link
                 href="/docs/performance-tracing/profiling"
                 className={underlineLinkStyle}
               >
                 Learn more
               </Link>
-            </p>
+            </>
           }
+          className="h-144"
         />
       )}
 
