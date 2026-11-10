@@ -2463,11 +2463,10 @@ export const fetchFunnelEventNamesFromServer = async (
 ) => {
   const query =
     search === "" ? "" : `?${new URLSearchParams({ search }).toString()}`;
-  const data = await request<{ results: string[] }>(
+  return await request<{ results: string[]; truncated: boolean }>(
     `/api/apps/${appId}/funnels/events${query}`,
     { failsWith: "Failed to fetch events" },
   );
-  return data.results;
 };
 
 export const createFunnelFromServer = async (

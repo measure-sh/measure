@@ -1796,7 +1796,8 @@ describe("funnel queries", () => {
   );
 
   it("reuses fresh event names when another step picker mounts", async () => {
-    mockFetchFunnelEventNames.mockResolvedValue(["app_open"]);
+    const eventNames = { results: ["app_open"], truncated: false };
+    mockFetchFunnelEventNames.mockResolvedValue(eventNames);
 
     const { wrapper } = makeWrapper();
     const first = renderHook(() => useFunnelEventNamesQuery("app-1", ""), {
@@ -1808,14 +1809,15 @@ describe("funnel queries", () => {
       wrapper,
     });
 
-    expect(second.result.current.data).toEqual(["app_open"]);
+    expect(second.result.current.data).toEqual(eventNames);
     expect(second.result.current.isFetching).toBe(false);
     expect(mockFetchFunnelEventNames).toHaveBeenCalledTimes(1);
   });
 
   it("shows the last event names while it fetches a new search", async () => {
+    const eventNames = { results: ["app_open", "purchase"], truncated: false };
     mockFetchFunnelEventNames
-      .mockResolvedValueOnce(["app_open", "purchase"])
+      .mockResolvedValueOnce(eventNames)
       // The search results stay pending, so the hook stays mid-fetch.
       .mockReturnValueOnce(new Promise(() => {}));
 
@@ -1835,7 +1837,7 @@ describe("funnel queries", () => {
       ),
     );
     expect(result.current.isFetching).toBe(true);
-    expect(result.current.data).toEqual(["app_open", "purchase"]);
+    expect(result.current.data).toEqual(eventNames);
   });
 });
 

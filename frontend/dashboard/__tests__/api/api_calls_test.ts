@@ -2633,17 +2633,22 @@ describe("funnels", () => {
     expect(result).toEqual({ id: "f1", name: "Checkout" });
   });
 
-  it("fetchFunnelEventNamesFromServer returns the results list from the events endpoint", async () => {
+  it("fetchFunnelEventNamesFromServer returns the results and truncated flag from the events endpoint", async () => {
     mockApiClientFetch.mockResolvedValueOnce(
-      successResponse({ results: ["app_open", "checkout"] }),
+      successResponse({ results: ["app_open", "checkout"], truncated: true }),
     );
     const result = await fetchFunnelEventNamesFromServer("app-a", "");
     expect(lastFetchUrl()).toBe("/api/apps/app-a/funnels/events");
-    expect(result).toEqual(["app_open", "checkout"]);
+    expect(result).toEqual({
+      results: ["app_open", "checkout"],
+      truncated: true,
+    });
   });
 
   it("fetchFunnelEventNamesFromServer sends the search encoded", async () => {
-    mockApiClientFetch.mockResolvedValueOnce(successResponse({ results: [] }));
+    mockApiClientFetch.mockResolvedValueOnce(
+      successResponse({ results: [], truncated: false }),
+    );
     await fetchFunnelEventNamesFromServer("app-a", "add to&cart");
     expect(lastFetchUrl()).toBe(
       "/api/apps/app-a/funnels/events?search=add+to%26cart",

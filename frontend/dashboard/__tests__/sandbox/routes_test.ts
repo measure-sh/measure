@@ -1494,7 +1494,7 @@ const funnelsCases: Case[] = [
       const { json: events } = await fetchJson(
         "/api/apps/does-not-exist/funnels/events",
       );
-      expect(events).toEqual({ results: [] });
+      expect(events).toEqual({ results: [], truncated: false });
       const { json: pinned } = await fetchJson(
         "/api/apps/does-not-exist/funnels/pinned",
       );
@@ -1512,6 +1512,7 @@ const funnelsCases: Case[] = [
         ),
       );
       expect(data.results).toEqual([...used].sort());
+      expect(data.truncated).toBe(false);
       const { json: noLogin } = await fetchJson(
         `/api/apps/${noLoginApp.app.id}/funnels/events`,
       );
