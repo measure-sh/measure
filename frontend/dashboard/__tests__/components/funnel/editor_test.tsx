@@ -318,7 +318,7 @@ describe("FunnelEditor", () => {
         typeSearch(" pur ");
 
         act(() => {
-          jest.advanceTimersByTime(299);
+          jest.advanceTimersByTime(499);
         });
         expect(mockUseFunnelEventNamesQuery).not.toHaveBeenCalledWith(
           "app-1",
@@ -343,7 +343,7 @@ describe("FunnelEditor", () => {
         openPicker(0);
         typeSearch("pur");
         act(() => {
-          jest.advanceTimersByTime(300);
+          jest.advanceTimersByTime(500);
         });
         fireEvent.click(screen.getByRole("option", { name: "purchase" }));
         // Radix finishes closing the popover on a timer.
@@ -353,7 +353,7 @@ describe("FunnelEditor", () => {
 
         openPicker(0);
         act(() => {
-          jest.advanceTimersByTime(300);
+          jest.advanceTimersByTime(500);
         });
         expect(screen.getByPlaceholderText("Search events...")).toHaveValue("");
         expect(mockUseFunnelEventNamesQuery).toHaveBeenLastCalledWith(
@@ -368,7 +368,7 @@ describe("FunnelEditor", () => {
         openPicker(0);
         typeSearch("zzz");
         act(() => {
-          jest.advanceTimersByTime(300);
+          jest.advanceTimersByTime(500);
         });
         expect(screen.getByText("No events found")).toBeInTheDocument();
       });
