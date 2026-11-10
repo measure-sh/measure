@@ -5950,16 +5950,21 @@ paths:
                 type: object
                 required:
                   - results
+                  - truncated
                 properties:
                   results:
                     type: array
                     items:
                       type: string
+                  truncated:
+                    type: boolean
+                    description: True when more event names matched than were returned.
               example:
                 results:
                   - purchase
                   - start_checkout
                   - view_cart
+                truncated: false
         "400":
           description: Request URI is malformed or does not meet one or more acceptance criteria. Check the `error` field for more details.
         "401":

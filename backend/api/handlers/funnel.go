@@ -450,7 +450,7 @@ func (h Handlers) SuggestFunnelEventNames(c *gin.Context) {
 	}
 	ctx := chquery.WithSettings(c.Request.Context(), logcomment.Put(settings, lc, logcomment.Name, "event_names"))
 
-	names, err := measure.SuggestFunnelEventNames(ctx, h.Deps.RchPool, teamID, appID, c.Query("search"))
+	names, truncated, err := measure.SuggestFunnelEventNames(ctx, h.Deps.RchPool, teamID, appID, c.Query("search"))
 	if err != nil {
 		msg := `error fetching funnel event names`
 		fmt.Println(msg, err)
@@ -458,7 +458,7 @@ func (h Handlers) SuggestFunnelEventNames(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"results": names})
+	c.JSON(http.StatusOK, gin.H{"results": names, "truncated": truncated})
 }
 
 func (h Handlers) GetPinnedFunnels(c *gin.Context) {

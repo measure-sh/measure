@@ -430,7 +430,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_filter_values
 		newTool(&mcpsdk.Tool{
 			Name:        "get_filter_values",
-			Description: "List the values a filter key can be set to for an app, for use in a filter_expr, optionally narrowed by a search string. truncated in the result says more values matched. get_filter_keys lists the keys; a key whose value_suggestion_mode is none takes typed values and has no list.",
+			Description: "List the values a filter key can be set to for an app, for use in a filter_expr, optionally narrowed by a search string. When truncated is true in the result, more values matched than the list has. Call the tool again with a search string to find a value that is not in the list. get_filter_keys lists the keys; a key whose value_suggestion_mode is none takes typed values and has no list.",
 			InputSchema: mcpMustInferSchema[mcpGetFilterValuesInput](),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFilterValuesInput) (*mcpsdk.CallToolResult, any, error) {
@@ -900,7 +900,7 @@ func commonTools(cfg *Config) []Tool {
 		// get_funnel_event_names
 		newTool(&mcpsdk.Tool{
 			Name:        "get_funnel_event_names",
-			Description: fmt.Sprintf("List the custom event names an app's sessions sent in the last 30 days, most recently seen first, at most %d, optionally narrowed by a search string. A funnel's steps are custom event names, so use this to find them before create_funnel or update_funnel.", measure.MaxSuggestFunnelEventNames),
+			Description: fmt.Sprintf("List the custom event names an app's sessions sent in the last 30 days, most recently seen first, at most %d, optionally narrowed by a search string. When truncated is true in the result, more names matched than the list has. Call the tool again with a search string to find a name that is not in the list. A funnel's steps are custom event names, so use this to find them before create_funnel or update_funnel.", measure.MaxSuggestFunnelEventNames),
 			InputSchema: mcpMustInferSchema[mcpGetFunnelEventNamesInput](),
 			Annotations: readOnlyTool,
 		}, func(ctx context.Context, req *mcpsdk.CallToolRequest, in mcpGetFunnelEventNamesInput) (*mcpsdk.CallToolResult, any, error) {
@@ -3346,11 +3346,14 @@ func (c *Config) mcpGetFunnelEventNames(ctx context.Context, in mcpGetFunnelEven
 	if err != nil {
 		return nil, nil, err
 	}
-	names, err := measure.SuggestFunnelEventNames(ctx, c.Deps.RchPool, teamID, appID, in.Search)
+	names, truncated, err := measure.SuggestFunnelEventNames(ctx, c.Deps.RchPool, teamID, appID, in.Search)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to get funnel event names: %v", err)
 	}
-	data, _ := json.Marshal(names)
+	data, _ := json.Marshal(map[string]any{
+		"event_names": names,
+		"truncated":   truncated,
+	})
 	return mcpTextResult(string(data)), nil, nil
 }
 

@@ -1080,13 +1080,21 @@ func listEventNames(userID string, appID uuid.UUID, query string) *httptest.Resp
 	return serveFunnel(h.SuggestFunnelEventNames, "GET", "/apps/"+appID.String()+"/funnels/events?"+query, "", userID, appID.String(), "")
 }
 
-func eventNames(t *testing.T, userID string, appID uuid.UUID, query string) []string {
+type eventNamesResponse struct {
+	Results   []string `json:"results"`
+	Truncated bool     `json:"truncated"`
+}
+
+func suggestEventNames(t *testing.T, userID string, appID uuid.UUID, query string) eventNamesResponse {
 	t.Helper()
 	w := listEventNames(userID, appID, query)
 	expectStatus(t, w, http.StatusOK)
-	return decodeBody[struct {
-		Results []string `json:"results"`
-	}](t, w).Results
+	return decodeBody[eventNamesResponse](t, w)
+}
+
+func eventNames(t *testing.T, userID string, appID uuid.UUID, query string) []string {
+	t.Helper()
+	return suggestEventNames(t, userID, appID, query).Results
 }
 
 func seedCustomEvents(ctx context.Context, t *testing.T, teamID, appID uuid.UUID, at time.Time, names ...string) {
@@ -1117,19 +1125,31 @@ func TestSuggestFunnelEventNames(t *testing.T) {
 		}
 	})
 
-	t.Run("lists only the first 50 names, alphabetically when seen at the same time", func(t *testing.T) {
+	t.Run("lists the first 50 names alphabetically when last seen at the same time and reports whether more matched", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 		userID, teamID := seedTeamAndMemberWithRole(t, ctx, "owner")
 		appID := uuid.New()
 		seedApp(ctx, t, appID, teamID, 30)
 		var names []string
-		for i := range 51 {
+		for i := range 50 {
 			names = append(names, fmt.Sprintf("event_%02d", i))
 		}
-		seedCustomEvents(ctx, t, teamID, appID, time.Now().UTC(), names...)
+		seedCustomEvents(ctx, t, teamID, appID, time.Now().UTC(), append(slices.Clone(names), "signup")...)
 
-		if got := eventNames(t, userID, appID, ""); !slices.Equal(got, names[:50]) {
-			t.Fatalf("names = %v, want event_00 to event_49", got)
+		for _, tc := range []struct {
+			query     string
+			truncated bool
+		}{
+			{"", true},
+			{"search=event_", false},
+		} {
+			got := suggestEventNames(t, userID, appID, tc.query)
+			if !slices.Equal(got.Results, names) {
+				t.Fatalf("%q: names = %v, want event_00 to event_49", tc.query, got.Results)
+			}
+			if got.Truncated != tc.truncated {
+				t.Fatalf("%q: truncated = %v, want %v", tc.query, got.Truncated, tc.truncated)
+			}
 		}
 	})
 
@@ -1175,7 +1195,7 @@ func TestSuggestFunnelEventNames(t *testing.T) {
 
 		w := listEventNames(userID, appID, "")
 		expectStatus(t, w, http.StatusOK)
-		if w.Body.String() != `{"results":[]}` {
+		if w.Body.String() != `{"results":[],"truncated":false}` {
 			t.Fatalf("body = %s, want an empty results array", w.Body.String())
 		}
 	})
@@ -1191,7 +1211,7 @@ func TestSuggestFunnelEventNames(t *testing.T) {
 
 				w := listEventNames(userID, appID, "")
 				expectStatus(t, w, http.StatusOK)
-				if w.Body.String() != `{"results":["purchase"]}` {
+				if w.Body.String() != `{"results":["purchase"],"truncated":false}` {
 					t.Fatalf("body = %s, want purchase", w.Body.String())
 				}
 			})

@@ -6991,14 +6991,17 @@ func TestMCPFunnels(t *testing.T) {
 		appID, teamID, _, rawToken := setup(t, "viewer")
 		seedSession(t, teamID, appID, "1.0.0", now.Add(-time.Hour), "open_app", "purchase")
 
-		var names []string
-		call(t, rawToken, "get_funnel_event_names", map[string]any{"app_id": appID.String()}, &names)
-		if len(names) != 2 {
-			t.Fatalf("event names = %v, want open_app and purchase", names)
+		var result struct {
+			EventNames []string `json:"event_names"`
+			Truncated  bool     `json:"truncated"`
 		}
-		call(t, rawToken, "get_funnel_event_names", map[string]any{"app_id": appID.String(), "search": "purch"}, &names)
-		if fmt.Sprint(names) != "[purchase]" {
-			t.Fatalf("event names for purch = %v, want purchase", names)
+		call(t, rawToken, "get_funnel_event_names", map[string]any{"app_id": appID.String()}, &result)
+		if len(result.EventNames) != 2 || result.Truncated {
+			t.Fatalf("result = %+v, want open_app and purchase, not truncated", result)
+		}
+		call(t, rawToken, "get_funnel_event_names", map[string]any{"app_id": appID.String(), "search": "purch"}, &result)
+		if fmt.Sprint(result.EventNames) != "[purchase]" || result.Truncated {
+			t.Fatalf("result for purch = %+v, want purchase, not truncated", result)
 		}
 	})
 
