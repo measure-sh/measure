@@ -671,8 +671,10 @@ var slackMentionRE = regexp.MustCompile(`<@[^>]+>`)
 
 var (
 	mdHeading = regexp.MustCompile(`(?m)^#{1,6}\s+(.+)$`)
-	mdBold    = regexp.MustCompile(`\*\*(.+?)\*\*`)
-	mdLink    = regexp.MustCompile(`\[([^\]]+)\]\(([^)\s]+)\)`)
+	// Bold text can end in asterisks, as in "**/api/products/***". Those belong
+	// to the text; the final two asterisks close the bold span.
+	mdBold = regexp.MustCompile(`\*\*(.+?\**)\*\*`)
+	mdLink = regexp.MustCompile(`\[([^\]]+)\]\(([^)\s]+)\)`)
 
 	// For stripping inline markup from cells rendered inside a code fence, where
 	// Slack shows the markers as literal punctuation instead of formatting.
@@ -705,13 +707,25 @@ func toMrkdwn(text string) string {
 	text, tables := extractTables(text)
 	text = slack.EscapeMrkdwn(text)
 	text = mdHeading.ReplaceAllString(text, "*$1*")
-	text = mdBold.ReplaceAllString(text, "*$1*")
+	text = mdBold.ReplaceAllStringFunc(text, slackBold)
 	text = mdLink.ReplaceAllString(text, "<$2|$1>")
 	for i, tbl := range tables {
 		fenced := "```\n" + slack.EscapeMrkdwn(tbl) + "\n```"
 		text = strings.Replace(text, tablePlaceholder(i), fenced, 1)
 	}
 	return text
+}
+
+// slackBold converts a markdown bold span, including its markers, to Slack
+// bold. Slack cannot escape asterisks, so one inside the text (as in the
+// URL pattern "/api/products/*") would close the bold early. Wrap such text
+// in a code span, where Slack displays the asterisk literally.
+func slackBold(span string) string {
+	inner := span[2 : len(span)-2]
+	if strings.Contains(inner, "*") && !strings.Contains(inner, "`") {
+		inner = "`" + inner + "`"
+	}
+	return "*" + inner + "*"
 }
 
 // tablePlaceholder is the stand-in left where a table was pulled out. The NUL
