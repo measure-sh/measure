@@ -64,23 +64,23 @@ export default function ConsentActions({ params }: { params: McpParams }) {
     );
   }
   return (
-    <div className="flex gap-4">
+    <div className="grid grid-cols-2 gap-4">
       <Button
         type="button"
         variant="outline"
         size="lg"
-        className="flex-1 font-display border-2 border-border"
+        className="w-full font-display border-2 border-border"
         onClick={() => setAllowed(true)}
       >
         Allow
       </Button>
-      <form method="post" action={consentAction} className="flex-1 flex">
+      <form method="post" action={consentAction} className="w-full">
         <Fields params={params} decision="deny" />
         <Button
           type="submit"
           variant="outline"
           size="lg"
-          className="flex-1 font-display border-2 border-border"
+          className="w-full font-display border-2 border-border"
         >
           Deny
         </Button>
