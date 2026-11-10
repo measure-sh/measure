@@ -93,6 +93,22 @@ func TestToMrkdwn(t *testing.T) {
 		}
 	})
 
+	t.Run("bold text containing an asterisk is rendered as bold code", func(t *testing.T) {
+		in := "- **api.qashop.test /api/products/***: 9,012 ms\n- **api.qashop.test /api/cart**: 310 ms"
+		want := "- *`api.qashop.test /api/products/*`*: 9,012 ms\n- *api.qashop.test /api/cart*: 310 ms"
+		if got := toMrkdwn(in); got != want {
+			t.Fatalf("got %q want %q", got, want)
+		}
+	})
+
+	t.Run("bold code containing an asterisk stays unchanged", func(t *testing.T) {
+		in := "**`/api/products/*`** is the slowest call."
+		want := "*`/api/products/*`* is the slowest call."
+		if got := toMrkdwn(in); got != want {
+			t.Fatalf("got %q want %q", got, want)
+		}
+	})
+
 	t.Run("markup characters are neutralized", func(t *testing.T) {
 		// An echoed "<!channel>" must render as text, never ping anyone.
 		in := "you asked me to repeat: <!channel> & sessions <30s"
