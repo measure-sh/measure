@@ -91,7 +91,7 @@ function EventPicker({
               {eventNamesQuery.isPending ? (
                 "Loading..."
               ) : eventNamesQuery.isError ? (
-                "Failed to load events"
+                "Couldn't load events. Change the search text to try again"
               ) : debouncedSearch === "" ? (
                 <>
                   No custom events were sent in the last 30 days.{" "}
