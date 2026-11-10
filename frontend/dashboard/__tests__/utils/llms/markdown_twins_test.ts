@@ -12,10 +12,11 @@ const APP_DIR = path.join(process.cwd(), "app");
 // Docs and blog pages are served as markdown from their own sources through
 // the /llms.docs and /llms.blog routes.
 const SECTIONS_WITHOUT_TWINS = ["/docs", "/blog"];
-// The login page belongs to the app, and the legal pages have no markdown
-// twin on purpose.
+// The login & MCP consent pages belong to the app, and the legal pages have no
+// markdown twin on purpose.
 const PAGES_WITHOUT_TWINS = new Set([
   "/auth/login",
+  "/auth/mcp/authorize",
   "/privacy-policy",
   "/terms-of-service",
 ]);
