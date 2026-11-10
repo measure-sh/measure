@@ -353,6 +353,7 @@ async function renderBar(
       apps={apps}
       keys={keys}
       keyGroups={keyGroups}
+      customKeysTruncated={false}
       keysUnavailable={false}
       onChange={onChange}
       {...props}

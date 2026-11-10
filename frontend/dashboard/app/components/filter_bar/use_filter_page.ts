@@ -339,6 +339,7 @@ export function useFilterPage({
         ? null
         : (keysQuery.data?.keys ?? noKeys),
     keyGroups: keysQuery.data?.key_groups ?? noKeyGroups,
+    customKeysTruncated: keysQuery.data?.custom_keys_truncated ?? false,
     keysUnavailable: keysQuery.isError,
     spanNames:
       rootSpan && (spanNamesQuery.isSuccess || spanNamesQuery.isError)

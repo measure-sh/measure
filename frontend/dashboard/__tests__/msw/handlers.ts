@@ -466,7 +466,7 @@ export const handlers = [
       return HttpResponse.json({
         keys: [],
         key_groups: [],
-        keys_truncated: false,
+        custom_keys_truncated: false,
       });
     }
     return HttpResponse.json(makeFilterKeysFixture());

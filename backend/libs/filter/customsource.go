@@ -65,22 +65,29 @@ func (s customKeySource) keyQuery(teamID, appID uuid.UUID) *sqlf.Stmt {
 		OrderBy("key")
 }
 
-func (s customKeySource) fetchKeys(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, limit int) (keys []Key, truncated bool, err error) {
+func (s customKeySource) fetchKeys(ctx context.Context, chPool driver.Conn, teamID, appID uuid.UUID, search string, limit int) (keys []Key, truncated bool, err error) {
 	ctx, span := startReadSpan(ctx, "filter.custom_keys", s.table, teamID, appID,
-		attribute.Int("filter.limit", limit))
+		attribute.Int("filter.limit", limit),
+		attribute.Bool("filter.search", search != ""))
 	defer func() {
 		endReadSpan(span, err,
 			attribute.Int("filter.keys", len(keys)),
 			attribute.Bool("filter.truncated", truncated))
 	}()
 
-	stmt := s.keyQuery(teamID, appID).
+	stmt := s.keyQuery(teamID, appID)
+
+	defer stmt.Close()
+
+	if search != "" {
+		stmt.Where("key ilike ?", "%"+EscapeLikeWildcards(search)+"%")
+	}
+
+	stmt.
 		Limit(limit + 1).
 		// Most granules hold rows of this team and app anyway, so skip
 		// indexes cost analysis without pruning reads.
 		Clause("settings use_skip_indexes = 0")
-
-	defer stmt.Close()
 
 	keys, err = readCustomKeys(ctx, chPool, teamID, stmt)
 	if err != nil {

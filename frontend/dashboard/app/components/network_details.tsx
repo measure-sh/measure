@@ -39,6 +39,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
     apps,
     keys,
     keyGroups,
+    customKeysTruncated,
     keysUnavailable,
     status: filterStatus,
     filterParams,
@@ -92,6 +93,7 @@ export default function NetworkDetails({ params }: NetworkDetailsProps) {
         apps={apps}
         keys={keys}
         keyGroups={keyGroups}
+        customKeysTruncated={customKeysTruncated}
         keysUnavailable={keysUnavailable}
         filterExprIssues={filterExprIssues}
         showAppSelect={false}

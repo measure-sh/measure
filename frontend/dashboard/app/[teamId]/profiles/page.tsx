@@ -171,6 +171,7 @@ export default function ProfilesPage({ params }: PageProps) {
         apps={filter.apps}
         keys={filter.keys}
         keyGroups={filter.keyGroups}
+        customKeysTruncated={filter.customKeysTruncated}
         keysUnavailable={filter.keysUnavailable}
         onChange={filter.onChange}
       />

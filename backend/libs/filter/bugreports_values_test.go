@@ -255,7 +255,7 @@ func TestFetchBugReportCustomKeys(t *testing.T) {
 	teamID, appID := seedBugReportUDAttrs(ctx, t)
 
 	t.Run("only bug report keys come back ordered by name", func(t *testing.T) {
-		keys, truncated, err := BugReportsEntity.CustomKeySource.fetchKeys(ctx, chConn, teamID, appID, CustomKeyLimit)
+		keys, truncated, err := BugReportsEntity.CustomKeySource.fetchKeys(ctx, chConn, teamID, appID, "", CustomKeyLimit)
 		if err != nil {
 			t.Fatalf("fetch custom keys: %v", err)
 		}
@@ -271,7 +271,7 @@ func TestFetchBugReportCustomKeys(t *testing.T) {
 	})
 
 	t.Run("a listing past the limit reports truncation", func(t *testing.T) {
-		keys, truncated, err := BugReportsEntity.CustomKeySource.fetchKeys(ctx, chConn, teamID, appID, 1)
+		keys, truncated, err := BugReportsEntity.CustomKeySource.fetchKeys(ctx, chConn, teamID, appID, "", 1)
 		if err != nil {
 			t.Fatalf("fetch custom keys: %v", err)
 		}

@@ -300,7 +300,7 @@ func (h Handlers) GetFilterKeys(c *gin.Context) {
 	}
 
 	ctx = filter.WithFilterQuerySettings(ctx, gin.Mode() == gin.ReleaseMode, gin.Mode() == gin.DebugMode, "filter_keys")
-	keys, keysTruncated, err := entity.ListKeys(ctx, h.Deps.RchPool, teamID, appID, c.QueryArray("key"))
+	keys, customKeysTruncated, err := entity.ListKeys(ctx, h.Deps.RchPool, teamID, appID, c.QueryArray("key"), c.Query("search"))
 	if err != nil {
 		msg := "Failed to read the filter keys"
 		fmt.Println(msg, err)
@@ -309,9 +309,9 @@ func (h Handlers) GetFilterKeys(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"keys":           keys,
-		"key_groups":     filter.ListKeyGroups(keys),
-		"keys_truncated": keysTruncated,
+		"keys":                  keys,
+		"key_groups":            filter.ListKeyGroups(keys),
+		"custom_keys_truncated": customKeysTruncated,
 	})
 }
 

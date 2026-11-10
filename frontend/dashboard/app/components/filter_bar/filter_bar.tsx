@@ -80,6 +80,7 @@ interface FilterBarProps {
   apps: App[];
   keys: FilterKey[] | null;
   keyGroups: string[];
+  customKeysTruncated: boolean;
   keysUnavailable: boolean;
   spanNames?: string[] | null;
   filterExprIssues?: FilterExprIssue[] | null;
@@ -193,6 +194,7 @@ export default function FilterBar({
   apps,
   keys,
   keyGroups,
+  customKeysTruncated,
   keysUnavailable,
   spanNames,
   filterExprIssues,
@@ -589,6 +591,7 @@ export default function FilterBar({
   const editor: FilterEditor = {
     keys,
     keyGroups,
+    customKeysTruncated,
     appId: app.id,
     entity,
     focusedId,
@@ -699,8 +702,11 @@ export default function FilterBar({
 
                   {!keysUnavailable && (
                     <KeyPicker
+                      appId={app.id}
+                      entity={entity}
                       keys={keys}
                       keyGroups={keyGroups}
+                      customKeysTruncated={customKeysTruncated}
                       selected={null}
                       open={keyListOpen}
                       onOpenChange={setKeyListOpen}
@@ -790,6 +796,7 @@ export default function FilterBar({
 interface FilterEditor {
   keys: FilterKey[];
   keyGroups: string[];
+  customKeysTruncated: boolean;
   appId: string;
   entity: string;
   focusedId: string | null;
@@ -862,8 +869,11 @@ function FilterGroup({
       <GroupChildren group={group} editor={editor} />
 
       <KeyPicker
+        appId={editor.appId}
+        entity={editor.entity}
         keys={editor.keys}
         keyGroups={editor.keyGroups}
+        customKeysTruncated={editor.customKeysTruncated}
         selected={null}
         open={pickingFirstKey}
         onOpenChange={(open) =>
@@ -911,8 +921,15 @@ function FilterRow({
   row: ConditionRow;
   editor: FilterEditor;
 }) {
-  const { keys, keyGroups, appId, entity, focusedId, focusedControlRef } =
-    editor;
+  const {
+    keys,
+    keyGroups,
+    customKeysTruncated,
+    appId,
+    entity,
+    focusedId,
+    focusedControlRef,
+  } = editor;
   const chipRef = useRef<HTMLSpanElement>(null);
   const openPickerKind =
     editor.openRowPicker?.rowId === row.id ? editor.openRowPicker.kind : null;
@@ -934,8 +951,11 @@ function FilterRow({
       }`}
     >
       <KeyPicker
+        appId={appId}
+        entity={entity}
         keys={keys}
         keyGroups={keyGroups}
+        customKeysTruncated={customKeysTruncated}
         selected={row.key}
         {...segmentPicker("key")}
         stayOpenWithin={chipRef}

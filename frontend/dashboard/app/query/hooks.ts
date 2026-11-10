@@ -139,10 +139,11 @@ export function useFilterKeysQuery(
   appId: string | undefined,
   entity: string,
   keyNames: string[],
+  search: string = "",
 ) {
   return useQuery<FilterKeysResponse>({
-    queryKey: ["filterKeys", appId, entity, keyNames] as const,
-    queryFn: () => fetchFilterKeys(appId!, entity, keyNames),
+    queryKey: ["filterKeys", appId, entity, keyNames, search] as const,
+    queryFn: () => fetchFilterKeys(appId!, entity, keyNames, search),
     enabled: !!appId,
     // The key names grow while the user types a custom key into the filter
     // text editor; keeping the last response stops every loaded key from

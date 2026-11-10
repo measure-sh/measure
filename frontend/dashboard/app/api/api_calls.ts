@@ -1803,18 +1803,25 @@ export const fetchFilterKeys = async (
   appId: string,
   entity: string,
   keyNames: string[],
+  search: string = "",
 ): Promise<FilterKeysResponse> => {
   // Keys the caller specifies are resolved even when the app has more custom
   // keys than the listing returns.
   const keyParams = keyNames
     .map((name) => `&key=${encodeURIComponent(name)}`)
     .join("");
+  const searchParam =
+    search !== "" ? `&search=${encodeURIComponent(search)}` : "";
   const data = await request(
-    `/api/apps/${appId}/filters/keys?entity=${encodeURIComponent(entity)}${keyParams}`,
+    `/api/apps/${appId}/filters/keys?entity=${encodeURIComponent(entity)}${keyParams}${searchParam}`,
     { failsWith: "Failed to fetch filter keys" },
   );
 
-  return { keys: data.keys ?? [], key_groups: data.key_groups ?? [] };
+  return {
+    keys: data.keys ?? [],
+    key_groups: data.key_groups ?? [],
+    custom_keys_truncated: data.custom_keys_truncated ?? false,
+  };
 };
 
 export const fetchFilterValues = async (

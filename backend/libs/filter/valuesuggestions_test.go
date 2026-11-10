@@ -207,7 +207,7 @@ func TestSuggestionSQL(t *testing.T) {
 		{
 			name: "the span custom key listing skips the skip indexes",
 			run: func(recorder *sqlRecorder) {
-				_, _, _ = SpansEntity.CustomKeySource.fetchKeys(ctx, recorder, teamID, appID, CustomKeyLimit)
+				_, _, _ = SpansEntity.CustomKeySource.fetchKeys(ctx, recorder, teamID, appID, "", CustomKeyLimit)
 			},
 			wantSQL: "SELECT key, argMax(type, timestamp) as type" +
 				" FROM span_user_def_attrs" +
@@ -216,9 +216,20 @@ func TestSuggestionSQL(t *testing.T) {
 			wantArgs: []any{teamID, appID, CustomKeyLimit + 1},
 		},
 		{
+			name: "custom key search filters attribute names before applying the limit",
+			run: func(recorder *sqlRecorder) {
+				_, _, _ = SpansEntity.CustomKeySource.fetchKeys(ctx, recorder, teamID, appID, "pl", CustomKeyLimit)
+			},
+			wantSQL: "SELECT key, argMax(type, timestamp) as type" +
+				" FROM span_user_def_attrs" +
+				" WHERE team_id = toUUID(?) AND app_id = toUUID(?) AND key ilike ?" +
+				" GROUP BY key ORDER BY key LIMIT ? settings use_skip_indexes = 0",
+			wantArgs: []any{teamID, appID, "%pl%", CustomKeyLimit + 1},
+		},
+		{
 			name: "the bug report custom key listing keeps to the rows flagged bug_report",
 			run: func(recorder *sqlRecorder) {
-				_, _, _ = BugReportsEntity.CustomKeySource.fetchKeys(ctx, recorder, teamID, appID, CustomKeyLimit)
+				_, _, _ = BugReportsEntity.CustomKeySource.fetchKeys(ctx, recorder, teamID, appID, "", CustomKeyLimit)
 			},
 			wantSQL: "SELECT key, argMax(type, timestamp) as type" +
 				" FROM user_def_attrs" +

@@ -55,7 +55,7 @@ func TestFetchSpanCustomKeys(t *testing.T) {
 	teamID, appID, _ := seedSpanUDAttrs(ctx, t)
 
 	t.Run("every key comes back ordered by name", func(t *testing.T) {
-		keys, truncated, err := SpansEntity.CustomKeySource.fetchKeys(ctx, chConn, teamID, appID, CustomKeyLimit)
+		keys, truncated, err := SpansEntity.CustomKeySource.fetchKeys(ctx, chConn, teamID, appID, "", CustomKeyLimit)
 		if err != nil {
 			t.Fatalf("fetch custom keys: %v", err)
 		}
@@ -76,7 +76,7 @@ func TestFetchSpanCustomKeys(t *testing.T) {
 	})
 
 	t.Run("a listing past the limit reports truncation", func(t *testing.T) {
-		keys, truncated, err := SpansEntity.CustomKeySource.fetchKeys(ctx, chConn, teamID, appID, 2)
+		keys, truncated, err := SpansEntity.CustomKeySource.fetchKeys(ctx, chConn, teamID, appID, "", 2)
 		if err != nil {
 			t.Fatalf("fetch custom keys: %v", err)
 		}
@@ -89,8 +89,47 @@ func TestFetchSpanCustomKeys(t *testing.T) {
 		}
 	})
 
+	t.Run("search matches attribute names regardless of case", func(t *testing.T) {
+		keys, truncated, err := SpansEntity.CustomKeySource.fetchKeys(ctx, chConn, teamID, appID, "RE", CustomKeyLimit)
+		if err != nil {
+			t.Fatalf("fetch custom keys: %v", err)
+		}
+		if truncated {
+			t.Error("want both matching keys in the list")
+		}
+		got := customKeyNames(keys)
+		if len(got) != 2 || got[0] != "custom.is_premium" || got[1] != "custom.retries" {
+			t.Errorf("want is_premium and retries, got %v", got)
+		}
+	})
+
+	t.Run("search filters keys before applying the limit", func(t *testing.T) {
+		keys, truncated, err := SpansEntity.CustomKeySource.fetchKeys(ctx, chConn, teamID, appID, "r", 2)
+		if err != nil {
+			t.Fatalf("fetch custom keys: %v", err)
+		}
+		if !truncated {
+			t.Error("want the list truncated after three matches")
+		}
+		got := customKeyNames(keys)
+		if len(got) != 2 || got[0] != "custom.is_premium" || got[1] != "custom.ratio" {
+			t.Errorf("want the first two matching keys by name, got %v", got)
+		}
+	})
+
+	t.Run("search treats wildcard characters as plain text", func(t *testing.T) {
+		keys, _, err := SpansEntity.CustomKeySource.fetchKeys(ctx, chConn, teamID, appID, "_", CustomKeyLimit)
+		if err != nil {
+			t.Fatalf("fetch custom keys: %v", err)
+		}
+		got := customKeyNames(keys)
+		if len(got) != 1 || got[0] != "custom.is_premium" {
+			t.Errorf("want only the key whose name contains an underscore, got %v", got)
+		}
+	})
+
 	t.Run("each key carries its stored type", func(t *testing.T) {
-		keys, _, err := SpansEntity.CustomKeySource.fetchKeys(ctx, chConn, teamID, appID, CustomKeyLimit)
+		keys, _, err := SpansEntity.CustomKeySource.fetchKeys(ctx, chConn, teamID, appID, "", CustomKeyLimit)
 		if err != nil {
 			t.Fatalf("fetch custom keys: %v", err)
 		}
@@ -118,7 +157,7 @@ func TestListKeysResolvesRequestedNames(t *testing.T) {
 	// is_premium, so the other seeded keys stand in for keys past
 	// CustomKeyLimit.
 	listKeys := func(names []string) ([]Key, bool, error) {
-		return SpansEntity.listKeys(ctx, chConn, teamID, appID, names, 2)
+		return SpansEntity.listKeys(ctx, chConn, teamID, appID, names, "", 2)
 	}
 
 	baseKeys, _, err := listKeys(nil)
