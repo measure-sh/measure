@@ -11,7 +11,7 @@
   "commitConvention": "angular",
   "contributorsPerLine": 7,
   "contributorsSortAlphabetically": false,
-  "skipCi": true,
+  "skipCi": false,
   "contributors": [
     {
       "login": "anupcowkur",
