@@ -24,14 +24,16 @@ const EmptyState: React.FC<EmptyStateProps> = ({
         className,
       )}
     >
-      <Icon className="size-6 shrink-0 text-muted-foreground" />
-      <div className="flex flex-col gap-1">
-        <p className="text-sm">{title}</p>
-        {description && (
-          <p className="text-xs text-muted-foreground">{description}</p>
-        )}
+      <div className="flex flex-col items-center gap-3 max-w-120">
+        <Icon className="size-6 shrink-0 text-muted-foreground" />
+        <div className="flex flex-col gap-1">
+          <p className="text-sm">{title}</p>
+          {description && (
+            <p className="text-xs text-muted-foreground">{description}</p>
+          )}
+        </div>
+        {action}
       </div>
-      {action}
     </div>
   );
 };
