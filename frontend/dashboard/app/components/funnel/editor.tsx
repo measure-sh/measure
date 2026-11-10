@@ -49,7 +49,7 @@ function EventPicker({
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   useEffect(() => {
-    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 300);
+    const timer = setTimeout(() => setDebouncedSearch(search.trim()), 500);
     return () => clearTimeout(timer);
   }, [search]);
   const eventNamesQuery = useFunnelEventNamesQuery(appId, debouncedSearch);
