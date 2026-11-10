@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 
-const isDev = process.env.NODE_ENV !== "production";
+function isDev(): boolean {
+  return process.env.NODE_ENV !== "production";
+}
 
 export function setCookiesFromJWT(
   accessToken: string,
   refreshToken: string,
   response: NextResponse<any>,
 ): NextResponse<any> {
+  const dev = isDev();
+
   // Decode the access token to extract the expiry
   const accessTokenPayload = JSON.parse(
     Buffer.from(accessToken.split(".")[1], "base64").toString(),
@@ -23,16 +27,16 @@ export function setCookiesFromJWT(
     path: "/",
     maxAge: Math.floor((accessExp.getTime() - Date.now()) / 1000),
     httpOnly: true,
-    secure: !isDev,
-    sameSite: isDev ? "lax" : "strict",
+    secure: !dev,
+    sameSite: dev ? "lax" : "strict",
   });
 
   response.cookies.set("refresh_token", refreshToken, {
     path: "/",
     maxAge: Math.floor((refreshExp.getTime() - Date.now()) / 1000),
     httpOnly: true,
-    secure: !isDev,
-    sameSite: isDev ? "lax" : "strict",
+    secure: !dev,
+    sameSite: dev ? "lax" : "strict",
   });
 
   return response;
@@ -47,13 +51,13 @@ export function isOAuthState(s: string): boolean {
 
 // mcpBindingCookieName returns the binding cookie name for oauthState. Prod adds the __Host- prefix & dev omits it since __Host- requires Secure
 export function mcpBindingCookieName(oauthState: string): string {
-  return `${isDev ? "" : "__Host-"}mcp_b_${oauthState}`;
+  return `${isDev() ? "" : "__Host-"}mcp_b_${oauthState}`;
 }
 
 function mcpBindingCookieAttrs(maxAge: number) {
   return {
     httpOnly: true,
-    secure: !isDev,
+    secure: !isDev(),
     sameSite: "lax" as const,
     path: "/",
     maxAge,

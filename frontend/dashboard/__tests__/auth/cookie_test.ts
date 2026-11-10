@@ -21,7 +21,12 @@ function createMockResponse() {
 
 jest.mock("next/server", () => ({}));
 
-import { setCookiesFromJWT } from "@/app/auth/cookie";
+import {
+  clearMcpBindingCookie,
+  isOAuthState,
+  readMcpBindingCookie,
+  setCookiesFromJWT,
+} from "@/app/auth/cookie";
 
 // Helper: create a minimal JWT with a given exp (seconds since epoch)
 function makeJWT(exp: number): string {
@@ -220,5 +225,69 @@ describe("setCookiesFromJWT", () => {
 
     expect(response._setCalls[0].options.maxAge).toBeLessThan(0);
     expect(response._setCalls[1].options.maxAge).toBeLessThan(0);
+  });
+});
+
+describe("mcp binding cookie helpers", () => {
+  const originalEnv = process.env.NODE_ENV;
+
+  afterEach(() => {
+    Object.defineProperty(process.env, "NODE_ENV", {
+      value: originalEnv,
+      writable: true,
+    });
+  });
+
+  it.each([
+    ["present", "mcp_b_ab1=v1", "v1"],
+    ["absent", "_ga=1", ""],
+    ["value with =", "mcp_b_ab1=a=b==", "a=b=="],
+    ["among others", "_ga=1; mcp_b_ab1=v1; gclid=x", "v1"],
+    ["other state", "mcp_b_ab2=v2", ""],
+    ["null header", null, ""],
+  ])("readMcpBindingCookie %s", (_l, header, want) => {
+    expect(readMcpBindingCookie(header, "ab1")).toBe(want);
+  });
+
+  it.each([
+    ["abc123", true],
+    ["a".repeat(128), true],
+    ["a".repeat(129), false],
+    ["", false],
+    ["ABC", false],
+    ["a;Domain=x", false],
+    ["a\r\nb", false],
+  ])("isOAuthState(%j) = %s", (s, want) => {
+    expect(isOAuthState(s)).toBe(want);
+  });
+
+  it("clear re-sets the cookie empty with maxAge 0 & the same attrs", () => {
+    const response = createMockResponse();
+    clearMcpBindingCookie(response as any, "ab1");
+    expect(response._setCalls).toEqual([
+      {
+        name: "mcp_b_ab1",
+        value: "",
+        options: {
+          httpOnly: true,
+          secure: false,
+          sameSite: "lax",
+          path: "/",
+          maxAge: 0,
+        },
+      },
+    ]);
+  });
+
+  it("prod uses the __Host- prefix & Secure", () => {
+    Object.defineProperty(process.env, "NODE_ENV", {
+      value: "production",
+      writable: true,
+    });
+    const response = createMockResponse();
+    clearMcpBindingCookie(response as any, "ab1");
+    expect(response._setCalls[0].name).toBe("__Host-mcp_b_ab1");
+    expect(response._setCalls[0].options.secure).toBe(true);
+    expect(readMcpBindingCookie("__Host-mcp_b_ab1=v", "ab1")).toBe("v");
   });
 });
