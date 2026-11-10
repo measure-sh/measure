@@ -21,11 +21,15 @@ let mockEventNames: {
   isPending: boolean;
   isError: boolean;
 };
+let mockEventNamesTruncated = false;
 // Answers like the server: the names containing the search.
 const mockUseFunnelEventNamesQuery = jest.fn(
   (_appId: string, search: string) => ({
     ...mockEventNames,
-    data: mockEventNames.data?.filter((name) => name.includes(search)),
+    data: mockEventNames.data && {
+      results: mockEventNames.data.filter((name) => name.includes(search)),
+      truncated: mockEventNamesTruncated,
+    },
   }),
 );
 
@@ -184,6 +188,7 @@ describe("FunnelEditor", () => {
   beforeEach(() => {
     mockSaveIsPending = false;
     mockEventNames = { data: EVENTS, isPending: false, isError: false };
+    mockEventNamesTruncated = false;
   });
 
   describe("Create mode", () => {
@@ -382,6 +387,21 @@ describe("FunnelEditor", () => {
       renderEditor();
       openPicker(0);
       expect(screen.getByText("Failed to load events")).toBeInTheDocument();
+    });
+
+    it("asks the user to keep typing when more names matched than are shown", () => {
+      mockEventNamesTruncated = true;
+      renderEditor();
+      openPicker(0);
+      expect(
+        screen.getByText("Showing the first 4. Keep typing to narrow"),
+      ).toBeInTheDocument();
+    });
+
+    it("shows no note when all matching names are shown", () => {
+      renderEditor();
+      openPicker(0);
+      expect(screen.queryByText(/Keep typing to narrow/)).toBeNull();
     });
 
     it("sets the chosen event on that step only and closes the list", () => {

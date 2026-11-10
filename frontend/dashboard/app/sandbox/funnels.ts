@@ -1458,14 +1458,16 @@ export const funnelsRoutes: SandboxRoute[] = [
     handle: ({ params, url }) => {
       const bundle = catalog().appById.get(params.appId);
       if (!bundle) {
-        return jsonResponse({ results: [] });
+        return jsonResponse({ results: [], truncated: false });
       }
       const search = (url.searchParams.get("search") ?? "").toLowerCase();
       const names = [...new Set(seedsFor(bundle).flatMap(eventNamesOf))]
         .filter((name) => name.toLowerCase().includes(search))
-        .sort()
-        .slice(0, 50);
-      return jsonResponse({ results: names });
+        .sort();
+      return jsonResponse({
+        results: names.slice(0, 50),
+        truncated: names.length > 50,
+      });
     },
   },
   {

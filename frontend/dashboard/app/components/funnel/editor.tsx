@@ -109,7 +109,7 @@ function EventPicker({
             </div>
           </CommandEmpty>
           <CommandGroup className="max-h-72 overflow-auto">
-            {(eventNamesQuery.data ?? []).map((name) => (
+            {(eventNamesQuery.data?.results ?? []).map((name) => (
               <CommandItem
                 key={name}
                 value={name}
@@ -123,6 +123,12 @@ function EventPicker({
               </CommandItem>
             ))}
           </CommandGroup>
+          {eventNamesQuery.data?.truncated && (
+            <p className="font-body text-xs text-muted-foreground border-t px-3 py-2">
+              Showing the first {eventNamesQuery.data.results.length}. Keep
+              typing to narrow
+            </p>
+          )}
         </Command>
       </PopoverContent>
     </Popover>

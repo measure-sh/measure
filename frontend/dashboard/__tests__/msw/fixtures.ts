@@ -2242,6 +2242,7 @@ export function makeFunnelEventNamesFixture() {
       "search_performed",
       "search_result_clicked",
     ],
+    truncated: false,
   };
 }
 
