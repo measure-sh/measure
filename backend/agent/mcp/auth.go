@@ -323,6 +323,66 @@ func mcpValidateClientID(clientID string) error {
 	return nil
 }
 
+// mcpBlockedRedirectSchemes lists schemes never accepted in a redirect URI.
+var mcpBlockedRedirectSchemes = map[string]bool{
+	"javascript": true, "data": true, "vbscript": true, "file": true, "blob": true,
+	"about": true, "ws": true, "wss": true, "ftp": true,
+}
+
+const (
+	mcpRedirectURIMaxLen = 2000
+	mcpRedirectURIMaxNum = 10
+)
+
+// mcpValidateRedirectURI checks the shape & scheme of a client redirect URI.
+// https accepts any host & http only loopback hosts.
+func mcpValidateRedirectURI(raw string) error {
+	invalid := func(msg string) error {
+		return &mcpHTTPError{Status: http.StatusBadRequest, OAuthError: "invalid_redirect_uri", Message: msg}
+	}
+	if len(raw) > mcpRedirectURIMaxLen {
+		return invalid("redirect_uri is too long")
+	}
+	u, parseErr := url.Parse(raw)
+	if parseErr != nil || u.Scheme == "" {
+		return invalid("redirect_uri must be an absolute URI")
+	}
+	if mcpBlockedRedirectSchemes[u.Scheme] {
+		return invalid("redirect_uri scheme is not allowed")
+	}
+	if u.Opaque != "" {
+		return invalid("redirect_uri must not be opaque")
+	}
+	if u.Fragment != "" || u.User != nil {
+		return invalid("redirect_uri must not contain a fragment or userinfo")
+	}
+	switch u.Scheme {
+	case "https":
+		if u.Hostname() == "" {
+			return invalid("redirect_uri must have a host")
+		}
+	case "http":
+		if !mcpIsLoopbackHost(u.Hostname()) {
+			return invalid("http redirect_uri must use a loopback host")
+		}
+	}
+	// other schemes are private-use app schemes (RFC 8252 section 7.1)
+	return nil
+}
+
+// mcpValidateRedirectURIs checks the count & every URI of a registration.
+func mcpValidateRedirectURIs(uris []string) error {
+	if len(uris) > mcpRedirectURIMaxNum {
+		return &mcpHTTPError{Status: http.StatusBadRequest, OAuthError: "invalid_redirect_uri", Message: "too many redirect_uris"}
+	}
+	for _, raw := range uris {
+		if err := mcpValidateRedirectURI(raw); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // mcpFetchClientMetadata resolves a client_id given as the URL of a Client ID
 // Metadata Document. The document is self-published, so it is accepted only if
 // its own client_id field matches the URL it was fetched from.
@@ -359,6 +419,11 @@ func mcpFetchClientMetadata(ctx context.Context, clientID string) (mcpClientMeta
 	}
 	if len(meta.RedirectURIs) == 0 {
 		return mcpClientMetadata{}, &mcpHTTPError{Status: http.StatusBadRequest, Message: "client metadata has no redirect_uris"}
+	}
+	for _, raw := range meta.RedirectURIs {
+		if mcpValidateRedirectURI(raw) != nil {
+			return mcpClientMetadata{}, &mcpHTTPError{Status: http.StatusBadRequest, Message: "client metadata has invalid redirect_uri"}
+		}
 	}
 	return meta, nil
 }
@@ -527,6 +592,9 @@ func mcpValidateAuthorizeRequest(ctx context.Context, deps *server.Deps, req mcp
 	}
 	if !mcpRedirectURIAllowed(req.RedirectURI, client.redirectURIs) {
 		return params, &mcpHTTPError{Status: http.StatusBadRequest, Message: "redirect_uri not registered for this client"}
+	}
+	if err := mcpValidateRedirectURI(req.RedirectURI); err != nil {
+		return params, &mcpHTTPError{Status: http.StatusBadRequest, Message: "redirect_uri is not valid"}
 	}
 
 	return mcpAuthorizeParams{
@@ -1287,6 +1355,10 @@ func (h Handlers) MCPRegisterClient(c *gin.Context) {
 		c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{"error": "redirect_uris must not be empty"})
 		return
 	}
+	if err := mcpValidateRedirectURIs(req.RedirectURIs); err != nil {
+		mcpAbortWithError(c, err)
+		return
+	}
 
 	clientID, err := mcpRegisterClient(ctx, deps, req.ClientName, req.RedirectURIs)
 	if err != nil {
@@ -1369,7 +1441,7 @@ func (h Handlers) MCPAuthorizeDetails(c *gin.Context) {
 		"client_host":          mcpClientHost(p.clientID),
 		"redirect_uri":         p.redirectURI,
 		"redirect_host":        redirectHost,
-		"redirect_is_loopback": mcpIsLoopbackHost(redirectHost),
+		"redirect_is_loopback": strings.HasPrefix(p.redirectURI, "http://") && mcpIsLoopbackHost(redirectHost),
 	})
 }
 
