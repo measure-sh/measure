@@ -81,4 +81,9 @@ COPY --from=builder /app/public ./public
 
 ENV NODE_ENV=production
 
+# Next's image cache is the only runtime write; app files stay root-owned
+RUN mkdir -p .next/cache && chown node:node .next/cache
+
+USER node
+
 CMD ["node", "server.js"]
