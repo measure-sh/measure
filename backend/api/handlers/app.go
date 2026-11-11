@@ -722,10 +722,7 @@ func (h Handlers) GetSession(c *gin.Context) {
 
 	lc := logcomment.New(2).MustPut(logcomment.Root, logcomment.Sessions)
 	settings := clickhouse.Settings{
-		"log_comment":     lc.String(),
-		"use_query_cache": 1,
-		// cache for 10 mins
-		"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
+		"log_comment": lc.String(),
 	}
 
 	ctx = chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, "detail"))

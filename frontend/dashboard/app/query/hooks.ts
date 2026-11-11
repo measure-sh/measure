@@ -1841,6 +1841,9 @@ export function useSessionReplayQuery(appId: string, sessionId: string) {
     // switch away and back from asking for the whole session again.
     refetchOnWindowFocus: true,
     staleTime: 30 * 60 * 1000,
+    // Keeps the session response in cache after unmount, so returning to the
+    // replay shows it without a request. A browser refresh still fetches.
+    gcTime: 10 * 60 * 1000,
   });
 }
 
