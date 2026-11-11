@@ -628,7 +628,7 @@ services:
     command: ["migrate"]
 
   symbolicator:
-    image: ghcr.io/getsentry/symbolicator:26.3.1
+    image: ghcr.io/getsentry/symbolicator:26.10.1
     ports:
       - "3021:3021"
     volumes:

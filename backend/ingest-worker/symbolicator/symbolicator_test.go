@@ -38,7 +38,7 @@ import (
 
 // symbolicatorImage is the Docker image used for the symbolicator service.
 // Change this to test against a different version.
-const symbolicatorImage = "ghcr.io/getsentry/symbolicator:26.3.1"
+const symbolicatorImage = "ghcr.io/getsentry/symbolicator:26.10.1"
 
 var (
 	pgPool                    *pgxpool.Pool

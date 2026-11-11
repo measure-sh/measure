@@ -155,9 +155,9 @@ type Symbolicator struct {
 	// the symbolicator is requested to use.
 	Sources []Source
 	// SentrySources is a list of Sentry-type sources
-	// used for ProGuard symbol lookups. On symbolicator
-	// 26.3.1+, S3/GCS sources cannot resolve ProGuard
-	// files, so a Sentry source is needed instead.
+	// used for ProGuard symbol lookups. Symbolicator
+	// cannot resolve ProGuard files from S3/GCS sources,
+	// so a Sentry source is needed instead.
 	SentrySources []SentrySource
 	// jvmSymbolicator maintains state for
 	// a JVM symbolication request.
