@@ -20,6 +20,8 @@ services:
     environment:
       - NODE_ENV=production
       - HOSTNAME=0.0.0.0
+    healthcheck:
+      test: ["CMD", "/nodejs/bin/node", "-e", "fetch('http://0.0.0.0:3000').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
     develop: !reset null
     restart: unless-stopped
     logging:

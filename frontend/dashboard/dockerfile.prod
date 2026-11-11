@@ -64,26 +64,24 @@ RUN --mount=type=secret,id=posthog_sourcemap_personal_key \
     POSTHOG_SOURCEMAP_PERSONAL_KEY="$(cat /run/secrets/posthog_sourcemap_personal_key 2>/dev/null || true)" \
     npm run build
 
-# ============================================
-# Production Runner (minimal)
-# ============================================
-FROM node:24-slim AS runner
-WORKDIR /app
+# Seeds a writable .next/cache for the shell-less runner
+RUN mkdir -p /empty-cache
 
-RUN apt-get update \
-    && apt-get install -y --no-install-recommends ca-certificates wget \
-    && rm -rf /var/lib/apt/lists/*
+# ============================================
+# Production Runner (distroless: no shell or package manager, runs as nonroot)
+# ============================================
+FROM gcr.io/distroless/nodejs24-debian13:nonroot AS runner
+WORKDIR /app
 
 # Copy standalone output (this is the key for small images)
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
+# Next's image cache is the only runtime write; app files stay root-owned
+COPY --from=builder --chown=65532:65532 /empty-cache ./.next/cache
+
 ENV NODE_ENV=production
 
-# Next's image cache is the only runtime write; app files stay root-owned
-RUN mkdir -p .next/cache && chown node:node .next/cache
-
-USER node
-
-CMD ["node", "server.js"]
+# The base image's entrypoint is node
+CMD ["server.js"]
