@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"backend/libs/chquery"
-	"backend/libs/config"
 	"backend/libs/logcomment"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
@@ -207,15 +206,18 @@ func (flt *Filter) Validate() error {
 	return ValidateFilterExpr(flt.ExprTree, IndexKeysByName(flt.Entity.Keys))
 }
 
-// WithFilterQuerySettings carries the ClickHouse settings for filter key and
-// value reads: a log comment specifying the query and, in release mode, a short
-// query cache, since the same lists are asked for on every picker open.
+// WithFilterQuerySettings tags each ClickHouse query with a name using the
+// log_comment setting; it does not log the query. In release mode, it enables
+// the query cache with a 5 minute TTL. Filter pages load the key list on each
+// visit, and pickers often request the same value lists, so repeats are common.
+// New keys and values appear within a few minutes. In debug mode, it sets
+// force_primary_key.
 func WithFilterQuerySettings(ctx context.Context, releaseMode, debugMode bool, queryName string) context.Context {
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
 		"log_comment":       lc.MustPut(logcomment.Root, logcomment.Filters).String(),
 		"use_query_cache":   releaseMode,
-		"query_cache_ttl":   int(config.DefaultQueryCacheTTL.Seconds()),
+		"query_cache_ttl":   int((5 * time.Minute).Seconds()),
 		"force_primary_key": debugMode,
 	}
 	return chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, queryName))

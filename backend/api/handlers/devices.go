@@ -37,7 +37,6 @@ func (h Handlers) prepareDevicesFilter(c *gin.Context, endpoint devicesEndpoint)
 		appScope:        *measure.ScopeAppRead,
 		logRoot:         logcomment.Devices,
 		logName:         endpoint.logName,
-		useQueryCache:   true,
 		requireSpanName: endpoint.requireSpanName,
 		requireTimezone: endpoint.requireTimezone,
 	})
@@ -61,7 +60,7 @@ func (h Handlers) GetDevicesSessions(c *gin.Context) {
 	if !ok {
 		return
 	}
-	rows, next, previous, err := app.GetDevicesSessionsCached(ctx, h.Deps.VK, h.Deps.RchPool, &flt, page)
+	rows, next, previous, err := app.GetDevicesSessions(ctx, h.Deps.RchPool, &flt, page)
 	respondDevicesPage(c, rows, next, previous, err, "failed to query device sessions")
 }
 
@@ -70,7 +69,7 @@ func (h Handlers) GetDevicesSessionsPlot(c *gin.Context) {
 	if !ok {
 		return
 	}
-	points, err := app.GetDevicesSessionsPlotCached(ctx, h.Deps.VK, h.Deps.RchPool, &flt)
+	points, err := app.GetDevicesSessionsPlot(ctx, h.Deps.RchPool, &flt)
 	if err != nil {
 		msg := "failed to query device sessions plot"
 		fmt.Println(msg, err)
@@ -85,7 +84,7 @@ func (h Handlers) GetDevicesErrors(c *gin.Context) {
 	if !ok {
 		return
 	}
-	rows, next, previous, err := app.GetDevicesErrorsCached(ctx, h.Deps.VK, h.Deps.RchPool, &flt, page)
+	rows, next, previous, err := app.GetDevicesErrors(ctx, h.Deps.RchPool, &flt, page)
 	respondDevicesPage(c, rows, next, previous, err, "failed to query device errors")
 }
 
@@ -99,7 +98,7 @@ func (h Handlers) GetDevicesLaunches(c *gin.Context) {
 	if !ok {
 		return
 	}
-	rows, next, previous, err := app.GetDevicesLaunchesCached(ctx, h.Deps.VK, h.Deps.RchPool, &flt, page, launchType)
+	rows, next, previous, err := app.GetDevicesLaunches(ctx, h.Deps.RchPool, &flt, page, launchType)
 	respondDevicesPage(c, rows, next, previous, err, "failed to query device launch times")
 }
 
@@ -108,7 +107,7 @@ func (h Handlers) GetDevicesSpans(c *gin.Context) {
 	if !ok {
 		return
 	}
-	rows, next, previous, err := app.GetDevicesSpansCached(ctx, h.Deps.VK, h.Deps.RchPool, &flt, page, spanName)
+	rows, next, previous, err := app.GetDevicesSpans(ctx, h.Deps.RchPool, &flt, page, spanName)
 	respondDevicesPage(c, rows, next, previous, err, "failed to query device span durations")
 }
 
@@ -123,6 +122,6 @@ func (h Handlers) GetDevicesMemory(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to populate app"})
 		return
 	}
-	rows, next, previous, err := app.GetDevicesMemoryCached(ctx, h.Deps.VK, h.Deps.RchPool, &flt, page)
+	rows, next, previous, err := app.GetDevicesMemory(ctx, h.Deps.RchPool, &flt, page)
 	respondDevicesPage(c, rows, next, previous, err, "failed to query device memory usage")
 }

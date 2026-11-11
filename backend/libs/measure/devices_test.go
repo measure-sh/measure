@@ -124,32 +124,6 @@ func TestGetDevicesSessions(t *testing.T) {
 			t.Errorf("ascending page = %v, want Galaxy S24 then Pixel 7", got)
 		}
 	})
-
-	// This subtest seeds a session and must run last.
-	t.Run("reads the cache", func(t *testing.T) {
-		flt := devicesFilter("device_model:in:\"Galaxy S24\"")
-		sessions := func(page DevicesPage) uint64 {
-			t.Helper()
-			rows, _, _, err := f.app.GetDevicesSessionsCached(f.ctx, th.VK, deps.RchPool, flt, page)
-			if err != nil {
-				t.Fatal(err)
-			}
-			if len(rows) != 1 {
-				t.Fatalf("rows = %#v, want Galaxy S24", rows)
-			}
-			return rows[0].SessionCount
-		}
-		if got := sessions(DevicesPage{}); got != 1 {
-			t.Fatalf("sessions = %d, want 1", got)
-		}
-		seed(1, "Samsung", "Galaxy S24")
-		if got := sessions(DevicesPage{}); got != 1 {
-			t.Errorf("sessions = %d, want the cached 1", got)
-		}
-		if got := sessions(DevicesPage{Ascending: true}); got != 2 {
-			t.Errorf("ascending sessions = %d, want 2 from a separate cache entry", got)
-		}
-	})
 }
 
 func TestGetDevicesErrorsCountsEachErrorType(t *testing.T) {

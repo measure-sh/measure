@@ -3688,7 +3688,6 @@ paths:
         - A device is identified by its manufacturer and model. Sessions without a device model are excluded.
         - Each session is counted once, in the bucket where it started. Sessions that started before `from` are counted in the first bucket. As a result, each device’s plotted counts add up to its `session_count` in `/apps/{id}/devices/sessions`.
         - Buckets with no sessions are omitted.
-        - Results are cached for up to 10 minutes.
       parameters:
         - *a1
         - $ref: "#/components/parameters/From"
@@ -3731,7 +3730,6 @@ paths:
 
         - A session is counted if it overlaps the date range. Sessions without a device model are excluded.
         - `percent_of_sessions` is each device’s share of all matching sessions, including sessions on devices outside the current page.
-        - Results are cached for up to 10 minutes.
       parameters:
         - *a1
         - $ref: "#/components/parameters/From"
@@ -3788,7 +3786,6 @@ paths:
 
         - Errors include crashes, ANRs, app hangs, and handled or unhandled exceptions.
         - `session_count` is the number of sessions with at least one error.
-        - Results are cached for up to 10 minutes.
       parameters:
         - *a1
         - $ref: "#/components/parameters/From"
@@ -3848,7 +3845,6 @@ paths:
         Returns a page of device models, ranked by a duration percentile for the selected launch type.
 
         - Durations are in milliseconds. Launches without a duration are excluded.
-        - Results are cached for up to 10 minutes.
       parameters:
         - *a1
         - $ref: "#/components/parameters/From"
@@ -3919,7 +3915,6 @@ paths:
 
         - Durations are in milliseconds.
         - Spans recorded before device models were added to span metrics have no device model and are excluded.
-        - Results are cached for up to 10 minutes.
       parameters:
         - *a1
         - name: span_name
@@ -3985,7 +3980,6 @@ paths:
 
         - Values are in KB (1024 bytes). Android reports anonymous RSS plus swap; iOS and iPadOS report used memory.
         - Percentiles are calculated from individual samples across all app states.
-        - Results are cached for up to 10 minutes.
       parameters:
         - *a1
         - $ref: "#/components/parameters/From"

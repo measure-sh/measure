@@ -71,7 +71,7 @@ func (h Handlers) GetErrorGroupCommonPath(c *gin.Context) {
 
 	app.TeamId = *team.ID
 
-	data, err := measure.GetIssueGroupCommonPath(ctx, deps.RchPool, *team.ID, id, group.GroupTypeError, groupId)
+	data, err := measure.GetIssueGroupCommonPath(ctx, deps.RchPool, gin.Mode() == gin.ReleaseMode, *team.ID, id, group.GroupTypeError, groupId)
 	if err != nil {
 		fmt.Println(err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

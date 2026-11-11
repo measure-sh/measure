@@ -549,9 +549,7 @@ func SuggestFunnelEventNames(ctx context.Context, rch driver.Conn, teamID, appID
 		endFunnelSpan(span, err, attribute.Int("funnel.event_names", len(names)))
 	}()
 
-	// The start is rounded down to the hour, so the query text stays the same
-	// for an hour and ClickHouse can answer repeats from its query cache.
-	from := time.Now().Add(-30 * 24 * time.Hour).Truncate(time.Hour)
+	from := time.Now().Add(-30 * 24 * time.Hour)
 
 	stmt := sqlf.
 		From("analytics_events").

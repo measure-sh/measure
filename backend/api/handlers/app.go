@@ -11,7 +11,6 @@ import (
 
 	"backend/api/server"
 	"backend/libs/chquery"
-	"backend/libs/config"
 	"backend/libs/event"
 	"backend/libs/filter"
 	"backend/libs/logcomment"
@@ -83,9 +82,7 @@ func (h Handlers) GetAppMetrics(c *gin.Context) {
 	metricsSettings := func(name string) context.Context {
 		lc := logcomment.New(2)
 		settings := clickhouse.Settings{
-			"log_comment":     lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
-			"use_query_cache": gin.Mode() == gin.ReleaseMode,
-			"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
+			"log_comment": lc.MustPut(logcomment.Root, logcomment.Metrics).String(),
 		}
 		return chquery.WithSettings(ctx, logcomment.Put(settings, lc, logcomment.Name, name))
 	}
@@ -1360,7 +1357,6 @@ func (h Handlers) GetRootSpanNames(c *gin.Context) {
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
 		"log_comment":      lc.MustPut(logcomment.Root, logcomment.Spans),
-		"use_query_cache":  gin.Mode() == gin.ReleaseMode,
 		"use_skip_indexes": 0,
 	}
 
@@ -1388,7 +1384,6 @@ func (h Handlers) GetSpansForSpanName(c *gin.Context) {
 		appScope:        *measure.ScopeAppRead,
 		logRoot:         logcomment.Spans,
 		logName:         "list",
-		useQueryCache:   true,
 		requireSpanName: true,
 	})
 	if !ok {

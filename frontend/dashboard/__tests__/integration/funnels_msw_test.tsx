@@ -730,13 +730,14 @@ describe("Funnels Overview (MSW integration)", () => {
       expect(table().queryByRole("link", { name: "Checkout" })).toBeNull();
       expect(lists.at(-1)!.url.searchParams.get("offset")).toBe("5");
       expect(new URLSearchParams(window.location.search).get("po")).toBe("5");
+      const sentBeforePrevious = lists.length;
 
       await act(async () => {
         fireEvent.click(screen.getByRole("button", { name: "Previous" }));
       });
       await waitForFunnels();
       expect(screen.queryByText("Log in")).toBeNull();
-      expect(lists.at(-1)!.url.searchParams.get("offset")).toBe("0");
+      expect(lists.length).toBe(sentBeforePrevious);
     });
 
     it("opens the page a link carries and stays on it once the search box settles", async () => {
@@ -1533,8 +1534,13 @@ describe("Funnel Details (MSW integration)", () => {
       return within(await screen.findByRole("dialog"));
     }
 
-    it("deletes the funnel after confirmation and returns to the funnels", async () => {
+    it("deletes the funnel after confirmation, returns to the list, and fetches it again when reopened instead of using the cache", async () => {
       const deletes = record("delete", "/:funnelId");
+      const funnels = record("get", "/:funnelId", () =>
+        deletes.length > 0
+          ? HttpResponse.json({ error: "funnel not found" }, { status: 404 })
+          : undefined,
+      );
       const dialog = await confirmDelete();
 
       await act(async () => {
@@ -1549,6 +1555,16 @@ describe("Funnel Details (MSW integration)", () => {
       expect(
         await screen.findByText("Funnel Checkout has been deleted"),
       ).toBeTruthy();
+
+      cleanup();
+      const sentBeforeReopen = funnels.length;
+      renderPage();
+      expect(
+        await screen.findByText(
+          "Error fetching funnel, please refresh page to try again",
+        ),
+      ).toBeTruthy();
+      expect(funnels.length).toBeGreaterThan(sentBeforeReopen);
     });
 
     it("makes the funnels list ask the server again, without the deleted funnel", async () => {

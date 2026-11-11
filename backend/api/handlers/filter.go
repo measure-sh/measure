@@ -81,9 +81,6 @@ type filterEndpoint struct {
 	appScope measure.Scope
 	logRoot  string
 	logName  string
-	// useQueryCache adds the use_query_cache ClickHouse setting, enabled in
-	// release mode, to the endpoint's queries.
-	useQueryCache bool
 	// requireSpanName rejects requests without a span_name query param.
 	requireSpanName bool
 	// requireTimezone rejects requests without a timezone query param, which
@@ -212,9 +209,6 @@ func (h Handlers) prepareFilter(c *gin.Context, endpoint filterEndpoint) (app me
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
 		"log_comment": lc.MustPut(logcomment.Root, endpoint.logRoot).String(),
-	}
-	if endpoint.useQueryCache {
-		settings["use_query_cache"] = gin.Mode() == gin.ReleaseMode
 	}
 
 	settings = logcomment.Put(settings, lc, logcomment.Name, endpoint.logName)

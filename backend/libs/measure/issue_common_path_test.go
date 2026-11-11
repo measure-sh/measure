@@ -88,7 +88,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		teamID := uuid.New()
 		appID := uuid.New()
 
-		_, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, "fp-does-not-exist")
+		_, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeCrash, "fp-does-not-exist")
 		if err == nil {
 			t.Fatal("expected error for nonexistent crash group")
 		}
@@ -103,7 +103,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		teamID := uuid.New()
 		appID := uuid.New()
 
-		_, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeANR, "fp-does-not-exist")
+		_, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeANR, "fp-does-not-exist")
 		if err == nil {
 			t.Fatal("expected error for nonexistent ANR group")
 		}
@@ -120,7 +120,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		fingerprint := "fp-empty-crash-sessions-12345"
 		th.SeedExceptionGroup(ctx, t, teamID.String(), appID.String(), fingerprint)
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeCrash, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -148,7 +148,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		fingerprint := "fp-empty-anr-sessions-123456"
 		th.SeedAnrGroup(ctx, t, teamID.String(), appID.String(), fingerprint)
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeANR, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeANR, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -185,7 +185,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		seedEventWithSession(ctx, t, teamID.String(), appID.String(), sessionID, now.Add(-2*time.Second))
 		seedIssueEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "exception", fingerprint, false, now)
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeCrash, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -215,7 +215,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		seedEventWithSession(ctx, t, teamID.String(), appID.String(), sessionID, now.Add(-2*time.Second))
 		seedIssueEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "anr", fingerprint, false, now)
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeANR, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeANR, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -250,7 +250,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 			seedIssueEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "exception", fingerprint, false, now)
 		}
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeCrash, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -295,7 +295,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		excJSON := `[{"type":"NullPointerException","message":"null ref","frames":[]}]`
 		seedIssueEventWithDataInSession(ctx, t, teamID.String(), appID.String(), sessionID, "exception", fingerprint, true, excJSON, now)
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeCrash, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -337,7 +337,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		excJSON := `[{"type":"NullPointerException","message":"null ref","frames":[]}]`
 		seedIssueEventWithSeverityInSession(ctx, t, teamID.String(), appID.String(), sessionID, fingerprint, "handled", excJSON, now)
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeCrash, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -377,7 +377,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		excJSON := `[{"type":"NullPointerException","message":"null ref","frames":[]}]`
 		seedIssueEventWithSeverityInSession(ctx, t, teamID.String(), appID.String(), sessionID, fingerprint, "unhandled", excJSON, now)
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeCrash, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -421,7 +421,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		anrJSON := `[{"type":"ANR","message":"Input dispatching timed out","frames":[]}]`
 		seedIssueEventWithDataInSession(ctx, t, teamID.String(), appID.String(), sessionID, "anr", fingerprint, false, anrJSON, now)
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeANR, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeANR, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -471,7 +471,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 			Timestamp:      now,
 		})
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeANR, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeANR, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -515,7 +515,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		// No exceptions JSON, SeedIssueEventInSession leaves it empty
 		seedIssueEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "exception", fingerprint, false, now)
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeCrash, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -558,7 +558,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "ProfileScreen", now.Add(-2*time.Second))
 		seedIssueEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "anr", fingerprint, false, now)
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeANR, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeANR, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -605,7 +605,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 			})
 		}
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeError, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeError, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -664,7 +664,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "CheckoutScreen", now.Add(-2*time.Second))
 		seedIssueEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "exception", fingerprint, false, now)
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeCrash, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -707,7 +707,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		sessionID := uuid.New().String()
 		seedIssueEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "exception", fingerprint, false, now)
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeCrash, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -747,7 +747,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), rareSessionID, "RareScreen", now.Add(-2*time.Second))
 		seedIssueEventInSession(ctx, t, teamID.String(), appID.String(), rareSessionID, "exception", fingerprint, false, now)
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeCrash, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -796,7 +796,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "DetailScreen", now.Add(-2*time.Second))
 		seedIssueEventWithDataInSession(ctx, t, teamID.String(), appID.String(), sessionID, "exception", fingerprint, false, excJSON, now)
 
-		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, fingerprint)
+		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeCrash, fingerprint)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -881,7 +881,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 					Timestamp:      now,
 				})
 
-				data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeCrash, fingerprint)
+				data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeCrash, fingerprint)
 				if err != nil {
 					t.Fatalf("unexpected error: %v", err)
 				}
