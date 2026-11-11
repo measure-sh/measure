@@ -8,7 +8,6 @@ import (
 	"strconv"
 
 	"backend/libs/chquery"
-	"backend/libs/config"
 	"backend/libs/filter"
 	"backend/libs/logcomment"
 	"backend/libs/measure"
@@ -193,11 +192,10 @@ func (h Handlers) DeleteFunnel(c *gin.Context) {
 
 func (h Handlers) GetFunnelConversion(c *gin.Context) {
 	_, flt, ctx, _, ok := h.prepareFilter(c, filterEndpoint{
-		entity:        filter.FunnelsEntity,
-		appScope:      *measure.ScopeFunnelRead,
-		logRoot:       logcomment.Funnels,
-		logName:       "conversion",
-		useQueryCache: true,
+		entity:   filter.FunnelsEntity,
+		appScope: *measure.ScopeFunnelRead,
+		logRoot:  logcomment.Funnels,
+		logName:  "conversion",
 	})
 	if !ok {
 		return
@@ -257,7 +255,6 @@ func (h Handlers) GetFunnelStepErrors(c *gin.Context) {
 		appScope:            *measure.ScopeFunnelRead,
 		logRoot:             logcomment.Funnels,
 		logName:             "step_errors",
-		useQueryCache:       true,
 		acceptSamplePercent: true,
 	})
 	if !ok {
@@ -278,7 +275,6 @@ func (h Handlers) GetFunnelStepTraces(c *gin.Context) {
 		appScope:            *measure.ScopeFunnelRead,
 		logRoot:             logcomment.Funnels,
 		logName:             "step_traces",
-		useQueryCache:       true,
 		acceptSamplePercent: true,
 	})
 	if !ok {
@@ -304,7 +300,6 @@ func (h Handlers) GetFunnelStepNetwork(c *gin.Context) {
 		appScope:            *measure.ScopeFunnelRead,
 		logRoot:             logcomment.Funnels,
 		logName:             "step_network",
-		useQueryCache:       true,
 		acceptSamplePercent: true,
 	})
 	if !ok {
@@ -335,7 +330,6 @@ func (h Handlers) GetFunnelStepSessions(c *gin.Context) {
 		appScope:            *measure.ScopeFunnelRead,
 		logRoot:             logcomment.Funnels,
 		logName:             "step_sessions",
-		useQueryCache:       true,
 		acceptSamplePercent: true,
 	})
 	if !ok {
@@ -361,7 +355,6 @@ func (h Handlers) GetFunnelTrend(c *gin.Context) {
 		appScope:        *measure.ScopeFunnelRead,
 		logRoot:         logcomment.Funnels,
 		logName:         "trend",
-		useQueryCache:   true,
 		requireTimezone: true,
 	})
 	if !ok {
@@ -399,7 +392,6 @@ func (h Handlers) GetFunnelCadence(c *gin.Context) {
 		appScope:        *measure.ScopeFunnelRead,
 		logRoot:         logcomment.Funnels,
 		logName:         "cadence",
-		useQueryCache:   true,
 		requireTimezone: true,
 	})
 	if !ok {
@@ -444,9 +436,7 @@ func (h Handlers) SuggestFunnelEventNames(c *gin.Context) {
 
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
-		"log_comment":     lc.MustPut(logcomment.Root, logcomment.Funnels).String(),
-		"use_query_cache": gin.Mode() == gin.ReleaseMode,
-		"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
+		"log_comment": lc.MustPut(logcomment.Root, logcomment.Funnels).String(),
 	}
 	ctx := chquery.WithSettings(c.Request.Context(), logcomment.Put(settings, lc, logcomment.Name, "event_names"))
 

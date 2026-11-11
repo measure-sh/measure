@@ -117,6 +117,7 @@ import {
 import type { FilterKeysResponse } from "@/app/api/filter_types";
 import { ApiError } from "@/app/api/api_error";
 import { apiClient } from "@/app/api/api_client";
+import { BROWSER_CACHE } from "@/app/query/query_client";
 import {
   Query,
   keepPreviousData,
@@ -130,6 +131,7 @@ export function useAppsQuery(teamId: string | undefined) {
     queryKey: ["filterApps", teamId] as const,
     queryFn: () => fetchAppsFromServer(teamId!),
     enabled: !!teamId,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -145,6 +147,7 @@ export function useFilterKeysQuery(
     queryKey: ["filterKeys", appId, entity, keyNames, search] as const,
     queryFn: () => fetchFilterKeys(appId!, entity, keyNames, search),
     enabled: !!appId,
+    ...BROWSER_CACHE,
     // The key names grow while the user types a custom key into the filter
     // text editor; keeping the last response stops every loaded key from
     // being flagged unknown during the refetch.
@@ -166,7 +169,7 @@ export function useFilterValuesQuery(
     queryKey: ["filterValues", appId, entity, keyName, search] as const,
     queryFn: () => fetchFilterValues(appId!, entity, keyName!, search),
     enabled: !!appId && !!keyName,
-    staleTime: 60 * 1000,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -175,6 +178,7 @@ export function useRootSpanNamesQuery(app: App | null | undefined) {
     queryKey: ["rootSpanNames", app?.id] as const,
     queryFn: () => fetchRootSpanNamesFromServer(app!),
     enabled: !!app,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -464,6 +468,7 @@ export function useMetricsQuery(params: FilterParams | null) {
       ),
     enabled: params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -472,6 +477,7 @@ export function useAppThresholdPrefsQuery(appId: string | undefined) {
     queryKey: ["appThresholdPrefs", appId] as const,
     queryFn: () => fetchAppThresholdPrefsFromServer(appId!),
     enabled: !!appId,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -699,6 +705,7 @@ export function useFunnelsQuery(
       fetchFunnelsFromServer(appId!, search, FUNNELS_LIMIT, offset),
     placeholderData: keepPreviousData,
     enabled: !!appId,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -711,6 +718,7 @@ export function usePinnedFunnelsQuery(appId: string | undefined) {
     queryKey: pinnedFunnelsQueryKey(appId),
     queryFn: () => fetchPinnedFunnelsFromServer(appId!),
     enabled: !!appId,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -770,6 +778,7 @@ export function useFunnelQuery(appId: string, funnelId: string) {
   return useQuery({
     queryKey: ["funnel", appId, funnelId] as const,
     queryFn: () => fetchFunnelFromServer(appId, funnelId),
+    ...BROWSER_CACHE,
   });
 }
 
@@ -781,7 +790,7 @@ export function useFunnelEventNamesQuery(
     queryKey: ["funnelEventNames", appId, search] as const,
     queryFn: () => fetchFunnelEventNamesFromServer(appId!, search),
     enabled: !!appId,
-    staleTime: 60 * 1000,
+    ...BROWSER_CACHE,
     placeholderData: keepPreviousData,
   });
 }
@@ -1069,8 +1078,14 @@ export function useDeleteFunnelMutation() {
   return useMutation({
     mutationFn: (params: { appId: string; funnelId: string }) =>
       deleteFunnelFromServer(params.appId, params.funnelId),
-    onSuccess: (_data, variables) =>
-      queryClient.invalidateQueries({ queryKey: ["funnels", variables.appId] }),
+    onSuccess: (_data, variables) => {
+      queryClient.removeQueries({
+        queryKey: ["funnel", variables.appId, variables.funnelId],
+      });
+      return queryClient.invalidateQueries({
+        queryKey: ["funnels", variables.appId],
+      });
+    },
   });
 }
 
@@ -1107,6 +1122,7 @@ export function useNetworkEndpointsQuery(
       ),
     enabled: enabled && params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1138,6 +1154,7 @@ export function useNetworkLatencyQuery(
     // without either has nothing to fetch.
     enabled: params !== null && (domain !== "" || path !== ""),
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1167,6 +1184,7 @@ export function useNetworkStatusCodesQuery(
       ),
     enabled: params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1196,6 +1214,7 @@ export function useNetworkEndpointStatusCodesQuery(
       ),
     enabled: params !== null && (domain !== "" || path !== ""),
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1225,6 +1244,7 @@ export function useNetworkTimelineQuery(
       ),
     enabled: params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1250,6 +1270,7 @@ export function useNetworkTrendsQuery(
       ),
     enabled: active && params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1275,6 +1296,7 @@ export function useBugReportsOverviewPlotQuery(params: FilterParams | null) {
     },
     enabled: params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1298,6 +1320,7 @@ export function useSessionReplayOverviewPlotQuery(params: FilterParams | null) {
     },
     enabled: params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1319,6 +1342,7 @@ export function useAppHealthPlotQuery(params: FilterParams | null) {
       ),
     enabled: params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1347,6 +1371,7 @@ export function useSpanMetricsPlotQuery(
       ),
     enabled: params !== null && spanName !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1368,6 +1393,7 @@ export function useMemoryUsagePlotQuery(params: FilterParams | null) {
       ),
     enabled: params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1389,6 +1415,7 @@ export function useMemoryUsageBreakdownQuery(params: FilterParams | null) {
       ),
     enabled: params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1419,6 +1446,7 @@ export function useHighMemoryUsageSessionsQuery(
     enabled: params !== null,
     placeholderData: keepPreviousData,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1451,6 +1479,7 @@ export function useProfilesQuery(
     enabled: params !== null,
     placeholderData: keepPreviousData,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1481,6 +1510,7 @@ export function useAlertsOverviewQuery(
       ),
     enabled: params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1513,6 +1543,7 @@ export function useBugReportsOverviewQuery(
       ),
     enabled: params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1545,6 +1576,7 @@ export function useBuildsQuery(
       ),
     enabled: params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1580,6 +1612,7 @@ export function useSpansQuery(
       ),
     enabled: params !== null && spanName !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1612,6 +1645,7 @@ export function useSessionReplayOverviewQuery(
       ),
     enabled: params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1645,6 +1679,7 @@ export function useErrorsOverviewQuery(
       ),
     enabled: params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1668,6 +1703,7 @@ export function useErrorsOverviewPlotQuery(params: FilterParams | null) {
     },
     enabled: params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1699,6 +1735,7 @@ export function useErrorsDetailsQuery(
       ),
     enabled: params !== null && errorGroupId !== "",
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1727,6 +1764,7 @@ export function useErrorsDetailsPlotQuery(
     },
     enabled: params !== null && errorGroupId !== "",
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1755,6 +1793,7 @@ export function useErrorsDistributionPlotQuery(
     },
     enabled: params !== null && errorGroupId !== "",
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1788,6 +1827,7 @@ export function useErrorsAttributeDistributionPlotQuery(
     enabled: params !== null && errorGroupId !== "" && attribute !== null,
     placeholderData: placeholder,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1815,6 +1855,7 @@ export function useTeamsQuery() {
   return useQuery({
     queryKey: ["teams"] as const,
     queryFn: () => fetchTeamsFromServer(),
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1825,6 +1866,7 @@ export function useTraceQuery(appId: string, traceId: string) {
     queryKey: ["trace", appId, traceId] as const,
     queryFn: () => fetchTraceFromServer(appId, traceId),
     enabled: !!appId && !!traceId,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1840,10 +1882,7 @@ export function useSessionReplayQuery(appId: string, sessionId: string) {
     // refetches and re-signs them, and the staleness window keeps a quick
     // switch away and back from asking for the whole session again.
     refetchOnWindowFocus: true,
-    staleTime: 30 * 60 * 1000,
-    // Keeps the session response in cache after unmount, so returning to the
-    // replay shows it without a request. A browser refresh still fetches.
-    gcTime: 10 * 60 * 1000,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1854,6 +1893,7 @@ export function useBugReportQuery(appId: string, bugReportId: string) {
     queryKey: ["bugReport", appId, bugReportId] as const,
     queryFn: () => fetchBugReportFromServer(appId, bugReportId),
     enabled: !!appId && !!bugReportId,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -1949,6 +1989,7 @@ export function useAuthzAndMembersQuery(teamId: string | undefined) {
     queryKey: ["authzAndMembers", teamId] as const,
     queryFn: () => fetchAuthzAndMembersFromServer(teamId!),
     enabled: !!teamId,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -2378,6 +2419,7 @@ export function useDevicesListQuery<Row>(
     enabled: params !== null && enabled,
     placeholderData: keepPreviousData,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 
@@ -2399,6 +2441,7 @@ export function useDevicesSessionsPlotQuery(params: FilterParams | null) {
       ),
     enabled: params !== null,
     retry: false,
+    ...BROWSER_CACHE,
   });
 }
 

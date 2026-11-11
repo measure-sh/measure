@@ -12,9 +12,7 @@ import (
 	"backend/libs/filter"
 
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
-	"github.com/google/uuid"
 	"github.com/leporo/sqlf"
-	valkey "github.com/valkey-io/valkey-go"
 )
 
 // LaunchTypes lists the launch_type values accepted by the device launch list.
@@ -423,94 +421,4 @@ func chRows[Row any](ctx context.Context, rch driver.Conn, stmt *sqlf.Stmt, scan
 		result = append(result, row)
 	}
 	return result, rows.Err()
-}
-
-// Device results remain cached for this duration, since new events are unlikely
-// to change the ranking substantially during that time.
-const devicesCacheTTL = 10 * time.Minute
-
-var devicesCache = queryCache{name: "devices", version: 1}
-
-// devicesCacheKey identifies a cached device result. Params contains the other
-// query values.
-type devicesCacheKey struct {
-	Query      string
-	TeamID     uuid.UUID
-	AppID      uuid.UUID
-	From       time.Time
-	To         time.Time
-	FilterExpr string
-	Limit      int
-	Offset     int
-	Params     []any
-}
-
-// flt must use the bounds from alignCachedRange so the cache key matches the
-// query's time range.
-func newDevicesCacheKey(query string, flt *filter.Filter, params ...any) devicesCacheKey {
-	return devicesCacheKey{
-		Query:      query,
-		TeamID:     flt.TeamID,
-		AppID:      flt.AppID,
-		From:       flt.From,
-		To:         flt.To,
-		FilterExpr: flt.FilterExpr,
-		Limit:      flt.Limit,
-		Offset:     flt.Offset,
-		Params:     params,
-	}
-}
-
-type devicesPageResult[Row any] struct {
-	Rows     []Row
-	Next     bool
-	Previous bool
-}
-
-func cachedDevicesPage[Row any](ctx context.Context, vk valkey.Client, flt *filter.Filter, query string, page DevicesPage, params []any, run func(flt *filter.Filter) ([]Row, bool, bool, error)) (rows []Row, next, previous bool, err error) {
-	flt = alignCachedRange(flt)
-	key := newDevicesCacheKey(query, flt, append([]any{page}, params...)...)
-	result, err := cachedQuery(ctx, vk, devicesCache, flt.AppID, query, key, devicesCacheTTL, func() (devicesPageResult[Row], error) {
-		rows, next, previous, err := run(flt)
-		return devicesPageResult[Row]{Rows: rows, Next: next, Previous: previous}, err
-	})
-	return result.Rows, result.Next, result.Previous, err
-}
-
-func (a App) GetDevicesSessionsCached(ctx context.Context, vk valkey.Client, rch driver.Conn, flt *filter.Filter, page DevicesPage) ([]DeviceSessionsRow, bool, bool, error) {
-	return cachedDevicesPage(ctx, vk, flt, "sessions", page, nil, func(flt *filter.Filter) ([]DeviceSessionsRow, bool, bool, error) {
-		return a.GetDevicesSessions(ctx, rch, flt, page)
-	})
-}
-
-func (a App) GetDevicesErrorsCached(ctx context.Context, vk valkey.Client, rch driver.Conn, flt *filter.Filter, page DevicesPage) ([]DeviceErrorsRow, bool, bool, error) {
-	return cachedDevicesPage(ctx, vk, flt, "errors", page, nil, func(flt *filter.Filter) ([]DeviceErrorsRow, bool, bool, error) {
-		return a.GetDevicesErrors(ctx, rch, flt, page)
-	})
-}
-
-func (a App) GetDevicesLaunchesCached(ctx context.Context, vk valkey.Client, rch driver.Conn, flt *filter.Filter, page DevicesPage, launchType string) ([]DeviceDurationRow, bool, bool, error) {
-	return cachedDevicesPage(ctx, vk, flt, "launches", page, []any{launchType}, func(flt *filter.Filter) ([]DeviceDurationRow, bool, bool, error) {
-		return a.GetDevicesLaunches(ctx, rch, flt, page, launchType)
-	})
-}
-
-func (a App) GetDevicesSpansCached(ctx context.Context, vk valkey.Client, rch driver.Conn, flt *filter.Filter, page DevicesPage, spanName string) ([]DeviceDurationRow, bool, bool, error) {
-	return cachedDevicesPage(ctx, vk, flt, "spans", page, []any{spanName}, func(flt *filter.Filter) ([]DeviceDurationRow, bool, bool, error) {
-		return a.GetDevicesSpans(ctx, rch, flt, page, spanName)
-	})
-}
-
-func (a App) GetDevicesMemoryCached(ctx context.Context, vk valkey.Client, rch driver.Conn, flt *filter.Filter, page DevicesPage) ([]DeviceMemoryRow, bool, bool, error) {
-	return cachedDevicesPage(ctx, vk, flt, "memory", page, nil, func(flt *filter.Filter) ([]DeviceMemoryRow, bool, bool, error) {
-		return a.GetDevicesMemory(ctx, rch, flt, page)
-	})
-}
-
-func (a App) GetDevicesSessionsPlotCached(ctx context.Context, vk valkey.Client, rch driver.Conn, flt *filter.Filter) ([]DeviceSessionsPlotPoint, error) {
-	flt = alignCachedRange(flt)
-	key := newDevicesCacheKey("sessions_plot", flt, flt.Timezone, flt.PlotTimeGroup)
-	return cachedQuery(ctx, vk, devicesCache, flt.AppID, "sessions_plot", key, devicesCacheTTL, func() ([]DeviceSessionsPlotPoint, error) {
-		return a.GetDevicesSessionsPlot(ctx, rch, flt)
-	})
 }

@@ -2358,7 +2358,7 @@ func (c *Config) mcpGetDeviceSessionsOverTime(ctx context.Context, in mcpGetDevi
 		return nil, nil, err
 	}
 	app := measure.App{ID: &appID, TeamId: teamID}
-	points, err := app.GetDevicesSessionsPlotCached(ctx, c.Deps.VK, c.Deps.RchPool, flt)
+	points, err := app.GetDevicesSessionsPlot(ctx, c.Deps.RchPool, flt)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to fetch device sessions over time: %w", err)
 	}
@@ -2413,7 +2413,7 @@ func (c *Config) mcpGetDevicesBySessions(ctx context.Context, in mcpGetDevicesBy
 	if err != nil {
 		return nil, nil, err
 	}
-	rows, next, previous, err := app.GetDevicesSessionsCached(ctx, c.Deps.VK, c.Deps.RchPool, flt, page)
+	rows, next, previous, err := app.GetDevicesSessions(ctx, c.Deps.RchPool, flt, page)
 	return mcpDevicesPageResult(rows, next, previous, err, "sessions")
 }
 
@@ -2422,7 +2422,7 @@ func (c *Config) mcpGetDevicesByErrors(ctx context.Context, in mcpGetDevicesByEr
 	if err != nil {
 		return nil, nil, err
 	}
-	rows, next, previous, err := app.GetDevicesErrorsCached(ctx, c.Deps.VK, c.Deps.RchPool, flt, page)
+	rows, next, previous, err := app.GetDevicesErrors(ctx, c.Deps.RchPool, flt, page)
 	return mcpDevicesPageResult(rows, next, previous, err, "errors")
 }
 
@@ -2438,7 +2438,7 @@ func (c *Config) mcpGetDevicesByLaunchTime(ctx context.Context, in mcpGetDevices
 	if err != nil {
 		return nil, nil, err
 	}
-	rows, next, previous, err := app.GetDevicesLaunchesCached(ctx, c.Deps.VK, c.Deps.RchPool, flt, page, launchType)
+	rows, next, previous, err := app.GetDevicesLaunches(ctx, c.Deps.RchPool, flt, page, launchType)
 	return mcpDevicesPageResult(rows, next, previous, err, "launch time")
 }
 
@@ -2450,7 +2450,7 @@ func (c *Config) mcpGetDevicesBySpanDuration(ctx context.Context, in mcpGetDevic
 	if err != nil {
 		return nil, nil, err
 	}
-	rows, next, previous, err := app.GetDevicesSpansCached(ctx, c.Deps.VK, c.Deps.RchPool, flt, page, in.RootSpanName)
+	rows, next, previous, err := app.GetDevicesSpans(ctx, c.Deps.RchPool, flt, page, in.RootSpanName)
 	return mcpDevicesPageResult(rows, next, previous, err, "span duration")
 }
 
@@ -2462,7 +2462,7 @@ func (c *Config) mcpGetDevicesByMemoryUsage(ctx context.Context, in mcpGetDevice
 	if err := app.Populate(ctx, c.Deps.PgPool); err != nil {
 		return nil, nil, fmt.Errorf("failed to populate app: %w", err)
 	}
-	rows, next, previous, err := app.GetDevicesMemoryCached(ctx, c.Deps.VK, c.Deps.RchPool, flt, page)
+	rows, next, previous, err := app.GetDevicesMemory(ctx, c.Deps.RchPool, flt, page)
 	return mcpDevicesPageResult(rows, next, previous, err, "memory usage")
 }
 
@@ -2866,7 +2866,7 @@ func (c *Config) mcpGetErrorCommonPath(ctx context.Context, in mcpGetErrorCommon
 		return nil, nil, err
 	}
 
-	data, pathErr := measure.GetIssueGroupCommonPath(ctx, deps.RchPool, teamID, appID, group.GroupTypeError, in.ErrorGroupID)
+	data, pathErr := measure.GetIssueGroupCommonPath(ctx, deps.RchPool, gin.Mode() == gin.ReleaseMode, teamID, appID, group.GroupTypeError, in.ErrorGroupID)
 	if pathErr != nil {
 		return nil, nil, fmt.Errorf("failed to get error common path: %v", pathErr)
 	}

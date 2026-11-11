@@ -61,7 +61,7 @@ func cleanNullBytes(s string) string {
 // GetIssueGroupCommonPath computes the most common user navigation path leading
 // to a specific crash or ANR group. It validates the group exists, queries
 // ClickHouse for session data, and returns JSON with sessions_analyzed and steps.
-func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID uuid.UUID, groupType group.GroupType, fingerprint string) (json.RawMessage, error) {
+func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, releaseMode bool, teamID, appID uuid.UUID, groupType group.GroupType, fingerprint string) (json.RawMessage, error) {
 	app := App{
 		ID:     &appID,
 		TeamId: teamID,
@@ -106,7 +106,7 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, teamID, appID
 	lc := logcomment.New(2)
 	settings := clickhouse.Settings{
 		"log_comment":     lc.MustPut(logcomment.Root, lcRootValue),
-		"use_query_cache": true,
+		"use_query_cache": releaseMode,
 		"query_cache_ttl": int(config.DefaultQueryCacheTTL.Seconds()),
 	}
 
