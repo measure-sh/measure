@@ -15,7 +15,7 @@ The entry point is `Symbolicate()`, which takes a batch of events, determines wh
 Mapping files (ProGuard `.txt`, dSYM Mach-O binaries, ELF `.symbols`) are stored in S3-compatible object storage using Sentry's unified layout format. The symbolicator service fetches them on demand via source configurations passed in each request. Two source types are used:
 
 - **S3/GCS sources** (`Source`) - Used for Apple dSYM and Dart ELF files. The symbolicator resolves S3 paths directly from debug IDs using the unified layout.
-- **Sentry sources** (`SentrySource`) - Used for JVM ProGuard files. Required because symbolicator 26.3.1+ cannot resolve ProGuard files from S3 paths (`FileType::Proguard => None` in path generation). The symbolicator fetches ProGuard files via HTTP from the symboloader's `/symbols` endpoint, which implements the Sentry source protocol.
+- **Sentry sources** (`SentrySource`) - Used for JVM ProGuard files. Required because symbolicator cannot resolve ProGuard files from S3/GCS sources. The symbolicator fetches ProGuard files via HTTP from the symboloader's `/symbols` endpoint, which implements the Sentry source protocol.
 
 ## Tests
 
@@ -83,7 +83,7 @@ Tests spin up three containers via testcontainers:
 
 - **PostgreSQL** - Stores `build_mappings` entries (JVM and Dart tests need mapping lookups; Apple tests skip DB entirely)
 - **MinIO** - S3-compatible object storage holding ProGuard mappings, dSYM binaries, and ELF debug symbols in unified layout
-- **Symbolicator** - The Sentry symbolicator service (`ghcr.io/getsentry/symbolicator:26.3.1`)
+- **Symbolicator** - The Sentry symbolicator service (`ghcr.io/getsentry/symbolicator:26.10.1`)
 
 A **Sentry source HTTP handler** also runs on the host, serving ProGuard files from MinIO via the Sentry source protocol (`?debug_id=` to list, `?id=` to download). The symbolicator container reaches it via `host.docker.internal`.
 

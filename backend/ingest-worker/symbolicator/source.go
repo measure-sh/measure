@@ -139,8 +139,8 @@ func NewGCSSourceAndroid(id, bucket, bearerToken string) (source Source) {
 // The symbolicator uses this source to fetch symbols via HTTP
 // requests to a Sentry-compatible API endpoint.
 //
-// This is needed for ProGuard symbol lookups on symbolicator
-// 26.3.1+ where S3/GCS sources cannot resolve ProGuard files.
+// This is needed for ProGuard symbol lookups because
+// symbolicator cannot resolve ProGuard files from S3/GCS sources.
 type SentrySource struct {
 	ID    string `json:"id"`
 	Type  string `json:"type"`
