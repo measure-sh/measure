@@ -26,15 +26,13 @@ var (
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 
-	pool, pgCleanup := testinfra.SetupPostgres(ctx)
-	pgPool = pool
-	conn, chCleanup := testinfra.SetupClickHouse(ctx)
-	chConn = conn
-	th = testinfra.NewTestHelper(pool, conn, nil)
+	stack := testinfra.Start(ctx, testinfra.Services{Postgres: true, ClickHouse: true})
+	pgPool = stack.PgPool
+	chConn = stack.ChConn
+	th = testinfra.NewTestHelper(stack.PgPool, stack.ChConn, nil)
 
 	code := m.Run()
-	chCleanup()
-	pgCleanup()
+	stack.Cleanup()
 	os.Exit(code)
 }
 

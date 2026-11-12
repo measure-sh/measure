@@ -99,7 +99,6 @@ func TestCreateCrashAnrAndAppHangAlerts(t *testing.T) {
 	t.Run("no events creates no alerts", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		seedSpikeTeam(ctx, t)
 
@@ -144,7 +143,6 @@ func TestCreateCrashAnrAndAppHangAlerts(t *testing.T) {
 			t.Run(spikeType.name+" spike "+thresholdCase.name, func(t *testing.T) {
 				ctx := context.Background()
 				setupAlertsTest(ctx, t)
-				defer cleanupAll(ctx, t)
 
 				teamID, appID := seedSpikeTeam(ctx, t)
 				if thresholdCase.appThresholds != nil {
@@ -168,7 +166,6 @@ func TestCreateCrashAnrAndAppHangAlerts(t *testing.T) {
 		t.Run(spikeType.name+" spike does not fire again during the cooldown period", func(t *testing.T) {
 			ctx := context.Background()
 			setupAlertsTest(ctx, t)
-			defer cleanupAll(ctx, t)
 
 			teamID, appID := seedSpikeTeam(ctx, t)
 			spikeType.seed(ctx, t, teamID, appID, 200, 110)
@@ -187,7 +184,6 @@ func TestCreateCrashAnrAndAppHangAlerts(t *testing.T) {
 		t.Run(spikeType.name+" spike fires again after the cooldown period", func(t *testing.T) {
 			ctx := context.Background()
 			setupAlertsTest(ctx, t)
-			defer cleanupAll(ctx, t)
 
 			teamID, appID := seedSpikeTeam(ctx, t)
 			staleTime := time.Now().UTC().Add(-8 * 24 * time.Hour)
@@ -223,7 +219,6 @@ func TestCreateCrashAnrAndAppHangAlerts(t *testing.T) {
 			t.Run(spikeType.name+" spike "+slackCase.name, func(t *testing.T) {
 				ctx := context.Background()
 				setupAlertsTest(ctx, t)
-				defer cleanupAll(ctx, t)
 
 				teamID, appID := seedSpikeTeam(ctx, t)
 				th.SeedTeamSlack(ctx, t, teamID, slackCase.channels)
@@ -253,7 +248,6 @@ func TestCreateCrashAnrAndAppHangAlerts(t *testing.T) {
 		t.Run(handledCase.name+" do not trigger a crash spike alert", func(t *testing.T) {
 			ctx := context.Background()
 			setupAlertsTest(ctx, t)
-			defer cleanupAll(ctx, t)
 
 			teamID, appID := seedSpikeTeam(ctx, t)
 			now := time.Now().UTC()
@@ -274,7 +268,6 @@ func TestCreateCrashAnrAndAppHangAlerts(t *testing.T) {
 	t.Run("crash, ANR and app hang spikes all fire in the same run", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID, appID := seedSpikeTeam(ctx, t)
 		seedCrashSpike(ctx, t, teamID, appID, 200, 110)
@@ -293,7 +286,6 @@ func TestCreateCrashAnrAndAppHangAlerts(t *testing.T) {
 	t.Run("multiple apps checked independently: spike in one does not affect other", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		app1 := uuid.New().String()
@@ -319,7 +311,6 @@ func TestCreateCrashAnrAndAppHangAlerts(t *testing.T) {
 	t.Run("each app uses its own threshold prefs for spike alerts", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		app1 := uuid.New().String()
@@ -351,7 +342,6 @@ func TestCreateCrashAnrAndAppHangAlerts(t *testing.T) {
 	t.Run("team with no apps creates no alerts", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		th.SeedTeam(ctx, t, teamID, "No Apps Team")
@@ -368,7 +358,6 @@ func TestCreateCrashAnrAndAppHangAlerts(t *testing.T) {
 
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID, appID := seedSpikeTeam(ctx, t)
 		seedCrashSpike(ctx, t, teamID, appID, 200, 110)
@@ -385,7 +374,6 @@ func TestCreateCrashAnrAndAppHangAlerts(t *testing.T) {
 	t.Run("app hang spike alert has the app hang title, message and URL", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID, appID := seedSpikeTeam(ctx, t)
 		th.SeedTeamSlack(ctx, t, teamID, []string{"C0APPHANGCHAN"})
@@ -420,7 +408,6 @@ func TestCreateCrashAnrAndAppHangAlerts(t *testing.T) {
 	t.Run("many app hangs in one session count as one session", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID, appID := seedSpikeTeam(ctx, t)
 
@@ -446,7 +433,6 @@ func TestCreateBugReportAlerts(t *testing.T) {
 	t.Run("single recent bug report creates one alert and one email", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -471,7 +457,6 @@ func TestCreateBugReportAlerts(t *testing.T) {
 	t.Run("bug report alert message, email subject and slack header include the user id", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -513,7 +498,6 @@ func TestCreateBugReportAlerts(t *testing.T) {
 	t.Run("bug report alert message, email subject and slack header omit the user id when the report has none", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -555,7 +539,6 @@ func TestCreateBugReportAlerts(t *testing.T) {
 	t.Run("bug report outside time window is not alerted", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -578,7 +561,6 @@ func TestCreateBugReportAlerts(t *testing.T) {
 	t.Run("recent and old bug reports in same app: only recent is alerted", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -603,7 +585,6 @@ func TestCreateBugReportAlerts(t *testing.T) {
 	t.Run("multiple recent bug reports each create a separate alert", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -632,7 +613,6 @@ func TestCreateBugReportAlerts(t *testing.T) {
 	t.Run("second run deduplicates already-alerted bug reports", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -656,7 +636,6 @@ func TestCreateBugReportAlerts(t *testing.T) {
 	t.Run("two team members each receive a separate email", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -685,7 +664,6 @@ func TestCreateBugReportAlerts(t *testing.T) {
 	t.Run("team with slack integration also creates a pending slack message", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -714,7 +692,6 @@ func TestCreateBugReportAlerts(t *testing.T) {
 	t.Run("multiple apps each produce their own alerts", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		app1 := uuid.New().String()
@@ -744,7 +721,6 @@ func TestCreateBugReportAlerts(t *testing.T) {
 	t.Run("team with no apps creates no alerts", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		th.SeedTeam(ctx, t, teamID, "No Apps Team")
@@ -759,7 +735,6 @@ func TestCreateBugReportAlerts(t *testing.T) {
 	t.Run("no teams creates no alerts", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		CreateBugReportAlerts(ctx)
 
@@ -771,7 +746,6 @@ func TestCreateBugReportAlerts(t *testing.T) {
 	t.Run("bug report with two slack channels queues one message per channel", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -797,7 +771,6 @@ func TestCreateBugReportAlerts(t *testing.T) {
 	t.Run("bug report with active slack but empty channel list queues no slack messages", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -883,7 +856,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("returns error when no today events exist", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -902,7 +874,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("sessions: value equals seeded session count", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -934,7 +905,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("sessions: subtitle is no previous day data when no yesterday events", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -957,7 +927,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("sessions: subtitle shows greater when today exceeds yesterday", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -982,7 +951,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("sessions: subtitle shows less when today is below yesterday", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1007,7 +975,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("sessions: subtitle shows no change when today equals yesterday", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1032,7 +999,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("sessions: counts above a thousand are abbreviated the way the dashboard abbreviates them", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1062,7 +1028,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("crash-free: 100% with no crashes, no warning or error", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1091,7 +1056,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("crash-free: warning but no error when rate is 90-95%", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1122,7 +1086,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("crash-free: warning and error when rate is below 90%", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1153,7 +1116,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("crash-free: subtitle is no previous day data when no yesterday events", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1176,7 +1138,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("crash-free: subtitle shows better when crash rate improved from yesterday", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1203,7 +1164,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("crash-free: subtitle shows worse when crash rate degraded from yesterday", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1230,7 +1190,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("crash-free: subtitle shows no change when crash rate unchanged from yesterday", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1256,7 +1215,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("crash-free: subtitle compares against a yesterday that had no crashes", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1283,7 +1241,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("crash-free: subtitle reports real movement when both days are near 100% crash-free", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1318,7 +1275,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("anr-free: card is absent when neither day recorded an ANR", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1343,7 +1299,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("anr-free: card is present at 100% when only yesterday recorded an ANR", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1374,7 +1329,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("anr-free: warning but no error when rate is 85-95%", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1405,7 +1359,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("anr-free: warning and error when rate is 85% or below", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1436,7 +1389,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("anr-free: subtitle shows better when ANR rate improved from yesterday", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1463,7 +1415,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("anr-free: subtitle shows worse when ANR rate degraded from yesterday", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1490,7 +1441,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("anr-free: subtitle compares against a yesterday that had no ANRs", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1517,7 +1467,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("anr-free: subtitle is no previous day data when no yesterday events", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1541,7 +1490,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("anr-free: subtitle shows no change when ANR rate unchanged from yesterday", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1575,7 +1523,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("app-hang-free: card is absent when neither day recorded an app hang", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1599,7 +1546,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("app-hang-free: card follows the crash card and compares against yesterday", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1643,7 +1589,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("app-hang-free: killed and recovered app hangs in one session count once", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1679,7 +1624,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("team threshold prefs override default warning/error thresholds", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1711,7 +1655,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("custom thresholds: value below good threshold is warning", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1741,7 +1684,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("custom thresholds: clearly poor values are warning and error", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1771,7 +1713,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("custom thresholds: value equal to good threshold is warning and not error", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1801,7 +1742,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("custom thresholds: value equal to caution threshold is warning and error", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1833,7 +1773,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("launch: values are No Data when no launch events seeded", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1861,7 +1800,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("launch: unmeasured today names yesterday's duration without a direction", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1891,7 +1829,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("launch: values show p95 duration when launch events are present", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1922,7 +1859,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("launch: subtitles are no previous day data when no yesterday events", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1949,7 +1885,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("launch: subtitle shows better when today is faster than yesterday", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -1975,7 +1910,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("launch: subtitle shows worse when today is slower than yesterday", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -2001,7 +1935,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("launch: subtitle shows no change when today equals yesterday", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -2027,7 +1960,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("launch: never has warning or error regardless of duration", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -2059,7 +1991,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("bug report metric is included when reports exist today", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -2101,7 +2032,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("bug report metric is absent when no reports today", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -2125,7 +2055,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("bug report: subtitle shows greater when today exceeds yesterday", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -2159,7 +2088,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("bug report: subtitle shows less when today is below yesterday", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -2193,7 +2121,6 @@ func TestGetDailySummaryMetrics(t *testing.T) {
 	t.Run("bug report: subtitle shows no change when counts are equal", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -2233,7 +2160,6 @@ func TestCreateDailySummary(t *testing.T) {
 	t.Run("no app metrics data creates no pending messages", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -2255,7 +2181,6 @@ func TestCreateDailySummary(t *testing.T) {
 	t.Run("events yesterday populate metrics and produce a summary email", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -2280,7 +2205,6 @@ func TestCreateDailySummary(t *testing.T) {
 	t.Run("team with slack integration also receives a slack summary message", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -2308,7 +2232,6 @@ func TestCreateDailySummary(t *testing.T) {
 	t.Run("team with no apps creates no pending messages", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		th.SeedTeam(ctx, t, teamID, "No Apps Team")
@@ -2323,7 +2246,6 @@ func TestCreateDailySummary(t *testing.T) {
 	t.Run("multiple apps are combined into one team summary email", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		app1 := uuid.New().String()
@@ -2368,7 +2290,6 @@ func TestCreateDailySummary(t *testing.T) {
 	t.Run("apps without data are left out and busier apps come first", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		busyApp := uuid.New().String()
@@ -2421,7 +2342,6 @@ func TestCreateDailySummary(t *testing.T) {
 	t.Run("daily summary with two slack channels queues one message per channel", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -2446,7 +2366,6 @@ func TestCreateDailySummary(t *testing.T) {
 	t.Run("daily summary with active slack but empty channel list queues no slack messages", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -2471,7 +2390,6 @@ func TestCreateDailySummary(t *testing.T) {
 	t.Run("custom threshold prefs are reflected in queued daily summary email and slack status icons", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -2538,7 +2456,6 @@ func TestCreateDailySummary(t *testing.T) {
 	t.Run("custom threshold prefs are reflected as error in queued daily summary email and slack status icons", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -2605,7 +2522,6 @@ func TestCreateDailySummary(t *testing.T) {
 	t.Run("team blocked by autumn produces no summary notifications", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		origBilling := server.Server.Config.BillingEnabled
 		server.Server.Config.BillingEnabled = true
@@ -2646,7 +2562,6 @@ func TestCreateDailySummary(t *testing.T) {
 	t.Run("autumn.Check error → team still receives summary (fail-open)", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		origBilling := server.Server.Config.BillingEnabled
 		server.Server.Config.BillingEnabled = true
@@ -2680,7 +2595,6 @@ func TestCreateDailySummary(t *testing.T) {
 	t.Run("team without autumn_customer_id passes through filter", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		origBilling := server.Server.Config.BillingEnabled
 		server.Server.Config.BillingEnabled = true
@@ -2715,7 +2629,6 @@ func TestCreateDailySummary(t *testing.T) {
 	t.Run("billing disabled → filter short-circuits (no autumn calls)", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		// Default BillingEnabled is false; assert explicitly.
 		if server.Server.Config.BillingEnabled {
@@ -2753,7 +2666,6 @@ func TestCreateDailySummary(t *testing.T) {
 	t.Run("getActiveTeams caches the verdict — second call skips autumn.Check", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		origBilling := server.Server.Config.BillingEnabled
 		server.Server.Config.BillingEnabled = true
@@ -3069,7 +2981,6 @@ func TestScheduleInternalHelpers(t *testing.T) {
 	t.Run("scheduleEmailAlertsForteamMembers uses generic subject for unknown alert type", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -3098,7 +3009,6 @@ func TestScheduleInternalHelpers(t *testing.T) {
 	t.Run("scheduleEmailAlertsForteamMembers sets AlertType in queued email", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -3138,7 +3048,6 @@ func TestScheduleInternalHelpers(t *testing.T) {
 	t.Run("scheduleDailySummaryEmailForTeamMembers sets daily_summary AlertType and passes the subject through", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		userID := uuid.New().String()
@@ -3175,7 +3084,6 @@ func TestNotifPrefFiltering(t *testing.T) {
 	t.Run("getNotifPrefByEmail returns all-true defaults when user has no prefs", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		userID := uuid.New().String()
 		th.SeedUser(ctx, t, userID, "noprofs@example.com")
@@ -3191,7 +3099,6 @@ func TestNotifPrefFiltering(t *testing.T) {
 	t.Run("getNotifPrefByEmail returns all-true defaults for unknown email", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		fatalErrorSpike, anrAppHangSpike, bugReport, dailySummary := getNotifPrefByEmail(ctx, "unknown@example.com")
 
@@ -3204,7 +3111,6 @@ func TestNotifPrefFiltering(t *testing.T) {
 	t.Run("getNotifPrefByEmail returns saved preferences", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		userID := uuid.New().String()
 		th.SeedUser(ctx, t, userID, "prefs@example.com")
@@ -3236,7 +3142,6 @@ func TestNotifPrefFiltering(t *testing.T) {
 	t.Run("shouldSendEmail allows email when AlertType is empty", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		info := email.EmailInfo{To: "anyone@example.com", AlertType: ""}
 		if !shouldSendEmail(ctx, info) {
@@ -3247,7 +3152,6 @@ func TestNotifPrefFiltering(t *testing.T) {
 	t.Run("shouldSendEmail respects crash_spike preference", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		userID := uuid.New().String()
 		th.SeedUser(ctx, t, userID, "crash@example.com")
@@ -3267,7 +3171,6 @@ func TestNotifPrefFiltering(t *testing.T) {
 	t.Run("shouldSendEmail respects anr_app_hang_spike preference for ANR and app hang spikes", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		userID := uuid.New().String()
 		th.SeedUser(ctx, t, userID, "anr@example.com")
@@ -3289,7 +3192,6 @@ func TestNotifPrefFiltering(t *testing.T) {
 	t.Run("shouldSendEmail respects bug_report preference", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		userID := uuid.New().String()
 		th.SeedUser(ctx, t, userID, "bug@example.com")
@@ -3309,7 +3211,6 @@ func TestNotifPrefFiltering(t *testing.T) {
 	t.Run("shouldSendEmail respects daily_summary preference", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		userID := uuid.New().String()
 		th.SeedUser(ctx, t, userID, "daily@example.com")
@@ -3329,7 +3230,6 @@ func TestNotifPrefFiltering(t *testing.T) {
 	t.Run("shouldSendEmail allows unknown alert type", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		info := email.EmailInfo{To: "anyone@example.com", AlertType: "some_future_type"}
 		if !shouldSendEmail(ctx, info) {
@@ -3340,7 +3240,6 @@ func TestNotifPrefFiltering(t *testing.T) {
 	t.Run("shouldSendEmail allows when user has all prefs enabled", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		userID := uuid.New().String()
 		th.SeedUser(ctx, t, userID, "allon@example.com")
@@ -3365,7 +3264,6 @@ func TestNotifPrefFiltering(t *testing.T) {
 func TestDeletePendingMessage(t *testing.T) {
 	ctx := context.Background()
 	setupAlertsTest(ctx, t)
-	defer cleanupAll(ctx, t)
 
 	teamID := uuid.New().String()
 	th.SeedTeam(ctx, t, teamID, "Test Team")
@@ -3405,7 +3303,6 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 	t.Run("skips and deletes email when user has opted out of crash spike", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -3453,7 +3350,6 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 	t.Run("skips daily summary when user has opted out", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -3494,7 +3390,6 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 	t.Run("emails without AlertType are not filtered", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		userID := uuid.New().String()
@@ -3535,7 +3430,6 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 	t.Run("selectively filters when two users have different prefs", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()
@@ -3607,7 +3501,6 @@ func TestSendPendingAlertEmailsRespectsNotifPrefs(t *testing.T) {
 	t.Run("filters per alert type when user opts out of some but not others", func(t *testing.T) {
 		ctx := context.Background()
 		setupAlertsTest(ctx, t)
-		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New().String()
 		appID := uuid.New().String()

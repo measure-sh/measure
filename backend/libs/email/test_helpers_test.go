@@ -19,17 +19,15 @@ var (
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 
-	pgPool, pgCleanup := testinfra.SetupPostgres(ctx)
-	chConn, chCleanup := testinfra.SetupClickHouse(ctx)
+	stack := testinfra.Start(ctx, testinfra.Services{Postgres: true, ClickHouse: true})
 
-	th = testinfra.NewTestHelper(pgPool, chConn, nil)
+	th = testinfra.NewTestHelper(stack.PgPool, stack.ChConn, nil)
 
 	sqlf.SetDialect(sqlf.PostgreSQL)
 
 	code := m.Run()
 
-	pgCleanup()
-	chCleanup()
+	stack.Cleanup()
 	os.Exit(code)
 }
 

@@ -550,13 +550,15 @@ func TestMemoryUsageIOSProcessLimit(t *testing.T) {
 			f.app.OSNames = []string{opsys.IOS}
 			base := time.Date(2026, 1, 5, 10, 0, 0, 0, time.UTC)
 			sessionID := uuid.New()
+			rows := make([]testinfra.EventRow, len(tt.samples))
 			for i, sample := range tt.samples {
-				th.SeedEventRows(f.ctx, t, f.teamID.String(), f.appID.String(), 1, testinfra.EventRow{
+				rows[i] = testinfra.EventRow{
 					Type: "memory_usage_absolute", SessionID: sessionID.String(),
 					Timestamp: base.Add(time.Duration(i) * time.Second), OSName: opsys.IOS,
 					MemoryMax: tt.deviceMemoryKB, MemoryUsed: sample.usedKB, MemoryAvailable: sample.availableKB,
-				})
+				}
 			}
+			th.SeedEventRowList(f.ctx, t, f.teamID.String(), f.appID.String(), rows...)
 			flt := f.memoryFilter(base.Add(-time.Minute), base.Add(5*time.Minute), "UTC", "")
 			sessions, _, _, err := f.app.GetHighMemoryUsageSessions(f.ctx, deps.RchPool, flt)
 			if err != nil {

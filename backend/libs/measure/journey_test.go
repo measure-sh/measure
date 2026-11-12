@@ -388,17 +388,18 @@ func TestGetJourneyKeepsTheNodesAndLinksWithTheMostUsers(t *testing.T) {
 	}
 }
 
-// seedManyScreens adds a screen row for each of n installations, in a
-// session of its own. Every 1000th installation reaches a screen that no other
-// installation reaches. The rows go into analytics_events directly, because an
-// insert into events also runs every view on the events table, such as
-// sessions_mv, and aggregating this many rows there goes over the memory limit
-// of the test's ClickHouse server.
+// seedManyScreens adds a screen row for each of n installations, each in its own
+// session. Every 1000th installation reaches a screen no other installation
+// reaches. The rows go directly into analytics_events because inserting into
+// events runs every view on events, such as sessions_mv, and aggregating that
+// many rows there exceeds the memory limit of the test's ClickHouse server.
+// Each row has a new id, so ReplacingMergeTree has no rows to collapse, and
+// optimize_on_insert = 0 skips the sort and merge that look for them.
 func (f journeyFixture) seedManyScreens(t *testing.T, prefix string, n int) {
 	t.Helper()
 	err := th.ChConn.Exec(f.ctx, "insert into measure.analytics_events (id, type, session_id, app_id, team_id, timestamp, installation_id, `screen.name`) "+
 		"select generateUUIDv4(), 'lifecycle_activity', generateUUIDv4(), ?, ?, toDateTime64(?, 3, 'UTC'), toUUID(concat(?, '-0000-0000-0000-', leftPad(toString(number), 12, '0'))), "+
-		"if(number % 1000 = 0, concat(?, toString(number)), 'Home') from numbers(?)",
+		"if(number % 1000 = 0, concat(?, toString(number)), 'Home') from numbers(?) settings optimize_on_insert = 0",
 		f.appID, f.teamID, f.base.Format(time.DateTime), prefix, prefix, n)
 	if err != nil {
 		t.Fatalf("seed screens: %v", err)
@@ -507,10 +508,11 @@ func TestJourneyOfADayReadsAllTheInstallationsOfThatDay(t *testing.T) {
 	f := newJourneyFixture(t)
 	day := 10 * 24 * 60 * 60
 	// The month has more rows than the sample, and the day has fewer. Each
-	// insert has rows of both days, so the rows of the two days are in the
-	// same parts, as after merges.
+	// insert has rows from both days, so the two days' rows are in the same
+	// parts, as after merges. Each row has a new id, so optimize_on_insert = 0
+	// skips a merge that would find no rows to collapse.
 	err := th.ChConn.Exec(f.ctx, "insert into measure.analytics_events (id, type, session_id, app_id, team_id, timestamp, installation_id, `screen.name`) "+
-		"select generateUUIDv4(), 'lifecycle_activity', generateUUIDv4(), ?, ?, toDateTime64(?, 3, 'UTC') + toIntervalSecond(? * (number % 2)), generateUUIDv4(), 'Home' from numbers(?)",
+		"select generateUUIDv4(), 'lifecycle_activity', generateUUIDv4(), ?, ?, toDateTime64(?, 3, 'UTC') + toIntervalSecond(? * (number % 2)), generateUUIDv4(), 'Home' from numbers(?) settings optimize_on_insert = 0",
 		f.appID, f.teamID, f.base.Format(time.DateTime), day, 8_000_000)
 	if err != nil {
 		t.Fatalf("seed screens: %v", err)

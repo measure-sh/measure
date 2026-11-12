@@ -1,9 +1,19 @@
 import { beforeEach, describe, expect, it } from "@jest/globals";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, renderHook, waitFor } from "@testing-library/react";
+import {
+  act,
+  renderHook,
+  waitFor as waitForEvery50ms,
+} from "@testing-library/react";
 import React from "react";
 
 import { ApiError } from "@/app/api/api_error";
+
+// waitFor retries its callback when the DOM changes or at regular intervals.
+// renderHook does not change the DOM when hook state updates, so the wrapper
+// checks more frequently to observe those updates.
+const waitFor: typeof waitForEvery50ms = (callback, options) =>
+  waitForEvery50ms(callback, { interval: 1, ...options });
 
 jest.mock("@/app/api/api_calls", () => {
   const actual = jest.requireActual("@/app/api/api_calls");

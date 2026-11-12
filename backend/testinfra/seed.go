@@ -2,9 +2,11 @@ package testinfra
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strconv"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -42,40 +44,16 @@ func NewTestHelper(pgPool *pgxpool.Pool, chConn driver.Conn, vk valkey.Client) *
 func (h *TestHelper) CleanupAll(ctx context.Context, t *testing.T) {
 	t.Helper()
 
-	// Postgres: dynamically truncate all tables in the measure schema,
-	// excluding migration metadata and reference tables with seed data.
-	if _, err := h.PgPool.Exec(ctx, `
-		DO $$ DECLARE r RECORD;
-		BEGIN
-			FOR r IN SELECT tablename FROM pg_tables WHERE schemaname = 'measure' AND tablename NOT IN ('schema_migrations', 'roles') LOOP
-				EXECUTE 'TRUNCATE TABLE measure.' || quote_ident(r.tablename) || ' CASCADE';
-			END LOOP;
-		END $$;
-	`); err != nil {
-		t.Fatalf("cleanup postgres: %v", err)
+	var pgErr, chErr error
+	var wg sync.WaitGroup
+	wg.Go(func() { pgErr = h.truncatePostgres(ctx) })
+	wg.Go(func() { chErr = h.truncateClickHouse(ctx) })
+	wg.Wait()
+	if pgErr != nil {
+		t.Fatalf("cleanup postgres: %v", pgErr)
 	}
-
-	// ClickHouse: dynamically truncate all non-view tables.
-	rows, err := h.ChConn.Query(ctx,
-		"SELECT name FROM system.tables WHERE database = 'measure' AND engine NOT LIKE '%View%' AND name != 'schema_migrations'")
-	if err != nil {
-		t.Fatalf("cleanup clickhouse list tables: %v", err)
-	}
-
-	var tables []string
-	for rows.Next() {
-		var name string
-		if err := rows.Scan(&name); err != nil {
-			t.Fatalf("cleanup clickhouse scan: %v", err)
-		}
-		tables = append(tables, name)
-	}
-	rows.Close()
-
-	for _, table := range tables {
-		if err := h.ChConn.Exec(ctx, fmt.Sprintf("TRUNCATE TABLE measure.%s", table)); err != nil {
-			t.Fatalf("cleanup clickhouse table %s: %v", table, err)
-		}
+	if chErr != nil {
+		t.Fatalf("cleanup clickhouse: %v", chErr)
 	}
 
 	// Valkey: flush all keys.
@@ -84,6 +62,63 @@ func (h *TestHelper) CleanupAll(ctx context.Context, t *testing.T) {
 			t.Fatalf("cleanup valkey: %v", err)
 		}
 	}
+}
+
+// truncatePostgres truncates all tables in the measure schema except
+// migration metadata and reference tables with seed data. It truncates the
+// tables in a single statement.
+func (h *TestHelper) truncatePostgres(ctx context.Context) error {
+	_, err := h.PgPool.Exec(ctx, `
+		DO $$ BEGIN
+			EXECUTE (
+				SELECT 'TRUNCATE TABLE ' || string_agg('measure.' || quote_ident(tablename), ', ') || ' CASCADE'
+				FROM pg_tables
+				WHERE schemaname = 'measure' AND tablename NOT IN ('schema_migrations', 'roles')
+			);
+		END $$;
+	`)
+	return err
+}
+
+// truncateClickHouse truncates non-view tables with rows, concurrently. Empty
+// tables are skipped; engines that report NULL for total_rows are always
+// truncated. total_rows counts only rows in committed parts, so an async insert
+// with wait_for_async_insert=0 can return before its rows are committed. A table
+// containing only such rows reports 0 and is not truncated, allowing those rows
+// to reach the next test. Tests and the code they run must not insert with
+// wait_for_async_insert=0.
+func (h *TestHelper) truncateClickHouse(ctx context.Context) error {
+	rows, err := h.ChConn.Query(ctx,
+		"SELECT name FROM system.tables WHERE database = 'measure' AND engine NOT LIKE '%View%' AND name != 'schema_migrations' AND (total_rows IS NULL OR total_rows > 0)")
+	if err != nil {
+		return fmt.Errorf("list tables: %w", err)
+	}
+
+	var tables []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			rows.Close()
+			return fmt.Errorf("scan: %w", err)
+		}
+		tables = append(tables, name)
+	}
+	rows.Close()
+	if err := rows.Err(); err != nil {
+		return fmt.Errorf("list tables: %w", err)
+	}
+
+	errs := make([]error, len(tables))
+	var wg sync.WaitGroup
+	for i, table := range tables {
+		wg.Go(func() {
+			if err := h.ChConn.Exec(ctx, fmt.Sprintf("TRUNCATE TABLE measure.%s", table)); err != nil {
+				errs[i] = fmt.Errorf("table %s: %w", table, err)
+			}
+		})
+	}
+	wg.Wait()
+	return errors.Join(errs...)
 }
 
 // --------------------------------------------------------------------------
@@ -371,6 +406,40 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 	if count <= 0 {
 		return
 	}
+	cols, vals := eventRowColumns(teamID, appID, row)
+	query := fmt.Sprintf("INSERT INTO measure.events (%s) SELECT %s FROM numbers(%d)",
+		strings.Join(cols, ", "), strings.Join(vals, ", "), count)
+	if err := h.ChConn.Exec(ctx, query); err != nil {
+		t.Fatalf("seed event (%s): %v", row.Type, err)
+	}
+}
+
+// SeedEventRowList inserts one event for each row. It groups rows with the
+// same columns into one INSERT, since each INSERT creates parts and runs
+// every view on the events table.
+func (h *TestHelper) SeedEventRowList(ctx context.Context, t *testing.T, teamID, appID string, rows ...EventRow) {
+	t.Helper()
+	var order []string
+	selects := map[string][]string{}
+	for _, row := range rows {
+		cols, vals := eventRowColumns(teamID, appID, row)
+		key := strings.Join(cols, ", ")
+		if _, ok := selects[key]; !ok {
+			order = append(order, key)
+		}
+		selects[key] = append(selects[key], "SELECT "+strings.Join(vals, ", "))
+	}
+	for _, cols := range order {
+		query := fmt.Sprintf("INSERT INTO measure.events (%s) %s", cols, strings.Join(selects[cols], " UNION ALL "))
+		if err := h.ChConn.Exec(ctx, query); err != nil {
+			t.Fatalf("seed events: %v", err)
+		}
+	}
+}
+
+// eventRowColumns returns the columns written by row and the SQL expression
+// for each column's value.
+func eventRowColumns(teamID, appID string, row EventRow) ([]string, []string) {
 	row = row.filled()
 	ts := row.Timestamp.UTC().Format("2006-01-02 15:04:05")
 	isIssue := row.Type == "exception" || row.Type == "anr"
@@ -585,11 +654,7 @@ func (h *TestHelper) SeedEventRows(ctx context.Context, t *testing.T, teamID, ap
 		vals = append(vals, quote(row.PatchVersion))
 	}
 
-	query := fmt.Sprintf("INSERT INTO measure.events (%s) SELECT %s FROM numbers(%d)",
-		strings.Join(cols, ", "), strings.Join(vals, ", "), count)
-	if err := h.ChConn.Exec(ctx, query); err != nil {
-		t.Fatalf("seed event (%s): %v", row.Type, err)
-	}
+	return cols, vals
 }
 
 // SeedEvents inserts count generic ("test") events at the current time.
@@ -1216,12 +1281,8 @@ func (h *TestHelper) SeedAppMetrics(ctx context.Context, t *testing.T, teamID, a
 	if genericCount > 0 {
 		h.SeedGenericEvents(ctx, t, teamID, appID, genericCount, ts)
 	}
-	for range crashCount {
-		h.SeedIssueEvent(ctx, t, teamID, appID, "exception", "", false, ts)
-	}
-	for range anrCount {
-		h.SeedIssueEvent(ctx, t, teamID, appID, "anr", "", false, ts)
-	}
+	h.SeedEventRows(ctx, t, teamID, appID, crashCount, EventRow{Type: "exception", Timestamp: ts})
+	h.SeedEventRows(ctx, t, teamID, appID, anrCount, EventRow{Type: "anr", Timestamp: ts})
 }
 
 // SeedLaunchEvent inserts a single cold_launch, warm_launch, or hot_launch

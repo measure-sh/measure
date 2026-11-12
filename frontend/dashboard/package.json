@@ -14,6 +14,7 @@
     "pretest": "node ./scripts/extract_sdk_versions.js && node ./scripts/generate_api_docs.mjs",
     "test": "jest && jest --config jest.integration.config.ts --forceExit",
     "test:unit": "jest",
+    "test:coverage": "jest --coverage",
     "test:integration": "jest --config jest.integration.config.ts --forceExit",
     "test:update-snapshot": "jest --updateSnapshot",
     "test:watch": "jest --watch"

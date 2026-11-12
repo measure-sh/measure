@@ -38,16 +38,16 @@ func TestMain(m *testing.M) {
 	ctx := context.Background()
 	gin.SetMode(gin.TestMode)
 
-	pgPool, pgCleanup := testinfra.SetupPostgres(ctx)
-	th = testinfra.NewTestHelper(pgPool, nil, nil)
+	stack := testinfra.Start(ctx, testinfra.Services{Postgres: true})
+	th = testinfra.NewTestHelper(stack.PgPool, nil, nil)
 	deps = &server.Deps{
-		PgPool: pgPool,
+		PgPool: stack.PgPool,
 		Config: &server.Config{SlackSigningSecret: testSigningSecret},
 	}
 
 	code := m.Run()
 
-	pgCleanup()
+	stack.Cleanup()
 	os.Exit(code)
 }
 

@@ -87,8 +87,8 @@ func TestMain(m *testing.M) {
 	networkName := nw.Name
 
 	// 2. Start PostgreSQL via testinfra
-	pool, pgCleanup := testinfra.SetupPostgres(ctx)
-	pgPool = pool
+	stack := testinfra.Start(ctx, testinfra.Services{Postgres: true})
+	pgPool = stack.PgPool
 
 	// 3. Start MinIO
 	minioContainer, err = testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
@@ -554,10 +554,10 @@ func TestMain(m *testing.M) {
 	// os.Exit skips defers, so cleanup must happen before the call.
 	code := m.Run()
 
-	symbolicatorContainer.Terminate(ctx)
-	minioContainer.Terminate(ctx)
+	symbolicatorContainer.Terminate(ctx, testcontainers.StopTimeout(0))
+	minioContainer.Terminate(ctx, testcontainers.StopTimeout(0))
 	sentryListener.Close()
-	pgCleanup()
+	stack.Cleanup()
 	nw.Remove(ctx)
 
 	os.Exit(code)
