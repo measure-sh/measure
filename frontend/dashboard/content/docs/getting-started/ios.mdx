@@ -106,11 +106,11 @@ BaseMeasureConfig *config = [[BaseMeasureConfig alloc]
 
 ## 4. Verify installation
 
-Add a test crash after `Measure.initialize`, run the app, and confirm it reaches your dashboard.
+Add a test crash after `Measure.initialize`. Stop the app in Xcode, open it from the home screen, and let it crash. Then open it again to send the crash to your dashboard.
 
 ```swift
 // In your AppDelegate, after Measure.initialize.
-// The 2-second delay gives the SDK time to flush the crash event.
+// Reopen the app after a crash to upload it to Measure.
 // Remove this after the crash appears in your dashboard.
 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
     fatalError("Test crash from Measure")

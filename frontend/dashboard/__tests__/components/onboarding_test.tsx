@@ -974,7 +974,9 @@ describe("Onboarding — Step 2: Integrate", () => {
       expect(screen.getByTestId("snippet-init")).toHaveTextContent(
         "@measuresh/react-native",
       );
-      expect(screen.getByTestId("snippet-crash")).toBeInTheDocument();
+      expect(screen.getByTestId("snippet-crash")).toHaveTextContent(
+        "Reopen the app",
+      );
       expect(screen.queryByTestId("snippet-manifest")).not.toBeInTheDocument();
     });
 

@@ -80,7 +80,6 @@ import android.os.Handler
 import android.os.Looper
 
 // In Application.onCreate(), after Measure.init().
-// The 2-second delay gives the SDK time to flush the crash event.
 // Remove this after the crash appears in your dashboard.
 Handler(Looper.getMainLooper()).postDelayed({
     throw RuntimeException("Test crash from Measure")
