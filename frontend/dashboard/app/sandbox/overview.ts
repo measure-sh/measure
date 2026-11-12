@@ -9,7 +9,7 @@ import {
 } from "./adoption";
 import { jsonResponse, parseRange, SandboxRoute } from "./query";
 import type { SandboxRange } from "./query";
-import { countryOf, sessionAttributeBag } from "./filter";
+import { countryOf, sessionAttributes } from "./filter";
 import { derivedSeries, scaledSeries } from "./aggregate";
 import { DEVICE_MEMORY_TIERS, MEMORY_APP_STATES } from "./device_memory";
 
@@ -546,7 +546,7 @@ function actualValuesFor(
   ) {
     return distinct(
       bundle.sessions.flatMap(
-        (s) => sessionAttributeBag(s.detail)[keyName] as string[],
+        (s) => sessionAttributes(s.detail)[keyName] as string[],
       ),
     );
   }

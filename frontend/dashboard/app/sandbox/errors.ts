@@ -18,7 +18,7 @@ import {
   stableInt,
   unitInterval,
 } from "./query";
-import { countryOf, deviceAttributeBag, matchesFilterExpr } from "./filter";
+import { countryOf, deviceAttributes, matchesFilterExpr } from "./filter";
 import { distributeTotal, scaledSeries, windowCoverage } from "./aggregate";
 import { errorGroupTitle } from "../utils/error_utils";
 import {
@@ -56,7 +56,7 @@ function instanceAttributes(
         ? "Killed"
         : "Recovered"
       : undefined,
-    ...deviceAttributeBag(instance.attribute),
+    ...deviceAttributes(instance.attribute),
   };
 }
 

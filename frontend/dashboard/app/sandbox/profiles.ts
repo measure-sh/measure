@@ -1,7 +1,7 @@
 import type { Profile } from "../api/api_calls";
 import type { AppBundle } from "./catalog";
 import { catalog } from "./catalog";
-import { deviceAttributeBag, matchesFilterExpr } from "./filter";
+import { deviceAttributes, matchesFilterExpr } from "./filter";
 import {
   isWithinRange,
   jsonResponse,
@@ -20,7 +20,7 @@ function profileAttributes(
   );
   return {
     profile_trigger: profile.trigger,
-    ...(session ? deviceAttributeBag(session.detail.attribute) : {}),
+    ...(session ? deviceAttributes(session.detail.attribute) : {}),
   };
 }
 

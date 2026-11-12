@@ -6,11 +6,7 @@ import {
   parseRange,
   SandboxRoute,
 } from "./query";
-import {
-  matchFraction,
-  matchesFilterExpr,
-  sessionAttributeBag,
-} from "./filter";
+import { matchFraction, matchesFilterExpr, sessionAttributes } from "./filter";
 import { scaledSeries } from "./aggregate";
 import { adoptionOf } from "./adoption";
 
@@ -36,7 +32,7 @@ function sessionsListResponse(appId: string, url: URL): Response {
     .filter(
       (session) =>
         isWithinRange(session.list.last_event_time, range) &&
-        matchesFilterExpr(sessionAttributeBag(session.detail), filterExpr),
+        matchesFilterExpr(sessionAttributes(session.detail), filterExpr),
     )
     .map((session) => session.list);
   const { items, hasNext, hasPrev } = paginate(inRange, url);
@@ -62,7 +58,7 @@ function sessionsPlotResponse(appId: string, url: URL): Response {
     );
     const fraction = matchFraction(
       sampleForVersion.length > 0 ? sampleForVersion : allSessions,
-      (session) => sessionAttributeBag(session.detail),
+      (session) => sessionAttributes(session.detail),
       filterExpr,
     );
     const total = app.dailySessions * 30 * fraction;

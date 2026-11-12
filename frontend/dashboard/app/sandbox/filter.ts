@@ -49,7 +49,7 @@ export function countryOf(locale: string | undefined): string {
   return region ? region.toUpperCase() : "US";
 }
 
-export function deviceAttributeBag(attribute: {
+export function deviceAttributes(attribute: {
   app_version?: string;
   app_build?: string;
   user_id?: string;
@@ -128,7 +128,7 @@ function errorText(event: GeneratedEvent): (string | undefined)[] {
   return fields.map(text);
 }
 
-export function sessionAttributeBag(
+export function sessionAttributes(
   detail: Pick<SessionDetail, "session_id" | "attribute" | "threads">,
 ): Record<string, unknown> {
   const events = Object.values(detail.threads).flat();
@@ -189,7 +189,7 @@ export function sessionAttributeBag(
         )
         .flatMap(errorText),
     ),
-    ...deviceAttributeBag(detail.attribute),
+    ...deviceAttributes(detail.attribute),
   };
 }
 
@@ -209,11 +209,11 @@ function matchesTree(
     : children.every((child) => matchesTree(child, attributes));
 }
 
-// The sandbox generates no over-the-air patches, so the patch keys read as
-// empty everywhere, the way the backend's unset patch columns do. Any other key
-// missing from an attribute bag matches, because some callers pass a narrower
-// bag, such as the version-only one that selectedVersions checks, and leave
-// the remaining keys to the bags that carry them.
+// The sandbox generates no over-the-air patches, so patch keys are empty
+// everywhere, as in the backend's unset patch columns. Other missing keys match
+// because some callers pass fewer attributes, such as the version-only
+// attributes checked by `selectedVersions`, and the remaining keys are checked
+// against the attributes that carry them.
 const UNSET_KEYS = new Set(["patch_version", "patch_id"]);
 
 function matchesCondition(

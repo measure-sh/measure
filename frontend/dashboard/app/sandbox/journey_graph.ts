@@ -12,7 +12,7 @@ import { selectedNames, sessionsIn } from "./adoption";
 import { catalog, screenSequence } from "./catalog";
 import type { AppBundle, ErrorGroup } from "./catalog";
 import { groupCount, groupSessionsAndUsers } from "./errors";
-import { matchesFilterExpr, sessionAttributeBag } from "./filter";
+import { matchesFilterExpr, sessionAttributes } from "./filter";
 import { rangeDays, sessionsPerUser } from "./funnels";
 import {
   jsonResponse,
@@ -132,7 +132,7 @@ function sampleSessions(bundle: AppBundle, url: URL): SampleSession[] {
     sessionsIn(bundle, range, selectedNames(bundle.scenario.app, filterExpr)) /
     sessionsPerUser(rangeDays(range.from, range.to < now ? range.to : now));
   const matching = bundle.sessions
-    .filter((s) => matchesFilterExpr(sessionAttributeBag(s.detail), filterExpr))
+    .filter((s) => matchesFilterExpr(sessionAttributes(s.detail), filterExpr))
     .map((s) => ({
       bundleSession: s,
       steps: stepsOf(bundle, s),
