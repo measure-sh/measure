@@ -12,7 +12,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/jsonschema-go v0.4.3
 	github.com/google/uuid v1.6.0
-	github.com/jackc/pgx/v5 v5.11.0
+	github.com/jackc/pgx/v5 v5.12.0
 	github.com/leporo/sqlf v1.4.0
 	github.com/modelcontextprotocol/go-sdk v1.8.0
 	github.com/valkey-io/valkey-go v1.0.79
