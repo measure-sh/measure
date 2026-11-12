@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [android-v0.23.0] - 2026-11-12
+
+### :sparkles: New features
+
+- (**android**): Report native crashes from tombstones (#4615) by @abhaysood
+
+### :bug: Bug fixes
+
+- (**android**): Track fragment navigation in minified apps by @abhaysood in #4885
+- (**android**): Keep Room database constructors in frank release by @abhaysood in #4827
+- (**android**): Stop bug reports losing their screenshot by @abhaysood in #4823
+- (**android**): Export bug reports sent from the built-in screen by @abhaysood in #4821
+- (**android**): Avoid compose crash on compose ui older than 1.8 by @abhaysood
+
+### :hammer: Misc
+
+- (**android**): Rename trackHandledException to trackError by @adwinross in #4786
+- (**android**): Sample analytics events by installation (#4764) by @abhaysood
+- (**android**): Generate baseline profile on Pixel 10 API 37 by @abhaysood
+- (**android**): Update agp to 9.5.0 (#4713) by @abhaysood in #4713
+- (**android**): Cap exception messages at 8192 characters (#4706) by @abhaysood
+- (**android**): Prepare next development version 0.23.0-SNAPSHOT (#4620) by @abhaysood in #4620
+
 ## [android-v0.22.0] - 2026-10-13
 
 ### :sparkles: New features
@@ -18,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**android**): Prepare sdk release 0.22.0 (#4619) by @abhaysood in #4619
 - (**android**): Drop flaky memory heap tests (#4555) by @abhaysood in #4555
 - (**android**): Prepare next development version 0.22.0-SNAPSHOT by @abhaysood in #4499
 
@@ -981,6 +1005,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Add missing links to readme by @abhaysood
 - (**android**): Create a template for Android SDK documentation by @abhaysood
 
+[android-v0.23.0]: https://github.com/measure-sh/measure/compare/android-v0.22.0..android-v0.23.0
 [android-v0.22.0]: https://github.com/measure-sh/measure/compare/android-v0.21.1..android-v0.22.0
 [android-v0.21.1]: https://github.com/measure-sh/measure/compare/android-v0.21.0..android-v0.21.1
 [android-v0.21.0]: https://github.com/measure-sh/measure/compare/android-v0.20.0..android-v0.21.0
