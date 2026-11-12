@@ -319,7 +319,6 @@ const ANDROID_IMPORTS = [
   'import okhttp3.OkHttpClient',
   'import com.facebook.react.modules.network.OkHttpClientFactory',
   'import com.facebook.react.modules.network.OkHttpClientProvider',
-  'import com.facebook.react.modules.network.ReactCookieJarContainer',
   'import sh.measure.android.okhttp.MeasureOkHttpApplicationInterceptor',
   'import sh.measure.android.okhttp.MeasureEventListenerFactory',
 ].join('\n');
@@ -336,8 +335,7 @@ const ANDROID_MEASURE_INIT = [
   '    )',
   '    OkHttpClientProvider.setOkHttpClientFactory(object : OkHttpClientFactory {',
   '      override fun createNewNetworkModuleClient(): OkHttpClient {',
-  '        return OkHttpClient.Builder()',
-  '          .cookieJar(ReactCookieJarContainer())',
+  '        return OkHttpClientProvider.createClientBuilder(applicationContext)',
   '          .addInterceptor(MeasureOkHttpApplicationInterceptor())',
   '          .eventListenerFactory(MeasureEventListenerFactory(null))',
   '          .build()',

@@ -86,8 +86,7 @@ Configure a custom `OkHttpClient` with `OkHttpClientProvider` in `MainApplicatio
 ```kotlin
 OkHttpClientProvider.setOkHttpClientFactory(object : OkHttpClientFactory {
   override fun createNewNetworkModuleClient(): OkHttpClient {
-    return OkHttpClient.Builder()
-      .cookieJar(ReactCookieJarContainer())
+    return OkHttpClientProvider.createClientBuilder(applicationContext)
       .addInterceptor(MeasureOkHttpApplicationInterceptor())
       .eventListenerFactory(MeasureEventListenerFactory(null))
       .build()
