@@ -15,6 +15,7 @@ import (
 	"backend/agent/server"
 	"backend/libs/bus"
 	"backend/libs/concur"
+	"backend/libs/healthcheck"
 	"backend/libs/inet"
 	"backend/libs/middleware"
 	"backend/libs/posthog"
@@ -80,6 +81,7 @@ func runSlackConsumer(ctx context.Context, config *server.Config, handler func(c
 }
 
 func main() {
+	healthcheck.Run("8084")
 	config := server.NewConfig()
 	deps := server.Connect(config)
 

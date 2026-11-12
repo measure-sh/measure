@@ -12,6 +12,7 @@ import (
 
 	"backend/ingest/measure"
 	"backend/ingest/server"
+	"backend/libs/healthcheck"
 	"backend/libs/middleware"
 
 	"github.com/gin-gonic/gin"
@@ -20,6 +21,7 @@ import (
 )
 
 func main() {
+	healthcheck.Run("8085")
 	config := server.NewConfig()
 	server.Init(config)
 

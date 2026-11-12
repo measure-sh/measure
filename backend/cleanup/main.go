@@ -10,6 +10,7 @@ import (
 
 	"backend/cleanup/cleanup"
 	"backend/cleanup/server"
+	"backend/libs/healthcheck"
 
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
@@ -25,6 +26,7 @@ import (
 )
 
 func main() {
+	healthcheck.Run("8081")
 	config := server.NewConfig()
 	server.Init(config)
 

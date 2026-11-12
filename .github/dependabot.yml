@@ -160,7 +160,6 @@ updates:
       images:
         patterns: ["*"]
         group-by: dependency-name
-        update-types: [minor, patch]
     ignore:
       - dependency-name: "*golang"
       - dependency-name: "*node"

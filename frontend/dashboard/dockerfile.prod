@@ -70,7 +70,7 @@ RUN mkdir -p /empty-cache
 # ============================================
 # Production Runner (distroless: no shell or package manager, runs as nonroot)
 # ============================================
-FROM gcr.io/distroless/nodejs24-debian13:nonroot AS runner
+FROM gcr.io/distroless/nodejs24-debian13:nonroot@sha256:9fc11f6ee65993285c0fe3c4c9bbc4fd275fd4470572f58834ce490df91056e3 AS runner
 WORKDIR /app
 
 # Copy standalone output (this is the key for small images)

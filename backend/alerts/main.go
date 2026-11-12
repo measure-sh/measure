@@ -12,6 +12,7 @@ import (
 	"backend/alerts/network"
 	"backend/alerts/server"
 	"backend/alerts/slack"
+	"backend/libs/healthcheck"
 
 	"github.com/gin-gonic/gin"
 	"github.com/robfig/cron/v3"
@@ -27,6 +28,7 @@ import (
 )
 
 func main() {
+	healthcheck.Run("8082")
 	config := server.NewConfig()
 	server.Init(config)
 	ctx := context.Background()
