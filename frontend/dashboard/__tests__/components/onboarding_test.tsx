@@ -1495,10 +1495,12 @@ describe("Onboarding — Step 3: Verify", () => {
       await act(async () => {
         await jest.advanceTimersByTimeAsync(0);
       });
-      expect(screen.getByText("Crash received.")).toBeInTheDocument();
+      expect(
+        screen.getByText("We got your crash. Your app is ready!"),
+      ).toBeInTheDocument();
     });
 
-    it("renders the View on dashboard button", async () => {
+    it("renders the button that opens the dashboard", async () => {
       await reachVerifyStep();
       await act(async () => {
         await jest.advanceTimersByTimeAsync(0);
