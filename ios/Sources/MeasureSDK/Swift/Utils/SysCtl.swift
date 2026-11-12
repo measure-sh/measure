@@ -14,6 +14,7 @@ protocol SysCtl {
     func getProcessStartTime() -> UnsignedNumber?
     func getSystemBootTime() -> UnsignedNumber?
     func getOsBuildNumber() -> String?
+    func isDebuggerAttached() -> Bool
 }
 
 final class BaseSysCtl: SysCtl {
@@ -91,4 +92,13 @@ final class BaseSysCtl: SysCtl {
         return osBuildNumber
     }
 
+    func isDebuggerAttached() -> Bool {
+        var mib: [Int32] = [CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()]
+        var kproc = kinfo_proc()
+        var size = MemoryLayout<kinfo_proc>.stride
+
+        guard sysctl(&mib, u_int(mib.count), &kproc, &size, nil, 0) == 0 else { return false }
+
+        return (kproc.kp_proc.p_flag & P_TRACED) != 0
+    }
 }

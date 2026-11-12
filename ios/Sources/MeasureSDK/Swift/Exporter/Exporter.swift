@@ -27,7 +27,9 @@ final class BaseExporter: Exporter {
     private let configProvider: ConfigProvider
     private let isExporting = AtomicBool(false)
     private let systemFileManager: SystemFileManager
-    private var backgroundTaskId: UIBackgroundTaskIdentifier = .invalid
+    private let backgroundTaskRunner: BackgroundTaskRunner
+    private var activeBackgroundTaskIds = Set<UIBackgroundTaskIdentifier>()
+    private let backgroundTaskLock = NSLock()
     private static let maxBatchPayloadSizeBytes = 9_000_000
     private static let estimatedEventSizeBytes = 1024
 
@@ -44,7 +46,8 @@ final class BaseExporter: Exporter {
         attachmentStore: AttachmentStore,
         sessionStore: SessionStore,
         configProvider: ConfigProvider,
-        systemFileManager: SystemFileManager
+        systemFileManager: SystemFileManager,
+        backgroundTaskRunner: BackgroundTaskRunner
     ) {
         self.logger = logger
         self.idProvider = idProvider
@@ -59,6 +62,7 @@ final class BaseExporter: Exporter {
         self.sessionStore = sessionStore
         self.configProvider = configProvider
         self.systemFileManager = systemFileManager
+        self.backgroundTaskRunner = backgroundTaskRunner
     }
 
     func export() {
@@ -72,7 +76,7 @@ final class BaseExporter: Exporter {
 
         logger.internalLog(level: .debug, message: "Exporter: starting export", error: nil, data: nil)
 
-        startBackgroundTask()
+        let backgroundTaskId = startBackgroundTask()
 
         dispatchQueue.async { [weak self] in
             guard let self else { return }
@@ -81,29 +85,37 @@ final class BaseExporter: Exporter {
             self.exportAttachments()
 
             self.isExporting.set(false)
-            self.endBackgroundTask()
+            self.endBackgroundTask(backgroundTaskId)
 
             self.logger.internalLog(level: .debug, message: "Exporter: export finished", error: nil, data: nil)
         }
     }
 
-    private func startBackgroundTask() {
-        guard backgroundTaskId == .invalid else { return }
-
-        backgroundTaskId = UIApplication.shared.beginBackgroundTask(withName: "measure.export") { [weak self] in
+    private func startBackgroundTask() -> UIBackgroundTaskIdentifier {
+        var taskId = UIBackgroundTaskIdentifier.invalid
+        taskId = backgroundTaskRunner.begin(name: "measure.export") { [weak self] in
             guard let self else { return }
             self.logger.internalLog(level: .warning, message: "Exporter: background time expired", error: nil, data: nil)
             self.isExporting.set(false)
-            self.endBackgroundTask()
+            self.endBackgroundTask(taskId)
         }
+        guard taskId != .invalid else { return .invalid }
+
+        backgroundTaskLock.lock()
+        activeBackgroundTaskIds.insert(taskId)
+        backgroundTaskLock.unlock()
 
         logger.internalLog(level: .debug, message: "Exporter: background task started", error: nil, data: nil)
+        return taskId
     }
 
-    private func endBackgroundTask() {
-        guard backgroundTaskId != .invalid else { return }
-        UIApplication.shared.endBackgroundTask(backgroundTaskId)
-        backgroundTaskId = .invalid
+    private func endBackgroundTask(_ taskId: UIBackgroundTaskIdentifier) {
+        backgroundTaskLock.lock()
+        let isActive = activeBackgroundTaskIds.remove(taskId) != nil
+        backgroundTaskLock.unlock()
+
+        guard isActive else { return }
+        backgroundTaskRunner.end(taskId)
         logger.internalLog(level: .debug, message: "Exporter: background task ended", error: nil, data: nil)
     }
 

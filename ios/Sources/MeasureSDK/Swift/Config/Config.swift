@@ -17,6 +17,7 @@ import Foundation
 struct Config: InternalConfig, MeasureConfig {
     let batchExportIntervalMs: Number
     let attachmentExportIntervalMs: Number
+    let debugExportIntervalMs: Number
     let defaultHttpHeadersBlocklist: [String]
     let sessionBackgroundTimeoutThresholdMs: Number
     let maxEventNameLength: Number
@@ -70,6 +71,7 @@ struct Config: InternalConfig, MeasureConfig {
         self.enableDiagnosticModeGesture = enableDiagnosticModeGesture
         self.batchExportIntervalMs = 3_000 // 3 seconds
         self.attachmentExportIntervalMs = 500 // 500 ms
+        self.debugExportIntervalMs = 5_000 // 5 seconds
         self.defaultHttpHeadersBlocklist = ["Authorization",
                                             "Cookie",
                                             "Set-Cookie",

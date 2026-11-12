@@ -15,6 +15,7 @@ final class MockSysCtl: SysCtl {
     var processStartTime: UnsignedNumber = 0
     var systemBootTime: UnsignedNumber = 0
     var osBuildNumber: String?
+    var debuggerAttached = false
 
     func getCpuCores() -> UInt8 {
         return mockCpuCores
@@ -38,5 +39,9 @@ final class MockSysCtl: SysCtl {
 
     func getOsBuildNumber() -> String? {
         return osBuildNumber
+    }
+
+    func isDebuggerAttached() -> Bool {
+        return debuggerAttached
     }
 }
