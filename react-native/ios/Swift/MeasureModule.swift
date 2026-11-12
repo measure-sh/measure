@@ -4,6 +4,8 @@ import Measure
 
 @objc(MeasureModule)
 class MeasureModule: NSObject, RCTBridgeModule {
+    @objc var moduleRegistry: RCTModuleRegistry!
+
     static func moduleName() -> String! {
         return ModuleConstants.moduleName
     }
@@ -172,12 +174,12 @@ class MeasureModule: NSObject, RCTBridgeModule {
     @objc
     func setShakeListener(_ enable: Bool) {
         if enable {
-            Measure.onShake {
+            Measure.onShake { [weak self] in
                 DispatchQueue.main.async {
-                    if let bridge = RCTBridge.current(),
-                       let emitter = bridge.module(for: MeasureOnShake.self) as? MeasureOnShake {
-                        emitter.triggerShakeEvent()
-                    }
+                    guard let self,
+                          let emitter = self.moduleRegistry?.module(for: MeasureOnShake.self) as? MeasureOnShake
+                    else { return }
+                    emitter.triggerShakeEvent()
                 }
             }
         } else {
