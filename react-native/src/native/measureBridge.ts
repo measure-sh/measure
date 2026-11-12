@@ -167,19 +167,14 @@ export function trackHttpEvent(
     );
   }
 
-  return MeasureModule.trackHttpEvent(
-    url,
-    method,
-    startTime,
-    endTime,
+  return MeasureModule.trackHttpEvent(url, method, startTime, endTime, client, {
     statusCode,
     error,
     requestHeaders,
     responseHeaders,
     requestBody,
     responseBody,
-    client
-  );
+  });
 }
 
 export function launchBugReport(

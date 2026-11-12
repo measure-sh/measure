@@ -91,3 +91,14 @@ object MapUtils {
         return out
     }
 }
+
+internal fun ReadableMap.optDouble(key: String): Double? = if (hasValue(key)) getDouble(key) else null
+
+internal fun ReadableMap.optString(key: String): String? = if (hasValue(key)) getString(key) else null
+
+internal fun ReadableMap.optMap(key: String): ReadableMap? = if (hasValue(key)) getMap(key) else null
+
+internal fun ReadableMap.toStringMap(): MutableMap<String, String> =
+    toHashMap().mapValues { it.value.toString() }.toMutableMap()
+
+private fun ReadableMap.hasValue(key: String): Boolean = hasKey(key) && !isNull(key)

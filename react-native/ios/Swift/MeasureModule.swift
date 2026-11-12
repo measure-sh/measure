@@ -125,34 +125,33 @@ class MeasureModule: NSObject, RCTBridgeModule {
         resolve("Patch set successfully")
     }
 
-    @objc(trackHttpEvent:method:startTime:endTime:statusCode:error:requestHeaders:responseHeaders:requestBody:responseBody:client:resolver:rejecter:)
+    @objc(trackHttpEvent:method:startTime:endTime:client:options:resolver:rejecter:)
     func trackHttpEvent(
         url: String,
         method: String,
         startTime: NSNumber,
         endTime: NSNumber,
-        statusCode: NSNumber?,
-        error: String?,
-        requestHeaders: [String: String]?,
-        responseHeaders: [String: String]?,
-        requestBody: String?,
-        responseBody: String?,
         client: String,
+        options: NSDictionary,
         resolve: RCTPromiseResolveBlock,
         reject: RCTPromiseRejectBlock
     ) {
+        let error = (options["error"] as? String).map {
+            NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: $0])
+        }
+
         Measure.trackHttpEvent(
             url: url,
             method: method,
             startTime: startTime.uint64Value,
             endTime: endTime.uint64Value,
             client: client,
-            statusCode: statusCode?.intValue,
-            error: error != nil ? NSError(domain: "", code: -1, userInfo: [NSLocalizedDescriptionKey: error!]) : nil,
-            requestHeaders: requestHeaders,
-            responseHeaders: responseHeaders,
-            requestBody: requestBody,
-            responseBody: responseBody
+            statusCode: (options["statusCode"] as? NSNumber)?.intValue,
+            error: error,
+            requestHeaders: options["requestHeaders"] as? [String: String],
+            responseHeaders: options["responseHeaders"] as? [String: String],
+            requestBody: options["requestBody"] as? String,
+            responseBody: options["responseBody"] as? String
         )
         resolve("ok")
     }
