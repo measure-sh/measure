@@ -206,9 +206,10 @@ function flutterCrashSnippet(nativeTarget: NativeTarget): Snippet {
     testId: "snippet-crash",
     language: "dart",
     code: `// Add this in main() after Measure.instance.init.
+// A Dart exception doesn't stop the app, so trigger a native crash instead.
 ${nativeTarget === "iOS" ? IOS_REOPEN_LINE : ""}// Remove this code after the crash appears in your dashboard.
 Future.delayed(const Duration(seconds: 2), () {
-  throw Exception('Test crash from Measure onboarding');
+  Measure.instance.triggerNativeCrash();
 });`,
   };
 }

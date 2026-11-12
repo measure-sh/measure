@@ -754,7 +754,7 @@ describe("Onboarding — Step 2: Integrate", () => {
         "Measure.instance.init",
       );
       expect(screen.getByTestId("snippet-crash")).toHaveTextContent(
-        "Exception('Test crash",
+        "triggerNativeCrash()",
       );
       expect(
         screen.queryByTestId("snippet-ios-podfile"),
@@ -781,7 +781,7 @@ describe("Onboarding — Step 2: Integrate", () => {
         "Measure.instance.init",
       );
       expect(screen.getByTestId("snippet-crash")).toHaveTextContent(
-        "Exception('Test crash",
+        "triggerNativeCrash()",
       );
       expect(screen.queryByTestId("snippet-manifest")).not.toBeInTheDocument();
       expect(
