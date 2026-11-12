@@ -977,7 +977,11 @@ export default function Onboarding({ teamId }: OnboardingProps) {
         >
           <WizardStepHeader
             number={verifyStepNumber}
-            title="Verify the first crash"
+            title={
+              verifyDone
+                ? "We got your crash. Your app is ready!"
+                : "Verify the first crash"
+            }
             active={step === "verify"}
             done={verifyDone}
           />
@@ -1001,23 +1005,14 @@ export default function Onboarding({ teamId }: OnboardingProps) {
               </div>
             )}
             {step === "verified" && (
-              <div
-                className="flex flex-col gap-3"
-                data-testid="onboarding-success"
-              >
-                <p className="font-display text-xl">Crash received.</p>
-                <p className="font-body text-sm text-muted-foreground">
-                  First crash received!
-                </p>
-                <div>
-                  <Button
-                    variant="outline"
-                    onClick={handleViewDashboard}
-                    data-testid="onboarding-view-dashboard-button"
-                  >
-                    View on dashboard
-                  </Button>
-                </div>
+              <div className="mt-5" data-testid="onboarding-success">
+                <Button
+                  variant="outline"
+                  onClick={handleViewDashboard}
+                  data-testid="onboarding-view-dashboard-button"
+                >
+                  Let’s go!
+                </Button>
               </div>
             )}
           </div>
