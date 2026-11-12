@@ -1328,6 +1328,7 @@ const iosExceptions: ExceptionSpec[] = [
     message: "",
     severity: "handled",
     handled: true,
+    attributes: { operation: "load_cart", retry_attempt: 1, will_retry: true },
     foreground: true,
     framework: "apple",
     error: {

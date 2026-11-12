@@ -263,6 +263,15 @@ const FILTER_KEYS: Record<string, string[]> = {
     "device_name",
   ],
 };
+const CUSTOM_KEY_ENTITIES = [
+  "sessions",
+  "errors",
+  "error_group_events",
+  "bug_reports",
+  "spans",
+  "funnels",
+  "journeys",
+];
 const FREE_TEXT_KEYS = [
   "session_log",
   "session_error_text",
@@ -346,13 +355,21 @@ const overviewCases: Case[] = [
         "Device",
         "Network",
         "Location",
+        "Custom",
         "App Hang",
       ]);
       for (const [entity, names] of Object.entries(FILTER_KEYS)) {
         const { json } = await fetchJson(
           `/api/apps/${APP_ID}/filters/keys?entity=${entity}`,
         );
-        expect(json.keys.map((k: any) => k.name)).toEqual(names);
+        const keyNames: string[] = json.keys.map((k: any) => k.name);
+        expect(keyNames.filter((name) => !name.startsWith("custom."))).toEqual(
+          names,
+        );
+        expect({
+          entity,
+          custom: keyNames.some((name) => name.startsWith("custom.")),
+        }).toEqual({ entity, custom: CUSTOM_KEY_ENTITIES.includes(entity) });
         expect(json.key_groups.length > 0).toBe(names.length > 0);
         for (const key of json.keys) {
           if (FREE_TEXT_KEYS.includes(key.name)) {
@@ -360,6 +377,41 @@ const overviewCases: Case[] = [
           }
         }
       }
+    },
+  },
+  {
+    name: "offers custom keys from error events and root spans",
+    path: `/api/apps/${APP_ID}/filters/keys?entity=errors`,
+    status: 200,
+    check: async (data) => {
+      const customNames = (keys: { name: string }[]) =>
+        keys
+          .map((key) => key.name)
+          .filter((name) => name.startsWith("custom."))
+          .sort();
+      const names = (sets: (Record<string, unknown> | null)[]) =>
+        [...new Set(sets.flatMap((set) => Object.keys(set ?? {})))]
+          .map((name) => `custom.${name}`)
+          .sort();
+      expect(customNames(data.keys)).toEqual(
+        names(
+          bundle.errorGroups.flatMap((group) =>
+            group.instances.map((instance) => instance.user_defined_attribute),
+          ),
+        ),
+      );
+      const { json } = await fetchJson(
+        `/api/apps/${APP_ID}/filters/keys?entity=spans`,
+      );
+      expect(customNames(json.keys)).toEqual(
+        names(
+          [...bundle.traces.values()].flatMap((trace) =>
+            trace.spans
+              .filter((span) => span.parent_id === "")
+              .map((span) => span.user_defined_attributes),
+          ),
+        ),
+      );
     },
   },
   {
@@ -2092,6 +2144,23 @@ const funnelsCases: Case[] = [
           }
         }
       }
+    },
+  },
+  {
+    name: "lists a step's errors when the session has a custom key missing from its error events",
+    path: allFunnelsPath(),
+    status: 200,
+    check: async (data) => {
+      const funnel = named(data, "Checkout");
+      const extra = { filter_expr: "custom.category:is_set" };
+      const { json: groups } = await fetchJson(
+        `${ERROR_GROUPS_BASE}?${wideRangeParams({ limit: "200", offset: "0", ...extra }).toString()}`,
+      );
+      expect(groups.results).toEqual([]);
+      const { json } = await fetchJson(
+        `${FUNNELS_BASE}/${funnel.id}/errors?${stepParams(null, extra)}`,
+      );
+      expect(json.results.length).toBeGreaterThan(0);
     },
   },
   {

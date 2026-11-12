@@ -128,6 +128,40 @@ function errorText(event: GeneratedEvent): (string | undefined)[] {
   return fields.map(text);
 }
 
+export const CUSTOM_KEY_PREFIX = "custom.";
+
+// customAttributes marks its attributes so a missing custom key matches as
+// unset. Without that marker, a missing custom key matches; callers such as
+// selectedVersions leave custom keys to checks on attributes that carry them.
+const CARRIES_CUSTOM_ATTRIBUTES = Symbol("carries custom attributes");
+
+// A session matches against all its event attributes, so each custom key holds
+// every value from `attributeSets`.
+export function customAttributes(
+  attributeSets: (Record<string, unknown> | null)[],
+): Record<string, unknown> {
+  const valuesByKey: Record<string, unknown[]> = {};
+  for (const attributes of attributeSets) {
+    for (const [name, value] of Object.entries(attributes ?? {})) {
+      (valuesByKey[CUSTOM_KEY_PREFIX + name] ??= []).push(value);
+    }
+  }
+  return Object.assign(valuesByKey, { [CARRIES_CUSTOM_ATTRIBUTES]: true });
+}
+
+export function sessionCustomAttributes(
+  detail: Pick<SessionDetail, "threads">,
+): Record<string, unknown> {
+  return customAttributes(
+    Object.values(detail.threads)
+      .flat()
+      .map(
+        (event) =>
+          event.user_defined_attribute as Record<string, unknown> | null,
+      ),
+  );
+}
+
 export function sessionAttributes(
   detail: Pick<SessionDetail, "session_id" | "attribute" | "threads">,
 ): Record<string, unknown> {
@@ -190,6 +224,7 @@ export function sessionAttributes(
         .flatMap(errorText),
     ),
     ...deviceAttributes(detail.attribute),
+    ...sessionCustomAttributes(detail),
   };
 }
 
@@ -220,11 +255,16 @@ function matchesCondition(
   condition: ExprTreeCondition,
   attributes: Record<string, unknown>,
 ): boolean {
-  const unset = UNSET_KEYS.has(condition.key_name);
-  if (!unset && !(condition.key_name in attributes)) {
+  const name = condition.key_name;
+  const unset = UNSET_KEYS.has(name);
+  const customUnset =
+    name.startsWith(CUSTOM_KEY_PREFIX) &&
+    CARRIES_CUSTOM_ATTRIBUTES in attributes &&
+    !(name in attributes);
+  if (!unset && !customUnset && !(name in attributes)) {
     return true;
   }
-  const actual = unset ? "" : attributes[condition.key_name];
+  const actual = unset ? "" : customUnset ? [] : attributes[name];
   const texts = (condition.values ?? []).map((value) => value.text);
   if (Array.isArray(actual)) {
     const any = (operator: FilterOperator) =>
@@ -234,6 +274,10 @@ function matchesCondition(
         return !any("in");
       case "not_contains":
         return !any("contains");
+      case "neq":
+        return !any("eq");
+      case "is_not_set":
+        return !any("is_set");
       default:
         return any(condition.operator);
     }

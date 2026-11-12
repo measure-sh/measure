@@ -841,6 +841,11 @@ const jsExceptions: ExceptionSpec[] = [
     message: "Failed to load saved payment method",
     severity: "handled",
     handled: true,
+    attributes: {
+      operation: "load_payment_method",
+      retry_attempt: 0,
+      will_retry: false,
+    },
     foreground: true,
     framework: "js",
     exceptions: [

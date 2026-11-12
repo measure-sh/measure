@@ -249,6 +249,10 @@ function exceptionProblems(spec: ExceptionSpec): string[] {
   const frames = spec.exceptions.flatMap((unit) => unit.frames);
   const stackless = spec.exceptions.length === 0 && spec.error !== undefined;
 
+  if (spec.attributes !== undefined && spec.severity !== "handled") {
+    problems.push(`${where} is ${spec.severity} yet carries attributes`);
+  }
+
   if (!stackless && frames.length < MIN_CRASHING_FRAMES) {
     problems.push(
       `${where} has ${frames.length} frames on the crashing thread, fewer than ${MIN_CRASHING_FRAMES}`,
@@ -840,6 +844,7 @@ type BuiltSession = {
   httpHits: { key: string; event: GeneratedEvent }[];
   bugReport: {
     eventId: string;
+    userDefinedAttribute: Record<string, unknown>;
     description: string;
     timestamp: string;
     attachments: {
@@ -2307,7 +2312,7 @@ function buildSession(
         const timestamp = cursor.toISO()!;
         const threadName = reportingThread(emitted);
         const shared: GeneratedEvent = {
-          user_defined_attribute: null,
+          user_defined_attribute: emitted.attributes ?? null,
           thread_name: threadName,
           severity: emitted.severity,
           group_id: stableUuid(`errorgroup:${app.id}:${emitted.key}`),
@@ -2396,9 +2401,14 @@ function buildSession(
       const attachments = [
         screenshotAttachment(`attachment:${seed}:bugreport`, vp, uiState),
       ];
+      // Each bug report includes the screen and cart size.
+      const userDefinedAttribute = {
+        screen: parseState(uiState).screen,
+        cart_item_count: Number(currentValues().item_count),
+      };
       push(mainThread, {
         event_type: "bug_report",
-        user_defined_attribute: null,
+        user_defined_attribute: userDefinedAttribute,
         thread_name: mainThread,
         bug_report_id: eventId,
         description: step.description,
@@ -2407,6 +2417,7 @@ function buildSession(
       });
       bugReport = {
         eventId,
+        userDefinedAttribute,
         description: step.description,
         timestamp,
         attachments,
@@ -3240,7 +3251,8 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
         num_code: g.spec.error?.num_code ?? null,
         code: g.spec.error?.code ?? "",
         meta: g.spec.error?.meta ?? null,
-        user_defined_attribute: null,
+        user_defined_attribute: inst.event
+          .user_defined_attribute as ErrorInstance["user_defined_attribute"],
         attachments:
           (inst.event.attachments as ErrorInstance["attachments"]) ?? [],
         threads: g.spec.threads.map((t) => ({
@@ -3279,7 +3291,7 @@ function buildAppBundle(scenario: PlatformScenario, now: DateTime): AppBundle {
     description: s.bugReport!.description,
     timestamp: s.bugReport!.timestamp,
     attribute: s.detail.attribute,
-    user_defined_attribute: null,
+    user_defined_attribute: s.bugReport!.userDefinedAttribute,
     attachments: s.bugReport!.attachments,
   }));
 

@@ -129,6 +129,9 @@ export type ExceptionSpec = {
   // stack of its own, such as an NSError tracked without a stack.
   reportedOn?: string;
   nativeFollowUp?: string;
+  // Attributes the app supplies when tracking a handled error. SDKs accept them
+  // only when the app tracks the error itself.
+  attributes?: Record<string, string | number | boolean>;
   // Set when an app hang keeps a core busy, such as during text layout.
   // Unset when the hang waits on another process.
   cpuBound?: boolean;

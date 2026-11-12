@@ -12,12 +12,16 @@ import {
 } from "./query";
 import { smoothScales } from "./aggregate";
 import { shareAt } from "./adoption";
-import { countryOf, matchesFilterExpr } from "./filter";
+import { countryOf, customAttributes, matchesFilterExpr } from "./filter";
 
 function spanAttributes(
+  bundle: AppBundle | undefined,
   row: SpanListRow,
-  session: SessionAttribute | undefined,
 ): Record<string, unknown> {
+  const session = sessionAttributeForSpan(bundle, row);
+  const span = bundle?.traces
+    .get(row.trace_id)
+    ?.spans.find((s) => s.span_id === row.span_id);
   return {
     span_status: row.status === 2 ? "error" : row.status === 0 ? "unset" : "ok",
     version_name: row.app_version,
@@ -32,6 +36,7 @@ function spanAttributes(
     network_type: session?.network_type,
     network_generation: session?.network_generation,
     network_provider: session?.network_provider,
+    ...customAttributes([span?.user_defined_attributes ?? null]),
   };
 }
 
@@ -55,10 +60,7 @@ export const tracesRoutes: SandboxRoute[] = [
       const matching = (bundle?.spanRows ?? []).filter(
         (row) =>
           row.span_name === spanName &&
-          matchesFilterExpr(
-            spanAttributes(row, sessionAttributeForSpan(bundle, row)),
-            filterExpr,
-          ),
+          matchesFilterExpr(spanAttributes(bundle, row), filterExpr),
       );
       if (matching.length === 0) {
         return jsonResponse([]);
@@ -130,10 +132,7 @@ export const tracesRoutes: SandboxRoute[] = [
           (row) =>
             row.span_name === spanName &&
             isWithinRange(row.start_time, range) &&
-            matchesFilterExpr(
-              spanAttributes(row, sessionAttributeForSpan(bundle, row)),
-              filterExpr,
-            ),
+            matchesFilterExpr(spanAttributes(bundle, row), filterExpr),
         )
         .sort((a, b) => (a.start_time < b.start_time ? 1 : -1));
       const { items, hasNext, hasPrev } = paginate(matching, url);

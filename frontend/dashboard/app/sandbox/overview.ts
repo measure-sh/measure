@@ -9,9 +9,10 @@ import {
 } from "./adoption";
 import { jsonResponse, parseRange, SandboxRoute } from "./query";
 import type { SandboxRange } from "./query";
-import { countryOf, sessionAttributes } from "./filter";
+import { countryOf, CUSTOM_KEY_PREFIX, sessionAttributes } from "./filter";
 import { derivedSeries, scaledSeries } from "./aggregate";
 import { DEVICE_MEMORY_TIERS, MEMORY_APP_STATES } from "./device_memory";
+import { customKeys, customKeyValues } from "./custom_keys";
 
 const K = {
   versionName: key(
@@ -431,16 +432,6 @@ const KEYS_BY_ENTITY: Record<string, FilterKey[]> = {
   ],
 };
 
-const FILTER_KEYS_BY_ENTITY: Record<
-  string,
-  { keys: FilterKey[]; key_groups: string[] }
-> = Object.fromEntries(
-  Object.entries(KEYS_BY_ENTITY).map(([entity, keys]) => [
-    entity,
-    { keys, key_groups: keyGroupsOf(keys) },
-  ]),
-);
-
 function distinct(raw: (string | undefined)[]): string[] {
   return Array.from(new Set(raw.filter((v): v is string => !!v)));
 }
@@ -487,6 +478,9 @@ function actualValuesFor(
   const bundle = catalog().appById.get(appId);
   if (!bundle) {
     return null;
+  }
+  if (keyName.startsWith(CUSTOM_KEY_PREFIX)) {
+    return customKeyValues(bundle, entity, keyName);
   }
   if (entity === "builds") {
     switch (keyName) {
@@ -675,11 +669,27 @@ export const overviewRoutes: SandboxRoute[] = [
   {
     method: "GET",
     path: "/api/apps/:appId/filters/keys",
-    handle: ({ url }) => {
+    handle: ({ params, url }) => {
       const entity = url.searchParams.get("entity") ?? "";
-      return jsonResponse(
-        FILTER_KEYS_BY_ENTITY[entity] ?? { keys: [], key_groups: [] },
-      );
+      const fixedKeys = KEYS_BY_ENTITY[entity];
+      if (!fixedKeys) {
+        return jsonResponse({ keys: [], key_groups: [] });
+      }
+      const bundle = catalog().appById.get(params.appId);
+      const custom = bundle
+        ? customKeys(
+            bundle,
+            entity,
+            url.searchParams.get("search") ?? "",
+            url.searchParams.getAll("key"),
+          )
+        : { keys: [], truncated: false };
+      const keys = [...fixedKeys, ...custom.keys];
+      return jsonResponse({
+        keys,
+        key_groups: keyGroupsOf(keys),
+        custom_keys_truncated: custom.truncated,
+      });
     },
   },
   {
