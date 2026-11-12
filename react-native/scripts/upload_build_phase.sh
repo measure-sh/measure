@@ -16,10 +16,16 @@
 #   export SOURCEMAP_FILE="$(pwd)/main.jsbundle.map"
 #
 # See https://measure.sh/docs/error-monitoring/upload-symbols
+#
+# Failures are reported as Xcode build warnings and never fail the build.
+
+warn_and_exit() {
+  echo "warning: Measure: $1"
+  exit 0
+}
 
 if [ "$#" -lt 2 ]; then
-  echo "Usage: $0 <api_url> <api_key>"
-  exit 1
+  warn_and_exit "Symbols not uploaded. Usage: $0 <api_url> <api_key>"
 fi
 
 API_URL="${1%/}"
@@ -35,13 +41,11 @@ HERMES_MAGIC="c61fbc03c103191f"
 # --- Validate Xcode environment ---
 
 if [ -z "$DWARF_DSYM_FOLDER_PATH" ] || [ -z "$DWARF_DSYM_FILE_NAME" ]; then
-  echo "Error: DWARF_DSYM_FOLDER_PATH or DWARF_DSYM_FILE_NAME not set. Run this script from an Xcode build phase."
-  exit 1
+  warn_and_exit "DWARF_DSYM_FOLDER_PATH or DWARF_DSYM_FILE_NAME not set. Run this script from an Xcode build phase."
 fi
 
 if [ -z "$MARKETING_VERSION" ] || [ -z "$CURRENT_PROJECT_VERSION" ] || [ -z "$PRODUCT_BUNDLE_IDENTIFIER" ]; then
-  echo "Error: MARKETING_VERSION, CURRENT_PROJECT_VERSION, or PRODUCT_BUNDLE_IDENTIFIER not set."
-  exit 1
+  warn_and_exit "MARKETING_VERSION, CURRENT_PROJECT_VERSION, or PRODUCT_BUNDLE_IDENTIFIER not set."
 fi
 
 VERSION_NAME="$MARKETING_VERSION"
@@ -67,12 +71,10 @@ fi
 
 check_dependencies() {
   if ! command -v jq &>/dev/null; then
-    echo "Error: jq is required. Install with 'brew install jq'."
-    exit 1
+    warn_and_exit "jq is required. Install with 'brew install jq'."
   fi
   if ! command -v xxd &>/dev/null; then
-    echo "Error: xxd is required."
-    exit 1
+    warn_and_exit "xxd is required."
   fi
 }
 
@@ -93,8 +95,7 @@ JSON_MAPPINGS="["
 INDEX=0
 
 if [ ! -d "$DSYM_FOLDER" ]; then
-  echo "Error: dSYM folder not found at $DSYM_FOLDER"
-  exit 1
+  warn_and_exit "dSYM folder not found at $DSYM_FOLDER"
 fi
 
 for DSYM_DIR in "$DSYM_FOLDER"/*.dSYM; do
@@ -116,8 +117,7 @@ for DSYM_DIR in "$DSYM_FOLDER"/*.dSYM; do
 done
 
 if [ "${#ALL_TGZ_FILES[@]}" -eq 0 ]; then
-  echo "Error: No dSYM files found in $DSYM_FOLDER"
-  exit 1
+  warn_and_exit "No dSYM files found in $DSYM_FOLDER"
 fi
 
 # --- Handle JS sourcemap and bundle (React Native only) ---
@@ -253,21 +253,20 @@ HTTP_RESPONSE=$(cat "$RESPONSE_BODY_FILE")
 
 case "$HTTP_STATUS" in
   200|201) ;;
+  000)
+    warn_and_exit "Could not reach $API_URL. Symbols not uploaded."
+    ;;
   401)
-    echo "Error: Unauthorized — check your API key."
-    exit 1
+    warn_and_exit "Unauthorized — check your API key."
     ;;
   413)
-    echo "Error: Build size exceeds maximum allowed limit."
-    exit 1
+    warn_and_exit "Build size exceeds maximum allowed limit."
     ;;
   500)
-    echo "Error: Server error. Try again later."
-    exit 1
+    warn_and_exit "Server error. Try again later."
     ;;
   *)
-    echo "Error: Metadata upload failed with status $HTTP_STATUS."
-    exit 1
+    warn_and_exit "Metadata upload failed with status $HTTP_STATUS."
     ;;
 esac
 
@@ -293,7 +292,7 @@ while IFS= read -r URL_OBJECT; do
   done <<< "$HEADER_LINES"
 
   if [ -z "$SIGNED_URL" ] || [ -z "$EXPECTED_FILENAME" ]; then
-    echo "[ERROR]: Failed to read upload URL from server response."
+    echo "warning: Measure: Failed to read upload URL from server response."
     echo "failure" > "$UPLOAD_SUCCESS_FLAG"
     break
   fi
@@ -307,7 +306,7 @@ while IFS= read -r URL_OBJECT; do
   done
 
   if [ -z "$TGZ_PATH" ]; then
-    echo "[ERROR]: No local file found for $EXPECTED_FILENAME."
+    echo "warning: Measure: No local file found for $EXPECTED_FILENAME."
     echo "failure" > "$UPLOAD_SUCCESS_FLAG"
     continue
   fi
@@ -334,7 +333,7 @@ while IFS= read -r URL_OBJECT; do
   done
 
   if [ "$UPLOAD_ATTEMPT_SUCCESS" = false ]; then
-    echo "[ERROR]: Failed to upload $EXPECTED_FILENAME after $MAX_ATTEMPTS attempts."
+    echo "warning: Measure: Failed to upload $EXPECTED_FILENAME after $MAX_ATTEMPTS attempts."
     echo "failure" > "$UPLOAD_SUCCESS_FLAG"
   fi
 done
@@ -345,6 +344,5 @@ if [ "$FINAL_STATUS" = "success" ]; then
   echo "✅ Successfully uploaded to Measure."
 else
   echo ""
-  echo "❌ One or more files failed to upload."
-  exit 1
+  warn_and_exit "One or more files failed to upload."
 fi
