@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 
+	"backend/libs/healthcheck"
 	"backend/libs/middleware"
 	"symboloader/server"
 
@@ -15,6 +16,7 @@ import (
 )
 
 func main() {
+	healthcheck.Run("8083")
 	config := server.NewConfig()
 	server.Init(config)
 

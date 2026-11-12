@@ -13,6 +13,7 @@ import (
 
 	"backend/ingest-worker/measure"
 	"backend/ingest-worker/server"
+	"backend/libs/healthcheck"
 	"backend/libs/inet"
 	"backend/libs/middleware"
 	"backend/libs/posthog"
@@ -23,6 +24,7 @@ import (
 )
 
 func main() {
+	healthcheck.Run("8086")
 	config := server.NewConfig()
 	server.Init(config)
 

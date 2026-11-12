@@ -149,7 +149,7 @@ services:
         - path: ../backend/libs
           action: rebuild
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8080/ping"]
+      test: ["CMD", "/app", "healthcheck"]
       interval: 5s
       timeout: 10s
       retries: 5
@@ -246,7 +246,7 @@ services:
         - path: ../backend/libs
           action: rebuild
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8084/ping"]
+      test: ["CMD", "/app", "healthcheck"]
       interval: 5s
       timeout: 10s
       retries: 5
@@ -322,7 +322,7 @@ services:
         - path: ../backend/libs
           action: rebuild
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8086/ping"]
+      test: ["CMD", "/app", "healthcheck"]
       interval: 5s
       timeout: 10s
       retries: 5
@@ -399,7 +399,7 @@ services:
         - path: ../backend/libs
           action: rebuild
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8085/ping"]
+      test: ["CMD", "/app", "healthcheck"]
       interval: 5s
       timeout: 10s
       retries: 5
@@ -463,7 +463,7 @@ services:
         - path: ../backend/libs
           action: rebuild
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8081/ping"]
+      test: ["CMD", "/app", "healthcheck"]
       interval: 5s
       timeout: 10s
       retries: 5
@@ -522,7 +522,7 @@ services:
         - path: ../backend/libs
           action: rebuild
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8082/ping"]
+      test: ["CMD", "/app", "healthcheck"]
       interval: 5s
       timeout: 10s
       retries: 5
@@ -573,7 +573,7 @@ services:
         - path: ../backend/libs
           action: rebuild
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:8083/ping"]
+      test: ["CMD", "/app", "healthcheck"]
       interval: 5s
       timeout: 10s
       retries: 5

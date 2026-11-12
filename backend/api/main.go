@@ -14,6 +14,7 @@ import (
 	"backend/api/server"
 	"backend/api/slackwebhook"
 	"backend/libs/concur"
+	"backend/libs/healthcheck"
 	"backend/libs/inet"
 	"backend/libs/middleware"
 	"backend/libs/posthog"
@@ -24,6 +25,7 @@ import (
 )
 
 func main() {
+	healthcheck.Run("8080")
 	config := server.NewConfig()
 	deps := server.Connect(config)
 	producer := server.NewAgentEventsProducer(config)
