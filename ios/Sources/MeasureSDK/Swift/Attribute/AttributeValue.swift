@@ -52,8 +52,8 @@ enum AttributeValueSerializer {
     static func deserialize(from value: Any) -> AttributeValue? {
         if let stringValue = value as? String {
             return .string(stringValue)
-        } else if let boolValue = value as? Bool {
-            return .boolean(boolValue)
+        } else if let number = value as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() {
+            return .boolean(number.boolValue)
         } else if let intValue = value as? Int {
             return .int(intValue)
         } else if let longValue = value as? Int64 {

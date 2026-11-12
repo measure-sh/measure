@@ -26,8 +26,8 @@ final class BaseAttributeTransformer: AttributeTransformer {
         var transformedAttributes: [String: AttributeValue] = [:]
 
         for (key, value) in attributes {
-            if let boolVal = value as? Bool {
-                transformedAttributes[key] = .boolean(boolVal)
+            if let number = value as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() {
+                transformedAttributes[key] = .boolean(number.boolValue)
             } else if let stringVal = value as? String {
                 transformedAttributes[key] = .string(stringVal)
             } else if let intVal = value as? Int {

@@ -92,6 +92,30 @@ final class BaseAttributeTransformerTests: XCTestCase {
         XCTAssertTrue(value)
     }
 
+    func test_convertsNSNumberOneToInt() {
+        let result = transformer.transformAttributes(["count": NSNumber(value: 1)])
+        guard case .int(let value) = result["count"] else {
+            return XCTFail("Expected .int, got \(String(describing: result["count"]))")
+        }
+        XCTAssertEqual(value, 1)
+    }
+
+    func test_convertsNSNumberZeroToInt() {
+        let result = transformer.transformAttributes(["count": NSNumber(value: 0)])
+        guard case .int(let value) = result["count"] else {
+            return XCTFail("Expected .int, got \(String(describing: result["count"]))")
+        }
+        XCTAssertEqual(value, 0)
+    }
+
+    func test_convertsNSNumberFalseToBool() {
+        let result = transformer.transformAttributes(["flag": NSNumber(value: false)])
+        guard case .boolean(let value) = result["flag"] else {
+            return XCTFail("Expected .boolean, got \(String(describing: result["flag"]))")
+        }
+        XCTAssertFalse(value)
+    }
+
     func test_logsError_whenValueTypeIsUnsupported() {
         var capturedLevel: LogLevel?
         logger.onLog = { level, _, _, _ in capturedLevel = level }
