@@ -154,7 +154,7 @@ export function useFilterPage({
     [search, rootSpan, fixedAppId],
   );
 
-  const appsQuery = useAppsQuery(teamId);
+  const appsQuery = useAppsQuery(teamId, url.appId ?? rememberedAppId);
   const app = resolveApp(url.appId, appsQuery.data, rememberedAppId);
 
   const urlCustomKeyNames = useMemo(

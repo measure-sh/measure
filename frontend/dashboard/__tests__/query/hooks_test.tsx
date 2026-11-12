@@ -263,6 +263,29 @@ describe("useAppsQuery", () => {
     await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.error).toBe(failure);
   });
+
+  it("refetches the app list on remount while the selected app is not onboarded", async () => {
+    const { wrapper } = makeWrapper();
+    const remount = async (selectedAppId: string) => {
+      const { result, unmount } = renderHook(
+        () => useAppsQuery("team-1", selectedAppId),
+        { wrapper },
+      );
+      await waitFor(() => expect(result.current.isFetching).toBe(false));
+      unmount();
+    };
+
+    mockFetchApps.mockResolvedValue([
+      { id: "a1", onboarded: false },
+      { id: "a2", onboarded: true },
+    ]);
+    await remount("a1");
+    await remount("a1");
+    expect(mockFetchApps).toHaveBeenCalledTimes(2);
+
+    await remount("a2");
+    expect(mockFetchApps).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe("useFilterKeysQuery", () => {

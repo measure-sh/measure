@@ -126,12 +126,24 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 
-export function useAppsQuery(teamId: string | undefined) {
+export function useAppsQuery(
+  teamId: string | undefined,
+  selectedAppId?: string | null,
+) {
   return useQuery<App[]>({
     queryKey: ["filterApps", teamId] as const,
     queryFn: () => fetchAppsFromServer(teamId!),
     enabled: !!teamId,
     ...BROWSER_CACHE,
+    // The wizard stays visible until the selected app is onboarded. Refetch the
+    // app list on each mount while it is not onboarded so the dashboard appears
+    // on the first page open after the first crash arrives.
+    staleTime: (query) => {
+      const app = query.state.data?.find(
+        (loaded) => loaded.id === selectedAppId,
+      );
+      return app?.onboarded === false ? 0 : BROWSER_CACHE.staleTime;
+    },
   });
 }
 

@@ -25,6 +25,7 @@ import {
 } from "../stores/onboarding_store";
 import { useFiltersStore, useOnboardingStore } from "../stores/provider";
 import type { CodeBlockLanguage } from "../utils/highlighter";
+import { navigateTo } from "../utils/navigation";
 import { cn } from "../utils/shadcn_utils";
 import {
   underlineLinkStyle,
@@ -793,7 +794,10 @@ export default function Onboarding({ teamId }: OnboardingProps) {
       a: selectedApp.id,
       d: "Last 6 Hours",
     });
-    router.push(`/${teamId}/crashes?${params.toString()}`);
+    // The cached app list still marks this app as not onboarded, so navigating
+    // within the app would show the wizard again. A full page load clears the
+    // in-memory cache.
+    navigateTo(`/${teamId}/crashes?${params.toString()}`);
   };
 
   const integrateStepNumber = showStepCreate ? 2 : 1;
