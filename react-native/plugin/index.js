@@ -35,6 +35,71 @@ const SOURCEMAP_EXPORT = 'export SOURCEMAP_FILE="$(pwd)/main.jsbundle.map"';
 const ANDROID_META_KEY_API_KEY = 'sh.measure.android.API_KEY';
 const ANDROID_META_KEY_API_URL = 'sh.measure.android.API_URL';
 
+// ─── SDK config options ──────────────────────────────────────────────────────
+
+// Plugin options passed to the native SDK config. Listed in the order the iOS
+// `BaseMeasureConfig` initializer takes them.
+const SDK_CONFIG_OPTIONS = {
+  enableLogging: { type: 'boolean', ios: true, android: true },
+  autoStart: { type: 'boolean', ios: true, android: true },
+  maxDiskUsageInMb: { type: 'integer', min: 20, max: 1500, ios: true, android: true },
+  enableFullCollectionMode: { type: 'boolean', ios: true, android: true },
+  enableDiagnosticMode: { type: 'boolean', ios: true, android: true },
+  enableDiagnosticModeGesture: { type: 'boolean', ios: true, android: false },
+  trackActivityIntentData: { type: 'boolean', ios: false, android: true },
+};
+
+// Defaults the plugin sets on top of the native SDK defaults.
+const PLUGIN_DEFAULTS = {
+  enableFullCollectionMode: true,
+};
+
+// The Objective-C `MSRConfig` initializer takes every option, so options that
+// aren't set fall back to these. They match the iOS SDK defaults.
+const IOS_SDK_DEFAULTS = {
+  enableLogging: false,
+  autoStart: true,
+  maxDiskUsageInMb: 50,
+  enableFullCollectionMode: false,
+  enableDiagnosticMode: false,
+  enableDiagnosticModeGesture: false,
+};
+
+const CREDENTIAL_OPTIONS = ['androidApiKey', 'androidApiUrl', 'iosApiKey', 'iosApiUrl'];
+
+function parseSdkConfig(options) {
+  for (const name of Object.keys(options)) {
+    if (!(name in SDK_CONFIG_OPTIONS) && !CREDENTIAL_OPTIONS.includes(name)) {
+      console.warn(`${PACKAGE_NAME}: ignoring unknown plugin option "${name}".`);
+    }
+  }
+
+  const sdkConfig = { ...PLUGIN_DEFAULTS };
+  for (const [name, { type, min, max }] of Object.entries(SDK_CONFIG_OPTIONS)) {
+    const value = options[name];
+    if (value === undefined) continue;
+
+    const valid =
+      type === 'boolean'
+        ? typeof value === 'boolean'
+        : Number.isInteger(value) && value >= min && value <= max;
+    if (!valid) {
+      const expected = type === 'boolean' ? 'a boolean' : `an integer between ${min} and ${max}`;
+      throw new Error(
+        `${PACKAGE_NAME}: ${name} must be ${expected}, got ${JSON.stringify(value)}`
+      );
+    }
+    sdkConfig[name] = value;
+  }
+  return sdkConfig;
+}
+
+function sdkOptionsFor(platform, sdkConfig) {
+  return Object.keys(SDK_CONFIG_OPTIONS).filter(
+    (name) => SDK_CONFIG_OPTIONS[name][platform] && sdkConfig[name] !== undefined
+  );
+}
+
 // ─── iOS: Podfile ────────────────────────────────────────────────────────────
 
 function injectMeasurePods(contents) {
@@ -56,21 +121,21 @@ function withMeasureIos(config) {
 
 // ─── iOS: AppDelegate ────────────────────────────────────────────────────────
 
-function withMeasureAppDelegate(config, { iosApiKey, iosApiUrl }) {
+function withMeasureAppDelegate(config, { iosApiKey, iosApiUrl, sdkConfig }) {
   return withAppDelegate(config, (config) => {
     const { contents, language } = config.modResults;
 
     if (language === 'objcpp' || language === 'objc') {
-      config.modResults.contents = injectMeasureObjC(contents, iosApiKey, iosApiUrl);
+      config.modResults.contents = injectMeasureObjC(contents, iosApiKey, iosApiUrl, sdkConfig);
     } else if (language === 'swift') {
-      config.modResults.contents = injectMeasureSwift(contents, iosApiKey, iosApiUrl);
+      config.modResults.contents = injectMeasureSwift(contents, iosApiKey, iosApiUrl, sdkConfig);
     }
 
     return config;
   });
 }
 
-function injectMeasureObjC(contents, apiKey, apiUrl) {
+function injectMeasureObjC(contents, apiKey, apiUrl, sdkConfig) {
   // Inject imports after the last #import block
   contents = mergeContents({
     src: contents,
@@ -82,14 +147,16 @@ function injectMeasureObjC(contents, apiKey, apiUrl) {
   }).contents;
 
   // Inject SDK init before the final return statement
+  const c = { ...IOS_SDK_DEFAULTS, ...sdkConfig };
+  const objcBool = (value) => (value ? 'YES' : 'NO');
   const initCode = [
-    `  MSRConfig *config = [[MSRConfig alloc] initWithEnableLogging:YES`,
-    `                                                     autoStart:YES`,
-    `                                      enableFullCollectionMode:NO`,
+    `  MSRConfig *config = [[MSRConfig alloc] initWithEnableLogging:${objcBool(c.enableLogging)}`,
+    `                                                     autoStart:${objcBool(c.autoStart)}`,
+    `                                      enableFullCollectionMode:${objcBool(c.enableFullCollectionMode)}`,
     `                                        requestHeadersProvider:NULL`,
-    `                                              maxDiskUsageInMb:@300`,
-    `                                          enableDiagnosticMode:YES`,
-    `                               enableDiagnosticModeGesture:YES];`,
+    `                                              maxDiskUsageInMb:@${c.maxDiskUsageInMb}`,
+    `                                          enableDiagnosticMode:${objcBool(c.enableDiagnosticMode)}`,
+    `                                   enableDiagnosticModeGesture:${objcBool(c.enableDiagnosticModeGesture)}];`,
     `  [MeasureSDK initializeWithApiKey:@"${apiKey}" apiUrl:@"${apiUrl}" config:config];`,
   ].join('\n');
 
@@ -105,7 +172,7 @@ function injectMeasureObjC(contents, apiKey, apiUrl) {
   return contents;
 }
 
-function injectMeasureSwift(contents, apiKey, apiUrl) {
+function injectMeasureSwift(contents, apiKey, apiUrl, sdkConfig) {
   // Inject `import Measure` after the last import line
   contents = mergeContents({
     src: contents,
@@ -116,9 +183,12 @@ function injectMeasureSwift(contents, apiKey, apiUrl) {
     comment: '//',
   }).contents;
 
+  const configArgs = sdkOptionsFor('ios', sdkConfig)
+    .map((name) => `${name}: ${sdkConfig[name]}`)
+    .join(', ');
   const initCode = [
     `    let clientInfo = ClientInfo(apiKey: "${apiKey}", apiUrl: "${apiUrl}")`,
-    `    let measureConfig = BaseMeasureConfig(autoStart: true, enableFullCollectionMode: false)`,
+    `    let measureConfig = BaseMeasureConfig(${configArgs})`,
     `    Measure.initialize(with: clientInfo, config: measureConfig)`,
   ].join('\n');
 
@@ -334,12 +404,11 @@ const ANDROID_IMPORTS = [
 
 const ANDROID_PACKAGE_REGISTRATION = 'packages.add(MeasurePackage())';
 
-const ANDROID_MEASURE_INIT = [
+const androidMeasureInit = (sdkConfig) => [
   '    Measure.init(',
   '      this,',
   '      measureConfig = MeasureConfig(',
-  '        autoStart = true,',
-  '        enableFullCollectionMode = false,',
+  ...sdkOptionsFor('android', sdkConfig).map((name) => `        ${name} = ${sdkConfig[name]},`),
   '      )',
   '    )',
   '    OkHttpClientProvider.setOkHttpClientFactory(object : OkHttpClientFactory {',
@@ -352,7 +421,7 @@ const ANDROID_MEASURE_INIT = [
   '    })',
 ].join('\n');
 
-function withMeasureMainApplication(config) {
+function withMeasureMainApplication(config, { sdkConfig, initSdk }) {
   return withMainApplication(config, (mod) => {
     // Inject all imports after the package declaration
     mod.modResults.contents = mergeContents({
@@ -388,14 +457,16 @@ function withMeasureMainApplication(config) {
     }
 
     // Inject Measure.init + OkHttp setup after super.onCreate()
-    mod.modResults.contents = mergeContents({
-      src: mod.modResults.contents,
-      newSrc: ANDROID_MEASURE_INIT,
-      tag: 'measure-init',
-      anchor: /super\.onCreate\(\)/,
-      offset: 1,
-      comment: '//',
-    }).contents;
+    if (initSdk) {
+      mod.modResults.contents = mergeContents({
+        src: mod.modResults.contents,
+        newSrc: androidMeasureInit(sdkConfig),
+        tag: 'measure-init',
+        anchor: /super\.onCreate\(\)/,
+        offset: 1,
+        comment: '//',
+      }).contents;
+    }
 
     return mod;
   });
@@ -405,20 +476,22 @@ function withMeasureMainApplication(config) {
 
 module.exports = function withMeasurePlugin(config, options = {}) {
   const { androidApiKey, androidApiUrl, iosApiKey, iosApiUrl } = options;
+  const sdkConfig = parseSdkConfig(options);
 
   // iOS
   config = withMeasureIos(config);
   config = withMeasureSpmSwiftIncludePaths(config);
   if (iosApiKey && iosApiUrl) {
-    config = withMeasureAppDelegate(config, { iosApiKey, iosApiUrl });
+    config = withMeasureAppDelegate(config, { iosApiKey, iosApiUrl, sdkConfig });
     config = withMeasureXcodeBuildPhases(config, { iosApiKey, iosApiUrl });
   }
 
   // Android
   config = withMeasureProjectBuildGradle(config);
   config = withMeasureAppBuildGradle(config);
-  config = withMeasureMainApplication(config);
-  if (androidApiKey && androidApiUrl) {
+  const hasAndroidCredentials = Boolean(androidApiKey && androidApiUrl);
+  config = withMeasureMainApplication(config, { sdkConfig, initSdk: hasAndroidCredentials });
+  if (hasAndroidCredentials) {
     config = withMeasureAndroidManifest(config, { androidApiKey, androidApiUrl });
   }
 

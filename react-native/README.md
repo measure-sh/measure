@@ -63,6 +63,22 @@ The plugin automatically:
 - Adds `MeasureOkHttpApplicationInterceptor` for automatic HTTP tracking on Android
 - Sets up a build phase to upload symbol files after each iOS Release build
 
+#### Plugin options
+
+Besides the API keys and URLs, the plugin takes these options for the native SDK config:
+
+| Option | Type | Default | Platforms | Description |
+| --- | --- | --- | --- | --- |
+| `enableFullCollectionMode` | `boolean` | `true` | iOS, Android | Override all sampling and send every event, including taps and network calls, from every session. Increases cost. Set to `false` to use sampling. |
+| `enableLogging` | `boolean` | `false` | iOS, Android | Turn on internal SDK logs. |
+| `autoStart` | `boolean` | `true` | iOS, Android | Start tracking automatically on init. |
+| `maxDiskUsageInMb` | `number` | `50` | iOS, Android | Cap the disk space used for buffered data. Clamped between 20 and 1500. |
+| `enableDiagnosticMode` | `boolean` | `false` | iOS, Android | Write all SDK logs to a file you can attach when reporting an SDK bug. |
+| `enableDiagnosticModeGesture` | `boolean` | `false` | iOS | Export SDK logs with a two-finger double-tap share sheet. Requires `enableDiagnosticMode`. |
+| `trackActivityIntentData` | `boolean` | `false` | Android | Capture the intent data used to launch an Activity. |
+
+Run `npx expo prebuild` again after changing an option.
+
 ### Vanilla React Native
 
 #### Android
