@@ -1099,9 +1099,11 @@ func eventNames(t *testing.T, userID string, appID uuid.UUID, query string) []st
 
 func seedCustomEvents(ctx context.Context, t *testing.T, teamID, appID uuid.UUID, at time.Time, names ...string) {
 	t.Helper()
-	for _, name := range names {
-		th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{Type: "custom", CustomName: name, Timestamp: at})
+	rows := make([]testinfra.EventRow, len(names))
+	for i, name := range names {
+		rows[i] = testinfra.EventRow{Type: "custom", CustomName: name, Timestamp: at}
 	}
+	th.SeedEventRowList(ctx, t, teamID.String(), appID.String(), rows...)
 }
 
 func TestSuggestFunnelEventNames(t *testing.T) {
@@ -1235,15 +1237,17 @@ type funnelEvent struct {
 func seedInstallationEvents(ctx context.Context, t *testing.T, teamID, appID uuid.UUID, appVersion string, start time.Time, events ...funnelEvent) string {
 	t.Helper()
 	installationID := uuid.NewString()
-	for _, event := range events {
-		th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+	rows := make([]testinfra.EventRow, len(events))
+	for i, event := range events {
+		rows[i] = testinfra.EventRow{
 			Type:           "custom",
 			CustomName:     event.name,
 			InstallationID: installationID,
 			AppVersion:     appVersion,
 			Timestamp:      start.Add(event.offset),
-		})
+		}
 	}
+	th.SeedEventRowList(ctx, t, teamID.String(), appID.String(), rows...)
 	return installationID
 }
 
@@ -1253,15 +1257,17 @@ func seedPlanEvents(ctx context.Context, t *testing.T, teamID, appID uuid.UUID, 
 	t.Helper()
 	installationID := uuid.NewString()
 	sessionID := uuid.NewString()
-	for _, event := range events {
-		th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
+	rows := make([]testinfra.EventRow, len(events))
+	for i, event := range events {
+		rows[i] = testinfra.EventRow{
 			Type:           "custom",
 			CustomName:     event.name,
 			InstallationID: installationID,
 			SessionID:      sessionID,
 			Timestamp:      start.Add(event.offset),
-		})
+		}
 	}
+	th.SeedEventRowList(ctx, t, teamID.String(), appID.String(), rows...)
 	th.SeedUDAttrRow(ctx, t, teamID.String(), appID.String(), testinfra.UDAttrRow{
 		SessionID: sessionID,
 		Key:       "plan",

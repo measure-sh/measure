@@ -54,20 +54,16 @@ const testTeamName = "test-team"
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 
-	pgPool, pgCleanup := testinfra.SetupPostgres(ctx)
-	chConn, chCleanup := testinfra.SetupClickHouse(ctx)
-	vk, vkCleanup := testinfra.SetupValkey(ctx)
+	stack := testinfra.Start(ctx, testinfra.Services{Postgres: true, ClickHouse: true, Valkey: true, Minio: true})
+	minioEndpoint = stack.MinioEndpoint
 
-	var minioCleanup func()
-	minioEndpoint, minioCleanup = testinfra.SetupMinio(ctx)
-
-	th = testinfra.NewTestHelper(pgPool, chConn, vk)
+	th = testinfra.NewTestHelper(stack.PgPool, stack.ChConn, stack.VK)
 
 	deps = &testDeps{
-		PgPool:  pgPool,
-		ChPool:  chConn,
-		RchPool: chConn,
-		VK:      vk,
+		PgPool:  stack.PgPool,
+		ChPool:  stack.ChConn,
+		RchPool: stack.ChConn,
+		VK:      stack.VK,
 		Config: &testConfig{
 			BillingEnabled: true,
 		},
@@ -85,10 +81,7 @@ func TestMain(m *testing.M) {
 
 	code := m.Run()
 
-	minioCleanup()
-	vkCleanup()
-	pgCleanup()
-	chCleanup()
+	stack.Cleanup()
 	os.Exit(code)
 }
 

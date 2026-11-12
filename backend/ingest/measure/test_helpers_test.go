@@ -22,21 +22,17 @@ var th *testinfra.TestHelper
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 
-	pgPool, pgCleanup := testinfra.SetupPostgres(ctx)
-	chConn, chCleanup := testinfra.SetupClickHouse(ctx)
-	vk, vkCleanup := testinfra.SetupValkey(ctx)
+	stack := testinfra.Start(ctx, testinfra.Services{Postgres: true, ClickHouse: true, Valkey: true})
 
-	th = testinfra.NewTestHelper(pgPool, chConn, vk)
+	th = testinfra.NewTestHelper(stack.PgPool, stack.ChConn, stack.VK)
 
 	server.InitForTest(&server.ServerConfig{
 		BillingEnabled: true,
-	}, pgPool, chConn, vk)
+	}, stack.PgPool, stack.ChConn, stack.VK)
 
 	code := m.Run()
 
-	vkCleanup()
-	pgCleanup()
-	chCleanup()
+	stack.Cleanup()
 	os.Exit(code)
 }
 

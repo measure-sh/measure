@@ -592,10 +592,11 @@ func TestFunnelOfADayReadsAllTheInstallationsOfThatDay(t *testing.T) {
 	base := time.Date(2026, 1, 10, 10, 0, 0, 0, time.UTC)
 	day := base.AddDate(0, 0, 10)
 	// The month has more rows than the sample, and the day has fewer. Each
-	// insert has rows of both days, so the rows of the two days are in the
-	// same parts, as after merges.
+	// insert has rows from both days, so the two days' rows are in the same
+	// parts, as after merges. Each row has a new id, so optimize_on_insert = 0
+	// skips a merge that would find no rows to collapse.
 	err := th.ChConn.Exec(f.ctx, "insert into measure.analytics_events (id, type, session_id, app_id, team_id, timestamp, installation_id, `custom.name`) "+
-		"select generateUUIDv4(), 'custom', generateUUIDv4(), ?, ?, toDateTime64(?, 3, 'UTC') + toIntervalDay(10 * (number % 2)), generateUUIDv4(), 'view_product' from numbers(?)",
+		"select generateUUIDv4(), 'custom', generateUUIDv4(), ?, ?, toDateTime64(?, 3, 'UTC') + toIntervalDay(10 * (number % 2)), generateUUIDv4(), 'view_product' from numbers(?) settings optimize_on_insert = 0",
 		f.appID, f.teamID, base.Format(time.DateTime), 8_000_000)
 	if err != nil {
 		t.Fatalf("seed view_product: %v", err)

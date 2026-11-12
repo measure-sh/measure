@@ -45,9 +45,11 @@ jest.mock("@/app/components/code_block", () => ({
 
 describe("session replay player", () => {
   // Fixture sessions share an ID, so each test gets a fresh attachment cache.
-  let queries = new QueryClient();
+  const newQueryClient = () =>
+    new QueryClient({ defaultOptions: { queries: { retryDelay: 0 } } });
+  let queries = newQueryClient();
   beforeEach(() => {
-    queries = new QueryClient();
+    queries = newQueryClient();
   });
   const withQueries = (ui: ReactElement) => (
     <QueryClientProvider client={queries}>{ui}</QueryClientProvider>
@@ -956,12 +958,7 @@ describe("session replay player", () => {
     try {
       renderReplay(tapWithAttachments(["https://cdn/bad.json"]));
 
-      // A failed fetch is retried once, and the query waits about a second
-      // before the retry, which is longer than the one second a findBy allows
-      // by default.
-      expect(
-        await screen.findByText(failedMessage, {}, { timeout: 5000 }),
-      ).toBeTruthy();
+      expect(await screen.findByText(failedMessage)).toBeTruthy();
       expect(screen.queryByText(loadingMessage)).toBeNull();
     } finally {
       restoreFetch();
@@ -1178,7 +1175,7 @@ describe("session replay player", () => {
         fireEvent.keyDown(slider, { key: "End" });
       });
       await act(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 2000));
+        await new Promise((resolve) => setTimeout(resolve, 500));
       });
 
       // A query with no data counts as stale however long it is kept fresh,

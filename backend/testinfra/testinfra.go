@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"runtime"
+	"sync"
 
 	"github.com/ClickHouse/clickhouse-go/v2"
 	"github.com/ClickHouse/clickhouse-go/v2/lib/driver"
@@ -15,6 +16,7 @@ import (
 	_ "github.com/amacneil/dbmate/v2/pkg/driver/postgres"   // blank import: triggers init() to register postgres driver with dbmate
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/testcontainers/testcontainers-go"
 	chmodule "github.com/testcontainers/testcontainers-go/modules/clickhouse" // aliased to avoid conflict with clickhouse-go/v2
 	pgmodule "github.com/testcontainers/testcontainers-go/modules/postgres"   // aliased for consistency with chmodule
 	vkmodule "github.com/testcontainers/testcontainers-go/modules/valkey"
@@ -40,6 +42,13 @@ func repoRoot() string {
 		log.Fatal("unable to determine repo root via runtime.Caller")
 	}
 	return filepath.Join(filepath.Dir(filename), "..", "..")
+}
+
+// terminate stops a test container without waiting for a grace period. Its
+// data is discarded, and some servers take until Docker's stop timeout to
+// shut down gracefully.
+func terminate(container testcontainers.Container) {
+	container.Terminate(context.Background(), testcontainers.StopTimeout(0))
 }
 
 // runMigrations runs all dbmate migrations from the given directory
@@ -112,7 +121,7 @@ func SetupPostgres(ctx context.Context) (*pgxpool.Pool, func()) {
 
 	cleanup := func() {
 		pool.Close()
-		container.Terminate(context.Background())
+		terminate(container)
 	}
 
 	return pool, cleanup
@@ -137,9 +146,18 @@ func SetupClickHouse(ctx context.Context) (driver.Conn, func()) {
 		log.Fatalf("failed to get clickhouse connection string: %v", err)
 	}
 
-	// Run all ClickHouse migrations using dbmate.
+	// Run all ClickHouse migrations using dbmate. With async_insert=1, each
+	// insert into schema_migrations waits for a buffer flush. Disable it on
+	// the migration connection.
 	migDir := filepath.Join(repoRoot(), "self-host", "clickhouse")
-	runMigrations(connStr, migDir)
+	migURL, err := url.Parse(connStr)
+	if err != nil {
+		log.Fatalf("failed to parse clickhouse URL for migrations: %v", err)
+	}
+	q := migURL.Query()
+	q.Set("async_insert", "0")
+	migURL.RawQuery = q.Encode()
+	runMigrations(migURL.String(), migDir)
 
 	opts, err := clickhouse.ParseDSN(connStr)
 	if err != nil {
@@ -157,7 +175,7 @@ func SetupClickHouse(ctx context.Context) (driver.Conn, func()) {
 
 	cleanup := func() {
 		conn.Close()
-		container.Terminate(context.Background())
+		terminate(container)
 	}
 
 	return conn, cleanup
@@ -193,8 +211,81 @@ func SetupValkey(ctx context.Context) (valkey.Client, func()) {
 
 	cleanup := func() {
 		client.Close()
-		container.Terminate(context.Background())
+		terminate(container)
 	}
 
 	return client, cleanup
+}
+
+// Services selects the containers for Start to run.
+type Services struct {
+	Postgres   bool
+	ClickHouse bool
+	Valkey     bool
+	Minio      bool
+}
+
+// Stack holds the clients for the containers started by Start. Clients are
+// nil, and MinioEndpoint is empty, for services that were not selected.
+type Stack struct {
+	PgPool        *pgxpool.Pool
+	ChConn        driver.Conn
+	VK            valkey.Client
+	MinioEndpoint string
+
+	cleanups []func()
+}
+
+// Start runs the selected containers concurrently.
+func Start(ctx context.Context, services Services) *Stack {
+	stack := &Stack{}
+	var mu sync.Mutex
+	addCleanup := func(cleanup func()) {
+		mu.Lock()
+		defer mu.Unlock()
+		stack.cleanups = append(stack.cleanups, cleanup)
+	}
+
+	var wg sync.WaitGroup
+	if services.Postgres {
+		wg.Go(func() {
+			pool, cleanup := SetupPostgres(ctx)
+			stack.PgPool = pool
+			addCleanup(cleanup)
+		})
+	}
+	if services.ClickHouse {
+		wg.Go(func() {
+			conn, cleanup := SetupClickHouse(ctx)
+			stack.ChConn = conn
+			addCleanup(cleanup)
+		})
+	}
+	if services.Valkey {
+		wg.Go(func() {
+			client, cleanup := SetupValkey(ctx)
+			stack.VK = client
+			addCleanup(cleanup)
+		})
+	}
+	if services.Minio {
+		wg.Go(func() {
+			endpoint, cleanup := SetupMinio(ctx)
+			stack.MinioEndpoint = endpoint
+			addCleanup(cleanup)
+		})
+	}
+	wg.Wait()
+
+	return stack
+}
+
+// Cleanup closes the clients and terminates the stack's containers
+// concurrently.
+func (s *Stack) Cleanup() {
+	var wg sync.WaitGroup
+	for _, cleanup := range s.cleanups {
+		wg.Go(cleanup)
+	}
+	wg.Wait()
 }

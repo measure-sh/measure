@@ -21,12 +21,12 @@ var vk valkey.Client
 func TestMain(m *testing.M) {
 	ctx := context.Background()
 
-	client, vkCleanup := testinfra.SetupValkey(ctx)
-	vk = client
+	stack := testinfra.Start(ctx, testinfra.Services{Valkey: true})
+	vk = stack.VK
 
 	code := m.Run()
 
-	vkCleanup()
+	stack.Cleanup()
 	os.Exit(code)
 }
 

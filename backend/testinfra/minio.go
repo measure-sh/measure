@@ -44,7 +44,7 @@ func SetupMinio(ctx context.Context) (endpoint string, cleanup func()) {
 	}
 
 	cleanup = func() {
-		container.Terminate(context.Background())
+		terminate(container)
 	}
 
 	return "http://" + hostPort, cleanup
