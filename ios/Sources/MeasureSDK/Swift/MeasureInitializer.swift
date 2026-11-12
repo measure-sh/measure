@@ -40,6 +40,8 @@ protocol MeasureInitializer {
     var networkClient: NetworkClient { get }
     var httpClient: HttpClient { get }
     var exporter: Exporter { get }
+    var buildEnvironment: BuildEnvironment { get }
+    var periodicExporter: PeriodicExporter? { get }
     var batchStore: BatchStore { get }
     var lifecycleCollector: LifecycleCollector { get }
     var cpuUsageCollector: CpuUsageCollector { get }
@@ -132,6 +134,8 @@ protocol MeasureInitializer {
 /// - `httpClient`: `HttpClient` object that handles HTTP requests.
 /// - `networkClient`: `NetworkClient` object is responsible for initializing the network configuration and executing API requests.
 /// - `exporter`: `Exporter` object that exports a single batch.
+/// - `buildEnvironment`: `BuildEnvironment` object that tells whether the host app is a debug build.
+/// - `periodicExporter`: `PeriodicExporter` object that exports data at a fixed interval. Only created for debug builds.
 /// - `batchStore`: `BatchStore` object that manages `Batch` related operations
 /// - `dataCleanupService`: `DataCleanupService` object responsible for clearing stale data
 /// - `attachmentProcessor`: `AttachmentProcessor` object responsible for generating and managing screenshots.
@@ -185,6 +189,8 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
     let networkClient: NetworkClient
     let httpClient: HttpClient
     let exporter: Exporter
+    let buildEnvironment: BuildEnvironment
+    let periodicExporter: PeriodicExporter?
     let batchStore: BatchStore
     let lifecycleCollector: LifecycleCollector
     let cpuUsageCollector: CpuUsageCollector
@@ -328,7 +334,15 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                      attachmentStore: attachmentStore,
                                      sessionStore: sessionStore,
                                      configProvider: configProvider,
-                                     systemFileManager: systemFileManager)
+                                     systemFileManager: systemFileManager,
+                                     backgroundTaskRunner: BaseBackgroundTaskRunner())
+        self.buildEnvironment = BaseBuildEnvironment(sysCtl: sysCtl)
+        self.periodicExporter = buildEnvironment.isDebugBuild
+            ? BasePeriodicExporter(logger: logger,
+                                   configProvider: configProvider,
+                                   exporter: exporter,
+                                   dispatchQueue: MeasureQueue.periodicExporterTimer)
+            : nil
         self.signalProcessor = BaseSignalProcessor(logger: logger,
                                                    idProvider: idProvider,
                                                    sessionManager: sessionManager,
@@ -497,4 +511,4 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
         self.shakeDetector = AccelerometerShakeDetector(configProvider: configProvider)
         self.shakeBugReportCollector = ShakeBugReportCollector(shakeDetector: shakeDetector)
     }
-}
+} // swiftlint:disable:this file_length

@@ -8,7 +8,7 @@
 import Foundation
 @testable import Measure
 
-extension Attributes: Equatable {
+extension Attributes: @retroactive Equatable {
     public static func == (lhs: Attributes, rhs: Attributes) -> Bool {
         return lhs.threadName == rhs.threadName &&
             lhs.deviceName == rhs.deviceName &&

@@ -8,7 +8,7 @@
 import Foundation
 @testable import Measure
 
-extension Exception: Equatable {
+extension Exception: @retroactive Equatable {
     public static func == (lhs: Exception, rhs: Exception) -> Bool {
         guard lhs.exceptions.count == rhs.exceptions.count else { return false }
         for (lhsException, rhsException) in zip(lhs.exceptions, rhs.exceptions) {
@@ -31,7 +31,7 @@ extension Exception: Equatable {
     }
 }
 
-extension ExceptionDetail: Equatable {
+extension ExceptionDetail: @retroactive Equatable {
     public static func == (lhs: ExceptionDetail, rhs: ExceptionDetail) -> Bool {
         guard lhs.type == rhs.type,
               lhs.message == rhs.message,
@@ -53,7 +53,7 @@ extension ExceptionDetail: Equatable {
     }
 }
 
-extension ThreadDetail: Equatable {
+extension ThreadDetail: @retroactive Equatable {
     public static func == (lhs: ThreadDetail, rhs: ThreadDetail) -> Bool {
         guard lhs.name == rhs.name,
               lhs.sequence == rhs.sequence else {
@@ -72,7 +72,7 @@ extension ThreadDetail: Equatable {
     }
 }
 
-extension StackFrame: Equatable {
+extension StackFrame: @retroactive Equatable {
     public static func == (lhs: StackFrame, rhs: StackFrame) -> Bool {
         return lhs.binaryName == rhs.binaryName &&
                lhs.binaryAddress == rhs.binaryAddress &&

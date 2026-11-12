@@ -46,7 +46,8 @@ final class BaseExporterTests: XCTestCase {
             attachmentStore: attachmentStore,
             sessionStore: sessionStore,
             configProvider: config,
-            systemFileManager: systemFileManager
+            systemFileManager: systemFileManager,
+            backgroundTaskRunner: MockBackgroundTaskRunner()
         )
     }
 
@@ -61,6 +62,29 @@ final class BaseExporterTests: XCTestCase {
         sessionStore = nil
         config = nil
         systemFileManager = nil
+    }
+
+    private func makeExporter(dispatchQueue: DispatchQueue, backgroundTaskRunner: BackgroundTaskRunner) -> BaseExporter {
+        BaseExporter(
+            logger: MockLogger(),
+            idProvider: MockIdProvider(),
+            dispatchQueue: dispatchQueue,
+            timeProvider: MockTimeProvider(),
+            networkClient: network,
+            httpClient: http,
+            eventStore: eventStore,
+            spanStore: spanStore,
+            batchStore: batchStore,
+            attachmentStore: attachmentStore,
+            sessionStore: sessionStore,
+            configProvider: config,
+            systemFileManager: systemFileManager,
+            backgroundTaskRunner: backgroundTaskRunner
+        )
+    }
+
+    private func taskId(_ rawValue: Int) -> UIBackgroundTaskIdentifier {
+        UIBackgroundTaskIdentifier(rawValue: rawValue)
     }
 
     private func makeEvent(id: String, sessionId: String) -> EventEntity {
@@ -123,6 +147,50 @@ final class BaseExporterTests: XCTestCase {
             isSampled: true,
             batchId: nil
         )
+    }
+
+    func testEndsBackgroundTaskWhenExportFinishes() {
+        let queue = DispatchQueue(label: "sh.measure.tests.exporter")
+        let runner = MockBackgroundTaskRunner()
+        let exporter = makeExporter(dispatchQueue: queue, backgroundTaskRunner: runner)
+
+        exporter.export()
+        queue.sync {}
+
+        XCTAssertEqual(runner.begunTaskIds, [taskId(1)])
+        XCTAssertEqual(runner.endedTaskIds, [taskId(1)])
+    }
+
+    func testEndsBackgroundTaskOnceWhenItExpiresBeforeExportFinishes() {
+        let queue = DispatchQueue(label: "sh.measure.tests.exporter")
+        let runner = MockBackgroundTaskRunner()
+        let exporter = makeExporter(dispatchQueue: queue, backgroundTaskRunner: runner)
+        queue.suspend()
+
+        exporter.export()
+        runner.expire(taskId(1))
+        queue.resume()
+        queue.sync {}
+
+        XCTAssertEqual(runner.endedTaskIds, [taskId(1)])
+    }
+
+    func testDoesNotEndNextExportsBackgroundTaskWhenExpiredExportFinishes() {
+        let queue = DispatchQueue(label: "sh.measure.tests.exporter")
+        let runner = MockBackgroundTaskRunner()
+        let exporter = makeExporter(dispatchQueue: queue, backgroundTaskRunner: runner)
+        var endedAfterFirstExport: [UIBackgroundTaskIdentifier] = []
+        queue.suspend()
+
+        exporter.export()
+        runner.expire(taskId(1))
+        queue.async { endedAfterFirstExport = runner.endedTaskIds }
+        exporter.export()
+        queue.resume()
+        queue.sync {}
+
+        XCTAssertEqual(endedAfterFirstExport, [taskId(1)])
+        XCTAssertEqual(runner.endedTaskIds, [taskId(1), taskId(2)])
     }
 
     func testSkipsExportWhenAlreadyRunning() {

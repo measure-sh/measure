@@ -15,6 +15,9 @@ protocol InternalConfig {
     /// The interval between consecutive requests for attachment export.
     var attachmentExportIntervalMs: Number { get }
 
+    /// The interval at which data is exported periodically in debug builds. Defaults to 5 seconds.
+    var debugExportIntervalMs: Number { get }
+
     /// Default list of HTTP headers to not capture for network request and response.
     var defaultHttpHeadersBlocklist: [String] { get }
 
