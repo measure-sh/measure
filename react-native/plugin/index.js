@@ -189,8 +189,9 @@ function withMeasureXcodeBuildPhases(config, { iosApiKey, iosApiUrl }) {
       break;
     }
 
-    // 2. Add upload build phase (idempotent)
-    const alreadyAdded = Object.values(shellScriptPhases).some((phase) => {
+    // 2. Add the upload build phase, or update its API URL and key if it exists
+    const uploadScript = `"$SRCROOT/../node_modules/${PACKAGE_NAME}/scripts/upload_build_phase.sh" "${iosApiUrl}" "${iosApiKey}"`;
+    const existingPhase = Object.values(shellScriptPhases).find((phase) => {
       if (typeof phase !== 'object' || !phase.shellScript) return false;
       try {
         return JSON.parse(phase.shellScript).includes('upload_build_phase.sh');
@@ -199,9 +200,9 @@ function withMeasureXcodeBuildPhases(config, { iosApiKey, iosApiUrl }) {
       }
     });
 
-    if (!alreadyAdded) {
-      const uploadScript = `"$SRCROOT/../node_modules/${PACKAGE_NAME}/scripts/upload_build_phase.sh" "${iosApiUrl}" "${iosApiKey}"`;
-
+    if (existingPhase) {
+      existingPhase.shellScript = JSON.stringify(uploadScript);
+    } else {
       const nativeTargets = xcodeProject.pbxNativeTargetSection();
       const appTargetEntry = Object.entries(nativeTargets).find(
         ([, t]) => t.productType === '"com.apple.product-type.application"'
