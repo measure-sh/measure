@@ -162,6 +162,7 @@ jest.mock("next/link", () => ({
 
 jest.mock("lucide-react", () => ({
   Check: () => <span data-testid="icon-check" />,
+  ChevronDown: () => <span data-testid="icon-chevron-down" />,
   ChevronLeft: () => <span data-testid="icon-chevron-left" />,
   ChevronRight: () => <span data-testid="icon-chevron-right" />,
   Copy: () => <span data-testid="icon-copy" />,

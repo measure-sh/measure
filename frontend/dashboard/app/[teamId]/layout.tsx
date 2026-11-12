@@ -32,6 +32,7 @@ import UserAvatar from "../components/user_avatar";
 import { useMeasureStoreRegistry } from "../stores/provider";
 import { isCloud } from "../utils/env_utils";
 import { isSandboxTeamId } from "../utils/sandbox";
+import { SUPPORT_URL } from "../utils/support";
 
 type NavItem = {
   title: string;
@@ -175,7 +176,7 @@ function buildInitNavData(): { navMain: NavSection[] } {
           },
           {
             title: "Support",
-            url: "https://discord.gg/f6zGkBCt42",
+            url: SUPPORT_URL,
             isActive: false,
             external: true,
           },

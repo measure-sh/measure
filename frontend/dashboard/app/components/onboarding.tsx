@@ -1,7 +1,7 @@
 "use client";
 
 import { DateTime } from "luxon";
-import { Check, ChevronLeft, ChevronRight, Copy, Loader2 } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Copy } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -35,6 +35,7 @@ import { toastNegative, toastPositive } from "./toast";
 import { Button } from "./button";
 import CodeBlock, { CODE_BLOCK_CARD_CLASS } from "./code_block";
 import { Input } from "./input";
+import OnboardingWaiting from "./onboarding_waiting";
 import { SDK_VERSIONS } from "./sdk_versions.generated";
 import TabSelect from "./tab_select";
 
@@ -986,12 +987,7 @@ export default function Onboarding({ teamId }: OnboardingProps) {
                 className="flex flex-col gap-4"
                 data-testid="onboarding-waiting"
               >
-                <div className="flex flex-row items-center gap-3">
-                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                  <p className="font-body text-sm text-muted-foreground">
-                    Waiting for your first crash to arrive…
-                  </p>
-                </div>
+                <OnboardingWaiting apiKey={apiKey} apiUrl={apiUrl} />
                 <div>
                   <Button
                     variant="outline"
