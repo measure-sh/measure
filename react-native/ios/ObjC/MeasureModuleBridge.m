@@ -47,13 +47,8 @@ RCT_EXTERN_METHOD(trackHttpEvent:
                   method:(NSString *)method
                   startTime:(nonnull NSNumber *)startTime
                   endTime:(nonnull NSNumber *)endTime
-                  statusCode:(nullable NSNumber *)statusCode
-                  error:(nullable NSString *)error
-                  requestHeaders:(nullable NSDictionary *)requestHeaders
-                  responseHeaders:(nullable NSDictionary *)responseHeaders
-                  requestBody:(nullable NSString *)requestBody
-                  responseBody:(nullable NSString *)responseBody
                   client:(NSString *)client
+                  options:(NSDictionary *)options
                   resolver:(RCTPromiseResolveBlock)resolve
                   rejecter:(RCTPromiseRejectBlock)reject)
 RCT_EXTERN_METHOD(launchBugReport:(BOOL)takeScreenshot

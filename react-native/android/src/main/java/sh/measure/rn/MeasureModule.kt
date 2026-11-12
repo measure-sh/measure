@@ -197,28 +197,21 @@ class MeasureModule(private val reactContext: ReactApplicationContext) :
         method: String,
         startTime: Double,
         endTime: Double,
-        statusCode: Int?,
-        error: String?,
-        requestHeaders: ReadableMap?,
-        responseHeaders: ReadableMap?,
-        requestBody: String?,
-        responseBody: String?,
         client: String,
+        options: ReadableMap,
         promise: Promise
     ) {
-        val errObj = error?.let { Exception(it) }
-
         Measure.trackHttpEvent(
             url,
             method,
             startTime.toLong(),
             endTime.toLong(),
-            statusCode,
-            errObj,
-            requestHeaders?.toHashMap()?.mapValues { it.value.toString() }?.toMutableMap(),
-            responseHeaders?.toHashMap()?.mapValues { it.value.toString() }?.toMutableMap(),
-            requestBody,
-            responseBody,
+            options.optDouble("statusCode")?.toInt(),
+            options.optString("error")?.let { Exception(it) },
+            options.optMap("requestHeaders")?.toStringMap(),
+            options.optMap("responseHeaders")?.toStringMap(),
+            options.optString("requestBody"),
+            options.optString("responseBody"),
             client
         )
 

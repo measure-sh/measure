@@ -59,3 +59,64 @@ describe('measureBridge.stop', () => {
     await expect(stop()).resolves.toBeUndefined();
   });
 });
+
+describe('measureBridge.trackHttpEvent', () => {
+  const trackHttpEventArgs = (...args: unknown[]) => {
+    const { NativeModules } = require('react-native');
+    NativeModules.MeasureModule.trackHttpEvent = jest.fn(() =>
+      Promise.resolve('ok')
+    );
+    const { trackHttpEvent } = require('../../native/measureBridge');
+    trackHttpEvent(...args);
+    return NativeModules.MeasureModule.trackHttpEvent.mock.calls[0];
+  };
+
+  beforeEach(() => {
+    jest.resetModules();
+  });
+
+  it('passes the optional values in an options map', () => {
+    const args = trackHttpEventArgs(
+      'https://example.com',
+      'post',
+      1,
+      2,
+      201,
+      null,
+      { 'Content-Type': 'application/json' },
+      { 'X-Id': '1' },
+      '{"a":1}',
+      '{"ok":true}',
+      'okhttp'
+    );
+    expect(args).toEqual([
+      'https://example.com',
+      'post',
+      1,
+      2,
+      'okhttp',
+      {
+        statusCode: 201,
+        error: null,
+        requestHeaders: { 'Content-Type': 'application/json' },
+        responseHeaders: { 'X-Id': '1' },
+        requestBody: '{"a":1}',
+        responseBody: '{"ok":true}',
+      },
+    ]);
+  });
+
+  it('passes a missing status code inside the options map', () => {
+    const args = trackHttpEventArgs(
+      'https://example.com',
+      'get',
+      1,
+      2,
+      undefined,
+      'timeout'
+    );
+    expect(args).toHaveLength(6);
+    expect(args[5].statusCode).toBeUndefined();
+    expect(args[5].error).toBe('timeout');
+  });
+});
