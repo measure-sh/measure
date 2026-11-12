@@ -67,10 +67,10 @@ Perfetto screenshot from one of the runs:
 
 ## Benchmarks
 
-We benchmarked the iOS SDKs performance impact using a baseline app on an iPhone 14 Plus
-running iOS 18.5. Each scenario was executed _5 times_ and instrumented with `os_signpost` for
-precise time tracking. Metrics were collected via Instruments (Time Profiler and Logging with
-Signposts).
+We benchmarked the iOS SDK's performance impact using a baseline app on an iPhone 17
+running iOS 26.6. Each scenario was executed _10 times_ and instrumented with `os_signpost` for
+precise time tracking. Metrics were collected via Instruments (Time Profiler with the os_signpost
+instrument).
 
 <Callout type="warn">
 
@@ -80,19 +80,21 @@ The following numbers serve as a reference baseline and are used internally to m
 
 </Callout>
 
-### Benchmark Results (v0.6.0)
+### Benchmark Results (v0.15.0)
 
-Measure adds **21.03–25.7 ms (avg ~22.8 ms)** to app startup time (Time to Initial Display). Other
+Measure adds **31.3–49.1 ms (median 35.4 ms)** to app startup time (Time to Initial Display). Other
 key operations performed by the SDK can be found below:
 
-| Operation                 | p95       | Description                                                   |
-|---------------------------|-----------|---------------------------------------------------------------|
-| `trackEvent`              | 195 µs    | Includes event collection, attribute enrichment and queueing |
-| `appendAttributes`        | 360 µs    | Dynamic attribute gathering (e.g., network, device state)     |
-| `trackBugReport`          | 120 µs    | Complete flow including screenshot, layout and metadata      |
-| `trackEventUserTriggered` | 32 µs     | User-triggered event tracking                                 |
-| `trackSpanTriggered`      | 96 µs     | When a trace event is emitted                                 |
-| `spanProcessorOnStart`    | 105 µs    | Span construction                                             |
-| `spanProcessorOnEnded`    | 355 µs    | Span serialization and buffering                              |
-| `generateScreenshot`      | 80 ms     | Snapshotting and compression of UI                            |
-| `generateLayoutSnapshot`  | 7.5 ms    | Layout hierarchy capture                                      |
+| Operation                    | p95     | Description                                                    |
+|------------------------------|---------|----------------------------------------------------------------|
+| `trackEvent`                 | 32 µs   | Includes event collection, attribute enrichment and queueing   |
+| `appendAttributes`           | 56 µs   | Dynamic attribute gathering (e.g., network, device state)      |
+| `trackBugReport`             | 10.5 ms | Bug report processing and storage, including its attachments   |
+| `trackEventUserTriggered`    | 28 µs   | User-triggered event tracking                                  |
+| `trackSpanTriggered`         | 6 µs    | When a trace event is emitted                                  |
+| `spanProcessorOnStart`       | 84 µs   | Span construction                                              |
+| `spanProcessorOnEnded`       | 45 µs   | Span serialization and buffering                               |
+| `generateScreenshot`         | 59 ms   | Capturing the UI, masking and compression                 |
+| `generateLayoutSnapshotJson` | 2.8 ms  | Layout hierarchy capture                                       |
+| `trackAppHang`               | 1.8 ms  | Storing the app hang event once a hang is detected             |
+| `appHangPing`                | 11 µs   | App hang detection check, which runs about 20 times per second |
