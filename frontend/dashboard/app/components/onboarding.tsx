@@ -127,7 +127,6 @@ function androidCrashSnippet(): Snippet {
 import android.os.Looper
 
 // Add this in Application.onCreate(), after Measure.init().
-// The 2-second delay gives the SDK time to flush the crash event.
 // Remove this code after the crash appears in your dashboard.
 Handler(Looper.getMainLooper()).postDelayed({
     throw RuntimeException("Test crash from Measure onboarding")
@@ -161,13 +160,15 @@ Measure.initialize(with: clientInfo, config: config)`,
   };
 }
 
+const IOS_REOPEN_LINE =
+  "// Reopen the app after a crash to upload it to Measure.\n";
+
 function iosCrashSnippet(): Snippet {
   return {
     testId: "snippet-crash",
     language: "swift",
     code: `// Add this at your app entry point, after Measure.initialize.
-// The 2-second delay gives the SDK time to flush the crash event.
-// Remove this code after the crash appears in your dashboard.
+${IOS_REOPEN_LINE}// Remove this code after the crash appears in your dashboard.
 DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
     fatalError("Test crash from Measure onboarding")
 }`,
@@ -200,13 +201,12 @@ Future<void> main() async {
   };
 }
 
-function flutterCrashSnippet(): Snippet {
+function flutterCrashSnippet(nativeTarget: NativeTarget): Snippet {
   return {
     testId: "snippet-crash",
     language: "dart",
     code: `// Add this in main() after Measure.instance.init.
-// The 2-second delay gives the SDK time to flush the crash event.
-// Remove this code after the crash appears in your dashboard.
+${nativeTarget === "iOS" ? IOS_REOPEN_LINE : ""}// Remove this code after the crash appears in your dashboard.
 Future.delayed(const Duration(seconds: 2), () {
   throw Exception('Test crash from Measure onboarding');
 });`,
@@ -276,13 +276,12 @@ await Measure.init({ config });`,
   };
 }
 
-function reactNativeCrashSnippet(): Snippet {
+function reactNativeCrashSnippet(nativeTarget: NativeTarget): Snippet {
   return {
     testId: "snippet-crash",
     language: "typescript",
     code: `// Add this after Measure.init.
-// The 2-second delay gives the SDK time to flush the crash event.
-// Remove this code after the crash appears in your dashboard.
+${nativeTarget === "iOS" ? IOS_REOPEN_LINE : ""}// Remove this code after the crash appears in your dashboard.
 setTimeout(() => {
   throw new Error('Test crash from Measure onboarding');
 }, 2000);`,
@@ -398,10 +397,10 @@ function flutterSteps(
     title: "Initialize the Flutter SDK",
     snippet: flutterInitSnippet(),
   };
-  const crash = {
+  const crash = (nativeTarget: NativeTarget): OnboardingStep => ({
     title: "Trigger a test crash",
-    snippet: flutterCrashSnippet(),
-  };
+    snippet: flutterCrashSnippet(nativeTarget),
+  });
   return {
     Android: [
       dep,
@@ -418,7 +417,7 @@ function flutterSteps(
         snippet: androidInitSnippet("snippet-android-init"),
       },
       init,
-      crash,
+      crash("Android"),
     ],
     iOS: [
       dep,
@@ -431,7 +430,7 @@ function flutterSteps(
         snippet: iosInitSnippet(apiKey, apiUrl, "snippet-ios-init"),
       },
       init,
-      crash,
+      crash("iOS"),
     ],
   };
 }
@@ -448,10 +447,10 @@ function reactNativeSteps(
     title: "Initialize the React Native SDK",
     snippet: reactNativeInitSnippet(),
   };
-  const crash = {
+  const crash = (nativeTarget: NativeTarget): OnboardingStep => ({
     title: "Trigger a test crash",
-    snippet: reactNativeCrashSnippet(),
-  };
+    snippet: reactNativeCrashSnippet(nativeTarget),
+  });
   return {
     Android: [
       dep,
@@ -468,7 +467,7 @@ function reactNativeSteps(
         snippet: androidInitSnippet("snippet-android-init"),
       },
       init,
-      crash,
+      crash("Android"),
     ],
     iOS: [
       dep,
@@ -481,7 +480,7 @@ function reactNativeSteps(
         snippet: iosInitSnippet(apiKey, apiUrl, "snippet-ios-init"),
       },
       init,
-      crash,
+      crash("iOS"),
     ],
   };
 }
@@ -504,17 +503,17 @@ function expoSteps(
     title: "Initialize the SDK",
     snippet: reactNativeInitSnippet(),
   };
-  const crash = {
+  const crash = (nativeTarget: NativeTarget): OnboardingStep => ({
     title: "Trigger a test crash",
-    snippet: reactNativeCrashSnippet(),
-  };
+    snippet: reactNativeCrashSnippet(nativeTarget),
+  });
   const configPlugin = (nativeTarget: NativeTarget): OnboardingStep => ({
     title: "Add the config plugin to app.json or app.config.js",
     snippet: expoConfigPluginSnippet(nativeTarget, apiKey, apiUrl),
   });
   return {
-    Android: [dep, configPlugin("Android"), prebuild, init, crash],
-    iOS: [dep, configPlugin("iOS"), prebuild, init, crash],
+    Android: [dep, configPlugin("Android"), prebuild, init, crash("Android")],
+    iOS: [dep, configPlugin("iOS"), prebuild, init, crash("iOS")],
   };
 }
 

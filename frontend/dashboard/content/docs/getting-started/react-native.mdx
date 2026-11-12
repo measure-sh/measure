@@ -81,7 +81,7 @@ Add a test crash after `Measure.init`, run the app, and confirm it reaches your 
 
 ```typescript
 // After Measure.init.
-// The 2-second delay gives the SDK time to flush the crash event.
+// On iOS, reopen the app after a crash to upload it to Measure.
 // Remove this after the crash appears in your dashboard.
 setTimeout(() => {
   throw new Error("Test crash from Measure");

@@ -111,7 +111,7 @@ Add a test crash after `Measure.instance.init`, run the app, and confirm it reac
 
 ```dart
 // In main(), after Measure.instance.init.
-// The 2-second delay gives the SDK time to flush the crash event.
+// On iOS, reopen the app after a crash to upload it to Measure.
 // Remove this after the crash appears in your dashboard.
 Future.delayed(const Duration(seconds: 2), () {
   throw Exception('Test crash from Measure');
