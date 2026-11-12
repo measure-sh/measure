@@ -111,10 +111,11 @@ Add a test crash after `Measure.instance.init`, run the app, and confirm it reac
 
 ```dart
 // In main(), after Measure.instance.init.
+// A Dart exception doesn't stop the app, so trigger a native crash instead.
 // On iOS, reopen the app after a crash to upload it to Measure.
 // Remove this after the crash appears in your dashboard.
 Future.delayed(const Duration(seconds: 2), () {
-  throw Exception('Test crash from Measure');
+  Measure.instance.triggerNativeCrash();
 });
 ```
 
