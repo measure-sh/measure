@@ -20,7 +20,7 @@ import {
 } from "./query";
 import { smoothScales, windowCoverage } from "./aggregate";
 import { shareAt } from "./adoption";
-import { matchesFilterExpr, sessionAttributeBag } from "./filter";
+import { matchesFilterExpr, sessionAttributes } from "./filter";
 import {
   androidMemoryTargetKb,
   DEVICE_MEMORY_TIERS,
@@ -143,7 +143,7 @@ function visibleSessions(
   return bundle.sessions
     .map((session) => sessionMemory(bundle, session, view))
     .filter((memory) =>
-      matchesFilterExpr(sessionAttributeBag(memory.detail), filterExpr),
+      matchesFilterExpr(sessionAttributes(memory.detail), filterExpr),
     );
 }
 

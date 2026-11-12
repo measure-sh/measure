@@ -11,7 +11,7 @@ import { smoothScales, windowCoverage } from "./aggregate";
 import { catalog, percentile } from "./catalog";
 import type { AppBundle, SessionAttribute } from "./catalog";
 import { errorTypeLabel, groupCount, groupSessionsAndUsers } from "./errors";
-import { deviceAttributeBag, matchesFilterExpr } from "./filter";
+import { deviceAttributes, matchesFilterExpr } from "./filter";
 import {
   appStateView,
   inView,
@@ -116,7 +116,7 @@ function matchesDeviceFilter(
   attribute: SessionAttribute,
   filterExpr: string | null,
 ): boolean {
-  return matchesFilterExpr(deviceAttributeBag(attribute), filterExpr);
+  return matchesFilterExpr(deviceAttributes(attribute), filterExpr);
 }
 
 // The catalog generates a few hundred sessions. Each generated session

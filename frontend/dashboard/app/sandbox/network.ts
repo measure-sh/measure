@@ -2,7 +2,7 @@ import { DateTime } from "luxon";
 import { catalog, percentile } from "./catalog";
 import type { HttpSample, NetworkEndpointStats } from "./catalog";
 import { jsonResponse, parseRange, SandboxRoute } from "./query";
-import { deviceAttributeBag, matchFraction, matchesFilterExpr } from "./filter";
+import { deviceAttributes, matchFraction, matchesFilterExpr } from "./filter";
 import {
   bucketMaintenanceShares,
   drawCounts,
@@ -14,7 +14,7 @@ import {
 } from "./aggregate";
 
 function sampleAttributes(sample: HttpSample): Record<string, unknown> {
-  const { user_id: _userId, ...rest } = deviceAttributeBag(sample.attribute);
+  const { user_id: _userId, ...rest } = deviceAttributes(sample.attribute);
   return { http_method: sample.method, ...rest };
 }
 

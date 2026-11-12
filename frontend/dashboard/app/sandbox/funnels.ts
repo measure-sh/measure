@@ -27,10 +27,10 @@ import { catalog } from "./catalog";
 import type { AppBundle, ErrorGroup, HttpSample } from "./catalog";
 import { groupCount, groupMatches, groupSessionsAndUsers } from "./errors";
 import {
-  deviceAttributeBag,
+  deviceAttributes,
   matchesFilterExpr,
   matchFraction,
-  sessionAttributeBag,
+  sessionAttributes,
 } from "./filter";
 import {
   jsonResponse,
@@ -454,7 +454,7 @@ function versionMatch(
   return matchFraction(
     bundle.sessions,
     (s) => ({
-      ...deviceAttributeBag(s.detail.attribute),
+      ...deviceAttributes(s.detail.attribute),
       version_name: version.name,
       version_code: version.code,
     }),
@@ -1326,7 +1326,7 @@ function stepSessions(
 
   const sessionsByInstallation = new Map<string, AppBundle["sessions"]>();
   for (const session of bundle.sessions) {
-    if (!matchesFilterExpr(sessionAttributeBag(session.detail), filterExpr)) {
+    if (!matchesFilterExpr(sessionAttributes(session.detail), filterExpr)) {
       continue;
     }
     const id = session.detail.attribute.installation_id;

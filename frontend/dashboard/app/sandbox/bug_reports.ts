@@ -7,7 +7,7 @@ import {
   parseRange,
   SandboxRoute,
 } from "./query";
-import { deviceAttributeBag, matchFraction, matchesFilterExpr } from "./filter";
+import { deviceAttributes, matchFraction, matchesFilterExpr } from "./filter";
 import { scaledSeries } from "./aggregate";
 import { adoptionOf } from "./adoption";
 import { hasSessionReplay } from "./sessions";
@@ -17,7 +17,7 @@ function bugReportAttributes(report: BugReport): Record<string, unknown> {
     bug_report_status: report.status === 0 ? "open" : "closed",
     bug_report_description: report.description,
     session_id: report.session_id,
-    ...deviceAttributeBag(report.attribute),
+    ...deviceAttributes(report.attribute),
   };
 }
 
