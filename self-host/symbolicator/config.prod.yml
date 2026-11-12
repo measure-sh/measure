@@ -14,13 +14,15 @@ bind: "0.0.0.0:3021"
 cache_dir: /data
 caches:
   downloaded:
-    max_unused_for: 8h
-    retry_misses_after: 60s
-    retry_malformed_after: 120s
+    max_unused_for: 6h
+    retry_misses_after: 5m
+    retry_misses_after_public: 5m
+    retry_malformed_after: 60m
   derived:
-    max_unused_for: 8h
-    retry_misses_after: 60s
-    retry_malformed_after: 120s
+    max_unused_for: 12h
+    retry_misses_after: 5m
+    retry_misses_after_public: 5m
+    retry_malformed_after: 60m
 enable_cache_cleanup: true
 
 # network
