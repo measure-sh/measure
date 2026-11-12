@@ -31,6 +31,7 @@ import {
   matchesFilterExpr,
   matchFraction,
   sessionAttributes,
+  sessionCustomAttributes,
 } from "./filter";
 import {
   jsonResponse,
@@ -442,10 +443,10 @@ export function rangeDays(from: DateTime, to: DateTime): number {
   return Math.max(0, to.diff(from).as("days"));
 }
 
-// The share of a version's sessions that match the filter's device and
-// version conditions. Each sample session's device attributes are paired with
-// this version, so the device conditions match against the app's real devices
-// and the version conditions against this version.
+// The share of a version's sessions that match the filter's device, custom, and
+// version conditions. Each sample session's device and custom attributes are
+// paired with this version, so those conditions use the session's attributes
+// and the version conditions use this version.
 function versionMatch(
   bundle: AppBundle,
   version: { name: string; code: string },
@@ -455,6 +456,7 @@ function versionMatch(
     bundle.sessions,
     (s) => ({
       ...deviceAttributes(s.detail.attribute),
+      ...sessionCustomAttributes(s.detail),
       version_name: version.name,
       version_code: version.code,
     }),
@@ -1069,8 +1071,17 @@ function stepErrors(
     step,
   );
   const salt = `${bundle.app.id}:${seed.key}:${step}`;
+  const sessions = new Map(
+    bundle.sessions.map((s) => [s.list.session_id, s.detail]),
+  );
+  // Funnel events match custom keys set anywhere in their session. Errors use
+  // the same session attributes.
   return bundle.errorGroups
-    .filter((group) => groupMatches(group, range, filterExpr))
+    .filter((group) =>
+      groupMatches(group, range, filterExpr, (instance) =>
+        sessionCustomAttributes(sessions.get(instance.session_id)!),
+      ),
+    )
     .map((group) => {
       const total = groupCount(bundle, group, range, filterExpr);
       const onStep = shareBetweenSteps(bundle, seed, step, group) >= 0.5;

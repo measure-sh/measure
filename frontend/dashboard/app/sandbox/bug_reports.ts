@@ -7,7 +7,12 @@ import {
   parseRange,
   SandboxRoute,
 } from "./query";
-import { deviceAttributes, matchFraction, matchesFilterExpr } from "./filter";
+import {
+  customAttributes,
+  deviceAttributes,
+  matchFraction,
+  matchesFilterExpr,
+} from "./filter";
 import { scaledSeries } from "./aggregate";
 import { adoptionOf } from "./adoption";
 import { hasSessionReplay } from "./sessions";
@@ -18,6 +23,7 @@ function bugReportAttributes(report: BugReport): Record<string, unknown> {
     bug_report_description: report.description,
     session_id: report.session_id,
     ...deviceAttributes(report.attribute),
+    ...customAttributes([report.user_defined_attribute]),
   };
 }
 

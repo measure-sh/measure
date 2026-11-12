@@ -18,7 +18,12 @@ import {
   stableInt,
   unitInterval,
 } from "./query";
-import { countryOf, deviceAttributes, matchesFilterExpr } from "./filter";
+import {
+  countryOf,
+  customAttributes,
+  deviceAttributes,
+  matchesFilterExpr,
+} from "./filter";
 import { distributeTotal, scaledSeries, windowCoverage } from "./aggregate";
 import { errorGroupTitle } from "../utils/error_utils";
 import {
@@ -44,9 +49,15 @@ export function errorTypeLabel(group: ErrorGroup): string {
   return "Crash";
 }
 
+type CustomAttributesOf = (instance: ErrorInstance) => Record<string, unknown>;
+
+const ownCustomAttributes: CustomAttributesOf = (instance) =>
+  customAttributes([instance.user_defined_attribute]);
+
 function instanceAttributes(
   group: ErrorGroup,
   instance: ErrorInstance,
+  customAttributesOf: CustomAttributesOf = ownCustomAttributes,
 ): Record<string, unknown> {
   return {
     error_type: errorTypeLabel(group),
@@ -57,6 +68,7 @@ function instanceAttributes(
         : "Recovered"
       : undefined,
     ...deviceAttributes(instance.attribute),
+    ...customAttributesOf(instance),
   };
 }
 
@@ -67,11 +79,15 @@ export function groupMatches(
   group: ErrorGroup,
   range: SandboxRange,
   filterExpr: string | null,
+  customAttributesOf: CustomAttributesOf = ownCustomAttributes,
 ): boolean {
   return group.instances.some(
     (instance) =>
       isWithinRange(instance.timestamp, range) &&
-      matchesFilterExpr(instanceAttributes(group, instance), filterExpr),
+      matchesFilterExpr(
+        instanceAttributes(group, instance, customAttributesOf),
+        filterExpr,
+      ),
   );
 }
 

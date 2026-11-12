@@ -1,7 +1,8 @@
+import type { FilterKey, FilterOperator } from "@/app/api/filter_types";
 import { formatFilterExpr } from "@/app/components/filter_bar/parse";
 import { catalog } from "@/app/sandbox/catalog";
 import type { AppBundle, SessionAttribute } from "@/app/sandbox/catalog";
-import { countryOf } from "@/app/sandbox/filter";
+import { countryOf, CUSTOM_KEY_PREFIX } from "@/app/sandbox/filter";
 import { handleSandboxRequest } from "@/app/sandbox/handlers";
 import { isWithinRange, parseRange } from "@/app/sandbox/query";
 import { describe, expect, it } from "@jest/globals";
@@ -29,9 +30,29 @@ const readers: Record<string, (attributes: Attributes) => string | undefined> =
     network_provider: (a) => a.network_provider,
   };
 
-// A row may represent several events, such as an error group or endpoint, and
-// carry the attributes of each event.
-type Item = { id: string; attributes: Attributes[] };
+// Custom attributes from related events, including events in a session, are
+// stored as text values.
+type CustomAttributes = Record<string, string[]>;
+
+function customAttributes(
+  sets: (Record<string, unknown> | null)[],
+): CustomAttributes {
+  const attributes: CustomAttributes = {};
+  for (const set of sets) {
+    for (const [name, value] of Object.entries(set ?? {})) {
+      (attributes[name] ??= []).push(String(value));
+    }
+  }
+  return attributes;
+}
+
+// An item can represent several events, such as an error group or endpoint. It
+// matches when any of those events matches.
+type Item = {
+  id: string;
+  attributes: Attributes[];
+  custom: CustomAttributes[];
+};
 
 type Page = {
   entity: string;
@@ -40,6 +61,8 @@ type Page = {
   // Funnel attempts group a user's matching sessions, so filtering out some
   // sessions can change which ones appear in the list.
   exact: boolean;
+  // Whether this page offers custom attribute keys.
+  custom: boolean;
 };
 
 function params(extra: Record<string, string> = {}): string {
@@ -68,15 +91,31 @@ async function get(path: string): Promise<any> {
 }
 
 function sessionItems(bundle: AppBundle, rows: { session_id: string }[]) {
-  const attributes = new Map(
-    bundle.sessions.map((s) => [s.list.session_id, s.detail.attribute]),
+  const sessions = new Map(
+    bundle.sessions.map((s) => [s.list.session_id, s.detail]),
   );
-  return rows.map((row) => ({
-    id: row.session_id,
-    attributes: attributes.has(row.session_id)
-      ? [attributes.get(row.session_id)!]
-      : [],
-  }));
+  return rows.map((row) => {
+    const detail = sessions.get(row.session_id);
+    return {
+      id: row.session_id,
+      attributes: detail ? [detail.attribute] : [],
+      custom: detail
+        ? [
+            customAttributes(
+              Object.values(detail.threads)
+                .flat()
+                .map(
+                  (event) =>
+                    event.user_defined_attribute as Record<
+                      string,
+                      unknown
+                    > | null,
+                ),
+            ),
+          ]
+        : [],
+    };
+  });
 }
 
 async function listAll(page: Page, filterExpr: string): Promise<Item[]> {
@@ -91,9 +130,17 @@ async function listAll(page: Page, filterExpr: string): Promise<Item[]> {
   );
 }
 
-function inFilter(key: string, value: string): string {
+function condition(
+  key: string,
+  operator: FilterOperator,
+  value?: string,
+): string {
   return formatFilterExpr({
-    condition: { key_name: key, operator: "in", values: [{ text: value }] },
+    condition: {
+      key_name: key,
+      operator,
+      ...(value === undefined ? {} : { values: [{ text: value }] }),
+    },
   });
 }
 
@@ -158,6 +205,7 @@ const pages: Page[] = [
     entity: "sessions",
     bundles,
     exact: true,
+    custom: true,
     list: async (bundle, filterExpr) => {
       const json = await get(
         `/api/apps/${bundle.app.id}/sessions?${filterParams(filterExpr)}`,
@@ -169,6 +217,7 @@ const pages: Page[] = [
     entity: "bug_reports",
     bundles,
     exact: true,
+    custom: true,
     list: async (bundle, filterExpr) => {
       const json = await get(
         `/api/apps/${bundle.app.id}/bugReports?${filterParams(filterExpr)}`,
@@ -176,6 +225,7 @@ const pages: Page[] = [
       return json.results.map((report: any) => ({
         id: report.event_id,
         attributes: [report.attribute],
+        custom: [customAttributes([report.user_defined_attribute])],
       }));
     },
   },
@@ -183,25 +233,32 @@ const pages: Page[] = [
     entity: "errors",
     bundles,
     exact: true,
+    custom: true,
     list: async (bundle, filterExpr) => {
       const json = await get(
         `/api/apps/${bundle.app.id}/errorGroups?${filterParams(filterExpr)}`,
       );
-      return json.results.map((row: any) => ({
-        id: row.id,
-        attributes: bundle.errorGroups
+      return json.results.map((row: any) => {
+        const instances = bundle.errorGroups
           .find((group) => group.id === row.id)!
           .instances.filter((instance) =>
             isWithinRange(instance.timestamp, range),
-          )
-          .map((instance) => instance.attribute),
-      }));
+          );
+        return {
+          id: row.id,
+          attributes: instances.map((instance) => instance.attribute),
+          custom: instances.map((instance) =>
+            customAttributes([instance.user_defined_attribute]),
+          ),
+        };
+      });
     },
   },
   {
     entity: "error_group_events",
     bundles,
     exact: true,
+    custom: true,
     list: async (bundle, filterExpr) => {
       const group = [...bundle.errorGroups].sort(
         (a, b) => b.instances.length - a.instances.length,
@@ -212,6 +269,7 @@ const pages: Page[] = [
       return json.results.map((instance: any) => ({
         id: instance.id,
         attributes: [instance.attribute],
+        custom: [customAttributes([instance.user_defined_attribute])],
       }));
     },
   },
@@ -219,6 +277,7 @@ const pages: Page[] = [
     entity: "spans",
     bundles,
     exact: true,
+    custom: true,
     list: async (bundle, filterExpr) => {
       const json = await get(
         `/api/apps/${bundle.app.id}/spans?${filterParams(filterExpr, { span_name: bundle.rootSpanNames[0] })}`,
@@ -229,9 +288,12 @@ const pages: Page[] = [
       // A span row carries its version, OS, device manufacturer and model.
       // Other attributes come from the span's session.
       return json.results.map((row: any) => {
-        const sessionId = bundle.traces.get(row.trace_id)?.session_id;
+        const trace = bundle.traces.get(row.trace_id);
+        const sessionId = trace?.session_id;
+        const span = trace?.spans.find((s) => s.span_id === row.span_id);
         return {
           id: row.span_id,
+          custom: [customAttributes([span?.user_defined_attributes ?? null])],
           attributes: [
             {
               ...(sessionId === undefined ? {} : sessions.get(sessionId)),
@@ -251,6 +313,7 @@ const pages: Page[] = [
     entity: "profiles",
     bundles: bundles.filter((bundle) => bundle.profiles.length > 0),
     exact: true,
+    custom: false,
     list: async (bundle, filterExpr) => {
       const json = await get(
         `/api/apps/${bundle.app.id}/profiles?${filterParams(filterExpr)}`,
@@ -265,6 +328,7 @@ const pages: Page[] = [
     entity: "memory",
     bundles,
     exact: true,
+    custom: false,
     list: async (bundle, filterExpr) => {
       const json = await get(
         `/api/apps/${bundle.app.id}/memory/sessions/highUsage?${filterParams(filterExpr)}`,
@@ -276,6 +340,7 @@ const pages: Page[] = [
     entity: "network",
     bundles,
     exact: true,
+    custom: false,
     list: async (bundle, filterExpr) => {
       const json = await get(
         `/api/apps/${bundle.app.id}/networkRequests/endpoints?${filterParams(filterExpr)}`,
@@ -290,6 +355,7 @@ const pages: Page[] = [
                 sample.path === endpoint.path_pattern,
             )
             .map((sample) => sample.attribute),
+          custom: [],
         }),
       );
     },
@@ -298,6 +364,7 @@ const pages: Page[] = [
     entity: "journeys",
     bundles,
     exact: true,
+    custom: true,
     list: async (bundle, filterExpr) => {
       const node = await once(journeyNodes, bundle, topJourneyNode);
       const json = await get(
@@ -310,6 +377,7 @@ const pages: Page[] = [
     entity: "funnels",
     bundles,
     exact: false,
+    custom: true,
     list: async (bundle, filterExpr) => {
       const { path, outcome } = await once(
         funnelLists,
@@ -348,7 +416,7 @@ describe("sandbox page filters", () => {
         const carries = (item: Item) =>
           item.attributes.some((attributes) => read(attributes) === value);
 
-        const filtered = await listAll(page, inFilter(key, value!));
+        const filtered = await listAll(page, condition(key, "in", value!));
         if (page.exact) {
           expect({ key, value, ids: ids(filtered) }).toEqual({
             key,
@@ -364,8 +432,93 @@ describe("sandbox page filters", () => {
           }).toEqual({ key, value, listed: true, without: [] });
         }
 
-        const none = await listAll(page, inFilter(key, "no such value"));
+        const none = await listAll(page, condition(key, "in", "no such value"));
         expect({ key, ids: ids(none) }).toEqual({ key, ids: [] });
+      }
+    });
+  }
+});
+
+describe("sandbox custom attribute filters", () => {
+  for (const page of pages.filter((p) => p.custom)) {
+    it(`filters ${page.entity} by each custom key`, async () => {
+      const offered = new Map<string, FilterKey>();
+      for (const bundle of page.bundles) {
+        const { keys } = await get(
+          `/api/apps/${bundle.app.id}/filters/keys?entity=${page.entity}`,
+        );
+        for (const key of keys as FilterKey[]) {
+          if (key.name.startsWith(CUSTOM_KEY_PREFIX)) {
+            offered.set(key.name, key);
+          }
+        }
+      }
+      expect(offered.size).toBeGreaterThan(0);
+
+      const all = await listAll(page, "");
+      const ids = (items: Item[]) => items.map((item) => item.id).sort();
+      const expectListed = (
+        filtered: Item[],
+        matches: (item: Item) => boolean,
+        label: object,
+      ) => {
+        if (page.exact) {
+          expect({ ...label, ids: ids(filtered) }).toEqual({
+            ...label,
+            ids: ids(all.filter(matches)),
+          });
+        } else {
+          expect({
+            ...label,
+            without: ids(filtered.filter((item) => !matches(item))),
+          }).toEqual({ ...label, without: [] });
+        }
+      };
+
+      for (const key of offered.values()) {
+        const name = key.name.slice(CUSTOM_KEY_PREFIX.length);
+        const counts = new Map<string, number>();
+        for (const item of all) {
+          for (const value of new Set(
+            item.custom.flatMap((attributes) => attributes[name] ?? []),
+          )) {
+            counts.set(value, (counts.get(value) ?? 0) + 1);
+          }
+        }
+        const value = [...counts.entries()].sort(
+          ([a, countA], [b, countB]) => countB - countA || a.localeCompare(b),
+        )[0]?.[0];
+
+        const unset = await listAll(page, condition(key.name, "is_not_set"));
+        expectListed(
+          unset,
+          (item) => item.custom.some((attributes) => !(name in attributes)),
+          { key: key.name, operator: "is_not_set" },
+        );
+
+        if (value === undefined) {
+          const set = await listAll(page, condition(key.name, "is_set"));
+          expect({ key: key.name, ids: ids(set) }).toEqual({
+            key: key.name,
+            ids: [],
+          });
+          continue;
+        }
+        const operator = key.value_type === "string" ? "in" : "eq";
+        const filtered = await listAll(
+          page,
+          condition(key.name, operator, value),
+        );
+        expect({ key: key.name, listed: filtered.length > 0 }).toEqual({
+          key: key.name,
+          listed: true,
+        });
+        expectListed(
+          filtered,
+          (item) =>
+            item.custom.some((attributes) => attributes[name]?.includes(value)),
+          { key: key.name, value },
+        );
       }
     });
   }

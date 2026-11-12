@@ -1971,6 +1971,7 @@ const androidExceptions: ExceptionSpec[] = [
     message: "timeout",
     severity: "handled",
     handled: true,
+    attributes: { operation: "load_cart", retry_attempt: 1, will_retry: true },
     foreground: true,
     framework: "jvm",
     exceptions: [
