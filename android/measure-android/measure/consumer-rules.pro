@@ -21,6 +21,9 @@
 # Required to check if androidx-fragment is present in runtime classpath
 -keepnames class androidx.fragment.app.FragmentActivity
 
+# Required to check if androidx-navigation-fragment is present in runtime classpath
+-keepnames class androidx.navigation.fragment.NavHostFragment
+
 # Required to find gesture targe for composables
 -keepnames class androidx.compose.ui.platform.AndroidComposeView
 
