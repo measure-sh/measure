@@ -32,6 +32,10 @@ const mockSetOnboardingStep = jest.fn();
 const mockSetOnboardingPlatform = jest.fn();
 const mockMarkVerified = jest.fn();
 const mockPush = jest.fn();
+const mockNavigateTo = jest.fn();
+jest.mock("@/app/utils/navigation", () => ({
+  navigateTo: (...args: unknown[]) => mockNavigateTo(...args),
+}));
 const mockFetchAppsFromServer = jest.fn();
 const mockFetchErrorsOverviewFromServer = jest.fn();
 const mockWriteText = jest.fn();
@@ -1509,7 +1513,7 @@ describe("Onboarding — Step 3: Verify", () => {
         await jest.advanceTimersByTimeAsync(0);
       });
       fireEvent.click(screen.getByTestId("onboarding-view-dashboard-button"));
-      expect(mockPush).toHaveBeenCalledWith(
+      expect(mockNavigateTo).toHaveBeenCalledWith(
         "/team-7/crashes?a=target-app&d=Last+6+Hours",
       );
     });
