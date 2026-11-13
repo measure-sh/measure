@@ -5,12 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [rn-v0.5.0] - 2026-11-13
+
+### :bug: Bug fixes
+
+
+- (**rn**): Read the app version from info.plist when uploading ios symbols by @adwinross in #4925
+- (**rn**): Return whole milliseconds from getCurrentTime by @adwinross in #4919
+- (**rn**): Keep the content of plain objects passed to trackError by @adwinross in #4917
+- (**rn**): Stop trackHttpEvent crashing on android without a status code by @adwinross in #4915
+- (**rn**): Update the ios upload phase when the api key or url changes by @adwinross in #4907
+- (**rn**): Keep react native okhttp defaults on android by @adwinross in #4901
+- (**rn**): Deliver ios shake events without the bridge by @adwinross in #4889
+
+### :hammer: Misc
+
+
+- (**rn**): Warn instead of failing the ios build on symbol upload errors by @adwinross in #4905
+- (**rn**): Remove unused journey sampling rate (#4764) by @abhaysood
+- (**rn**): Cap exception messages at 8192 characters (#4706) by @abhaysood in #4706
+
+### :sparkles: New features
+
+
+- (**rn**): Add native SDK config options to the expo plugin by @adwinross in #4927
+
 ## [rn-v0.4.2] - 2026-10-13
 
 ### :bug: Bug fixes
 
 
 - (**rn**): Enforce validation limits on event fields (#4611) by @adwinross in #4611
+
+### :hammer: Misc
+
+
+- (**rn**): Prepare release 0.4.2 (#4623) by @abhaysood in #4623
 
 ## [rn-v0.4.1] - 2026-09-23
 
@@ -141,6 +171,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**rn**): Add exception tracking (#2628) by @adwinross in #2628
 - (**rn**): Add sdk initialization api (#2505) by @adwinross in #2505
 
+[rn-v0.5.0]: https://github.com/measure-sh/measure/compare/rn-v0.4.2..rn-v0.5.0
 [rn-v0.4.2]: https://github.com/measure-sh/measure/compare/rn-v0.4.1..rn-v0.4.2
 [rn-v0.4.1]: https://github.com/measure-sh/measure/compare/rn-v0.4.0..rn-v0.4.1
 [rn-v0.4.0]: https://github.com/measure-sh/measure/compare/rn-v0.3.1..rn-v0.4.0
