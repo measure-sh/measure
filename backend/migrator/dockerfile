@@ -1,6 +1,6 @@
 ARG TARGETTYPE=production
 # build stage
-FROM --platform=$BUILDPLATFORM public.ecr.aws/docker/library/golang:1.27-alpine AS builder
+FROM --platform=$BUILDPLATFORM golang:1.27-alpine AS builder
 ARG TARGETOS
 ARG TARGETARCH
 ARG TARGETTYPE
