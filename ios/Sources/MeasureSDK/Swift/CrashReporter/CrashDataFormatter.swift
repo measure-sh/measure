@@ -17,6 +17,7 @@ final class CrashDataFormatter {
     private var crashDict: [String: Any] { report["crash"]          as? [String: Any]    ?? [:] }
     private var errorDict: [String: Any] { crashDict["error"]       as? [String: Any]    ?? [:] }
     private var threadDicts: [[String: Any]] { crashDict["threads"]     as? [[String: Any]]  ?? [] }
+    private var lastExceptionBacktraceDict: [String: Any]? { crashDict["last_exception_backtrace"] as? [String: Any] }
     private var binaryImageDicts: [[String: Any]] { report["binary_images"] as? [[String: Any]] ?? [] }
     private var systemDict: [String: Any] { report["system"]         as? [String: Any]    ?? [:] }
 
@@ -37,7 +38,7 @@ final class CrashDataFormatter {
 
         let isHandled              = severity == .handled
         let effectiveFramesToStrip = hasMeasureBinaryImage() ? 0 : framesToStrip
-        let crashedThread   = crashedThreadDict.map { parseThread($0, isHandled: isHandled, framesToStrip: effectiveFramesToStrip) }
+        let crashedThread   = crashedThreadDict.map { parseCrashedThread($0, isHandled: isHandled, framesToStrip: effectiveFramesToStrip) }
         let exceptionDetail = parseExceptionDetail(crashedThread: crashedThread)
         let otherThreads    = otherThreadDicts.map { parseThread($0, isHandled: isHandled) }
 
@@ -119,11 +120,24 @@ final class CrashDataFormatter {
         return ThreadDetail(name: name, frames: frames, sequence: Number(index))
     }
 
+    /// Returns the crashed thread using `last_exception_backtrace` when the report has it.
+    /// Otherwise, it uses the crashed thread's `backtrace` from the report.
+    /// For Kotlin (KMP) and C++ exception crashes, KSCrash writes the stack of the code that threw to `last_exception_backtrace`.
+    func parseCrashedThread(_ dict: [String: Any], isHandled: Bool, framesToStrip: Int) -> ThreadDetail {
+        let thread = parseThread(dict, isHandled: isHandled, framesToStrip: framesToStrip)
+        guard let lastExceptionBacktraceDict else { return thread }
+        return ThreadDetail(name: thread.name,
+                            frames: parseBacktrace(lastExceptionBacktraceDict, framesToStrip: framesToStrip),
+                            sequence: thread.sequence)
+    }
+
     func parseFrames(_ threadDict: [String: Any], framesToStrip: Int = 0) -> [StackFrame] {
-        guard
-            let bt       = threadDict["backtrace"] as? [String: Any], // swiftlint:disable:this identifier_name
-            var contents = bt["contents"]          as? [[String: Any]]
-        else { return [] }
+        guard let backtrace = threadDict["backtrace"] as? [String: Any] else { return [] }
+        return parseBacktrace(backtrace, framesToStrip: framesToStrip)
+    }
+
+    func parseBacktrace(_ backtrace: [String: Any], framesToStrip: Int = 0) -> [StackFrame] {
+        guard var contents = backtrace["contents"] as? [[String: Any]] else { return [] }
 
         if framesToStrip > 0 {
             contents = Array(contents.dropFirst(min(framesToStrip, contents.count)))
