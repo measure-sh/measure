@@ -113,6 +113,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector { // swiftlint:
         attachments: [MsrAttachment]
     ) {
         guard isEnabled.get() else { return }
+        guard validateTimestamp(timestamp, type: type, sessionId: sessionId) else { return }
 
         let evaluatedAttributes = Attributes(dict: attributes)
         let serializedUserDefinedAttributes = EventSerializer.serializeUserDefinedAttribute(userDefinedAttrs)
@@ -385,6 +386,16 @@ final class BaseInternalSignalCollector: InternalSignalCollector { // swiftlint:
         )
 
         signalProcessor.trackSpan(spanData)
+    }
+
+    private func validateTimestamp(_ timestamp: Int64, type: String, sessionId: String?) -> Bool {
+        if let sessionId, sessionId != sessionManager.sessionId { return true }
+        guard let sessionStartTime = sessionManager.getSessionStartTime() else { return true }
+        if timestamp < sessionStartTime {
+            logger.log(level: .warning, message: "InternalSignalCollector: Event(\(type)) timestamp is before the session start time. This event will be dropped.", error: nil, data: nil)
+            return false
+        }
+        return true
     }
 
     func extractCustomEventData(data: [String: Any?]) throws -> CustomEventData {
