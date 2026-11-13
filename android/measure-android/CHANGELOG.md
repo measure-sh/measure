@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [android-v0.23.1] - 2026-11-13
+
+### :bug: Bug fixes
+
+- (**android**): Drop events timestamped before the session start by @adwinross in #4922
+
+### :hammer: Misc
+
+- (**android**): Prepare next development version 0.24.0-SNAPSHOT by @abhaysood in #4887
+
 ## [android-v0.23.0] - 2026-11-12
 
 ### :sparkles: New features
@@ -21,6 +31,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### :hammer: Misc
 
+- (**android**): Prepare sdk release 0.23.0 by @abhaysood in #4881
 - (**android**): Rename trackHandledException to trackError by @adwinross in #4786
 - (**android**): Sample analytics events by installation (#4764) by @abhaysood
 - (**android**): Generate baseline profile on Pixel 10 API 37 by @abhaysood
@@ -1005,6 +1016,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**android**): Add missing links to readme by @abhaysood
 - (**android**): Create a template for Android SDK documentation by @abhaysood
 
+[android-v0.23.1]: https://github.com/measure-sh/measure/compare/android-v0.23.0..android-v0.23.1
 [android-v0.23.0]: https://github.com/measure-sh/measure/compare/android-v0.22.0..android-v0.23.0
 [android-v0.22.0]: https://github.com/measure-sh/measure/compare/android-v0.21.1..android-v0.22.0
 [android-v0.21.1]: https://github.com/measure-sh/measure/compare/android-v0.21.0..android-v0.21.1
