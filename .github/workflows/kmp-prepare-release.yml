@@ -86,9 +86,7 @@ jobs:
           # The onboarding snippet in the dashboard reads this version at build
           # time (scripts/extract_sdk_versions.js), so keep it in sync here.
           GUIDE=frontend/dashboard/content/docs/getting-started/kotlin-multiplatform.mdx
-          KOTLIN_PATTERN='implementation("sh.measure:measure-kmp:.*")'
-          KOTLIN_REPLACEMENT="implementation(\"sh.measure:measure-kmp:$VERSION\")"
-          sed -i "s/$KOTLIN_PATTERN/$KOTLIN_REPLACEMENT/" "$GUIDE"
+          sed -i -E "s/\"sh\.measure:measure-kmp:[^\"]*\"/\"sh.measure:measure-kmp:$VERSION\"/" "$GUIDE"
           sed -i "/^| Measure Android/ s/[0-9]*\.[0-9]*\.[0-9]*/$ANDROID_VERSION/" "$GUIDE"
           sed -i "/^| Measure iOS/ s/[0-9]*\.[0-9]*\.[0-9]*/$IOS_VERSION/" "$GUIDE"
           sed -i -E "s|(\.package\(url: \"https://github\.com/measure-sh/measure\.git\", branch: \"ios-v)[^\"]*|\1$IOS_VERSION|" "$GUIDE"
