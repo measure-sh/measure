@@ -353,7 +353,7 @@ function withMeasureProjectBuildGradle(config) {
     // Add Measure Gradle plugin classpath
     mod.modResults.contents = mergeContents({
       src: mod.modResults.contents,
-      newSrc: '    classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.14.0")',
+      newSrc: '    classpath("sh.measure.android.gradle:sh.measure.android.gradle.gradle.plugin:0.15.0")',
       tag: 'measure-classpath',
       anchor: /dependencies\s*\{/,
       offset: 1,
@@ -371,7 +371,7 @@ function withMeasureAppBuildGradle(config) {
     // Add measure-android dependency
     mod.modResults.contents = mergeContents({
       src: mod.modResults.contents,
-      newSrc: '    implementation("sh.measure:measure-android:0.22.0")',
+      newSrc: '    implementation("sh.measure:measure-android:0.23.1")',
       tag: 'measure-dependency',
       anchor: /dependencies\s*\{/,
       offset: 1,
