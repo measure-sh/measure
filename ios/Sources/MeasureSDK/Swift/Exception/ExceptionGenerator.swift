@@ -82,8 +82,13 @@ final class BaseExceptionGenerator: ExceptionGenerator {
             return nil
         }
 
+        let hasOwnCallStack = !exception.callStackReturnAddresses.isEmpty
         let formatter = CrashDataFormatter(report.value, sysCtl: sysCtl)
-        var result = formatter.getException(severity: .handled, numCode: numCode, code: code, meta: sizeLimitedMeta(meta), framesToStrip: framesToStrip)
+        var result = formatter.getException(severity: .handled,
+                                            numCode: numCode,
+                                            code: code,
+                                            meta: sizeLimitedMeta(meta),
+                                            framesToStrip: hasOwnCallStack ? 0 : framesToStrip)
         result.foreground = crashDataPersistence.isForeground
         store.deleteReport(with: Int64(truncating: reportID))
 
