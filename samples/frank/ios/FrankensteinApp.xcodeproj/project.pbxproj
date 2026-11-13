@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		2CD7EAF6C752243A488A4005 /* Pods_FrankensteinApp.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 18706CF7ACB679486D5FD848 /* Pods_FrankensteinApp.framework */; };
+		395FEDE7CECFD8E06F0347F3 /* CppException.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7EA0454105B36579D2BBA2D8 /* CppException.cpp */; };
 		A1000001 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000001 /* AppDelegate.swift */; };
 		A1000002 /* HomeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002 /* HomeViewController.swift */; };
 		A1000003 /* NativeIOSViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000003 /* NativeIOSViewController.swift */; };
@@ -23,8 +24,10 @@
 
 /* Begin PBXFileReference section */
 		18706CF7ACB679486D5FD848 /* Pods_FrankensteinApp.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = Pods_FrankensteinApp.framework; sourceTree = BUILT_PRODUCTS_DIR; };
+		5F45508DF6FFCAFD008B36CB /* FrankensteinApp-Bridging-Header.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = "FrankensteinApp-Bridging-Header.h"; sourceTree = "<group>"; };
 		7501ED10BAA3BE5CC0BB1E44 /* Pods-FrankensteinApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FrankensteinApp.release.xcconfig"; path = "Target Support Files/Pods-FrankensteinApp/Pods-FrankensteinApp.release.xcconfig"; sourceTree = "<group>"; };
 		7744D58FA73D2F6C3202E8A2 /* Pods-FrankensteinApp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-FrankensteinApp.debug.xcconfig"; path = "Target Support Files/Pods-FrankensteinApp/Pods-FrankensteinApp.debug.xcconfig"; sourceTree = "<group>"; };
+		7EA0454105B36579D2BBA2D8 /* CppException.cpp */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.cpp.cpp; path = CppException.cpp; sourceTree = "<group>"; };
 		89F7A703A916868C58983EB6 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xml; name = PrivacyInfo.xcprivacy; path = ../PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A2000001 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		A2000002 /* HomeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewController.swift; sourceTree = "<group>"; };
@@ -36,6 +39,7 @@
 		A2000009 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A2000010 /* CredentialOverrides.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialOverrides.swift; sourceTree = "<group>"; };
 		A3000001 /* FrankensteinApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = FrankensteinApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AC1BFF044A184E11AC6B00B3 /* CppException.h */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.c.h; path = CppException.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -92,6 +96,9 @@
 				A2000009 /* Assets.xcassets */,
 				A2000006 /* Info.plist */,
 				89F7A703A916868C58983EB6 /* PrivacyInfo.xcprivacy */,
+				AC1BFF044A184E11AC6B00B3 /* CppException.h */,
+				7EA0454105B36579D2BBA2D8 /* CppException.cpp */,
+				5F45508DF6FFCAFD008B36CB /* FrankensteinApp-Bridging-Header.h */,
 			);
 			path = FrankensteinApp;
 			sourceTree = "<group>";
@@ -365,6 +372,7 @@
 				A1000005 /* CmpScreenViewController.swift in Sources */,
 				A1000006 /* FlutterScreenViewController.swift in Sources */,
 				A1000007 /* ReactNativeScreenViewController.swift in Sources */,
+				395FEDE7CECFD8E06F0347F3 /* CppException.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -535,6 +543,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = sh.frankenstein.ios.debug;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SWIFT_OBJC_BRIDGING_HEADER = "FrankensteinApp/FrankensteinApp-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
@@ -569,6 +578,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = sh.frankenstein.ios;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "match AppStore sh.frankenstein.ios";
+				SWIFT_OBJC_BRIDGING_HEADER = "FrankensteinApp/FrankensteinApp-Bridging-Header.h";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
