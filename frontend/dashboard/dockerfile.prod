@@ -78,8 +78,9 @@ COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/public ./public
 
-# Next's image cache is the only runtime write; app files stay root-owned
+# Next's image & route caches are the only runtime writes; app files stay root-owned
 COPY --from=builder --chown=65532:65532 /empty-cache ./.next/cache
+COPY --from=builder --chown=65532:65532 /empty-cache ./.next/server/route-cache
 
 ENV NODE_ENV=production
 
