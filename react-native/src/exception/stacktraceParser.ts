@@ -117,20 +117,39 @@ export function parseStacktrace(error: unknown): ParsedStacktrace {
 
   if (error instanceof Error) {
     const { name, message, stack } = error;
-
-    const frames: ParsedFrame[] =
-      stack
-        ?.split('\n')
-        .map(parseFrameLine)
-        .filter((f): f is ParsedFrame => f !== null) || [];
-
-    return { type: name, message, stacktrace: frames };
+    return { type: name, message, stacktrace: parseFrames(stack) };
   }
 
-  // Non-Error thrown values (e.g., throw "string")
+  if (typeof error === 'object') {
+    const { name, message, stack } = error as Record<string, unknown>;
+    return {
+      type: typeof name === 'string' && name ? name : 'object',
+      message: typeof message === 'string' ? message : stringifyObject(error),
+      stacktrace: parseFrames(typeof stack === 'string' ? stack : undefined),
+    };
+  }
+
+  // Other thrown values (e.g., throw "string")
   return {
     type: typeof error,
     message: String(error),
     stacktrace: [],
   };
+}
+
+function parseFrames(stack: string | undefined): ParsedFrame[] {
+  return (
+    stack
+      ?.split('\n')
+      .map(parseFrameLine)
+      .filter((f): f is ParsedFrame => f !== null) ?? []
+  );
+}
+
+function stringifyObject(value: object): string {
+  try {
+    return JSON.stringify(value) ?? String(value);
+  } catch {
+    return String(value);
+  }
 }
