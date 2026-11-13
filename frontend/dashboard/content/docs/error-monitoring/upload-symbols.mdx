@@ -76,6 +76,12 @@ In Xcode, add a new Run Script Build Phase **after** the "Bundle React Native co
 
 Replace the API URL and API key with your values from the Measure dashboard.
 
+In the same phase, add this path under **Input Files**, so the script runs after Xcode generates the app's dSYM:
+
+```
+$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Resources/DWARF/$(EXECUTABLE_NAME)
+```
+
 <Callout type="info">
 
 The script runs on every build in whatever configuration you add it to. To restrict it to Archive builds only, wrap the script body in:

@@ -24,6 +24,12 @@ const MEASURE_POD_LINES = `
 
 const BUNDLE_PHASE_NAME = 'Bundle React Native code and images';
 const UPLOAD_PHASE_NAME = 'Upload Measure Symbol Files';
+
+const UPLOAD_PHASE_INPUT_PATHS = [
+  JSON.stringify(
+    '$(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Resources/DWARF/$(EXECUTABLE_NAME)'
+  ),
+];
 const SOURCEMAP_EXPORT = 'export SOURCEMAP_FILE="$(pwd)/main.jsbundle.map"';
 
 const ANDROID_META_KEY_API_KEY = 'sh.measure.android.API_KEY';
@@ -202,6 +208,7 @@ function withMeasureXcodeBuildPhases(config, { iosApiKey, iosApiUrl }) {
 
     if (existingPhase) {
       existingPhase.shellScript = JSON.stringify(uploadScript);
+      existingPhase.inputPaths = UPLOAD_PHASE_INPUT_PATHS;
     } else {
       const nativeTargets = xcodeProject.pbxNativeTargetSection();
       const appTargetEntry = Object.entries(nativeTargets).find(
@@ -216,6 +223,7 @@ function withMeasureXcodeBuildPhases(config, { iosApiKey, iosApiUrl }) {
           UPLOAD_PHASE_NAME,
           targetKey,
           {
+            inputPaths: UPLOAD_PHASE_INPUT_PATHS,
             shellPath: '/bin/bash',
             shellScript: uploadScript,
             showEnvVarsInLog: 0,

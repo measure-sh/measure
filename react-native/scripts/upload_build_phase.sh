@@ -3,13 +3,16 @@
 # Uploads dSYM files and React Native JavaScript sourcemaps to Measure.
 # Designed to be added as an Xcode Run Script Build Phase.
 #
-# Version name, version code, bundle ID, dSYM path, and build size are all
-# read automatically from Xcode environment variables.
+# Version name, version code and bundle ID are read from the built Info.plist.
+# The dSYM path and build size are read from Xcode environment variables.
 #
 # Usage (in Xcode Build Phase):
 #   "${SRCROOT}/../node_modules/@measuresh/react-native/scripts/upload_build_phase.sh" \
 #     <api_url> \
 #     <api_key>
+#
+# Add the app's dSYM to the phase's Input Files so it runs after the dSYM is generated:
+#   $(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Resources/DWARF/$(EXECUTABLE_NAME)
 #
 # To also upload JS sourcemaps, set SOURCEMAP_FILE in the "Bundle React Native
 # code and images" build phase:
@@ -44,13 +47,22 @@ if [ -z "$DWARF_DSYM_FOLDER_PATH" ] || [ -z "$DWARF_DSYM_FILE_NAME" ]; then
   warn_and_exit "DWARF_DSYM_FOLDER_PATH or DWARF_DSYM_FILE_NAME not set. Run this script from an Xcode build phase."
 fi
 
-if [ -z "$MARKETING_VERSION" ] || [ -z "$CURRENT_PROJECT_VERSION" ] || [ -z "$PRODUCT_BUNDLE_IDENTIFIER" ]; then
-  warn_and_exit "MARKETING_VERSION, CURRENT_PROJECT_VERSION, or PRODUCT_BUNDLE_IDENTIFIER not set."
-fi
+INFO_PLIST="${BUILT_PRODUCTS_DIR}/${INFOPLIST_PATH}"
+read_plist() {
+  # PlistBuddy prints "File Doesn't Exist" to stdout, so check the file first.
+  [ -f "$INFO_PLIST" ] && /usr/libexec/PlistBuddy -c "Print :$1" "$INFO_PLIST" 2>/dev/null
+}
 
-VERSION_NAME="$MARKETING_VERSION"
-VERSION_CODE="$CURRENT_PROJECT_VERSION"
-APP_UNIQUE_ID="$PRODUCT_BUNDLE_IDENTIFIER"
+VERSION_NAME="$(read_plist CFBundleShortVersionString)"
+VERSION_CODE="$(read_plist CFBundleVersion)"
+APP_UNIQUE_ID="$(read_plist CFBundleIdentifier)"
+VERSION_NAME="${VERSION_NAME:-$MARKETING_VERSION}"
+VERSION_CODE="${VERSION_CODE:-$CURRENT_PROJECT_VERSION}"
+APP_UNIQUE_ID="${APP_UNIQUE_ID:-$PRODUCT_BUNDLE_IDENTIFIER}"
+
+if [ -z "$VERSION_NAME" ] || [ -z "$VERSION_CODE" ] || [ -z "$APP_UNIQUE_ID" ]; then
+  warn_and_exit "Could not read the app version, build number or bundle identifier from $INFO_PLIST or the build settings."
+fi
 
 DSYM_FOLDER="$DWARF_DSYM_FOLDER_PATH"
 # The compiled bundle lives inside the .app bundle, not directly in BUILT_PRODUCTS_DIR
