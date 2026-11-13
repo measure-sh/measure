@@ -37,9 +37,9 @@ export class MeasureTimeProvider implements TimeProvider {
   }
 
   now(): number {
-    return (
+    return Math.floor(
       this.anchoredEpochTime +
-      (performance.now() - this.anchoredElapsedRealtime)
+        (performance.now() - this.anchoredElapsedRealtime)
     );
   }
 
