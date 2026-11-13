@@ -61,6 +61,66 @@ final class BaseInternalSignalCollectorTests: XCTestCase { // swiftlint:disable:
         XCTAssertNotNil(signalProcessor.data)
     }
 
+    func testTrackEvent_dropsLogEvent_whenTimestampIsBeforeSessionStart() {
+        sessionManager.sessionStartTime = 1000
+        eventCollector.enable()
+        var eventData: [String: Any?] = ["severity_text": "info", "severity_number": 12, "body": "something happened"]
+
+        eventCollector.trackEvent(
+            data: &eventData,
+            type: EventType.log.rawValue,
+            timestamp: 999,
+            attributes: [:],
+            userDefinedAttrs: [:],
+            userTriggered: true,
+            sessionId: nil,
+            threadName: nil,
+            attachments: []
+        )
+
+        XCTAssertNil(signalProcessor.data)
+    }
+
+    func testTrackEvent_dropsEvent_whenTimestampIsBeforeSessionStart_forCurrentSessionId() {
+        sessionManager.sessionStartTime = 1000
+        eventCollector.enable()
+        var eventData: [String: Any?] = ["name": "custom-event"]
+
+        eventCollector.trackEvent(
+            data: &eventData,
+            type: EventType.custom.rawValue,
+            timestamp: 999,
+            attributes: [:],
+            userDefinedAttrs: [:],
+            userTriggered: true,
+            sessionId: sessionManager.sessionId,
+            threadName: nil,
+            attachments: []
+        )
+
+        XCTAssertNil(signalProcessor.data)
+    }
+
+    func testTrackEvent_tracksEvent_whenTimestampIsBeforeSessionStart_forAnotherSessionId() {
+        sessionManager.sessionStartTime = 1000
+        eventCollector.enable()
+        var eventData: [String: Any?] = ["name": "custom-event"]
+
+        eventCollector.trackEvent(
+            data: &eventData,
+            type: EventType.custom.rawValue,
+            timestamp: 999,
+            attributes: [:],
+            userDefinedAttrs: [:],
+            userTriggered: true,
+            sessionId: "previous-session-id",
+            threadName: nil,
+            attachments: []
+        )
+
+        XCTAssertNotNil(signalProcessor.data)
+    }
+
     func testTrackEvent_tracksLogEvent() {
         eventCollector.enable()
         var eventData: [String: Any?] = ["severity_text": "info", "severity_number": 12, "body": "something happened"]
