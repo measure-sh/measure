@@ -836,7 +836,7 @@ services:
       retries: 5
 
   clickstack:
-    image: docker.hyperdx.io/hyperdx/hyperdx-local:2.42.0
+    image: clickhouse/clickstack-local:2.42.0
     profiles:
       - debug
     ports:
