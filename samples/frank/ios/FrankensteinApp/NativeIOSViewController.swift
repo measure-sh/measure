@@ -45,7 +45,7 @@ private enum DemoAction: String {
     // Crashes
     case abort, badPointer, corruptMemory, corruptObject, deadlock
     case nsException, stackOverflow, zombie, zombieNSException
-    case backgroundCrash, segfault, sigabrt, sigill, sigbus
+    case backgroundCrash, segfault, sigabrt, sigill, sigbus, cppException
     // Bug Reports
     case launchBugReport, trackBugReport, shakeToReport
     // HTTP
@@ -80,6 +80,7 @@ private let demos: [DemoItem] = [
     DemoItem(id: "sigabrt", title: "Abnormal Termination", description: "SIGABRT — assertion failure", category: .crashes, action: .sigabrt),
     DemoItem(id: "sigill", title: "Illegal Instruction", description: "SIGILL — null instruction pointer", category: .crashes, action: .sigill),
     DemoItem(id: "sigbus", title: "Bus Error", description: "SIGBUS — unaligned memory access", category: .crashes, action: .sigbus),
+    DemoItem(id: "cpp-exception", title: "C++ Exception", description: "Uncaught std::runtime_error", category: .crashes, action: .cppException),
     // Bug Reports
     DemoItem(id: "launch-bug-report", title: "Launch Bug Report", description: "Opens interactive bug report UI", category: .bugReports, action: .launchBugReport),
     DemoItem(id: "track-bug-report", title: "Track Bug Report", description: "Captures screenshot and submits report", category: .bugReports, action: .trackBugReport),
@@ -183,6 +184,8 @@ private func triggerCrash(_ action: DemoAction) {
     case .sigbus:
         let addr = UnsafeMutableRawPointer(bitPattern: 0x1)
         addr!.storeBytes(of: 0, as: Int.self)
+    case .cppException:
+        frank_throw_cpp_exception()
     default:
         break
     }
@@ -328,7 +331,7 @@ private struct NativeIOSScreen: View {
         // Crashes
         case .abort, .badPointer, .corruptMemory, .corruptObject, .deadlock,
              .nsException, .stackOverflow, .zombie, .zombieNSException,
-             .backgroundCrash, .segfault, .sigabrt, .sigill, .sigbus:
+             .backgroundCrash, .segfault, .sigabrt, .sigill, .sigbus, .cppException:
             triggerCrash(action)
 
         // Bug Reports
