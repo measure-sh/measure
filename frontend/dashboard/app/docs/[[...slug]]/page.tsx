@@ -117,6 +117,10 @@ export default async function Page(props: PageParams) {
   );
 }
 
+// The page list is fixed at build time. With dynamicParams off, an unknown
+// path returns 404 without rendering or caching.
+export const dynamicParams = false;
+
 export async function generateStaticParams() {
   return source.generateParams();
 }

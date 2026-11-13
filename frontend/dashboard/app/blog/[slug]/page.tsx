@@ -92,6 +92,10 @@ export default async function Page(props: PageParams) {
   );
 }
 
+// The post list is fixed at build time. With dynamicParams off, an unknown
+// slug returns 404 without rendering or caching.
+export const dynamicParams = false;
+
 export function generateStaticParams() {
   return blogSource.getPages().map((page) => ({ slug: page.slugs[0] }));
 }
