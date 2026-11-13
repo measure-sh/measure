@@ -53,6 +53,9 @@ internal class InternalSignalCollector(
         threadName: String?,
     ) {
         try {
+            if (!validateTimestamp(timestamp, type, sessionId)) {
+                return
+            }
             val eventAttachments = mutableListOf<Attachment>()
             attachments.mapTo(eventAttachments) { it.toEventAttachment(it.type) }
             val eventType = EventType.fromValue(type)
@@ -284,6 +287,20 @@ internal class InternalSignalCollector(
         } catch (e: Exception) {
             logger.log(LogLevel.Error, "Failed to decode span", e)
         }
+    }
+
+    private fun validateTimestamp(timestamp: Long, type: String, sessionId: String?): Boolean {
+        if (sessionId != null && sessionId != sessionManager.getSessionId()) {
+            return true
+        }
+        if (timestamp < sessionManager.getSessionStartTime()) {
+            logger.log(
+                LogLevel.Error,
+                "Invalid event($type): timestamp is before the session start time",
+            )
+            return false
+        }
+        return true
     }
 
     private fun ExceptionData.withSizeLimitedMeta(): ExceptionData {

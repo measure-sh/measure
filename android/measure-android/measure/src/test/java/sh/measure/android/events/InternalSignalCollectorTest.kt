@@ -118,6 +118,75 @@ class InternalSignalCollectorTest {
     }
 
     @Test
+    fun `trackEvent drops log event when timestamp is before session start`() {
+        sessionManager.startTime = 1000L
+
+        internalSignalCollector.trackEvent(
+            data = mutableMapOf("severity_text" to "info", "severity_number" to 9, "body" to "message"),
+            type = EventType.LOG.value,
+            timestamp = 999L,
+            attributes = mutableMapOf(),
+            userDefinedAttrs = mutableMapOf(),
+            attachments = mutableListOf(),
+            userTriggered = true,
+            sessionId = null,
+            threadName = null,
+        )
+
+        verifyNoInteractions(signalProcessor)
+    }
+
+    @Test
+    fun `trackEvent drops event when timestamp is before session start for current session id`() {
+        sessionManager.startTime = 1000L
+
+        internalSignalCollector.trackEvent(
+            data = mutableMapOf("name" to "test_event"),
+            type = EventType.CUSTOM.value,
+            timestamp = 999L,
+            attributes = mutableMapOf(),
+            userDefinedAttrs = mutableMapOf(),
+            attachments = mutableListOf(),
+            userTriggered = true,
+            sessionId = sessionManager.id,
+            threadName = null,
+        )
+
+        verifyNoInteractions(signalProcessor)
+    }
+
+    @Test
+    fun `trackEvent tracks event when timestamp is before session start for another session id`() {
+        sessionManager.startTime = 1000L
+        val attributes = mutableMapOf<String, Any?>()
+        val userDefinedAttrs = mutableMapOf<String, AttributeValue>()
+
+        internalSignalCollector.trackEvent(
+            data = mutableMapOf("name" to "test_event"),
+            type = EventType.CUSTOM.value,
+            timestamp = 999L,
+            attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
+            attachments = mutableListOf(),
+            userTriggered = true,
+            sessionId = "previous-session-id",
+            threadName = null,
+        )
+
+        verify(signalProcessor).track(
+            data = CustomEventData("test_event"),
+            timestamp = 999L,
+            type = EventType.CUSTOM,
+            attributes = attributes,
+            userDefinedAttributes = userDefinedAttrs,
+            attachments = mutableListOf(),
+            threadName = null,
+            sessionId = "previous-session-id",
+            userTriggered = true,
+        )
+    }
+
+    @Test
     fun `trackEvent does not track event for invalid argument and fails gracefully`() {
         val data = mutableMapOf<String, Any?>("name" to 123) // Invalid argument type
         val type = EventType.CUSTOM
