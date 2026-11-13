@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.16.0] - 2026-11-13
+
+### :bug: Bug fixes
+
+
+- (**ios**): Use exception backtrace for crashed thread by @abhaysood in #4930
+- (**ios**): Drop events timestamped before the session start by @adwinross in #4921
+- (**ios**): Keep 0 and 1 attribute values as numbers by @adwinross in #4913
+
+### :hammer: Misc
+
+
+- (**ios**): Add c++ exception crash to frank by @abhaysood
+
 ## [ios-v0.15.0] - 2026-11-06
 
 ### :bug: Bug fixes
@@ -498,6 +512,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677) by @adwinross in #1677
 - (**ios**): Initial project setup  (#1034) by @adwinross in #1034
 
+[ios-v0.16.0]: https://github.com/measure-sh/measure/compare/ios-v0.15.0..ios-v0.16.0
 [ios-v0.15.0]: https://github.com/measure-sh/measure/compare/ios-v0.14.2..ios-v0.15.0
 [ios-v0.14.2]: https://github.com/measure-sh/measure/compare/ios-v0.14.1..ios-v0.14.2
 [ios-v0.14.1]: https://github.com/measure-sh/measure/compare/ios-v0.14.0..ios-v0.14.1
