@@ -18,6 +18,7 @@ final class MockConfigProvider: ConfigProvider {
     var enableDiagnosticModeGesture: Bool
     var batchExportIntervalMs: Number
     var attachmentExportIntervalMs: Number
+    var debugExportIntervalMs: Number
     var defaultHttpHeadersBlocklist: [String]
     var sessionBackgroundTimeoutThresholdMs: Number
     var maxEventNameLength: Number
@@ -99,6 +100,7 @@ final class MockConfigProvider: ConfigProvider {
          maxDiskUsageInMb: Number = 50,
          batchExportIntervalMs: Number = 3_000,
          attachmentExportIntervalMs: Number = 500,
+         debugExportIntervalMs: Number = 5_000,
          eventsBatchingIntervalMs: Number = 12_312,
          defaultHttpHeadersBlocklist: [String] = DefaultConfig.disallowedCustomHeaders,
          sessionBackgroundTimeoutThresholdMs: Number = 30_000,
@@ -204,6 +206,7 @@ final class MockConfigProvider: ConfigProvider {
         self.enableDiagnosticModeGesture = enableDiagnosticModeGesture
         self.batchExportIntervalMs = batchExportIntervalMs
         self.attachmentExportIntervalMs = attachmentExportIntervalMs
+        self.debugExportIntervalMs = debugExportIntervalMs
         self.eventsBatchingIntervalMs = eventsBatchingIntervalMs
         self.defaultHttpHeadersBlocklist = defaultHttpHeadersBlocklist
         self.sessionBackgroundTimeoutThresholdMs = sessionBackgroundTimeoutThresholdMs

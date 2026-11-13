@@ -96,6 +96,7 @@ final class BaseConfigProvider: ConfigProvider {
 
     var batchExportIntervalMs: Number { defaultConfig.batchExportIntervalMs }
     var attachmentExportIntervalMs: Number { defaultConfig.attachmentExportIntervalMs }
+    var debugExportIntervalMs: Number { defaultConfig.debugExportIntervalMs }
     var defaultHttpHeadersBlocklist: [String] { defaultConfig.defaultHttpHeadersBlocklist }
     var sessionBackgroundTimeoutThresholdMs: Number { defaultConfig.sessionBackgroundTimeoutThresholdMs }
     var maxEventNameLength: Number { defaultConfig.maxEventNameLength }

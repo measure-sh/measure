@@ -41,6 +41,8 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
     let networkClient: NetworkClient
     let httpClient: HttpClient
     let exporter: Exporter
+    let buildEnvironment: BuildEnvironment
+    let periodicExporter: PeriodicExporter?
     let batchStore: BatchStore
     let lifecycleCollector: LifecycleCollector
     let cpuUsageCollector: CpuUsageCollector
@@ -105,6 +107,8 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
          networkClient: NetworkClient? = nil,
          batchStore: BatchStore? = nil,
          exporter: Exporter? = nil,
+         buildEnvironment: BuildEnvironment? = nil,
+         periodicExporter: PeriodicExporter? = MockPeriodicExporter(),
          lifecycleCollector: LifecycleCollector? = nil,
          cpuUsageCalculator: CpuUsageCalculator? = nil,
          memoryUsageCalculator: MemoryUsageCalculator? = nil,
@@ -192,6 +196,8 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                                    userDefaultStorage: self.userDefaultStorage,
                                                                    versionCode: FrameworkInfo.version)
         self.exporter = exporter ?? MockExporter()
+        self.buildEnvironment = buildEnvironment ?? MockBuildEnvironment()
+        self.periodicExporter = periodicExporter
         self.appAttributeProcessor = appAttributeProcessor ?? AppAttributeProcessor()
         self.sysCtl = sysCtl ?? BaseSysCtl()
         self.deviceAttributeProcessor = deviceAttributeProcessor ?? DeviceAttributeProcessor(sysCtl: self.sysCtl)

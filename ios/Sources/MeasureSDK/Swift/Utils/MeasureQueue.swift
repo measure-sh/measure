@@ -13,6 +13,11 @@ struct MeasureQueue {
         return queue
     }()
 
+    static let periodicExporterTimer: DispatchQueue = {
+        let queue = DispatchQueue(label: "sh.measure.periodic.exporter.timer", qos: .utility)
+        return queue
+    }()
+
     static let attachmentExporter: DispatchQueue = {
         let queue = DispatchQueue(label: "sh.measure.attachment.exporter", qos: .utility)
         return queue

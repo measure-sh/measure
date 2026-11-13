@@ -320,4 +320,65 @@ final class MeasureInternalTests: XCTestCase {
 
         XCTAssertEqual(collector.disableCallCount, 1)
     }
+
+    private var periodicExporter: MockPeriodicExporter {
+        mockMeasureInitializer.periodicExporter as! MockPeriodicExporter // swiftlint:disable:this force_cast
+    }
+
+    func testStart_startsPeriodicExporter_whenConfigIsLoaded() {
+        measureInternal.start()
+
+        XCTAssertEqual(periodicExporter.startCallCount, 1)
+    }
+
+    func testStop_stopsPeriodicExporter() {
+        measureInternal.start()
+
+        measureInternal.stop()
+
+        XCTAssertEqual(periodicExporter.stopCallCount, 1)
+    }
+
+    func testApplicationDidEnterBackground_setsPeriodicExporterInBackground() {
+        measureInternal.start()
+
+        NotificationCenter.default.post(name: UIApplication.didEnterBackgroundNotification, object: nil)
+
+        XCTAssertEqual(periodicExporter.inForegroundValues, [false])
+    }
+
+    func testApplicationWillEnterForeground_setsPeriodicExporterInForeground_whenNotStarted() {
+        let periodicExporter = MockPeriodicExporter()
+        let initializer = MockMeasureInitializer(configProvider: MockConfigProvider(autoStart: false),
+                                                 periodicExporter: periodicExporter)
+        let sut = MeasureInternal(initializer)
+
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+
+        XCTAssertEqual(periodicExporter.inForegroundValues, [true])
+        _ = sut
+    }
+
+    func testApplicationWillEnterForeground_startsPeriodicExporter() {
+        measureInternal.start()
+        let before = periodicExporter.startCallCount
+
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+
+        XCTAssertEqual(periodicExporter.startCallCount, before + 1)
+    }
+
+    func testApplicationWillEnterForeground_doesNotStartPeriodicExporter_whenConfigNotLoaded() {
+        let periodicExporter = MockPeriodicExporter()
+        let initializer = MockMeasureInitializer(configLoader: MockConfigLoader(autoSetConfigLoaded: false),
+                                                 configProvider: MockConfigProvider(),
+                                                 periodicExporter: periodicExporter)
+        let sut = MeasureInternal(initializer)
+        sut.start()
+
+        NotificationCenter.default.post(name: UIApplication.willEnterForegroundNotification, object: nil)
+
+        XCTAssertEqual(periodicExporter.startCallCount, 0)
+        _ = sut
+    }
 }
