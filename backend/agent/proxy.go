@@ -49,6 +49,9 @@ func proxyAttachment(deps *server.Deps) gin.HandlerFunc {
 			if resp.StatusCode != http.StatusOK {
 				fmt.Printf("Attachment proxy http status: %s\n", resp.Status)
 			}
+			if m := c.Request.Method; m == http.MethodGet || m == http.MethodHead {
+				objstore.HardenAttachmentResponse(resp)
+			}
 			return nil
 		}
 

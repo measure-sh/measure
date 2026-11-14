@@ -41,11 +41,26 @@ function badGateway(): Response {
   return Response.json({ error: "Bad gateway" }, { status: 502 });
 }
 
+/** Reports whether the path targets the object store proxy, which is not served here. Undecodable paths count as proxy paths. */
+function isProxyPath(request: Request): boolean {
+  try {
+    const path = decodeURIComponent(new URL(request.url).pathname)
+      .toLowerCase()
+      .replace(/\/+/g, "/");
+    return path === "/api/proxy" || path.startsWith("/api/proxy/");
+  } catch {
+    return true;
+  }
+}
+
 /** Forwards the request to API_BASE_URL so the upstream URL stays server side. */
 async function forward(request: Request): Promise<Response> {
   const apiOrigin = process.env.API_BASE_URL;
   if (!apiOrigin) {
     throw new Error("API_BASE_URL is not set");
+  }
+  if (isProxyPath(request)) {
+    return Response.json({ error: "Not found" }, { status: 404 });
   }
   const hasBody = request.method !== "GET" && request.method !== "HEAD";
 

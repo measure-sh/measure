@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"path/filepath"
 	"slices"
+	"strings"
 	"time"
 
 	"backend/libs/objstore"
@@ -321,10 +322,46 @@ func (a *Attachment) Upload(ctx context.Context, config UploadConfig) (err error
 	return
 }
 
+// signedResponseParams builds the GCS response override query parameters.
+func signedResponseParams(disposition, contentType string) url.Values {
+	params := url.Values{"response-content-disposition": {disposition}}
+	if contentType != "" {
+		params.Set("response-content-type", contentType)
+	}
+	return params
+}
+
+// isImageType reports whether the attachment type holds an image.
+func (a *Attachment) isImageType() bool {
+	return a.Type == attachmentTypeScreenshot || a.Type == attachmentTypeLayoutSnapshot
+}
+
+// responseOverrides returns the signed Content-Disposition & Content-Type
+// overrides for reads. Image types with a raster extension render inline as
+// that image type. An svg renders inline only when proxied. Other image
+// names download with no type override. Non-image types download with the
+// fixed content type of their attachment type when one exists.
+func (a *Attachment) responseOverrides(proxied bool) (disposition, contentType string) {
+	disposition = objstore.AttachmentDisposition("attachment", a.Name)
+	if !a.isImageType() {
+		contentType = fixedContentTypes[a.Type]
+		return
+	}
+
+	ext := strings.ToLower(filepath.Ext(a.Name))
+	mediaType, ok := objstore.InlineType(ext)
+	if !ok || (ext == ".svg" && !proxied) {
+		return
+	}
+
+	return objstore.AttachmentDisposition("inline", a.Name), mediaType
+}
+
 // PreSignURL generates a S3-compatible
 // pre-signed URL for the attachment.
 func (a *Attachment) PreSignURL(ctx context.Context, config PreSignConfig) (err error) {
-	shouldProxy := true
+	proxied := !config.IsCloud && config.AttachmentOrigin == ""
+	disposition, contentType := a.responseOverrides(proxied)
 	expires := 48 * time.Hour
 
 	if config.IsCloud {
@@ -337,9 +374,10 @@ func (a *Attachment) PreSignURL(ctx context.Context, config PreSignConfig) (err 
 		defer client.Close()
 
 		url, errStorage := client.Bucket(config.AttachmentsBucket).SignedURL(a.Key, &storage.SignedURLOptions{
-			Scheme:  storage.SigningSchemeV4,
-			Method:  "GET",
-			Expires: time.Now().Add(expires),
+			Scheme:          storage.SigningSchemeV4,
+			Method:          "GET",
+			Expires:         time.Now().Add(expires),
+			QueryParameters: signedResponseParams(disposition, contentType),
 		})
 
 		if errStorage != nil {
@@ -351,10 +389,6 @@ func (a *Attachment) PreSignURL(ctx context.Context, config PreSignConfig) (err 
 		return
 	}
 
-	if config.AttachmentOrigin != "" {
-		shouldProxy = false
-	}
-
 	client := objstore.CreateS3Client(ctx, config.AttachmentsAccessKey, config.AttachmentsSecretAccessKey, config.AttachmentsBucketRegion, config.AWSEndpoint)
 
 	presignClient := s3.NewPresignClient(client, func(o *s3.PresignOptions) {
@@ -364,6 +398,12 @@ func (a *Attachment) PreSignURL(ctx context.Context, config PreSignConfig) (err 
 	getObjectInput := &s3.GetObjectInput{
 		Bucket: aws.String(config.AttachmentsBucket),
 		Key:    aws.String(a.Key),
+
+		ResponseContentDisposition: aws.String(disposition),
+	}
+
+	if contentType != "" {
+		getObjectInput.ResponseContentType = aws.String(contentType)
 	}
 
 	req, err := presignClient.PresignGetObject(ctx, getObjectInput)
@@ -373,7 +413,7 @@ func (a *Attachment) PreSignURL(ctx context.Context, config PreSignConfig) (err 
 
 	urlStr := req.URL
 
-	if shouldProxy {
+	if proxied {
 		endpoint, err := url.JoinPath(config.Origin, "proxy", "attachments")
 		if err != nil {
 			return err
