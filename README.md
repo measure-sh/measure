@@ -68,7 +68,7 @@ Improve conversion in important flows. Track conversion between steps, see trend
 
 ### Network Performance 📡
 
-Monitor and improve [network performance](https://measure.sh/product/network-performance) across your app. Identify the slowest and most error-prone endoints for targeted improvements.
+Monitor and improve [network performance](https://measure.sh/product/network-performance) across your app. Identify the slowest and most error-prone endpoints for targeted improvements.
 
 <img alt="Network Performance" src="./frontend/dashboard/public/images/product_screenshots/network_performance.webp" />
 

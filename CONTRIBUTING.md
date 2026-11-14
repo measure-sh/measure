@@ -409,7 +409,7 @@ Typically, there are 2 kinds of environment variables in the dashboard nextjs ap
     - Public variables **MUST** only contain non-sensitive data.
     - Public variables are baked into the deployable artifact at build time.
     - Public variables are exposed to browsers which is a vulnerable environment.
-    - Example: OAuth client identifiers, analytics service identifers & so on.
+    - Example: OAuth client identifiers, analytics service identifiers & so on.
 
     To manage public variables:
 
@@ -444,7 +444,7 @@ Typically, there are 2 kinds of environment variables in the dashboard nextjs ap
     - Private variables may contain sensitive & non-sensitive data.
     - Private variables are not baked into the deployable artifact.
     - Private variables are not exposed to browsers, they are safely & securely passed to the nextjs server at runtime.
-    - Exmaple: OAuth client secrets, LLM provider API keys & other non-sensitive data.
+    - Example: OAuth client secrets, LLM provider API keys & other non-sensitive data.
 
     To manage private variables:
 
@@ -455,7 +455,7 @@ Typically, there are 2 kinds of environment variables in the dashboard nextjs ap
     Example for `self-host/compose.yml`
 
     ```yaml
-    serivces:
+    services:
       dashboard:
         environment:
           - YOUR_VARIABLE=${YOUR_VARIABLE}
