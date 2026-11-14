@@ -385,6 +385,15 @@
       "contributions": [
         "security"
       ]
+    },
+    {
+      "login": "hamidzr",
+      "name": "Ari (Hamid) Zare",
+      "avatar_url": "https://avatars.githubusercontent.com/u/12127420?v=4",
+      "profile": "https://arizare.com",
+      "contributions": [
+        "doc"
+      ]
     }
   ],
   "commitType": "docs"
