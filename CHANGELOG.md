@@ -5,6 +5,56 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.15.2] - 2026-11-14
+
+### :bug: Bug fixes
+
+- (**backend**): Harden attachment serving headers by @detj in #4940
+- (**backend**): Pull golang builder image from Docker Hub by @detj in #4928
+- (**deps**): Use `clickhouse/clickstack-local` image for `clickstack` by @detj in #4931
+- (**frontend**): Make Next route cache writable in prod image by @detj in #4923
+- (**frontend**): Trigger a native crash in the Flutter test snippet by @anupcowkur in #4908
+- (**frontend**): Correct the test crash snippet comments by @anupcowkur
+- (**frontend**): Refresh app list while onboarding completes by @anupcowkur in #4890
+- (**frontend**): Use distroless base for dashboard image by @detj in #4879
+- (**frontend**): Run dashboard container as non-root by @detj in #4877
+
+### :hammer: Misc
+
+- (**backend**): Tune symbolicator cache retention & retry by @detj in #4911
+- (**backend**): Use distroless base for service images by @detj in #4892
+- (**deps**): Bump go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc by @dependabot[bot] in #4898
+- (**deps**): Bump github.com/jackc/pgx/v5 in /backend/agent by @dependabot[bot] in #4897
+- (**deps**): Bump go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp by @dependabot[bot] in #4896
+- (**deps**): Bump the dashboard group by @dependabot[bot] in #4899
+- (**deps**): Bump cloud.google.com/go/pubsub/v2 in /backend/agent by @dependabot[bot] in #4895
+- (**deps**): Bump cloud.google.com/go/cloudsqlconn in /backend/agent by @dependabot[bot] in #4894
+- (**deps**): Bump amacneil/dbmate in /self-host in the self-host group by @dependabot[bot] in #4893
+- (**deps**): Bump symbolicator to 26.10.1 by @detj in #4875
+- (**deps**): Bump fast-xml-parser to 5.12.0 by @adwinross in #4874
+- (**frontend**): Add custom filter keys to the sandbox by @anupcowkur in #4910
+- (**frontend**): Simplify the onboarding success state by @anupcowkur
+- (**frontend**): Add troubleshooting tips to the onboarding crash wait by @anupcowkur
+- (**frontend**): Update picomatch to 2.3.2 by @anupcowkur in #4873
+- (**frontend**): Update dompurify to 3.4.17 by @anupcowkur
+- (**frontend**): Upgrade Next.js to 16.4.6 by @anupcowkur in #4872
+- (**kmp**): Prepare next development version 0.5.0-SNAPSHOT by @abhaysood in #4937
+- (**kmp**): Prepare sdk release 0.4.0 by @abhaysood in #4936
+- Speed up frontend and backend test suites by @anupcowkur in #4902
+- Clean up caching by @anupcowkur in #4878
+- Remove session replay query cache by @anupcowkur in #4876
+
+### :recycle: Refactor
+
+- (**frontend**): Rename the sandbox filter attribute helpers by @anupcowkur
+
+### :books: Documentation
+
+- Update .all-contributorsrc by @allcontributors[bot] in #4939
+- Update README.md by @allcontributors[bot]
+- Fix typos in documentation by @hamidzr in #4938
+- Update ios sdk performance impact benchmarks by @adwinross in #4884
+
 ## [0.15.1] - 2026-11-11
 
 ### :bug: Bug fixes
@@ -3408,6 +3458,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**webapp**): Replace team/:id/invite docs with /auth/invite docs by @anupcowkur in #367
 - (**webapp**): Add API docs for crash & ANR groups APIs by @anupcowkur in #350
 
+[0.15.2]: https://github.com/measure-sh/measure/compare/v0.15.1..v0.15.2
 [0.15.1]: https://github.com/measure-sh/measure/compare/v0.15.0..v0.15.1
 [0.15.0]: https://github.com/measure-sh/measure/compare/v0.14.0..v0.15.0
 [0.14.0]: https://github.com/measure-sh/measure/compare/v0.13.0..v0.14.0
