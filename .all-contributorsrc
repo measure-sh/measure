@@ -394,6 +394,15 @@
       "contributions": [
         "doc"
       ]
+    },
+    {
+      "login": "Shxsu1x",
+      "name": "Shxsu1x",
+      "avatar_url": "https://avatars.githubusercontent.com/u/183923486?v=4",
+      "profile": "https://github.com/Shxsu1x",
+      "contributions": [
+        "security"
+      ]
     }
   ],
   "commitType": "docs"
