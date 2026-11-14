@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "@jest/globals";
-import { GET, POST } from "@/app/api/[...path]/route";
+import { GET, HEAD, POST, PUT } from "@/app/api/[...path]/route";
 
 const UPSTREAM = "http://upstream.internal:8080";
 
@@ -70,6 +70,35 @@ describe("api catch-all route", () => {
 
     expect(res.status).toBe(502);
     expect(await res.text()).not.toContain("upstream.internal");
+  });
+
+  it.each([
+    ["GET", GET, "/api/proxy/attachments?payload=x"],
+    ["PUT", PUT, "/api/proxy/attachments?payload=x"],
+    ["HEAD", HEAD, "/api/proxy/attachments"],
+    ["GET", GET, "/api/PROXY/attachments"],
+    ["GET", GET, "/api/proxy"],
+    ["GET", GET, "/api/%70roxy/attachments"],
+    ["GET", GET, "/api/%2fproxy/attachments"],
+    ["GET", GET, "/api//proxy/attachments"],
+    ["GET", GET, "/api/%E0%A4%A/x"],
+  ])("refuses %s %s with 404 & no fetch", async (method, handler, path) => {
+    fetchMock.mockClear();
+
+    const res = await handler(
+      new Request(`https://measure.sh${path}`, { method }),
+    );
+
+    expect(res.status).toBe(404);
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("still forwards paths that only start with proxy", async () => {
+    fetchMock.mockResolvedValue(new Response("ok"));
+
+    const res = await GET(new Request("https://measure.sh/api/proxyish"));
+
+    expect(res.status).toBe(200);
   });
 
   it("throws when API_BASE_URL is unset", async () => {

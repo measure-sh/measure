@@ -3,7 +3,9 @@ package event
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"io"
+	"net/url"
 	"testing"
 )
 
@@ -311,4 +313,104 @@ func TestContentTypeFor(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestResponseOverrides(t *testing.T) {
+	tests := []struct {
+		name            string
+		attachmentType  string
+		filename        string
+		proxied         bool
+		wantDisposition string
+		wantType        string
+	}{
+		{"screenshot png", "screenshot", "a.png", false, "inline; filename=a.png", "image/png"},
+		{"screenshot upper ext", "screenshot", "a.JPG", false, "inline; filename=a.JPG", "image/jpeg"},
+		{"screenshot webp", "screenshot", "a.webp", true, "inline; filename=a.webp", "image/webp"},
+		{"layout snapshot gif", "layout_snapshot", "a.gif", false, "inline; filename=a.gif", "image/gif"},
+		{"svg proxied", "layout_snapshot", "a.svg", true, "inline; filename=a.svg", "image/svg+xml"},
+		{"svg direct", "layout_snapshot", "a.svg", false, "attachment; filename=a.svg", ""},
+		{"bare uuid screenshot", "screenshot", "fa496759-113e-4900-92ed-b3c422c8d7b5", true, "attachment; filename=fa496759-113e-4900-92ed-b3c422c8d7b5", ""},
+		{"layout json", "layout_snapshot_json", "a.json.gz", true, "attachment; filename=a.json.gz", "application/json"},
+		{"perfetto", "perfetto_trace", "a.perfetto-trace", false, "attachment; filename=a.perfetto-trace", "application/octet-stream"},
+		{"png name on non image type", "perfetto_trace", "a.png", true, "attachment; filename=a.png", "application/octet-stream"},
+		{"non image type without fixed type", "other", "a.bin", true, "attachment; filename=a.bin", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := &Attachment{Type: tt.attachmentType, Name: tt.filename}
+			disposition, contentType := a.responseOverrides(tt.proxied)
+			if disposition != tt.wantDisposition {
+				t.Errorf("disposition = %q, want %q", disposition, tt.wantDisposition)
+			}
+			if contentType != tt.wantType {
+				t.Errorf("contentType = %q, want %q", contentType, tt.wantType)
+			}
+		})
+	}
+}
+
+func TestPreSignURLResponseOverrides(t *testing.T) {
+	const origin = "https://measure.test"
+
+	tests := []struct {
+		name             string
+		attachmentType   string
+		filename         string
+		attachmentOrigin string
+		wantDisposition  string
+		wantType         string
+	}{
+		{"direct png", "screenshot", "a.png", "https://files.test", "inline; filename=a.png", "image/png"},
+		{"proxied png", "screenshot", "a.png", "", "inline; filename=a.png", "image/png"},
+		{"direct svg", "layout_snapshot", "a.svg", "https://files.test", "attachment; filename=a.svg", ""},
+		{"proxied svg", "layout_snapshot", "a.svg", "", "inline; filename=a.svg", "image/svg+xml"},
+		{"direct layout json", "layout_snapshot_json", "a.json.gz", "https://files.test", "attachment; filename=a.json.gz", "application/json"},
+		{"proxied layout json", "layout_snapshot_json", "a.json.gz", "", "attachment; filename=a.json.gz", "application/json"},
+		{"direct perfetto", "perfetto_trace", "a.perfetto-trace", "https://files.test", "attachment; filename=a.perfetto-trace", "application/octet-stream"},
+		{"proxied bare uuid screenshot", "screenshot", "fa496759-113e-4900-92ed-b3c422c8d7b5", "", "attachment; filename=fa496759-113e-4900-92ed-b3c422c8d7b5", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			a := &Attachment{Type: tt.attachmentType, Name: tt.filename, Key: "bucket-key/" + tt.filename}
+			err := a.PreSignURL(context.Background(), PreSignConfig{
+				AWSEndpoint:                "http://minio.test:9000",
+				AttachmentsBucket:          "attachments",
+				AttachmentsBucketRegion:    "us-east-1",
+				AttachmentsAccessKey:       "key",
+				AttachmentsSecretAccessKey: "secret",
+				AttachmentOrigin:           tt.attachmentOrigin,
+				Origin:                     origin,
+			})
+			if err != nil {
+				t.Fatalf("PreSignURL: %v", err)
+			}
+
+			signed := mustParse(t, a.Location)
+			if tt.attachmentOrigin == "" {
+				signed = mustParse(t, signed.Query().Get("payload"))
+			}
+
+			query := signed.Query()
+			if got := query.Get("response-content-disposition"); got != tt.wantDisposition {
+				t.Errorf("response-content-disposition = %q, want %q", got, tt.wantDisposition)
+			}
+			if got := query.Get("response-content-type"); got != tt.wantType {
+				t.Errorf("response-content-type = %q, want %q", got, tt.wantType)
+			}
+		})
+	}
+}
+
+// mustParse parses a URL or fails the test.
+func mustParse(t *testing.T, raw string) *url.URL {
+	t.Helper()
+
+	u, err := url.Parse(raw)
+	if err != nil {
+		t.Fatalf("parse %q: %v", raw, err)
+	}
+	return u
 }
