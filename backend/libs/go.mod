@@ -5,7 +5,7 @@ go 1.27.3
 require (
 	cloud.google.com/go/compute/metadata v0.10.0
 	cloud.google.com/go/pubsub/v2 v2.8.1
-	cloud.google.com/go/storage v1.62.3
+	cloud.google.com/go/storage v1.70.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.50.0
 	github.com/apache/iggy/foreign/go v0.7.0
 	github.com/aws/aws-sdk-go-v2 v1.41.6
@@ -34,11 +34,10 @@ require (
 	cloud.google.com/go/auth/oauth2adapt v0.3.1 // indirect
 	cloud.google.com/go/iam v1.14.0 // indirect
 	cloud.google.com/go/monitoring v1.30.0 // indirect
-	cloud.google.com/go/trace v1.16.0 // indirect
 	github.com/ClickHouse/ch-go v0.74.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.35.0 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.56.0 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.56.0 // indirect
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.57.0 // indirect
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.57.0 // indirect
 	github.com/andybalholm/brotli v1.2.6 // indirect
 	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.9 // indirect

@@ -40,7 +40,7 @@ require (
 	cloud.google.com/go/iam v1.14.0 // indirect
 	cloud.google.com/go/monitoring v1.31.0 // indirect
 	cloud.google.com/go/sql v0.3.0 // indirect
-	cloud.google.com/go/storage v1.62.3 // indirect
+	cloud.google.com/go/storage v1.70.0 // indirect
 	dario.cat/mergo v1.0.2 // indirect
 	github.com/Azure/go-ansiterm v0.0.0-20261006220739-8c912ac31dd4 // indirect
 	github.com/ClickHouse/ch-go v0.74.0 // indirect

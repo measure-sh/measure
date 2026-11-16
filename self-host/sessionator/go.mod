@@ -4,7 +4,7 @@ go 1.27.3
 
 require (
 	backend/libs v0.0.0
-	cloud.google.com/go/storage v1.62.3
+	cloud.google.com/go/storage v1.70.0
 	github.com/BurntSushi/toml v1.6.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.50.0
 	github.com/aws/aws-sdk-go-v2 v1.41.6
@@ -33,8 +33,8 @@ require (
 	cloud.google.com/go/monitoring v1.30.0 // indirect
 	github.com/ClickHouse/ch-go v0.74.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.35.0 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.56.0 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.56.0 // indirect
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.57.0 // indirect
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.57.0 // indirect
 	github.com/andybalholm/brotli v1.2.6 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.9 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.4.22 // indirect
