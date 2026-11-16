@@ -14,7 +14,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.12.0
-	github.com/klauspost/compress v1.19.1
+	github.com/klauspost/compress v1.20.3
 	github.com/leporo/sqlf v1.4.0
 	github.com/oschwald/maxminddb-golang v1.13.1
 	github.com/posthog/posthog-go v1.22.0
