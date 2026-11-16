@@ -27,8 +27,8 @@ RUN --mount=type=cache,target=/go/pkg/mod \
 
 # runs as root: the existing migrator-volume is root-owned
 # final stage: distroless; TARGETTYPE=debug adds a busybox shell
-FROM gcr.io/distroless/static-debian13:latest@sha256:448810357cc8e67b7208988abdba0f5ec3d3aebee0a5b13eb624979792cffc0f AS runtime-production
-FROM gcr.io/distroless/static-debian13:debug@sha256:63b4c0065ff7bd68753510400b2d5cedd5d5571d15eac4be0b6b0dd236a2d148 AS runtime-debug
+FROM gcr.io/distroless/static-debian13:latest@sha256:1a64f46364620465ef9e9a8f5413757dfdf22695e050bbfd7303eeaf17a59383 AS runtime-production
+FROM gcr.io/distroless/static-debian13:debug@sha256:ebd32759877244c6e72c1610b6fb1cd1004625cc575361ee2ae0b79df9eb3893 AS runtime-debug
 FROM runtime-${TARGETTYPE}
 COPY --from=builder /go/bin/app /app
 ENTRYPOINT ["/app"]
