@@ -112,6 +112,22 @@ And rerun.
 ```sh
 docker compose --profile migrate up
 ```
+
+### Iggy upgrade
+
+Iggy 0.10.0 cannot read data from older versions & uses the `iggy-store` volume. After pulling, recreate the stack. Local data needs no drain. Re-run sessionator for test data.
+
+```sh
+docker compose down
+docker compose --profile migrate up
+```
+
+Optionally remove the old volume.
+
+```sh
+docker volume rm measure_iggy-data
+```
+
 ## Running Tests
 
 ### Backend
@@ -546,7 +562,7 @@ These versions are not updated by Dependabot. Change them by hand and keep the l
 - Workflow tool versions: Node, Java, Flutter, Xcode, Ruby & Yarn in `.github/workflows`
 - Compose & test pairs: Postgres, ClickHouse, Valkey & MinIO in [self-host/compose.yml](self-host/compose.yml) and [backend/testinfra](backend/testinfra), MinIO also in `backend/ingest-worker/symbolicator/symbolicator_test.go`
 - Symbolicator in [self-host/compose.yml](self-host/compose.yml) & `backend/ingest-worker/symbolicator/symbolicator_test.go` with the golden files in `backend/ingest-worker/symbolicator/testdata`
-- Iggy server in [self-host/compose.yml](self-host/compose.yml) is held at the backend Go client version (`github.com/apache/iggy/foreign/go` in the backend `go.mod` files). Upgrading needs the `IGGY_SYSTEM_PATH` → `IGGY_PATH` rename, a data-volume compatibility check & a matching Go client bump
+- Iggy server in [self-host/compose.yml](self-host/compose.yml) & the backend Go client (`github.com/apache/iggy/foreign/go` in the backend `go.mod` files) are bumped together. Client & server must be the same version. A server upgrade may need a fresh data volume
 - ClickHouse `compatibility` setting: `rg '"compatibility"' backend` lists the sites
 - Minimum Docker & Docker Compose versions in [self-host/install.sh](self-host/install.sh)
 - SwiftLint `latest` in [.github/workflows/ios.yml](.github/workflows/ios.yml)

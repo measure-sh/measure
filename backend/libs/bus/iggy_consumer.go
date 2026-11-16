@@ -2,62 +2,57 @@ package bus
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"sync"
 	"time"
 
-	iggclient "github.com/apache/iggy/foreign/go/client"
-	"github.com/apache/iggy/foreign/go/client/tcp"
+	"github.com/apache/iggy/foreign/go/client/reader"
 	iggcon "github.com/apache/iggy/foreign/go/contracts"
+	ierror "github.com/apache/iggy/foreign/go/errors"
 )
+
+const (
+	// maxReadFailures is the number of consecutive whole-reader read errors
+	// after which Listen gives up.
+	maxReadFailures = 5
+	// iggyPollMaxBytes caps the reply body of one poll.
+	iggyPollMaxBytes = 16 * 1024 * 1024
+	// iggyCommitTimeout bounds one offset commit.
+	iggyCommitTimeout = 10 * time.Second
+	// iggyCloseTimeout bounds the reader close.
+	iggyCloseTimeout = 10 * time.Second
+)
+
+// batchSource is the part of *reader.PartitionReader the consumer uses.
+type batchSource interface {
+	Next(ctx context.Context) (*iggcon.PolledMessage, error)
+	Commit(ctx context.Context, checkpoint iggcon.Checkpoint) error
+	Seek(ctx context.Context, partitionID uint32, start iggcon.PollingStrategy) error
+	Close(ctx context.Context) error
+}
 
 type iggyConsumer struct {
 	// client is the underlying Iggy client.
 	client iggcon.Client
-	// streamID identifies the source Iggy stream.
-	streamID iggcon.Identifier
-	// topicID identifies the source Iggy topic within the stream.
-	topicID iggcon.Identifier
-	// consumer holds the consumer identity used when polling and committing offsets.
-	consumer iggcon.Consumer
-	// partID is the partition to poll from.
-	partID *uint32
-	// batchSize is the number of messages fetched per poll.
-	batchSize uint32
-	// pollInterval is the delay between polls when no messages are available
-	// and the initial backoff for poll error retries.
+	// src delivers batches & stores offsets.
+	src batchSource
+	// pollInterval is the server wait per poll & the pause before a failed
+	// batch is redelivered.
 	pollInterval time.Duration
-	// pollingStrategy selects how the server determines the next batch of messages.
-	pollingStrategy iggcon.PollingStrategy
 	// processingConcurrency limits the number of message handlers running
 	// concurrently inside this consumer.
 	processingConcurrency int
 }
 
-// newIggyConsumer is the shared builder for both NewIggyConsumer and
-// NewIggyGroupConsumer. When kind is ConsumerKindGroup the consumer joins the
-// named consumer group; otherwise a plain single consumer is created.
-func newIggyConsumer(address, username, password, consumerName, streamName, topicName string, kind iggcon.ConsumerKind, opts ...IggyOption) (Consumer, error) {
+// NewIggyGroupConsumer creates an Iggy-backed Consumer that reads as a member
+// of a consumer group. consumerName is used as both the consumer identity and
+// the group name; streamName and topicName identify the source stream/topic.
+func NewIggyGroupConsumer(address, username, password, consumerName, streamName, topicName string, opts ...IggyOption) (consumer Consumer, err error) {
 	cfg := &iggyConfig{}
 	for _, o := range opts {
 		o(cfg)
-	}
-
-	client, err := iggclient.NewIggyClient(iggclient.WithTcp(tcp.WithServerAddress(address)))
-	if err != nil {
-		return nil, fmt.Errorf("bus: failed to create Iggy client: %w", err)
-	}
-
-	ok := false
-	defer func() {
-		if !ok {
-			client.Close()
-		}
-	}()
-
-	if _, err := client.LoginUser(username, password); err != nil {
-		return nil, fmt.Errorf("bus: Iggy login failed: %w", err)
 	}
 
 	streamID, err := iggcon.NewIdentifier(streamName)
@@ -68,223 +63,200 @@ func newIggyConsumer(address, username, password, consumerName, streamName, topi
 	if err != nil {
 		return nil, fmt.Errorf("bus: invalid Iggy topic name: %w", err)
 	}
-
 	consumerID, err := iggcon.NewIdentifier(consumerName)
 	if err != nil {
 		return nil, fmt.Errorf("bus: invalid Iggy consumer name: %w", err)
 	}
 
-	var consumer iggcon.Consumer
-	if kind == iggcon.ConsumerKindGroup {
-		if err := client.JoinConsumerGroup(streamID, topicID, consumerID); err != nil {
-			return nil, fmt.Errorf("bus: failed to join Iggy consumer group: %w", err)
-		}
-		consumer = iggcon.NewGroupConsumer(consumerID)
-	} else {
-		consumer = iggcon.NewSingleConsumer(consumerID)
+	client, err := newIggyClient(address, username, password)
+	if err != nil {
+		return nil, err
 	}
 
-	var partID *uint32
-	switch cfg.partitioningKind {
-	case iggcon.PartitionIdKind:
-		id := cfg.partitionID
-		partID = &id
-	case iggcon.MessageKey:
-		// Iggy's PollMessages API routes by partition ID, not by message key.
-		// Message keys are a producer-side routing concept; the corresponding
-		// consumer should pin to the specific partition that the key resolves to
-		// (WithIggyPartitionID). Falling back to balanced (round-robin) here.
-		partID = nil
-	default:
-		// Balanced (round-robin): nil tells the server to distribute polling
-		// evenly across all partitions.
-		partID = nil
+	batchSize, pollInterval := cfg.batchSizeOrDefault(), cfg.pollIntervalOrDefault()
+	src, err := reader.NewPartitionReader(
+		context.Background(), client, streamID, topicID, iggcon.NewGroupConsumer(consumerID),
+		reader.WithPollOptions(pollOptions(batchSize, pollInterval)),
+		reader.WithPrefetchMessages(batchSize),
+	)
+	if err != nil {
+		client.Close()
+		return nil, fmt.Errorf("bus: failed to start Iggy reader: %w", err)
 	}
 
-	var batchSize uint32 = 500
-	if cfg.batchSize > 0 {
-		batchSize = uint32(cfg.batchSize)
-	}
-
-	pollInterval := 500 * time.Millisecond
-	if cfg.pollInterval > 0 {
-		pollInterval = cfg.pollInterval
-	}
-	processingConcurrency := 1
-	if cfg.processingConcurrency > 0 {
-		processingConcurrency = cfg.processingConcurrency
-	}
-	pollingStrategy := iggcon.NextPollingStrategy()
-	if cfg.pollingStrategy != nil {
-		pollingStrategy = *cfg.pollingStrategy
-	}
-
-	ok = true
 	return &iggyConsumer{
 		client:                client,
-		consumer:              consumer,
-		streamID:              streamID,
-		topicID:               topicID,
-		partID:                partID,
-		batchSize:             batchSize,
+		src:                   src,
 		pollInterval:          pollInterval,
-		pollingStrategy:       pollingStrategy,
-		processingConcurrency: processingConcurrency,
+		processingConcurrency: cfg.processingConcurrencyOrDefault(),
 	}, nil
 }
 
-// NewIggyConsumer creates an Iggy-backed Consumer.
-// address is "host:port"; username and password are required for authentication.
-// consumerName identifies this consumer to the Iggy server.
-// streamName and topicName identify the source stream/topic.
-func NewIggyConsumer(address, username, password, consumerName, streamName, topicName string, opts ...IggyOption) (Consumer, error) {
-	return newIggyConsumer(address, username, password, consumerName, streamName, topicName, iggcon.ConsumerKindSingle, opts...)
+// pollOptions returns manual-commit poll options for the given batch size &
+// server wait.
+func pollOptions(batchSize uint32, wait time.Duration) iggcon.PollOptions {
+	opts := iggcon.WaitPollOptions(wait)
+	opts.Count = batchSize
+	opts.MaxBytes = iggyPollMaxBytes
+	return opts
 }
 
-// NewIggyGroupConsumer creates an Iggy-backed Consumer that always joins a
-// consumer group. consumerName is used as both the consumer identity and the
-// group name; streamName and topicName identify the source stream/topic.
-func NewIggyGroupConsumer(address, username, password, consumerName, streamName, topicName string, opts ...IggyOption) (Consumer, error) {
-	return newIggyConsumer(address, username, password, consumerName, streamName, topicName, iggcon.ConsumerKindGroup, opts...)
-}
-
-// processMessages handles messages in bounded concurrent windows.
-//
-// Handlers run concurrently inside each window, but offsets are committed
-// sequentially in the original message order. Only the successful prefix is
-// committed. Processing stops at the first handler or offset-commit failure.
+// processMessages runs handlers over messages in bounded concurrent windows
+// & returns the length of the successful contiguous prefix. Processing stops
+// after the first window containing a failure.
 func (c *iggyConsumer) processMessages(
 	ctx context.Context,
-	partitionID uint32,
 	messages []iggcon.IggyMessage,
 	handler func(context.Context, []byte) error,
-) bool {
+) (done int) {
 	concurrency := max(c.processingConcurrency, 1)
 
 	for start := 0; start < len(messages); start += concurrency {
 		end := min(start+concurrency, len(messages))
-
 		results := make([]error, end-start)
 
 		var wg sync.WaitGroup
 		wg.Add(end - start)
-
-		for messageIndex := start; messageIndex < end; messageIndex++ {
-			resultIndex := messageIndex - start
-			payload := messages[messageIndex].Payload
-
-			go func(resultIndex int, payload []byte) {
+		for i := start; i < end; i++ {
+			go func(slot int, payload []byte) {
 				defer wg.Done()
-				results[resultIndex] = handler(ctx, payload)
-			}(resultIndex, payload)
+				results[slot] = handler(ctx, payload)
+			}(i-start, messages[i].Payload)
 		}
 		wg.Wait()
 
-		// Commit only the successful prefix and preserve the original
-		// offset order.
-		for resultIndex, handlerErr := range results {
-			msg := messages[start+resultIndex]
-
-			if handlerErr != nil {
-				log.Printf(
-					"bus: iggy handler error (offset %d will be retried): %v",
-					msg.Header.Offset,
-					handlerErr,
-				)
-				return false
+		for slot, handlerErr := range results {
+			if handlerErr == nil {
+				done++
+				continue
 			}
-
-			err := c.client.StoreConsumerOffset(
-				c.consumer,
-				c.streamID,
-				c.topicID,
-				msg.Header.Offset,
-				&partitionID,
-			)
-			if err != nil {
-				log.Printf(
-					"bus: iggy offset commit failed (offset %d will be retried): %v",
-					msg.Header.Offset,
-					err,
-				)
-				return false
-			}
+			log.Printf("bus: iggy handler error (offset %d will be retried): %v", messages[start+slot].Header.Offset, handlerErr)
+			return done
 		}
 	}
 
-	return true
+	return done
 }
 
-func (c *iggyConsumer) Listen(ctx context.Context, handler func(ctx context.Context, data []byte) error) error {
-	const maxPollRetries = 5
+// commitPrefix stores the offset of the last of the first n messages using a
+// context that survives cancellation of ctx.
+func (c *iggyConsumer) commitPrefix(ctx context.Context, batch *iggcon.PolledMessage, n int) error {
+	checkpoint, ok := batch.CheckpointAt(n - 1)
+	if !ok {
+		return fmt.Errorf("bus: no checkpoint at index %d", n-1)
+	}
+	commitCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), iggyCommitTimeout)
+	defer cancel()
+	return c.src.Commit(commitCtx, checkpoint)
+}
 
-	var pollFailures int
-	backoff := c.pollInterval
+// redeliverFrom rewinds the partition of batch to the message at index so the
+// reader delivers it again. A partition that moved away is skipped. Any other
+// failure wraps ErrUnrecoverable.
+func (c *iggyConsumer) redeliverFrom(ctx context.Context, batch *iggcon.PolledMessage, index int) error {
+	offset := batch.Messages[index].Header.Offset
+	start := iggcon.OffsetPollingStrategy(offset).WithContext(batch.Context)
+
+	err := c.src.Seek(ctx, batch.PartitionId, start)
+	if err == nil {
+		return nil
+	}
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	if errors.Is(err, ierror.ErrInvalidCommand) {
+		log.Printf("bus: iggy partition %d no longer owned, offset %d left to its new owner: %v", batch.PartitionId, offset, err)
+		return nil
+	}
+	return fmt.Errorf("bus: Iggy seek to offset %d failed: %w: %w", offset, ErrUnrecoverable, err)
+}
+
+// handleBatch processes one batch, commits the successful prefix & rewinds to
+// the first failed message. Commit happens before Seek because a Seek resets
+// the reader state that a later Commit depends on.
+func (c *iggyConsumer) handleBatch(ctx context.Context, batch *iggcon.PolledMessage, handler func(context.Context, []byte) error) error {
+	done := c.processMessages(ctx, batch.Messages, handler)
+
+	if done > 0 {
+		if err := c.commitPrefix(ctx, batch, done); err != nil {
+			log.Printf("bus: iggy offset commit failed (batch will be retried): %v", err)
+			done = 0
+		}
+	}
+	if done == len(batch.Messages) {
+		return nil
+	}
+
+	if err := c.redeliverFrom(ctx, batch, done); err != nil {
+		return err
+	}
+	return sleepCtx(ctx, c.pollInterval)
+}
+
+// sleepCtx waits for d or until ctx is done.
+func sleepCtx(ctx context.Context, d time.Duration) error {
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(d):
+		return nil
+	}
+}
+
+// handleReadError decides what a Next error means. It returns nil when
+// Listen should continue.
+func handleReadError(ctx context.Context, err error, failures *int) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+
+	var readErr *reader.ReadError
+	if !errors.As(err, &readErr) {
+		return fmt.Errorf("bus: Iggy read failed: %w: %w", ErrUnrecoverable, err)
+	}
+
+	if readErr.PartitionID != nil {
+		if errors.Is(err, ierror.ErrConsumerGroupPartitionNotOwned) {
+			log.Printf("bus: iggy partition %d not owned, continuing: %v", *readErr.PartitionID, err)
+			return nil
+		}
+		return fmt.Errorf("bus: Iggy partition %d read failed: %w: %w", *readErr.PartitionID, ErrUnrecoverable, err)
+	}
+
+	*failures++
+	if *failures >= maxReadFailures {
+		return fmt.Errorf("bus: Iggy read failed after %d consecutive attempts: %w: %w", *failures, ErrUnrecoverable, err)
+	}
+	log.Printf("bus: iggy read error (%d/%d): %v", *failures, maxReadFailures, err)
+	return nil
+}
+
+// Listen delivers each batch to handler until ctx is done or an error wraps
+// ErrUnrecoverable.
+func (c *iggyConsumer) Listen(ctx context.Context, handler func(ctx context.Context, data []byte) error) error {
+	failures := 0
 
 	for {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-		}
-
-		polled, err := c.client.PollMessages(c.streamID, c.topicID, c.consumer, c.pollingStrategy, c.batchSize, false, c.partID)
+		batch, err := c.src.Next(ctx)
 		if err != nil {
-			pollFailures++
-			if pollFailures >= maxPollRetries {
-				return fmt.Errorf("bus: Iggy poll failed after %d consecutive attempts: %w: %w", pollFailures, ErrUnrecoverable, err)
-			}
-
-			log.Printf("bus: iggy poll error (%d/%d), retrying in %s: %v", pollFailures, maxPollRetries, backoff, err)
-
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(backoff):
-			}
-
-			// Exponential backoff, capped at 30s.
-			backoff = min(backoff*2, 30*time.Second)
-			continue
-		}
-
-		// Reset on successful poll.
-		pollFailures = 0
-		backoff = c.pollInterval
-
-		if polled == nil || len(polled.Messages) == 0 {
-			select {
-			case <-ctx.Done():
-				return ctx.Err()
-			case <-time.After(c.pollInterval):
+			if err := handleReadError(ctx, err, &failures); err != nil {
+				return err
 			}
 			continue
 		}
+		failures = 0
 
-		partitionID := polled.PartitionId
-
-		if !c.processMessages(
-			ctx,
-			partitionID,
-			polled.Messages,
-			handler,
-		) {
-			// A failed handler or offset commit leaves the failed message and
-			// any later message uncommitted. The next poll retries them.
-			continue
+		if err := c.handleBatch(ctx, batch, handler); err != nil {
+			return err
 		}
 	}
 }
 
+// Close closes the reader (which leaves the group) then the client.
 func (c *iggyConsumer) Close() error {
-	if c.consumer.Kind == iggcon.ConsumerKindGroup {
-		log.Printf("bus: leaving iggy consumer group\n")
+	log.Printf("bus: closing iggy consumer\n")
 
-		if err := c.client.LeaveConsumerGroup(c.streamID, c.topicID, c.consumer.Id); err != nil {
-			log.Printf("bus: failed to leave iggy consumer group: %v", err)
-		}
-	}
-
-	log.Printf("bus: closing iggy consumer client\n")
-	return c.client.Close()
+	ctx, cancel := context.WithTimeout(context.Background(), iggyCloseTimeout)
+	defer cancel()
+	return errors.Join(c.src.Close(ctx), c.client.Close())
 }

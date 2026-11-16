@@ -22,13 +22,11 @@
 //	err = p.Publish(ctx, payload)
 //	defer p.Close()
 //
-// Iggy producers default to balanced (round-robin) partitioning. Use
-// [WithIggyPartitionID] to pin to a partition or [WithIggyMessageKey] to
-// route by key.
+// Iggy producers use balanced (round-robin) partitioning.
 //
 // # Consuming messages
 //
-// Use [NewPubSubConsumer] or [NewIggyConsumer]/[NewIggyGroupConsumer] to
+// Use [NewPubSubConsumer] or [NewIggyGroupConsumer] to
 // create a consumer. [Consumer.Listen] blocks, calling the handler for each
 // message until the context is cancelled or a fatal error occurs.
 //
@@ -58,8 +56,9 @@
 // non-nil error signals failure:
 //
 //   - Pub/Sub: the message is nacked and redelivered by the server.
-//   - Iggy: the message offset is not committed; the failed message and any
-//     remaining messages in the batch are retried on the next poll.
+//   - Iggy: the message offset is not committed; the consumer rewinds to the
+//     failed message so it & any remaining messages in the batch are
+//     redelivered.
 //
 // Because Iggy commits offsets only after successful handling, the handler
 // must complete all processing before returning. Dispatching work to a
@@ -72,24 +71,24 @@
 //
 //   - Pub/Sub: automatically reconnects after a transient Receive error,
 //     waiting 5 seconds between attempts.
-//   - Iggy: retries failed polls up to 5 times with exponential backoff
-//     (starting at pollInterval, capped at 30s). Counters reset after any
-//     successful poll. A fatal error is returned only after all retries are
-//     exhausted.
+//   - Iggy: the reader retries failed reads by itself. The consumer gives up
+//     after 5 consecutive whole-reader read errors, which reset after any
+//     successful read.
 //
-// An Iggy client that has lost its session cannot recover, so that fatal
-// error, and any Iggy publish failure other than an oversized payload, wraps
-// [ErrUnrecoverable] and the caller exits the process.
+// Fatal Iggy read errors, failed seeks, and publish failures other than an
+// oversized payload, a cancelled context or an uncertain or lane-blocked
+// send wrap [ErrUnrecoverable] and the caller exits the process. Uncertain
+// & lane-blocked sends release their lane & return a plain error so the
+// caller can retry.
 //
-// # Iggy consumer types
+// # Iggy consumers
 //
-// [NewIggyConsumer] creates a single consumer bound to one identity.
 // [NewIggyGroupConsumer] joins a named consumer group, enabling multiple
-// instances to load-balance partitions. On [Consumer.Close], group consumers
-// automatically leave the consumer group.
+// instances to load-balance partitions. On [Consumer.Close] the consumer
+// leaves the group.
 //
 // # Cleanup
 //
 // Always call [Consumer.Close] and [Producer.Close] when done. Close releases
-// backend connections and, for Iggy group consumers, leaves the consumer group.
+// backend connections & Iggy consumers leave their consumer group.
 package bus

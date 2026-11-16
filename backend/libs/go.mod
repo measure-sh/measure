@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/pubsub/v2 v2.8.1
 	cloud.google.com/go/storage v1.70.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.50.0
-	github.com/apache/iggy/foreign/go v0.7.0
+	github.com/apache/iggy/foreign/go v0.10.0
 	github.com/aws/aws-sdk-go-v2 v1.47.8
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.9
 	github.com/gin-gonic/gin v1.12.0
@@ -39,7 +39,6 @@ require (
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.57.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.57.0 // indirect
 	github.com/andybalholm/brotli v1.2.6 // indirect
-	github.com/avast/retry-go v3.0.0+incompatible // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.26 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.5.11 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.8.11 // indirect
@@ -97,6 +96,7 @@ require (
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect
+	github.com/zeebo/xxh3 v1.1.0 // indirect
 	go.mongodb.org/mongo-driver/v2 v2.5.0 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect

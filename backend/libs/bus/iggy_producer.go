@@ -2,12 +2,17 @@ package bus
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"log"
+	"time"
 
-	iggclient "github.com/apache/iggy/foreign/go/client"
-	"github.com/apache/iggy/foreign/go/client/tcp"
 	iggcon "github.com/apache/iggy/foreign/go/contracts"
+	ierror "github.com/apache/iggy/foreign/go/errors"
 )
+
+// iggyAbandonTimeout bounds releasing a blocked send lane.
+const iggyAbandonTimeout = 5 * time.Second
 
 type iggyProducer struct {
 	// client is the underlying Iggy client.
@@ -16,37 +21,13 @@ type iggyProducer struct {
 	streamID iggcon.Identifier
 	// topicID identifies the target Iggy topic within the stream.
 	topicID iggcon.Identifier
-	// partitioning is the strategy used to route messages to a partition.
-	partitioning iggcon.Partitioning
 }
 
 // NewIggyProducer creates an Iggy-backed Producer.
 // address is "host:port"; username and password are required for authentication.
 // streamName and topicName identify the target stream/topic.
-// By default, messages are distributed using the balanced (round-robin) partitioning
-// scheme. Use WithIggyPartitionID or WithIggyMessageKey to override.
+// Messages are distributed using the balanced (round-robin) partitioning scheme.
 func NewIggyProducer(address, username, password, consumerName, streamName, topicName string, opts ...IggyOption) (Producer, error) {
-	cfg := &iggyConfig{}
-	for _, o := range opts {
-		o(cfg)
-	}
-
-	client, err := iggclient.NewIggyClient(iggclient.WithTcp(tcp.WithServerAddress(address)))
-	if err != nil {
-		return nil, fmt.Errorf("bus: failed to create Iggy client: %w", err)
-	}
-
-	ok := false
-	defer func() {
-		if !ok {
-			client.Close()
-		}
-	}()
-
-	if _, err := client.LoginUser(username, password); err != nil {
-		return nil, fmt.Errorf("bus: Iggy login failed: %w", err)
-	}
-
 	streamID, err := iggcon.NewIdentifier(streamName)
 	if err != nil {
 		return nil, fmt.Errorf("bus: invalid Iggy stream name: %w", err)
@@ -56,43 +37,63 @@ func NewIggyProducer(address, username, password, consumerName, streamName, topi
 		return nil, fmt.Errorf("bus: invalid Iggy topic name: %w", err)
 	}
 
-	var partitioning iggcon.Partitioning
-	switch cfg.partitioningKind {
-	case iggcon.PartitionIdKind:
-		partitioning = iggcon.PartitionId(cfg.partitionID)
-	case iggcon.MessageKey:
-		p, err := iggcon.EntityIdBytes(cfg.messageKey)
-		if err != nil {
-			return nil, fmt.Errorf("bus: invalid message key: %w", err)
-		}
-		partitioning = p
-	default:
-		// iggcon.None() produces a Partitioning with Kind=Balanced, which is
-		// the Iggy SDK's name for the balanced (round-robin) scheme. Despite
-		// the misleading name, it is not a no-op — it distributes messages
-		// evenly across all available partitions.
-		partitioning = iggcon.None()
+	client, err := newIggyClient(address, username, password)
+	if err != nil {
+		return nil, err
 	}
 
-	ok = true
-	return &iggyProducer{
-		client:       client,
-		streamID:     streamID,
-		topicID:      topicID,
-		partitioning: partitioning,
-	}, nil
+	return &iggyProducer{client: client, streamID: streamID, topicID: topicID}, nil
 }
 
-func (p *iggyProducer) Publish(_ context.Context, data []byte) error {
+// blockedOperationID returns the ID of an uncertain or lane-blocking send.
+func blockedOperationID(err error) (id uint64, ok bool) {
+	var uncertain ierror.OperationUncertain
+	if errors.As(err, &uncertain) {
+		return uncertain.OperationID, true
+	}
+	var blocked ierror.LaneBlocked
+	if errors.As(err, &blocked) {
+		return blocked.OperationID, true
+	}
+	return 0, false
+}
+
+// abandon releases the send lane held by operationID. The lane is released
+// even when ctx is cancelled.
+func (p *iggyProducer) abandon(ctx context.Context, operationID uint64) {
+	abandonCtx, cancel := context.WithTimeout(context.WithoutCancel(ctx), iggyAbandonTimeout)
+	defer cancel()
+	err := p.client.AbandonOperation(abandonCtx, operationID)
+	if err != nil && !errors.Is(err, ierror.ErrOperationNotRetained) {
+		log.Printf("bus: iggy abandon of operation %d failed: %v", operationID, err)
+	}
+}
+
+// sendError classifies a failed send. Oversized payloads, cancelled contexts
+// & uncertain or lane-blocked sends return plain errors. Uncertain sends also
+// release their lane. Anything else wraps ErrUnrecoverable.
+func (p *iggyProducer) sendError(ctx context.Context, err error) error {
+	if IsOversized(err) {
+		return fmt.Errorf("bus: Iggy send failed: %w", err)
+	}
+	if id, ok := blockedOperationID(err); ok {
+		p.abandon(ctx, id)
+		return fmt.Errorf("bus: Iggy send failed: %w", err)
+	}
+	if ctx.Err() != nil {
+		return fmt.Errorf("bus: Iggy send failed: %w", err)
+	}
+	return fmt.Errorf("bus: Iggy send failed: %w: %w", ErrUnrecoverable, err)
+}
+
+// Publish sends data as one message & discards the confirmation.
+func (p *iggyProducer) Publish(ctx context.Context, data []byte) error {
 	msg, err := iggcon.NewIggyMessage(data)
 	if err != nil {
 		return fmt.Errorf("bus: failed to create Iggy message: %w", err)
 	}
-	if err := p.client.SendMessages(p.streamID, p.topicID, p.partitioning, []iggcon.IggyMessage{msg}); err != nil {
-		if IsOversized(err) {
-			return fmt.Errorf("bus: Iggy send failed: %w", err)
-		}
-		return fmt.Errorf("bus: Iggy send failed: %w: %w", ErrUnrecoverable, err)
+	if _, err := p.client.SendMessages(ctx, p.streamID, p.topicID, iggcon.None(), []iggcon.IggyMessage{msg}); err != nil {
+		return p.sendError(ctx, err)
 	}
 	return nil
 }
@@ -104,6 +105,7 @@ func (p *iggyProducer) PublishOrdered(ctx context.Context, _ string, data []byte
 	return p.Publish(ctx, data)
 }
 
+// Close closes the client.
 func (p *iggyProducer) Close() error {
 	return p.client.Close()
 }
