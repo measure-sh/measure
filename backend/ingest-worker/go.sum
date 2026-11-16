@@ -323,8 +323,8 @@ github.com/stretchr/testify v1.8.4/go.mod h1:sz/lmYIOXD/1dqDmKjjqLyZ2RngseejIcXl
 github.com/stretchr/testify v1.10.0/go.mod h1:r2ic/lqez/lEtzL7wO/rwa5dbSLXVDPFyf8C91i36aY=
 github.com/stretchr/testify v1.12.1 h1:EuwCh5fleGS7H32xRwO3wRGT7DxrDhLAT6FF8MpWDWE=
 github.com/stretchr/testify v1.12.1/go.mod h1:MDEgiDPPsNp5cuIrHPPCyornHKgEVbtFUmoNlxoYthg=
-github.com/svix/svix-webhooks v1.95.2 h1:k+jlmo8W9EFXiORADXERqne6Bk7zjEm5lCjatc7aXqw=
-github.com/svix/svix-webhooks v1.95.2/go.mod h1:ngWxEvc1ll097e5kjOQfLz6PqjZTep6ORvGsV4s6mYg=
+github.com/svix/svix-webhooks v1.99.1 h1:Wbi3/kn5Sm2sgGZ7mKDjO/eJD/DQj9YdXhCF4VB13qA=
+github.com/svix/svix-webhooks v1.99.1/go.mod h1:ngWxEvc1ll097e5kjOQfLz6PqjZTep6ORvGsV4s6mYg=
 github.com/testcontainers/testcontainers-go v0.44.0 h1:/Fwh6HY1mIikhnm9e7HwoxGycx0lzRAE0f5VQpjFxzI=
 github.com/testcontainers/testcontainers-go v0.44.0/go.mod h1:IcnwQrYTO86xHXu5bvMaBH7ATlbS3Qn1M1QWW3c66rE=
 github.com/tklauser/go-sysconf v0.4.0 h1:7H0uAN+7RkwWRaxhYXDLqa5V3LPrJeV8wmD9dRUgPQU=
