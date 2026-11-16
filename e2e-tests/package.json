@@ -10,7 +10,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@playwright/test": "^1.64.1",
+    "@playwright/test": "^1.65.0",
     "execa": "^10.2.1",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.23.1",
