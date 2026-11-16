@@ -55,11 +55,11 @@ void main() {
     final boundary =
         keys.boundary.currentContext!.findRenderObject() as RenderBox;
     final box = tester.renderObject<RenderBox>(find.byKey(key));
-    final bounds = MatrixUtils.transformRect(
-            box.getTransformTo(boundary), box.paintBounds)
-        .inflate(1);
-    return rects.any(
-        (rect) => bounds.contains(rect.topLeft) && bounds.contains(rect.bottomRight));
+    final bounds =
+        MatrixUtils.transformRect(box.getTransformTo(boundary), box.paintBounds)
+            .inflate(1);
+    return rects.any((rect) =>
+        bounds.contains(rect.topLeft) && bounds.contains(rect.bottomRight));
   }
 
   List<Rect> findRects(_Keys keys, ScreenshotMaskLevel level) {
@@ -136,9 +136,79 @@ void main() {
         ),
       );
 
-      final boundary =
-          boundaryKey.currentContext!.findRenderObject() as RenderRepaintBoundary;
+      final boundary = boundaryKey.currentContext!.findRenderObject()
+          as RenderRepaintBoundary;
       // A plain box is masked at no level on its own; MsrMask forces it.
+      final rects = ScreenshotMask().findRectsToMask(
+        boundary,
+        boundaryKey.currentContext! as Element,
+        ScreenshotMaskLevel.sensitiveFieldsOnly,
+      );
+
+      final box = tester.renderObject<RenderBox>(find.byKey(wrappedKey));
+      final bounds = MatrixUtils.transformRect(
+          box.getTransformTo(boundary), box.paintBounds);
+      expect(rects.any((rect) => bounds.contains(rect.center)), isTrue);
+    });
+
+    testWidgets('masks text inside ExcludeSemantics', (tester) async {
+      final boundaryKey = GlobalKey();
+      final textKey = GlobalKey();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: RepaintBoundary(
+              key: boundaryKey,
+              child: ExcludeSemantics(
+                child: Text('masked text', key: textKey),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final boundary = boundaryKey.currentContext!.findRenderObject()
+          as RenderRepaintBoundary;
+      final rects = ScreenshotMask().findRectsToMask(
+        boundary,
+        boundaryKey.currentContext! as Element,
+        ScreenshotMaskLevel.allText,
+      );
+
+      // ExcludeSemantics only hides the text from screen readers, it is still
+      // visible in the screenshot and must be masked.
+      final text = tester.renderObject<RenderBox>(find.byKey(textKey));
+      final bounds = MatrixUtils.transformRect(
+          text.getTransformTo(boundary), text.paintBounds);
+      expect(rects.any((rect) => bounds.contains(rect.center)), isTrue);
+    });
+
+    testWidgets('MsrMask inside ExcludeSemantics is masked at every level',
+        (tester) async {
+      final boundaryKey = GlobalKey();
+      final wrappedKey = GlobalKey();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: RepaintBoundary(
+              key: boundaryKey,
+              child: ExcludeSemantics(
+                child: MsrMask(
+                  child: SizedBox(
+                    key: wrappedKey,
+                    width: 100,
+                    height: 40,
+                    child: const ColoredBox(color: Colors.blue),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final boundary = boundaryKey.currentContext!.findRenderObject()
+          as RenderRepaintBoundary;
       final rects = ScreenshotMask().findRectsToMask(
         boundary,
         boundaryKey.currentContext! as Element,
