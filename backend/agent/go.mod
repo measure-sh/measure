@@ -108,7 +108,7 @@ require (
 	github.com/segmentio/encoding v0.5.4 // indirect
 	github.com/shopspring/decimal v1.6.0 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.8.1 // indirect
-	github.com/svix/svix-webhooks v1.95.2 // indirect
+	github.com/svix/svix-webhooks v1.99.1 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.2 // indirect
 	github.com/valyala/bytebufferpool v1.0.0 // indirect

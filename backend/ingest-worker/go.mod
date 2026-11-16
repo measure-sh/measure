@@ -136,7 +136,7 @@ require (
 	github.com/sirupsen/logrus v1.9.4 // indirect
 	github.com/spiffe/go-spiffe/v2 v2.8.1 // indirect
 	github.com/stretchr/testify v1.12.1 // indirect
-	github.com/svix/svix-webhooks v1.95.2 // indirect
+	github.com/svix/svix-webhooks v1.99.1 // indirect
 	github.com/tklauser/go-sysconf v0.4.0 // indirect
 	github.com/tklauser/numcpus v0.12.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
