@@ -4,7 +4,7 @@ go 1.27.3
 
 require (
 	backend/libs v0.0.0
-	cloud.google.com/go/auth v0.24.1
+	cloud.google.com/go/auth v0.24.3
 	cloud.google.com/go/cloudsqlconn v1.26.0
 	cloud.google.com/go/pubsub/v2 v2.8.1
 	github.com/ClickHouse/clickhouse-go/v2 v2.50.0
