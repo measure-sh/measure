@@ -5,7 +5,7 @@ go 1.27.3
 require (
 	backend/libs v0.0.0
 	cloud.google.com/go/cloudsqlconn v1.26.0
-	cloud.google.com/go/iam v1.14.0
+	cloud.google.com/go/iam v1.15.1
 	cloud.google.com/go/pubsub/v2 v2.8.1
 	cloud.google.com/go/storage v1.70.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.50.0
