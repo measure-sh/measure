@@ -1,0 +1,84 @@
+---
+title: "Migration Guide for `v0.16.x`"
+seoTitle: "Self-Hosted Measure v0.16.x Migration Guide"
+description: "Migration guide for self-hosted Measure v0.16.x. Drains queued sessions before moving to the new message queue version."
+---
+
+Use this guide only when you are on less than `v0.16.0` and upgrading to `v0.16.x`.
+
+<Callout type="warn">
+
+Steps mentioned in this document will cause downtime.
+
+</Callout>
+
+Follow these steps when upgrading to `0.16.x`. `v0.16.x` upgrades the message queue to a version that cannot read the old queue data. Queued sessions must be processed before the upgrade, otherwise they are lost. There is some downtime involved. During the downtime SDKs would receive a `503 Service Unavailable` when sending sessions. Once the upgrade is complete, ingestion should resume normally. SDKs will retry sending unsent sessions automatically.
+
+## 1. Fetch the upgrade
+
+Measure keeps running during this step.
+
+Visit [Releases](https://github.com/measure-sh/measure/releases) page to capture the latest tag matching the `v[MAJOR].[MINOR].[PATCH]` format. For example, `v0.16.0`.
+
+SSH into the VM where Measure is hosted.
+
+```sh
+cd ~/measure
+```
+
+```sh
+git reset --hard # only applies if you have local modifications
+```
+
+```sh
+git fetch --tags
+```
+
+```sh
+# replace <git-tag> with the chosen tag. example: v0.16.0
+git checkout <git-tag>
+```
+
+## 2. Drain the queue
+
+This stops accepting new sessions & waits for queued sessions to be processed. Measure services other than ingestion keep running. The script exits successfully once the queue is empty.
+
+```sh
+cd ~/measure/self-host
+```
+
+```sh
+sudo ./migrations/v0.16.x-drain-iggy.sh
+```
+
+If the queue does not empty within 10 minutes, the script fails. Make sure all services are healthy & run it again. To wait longer, set `DRAIN_TIMEOUT` in seconds.
+
+```sh
+sudo DRAIN_TIMEOUT=1800 ./migrations/v0.16.x-drain-iggy.sh
+```
+
+## 3. Shutdown all Measure services
+
+```sh
+sudo docker compose -f compose.yml -f compose.prod.yml --profile migrate down --remove-orphans
+```
+
+## 4. Start Measure services
+
+```sh
+sudo ./install.sh
+```
+
+## 5. Remove the old queue data
+
+Once Measure is healthy & ingesting sessions, remove the old queue data.
+
+```sh
+sudo docker volume rm measure_iggy-data
+```
+
+## Rollback
+
+Until you remove the old queue data, you can go back to the previous version. Checkout the previous tag & run `sudo ./install.sh` again.
+
+Sessions received after the upgrade are not available in the previous version's queue.

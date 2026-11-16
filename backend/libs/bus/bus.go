@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"cloud.google.com/go/pubsub/v2"
-	iggcon "github.com/apache/iggy/foreign/go/contracts"
 	ierror "github.com/apache/iggy/foreign/go/errors"
 )
 
@@ -29,12 +28,12 @@ type Producer interface {
 	Close() error
 }
 
-// ErrUnrecoverable marks an error after which the producer or consumer will
-// never work again, so the process should exit and let its container come
-// back with a fresh client. The Iggy client cannot reconnect once the server
-// has dropped its session, so Iggy wraps it when polling gives up and on any
-// send failure other than an oversized payload. Pub/Sub reconnects on its
-// own and never returns it.
+// ErrUnrecoverable marks an error after which the producer or consumer should
+// not be used again, so the process should exit and let its container come
+// back with a fresh client. Iggy wraps it when the reader fails permanently
+// or a seek fails & on a send failure other than an oversized payload, a
+// cancelled context or an uncertain or lane-blocked send. Pub/Sub reconnects
+// on its own and never returns it.
 var ErrUnrecoverable = errors.New("bus: connection is unrecoverable")
 
 // IsOversized reports whether a Publish error means the payload exceeded the
@@ -102,53 +101,50 @@ func WithPubSubPublishSettings(fn func(*pubsub.PublishSettings)) PubSubOption {
 type IggyOption func(*iggyConfig)
 
 type iggyConfig struct {
-	// partitionID is the partition to poll from (consumer) or route to (producer
-	// when WithIggyPartitionID is used).
-	partitionID uint32
-	// partitioningKind selects the partitioning scheme (default: balanced).
-	partitioningKind iggcon.PartitioningKind
-	// messageKey is the routing key used when partitioningKind is MessageKey.
-	messageKey []byte
 	// batchSize is the number of messages to fetch per poll (consumer-only).
 	batchSize int
-	// pollInterval is the delay between polls when no messages are available
-	// and the initial backoff for poll error retries (consumer-only).
+	// pollInterval is the server wait per poll & the pause before a failed
+	// batch is redelivered (consumer-only).
 	pollInterval time.Duration
-	// pollingStrategy selects how the server determines the next batch of messages (consumer-only).
-	pollingStrategy *iggcon.PollingStrategy
 	// processingConcurrency is the maximum number of messages whose handlers
-	// may run concurrently within one poll result.
+	// may run concurrently within one batch.
 	// A value less than 1 falls back to 1.
 	processingConcurrency int
 }
 
-// WithIggyPartitionID routes all produced messages to the given partition ID.
-// For consumers, it sets the partition to poll from.
-func WithIggyPartitionID(id uint32) IggyOption {
-	return func(c *iggyConfig) {
-		c.partitionID = id
-		c.partitioningKind = iggcon.PartitionIdKind
+// batchSizeOrDefault returns the configured batch size or 500.
+func (c *iggyConfig) batchSizeOrDefault() uint32 {
+	if c.batchSize <= 0 {
+		return 500
 	}
+	return uint32(c.batchSize)
 }
 
-// WithIggyMessageKey routes produced messages by the given key.
-// key must be between 1 and 255 bytes.
-func WithIggyMessageKey(key []byte) IggyOption {
-	return func(c *iggyConfig) {
-		c.messageKey = key
-		c.partitioningKind = iggcon.MessageKey
+// pollIntervalOrDefault returns the configured poll interval or 500ms.
+func (c *iggyConfig) pollIntervalOrDefault() time.Duration {
+	if c.pollInterval <= 0 {
+		return 500 * time.Millisecond
 	}
+	return c.pollInterval
 }
 
-// WithIggyBatchSize sets the number of messages fetched per poll (default: 20).
+// processingConcurrencyOrDefault returns the configured concurrency or 1.
+func (c *iggyConfig) processingConcurrencyOrDefault() int {
+	if c.processingConcurrency <= 0 {
+		return 1
+	}
+	return c.processingConcurrency
+}
+
+// WithIggyBatchSize sets the number of messages fetched per poll (default: 500).
 func WithIggyBatchSize(n int) IggyOption {
 	return func(c *iggyConfig) {
 		c.batchSize = n
 	}
 }
 
-// WithIggyPollInterval sets the delay between polls when no messages are
-// available (default: 500ms).
+// WithIggyPollInterval sets the server wait per poll & the pause before a
+// failed batch is redelivered (default: 500ms).
 func WithIggyPollInterval(d time.Duration) IggyOption {
 	return func(c *iggyConfig) {
 		c.pollInterval = d
@@ -164,13 +160,5 @@ func WithIggyProcessingConcurrency(concurrency int) IggyOption {
 		if concurrency > 0 {
 			c.processingConcurrency = concurrency
 		}
-	}
-}
-
-// WithIggyPollingStrategy sets the polling strategy used to determine which
-// messages the server returns (default: NextPollingStrategy).
-func WithIggyPollingStrategy(s iggcon.PollingStrategy) IggyOption {
-	return func(c *iggyConfig) {
-		c.pollingStrategy = &s
 	}
 }

@@ -714,7 +714,7 @@ services:
     command: ["migrate"]
 
   iggy:
-    image: apache/iggy:0.7.0
+    image: apache/iggy:0.10.0
     restart: unless-stopped
     ports:
       - "3010:80"
@@ -723,7 +723,12 @@ services:
       bash -c "
       iggy-server &
 
+      pid=$$!
+
+      trap 'kill -TERM $$pid; wait $$pid; exit' TERM INT;
+
       until iggy ping 2>/dev/null; do
+        kill -0 $$pid 2>/dev/null || { wait $$pid; exit; };
         echo 'Waiting for Iggy server to start...';
         sleep 1;
       done;
@@ -738,7 +743,7 @@ services:
 
       iggy -u ${IGGY_USERNAME} -p ${IGGY_PASSWORD} consumer-group create measure agent-slack agent-slack-consumer || true;
 
-      wait %1
+      wait $$pid
       "
     healthcheck:
       test: ["CMD-SHELL", "iggy ping"]
@@ -755,8 +760,9 @@ services:
       - IGGY_QUIC_ENABLED=false
       - IGGY_WEBSOCKET_ENABLED=false
       - IGGY_HEARTBEAT_ENABLED=true
-      - IGGY_HEARTBEAT_INTERVAL=5s
-      - IGGY_SYSTEM_PATH=/local_data
+      - IGGY_PATH=/local_data
+      - IGGY_NODE_ADVERTISED_ADDRESS=iggy
+    stop_grace_period: 30s
     cap_add:
       - SYS_NICE
     security_opt:
@@ -766,7 +772,7 @@ services:
         soft: -1
         hard: -1
     volumes:
-      - iggy-data:/local_data
+      - iggy-store:/local_data
 
   postgres:
     image: postgres:16.3-alpine
@@ -856,7 +862,7 @@ volumes:
   clickhouse-volume:
   migrator-volume:
   minio-data:
-  iggy-data:
+  iggy-store:
   pgdata:
 
 secrets:
