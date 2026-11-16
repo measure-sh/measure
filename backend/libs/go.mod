@@ -17,7 +17,7 @@ require (
 	github.com/klauspost/compress v1.20.3
 	github.com/leporo/sqlf v1.4.0
 	github.com/oschwald/maxminddb-golang v1.13.1
-	github.com/posthog/posthog-go v1.22.0
+	github.com/posthog/posthog-go v1.42.0
 	github.com/svix/svix-webhooks v1.99.1
 	github.com/valkey-io/valkey-go v1.0.79
 	github.com/wneessen/go-mail v0.8.2
