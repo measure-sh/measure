@@ -1582,3 +1582,63 @@ func TestTruncateMessages(t *testing.T) {
 		}
 	})
 }
+
+func TestValidateNullPayload(t *testing.T) {
+	tests := []struct {
+		osName string
+		evType string
+	}{
+		// android only event types
+		{osName: "android", evType: TypeANR},
+		{osName: "android", evType: TypeAppExit},
+		{osName: "android", evType: TypeLifecycleActivity},
+		{osName: "android", evType: TypeLifecycleFragment},
+		{osName: "android", evType: TypeTrimMemory},
+		{osName: "android", evType: TypeNavigation},
+		// ios only event types
+		{osName: "ios", evType: TypeAppHang},
+		{osName: "ios", evType: TypeLifecycleViewController},
+		{osName: "ios", evType: TypeLifecycleSwiftUI},
+		// common event types
+		{osName: "android", evType: TypeException},
+		{osName: "android", evType: TypeGestureLongClick},
+		{osName: "android", evType: TypeGestureScroll},
+		{osName: "android", evType: TypeGestureClick},
+		{osName: "android", evType: TypeLifecycleApp},
+		{osName: "android", evType: TypeColdLaunch},
+		{osName: "android", evType: TypeWarmLaunch},
+		{osName: "android", evType: TypeHotLaunch},
+		{osName: "ios", evType: TypeNetworkChange},
+		{osName: "ios", evType: TypeHttp},
+		{osName: "ios", evType: TypeCPUUsage},
+		{osName: "ios", evType: TypeScreenView},
+		{osName: "ios", evType: TypeString},
+		{osName: "ios", evType: TypeLog},
+		{osName: "ios", evType: TypeCustom},
+		{osName: "ios", evType: TypeBugReport},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.evType, func(t *testing.T) {
+			ev := EventField{
+				ID:        uuid.New(),
+				AppID:     uuid.New(),
+				Type:      tt.evType,
+				Timestamp: time.Now(),
+				Attribute: Attribute{OSName: tt.osName},
+			}
+
+			// the ingest path computes launch times before validation,
+			// so this must not panic on a null launch payload.
+			ev.ComputeLaunchTimes()
+
+			err := ev.Validate()
+			if err == nil {
+				t.Fatalf("expected validation error for a null %q payload, got nil", tt.evType)
+			}
+			if !strings.Contains(err.Error(), "must not be null") {
+				t.Errorf("expected a null payload error for %q, got %q", tt.evType, err.Error())
+			}
+		})
+	}
+}
