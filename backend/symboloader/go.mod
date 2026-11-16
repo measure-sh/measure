@@ -5,7 +5,7 @@ go 1.27.3
 require (
 	backend/libs v0.0.0
 	cloud.google.com/go/cloudsqlconn v1.26.0
-	cloud.google.com/go/storage v1.62.3
+	cloud.google.com/go/storage v1.70.0
 	github.com/BurntSushi/toml v1.6.0
 	github.com/aws/aws-sdk-go-v2 v1.41.6
 	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.1.18
