@@ -6,7 +6,7 @@ require (
 	github.com/ClickHouse/clickhouse-go/v2 v2.50.0
 	github.com/amacneil/dbmate/v2 v2.37.0
 	github.com/aws/aws-sdk-go-v2 v1.47.8
-	github.com/aws/aws-sdk-go-v2/credentials v1.19.15
+	github.com/aws/aws-sdk-go-v2/credentials v1.20.16
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.9
 	github.com/google/uuid v1.6.0
 	github.com/jackc/pgx/v5 v5.12.0
