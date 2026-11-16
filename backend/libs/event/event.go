@@ -884,10 +884,78 @@ type EventField struct {
 	Profile                 *Profile                 `json:"profile,omitempty"`
 }
 
+// missingPayload returns true when the payload
+// expected for the event's type is absent.
+//
+// Only types whose payload is dereferenced by
+// Validate are checked here.
+func (e *EventField) missingPayload() bool {
+	switch e.Type {
+	case TypeANR:
+		return e.ANR == nil
+	case TypeAppHang:
+		return e.AppHang == nil
+	case TypeException:
+		return e.Exception == nil
+	case TypeAppExit:
+		return e.AppExit == nil
+	case TypeString:
+		return e.LogString == nil
+	case TypeLog:
+		return e.Log == nil
+	case TypeGestureLongClick:
+		return e.GestureLongClick == nil
+	case TypeGestureScroll:
+		return e.GestureScroll == nil
+	case TypeGestureClick:
+		return e.GestureClick == nil
+	case TypeLifecycleActivity:
+		return e.LifecycleActivity == nil
+	case TypeLifecycleFragment:
+		return e.LifecycleFragment == nil
+	case TypeLifecycleViewController:
+		return e.LifecycleViewController == nil
+	case TypeLifecycleSwiftUI:
+		return e.LifecycleSwiftUI == nil
+	case TypeLifecycleApp:
+		return e.LifecycleApp == nil
+	case TypeColdLaunch:
+		return e.ColdLaunch == nil
+	case TypeWarmLaunch:
+		return e.WarmLaunch == nil
+	case TypeHotLaunch:
+		return e.HotLaunch == nil
+	case TypeNetworkChange:
+		return e.NetworkChange == nil
+	case TypeHttp:
+		return e.Http == nil
+	case TypeTrimMemory:
+		return e.TrimMemory == nil
+	case TypeCPUUsage:
+		return e.CPUUsage == nil
+	case TypeNavigation:
+		return e.Navigation == nil
+	case TypeScreenView:
+		return e.ScreenView == nil
+	case TypeBugReport:
+		return e.BugReport == nil
+	case TypeCustom:
+		return e.Custom == nil
+	}
+	return false
+}
+
 // Validate validates the event for data
 // integrity.
 func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	config := ingest.NewValidationConfig(opts...)
+
+	// An event whose payload for its own type is null is malformed. SDKs have
+	// been observed sending such events (see #2965) and the branches below
+	// dereference the payload, which panics the ingest process.
+	if e.missingPayload() {
+		return fmt.Errorf(`%q must not be null`, e.Type)
+	}
 
 	switch opsys.ToFamily(e.Attribute.OSName) {
 	case opsys.Android:
@@ -1462,7 +1530,7 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 // all launch time events & notifies about anomalous
 // durations if detected.
 func (e *EventField) ComputeLaunchTimes() {
-	if e.IsColdLaunch() {
+	if e.IsColdLaunch() && e.ColdLaunch != nil {
 		e.ColdLaunch.Compute()
 
 		// log anomalous cold launch durations
@@ -1471,7 +1539,7 @@ func (e *EventField) ComputeLaunchTimes() {
 		}
 	}
 
-	if e.IsWarmLaunch() {
+	if e.IsWarmLaunch() && e.WarmLaunch != nil {
 		e.WarmLaunch.Compute()
 
 		// log anomalous warm launch durations
@@ -1480,7 +1548,7 @@ func (e *EventField) ComputeLaunchTimes() {
 		}
 	}
 
-	if e.IsHotLaunch() {
+	if e.IsHotLaunch() && e.HotLaunch != nil {
 		e.HotLaunch.Compute()
 	}
 }
