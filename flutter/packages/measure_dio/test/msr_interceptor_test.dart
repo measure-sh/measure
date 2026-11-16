@@ -93,7 +93,7 @@ void main() {
   test("tracks response headers", () async {
     const path = '/headers';
     final responseData = {'message': 'Success!'};
-    final responseHeaders = {'content-type': '[application/json]'};
+    final responseHeaders = {'content-type': 'application/json'};
 
     dioAdapter.onGet(path, (server) => server.reply(200, responseData));
 
@@ -102,6 +102,32 @@ void main() {
     expect(response.statusCode, 200);
     expect(measure.trackedHttp.length, 1);
     expect(measure.trackedHttp.first.responseHeaders, responseHeaders);
+  });
+
+  test("joins multiple values of a response header", () async {
+    const path = '/multi-header';
+    final responseData = {'message': 'Success!'};
+
+    dioAdapter.onGet(
+      path,
+      (server) => server.reply(
+        200,
+        responseData,
+        headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType],
+          'cache-control': ['no-store', 'no-cache'],
+        },
+      ),
+    );
+
+    await dio.get(path);
+
+    expect(measure.trackedHttp.length, 1);
+    final responseHeaders = measure.trackedHttp.first.responseHeaders;
+    expect(responseHeaders?['cache-control'], 'no-store, no-cache');
+    // The body is only tracked when the content type is a plain JSON value.
+    expect(
+        responseHeaders?[Headers.contentTypeHeader], Headers.jsonContentType);
   });
 
   test("tracks request body", () async {
@@ -262,7 +288,8 @@ void main() {
       expect(httpCall.responseBody, isNull);
     });
 
-    test('does not track headers if request body is disabled for tracking', () async {
+    test('does not track headers if request body is disabled for tracking',
+        () async {
       const path = '/hello';
       final responseData = {'message': 'Success!'};
       measure.setShouldTrackHttpRequestBody(false);
@@ -280,7 +307,8 @@ void main() {
       expect(httpCall.requestHeaders, isNull);
     });
 
-    test('does not track headers if response body is disabled for tracking', () async {
+    test('does not track headers if response body is disabled for tracking',
+        () async {
       const path = '/hello';
       final responseData = {'message': 'Success!'};
 

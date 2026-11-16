@@ -35,7 +35,8 @@ class MsrInterceptor extends Interceptor {
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
-    if (!_measure.shouldTrackHttpEvent(response.requestOptions.uri.toString())) {
+    if (!_measure
+        .shouldTrackHttpEvent(response.requestOptions.uri.toString())) {
       handler.next(response);
       return;
     }
@@ -84,7 +85,8 @@ class MsrInterceptor extends Interceptor {
       final method = _getMethod(request);
       // The start time should never be null, but this happens in tests
       // hence setting a default value.
-      final startTime = _requestsStartTime[request] ?? Measure.instance.getCurrentTime();
+      final startTime =
+          _requestsStartTime[request] ?? Measure.instance.getCurrentTime();
       final endTime = Measure.instance.getCurrentTime();
       final failureReason = _getFailureReason(err);
       final failureDescription = _getFailureDescription(err);
@@ -118,7 +120,8 @@ class MsrInterceptor extends Interceptor {
     }
   }
 
-  String? _getFailureDescription(DioException err) => err.message ?? err.error?.toString();
+  String? _getFailureDescription(DioException err) =>
+      err.message ?? err.error?.toString();
 
   String? _getResponseBody(Response<dynamic> response, RequestOptions request) {
     final data = response.data;
@@ -165,7 +168,7 @@ class MsrInterceptor extends Interceptor {
     if (_measure.shouldTrackHttpRequestBody(url)) {
       for (final entry in headers.entries) {
         if (_measure.shouldTrackHttpHeader(entry.key)) {
-          filteredHeaders[entry.key] = entry.value.toString();
+          filteredHeaders[entry.key] = _headerValue(entry.value);
         }
       }
     }
@@ -173,7 +176,8 @@ class MsrInterceptor extends Interceptor {
     return filteredHeaders.isEmpty ? null : filteredHeaders;
   }
 
-  Map<String, String>? _getResponseHeaders(RequestOptions request, Response<dynamic> response) {
+  Map<String, String>? _getResponseHeaders(
+      RequestOptions request, Response<dynamic> response) {
     final headers = response.headers;
     if (headers.isEmpty) {
       return null;
@@ -186,12 +190,25 @@ class MsrInterceptor extends Interceptor {
     if (_measure.shouldTrackHttpResponseBody(url)) {
       for (final entry in headers.map.entries) {
         if (_measure.shouldTrackHttpHeader(entry.key)) {
-          filteredHeaders[entry.key] = entry.value.toString();
+          filteredHeaders[entry.key] = _headerValue(entry.value);
         }
       }
     }
 
     return filteredHeaders.isEmpty ? null : filteredHeaders;
+  }
+
+  /// Converts a header value to a single string.
+  ///
+  /// dio stores header values as a list, so calling `toString()` on them
+  /// produces `[application/json]` instead of `application/json`. The SDK
+  /// checks the content type header to decide if a body is JSON, so the
+  /// brackets stop it from ever tracking a body.
+  String _headerValue(dynamic value) {
+    if (value is List) {
+      return value.map((item) => item.toString()).join(', ');
+    }
+    return value.toString();
   }
 
   String _getRequestUrl(RequestOptions request) {
