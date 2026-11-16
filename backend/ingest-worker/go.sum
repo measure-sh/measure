@@ -339,8 +339,8 @@ github.com/valkey-io/valkey-go v1.0.79 h1:dryzYka/oOkSMOcNmOTjQI8zfu/4bUzDZNnFW9
 github.com/valkey-io/valkey-go v1.0.79/go.mod h1:gvC/r2m3eW4Hbj0YnjogTzNtFdPSM/D+NCqen+5OABM=
 github.com/valyala/bytebufferpool v1.0.0 h1:GqA5TC/0021Y/b9FG4Oi9Mr3q7XYx6KllzawFIhcdPw=
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=
-github.com/wneessen/go-mail v0.7.3 h1:g3DravXC5SMlVdboFrQA8Jx95A8sOzoBeS5F+vzNRK0=
-github.com/wneessen/go-mail v0.7.3/go.mod h1:QGhBX0yNbc1J+Mkjcu7z2rpj4B4l+BmDY8gYznPC9sk=
+github.com/wneessen/go-mail v0.8.2 h1:JVeSmRX9oPjYFH77irWIFy8t1vJRDU/+ri4H38FMAK8=
+github.com/wneessen/go-mail v0.8.2/go.mod h1:rJb+LDvSMcOzSeNZ4rFyS7PLMy0DEFz/uU3A0T5JY50=
 github.com/xyproto/randomstring v1.0.5 h1:YtlWPoRdgMu3NZtP45drfy1GKoojuR7hmRcnhZqKjWU=
 github.com/xyproto/randomstring v1.0.5/go.mod h1:rgmS5DeNXLivK7YprL0pY+lTuhNQW3iGxZ18UQApw/E=
 github.com/yusufpapurcu/wmi v1.2.4 h1:zFUKzehAFReQwLys1b/iSMl+JQGSCSjtVqQn9bBrPo0=
