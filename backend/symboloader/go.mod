@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/storage v1.70.0
 	github.com/BurntSushi/toml v1.6.0
 	github.com/aws/aws-sdk-go-v2 v1.47.8
-	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.1.18
+	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.5.5
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.9
 	github.com/bodgit/sevenzip v1.6.1
 	github.com/charmbracelet/bubbles v1.0.0
