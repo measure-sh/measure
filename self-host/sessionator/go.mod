@@ -18,7 +18,7 @@ require (
 	github.com/jackc/pgx/v5 v5.12.0
 	github.com/shirou/gopsutil/v4 v4.26.10
 	github.com/spf13/cobra v1.10.2
-	github.com/tidwall/gjson v1.18.0
+	github.com/tidwall/gjson v1.20.2
 	github.com/tidwall/sjson v1.2.5
 	google.golang.org/api v0.311.0
 )
@@ -100,7 +100,7 @@ require (
 	github.com/stangelandcl/ppmd v0.1.1 // indirect
 	github.com/stretchr/objx v0.5.3 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
-	github.com/tidwall/pretty v1.2.1 // indirect
+	github.com/tidwall/pretty v1.3.0 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.3.1 // indirect
 	github.com/ulikunitz/xz v0.5.15 // indirect
