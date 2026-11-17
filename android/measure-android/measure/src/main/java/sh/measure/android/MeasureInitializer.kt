@@ -42,6 +42,9 @@ import sh.measure.android.exporter.HttpClient
 import sh.measure.android.exporter.HttpUrlConnectionClient
 import sh.measure.android.exporter.NetworkClient
 import sh.measure.android.exporter.NetworkClientImpl
+import sh.measure.android.exporter.NoopPeriodicExporter
+import sh.measure.android.exporter.PeriodicExporter
+import sh.measure.android.exporter.PeriodicExporterImpl
 import sh.measure.android.gestures.GestureCollector
 import sh.measure.android.httpurl.HttpUrlConnectionEventCollector
 import sh.measure.android.httpurl.HttpUrlConnectionEventCollectorImpl
@@ -122,6 +125,7 @@ import sh.measure.android.utils.SamplerImpl
 import sh.measure.android.utils.SystemServiceProvider
 import sh.measure.android.utils.SystemServiceProviderImpl
 import sh.measure.android.utils.TimeProvider
+import sh.measure.android.utils.isAppDebuggable
 import sh.measure.android.utils.isClassAvailable
 
 internal class MeasureInitializerImpl(
@@ -295,6 +299,17 @@ internal class MeasureInitializerImpl(
         eventExportService = executorServiceRegistry.eventExportExecutor(),
         profileUploadScheduler = profileUploadScheduler,
     ),
+    override val periodicExporter: PeriodicExporter =
+        if (isAppDebuggable(application)) {
+            PeriodicExporterImpl(
+                logger = logger,
+                configProvider = configProvider,
+                exporter = exporter,
+                scheduler = executorServiceRegistry.defaultExecutor(),
+            )
+        } else {
+            NoopPeriodicExporter()
+        },
     override val signalProcessor: SignalProcessor = SignalProcessorImpl(
         logger = logger,
         ioExecutor = executorServiceRegistry.ioExecutor(),
@@ -546,6 +561,7 @@ internal interface MeasureInitializer {
     val profileCollector: ProfileCollector
     val networkChangesCollector: NetworkChangesCollector
     val exporter: Exporter
+    val periodicExporter: PeriodicExporter
     val workManagerAvailable: Boolean
     val userAttributeProcessor: UserAttributeProcessor
     val patchAttributeProcessor: PatchAttributeProcessor

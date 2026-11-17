@@ -18,6 +18,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override val traceSamplingRate: Float = 1f
     override var batchExportIntervalMs: Long = 1_000_000
     override val attachmentExportIntervalMs: Long = 500
+    override val debugExportIntervalMs: Long = 5_000
     override var maxEventsInBatch: Int = 1_000_000
     override var defaultHttpHeadersBlocklist: List<String> = emptyList()
     override var sessionBackgroundTimeoutThresholdMs: Long = 30_000
