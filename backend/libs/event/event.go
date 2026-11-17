@@ -884,78 +884,10 @@ type EventField struct {
 	Profile                 *Profile                 `json:"profile,omitempty"`
 }
 
-// missingPayload returns true when the payload
-// expected for the event's type is absent.
-//
-// Only types whose payload is dereferenced by
-// Validate are checked here.
-func (e *EventField) missingPayload() bool {
-	switch e.Type {
-	case TypeANR:
-		return e.ANR == nil
-	case TypeAppHang:
-		return e.AppHang == nil
-	case TypeException:
-		return e.Exception == nil
-	case TypeAppExit:
-		return e.AppExit == nil
-	case TypeString:
-		return e.LogString == nil
-	case TypeLog:
-		return e.Log == nil
-	case TypeGestureLongClick:
-		return e.GestureLongClick == nil
-	case TypeGestureScroll:
-		return e.GestureScroll == nil
-	case TypeGestureClick:
-		return e.GestureClick == nil
-	case TypeLifecycleActivity:
-		return e.LifecycleActivity == nil
-	case TypeLifecycleFragment:
-		return e.LifecycleFragment == nil
-	case TypeLifecycleViewController:
-		return e.LifecycleViewController == nil
-	case TypeLifecycleSwiftUI:
-		return e.LifecycleSwiftUI == nil
-	case TypeLifecycleApp:
-		return e.LifecycleApp == nil
-	case TypeColdLaunch:
-		return e.ColdLaunch == nil
-	case TypeWarmLaunch:
-		return e.WarmLaunch == nil
-	case TypeHotLaunch:
-		return e.HotLaunch == nil
-	case TypeNetworkChange:
-		return e.NetworkChange == nil
-	case TypeHttp:
-		return e.Http == nil
-	case TypeTrimMemory:
-		return e.TrimMemory == nil
-	case TypeCPUUsage:
-		return e.CPUUsage == nil
-	case TypeNavigation:
-		return e.Navigation == nil
-	case TypeScreenView:
-		return e.ScreenView == nil
-	case TypeBugReport:
-		return e.BugReport == nil
-	case TypeCustom:
-		return e.Custom == nil
-	}
-	return false
-}
-
 // Validate validates the event for data
 // integrity.
 func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	config := ingest.NewValidationConfig(opts...)
-
-	// An event whose payload for its own type is null is malformed. SDKs have
-	// been observed sending such events (see #2965) and the branches below
-	// dereference the payload, which panics the ingest process.
-	if e.missingPayload() {
-		return fmt.Errorf(`%q must not be null`, e.Type)
-	}
 
 	switch opsys.ToFamily(e.Attribute.OSName) {
 	case opsys.Android:
@@ -1012,6 +944,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsANR() {
+		if e.ANR == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		hasStacktrace := len(e.ANR.Exceptions) > 0 && len(e.ANR.Threads) > 0
 		hasThreadDump := e.ANR.RawThreadDump != ""
 		if !hasStacktrace && !hasThreadDump {
@@ -1029,6 +964,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsAppHang() {
+		if e.AppHang == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if len(e.AppHang.Exceptions) < 1 {
 			return fmt.Errorf(`%q must contain at least one blocked thread`, `app_hang`)
 		}
@@ -1062,6 +1000,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsException() {
+		if e.Exception == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		f := e.Exception.GetFramework()
 		switch f {
 		case FrameworkApple:
@@ -1195,6 +1136,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsAppExit() {
+		if e.AppExit == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if len(e.AppExit.Reason) < 1 || len(e.AppExit.Importance) < 1 || len(e.AppExit.ProcessName) < 1 {
 			return fmt.Errorf(`%q, %q, %q must not be empty`, `app_exit.reason`, `app_exit.importance`, `app_exit.process_name`)
 		}
@@ -1207,6 +1151,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsString() {
+		if e.LogString == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if len(e.LogString.String) < 1 {
 			return fmt.Errorf(`%q must not be empty`, `string`)
 		}
@@ -1216,6 +1163,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsLog() {
+		if e.Log == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if len(e.Log.Body) < 1 {
 			return fmt.Errorf(`%q must not be empty`, `log.body`)
 		}
@@ -1232,6 +1182,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsGestureLongClick() {
+		if e.GestureLongClick == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if e.GestureLongClick.X < 0 || e.GestureLongClick.Y < 0 {
 			return fmt.Errorf(`%q and %q must contain valid x and y coordinate values`, `gesture_long_click.x`, `gesture_long_click.y`)
 		}
@@ -1250,6 +1203,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsGestureScroll() {
+		if e.GestureScroll == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if e.GestureScroll.X < 0 || e.GestureScroll.Y < 0 {
 			return fmt.Errorf(`%q and %q must contain valid x and y coordinates`, `gesture_scroll.x`, `gesture_scroll.y`)
 		}
@@ -1268,6 +1224,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsGestureClick() {
+		if e.GestureClick == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if e.GestureClick.X < 0 || e.GestureClick.Y < 0 {
 			return fmt.Errorf(`%q and %q must contain valid x and y coordinates`, `gesture_click.x`, `gesture_click.y`)
 		}
@@ -1286,6 +1245,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsLifecycleActivity() {
+		if e.LifecycleActivity == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if e.LifecycleActivity.Type == "" || e.LifecycleActivity.ClassName == "" {
 			return fmt.Errorf(`%q & %q must not be empty`, `lifecycle_activity.type`, `lifecycle_activity.class_name`)
 		}
@@ -1301,6 +1263,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsLifecycleFragment() {
+		if e.LifecycleFragment == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if e.LifecycleFragment.Type == "" || e.LifecycleFragment.ClassName == "" {
 			return fmt.Errorf(`%q and %q must not be empty`, `lifecycle_fragment.type`, `lifecycle_fragment.class_name`)
 		}
@@ -1322,6 +1287,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsLifecycleViewController() {
+		if e.LifecycleViewController == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if e.LifecycleViewController.Type == "" || e.LifecycleViewController.ClassName == "" {
 			return fmt.Errorf(`%q and %q must not be empty`, `lifecycle_view_controller.type`, `lifecycle_view_controller.class_name`)
 		}
@@ -1337,6 +1305,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsLifecycleSwiftUI() {
+		if e.LifecycleSwiftUI == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if e.LifecycleSwiftUI.Type == "" || e.LifecycleSwiftUI.ClassName == "" {
 			return fmt.Errorf(`%q and %q must not be empty`, `lifecycle_swift_ui.type`, `lifecycle_swift_ui.class_name`)
 		}
@@ -1352,6 +1323,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsLifecycleApp() {
+		if e.LifecycleApp == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if e.LifecycleApp.Type == "" {
 			return fmt.Errorf(`%q must not be empty`, `lifecycle_app.type`)
 		}
@@ -1367,6 +1341,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsColdLaunch() {
+		if e.ColdLaunch == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if e.ColdLaunch.ProcessStartUptime <= 0 && e.ColdLaunch.ContentProviderAttachUptime <= 0 && e.ColdLaunch.ProcessStartRequestedUptime <= 0 {
 			return fmt.Errorf(`one of %q, %q, or %q must be greater than 0`, `cold_launch.process_start_uptime`, `cold_launch.process_start_requested_uptime`, `cold_launch.content_provider_attach_uptime`)
 		}
@@ -1382,6 +1359,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsWarmLaunch() {
+		if e.WarmLaunch == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if e.WarmLaunch.OnNextDrawUptime <= 0 {
 			return fmt.Errorf(`%q must be greater than 0`, `warm_launch.on_next_draw_uptime`)
 		}
@@ -1394,6 +1374,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsHotLaunch() {
+		if e.HotLaunch == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if e.HotLaunch.AppVisibleUptime <= 0 {
 			return fmt.Errorf(`%q must be greater than 0`, `hot_launch.app_visible_uptime`)
 		}
@@ -1409,6 +1392,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsNetworkChange() {
+		if e.NetworkChange == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if e.NetworkChange.NetworkType == "" {
 			return fmt.Errorf(`%q must not be empty`, `network_change.network_type`)
 		}
@@ -1454,6 +1440,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsHttp() {
+		if e.Http == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if e.Http.URL == "" {
 			return fmt.Errorf(`%q must not be empty`, `http.url`)
 		}
@@ -1472,6 +1461,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsTrimMemory() {
+		if e.TrimMemory == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if e.TrimMemory.Level == "" {
 			return fmt.Errorf(`%q must not be empty`, `trim_memory.level`)
 		}
@@ -1481,6 +1473,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsCPUUsage() {
+		if e.CPUUsage == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if e.CPUUsage.NumCores <= 0 {
 			return fmt.Errorf(`%q must be greater than 0`, `cpu_usage.num_cores`)
 		}
@@ -1490,6 +1485,9 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsNavigation() {
+		if e.Navigation == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if len(e.Navigation.To) > maxNavigationToChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `navigation.to`, maxNavigationToChars)
 		}
@@ -1502,18 +1500,27 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 	}
 
 	if e.IsScreenView() {
+		if e.ScreenView == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if len(e.ScreenView.Name) > maxScreenViewNameChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `screen_view.name`, maxScreenViewNameChars)
 		}
 	}
 
 	if e.IsBugReport() {
+		if e.BugReport == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if len(e.BugReport.Description) > maxBugReportDescChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `bug_report.description`, maxBugReportDescChars)
 		}
 	}
 
 	if e.IsCustom() {
+		if e.Custom == nil {
+			return fmt.Errorf(`%q must not be null`, e.Type)
+		}
 		if len(e.Custom.Name) > maxCustomNameChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `custom.name`, maxCustomNameChars)
 		}
