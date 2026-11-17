@@ -181,6 +181,7 @@ Measure would not be possible without our amazing contributors! ❤️
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/ttyang57"><img src="https://avatars.githubusercontent.com/u/342121767?v=4&size=100" width="100px" height="100px" alt="tty1"/><br /><sub><b>tty1</b></sub></a><br /><a href="#security-ttyang57" title="Security">🛡️</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://arizare.com"><img src="https://avatars.githubusercontent.com/u/12127420?v=4&size=100" width="100px" height="100px" alt="Ari (Hamid) Zare"/><br /><sub><b>Ari (Hamid) Zare</b></sub></a><br /><a href="https://github.com/measure-sh/measure/commits?author=hamidzr" title="Documentation">📖</a></td>
       <td align="center" valign="top" width="14.28%"><a href="https://github.com/Shxsu1x"><img src="https://avatars.githubusercontent.com/u/183923486?v=4&size=100" width="100px" height="100px" alt="Shxsu1x"/><br /><sub><b>Shxsu1x</b></sub></a><br /><a href="#security-Shxsu1x" title="Security">🛡️</a></td>
+      <td align="center" valign="top" width="14.28%"><a href="https://github.com/KuljeetSinghXDA"><img src="https://avatars.githubusercontent.com/u/22261392?v=4&size=100" width="100px" height="100px" alt="Kuljeet Singh"/><br /><sub><b>Kuljeet Singh</b></sub></a><br /><a href="https://github.com/measure-sh/measure/commits?author=KuljeetSinghXDA" title="Code">💻</a> <a href="https://github.com/measure-sh/measure/commits?author=KuljeetSinghXDA" title="Tests">⚠️</a></td>
     </tr>
   </tbody>
 </table>
