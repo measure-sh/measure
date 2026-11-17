@@ -14,8 +14,6 @@ on:
       - backend/libs/**/*.go
       - backend/libs/**/*.mod
       - backend/libs/**/*.sum
-    tags:
-      - "v*"
 
 permissions:
   contents: read

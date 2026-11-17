@@ -1,4 +1,4 @@
-name: Publish OCI images
+name: Deploy
 
 on:
   push:
@@ -11,7 +11,7 @@ on:
       - "backend/**/*.go"
       - "backend/**/*.mod"
       - "backend/**/*.sum"
-      - ".github/workflows/publish.yml"
+      - ".github/workflows/deploy.yml"
 
       # run on frontend changes
       - "frontend/**"
@@ -25,8 +25,6 @@ permissions:
 
 env:
   NODE_VERSION: 24
-  REGISTRY: ghcr.io
-  API_IMAGE_NAME: measure-sh/api
 
 jobs:
   build-test-backend:
@@ -130,57 +128,3 @@ jobs:
               "sha": "${{ github.sha }}",
               "actor": "${{ steps.actor.outputs.login }}"
             }
-  # env:
-  #   CLOUD_DISPATCH_PAT: ${{ secrets.CLOUD_DISPATCH_PAT }}
-  #   TARGET_REPO: ${{ gitub.repository/owner }}
-  # run: |
-  #   TARGET_REPO="${{ github.repository_owner }}/cloud"
-
-  # push-api:
-  #   name: Build and push image
-  #   runs-on: ubuntu-latest
-  #   # if: github.ref_type == 'tag' && startsWith(github.ref, 'refs/tags/v')
-  #   needs: [build-api, test-api]
-  #   permissions:
-  #     contents: read
-  #     packages: write
-  #     attestations: write
-  #     id-token: write
-  #   steps:
-  #     - name: Checkout repository
-  #       uses: actions/checkout@v7
-
-  #     - name: Login to Container Registry
-  #       uses: docker/login-action@v4
-  #       with:
-  #         registry: ${{ env.REGISTRY }}
-  #         username: ${{ github.actor }}
-  #         password: ${{ secrets.GITHUB_TOKEN }}
-
-  #     - name: Extract metadata (tags, labels) for Docker
-  #       id: meta
-  #       uses: docker/metadata-action@v6
-  #       with:
-  #         images: ${{ env.REGISTRY }}/${{ env.API_IMAGE_NAME }}
-  #         tags: |
-  #           type=ref,event=branch
-
-  #     - name: Build and push OCI image
-  #       id: push
-  #       uses: docker/build-push-action@v7
-  #       with:
-  #         context: backend/api
-  #         file: backend/api/dockerfile
-  #         push: true
-  #         tags: ${{ steps.meta.outputs.tags }}
-  #         labels: |
-  #           org.opencontainers.image.source=https://github.com/measure-sh/measure/tree/${{ github.ref_name }}/backend/api/dockerfile
-  #           org.opencontainers.image.description=Measure API Server
-  #           org.opencontainers.image.licenses=Apache-2.0
-
-  #     - name: Generate artifact attestation
-  #       uses: actions/attest-build-provenance@v4
-  #       with:
-  #         subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-  #         subject-digest: ${{ steps.push.outputs.digest }}
-  #         push-to-registry: false
