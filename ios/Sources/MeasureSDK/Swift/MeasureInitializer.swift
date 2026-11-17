@@ -41,7 +41,7 @@ protocol MeasureInitializer {
     var httpClient: HttpClient { get }
     var exporter: Exporter { get }
     var buildEnvironment: BuildEnvironment { get }
-    var periodicExporter: PeriodicExporter? { get }
+    var periodicExporter: PeriodicExporter { get }
     var batchStore: BatchStore { get }
     var lifecycleCollector: LifecycleCollector { get }
     var cpuUsageCollector: CpuUsageCollector { get }
@@ -135,7 +135,7 @@ protocol MeasureInitializer {
 /// - `networkClient`: `NetworkClient` object is responsible for initializing the network configuration and executing API requests.
 /// - `exporter`: `Exporter` object that exports a single batch.
 /// - `buildEnvironment`: `BuildEnvironment` object that tells whether the host app is a debug build.
-/// - `periodicExporter`: `PeriodicExporter` object that exports data at a fixed interval. Only created for debug builds.
+/// - `periodicExporter`: `PeriodicExporter` object that exports data at a fixed interval in debug builds, and does nothing in release builds.
 /// - `batchStore`: `BatchStore` object that manages `Batch` related operations
 /// - `dataCleanupService`: `DataCleanupService` object responsible for clearing stale data
 /// - `attachmentProcessor`: `AttachmentProcessor` object responsible for generating and managing screenshots.
@@ -190,7 +190,7 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
     let httpClient: HttpClient
     let exporter: Exporter
     let buildEnvironment: BuildEnvironment
-    let periodicExporter: PeriodicExporter?
+    let periodicExporter: PeriodicExporter
     let batchStore: BatchStore
     let lifecycleCollector: LifecycleCollector
     let cpuUsageCollector: CpuUsageCollector
@@ -342,7 +342,7 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                    configProvider: configProvider,
                                    exporter: exporter,
                                    dispatchQueue: MeasureQueue.periodicExporterTimer)
-            : nil
+            : NoopPeriodicExporter()
         self.signalProcessor = BaseSignalProcessor(logger: logger,
                                                    idProvider: idProvider,
                                                    sessionManager: sessionManager,

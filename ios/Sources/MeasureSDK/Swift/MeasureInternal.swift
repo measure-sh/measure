@@ -159,7 +159,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
     private var exporter: Exporter {
         return measureInitializer.exporter
     }
-    private var periodicExporter: PeriodicExporter? {
+    private var periodicExporter: PeriodicExporter {
         return measureInitializer.periodicExporter
     }
     private var signalStore: SignalStore {
@@ -247,7 +247,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
             guard let self else { return }
             self.exporter.export()
             if self.isStarted && UIApplication.shared.applicationState != .background {
-                self.periodicExporter?.start()
+                self.periodicExporter.start()
             }
         }
     }
@@ -290,7 +290,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.logger.log(level: .info, message: "MeasureInternal: Starting Measure SDK", error: nil, data: nil)
         registerCollectors()
         if configLoader.isConfigLoaded {
-            periodicExporter?.start()
+            periodicExporter.start()
         }
         isStarted = true
     }
@@ -300,7 +300,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
 
         self.logger.log(level: .info, message: "MeasureInternal: Stopping Measure SDK", error: nil, data: nil)
         unregisterCollectors()
-        periodicExporter?.stop()
+        periodicExporter.stop()
         isStarted = false
     }
 
@@ -544,13 +544,13 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.lifecycleCollector.applicationDidEnterBackground()
         self.unregisterCollectors()
         self.shakeBugReportCollector.pause()
-        self.periodicExporter?.setInForeground(false)
+        self.periodicExporter.setInForeground(false)
         self.exporter.export()
         self.dataCleanupService.clearStaleData()
     }
 
     private func applicationWillEnterForeground() {
-        self.periodicExporter?.setInForeground(true)
+        self.periodicExporter.setInForeground(true)
         guard isStarted else { return }
         self.appLaunchCollector.applicationWillEnterForeground()
         self.crashDataPersistence.isForeground = true
@@ -561,7 +561,7 @@ final class MeasureInternal { // swiftlint:disable:this type_body_length
         self.shakeBugReportCollector.resume()
         if self.configLoader.isConfigLoaded {
             self.exporter.export()
-            self.periodicExporter?.start()
+            self.periodicExporter.start()
         }
     }
 
