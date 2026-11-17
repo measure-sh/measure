@@ -150,14 +150,14 @@ func TestAppHangUnmarshalsSDKPayload(t *testing.T) {
 	}
 }
 
-func TestAppHangGetRelevantFrame(t *testing.T) {
+func TestAppHangRelevantFrame(t *testing.T) {
 	t.Run("prefers the first in app frame", func(t *testing.T) {
 		hang := makeAppHang(Frames{
 			makeAppHangFrame(0, "libsystem_kernel.dylib", "mach_msg2_trap", "", false),
 			makeAppHangFrame(1, "DemoApp", "blockMainThread", "ViewController.swift", true),
 		})
 
-		frame := hang.GetRelevantFrame()
+		frame := hang.getRelevantFrame()
 		if frame.MethodName != "blockMainThread" {
 			t.Errorf("Expected in app frame, got %q", frame.MethodName)
 		}
@@ -169,7 +169,7 @@ func TestAppHangGetRelevantFrame(t *testing.T) {
 			makeAppHangFrame(1, "CoreFoundation", "__CFRunLoopRun", "", false),
 		})
 
-		frame := hang.GetRelevantFrame()
+		frame := hang.getRelevantFrame()
 		if frame.MethodName != "mach_msg2_trap" {
 			t.Errorf("Expected first frame, got %q", frame.MethodName)
 		}
@@ -178,7 +178,7 @@ func TestAppHangGetRelevantFrame(t *testing.T) {
 	t.Run("returns a zero frame when there are no frames", func(t *testing.T) {
 		hang := makeAppHang(Frames{})
 
-		frame := hang.GetRelevantFrame()
+		frame := hang.getRelevantFrame()
 		if frame.MethodName != "" {
 			t.Errorf("Expected zero frame, got %q", frame.MethodName)
 		}

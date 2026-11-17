@@ -1917,35 +1917,70 @@ func (e Exception) GetMetaBytes() (bytes []byte, err error) {
 	return
 }
 
-// GetRelevantFrame finds and returns the first
-// in app frame if found, otherwise returns the
-// first exception unit's first frame.
-func (e Exception) GetRelevantFrame() (frame Frame) {
-	unitIndex := -1
-	frameIndex := -1
+// getRelevantFrame returns the frame that represents
+// the exception for its framework. JVM uses the last
+// unit's first frame. JS uses the first unit's first
+// frame. Dart uses the first frame of the last unit
+// that has frames. NDK & Apple pick an in app frame.
+// Unknown frameworks return a zero Frame.
+func (e Exception) getRelevantFrame() Frame {
+	switch e.GetFramework() {
+	case FrameworkJVM:
+		return e.Exceptions[len(e.Exceptions)-1].Frames[0]
+	case FrameworkJS:
+		return e.Exceptions[0].Frames[0]
+	case FrameworkDart:
+		return e.dartRelevantFrame()
+	case FrameworkNDK:
+		return e.ndkRelevantFrame()
+	case FrameworkApple:
+		return e.appleRelevantFrame()
+	}
+	return Frame{}
+}
 
-	for i, unit := range e.Exceptions {
-		for j, frame := range unit.Frames {
+// dartRelevantFrame returns the first frame of the last
+// exception unit that has frames or a zero Frame if
+// no unit has frames.
+func (e Exception) dartRelevantFrame() Frame {
+	for _, unit := range slices.Backward(e.Exceptions) {
+		if len(unit.Frames) > 0 {
+			return unit.Frames[0]
+		}
+	}
+	return Frame{}
+}
+
+// ndkRelevantFrame returns the first in app frame of
+// the crashing thread that is not noise then the first
+// frame that is not noise then the first frame.
+func (e Exception) ndkRelevantFrame() Frame {
+	frames := e.Exceptions[0].Frames
+	for _, frame := range frames {
+		if frame.InApp && !frame.isNativeNoise() {
+			return frame
+		}
+	}
+	for _, frame := range frames {
+		if !frame.isNativeNoise() {
+			return frame
+		}
+	}
+	return frames[0]
+}
+
+// appleRelevantFrame returns the first in app frame
+// across all units otherwise the first unit's first
+// frame.
+func (e Exception) appleRelevantFrame() Frame {
+	for _, unit := range e.Exceptions {
+		for _, frame := range unit.Frames {
 			if frame.InApp {
-				unitIndex = i
-				frameIndex = j
-				break
+				return frame
 			}
 		}
-
-		if frameIndex != -1 {
-			break
-		}
 	}
-
-	if unitIndex != -1 && frameIndex != -1 {
-		return e.Exceptions[unitIndex].Frames[frameIndex]
-	} else {
-		// if there is no in app frame then
-		// fallback to the first unit's
-		// first frame.
-		return e.Exceptions[0].Frames[0]
-	}
+	return e.Exceptions[0].Frames[0]
 }
 
 // GetTitle provides the combined
@@ -2030,41 +2065,37 @@ func (e Exception) GetFileName() string {
 		return ""
 	}
 
+	frame := e.getRelevantFrame()
+
 	switch e.GetFramework() {
-	case FrameworkJVM:
-		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
-	case FrameworkApple:
-		return e.GetRelevantFrame().FileName
 	case FrameworkNDK:
-		frame := e.getNativeRelevantFrame()
 		if frame.FileName != "" {
 			return frame.FileName
 		}
 		return frame.binaryName()
-	case FrameworkDart:
-		return e.Exceptions[len(e.Exceptions)-1].Frames[0].FileName
 	case FrameworkJS:
-		input := e.Exceptions[0].Frames[0].FileName
-
-		// if input filename does not look like a URL,
-		// return the filename as it is.
-		if !strings.HasPrefix(input, "http") {
-			return input
-		}
-
-		// parse the seemingly URL looking filename
-		parsed, err := url.Parse(input)
-		if err != nil {
-			fmt.Printf("failed to parse URL to extract frame filename for javascript frame: %v\n", err)
-
-			// return original on failure
-			return input
-		}
-
-		return parsed.Path
+		return jsFilePath(frame.FileName)
 	}
 
-	return ""
+	return frame.FileName
+}
+
+// jsFilePath returns the path of input when it looks
+// like a URL otherwise returns input as it is.
+func jsFilePath(input string) string {
+	if !strings.HasPrefix(input, "http") {
+		return input
+	}
+
+	parsed, err := url.Parse(input)
+	if err != nil {
+		fmt.Printf("failed to parse URL to extract frame filename for javascript frame: %v\n", err)
+
+		// return original on failure
+		return input
+	}
+
+	return parsed.Path
 }
 
 // GetLineNumber provides the line number of
@@ -2075,18 +2106,7 @@ func (e Exception) GetLineNumber() int32 {
 		return 0
 	}
 
-	switch e.GetFramework() {
-	case FrameworkJVM, FrameworkDart:
-		return int32(e.Exceptions[len(e.Exceptions)-1].Frames[0].LineNum)
-	case FrameworkApple:
-		return int32(e.GetRelevantFrame().LineNum)
-	case FrameworkNDK:
-		return int32(e.getNativeRelevantFrame().LineNum)
-	case FrameworkJS:
-		return int32(e.Exceptions[0].Frames[0].LineNum)
-	}
-
-	return 0
+	return int32(e.getRelevantFrame().LineNum)
 }
 
 // GetMethodName provides the method name of
@@ -2097,18 +2117,7 @@ func (e Exception) GetMethodName() string {
 		return ""
 	}
 
-	switch e.GetFramework() {
-	case FrameworkJVM, FrameworkDart:
-		return e.Exceptions[len(e.Exceptions)-1].Frames[0].MethodName
-	case FrameworkApple:
-		return e.GetRelevantFrame().MethodName
-	case FrameworkNDK:
-		return e.getNativeRelevantFrame().MethodName
-	case FrameworkJS:
-		return e.Exceptions[0].Frames[0].MethodName
-	}
-
-	return ""
+	return e.getRelevantFrame().MethodName
 }
 
 // GetDisplayTitle provides a user friendly display
@@ -2333,25 +2342,6 @@ func (f Frame) isNativeNoise() bool {
 	return false
 }
 
-// getNativeRelevantFrame returns the first in app
-// frame of the crashing thread that is not noise,
-// then the first frame that is not noise, then
-// the first frame.
-func (e Exception) getNativeRelevantFrame() Frame {
-	frames := e.Exceptions[0].Frames
-	for _, frame := range frames {
-		if frame.InApp && !frame.isNativeNoise() {
-			return frame
-		}
-	}
-	for _, frame := range frames {
-		if !frame.isNativeNoise() {
-			return frame
-		}
-	}
-	return frames[0]
-}
-
 // hasInstructionAddress reports whether any frame
 // of the exception has an instruction address.
 func (e Exception) hasInstructionAddress() bool {
@@ -2430,7 +2420,7 @@ func (e *Exception) ComputeFingerprint() (err error) {
 		// find the relevant frame - which is
 		// either the first in app frame or the
 		// first frame.
-		frame := e.GetRelevantFrame()
+		frame := e.getRelevantFrame()
 
 		if frame.MethodName != "" {
 			input += sep + frame.MethodName
@@ -2492,7 +2482,7 @@ func (e *Exception) ComputeFingerprint() (err error) {
 			input += sep + e.MemoryError.Type
 		}
 
-		frame := e.getNativeRelevantFrame()
+		frame := e.getRelevantFrame()
 		input += sep + frame.binaryName()
 		if frame.MethodName != "" {
 			input += sep + nativeFunctionName(frame.MethodName)
@@ -2802,10 +2792,10 @@ func (a AppHang) HasFrames() bool {
 	return false
 }
 
-// GetRelevantFrame provides the frame an app hang is
+// getRelevantFrame provides the frame an app hang is
 // attributed to, which is the first in-app frame, falling
 // back to the first frame of the blocked thread.
-func (a AppHang) GetRelevantFrame() (frame Frame) {
+func (a AppHang) getRelevantFrame() (frame Frame) {
 	unitIndex := -1
 	frameIndex := -1
 
@@ -2841,19 +2831,19 @@ func (a AppHang) GetRelevantFrame() (frame Frame) {
 // GetMethodName provides the method name of the app hang's
 // relevant frame.
 func (a AppHang) GetMethodName() string {
-	return a.GetRelevantFrame().MethodName
+	return a.getRelevantFrame().MethodName
 }
 
 // GetFileName provides the file name of the app hang's
 // relevant frame.
 func (a AppHang) GetFileName() string {
-	return a.GetRelevantFrame().FileName
+	return a.getRelevantFrame().FileName
 }
 
 // GetLineNumber provides the line number of the app hang's
 // relevant frame.
 func (a AppHang) GetLineNumber() int32 {
-	return int32(a.GetRelevantFrame().LineNum)
+	return int32(a.getRelevantFrame().LineNum)
 }
 
 // GetDisplayTitle provides the app hang's title.
@@ -2914,7 +2904,7 @@ func (a *AppHang) ComputeFingerprint() (err error) {
 		return fmt.Errorf("error computing app hang fingerprint: no frames found")
 	}
 
-	frame := a.GetRelevantFrame()
+	frame := a.getRelevantFrame()
 
 	// parts are joined by sep to form the fingerprint input
 	sep := ":"

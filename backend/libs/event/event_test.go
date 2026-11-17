@@ -3,6 +3,7 @@ package event
 import (
 	"encoding/json"
 	"os"
+	"reflect"
 	"strings"
 	"testing"
 	"time"
@@ -1640,5 +1641,145 @@ func TestValidateNullPayload(t *testing.T) {
 				t.Errorf("expected a null payload error for %q, got %q", tt.evType, err.Error())
 			}
 		})
+	}
+}
+
+func TestExceptionLocation(t *testing.T) {
+	unit := func(method, file string, line int) ExceptionUnit {
+		return ExceptionUnit{Frames: Frames{{MethodName: method, FileName: file, LineNum: line}}}
+	}
+	frame := func(method, file string, line int, inApp bool) Frame {
+		return Frame{MethodName: method, FileName: file, LineNum: line, InApp: inApp}
+	}
+	frames := func(fs ...Frame) ExceptionUnit { return ExceptionUnit{Frames: fs} }
+	tests := []struct {
+		name      string
+		framework string
+		units     ExceptionUnits
+		method    string
+		file      string
+		line      int32
+	}{
+		{
+			name:      "unknown framework returns empty location",
+			framework: "unknown",
+			units:     ExceptionUnits{unit("a", "a.dart", 1)},
+		},
+		{
+			name:      "last unit empty uses nearest unit with frames",
+			framework: FrameworkDart,
+			units:     ExceptionUnits{unit("a", "a.dart", 1), unit("b", "b.dart", 2), {}},
+			method:    "b", file: "b.dart", line: 2,
+		},
+		{
+			name:      "all units have frames uses last unit",
+			framework: FrameworkDart,
+			units:     ExceptionUnits{unit("a", "a.dart", 1), unit("b", "b.dart", 2), unit("c", "c.dart", 3)},
+			method:    "c", file: "c.dart", line: 3,
+		},
+		{
+			name:      "jvm nested uses last unit first frame",
+			framework: FrameworkJVM,
+			units:     ExceptionUnits{unit("a", "A.java", 1), frames(frame("b", "B.java", 2, false), frame("c", "C.java", 3, false))},
+			method:    "b", file: "B.java", line: 2,
+		},
+		{
+			name:      "jvm empty last unit has no frames",
+			framework: FrameworkJVM,
+			units:     ExceptionUnits{unit("a", "A.java", 1), {}},
+		},
+		{
+			name:      "dart empty first unit has no frames",
+			framework: FrameworkDart,
+			units:     ExceptionUnits{{}, unit("b", "b.dart", 2)},
+		},
+		{
+			name:      "no units has no frames",
+			framework: FrameworkJS,
+		},
+		{
+			name:      "js plain file name returned as is",
+			framework: FrameworkJS,
+			units:     ExceptionUnits{unit("f", "main.js", 4)},
+			method:    "f", file: "main.js", line: 4,
+		},
+		{
+			name:      "js url file name returns path",
+			framework: FrameworkJS,
+			units:     ExceptionUnits{unit("f", "https://example.com/static/js/main.js?x=1", 5)},
+			method:    "f", file: "/static/js/main.js", line: 5,
+		},
+		{
+			name:      "js malformed url returned as is",
+			framework: FrameworkJS,
+			units:     ExceptionUnits{unit("f", "http://[::1", 6)},
+			method:    "f", file: "http://[::1", line: 6,
+		},
+		{
+			name:      "apple in app frame in later unit wins",
+			framework: FrameworkApple,
+			units: ExceptionUnits{
+				frames(frame("a", "a.swift", 1, false)),
+				frames(frame("b", "b.swift", 2, false), frame("c", "c.swift", 3, true)),
+			},
+			method: "c", file: "c.swift", line: 3,
+		},
+		{
+			name:      "apple without in app frame uses first frame",
+			framework: FrameworkApple,
+			units: ExceptionUnits{
+				frames(frame("a", "a.swift", 1, false), frame("b", "b.swift", 2, false)),
+				frames(frame("c", "c.swift", 3, false)),
+			},
+			method: "a", file: "a.swift", line: 1,
+		},
+		{
+			name:      "ndk in app frame skips noise",
+			framework: FrameworkNDK,
+			units:     ExceptionUnits{frames(frame("abort", "abort.c", 1, true), frame("crash", "crash.cpp", 2, true))},
+			method:    "crash", file: "crash.cpp", line: 2,
+		},
+		{
+			name:      "ndk empty file name falls back to binary name",
+			framework: FrameworkNDK,
+			units: ExceptionUnits{frames(Frame{
+				MethodName: "crash", InApp: true, LineNum: 3,
+				FrameiOS: &FrameiOS{BinaryName: "libapp.so"},
+			})},
+			method: "crash", file: "libapp.so", line: 3,
+		},
+		{
+			name:      "ndk without in app frame uses first non noise frame",
+			framework: FrameworkNDK,
+			units:     ExceptionUnits{frames(frame("raise", "raise.c", 1, false), frame("crash", "crash.cpp", 2, false))},
+			method:    "crash", file: "crash.cpp", line: 2,
+		},
+		{
+			name:      "ndk all noise uses first frame",
+			framework: FrameworkNDK,
+			units:     ExceptionUnits{frames(frame("abort", "abort.c", 1, true), frame("raise", "raise.c", 2, true))},
+			method:    "abort", file: "abort.c", line: 1,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := Exception{Framework: tt.framework, Exceptions: tt.units}
+			if got := e.GetMethodName(); got != tt.method {
+				t.Errorf("GetMethodName() = %q, want %q", got, tt.method)
+			}
+			if got := e.GetFileName(); got != tt.file {
+				t.Errorf("GetFileName() = %q, want %q", got, tt.file)
+			}
+			if got := e.GetLineNumber(); got != tt.line {
+				t.Errorf("GetLineNumber() = %d, want %d", got, tt.line)
+			}
+		})
+	}
+}
+
+func TestDartRelevantFrame(t *testing.T) {
+	e := Exception{Framework: FrameworkDart, Exceptions: ExceptionUnits{{}, {}}}
+	if got := e.dartRelevantFrame(); !reflect.DeepEqual(got, Frame{}) {
+		t.Errorf("dartRelevantFrame() = %+v, want zero Frame", got)
 	}
 }
