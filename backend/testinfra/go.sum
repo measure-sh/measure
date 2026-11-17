@@ -12,8 +12,8 @@ github.com/ClickHouse/clickhouse-go/v2 v2.51.0 h1:aoTTC+qxKf1O2XojwC5scRtPjJ9JdR
 github.com/ClickHouse/clickhouse-go/v2 v2.51.0/go.mod h1:GJrhJWhGJY0SoYTmH2eaDf0KuGsYDTo0ya66osesHmk=
 github.com/Microsoft/go-winio v0.6.2 h1:F2VQgta7ecxGYO8k3ZZz3RS8fVIXVxONVUPlNERoyfY=
 github.com/Microsoft/go-winio v0.6.2/go.mod h1:yd8OoFMLzJbo9gZq8j5qaps8bJ9aShtEA8Ipt1oGCvU=
-github.com/amacneil/dbmate/v2 v2.38.0 h1:q7mHoDcglqSKfEp6B/DTwT9QTkrOecLnQqD8elAu3UQ=
-github.com/amacneil/dbmate/v2 v2.38.0/go.mod h1:bDThHAlfOLe4RSHZNCLVbKSA2bl8e3/KyVY0SPpsX8U=
+github.com/amacneil/dbmate/v2 v2.38.1 h1:Zm1gW1x76JGQAcqTRBs108HVf5PsW+6/d3yu2LrLtjs=
+github.com/amacneil/dbmate/v2 v2.38.1/go.mod h1:bDThHAlfOLe4RSHZNCLVbKSA2bl8e3/KyVY0SPpsX8U=
 github.com/andybalholm/brotli v1.2.8 h1:H9F6r7RNwzSRsx/lytpIYkbjNFMt2yNBwsJ2+0gpx78=
 github.com/andybalholm/brotli v1.2.8/go.mod h1:rzTDkvFWvIrjDXZHkuS16NPggd91W3kUSvPlQ1pLaKY=
 github.com/aws/aws-sdk-go-v2 v1.47.8 h1:fuClo7Un+Bi0EDTnSIPWxVEoJcze+wkGzNA4Vo3jRcQ=
