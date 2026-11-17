@@ -124,9 +124,10 @@ const schemaPrimer = `events and spans are the raw source tables; everything els
 - SQL rules:
   - session_id & attribute.installation_id are UUIDs, never ''. Compare with toUUID('...'). After a LEFT JOIN an unmatched UUID is toUUID('00000000-0000-0000-0000-000000000000'), not ''.
   - never alias an expression with an existing column name (toString(session_id) AS session_id); later references resolve to the alias. Pick a new name.
-  - dotted columns keep their full name: http.url, http.failure_reason, attribute.installation_id. There is no bare url or installation_id.
+  - dotted columns keep their full name: http.url, http.failure_reason, attribute.installation_id, attribute.user_id. There is no bare url, installation_id or user_id.
   - spans attribute.* columns differ from events: spans have no attribute.os_name; attribute.os_version is a (name, version) tuple.
-  - time literals are 'YYYY-MM-DD hh:mm:ss', not ISO 'T...Z'. The {{table}} placeholder already applies the from/to range.
+  - time literals are 'YYYY-MM-DD hh:mm:ss', not ISO 'T...Z'. The {{table}} placeholder already applies the from/to range; filter with WHERE, not PREWHERE.
+  - no correlated subqueries: a subquery can't reference outer columns (x IN (select ... where e.timestamp < outer.timestamp) fails). Use a JOIN with GROUP BY or a window function.
 
 `
 
