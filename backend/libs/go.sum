@@ -60,8 +60,8 @@ github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.20.11 h1:jNP7wZylDeSJh
 github.com/aws/aws-sdk-go-v2/service/internal/s3shared v1.20.11/go.mod h1:1US+8JBnF0xNm6GE6wM5u5ugFwSZpkd2686gMuql5tI=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.114.9 h1:MLHGyNy4melTyk9e63s+9QgLKCHPDJrP+1NfJhtU1g4=
 github.com/aws/aws-sdk-go-v2/service/s3 v1.114.9/go.mod h1:zfUkiNK2JiYlR1/SnU8aJ8Gj1nMFLkPZ69rVLv6jWPo=
-github.com/aws/smithy-go v1.28.8 h1:aEmdAq7gVCoGCnvf1NnELlu3I6D/nhqrC321FyFiQkQ=
-github.com/aws/smithy-go v1.28.8/go.mod h1:YE2RhdIuDbA5E5bTdciG9KrW3+TiEONeUWCqxX9i1Fc=
+github.com/aws/smithy-go v1.28.9 h1:zkZ058OpNX0iGTK24b+ZUEQSMc11CBA6oO7xtKZfzkY=
+github.com/aws/smithy-go v1.28.9/go.mod h1:YE2RhdIuDbA5E5bTdciG9KrW3+TiEONeUWCqxX9i1Fc=
 github.com/bytedance/gopkg v0.1.4 h1:oZnQwnX82KAIWb7033bEwtxvTqXcYMxDBaQxo5JJHWM=
 github.com/bytedance/gopkg v0.1.4/go.mod h1:v1zWfPm21Fb+OsyXN2VAHdL6TBb2L88anLQgdyje6R4=
 github.com/bytedance/sonic v1.15.0 h1:/PXeWFaR5ElNcVE84U0dOHjiMHQOwNIx3K4ymzh/uSE=
