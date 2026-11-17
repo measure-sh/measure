@@ -56,7 +56,8 @@ class ScreenshotMask {
   bool _isHidden(RenderObject? renderObject) {
     if (renderObject is RenderOffstage) return renderObject.offstage;
     if (renderObject is RenderOpacity) return renderObject.opacity == 0;
-    if (renderObject is RenderExcludeSemantics) return renderObject.excluding;
+    // ExcludeSemantics only removes a subtree from the accessibility tree, it
+    // is still painted, so it must not be skipped here.
     return false;
   }
 
