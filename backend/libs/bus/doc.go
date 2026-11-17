@@ -65,6 +65,16 @@
 // background goroutine and returning nil will cause premature offset commits
 // and potential message loss.
 //
+// A handler error wrapping [ErrPoison] marks the message as never to be
+// retried, as does a panic in the handler goroutine, which the consumer
+// recovers & logs with its stack:
+//
+//   - Pub/Sub: the message is acknowledged.
+//   - Iggy: the offset counts as handled & is committed with the successful
+//     prefix, so the partition moves on.
+//
+// A panic in a goroutine the handler starts itself is not recovered.
+//
 // # Error handling and resilience
 //
 // Both backends handle transient errors internally:

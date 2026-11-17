@@ -16,6 +16,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"log"
 	"net"
 	"net/http"
 	"slices"
@@ -1364,6 +1365,11 @@ func PushHandler(c *gin.Context) {
 		return
 	}
 	if err := processIngestBatchSync(c.Request.Context(), batch); err != nil {
+		if isPoison(err) {
+			countPoison(c.Request.Context(), err)
+			c.Status(http.StatusOK)
+			return
+		}
 		fmt.Println("failed to process ingest batch:", err)
 		c.Status(http.StatusInternalServerError)
 		return
@@ -1373,17 +1379,30 @@ func PushHandler(c *gin.Context) {
 
 // ConsumeHandler is the bus.Consumer handler for message-based ingestion.
 // It processes the batch synchronously so that returning an error causes the
-// consumer to nack/skip-commit the message for redelivery.
+// consumer to nack/skip-commit the message for redelivery. A poison error is
+// counted & returned as is for the consumer to drop.
 func ConsumeHandler(ctx context.Context, data []byte) error {
 	var batch IngestBatch
 	if err := json.Unmarshal(data, &batch); err != nil {
 		return fmt.Errorf("failed to unmarshal ingest batch: %w", err)
 	}
-	return processIngestBatchSync(ctx, batch)
+	err := processIngestBatchSync(ctx, batch)
+	if isPoison(err) {
+		countPoison(ctx, err)
+	}
+	return err
+}
+
+// countPoison logs a dropped poison batch & increments
+// ingest_batch_poison_count.
+func countPoison(ctx context.Context, err error) {
+	log.Printf("ingest: poison batch dropped: %v", err)
+	ingestBatchPoisonCount.Add(ctx, 1)
 }
 
 var ingestBatchUnackCount metric.Int64Counter
 var ingestBatchAckCount metric.Int64Counter
+var ingestBatchPoisonCount metric.Int64Counter
 
 func init() {
 	meter := otel.Meter("measure/ingest-worker")
@@ -1405,12 +1424,22 @@ func init() {
 		panic(err)
 	}
 	ingestBatchAckCount = ackCounter
+
+	poisonCounter, err := meter.Int64Counter(
+		"ingest_batch_poison_count",
+		metric.WithDescription("Number of ingest batches dropped after a recovered panic"),
+	)
+	if err != nil {
+		panic(err)
+	}
+	ingestBatchPoisonCount = poisonCounter
 }
 
 // processIngestBatchSync runs the full ingestion processing pipeline
 // synchronously and returns any error encountered. Used by ConsumeHandler
 // and PushHandler so that failed batches can be retried.
-func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
+func processIngestBatchSync(ctx context.Context, batch IngestBatch) (err error) {
+	defer recoverPoison(nil, &err)
 	ingestBatchUnackCount.Add(ctx, 1)
 	batchID, err := uuid.Parse(batch.BatchID)
 	if err != nil {
@@ -1491,11 +1520,14 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 	ingestTracer := otel.Tracer("ingest-tracer")
 	ingestCtx, ingestSpan := ingestTracer.Start(ingestCtx, "ingest")
 	defer ingestSpan.End()
+	defer markPoisonSpan(ingestSpan, &err)
+	defer recoverPoison(ingestSpan, &err)
 
 	var infuseInetGroup errgroup.Group
-	infuseInetGroup.Go(func() error {
+	infuseInetGroup.Go(func() (err error) {
 		_, infuseInetSpan := ingestTracer.Start(ingestCtx, "infuse-inet")
 		defer infuseInetSpan.End()
+		defer recoverPoison(infuseInetSpan, &err)
 		if err := eventReq.infuseInet(batch.ClientIP); err != nil {
 			msg := fmt.Sprintf(`failed to lookup country info for IP: %q`, batch.ClientIP)
 			fmt.Println(msg, err)
@@ -1509,7 +1541,8 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 	parseANRThreadDumpsSpan.End()
 
 	var symbolicationGroup errgroup.Group
-	symbolicationGroup.Go(func() error {
+	symbolicationGroup.Go(func() (err error) {
+		defer recoverPoison(ingestSpan, &err)
 		if !eventReq.needsSymbolication() {
 			return nil
 		}
@@ -1578,6 +1611,7 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 
 		_, symbolicationSpan := ingestTracer.Start(ingestCtx, "symbolicate-events")
 		defer symbolicationSpan.End()
+		defer recoverPoison(symbolicationSpan, &err)
 
 		if err := symblctr.Symbolicate(ingestCtx, server.Server.PgPool, eventReq.appId, eventReq.events, eventReq.spans); err != nil {
 			fmt.Printf("failed to symbolicate batch %q containing %d events & %d spans: %v\n", eventReq.id, len(eventReq.events), len(eventReq.spans), err.Error())
@@ -1589,26 +1623,34 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 
 	if err := infuseInetGroup.Wait(); err != nil {
 		fmt.Println("failed to lookup IP info")
+		if isPoison(err) {
+			return err
+		}
 	}
 	if err := symbolicationGroup.Wait(); err != nil {
 		fmt.Println("failed to symbolicate", err)
+		if isPoison(err) {
+			return err
+		}
 	}
 
 	eventReq.truncateMessages()
 
 	var ingestGroup errgroup.Group
-	ingestGroup.Go(func() error {
+	ingestGroup.Go(func() (err error) {
 		_, ingestEventsSpan := ingestTracer.Start(ingestCtx, "ingest-events")
 		defer ingestEventsSpan.End()
+		defer recoverPoison(ingestEventsSpan, &err)
 		if err := eventReq.ingestEvents(ingestCtx); err != nil {
 			fmt.Println(`failed to ingest events`, err)
 			return err
 		}
 		return nil
 	})
-	ingestGroup.Go(func() error {
+	ingestGroup.Go(func() (err error) {
 		_, ingestSpansSpan := ingestTracer.Start(ingestCtx, "ingest-spans")
 		defer ingestSpansSpan.End()
+		defer recoverPoison(ingestSpansSpan, &err)
 		if err := eventReq.ingestSpans(ingestCtx); err != nil {
 			fmt.Println(`failed to ingest spans`, err)
 			return err
@@ -1620,27 +1662,30 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 	}
 
 	var bucketGroup errgroup.Group
-	bucketGroup.Go(func() error {
+	bucketGroup.Go(func() (err error) {
 		_, bucketExceptionsSpan := ingestTracer.Start(ingestCtx, "bucket-exceptions")
 		defer bucketExceptionsSpan.End()
+		defer recoverPoison(bucketExceptionsSpan, &err)
 		if err := eventReq.bucketExceptions(ingestCtx); err != nil {
 			fmt.Println(`failed to bucket exceptions`, err)
 			return err
 		}
 		return nil
 	})
-	bucketGroup.Go(func() error {
+	bucketGroup.Go(func() (err error) {
 		_, bucketAnrsSpan := ingestTracer.Start(ingestCtx, "bucket-anrs")
 		defer bucketAnrsSpan.End()
+		defer recoverPoison(bucketAnrsSpan, &err)
 		if err := eventReq.bucketANRs(ingestCtx); err != nil {
 			fmt.Println(`failed to bucket anrs`, err)
 			return err
 		}
 		return nil
 	})
-	bucketGroup.Go(func() error {
+	bucketGroup.Go(func() (err error) {
 		_, bucketAppHangsSpan := ingestTracer.Start(ingestCtx, "bucket-app-hangs")
 		defer bucketAppHangsSpan.End()
+		defer recoverPoison(bucketAppHangsSpan, &err)
 		if err := eventReq.bucketAppHangs(ingestCtx); err != nil {
 			fmt.Println(`failed to bucket app hangs`, err)
 			return err
@@ -1652,9 +1697,10 @@ func processIngestBatchSync(ctx context.Context, batch IngestBatch) error {
 	}
 
 	var metricsGroup errgroup.Group
-	metricsGroup.Go(func() error {
+	metricsGroup.Go(func() (err error) {
 		_, ingestMetricsSpan := ingestTracer.Start(ingestCtx, "ingest-metrics")
 		defer ingestMetricsSpan.End()
+		defer recoverPoison(ingestMetricsSpan, &err)
 
 		sessions, events, spans, attachments := eventReq.countMetrics()
 

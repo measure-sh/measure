@@ -23,6 +23,7 @@ func trackBatchBytes(teamID uuid.UUID, size uint64) {
 		return
 	}
 	go func() {
+		defer recoverPoison(nil, new(error))
 		ctx := context.Background()
 		customerID, err := getAutumnCustomerIDForTeam(ctx, teamID)
 		if err != nil {

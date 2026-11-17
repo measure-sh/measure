@@ -399,3 +399,67 @@ func TestIggyProducerClose(t *testing.T) {
 		t.Error("Close was not called on the client")
 	}
 }
+
+func TestIggyConsumerPanicIsCommittedAndSkipped(t *testing.T) {
+	c, src, ctx := newTestConsumer(okStep(batchOf(10, "a", "boom", "c")))
+
+	err := c.Listen(ctx, func(_ context.Context, data []byte) error {
+		if string(data) == "boom" {
+			panic("handler exploded")
+		}
+		return nil
+	})
+
+	if !errors.Is(err, context.Canceled) {
+		t.Errorf("err = %v, want context.Canceled", err)
+	}
+	if fmt.Sprint(src.events) != "[commit:12]" {
+		t.Errorf("events = %v, want [commit:12]", src.events)
+	}
+}
+
+func TestIggyConsumerPoisonErrorIsCommitted(t *testing.T) {
+	c, src, ctx := newTestConsumer(okStep(batchOf(10, "a", "b")))
+
+	_ = c.Listen(ctx, func(_ context.Context, data []byte) error {
+		if string(data) == "a" {
+			return fmt.Errorf("bad payload: %w", ErrPoison)
+		}
+		return nil
+	})
+
+	if fmt.Sprint(src.events) != "[commit:11]" {
+		t.Errorf("events = %v, want [commit:11]", src.events)
+	}
+}
+
+func TestSafeHandle(t *testing.T) {
+	plain := errors.New("plain")
+	cases := []struct {
+		name       string
+		handler    func(context.Context, []byte) error
+		wantNil    bool
+		wantPlain  bool
+		wantPoison bool
+	}{
+		{name: "nil", handler: func(context.Context, []byte) error { return nil }, wantNil: true},
+		{name: "plain_error_unchanged", handler: func(context.Context, []byte) error { return plain }, wantPlain: true},
+		{name: "panic_is_poison", handler: func(context.Context, []byte) error { panic("boom") }, wantPoison: true},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			err := safeHandle(context.Background(), tc.handler, nil)
+
+			if (err == nil) != tc.wantNil {
+				t.Fatalf("err = %v, nil want %v", err, tc.wantNil)
+			}
+			if tc.wantPlain && err != plain {
+				t.Errorf("err = %v, want the original error", err)
+			}
+			if errors.Is(err, ErrPoison) != tc.wantPoison {
+				t.Errorf("err = %v, poison want %v", err, tc.wantPoison)
+			}
+		})
+	}
+}

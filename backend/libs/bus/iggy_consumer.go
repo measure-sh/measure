@@ -102,8 +102,9 @@ func pollOptions(batchSize uint32, wait time.Duration) iggcon.PollOptions {
 }
 
 // processMessages runs handlers over messages in bounded concurrent windows
-// & returns the length of the successful contiguous prefix. Processing stops
-// after the first window containing a failure.
+// & returns the length of the successful contiguous prefix. A poison result
+// counts as successful & is logged as dropped. Processing stops after the
+// first window containing a failure.
 func (c *iggyConsumer) processMessages(
 	ctx context.Context,
 	messages []iggcon.IggyMessage,
@@ -120,13 +121,18 @@ func (c *iggyConsumer) processMessages(
 		for i := start; i < end; i++ {
 			go func(slot int, payload []byte) {
 				defer wg.Done()
-				results[slot] = handler(ctx, payload)
+				results[slot] = safeHandle(ctx, handler, payload)
 			}(i-start, messages[i].Payload)
 		}
 		wg.Wait()
 
 		for slot, handlerErr := range results {
 			if handlerErr == nil {
+				done++
+				continue
+			}
+			if errors.Is(handlerErr, ErrPoison) {
+				log.Printf("bus: iggy poison message at offset %d dropped: %v", messages[start+slot].Header.Offset, handlerErr)
 				done++
 				continue
 			}
