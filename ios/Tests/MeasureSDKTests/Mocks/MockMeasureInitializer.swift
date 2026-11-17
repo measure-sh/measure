@@ -42,7 +42,7 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
     let httpClient: HttpClient
     let exporter: Exporter
     let buildEnvironment: BuildEnvironment
-    let periodicExporter: PeriodicExporter?
+    let periodicExporter: PeriodicExporter
     let batchStore: BatchStore
     let lifecycleCollector: LifecycleCollector
     let cpuUsageCollector: CpuUsageCollector
@@ -108,7 +108,7 @@ final class MockMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
          batchStore: BatchStore? = nil,
          exporter: Exporter? = nil,
          buildEnvironment: BuildEnvironment? = nil,
-         periodicExporter: PeriodicExporter? = MockPeriodicExporter(),
+         periodicExporter: PeriodicExporter = MockPeriodicExporter(),
          lifecycleCollector: LifecycleCollector? = nil,
          cpuUsageCalculator: CpuUsageCalculator? = nil,
          memoryUsageCalculator: MemoryUsageCalculator? = nil,

@@ -14,6 +14,12 @@ protocol PeriodicExporter {
     func setInForeground(_ isInForeground: Bool)
 }
 
+final class NoopPeriodicExporter: PeriodicExporter {
+    func start() {}
+    func stop() {}
+    func setInForeground(_ isInForeground: Bool) {}
+}
+
 final class BasePeriodicExporter: PeriodicExporter {
     private let logger: Logger
     private let configProvider: ConfigProvider
