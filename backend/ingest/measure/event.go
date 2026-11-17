@@ -336,43 +336,6 @@ func (e *eventreq) readMultipartRequest(c *gin.Context) error {
 			return err
 		}
 
-		// debug null anr/exception in payload cases
-		//
-		// suspicion: this happens for these payloads
-		// {
-		//   "id": "<uuid>,
-		//   "session_id: "<uuid>",
-		//   "type": "exception",
-		//   "exception": null,
-		// }
-		// {
-		//   "id": "<uuid>,
-		//   "session_id: "<uuid>",
-		//   "type": "anr",
-		//   "anr": null,
-		// }
-		//
-		// most likely, these orginiate from Android 11, 12
-		// & 13 Redmi devices with user agent as "Dalvik/2.1.0 (Linux; U; Android 11; 2201116SI Build/RKQ1.211001.001)".
-		//
-		// since, the SDK has no fix for this issue, we handle
-		// the panic & send a 400 - which would eventually lead
-		// the SDK to delete such events.
-		//
-		// has been observed for exception & ANRs, but other
-		// event types may be affected as well.
-		//
-		// see: https://github.com/measure-sh/measure/issues/2965
-		if ev.IsException() && ev.Exception == nil {
-			return fmt.Errorf(`%q must not be null`, `exception`)
-		}
-		if ev.IsANR() && ev.ANR == nil {
-			return fmt.Errorf(`%q must not be null`, `anr`)
-		}
-		if ev.IsAppHang() && ev.AppHang == nil {
-			return fmt.Errorf(`%q must not be null`, `app_hang`)
-		}
-
 		// discard batch if duplicate
 		// event ids found
 		_, ok := dupEvent[ev.ID]
@@ -482,43 +445,6 @@ func (e *eventreq) readJsonRequest(payload *IngestRequest) error {
 
 	for i := range payload.Events {
 		ev := payload.Events[i]
-
-		// debug null anr/exception in payload cases
-		//
-		// suspicion: this happens for these payloads
-		// {
-		//   "id": "<uuid>,
-		//   "session_id: "<uuid>",
-		//   "type": "exception",
-		//   "exception": null,
-		// }
-		// {
-		//   "id": "<uuid>,
-		//   "session_id: "<uuid>",
-		//   "type": "anr",
-		//   "anr": null,
-		// }
-		//
-		// most likely, these orginiate from Android 11, 12
-		// & 13 Redmi devices with user agent as "Dalvik/2.1.0 (Linux; U; Android 11; 2201116SI Build/RKQ1.211001.001)".
-		//
-		// since, the SDK has no fix for this issue, we handle
-		// the panic & send a 400 - which would eventually lead
-		// the SDK to delete such events.
-		//
-		// has been observed for exception & ANRs, but other
-		// event types may be affected as well.
-		//
-		// see: https://github.com/measure-sh/measure/issues/2965
-		if ev.IsException() && ev.Exception == nil {
-			return fmt.Errorf(`%q must not be null`, `exception`)
-		}
-		if ev.IsANR() && ev.ANR == nil {
-			return fmt.Errorf(`%q must not be null`, `anr`)
-		}
-		if ev.IsAppHang() && ev.AppHang == nil {
-			return fmt.Errorf(`%q must not be null`, `app_hang`)
-		}
 
 		// discard batch if duplicate event ids found
 		_, ok := dupEvent[ev.ID]
