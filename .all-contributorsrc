@@ -403,6 +403,16 @@
       "contributions": [
         "security"
       ]
+    },
+    {
+      "login": "KuljeetSinghXDA",
+      "name": "Kuljeet Singh",
+      "avatar_url": "https://avatars.githubusercontent.com/u/22261392?v=4",
+      "profile": "https://github.com/KuljeetSinghXDA",
+      "contributions": [
+        "code",
+        "test"
+      ]
     }
   ],
   "commitType": "docs"
