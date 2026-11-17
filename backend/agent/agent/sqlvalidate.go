@@ -127,7 +127,7 @@ var inTableOps = map[string]bool{
 }
 
 // checkAgentAST walks the parsed query and enforces the table rules: no
-// SETTINGS or FORMAT clause anywhere, no table functions, no other
+// SETTINGS, FORMAT or PREWHERE clause anywhere, no table functions, no other
 // databases, and every table name either a CTE or at a placeholder
 // position. Each placeholder must also be used as a table. Expansion
 // rewrites every placeholder position, so one in an alias or a string
@@ -205,6 +205,9 @@ func checkAgentAST(sel *chparser.SelectQuery, refs []tableRef, sets *tableSets) 
 			}
 			if n.Format != nil {
 				return deny("FORMAT is not allowed in queries")
+			}
+			if n.Prewhere != nil {
+				return deny("PREWHERE is not allowed in queries; use WHERE")
 			}
 		case *chparser.JoinExpr:
 			if isArrayJoin(n.Modifiers) {

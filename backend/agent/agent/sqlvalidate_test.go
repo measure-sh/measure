@@ -44,7 +44,6 @@ func TestValidateAgentSQL(t *testing.T) {
 		`select toStartOfInterval(timestamp, INTERVAL 1 hour) as h, count() from {{events}} group by h order by h`,
 		`select session_id, type from {{events}} order by timestamp desc limit 3 by session_id`,
 		`select session_id, count() over (partition by session_id) from {{events}} limit 5`,
-		`select count() from {{events}} prewhere type = 'exception'`,
 		`select arrayFilter(x -> x != '', groupArray(screen)) from {{events}}`,
 		`select type from {{events}} union all select span_name from {{spans}}`,
 		// ARRAY JOIN operands are columns of the row set, not tables.
@@ -97,6 +96,9 @@ func TestValidateAgentSQL(t *testing.T) {
 		{`alter table {{events}} delete where 1`, "only SELECT"},
 		{`select count(*) from {{events}} settings SQL_agent_team_ids='0196792a-0000-7000-8000-000000000000'`, "SETTINGS"},
 		{`select * from (select * from {{events}} SeTtInGs max_result_rows=0)`, "SETTINGS"},
+		{`select count() from {{events}} prewhere type = 'exception'`, "PREWHERE"},
+		{`select * from (select * from {{events}} prewhere type = 'anr')`, "PREWHERE"},
+		{`with t as (select * from {{events}} prewhere type = 'anr') select count() from t`, "PREWHERE"},
 		{`select count(*) from {{events}} where type = 'x'
 			settings max_execution_time=600`, "SETTINGS"},
 		// Quoted-identifier raw tables that dodge placeholder scoping.
