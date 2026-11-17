@@ -2,6 +2,7 @@ package bus
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 	"time"
@@ -57,11 +58,17 @@ func (c *pubSubConsumer) Listen(ctx context.Context, handler func(ctx context.Co
 			sub.ReceiveSettings = *c.receiveSettings
 		}
 		err := sub.Receive(ctx, func(ctx context.Context, msg *pubsub.Message) {
-			if err := handler(ctx, msg.Data); err != nil {
-				msg.Nack()
-			} else {
+			err := safeHandle(ctx, handler, msg.Data)
+			if err == nil {
 				msg.Ack()
+				return
 			}
+			if errors.Is(err, ErrPoison) {
+				log.Printf("bus: pubsub poison message %s dropped: %v", msg.ID, err)
+				msg.Ack()
+				return
+			}
+			msg.Nack()
 		})
 
 		// Context cancelled means a deliberate shutdown — exit cleanly.

@@ -3,6 +3,9 @@ package bus
 import (
 	"context"
 	"errors"
+	"fmt"
+	"log"
+	"runtime/debug"
 	"time"
 
 	"cloud.google.com/go/pubsub/v2"
@@ -36,6 +39,25 @@ type Producer interface {
 // on its own and never returns it.
 var ErrUnrecoverable = errors.New("bus: connection is unrecoverable")
 
+// ErrPoison marks a handler error for a message that must never be retried.
+// Consumers acknowledge or commit a message whose handler error wraps it &
+// move on.
+var ErrPoison = errors.New("bus: poison message")
+
+// safeHandle calls handler & converts a panic in it into an error wrapping
+// ErrPoison. Any other handler result is returned unchanged.
+func safeHandle(ctx context.Context, handler func(context.Context, []byte) error, data []byte) (err error) {
+	defer func() {
+		r := recover()
+		if r == nil {
+			return
+		}
+		log.Printf("bus: handler panic: %v\n%s", r, debug.Stack())
+		err = fmt.Errorf("%w: panic: %v", ErrPoison, r)
+	}()
+	return handler(ctx, data)
+}
+
 // IsOversized reports whether a Publish error means the payload exceeded the
 // backend per-message limit. Permanent, the same payload always fails, so
 // callers should reject it rather than retry. Both backends cap at 10,000,000
@@ -50,7 +72,8 @@ func IsOversized(err error) bool {
 type Consumer interface {
 	// Listen blocks until ctx is cancelled or a fatal error occurs.
 	// handler is called for each received message; returning a non-nil error
-	// causes a nack/retry (behaviour is backend-specific).
+	// causes a nack/retry (behaviour is backend-specific). An error wrapping
+	// ErrPoison, or a panic in handler, drops the message without retry.
 	Listen(ctx context.Context, handler func(ctx context.Context, data []byte) error) error
 	// Close releases backend resources held by the consumer.
 	Close() error
