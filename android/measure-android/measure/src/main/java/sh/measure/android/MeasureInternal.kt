@@ -35,6 +35,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
 
     @Volatile
     private var isStarted: Boolean = false
+    private var isConfigLoaded: Boolean = false
     private val lock = Any()
 
     private val uuidRegex = Regex("^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
@@ -107,6 +108,12 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
 
             // must be called last
             measure.exporter.export()
+            synchronized(lock) {
+                isConfigLoaded = true
+                if (isStarted) {
+                    measure.periodicExporter.start()
+                }
+            }
         }
         measure.logger.log(LogLevel.Debug, "Initialization complete")
     }
@@ -118,6 +125,9 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
             }
             enableCrashTracking()
             registerCollectors()
+            if (isConfigLoaded) {
+                measure.periodicExporter.start()
+            }
             isStarted = true
         }
     }
@@ -129,6 +139,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
             }
             disableCrashTracking()
             unregisterCollectors()
+            measure.periodicExporter.stop()
             isStarted = false
         }
     }
@@ -137,6 +148,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
         // session manager must be the first to be notified about app foreground to ensure that
         // new session ID (if created) is reflected in all events collected after the launch.
         measure.sessionManager.onAppForeground()
+        measure.periodicExporter.setInForeground(true)
         if (isStarted) {
             resumeCollectorsOnForeground()
             measure.memoryUsageCollector.onAppForeground()
@@ -146,6 +158,7 @@ internal class MeasureInternal(private val measure: MeasureInitializer) :
 
     override fun onAppBackground() {
         measure.sessionManager.onAppBackground()
+        measure.periodicExporter.setInForeground(false)
         if (isStarted) {
             measure.periodicSignalStoreScheduler.onAppBackground()
             measure.memoryUsageCollector.onAppBackground()

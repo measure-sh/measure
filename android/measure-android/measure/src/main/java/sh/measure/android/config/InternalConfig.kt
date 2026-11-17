@@ -14,6 +14,11 @@ internal interface InternalConfig {
     val attachmentExportIntervalMs: Long
 
     /**
+     * The interval at which data is exported periodically in debuggable builds. Defaults to 5 seconds.
+     */
+    val debugExportIntervalMs: Long
+
+    /**
      * Default list of HTTP headers to not capture for network request and response.
      */
     val defaultHttpHeadersBlocklist: List<String>

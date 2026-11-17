@@ -14,6 +14,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var trackActivityIntentData: Boolean = false
     override var batchExportIntervalMs: Long = 3_000 // 3 seconds
     override var attachmentExportIntervalMs: Long = 500 // 500ms
+    override var debugExportIntervalMs: Long = 5_000 // 5 seconds
     override var defaultHttpHeadersBlocklist: List<String> = emptyList()
     override var sessionBackgroundTimeoutThresholdMs: Long = 30_000 // 30 seconds
     override var maxEventNameLength: Int = 64

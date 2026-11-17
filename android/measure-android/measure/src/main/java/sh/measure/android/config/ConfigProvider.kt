@@ -76,6 +76,7 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
     override val screenshotCompressionQuality: Int = defaultConfig.screenshotCompressionQuality
     override val batchExportIntervalMs: Long = defaultConfig.batchExportIntervalMs
     override val attachmentExportIntervalMs: Long = defaultConfig.attachmentExportIntervalMs
+    override val debugExportIntervalMs: Long = defaultConfig.debugExportIntervalMs
     override val defaultHttpHeadersBlocklist: List<String> =
         defaultConfig.defaultHttpHeadersBlocklist
     override val sessionBackgroundTimeoutThresholdMs: Long =

@@ -17,6 +17,7 @@ internal data class Config(
     override val screenshotCompressionQuality: Int = 25
     override val batchExportIntervalMs: Long = 3_000 // 3 seconds
     override val attachmentExportIntervalMs: Long = 500 // 500 ms
+    override val debugExportIntervalMs: Long = 5_000 // 5 seconds
     override val defaultHttpHeadersBlocklist: List<String> = listOf(
         "Authorization",
         "Cookie",

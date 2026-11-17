@@ -85,6 +85,7 @@ class MeasureInternalTest {
         `when`(initializer.configLoader).thenReturn(mock())
         `when`(initializer.spanProcessor).thenReturn(mock())
         `when`(initializer.exporter).thenReturn(mock())
+        `when`(initializer.periodicExporter).thenReturn(mock())
         `when`(initializer.patchAttributeProcessor).thenReturn(patchAttributeProcessor)
 
         return initializer
@@ -443,6 +444,49 @@ class MeasureInternalTest {
         val measureInternal = MeasureInternal(initializer)
         measureInternal.onSessionStart("session-id", 123456789L)
         verify(initializer.exporter).flush()
+    }
+
+    @Test
+    fun `periodic exporter starts only after config load and Measure start(), when started first`() {
+        val initializer = mockMeasureInitializer()
+        whenever(initializer.manifest).thenReturn(ManifestMetadata("https://api.measure.sh", "msrsh_123"))
+        val callbackCaptor = argumentCaptor<(DynamicConfig?) -> Unit>()
+        val measureInternal = MeasureInternal(initializer)
+        measureInternal.init()
+        measureInternal.start()
+        verify(initializer.periodicExporter, never()).start()
+
+        verify(initializer.configLoader).loadDynamicConfig(callbackCaptor.capture())
+        callbackCaptor.firstValue.invoke(DynamicConfig())
+
+        verify(initializer.periodicExporter).start()
+    }
+
+    @Test
+    fun `periodic exporter starts only after config load and Measure start(), when config loads first`() {
+        val initializer = mockMeasureInitializer()
+        whenever(initializer.manifest).thenReturn(ManifestMetadata("https://api.measure.sh", "msrsh_123"))
+        val callbackCaptor = argumentCaptor<(DynamicConfig?) -> Unit>()
+        val measureInternal = MeasureInternal(initializer)
+        measureInternal.init()
+        verify(initializer.configLoader).loadDynamicConfig(callbackCaptor.capture())
+        callbackCaptor.firstValue.invoke(DynamicConfig())
+        verify(initializer.periodicExporter, never()).start()
+
+        measureInternal.start()
+
+        verify(initializer.periodicExporter).start()
+    }
+
+    @Test
+    fun `periodic exporter stops on Measure stop()`() {
+        val initializer = initWithValidCredentials()
+        val measureInternal = MeasureInternal(initializer)
+        measureInternal.start()
+
+        measureInternal.stop()
+
+        verify(initializer.periodicExporter).stop()
     }
 
     private fun initWithValidCredentials(): MeasureInitializer {
