@@ -27,23 +27,18 @@ import (
 // limits for various event fields.
 const (
 	maxTypeChars                              = 32
-	maxExceptionDeviceLocaleChars             = 64
-	maxAnrDeviceLocaleChars                   = 64
 	maxAppExitReasonChars                     = 64
 	maxAppExitImportanceChars                 = 32
 	maxSeverityTextChars                      = 10
 	maxLogBodyChars                           = 1000
 	maxGestureLongClickTargetChars            = 128
-	maxGestureLongClickTargetNameChars        = 128
 	maxGestureLongClickTargetIDChars          = 128
 	maxGestureLongClickLabelChars             = 32
 	maxGestureLongClickSemanticLabelChars     = 32
 	maxGestureScrollTargetChars               = 128
-	maxGestureScrollTargetNameChars           = 128
 	maxGestureScrollTargetIDChars             = 128
 	maxGestureScrollDirectionChars            = 8
 	maxGestureClickTargetChars                = 128
-	maxGestureClickTargetNameChars            = 128
 	maxGestureClickTargetIDChars              = 128
 	maxGestureClickLabelChars                 = 32
 	maxGestureClickSemanticLabelChars         = 32
@@ -72,8 +67,6 @@ const (
 	maxNavigationSourceChars                  = 128
 	maxScreenViewNameChars                    = 1024
 	maxCustomNameChars                        = 64
-	maxLayoutElementIDChars                   = 512
-	maxLayoutElementLabelChars                = 512
 	maxBugReportDescChars                     = 4000
 	maxErrorMetaBytes                         = 4096 // Maximum size for marshaled Error.Meta in bytes
 	maxANRThreadDumpBytes                     = 1024 * 1024
@@ -2132,7 +2125,7 @@ func (e Exception) Stacktrace() string {
 	f := e.GetFramework()
 	switch f {
 	case FrameworkJVM:
-		for i := len(e.Exceptions) - 1; i >= 0; i-- {
+		for i := range slices.Backward(e.Exceptions) {
 			firstException := i == len(e.Exceptions)-1
 			lastException := i == 0
 			exType := e.Exceptions[i].Type
@@ -2147,7 +2140,8 @@ func (e Exception) Stacktrace() string {
 				prevType := e.Exceptions[i+1].Type
 				prevMsg := e.Exceptions[i+1].Message
 				title := makeTitle(prevType, prevMsg)
-				b.WriteString("Caused by" + GenericPrefix + title)
+				b.WriteString("Caused by" + GenericPrefix)
+				b.WriteString(title)
 			}
 
 			if hasFrames {
@@ -2157,7 +2151,8 @@ func (e Exception) Stacktrace() string {
 			for j := range e.Exceptions[i].Frames {
 				lastFrame := j == len(e.Exceptions[i].Frames)-1
 				frame := e.Exceptions[i].Frames[j].String(f)
-				b.WriteString(FramePrefix + frame)
+				b.WriteString(FramePrefix)
+				b.WriteString(frame)
 				if !lastFrame || !lastException {
 					b.WriteString("\n")
 				}
@@ -2173,7 +2168,7 @@ func (e Exception) Stacktrace() string {
 		// #01      <method-name> (<module-name>/<file-name>:<line-number>)
 		var buf strings.Builder
 
-		for i := len(e.Exceptions) - 1; i >= 0; i-- {
+		for i := range slices.Backward(e.Exceptions) {
 			exception := e.Exceptions[i]
 			for j, frame := range exception.Frames {
 				var fileLocation string
@@ -2184,7 +2179,7 @@ func (e Exception) Stacktrace() string {
 				}
 
 				frameNum := fmt.Sprintf("#%02d", j)
-				buf.WriteString(fmt.Sprintf("%s      %s %s\n", frameNum, frame.MethodName, fileLocation))
+				fmt.Fprintf(&buf, "%s      %s %s\n", frameNum, frame.MethodName, fileLocation)
 			}
 			if i > 0 {
 				buf.WriteString("===== asynchronous gap ===========================\n")
@@ -2221,9 +2216,11 @@ func (e Exception) Stacktrace() string {
 		// <seq>   <binary_name>                  <binary_address>   <truncated_method_name>...   (<file_name>:<line_num>)
 		//     Full symbol:<full_method_name>
 		for _, exception := range e.Exceptions {
-			b.WriteString(exception.ThreadName + ":\n")
+			b.WriteString(exception.ThreadName)
+			b.WriteString(":\n")
 			for _, frame := range exception.Frames {
-				b.WriteString(frame.String(FrameworkApple) + "\n")
+				b.WriteString(frame.String(FrameworkApple))
+				b.WriteString("\n")
 			}
 			b.WriteString("\n") // separator between threads
 		}
@@ -2242,7 +2239,8 @@ func (e Exception) Stacktrace() string {
 			}
 			for j, frame := range exception.Frames {
 				lastFrame := j == len(exception.Frames)-1
-				b.WriteString(JsFramePrefix + frame.String(FrameworkJS))
+				b.WriteString(JsFramePrefix)
+				b.WriteString(frame.String(FrameworkJS))
 				if !lastFrame || !lastException {
 					b.WriteString("\n")
 				}
@@ -2756,7 +2754,7 @@ func (a ANR) exceptionStacktrace() string {
 
 	var b strings.Builder
 
-	for i := len(a.Exceptions) - 1; i >= 0; i-- {
+	for i := range slices.Backward(a.Exceptions) {
 		firstException := i == len(a.Exceptions)-1
 		lastException := i == 0
 		exType := a.Exceptions[i].Type
@@ -2771,7 +2769,8 @@ func (a ANR) exceptionStacktrace() string {
 			prevType := a.Exceptions[i+1].Type
 			prevMsg := a.Exceptions[i+1].Message
 			title := makeTitle(prevType, prevMsg)
-			b.WriteString("Caused by" + GenericPrefix + title)
+			b.WriteString("Caused by" + GenericPrefix)
+			b.WriteString(title)
 		}
 
 		if hasFrames {
@@ -2781,7 +2780,8 @@ func (a ANR) exceptionStacktrace() string {
 		for j := range a.Exceptions[i].Frames {
 			lastFrame := j == len(a.Exceptions[i].Frames)-1
 			frame := a.Exceptions[i].Frames[j].String(FrameworkJVM)
-			b.WriteString(FramePrefix + frame)
+			b.WriteString(FramePrefix)
+			b.WriteString(frame)
 			if !lastFrame || !lastException {
 				b.WriteString("\n")
 			}
@@ -2895,7 +2895,8 @@ func (a AppHang) Stacktrace() string {
 
 	for i := range a.Exceptions {
 		for j := range a.Exceptions[i].Frames {
-			b.WriteString(FramePrefix + a.Exceptions[i].Frames[j].String(FrameworkApple))
+			b.WriteString(FramePrefix)
+			b.WriteString(a.Exceptions[i].Frames[j].String(FrameworkApple))
 			lastUnit := i == len(a.Exceptions)-1
 			lastFrame := j == len(a.Exceptions[i].Frames)-1
 			if !lastFrame || !lastUnit {
