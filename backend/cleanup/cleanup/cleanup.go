@@ -2,10 +2,13 @@ package cleanup
 
 import (
 	"backend/cleanup/server"
+	"backend/libs/objstore"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
+	"slices"
 	"time"
 
 	"cloud.google.com/go/storage"
@@ -15,6 +18,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/leporo/sqlf"
 )
+
+// ErrAttachmentDeleteFailure is returned when attachment objects could not be deleted.
+var ErrAttachmentDeleteFailure = errors.New("attachment delete failure")
+
+// s3DeleteBatchSize is the S3 DeleteObjects per-request key limit.
+const s3DeleteBatchSize = 1000
 
 type Attachment struct {
 	ID       uuid.UUID `json:"id"`
@@ -593,7 +602,8 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 		// Delete attachments from object storage
 		if err := deleteAttachments(ctx, staleAttachments); err != nil {
 			errCount += 1
-			fmt.Printf("Failed to delete attachments: %v\n", err)
+			fmt.Printf("Failed to delete attachments for app id %q: %v\n", retention.AppID, err)
+			continue
 		}
 
 		// Delete stale events
@@ -618,77 +628,91 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 	}
 }
 
+// deleteAttachments deletes attachment objects from the configured object store.
 func deleteAttachments(ctx context.Context, attachments []Attachment) (err error) {
+	if len(attachments) == 0 {
+		return nil
+	}
+
 	config := server.Server.Config
+	keys := attachmentKeys(attachments)
 	if config.IsCloud() {
-		client, errStorage := storage.NewClient(ctx)
-		if errStorage != nil {
-			return
-		}
-
-		defer func() {
-			if err := client.Close(); err != nil {
-				fmt.Printf("Failed to close storage client: %v\n", err)
-			}
-		}()
-
-		bucket := client.Bucket(config.AttachmentsBucket)
-		var failed []string
-
-		for _, at := range attachments {
-			o := bucket.Object(at.Key)
-			if err := o.Delete(ctx); err != nil {
-				fmt.Printf("Failed to delete attachment %q: %v\n", at.Key, err)
-				failed = append(failed, at.Key)
-			}
-		}
-
-		if len(failed) > 0 {
-			fmt.Printf("Failed to delete %d attachments: %v\n", len(failed), failed)
-		}
-
-		return
+		return deleteGCSAttachments(ctx, config.AttachmentsBucket, keys)
 	}
 
-	objectIds := []types.ObjectIdentifier{}
+	client := objstore.CreateS3Client(ctx, config.AttachmentsAccessKey, config.AttachmentsSecretAccessKey, config.AttachmentsBucketRegion, config.AWSEndpoint)
+	return deleteS3Attachments(ctx, client, config.AttachmentsBucket, keys)
+}
 
+// attachmentKeys returns the object keys of attachments.
+func attachmentKeys(attachments []Attachment) (keys []string) {
 	for _, at := range attachments {
-		objectIds = append(objectIds, types.ObjectIdentifier{
-			Key: aws.String(at.Key),
-		})
+		keys = append(keys, at.Key)
 	}
-
-	deleteObjectsInput := &s3.DeleteObjectsInput{
-		Bucket: aws.String(server.Server.Config.AttachmentsBucket),
-		Delete: &types.Delete{Objects: objectIds},
-	}
-
-	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
-		return aws.Credentials{
-			AccessKeyID:     server.Server.Config.AttachmentsAccessKey,
-			SecretAccessKey: server.Server.Config.AttachmentsSecretAccessKey,
-		}, nil
-	}
-
-	awsConfig := &aws.Config{
-		Region:      server.Server.Config.AttachmentsBucketRegion,
-		Credentials: credentialsProvider,
-	}
-
-	client := s3.NewFromConfig(*awsConfig, func(o *s3.Options) {
-		endpoint := server.Server.Config.AWSEndpoint
-		if endpoint != "" {
-			o.BaseEndpoint = aws.String(endpoint)
-			o.UsePathStyle = *aws.Bool(true)
-		}
-	})
-
-	_, err = client.DeleteObjects(ctx, deleteObjectsInput)
-	if err != nil {
-		return err
-	}
-
 	return
+}
+
+// s3DeleteAPI is the S3 client surface used to delete objects.
+type s3DeleteAPI interface {
+	DeleteObjects(ctx context.Context, params *s3.DeleteObjectsInput, optFns ...func(*s3.Options)) (*s3.DeleteObjectsOutput, error)
+}
+
+// deleteS3Attachments deletes keys in batches of s3DeleteBatchSize & stops at the first failed batch.
+func deleteS3Attachments(ctx context.Context, api s3DeleteAPI, bucket string, keys []string) (err error) {
+	for batch := range slices.Chunk(keys, s3DeleteBatchSize) {
+		if err := deleteS3Batch(ctx, api, bucket, batch); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// deleteS3Batch deletes one batch of keys & fails on any per-key error.
+func deleteS3Batch(ctx context.Context, api s3DeleteAPI, bucket string, keys []string) (err error) {
+	objectIds := make([]types.ObjectIdentifier, 0, len(keys))
+	for _, key := range keys {
+		objectIds = append(objectIds, types.ObjectIdentifier{Key: aws.String(key)})
+	}
+
+	out, err := api.DeleteObjects(ctx, &s3.DeleteObjectsInput{
+		Bucket: aws.String(bucket),
+		Delete: &types.Delete{Objects: objectIds, Quiet: aws.Bool(true)},
+	})
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrAttachmentDeleteFailure, err)
+	}
+	if len(out.Errors) > 0 {
+		first := out.Errors[0]
+		return fmt.Errorf("%w: %d of %d keys failed, first key %q code %q", ErrAttachmentDeleteFailure, len(out.Errors), len(keys), aws.ToString(first.Key), aws.ToString(first.Code))
+	}
+	return nil
+}
+
+// deleteGCSAttachments deletes keys from GCS & treats missing objects as deleted.
+func deleteGCSAttachments(ctx context.Context, bucket string, keys []string) (err error) {
+	client, err := objstore.CreateGCSClient(ctx)
+	if err != nil {
+		return fmt.Errorf("%w: %w", ErrAttachmentDeleteFailure, err)
+	}
+
+	defer func() {
+		if err := client.Close(); err != nil {
+			fmt.Printf("Failed to close storage client: %v\n", err)
+		}
+	}()
+
+	var failed []string
+	for _, key := range keys {
+		if err := client.Bucket(bucket).Object(key).Delete(ctx); err != nil && !errors.Is(err, storage.ErrObjectNotExist) {
+			fmt.Printf("Failed to delete attachment %q: %v\n", key, err)
+			failed = append(failed, key)
+		}
+	}
+
+	if len(failed) > 0 {
+		return fmt.Errorf("%w: %d attachments failed, first key %q", ErrAttachmentDeleteFailure, len(failed), failed[0])
+	}
+	return nil
 }
 
 // deleteStaleAlerts deletes stale alerts for each
