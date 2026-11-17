@@ -161,8 +161,8 @@ github.com/testcontainers/testcontainers-go/modules/clickhouse v0.45.0 h1:KkU7HC
 github.com/testcontainers/testcontainers-go/modules/clickhouse v0.45.0/go.mod h1:YqCv8+IixUDAcckwzAOGDOgWunGEgOLNs/z1SL4OVxQ=
 github.com/testcontainers/testcontainers-go/modules/minio v0.45.0 h1:y/Nj/4ZkI220EJM6L45dntmNh73qcH7wLEuAgc9pyrE=
 github.com/testcontainers/testcontainers-go/modules/minio v0.45.0/go.mod h1:C07UqpIojab780lr5P9tKaYIIz2sPZWOUjp2E12pmmQ=
-github.com/testcontainers/testcontainers-go/modules/postgres v0.43.0 h1:ShNOFYAF4lKHvdIG258hi69bSxC88uXnxJkJvNs/IVs=
-github.com/testcontainers/testcontainers-go/modules/postgres v0.43.0/go.mod h1:vdq5/RqmGfWeefzyfcVI/pID1rzmc1TDvqXa15bPJks=
+github.com/testcontainers/testcontainers-go/modules/postgres v0.45.0 h1:XsZa4fjEGqWVM3psvyJx04+dG3ZOPV0KkwFhJRqzcJM=
+github.com/testcontainers/testcontainers-go/modules/postgres v0.45.0/go.mod h1:v59yuxG94bpGrtq6MTMmrH1It+196bg7mtGwtDx1QEY=
 github.com/testcontainers/testcontainers-go/modules/valkey v0.43.0 h1:VhykSDR7MJGYdShcSsk2zFmhYwp0xAQwR7Y8RArEdfQ=
 github.com/testcontainers/testcontainers-go/modules/valkey v0.43.0/go.mod h1:YXfnesw+oVWEO/bePIaQZIjsTtQ44QJzQxVRiEpr8ec=
 github.com/tklauser/go-sysconf v0.4.0 h1:7H0uAN+7RkwWRaxhYXDLqa5V3LPrJeV8wmD9dRUgPQU=
