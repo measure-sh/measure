@@ -60,4 +60,78 @@ class URLSessionTaskInterceptorTests: XCTestCase {
     func test_isHttpUrl_whenUrlIsEmpty() {
         XCTAssertFalse(interceptor.isHttpUrl(""), "An empty url should not be tracked")
     }
+
+    func test_shouldRecordEvent_recordsFirstRequest() {
+        XCTAssertTrue(interceptor.shouldRecordEvent(method: "get", url: uniqueUrl(), currentTime: 1000))
+    }
+
+    func test_shouldRecordEvent_dropsDuplicateWithinWindow() {
+        let url = uniqueUrl()
+
+        XCTAssertTrue(interceptor.shouldRecordEvent(method: "get", url: url, currentTime: 1000))
+        XCTAssertFalse(interceptor.shouldRecordEvent(method: "get", url: url, currentTime: 1299))
+    }
+
+    func test_shouldRecordEvent_recordsDuplicateAfterWindow() {
+        let url = uniqueUrl()
+
+        XCTAssertTrue(interceptor.shouldRecordEvent(method: "get", url: url, currentTime: 1000))
+        XCTAssertTrue(interceptor.shouldRecordEvent(method: "get", url: url, currentTime: 1300))
+    }
+
+    func test_shouldRecordEvent_recordsSameUrlWithDifferentMethod() {
+        let url = uniqueUrl()
+
+        XCTAssertTrue(interceptor.shouldRecordEvent(method: "get", url: url, currentTime: 1000))
+        XCTAssertTrue(interceptor.shouldRecordEvent(method: "post", url: url, currentTime: 1000))
+    }
+
+    func test_shouldRecordEvent_dropsDuplicateWithEarlierTime() {
+        let url = uniqueUrl()
+
+        XCTAssertTrue(interceptor.shouldRecordEvent(method: "get", url: url, currentTime: 1000))
+        XCTAssertFalse(interceptor.shouldRecordEvent(method: "get", url: url, currentTime: 999))
+    }
+
+    func test_shouldRecordEvent_keepsLaterEntryWhenAnotherUrlHasEarlierTime() {
+        let url = uniqueUrl()
+
+        XCTAssertTrue(interceptor.shouldRecordEvent(method: "get", url: url, currentTime: 1000))
+        XCTAssertTrue(interceptor.shouldRecordEvent(method: "get", url: uniqueUrl(), currentTime: 999))
+        XCTAssertFalse(interceptor.shouldRecordEvent(method: "get", url: url, currentTime: 1001))
+    }
+
+    func test_shouldRecordEvent_recordsIncreasingTimesWindowApartForOutOfOrderCompletions() {
+        var generator = SeededGenerator(seed: 5002)
+        let urls = (0..<3).map { _ in uniqueUrl() }
+        let maxReorderMs: UInt64 = 5
+        var recordedTimes: [String: [UInt64]] = [:]
+
+        var completions: [(url: String, time: UInt64)] = []
+        var time: UInt64 = 1_000_000
+        for _ in 0..<5000 {
+            time += UInt64.random(in: 0...20, using: &generator)
+            completions.append((urls.randomElement(using: &generator)!, time))
+        }
+        for index in completions.indices.dropFirst() where Bool.random(using: &generator) {
+            if completions[index - 1].time + maxReorderMs >= completions[index].time {
+                completions.swapAt(index - 1, index)
+            }
+        }
+
+        for completion in completions where interceptor.shouldRecordEvent(method: "get", url: completion.url, currentTime: completion.time) {
+            recordedTimes[completion.url, default: []].append(completion.time)
+        }
+
+        for times in recordedTimes.values {
+            for (previous, next) in zip(times, times.dropFirst()) {
+                XCTAssertGreaterThan(next, previous)
+                XCTAssertGreaterThanOrEqual(next - previous, 300 - maxReorderMs)
+            }
+        }
+    }
+
+    private func uniqueUrl() -> String {
+        "https://example.com/\(UUID().uuidString)"
+    }
 }

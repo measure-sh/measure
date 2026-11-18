@@ -196,7 +196,7 @@ final class BuildEnvironmentTests: XCTestCase {
 }
 
 /// SplitMix64, so fuzz inputs are the same on every run.
-private struct SeededGenerator: RandomNumberGenerator {
+struct SeededGenerator: RandomNumberGenerator {
     private var state: UInt64
 
     init(seed: UInt64) {
