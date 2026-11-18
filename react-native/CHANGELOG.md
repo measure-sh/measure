@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [rn-v0.5.1] - 2026-11-18
+
+### :bug: Bug fixes
+
+
+- (**rn**): Update Measure iOS SDK to 0.17.0, fixing an HTTP dedupe crash on iOS (#5002) by @adwinross in #5006
+
 ## [rn-v0.5.0] - 2026-11-13
 
 ### :bug: Bug fixes
@@ -21,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### :hammer: Misc
 
 
+- (**rn**): Prepare release 0.5.0 by @adwinross in #4935
 - (**rn**): Warn instead of failing the ios build on symbol upload errors by @adwinross in #4905
 - (**rn**): Remove unused journey sampling rate (#4764) by @abhaysood
 - (**rn**): Cap exception messages at 8192 characters (#4706) by @abhaysood in #4706
@@ -171,6 +179,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**rn**): Add exception tracking (#2628) by @adwinross in #2628
 - (**rn**): Add sdk initialization api (#2505) by @adwinross in #2505
 
+[rn-v0.5.1]: https://github.com/measure-sh/measure/compare/rn-v0.5.0..rn-v0.5.1
 [rn-v0.5.0]: https://github.com/measure-sh/measure/compare/rn-v0.4.2..rn-v0.5.0
 [rn-v0.4.2]: https://github.com/measure-sh/measure/compare/rn-v0.4.1..rn-v0.4.2
 [rn-v0.4.1]: https://github.com/measure-sh/measure/compare/rn-v0.4.0..rn-v0.4.1
