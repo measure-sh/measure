@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [ios-v0.17.0] - 2026-11-18
+
+### :bug: Bug fixes
+
+
+- (**ios**): Stop http dedupe crashing on out-of-order completions by @adwinross in #5003
+
+### :recycle: Refactor
+
+
+- (**ios**): Use no-op periodic exporter instead of optional by @adwinross in #4976
+
+### :sparkles: New features
+
+
+- (**ios**): Export data periodically in debug builds by @adwinross in #4882
+
 ## [ios-v0.16.0] - 2026-11-13
 
 ### :bug: Bug fixes
@@ -512,6 +529,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - (**ios**): Expose API to get current session ID (#1677) by @adwinross in #1677
 - (**ios**): Initial project setup  (#1034) by @adwinross in #1034
 
+[ios-v0.17.0]: https://github.com/measure-sh/measure/compare/ios-v0.16.0..ios-v0.17.0
 [ios-v0.16.0]: https://github.com/measure-sh/measure/compare/ios-v0.15.0..ios-v0.16.0
 [ios-v0.15.0]: https://github.com/measure-sh/measure/compare/ios-v0.14.2..ios-v0.15.0
 [ios-v0.14.2]: https://github.com/measure-sh/measure/compare/ios-v0.14.1..ios-v0.14.2
