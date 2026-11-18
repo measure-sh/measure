@@ -140,18 +140,22 @@ final class URLSessionTaskInterceptor {
     /// This method deduplicates events by suppressing identical method+URL combinations within a short time window.
     ///
     /// This peice of code is not thread safe and needs to be called in a dispatchQueue or a lock.
-    private func shouldRecordEvent(method: String, url: String, currentTime: UInt64) -> Bool {
+    func shouldRecordEvent(method: String, url: String, currentTime: UInt64) -> Bool {
         let key = "\(method.uppercased()) \(url)"
         var shouldRecord = true
 
-        if let lastTime = recentRequests[key], currentTime - lastTime < dedupeWindowMs {
+        if let lastTime = recentRequests[key], isWithinDedupeWindow(lastTime, currentTime: currentTime) {
             shouldRecord = false
         } else {
             recentRequests[key] = currentTime
         }
 
-        recentRequests = recentRequests.filter { currentTime - $0.value < dedupeWindowMs }
+        recentRequests = recentRequests.filter { isWithinDedupeWindow($0.value, currentTime: currentTime) }
 
         return shouldRecord
+    }
+
+    private func isWithinDedupeWindow(_ time: UInt64, currentTime: UInt64) -> Bool {
+        time > currentTime || currentTime - time < dedupeWindowMs
     }
 }
