@@ -1,6 +1,7 @@
 package migrate
 
 import (
+	"backend/libs/objstore"
 	"bytes"
 	"context"
 	"fmt"
@@ -34,25 +35,9 @@ type SymbolsMigrationResult struct {
 	NewKey      string
 }
 
-func NewSymbolsClient(sc SymbolsConfig) (symbolsClient *SymbolsClient) {
-	var credentialsProvider aws.CredentialsProviderFunc = func(ctx context.Context) (aws.Credentials, error) {
-		return aws.Credentials{
-			AccessKeyID:     sc.AccessKey,
-			SecretAccessKey: sc.SecretAccessKey,
-		}, nil
-	}
-
-	awsConfig := &aws.Config{
-		Region:      sc.Region,
-		Credentials: credentialsProvider,
-	}
-
-	client := s3.NewFromConfig(*awsConfig, func(o *s3.Options) {
-		if sc.EndpointUrl != "" {
-			o.BaseEndpoint = aws.String(sc.EndpointUrl)
-			o.UsePathStyle = *aws.Bool(true)
-		}
-	})
+// NewSymbolsClient builds a SymbolsClient from sc.
+func NewSymbolsClient(ctx context.Context, sc SymbolsConfig) (symbolsClient *SymbolsClient) {
+	client := objstore.CreateS3Client(ctx, sc.AccessKey, sc.SecretAccessKey, sc.Region, sc.EndpointUrl)
 
 	return &SymbolsClient{
 		client: client,
@@ -133,7 +118,7 @@ func (c SymbolsClient) DeleteObject(ctx context.Context, key string) (err error)
 }
 
 func MigrateSymbolsToUnifiedLayout(ctx context.Context, sc SymbolsConfig) (result []SymbolsMigrationResult, err error) {
-	symbolsClient := NewSymbolsClient(sc)
+	symbolsClient := NewSymbolsClient(ctx, sc)
 
 	objects, err := symbolsClient.ListObjectsByPattern(ctx, uuidLayoutRegex)
 	if err != nil {

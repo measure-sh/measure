@@ -99,7 +99,7 @@ func (d *BuildFileDownload) Close() error {
 // releases every underlying resource.
 func openSymbolObject(ctx context.Context, config BuildFileDownloadConfig, key string) (body io.ReadCloser, size int64, metadata map[string]string, err error) {
 	if config.IsCloud {
-		client, errStorage := storage.NewClient(ctx)
+		client, errStorage := objstore.CreateGCSClient(ctx)
 		if errStorage != nil {
 			return nil, 0, nil, errStorage
 		}

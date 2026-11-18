@@ -37,5 +37,5 @@ func NewObjectStore(ctx context.Context, env StorageEnv) (ObjectStore, error) {
 	if env.IsCloud {
 		return newGCSStore(ctx, env.Bucket)
 	}
-	return newS3Store(env), nil
+	return newS3Store(ctx, env), nil
 }

@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"backend/libs/objstore"
 	"context"
 	"errors"
 	"fmt"
@@ -26,34 +27,14 @@ type s3Store struct {
 	bucket   string
 }
 
-func newS3Store(env StorageEnv) *s3Store {
-	c := newS3Client(env)
+// newS3Store builds an s3Store from env.
+func newS3Store(ctx context.Context, env StorageEnv) *s3Store {
+	c := objstore.CreateS3Client(ctx, env.AccessKey, env.SecretKey, env.Region, env.Endpoint)
 	return &s3Store{
 		client:   c,
 		uploader: transfermanager.New(c),
 		bucket:   env.Bucket,
 	}
-}
-
-// newS3Client builds an S3 client from the environment. When Endpoint is set
-// (self-host / MinIO) path-style addressing is used.
-func newS3Client(env StorageEnv) *s3.Client {
-	var creds aws.CredentialsProviderFunc = func(_ context.Context) (aws.Credentials, error) {
-		return aws.Credentials{
-			AccessKeyID:     env.AccessKey,
-			SecretAccessKey: env.SecretKey,
-		}, nil
-	}
-	cfg := aws.Config{
-		Region:      env.Region,
-		Credentials: creds,
-	}
-	return s3.NewFromConfig(cfg, func(o *s3.Options) {
-		if env.Endpoint != "" {
-			o.BaseEndpoint = aws.String(env.Endpoint)
-			o.UsePathStyle = true
-		}
-	})
 }
 
 func (s *s3Store) Put(ctx context.Context, key string, body io.Reader, size int64, contentType string) error {
