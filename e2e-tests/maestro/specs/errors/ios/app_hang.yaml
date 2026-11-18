@@ -1,0 +1,35 @@
+appId: ${APP_ID}
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Native iOS"
+    timeout: 5000
+- tapOn: "Native iOS"
+
+# Blocks the main thread for 5s, past the 2s hang threshold, then recovers.
+- scrollUntilVisible:
+    element:
+      text: "Block Main Thread"
+- tapOn: "Block Main Thread"
+- extendedWaitUntil:
+    visible:
+      text: "__maestro_wait_sentinel__"
+    timeout: 8000
+    optional: true
+
+# The app sends itself SIGKILL 5s into this hang. The hang is saved as killed
+# and reported on the next launch.
+- scrollUntilVisible:
+    element:
+      text: "Hang Until Killed"
+- tapOn: "Hang Until Killed"
+- extendedWaitUntil:
+    visible:
+      text: "__maestro_wait_sentinel__"
+    timeout: 10000
+    optional: true
+
+- launchApp
+- extendedWaitUntil:
+    visible: "Native iOS"
+    timeout: 10000

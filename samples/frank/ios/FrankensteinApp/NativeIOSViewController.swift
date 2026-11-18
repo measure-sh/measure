@@ -35,6 +35,7 @@ private final class ViewControllerHolder: ObservableObject {
 
 private enum DemoCategory: String, CaseIterable {
     case crashes = "Crashes"
+    case appHangs = "App Hangs"
     case bugReports = "Bug Reports"
     case http = "HTTP"
     case memory = "Memory"
@@ -46,6 +47,8 @@ private enum DemoAction: String {
     case abort, badPointer, corruptMemory, corruptObject, deadlock
     case nsException, stackOverflow, zombie, zombieNSException
     case backgroundCrash, segfault, sigabrt, sigill, sigbus, cppException
+    // App Hangs
+    case blockMainThread, hangUntilKilled
     // Bug Reports
     case launchBugReport, trackBugReport, shakeToReport
     // HTTP
@@ -81,6 +84,9 @@ private let demos: [DemoItem] = [
     DemoItem(id: "sigill", title: "Illegal Instruction", description: "SIGILL — null instruction pointer", category: .crashes, action: .sigill),
     DemoItem(id: "sigbus", title: "Bus Error", description: "SIGBUS — unaligned memory access", category: .crashes, action: .sigbus),
     DemoItem(id: "cpp-exception", title: "C++ Exception", description: "Uncaught std::runtime_error", category: .crashes, action: .cppException),
+    // App Hangs
+    DemoItem(id: "block-main-thread", title: "Block Main Thread", description: "Blocks the main thread for 5 seconds", category: .appHangs, action: .blockMainThread),
+    DemoItem(id: "hang-until-killed", title: "Hang Until Killed", description: "Blocks the main thread until SIGKILL after 5 seconds", category: .appHangs, action: .hangUntilKilled),
     // Bug Reports
     DemoItem(id: "launch-bug-report", title: "Launch Bug Report", description: "Opens interactive bug report UI", category: .bugReports, action: .launchBugReport),
     DemoItem(id: "track-bug-report", title: "Track Bug Report", description: "Captures screenshot and submits report", category: .bugReports, action: .trackBugReport),
@@ -189,6 +195,21 @@ private func triggerCrash(_ action: DemoAction) {
     default:
         break
     }
+}
+
+// MARK: - App hang triggers
+
+@inline(never)
+private func blockMainThread() {
+    Thread.sleep(forTimeInterval: 5)
+}
+
+@inline(never)
+private func hangUntilKilled() {
+    DispatchQueue.global().asyncAfter(deadline: .now() + 5) {
+        kill(getpid(), SIGKILL)
+    }
+    Thread.sleep(forTimeInterval: 20)
 }
 
 // MARK: - SwiftUI View
@@ -333,6 +354,12 @@ private struct NativeIOSScreen: View {
              .nsException, .stackOverflow, .zombie, .zombieNSException,
              .backgroundCrash, .segfault, .sigabrt, .sigill, .sigbus, .cppException:
             triggerCrash(action)
+
+        // App Hangs
+        case .blockMainThread:
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { blockMainThread() }
+        case .hangUntilKilled:
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { hangUntilKilled() }
 
         // Bug Reports
         case .launchBugReport:
