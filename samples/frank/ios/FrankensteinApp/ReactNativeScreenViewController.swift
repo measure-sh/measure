@@ -12,13 +12,19 @@ class ReactNativeScreenViewController: UIViewController {
         title = "React Native Demos"
 
         reactNativeDelegate = ReactNativeDelegate()
-        reactNativeDelegate!.dependencyProvider = RCTAppDependencyProvider()
+        reactNativeDelegate!.dependencyProvider = FrankDependencyProvider()
         reactNativeFactory = RCTReactNativeFactory(delegate: reactNativeDelegate!)
 
         let rnView = reactNativeFactory!.rootViewFactory.view(withModuleName: "FrankensteinRN")
         rnView.frame = view.bounds
         rnView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         view.addSubview(rnView)
+    }
+}
+
+private final class FrankDependencyProvider: RCTAppDependencyProvider {
+    override func unstableModulesRequiringMainQueueSetup() -> [String] {
+        super.unstableModulesRequiringMainQueueSetup().filter { $0 != "SampleTurboModule" }
     }
 }
 
