@@ -7,6 +7,7 @@ export class SessionReplayPage {
   readonly eventDetails: Locator;
   readonly errorDetailsLink: Locator;
   readonly anrDetailsLink: Locator;
+  readonly appHangDetailsLink: Locator;
   readonly bugReportDetailsLink: Locator;
   readonly traceDetailsLink: Locator;
 
@@ -20,6 +21,9 @@ export class SessionReplayPage {
     });
     this.anrDetailsLink = page.getByRole("link", {
       name: "View ANR Details",
+    });
+    this.appHangDetailsLink = page.getByRole("link", {
+      name: "View App Hang Details",
     });
     this.bugReportDetailsLink = page.getByRole("link", {
       name: "View Bug Report Details",
@@ -52,6 +56,10 @@ export class SessionReplayPage {
     return this.selectEvent("anr", title);
   }
 
+  selectAppHang(title: RegExp): Locator {
+    return this.selectEvent("app_hang", title);
+  }
+
   selectBugReport(title: RegExp): Locator {
     return this.selectEvent("bug_report", title);
   }
@@ -67,6 +75,11 @@ export class SessionReplayPage {
 
   async openAnrDetails() {
     await this.anrDetailsLink.click();
+    await this.page.waitForURL(`**/${this.teamId}/errors/**`);
+  }
+
+  async openAppHangDetails() {
+    await this.appHangDetailsLink.click();
     await this.page.waitForURL(`**/${this.teamId}/errors/**`);
   }
 

@@ -655,6 +655,106 @@ test.describe("errors", () => {
     });
   });
 
+  test.describe("app hang", { tag: "@ios" }, () => {
+    const appHangPill = "App Hang";
+
+    const hangs = [
+      {
+        state: "Recovered",
+        method: "blockMainThread()",
+        title: /NativeIOSViewController\.swift: blockMainThread\(/,
+      },
+      {
+        state: "Killed",
+        method: "hangUntilKilled()",
+        title: /NativeIOSViewController\.swift: hangUntilKilled\(/,
+      },
+    ];
+
+    for (const { state, method, title } of hangs) {
+      test.describe(state.toLowerCase(), () => {
+        let overview: ErrorsOverviewPage;
+        const killed = state === "Killed";
+
+        const selectRow = () => overview.selectErrorGroupRowByTitle(title);
+
+        test.beforeEach(async ({ page, appId, teamId }) => {
+          overview = new ErrorsOverviewPage(page, teamId);
+          await overview.gotoAppHangs(appId);
+          await expect(selectRow()).toBeVisible();
+        });
+
+        test("error group row renders the app hang", async () => {
+          const row = selectRow();
+          await expect(
+            overview.selectGroupRowPill(row, appHangPill),
+          ).toBeVisible();
+          await expect(overview.selectGroupRowLastSeen(row)).toHaveText(
+            /ago$|^just now$/,
+          );
+          await expect(overview.selectGroupRowTrend(row)).toBeVisible();
+          await expect(overview.selectGroupRowInstances(row)).toHaveText("1");
+          await expect(overview.selectGroupRowSessions(row)).toHaveText("1");
+        });
+
+        test("error details renders the app hang", async ({ page, teamId }) => {
+          await overview.openErrorGroup(selectRow());
+          const detail = new ErrorDetailPage(page, teamId);
+
+          await expect(detail.errorInstancesPlot).toBeVisible();
+          await expect(detail.attributeDistributionPlot).toBeVisible();
+          await expect(detail.commonPathSection).toBeVisible();
+          await expect(detail.errorId).toHaveText(/Id:\s+[0-9a-fA-F-]{36}/);
+          await expect(detail.timestampPill).toHaveText(/Time:\s+\S/);
+          await expect(detail.durationPill).toHaveText(/Duration:\s+\S/);
+          await expect(detail.devicePill).toHaveText(/Device:\s+\S/);
+          await expect(detail.appVersionPill).toHaveText(/App version:\s+\d/);
+          await expect(detail.copyAgentPromptButton).toBeVisible();
+
+          await expect(detail.selectErrorPill(appHangPill)).toBeVisible();
+          await expect(detail.selectErrorPill(state)).toBeVisible();
+
+          await expect(detail.errorThreadStacktrace).toContainText(
+            "FrankensteinApp",
+          );
+          await expect(detail.errorThreadStacktrace).toContainText(method);
+          await expect(detail.errorThreadStacktrace).toContainText(
+            "NativeIOSViewController.swift",
+          );
+        });
+
+        test("session replay renders the app hang event", async ({
+          page,
+          teamId,
+        }) => {
+          await overview.openErrorGroup(selectRow());
+          const detail = new ErrorDetailPage(page, teamId);
+          await detail.openSessionReplay();
+          const replay = new SessionReplayPage(page, teamId);
+
+          await expect(replay.eventsList).toBeVisible();
+          // Both hangs happen in one session, so the title tells them apart.
+          const hangEvents = replay.selectAppHang(
+            /Main thread blocked for [\d.]+s/,
+          );
+          const event = killed
+            ? hangEvents.filter({ hasText: "app killed" })
+            : hangEvents.filter({ hasNotText: "app killed" });
+          await expect(event).toBeVisible();
+          await expect(
+            replay.selectEventPill(event, appHangPill),
+          ).toBeVisible();
+
+          await event.click();
+          await expect(replay.eventDetails).toContainText(method);
+
+          await replay.openAppHangDetails();
+          await expect(detail.selectErrorPill(state)).toBeVisible();
+        });
+      });
+    }
+  });
+
   test.describe("unhandled error", () => {
     let overview: ErrorsOverviewPage;
 

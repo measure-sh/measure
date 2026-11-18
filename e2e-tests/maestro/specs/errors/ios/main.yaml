@@ -8,6 +8,7 @@ appId: ${APP_ID}
     timeout: 30000
 
 - runFlow: errors.yaml
+- runFlow: app_hang.yaml
 - runFlow: ../kmp/errors.yaml
 - runFlow: ../flutter/errors.yaml
 - runFlow: ../react_native/errors.yaml

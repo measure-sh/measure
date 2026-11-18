@@ -9,6 +9,7 @@ export class ErrorDetailPage {
   readonly commonPathSection: Locator;
   readonly errorThreadStacktrace: Locator;
   readonly timestampPill: Locator;
+  readonly durationPill: Locator;
   readonly devicePill: Locator;
   readonly appVersionPill: Locator;
   readonly networkTypePill: Locator;
@@ -34,6 +35,7 @@ export class ErrorDetailPage {
       "exception-detail-main-stacktrace",
     );
     this.timestampPill = page.getByTestId("exception-detail-timestamp");
+    this.durationPill = page.getByTestId("exception-detail-duration");
     this.devicePill = page.getByTestId("exception-detail-device");
     this.appVersionPill = page.getByTestId("exception-detail-app-version");
     this.networkTypePill = page.getByTestId("exception-detail-network-type");
