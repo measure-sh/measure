@@ -40,86 +40,97 @@ type AppRetention struct {
 	Threshold time.Time `json:"threshold"`
 }
 
+// DeleteStaleData runs every cleanup step & prints the total failure count.
 func DeleteStaleData(ctx context.Context) {
+	failures := 0
+
 	// delete stale auth sessions
-	deleteStaleAuthSessions(ctx)
+	failures += deleteStaleAuthSessions(ctx)
 
 	// delete stale mcp auth codes
-	deleteStaleMCPAuthCodes(ctx)
+	failures += deleteStaleMCPAuthCodes(ctx)
 
 	// delete stale mcp auth sessions
-	deleteStaleMCPAuthSessions(ctx)
+	failures += deleteStaleMCPAuthSessions(ctx)
 
 	// delete stale invites
-	deleteStaleInvites(ctx)
+	failures += deleteStaleInvites(ctx)
 
 	// delete stale pending alert messages
-	deleteStalePendingAlertMessages(ctx)
+	failures += deleteStalePendingAlertMessages(ctx)
 
 	// fetch each app's retention thresholds
-	appRetentions, err := fetchAppRetentions(ctx)
+	appRetentions, scanFailures, err := fetchAppRetentions(ctx)
+	failures += scanFailures
 	if err != nil {
+		failures += 1
 		fmt.Printf("Failed to fetch app retentions and stale data: %v\n", err)
+		fmt.Println(finishedMessage(failures))
 		return
 	}
 
 	// delete event filters
-	deleteEventFilters(ctx, appRetentions)
+	failures += deleteEventFilters(ctx, appRetentions)
 
 	// delete event metrics
-	deleteEventMetrics(ctx, appRetentions)
+	failures += deleteEventMetrics(ctx, appRetentions)
 
 	// delete span filters
-	deleteSpanFilters(ctx, appRetentions)
+	failures += deleteSpanFilters(ctx, appRetentions)
 
 	// delete span metrics
-	deleteSpanMetrics(ctx, appRetentions)
+	failures += deleteSpanMetrics(ctx, appRetentions)
 
 	// delete user defined attributes
-	deleteUserDefAttrs(ctx, appRetentions)
+	failures += deleteUserDefAttrs(ctx, appRetentions)
 
 	// delete span user defined attributes
-	deleteSpanUserDefAttrs(ctx, appRetentions)
+	failures += deleteSpanUserDefAttrs(ctx, appRetentions)
 
 	// delete bug reports
-	deleteBugReports(ctx, appRetentions)
+	failures += deleteBugReports(ctx, appRetentions)
 
 	// delete sessions index
-	deleteSessionsIndex(ctx, appRetentions)
+	failures += deleteSessionsIndex(ctx, appRetentions)
 
 	// delete sessions
-	deleteSessions(ctx, appRetentions)
+	failures += deleteSessions(ctx, appRetentions)
 
 	// delete analytics events
-	deleteAnalyticsEvents(ctx, appRetentions)
+	failures += deleteAnalyticsEvents(ctx, appRetentions)
 
 	// delete spans
-	deleteSpans(ctx, appRetentions)
+	failures += deleteSpans(ctx, appRetentions)
 
 	// delete http events
-	deleteHttpEvents(ctx, appRetentions)
+	failures += deleteHttpEvents(ctx, appRetentions)
 
 	// delete http metrics
-	deleteHttpMetrics(ctx, appRetentions)
+	failures += deleteHttpMetrics(ctx, appRetentions)
 
 	// delete url patterns
-	deleteUrlPatterns(ctx, appRetentions)
+	failures += deleteUrlPatterns(ctx, appRetentions)
 
 	// delete events and attachments
-	deleteEventsAndAttachments(ctx, appRetentions)
+	failures += deleteEventsAndAttachments(ctx, appRetentions)
 
 	// delete stale alerts
-	deleteStaleAlerts(ctx, appRetentions)
+	failures += deleteStaleAlerts(ctx, appRetentions)
 
 	// delete stale agent conversations
-	deleteStaleAgentConversations(ctx, appRetentions)
+	failures += deleteStaleAgentConversations(ctx, appRetentions)
 
-	fmt.Println("Finished cleaning up stale data")
+	fmt.Println(finishedMessage(failures))
+}
+
+// finishedMessage returns the completion log line with the failure count.
+func finishedMessage(failures int) string {
+	return fmt.Sprintf("Finished cleaning up stale data. %d failures happened", failures)
 }
 
 // deleteStaleAuthSessions deletes stale auth sessions that
 // have passed the expiry time
-func deleteStaleAuthSessions(ctx context.Context) {
+func deleteStaleAuthSessions(ctx context.Context) int {
 	threshold := time.Now()
 	stmt := sqlf.PostgreSQL.DeleteFrom("auth_sessions").
 		Where("rt_expiry_at < ?", threshold)
@@ -129,15 +140,17 @@ func deleteStaleAuthSessions(ctx context.Context) {
 	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		fmt.Printf("Failed to delete stale auth sessions: %v\n", err)
-		return
+		return 1
 	}
 
-	fmt.Printf("Succesfully deleted stale auth sessions\n")
+	fmt.Printf("Successfully deleted stale auth sessions\n")
+
+	return 0
 }
 
 // deleteStaleMCPAuthCodes deletes MCP OAuth authorization codes that
 // have passed the expiry time
-func deleteStaleMCPAuthCodes(ctx context.Context) {
+func deleteStaleMCPAuthCodes(ctx context.Context) int {
 	threshold := time.Now()
 	stmt := sqlf.PostgreSQL.DeleteFrom("mcp_auth_codes").
 		Where("expires_at < ?", threshold)
@@ -147,15 +160,17 @@ func deleteStaleMCPAuthCodes(ctx context.Context) {
 	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		fmt.Printf("Failed to delete stale mcp auth codes: %v\n", err)
-		return
+		return 1
 	}
 
 	fmt.Printf("Successfully deleted stale mcp auth codes\n")
+
+	return 0
 }
 
 // deleteStaleMCPAuthSessions deletes MCP sessions that have passed the
 // expiry time of their refresh token
-func deleteStaleMCPAuthSessions(ctx context.Context) {
+func deleteStaleMCPAuthSessions(ctx context.Context) int {
 	threshold := time.Now()
 	stmt := sqlf.PostgreSQL.DeleteFrom("mcp_auth_sessions").
 		Where("rt_expiry_at < ?", threshold)
@@ -165,15 +180,17 @@ func deleteStaleMCPAuthSessions(ctx context.Context) {
 	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		fmt.Printf("Failed to delete stale mcp auth sessions: %v\n", err)
-		return
+		return 1
 	}
 
 	fmt.Printf("Successfully deleted stale mcp auth sessions\n")
+
+	return 0
 }
 
 // deleteStaleInvites deletes stale invites that
 // have passed the expiry threshold
-func deleteStaleInvites(ctx context.Context) {
+func deleteStaleInvites(ctx context.Context) int {
 	threshold := time.Now().Add(-7 * 24 * time.Hour) // 7 day expiry
 	stmt := sqlf.PostgreSQL.DeleteFrom("invites").
 		Where("updated_at < ?", threshold)
@@ -183,16 +200,17 @@ func deleteStaleInvites(ctx context.Context) {
 	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		fmt.Printf("Failed to delete stale invites: %v\n", err)
-		return
+		return 1
 	}
 
-	fmt.Printf("Succesfully deleted stale invites\n")
+	fmt.Printf("Successfully deleted stale invites\n")
+
+	return 0
 }
 
 // deleteEventFilters deletes stale event filters for each
 // app's retention threshold.
-func deleteEventFilters(ctx context.Context, retentions []AppRetention) {
-	errCount := 0
+func deleteEventFilters(ctx context.Context, retentions []AppRetention) (failures int) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("app_filters").
@@ -201,7 +219,7 @@ func deleteEventFilters(ctx context.Context, retentions []AppRetention) {
 			Where("end_of_month < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
-			errCount += 1
+			failures += 1
 			fmt.Printf("Failed to delete stale event filters for app id %q: %v\n", retention.AppID, err)
 			stmt.Close()
 			continue
@@ -210,15 +228,16 @@ func deleteEventFilters(ctx context.Context, retentions []AppRetention) {
 		stmt.Close()
 	}
 
-	if errCount < 1 {
+	if failures < 1 {
 		fmt.Println("Successfully deleted stale event filters")
 	}
+
+	return failures
 }
 
 // deleteEventMetrics deletes stale event metrics for each
 // app's retention threshold.
-func deleteEventMetrics(ctx context.Context, retentions []AppRetention) {
-	errCount := 0
+func deleteEventMetrics(ctx context.Context, retentions []AppRetention) (failures int) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("app_metrics").
@@ -227,7 +246,7 @@ func deleteEventMetrics(ctx context.Context, retentions []AppRetention) {
 			Where("timestamp < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
-			errCount += 1
+			failures += 1
 			fmt.Printf("Failed to delete stale event metrics for app id %q: %v\n", retention.AppID, err)
 			stmt.Close()
 			continue
@@ -236,15 +255,16 @@ func deleteEventMetrics(ctx context.Context, retentions []AppRetention) {
 		stmt.Close()
 	}
 
-	if errCount < 1 {
+	if failures < 1 {
 		fmt.Println("Successfully deleted stale event metrics")
 	}
+
+	return failures
 }
 
 // deleteSpanFilters deletes stale span filters for each
 // app's retention threshold.
-func deleteSpanFilters(ctx context.Context, retentions []AppRetention) {
-	errCount := 0
+func deleteSpanFilters(ctx context.Context, retentions []AppRetention) (failures int) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("span_filters").
@@ -253,7 +273,7 @@ func deleteSpanFilters(ctx context.Context, retentions []AppRetention) {
 			Where("end_of_month < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
-			errCount += 1
+			failures += 1
 			fmt.Printf("Failed to delete stale span filters for app id %q: %v\n", retention.AppID, err)
 			stmt.Close()
 			continue
@@ -262,15 +282,16 @@ func deleteSpanFilters(ctx context.Context, retentions []AppRetention) {
 		stmt.Close()
 	}
 
-	if errCount < 1 {
+	if failures < 1 {
 		fmt.Println("Successfully deleted stale span filters")
 	}
+
+	return failures
 }
 
 // deleteSpanMetrics deletes stale span metrics for each
 // app's retention threshold.
-func deleteSpanMetrics(ctx context.Context, retentions []AppRetention) {
-	errCount := 0
+func deleteSpanMetrics(ctx context.Context, retentions []AppRetention) (failures int) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("span_metrics").
@@ -279,7 +300,7 @@ func deleteSpanMetrics(ctx context.Context, retentions []AppRetention) {
 			Where("timestamp < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
-			errCount += 1
+			failures += 1
 			fmt.Printf("Failed to delete stale span metrics for app id %q: %v\n", retention.AppID, err)
 			stmt.Close()
 			continue
@@ -288,15 +309,16 @@ func deleteSpanMetrics(ctx context.Context, retentions []AppRetention) {
 		stmt.Close()
 	}
 
-	if errCount < 1 {
+	if failures < 1 {
 		fmt.Println("Successfully deleted stale span metrics")
 	}
+
+	return failures
 }
 
 // deleteUserDefAttrs deletes stale user defined attributes
 // for each app's retention threshold.
-func deleteUserDefAttrs(ctx context.Context, retentions []AppRetention) {
-	errCount := 0
+func deleteUserDefAttrs(ctx context.Context, retentions []AppRetention) (failures int) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("user_def_attrs").
@@ -305,7 +327,7 @@ func deleteUserDefAttrs(ctx context.Context, retentions []AppRetention) {
 			Where("timestamp < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
-			errCount += 1
+			failures += 1
 			fmt.Printf("Failed to delete stale user defined attributes for app id %q: %v\n", retention.AppID, err)
 			stmt.Close()
 			continue
@@ -314,15 +336,16 @@ func deleteUserDefAttrs(ctx context.Context, retentions []AppRetention) {
 		stmt.Close()
 	}
 
-	if errCount < 1 {
+	if failures < 1 {
 		fmt.Println("Successfully deleted stale user defined attributes")
 	}
+
+	return failures
 }
 
 // deleteSpanUserDefAttrs deletes stale span user defined attributes
 // for each app's retention threshold.
-func deleteSpanUserDefAttrs(ctx context.Context, retentions []AppRetention) {
-	errCount := 0
+func deleteSpanUserDefAttrs(ctx context.Context, retentions []AppRetention) (failures int) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("span_user_def_attrs").
@@ -331,7 +354,7 @@ func deleteSpanUserDefAttrs(ctx context.Context, retentions []AppRetention) {
 			Where("timestamp < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
-			errCount += 1
+			failures += 1
 			fmt.Printf("Failed to delete stale span user defined attributes for app id %q: %v\n", retention.AppID, err)
 			stmt.Close()
 			continue
@@ -340,15 +363,16 @@ func deleteSpanUserDefAttrs(ctx context.Context, retentions []AppRetention) {
 		stmt.Close()
 	}
 
-	if errCount < 1 {
+	if failures < 1 {
 		fmt.Println("Successfully deleted stale span user defined attributes")
 	}
+
+	return failures
 }
 
 // deleteBugReports deletes stale bug reports for each
 // app's retention threshold.
-func deleteBugReports(ctx context.Context, retentions []AppRetention) {
-	errCount := 0
+func deleteBugReports(ctx context.Context, retentions []AppRetention) (failures int) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("bug_reports").
@@ -357,7 +381,7 @@ func deleteBugReports(ctx context.Context, retentions []AppRetention) {
 			Where("timestamp < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
-			errCount += 1
+			failures += 1
 			fmt.Printf("Failed to delete stale bug reports for app id %q: %v\n", retention.AppID, err)
 			stmt.Close()
 			continue
@@ -366,15 +390,16 @@ func deleteBugReports(ctx context.Context, retentions []AppRetention) {
 		stmt.Close()
 	}
 
-	if errCount < 1 {
+	if failures < 1 {
 		fmt.Println("Successfully deleted stale bug reports")
 	}
+
+	return failures
 }
 
 // deleteSessionsIndex deletes stale sessions index for each
 // app's retention threshold.
-func deleteSessionsIndex(ctx context.Context, retentions []AppRetention) {
-	errCount := 0
+func deleteSessionsIndex(ctx context.Context, retentions []AppRetention) (failures int) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("sessions_index").
@@ -383,7 +408,7 @@ func deleteSessionsIndex(ctx context.Context, retentions []AppRetention) {
 			Where("first_event_timestamp < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
-			errCount += 1
+			failures += 1
 			fmt.Printf("Failed to delete stale sessions index for app id %q: %v\n", retention.AppID, err)
 			stmt.Close()
 			continue
@@ -392,15 +417,16 @@ func deleteSessionsIndex(ctx context.Context, retentions []AppRetention) {
 		stmt.Close()
 	}
 
-	if errCount < 1 {
+	if failures < 1 {
 		fmt.Println("Successfully deleted stale sessions index")
 	}
+
+	return failures
 }
 
 // deleteSessions deletes stale sessions for each
 // app's retention threshold.
-func deleteSessions(ctx context.Context, retentions []AppRetention) {
-	errCount := 0
+func deleteSessions(ctx context.Context, retentions []AppRetention) (failures int) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("sessions").
@@ -409,7 +435,7 @@ func deleteSessions(ctx context.Context, retentions []AppRetention) {
 			Where("first_event_timestamp < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
-			errCount += 1
+			failures += 1
 			fmt.Printf("Failed to delete stale sessions for app id %q: %v\n", retention.AppID, err)
 			stmt.Close()
 			continue
@@ -418,15 +444,16 @@ func deleteSessions(ctx context.Context, retentions []AppRetention) {
 		stmt.Close()
 	}
 
-	if errCount < 1 {
+	if failures < 1 {
 		fmt.Println("Successfully deleted stale sessions")
 	}
+
+	return failures
 }
 
 // deleteAnalyticsEvents deletes the analytics events that are older than the
 // retention threshold of each app.
-func deleteAnalyticsEvents(ctx context.Context, retentions []AppRetention) {
-	errCount := 0
+func deleteAnalyticsEvents(ctx context.Context, retentions []AppRetention) (failures int) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("analytics_events").
@@ -435,7 +462,7 @@ func deleteAnalyticsEvents(ctx context.Context, retentions []AppRetention) {
 			Where("timestamp < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
-			errCount += 1
+			failures += 1
 			fmt.Printf("Failed to delete stale analytics events for app id %q: %v\n", retention.AppID, err)
 			stmt.Close()
 			continue
@@ -444,15 +471,16 @@ func deleteAnalyticsEvents(ctx context.Context, retentions []AppRetention) {
 		stmt.Close()
 	}
 
-	if errCount < 1 {
+	if failures < 1 {
 		fmt.Println("Successfully deleted stale analytics events")
 	}
+
+	return failures
 }
 
 // deleteSpans deletes stale spans for each
 // app's retention threshold.
-func deleteSpans(ctx context.Context, retentions []AppRetention) {
-	errCount := 0
+func deleteSpans(ctx context.Context, retentions []AppRetention) (failures int) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("spans").
@@ -461,7 +489,7 @@ func deleteSpans(ctx context.Context, retentions []AppRetention) {
 			Where("start_time < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
-			errCount += 1
+			failures += 1
 			fmt.Printf("Failed to delete stale spans for app id %q: %v\n", retention.AppID, err)
 			stmt.Close()
 			continue
@@ -470,15 +498,16 @@ func deleteSpans(ctx context.Context, retentions []AppRetention) {
 		stmt.Close()
 	}
 
-	if errCount < 1 {
+	if failures < 1 {
 		fmt.Println("Successfully deleted stale spans")
 	}
+
+	return failures
 }
 
 // deleteHttpEvents deletes stale http events for each
 // app's retention threshold.
-func deleteHttpEvents(ctx context.Context, retentions []AppRetention) {
-	errCount := 0
+func deleteHttpEvents(ctx context.Context, retentions []AppRetention) (failures int) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("http_events").
@@ -487,7 +516,7 @@ func deleteHttpEvents(ctx context.Context, retentions []AppRetention) {
 			Where("timestamp < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
-			errCount += 1
+			failures += 1
 			fmt.Printf("Failed to delete stale http events for app id %q: %v\n", retention.AppID, err)
 			stmt.Close()
 			continue
@@ -496,15 +525,16 @@ func deleteHttpEvents(ctx context.Context, retentions []AppRetention) {
 		stmt.Close()
 	}
 
-	if errCount < 1 {
+	if failures < 1 {
 		fmt.Println("Successfully deleted stale http events")
 	}
+
+	return failures
 }
 
 // deleteHttpMetrics deletes stale http metrics for each
 // app's retention threshold.
-func deleteHttpMetrics(ctx context.Context, retentions []AppRetention) {
-	errCount := 0
+func deleteHttpMetrics(ctx context.Context, retentions []AppRetention) (failures int) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("http_metrics").
@@ -513,7 +543,7 @@ func deleteHttpMetrics(ctx context.Context, retentions []AppRetention) {
 			Where("timestamp < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
-			errCount += 1
+			failures += 1
 			fmt.Printf("Failed to delete stale http metrics for app id %q: %v\n", retention.AppID, err)
 			stmt.Close()
 			continue
@@ -522,15 +552,16 @@ func deleteHttpMetrics(ctx context.Context, retentions []AppRetention) {
 		stmt.Close()
 	}
 
-	if errCount < 1 {
+	if failures < 1 {
 		fmt.Println("Successfully deleted stale http metrics")
 	}
+
+	return failures
 }
 
 // deleteUrlPatterns deletes stale url patterns for each
 // app's retention threshold.
-func deleteUrlPatterns(ctx context.Context, retentions []AppRetention) {
-	errCount := 0
+func deleteUrlPatterns(ctx context.Context, retentions []AppRetention) (failures int) {
 	for _, retention := range retentions {
 		stmt := sqlf.
 			DeleteFrom("url_patterns").
@@ -539,7 +570,7 @@ func deleteUrlPatterns(ctx context.Context, retentions []AppRetention) {
 			Where("updated_at < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
-			errCount += 1
+			failures += 1
 			fmt.Printf("Failed to delete stale url patterns for app id %q: %v\n", retention.AppID, err)
 			stmt.Close()
 			continue
@@ -548,15 +579,16 @@ func deleteUrlPatterns(ctx context.Context, retentions []AppRetention) {
 		stmt.Close()
 	}
 
-	if errCount < 1 {
+	if failures < 1 {
 		fmt.Println("Successfully deleted stale url patterns")
 	}
+
+	return failures
 }
 
 // deleteEventsAndAttachments deletes stale events and their attachments for each
 // app's retention threshold.
-func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) {
-	errCount := 0
+func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) (failures int) {
 	for _, retention := range retentions {
 
 		// Fetch attachments for current app's stale events
@@ -570,6 +602,7 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 
 		attachmentRows, err := server.Server.ChPool.Query(ctx, fetchAttachmentsStmt.String(), fetchAttachmentsStmt.Args()...)
 		if err != nil {
+			failures += 1
 			fmt.Printf("Failed to fetch stale events from ClickHouse: %v\n", err)
 			fetchAttachmentsStmt.Close()
 			continue
@@ -580,6 +613,7 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 		var staleAttachments []Attachment
 		for attachmentRows.Next() {
 			if err := attachmentRows.Scan(&attachmentsJSON); err != nil {
+				failures += 1
 				fmt.Printf("Failed to scan attachment: %v\n", err)
 				continue
 			}
@@ -588,6 +622,7 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 			// attachments that fail unmarshalling will not be included in stale list.
 			if attachmentsJSON != "[]" {
 				if err := json.Unmarshal([]byte(attachmentsJSON), &attachments); err != nil {
+					failures += 1
 					fmt.Printf("Failed to unmarshal attachment JSON attachmentJSON: %v, error: %v\n", attachmentsJSON, err)
 					continue
 				}
@@ -599,9 +634,15 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 		attachmentRows.Close()
 		fetchAttachmentsStmt.Close()
 
+		if err := attachmentRows.Err(); err != nil {
+			failures += 1
+			fmt.Printf("Failed to read stale attachments for app id %q: %v\n", retention.AppID, err)
+			continue
+		}
+
 		// Delete attachments from object storage
 		if err := deleteAttachments(ctx, staleAttachments); err != nil {
-			errCount += 1
+			failures += 1
 			fmt.Printf("Failed to delete attachments for app id %q: %v\n", retention.AppID, err)
 			continue
 		}
@@ -614,7 +655,7 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 			Where("timestamp < ?", retention.Threshold)
 
 		if err := server.Server.ChPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
-			errCount += 1
+			failures += 1
 			fmt.Printf("Failed to delete stale events for app id %q: %v\n", retention.AppID, err)
 			stmt.Close()
 			continue
@@ -623,9 +664,11 @@ func deleteEventsAndAttachments(ctx context.Context, retentions []AppRetention) 
 		stmt.Close()
 	}
 
-	if errCount < 1 {
+	if failures < 1 {
 		fmt.Println("Successfully deleted stale events and their attachments")
 	}
+
+	return failures
 }
 
 // deleteAttachments deletes attachment objects from the configured object store.
@@ -717,7 +760,7 @@ func deleteGCSAttachments(ctx context.Context, bucket string, keys []string) (er
 
 // deleteStaleAlerts deletes stale alerts for each
 // app's retention threshold.
-func deleteStaleAlerts(ctx context.Context, retentions []AppRetention) {
+func deleteStaleAlerts(ctx context.Context, retentions []AppRetention) int {
 	for _, retention := range retentions {
 		stmt := sqlf.PostgreSQL.DeleteFrom("alerts").
 			Where("app_id = ?", retention.AppID).
@@ -728,18 +771,20 @@ func deleteStaleAlerts(ctx context.Context, retentions []AppRetention) {
 		_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 		if err != nil {
 			fmt.Printf("Failed to delete stale alerts: %v\n", err)
-			return
+			return 1
 		}
 	}
 
-	fmt.Printf("Succesfully deleted stale alerts\n")
+	fmt.Printf("Successfully deleted stale alerts\n")
+
+	return 0
 }
 
 // deleteStaleAgentConversations deletes agent conversations whose last
 // activity is past the team's retention. A conversation can span any of the
 // team's apps, so the cutoff is the earliest threshold among them (the
 // longest retention). Messages cascade with them.
-func deleteStaleAgentConversations(ctx context.Context, retentions []AppRetention) {
+func deleteStaleAgentConversations(ctx context.Context, retentions []AppRetention) int {
 	cutoffs := map[string]time.Time{}
 	for _, retention := range retentions {
 		if current, ok := cutoffs[retention.TeamID]; !ok || retention.Threshold.Before(current) {
@@ -757,15 +802,17 @@ func deleteStaleAgentConversations(ctx context.Context, retentions []AppRetentio
 		_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 		if err != nil {
 			fmt.Printf("Failed to delete stale agent conversations: %v\n", err)
-			return
+			return 1
 		}
 	}
 
 	fmt.Printf("Successfully deleted stale agent conversations\n")
+
+	return 0
 }
 
 // deleteStalePendingAlertMessages deletes stale pending alert messages
-func deleteStalePendingAlertMessages(ctx context.Context) {
+func deleteStalePendingAlertMessages(ctx context.Context) int {
 	threshold := time.Now().Add(-24 * time.Hour) // 1 day expiry
 	stmt := sqlf.PostgreSQL.DeleteFrom("pending_alert_messages").
 		Where("created_at < ?", threshold)
@@ -775,15 +822,17 @@ func deleteStalePendingAlertMessages(ctx context.Context) {
 	_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
 	if err != nil {
 		fmt.Printf("Failed to delete stale pending alert messages: %v\n", err)
-		return
+		return 1
 	}
 
-	fmt.Printf("Succesfully deleted stale pending alert messages\n")
+	fmt.Printf("Successfully deleted stale pending alert messages\n")
+
+	return 0
 }
 
 // fetchAppRetentions fetches retention period
-// for each app.
-func fetchAppRetentions(ctx context.Context) (retentions []AppRetention, err error) {
+// for each app & returns the count of rows skipped on scan failure.
+func fetchAppRetentions(ctx context.Context) (retentions []AppRetention, failures int, err error) {
 	// Fetch retention periods for each app
 	stmt := sqlf.PostgreSQL.
 		From("apps").
@@ -803,6 +852,7 @@ func fetchAppRetentions(ctx context.Context) (retentions []AppRetention, err err
 		var period int
 
 		if err := rows.Scan(&retention.AppID, &retention.TeamID, &period); err != nil {
+			failures += 1
 			fmt.Printf("Failed to scan row: %v\n", err)
 			continue
 		}
