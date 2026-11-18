@@ -1,6 +1,7 @@
 package main
 
 import (
+	"backend/libs/objstore"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -11,7 +12,6 @@ import (
 	"net/url"
 	"strings"
 	"symboloader/cipher"
-	"symboloader/objstore"
 	"symboloader/server"
 	"time"
 
@@ -184,7 +184,7 @@ func (b *Build) upload(ctx context.Context) (err error) {
 
 	// initialize object storage client
 	if config.IsCloud() {
-		gcsClient, err = storage.NewClient(ctx)
+		gcsClient, err = objstore.CreateGCSClient(ctx)
 		if err != nil {
 			return
 		}
@@ -899,7 +899,7 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 	_, downloadSpan := processTracer.Start(traceCtx, "download-symbol")
 	defer downloadSpan.End()
 
-	body, err := objstore.DownloadGCSObject(ctx, gcsClient, config.SymbolsBucket, symbolNotif.Name)
+	body, err := gcsClient.Bucket(config.SymbolsBucket).Object(symbolNotif.Name).NewReader(ctx)
 	if err != nil {
 		msg := fmt.Sprintf("error downloading mapping file for mapping id %q: %v", mappingId, err)
 		fmt.Println(msg)
@@ -919,7 +919,7 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 
 	// cleanup to remove the incoming file always
 	defer func() {
-		if err := objstore.DeleteGCSObject(ctx, gcsClient, config.SymbolsBucket, symbolNotif.Name); err != nil {
+		if err := gcsClient.Bucket(config.SymbolsBucket).Object(symbolNotif.Name).Delete(ctx); err != nil {
 			fmt.Println("error deleting symbol object:", err)
 		}
 	}()
@@ -1179,7 +1179,7 @@ func ProcessSymbolNotification(c *gin.Context) {
 
 		s3Client := objstore.CreateS3Client(ctx, config.SymbolsAccessKey, config.SymbolsSecretAccessKey, config.SymbolsBucketRegion, config.AWSEndpoint)
 
-		body, err := objstore.DownloadS3Object(ctx, s3Client, &s3.GetObjectInput{
+		s3Out, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
 			Bucket: aws.String(config.SymbolsBucket),
 			Key:    aws.String(key),
 		})
@@ -1194,6 +1194,7 @@ func ProcessSymbolNotification(c *gin.Context) {
 			return
 		}
 
+		body := s3Out.Body
 		defer body.Close()
 
 		content, err := io.ReadAll(body)
@@ -1273,7 +1274,7 @@ func ProcessSymbolNotification(c *gin.Context) {
 
 		// cleanup to remove the incoming file always
 		defer func() {
-			_, err = objstore.DeleteS3Object(ctx, s3Client, &s3.DeleteObjectInput{
+			_, err = s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 				Bucket: aws.String(config.SymbolsBucket),
 				Key:    aws.String(key),
 			})

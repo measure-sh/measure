@@ -1,11 +1,11 @@
 package main
 
 import (
+	"backend/libs/objstore"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"symboloader/objstore"
 	"symboloader/server"
 
 	"backend/libs/symbol"
@@ -103,7 +103,7 @@ func handleDownloadFile(c *gin.Context, config *server.ServerConfig, fileID stri
 			return
 		}
 		defer gcsClient.Close()
-		reader, err := objstore.DownloadGCSObject(ctx, gcsClient, config.SymbolsBucket, fileID)
+		reader, err := gcsClient.Bucket(config.SymbolsBucket).Object(fileID).NewReader(ctx)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "file not found"})
 			return
@@ -117,7 +117,7 @@ func handleDownloadFile(c *gin.Context, config *server.ServerConfig, fileID stri
 			config.SymbolsBucketRegion,
 			config.AWSEndpoint,
 		)
-		s3Body, err := objstore.DownloadS3Object(ctx, s3Client, &s3.GetObjectInput{
+		s3Out, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
 			Bucket: aws.String(config.SymbolsBucket),
 			Key:    aws.String(fileID),
 		})
@@ -125,7 +125,7 @@ func handleDownloadFile(c *gin.Context, config *server.ServerConfig, fileID stri
 			c.JSON(http.StatusNotFound, gin.H{"error": "file not found"})
 			return
 		}
-		body = s3Body
+		body = s3Out.Body
 	}
 	defer body.Close()
 

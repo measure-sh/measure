@@ -247,7 +247,7 @@ func (a *Attachment) Upload(ctx context.Context, config UploadConfig) (err error
 	}
 
 	if config.IsCloud {
-		client, errStorage := storage.NewClient(ctx)
+		client, errStorage := objstore.CreateGCSClient(ctx)
 		if errStorage != nil {
 			err = errStorage
 			return
@@ -365,7 +365,7 @@ func (a *Attachment) PreSignURL(ctx context.Context, config PreSignConfig) (err 
 	expires := 48 * time.Hour
 
 	if config.IsCloud {
-		client, errStorage := storage.NewClient(ctx)
+		client, errStorage := objstore.CreateGCSClient(ctx)
 		if errStorage != nil {
 			err = errStorage
 			return

@@ -1,6 +1,7 @@
 package pipeline
 
 import (
+	"backend/libs/objstore"
 	"context"
 	"errors"
 	"fmt"
@@ -19,7 +20,7 @@ type gcsStore struct {
 }
 
 func newGCSStore(ctx context.Context, bucket string) (*gcsStore, error) {
-	c, err := storage.NewClient(ctx)
+	c, err := objstore.CreateGCSClient(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("gcs client: %w", err)
 	}
