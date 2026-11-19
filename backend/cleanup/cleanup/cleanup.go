@@ -760,31 +760,34 @@ func deleteGCSAttachments(ctx context.Context, bucket string, keys []string) (er
 
 // deleteStaleAlerts deletes stale alerts for each
 // app's retention threshold.
-func deleteStaleAlerts(ctx context.Context, retentions []AppRetention) int {
+func deleteStaleAlerts(ctx context.Context, retentions []AppRetention) (failures int) {
 	for _, retention := range retentions {
 		stmt := sqlf.PostgreSQL.DeleteFrom("alerts").
 			Where("app_id = ?", retention.AppID).
 			Where("created_at < ?", retention.Threshold)
 
-		defer stmt.Close()
-
-		_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-		if err != nil {
-			fmt.Printf("Failed to delete stale alerts: %v\n", err)
-			return 1
+		if _, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
+			failures += 1
+			fmt.Printf("Failed to delete stale alerts for app id %q: %v\n", retention.AppID, err)
+			stmt.Close()
+			continue
 		}
+
+		stmt.Close()
 	}
 
-	fmt.Printf("Successfully deleted stale alerts\n")
+	if failures < 1 {
+		fmt.Printf("Successfully deleted stale alerts\n")
+	}
 
-	return 0
+	return failures
 }
 
 // deleteStaleAgentConversations deletes agent conversations whose last
 // activity is past the team's retention. A conversation can span any of the
 // team's apps, so the cutoff is the earliest threshold among them (the
 // longest retention). Messages cascade with them.
-func deleteStaleAgentConversations(ctx context.Context, retentions []AppRetention) int {
+func deleteStaleAgentConversations(ctx context.Context, retentions []AppRetention) (failures int) {
 	cutoffs := map[string]time.Time{}
 	for _, retention := range retentions {
 		if current, ok := cutoffs[retention.TeamID]; !ok || retention.Threshold.Before(current) {
@@ -797,18 +800,21 @@ func deleteStaleAgentConversations(ctx context.Context, retentions []AppRetentio
 			Where("team_id = ?", teamID).
 			Where("updated_at < ?", threshold)
 
-		defer stmt.Close()
-
-		_, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
-		if err != nil {
-			fmt.Printf("Failed to delete stale agent conversations: %v\n", err)
-			return 1
+		if _, err := server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...); err != nil {
+			failures += 1
+			fmt.Printf("Failed to delete stale agent conversations for team id %q: %v\n", teamID, err)
+			stmt.Close()
+			continue
 		}
+
+		stmt.Close()
 	}
 
-	fmt.Printf("Successfully deleted stale agent conversations\n")
+	if failures < 1 {
+		fmt.Printf("Successfully deleted stale agent conversations\n")
+	}
 
-	return 0
+	return failures
 }
 
 // deleteStalePendingAlertMessages deletes stale pending alert messages
