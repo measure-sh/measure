@@ -38,6 +38,8 @@ import sh.measure.android.exporter.ExporterImpl
 import sh.measure.android.exporter.HttpUrlConnectionClient
 import sh.measure.android.exporter.NetworkClient
 import sh.measure.android.exporter.NetworkClientImpl
+import sh.measure.android.exporter.NoopPeriodicExporter
+import sh.measure.android.exporter.PeriodicExporter
 import sh.measure.android.gestures.GestureCollector
 import sh.measure.android.httpurl.HttpUrlConnectionEventCollector
 import sh.measure.android.httpurl.HttpUrlConnectionEventCollectorImpl
@@ -269,6 +271,7 @@ internal class TestMeasureInitializer(
         timeProvider = timeProvider,
         sleeper = DefaultSleeper(),
     ),
+    override val periodicExporter: PeriodicExporter = NoopPeriodicExporter(),
     override val signalProcessor: SignalProcessor = SignalProcessorImpl(
         logger = logger,
         ioExecutor = executorServiceRegistry.ioExecutor(),
