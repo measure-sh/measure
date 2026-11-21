@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"runtime/debug"
 	"strings"
 	"symboloader/cipher"
 	"symboloader/server"
@@ -20,6 +21,7 @@ import (
 	"cloud.google.com/go/storage"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
@@ -36,6 +38,12 @@ const MetaMappingIDKey = "X-Amz-Meta-Mapping_id"
 // metadata header for representing the original file
 // name of the mapping file.
 const MetaMappingOriginalFilenameKey = "X-Amz-Meta-Original_file_name"
+
+// ErrPermanentFailure marks a failure that retrying cannot fix.
+var ErrPermanentFailure = errors.New("permanent mapping failure")
+
+// ErrIncomingNotFound marks an incoming object that no longer exists.
+var ErrIncomingNotFound = errors.New("incoming object not found")
 
 // processTracer is the tracer to trace the symbol
 // process operation.
@@ -559,6 +567,7 @@ func (b *Build) load(ctx context.Context, id uuid.UUID) (err error) {
 	defer stmtMappings.Close()
 
 	rows, _ := server.Server.PgPool.Query(ctx, stmtMappings.String(), stmtMappings.Args()...)
+	defer rows.Close()
 
 	for rows.Next() {
 		var mapping Mapping
@@ -575,7 +584,15 @@ func (b *Build) load(ctx context.Context, id uuid.UUID) (err error) {
 	return
 }
 
+// update writes the completed mapping rows & the extra rows in one
+// transaction.
 func (b *Build) update(ctx context.Context) (err error) {
+	tx, err := server.Server.PgPool.Begin(ctx)
+	if err != nil {
+		return
+	}
+	defer tx.Rollback(ctx)
+
 	now := time.Now()
 
 	for _, mapping := range b.Mappings {
@@ -583,28 +600,39 @@ func (b *Build) update(ctx context.Context) (err error) {
 			continue
 		}
 
-		stmt := sqlf.PostgreSQL.
-			Update("build_mappings").
-			Set("key", mapping.Key).
-			Set("location", mapping.Location).
-			Set("fnv1_hash", mapping.Checksum).
-			Set("file_size", mapping.Size).
-			Set("last_updated", now).
-			Where("id = ?", mapping.ID)
-
-		defer stmt.Close()
-
-		_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+		if err = updateMappingRow(ctx, tx, mapping, now); err != nil {
+			return
+		}
 	}
 
-	err = b.insertExtras(ctx, now)
+	if err = b.insertExtras(ctx, tx, now); err != nil {
+		return
+	}
 
-	return
+	return tx.Commit(ctx)
+}
+
+// updateMappingRow writes the artifact fields of one mapping row.
+func updateMappingRow(ctx context.Context, tx pgx.Tx, mapping *Mapping, now time.Time) error {
+	stmt := sqlf.PostgreSQL.
+		Update("build_mappings").
+		Set("key", mapping.Key).
+		Set("location", mapping.Location).
+		Set("fnv1_hash", mapping.Checksum).
+		Set("file_size", mapping.Size).
+		Set("last_updated", now).
+		Where("id = ?", mapping.ID)
+
+	defer stmt.Close()
+
+	_, err := tx.Exec(ctx, stmt.String(), stmt.Args()...)
+
+	return err
 }
 
 // insertExtras inserts the additional artifact rows produced when
 // one mapping extracts to more than one object.
-func (b *Build) insertExtras(ctx context.Context, now time.Time) (err error) {
+func (b *Build) insertExtras(ctx context.Context, tx pgx.Tx, now time.Time) (err error) {
 	if len(b.Extras) == 0 {
 		return
 	}
@@ -633,7 +661,7 @@ func (b *Build) insertExtras(ctx context.Context, now time.Time) (err error) {
 			Set("last_updated", now)
 	}
 
-	_, err = server.Server.PgPool.Exec(ctx, stmt.String(), stmt.Args()...)
+	_, err = tx.Exec(ctx, stmt.String(), stmt.Args()...)
 
 	return
 }
@@ -725,29 +753,26 @@ type GCSSymbolNotification struct {
 	Metadata map[string]string `json:"metadata"`
 }
 
-// validate validates the GCS event notification record.
-func (g GCSSymbolNotification) validate() (err error) {
+// validate validates the GCS event notification record. It
+// reports the first failing check.
+func (g GCSSymbolNotification) validate() error {
 	if g.Name == "" {
-		err = errors.New("name is empty")
+		return errors.New("name is empty")
 	}
 
 	if len(g.Metadata) == 0 {
-		err = errors.New("metadata is empty")
+		return errors.New("metadata is empty")
 	}
 
 	if _, ok := g.Metadata["mapping_id"]; !ok {
-		err = errors.New("mapping id is missing in metadata")
-	}
-
-	if _, ok := g.Metadata["mapping_id"]; !ok {
-		err = errors.New("mapping_id is missing in metadata")
+		return errors.New("mapping_id is missing in metadata")
 	}
 
 	if _, ok := g.Metadata["original_file_name"]; !ok {
-		err = errors.New("original_file_name is missing in metadata")
+		return errors.New("original_file_name is missing in metadata")
 	}
 
-	return
+	return nil
 }
 
 // validate validates the S3 event notification record.
@@ -779,6 +804,247 @@ func (nr S3EventNotificationRecord) validate() (err error) {
 	return
 }
 
+// isTransient reports whether a failure should keep the incoming
+// object & fail the response.
+func isTransient(err error) bool {
+	return err != nil && !errors.Is(err, ErrPermanentFailure)
+}
+
+// permanent marks err as a permanent mapping failure.
+func permanent(err error) error {
+	return fmt.Errorf("%w: %w", ErrPermanentFailure, err)
+}
+
+// parseMappingID parses a mapping id, failing permanently on bad input.
+func parseMappingID(id string) (uuid.UUID, error) {
+	mappingID, err := uuid.Parse(id)
+	if err != nil {
+		return uuid.Nil, permanent(fmt.Errorf("error parsing uuid %q: %w", id, err))
+	}
+
+	return mappingID, nil
+}
+
+// classifyS3ReadError marks a missing S3 object as permanent
+// & already handled. Other errors pass through unchanged.
+func classifyS3ReadError(err error) error {
+	var nsk *types.NoSuchKey
+	if errors.As(err, &nsk) {
+		return fmt.Errorf("%w: %w: %w", ErrPermanentFailure, ErrIncomingNotFound, err)
+	}
+
+	return err
+}
+
+// classifyGCSReadError marks a missing GCS object as permanent
+// & already handled. Other errors pass through unchanged.
+func classifyGCSReadError(err error) error {
+	if errors.Is(err, storage.ErrObjectNotExist) {
+		return fmt.Errorf("%w: %w: %w", ErrPermanentFailure, ErrIncomingNotFound, err)
+	}
+
+	return err
+}
+
+// readS3Incoming reads the incoming object from S3 like storage.
+func readS3Incoming(ctx context.Context, client *s3.Client, bucket, key string) ([]byte, error) {
+	out, err := client.GetObject(ctx, &s3.GetObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		return nil, classifyS3ReadError(err)
+	}
+	defer out.Body.Close()
+
+	return io.ReadAll(out.Body)
+}
+
+// readGCSIncoming reads the incoming object from GCS.
+func readGCSIncoming(ctx context.Context, client *storage.Client, bucket, name string) ([]byte, error) {
+	reader, err := client.Bucket(bucket).Object(name).NewReader(ctx)
+	if err != nil {
+		return nil, classifyGCSReadError(err)
+	}
+	defer reader.Close()
+
+	return io.ReadAll(reader)
+}
+
+// deleteS3Incoming deletes the incoming S3 object & only logs on
+// error. It runs even if ctx is cancelled.
+func deleteS3Incoming(ctx context.Context, client *s3.Client, bucket, key string) {
+	_, err := client.DeleteObject(context.WithoutCancel(ctx), &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
+	})
+	if err != nil {
+		fmt.Printf("error deleting mapping object %q: %v\n", key, err)
+	}
+}
+
+// deleteGCSIncoming deletes the incoming GCS object & only logs on
+// error. It runs even if ctx is cancelled.
+func deleteGCSIncoming(ctx context.Context, client *storage.Client, bucket, name string) {
+	err := client.Bucket(bucket).Object(name).Delete(context.WithoutCancel(ctx))
+	if err != nil {
+		fmt.Println("error deleting symbol object:", err)
+	}
+}
+
+// settleIncoming logs the outcome of processing the incoming
+// object. It calls del on success & on permanent failures, except
+// when the object was not found. Transient failures keep the object.
+func settleIncoming(name string, err error, del func()) {
+	if isTransient(err) {
+		fmt.Printf("transient failure for %q, keeping incoming object: %v\n", name, err)
+		return
+	}
+
+	if err != nil {
+		fmt.Printf("permanent failure for %q: %v\n", name, err)
+	}
+
+	if errors.Is(err, ErrIncomingNotFound) {
+		return
+	}
+
+	del()
+}
+
+// recoverPermanent converts a panic into a permanent failure & logs
+// its stack. It must be deferred directly.
+func recoverPermanent(err *error) {
+	r := recover()
+	if r == nil {
+		return
+	}
+
+	fmt.Printf("panic while extracting mapping: %v\n%s\n", r, debug.Stack())
+	*err = permanent(fmt.Errorf("panic: %v", r))
+}
+
+// traced runs fn inside a span named name.
+func traced(ctx context.Context, name string, fn func() error) error {
+	_, span := processTracer.Start(ctx, name)
+	defer span.End()
+
+	return fn()
+}
+
+// extractMapping fills the mapping matching mappingID with the
+// content & extracts its difs. A missing mapping, an extraction
+// error or no difs are permanent failures.
+func (b *Build) extractMapping(mappingID uuid.UUID, originalFileName string, content []byte) error {
+	for _, mapping := range b.Mappings {
+		if mapping.ID != mappingID {
+			continue
+		}
+
+		mapping.ShouldUpload = true
+		mapping.Filename = originalFileName
+		mapping.File = content
+		mapping.Size = int64(len(content))
+
+		if err := mapping.extractDif(); err != nil {
+			return permanent(fmt.Errorf("error extracting dif for mapping id %q: %w", mappingID, err))
+		}
+
+		if len(mapping.Difs) == 0 {
+			return permanent(fmt.Errorf("no difs extracted for mapping id %q", mappingID))
+		}
+
+		return nil
+	}
+
+	return permanent(fmt.Errorf("mapping id %q not found in build", mappingID))
+}
+
+// processMapping loads the build, extracts the content, uploads
+// the difs & updates the build rows. A panic during extraction is
+// reported as a permanent failure. Other panics propagate.
+func processMapping(ctx context.Context, mappingID uuid.UUID, originalFileName string, content []byte) (err error) {
+	var build Build
+
+	err = traced(ctx, "load-build", func() error {
+		if err := build.load(ctx, mappingID); err != nil {
+			if errors.Is(err, pgx.ErrNoRows) {
+				err = permanent(err)
+			}
+			return fmt.Errorf("error loading build for mapping id %q: %w", mappingID, err)
+		}
+		return nil
+	})
+	if err != nil {
+		return
+	}
+
+	err = traced(ctx, "extract-dif", func() (err error) {
+		defer recoverPermanent(&err)
+		return build.extractMapping(mappingID, originalFileName, content)
+	})
+	if err != nil {
+		return
+	}
+
+	err = traced(ctx, "upload-symbol", func() error {
+		if err := build.upload(ctx); err != nil {
+			return fmt.Errorf("error uploading build for mapping id %q: %w", mappingID, err)
+		}
+		return nil
+	})
+	if err != nil {
+		return
+	}
+
+	return traced(ctx, "update-build", func() error {
+		if err := build.update(ctx); err != nil {
+			return fmt.Errorf("error updating build for mapping id %q: %w", mappingID, err)
+		}
+		return nil
+	})
+}
+
+// processGCSObject validates, reads & processes one incoming GCS object.
+func processGCSObject(ctx context.Context, client *storage.Client, n GCSSymbolNotification) error {
+	if err := n.validate(); err != nil {
+		return permanent(fmt.Errorf("invalid symbol notification: %w", err))
+	}
+
+	mappingID, err := parseMappingID(n.Metadata["mapping_id"])
+	if err != nil {
+		return err
+	}
+
+	var content []byte
+	err = traced(ctx, "download-symbol", func() (err error) {
+		content, err = readGCSIncoming(ctx, client, server.Server.Config.SymbolsBucket, n.Name)
+		return
+	})
+	if err != nil {
+		return fmt.Errorf("error reading mapping file for mapping id %q: %w", mappingID, err)
+	}
+
+	return processMapping(ctx, mappingID, n.Metadata["original_file_name"], content)
+}
+
+// handleGCSObject processes one incoming GCS object & settles it.
+func handleGCSObject(ctx context.Context, n GCSSymbolNotification) (err error) {
+	client, err := objstore.CreateGCSClient(ctx)
+	if err != nil {
+		return fmt.Errorf("error creating GCS client: %w", err)
+	}
+	defer client.Close()
+
+	bucket := server.Server.Config.SymbolsBucket
+	err = processGCSObject(ctx, client, n)
+	settleIncoming(n.Name, err, func() { deleteGCSIncoming(ctx, client, bucket, n.Name) })
+
+	return
+}
+
+// ProcessGCSSymbolNotification handles a GCS event for one incoming
+// mapping object. It responds 500 only on transient failures.
 func ProcessGCSSymbolNotification(c *gin.Context) {
 	ctx := c.Request.Context()
 	bodyBytes, err := io.ReadAll(c.Request.Body)
@@ -841,173 +1107,66 @@ func ProcessGCSSymbolNotification(c *gin.Context) {
 		return
 	}
 
-	if err := symbolNotif.validate(); err != nil {
-		msg := fmt.Sprintf("invalid symbol notification: %v", err)
-		fmt.Println(msg)
-
-		c.JSON(http.StatusBadRequest, gin.H{
-			"error": msg,
-		})
-
-		return
-	}
-
-	id := symbolNotif.Metadata["mapping_id"]
-	originalFileName := symbolNotif.Metadata["original_file_name"]
-
-	mappingId, err := uuid.Parse(id)
-	if err != nil {
-		msg := fmt.Sprintf("error parsing uuid %q: %v", id, err)
-		fmt.Println(msg)
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-
-		return
-	}
-
 	traceCtx, span := processTracer.Start(ctx, "process-gcs-symbol-records")
 	defer span.End()
 
-	var build Build
-	if err := build.load(ctx, mappingId); err != nil {
-		msg := fmt.Sprintf("error loading build for mapping id %q: %v", mappingId, err)
-		fmt.Println(msg)
-
+	err = handleGCSObject(traceCtx, symbolNotif)
+	if isTransient(err) {
 		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
+			"error": err.Error(),
 		})
 
 		return
 	}
 
-	config := server.Server.Config
-
-	gcsClient, err := objstore.CreateGCSClient(ctx)
 	if err != nil {
-		msg := fmt.Sprintf("error creating GCS client: %v", err)
-		fmt.Println(msg)
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
+		c.JSON(http.StatusOK, gin.H{
+			"error": err.Error(),
 		})
 
 		return
 	}
-
-	_, downloadSpan := processTracer.Start(traceCtx, "download-symbol")
-	defer downloadSpan.End()
-
-	body, err := gcsClient.Bucket(config.SymbolsBucket).Object(symbolNotif.Name).NewReader(ctx)
-	if err != nil {
-		msg := fmt.Sprintf("error downloading mapping file for mapping id %q: %v", mappingId, err)
-		fmt.Println(msg)
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-
-		downloadSpan.End()
-
-		return
-	}
-
-	downloadSpan.End()
-
-	defer body.Close()
-
-	// cleanup to remove the incoming file always
-	defer func() {
-		if err := gcsClient.Bucket(config.SymbolsBucket).Object(symbolNotif.Name).Delete(ctx); err != nil {
-			fmt.Println("error deleting symbol object:", err)
-		}
-	}()
-
-	content, err := io.ReadAll(body)
-	if err != nil {
-		msg := fmt.Sprintf("error reading build bytes for mapping id %q: %v", mappingId, err)
-		fmt.Println(msg)
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-
-		return
-	}
-
-	for _, mapping := range build.Mappings {
-		if mapping.ID != mappingId {
-			continue
-		}
-
-		// per-object dedup runs later in upload(); mark this
-		// mapping for processing & extract its artifacts
-		mapping.ShouldUpload = true
-		mapping.Filename = originalFileName
-		mapping.File = content
-		mapping.Size = int64(len(content))
-
-		_, difSpan := processTracer.Start(traceCtx, "extract-diff")
-		defer difSpan.End()
-
-		if err := mapping.extractDif(); err != nil {
-			msg := fmt.Sprintf("error extracting diff for mapping id %q: %v", mappingId, err)
-			fmt.Println(msg)
-
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-
-			difSpan.End()
-
-			return
-		}
-
-		difSpan.End()
-	}
-
-	_, uploadSpan := processTracer.Start(traceCtx, "upload-symbol")
-	defer uploadSpan.End()
-
-	if err := build.upload(ctx); err != nil {
-		msg := fmt.Sprintf("error uploading build for mapping id %q: %v", mappingId, err)
-		fmt.Println(msg)
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-
-		uploadSpan.End()
-
-		return
-	}
-
-	uploadSpan.End()
-
-	_, updateSpan := processTracer.Start(traceCtx, "update-build")
-	defer updateSpan.End()
-
-	if err := build.update(ctx); err != nil {
-		msg := fmt.Sprintf("error updating build for mapping id %q: %v", mappingId, err)
-		fmt.Println(msg)
-
-		c.JSON(http.StatusInternalServerError, gin.H{
-			"error": msg,
-		})
-
-		updateSpan.End()
-
-		return
-	}
-
-	updateSpan.End()
 
 	c.JSON(http.StatusOK, gin.H{
 		"message": "symbol notification processed successfully",
 	})
 }
 
+// processS3Record validates, reads & processes one incoming S3 record.
+func processS3Record(ctx context.Context, client *s3.Client, record S3EventNotificationRecord, key string) error {
+	if err := record.validate(); err != nil {
+		return permanent(fmt.Errorf("failed to validate record for key %q: %w", record.S3.Object.Key, err))
+	}
+
+	mappingID, err := parseMappingID(record.S3.Object.UserMetadata[MetaMappingIDKey])
+	if err != nil {
+		return err
+	}
+
+	var content []byte
+	err = traced(ctx, "download-symbol", func() (err error) {
+		content, err = readS3Incoming(ctx, client, server.Server.Config.SymbolsBucket, key)
+		return
+	})
+	if err != nil {
+		return fmt.Errorf("error reading mapping file for mapping id %q: %w", mappingID, err)
+	}
+
+	return processMapping(ctx, mappingID, record.S3.Object.UserMetadata[MetaMappingOriginalFilenameKey], content)
+}
+
+// handleS3Record processes one incoming S3 record & settles it.
+func handleS3Record(ctx context.Context, client *s3.Client, record S3EventNotificationRecord, key string) (err error) {
+	bucket := server.Server.Config.SymbolsBucket
+	err = processS3Record(ctx, client, record, key)
+	settleIncoming(key, err, func() { deleteS3Incoming(ctx, client, bucket, key) })
+
+	return
+}
+
+// ProcessSymbolNotification handles a S3 event with incoming mapping
+// records. It processes every record & responds 500 if any failed
+// transiently.
 func ProcessSymbolNotification(c *gin.Context) {
 	ctx := c.Request.Context()
 	bodyBytes, err := io.ReadAll(c.Request.Body)
@@ -1103,6 +1262,11 @@ func ProcessSymbolNotification(c *gin.Context) {
 	traceCtx, span := processTracer.Start(ctx, "process-s3-symbol-records")
 	defer span.End()
 
+	config := server.Server.Config
+	s3Client := objstore.CreateS3Client(traceCtx, config.SymbolsAccessKey, config.SymbolsSecretAccessKey, config.SymbolsBucketRegion, config.AWSEndpoint)
+
+	var transient []error
+
 	for _, record := range symbolNotif.Records {
 		key, err := url.QueryUnescape(record.S3.Object.Key)
 		if err != nil {
@@ -1116,175 +1280,17 @@ func ProcessSymbolNotification(c *gin.Context) {
 			continue
 		}
 
-		if err := record.validate(); err != nil {
-			msg := fmt.Sprintf("failed to validate record for key %q: %v", record.S3.Object.Key, err)
-			fmt.Println(msg)
-			continue
+		if err := handleS3Record(traceCtx, s3Client, record, key); isTransient(err) {
+			transient = append(transient, err)
 		}
+	}
 
-		id, ok := record.S3.Object.UserMetadata[MetaMappingIDKey]
-		if !ok {
-			msg := fmt.Sprintf("missing %q in user metadata", MetaMappingIDKey)
-			fmt.Println(msg)
-
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-
-			return
-		}
-
-		originalFileName, ok := record.S3.Object.UserMetadata[MetaMappingOriginalFilenameKey]
-		if !ok {
-			msg := fmt.Sprintf("missing %q in user metadata", MetaMappingOriginalFilenameKey)
-			fmt.Println(msg)
-
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-
-			return
-		}
-
-		mappingId, err := uuid.Parse(id)
-		if err != nil {
-			msg := fmt.Sprintf("error parsing uuid %q: %v", id, err)
-			fmt.Println(msg)
-
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-
-			return
-		}
-
-		var build Build
-
-		if err := build.load(ctx, mappingId); err != nil {
-			if errors.Is(err, pgx.ErrNoRows) {
-				continue
-			}
-
-			msg := fmt.Sprintf("error loading build for mapping id %q: %v", mappingId, err)
-			fmt.Println(msg)
-
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-
-			return
-		}
-
-		config := server.Server.Config
-
-		s3Client := objstore.CreateS3Client(ctx, config.SymbolsAccessKey, config.SymbolsSecretAccessKey, config.SymbolsBucketRegion, config.AWSEndpoint)
-
-		s3Out, err := s3Client.GetObject(ctx, &s3.GetObjectInput{
-			Bucket: aws.String(config.SymbolsBucket),
-			Key:    aws.String(key),
+	if len(transient) > 0 {
+		c.JSON(http.StatusInternalServerError, gin.H{
+			"error": errors.Join(transient...).Error(),
 		})
-		if err != nil {
-			msg := fmt.Sprintf("error downloading mapping file for mapping id %q: %v", mappingId, err)
-			fmt.Println(msg)
 
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-
-			return
-		}
-
-		body := s3Out.Body
-		defer body.Close()
-
-		content, err := io.ReadAll(body)
-		if err != nil {
-			msg := fmt.Sprintf("error reading build bytes for mapping id %q: %v", mappingId, err)
-			fmt.Println(msg)
-
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-
-			return
-		}
-
-		for _, mapping := range build.Mappings {
-			if mapping.ID != mappingId {
-				continue
-			}
-
-			// per-object dedup runs later in upload(); mark this
-			// mapping for processing & extract its artifacts
-			mapping.ShouldUpload = true
-			mapping.Filename = originalFileName
-			mapping.File = content
-			mapping.Size = int64(len(content))
-
-			_, span := processTracer.Start(traceCtx, "extract-dif")
-			defer span.End()
-
-			if err := mapping.extractDif(); err != nil {
-				msg := fmt.Sprintf("error extracting diff for mapping id %q: %v", mappingId, err)
-				fmt.Println(msg)
-
-				c.JSON(http.StatusInternalServerError, gin.H{
-					"error": msg,
-				})
-
-				span.End()
-
-				return
-			}
-
-			span.End()
-		}
-
-		_, uploadSpan := processTracer.Start(traceCtx, "upload-symbol")
-		defer uploadSpan.End()
-
-		if err := build.upload(ctx); err != nil {
-			msg := fmt.Sprintf("error uploading build for mapping id %q: %v", mappingId, err)
-			fmt.Println(msg)
-
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-
-			uploadSpan.End()
-
-			return
-		}
-
-		_, updateSpan := processTracer.Start(traceCtx, "update-build")
-		defer updateSpan.End()
-
-		if err := build.update(ctx); err != nil {
-			msg := fmt.Sprintf("error updating build for mapping id %q: %v", mappingId, err)
-			fmt.Println(msg)
-
-			c.JSON(http.StatusInternalServerError, gin.H{
-				"error": msg,
-			})
-
-			updateSpan.End()
-
-			return
-		}
-
-		// cleanup to remove the incoming file always
-		defer func() {
-			_, err = s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
-				Bucket: aws.String(config.SymbolsBucket),
-				Key:    aws.String(key),
-			})
-			if err != nil {
-				msg := fmt.Sprintf("error deleting mapping object %q: %v", key, err)
-				fmt.Println(msg)
-
-				return
-			}
-		}()
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
