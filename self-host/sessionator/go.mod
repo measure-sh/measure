@@ -18,7 +18,7 @@ require (
 	github.com/jackc/pgx/v5 v5.13.0
 	github.com/shirou/gopsutil/v4 v4.26.10
 	github.com/spf13/cobra v1.10.2
-	github.com/tidwall/gjson v1.20.2
+	github.com/tidwall/gjson v1.20.3
 	github.com/tidwall/sjson v1.2.9
 	google.golang.org/api v0.315.0
 )
