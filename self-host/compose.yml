@@ -676,7 +676,7 @@ services:
       - minio-data:/data
 
   dbmate-postgres:
-    image: ghcr.io/amacneil/dbmate:2.38.1
+    image: ghcr.io/amacneil/dbmate:2.38.2
     profiles:
       - migrate
     environment:
@@ -695,7 +695,7 @@ services:
     command: ["migrate"]
 
   dbmate-clickhouse:
-    image: ghcr.io/amacneil/dbmate:2.38.1
+    image: ghcr.io/amacneil/dbmate:2.38.2
     profiles:
       - migrate
     environment:
@@ -842,7 +842,7 @@ services:
       retries: 5
 
   clickstack:
-    image: clickhouse/clickstack-local:2.43.1
+    image: clickhouse/clickstack-local:2.45.0
     profiles:
       - debug
     ports:
