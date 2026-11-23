@@ -100,7 +100,7 @@ updates:
     cooldown:
       default-days: 7
       semver-major-days: 14
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 15
     commit-message:
       prefix: "chore(deps)"
     assignees:
