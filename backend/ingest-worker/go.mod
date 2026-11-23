@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/cloudsqlconn v1.27.0
 	cloud.google.com/go/pubsub/v2 v2.9.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.51.0
-	github.com/aws/aws-sdk-go-v2 v1.47.8
+	github.com/aws/aws-sdk-go-v2 v1.48.0
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.17
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.9
 	github.com/gin-gonic/gin v1.12.0

@@ -8,7 +8,7 @@ require (
 	cloud.google.com/go/storage v1.71.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.51.0
 	github.com/apache/iggy/foreign/go v0.10.0
-	github.com/aws/aws-sdk-go-v2 v1.47.8
+	github.com/aws/aws-sdk-go-v2 v1.48.0
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.9
 	github.com/gin-gonic/gin v1.12.0
 	github.com/golang-jwt/jwt/v5 v5.3.1

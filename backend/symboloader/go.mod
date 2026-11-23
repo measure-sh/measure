@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/cloudsqlconn v1.27.0
 	cloud.google.com/go/storage v1.71.0
 	github.com/BurntSushi/toml v1.6.0
-	github.com/aws/aws-sdk-go-v2 v1.47.8
+	github.com/aws/aws-sdk-go-v2 v1.48.0
 	github.com/aws/aws-sdk-go-v2/feature/s3/transfermanager v0.5.6
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.9
 	github.com/bodgit/sevenzip v1.6.5
