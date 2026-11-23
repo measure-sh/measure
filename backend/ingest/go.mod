@@ -7,7 +7,7 @@ require (
 	cloud.google.com/go/cloudsqlconn v1.27.0
 	cloud.google.com/go/iam v1.15.1
 	cloud.google.com/go/pubsub/v2 v2.9.0
-	cloud.google.com/go/storage v1.70.0
+	cloud.google.com/go/storage v1.71.0
 	github.com/ClickHouse/clickhouse-go/v2 v2.51.0
 	github.com/aws/aws-sdk-go-v2 v1.47.8
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.114.9
@@ -38,8 +38,7 @@ require (
 	cloud.google.com/go/monitoring v1.32.1 // indirect
 	cloud.google.com/go/sql v0.7.0 // indirect
 	github.com/ClickHouse/ch-go v0.75.0 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/detectors/gcp v1.35.0 // indirect
-	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.60.0 // indirect
+	github.com/GoogleCloudPlatform/opentelemetry-operations-go/exporter/metric v0.62.0 // indirect
 	github.com/GoogleCloudPlatform/opentelemetry-operations-go/internal/resourcemapping v0.62.0 // indirect
 	github.com/andybalholm/brotli v1.2.7 // indirect
 	github.com/apache/iggy/foreign/go v0.10.0 // indirect
@@ -106,7 +105,7 @@ require (
 	go.mongodb.org/mongo-driver/v2 v2.9.1 // indirect
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
-	go.opentelemetry.io/contrib/detectors/gcp v1.45.0 // indirect
+	go.opentelemetry.io/contrib/detectors/gcp v1.47.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.72.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0 // indirect
 	go.opentelemetry.io/otel/log v1.47.0 // indirect
