@@ -10,7 +10,7 @@
     "format:check": "prettier --check ."
   },
   "dependencies": {
-    "@playwright/test": "^1.65.0",
+    "@playwright/test": "^1.65.1",
     "execa": "^10.2.1",
     "jsonwebtoken": "^9.0.2",
     "pg": "^8.23.1",
@@ -21,8 +21,8 @@
     "@types/jsonwebtoken": "^9.0.7",
     "@types/node": "^26.6.6",
     "@types/pg": "^8.23.1",
-    "eslint": "^10.14.0",
-    "prettier": "^3.9.10",
-    "typescript-eslint": "^8.72.1"
+    "eslint": "^10.15.0",
+    "prettier": "^3.10.1",
+    "typescript-eslint": "^8.72.2"
   }
 }
