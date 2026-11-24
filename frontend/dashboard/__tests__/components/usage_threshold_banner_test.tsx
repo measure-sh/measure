@@ -157,11 +157,11 @@ describe("UsageThresholdBanner", () => {
       render(<UsageThresholdBanner teamId="team-1" />);
 
       expect(
-        screen.getByText("75% of plan data limit used."),
+        screen.getByText("Above 75% of plan data limit used."),
       ).toBeInTheDocument();
 
       const banner = screen.getByText(
-        "75% of plan data limit used.",
+        "Above 75% of plan data limit used.",
       ).parentElement!;
       expect(banner).toHaveClass("bg-yellow-300");
 
@@ -176,11 +176,11 @@ describe("UsageThresholdBanner", () => {
       render(<UsageThresholdBanner teamId="team-1" />);
 
       expect(
-        screen.getByText("90% of plan data limit used."),
+        screen.getByText("Above 90% of plan data limit used."),
       ).toBeInTheDocument();
 
       const banner = screen.getByText(
-        "90% of plan data limit used.",
+        "Above 90% of plan data limit used.",
       ).parentElement!;
       expect(banner).toHaveClass("bg-orange-300");
 
@@ -284,9 +284,13 @@ describe("UsageThresholdBanner", () => {
 
       render(<UsageThresholdBanner teamId="team-1" />);
 
-      expect(screen.getByText("75% of free plan used.")).toBeInTheDocument();
+      expect(
+        screen.getByText("Above 75% of free plan used."),
+      ).toBeInTheDocument();
 
-      const banner = screen.getByText("75% of free plan used.").parentElement!;
+      const banner = screen.getByText(
+        "Above 75% of free plan used.",
+      ).parentElement!;
       expect(banner).toHaveClass("bg-yellow-300");
       expect(banner).toHaveClass("text-primary-foreground");
     });
@@ -309,9 +313,13 @@ describe("UsageThresholdBanner", () => {
 
       render(<UsageThresholdBanner teamId="team-1" />);
 
-      expect(screen.getByText("90% of free plan used.")).toBeInTheDocument();
+      expect(
+        screen.getByText("Above 90% of free plan used."),
+      ).toBeInTheDocument();
 
-      const banner = screen.getByText("90% of free plan used.").parentElement!;
+      const banner = screen.getByText(
+        "Above 90% of free plan used.",
+      ).parentElement!;
       expect(banner).toHaveClass("bg-orange-300");
       expect(banner).toHaveClass("text-primary-foreground");
     });
