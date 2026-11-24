@@ -9,7 +9,11 @@
 # Usage (in Xcode Build Phase):
 #   "${SRCROOT}/../node_modules/@measuresh/react-native/scripts/upload_build_phase.sh" \
 #     <api_url> \
-#     <api_key>
+#     <api_key> \
+#     [--variants <names>]
+#
+# Pass --variants with a comma-separated list of build configurations, e.g.
+# "release,staging", to upload only for those. Names are matched ignoring case.
 #
 # Add the app's dSYM to the phase's Input Files so it runs after the dSYM is generated:
 #   $(DWARF_DSYM_FOLDER_PATH)/$(DWARF_DSYM_FILE_NAME)/Contents/Resources/DWARF/$(EXECUTABLE_NAME)
@@ -29,6 +33,20 @@ warn_and_exit() {
 
 if [ "$#" -lt 2 ]; then
   warn_and_exit "Symbols not uploaded. Usage: $0 <api_url> <api_key>"
+fi
+
+to_lower() {
+  printf '%s' "$1" | LC_ALL=C tr '[:upper:]' '[:lower:]'
+}
+
+if [ "$3" = "--variants" ]; then
+  case ",$(to_lower "$4")," in
+    *",$(to_lower "$CONFIGURATION"),"*) ;;
+    *)
+      echo "Measure: Symbols not uploaded for the $CONFIGURATION configuration, it isn't in the variants to upload."
+      exit 0
+      ;;
+  esac
 fi
 
 API_URL="${1%/}"

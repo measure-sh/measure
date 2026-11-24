@@ -31,6 +31,28 @@ const UPLOAD_PHASE_INPUT_PATHS = [
   ),
 ];
 const SOURCEMAP_EXPORT = 'export SOURCEMAP_FILE="$(pwd)/main.jsbundle.map"';
+const IOS_VARIANTS_FLAG = '--variants';
+
+const ANDROID_APPLY_PLUGIN = 'apply plugin: "sh.measure.android.gradle"';
+const ANDROID_UPLOAD_FILTER_TAG = 'measure-upload-symbols-for-variants';
+
+const groovyString = (value) => `'${value.replace(/\\/g, '\\\\').replace(/'/g, "\\'")}'`;
+const shellString = (value) => `'${value.replace(/'/g, `'\\''`)}'`;
+
+const androidUploadFilter = (variants) => `def measureUploadVariants = [${variants.map(groovyString).join(', ')}] as Set
+def measureSkippedUploadTasks = [] as Set
+androidComponents {
+    onVariants(selector().all()) { variant ->
+        if (!measureUploadVariants.contains(variant.name.toLowerCase(Locale.ROOT))) {
+            measureSkippedUploadTasks.add("upload\${variant.name.capitalize()}BuildToMeasure".toString())
+        }
+    }
+}
+tasks.configureEach { task ->
+    if (measureSkippedUploadTasks.contains(task.name)) {
+        task.enabled = false
+    }
+}`;
 
 const ANDROID_META_KEY_API_KEY = 'sh.measure.android.API_KEY';
 const ANDROID_META_KEY_API_URL = 'sh.measure.android.API_URL';
@@ -69,9 +91,32 @@ const IOS_SDK_DEFAULTS = {
 
 const CREDENTIAL_OPTIONS = ['androidApiKey', 'androidApiUrl', 'iosApiKey', 'iosApiUrl'];
 
+const BUILD_OPTIONS = ['uploadSymbolsForVariants'];
+
+// Returns the lowercased variant names to upload symbols for, or undefined to
+// upload for every build.
+function parseUploadSymbolsForVariants(options) {
+  const value = options.uploadSymbolsForVariants;
+  if (value === undefined) return undefined;
+  const valid =
+    Array.isArray(value) &&
+    value.length > 0 &&
+    value.every((name) => typeof name === 'string' && name.trim() !== '' && !name.includes(','));
+  if (!valid) {
+    throw new Error(
+      `${PACKAGE_NAME}: uploadSymbolsForVariants must be a non-empty array of variant names without commas, got ${JSON.stringify(value)}`
+    );
+  }
+  return [...new Set(value.map((name) => name.toLowerCase()))];
+}
+
 function parseSdkConfig(options) {
   for (const name of Object.keys(options)) {
-    if (!(name in SDK_CONFIG_OPTIONS) && !CREDENTIAL_OPTIONS.includes(name)) {
+    if (
+      !(name in SDK_CONFIG_OPTIONS) &&
+      !CREDENTIAL_OPTIONS.includes(name) &&
+      !BUILD_OPTIONS.includes(name)
+    ) {
       console.warn(`${PACKAGE_NAME}: ignoring unknown plugin option "${name}".`);
     }
   }
@@ -245,7 +290,7 @@ function withMeasureSpmSwiftIncludePaths(config) {
 
 // ─── iOS: Xcode build phases ─────────────────────────────────────────────────
 
-function withMeasureXcodeBuildPhases(config, { iosApiKey, iosApiUrl }) {
+function withMeasureXcodeBuildPhases(config, { iosApiKey, iosApiUrl, uploadSymbolsForVariants }) {
   return withXcodeProject(config, (config) => {
     const xcodeProject = config.modResults;
     const shellScriptPhases =
@@ -269,7 +314,11 @@ function withMeasureXcodeBuildPhases(config, { iosApiKey, iosApiUrl }) {
     }
 
     // 2. Add the upload build phase, or update its API URL and key if it exists
-    const uploadScript = `"$SRCROOT/../node_modules/${PACKAGE_NAME}/scripts/upload_build_phase.sh" "${iosApiUrl}" "${iosApiKey}"`;
+    const uploadScript =
+      `"$SRCROOT/../node_modules/${PACKAGE_NAME}/scripts/upload_build_phase.sh" "${iosApiUrl}" "${iosApiKey}"` +
+      (uploadSymbolsForVariants
+        ? ` ${IOS_VARIANTS_FLAG} ${shellString(uploadSymbolsForVariants.join(','))}`
+        : '');
     const existingPhase = Object.values(shellScriptPhases).find((phase) => {
       if (typeof phase !== 'object' || !phase.shellScript) return false;
       try {
@@ -369,7 +418,7 @@ function withMeasureProjectBuildGradle(config) {
 
 // ─── Android: app/build.gradle ───────────────────────────────────────────────
 
-function withMeasureAppBuildGradle(config) {
+function withMeasureAppBuildGradle(config, { uploadSymbolsForVariants }) {
   return withAppBuildGradle(config, (mod) => {
     // Add measure-android dependency
     mod.modResults.contents = mergeContents({
@@ -383,9 +432,24 @@ function withMeasureAppBuildGradle(config) {
 
     // Apply the Measure Gradle plugin AFTER all other plugins so that
     // com.android.application is already applied when Measure checks for it.
-    if (!mod.modResults.contents.includes('apply plugin: "sh.measure.android.gradle"')) {
-      mod.modResults.contents =
-        mod.modResults.contents.trimEnd() + '\napply plugin: "sh.measure.android.gradle"\n';
+    if (!mod.modResults.contents.includes(ANDROID_APPLY_PLUGIN)) {
+      mod.modResults.contents = mod.modResults.contents.trimEnd() + `\n${ANDROID_APPLY_PLUGIN}\n`;
+    }
+
+    if (uploadSymbolsForVariants) {
+      mod.modResults.contents = mergeContents({
+        src: mod.modResults.contents,
+        newSrc: androidUploadFilter(uploadSymbolsForVariants),
+        tag: ANDROID_UPLOAD_FILTER_TAG,
+        anchor: ANDROID_APPLY_PLUGIN,
+        offset: 1,
+        comment: '//',
+      }).contents;
+    } else {
+      mod.modResults.contents = removeContents({
+        src: mod.modResults.contents,
+        tag: ANDROID_UPLOAD_FILTER_TAG,
+      }).contents;
     }
 
     return mod;
@@ -480,18 +544,23 @@ function withMeasureMainApplication(config, { sdkConfig, initSdk }) {
 module.exports = function withMeasurePlugin(config, options = {}) {
   const { androidApiKey, androidApiUrl, iosApiKey, iosApiUrl } = options;
   const sdkConfig = parseSdkConfig(options);
+  const uploadSymbolsForVariants = parseUploadSymbolsForVariants(options);
 
   // iOS
   config = withMeasureIos(config);
   config = withMeasureSpmSwiftIncludePaths(config);
   if (iosApiKey && iosApiUrl) {
     config = withMeasureAppDelegate(config, { iosApiKey, iosApiUrl, sdkConfig });
-    config = withMeasureXcodeBuildPhases(config, { iosApiKey, iosApiUrl });
+    config = withMeasureXcodeBuildPhases(config, {
+      iosApiKey,
+      iosApiUrl,
+      uploadSymbolsForVariants,
+    });
   }
 
   // Android
   config = withMeasureProjectBuildGradle(config);
-  config = withMeasureAppBuildGradle(config);
+  config = withMeasureAppBuildGradle(config, { uploadSymbolsForVariants });
   const hasAndroidCredentials = Boolean(androidApiKey && androidApiUrl);
   config = withMeasureMainApplication(config, { sdkConfig, initSdk: hasAndroidCredentials });
   if (hasAndroidCredentials) {
