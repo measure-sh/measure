@@ -417,8 +417,8 @@ export default function Apps(props: { params: Promise<{ teamId: string }> }) {
             body={
               <p className="font-body">
                 Are you sure you want to rotate the API key for app{" "}
-                <span className="font-display font-bold">{app!.name}</span>
-                ? <br /> <br /> All apps currently using this key won&apos;t be
+                <span className="font-display font-bold">{app!.name}</span>?{" "}
+                <br /> <br /> All apps currently using this key won&apos;t be
                 able to send data anymore until they are updated.
               </p>
             }
