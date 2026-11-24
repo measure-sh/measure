@@ -64,15 +64,15 @@ function bannerState(
       className: "bg-red-300 text-primary-foreground",
     };
   }
-  if (pct >= 90) {
+  if (pct > 90) {
     return {
-      message: `90% of ${planLabel} used.`,
+      message: `Above 90% of ${planLabel} used.`,
       className: "bg-orange-300 text-primary-foreground",
     };
   }
-  if (pct >= 75) {
+  if (pct > 75) {
     return {
-      message: `75% of ${planLabel} used.`,
+      message: `Above 75% of ${planLabel} used.`,
       className: "bg-yellow-300 text-primary-foreground",
     };
   }
