@@ -417,10 +417,14 @@ func mustParse(t *testing.T, raw string) *url.URL {
 }
 
 func TestAttachmentFilenameMetaKey(t *testing.T) {
-	if AttachmentFilenameMetaKey != "original-file-name" {
+	if AttachmentFilenameMetaKey != "attachment-name" {
 		t.Fatalf("got %q", AttachmentFilenameMetaKey)
 	}
 	if strings.Contains(AttachmentFilenameMetaKey, "_") {
 		t.Fatalf("key %q contains underscore", AttachmentFilenameMetaKey)
+	}
+	twin := strings.ReplaceAll(AttachmentFilenameMetaKey, "-", "_")
+	if twin == "original_file_name" || twin == "mapping_id" {
+		t.Fatalf("key %q collides with build header %q", AttachmentFilenameMetaKey, twin)
 	}
 }

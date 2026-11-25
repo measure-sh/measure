@@ -208,7 +208,7 @@ measure-ingest.yourcompany.com {
 EOF
 ```
 
-Caddy 2.11.4+ drops request headers containing underscores. The global options block above keeps the headers needed for mapping file uploads (and attachment uploads on older Measure versions). `expected_underscore_headers` needs Caddy 2.11.6+; on older Caddy versions, remove the block, otherwise Caddy fails to start.
+Caddy 2.11.4+ drops request headers containing underscores. The global options block above keeps the headers needed for mapping file uploads (and attachment uploads on older Measure versions). `expected_underscore_headers` needs Caddy 2.11.6+; on older Caddy versions, remove the block, otherwise Caddy fails to start. Caddy drops the hyphenated variant of each listed header, so list only these two.
 
 <Callout type="info">
 

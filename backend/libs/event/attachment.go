@@ -23,8 +23,9 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
-// AttachmentFilenameMetaKey has no underscores because reverse proxies drop such headers.
-const AttachmentFilenameMetaKey = "original-file-name"
+// AttachmentFilenameMetaKey has no underscores since proxies drop them
+// & is no hyphen twin of a build key since Caddy drops twins of allowlisted headers.
+const AttachmentFilenameMetaKey = "attachment-name"
 
 type LocationConfig struct {
 	IsCloud                 bool
