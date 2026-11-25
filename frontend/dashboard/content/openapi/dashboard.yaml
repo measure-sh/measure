@@ -5018,6 +5018,8 @@ paths:
                     type: number
                     minimum: 0
                     maximum: 100
+                  ttid_trace_enabled:
+                    type: boolean
                   journey_sampling_rate:
                     type: number
                     minimum: 0
@@ -5140,6 +5142,7 @@ paths:
                     anr_timeline_duration: 300
                     bug_report_timeline_duration: 300
                     trace_sampling_rate: 0.001
+                    ttid_trace_enabled: true
                     journey_sampling_rate: 0.001
                     screenshot_mask_level: all_text
                     log_autocollect_enabled: false

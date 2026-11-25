@@ -127,6 +127,7 @@ const mockInitialConfig = {
   app_hang_replay_enabled: true,
   bug_report_timeline_duration: 5,
   trace_sampling_rate: 0.1,
+  ttid_trace_enabled: true,
   launch_sampling_rate: 0.1,
   journey_sampling_rate: 0.1,
   analytics_sampling_rate: 100,
@@ -833,6 +834,45 @@ describe("SdkConfigurator Component", () => {
     expect(toastPositive).toHaveBeenCalled();
   });
 
+  it("saves disabled TTID spans with the traces config", async () => {
+    simulateMutateSuccess();
+
+    render(
+      <SdkConfigurator
+        appId="test-app-id"
+        appName="Test App"
+        initialConfig={mockInitialConfig}
+        currentUserCanChangeAppSettings={true}
+        osNames={null}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("ttid-trace-switch"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("traces-save-button"));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("danger-confirmation-dialog"),
+      ).toHaveTextContent("Screen load (TTID) spans: Disabled");
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("dialog-affirmative-button"));
+    });
+
+    await waitFor(() => {
+      expect(mockMutate).toHaveBeenCalledWith(
+        {
+          appId: "test-app-id",
+          config: { trace_sampling_rate: 0.1, ttid_trace_enabled: false },
+        },
+        expect.any(Object),
+      );
+    });
+  });
+
   it("saves HTTP config with correct payload including all URL and header fields", async () => {
     const { toastPositive } = require("@/app/components/toast");
     simulateMutateSuccess();
@@ -1509,6 +1549,7 @@ describe("SdkConfigurator Component", () => {
           appId: "test-app-id",
           config: {
             trace_sampling_rate: 0.5,
+            ttid_trace_enabled: true,
           },
         },
         expect.any(Object),

@@ -132,6 +132,7 @@ function handleAlerts(ctx: SandboxRouteContext, appId: string): Response {
 
 const SANDBOX_SDK_CONFIG = {
   trace_sampling_rate: 100,
+  ttid_trace_enabled: true,
   error_replay_duration: 30,
   error_fatal_take_screenshot: true,
   error_fatal_replay_enabled: true,

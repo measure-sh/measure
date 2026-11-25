@@ -1364,6 +1364,7 @@ export function makeAppRetentionFixture(overrides: Record<string, any> = {}) {
 export function makeSdkConfigFixture(overrides: Record<string, any> = {}) {
   return {
     trace_sampling_rate: 50,
+    ttid_trace_enabled: true,
     error_replay_duration: 30,
     error_fatal_take_screenshot: true,
     error_fatal_replay_enabled: true,

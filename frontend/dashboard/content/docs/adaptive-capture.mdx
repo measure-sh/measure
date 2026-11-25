@@ -33,6 +33,7 @@ Every app starts with these defaults:
 | App hang session replay duration (iOS) | 300 seconds (5 minutes)                                                           |
 | Bug report session replay duration   | 300                                                                                 |
 | Trace sampling rate                  | 100%                                                                                |
+| Screen load (TTID) spans             | true                                                                                |
 | Launch metrics sampling rate         | 100%                                                                                |
 | Memory collection interval           | 5 seconds                                                                           |
 | Memory background collection interval (Android) | 10 seconds                                                                |
@@ -134,6 +135,11 @@ it reaches to capture more or less of the session. By default it goes back 5 min
 
 Measure reports every trace by default. Set the sampling rate anywhere from 100% down to
 0.001% to control how much trace data you collect.
+
+### Screen load spans
+
+The SDK records a [screen load span](/docs/performance-tracing/screen-load-time) each time a
+screen loads. Turn this off to stop collecting them.
 
 ## Launch metrics sampling
 
