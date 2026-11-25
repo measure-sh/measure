@@ -301,8 +301,8 @@ MAP_UPLOAD_URL=$(echo "$RESPONSE"    | grep -o '"upload_url":"[^"]*"' | sed 's/"
 
 # The mapping_id header key is prefixed with either x-amz-meta- (S3) or
 # x-goog-meta- (GCS) depending on the storage backend.
-BUNDLE_MAPPING_ID=$(echo "$RESPONSE" | grep -o '"[^"]*meta-mapping_id":"[^"]*"' | sed 's/^"[^"]*":"//' | sed 's/"$//' | sed -n '1p' || true)
-MAP_MAPPING_ID=$(echo "$RESPONSE"    | grep -o '"[^"]*meta-mapping_id":"[^"]*"' | sed 's/^"[^"]*":"//' | sed 's/"$//' | sed -n '2p' || true)
+BUNDLE_MAPPING_ID=$(echo "$RESPONSE" | grep -o '"[^"]*meta-mapping[_-]id":"[^"]*"' | sed 's/^"[^"]*":"//' | sed 's/"$//' | sed -n '1p' || true)
+MAP_MAPPING_ID=$(echo "$RESPONSE"    | grep -o '"[^"]*meta-mapping[_-]id":"[^"]*"' | sed 's/^"[^"]*":"//' | sed 's/"$//' | sed -n '2p' || true)
 
 if [ -z "$BUNDLE_UPLOAD_URL" ] || [ -z "$MAP_UPLOAD_URL" ]; then
   echo "Error: Failed to extract upload URLs from server response."
@@ -325,6 +325,15 @@ else
   echo "Storage backend: S3"
 fi
 
+# Header spelling follows the key the server returned (underscore or hyphen).
+if echo "$RESPONSE" | grep -q 'meta-mapping-id"'; then
+  MAPPING_ID_HEADER="mapping-id"
+  FILENAME_HEADER="original-file-name"
+else
+  MAPPING_ID_HEADER="mapping_id"
+  FILENAME_HEADER="original_file_name"
+fi
+
 echo "Bundle mapping_id: $BUNDLE_MAPPING_ID"
 echo "Map mapping_id:    $MAP_MAPPING_ID"
 echo ""
@@ -345,8 +354,8 @@ upload_file() {
     echo "  Attempt $ATTEMPT/$MAX_ATTEMPTS: Uploading $FILENAME..."
     FILE_STATUS=$(curl --silent --request PUT \
       --url "$UPLOAD_URL" \
-      --header "${HEADER_PREFIX}-mapping_id: $MAPPING_ID" \
-      --header "${HEADER_PREFIX}-original_file_name: $FILENAME" \
+      --header "${HEADER_PREFIX}-${MAPPING_ID_HEADER}: $MAPPING_ID" \
+      --header "${HEADER_PREFIX}-${FILENAME_HEADER}: $FILENAME" \
       --data-binary "@$FILE_PATH" \
       --write-out "%{http_code}" \
       --output "$RESPONSE_BODY_FILE")
