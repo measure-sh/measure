@@ -188,6 +188,12 @@ Create a basic `~/Caddyfile` config by running the following.
 
 ```sh
 cat <<EOF > ~/Caddyfile
+{
+	servers {
+		expected_underscore_headers x-amz-meta-mapping_id x-amz-meta-original_file_name
+	}
+}
+
 measure.yourcompany.com {
 	reverse_proxy http://localhost:3000
 }
@@ -201,6 +207,8 @@ measure-ingest.yourcompany.com {
 }
 EOF
 ```
+
+Caddy 2.11.4+ drops request headers containing underscores. The global options block above keeps the headers needed for mapping file uploads (and attachment uploads on older Measure versions). `expected_underscore_headers` needs Caddy 2.11.6+; on older Caddy versions, remove the block, otherwise Caddy fails to start.
 
 <Callout type="info">
 
@@ -480,18 +488,24 @@ When using nginx, configure the following directives.
 
 - **`client_max_body_size`**. Set it to sufficiently large like `1024M` (1 GiB) to ensure large debug mapping files, like proguard & dSYM file uploads will succeed.
 
-- **`ignore_invalid_headers`**. Set this to `off`, otherwise uploading builds or mapping files like proguard & dSYM files may fail.
+- **`underscores_in_headers`**. Set this to `on`, otherwise uploading builds or mapping files like proguard & dSYM files and bug report attachments (on older Measure versions) may fail. Setting `ignore_invalid_headers off;` also works but is broader.
 
 ```
 server {
   # other configuration
 
   client_max_body_size 1024M;
-  ignore_invalid_headers off;
+  underscores_in_headers on;
 
   # other configuration
 }
 ```
+
+### Q. Attachment or mapping file uploads fail behind Caddy or nginx
+
+The api logs show `Attachment proxy http status: 400` and MinIO reports "There were headers present in the request which were not signed". The proxy dropped request headers containing underscores, like `x-amz-meta-mapping_id` & `x-amz-meta-original_file_name`.
+
+Fix it in the proxy. For Caddy, add the `expected_underscore_headers` global option in your Caddyfile (see the Caddy setup above). For nginx, set `underscores_in_headers on;` as described above.
 
 ### Q. How to add or update environment variables?
 
