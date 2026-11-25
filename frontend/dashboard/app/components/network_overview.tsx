@@ -278,22 +278,19 @@ export default function NetworkOverview({
       {readyValue !== null && (
         <>
           <div className="py-8" />
-          <div className="flex items-center gap-2">
-            <p className="font-display text-xl">Explore Endpoints</p>
-            <InfoTooltip
-              content={
-                <>
-                  <Link
-                    href="/docs/network-monitoring/endpoint-patterns#searching-for-endpoints"
-                    className={underlineLinkStyle}
-                  >
-                    Learn more
-                  </Link>{" "}
-                  about endpoint search and using wildcards.
-                </>
-              }
-            />
-          </div>
+          <p className="font-display text-xl">Search Endpoints</p>
+          <p className="mt-1 font-body text-sm text-muted-foreground">
+            Search by URL or keyword. Use <code className="font-code">*</code>{" "}
+            to match one path segment and <code className="font-code">**</code>{" "}
+            to match all nested routes.{" "}
+            <Link
+              href="/docs/network-monitoring/endpoint-patterns#searching-for-endpoints"
+              className={underlineLinkStyle}
+            >
+              Learn more
+            </Link>{" "}
+            about search patterns.
+          </p>
           <div className="py-2" />
           <NetworkEndpointSearch
             key={teamId}
