@@ -243,45 +243,46 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self) // swiftlint:disable:this identifier_name
+        let fallback = decoder.userInfo[.fallbackDynamicConfig] as? BaseDynamicConfig ?? BaseDynamicConfig()
 
-        maxEventsInBatch = try c.decodeIfPresent(Number.self, forKey: .maxEventsInBatch) ?? DefaultConfig.maxEventsInBatch
+        maxEventsInBatch = try c.decodeIfPresent(Number.self, forKey: .maxEventsInBatch) ?? fallback.maxEventsInBatch
         errorReplayDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .errorReplayDurationSeconds)
             ?? c.decodeIfPresent(Number.self, forKey: .crashTimelineDuration)
-            ?? DefaultConfig.errorReplayDurationSeconds
-        anrTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .anrTimelineDurationSeconds) ?? DefaultConfig.anrTimelineDurationSeconds
-        bugReportTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .bugReportTimelineDurationSeconds) ?? DefaultConfig.bugReportTimelineDurationSeconds
-        traceSamplingRate = try c.decodeIfPresent(Float.self, forKey: .traceSamplingRate) ?? DefaultConfig.traceSamplingRate
-        ttidTraceEnabled = try c.decodeIfPresent(Bool.self, forKey: .ttidTraceEnabled) ?? DefaultConfig.ttidTraceEnabled
-        analyticsSamplingRate = try c.decodeIfPresent(Float.self, forKey: .analyticsSamplingRate) ?? DefaultConfig.analyticsSamplingRate
-        analyticsEventTypes = try c.decodeIfPresent([String].self, forKey: .analyticsEventTypes) ?? DefaultConfig.analyticsEvents.map(\.rawValue)
-        screenshotMaskLevel = try c.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
-        logAutocollectEnabled = try c.decodeIfPresent(Bool.self, forKey: .logAutocollectEnabled) ?? DefaultConfig.logAutocollectEnabled
-        logMinSeverity = try c.decodeIfPresent(Int.self, forKey: .logMinSeverity) ?? DefaultConfig.logMinSeverity
-        logIgnorePatterns = try c.decodeIfPresent([String].self, forKey: .logIgnorePatterns) ?? DefaultConfig.logIgnorePatterns
-        cpuUsageInterval = try c.decodeIfPresent(Number.self, forKey: .cpuUsageInterval) ?? DefaultConfig.cpuUsageInterval
-        memoryUsageInterval = try c.decodeIfPresent(Number.self, forKey: .memoryUsageInterval) ?? DefaultConfig.memoryUsageInterval
-        memoryUsageSessionSamplingRate = try c.decodeIfPresent(Float.self, forKey: .memoryUsageSessionSamplingRate) ?? DefaultConfig.memoryUsageSessionSamplingRate
+            ?? fallback.errorReplayDurationSeconds
+        anrTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .anrTimelineDurationSeconds) ?? fallback.anrTimelineDurationSeconds
+        bugReportTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .bugReportTimelineDurationSeconds) ?? fallback.bugReportTimelineDurationSeconds
+        traceSamplingRate = try c.decodeIfPresent(Float.self, forKey: .traceSamplingRate) ?? fallback.traceSamplingRate
+        ttidTraceEnabled = try c.decodeIfPresent(Bool.self, forKey: .ttidTraceEnabled) ?? fallback.ttidTraceEnabled
+        analyticsSamplingRate = try c.decodeIfPresent(Float.self, forKey: .analyticsSamplingRate) ?? fallback.analyticsSamplingRate
+        analyticsEventTypes = try c.decodeIfPresent([String].self, forKey: .analyticsEventTypes) ?? fallback.analyticsEventTypes
+        screenshotMaskLevel = try c.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? fallback.screenshotMaskLevel
+        logAutocollectEnabled = try c.decodeIfPresent(Bool.self, forKey: .logAutocollectEnabled) ?? fallback.logAutocollectEnabled
+        logMinSeverity = try c.decodeIfPresent(Int.self, forKey: .logMinSeverity) ?? fallback.logMinSeverity
+        logIgnorePatterns = try c.decodeIfPresent([String].self, forKey: .logIgnorePatterns) ?? fallback.logIgnorePatterns
+        cpuUsageInterval = try c.decodeIfPresent(Number.self, forKey: .cpuUsageInterval) ?? fallback.cpuUsageInterval
+        memoryUsageInterval = try c.decodeIfPresent(Number.self, forKey: .memoryUsageInterval) ?? fallback.memoryUsageInterval
+        memoryUsageSessionSamplingRate = try c.decodeIfPresent(Float.self, forKey: .memoryUsageSessionSamplingRate) ?? fallback.memoryUsageSessionSamplingRate
         errorFatalTakeScreenshot = try c.decodeIfPresent(Bool.self, forKey: .errorFatalTakeScreenshot)
             ?? c.decodeIfPresent(Bool.self, forKey: .crashTakeScreenshot)
-            ?? DefaultConfig.errorFatalTakeScreenshot
-        errorFatalReplayEnabled = try c.decodeIfPresent(Bool.self, forKey: .errorFatalReplayEnabled) ?? DefaultConfig.errorFatalReplayEnabled
-        errorUnhandledReplayEnabled = try c.decodeIfPresent(Bool.self, forKey: .errorUnhandledReplayEnabled) ?? DefaultConfig.errorUnhandledReplayEnabled
-        errorHandledReplayEnabled = try c.decodeIfPresent(Bool.self, forKey: .errorHandledReplayEnabled) ?? DefaultConfig.errorHandledReplayEnabled
-        errorFatalSamplingRate = try c.decodeIfPresent(Float.self, forKey: .errorFatalSamplingRate) ?? DefaultConfig.errorFatalSamplingRate
-        errorUnhandledSamplingRate = try c.decodeIfPresent(Float.self, forKey: .errorUnhandledSamplingRate) ?? DefaultConfig.errorUnhandledSamplingRate
-        errorHandledSamplingRate = try c.decodeIfPresent(Float.self, forKey: .errorHandledSamplingRate) ?? DefaultConfig.errorHandledSamplingRate
-        anrTakeScreenshot = try c.decodeIfPresent(Bool.self, forKey: .anrTakeScreenshot) ?? DefaultConfig.anrTakeScreenshot
-        appHangThresholdMillis = try c.decodeIfPresent(Number.self, forKey: .appHangThresholdMillis) ?? DefaultConfig.appHangThresholdMillis
-        appHangTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .appHangTimelineDurationSeconds) ?? DefaultConfig.appHangTimelineDurationSeconds
-        appHangSamplingRate = try c.decodeIfPresent(Float.self, forKey: .appHangSamplingRate) ?? DefaultConfig.appHangSamplingRate
-        appHangReplayEnabled = try c.decodeIfPresent(Bool.self, forKey: .appHangReplayEnabled) ?? DefaultConfig.appHangReplayEnabled
-        launchSamplingRate = try c.decodeIfPresent(Float.self, forKey: .launchSamplingRate) ?? DefaultConfig.launchSamplingRate
-        gestureClickTakeSnapshot = try c.decodeIfPresent(Bool.self, forKey: .gestureClickTakeSnapshot) ?? DefaultConfig.gestureClickTakeSnapshot
-        httpSamplingRate = try c.decodeIfPresent(Float.self, forKey: .httpSamplingRate) ?? DefaultConfig.httpSamplingRate
-        httpDisableEventForUrls = try c.decodeIfPresent([String].self, forKey: .httpDisableEventForUrls) ?? DefaultConfig.httpDisableEventForUrls
-        httpTrackRequestForUrls = try c.decodeIfPresent([String].self, forKey: .httpTrackRequestForUrls) ?? DefaultConfig.httpTrackRequestForUrls
-        httpTrackResponseForUrls = try c.decodeIfPresent([String].self, forKey: .httpTrackResponseForUrls) ?? DefaultConfig.httpTrackResponseForUrls
-        httpBlockedHeaders = try c.decodeIfPresent([String].self, forKey: .httpBlockedHeaders) ?? DefaultConfig.httpBlockedHeaders
+            ?? fallback.errorFatalTakeScreenshot
+        errorFatalReplayEnabled = try c.decodeIfPresent(Bool.self, forKey: .errorFatalReplayEnabled) ?? fallback.errorFatalReplayEnabled
+        errorUnhandledReplayEnabled = try c.decodeIfPresent(Bool.self, forKey: .errorUnhandledReplayEnabled) ?? fallback.errorUnhandledReplayEnabled
+        errorHandledReplayEnabled = try c.decodeIfPresent(Bool.self, forKey: .errorHandledReplayEnabled) ?? fallback.errorHandledReplayEnabled
+        errorFatalSamplingRate = try c.decodeIfPresent(Float.self, forKey: .errorFatalSamplingRate) ?? fallback.errorFatalSamplingRate
+        errorUnhandledSamplingRate = try c.decodeIfPresent(Float.self, forKey: .errorUnhandledSamplingRate) ?? fallback.errorUnhandledSamplingRate
+        errorHandledSamplingRate = try c.decodeIfPresent(Float.self, forKey: .errorHandledSamplingRate) ?? fallback.errorHandledSamplingRate
+        anrTakeScreenshot = try c.decodeIfPresent(Bool.self, forKey: .anrTakeScreenshot) ?? fallback.anrTakeScreenshot
+        appHangThresholdMillis = try c.decodeIfPresent(Number.self, forKey: .appHangThresholdMillis) ?? fallback.appHangThresholdMillis
+        appHangTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .appHangTimelineDurationSeconds) ?? fallback.appHangTimelineDurationSeconds
+        appHangSamplingRate = try c.decodeIfPresent(Float.self, forKey: .appHangSamplingRate) ?? fallback.appHangSamplingRate
+        appHangReplayEnabled = try c.decodeIfPresent(Bool.self, forKey: .appHangReplayEnabled) ?? fallback.appHangReplayEnabled
+        launchSamplingRate = try c.decodeIfPresent(Float.self, forKey: .launchSamplingRate) ?? fallback.launchSamplingRate
+        gestureClickTakeSnapshot = try c.decodeIfPresent(Bool.self, forKey: .gestureClickTakeSnapshot) ?? fallback.gestureClickTakeSnapshot
+        httpSamplingRate = try c.decodeIfPresent(Float.self, forKey: .httpSamplingRate) ?? fallback.httpSamplingRate
+        httpDisableEventForUrls = try c.decodeIfPresent([String].self, forKey: .httpDisableEventForUrls) ?? fallback.httpDisableEventForUrls
+        httpTrackRequestForUrls = try c.decodeIfPresent([String].self, forKey: .httpTrackRequestForUrls) ?? fallback.httpTrackRequestForUrls
+        httpTrackResponseForUrls = try c.decodeIfPresent([String].self, forKey: .httpTrackResponseForUrls) ?? fallback.httpTrackResponseForUrls
+        httpBlockedHeaders = try c.decodeIfPresent([String].self, forKey: .httpBlockedHeaders) ?? fallback.httpBlockedHeaders
     }
 
     // Flutter and React Native read this file, and Flutter SDKs released before the rename
@@ -369,4 +370,9 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         case httpTrackResponseForUrls = "http_track_response_for_urls"
         case httpBlockedHeaders = "http_blocked_headers"
     }
+}
+
+extension CodingUserInfoKey {
+    /// A `BaseDynamicConfig` that supplies values for keys missing from the decoded JSON.
+    static let fallbackDynamicConfig = CodingUserInfoKey(rawValue: "fallbackDynamicConfig")!
 }

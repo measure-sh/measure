@@ -58,6 +58,74 @@ final class ConfigLoaderTests: XCTestCase {
         wait(for: [exp], timeout: 1)
     }
 
+    func testLoadDynamicConfig_returnsMeasureConfigValues_whenNoFile() {
+        let config = BaseMeasureConfig(traceSamplingRate: 5)
+        let loader = BaseConfigLoader(
+            userDefaultStorage: mockUserDefaults,
+            fileManager: mockFileManager,
+            networkClient: mockNetworkClient,
+            timeProvider: mockTimeProvider,
+            logger: MockLogger(),
+            measureDispatchQueue: measureDispatchQueue,
+            dynamicConfig: config.dynamicConfig
+        )
+        let exp = expectation(description: "loaded")
+
+        loader.loadDynamicConfig { config in
+            XCTAssertEqual(config.traceSamplingRate, 5)
+            exp.fulfill()
+        }
+
+        wait(for: [exp], timeout: 1)
+    }
+
+    func testLoadDynamicConfig_takesMissingKeysFromMeasureConfig() {
+        let config = BaseMeasureConfig(traceSamplingRate: 5, memoryUsageInterval: 1)
+        let loader = BaseConfigLoader(
+            userDefaultStorage: mockUserDefaults,
+            fileManager: mockFileManager,
+            networkClient: mockNetworkClient,
+            timeProvider: mockTimeProvider,
+            logger: MockLogger(),
+            measureDispatchQueue: measureDispatchQueue,
+            dynamicConfig: config.dynamicConfig
+        )
+        let configKey = "\(ConfigFileConstants.folderName)/\(ConfigFileConstants.dynamicConfigFolderName)/\(ConfigFileConstants.fileName)"
+        mockFileManager.savedFiles[configKey] = Data(#"{"trace_sampling_rate": 50}"#.utf8)
+        let exp = expectation(description: "loaded")
+
+        loader.loadDynamicConfig { config in
+            XCTAssertEqual(config.traceSamplingRate, 50)
+            XCTAssertEqual(config.memoryUsageInterval, 1)
+            exp.fulfill()
+        }
+
+        wait(for: [exp], timeout: 1)
+    }
+
+    func testLoadConfig_success_savesServerConfigWithMissingKeysFromMeasureConfig() throws {
+        setupCacheExpired()
+        let config = BaseMeasureConfig(memoryUsageInterval: 1)
+        let loader = BaseConfigLoader(
+            userDefaultStorage: mockUserDefaults,
+            fileManager: mockFileManager,
+            networkClient: mockNetworkClient,
+            timeProvider: mockTimeProvider,
+            logger: MockLogger(),
+            measureDispatchQueue: measureDispatchQueue,
+            dynamicConfig: config.dynamicConfig
+        )
+        mockNetworkClient.stubConfig(.success(data: Data(#"{"trace_sampling_rate": 50}"#.utf8), eTag: nil, cacheControl: 3600))
+
+        loader.loadDynamicConfig { _ in }
+
+        let configKey = "\(ConfigFileConstants.folderName)/\(ConfigFileConstants.dynamicConfigFolderName)/\(ConfigFileConstants.fileName)"
+        let saved = try XCTUnwrap(mockFileManager.savedFiles[configKey])
+        let decoded = try JSONDecoder().decode(BaseDynamicConfig.self, from: saved)
+        XCTAssertEqual(decoded.traceSamplingRate, 50)
+        XCTAssertEqual(decoded.memoryUsageInterval, 1)
+    }
+
     func testLoadDynamicConfig_returnsDefault_whenInvalidJSON() {
         let configKey = "\(ConfigFileConstants.folderName)/\(ConfigFileConstants.dynamicConfigFolderName)/\(ConfigFileConstants.fileName)"
         mockFileManager.savedFiles[configKey] = Data("{ invalid".utf8)
@@ -197,7 +265,7 @@ final class ConfigLoaderTests: XCTestCase {
         let eTag = "new-etag"
         let cache: Number = 3600
 
-        mockNetworkClient.stubConfig(.success(config: config, eTag: eTag, cacheControl: cache))
+        mockNetworkClient.stubConfig(.success(data: try JSONEncoder().encode(config), eTag: eTag, cacheControl: cache))
 
         configLoader.loadDynamicConfig { _ in }
 
@@ -216,7 +284,7 @@ final class ConfigLoaderTests: XCTestCase {
         setupCacheExpired()
 
         let config = BaseDynamicConfig()
-        mockNetworkClient.stubConfig(.success(config: config, eTag: nil, cacheControl: 3600))
+        mockNetworkClient.stubConfig(.success(data: try! JSONEncoder().encode(config), eTag: nil, cacheControl: 3600))
 
         configLoader.loadDynamicConfig { _ in }
 
@@ -286,7 +354,7 @@ final class ConfigLoaderTests: XCTestCase {
 
     func test_saveConfigToDisk_savesUnderDynamicConfigSubfolder() {
         setupCacheExpired()
-        mockNetworkClient.stubConfig(.success(config: BaseDynamicConfig(), eTag: "etag", cacheControl: 3600))
+        mockNetworkClient.stubConfig(.success(data: try! JSONEncoder().encode(BaseDynamicConfig()), eTag: "etag", cacheControl: 3600))
 
         configLoader.loadDynamicConfig { _ in }
 

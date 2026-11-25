@@ -233,7 +233,8 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
     let attributeTransformer: AttributeTransformer
 
     init(config: MeasureConfig, // swiftlint:disable:this function_body_length
-         client: Client) {
+         client: Client,
+         dynamicConfig: BaseDynamicConfig = BaseDynamicConfig()) {
         let defaultConfig = Config(enableLogging: config.enableLogging,
                                    autoStart: config.autoStart,
                                    enableFullCollectionMode: config.enableFullCollectionMode,
@@ -242,7 +243,7 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                    enableDiagnosticMode: config.enableDiagnosticMode,
                                    enableDiagnosticModeGesture: config.enableDiagnosticModeGesture,
                                    enableCppThrowSiteCapture: config.enableCppThrowSiteCapture)
-        self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig)
+        self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig, dynamicConfig: dynamicConfig)
         self.configProvider.setMeasureUrl(url: client.apiUrl.absoluteString)
         self.userDefaultStorage = BaseUserDefaultStorage()
         self.logger = MeasureLogger(enabled: config.enableLogging)
@@ -261,7 +262,8 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                              networkClient: networkClient,
                                              timeProvider: timeProvider,
                                              logger: logger,
-                                             measureDispatchQueue: measureDispatchQueue)
+                                             measureDispatchQueue: measureDispatchQueue,
+                                             dynamicConfig: dynamicConfig)
         self.idProvider = UUIDProvider()
         self.coreDataManager = BaseCoreDataManager(logger: logger)
         self.sessionStore = BaseSessionStore(coreDataManager: coreDataManager,
