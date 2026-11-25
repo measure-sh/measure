@@ -664,6 +664,7 @@ export const emptyAlertsOverviewResponse = {
 
 export type SdkConfig = {
   trace_sampling_rate: number;
+  ttid_trace_enabled: boolean;
   error_replay_duration: number;
   error_fatal_take_screenshot: boolean;
   error_fatal_replay_enabled: boolean;

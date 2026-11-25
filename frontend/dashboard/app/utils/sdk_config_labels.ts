@@ -92,6 +92,7 @@ export const sdkConfigFieldLabels: Record<
     unit: seconds,
   },
   trace_sampling_rate: { label: "Trace sampling rate", unit: percent },
+  ttid_trace_enabled: { label: "Screen load (TTID) spans" },
   launch_sampling_rate: {
     label: "Launch metrics sampling rate",
     unit: percent,

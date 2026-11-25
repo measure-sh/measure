@@ -157,7 +157,8 @@ export default function SdkConfigurator({
   const tracesChanged =
     !!sdkConfig &&
     !!originalSdkConfig &&
-    sdkConfig.trace_sampling_rate !== originalSdkConfig.trace_sampling_rate;
+    (sdkConfig.trace_sampling_rate !== originalSdkConfig.trace_sampling_rate ||
+      sdkConfig.ttid_trace_enabled !== originalSdkConfig.ttid_trace_enabled);
   const launchMetricsChanged =
     !!sdkConfig &&
     !!originalSdkConfig &&
@@ -278,6 +279,7 @@ export default function SdkConfigurator({
   const handleSaveTraces = () => {
     saveSection("traces", {
       trace_sampling_rate: sdkConfig.trace_sampling_rate,
+      ttid_trace_enabled: sdkConfig.ttid_trace_enabled,
     });
   };
   const handleSaveLaunch = () => {
@@ -609,16 +611,28 @@ export default function SdkConfigurator({
         </p>
         <p className="mt-4">The following changes will be applied:</p>
         <ul className="mt-2 space-y-1 list-disc list-inside">
-          <li>
-            Sampling rate:{" "}
-            <span className="font-display font-bold">
-              {originalSdkConfig.trace_sampling_rate}%
-            </span>{" "}
-            →{" "}
-            <span className="font-display font-bold">
-              {sdkConfig.trace_sampling_rate}%
-            </span>
-          </li>
+          {sdkConfig.trace_sampling_rate !==
+            originalSdkConfig.trace_sampling_rate && (
+            <li>
+              Sampling rate:{" "}
+              <span className="font-display font-bold">
+                {originalSdkConfig.trace_sampling_rate}%
+              </span>{" "}
+              →{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.trace_sampling_rate}%
+              </span>
+            </li>
+          )}
+          {sdkConfig.ttid_trace_enabled !==
+            originalSdkConfig.ttid_trace_enabled && (
+            <li>
+              Screen load (TTID) spans:{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.ttid_trace_enabled ? "Enabled" : "Disabled"}
+              </span>
+            </li>
+          )}
         </ul>
         <p className="mt-4">These changes will apply to all new traces.</p>
       </div>
@@ -1345,6 +1359,34 @@ export default function SdkConfigurator({
                     disabled={!currentUserCanChangeAppSettings}
                   />
                   <span className="font-body text-sm">% sampling rate</span>
+                </div>
+                <div className="flex flex-col gap-2 min-h-10 sm:flex-row sm:items-center sm:gap-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm">Collect screen load (TTID) spans</p>
+                    <InfoTooltip
+                      content={
+                        <>
+                          Records how long each screen takes to draw its first
+                          frame.{" "}
+                          <Link
+                            href="/docs/performance-tracing/screen-load-time"
+                            className={underlineLinkStyle}
+                          >
+                            Learn more
+                          </Link>
+                        </>
+                      }
+                    />
+                  </div>
+                  <Switch
+                    data-testid="ttid-trace-switch"
+                    className="sm:ml-4"
+                    checked={sdkConfig.ttid_trace_enabled}
+                    onCheckedChange={(checked) =>
+                      updateSdkConfig({ ttid_trace_enabled: checked })
+                    }
+                    disabled={!currentUserCanChangeAppSettings}
+                  />
                 </div>
                 <div className="flex justify-end mt-2">
                   <Button

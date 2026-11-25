@@ -2549,6 +2549,11 @@ paths:
                     minimum: 0
                     maximum: 100
                     description: Sampling rate for all traces.
+                  ttid_trace_enabled:
+                    type: boolean
+                    description: >
+                      Whether the SDK collects screen load (TTID) spans. Defaults
+                      to `true`.
                   journey_sampling_rate:
                     type: number
                     minimum: 0
@@ -2730,6 +2735,7 @@ paths:
                 anr_timeline_duration: 300
                 bug_report_timeline_duration: 300
                 trace_sampling_rate: 0.001
+                ttid_trace_enabled: true
                 journey_sampling_rate: 0.001
                 screenshot_mask_level: all_text
                 log_autocollect_enabled: false

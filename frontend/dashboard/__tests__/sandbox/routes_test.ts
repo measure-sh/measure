@@ -1141,6 +1141,7 @@ const settingsCases: Case[] = [
     check: (data) => {
       const keys: Record<keyof SdkConfig, true> = {
         trace_sampling_rate: true,
+        ttid_trace_enabled: true,
         error_replay_duration: true,
         error_fatal_take_screenshot: true,
         error_fatal_replay_enabled: true,
