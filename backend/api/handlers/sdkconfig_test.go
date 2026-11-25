@@ -237,6 +237,32 @@ func TestPatchConfigForApp_AnalyticsRateSetsJourneyRate(t *testing.T) {
 	}
 }
 
+func TestPatchConfigForApp_DisablesTTID(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	appID, userID := seedSdkConfig(ctx, t)
+
+	patchConfig(t, appID, userID, `{"ttid_trace_enabled":false}`)
+
+	config, err := sdkconfig.GetConfigFromDb(ctx, th.PgPool, appID)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	if config.TTIDTraceEnabled {
+		t.Errorf("ttid_trace_enabled = true, want false")
+	}
+
+	var changes map[string]sdkconfig.SdkConfigFieldChange
+	if err := th.PgPool.QueryRow(ctx,
+		`SELECT changes FROM sdk_config_history WHERE app_id = $1`, appID).Scan(&changes); err != nil {
+		t.Fatalf("read config change: %v", err)
+	}
+	if got := changes["ttid_trace_enabled"]; got.Old != true || got.New != false {
+		t.Errorf("ttid_trace_enabled change = %+v, want true to false", got)
+	}
+}
+
 func TestPatchConfigForApp_UnchangedPatchRecordsNothing(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)

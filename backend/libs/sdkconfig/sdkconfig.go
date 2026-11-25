@@ -72,6 +72,7 @@ type SdkConfig struct {
 	ANRTimelineDuration            int                 `json:"anr_timeline_duration"`
 	BugReportTimelineDuration      int                 `json:"bug_report_timeline_duration"`
 	TraceSamplingRate              float64             `json:"trace_sampling_rate"`
+	TTIDTraceEnabled               bool                `json:"ttid_trace_enabled"`
 	JourneySamplingRate            float64             `json:"journey_sampling_rate"`
 	ScreenshotMaskLevel            ScreenshotMaskLevel `json:"screenshot_mask_level"`
 	LogAutocollectEnabled          bool                `json:"log_autocollect_enabled"`
@@ -158,6 +159,7 @@ type ConfigPatch struct {
 	ANRTimelineDuration            *int                 `json:"anr_timeline_duration,omitempty"`
 	BugReportTimelineDuration      *int                 `json:"bug_report_timeline_duration,omitempty"`
 	TraceSamplingRate              *float64             `json:"trace_sampling_rate,omitempty"`
+	TTIDTraceEnabled               *bool                `json:"ttid_trace_enabled,omitempty"`
 	JourneySamplingRate            *float64             `json:"journey_sampling_rate,omitempty"`
 	ScreenshotMaskLevel            *ScreenshotMaskLevel `json:"screenshot_mask_level,omitempty"`
 	LogAutocollectEnabled          *bool                `json:"log_autocollect_enabled,omitempty"`
@@ -219,6 +221,7 @@ var historyFields = []historyField{
 	{"app_hang_replay_enabled", func(c SdkConfig) any { return c.AppHangReplayEnabled }},
 	{"bug_report_timeline_duration", func(c SdkConfig) any { return c.BugReportTimelineDuration }},
 	{"trace_sampling_rate", func(c SdkConfig) any { return c.TraceSamplingRate }},
+	{"ttid_trace_enabled", func(c SdkConfig) any { return c.TTIDTraceEnabled }},
 	{"launch_sampling_rate", func(c SdkConfig) any { return c.LaunchSamplingRate }},
 	{"profile_sampling_rate", func(c SdkConfig) any { return c.ProfileSamplingRate }},
 	{"journey_sampling_rate", func(c SdkConfig) any { return c.JourneySamplingRate }},
@@ -286,6 +289,7 @@ func createDefaultConfig() SdkConfig {
 		ANRTimelineDuration:            300,
 		BugReportTimelineDuration:      300,
 		TraceSamplingRate:              100,
+		TTIDTraceEnabled:               true,
 		JourneySamplingRate:            100,
 		ScreenshotMaskLevel:            ScreenshotMaskLevelAllTextAndMedia,
 		LogAutocollectEnabled:          false,
@@ -423,6 +427,7 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 		Select("anr_timeline_duration").
 		Select("bug_report_timeline_duration").
 		Select("trace_sampling_rate").
+		Select("ttid_trace_enabled").
 		Select("journey_sampling_rate").
 		Select("screenshot_mask_level").
 		Select("log_autocollect_enabled").
@@ -465,6 +470,7 @@ func GetConfigFromDb(ctx context.Context, pg *pgxpool.Pool, appID uuid.UUID) (*S
 		&sdkConfig.ANRTimelineDuration,
 		&sdkConfig.BugReportTimelineDuration,
 		&sdkConfig.TraceSamplingRate,
+		&sdkConfig.TTIDTraceEnabled,
 		&sdkConfig.JourneySamplingRate,
 		&sdkConfig.ScreenshotMaskLevel,
 		&sdkConfig.LogAutocollectEnabled,
@@ -595,6 +601,7 @@ func CreateConfig(ctx context.Context, tx pgx.Tx, teamID, appID uuid.UUID, creat
 		Set("anr_timeline_duration", config.ANRTimelineDuration).
 		Set("bug_report_timeline_duration", config.BugReportTimelineDuration).
 		Set("trace_sampling_rate", config.TraceSamplingRate).
+		Set("ttid_trace_enabled", config.TTIDTraceEnabled).
 		Set("journey_sampling_rate", config.JourneySamplingRate).
 		Set("screenshot_mask_level", config.ScreenshotMaskLevel).
 		Set("log_autocollect_enabled", config.LogAutocollectEnabled).
