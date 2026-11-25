@@ -23,7 +23,7 @@ import (
 
 // configColumns must stay ordered to match the scan in scanConfig.
 const configColumns = `error_replay_duration, anr_timeline_duration,
-	bug_report_timeline_duration, trace_sampling_rate, journey_sampling_rate,
+	bug_report_timeline_duration, trace_sampling_rate, ttid_trace_enabled, journey_sampling_rate,
 	screenshot_mask_level, log_autocollect_enabled, log_min_severity,
 	log_ignore_patterns, memory_usage_interval,
 	memory_usage_background_interval, memory_usage_session_sampling_rate,
@@ -56,6 +56,7 @@ func scanConfig(row pgx.Row) (sdkconfig.SdkConfig, error) {
 		&config.ANRTimelineDuration,
 		&config.BugReportTimelineDuration,
 		&config.TraceSamplingRate,
+		&config.TTIDTraceEnabled,
 		&config.JourneySamplingRate,
 		&config.ScreenshotMaskLevel,
 		&config.LogAutocollectEnabled,
@@ -122,6 +123,9 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 			return fmt.Errorf("trace_sampling_rate must be between %d-%d", minSamplingRate, maxSamplingRate)
 		}
 		stmt.Set("trace_sampling_rate", *patch.TraceSamplingRate)
+	}
+	if patch.TTIDTraceEnabled != nil {
+		stmt.Set("ttid_trace_enabled", *patch.TTIDTraceEnabled)
 	}
 	if patch.JourneySamplingRate != nil {
 		if *patch.JourneySamplingRate < minSamplingRate || *patch.JourneySamplingRate > maxSamplingRate {
