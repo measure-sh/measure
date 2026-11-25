@@ -47,7 +47,10 @@ internal interface ConfigProvider :
  * on every HTTP event. For example, `https://api.example.com/\*` compiles to
  * `^https://api\.example\.com/.*$`.
  */
-internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
+internal class ConfigProviderImpl(
+    defaultConfig: Config,
+    dynamicConfig: DynamicConfig = DynamicConfig(),
+) : ConfigProvider {
     private data class HttpPatternState(
         val disableEventPatterns: List<Regex>,
         val trackRequestPatterns: List<Regex>,
@@ -110,6 +113,10 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
         defaultConfig.requestHeadersProvider
     override val enableFullCollectionMode: Boolean = defaultConfig.enableFullCollectionMode
     override val enableDiagnosticMode: Boolean = defaultConfig.enableDiagnosticMode
+
+    init {
+        setDynamicConfig(dynamicConfig)
+    }
 
     // Dynamic config properties - use getters so they reflect current dynamicConfig state
     override val maxEventsInBatch: Int

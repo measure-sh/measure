@@ -8,6 +8,7 @@ import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import sh.measure.android.Measure
 import sh.measure.android.config.MeasureConfig
+import sh.measure.android.logs.LogSeverity
 
 class MainApplication : Application(), ReactApplication {
 
@@ -25,6 +26,8 @@ class MainApplication : Application(), ReactApplication {
                 enableLogging = true,
                 enableFullCollectionMode = true,
                 enableDiagnosticMode = true,
+                logAutocollectEnabled = false,
+                logMinSeverity = LogSeverity.Warning,
             )
         )
         val savedUrl = CredentialOverrides.getSavedApiUrl(this)

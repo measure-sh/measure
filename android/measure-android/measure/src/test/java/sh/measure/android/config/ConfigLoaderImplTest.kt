@@ -36,6 +36,7 @@ internal class ConfigLoaderImplTest {
     @Before
     fun setUp() {
         configLoader = ConfigLoaderImpl(
+            dynamicConfig = DynamicConfig(),
             ioExecutor = executorService,
             networkClient = networkClient,
             fileStorage = fileStorage,
@@ -44,6 +45,30 @@ internal class ConfigLoaderImplTest {
             logger = logger,
             exportExecutor = executorService,
         )
+    }
+
+    @Test
+    fun `cached config takes settings it does not have from MeasureConfig`() {
+        val dynamicConfig = MeasureConfig(traceSamplingRate = 5f, memoryUsageInterval = 1).toDynamicConfig()
+        val configLoader = ConfigLoaderImpl(
+            dynamicConfig = dynamicConfig,
+            ioExecutor = executorService,
+            networkClient = networkClient,
+            fileStorage = fileStorage,
+            prefsStorage = prefsStorage,
+            timeProvider = timeProvider,
+            logger = logger,
+            exportExecutor = executorService,
+        )
+        `when`(fileStorage.getConfigFile()).thenReturn(createTempConfigFile("""{"trace_sampling_rate": 50}"""))
+        `when`(prefsStorage.getConfigFetchTimestamp()).thenReturn(timeProvider.now())
+        `when`(prefsStorage.getConfigCacheControlMs()).thenReturn(600_000L)
+
+        var result: DynamicConfig? = null
+        configLoader.loadDynamicConfig { result = it }
+
+        assertEquals(50f, result?.traceSamplingRate)
+        assertEquals(1L, result?.memoryUsageInterval)
     }
 
     @Test

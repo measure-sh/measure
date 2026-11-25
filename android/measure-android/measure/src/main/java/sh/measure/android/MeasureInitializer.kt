@@ -26,7 +26,9 @@ import sh.measure.android.config.ConfigLoader
 import sh.measure.android.config.ConfigLoaderImpl
 import sh.measure.android.config.ConfigProvider
 import sh.measure.android.config.ConfigProviderImpl
+import sh.measure.android.config.DynamicConfig
 import sh.measure.android.config.MeasureConfig
+import sh.measure.android.config.toDynamicConfig
 import sh.measure.android.events.CustomEventCollector
 import sh.measure.android.events.InternalSignalCollector
 import sh.measure.android.events.SignalProcessor
@@ -127,6 +129,7 @@ import sh.measure.android.utils.isClassAvailable
 internal class MeasureInitializerImpl(
     private val application: Application,
     inputConfig: MeasureConfig,
+    dynamicConfig: DynamicConfig = inputConfig.toDynamicConfig(),
     override val configProvider: ConfigProvider = ConfigProviderImpl(
         defaultConfig = Config(
             enableLogging = inputConfig.enableLogging,
@@ -137,6 +140,7 @@ internal class MeasureInitializerImpl(
             enableDiagnosticMode = inputConfig.enableDiagnosticMode,
             requestHeadersProvider = inputConfig.requestHeadersProvider,
         ),
+        dynamicConfig = dynamicConfig,
     ),
     override val logger: Logger = AndroidLogger(configProvider.enableLogging),
     override val timeProvider: TimeProvider = AndroidTimeProvider(AndroidSystemClock()),
@@ -160,6 +164,7 @@ internal class MeasureInitializerImpl(
         context = application,
     ),
     override val configLoader: ConfigLoader = ConfigLoaderImpl(
+        dynamicConfig = dynamicConfig,
         logger = logger,
         networkClient = networkClient,
         fileStorage = fileStorage,
