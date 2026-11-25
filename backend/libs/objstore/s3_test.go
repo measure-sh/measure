@@ -15,7 +15,7 @@ func TestCreateS3PUTPreSignedURLMetadataHeader(t *testing.T) {
 	u, err := CreateS3PUTPreSignedURL(context.Background(), client, &s3.PutObjectInput{
 		Bucket:   aws.String("bucket"),
 		Key:      aws.String("k"),
-		Metadata: map[string]string{"original-file-name": "a.png"},
+		Metadata: map[string]string{"attachment-name": "a.png"},
 	})
 	if err != nil {
 		t.Fatalf("presign failed: %v", err)
@@ -25,7 +25,7 @@ func TestCreateS3PUTPreSignedURLMetadataHeader(t *testing.T) {
 		t.Fatalf("bad url: %v", err)
 	}
 	signed := parsed.Query().Get("X-Amz-SignedHeaders")
-	if !strings.Contains(";"+signed+";", ";x-amz-meta-original-file-name;") {
+	if !strings.Contains(";"+signed+";", ";x-amz-meta-attachment-name;") {
 		t.Fatalf("signed headers %q missing meta header", signed)
 	}
 	if strings.Contains(signed, "_") {
