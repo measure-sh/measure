@@ -23,6 +23,9 @@ import (
 	"google.golang.org/api/googleapi"
 )
 
+// AttachmentFilenameMetaKey has no underscores because reverse proxies drop such headers.
+const AttachmentFilenameMetaKey = "original-file-name"
+
 type LocationConfig struct {
 	IsCloud                 bool
 	AWSEndpoint             string
@@ -243,7 +246,7 @@ func (a *Attachment) Upload(ctx context.Context, config UploadConfig) (err error
 	contentType := contentTypeFor(a.Type, a.Name, head)
 
 	metadata := map[string]string{
-		"original_file_name": a.Name,
+		AttachmentFilenameMetaKey: a.Name,
 	}
 
 	if config.IsCloud {
