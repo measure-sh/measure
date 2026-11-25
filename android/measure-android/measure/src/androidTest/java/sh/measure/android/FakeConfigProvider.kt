@@ -16,6 +16,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.AllText
     override var trackActivityIntentData: Boolean = true
     override val traceSamplingRate: Float = 1f
+    override val ttidTraceEnabled: Boolean = true
     override var batchExportIntervalMs: Long = 1_000_000
     override val attachmentExportIntervalMs: Long = 500
     override var maxEventsInBatch: Int = 1_000_000

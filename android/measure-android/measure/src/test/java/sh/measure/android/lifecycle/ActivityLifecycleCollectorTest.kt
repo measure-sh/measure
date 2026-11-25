@@ -268,4 +268,13 @@ class ActivityLifecycleCollectorTest {
         val span = argumentCaptor.firstValue
         Assert.assertEquals(span.name, "Activity TTID ${TestLifecycleActivity::class.java.name}")
     }
+
+    @Test
+    fun `does not track activity or fragment TTID spans when TTID is disabled`() {
+        configProvider.ttidTraceEnabled = false
+
+        controller.setup().forceDrawFrame()
+
+        verify(signalProcessor, never()).trackSpan(any())
+    }
 }

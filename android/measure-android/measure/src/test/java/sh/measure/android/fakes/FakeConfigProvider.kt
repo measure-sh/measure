@@ -45,6 +45,7 @@ internal class FakeConfigProvider : ConfigProvider {
     override var anrTimelineDurationSeconds: Int = 300
     override var bugReportTimelineDurationSeconds: Int = 300
     override var traceSamplingRate: Float = 1f
+    override var ttidTraceEnabled: Boolean = true
     override var screenshotMaskLevel: ScreenshotMaskLevel = ScreenshotMaskLevel.AllTextAndMedia
     override var logAutocollectEnabled: Boolean = true
     override var logMinSeverity: Int = 8

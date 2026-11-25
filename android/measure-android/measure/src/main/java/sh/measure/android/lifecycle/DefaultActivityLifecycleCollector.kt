@@ -166,6 +166,9 @@ internal class DefaultActivityLifecycleCollector(
     private fun createTtidSpan(activity: Activity) {
         val identityHash = Integer.toHexString(System.identityHashCode(activity))
         setFirstActivityHash(identityHash)
+        if (!configProvider.ttidTraceEnabled) {
+            return
+        }
         if (!createdActivities.containsKey(identityHash)) {
             createdActivities[identityHash] = startActivityTtidSpan(activity)
         }
