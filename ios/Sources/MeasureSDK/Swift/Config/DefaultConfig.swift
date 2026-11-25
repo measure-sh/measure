@@ -30,6 +30,7 @@ struct DefaultConfig {
     static let anrTimelineDurationSeconds: Number = 300
     static let bugReportTimelineDurationSeconds: Number = 300
     static let traceSamplingRate: Float = 100
+    static let ttidTraceEnabled = true
     static let analyticsSamplingRate: Float = 100
     static let screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia
     static let logAutocollectEnabled: Bool = false

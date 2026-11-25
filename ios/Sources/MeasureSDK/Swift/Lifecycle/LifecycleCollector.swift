@@ -152,6 +152,8 @@ final class BaseLifecycleCollector: LifecycleCollector {
     // MARK: - TTID Span Tracking
 
     private func startViewControllerTtidSpan(for viewController: UIViewController, className: String, checkpoint: String) {
+        guard configProvider.ttidTraceEnabled else { return }
+
         let spanName = SpanName.viewControllerTtidSpan(className: className, maxLength: configProvider.maxSpanNameLength)
         let span = tracer
             .spanBuilder(name: spanName)

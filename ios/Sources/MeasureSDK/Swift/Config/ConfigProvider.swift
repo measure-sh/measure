@@ -135,6 +135,7 @@ final class BaseConfigProvider: ConfigProvider {
     var anrTimelineDurationSeconds: Number { dynamicConfig.anrTimelineDurationSeconds }
     var bugReportTimelineDurationSeconds: Number { dynamicConfig.bugReportTimelineDurationSeconds }
     var traceSamplingRate: Float { dynamicConfig.traceSamplingRate }
+    var ttidTraceEnabled: Bool { dynamicConfig.ttidTraceEnabled }
     var analyticsSamplingRate: Float { dynamicConfig.analyticsSamplingRate }
     var analyticsEventTypes: [String] { dynamicConfig.analyticsEventTypes }
     var screenshotMaskLevel: ScreenshotMaskLevel { dynamicConfig.screenshotMaskLevel }
