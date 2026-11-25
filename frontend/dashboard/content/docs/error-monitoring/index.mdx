@@ -30,6 +30,43 @@ A crash report is saved the moment a crash happens and is uploaded the next time
 
 By default, the stack trace contains just memory addresses. Upload your dSYM files in your release pipeline or from an Xcode build phase using [these scripts](/docs/error-monitoring/upload-symbols#ios).
 
+#### C++ exceptions
+
+Uncaught C++ exceptions are reported as crashes, like any other crash. Sometimes, though, the stack trace won't include the line that threw the exception.
+
+If you need to see where your C++ exceptions are thrown, turn on `enableCppThrowSiteCapture`. With it on, the SDK records the stack every time your app throws a C++ exception. Every `throw` gets slower, even the ones your code catches, so leave it off unless you need it.
+
+<Tabs items={["Swift", "Objective-C"]}>
+<Tab value="Swift">
+
+```swift
+let config = BaseMeasureConfig(enableCppThrowSiteCapture: true)
+Measure.initialize(with: clientInfo, config: config)
+```
+
+</Tab>
+<Tab value="Objective-C">
+
+```objc
+BaseMeasureConfig *config = [[BaseMeasureConfig alloc]
+    initWithEnableLogging:NO
+    autoStart:YES
+    requestHeadersProvider:NULL
+    maxDiskUsageInMb:@50
+    enableFullCollectionMode:NO
+    enableDiagnosticMode:NO
+    enableDiagnosticModeGesture:NO
+    enableCppThrowSiteCapture:YES];
+[Measure initializeWith:clientInfo config:config];
+```
+
+</Tab>
+</Tabs>
+
+<Callout type="info">
+Before iOS SDK **0.18.0**, this was always on.
+</Callout>
+
 ### Flutter
 
 Most Flutter errors are Dart errors that the framework catches before they can crash the app. Measure hooks into `FlutterError.onError` and `PlatformDispatcher.onError` to record them automatically as unhandled errors. When a crash happens on the native layer, it's captured automatically as a fatal error.

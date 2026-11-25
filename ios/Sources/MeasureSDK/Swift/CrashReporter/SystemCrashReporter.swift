@@ -26,13 +26,15 @@ final class BaseSystemCrashReporter: SystemCrashReporter {
     private static var isKSCrashInstalled = false
 
     private let logger: Logger
+    private let configProvider: ConfigProvider
 
     var hasPendingCrashReport: Bool {
         return KSCrash.shared.reportStore?.reportCount ?? 0 > 0
     }
 
-    init(logger: Logger) {
+    init(logger: Logger, configProvider: ConfigProvider) {
         self.logger = logger
+        self.configProvider = configProvider
         do {
             try enable()
         } catch {
@@ -54,6 +56,7 @@ final class BaseSystemCrashReporter: SystemCrashReporter {
             .mainThreadDeadlock,
             .memoryTermination
         ]
+        config.enableSwapCxaThrow = configProvider.enableCppThrowSiteCapture
 
         config.isWritingReportCallback = { plan, writer in
             CrashDataWriter.shared.writeCrashData(plan: plan, writer: writer)

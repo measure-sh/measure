@@ -87,6 +87,7 @@ Pass a config object to `init` to customize the SDK. The available options diffe
 | `enableFullCollectionMode` | `Bool` | `false` | Override all sampling and collect every event and trace. Increases cost, so use it for debugging only. |
 | `enableDiagnosticMode` | `Bool` | `false` | Write all SDK logs to a file you can attach when reporting an SDK bug. |
 | `enableDiagnosticModeGesture` | `Bool` | `false` | Export SDK logs with a two-finger double-tap share sheet. Requires `enableDiagnosticMode`. |
+| `enableCppThrowSiteCapture` | `Bool` | `false` | Show where C++ exceptions are thrown in crash reports. See [C++ exceptions](/docs/error-monitoring#c-exceptions). |
 
 </Tab>
 <Tab value="Flutter">

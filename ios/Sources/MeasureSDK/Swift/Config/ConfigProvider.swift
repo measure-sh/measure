@@ -91,6 +91,7 @@ final class BaseConfigProvider: ConfigProvider {
     var maxDiskUsageInMb: Number { defaultConfig.maxDiskUsageInMb }
     var enableDiagnosticMode: Bool { defaultConfig.enableDiagnosticMode }
     var enableDiagnosticModeGesture: Bool { defaultConfig.enableDiagnosticModeGesture }
+    var enableCppThrowSiteCapture: Bool { defaultConfig.enableCppThrowSiteCapture }
 
     // InternalConfig
 

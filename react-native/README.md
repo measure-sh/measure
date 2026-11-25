@@ -75,6 +75,7 @@ Besides the API keys and URLs, the plugin takes these options for the native SDK
 | `maxDiskUsageInMb` | `number` | `50` | iOS, Android | Cap the disk space used for buffered data. Clamped between 20 and 1500. |
 | `enableDiagnosticMode` | `boolean` | `false` | iOS, Android | Write all SDK logs to a file you can attach when reporting an SDK bug. |
 | `enableDiagnosticModeGesture` | `boolean` | `false` | iOS | Export SDK logs with a two-finger double-tap share sheet. Requires `enableDiagnosticMode`. |
+| `enableCppThrowSiteCapture` | `boolean` | `false` | iOS | Show where C++ exceptions are thrown in crash reports. See [C++ exceptions](https://measure.sh/docs/error-monitoring#c-exceptions). |
 | `trackActivityIntentData` | `boolean` | `false` | Android | Capture the intent data used to launch an Activity. |
 
 Run `npx expo prebuild` again after changing an option.

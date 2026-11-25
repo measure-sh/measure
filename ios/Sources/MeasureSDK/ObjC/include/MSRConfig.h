@@ -64,6 +64,11 @@ NS_ASSUME_NONNULL_BEGIN
 /// Defaults to `false`.
 @property (nonatomic) BOOL enableDiagnosticModeGesture;
 
+/// Records the stack at every C++ `throw`, so crash reports show the `throw` when a `noexcept` function
+/// or a `catch (...)` block stops a C++ exception. Recording the stack slows down every C++ `throw`, so
+/// keep this off in Kotlin Multiplatform apps. Defaults to `false`.
+@property (nonatomic) BOOL enableCppThrowSiteCapture;
+
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
 - (instancetype)initWithEnableLogging:(BOOL)enableLogging
                             autoStart:(BOOL)autoStart
@@ -71,7 +76,17 @@ NS_ASSUME_NONNULL_BEGIN
                requestHeadersProvider:(nullable id<MsrRequestHeadersProvider>)requestHeadersProvider
                      maxDiskUsageInMb:(NSNumber *)maxDiskUsageInMb
                  enableDiagnosticMode:(BOOL)enableDiagnosticMode
- enableDiagnosticModeGesture:(BOOL)enableDiagnosticModeGesture NS_DESIGNATED_INITIALIZER;
+ enableDiagnosticModeGesture:(BOOL)enableDiagnosticModeGesture;
+
+/// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
+- (instancetype)initWithEnableLogging:(BOOL)enableLogging
+                            autoStart:(BOOL)autoStart
+             enableFullCollectionMode:(BOOL)enableFullCollectionMode
+               requestHeadersProvider:(nullable id<MsrRequestHeadersProvider>)requestHeadersProvider
+                     maxDiskUsageInMb:(NSNumber *)maxDiskUsageInMb
+                 enableDiagnosticMode:(BOOL)enableDiagnosticMode
+          enableDiagnosticModeGesture:(BOOL)enableDiagnosticModeGesture
+            enableCppThrowSiteCapture:(BOOL)enableCppThrowSiteCapture NS_DESIGNATED_INITIALIZER;
 
 - (instancetype)init NS_UNAVAILABLE;
 
