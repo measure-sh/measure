@@ -49,6 +49,41 @@ Every app starts with these defaults:
 | Journey sampling rate (deprecated)   | 100%                                                                                |
 | Analytics sampling rate              | 100%                                                                                |
 
+## Change the defaults in code
+
+Your dashboard settings take effect from the second launch after install. The first launch
+uses the defaults above.
+
+To change these defaults, set them in the config you pass when you initialize the Android or
+iOS SDK.
+
+<Tabs groupId="platform" items={["Android", "iOS"]} persist>
+<Tab value="Android">
+
+```kotlin
+Measure.init(
+    context,
+    MeasureConfig(
+        traceSamplingRate = 10f,
+        httpDisableEventForUrls = listOf("https://api.example.com/*"),
+    ),
+)
+```
+
+</Tab>
+<Tab value="iOS">
+
+```swift
+let config = BaseMeasureConfig(
+    traceSamplingRate: 10,
+    httpDisableEventForUrls: ["https://api.example.com/*"]
+)
+Measure.initialize(with: clientInfo, config: config)
+```
+
+</Tab>
+</Tabs>
+
 ## Errors
 
 Fatal, unhandled, and handled errors each get their own session replay switch and sampling
