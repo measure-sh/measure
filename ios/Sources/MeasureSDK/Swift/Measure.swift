@@ -44,8 +44,10 @@ import UIKit
                 meaureInitializer.logger.log(level: .info, message: "SDK enabled in testing mode.", error: nil, data: nil)
             } else {
                 if !client.apiKey.isEmpty && client.apiUrl.absoluteString != fallbackApiUrl {
-                    let meaureInitializer = BaseMeasureInitializer(config: config ?? BaseMeasureConfig(),
-                                                                   client: client)
+                    let config = config ?? BaseMeasureConfig()
+                    let meaureInitializer = BaseMeasureInitializer(config: config,
+                                                                   client: client,
+                                                                   dynamicConfig: config.dynamicConfig)
                     measureInternal = MeasureInternal(meaureInitializer)
                 } else {
                     debugPrint("Skipping SDK initialization: Missing or invalid API key or API URL")

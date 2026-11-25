@@ -8,7 +8,7 @@
 import Foundation
 
 enum ConfigResponse {
-    case success(config: BaseDynamicConfig, eTag: String?, cacheControl: Number)
+    case success(data: Data, eTag: String?, cacheControl: Number)
     case notModified(cacheControl: Number)
     case error
 }
@@ -86,13 +86,13 @@ final class BaseNetworkClient: NetworkClient {
             }
 
             do {
-                let decoder = JSONDecoder()
-                let config = try decoder.decode(BaseDynamicConfig.self, from: data)
+                // Only rejects an invalid body. ConfigLoader decodes it.
+                _ = try JSONDecoder().decode(BaseDynamicConfig.self, from: data)
 
                 let cacheControlMs = parseCacheControlMaxAgeMs(cacheControlHeader)
 
                 return .success(
-                    config: config,
+                    data: data,
                     eTag: newETag,
                     cacheControl: cacheControlMs
                 )

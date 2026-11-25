@@ -29,13 +29,16 @@ struct BaseConfigLoader: ConfigLoader {
     private let encoder: JSONEncoder
     private let logger: Logger
     private let measureDispatchQueue: MeasureDispatchQueue
+    private let dynamicConfig: BaseDynamicConfig
 
     init(userDefaultStorage: UserDefaultStorage,
          fileManager: SystemFileManager,
          networkClient: NetworkClient,
          timeProvider: TimeProvider,
          logger: Logger,
-         measureDispatchQueue: MeasureDispatchQueue) {
+         measureDispatchQueue: MeasureDispatchQueue,
+         dynamicConfig: BaseDynamicConfig = BaseDynamicConfig()) {
+        self.dynamicConfig = dynamicConfig
         self.userDefaultStorage = userDefaultStorage
         self.fileManager = fileManager
         self.networkClient = networkClient
@@ -44,6 +47,7 @@ struct BaseConfigLoader: ConfigLoader {
         self.measureDispatchQueue = measureDispatchQueue
 
         let decoder = JSONDecoder()
+        decoder.userInfo[.fallbackDynamicConfig] = dynamicConfig
         self.decoder = decoder
 
         let encoder = JSONEncoder()
@@ -54,7 +58,7 @@ struct BaseConfigLoader: ConfigLoader {
     func loadDynamicConfig(onLoaded: @escaping (DynamicConfig) -> Void) {
         let cachedConfig = loadConfigFromDisk()
         state.isConfigLoaded = true
-        onLoaded(cachedConfig ?? BaseDynamicConfig())
+        onLoaded(cachedConfig ?? dynamicConfig)
         refreshConfigFromServer()
     }
 
@@ -116,8 +120,12 @@ struct BaseConfigLoader: ConfigLoader {
 
             switch response {
 
-            case .success(let config, let eTag, let cacheControl):
+            case .success(let data, let eTag, let cacheControl):
 
+                guard let config = try? decoder.decode(BaseDynamicConfig.self, from: data) else {
+                    logger.internalLog(level: .error, message: "ConfigLoader: Failed to decode config from server", error: nil, data: nil)
+                    return
+                }
                 saveConfigToDisk(config)
 
                 userDefaultStorage.setConfigFetchTimestamp(now)

@@ -57,8 +57,9 @@ final class BaseConfigProvider: ConfigProvider {
     )
     private var logIgnoreRegexes: [NSRegularExpression] = []
 
-    init(defaultConfig: Config) {
+    init(defaultConfig: Config, dynamicConfig: BaseDynamicConfig = BaseDynamicConfig()) {
         self.defaultConfig = defaultConfig
+        setDynamicConfig(dynamicConfig)
     }
 
     func setDynamicConfig(_ config: DynamicConfig) {
