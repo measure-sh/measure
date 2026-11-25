@@ -28,6 +28,10 @@ protocol DynamicConfig {
     /// Defaults to 100%, i.e. all traces.
     var traceSamplingRate: Float { get }
 
+    /// Whether to collect screen load (TTID) spans for ViewControllers.
+    /// Defaults to true.
+    var ttidTraceEnabled: Bool { get }
+
     /// Sampling rate in percentage for installations that should send analytics events.
     /// Defaults to 100%.
     var analyticsSamplingRate: Float { get }
@@ -136,6 +140,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
     let anrTimelineDurationSeconds: Number
     let bugReportTimelineDurationSeconds: Number
     let traceSamplingRate: Float
+    let ttidTraceEnabled: Bool
     let analyticsSamplingRate: Float
     let analyticsEventTypes: [String]
     let screenshotMaskLevel: ScreenshotMaskLevel
@@ -170,6 +175,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
          anrTimelineDurationSeconds: Number = DefaultConfig.anrTimelineDurationSeconds,
          bugReportTimelineDurationSeconds: Number = DefaultConfig.bugReportTimelineDurationSeconds,
          traceSamplingRate: Float = DefaultConfig.traceSamplingRate,
+         ttidTraceEnabled: Bool = DefaultConfig.ttidTraceEnabled,
          analyticsSamplingRate: Float = DefaultConfig.analyticsSamplingRate,
          analyticsEventTypes: [String] = DefaultConfig.analyticsEvents.map(\.rawValue),
          screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.screenshotMaskLevel,
@@ -204,6 +210,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         self.anrTimelineDurationSeconds = anrTimelineDurationSeconds
         self.bugReportTimelineDurationSeconds = bugReportTimelineDurationSeconds
         self.traceSamplingRate = traceSamplingRate
+        self.ttidTraceEnabled = ttidTraceEnabled
         self.analyticsSamplingRate = analyticsSamplingRate
         self.analyticsEventTypes = analyticsEventTypes
         self.screenshotMaskLevel = screenshotMaskLevel
@@ -244,6 +251,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         anrTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .anrTimelineDurationSeconds) ?? DefaultConfig.anrTimelineDurationSeconds
         bugReportTimelineDurationSeconds = try c.decodeIfPresent(Number.self, forKey: .bugReportTimelineDurationSeconds) ?? DefaultConfig.bugReportTimelineDurationSeconds
         traceSamplingRate = try c.decodeIfPresent(Float.self, forKey: .traceSamplingRate) ?? DefaultConfig.traceSamplingRate
+        ttidTraceEnabled = try c.decodeIfPresent(Bool.self, forKey: .ttidTraceEnabled) ?? DefaultConfig.ttidTraceEnabled
         analyticsSamplingRate = try c.decodeIfPresent(Float.self, forKey: .analyticsSamplingRate) ?? DefaultConfig.analyticsSamplingRate
         analyticsEventTypes = try c.decodeIfPresent([String].self, forKey: .analyticsEventTypes) ?? DefaultConfig.analyticsEvents.map(\.rawValue)
         screenshotMaskLevel = try c.decodeIfPresent(ScreenshotMaskLevel.self, forKey: .screenshotMaskLevel) ?? DefaultConfig.screenshotMaskLevel
@@ -287,6 +295,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         try c.encode(anrTimelineDurationSeconds, forKey: .anrTimelineDurationSeconds)
         try c.encode(bugReportTimelineDurationSeconds, forKey: .bugReportTimelineDurationSeconds)
         try c.encode(traceSamplingRate, forKey: .traceSamplingRate)
+        try c.encode(ttidTraceEnabled, forKey: .ttidTraceEnabled)
         try c.encode(analyticsSamplingRate, forKey: .analyticsSamplingRate)
         try c.encode(analyticsEventTypes, forKey: .analyticsEventTypes)
         try c.encode(screenshotMaskLevel, forKey: .screenshotMaskLevel)
@@ -327,6 +336,7 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         case anrTimelineDurationSeconds = "anr_timeline_duration"
         case bugReportTimelineDurationSeconds = "bug_report_timeline_duration"
         case traceSamplingRate = "trace_sampling_rate"
+        case ttidTraceEnabled = "ttid_trace_enabled"
         case analyticsSamplingRate = "analytics_sampling_rate"
         case analyticsEventTypes = "analytics_event_types"
         case screenshotMaskLevel = "screenshot_mask_level"

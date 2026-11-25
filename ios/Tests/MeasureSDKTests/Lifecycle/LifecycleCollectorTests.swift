@@ -311,4 +311,14 @@ final class LifecycleCollectorTests: XCTestCase {
         // Verify span was ended with OK status
         XCTAssertEqual(mockTracer.lastSpan?.status, .ok)
     }
+
+    func testViewControllerTTIDSpanNotStarted_whenTtidDisabled() {
+        mockConfigProvider.ttidTraceEnabled = false
+        lifecycleCollector.enable()
+
+        lifecycleCollector.processControllerLifecycleEvent(.loadView, for: mockViewController)
+        lifecycleCollector.processControllerLifecycleEvent(.viewDidLoad, for: mockViewController)
+
+        XCTAssertNil(mockTracer.lastSpan)
+    }
 }

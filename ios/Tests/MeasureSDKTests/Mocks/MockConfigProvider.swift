@@ -59,6 +59,7 @@ final class MockConfigProvider: ConfigProvider {
     var anrTimelineDurationSeconds: Number
     var bugReportTimelineDurationSeconds: Number
     var traceSamplingRate: Float
+    var ttidTraceEnabled: Bool
     var screenshotMaskLevel: ScreenshotMaskLevel
     var logAutocollectEnabled: Bool
     var logMinSeverity: Int
@@ -166,6 +167,7 @@ final class MockConfigProvider: ConfigProvider {
          anrTimelineDurationSeconds: Number = 300,
          bugReportTimelineDurationSeconds: Number = 300,
          traceSamplingRate: Float = 0.01,
+         ttidTraceEnabled: Bool = true,
          screenshotMaskLevel: ScreenshotMaskLevel = .allTextAndMedia,
          logAutocollectEnabled: Bool = true,
          logMinSeverity: Int = 8,
@@ -252,6 +254,7 @@ final class MockConfigProvider: ConfigProvider {
         self.anrTimelineDurationSeconds = anrTimelineDurationSeconds
         self.bugReportTimelineDurationSeconds = bugReportTimelineDurationSeconds
         self.traceSamplingRate = traceSamplingRate
+        self.ttidTraceEnabled = ttidTraceEnabled
         self.screenshotMaskLevel = screenshotMaskLevel
         self.logAutocollectEnabled = logAutocollectEnabled
         self.logMinSeverity = logMinSeverity
