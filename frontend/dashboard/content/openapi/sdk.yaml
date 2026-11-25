@@ -1875,7 +1875,7 @@ paths:
                         upload_url: "http://localhost:8080/proxy/attachments?payload=http%3A%2F%2Fminio%3A9000%2Fmsr-attachments-sandbox%2F42306fd7-cb17-4fa4-88dd-b40ce1ce34c4.svg%3FX-Amz-Algorithm%3DAWS4-HMAC-SHA256%26X-Amz-Expires%3D604800%26x-id%3DPutObject"
                         expires_at: "2025-10-15T10:14:12.870600803Z"
                         headers:
-                          x-amz-meta-original_file_name: snapshot.svg
+                          x-amz-meta-original-file-name: snapshot.svg
                 withoutAttachments:
                   summary: Batch without attachments
                   value:
