@@ -16,6 +16,7 @@ protocol MeasureConfig {
     var maxDiskUsageInMb: Number { get }
     var enableDiagnosticMode: Bool { get }
     var enableDiagnosticModeGesture: Bool { get }
+    var enableCppThrowSiteCapture: Bool { get }
 }
 
 /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
@@ -64,6 +65,15 @@ protocol MeasureConfig {
     /// Defaults to `false`.
     let enableDiagnosticModeGesture: Bool
 
+    /// Records the stack at every C++ `throw`. Turn it on to see the `throw` in crash reports when a
+    /// `noexcept` function or a `catch (...)` block stops a C++ exception. With it off, those reports start
+    /// at the code that stopped the exception.
+    ///
+    /// Recording the stack slows down every C++ `throw`, including exceptions your code catches.
+    /// Kotlin/Native throws a C++ exception for every Kotlin exception, so keep this off in Kotlin
+    /// Multiplatform apps. Defaults to `false`.
+    let enableCppThrowSiteCapture: Bool
+
     /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
     /// - Parameters:
     ///   - enableLogging: Enable or disable internal SDK logs. Defaults to `false`.
@@ -75,19 +85,24 @@ protocol MeasureConfig {
     ///   - enableDiagnosticMode: Enables diagnostic mode which writes all SDK logs to a file. The log file can be attached when reporting a bug to help with debugging SDK issues. Defaults to `false`.
     ///   - enableDiagnosticModeGesture: Enable double finger double tap gesture to export SDK logs via share sheet. This
     ///     functionality is only available if `enableDiagnosticMode` is set to `true`. Defaults to `false`.
+    ///   - enableCppThrowSiteCapture: Records the stack at every C++ `throw`, so crash reports show the `throw` when
+    ///     a `noexcept` function or a `catch (...)` block stops a C++ exception. Recording the stack slows down every
+    ///     C++ `throw`, so keep this off in Kotlin Multiplatform apps. Defaults to `false`.
     public init(enableLogging: Bool? = nil,
                 autoStart: Bool? = nil,
                 requestHeadersProvider: MsrRequestHeadersProvider? = nil,
                 maxDiskUsageInMb: Int? = nil,
                 enableFullCollectionMode: Bool? = nil,
                 enableDiagnosticMode: Bool? = nil,
-                enableDiagnosticModeGesture: Bool? = nil) {
+                enableDiagnosticModeGesture: Bool? = nil,
+                enableCppThrowSiteCapture: Bool? = nil) {
         self.enableLogging = enableLogging ?? DefaultConfig.enableLogging
         self.autoStart = autoStart ?? DefaultConfig.autoStart
         self.enableFullCollectionMode = enableFullCollectionMode ?? DefaultConfig.enableFullCollectionMode
         self.requestHeadersProvider = requestHeadersProvider
         self.enableDiagnosticMode = enableDiagnosticMode ?? DefaultConfig.enableDiagnosticMode
         self.enableDiagnosticModeGesture = enableDiagnosticModeGesture ?? DefaultConfig.enableDiagnosticModeGesture
+        self.enableCppThrowSiteCapture = enableCppThrowSiteCapture ?? DefaultConfig.enableCppThrowSiteCapture
 
         let minDiskUsage: Number = 20
         let maxDiskUsage: Number = 1500
@@ -135,6 +150,26 @@ protocol MeasureConfig {
 
     }
 
+    /// Configuration options for the Measure SDK. Used to customize the behavior of the SDK on initialization.
+    /// Same as the initializer above, plus `enableCppThrowSiteCapture`. See its documentation on `BaseMeasureConfig`.
+    @objc public convenience init(enableLogging: Bool,
+                                  autoStart: Bool,
+                                  requestHeadersProvider: MsrRequestHeadersProvider?,
+                                  maxDiskUsageInMb: NSNumber?,
+                                  enableFullCollectionMode: Bool,
+                                  enableDiagnosticMode: Bool,
+                                  enableDiagnosticModeGesture: Bool,
+                                  enableCppThrowSiteCapture: Bool) {
+        self.init(enableLogging: enableLogging,
+                  autoStart: autoStart,
+                  requestHeadersProvider: requestHeadersProvider,
+                  maxDiskUsageInMb: maxDiskUsageInMb?.intValue,
+                  enableFullCollectionMode: enableFullCollectionMode,
+                  enableDiagnosticMode: enableDiagnosticMode,
+                  enableDiagnosticModeGesture: enableDiagnosticModeGesture,
+                  enableCppThrowSiteCapture: enableCppThrowSiteCapture)
+    }
+
     public required init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
 
@@ -144,6 +179,7 @@ protocol MeasureConfig {
         requestHeadersProvider = nil // requestHeadersProvider is not encodable
         enableDiagnosticMode = try container.decodeIfPresent(Bool.self, forKey: .enableDiagnosticMode) ?? DefaultConfig.enableDiagnosticMode
         enableDiagnosticModeGesture = try container.decodeIfPresent(Bool.self, forKey: .enableDiagnosticModeGesture) ?? DefaultConfig.enableDiagnosticModeGesture
+        enableCppThrowSiteCapture = try container.decodeIfPresent(Bool.self, forKey: .enableCppThrowSiteCapture) ?? DefaultConfig.enableCppThrowSiteCapture
 
         let minDiskUsage: Number = 20
         let maxDiskUsage: Number = 1500
@@ -172,6 +208,7 @@ protocol MeasureConfig {
         case enableFullCollectionMode
         case enableDiagnosticMode
         case enableDiagnosticModeGesture
+        case enableCppThrowSiteCapture
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -182,5 +219,6 @@ protocol MeasureConfig {
         try container.encode(enableFullCollectionMode, forKey: .enableFullCollectionMode)
         try container.encode(enableDiagnosticMode, forKey: .enableDiagnosticMode)
         try container.encode(enableDiagnosticModeGesture, forKey: .enableDiagnosticModeGesture)
+        try container.encode(enableCppThrowSiteCapture, forKey: .enableCppThrowSiteCapture)
     }
 }

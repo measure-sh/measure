@@ -30,7 +30,8 @@
                                                       maxDiskUsageInMb:config.maxDiskUsageInMb
                                               enableFullCollectionMode:config.enableFullCollectionMode
                                                   enableDiagnosticMode:config.enableDiagnosticMode
-                                           enableDiagnosticModeGesture:config.enableDiagnosticModeGesture];
+                                           enableDiagnosticModeGesture:config.enableDiagnosticModeGesture
+                                             enableCppThrowSiteCapture:config.enableCppThrowSiteCapture];
     }
 
     [Measure initializeWith:client config:swiftConfig];

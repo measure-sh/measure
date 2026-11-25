@@ -240,7 +240,8 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                    requestHeadersProvider: config.requestHeadersProvider,
                                    maxDiskUsageInMb: config.maxDiskUsageInMb,
                                    enableDiagnosticMode: config.enableDiagnosticMode,
-                                   enableDiagnosticModeGesture: config.enableDiagnosticModeGesture)
+                                   enableDiagnosticModeGesture: config.enableDiagnosticModeGesture,
+                                   enableCppThrowSiteCapture: config.enableCppThrowSiteCapture)
         self.configProvider = BaseConfigProvider(defaultConfig: defaultConfig)
         self.configProvider.setMeasureUrl(url: client.apiUrl.absoluteString)
         self.userDefaultStorage = BaseUserDefaultStorage()
@@ -354,7 +355,7 @@ final class BaseMeasureInitializer: MeasureInitializer { // swiftlint:disable:th
                                                    measureDispatchQueue: measureDispatchQueue,
                                                    signalSampler: signalSampler,
                                                    exporter: exporter)
-        self.systemCrashReporter = BaseSystemCrashReporter(logger: logger)
+        self.systemCrashReporter = BaseSystemCrashReporter(logger: logger, configProvider: configProvider)
         self.crashReportManager = BaseCrashReportingManager(logger: logger,
                                                             signalProcessor: signalProcessor,
                                                             crashDataPersistence: crashDataPersistence,

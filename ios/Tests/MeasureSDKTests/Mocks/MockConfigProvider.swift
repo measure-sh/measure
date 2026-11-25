@@ -16,6 +16,7 @@ final class MockConfigProvider: ConfigProvider {
     var maxDiskUsageInMb: Number
     var enableDiagnosticMode: Bool
     var enableDiagnosticModeGesture: Bool
+    var enableCppThrowSiteCapture: Bool
     var batchExportIntervalMs: Number
     var attachmentExportIntervalMs: Number
     var debugExportIntervalMs: Number
@@ -97,6 +98,7 @@ final class MockConfigProvider: ConfigProvider {
          requestHeadersProvider: MsrRequestHeadersProvider? = nil,
          enableDiagnosticMode: Bool = false,
          enableDiagnosticModeGesture: Bool = false,
+         enableCppThrowSiteCapture: Bool = false,
          maxDiskUsageInMb: Number = 50,
          batchExportIntervalMs: Number = 3_000,
          attachmentExportIntervalMs: Number = 500,
@@ -204,6 +206,7 @@ final class MockConfigProvider: ConfigProvider {
         self.maxDiskUsageInMb = maxDiskUsageInMb
         self.enableDiagnosticMode = enableDiagnosticMode
         self.enableDiagnosticModeGesture = enableDiagnosticModeGesture
+        self.enableCppThrowSiteCapture = enableCppThrowSiteCapture
         self.batchExportIntervalMs = batchExportIntervalMs
         self.attachmentExportIntervalMs = attachmentExportIntervalMs
         self.debugExportIntervalMs = debugExportIntervalMs

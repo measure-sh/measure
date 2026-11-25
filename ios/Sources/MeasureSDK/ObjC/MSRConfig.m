@@ -16,7 +16,24 @@
                      maxDiskUsageInMb:(NSNumber *)maxDiskUsageInMb
                  enableDiagnosticMode:(BOOL)enableDiagnosticMode
           enableDiagnosticModeGesture:(BOOL)enableDiagnosticModeGesture {
-    
+    return [self initWithEnableLogging:enableLogging
+                             autoStart:autoStart
+              enableFullCollectionMode:enableFullCollectionMode
+                requestHeadersProvider:requestHeadersProvider
+                      maxDiskUsageInMb:maxDiskUsageInMb
+                  enableDiagnosticMode:enableDiagnosticMode
+           enableDiagnosticModeGesture:enableDiagnosticModeGesture
+             enableCppThrowSiteCapture:NO];
+}
+
+- (instancetype)initWithEnableLogging:(BOOL)enableLogging
+                            autoStart:(BOOL)autoStart
+             enableFullCollectionMode:(BOOL)enableFullCollectionMode
+               requestHeadersProvider:(id<MsrRequestHeadersProvider>)requestHeadersProvider
+                     maxDiskUsageInMb:(NSNumber *)maxDiskUsageInMb
+                 enableDiagnosticMode:(BOOL)enableDiagnosticMode
+          enableDiagnosticModeGesture:(BOOL)enableDiagnosticModeGesture
+            enableCppThrowSiteCapture:(BOOL)enableCppThrowSiteCapture {
     self = [super init];
     if (self) {
         _enableLogging = enableLogging;
@@ -26,6 +43,7 @@
         _maxDiskUsageInMb = maxDiskUsageInMb;
         _enableDiagnosticMode = enableDiagnosticMode;
         _enableDiagnosticModeGesture = enableDiagnosticModeGesture;
+        _enableCppThrowSiteCapture = enableCppThrowSiteCapture;
     }
     return self;
 }

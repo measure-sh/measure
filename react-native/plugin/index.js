@@ -46,6 +46,7 @@ const SDK_CONFIG_OPTIONS = {
   enableFullCollectionMode: { type: 'boolean', ios: true, android: true },
   enableDiagnosticMode: { type: 'boolean', ios: true, android: true },
   enableDiagnosticModeGesture: { type: 'boolean', ios: true, android: false },
+  enableCppThrowSiteCapture: { type: 'boolean', ios: true, android: false },
   trackActivityIntentData: { type: 'boolean', ios: false, android: true },
 };
 
@@ -63,6 +64,7 @@ const IOS_SDK_DEFAULTS = {
   enableFullCollectionMode: false,
   enableDiagnosticMode: false,
   enableDiagnosticModeGesture: false,
+  enableCppThrowSiteCapture: false,
 };
 
 const CREDENTIAL_OPTIONS = ['androidApiKey', 'androidApiUrl', 'iosApiKey', 'iosApiUrl'];
@@ -156,7 +158,8 @@ function injectMeasureObjC(contents, apiKey, apiUrl, sdkConfig) {
     `                                        requestHeadersProvider:NULL`,
     `                                              maxDiskUsageInMb:@${c.maxDiskUsageInMb}`,
     `                                          enableDiagnosticMode:${objcBool(c.enableDiagnosticMode)}`,
-    `                                   enableDiagnosticModeGesture:${objcBool(c.enableDiagnosticModeGesture)}];`,
+    `                                   enableDiagnosticModeGesture:${objcBool(c.enableDiagnosticModeGesture)}`,
+    `                                     enableCppThrowSiteCapture:${objcBool(c.enableCppThrowSiteCapture)}];`,
     `  [MeasureSDK initializeWithApiKey:@"${apiKey}" apiUrl:@"${apiUrl}" config:config];`,
   ].join('\n');
 
