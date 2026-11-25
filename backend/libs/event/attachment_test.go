@@ -6,6 +6,7 @@ import (
 	"context"
 	"io"
 	"net/url"
+	"strings"
 	"testing"
 )
 
@@ -413,4 +414,13 @@ func mustParse(t *testing.T, raw string) *url.URL {
 		t.Fatalf("parse %q: %v", raw, err)
 	}
 	return u
+}
+
+func TestAttachmentFilenameMetaKey(t *testing.T) {
+	if AttachmentFilenameMetaKey != "original-file-name" {
+		t.Fatalf("got %q", AttachmentFilenameMetaKey)
+	}
+	if strings.Contains(AttachmentFilenameMetaKey, "_") {
+		t.Fatalf("key %q contains underscore", AttachmentFilenameMetaKey)
+	}
 }

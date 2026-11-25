@@ -564,7 +564,7 @@ func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
 			expiry := time.Now().Add(ExpiryDuration)
 
 			metadata := []string{
-				fmt.Sprintf("x-goog-meta-original_file_name: %s", filename),
+				"x-goog-meta-" + event.AttachmentFilenameMetaKey + ": " + filename,
 			}
 
 			signOptions := &storage.SignedURLOptions{
@@ -586,7 +586,7 @@ func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
 				e.attachmentUploadInfos[i].UploadURL = url
 				e.attachmentUploadInfos[i].ExpiresAt = expiry
 				e.attachmentUploadInfos[i].Headers = map[string]string{
-					"x-goog-meta-original_file_name": filename,
+					"x-goog-meta-" + event.AttachmentFilenameMetaKey: filename,
 				}
 				e.attachmentUploadInfos[i].Key = uploadKey
 				e.attachmentUploadInfos[i].Location = uploadLocation
@@ -620,7 +620,7 @@ func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
 				Bucket: aws.String(config.AttachmentsBucket),
 				Key:    aws.String(uploadKey),
 				Metadata: map[string]string{
-					"original_file_name": filename,
+					event.AttachmentFilenameMetaKey: filename,
 				},
 			}, s3.WithPresignExpires(time.Duration(ExpiryDuration)))
 
@@ -635,7 +635,7 @@ func (e *eventreq) generateAttachmentUploadURLs(ctx context.Context) error {
 			e.attachmentUploadInfos[i].UploadURL = proxyUrl
 			e.attachmentUploadInfos[i].ExpiresAt = time.Now().Add(ExpiryDuration)
 			e.attachmentUploadInfos[i].Headers = map[string]string{
-				"x-amz-meta-original_file_name": filename,
+				"x-amz-meta-" + event.AttachmentFilenameMetaKey: filename,
 			}
 			e.attachmentUploadInfos[i].Key = uploadKey
 			e.attachmentUploadInfos[i].Location = uploadLocation
