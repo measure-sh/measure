@@ -122,6 +122,8 @@ internal class ConfigProviderImpl(defaultConfig: Config) : ConfigProvider {
         get() = dynamicConfig.bugReportTimelineDurationSeconds
     override val traceSamplingRate: Float
         get() = dynamicConfig.traceSamplingRate
+    override val ttidTraceEnabled: Boolean
+        get() = dynamicConfig.ttidTraceEnabled
     override val analyticsSamplingRate: Float
         get() = dynamicConfig.analyticsSamplingRate
     override val analyticsEventTypes: List<String>

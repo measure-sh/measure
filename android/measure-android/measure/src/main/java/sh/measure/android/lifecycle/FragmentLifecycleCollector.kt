@@ -107,6 +107,9 @@ internal class FragmentLifecycleCollector(
     }
 
     private fun startFragmentTtidSpan(f: Fragment) {
+        if (!configProvider.ttidTraceEnabled) {
+            return
+        }
         val identityHash = getIdentityHash(f)
         val fragmentTtidSpan = tracer.spanBuilder(
             SpanName.fragmentTtidSpan(

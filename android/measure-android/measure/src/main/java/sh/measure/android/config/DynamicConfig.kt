@@ -30,6 +30,12 @@ internal interface IDynamicConfig {
     val traceSamplingRate: Float
 
     /**
+     * Whether to collect screen load (TTID) spans for Activities and Fragments.
+     * Defaults to true.
+     */
+    val ttidTraceEnabled: Boolean
+
+    /**
      * The screenshot mask level to be applied to screenshots. Defaults
      * to [ScreenshotMaskLevel.AllTextAndMedia].
      */
@@ -212,6 +218,9 @@ internal data class DynamicConfig(
 
     @SerialName("trace_sampling_rate")
     override val traceSamplingRate: Float = 100f,
+
+    @SerialName("ttid_trace_enabled")
+    override val ttidTraceEnabled: Boolean = true,
 
     @SerialName("screenshot_mask_level")
     override val screenshotMaskLevel: ScreenshotMaskLevel =
