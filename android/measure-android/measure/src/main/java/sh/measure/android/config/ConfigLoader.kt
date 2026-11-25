@@ -1,7 +1,9 @@
 package sh.measure.android.config
 
-import kotlinx.serialization.ExperimentalSerializationApi
-import kotlinx.serialization.json.decodeFromStream
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.decodeFromJsonElement
+import kotlinx.serialization.json.encodeToJsonElement
+import kotlinx.serialization.json.jsonObject
 import sh.measure.android.executors.MeasureExecutorService
 import sh.measure.android.exporter.NetworkClient
 import sh.measure.android.logger.LogLevel
@@ -17,6 +19,7 @@ internal interface ConfigLoader {
 }
 
 internal class ConfigLoaderImpl(
+    private val dynamicConfig: DynamicConfig,
     private val ioExecutor: MeasureExecutorService,
     private val exportExecutor: MeasureExecutorService,
     private val networkClient: NetworkClient,
@@ -84,7 +87,6 @@ internal class ConfigLoaderImpl(
         }
     }
 
-    @OptIn(ExperimentalSerializationApi::class)
     private fun loadConfigFromDisk(onLoaded: (DynamicConfig?) -> Unit) {
         ioExecutor.submit {
             InternalTrace.trace(
@@ -93,9 +95,11 @@ internal class ConfigLoaderImpl(
                     val file = fileStorage.getConfigFile()
                     if (file != null && file.exists() && file.length() > 0) {
                         try {
-                            val config = file.inputStream().use { stream ->
-                                jsonSerializer.decodeFromStream<DynamicConfig?>(stream)
-                            }
+                            val cached = jsonSerializer.parseToJsonElement(file.readText()).jsonObject
+                            val initial = jsonSerializer.encodeToJsonElement(dynamicConfig).jsonObject
+                            val config = jsonSerializer.decodeFromJsonElement<DynamicConfig>(
+                                JsonObject(initial + cached),
+                            )
                             logger.log(
                                 LogLevel.Debug,
                                 "ConfigLoader: Config loaded successfully from disk",

@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
  * The level of masking to apply to the screenshot.
  */
 @Serializable
-internal enum class ScreenshotMaskLevel {
+enum class ScreenshotMaskLevel {
     /**
      * The strictest level of masking which masks all text, input fields, images and videos.
      */

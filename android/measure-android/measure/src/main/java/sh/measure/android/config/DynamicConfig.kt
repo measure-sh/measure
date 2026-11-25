@@ -197,7 +197,7 @@ internal interface IDynamicConfig {
 @Serializable
 internal data class DynamicConfig(
     @SerialName("max_events_in_batch")
-    override val maxEventsInBatch: Int = 10000,
+    override val maxEventsInBatch: Int = DefaultConfig.MAX_EVENTS_IN_BATCH,
 
     @SerialName("error_replay_duration")
     val errorReplayDuration: Int? = null,
@@ -211,41 +211,40 @@ internal data class DynamicConfig(
     val crashTimelineDuration: Int? = null,
 
     @SerialName("anr_timeline_duration")
-    override val anrTimelineDurationSeconds: Int = 300,
+    override val anrTimelineDurationSeconds: Int = DefaultConfig.ANR_TIMELINE_DURATION_SECONDS,
 
     @SerialName("bug_report_timeline_duration")
-    override val bugReportTimelineDurationSeconds: Int = 300,
+    override val bugReportTimelineDurationSeconds: Int = DefaultConfig.BUG_REPORT_TIMELINE_DURATION_SECONDS,
 
     @SerialName("trace_sampling_rate")
-    override val traceSamplingRate: Float = 100f,
+    override val traceSamplingRate: Float = DefaultConfig.TRACE_SAMPLING_RATE,
 
     @SerialName("ttid_trace_enabled")
-    override val ttidTraceEnabled: Boolean = true,
+    override val ttidTraceEnabled: Boolean = DefaultConfig.TTID_TRACE_ENABLED,
 
     @SerialName("screenshot_mask_level")
-    override val screenshotMaskLevel: ScreenshotMaskLevel =
-        ScreenshotMaskLevel.AllTextAndMedia,
+    override val screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.SCREENSHOT_MASK_LEVEL,
 
     @SerialName("log_autocollect_enabled")
-    override val logAutocollectEnabled: Boolean = false,
+    override val logAutocollectEnabled: Boolean = DefaultConfig.LOG_AUTOCOLLECT_ENABLED,
 
     @SerialName("log_min_severity")
-    override val logMinSeverity: Int = 16,
+    override val logMinSeverity: Int = DefaultConfig.LOG_MIN_SEVERITY,
 
     @SerialName("log_ignore_patterns")
-    override val logIgnorePatterns: List<String> = emptyList(),
+    override val logIgnorePatterns: List<String> = DefaultConfig.LOG_IGNORE_PATTERNS,
 
     @SerialName("cpu_usage_interval")
-    override val cpuUsageInterval: Long = 5,
+    override val cpuUsageInterval: Long = DefaultConfig.CPU_USAGE_INTERVAL,
 
     @SerialName("memory_usage_interval")
-    override val memoryUsageInterval: Long = 5,
+    override val memoryUsageInterval: Long = DefaultConfig.MEMORY_USAGE_INTERVAL,
 
     @SerialName("memory_usage_background_interval")
-    override val memoryUsageBackgroundInterval: Long = 10,
+    override val memoryUsageBackgroundInterval: Long = DefaultConfig.MEMORY_USAGE_BACKGROUND_INTERVAL,
 
     @SerialName("memory_usage_session_sampling_rate")
-    override val memoryUsageSessionSamplingRate: Float = 0.01f,
+    override val memoryUsageSessionSamplingRate: Float = DefaultConfig.MEMORY_USAGE_SESSION_SAMPLING_RATE,
 
     @SerialName("error_fatal_take_screenshot")
     val errorFatalTakeScreenshot: Boolean? = null,
@@ -259,68 +258,61 @@ internal data class DynamicConfig(
     val crashTakeScreenshot: Boolean? = null,
 
     @SerialName("error_fatal_replay_enabled")
-    override val errorFatalReplayEnabled: Boolean = true,
+    override val errorFatalReplayEnabled: Boolean = DefaultConfig.ERROR_FATAL_REPLAY_ENABLED,
 
     @SerialName("error_unhandled_replay_enabled")
-    override val errorUnhandledReplayEnabled: Boolean = false,
+    override val errorUnhandledReplayEnabled: Boolean = DefaultConfig.ERROR_UNHANDLED_REPLAY_ENABLED,
 
     @SerialName("error_handled_replay_enabled")
-    override val errorHandledReplayEnabled: Boolean = false,
+    override val errorHandledReplayEnabled: Boolean = DefaultConfig.ERROR_HANDLED_REPLAY_ENABLED,
 
     @SerialName("error_fatal_sampling_rate")
-    override val errorFatalSamplingRate: Float = 100f,
+    override val errorFatalSamplingRate: Float = DefaultConfig.ERROR_FATAL_SAMPLING_RATE,
 
     @SerialName("error_unhandled_sampling_rate")
-    override val errorUnhandledSamplingRate: Float = 100f,
+    override val errorUnhandledSamplingRate: Float = DefaultConfig.ERROR_UNHANDLED_SAMPLING_RATE,
 
     @SerialName("error_handled_sampling_rate")
-    override val errorHandledSamplingRate: Float = 0f,
+    override val errorHandledSamplingRate: Float = DefaultConfig.ERROR_HANDLED_SAMPLING_RATE,
 
     @SerialName("anr_take_screenshot")
-    override val anrTakeScreenshot: Boolean = true,
+    override val anrTakeScreenshot: Boolean = DefaultConfig.ANR_TAKE_SCREENSHOT,
 
     @SerialName("launch_sampling_rate")
-    override val launchSamplingRate: Float = 100f,
+    override val launchSamplingRate: Float = DefaultConfig.LAUNCH_SAMPLING_RATE,
 
     @SerialName("gesture_click_take_snapshot")
-    override val gestureClickTakeSnapshot: Boolean = true,
+    override val gestureClickTakeSnapshot: Boolean = DefaultConfig.GESTURE_CLICK_TAKE_SNAPSHOT,
 
     @SerialName("http_sampling_rate")
-    override val httpSamplingRate: Float = 100f,
+    override val httpSamplingRate: Float = DefaultConfig.HTTP_SAMPLING_RATE,
 
     @SerialName("http_disable_event_for_urls")
-    override val httpDisableEventForUrls: List<String> = emptyList(),
+    override val httpDisableEventForUrls: List<String> = DefaultConfig.HTTP_DISABLE_EVENT_FOR_URLS,
 
     @SerialName("http_track_request_for_urls")
-    override val httpTrackRequestForUrls: List<String> = emptyList(),
+    override val httpTrackRequestForUrls: List<String> = DefaultConfig.HTTP_TRACK_REQUEST_FOR_URLS,
 
     @SerialName("http_track_response_for_urls")
-    override val httpTrackResponseForUrls: List<String> = emptyList(),
+    override val httpTrackResponseForUrls: List<String> = DefaultConfig.HTTP_TRACK_RESPONSE_FOR_URLS,
 
     @SerialName("http_blocked_headers")
-    override val httpBlockedHeaders: List<String> = listOf(
-        "Authorization",
-        "Cookie",
-        "Set-Cookie",
-        "Proxy-Authorization",
-        "WWW-Authenticate",
-        "X-Api-Key",
-    ),
+    override val httpBlockedHeaders: List<String> = DefaultConfig.HTTP_BLOCKED_HEADERS,
 
     @SerialName("profile_sampling_rate")
-    override val profileSamplingRate: Float = 100f,
+    override val profileSamplingRate: Float = DefaultConfig.PROFILE_SAMPLING_RATE,
 
     @SerialName("analytics_sampling_rate")
-    override val analyticsSamplingRate: Float = 100f,
+    override val analyticsSamplingRate: Float = DefaultConfig.ANALYTICS_SAMPLING_RATE,
 
     @SerialName("analytics_event_types")
     override val analyticsEventTypes: List<String> = DefaultConfig.ANALYTICS_EVENTS.map { it.value },
 ) : IDynamicConfig {
     @Suppress("DEPRECATION")
     override val errorReplayDurationSeconds: Int
-        get() = errorReplayDuration ?: crashTimelineDuration ?: 300
+        get() = errorReplayDuration ?: crashTimelineDuration ?: DefaultConfig.ERROR_REPLAY_DURATION_SECONDS
 
     @Suppress("DEPRECATION")
     override val errorFatalScreenshotEnabled: Boolean
-        get() = errorFatalTakeScreenshot ?: crashTakeScreenshot ?: true
+        get() = errorFatalTakeScreenshot ?: crashTakeScreenshot ?: DefaultConfig.ERROR_FATAL_SCREENSHOT_ENABLED
 }

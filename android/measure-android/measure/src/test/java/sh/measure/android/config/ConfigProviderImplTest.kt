@@ -45,6 +45,23 @@ class ConfigProviderImplTest {
     }
 
     @Test
+    fun `dynamic config from MeasureConfig applies until the server config loads`() {
+        val dynamicConfig = MeasureConfig(
+            traceSamplingRate = 5f,
+            httpDisableEventForUrls = listOf("https://api.example.com/*"),
+        ).toDynamicConfig()
+        val provider = ConfigProviderImpl(Config(), dynamicConfig)
+
+        assertEquals(5f, provider.traceSamplingRate)
+        assertFalse(provider.shouldTrackHttpEvent("https://api.example.com/users"))
+
+        provider.setDynamicConfig(DynamicConfig(traceSamplingRate = 50f))
+
+        assertEquals(50f, provider.traceSamplingRate)
+        assertTrue(provider.shouldTrackHttpEvent("https://api.example.com/users"))
+    }
+
+    @Test
     fun `shouldTrackHttpEvent returns true when no URLs are blocked`() {
         assertTrue(configProvider.shouldTrackHttpEvent("https://api.example.com/data"))
     }
