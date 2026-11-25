@@ -1,0 +1,314 @@
+---
+title: "Fix Production Android Bugs With Your Coding Agent and MCP"
+description: "How to give your coding agent production context through Measure MCP, so it can read errors, stack traces and session data and fix Android bugs with evidence."
+date: "2026-11-25"
+image: /blog/assets/fix-production-android-bugs-coding-agent-mcp-hero.png
+author:
+  name: Abhay Sood
+  avatar: /images/profile_pics/profile_abhay.webp
+tags:
+  - android
+  - error-monitoring
+  - mcp
+---
+
+![Hero Image](/blog/assets/fix-production-android-bugs-coding-agent-mcp-hero.png)
+
+Coding agents can inspect, run commands, and explain unfamiliar code. They can also help to identify bugs and apply fixes on a codebase. All these can only be implemented during development, but when a bug occurs on a user's device, coding agents will be of no help in such a situation.
+
+When we inspect a stack trace, we can point out where an exception occurred, but, you may not have the knowledge of what the user did immediately before the exception. Without runtime context, we can spend much time using an AI agent to explore possible causes of an exception which may not be related to the actual incident.
+
+In this tutorial, we'll use Codex as our coding agent and connect it to [Measure](/docs/mcp) through MCP (Model Context Protocol). We'll then use exceptions captured from a production app to investigate and fix Android bugs. We will set up the Measure SDK in a Flutter app, retrieve relevant session and error data, compare these findings with the codebase, then implement a targeted fix, and validate the result.
+
+Measure can also be used on other cross-platform environments like React Native, Kotlin Multiplatform, and on native Android and iOS.
+
+What we want to achieve is to be in control of what changes the AI agent makes, and not allow it to make changes without validation. By this, we provide the required context needed to make better suggestions and also, verify those suggestions with tests and observable results.
+
+## Set up Measure in a Flutter application
+
+To get started we will create a Dog Breed Explorer application for the purpose of the tutorial. When the app launches, it fetches a list of dog breeds from the [Dog CEO API](https://dog.ceo/dog-api/documentation/), then, from a drop-down menu, any of the breeds selected displays a grid of dog images of that breed.
+
+![The Dog Breed Explorer app showing a breed drop-down and a grid of dog images](/blog/assets/fix-production-android-bugs-coding-agent-mcp-dog-breed-explorer.webp)
+
+### Create the Flutter application
+
+For this tutorial, we'll use an [example Flutter application](https://github.com/Studio1HQ/dog_breeds) to walk through the setup process. If you're using your own Flutter app, you can skip this section and jump to the next section to integrate Measure.
+
+Make sure you have Flutter version 3.27 or above installed on your computer. In the project directory create the project by running:
+
+```bash
+flutter create dog_breeds
+```
+
+Move to the project directory:
+
+```bash
+cd dog_breeds
+```
+
+The Flutter app will need some dependencies like the `http` package, to handle the network calls. Include that in the project with:
+
+```bash
+flutter pub add http
+```
+
+The base URL from the [Dog CEO API](https://dog.ceo/dog-api/documentation/) is `https://dog.ceo/api`. The application needs two endpoints:
+
+1. `/breeds/list/all` retrieves all breeds available.
+2. `/breed/{breed}/images/random/12` retrieves 12 random images of any breed selected.
+
+The UI comprises a drop-down which houses the list of breeds that can be selected, then a grid of images of the selected breed, a loader and error states that help handle network requests.
+
+### Add the Measure SDK
+
+To add the Measure SDK to your project, register on the Measure dashboard, choose your project's platform, and create an application on the dashboard. You can follow the [Measure Flutter SDK integration guide](/docs/getting-started/flutter) and finish up the setup.
+
+### Verify the integration
+
+To verify, start a test exception and confirm that it appears in the Measure dashboard. The [official Flutter SDK guide](/docs/getting-started/flutter#5-verify-installation) documents a temporary test crash that can be used for this purpose.
+
+Run the application:
+
+```bash
+flutter run
+```
+
+**Note**: Remove the test exception once you have seen the crash on your Measure dashboard.
+
+At this point, we have an instrumented application. The next step is to reproduce an issue that gives us something meaningful to investigate.
+
+## Connect Measure to Codex using MCP
+
+The Measure SDK helps us to monitor and fix crashes, bugs and performance issues, but we still need a way to make this data available to our coding agent.
+
+The [Measure MCP server](/product/mcp) makes available an interface through which coding agents can query errors, performance traces, session replays, and bug reports.
+
+Instead of manually copying an error report from Measure into a prompt, we can connect Codex to the Measure MCP server and let it retrieve the relevant context during an investigation.
+
+### Configure the Measure MCP server
+
+To get started, ensure you have access to Codex and that the Measure MCP server is available for your Measure workspace.
+
+Follow the [Measure MCP documentation](/docs/mcp) to get the appropriate connection details and set up the server in Codex.
+
+After you have set up the connection, make sure that Codex can actually discover and make use of the available Measure tools via MCP. You can check this by typing the following in your terminal:
+
+```bash
+codex mcp list
+```
+
+For this tutorial, one of the important capabilities is retrieving the production error and its associated session evidence. The image below shows a successful connection of Codex to the Measure MCP.
+
+![Output of codex mcp list showing the Measure MCP server connected](/blog/assets/fix-production-android-bugs-coding-agent-mcp-codex-mcp-list.webp)
+
+### What changes when the connection works?
+
+Without MCP, when a bug is encountered our debugging workflow might look like this:
+
+1. Open the Measure dashboard.
+2. Find the relevant error.
+3. Inspect its stack trace and session replay.
+4. Copy the useful information into Codex.
+5. Ask Codex to investigate the source code.
+
+With MCP, Codex can retrieve the relevant information directly from Measure through the connected tools. We can ask it to make a code change, check for issues, inspect the available evidence, and make changes to the project according to its findings.
+
+This does not mean the agent has total control over the workflow. It still needs to be tested, verified, and a final fix implemented in the project.
+
+## Investigate the application bug using production evidence
+
+We'll introduce an asynchronous lifecycle bug into the Dog Breed Explorer application.
+
+Here is how it occurs: when a user selects a breed from the breeds drop-down menu, the application sends a request to the Dog CEO API. While that request is in progress, the user leaves the screen. If the request completes after the screen has been disposed, attempting to update the widget's state will produce a `setState() called after dispose()` exception.
+
+This exception depends on the timing of two events, an asynchronous operation completing and a widget being disposed.
+
+### Reproduce the failure
+
+In the gallery screen where the dog images are shown, the breed-selection function fetches the images and updates the UI when the request finishes.
+
+In this instance, we'll introduce a controlled delay and temporarily remove the lifecycle check.
+
+```dart
+Future<void> _selectBreed(String? breed) async {
+  if (breed == null) return;
+
+  setState(() {
+    _selectedBreed = breed;
+    _isLoadingImages = true;
+    _images = [];
+    _errorMessage = null;
+  });
+
+  try {
+    final images = await _dogApiService.fetchBreedImages(breed, count: 12);
+
+    // Temporary test delay.
+    await Future.delayed(const Duration(seconds: 3));
+
+    // Intentional bug: the widget may already be disposed.
+    setState(() {
+      _images = images;
+      _isLoadingImages = false;
+    });
+  } catch (error) {
+    setState(() {
+      _isLoadingImages = false;
+      _errorMessage = 'Could not load $breed images. Please try again.';
+    });
+  }
+}
+```
+
+The three second delay allows us to leave the gallery screen before the asynchronous operation attempts to update its state.
+
+The change we then need to make is to add a temporary navigation action that replaces the gallery route with another screen. Then we go ahead to select a breed, wait for the API response, and navigate away during the delay.
+
+When the delayed operation resumes, it calls `setState()` on the disposed widget, and Flutter reports it as a lifecycle exception.
+
+### Find the corresponding evidence in Measure
+
+Test this out on an Android device or emulator with Measure enabled. Check the dashboard for the exception and its associated session information.
+
+What we want to establish is that:
+
+- The user selected a dog breed.
+- The image request was initiated.
+- The gallery screen was left before the asynchronous operation completed.
+- The application subsequently reported the lifecycle exception.
+
+The exact evidence available will depend on what Measure captured when we got the exception and how the SDK is configured. Therefore, head to your dashboard to confirm that the error is there before proceeding.
+
+![The setState() called after dispose() error listed in the Measure dashboard](/blog/assets/fix-production-android-bugs-coding-agent-mcp-measure-error-dashboard.webp)
+
+If you cannot find it, look through the Measure SDK's error reporting configuration, the Flutter error path and the form of the Flutter error.
+
+![Error details in Measure with the stack trace and session information](/blog/assets/fix-production-android-bugs-coding-agent-mcp-measure-error-details.webp)
+
+### Ask Codex to investigate
+
+With Measure connected through MCP, we can ask Codex to retrieve the relevant error and inspect the code responsible for the failing operation.
+
+For example, we can feed this to the coding agent:
+
+> Use the available Measure tools to find the setState() called after dispose() error from my Dog Breed Explorer application. Inspect the associated session evidence and stack trace. Then investigate lib/screens/dog_breed_screen.dart and identify the code path responsible for the exception. Explain what the evidence confirms, what may be unclear, and the safe fix. Do not modify the code yet.
+
+![The investigation prompt entered in Codex](/blog/assets/fix-production-android-bugs-coding-agent-mcp-codex-investigate-prompt.webp)
+
+Review the actual response returned by Codex.
+
+We want it to connect the observed failure to the asynchronous image request and the subsequent state update, rather than simply repeat the exception message.
+
+If the available session evidence is incomplete, ask the agent to state what additional information is needed. A good investigation distinguishes a confirmed finding from a likely explanation. Below is Codex's explanation from the Measure session evidence, and the possible fix.
+
+![Codex's diagnosis linking the Measure session evidence to the code path and proposing a fix](/blog/assets/fix-production-android-bugs-coding-agent-mcp-codex-diagnosis.webp)
+
+## Implement a targeted fix with Codex
+
+Once the diagnosis by the coding agent is supported by the evidence we have, we can ask the agent to suggest a correction.
+
+![Codex proposing the fix for the lifecycle bug](/blog/assets/fix-production-android-bugs-coding-agent-mcp-codex-fix-proposal.webp)
+
+![The diff Codex applied to the gallery screen](/blog/assets/fix-production-android-bugs-coding-agent-mcp-codex-fix-diff.webp)
+
+In this example, the problem is that the asynchronous operation continues after the widget has been disposed. Before updating the widget's state, we need to verify that the widget is still mounted.
+
+The corrected code which prevents the exception adds this check:
+
+```dart
+final images = await _dogApiService.fetchBreedImages(breed, count: 12);
+
+if (!mounted) return;
+
+setState(() {
+  _images = images;
+  _isLoadingImages = false;
+});
+```
+
+We also need to add the check on the error-handling path:
+
+```dart
+catch (error) {
+  if (!mounted) return;
+  setState(() {
+    _isLoadingImages = false;
+    _errorMessage = 'Could not load $breed images. Please try again.';
+  });
+}
+```
+
+The `mounted` checks prevent this method from attempting to update the widget after disposal.
+
+The temporary delay which was added should be removed from the final code. We should also preserve the request-ordering safeguard so an older response cannot overwrite the latest selection when a user clicks two dog breeds in quick succession in the drop-down menu.
+
+```dart
+int _imageRequestId = 0;
+
+// then update the checks
+if (!mounted || requestId != _imageRequestId) return;
+```
+
+### Review the proposed changes
+
+Before accepting the change, ask the coding agent to explain why the fix addresses the observed failure, and inspect the resulting diff.
+
+Check that:
+
+- The lifecycle checks cover both successful and failed requests.
+- Loading and error states behave correctly.
+- The solution does not introduce unnecessary code or architectural changes.
+- Existing behavior for selecting breeds and refreshing images remains intact.
+- A regression test can reproduce the original lifecycle scenario.
+
+The purpose of using an AI coding agent is not to allow it to have total control of every decision. It is to use the available context to make the findings more efficient while retaining control over what is implemented.
+
+### Validate the fix
+
+An explanation and a code change are not enough to conclude that the problem is resolved.
+
+We need to test the corrected code and reproduce the original sequence in the app again.
+
+### Run the Flutter checks
+
+Start with static analysis:
+
+```bash
+flutter analyze
+```
+
+Then run the project's tests:
+
+```bash
+flutter test
+```
+
+For this particular bug, add a widget test that starts an image request, removes the gallery widget before the request completes, and verifies that the application does not report a `setState()` called after `dispose()` exception.
+
+Injecting a mock API service or using a controllable `Completer` makes it possible to hold the request open until the test disposes of the widget. This is more reliable than depending on the timing of a real network request.
+
+### Reproduce the original sequence
+
+Run the application on a device again and repeat the same navigation steps:
+
+1. Select a breed.
+2. Start the image request.
+3. Leave the gallery screen before the request finishes.
+4. Allow the asynchronous operation to complete.
+5. Check the debug output and verify that the lifecycle exception no longer occurs.
+
+If the change passes the relevant tests, we have evidence that the specific failure has been addressed.
+
+## What this changes in your daily app-building workflow
+
+Codex can help us navigate through a codebase, understand an exception, and it can also implement a fix. However, the quality of its investigation depends on the data or evidence presented to it.
+
+Measure adds another, more accurate source of context: the exact capture of what happened while the application was running. By providing that context to Codex through MCP, we change our workflow from manually collecting telemetry and writing increasingly detailed prompts to one in which the agent can retrieve relevant evidence and compare it with the code.
+
+The benefit is not that the AI agent takes total control of our codebase or is now seen as perfect. It is that the investigation carried out by the agent starts with better information.
+
+For this workflow to be beneficial, we still need to put in effort in reproducing the issue where possible, verify the diagnosis, review the code changes, and run tests that show that the fix works.
+
+Measure provides the runtime evidence needed by the coding agent to investigate alongside the codebase. The developer remains in control of deciding which changes to accept and whether the fix is validated to an acceptable level.
+
+The demo code is available [on GitHub](https://github.com/Studio1HQ/dog_breeds).
