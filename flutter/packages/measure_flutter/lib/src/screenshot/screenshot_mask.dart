@@ -43,6 +43,9 @@ class ScreenshotMask {
         }
       }
 
+      // Icon paints its glyph with a RenderParagraph, don't mask it as text.
+      if (widget is Icon) return;
+
       element.visitChildElements(
         (child) => visit(child, clickable: isClickable),
       );
@@ -56,8 +59,6 @@ class ScreenshotMask {
   bool _isHidden(RenderObject? renderObject) {
     if (renderObject is RenderOffstage) return renderObject.offstage;
     if (renderObject is RenderOpacity) return renderObject.opacity == 0;
-    // ExcludeSemantics only removes a subtree from the accessibility tree, it
-    // is still painted, so it must not be skipped here.
     return false;
   }
 
@@ -67,12 +68,11 @@ class ScreenshotMask {
     ScreenshotMaskLevel level,
     bool isClickable,
   ) {
-    // Explicitly opted-in via MsrMask, masked at every level.
     if (widget is MsrMask) return true;
 
     final isText = renderObject is RenderParagraph;
     final isTextInput = widget is EditableText;
-    final isMedia = renderObject is RenderImage;
+    final isMedia = renderObject is RenderImage || widget is Icon;
     final isSensitive = isTextInput && _isSensitiveInput(widget);
 
     switch (level) {
@@ -81,7 +81,6 @@ class ScreenshotMask {
       case ScreenshotMaskLevel.allText:
         return isText || isTextInput;
       case ScreenshotMaskLevel.allTextExceptClickable:
-        // Sensitive fields are always masked, even when clickable.
         return isSensitive || ((isText || isTextInput) && !isClickable);
       case ScreenshotMaskLevel.sensitiveFieldsOnly:
         return isSensitive;
