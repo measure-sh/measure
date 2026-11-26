@@ -178,7 +178,7 @@ class FakeMeasure implements MeasureApi {
 
   @override
   int getCurrentTime() {
-    throw UnimplementedError();
+    return DateTime.now().millisecondsSinceEpoch;
   }
 
   @override

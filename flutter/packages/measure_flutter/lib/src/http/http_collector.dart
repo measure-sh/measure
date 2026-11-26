@@ -101,7 +101,7 @@ class HttpCollector {
     signalProcessor.trackEvent(
       data: data,
       type: EventType.http,
-      timestamp: startTime,
+      timestamp: endTime ?? startTime,
       userDefinedAttrs: {},
       userTriggered: false,
     );

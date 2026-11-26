@@ -1,4 +1,5 @@
 import 'dart:collection';
+import 'dart:convert';
 import 'dart:developer' as developer;
 
 import 'package:dio/dio.dart';
@@ -14,6 +15,10 @@ import 'package:measure_flutter/measure_flutter.dart';
 /// dio.interceptors.add(MsrInterceptor());
 /// ```
 class MsrInterceptor extends Interceptor {
+  static const _maxBodySizeBytes = 256 * 1024;
+  static const _bodyTruncatedMessage =
+      '\n... [Body truncated - exceeded 256KB limit]';
+
   final _requestsStartTime = HashMap<RequestOptions, int>();
   final MeasureApi _measure;
 
@@ -29,46 +34,14 @@ class MsrInterceptor extends Interceptor {
     RequestOptions options,
     RequestInterceptorHandler handler,
   ) async {
-    _requestsStartTime[options] = Measure.instance.getCurrentTime();
+    _requestsStartTime[options] = _measure.getCurrentTime();
     handler.next(options);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) async {
-    if (!_measure
-        .shouldTrackHttpEvent(response.requestOptions.uri.toString())) {
-      handler.next(response);
-      return;
-    }
-
     try {
-      final request = response.requestOptions;
-      final url = _getRequestUrl(request);
-      final method = _getMethod(request);
-      final startTime = _requestsStartTime[request];
-      final endTime = Measure.instance.getCurrentTime();
-      final requestHeaders = _getRequestHeaders(request);
-      final requestBody = _getRequestBody(request);
-      final responseHeaders = _getResponseHeaders(request, response);
-      final responseBody = _getResponseBody(response, request);
-
-      if (startTime == null) {
-        developer.log("Failed to track http event, unable to get start time");
-        return;
-      }
-
-      _measure.trackHttpEvent(
-        url: url,
-        method: HttpMethod.fromString(method),
-        startTime: startTime,
-        endTime: endTime,
-        statusCode: response.statusCode,
-        requestHeaders: requestHeaders,
-        requestBody: requestBody,
-        responseHeaders: responseHeaders,
-        responseBody: responseBody,
-        client: 'dio',
-      );
+      _trackResponse(response);
     } catch (e, stacktrace) {
       _logInternalError(e, stacktrace);
     } finally {
@@ -80,32 +53,65 @@ class MsrInterceptor extends Interceptor {
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) async {
     try {
-      final request = err.requestOptions;
-      final url = _getRequestUrl(request);
-      final method = _getMethod(request);
-      // The start time should never be null, but this happens in tests
-      // hence setting a default value.
-      final startTime =
-          _requestsStartTime[request] ?? Measure.instance.getCurrentTime();
-      final endTime = Measure.instance.getCurrentTime();
-      final failureReason = _getFailureReason(err);
-      final failureDescription = _getFailureDescription(err);
-
-      _measure.trackHttpEvent(
-        url: url,
-        method: HttpMethod.fromString(method),
-        startTime: startTime,
-        endTime: endTime,
-        failureReason: failureReason,
-        failureDescription: failureDescription,
-        client: 'dio',
-      );
+      // dio throws for 4xx and 5xx responses, which still have a response.
+      final response = err.response;
+      if (response != null) {
+        _trackResponse(response);
+      } else {
+        _trackFailure(err);
+      }
     } catch (e, stacktrace) {
       _logInternalError(e, stacktrace);
     } finally {
       handler.next(err);
       _requestsStartTime.remove(err.requestOptions);
     }
+  }
+
+  void _trackResponse(Response response) {
+    final request = response.requestOptions;
+    final url = _getRequestUrl(request);
+    if (!_measure.shouldTrackHttpEvent(url)) {
+      return;
+    }
+
+    final startTime = _requestsStartTime[request];
+    if (startTime == null) {
+      developer.log("Failed to track http event, unable to get start time");
+      return;
+    }
+
+    _measure.trackHttpEvent(
+      url: url,
+      method: HttpMethod.fromString(_getMethod(request)),
+      startTime: startTime,
+      endTime: _measure.getCurrentTime(),
+      statusCode: response.statusCode,
+      requestHeaders: _getRequestHeaders(request),
+      requestBody: _getRequestBody(request),
+      responseHeaders: _getResponseHeaders(request, response),
+      responseBody: _getResponseBody(response, request),
+      client: 'dio',
+    );
+  }
+
+  void _trackFailure(DioException err) {
+    final request = err.requestOptions;
+    final startTime = _requestsStartTime[request];
+    if (startTime == null) {
+      developer.log("Failed to track http event, unable to get start time");
+      return;
+    }
+
+    _measure.trackHttpEvent(
+      url: _getRequestUrl(request),
+      method: HttpMethod.fromString(_getMethod(request)),
+      startTime: startTime,
+      endTime: _measure.getCurrentTime(),
+      failureReason: _getFailureReason(err),
+      failureDescription: _getFailureDescription(err),
+      client: 'dio',
+    );
   }
 
   String _getMethod(RequestOptions request) {
@@ -128,14 +134,16 @@ class MsrInterceptor extends Interceptor {
     if (data == null) {
       return null;
     }
-    if (request.responseType != ResponseType.json) {
+    // Bytes and stream responses are never JSON text.
+    if (request.responseType == ResponseType.bytes ||
+        request.responseType == ResponseType.stream) {
       return null;
     }
     final url = _getRequestUrl(request);
     if (!_measure.shouldTrackHttpResponseBody(url)) {
       return null;
     }
-    return data.toString();
+    return _bodyToString(data);
   }
 
   String? _getRequestBody(RequestOptions request) {
@@ -153,7 +161,32 @@ class MsrInterceptor extends Interceptor {
       return null;
     }
 
-    return data.toString();
+    return _bodyToString(data);
+  }
+
+  /// Returns the body as JSON text, or null when it can't be encoded, such
+  /// as `FormData`.
+  String? _bodyToString(dynamic data) {
+    if (data is String) {
+      return _truncate(data);
+    }
+    try {
+      return _truncate(jsonEncode(data));
+    } on JsonUnsupportedObjectError {
+      return null;
+    }
+  }
+
+  String _truncate(String body) {
+    final bytes = utf8.encode(body);
+    if (bytes.length <= _maxBodySizeBytes) {
+      return body;
+    }
+    final kept = utf8.decode(
+      bytes.sublist(0, _maxBodySizeBytes),
+      allowMalformed: true,
+    );
+    return '$kept$_bodyTruncatedMessage';
   }
 
   Map<String, String>? _getRequestHeaders(RequestOptions request) {
@@ -162,18 +195,16 @@ class MsrInterceptor extends Interceptor {
       return null;
     }
 
-    final filteredHeaders = <String, String>{};
+    final trackedHeaders = <String, String>{};
     final url = _getRequestUrl(request);
 
     if (_measure.shouldTrackHttpRequestBody(url)) {
       for (final entry in headers.entries) {
-        if (_measure.shouldTrackHttpHeader(entry.key)) {
-          filteredHeaders[entry.key] = _headerValue(entry.value);
-        }
+        trackedHeaders[entry.key] = _headerValue(entry.value);
       }
     }
 
-    return filteredHeaders.isEmpty ? null : filteredHeaders;
+    return trackedHeaders.isEmpty ? null : trackedHeaders;
   }
 
   Map<String, String>? _getResponseHeaders(
@@ -183,27 +214,20 @@ class MsrInterceptor extends Interceptor {
       return null;
     }
 
-    final filteredHeaders = <String, String>{};
+    final trackedHeaders = <String, String>{};
 
     final url = _getRequestUrl(request);
 
     if (_measure.shouldTrackHttpResponseBody(url)) {
       for (final entry in headers.map.entries) {
-        if (_measure.shouldTrackHttpHeader(entry.key)) {
-          filteredHeaders[entry.key] = _headerValue(entry.value);
-        }
+        trackedHeaders[entry.key] = _headerValue(entry.value);
       }
     }
 
-    return filteredHeaders.isEmpty ? null : filteredHeaders;
+    return trackedHeaders.isEmpty ? null : trackedHeaders;
   }
 
-  /// Converts a header value to a single string.
-  ///
-  /// dio stores header values as a list, so calling `toString()` on them
-  /// produces `[application/json]` instead of `application/json`. The SDK
-  /// checks the content type header to decide if a body is JSON, so the
-  /// brackets stop it from ever tracking a body.
+  /// Joins a list of header values with `, `.
   String _headerValue(dynamic value) {
     if (value is List) {
       return value.map((item) => item.toString()).join(', ');
