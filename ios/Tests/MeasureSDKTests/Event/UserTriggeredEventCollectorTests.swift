@@ -377,6 +377,15 @@ final class UserTriggeredEventCollectorTests: XCTestCase {
         XCTAssertNotNil(signalProcessor.data as? ScreenViewData)
     }
 
+    func test_trackScreenView_skipsLayoutSnapshot_whenScreenViewSnapshotsDisabled() {
+        configProvider.layoutSnapshotScreenViewEnabled = false
+
+        collector.trackScreenView("home", attributes: nil)
+
+        XCTAssertEqual(layoutSnapshotCollector.captureCallCount, 0)
+        XCTAssertNotNil(signalProcessor.data as? ScreenViewData)
+    }
+
     func test_trackScreenView_leavesReportingToAnalyticsSampling() {
         signalSampler.shouldTrackLaunchEventsReturnValue = true
         signalSampler.shouldSampleTHttpEventValue = true

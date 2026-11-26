@@ -228,7 +228,7 @@ final class BaseInternalSignalCollector: InternalSignalCollector { // swiftlint:
 
                 // The cross platform SDK may already have captured its own layout snapshot,
                 // only fall back to a native capture when it hasn't.
-                if attachments.contains(where: { $0.type == .layoutSnapshotJson }) {
+                if attachments.contains(where: { $0.type == .layoutSnapshotJson }) || !configProvider.layoutSnapshotScreenViewEnabled {
                     trackScreenView(attachments: attachments)
                 } else {
                     layoutSnapshotCollector.captureAttachment { attachment in

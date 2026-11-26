@@ -64,7 +64,7 @@ final class BaseLifecycleCollector: LifecycleCollector {
 
     func applicationDidEnterBackground() {
         let timestamp = timeProvider.now()
-        layoutSnapshotCollector.captureAttachment { [weak self] attachment in
+        collectLayoutSnapshot { [weak self] attachment in
             self?.trackEvent(ApplicationLifecycleData(type: .background),
                              type: .lifecycleApp,
                              timestamp: timestamp,
@@ -98,7 +98,7 @@ final class BaseLifecycleCollector: LifecycleCollector {
 
         if vcLifecycleType == .viewDidAppear {
             let timestamp = timeProvider.now()
-            layoutSnapshotCollector.captureAttachment { [weak self] attachment in
+            collectLayoutSnapshot { [weak self] attachment in
                 guard let self else { return }
                 self.trackEvent(VCLifecycleData(type: vcLifecycleType.stringValue, className: eventClassName),
                                  type: .lifecycleViewController,
@@ -134,7 +134,7 @@ final class BaseLifecycleCollector: LifecycleCollector {
 
         if swiftUILifecycleType == .onAppear {
             let timestamp = timeProvider.now()
-            layoutSnapshotCollector.captureAttachment { [weak self] attachment in
+            collectLayoutSnapshot { [weak self] attachment in
                 guard let self else { return }
                 self.trackEvent(SwiftUILifecycleData(type: swiftUILifecycleType, className: eventClassName),
                                  type: .lifecycleSwiftUI,
@@ -190,6 +190,14 @@ final class BaseLifecycleCollector: LifecycleCollector {
     }
 
     // MARK: - Event tracking
+
+    private func collectLayoutSnapshot(completion: @escaping (MsrAttachment?) -> Void) {
+        if configProvider.layoutSnapshotScreenViewEnabled {
+            layoutSnapshotCollector.captureAttachment(completion: completion)
+        } else {
+            completion(nil)
+        }
+    }
 
     private func trackEvent(_ data: Codable, type: EventType, timestamp: Number? = nil, attachments: [MsrAttachment]? = nil) {
         signalProcessor.track(data: data,

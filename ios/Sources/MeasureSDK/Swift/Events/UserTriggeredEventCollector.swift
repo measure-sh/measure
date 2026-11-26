@@ -84,7 +84,7 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
         guard attributeValueValidator.validateAttributes(name: screenName, attributes: attributes) else { return }
 
         let timestamp = timeProvider.now()
-        layoutSnapshotCollector.captureAttachment { [weak self] attachment in
+        collectLayoutSnapshot { [weak self] attachment in
             guard let self else { return }
             self.track(ScreenViewData(name: screenName),
                         type: .screenView,
@@ -224,6 +224,14 @@ final class BaseUserTriggeredEventCollector: UserTriggeredEventCollector {
                             client: client)
 
         track(data, type: .http, needsReporting: signalSampler.shouldSampleHttpEvent())
+    }
+
+    private func collectLayoutSnapshot(completion: @escaping (MsrAttachment?) -> Void) {
+        if configProvider.layoutSnapshotScreenViewEnabled {
+            layoutSnapshotCollector.captureAttachment(completion: completion)
+        } else {
+            completion(nil)
+        }
     }
 
     private func track(_ data: Codable,

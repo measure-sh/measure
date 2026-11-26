@@ -169,6 +169,27 @@ final class BaseInternalSignalCollectorTests: XCTestCase { // swiftlint:disable:
         XCTAssertNotNil(signalProcessor.data)
     }
 
+    func testTrackEvent_screenView_skipsLayoutSnapshot_whenScreenViewSnapshotsDisabled() {
+        eventCollector.enable()
+        configProvider.layoutSnapshotScreenViewEnabled = false
+        var eventData: [String: Any?] = ["name": "home"]
+
+        eventCollector.trackEvent(
+            data: &eventData,
+            type: EventType.screenView.rawValue,
+            timestamp: 1234567890,
+            attributes: [:],
+            userDefinedAttrs: [:],
+            userTriggered: true,
+            sessionId: nil,
+            threadName: nil,
+            attachments: []
+        )
+
+        XCTAssertEqual(layoutSnapshotCollector.captureCallCount, 0)
+        XCTAssertNotNil(signalProcessor.data)
+    }
+
     func testTrackEvent_WithInvalidArgument_logsError() {
         eventCollector.enable()
         var eventData: [String: Any?] = [:]
