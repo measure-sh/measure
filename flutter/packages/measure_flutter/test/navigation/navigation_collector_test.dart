@@ -5,6 +5,7 @@ import 'package:measure_flutter/src/navigation/navigation_collector.dart';
 import 'package:measure_flutter/src/navigation/screen_view_data.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 
+import '../utils/fake_config_provider.dart';
 import '../utils/fake_layout_snapshot_collector.dart';
 import '../utils/fake_signal_processor.dart';
 import '../utils/noop_logger.dart';
@@ -16,6 +17,7 @@ void main() {
   late TimeProvider timeProvider;
   late FakeLayoutSnapshotCollector snapshotCollector;
   late TestClock clock;
+  late FakeConfigProvider configProvider;
 
   final snapshotAttachment = MsrAttachment.fromPath(
     path: 'snapshot-path',
@@ -32,12 +34,14 @@ void main() {
     snapshotCollector = FakeLayoutSnapshotCollector(
       attachment: snapshotAttachment,
     );
+    configProvider = FakeConfigProvider();
     collector = NavigationCollector(
       logger: NoopLogger(),
       signalProcessor: signalProcessor,
       timeProvider: timeProvider,
       layoutSnapshotCollector: snapshotCollector,
       layoutSnapshotThrottler: LayoutSnapshotThrottler(timeProvider),
+      configProvider: configProvider,
     );
     collector.register();
   });
@@ -111,6 +115,16 @@ void main() {
 
     test('captures no snapshot when the caller opts out', () async {
       await trackScreenView('HomeScreen', captureLayoutSnapshot: false);
+
+      expect(lastEvent().attachments, isNull);
+      expect(snapshotCollector.captureCount, isZero);
+    });
+
+    test('captures no snapshot when screen view snapshots are disabled',
+        () async {
+      configProvider.layoutSnapshotScreenViewEnabled = false;
+
+      await trackScreenView('HomeScreen');
 
       expect(lastEvent().attachments, isNull);
       expect(snapshotCollector.captureCount, isZero);

@@ -299,7 +299,8 @@ void main() {
     test('returns default dynamic config values initially', () {
       expect(provider.traceSamplingRate, equals(DynamicConfig.defaults().traceSamplingRate));
       expect(provider.screenshotMaskLevel, equals(DynamicConfig.defaults().screenshotMaskLevel));
-      expect(provider.gestureClickTakeSnapshot, equals(DynamicConfig.defaults().gestureClickTakeSnapshot));
+      expect(provider.layoutSnapshotClickEnabled, equals(DynamicConfig.defaults().layoutSnapshotClickEnabled));
+      expect(provider.layoutSnapshotScreenViewEnabled, equals(DynamicConfig.defaults().layoutSnapshotScreenViewEnabled));
     });
 
     test('lists are unmodifiable', () {

@@ -160,7 +160,10 @@ class ConfigProviderImpl implements ConfigProvider {
   List<String> get logIgnorePatterns => _dynamicConfig.logIgnorePatterns;
 
   @override
-  bool get gestureClickTakeSnapshot => _dynamicConfig.gestureClickTakeSnapshot;
+  bool get layoutSnapshotClickEnabled => _dynamicConfig.layoutSnapshotClickEnabled;
+
+  @override
+  bool get layoutSnapshotScreenViewEnabled => _dynamicConfig.layoutSnapshotScreenViewEnabled;
 
   @override
   List<String> get httpDisableEventForUrls => List.unmodifiable(_dynamicConfig.httpDisableEventForUrls);

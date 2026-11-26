@@ -21,8 +21,11 @@ abstract interface class IDynamicConfig {
   /// of the patterns is dropped. Defaults to empty list.
   List<String> get logIgnorePatterns;
 
-  /// Whether to take a layout snapshot when a gesture click occurs. Defaults to true.
-  bool get gestureClickTakeSnapshot;
+  /// Whether to take a layout snapshot with clicks and long clicks. Defaults to true.
+  bool get layoutSnapshotClickEnabled;
+
+  /// Whether to take a layout snapshot with screen views. Defaults to true.
+  bool get layoutSnapshotScreenViewEnabled;
 
   /// List of URLs to disable sending events for. Defaults to empty list.
   /// The URLs can use wildcard patterns.
@@ -67,8 +70,12 @@ class DynamicConfig implements IDynamicConfig {
   final List<String> logIgnorePatterns;
 
   @override
-  @JsonKey(name: 'gesture_click_take_snapshot')
-  final bool gestureClickTakeSnapshot;
+  @JsonKey(name: 'layout_snapshot_click_enabled', defaultValue: true)
+  final bool layoutSnapshotClickEnabled;
+
+  @override
+  @JsonKey(name: 'layout_snapshot_screen_view_enabled', defaultValue: true)
+  final bool layoutSnapshotScreenViewEnabled;
 
   @override
   @JsonKey(name: 'http_disable_event_for_urls')
@@ -91,7 +98,8 @@ class DynamicConfig implements IDynamicConfig {
     required this.screenshotMaskLevel,
     required this.logMinSeverity,
     required this.logIgnorePatterns,
-    required this.gestureClickTakeSnapshot,
+    required this.layoutSnapshotClickEnabled,
+    required this.layoutSnapshotScreenViewEnabled,
     required this.httpDisableEventForUrls,
     required this.httpTrackRequestForUrls,
     required this.httpTrackResponseForUrls,
@@ -104,7 +112,8 @@ class DynamicConfig implements IDynamicConfig {
     screenshotMaskLevel: ScreenshotMaskLevel.allTextAndMedia,
     logMinSeverity: 16,
     logIgnorePatterns: [],
-    gestureClickTakeSnapshot: true,
+    layoutSnapshotClickEnabled: true,
+    layoutSnapshotScreenViewEnabled: true,
     httpDisableEventForUrls: [],
     httpTrackRequestForUrls: [],
     httpTrackResponseForUrls: [],
@@ -124,7 +133,8 @@ class DynamicConfig implements IDynamicConfig {
     ScreenshotMaskLevel? screenshotMaskLevel,
     int? logMinSeverity,
     List<String>? logIgnorePatterns,
-    bool? gestureClickTakeSnapshot,
+    bool? layoutSnapshotClickEnabled,
+    bool? layoutSnapshotScreenViewEnabled,
     List<String>? httpDisableEventForUrls,
     List<String>? httpTrackRequestForUrls,
     List<String>? httpTrackResponseForUrls,
@@ -135,7 +145,8 @@ class DynamicConfig implements IDynamicConfig {
       screenshotMaskLevel: screenshotMaskLevel ?? this.screenshotMaskLevel,
       logMinSeverity: logMinSeverity ?? this.logMinSeverity,
       logIgnorePatterns: logIgnorePatterns ?? this.logIgnorePatterns,
-      gestureClickTakeSnapshot: gestureClickTakeSnapshot ?? this.gestureClickTakeSnapshot,
+      layoutSnapshotClickEnabled: layoutSnapshotClickEnabled ?? this.layoutSnapshotClickEnabled,
+      layoutSnapshotScreenViewEnabled: layoutSnapshotScreenViewEnabled ?? this.layoutSnapshotScreenViewEnabled,
       httpDisableEventForUrls: httpDisableEventForUrls ?? this.httpDisableEventForUrls,
       httpTrackRequestForUrls: httpTrackRequestForUrls ?? this.httpTrackRequestForUrls,
       httpTrackResponseForUrls: httpTrackResponseForUrls ?? this.httpTrackResponseForUrls,

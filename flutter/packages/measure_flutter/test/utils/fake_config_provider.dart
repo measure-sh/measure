@@ -21,7 +21,8 @@ class FakeConfigProvider implements ConfigProvider {
   int _maxUserDefinedAttributesPerEvent = 256;
   int _maxLogBodyLength = 4000;
   double _traceSamplingRate = 100;
-  bool _gestureClickTakeSnapshot = true;
+  bool _layoutSnapshotClickEnabled = true;
+  bool _layoutSnapshotScreenViewEnabled = true;
   ScreenshotMaskLevel _screenshotMaskLevel =
       ScreenshotMaskLevel.allTextAndMedia;
   int _logMinSeverity = 8;
@@ -86,7 +87,10 @@ class FakeConfigProvider implements ConfigProvider {
   int get maxLogBodyLength => _maxLogBodyLength;
 
   @override
-  bool get gestureClickTakeSnapshot => _gestureClickTakeSnapshot;
+  bool get layoutSnapshotClickEnabled => _layoutSnapshotClickEnabled;
+
+  @override
+  bool get layoutSnapshotScreenViewEnabled => _layoutSnapshotScreenViewEnabled;
 
   @override
   List<String> get httpBlockedHeaders => _httpBlockedHeaders;
@@ -194,7 +198,10 @@ class FakeConfigProvider implements ConfigProvider {
 
   set maxLogBodyLength(int value) => _maxLogBodyLength = value;
 
-  set gestureClickTakeSnapshot(bool value) => _gestureClickTakeSnapshot = value;
+  set layoutSnapshotClickEnabled(bool value) => _layoutSnapshotClickEnabled = value;
+
+  set layoutSnapshotScreenViewEnabled(bool value) =>
+      _layoutSnapshotScreenViewEnabled = value;
 
   set traceSamplingRate(double value) => _traceSamplingRate = value;
 

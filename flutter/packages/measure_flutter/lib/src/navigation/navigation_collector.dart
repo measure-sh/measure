@@ -1,3 +1,4 @@
+import 'package:measure_flutter/src/config/config_provider.dart';
 import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:measure_flutter/src/gestures/layout_snapshot_collector.dart';
 import 'package:measure_flutter/src/gestures/layout_snapshot_throttler.dart';
@@ -16,6 +17,7 @@ class NavigationCollector {
   final TimeProvider timeProvider;
   final LayoutSnapshotCollector layoutSnapshotCollector;
   final LayoutSnapshotThrottler layoutSnapshotThrottler;
+  final ConfigProvider configProvider;
   bool _enabled = false;
 
   NavigationCollector({
@@ -24,6 +26,7 @@ class NavigationCollector {
     required this.timeProvider,
     required this.layoutSnapshotCollector,
     required this.layoutSnapshotThrottler,
+    required this.configProvider,
   });
 
   void register() {
@@ -57,7 +60,9 @@ class NavigationCollector {
     }
     final eventTimestamp = timestamp ?? timeProvider.now();
     final attachment =
-        captureLayoutSnapshot && layoutSnapshotThrottler.shouldTakeSnapshot()
+        captureLayoutSnapshot &&
+                configProvider.layoutSnapshotScreenViewEnabled &&
+                layoutSnapshotThrottler.shouldTakeSnapshot()
             ? await layoutSnapshotCollector.captureAttachmentAfterNextFrame()
             : null;
     return signalProcessor.trackEvent(

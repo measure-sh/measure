@@ -2,6 +2,7 @@ import 'dart:developer';
 import 'dart:isolate';
 
 import 'package:measure_flutter/measure_flutter.dart';
+import 'package:measure_flutter/src/config/config_provider.dart';
 import 'package:measure_flutter/src/events/event_type.dart';
 import 'package:measure_flutter/src/gestures/layout_snapshot_collector.dart';
 import 'package:measure_flutter/src/gestures/layout_snapshot_throttler.dart';
@@ -17,6 +18,7 @@ class GestureCollector {
   final TimeProvider _timeProvider;
   final LayoutSnapshotCollector _layoutSnapshotCollector;
   final LayoutSnapshotThrottler _layoutSnapshotThrottler;
+  final ConfigProvider _configProvider;
   bool _isRegistered = false;
 
   GestureCollector(
@@ -24,10 +26,12 @@ class GestureCollector {
     TimeProvider timeProvider,
     LayoutSnapshotCollector layoutSnapshotCollector,
     LayoutSnapshotThrottler layoutSnapshotThrottler,
+    ConfigProvider configProvider,
   )   : _signalProcessor = signalProcessor,
         _timeProvider = timeProvider,
         _layoutSnapshotCollector = layoutSnapshotCollector,
-        _layoutSnapshotThrottler = layoutSnapshotThrottler;
+        _layoutSnapshotThrottler = layoutSnapshotThrottler,
+        _configProvider = configProvider;
 
   void register() {
     _isRegistered = true;
@@ -50,7 +54,9 @@ class GestureCollector {
       }
       final eventTimestamp = timestamp ?? _timeProvider.now();
       MsrAttachment? attachment;
-      if (snapshot != null && _layoutSnapshotThrottler.shouldTakeSnapshot()) {
+      if (snapshot != null &&
+          _configProvider.layoutSnapshotClickEnabled &&
+          _layoutSnapshotThrottler.shouldTakeSnapshot()) {
         attachment = await _layoutSnapshotCollector.createAttachment(snapshot);
       }
       _signalProcessor.trackEvent(
@@ -99,7 +105,9 @@ class GestureCollector {
       }
       final eventTimestamp = timestamp ?? _timeProvider.now();
       MsrAttachment? attachment;
-      if (snapshot != null && _layoutSnapshotThrottler.shouldTakeSnapshot()) {
+      if (snapshot != null &&
+          _configProvider.layoutSnapshotClickEnabled &&
+          _layoutSnapshotThrottler.shouldTakeSnapshot()) {
         attachment = await _layoutSnapshotCollector.createAttachment(snapshot);
       }
       _signalProcessor.trackEvent(
