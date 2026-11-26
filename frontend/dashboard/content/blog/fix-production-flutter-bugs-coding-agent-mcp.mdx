@@ -1,8 +1,8 @@
 ---
-title: "Fix Production Android Bugs With Your Coding Agent and MCP"
-description: "How to give your coding agent production context through Measure MCP, so it can read errors, stack traces and session data and fix Android bugs with evidence."
-date: "2026-11-25"
-image: /blog/assets/fix-production-android-bugs-coding-agent-mcp-hero.png
+title: "Fix Production Flutter Bugs With Your Coding Agent and MCP"
+description: "How to give your coding agent production context through Measure MCP to read errors, stack traces and session data and fix bugs in Flutter apps with evidence."
+date: "2026-11-26"
+image: /blog/assets/fix-production-flutter-bugs-coding-agent-mcp-hero.png
 author:
   name: Abhay Sood
   avatar: /images/profile_pics/profile_abhay.webp
@@ -12,7 +12,7 @@ tags:
   - mcp
 ---
 
-![Hero Image](/blog/assets/fix-production-android-bugs-coding-agent-mcp-hero.png)
+![Hero Image](/blog/assets/fix-production-flutter-bugs-coding-agent-mcp-hero.png)
 
 Coding agents can inspect, run commands, and explain unfamiliar code. They can also help to identify bugs and apply fixes on a codebase. All these can only be implemented during development, but when a bug occurs on a user's device, coding agents will be of no help in such a situation.
 
@@ -28,7 +28,7 @@ What we want to achieve is to be in control of what changes the AI agent makes, 
 
 To get started we will create a Dog Breed Explorer application for the purpose of the tutorial. When the app launches, it fetches a list of dog breeds from the [Dog CEO API](https://dog.ceo/dog-api/documentation/), then, from a drop-down menu, any of the breeds selected displays a grid of dog images of that breed.
 
-![The Dog Breed Explorer app showing a breed drop-down and a grid of dog images](/blog/assets/fix-production-android-bugs-coding-agent-mcp-dog-breed-explorer.webp)
+![The Dog Breed Explorer app showing a breed drop-down and a grid of dog images](/blog/assets/fix-production-flutter-bugs-coding-agent-mcp-dog-breed-explorer.webp)
 
 ### Create the Flutter application
 
@@ -99,7 +99,7 @@ codex mcp list
 
 For this tutorial, one of the important capabilities is retrieving the production error and its associated session evidence. The image below shows a successful connection of Codex to the Measure MCP.
 
-![Output of codex mcp list showing the Measure MCP server connected](/blog/assets/fix-production-android-bugs-coding-agent-mcp-codex-mcp-list.webp)
+![Output of codex mcp list showing the Measure MCP server connected](/blog/assets/fix-production-flutter-bugs-coding-agent-mcp-codex-mcp-list.webp)
 
 ### What changes when the connection works?
 
@@ -179,11 +179,11 @@ What we want to establish is that:
 
 The exact evidence available will depend on what Measure captured when we got the exception and how the SDK is configured. Therefore, head to your dashboard to confirm that the error is there before proceeding.
 
-![The setState() called after dispose() error listed in the Measure dashboard](/blog/assets/fix-production-android-bugs-coding-agent-mcp-measure-error-dashboard.webp)
+![The setState() called after dispose() error listed in the Measure dashboard](/blog/assets/fix-production-flutter-bugs-coding-agent-mcp-measure-error-dashboard.webp)
 
 If you cannot find it, look through the Measure SDK's error reporting configuration, the Flutter error path and the form of the Flutter error.
 
-![Error details in Measure with the stack trace and session information](/blog/assets/fix-production-android-bugs-coding-agent-mcp-measure-error-details.webp)
+![Error details in Measure with the stack trace and session information](/blog/assets/fix-production-flutter-bugs-coding-agent-mcp-measure-error-details.webp)
 
 ### Ask Codex to investigate
 
@@ -193,7 +193,7 @@ For example, we can feed this to the coding agent:
 
 > Use the available Measure tools to find the setState() called after dispose() error from my Dog Breed Explorer application. Inspect the associated session evidence and stack trace. Then investigate lib/screens/dog_breed_screen.dart and identify the code path responsible for the exception. Explain what the evidence confirms, what may be unclear, and the safe fix. Do not modify the code yet.
 
-![The investigation prompt entered in Codex](/blog/assets/fix-production-android-bugs-coding-agent-mcp-codex-investigate-prompt.webp)
+![The investigation prompt entered in Codex](/blog/assets/fix-production-flutter-bugs-coding-agent-mcp-codex-investigate-prompt.webp)
 
 Review the actual response returned by Codex.
 
@@ -201,15 +201,15 @@ We want it to connect the observed failure to the asynchronous image request and
 
 If the available session evidence is incomplete, ask the agent to state what additional information is needed. A good investigation distinguishes a confirmed finding from a likely explanation. Below is Codex's explanation from the Measure session evidence, and the possible fix.
 
-![Codex's diagnosis linking the Measure session evidence to the code path and proposing a fix](/blog/assets/fix-production-android-bugs-coding-agent-mcp-codex-diagnosis.webp)
+![Codex's diagnosis linking the Measure session evidence to the code path and proposing a fix](/blog/assets/fix-production-flutter-bugs-coding-agent-mcp-codex-diagnosis.webp)
 
 ## Implement a targeted fix with Codex
 
 Once the diagnosis by the coding agent is supported by the evidence we have, we can ask the agent to suggest a correction.
 
-![Codex proposing the fix for the lifecycle bug](/blog/assets/fix-production-android-bugs-coding-agent-mcp-codex-fix-proposal.webp)
+![Codex proposing the fix for the lifecycle bug](/blog/assets/fix-production-flutter-bugs-coding-agent-mcp-codex-fix-proposal.webp)
 
-![The diff Codex applied to the gallery screen](/blog/assets/fix-production-android-bugs-coding-agent-mcp-codex-fix-diff.webp)
+![The diff Codex applied to the gallery screen](/blog/assets/fix-production-flutter-bugs-coding-agent-mcp-codex-fix-diff.webp)
 
 In this example, the problem is that the asynchronous operation continues after the widget has been disposed. Before updating the widget's state, we need to verify that the widget is still mounted.
 
