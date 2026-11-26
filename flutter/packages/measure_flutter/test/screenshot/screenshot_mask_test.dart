@@ -12,6 +12,7 @@ class _Keys {
   final text = GlobalKey();
   final buttonText = GlobalKey();
   final image = GlobalKey();
+  final icon = GlobalKey();
   final field = GlobalKey();
   final passwordField = GlobalKey();
 }
@@ -34,6 +35,7 @@ void main() {
                 // A null-image RawImage yields a deterministic 50x50
                 // RenderImage (what masking detects) with no async decode.
                 RawImage(key: keys.image, width: 50, height: 50),
+                Icon(Icons.chevron_right, key: keys.icon),
                 SizedBox(width: 200, child: TextField(key: keys.field)),
                 SizedBox(
                   width: 200,
@@ -48,9 +50,7 @@ void main() {
     return keys;
   }
 
-  /// Whether the widget identified by [key] is masked, i.e. a masked rect lies
-  /// within its bounds. (A neighbouring widget's rect lies elsewhere, so this
-  /// is not confused by adjacent content.)
+  /// Whether a masked rect lies within the bounds of the widget with [key].
   bool masks(WidgetTester tester, _Keys keys, List<Rect> rects, Key key) {
     final boundary =
         keys.boundary.currentContext!.findRenderObject() as RenderBox;
@@ -79,17 +79,20 @@ void main() {
       expect(masks(tester, keys, rects, keys.text), isTrue);
       expect(masks(tester, keys, rects, keys.buttonText), isTrue);
       expect(masks(tester, keys, rects, keys.image), isTrue);
+      expect(masks(tester, keys, rects, keys.icon), isTrue);
       expect(masks(tester, keys, rects, keys.field), isTrue);
       expect(masks(tester, keys, rects, keys.passwordField), isTrue);
     });
 
-    testWidgets('allText masks text and fields but not images', (tester) async {
+    testWidgets('allText masks text and fields but not images or icons',
+        (tester) async {
       final keys = await pumpTree(tester);
       final rects = findRects(keys, ScreenshotMaskLevel.allText);
 
       expect(masks(tester, keys, rects, keys.text), isTrue);
       expect(masks(tester, keys, rects, keys.field), isTrue);
       expect(masks(tester, keys, rects, keys.image), isFalse);
+      expect(masks(tester, keys, rects, keys.icon), isFalse);
     });
 
     testWidgets(
@@ -99,9 +102,9 @@ void main() {
       final rects = findRects(keys, ScreenshotMaskLevel.allTextExceptClickable);
 
       expect(masks(tester, keys, rects, keys.text), isTrue);
+      expect(masks(tester, keys, rects, keys.icon), isFalse);
       expect(masks(tester, keys, rects, keys.buttonText), isFalse);
       expect(masks(tester, keys, rects, keys.field), isFalse);
-      // Sensitive fields are masked even though they are clickable.
       expect(masks(tester, keys, rects, keys.passwordField), isTrue);
     });
 
@@ -138,7 +141,6 @@ void main() {
 
       final boundary = boundaryKey.currentContext!.findRenderObject()
           as RenderRepaintBoundary;
-      // A plain box is masked at no level on its own; MsrMask forces it.
       final rects = ScreenshotMask().findRectsToMask(
         boundary,
         boundaryKey.currentContext! as Element,
@@ -175,8 +177,6 @@ void main() {
         ScreenshotMaskLevel.allText,
       );
 
-      // ExcludeSemantics only hides the text from screen readers, it is still
-      // visible in the screenshot and must be masked.
       final text = tester.renderObject<RenderBox>(find.byKey(textKey));
       final bounds = MatrixUtils.transformRect(
           text.getTransformTo(boundary), text.paintBounds);
