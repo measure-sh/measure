@@ -24,7 +24,8 @@ import (
 // configColumns must stay ordered to match the scan in scanConfig.
 const configColumns = `error_replay_duration, anr_timeline_duration,
 	bug_report_timeline_duration, trace_sampling_rate, ttid_trace_enabled, journey_sampling_rate,
-	screenshot_mask_level, log_autocollect_enabled, log_min_severity,
+	screenshot_mask_level, layout_snapshot_click_enabled,
+	layout_snapshot_screen_view_enabled, log_autocollect_enabled, log_min_severity,
 	log_ignore_patterns, memory_usage_interval,
 	memory_usage_background_interval, memory_usage_session_sampling_rate,
 	error_fatal_take_screenshot, error_fatal_replay_enabled,
@@ -59,6 +60,8 @@ func scanConfig(row pgx.Row) (sdkconfig.SdkConfig, error) {
 		&config.TTIDTraceEnabled,
 		&config.JourneySamplingRate,
 		&config.ScreenshotMaskLevel,
+		&config.LayoutSnapshotClickEnabled,
+		&config.LayoutSnapshotScreenViewEnabled,
 		&config.LogAutocollectEnabled,
 		&config.LogMinSeverity,
 		&config.LogIgnorePatterns,
@@ -138,6 +141,12 @@ func PatchConfigForApp(c *gin.Context, deps *server.Deps, appID uuid.UUID, userI
 			return fmt.Errorf("invalid screenshot mask level: %s", *patch.ScreenshotMaskLevel)
 		}
 		stmt.Set("screenshot_mask_level", string(*patch.ScreenshotMaskLevel))
+	}
+	if patch.LayoutSnapshotClickEnabled != nil {
+		stmt.Set("layout_snapshot_click_enabled", *patch.LayoutSnapshotClickEnabled)
+	}
+	if patch.LayoutSnapshotScreenViewEnabled != nil {
+		stmt.Set("layout_snapshot_screen_view_enabled", *patch.LayoutSnapshotScreenViewEnabled)
 	}
 	if patch.LogAutocollectEnabled != nil {
 		stmt.Set("log_autocollect_enabled", *patch.LogAutocollectEnabled)

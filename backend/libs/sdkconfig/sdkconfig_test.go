@@ -247,3 +247,24 @@ func TestMarshalJSONAddsKeysThatAreNotStored(t *testing.T) {
 		t.Errorf("analytics_event_types = %v, want %v", got.AnalyticsEventTypes, analyticsEventTypes)
 	}
 }
+
+func TestMarshalJSONSetsGestureClickTakeSnapshotFromClickSnapshots(t *testing.T) {
+	config := createDefaultConfig()
+	config.LayoutSnapshotClickEnabled = false
+
+	data, err := json.Marshal(config)
+	if err != nil {
+		t.Fatalf("marshal: %v", err)
+	}
+
+	var got struct {
+		GestureClickTakeSnapshot *bool `json:"gesture_click_take_snapshot"`
+	}
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatalf("unmarshal: %v", err)
+	}
+
+	if got.GestureClickTakeSnapshot == nil || *got.GestureClickTakeSnapshot {
+		t.Errorf("gesture_click_take_snapshot = %v, want false", got.GestureClickTakeSnapshot)
+	}
+}
