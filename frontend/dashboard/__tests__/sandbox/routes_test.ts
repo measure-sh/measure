@@ -1166,6 +1166,8 @@ const settingsCases: Case[] = [
         http_track_response_for_urls: true,
         http_blocked_headers: true,
         screenshot_mask_level: true,
+        layout_snapshot_click_enabled: true,
+        layout_snapshot_screen_view_enabled: true,
         profile_sampling_rate: true,
         memory_usage_interval: true,
         memory_usage_background_interval: true,

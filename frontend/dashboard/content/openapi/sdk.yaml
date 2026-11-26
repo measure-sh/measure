@@ -2682,7 +2682,20 @@ paths:
                       hot_launch.
                   gesture_click_take_snapshot:
                     type: boolean
-                    description: Whether to take snapshot with gesture_click event.
+                    description: >
+                      Same as `layout_snapshot_click_enabled`, for SDKs that don't
+                      read that key.
+                  layout_snapshot_click_enabled:
+                    type: boolean
+                    description: >
+                      Whether the SDK takes a layout snapshot with clicks, and with long
+                      clicks on iOS and Flutter. Defaults to `true`.
+                  layout_snapshot_screen_view_enabled:
+                    type: boolean
+                    description: >
+                      Whether the SDK takes a layout snapshot with screen views, when
+                      a screen appears and when the app goes to the background.
+                      Defaults to `true`.
                   http_sampling_rate:
                     type: number
                     minimum: 0
@@ -2761,6 +2774,8 @@ paths:
                 app_hang_replay_enabled: true
                 launch_sampling_rate: 1
                 gesture_click_take_snapshot: true
+                layout_snapshot_click_enabled: true
+                layout_snapshot_screen_view_enabled: true
                 http_sampling_rate: 100
                 http_disable_event_for_urls: []
                 http_track_request_for_urls: []

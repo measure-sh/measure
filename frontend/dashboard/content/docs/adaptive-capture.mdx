@@ -43,6 +43,8 @@ Every app starts with these defaults:
 | Track HTTP response body for URLs    | (empty)                                                                             |
 | Blocked HTTP headers                 | Authorization, Cookie, Set-Cookie, Proxy-Authorization, WWW-Authenticate, X-Api-Key |
 | Screenshot mask level                | AllTextAndMedia                                                                     |
+| Layout snapshots with clicks         | true                                                                                |
+| Layout snapshots with screen views   | true                                                                                |
 | Automatic log collection             | false                                                                               |
 | Minimum log severity                 | Warning                                                                             |
 | Log ignore patterns                  | (empty)                                                                             |
@@ -298,6 +300,21 @@ Hides all text and input fields, but leaves clickable views like buttons visible
 Hides sensitive input fields like password, email, and phone fields.
 
 ![Mask Sensitive Input Fields](/docs/assets/screenshot-mask-sensitive-input-fields-2.webp)
+
+## Layout snapshots
+
+A [layout snapshot](/docs/session-replay/layout-snapshots) is a wireframe of the screen that
+session replay shows next to an event. Turn either setting off to stop collecting them.
+Session replay then shows no layout for those events.
+
+### Clicks
+
+Takes a layout snapshot with every click. On iOS and Flutter it also covers long clicks.
+
+### Screen views
+
+Takes a layout snapshot with every screen view, when an Android activity resumes, when an iOS
+view controller or SwiftUI view appears, and when the app goes to the background.
 
 ## Logs
 

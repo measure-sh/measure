@@ -5099,7 +5099,11 @@ paths:
                   gesture_click_take_snapshot:
                     type: boolean
                     readOnly: true
-                    description: Fixed by Measure for every app. Cannot be changed.
+                    description: Same as `layout_snapshot_click_enabled`, for older SDKs.
+                  layout_snapshot_click_enabled:
+                    type: boolean
+                  layout_snapshot_screen_view_enabled:
+                    type: boolean
                   http_sampling_rate:
                     type: number
                     minimum: 0
@@ -5166,6 +5170,8 @@ paths:
                     app_hang_replay_enabled: true
                     launch_sampling_rate: 1
                     gesture_click_take_snapshot: true
+                    layout_snapshot_click_enabled: true
+                    layout_snapshot_screen_view_enabled: true
                     http_sampling_rate: 100
                     http_disable_event_for_urls: []
                     http_track_request_for_urls: []

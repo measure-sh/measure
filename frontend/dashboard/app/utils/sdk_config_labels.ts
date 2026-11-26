@@ -112,6 +112,12 @@ export const sdkConfigFieldLabels: Record<
     label: "Screenshot mask level",
     valueLabels: maskLevelLabels,
   },
+  layout_snapshot_click_enabled: {
+    label: "Layout snapshots with click events",
+  },
+  layout_snapshot_screen_view_enabled: {
+    label: "Layout snapshots with screen view events",
+  },
   memory_usage_interval: { label: "Memory collection interval", unit: seconds },
   memory_usage_background_interval: {
     label: "Memory background collection interval",

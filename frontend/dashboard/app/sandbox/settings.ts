@@ -157,6 +157,8 @@ const SANDBOX_SDK_CONFIG = {
   http_track_response_for_urls: [] as string[],
   http_blocked_headers: [] as string[],
   screenshot_mask_level: "all_text_and_media",
+  layout_snapshot_click_enabled: true,
+  layout_snapshot_screen_view_enabled: true,
   profile_sampling_rate: 10,
   memory_usage_interval: 5,
   memory_usage_background_interval: 10,
