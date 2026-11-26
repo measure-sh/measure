@@ -220,15 +220,28 @@ internal class UserTriggeredEventCollectorImpl(
             return
         }
         val timestamp = timeProvider.now()
-        layoutSnapshotCollector.captureAttachmentAfterPendingLayout { attachment ->
-            signalProcessor.trackUserTriggered(
-                data = ScreenViewData(name = screenName),
-                timestamp = timestamp,
-                type = EventType.SCREEN_VIEW,
-                attachments = listOfNotNull(attachment).toMutableList(),
-                userDefinedAttributes = attributes,
-            )
+        if (configProvider.layoutSnapshotScreenViewEnabled) {
+            layoutSnapshotCollector.captureAttachmentAfterPendingLayout { attachment ->
+                trackScreenViewEvent(screenName, attributes, timestamp, attachment)
+            }
+        } else {
+            trackScreenViewEvent(screenName, attributes, timestamp)
         }
         logger.log(LogLevel.Debug, "Screen view event received")
+    }
+
+    private fun trackScreenViewEvent(
+        screenName: String,
+        attributes: Map<String, AttributeValue>,
+        timestamp: Long,
+        attachment: Attachment? = null,
+    ) {
+        signalProcessor.trackUserTriggered(
+            data = ScreenViewData(name = screenName),
+            timestamp = timestamp,
+            type = EventType.SCREEN_VIEW,
+            attachments = listOfNotNull(attachment).toMutableList(),
+            userDefinedAttributes = attributes,
+        )
     }
 }

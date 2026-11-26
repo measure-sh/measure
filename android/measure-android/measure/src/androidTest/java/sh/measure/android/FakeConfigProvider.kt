@@ -65,7 +65,8 @@ internal class FakeConfigProvider : ConfigProvider {
     override val errorHandledSamplingRate: Float = 0f
     override val anrTakeScreenshot: Boolean = true
     override val launchSamplingRate: Float = 1f
-    override val gestureClickTakeSnapshot: Boolean = true
+    override val layoutSnapshotClickEnabled: Boolean = true
+    override val layoutSnapshotScreenViewEnabled: Boolean = true
     override val httpSamplingRate: Float = 1f
     override val profileSamplingRate: Float = 100f
     override val logAutocollectEnabled: Boolean = true

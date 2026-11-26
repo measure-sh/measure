@@ -120,7 +120,7 @@ internal class GestureCollector(
         layoutSnapshot: LayoutSnapshot,
     ) {
         val data = ClickData.fromTargetNode(gesture, element)
-        if (configProvider.gestureClickTakeSnapshot && layoutSnapshotThrottler.shouldTakeSnapshot()) {
+        if (configProvider.layoutSnapshotClickEnabled && layoutSnapshotThrottler.shouldTakeSnapshot()) {
             trackClickWithSnapshotAsync(gesture, data, layoutSnapshot)
         } else {
             trackClick(gesture, data)

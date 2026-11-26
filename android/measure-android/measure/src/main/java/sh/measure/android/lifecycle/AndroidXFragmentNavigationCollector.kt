@@ -10,6 +10,8 @@ import androidx.navigation.NavController
 import androidx.navigation.NavDestination
 import androidx.navigation.fragment.NavHostFragment
 import androidx.navigation.fragment.findNavController
+import sh.measure.android.config.ConfigProvider
+import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.layoutinspector.LayoutSnapshotCollector
@@ -21,6 +23,7 @@ import sh.measure.android.utils.isClassAvailable
 internal class AndroidXFragmentNavigationCollector(
     private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
+    private val configProvider: ConfigProvider,
     private val layoutSnapshotCollector: LayoutSnapshotCollector,
 ) : FragmentLifecycleAdapter(),
     NavController.OnDestinationChangedListener {
@@ -45,14 +48,22 @@ internal class AndroidXFragmentNavigationCollector(
     ) {
         val displayName = getDisplayName(controller.context, destination.id)
         val timestamp = timeProvider.now()
-        layoutSnapshotCollector.captureAttachmentAfterNextDraw { attachment ->
-            signalProcessor.track(
-                type = EventType.SCREEN_VIEW,
-                timestamp = timestamp,
-                data = ScreenViewData(name = displayName.take(ValidationLimits.SCREEN_VIEW_NAME)),
-                attachments = listOfNotNull(attachment).toMutableList(),
-            )
+        if (configProvider.layoutSnapshotScreenViewEnabled) {
+            layoutSnapshotCollector.captureAttachmentAfterNextDraw { attachment ->
+                trackScreenView(displayName, timestamp, attachment)
+            }
+        } else {
+            trackScreenView(displayName, timestamp)
         }
+    }
+
+    private fun trackScreenView(displayName: String, timestamp: Long, attachment: Attachment? = null) {
+        signalProcessor.track(
+            type = EventType.SCREEN_VIEW,
+            timestamp = timestamp,
+            data = ScreenViewData(name = displayName.take(ValidationLimits.SCREEN_VIEW_NAME)),
+            attachments = listOfNotNull(attachment).toMutableList(),
+        )
     }
 
     private fun safelyTrackAndroidxNavChanges(f: Fragment) {

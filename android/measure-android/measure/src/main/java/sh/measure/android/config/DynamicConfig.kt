@@ -130,9 +130,15 @@ internal interface IDynamicConfig {
     val launchSamplingRate: Float
 
     /**
-     * Whether to take a layout snapshot when a gesture click occurs. Defaults to true.
+     * Whether to take a layout snapshot with clicks. Defaults to true.
      */
-    val gestureClickTakeSnapshot: Boolean
+    val layoutSnapshotClickEnabled: Boolean
+
+    /**
+     * Whether to take a layout snapshot with screen views, when an activity resumes and when the
+     * app goes to the background. Defaults to true.
+     */
+    val layoutSnapshotScreenViewEnabled: Boolean
 
     /**
      * Sampling rate for HTTP events. Defaults to 100%, which means
@@ -281,8 +287,12 @@ internal data class DynamicConfig(
     @SerialName("launch_sampling_rate")
     override val launchSamplingRate: Float = DefaultConfig.LAUNCH_SAMPLING_RATE,
 
-    @SerialName("gesture_click_take_snapshot")
-    override val gestureClickTakeSnapshot: Boolean = DefaultConfig.GESTURE_CLICK_TAKE_SNAPSHOT,
+    @SerialName("layout_snapshot_click_enabled")
+    override val layoutSnapshotClickEnabled: Boolean = DefaultConfig.LAYOUT_SNAPSHOT_CLICK_ENABLED,
+
+    @SerialName("layout_snapshot_screen_view_enabled")
+    override val layoutSnapshotScreenViewEnabled: Boolean =
+        DefaultConfig.LAYOUT_SNAPSHOT_SCREEN_VIEW_ENABLED,
 
     @SerialName("http_sampling_rate")
     override val httpSamplingRate: Float = DefaultConfig.HTTP_SAMPLING_RATE,

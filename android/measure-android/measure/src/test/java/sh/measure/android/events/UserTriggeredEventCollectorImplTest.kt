@@ -74,6 +74,24 @@ class UserTriggeredEventCollectorImplTest {
     }
 
     @Test
+    fun `does not attach layout snapshot to screen view event when screen view snapshots are disabled`() {
+        layoutSnapshotCollector.attachment = Attachment(
+            name = "snapshot.json.gz",
+            type = AttachmentType.LAYOUT_SNAPSHOT_JSON,
+            bytes = byteArrayOf(1),
+        )
+        configProvider.layoutSnapshotScreenViewEnabled = false
+        userTriggeredEventCollector.register()
+        userTriggeredEventCollector.trackScreenView("screen-name", emptyMap())
+        verify(signalProcessor).trackUserTriggered(
+            data = ScreenViewData(name = "screen-name"),
+            type = EventType.SCREEN_VIEW,
+            timestamp = timeProvider.now(),
+            attachments = mutableListOf(),
+        )
+    }
+
+    @Test
     fun `tracks screen view event with user-defined attributes`() {
         val screenName = "screen-name"
         val attributes = mapOf("key" to StringAttr("value"))

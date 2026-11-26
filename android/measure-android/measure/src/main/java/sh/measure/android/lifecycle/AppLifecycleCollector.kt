@@ -1,5 +1,7 @@
 package sh.measure.android.lifecycle
 
+import sh.measure.android.config.ConfigProvider
+import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.layoutinspector.LayoutSnapshotCollector
@@ -10,6 +12,7 @@ internal class AppLifecycleCollector(
     private val appLifecycleManager: AppLifecycleManager,
     private val signalProcessor: SignalProcessor,
     private val timeProvider: TimeProvider,
+    private val configProvider: ConfigProvider,
     private val layoutSnapshotCollector: LayoutSnapshotCollector,
 ) : AppLifecycleListener {
     private var isRegistered = AtomicBoolean(false)
@@ -36,13 +39,21 @@ internal class AppLifecycleCollector(
 
     override fun onAppBackground() {
         val timestamp = timeProvider.now()
-        layoutSnapshotCollector.captureAttachment { attachment ->
-            signalProcessor.track(
-                ApplicationLifecycleData(AppLifecycleType.BACKGROUND),
-                timestamp,
-                EventType.LIFECYCLE_APP,
-                attachments = listOfNotNull(attachment).toMutableList(),
-            )
+        if (configProvider.layoutSnapshotScreenViewEnabled) {
+            layoutSnapshotCollector.captureAttachment { attachment ->
+                trackAppBackground(timestamp, attachment)
+            }
+        } else {
+            trackAppBackground(timestamp)
         }
+    }
+
+    private fun trackAppBackground(timestamp: Long, attachment: Attachment? = null) {
+        signalProcessor.track(
+            ApplicationLifecycleData(AppLifecycleType.BACKGROUND),
+            timestamp,
+            EventType.LIFECYCLE_APP,
+            attachments = listOfNotNull(attachment).toMutableList(),
+        )
     }
 }

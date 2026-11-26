@@ -431,6 +431,7 @@ internal class MeasureInitializerImpl(
         signalProcessor = signalProcessor,
         timeProvider = timeProvider,
         appLifecycleManager = appLifecycleManager,
+        configProvider = configProvider,
         layoutSnapshotCollector = layoutSnapshotCollector,
     ),
     override val gestureCollector: GestureCollector = GestureCollector(

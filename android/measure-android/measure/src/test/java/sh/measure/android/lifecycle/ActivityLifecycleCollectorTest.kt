@@ -134,6 +134,26 @@ class ActivityLifecycleCollectorTest {
     }
 
     @Test
+    fun `does not attach layout snapshot to activity onResume when screen view snapshots are disabled`() {
+        layoutSnapshotCollector.attachment = Attachment(
+            name = "snapshot.json.gz",
+            type = AttachmentType.LAYOUT_SNAPSHOT_JSON,
+            bytes = byteArrayOf(1),
+        )
+        configProvider.layoutSnapshotScreenViewEnabled = false
+        controller.setup()
+        verify(signalProcessor, times(1)).track(
+            timestamp = timeProvider.now(),
+            type = EventType.LIFECYCLE_ACTIVITY,
+            data = ActivityLifecycleData(
+                type = ActivityLifecycleType.RESUMED,
+                class_name = TestLifecycleActivity::class.java.name,
+            ),
+            attachments = mutableListOf(),
+        )
+    }
+
+    @Test
     fun `tracks activity onPause`() {
         controller.setup().pause()
         verify(signalProcessor, times(1)).track(
