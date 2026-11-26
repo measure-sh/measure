@@ -92,8 +92,12 @@ export class ConfigProvider implements IConfigProvider {
     return this.dynamicConfig.launchSamplingRate;
   }
 
-  get gestureClickTakeSnapshot(): boolean {
-    return this.dynamicConfig.gestureClickTakeSnapshot;
+  get layoutSnapshotClickEnabled(): boolean {
+    return this.dynamicConfig.layoutSnapshotClickEnabled;
+  }
+
+  get layoutSnapshotScreenViewEnabled(): boolean {
+    return this.dynamicConfig.layoutSnapshotScreenViewEnabled;
   }
 
   get httpDisableEventForUrls(): string[] {

@@ -38,8 +38,11 @@ export interface IDynamicConfig {
   /** Sampling rate for launch metrics. Defaults to 100 */
   launchSamplingRate: number;
 
-  /** Whether to take a layout snapshot on gesture click. Defaults to true. */
-  gestureClickTakeSnapshot: boolean;
+  /** Whether to take a layout snapshot with clicks and long clicks. Defaults to true. */
+  layoutSnapshotClickEnabled: boolean;
+
+  /** Whether to take a layout snapshot with screen views. Defaults to true. */
+  layoutSnapshotScreenViewEnabled: boolean;
 
   /** URLs for which HTTP events should be disabled. */
   httpDisableEventForUrls: string[];
@@ -67,7 +70,8 @@ export class DynamicConfig implements IDynamicConfig {
   memoryUsageInterval: number;
   anrTakeScreenshot: boolean;
   launchSamplingRate: number;
-  gestureClickTakeSnapshot: boolean;
+  layoutSnapshotClickEnabled: boolean;
+  layoutSnapshotScreenViewEnabled: boolean;
   httpDisableEventForUrls: string[];
   httpTrackRequestForUrls: string[];
   httpTrackResponseForUrls: string[];
@@ -87,7 +91,9 @@ export class DynamicConfig implements IDynamicConfig {
     this.memoryUsageInterval = values.memoryUsageInterval;
     this.anrTakeScreenshot = values.anrTakeScreenshot;
     this.launchSamplingRate = values.launchSamplingRate;
-    this.gestureClickTakeSnapshot = values.gestureClickTakeSnapshot;
+    this.layoutSnapshotClickEnabled = values.layoutSnapshotClickEnabled;
+    this.layoutSnapshotScreenViewEnabled =
+      values.layoutSnapshotScreenViewEnabled;
     this.httpDisableEventForUrls = values.httpDisableEventForUrls;
     this.httpTrackRequestForUrls = values.httpTrackRequestForUrls;
     this.httpTrackResponseForUrls = values.httpTrackResponseForUrls;
@@ -108,7 +114,8 @@ export class DynamicConfig implements IDynamicConfig {
       memoryUsageInterval: 5,
       anrTakeScreenshot: true,
       launchSamplingRate: 100,
-      gestureClickTakeSnapshot: true,
+      layoutSnapshotClickEnabled: true,
+      layoutSnapshotScreenViewEnabled: true,
       httpDisableEventForUrls: [],
       httpTrackRequestForUrls: [],
       httpTrackResponseForUrls: [],
@@ -194,10 +201,15 @@ export class DynamicConfig implements IDynamicConfig {
         'launch_sampling_rate',
         defaults.launchSamplingRate
       ),
-      gestureClickTakeSnapshot: booleanOrDefault(
+      layoutSnapshotClickEnabled: booleanOrDefault(
         obj,
-        'gesture_click_take_snapshot',
-        defaults.gestureClickTakeSnapshot
+        'layout_snapshot_click_enabled',
+        defaults.layoutSnapshotClickEnabled
+      ),
+      layoutSnapshotScreenViewEnabled: booleanOrDefault(
+        obj,
+        'layout_snapshot_screen_view_enabled',
+        defaults.layoutSnapshotScreenViewEnabled
       ),
       httpDisableEventForUrls: stringArrayOrDefault(
         obj,
