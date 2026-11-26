@@ -26,7 +26,6 @@ struct BaseConfigLoader: ConfigLoader {
     private let networkClient: NetworkClient
     private let timeProvider: TimeProvider
     private let decoder: JSONDecoder
-    private let encoder: JSONEncoder
     private let logger: Logger
     private let measureDispatchQueue: MeasureDispatchQueue
     private let dynamicConfig: BaseDynamicConfig
@@ -49,10 +48,6 @@ struct BaseConfigLoader: ConfigLoader {
         let decoder = JSONDecoder()
         decoder.userInfo[.fallbackDynamicConfig] = dynamicConfig
         self.decoder = decoder
-
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted]
-        self.encoder = encoder
     }
 
     func loadDynamicConfig(onLoaded: @escaping (DynamicConfig) -> Void) {
@@ -78,16 +73,12 @@ struct BaseConfigLoader: ConfigLoader {
         }
     }
 
-    private func saveConfigToDisk(_ config: BaseDynamicConfig) {
-        do {
-            let data = try encoder.encode(config)
-            _ = fileManager.saveFile(data: data,
-                                     name: ConfigFileConstants.fileName,
-                                     folderName: "\(ConfigFileConstants.folderName)/\(ConfigFileConstants.dynamicConfigFolderName)",
-                                     directory: ConfigFileConstants.directory)
-        } catch {
-            logger.internalLog(level: .error, message: "ConfigLoader: Failed to save Dynamic config to disk.", error: error, data: nil)
-        }
+    /// Saves the server response unchanged.
+    private func saveConfigToDisk(_ data: Data) {
+        _ = fileManager.saveFile(data: data,
+                                 name: ConfigFileConstants.fileName,
+                                 folderName: "\(ConfigFileConstants.folderName)/\(ConfigFileConstants.dynamicConfigFolderName)",
+                                 directory: ConfigFileConstants.directory)
     }
 
     private func refreshConfigFromServer() { // swiftlint:disable:this function_body_length
@@ -122,11 +113,13 @@ struct BaseConfigLoader: ConfigLoader {
 
             case .success(let data, let eTag, let cacheControl):
 
-                guard let config = try? decoder.decode(BaseDynamicConfig.self, from: data) else {
-                    logger.internalLog(level: .error, message: "ConfigLoader: Failed to decode config from server", error: nil, data: nil)
+                do {
+                    _ = try decoder.decode(BaseDynamicConfig.self, from: data)
+                } catch {
+                    logger.internalLog(level: .error, message: "ConfigLoader: Failed to decode config from server", error: error, data: nil)
                     return
                 }
-                saveConfigToDisk(config)
+                saveConfigToDisk(data)
 
                 userDefaultStorage.setConfigFetchTimestamp(now)
                 userDefaultStorage.setConfigCacheControl(Number(cacheControl))
