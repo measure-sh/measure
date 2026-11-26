@@ -163,6 +163,7 @@ final class MeasureInitializer {
       timeProvider: timeProvider,
       layoutSnapshotCollector: _layoutSnapshotCollector,
       layoutSnapshotThrottler: LayoutSnapshotThrottler(_timeProvider),
+      configProvider: configProvider,
     );
     _httpCollector = HttpCollector(
       logger: logger,
@@ -174,6 +175,7 @@ final class MeasureInitializer {
       timeProvider,
       _layoutSnapshotCollector,
       LayoutSnapshotThrottler(_timeProvider),
+      configProvider,
     );
     _shakeDetector = ShakeDetectorImpl(
       methodChannel: _methodChannel,

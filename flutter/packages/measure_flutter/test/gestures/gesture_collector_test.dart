@@ -9,6 +9,7 @@ import 'package:measure_flutter/src/gestures/msr_scroll_direction.dart';
 import 'package:measure_flutter/src/gestures/scroll_data.dart';
 import 'package:measure_flutter/src/time/time_provider.dart';
 
+import '../utils/fake_config_provider.dart';
 import '../utils/fake_layout_snapshot_collector.dart';
 import '../utils/fake_signal_processor.dart';
 import '../utils/test_clock.dart';
@@ -17,6 +18,7 @@ void main() {
   late FakeSignalProcessor signalProcessor;
   late TestClock clock;
   late GestureCollector collector;
+  late FakeConfigProvider configProvider;
 
   final snapshot = SnapshotNode(
     label: 'Button',
@@ -41,12 +43,14 @@ void main() {
       timeProvider,
       snapshotCollector,
       LayoutSnapshotThrottler(timeProvider),
+      configProvider,
     )..register();
   }
 
   setUp(() {
     signalProcessor = FakeSignalProcessor();
     clock = TestClock.create();
+    configProvider = FakeConfigProvider();
     collector = collectorWith(FakeLayoutSnapshotCollector(attachment: attachment));
   });
 
@@ -155,6 +159,17 @@ void main() {
       await click();
 
       expect(lastEvent().attachments?.single, same(attachment));
+    });
+
+    test('tracks clicks without a snapshot when click snapshots are disabled',
+        () async {
+      configProvider.layoutSnapshotClickEnabled = false;
+
+      await click();
+      await longClick();
+
+      expect(signalProcessor.trackedEvents.map((e) => e.attachments),
+          [isNull, isNull]);
     });
 
     test('throttles a long click against the same window as a click', () async {
