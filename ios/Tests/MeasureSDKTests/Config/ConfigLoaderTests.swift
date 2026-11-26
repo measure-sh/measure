@@ -103,27 +103,25 @@ final class ConfigLoaderTests: XCTestCase {
         wait(for: [exp], timeout: 1)
     }
 
-    func testLoadConfig_success_savesServerConfigWithMissingKeysFromMeasureConfig() throws {
+    func testLoadConfig_success_savesServerResponseAsReceived() throws {
         setupCacheExpired()
-        let config = BaseMeasureConfig(memoryUsageInterval: 1)
-        let loader = BaseConfigLoader(
-            userDefaultStorage: mockUserDefaults,
-            fileManager: mockFileManager,
-            networkClient: mockNetworkClient,
-            timeProvider: mockTimeProvider,
-            logger: MockLogger(),
-            measureDispatchQueue: measureDispatchQueue,
-            dynamicConfig: config.dynamicConfig
-        )
-        mockNetworkClient.stubConfig(.success(data: Data(#"{"trace_sampling_rate": 50}"#.utf8), eTag: nil, cacheControl: 3600))
+        let body = Data(#"{"trace_sampling_rate": 50, "key_unknown_to_this_sdk": true}"#.utf8)
+        mockNetworkClient.stubConfig(.success(data: body, eTag: "etag", cacheControl: 3600))
 
-        loader.loadDynamicConfig { _ in }
+        configLoader.loadDynamicConfig { _ in }
 
         let configKey = "\(ConfigFileConstants.folderName)/\(ConfigFileConstants.dynamicConfigFolderName)/\(ConfigFileConstants.fileName)"
-        let saved = try XCTUnwrap(mockFileManager.savedFiles[configKey])
-        let decoded = try JSONDecoder().decode(BaseDynamicConfig.self, from: saved)
-        XCTAssertEqual(decoded.traceSamplingRate, 50)
-        XCTAssertEqual(decoded.memoryUsageInterval, 1)
+        XCTAssertEqual(mockFileManager.savedFiles[configKey], body)
+    }
+
+    func testLoadConfig_success_doesNotSaveResponseThatFailsToDecode() {
+        setupCacheExpired()
+        mockNetworkClient.stubConfig(.success(data: Data("not json".utf8), eTag: "etag", cacheControl: 3600))
+
+        configLoader.loadDynamicConfig { _ in }
+
+        XCTAssertTrue(mockFileManager.savedFiles.isEmpty)
+        XCTAssert(mockUserDefaults.eTag!.isEmpty)
     }
 
     func testLoadDynamicConfig_returnsDefault_whenInvalidJSON() {
