@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:http_mock_adapter/http_mock_adapter.dart';
@@ -144,7 +146,7 @@ void main() {
 
     expect(response.statusCode, 201);
     expect(measure.trackedHttp.length, 1);
-    expect(measure.trackedHttp.first.requestBody, requestBody.toString());
+    expect(measure.trackedHttp.first.requestBody, '{"name":"John Doe"}');
   });
 
   test("tracks response body", () async {
@@ -156,23 +158,13 @@ void main() {
 
     expect(response.statusCode, 201);
     expect(measure.trackedHttp.length, 1);
-    expect(measure.trackedHttp.first.responseBody, responseBody.toString());
+    expect(measure.trackedHttp.first.responseBody, '{"message":"Success!"}');
   });
 
   test('tracks HTTP error', () async {
     const path = '/fail';
 
-    dioAdapter.onGet(
-      path,
-      (server) => server.throws(
-        500,
-        DioException(
-          requestOptions: RequestOptions(path: 'https://example.com$path'),
-          type: DioExceptionType.connectionTimeout,
-          message: 'timeout',
-        ),
-      ),
-    );
+    dio.httpClientAdapter = _TimeoutAdapter();
 
     try {
       await dio.get(path);
@@ -187,17 +179,62 @@ void main() {
     expect(httpCall.method, HttpMethod.get);
     expect(httpCall.statusCode, isNull);
     expect(httpCall.failureReason, "DioExceptionType.connectionTimeout");
-    expect(httpCall.failureDescription, null);
+    expect(httpCall.failureDescription, 'timeout');
     expect(httpCall.client, 'dio');
   });
 
-  test('handles response with non-JSON type', () async {
-    const path = '/text';
-    const responseText = 'plain text response';
+  test('truncates response body over 256KB', () async {
+    const path = '/large';
+    final responseData = {'data': 'a' * (300 * 1024)};
 
-    dioAdapter.onGet(path, (server) => server.reply(200, responseText));
+    dioAdapter.onGet(path, (server) => server.reply(200, responseData));
+
+    await dio.get(path);
+
+    final responseBody = measure.trackedHttp.first.responseBody!;
+    expect(
+      responseBody,
+      '{"data":"${'a' * (256 * 1024 - 9)}'
+      '\n... [Body truncated - exceeded 256KB limit]',
+    );
+  });
+
+  test('tracks 4xx response with status code, headers and body', () async {
+    const path = '/missing';
+    final responseData = {'message': 'Not found'};
+
+    dioAdapter.onGet(path, (server) => server.reply(404, responseData));
+
+    await expectLater(dio.get(path), throwsA(isA<DioException>()));
+
+    expect(measure.trackedHttp.length, 1);
+    final httpCall = measure.trackedHttp.first;
+    expect(httpCall.statusCode, 404);
+    expect(httpCall.failureReason, isNull);
+    expect(httpCall.failureDescription, isNull);
+    expect(httpCall.responseHeaders, {'content-type': 'application/json'});
+    expect(httpCall.responseBody, '{"message":"Not found"}');
+  });
+
+  test('tracks json response body for plain response type', () async {
+    const path = '/plain-json';
+    final responseData = {'message': 'Success!'};
+
+    dioAdapter.onGet(path, (server) => server.reply(200, responseData));
 
     await dio.get(path, options: Options(responseType: ResponseType.plain));
+
+    expect(measure.trackedHttp.length, 1);
+    expect(measure.trackedHttp.first.responseBody, '{"message":"Success!"}');
+  });
+
+  test('handles response with non-JSON type', () async {
+    const path = '/bytes';
+    final responseBytes = [1, 2, 3];
+
+    dioAdapter.onGet(path, (server) => server.reply(200, responseBytes));
+
+    await dio.get(path, options: Options(responseType: ResponseType.bytes));
 
     expect(measure.trackedHttp.length, 1);
 
@@ -227,25 +264,23 @@ void main() {
       expect(measure.trackedHttp.length, 0);
     });
 
-    test('does not track request headers when disabled', () async {
+    test('passes blocked headers on to measure', () async {
       const path = '/headers';
       final responseData = {'message': 'Success!'};
-      final requestHeaders = {'x-custom-header': 'value'};
 
       measure.setShouldTrackHttpHeader(false);
 
-      dioAdapter.onGet(
-        path,
-        headers: requestHeaders,
-        (server) => server.reply(200, responseData),
-      );
+      dioAdapter.onGet(path, (server) => server.reply(200, responseData));
 
-      await dio.get(path, options: Options(headers: requestHeaders));
+      await dio.get(path);
 
+      // Measure removes blocked headers after it checks the content type.
       expect(measure.trackedHttp.length, 1);
-      final httpCall = measure.trackedHttp.first;
-      expect(httpCall.requestHeaders, isNull);
-      expect(httpCall.responseHeaders, isNull);
+      expect(
+        measure.trackedHttp.first.responseHeaders,
+        {'content-type': 'application/json'},
+      );
+      expect(measure.trackedHttp.first.responseBody, '{"message":"Success!"}');
     });
 
     test('does not track request body when disabled', () async {
@@ -327,4 +362,22 @@ void main() {
       expect(httpCall.responseHeaders, isNull);
     });
   });
+}
+
+class _TimeoutAdapter implements HttpClientAdapter {
+  @override
+  Future<ResponseBody> fetch(
+    RequestOptions options,
+    Stream<Uint8List>? requestStream,
+    Future<void>? cancelFuture,
+  ) {
+    throw DioException(
+      requestOptions: options,
+      type: DioExceptionType.connectionTimeout,
+      message: 'timeout',
+    );
+  }
+
+  @override
+  void close({bool force = false}) {}
 }

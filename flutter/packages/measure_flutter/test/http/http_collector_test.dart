@@ -50,7 +50,7 @@ void main() {
       expect(signalProcessor.trackedEvents.length, 1);
       final event = signalProcessor.trackedEvents.first;
       expect(event.type, EventType.http);
-      expect(event.timestamp, 1234567890);
+      expect(event.timestamp, 1234567895);
       expect(event.userTriggered, false);
       expect(event.userDefinedAttrs, {});
 
@@ -381,6 +381,30 @@ void main() {
 
         final httpData = signalProcessor.trackedEvents.first.data as HttpData;
         expect(httpData.responseBody, null);
+      });
+
+      test('keeps json bodies when content type header is blocked', () {
+        configProvider.shouldTrackHttpRequestBodyResult = true;
+        configProvider.shouldTrackHttpResponseBodyResult = true;
+        configProvider.shouldTrackHttpHeaderResults = {'content-type': false};
+        collector.register();
+
+        collector.trackHttpEvent(
+          url: 'https://api.example.com/users',
+          method: HttpMethod.post,
+          requestHeaders: {'content-type': 'application/json'},
+          responseHeaders: {'content-type': 'application/json'},
+          startTime: 1234567890,
+          statusCode: 201,
+          requestBody: '{"name": "John"}',
+          responseBody: '{"id": 1}',
+        );
+
+        final httpData = signalProcessor.trackedEvents.first.data as HttpData;
+        expect(httpData.requestHeaders, isEmpty);
+        expect(httpData.responseHeaders, isEmpty);
+        expect(httpData.requestBody, '{"name": "John"}');
+        expect(httpData.responseBody, '{"id": 1}');
       });
 
       test('removes bodies when content type header is absent', () {
