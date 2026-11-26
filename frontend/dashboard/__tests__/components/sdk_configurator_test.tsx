@@ -137,6 +137,8 @@ const mockInitialConfig = {
   http_track_response_for_urls: [],
   http_blocked_headers: [],
   screenshot_mask_level: "sensitive_fields_only",
+  layout_snapshot_click_enabled: true,
+  layout_snapshot_screen_view_enabled: true,
   profile_sampling_rate: 100,
   memory_usage_interval: 5,
   memory_usage_background_interval: 10,
@@ -194,6 +196,7 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByText("Analytics")).toBeInTheDocument();
     expect(screen.getByText("HTTP")).toBeInTheDocument();
     expect(screen.getByText("Screenshot Masking")).toBeInTheDocument();
+    expect(screen.getByText("Layout Snapshots")).toBeInTheDocument();
     expect(screen.getByText("Memory")).toBeInTheDocument();
     expect(screen.getByText("Logs")).toBeInTheDocument();
   });
@@ -330,6 +333,7 @@ describe("SdkConfigurator Component", () => {
     expect(screen.getByTestId("memory-save-button")).toBeDisabled();
     expect(screen.getByTestId("http-save-button")).toBeDisabled();
     expect(screen.getByTestId("masking-save-button")).toBeDisabled();
+    expect(screen.getByTestId("layout-snapshots-save-button")).toBeDisabled();
   });
 
   it("disables all inputs when currentUserCanChangeAppSettings is false", () => {
@@ -969,6 +973,48 @@ describe("SdkConfigurator Component", () => {
     });
 
     expect(toastPositive).toHaveBeenCalled();
+  });
+
+  it("saves disabled click layout snapshots", async () => {
+    simulateMutateSuccess();
+
+    render(
+      <SdkConfigurator
+        appId="test-app-id"
+        appName="Test App"
+        initialConfig={mockInitialConfig}
+        currentUserCanChangeAppSettings={true}
+        osNames={null}
+      />,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("layout-snapshot-click-switch"));
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("layout-snapshots-save-button"));
+    });
+    await waitFor(() => {
+      expect(
+        screen.getByTestId("danger-confirmation-dialog"),
+      ).toHaveTextContent("Layout snapshots with click events: Disabled");
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByTestId("dialog-affirmative-button"));
+    });
+
+    await waitFor(() => {
+      expect(mockMutate).toHaveBeenCalledWith(
+        {
+          appId: "test-app-id",
+          config: {
+            layout_snapshot_click_enabled: false,
+            layout_snapshot_screen_view_enabled: true,
+          },
+        },
+        expect.any(Object),
+      );
+    });
   });
 
   it("saves masking config with correct payload on successful save", async () => {

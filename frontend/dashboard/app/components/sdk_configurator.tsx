@@ -73,6 +73,7 @@ export default function SdkConfigurator({
     analytics: "idle",
     http: "idle",
     masking: "idle",
+    layoutSnapshots: "idle",
     logs: "idle",
     memory: "idle",
   });
@@ -94,6 +95,8 @@ export default function SdkConfigurator({
   const [analyticsConfirmOpen, setAnalyticsConfirmOpen] = useState(false);
   const [httpConfirmOpen, setHttpConfirmOpen] = useState(false);
   const [maskingConfirmOpen, setMaskingConfirmOpen] = useState(false);
+  const [layoutSnapshotsConfirmOpen, setLayoutSnapshotsConfirmOpen] =
+    useState(false);
   const [logsConfirmOpen, setLogsConfirmOpen] = useState(false);
   const [memoryConfirmOpen, setMemoryConfirmOpen] = useState(false);
 
@@ -188,6 +191,13 @@ export default function SdkConfigurator({
     !!sdkConfig &&
     !!originalSdkConfig &&
     sdkConfig.screenshot_mask_level !== originalSdkConfig.screenshot_mask_level;
+  const layoutSnapshotsChanged =
+    !!sdkConfig &&
+    !!originalSdkConfig &&
+    (sdkConfig.layout_snapshot_click_enabled !==
+      originalSdkConfig.layout_snapshot_click_enabled ||
+      sdkConfig.layout_snapshot_screen_view_enabled !==
+        originalSdkConfig.layout_snapshot_screen_view_enabled);
   const logsChanged =
     !!sdkConfig &&
     !!originalSdkConfig &&
@@ -318,6 +328,13 @@ export default function SdkConfigurator({
   const handleSaveMasking = () => {
     saveSection("masking", {
       screenshot_mask_level: sdkConfig.screenshot_mask_level,
+    });
+  };
+  const handleSaveLayoutSnapshots = () => {
+    saveSection("layoutSnapshots", {
+      layout_snapshot_click_enabled: sdkConfig.layout_snapshot_click_enabled,
+      layout_snapshot_screen_view_enabled:
+        sdkConfig.layout_snapshot_screen_view_enabled,
     });
   };
   const handleSaveLogs = () => {
@@ -844,6 +861,49 @@ export default function SdkConfigurator({
           </li>
         </ul>
         <p className="mt-4">These changes will apply to all new screenshots.</p>
+      </div>
+    );
+  };
+
+  const getLayoutSnapshotsConfirmBody = () => {
+    return (
+      <div className="font-body">
+        <p>
+          Are you sure you want to update{" "}
+          <span className="font-display font-bold">
+            Layout Snapshots settings
+          </span>{" "}
+          for app <span className="font-display font-bold">{appName}</span>?
+        </p>
+        <p className="mt-4">The following changes will be applied:</p>
+        <ul className="mt-2 space-y-1 list-disc list-inside">
+          {sdkConfig.layout_snapshot_click_enabled !==
+            originalSdkConfig.layout_snapshot_click_enabled && (
+            <li>
+              Layout snapshots with click events:{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.layout_snapshot_click_enabled
+                  ? "Enabled"
+                  : "Disabled"}
+              </span>
+            </li>
+          )}
+          {sdkConfig.layout_snapshot_screen_view_enabled !==
+            originalSdkConfig.layout_snapshot_screen_view_enabled && (
+            <li>
+              Layout snapshots with screen view events:{" "}
+              <span className="font-display font-bold">
+                {sdkConfig.layout_snapshot_screen_view_enabled
+                  ? "Enabled"
+                  : "Disabled"}
+              </span>
+            </li>
+          )}
+        </ul>
+        <p className="mt-4">
+          These changes will apply to all new sessions. Session replays have no
+          layout for events without a layout snapshot.
+        </p>
       </div>
     );
   };
@@ -1718,6 +1778,81 @@ export default function SdkConfigurator({
             </AccordionContent>
           </AccordionItem>
 
+          {/* Layout Snapshots Accordion */}
+          <AccordionItem value="layoutSnapshots" className="mt-2">
+            <AccordionTrigger className="font-body text-base">
+              Layout Snapshots
+            </AccordionTrigger>
+            <AccordionContent className={accordionContentStyle}>
+              <div className="mt-2 space-y-4">
+                <div className="flex flex-col gap-2 min-h-10 sm:flex-row sm:items-center sm:gap-0">
+                  <p className="text-sm">
+                    Collect layout snapshot with{" "}
+                    <span className="font-bold">click</span> events
+                  </p>
+                  <Switch
+                    data-testid="layout-snapshot-click-switch"
+                    className="sm:ml-4"
+                    checked={sdkConfig.layout_snapshot_click_enabled}
+                    onCheckedChange={(checked) =>
+                      updateSdkConfig({
+                        layout_snapshot_click_enabled: checked,
+                      })
+                    }
+                    disabled={!currentUserCanChangeAppSettings}
+                  />
+                </div>
+                <div className="flex flex-col gap-2 min-h-10 sm:flex-row sm:items-center sm:gap-0">
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm">
+                      Collect layout snapshot with{" "}
+                      <span className="font-bold">screen view</span> events
+                    </p>
+                    <InfoTooltip
+                      content={
+                        <>
+                          Also takes a snapshot when the app moves to the
+                          background.{" "}
+                          <Link
+                            href="/docs/adaptive-capture#layout-snapshots"
+                            className={underlineLinkStyle}
+                          >
+                            Learn more
+                          </Link>
+                        </>
+                      }
+                    />
+                  </div>
+                  <Switch
+                    data-testid="layout-snapshot-screen-view-switch"
+                    className="sm:ml-4"
+                    checked={sdkConfig.layout_snapshot_screen_view_enabled}
+                    onCheckedChange={(checked) =>
+                      updateSdkConfig({
+                        layout_snapshot_screen_view_enabled: checked,
+                      })
+                    }
+                    disabled={!currentUserCanChangeAppSettings}
+                  />
+                </div>
+                <div className="flex justify-end mt-2">
+                  <Button
+                    data-testid="layout-snapshots-save-button"
+                    variant="outline"
+                    disabled={
+                      !currentUserCanChangeAppSettings ||
+                      !layoutSnapshotsChanged
+                    }
+                    loading={sectionStatuses.layoutSnapshots === "saving"}
+                    onClick={() => setLayoutSnapshotsConfirmOpen(true)}
+                  >
+                    Save
+                  </Button>
+                </div>
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+
           {/* Memory Accordion */}
           <AccordionItem value="memory" className="mt-2">
             <AccordionTrigger className="font-body text-base">
@@ -2077,6 +2212,18 @@ export default function SdkConfigurator({
           handleSaveMasking();
         }}
         onCancelAction={() => setMaskingConfirmOpen(false)}
+      />
+
+      <DangerConfirmationDialog
+        body={getLayoutSnapshotsConfirmBody()}
+        open={layoutSnapshotsConfirmOpen}
+        affirmativeText="Yes, I'm sure"
+        cancelText="Cancel"
+        onAffirmativeAction={() => {
+          setLayoutSnapshotsConfirmOpen(false);
+          handleSaveLayoutSnapshots();
+        }}
+        onCancelAction={() => setLayoutSnapshotsConfirmOpen(false)}
       />
 
       <DangerConfirmationDialog

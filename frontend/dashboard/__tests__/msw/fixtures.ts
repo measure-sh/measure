@@ -1389,6 +1389,8 @@ export function makeSdkConfigFixture(overrides: Record<string, any> = {}) {
     http_track_response_for_urls: [],
     http_blocked_headers: [],
     screenshot_mask_level: "all_text_and_media",
+    layout_snapshot_click_enabled: true,
+    layout_snapshot_screen_view_enabled: true,
     memory_usage_interval: 5,
     memory_usage_background_interval: 10,
     memory_usage_session_sampling_rate: 0.01,

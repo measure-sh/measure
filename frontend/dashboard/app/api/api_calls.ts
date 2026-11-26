@@ -689,6 +689,8 @@ export type SdkConfig = {
   http_track_response_for_urls: string[];
   http_blocked_headers: string[];
   screenshot_mask_level: string;
+  layout_snapshot_click_enabled: boolean;
+  layout_snapshot_screen_view_enabled: boolean;
   profile_sampling_rate: number;
   memory_usage_interval: number;
   memory_usage_background_interval: number;
