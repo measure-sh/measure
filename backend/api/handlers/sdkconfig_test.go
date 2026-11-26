@@ -263,6 +263,37 @@ func TestPatchConfigForApp_DisablesTTID(t *testing.T) {
 	}
 }
 
+func TestPatchConfigForApp_DisablesLayoutSnapshots(t *testing.T) {
+	ctx := context.Background()
+	defer cleanupAll(ctx, t)
+
+	appID, userID := seedSdkConfig(ctx, t)
+
+	patchConfig(t, appID, userID, `{"layout_snapshot_click_enabled":false,"layout_snapshot_screen_view_enabled":false}`)
+
+	config, err := sdkconfig.GetConfigFromDb(ctx, th.PgPool, appID)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	if config.LayoutSnapshotClickEnabled {
+		t.Errorf("layout_snapshot_click_enabled = true, want false")
+	}
+	if config.LayoutSnapshotScreenViewEnabled {
+		t.Errorf("layout_snapshot_screen_view_enabled = true, want false")
+	}
+
+	var changes map[string]sdkconfig.SdkConfigFieldChange
+	if err := th.PgPool.QueryRow(ctx,
+		`SELECT changes FROM sdk_config_history WHERE app_id = $1`, appID).Scan(&changes); err != nil {
+		t.Fatalf("read config change: %v", err)
+	}
+	for _, key := range []string{"layout_snapshot_click_enabled", "layout_snapshot_screen_view_enabled"} {
+		if got := changes[key]; got.Old != true || got.New != false {
+			t.Errorf("%s change = %+v, want true to false", key, got)
+		}
+	}
+}
+
 func TestPatchConfigForApp_UnchangedPatchRecordsNothing(t *testing.T) {
 	ctx := context.Background()
 	defer cleanupAll(ctx, t)
