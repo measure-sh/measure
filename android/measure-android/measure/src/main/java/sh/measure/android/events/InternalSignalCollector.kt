@@ -142,7 +142,7 @@ internal class InternalSignalCollector(
                     val hasLayoutSnapshot = eventAttachments.any {
                         it.type == AttachmentType.LAYOUT_SNAPSHOT_JSON
                     }
-                    if (hasLayoutSnapshot) {
+                    if (hasLayoutSnapshot || !configProvider.layoutSnapshotScreenViewEnabled) {
                         trackScreenView()
                     } else {
                         layoutSnapshotCollector.captureAttachmentAfterNextDraw { attachment ->

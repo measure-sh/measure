@@ -169,8 +169,10 @@ internal class ConfigProviderImpl(
         get() = dynamicConfig.anrTakeScreenshot
     override val launchSamplingRate: Float
         get() = dynamicConfig.launchSamplingRate
-    override val gestureClickTakeSnapshot: Boolean
-        get() = dynamicConfig.gestureClickTakeSnapshot
+    override val layoutSnapshotClickEnabled: Boolean
+        get() = dynamicConfig.layoutSnapshotClickEnabled
+    override val layoutSnapshotScreenViewEnabled: Boolean
+        get() = dynamicConfig.layoutSnapshotScreenViewEnabled
     override val httpDisableEventForUrls: List<String>
         get() = dynamicConfig.httpDisableEventForUrls.toList()
     override val httpSamplingRate: Float

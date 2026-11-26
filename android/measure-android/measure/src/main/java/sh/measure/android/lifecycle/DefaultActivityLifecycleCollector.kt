@@ -6,6 +6,7 @@ import android.os.Bundle
 import androidx.fragment.app.FragmentActivity
 import curtains.onNextDraw
 import sh.measure.android.config.ConfigProvider
+import sh.measure.android.events.Attachment
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
 import sh.measure.android.layoutinspector.LayoutSnapshotCollector
@@ -41,7 +42,7 @@ internal class DefaultActivityLifecycleCollector(
         FragmentLifecycleCollector(signalProcessor, timeProvider, configProvider, tracer)
     }
     private val androidXFragmentNavigationCollector by lazy {
-        AndroidXFragmentNavigationCollector(signalProcessor, timeProvider, layoutSnapshotCollector)
+        AndroidXFragmentNavigationCollector(signalProcessor, timeProvider, configProvider, layoutSnapshotCollector)
     }
 
     private var isRegistered = AtomicBoolean(false)
@@ -89,16 +90,12 @@ internal class DefaultActivityLifecycleCollector(
 
     override fun onActivityResumed(activity: Activity) {
         val timestamp = timeProvider.now()
-        layoutSnapshotCollector.captureAttachmentAfterNextDraw(activity.window) { attachment ->
-            signalProcessor.track(
-                timestamp = timestamp,
-                type = EventType.LIFECYCLE_ACTIVITY,
-                data = ActivityLifecycleData(
-                    type = ActivityLifecycleType.RESUMED,
-                    class_name = activity.javaClass.name.take(ValidationLimits.ACTIVITY_CLASS_NAME),
-                ),
-                attachments = listOfNotNull(attachment).toMutableList(),
-            )
+        if (configProvider.layoutSnapshotScreenViewEnabled) {
+            layoutSnapshotCollector.captureAttachmentAfterNextDraw(activity.window) { attachment ->
+                trackActivityResumed(activity, timestamp, attachment)
+            }
+        } else {
+            trackActivityResumed(activity, timestamp)
         }
 
         activity.window.onNextDraw {
@@ -136,6 +133,18 @@ internal class DefaultActivityLifecycleCollector(
                 fragmentLifecycleCollector,
             )
         }
+    }
+
+    private fun trackActivityResumed(activity: Activity, timestamp: Long, attachment: Attachment? = null) {
+        signalProcessor.track(
+            timestamp = timestamp,
+            type = EventType.LIFECYCLE_ACTIVITY,
+            data = ActivityLifecycleData(
+                type = ActivityLifecycleType.RESUMED,
+                class_name = activity.javaClass.name.take(ValidationLimits.ACTIVITY_CLASS_NAME),
+            ),
+            attachments = listOfNotNull(attachment).toMutableList(),
+        )
     }
 
     private fun registerAndroidXFragmentNavigationCollector(activity: Activity) {

@@ -145,7 +145,7 @@ internal class ConfigLoaderImplTest {
                 "anr_take_screenshot": false,
                 "anr_timeline_sampling_rate": 1.0,
                 "launch_sampling_rate": 1.0,
-                "gesture_click_take_snapshot": false,
+                "layout_snapshot_click_enabled": false,
                 "http_disable_event_for_urls": [],
                 "http_track_request_for_urls": [],
                 "http_track_response_for_urls": [],

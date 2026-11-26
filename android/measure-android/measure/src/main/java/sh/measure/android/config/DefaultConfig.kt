@@ -35,7 +35,8 @@ internal object DefaultConfig {
     const val ERROR_HANDLED_SAMPLING_RATE: Float = 0f
     const val ANR_TAKE_SCREENSHOT: Boolean = true
     const val LAUNCH_SAMPLING_RATE: Float = 100f
-    const val GESTURE_CLICK_TAKE_SNAPSHOT: Boolean = true
+    const val LAYOUT_SNAPSHOT_CLICK_ENABLED: Boolean = true
+    const val LAYOUT_SNAPSHOT_SCREEN_VIEW_ENABLED: Boolean = true
     const val HTTP_SAMPLING_RATE: Float = 100f
     val HTTP_DISABLE_EVENT_FOR_URLS: List<String> = emptyList()
     val HTTP_TRACK_REQUEST_FOR_URLS: List<String> = emptyList()

@@ -253,6 +253,44 @@ class InternalSignalCollectorTest {
     }
 
     @Test
+    fun `trackEvent skips native layout snapshot when screen view snapshots are disabled`() {
+        layoutSnapshotCollector.attachment = TestData.getAttachment(
+            type = AttachmentType.LAYOUT_SNAPSHOT_JSON,
+            name = "native.json.gz",
+        )
+        configProvider.layoutSnapshotScreenViewEnabled = false
+        val data = mutableMapOf<String, Any?>("name" to "screen_name")
+        val type = EventType.SCREEN_VIEW
+        val timestamp = 1234567890L
+        val attributes = mutableMapOf<String, Any?>()
+        val userDefinedAttrs = mutableMapOf<String, AttributeValue>()
+
+        internalSignalCollector.trackEvent(
+            data = data,
+            type = type.value,
+            timestamp = timestamp,
+            attributes = attributes,
+            userDefinedAttrs = userDefinedAttrs,
+            attachments = mutableListOf(),
+            userTriggered = false,
+            sessionId = null,
+            threadName = null,
+        )
+
+        verify(signalProcessor).track(
+            data = ScreenViewData("screen_name"),
+            timestamp = timestamp,
+            type = type,
+            attributes = attributes,
+            userDefinedAttributes = userDefinedAttrs,
+            attachments = mutableListOf(),
+            threadName = Thread.currentThread().name,
+            sessionId = null,
+            userTriggered = false,
+        )
+    }
+
+    @Test
     fun `trackEvent skips native layout snapshot when screen view already has one`() {
         layoutSnapshotCollector.attachment = TestData.getAttachment(
             type = AttachmentType.LAYOUT_SNAPSHOT_JSON,

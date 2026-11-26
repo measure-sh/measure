@@ -216,6 +216,17 @@ class MeasureConfig(
     val screenshotMaskLevel: ScreenshotMaskLevel = DefaultConfig.SCREENSHOT_MASK_LEVEL,
 
     /**
+     * Whether to take a layout snapshot with clicks. Defaults to `true`.
+     */
+    val layoutSnapshotClickEnabled: Boolean = DefaultConfig.LAYOUT_SNAPSHOT_CLICK_ENABLED,
+
+    /**
+     * Whether to take a layout snapshot with screen views, when an activity resumes and when the
+     * app goes to the background. Defaults to `true`.
+     */
+    val layoutSnapshotScreenViewEnabled: Boolean = DefaultConfig.LAYOUT_SNAPSHOT_SCREEN_VIEW_ENABLED,
+
+    /**
      * Whether to collect logs from the platform's logging APIs automatically. Defaults to `false`.
      */
     val logAutocollectEnabled: Boolean = DefaultConfig.LOG_AUTOCOLLECT_ENABLED,
@@ -277,6 +288,8 @@ internal fun MeasureConfig.toDynamicConfig(): DynamicConfig = DynamicConfig(
     httpTrackResponseForUrls = httpTrackResponseForUrls,
     httpBlockedHeaders = httpBlockedHeaders,
     screenshotMaskLevel = screenshotMaskLevel,
+    layoutSnapshotClickEnabled = layoutSnapshotClickEnabled,
+    layoutSnapshotScreenViewEnabled = layoutSnapshotScreenViewEnabled,
     logAutocollectEnabled = logAutocollectEnabled,
     logMinSeverity = logMinSeverity.severityNumber,
     logIgnorePatterns = logIgnorePatterns,

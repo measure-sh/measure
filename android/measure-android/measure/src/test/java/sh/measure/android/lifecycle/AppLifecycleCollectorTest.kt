@@ -17,6 +17,7 @@ import sh.measure.android.events.Attachment
 import sh.measure.android.events.AttachmentType
 import sh.measure.android.events.EventType
 import sh.measure.android.events.SignalProcessor
+import sh.measure.android.fakes.FakeConfigProvider
 import sh.measure.android.fakes.FakeLayoutSnapshotCollector
 import sh.measure.android.utils.AndroidTimeProvider
 import sh.measure.android.utils.TestClock
@@ -27,11 +28,13 @@ class AppLifecycleCollectorTest {
     private val timeProvider = AndroidTimeProvider(TestClock.create())
     private val application = InstrumentationRegistry.getInstrumentation().context as Application
     private val appLifecycleManager = AppLifecycleManager(application)
+    private val configProvider = FakeConfigProvider()
     private val layoutSnapshotCollector = FakeLayoutSnapshotCollector()
     private val appLifecycleCollector: AppLifecycleCollector = AppLifecycleCollector(
         appLifecycleManager,
         signalProcessor,
         timeProvider,
+        configProvider,
         layoutSnapshotCollector,
     )
     private lateinit var controller: ActivityController<TestLifecycleActivity>
@@ -71,6 +74,25 @@ class AppLifecycleCollectorTest {
                 type = AppLifecycleType.BACKGROUND,
             ),
             attachments = mutableListOf(snapshot),
+        )
+    }
+
+    @Test
+    fun `does not attach layout snapshot to application background event when screen view snapshots are disabled`() {
+        layoutSnapshotCollector.attachment = Attachment(
+            name = "snapshot.json.gz",
+            type = AttachmentType.LAYOUT_SNAPSHOT_JSON,
+            bytes = byteArrayOf(1),
+        )
+        configProvider.layoutSnapshotScreenViewEnabled = false
+        controller.setup().stop()
+        verify(signalProcessor, times(1)).track(
+            timestamp = timeProvider.now(),
+            type = EventType.LIFECYCLE_APP,
+            data = ApplicationLifecycleData(
+                type = AppLifecycleType.BACKGROUND,
+            ),
+            attachments = mutableListOf(),
         )
     }
 
