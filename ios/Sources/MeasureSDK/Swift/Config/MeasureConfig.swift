@@ -115,6 +115,8 @@ protocol MeasureConfig {
     ///   - httpTrackResponseForUrls: URLs to collect the HTTP response body for. Supports `*` wildcards. Defaults to none.
     ///   - httpBlockedHeaders: HTTP headers to never collect. Defaults to common auth and cookie headers.
     ///   - screenshotMaskLevel: How much of a screenshot to mask. Defaults to `.allTextAndMedia`.
+    ///   - layoutSnapshotClickEnabled: Whether to take a layout snapshot with clicks and long clicks. Defaults to `true`.
+    ///   - layoutSnapshotScreenViewEnabled: Whether to take a layout snapshot with screen views, when a screen appears and when the app goes to the background. Defaults to `true`.
     ///   - logAutocollectEnabled: Whether to collect logs from the platform's logging APIs automatically. Defaults to `false`.
     ///   - logMinSeverity: Minimum severity of logs to collect. Defaults to `.warning`.
     ///   - logIgnorePatterns: Regex patterns matched against the log body. Logs that match are dropped. Defaults to none.
@@ -151,6 +153,8 @@ protocol MeasureConfig {
                 httpTrackResponseForUrls: [String]? = nil,
                 httpBlockedHeaders: [String]? = nil,
                 screenshotMaskLevel: ScreenshotMaskLevel? = nil,
+                layoutSnapshotClickEnabled: Bool? = nil,
+                layoutSnapshotScreenViewEnabled: Bool? = nil,
                 logAutocollectEnabled: Bool? = nil,
                 logMinSeverity: LogSeverity? = nil,
                 logIgnorePatterns: [String]? = nil) {
@@ -180,6 +184,8 @@ protocol MeasureConfig {
         let httpTrackResponseForUrls: [String] = httpTrackResponseForUrls ?? defaults.httpTrackResponseForUrls
         let httpBlockedHeaders: [String] = httpBlockedHeaders ?? defaults.httpBlockedHeaders
         let screenshotMaskLevel: ScreenshotMaskLevel = screenshotMaskLevel ?? defaults.screenshotMaskLevel
+        let layoutSnapshotClickEnabled: Bool = layoutSnapshotClickEnabled ?? defaults.layoutSnapshotClickEnabled
+        let layoutSnapshotScreenViewEnabled: Bool = layoutSnapshotScreenViewEnabled ?? defaults.layoutSnapshotScreenViewEnabled
         let logAutocollectEnabled: Bool = logAutocollectEnabled ?? defaults.logAutocollectEnabled
         let logMinSeverity: Int = logMinSeverity?.severityNumber ?? defaults.logMinSeverity
         let logIgnorePatterns: [String] = logIgnorePatterns ?? defaults.logIgnorePatterns
@@ -207,6 +213,8 @@ protocol MeasureConfig {
             appHangSamplingRate: appHangSamplingRate,
             appHangReplayEnabled: appHangReplayEnabled,
             launchSamplingRate: launchSamplingRate,
+            layoutSnapshotClickEnabled: layoutSnapshotClickEnabled,
+            layoutSnapshotScreenViewEnabled: layoutSnapshotScreenViewEnabled,
             httpSamplingRate: httpSamplingRate,
             httpDisableEventForUrls: httpDisableEventForUrls,
             httpTrackRequestForUrls: httpTrackRequestForUrls,

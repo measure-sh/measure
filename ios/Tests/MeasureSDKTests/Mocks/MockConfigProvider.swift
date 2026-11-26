@@ -82,7 +82,8 @@ final class MockConfigProvider: ConfigProvider {
     var appHangSamplingRate: Float
     var appHangReplayEnabled: Bool
     var launchSamplingRate: Float
-    var gestureClickTakeSnapshot: Bool
+    var layoutSnapshotClickEnabled: Bool
+    var layoutSnapshotScreenViewEnabled: Bool
     var httpSamplingRate: Float
     var httpDisableEventForUrls: [String]
     var httpTrackRequestForUrls: [String]
@@ -187,7 +188,8 @@ final class MockConfigProvider: ConfigProvider {
          appHangSamplingRate: Float = 100,
          appHangReplayEnabled: Bool = true,
          launchSamplingRate: Float = 0.01,
-         gestureClickTakeSnapshot: Bool = true,
+         layoutSnapshotClickEnabled: Bool = true,
+         layoutSnapshotScreenViewEnabled: Bool = true,
          httpSamplingRate: Float = 0.01,
          httpDisableEventForUrls: [String] = [],
          httpTrackRequestForUrls: [String] = [],
@@ -274,7 +276,8 @@ final class MockConfigProvider: ConfigProvider {
         self.appHangSamplingRate = appHangSamplingRate
         self.appHangReplayEnabled = appHangReplayEnabled
         self.launchSamplingRate = launchSamplingRate
-        self.gestureClickTakeSnapshot = gestureClickTakeSnapshot
+        self.layoutSnapshotClickEnabled = layoutSnapshotClickEnabled
+        self.layoutSnapshotScreenViewEnabled = layoutSnapshotScreenViewEnabled
         self.httpSamplingRate = httpSamplingRate
         self.httpDisableEventForUrls = httpDisableEventForUrls
         self.httpTrackRequestForUrls = httpTrackRequestForUrls

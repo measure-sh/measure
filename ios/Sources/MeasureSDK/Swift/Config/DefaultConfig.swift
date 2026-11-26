@@ -53,7 +53,8 @@ struct DefaultConfig {
     static let appHangReplayEnabled: Bool = true
     static let minAppHangThresholdMillis: Number = 1_000
     static let launchSamplingRate: Float = 100
-    static let gestureClickTakeSnapshot: Bool = true
+    static let layoutSnapshotClickEnabled: Bool = true
+    static let layoutSnapshotScreenViewEnabled: Bool = true
     static let httpSamplingRate: Float = 100
     static let httpDisableEventForUrls: [String] = []
     static let httpTrackRequestForUrls: [String] = []

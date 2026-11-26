@@ -159,7 +159,8 @@ final class BaseConfigProvider: ConfigProvider {
     var appHangSamplingRate: Float { dynamicConfig.appHangSamplingRate }
     var appHangReplayEnabled: Bool { dynamicConfig.appHangReplayEnabled }
     var launchSamplingRate: Float { dynamicConfig.launchSamplingRate }
-    var gestureClickTakeSnapshot: Bool { dynamicConfig.gestureClickTakeSnapshot }
+    var layoutSnapshotClickEnabled: Bool { dynamicConfig.layoutSnapshotClickEnabled }
+    var layoutSnapshotScreenViewEnabled: Bool { dynamicConfig.layoutSnapshotScreenViewEnabled }
     var httpSamplingRate: Float { dynamicConfig.httpSamplingRate }
     var httpDisableEventForUrls: [String] { dynamicConfig.httpDisableEventForUrls }
     var httpTrackRequestForUrls: [String] { dynamicConfig.httpTrackRequestForUrls }

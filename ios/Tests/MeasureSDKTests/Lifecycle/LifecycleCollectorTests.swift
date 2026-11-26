@@ -139,6 +139,15 @@ final class LifecycleCollectorTests: XCTestCase {
         XCTAssertEqual(mockSignalProcessor.type, .lifecycleApp)
     }
 
+    func testApplicationDidEnterBackground_skipsLayoutSnapshot_whenScreenViewSnapshotsDisabled() {
+        mockConfigProvider.layoutSnapshotScreenViewEnabled = false
+
+        lifecycleCollector.applicationDidEnterBackground()
+
+        XCTAssertEqual(mockLayoutSnapshotCollector.captureCallCount, 0)
+        XCTAssertEqual(mockSignalProcessor.type, .lifecycleApp)
+    }
+
     func testApplicationWillTerminate() {
         lifecycleCollector.applicationWillTerminate()
 
@@ -204,6 +213,16 @@ final class LifecycleCollectorTests: XCTestCase {
         } else {
             XCTFail("Data should be of type VCLifecycleData")
         }
+        XCTAssertEqual(mockSignalProcessor.type, .lifecycleViewController)
+    }
+
+    func testProcessControllerLifecycleEvent_ViewDidAppear_skipsLayoutSnapshot_whenScreenViewSnapshotsDisabled() {
+        lifecycleCollector.enable()
+        mockConfigProvider.layoutSnapshotScreenViewEnabled = false
+
+        lifecycleCollector.processControllerLifecycleEvent(.viewDidAppear, for: mockViewController)
+
+        XCTAssertEqual(mockLayoutSnapshotCollector.captureCallCount, 0)
         XCTAssertEqual(mockSignalProcessor.type, .lifecycleViewController)
     }
 

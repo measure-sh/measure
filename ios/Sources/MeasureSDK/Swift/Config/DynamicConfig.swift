@@ -113,9 +113,13 @@ protocol DynamicConfig {
     /// Defaults to 100%.
     var launchSamplingRate: Float { get }
 
-    /// Whether to take a layout snapshot on gesture click.
+    /// Whether to take a layout snapshot with clicks and long clicks.
     /// Defaults to true.
-    var gestureClickTakeSnapshot: Bool { get }
+    var layoutSnapshotClickEnabled: Bool { get }
+
+    /// Whether to take a layout snapshot with screen views, when a screen appears and when the app
+    /// goes to the background. Defaults to true.
+    var layoutSnapshotScreenViewEnabled: Bool { get }
 
     /// Sampling rate for htto events.
     /// Defaults to 100%.
@@ -163,7 +167,8 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
     let appHangSamplingRate: Float
     let appHangReplayEnabled: Bool
     let launchSamplingRate: Float
-    let gestureClickTakeSnapshot: Bool
+    let layoutSnapshotClickEnabled: Bool
+    let layoutSnapshotScreenViewEnabled: Bool
     let httpSamplingRate: Float
     let httpDisableEventForUrls: [String]
     let httpTrackRequestForUrls: [String]
@@ -198,7 +203,8 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
          appHangSamplingRate: Float = DefaultConfig.appHangSamplingRate,
          appHangReplayEnabled: Bool = DefaultConfig.appHangReplayEnabled,
          launchSamplingRate: Float = DefaultConfig.launchSamplingRate,
-         gestureClickTakeSnapshot: Bool = DefaultConfig.gestureClickTakeSnapshot,
+         layoutSnapshotClickEnabled: Bool = DefaultConfig.layoutSnapshotClickEnabled,
+         layoutSnapshotScreenViewEnabled: Bool = DefaultConfig.layoutSnapshotScreenViewEnabled,
          httpSamplingRate: Float = DefaultConfig.httpSamplingRate,
          httpDisableEventForUrls: [String] = DefaultConfig.httpDisableEventForUrls,
          httpTrackRequestForUrls: [String] = DefaultConfig.httpTrackRequestForUrls,
@@ -233,7 +239,8 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         self.appHangSamplingRate = appHangSamplingRate
         self.appHangReplayEnabled = appHangReplayEnabled
         self.launchSamplingRate = launchSamplingRate
-        self.gestureClickTakeSnapshot = gestureClickTakeSnapshot
+        self.layoutSnapshotClickEnabled = layoutSnapshotClickEnabled
+        self.layoutSnapshotScreenViewEnabled = layoutSnapshotScreenViewEnabled
         self.httpSamplingRate = httpSamplingRate
         self.httpDisableEventForUrls = httpDisableEventForUrls
         self.httpTrackRequestForUrls = httpTrackRequestForUrls
@@ -277,7 +284,8 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         appHangSamplingRate = try c.decodeIfPresent(Float.self, forKey: .appHangSamplingRate) ?? fallback.appHangSamplingRate
         appHangReplayEnabled = try c.decodeIfPresent(Bool.self, forKey: .appHangReplayEnabled) ?? fallback.appHangReplayEnabled
         launchSamplingRate = try c.decodeIfPresent(Float.self, forKey: .launchSamplingRate) ?? fallback.launchSamplingRate
-        gestureClickTakeSnapshot = try c.decodeIfPresent(Bool.self, forKey: .gestureClickTakeSnapshot) ?? fallback.gestureClickTakeSnapshot
+        layoutSnapshotClickEnabled = try c.decodeIfPresent(Bool.self, forKey: .layoutSnapshotClickEnabled) ?? fallback.layoutSnapshotClickEnabled
+        layoutSnapshotScreenViewEnabled = try c.decodeIfPresent(Bool.self, forKey: .layoutSnapshotScreenViewEnabled) ?? fallback.layoutSnapshotScreenViewEnabled
         httpSamplingRate = try c.decodeIfPresent(Float.self, forKey: .httpSamplingRate) ?? fallback.httpSamplingRate
         httpDisableEventForUrls = try c.decodeIfPresent([String].self, forKey: .httpDisableEventForUrls) ?? fallback.httpDisableEventForUrls
         httpTrackRequestForUrls = try c.decodeIfPresent([String].self, forKey: .httpTrackRequestForUrls) ?? fallback.httpTrackRequestForUrls
@@ -320,7 +328,8 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         try c.encode(appHangSamplingRate, forKey: .appHangSamplingRate)
         try c.encode(appHangReplayEnabled, forKey: .appHangReplayEnabled)
         try c.encode(launchSamplingRate, forKey: .launchSamplingRate)
-        try c.encode(gestureClickTakeSnapshot, forKey: .gestureClickTakeSnapshot)
+        try c.encode(layoutSnapshotClickEnabled, forKey: .layoutSnapshotClickEnabled)
+        try c.encode(layoutSnapshotScreenViewEnabled, forKey: .layoutSnapshotScreenViewEnabled)
         try c.encode(httpSamplingRate, forKey: .httpSamplingRate)
         try c.encode(httpDisableEventForUrls, forKey: .httpDisableEventForUrls)
         try c.encode(httpTrackRequestForUrls, forKey: .httpTrackRequestForUrls)
@@ -363,7 +372,8 @@ struct BaseDynamicConfig: DynamicConfig, Codable {
         case appHangSamplingRate = "app_hang_sampling_rate"
         case appHangReplayEnabled = "app_hang_replay_enabled"
         case launchSamplingRate = "launch_sampling_rate"
-        case gestureClickTakeSnapshot = "gesture_click_take_snapshot"
+        case layoutSnapshotClickEnabled = "layout_snapshot_click_enabled"
+        case layoutSnapshotScreenViewEnabled = "layout_snapshot_screen_view_enabled"
         case httpSamplingRate = "http_sampling_rate"
         case httpDisableEventForUrls = "http_disable_event_for_urls"
         case httpTrackRequestForUrls = "http_track_request_for_urls"
