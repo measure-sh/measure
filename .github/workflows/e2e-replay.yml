@@ -229,6 +229,44 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+  images:
+    name: Build and boot stack
+    needs: key
+    # Only worth it while recording: it warms the layer cache in parallel, so
+    # replay doesn't wait on a cold build, and a broken stack fails fast.
+    if: needs.key.outputs.record == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Write self-host config
+        working-directory: self-host
+        run: printf 'unused\nunused\nunused\n' | ./config.sh development --wizard
+
+      - name: Expose GitHub runtime for the layer cache
+        uses: crazy-max/ghaction-github-runtime@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build self-host images
+        working-directory: self-host
+        run: docker buildx bake --allow=fs.read=.. -f compose.yml -f compose.ci.yml --load
+
+      - name: Boot the stack
+        working-directory: self-host
+        run: |
+          docker compose -f compose.yml --profile migrate up -d --no-build --wait
+          curl -fsS http://localhost:8080/ping
+          curl -fsS -o /dev/null -w "dashboard %{http_code}\n" http://localhost:3000/
+
+      - name: Stack logs
+        if: failure()
+        working-directory: self-host
+        run: docker compose -f compose.yml --profile migrate logs --tail 80
+
   publish:
     name: Publish recording
     needs: [key, record-android, record-ios]
@@ -263,7 +301,7 @@ jobs:
 
   replay:
     name: Replay and check dashboard
-    needs: [key, record-android, record-ios, publish]
+    needs: [key, images, record-android, record-ios, publish]
     # Runs after recording when there was one to do, even if a recording job
     # failed, so a partial recording still gets checked.
     if: always() && needs.key.result == 'success'
