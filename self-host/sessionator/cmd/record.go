@@ -52,15 +52,16 @@ type uploadInfo struct {
 // mapping mirrors the ingest service's build mapping descriptor, used in both
 // the PUT /builds request and response. See backend/ingest/measure/build.go.
 type mapping struct {
-	ID           string            `json:"id"`
-	Type         string            `json:"type"`
-	Filename     string            `json:"filename"`
-	Key          string            `json:"key,omitempty"`
-	Checksum     string            `json:"checksum,omitempty"`
-	Size         int64             `json:"size,omitempty"`
-	UploadURL    string            `json:"upload_url,omitempty"`
-	ExpiresAt    time.Time         `json:"expires_at"`
-	Headers      map[string]string `json:"headers,omitempty"`
+	ID        string    `json:"id"`
+	Type      string    `json:"type"`
+	Filename  string    `json:"filename"`
+	Key       string    `json:"key,omitempty"`
+	Checksum  string    `json:"checksum,omitempty"`
+	Size      int64     `json:"size,omitempty"`
+	UploadURL string    `json:"upload_url,omitempty"`
+	ExpiresAt time.Time `json:"expires_at"`
+	// Always sent, like the backend: the Gradle plugin requires it.
+	Headers      map[string]string `json:"headers"`
 	PatchID      string            `json:"patch_id,omitempty"`
 	PatchVersion string            `json:"patch_version,omitempty"`
 }
@@ -98,10 +99,16 @@ var port string
 // app's SDK config so the SDK behaves as it would against a real backend.
 var sdkConfigPath string
 
+// defaultAppUniqueID names the app for build uploads that leave out
+// app_unique_id. The real backend finds the app from the API key, so newer
+// Gradle plugins don't send it.
+var defaultAppUniqueID string
+
 func init() {
 	recordCmd.Flags().StringVarP(&outputDir, "path", "p", "../session-data", "path to store event requests")
 	recordCmd.Flags().StringVarP(&port, "port", "P", "8085", "port to run the server")
 	recordCmd.Flags().StringVar(&sdkConfigPath, "sdk-config", "", "JSON file to serve on GET /config")
+	recordCmd.Flags().StringVar(&defaultAppUniqueID, "app-unique-id", "", "app unique id for build uploads that don't send one")
 	recordCmd.Flags().SortFlags = false
 }
 
@@ -394,6 +401,9 @@ func writeBuildMultipart(c *gin.Context) {
 	}
 
 	appUniqueID := c.Request.FormValue("app_unique_id")
+	if appUniqueID == "" {
+		appUniqueID = defaultAppUniqueID
+	}
 	versionName := c.Request.FormValue("version_name")
 	versionCode := c.Request.FormValue("version_code")
 	mappingTypes := c.Request.Form["mapping_type"]
@@ -664,6 +674,9 @@ func writeBuildJSON(c *gin.Context) {
 		return
 	}
 	if req.AppUniqueID == "" {
+		req.AppUniqueID = defaultAppUniqueID
+	}
+	if req.AppUniqueID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "app_unique_id is required"})
 		return
 	}
@@ -728,6 +741,7 @@ func writeBuildJSON(c *gin.Context) {
 		m.ID = uuid.NewString()
 		m.UploadURL = uploadURL(c, relPath)
 		m.ExpiresAt = time.Now().Add(uploadExpiry)
+		m.Headers = map[string]string{}
 	}
 	fmt.Printf("returning %d mapping upload url(s)\n", len(req.Mappings))
 
@@ -743,6 +757,9 @@ func writeOTABuild(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "failed to parse json payload: " + err.Error()})
 		return
+	}
+	if req.AppUniqueID == "" {
+		req.AppUniqueID = defaultAppUniqueID
 	}
 	if req.AppUniqueID == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "app_unique_id is required"})
@@ -807,6 +824,7 @@ func writeOTABuild(c *gin.Context) {
 		m.PatchVersion = patchVersion
 		m.UploadURL = uploadURL(c, relPath)
 		m.ExpiresAt = time.Now().Add(uploadExpiry)
+		m.Headers = map[string]string{}
 	}
 	fmt.Printf("returning %d OTA mapping upload url(s)\n", len(req.Mappings))
 
