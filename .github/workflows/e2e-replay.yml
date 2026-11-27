@@ -146,8 +146,9 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           working-directory: e2e-tests
-          # One line: the action runs each script line in its own shell.
-          script: npm start -- --record "$RUNNER_TEMP/recording" --android --seed-gallery
+          # One line: the action runs each script line in its own shell. The
+          # emulator is gone after this step, so save its logcat here.
+          script: npm start -- --record "$RUNNER_TEMP/recording" --android --seed-gallery; rc=$?; adb logcat -d > "$RUNNER_TEMP/logcat.txt" 2>&1; exit $rc
 
       - name: Upload recording
         if: always()
@@ -155,6 +156,17 @@ jobs:
         with:
           name: recording-android
           path: ${{ runner.temp }}/recording
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload Maestro debug output
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: maestro-debug-android
+          path: |
+            ~/.maestro/tests
+            ${{ runner.temp }}/logcat.txt
           if-no-files-found: ignore
           retention-days: 7
 
@@ -204,6 +216,15 @@ jobs:
         with:
           name: recording-ios
           path: ${{ runner.temp }}/recording
+          if-no-files-found: ignore
+          retention-days: 7
+
+      - name: Upload Maestro debug output
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: maestro-debug-ios
+          path: ~/.maestro/tests
           if-no-files-found: ignore
           retention-days: 7
 
