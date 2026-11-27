@@ -83,7 +83,8 @@ export class Recorder {
   ) {}
 
   // Starts recording into outDir, replacing any recorder already running.
-  async start(outDir: string): Promise<void> {
+  // appUniqueId names the app for build uploads, which don't carry it.
+  async start(outDir: string, appUniqueId: string): Promise<void> {
     await this.stop();
     rmSync(outDir, { recursive: true, force: true });
     mkdirSync(outDir, { recursive: true });
@@ -97,6 +98,8 @@ export class Recorder {
         String(RECORD_PORT),
         "--sdk-config",
         this.sdkConfig,
+        "--app-unique-id",
+        appUniqueId,
       ],
       { reject: false, stdio: "ignore", env: { GIN_MODE: "release" } },
     );
@@ -123,6 +126,17 @@ async function waitForPort(port: number): Promise<void> {
     }
   }
   throw new Error(`recorder did not start on port ${port}`);
+}
+
+// The Gradle plugin and the Xcode upload phase only log a failed upload, so
+// check one landed; without it replayed crashes can't be symbolicated.
+export function assertBuildCaptured(dir: string): void {
+  const found =
+    existsSync(dir) &&
+    readdirSync(dir, { recursive: true }).some((p) =>
+      String(p).endsWith("build.toml"),
+    );
+  if (!found) throw new Error(`no build upload captured in ${dir}`);
 }
 
 // The SDK batches and sends on its own schedule, so the last requests of a

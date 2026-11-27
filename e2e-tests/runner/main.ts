@@ -26,6 +26,7 @@ import {
   type WebResultsByDevice,
 } from "./playwright-result.ts";
 import {
+  assertBuildCaptured,
   buildDir,
   buildSessionator,
   ingestSpec,
@@ -538,13 +539,14 @@ async function record(
       manifest.specs[device] = results;
       await bootDevice(device, repoRoot);
       try {
-        await recorder.start(buildDir(dir, device));
+        await recorder.start(buildDir(dir, device), FRANK_APP_ID[device]);
         await buildAndInstall(device, repoRoot, RECORD_PORT);
+        assertBuildCaptured(buildDir(dir, device));
         if (flags.seedGallery) await seedGallery(device, repoRoot);
         const target = { device } as TestTarget;
         for (const spec of specs) {
           const out = specDir(dir, device, spec);
-          await recorder.start(out);
+          await recorder.start(out, FRANK_APP_ID[device]);
           results[spec] = await runMaestro(target, spec, repoRoot, []);
           await waitForQuiet(out);
         }
