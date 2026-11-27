@@ -1,0 +1,96 @@
+name: E2E replay
+
+# Replays a recorded e2e run into a fresh self-host stack and runs the
+# Playwright dashboard specs against it. No devices: the SDK traffic was
+# recorded once on a Mac (`npm start -- --record`) and is reused until
+# e2e-tests/recording-key.sh changes, i.e. until the SDK, Frank or the Maestro
+# flows change. See e2e-tests/README.md.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - .github/workflows/e2e-replay.yml
+      - "backend/**"
+      - "frontend/dashboard/**"
+      - "self-host/**"
+      - "e2e-tests/**"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-replay-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  RELEASE_TAG: e2e-recordings
+
+jobs:
+  replay:
+    name: Replay e2e recording
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Compute recording key
+        id: key
+        run: echo "key=$(e2e-tests/recording-key.sh)" >> "$GITHUB_OUTPUT"
+
+      - name: Download recording
+        env:
+          GH_TOKEN: ${{ github.token }}
+          KEY: ${{ steps.key.outputs.key }}
+        run: |
+          asset="e2e-recording-$KEY.tar.gz"
+          if ! gh release download "$RELEASE_TAG" -p "$asset" -D "$RUNNER_TEMP"; then
+            # The SDK, Frank or the flows changed. The newest recording still
+            # checks backend and dashboard; only the SDK change goes unchecked.
+            asset=$(gh release view "$RELEASE_TAG" --json assets \
+              -q '.assets | sort_by(.createdAt) | last | .name')
+            echo "::warning::No recording for key $KEY; replaying $asset. Record with e2e-tests/upload-recording.sh to cover the SDK change."
+            gh release download "$RELEASE_TAG" -p "$asset" -D "$RUNNER_TEMP"
+            echo "E2E_ALLOW_STALE_RECORDING=1" >> "$GITHUB_ENV"
+          fi
+          mkdir -p "$RUNNER_TEMP/recording"
+          tar -xzf "$RUNNER_TEMP/$asset" -C "$RUNNER_TEMP/recording"
+
+      - name: Set up Go
+        uses: actions/setup-go@v7
+        with:
+          go-version-file: self-host/sessionator/go.mod
+          cache-dependency-path: self-host/sessionator/go.sum
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: e2e-tests/package-lock.json
+
+      - name: Install e2e dependencies
+        working-directory: e2e-tests
+        run: |
+          npm ci --legacy-peer-deps
+          npx playwright install --with-deps chromium
+
+      - name: Write self-host config
+        working-directory: self-host
+        # The dev wizard only prompts for OAuth secrets, which e2e doesn't use.
+        run: printf '\n\n\n' | ./config.sh development --wizard
+
+      - name: Replay and run dashboard specs
+        working-directory: e2e-tests
+        run: npm start -- --replay "$RUNNER_TEMP/recording"
+
+      - name: Upload Playwright report
+        if: failure()
+        uses: actions/upload-artifact@v6
+        with:
+          name: playwright-report
+          path: |
+            e2e-tests/playwright-report
+            e2e-tests/test-results
+          retention-days: 7
