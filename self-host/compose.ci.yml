@@ -1,0 +1,54 @@
+# CI-only build override, read by docker/bake-action in
+# .github/workflows/e2e-replay.yml, never by `docker compose up`.
+#
+# Tags each image with the name compose gives it by default
+# (<project>-<service>, project "measure"), so `compose up --no-build`
+# on compose.yml alone finds them. Caches every image in its own GitHub
+# Actions cache scope; mode=max keeps the builder stage (go mod download,
+# npm install), which the final image doesn't contain.
+services:
+  dashboard:
+    image: measure-dashboard
+    build:
+      cache_from: ["type=gha,scope=e2e-dashboard"]
+      cache_to: ["type=gha,scope=e2e-dashboard,mode=max"]
+  api:
+    image: measure-api
+    build:
+      cache_from: ["type=gha,scope=e2e-api"]
+      cache_to: ["type=gha,scope=e2e-api,mode=max"]
+  agent:
+    image: measure-agent
+    build:
+      cache_from: ["type=gha,scope=e2e-agent"]
+      cache_to: ["type=gha,scope=e2e-agent,mode=max"]
+  ingest-worker:
+    image: measure-ingest-worker
+    build:
+      cache_from: ["type=gha,scope=e2e-ingest-worker"]
+      cache_to: ["type=gha,scope=e2e-ingest-worker,mode=max"]
+  ingest:
+    image: measure-ingest
+    build:
+      cache_from: ["type=gha,scope=e2e-ingest"]
+      cache_to: ["type=gha,scope=e2e-ingest,mode=max"]
+  cleanup:
+    image: measure-cleanup
+    build:
+      cache_from: ["type=gha,scope=e2e-cleanup"]
+      cache_to: ["type=gha,scope=e2e-cleanup,mode=max"]
+  alerts:
+    image: measure-alerts
+    build:
+      cache_from: ["type=gha,scope=e2e-alerts"]
+      cache_to: ["type=gha,scope=e2e-alerts,mode=max"]
+  symboloader:
+    image: measure-symboloader
+    build:
+      cache_from: ["type=gha,scope=e2e-symboloader"]
+      cache_to: ["type=gha,scope=e2e-symboloader,mode=max"]
+  migrator:
+    image: measure-migrator
+    build:
+      cache_from: ["type=gha,scope=e2e-migrator"]
+      cache_to: ["type=gha,scope=e2e-migrator,mode=max"]

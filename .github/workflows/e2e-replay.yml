@@ -15,6 +15,16 @@ on:
       - "frontend/dashboard/**"
       - "self-host/**"
       - "e2e-tests/**"
+  # Runs on main write the image layer cache that PR runs read; a PR run's
+  # cache is only visible to that PR.
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/e2e-replay.yml
+      - "backend/**"
+      - "frontend/dashboard/**"
+      - "self-host/**"
+      - "e2e-tests/**"
 
 permissions:
   contents: read
@@ -82,8 +92,29 @@ jobs:
         # loops on empty answers, so give it placeholders.
         run: printf 'unused\nunused\nunused\n' | ./config.sh development --wizard
 
+      - name: Expose GitHub runtime for the layer cache
+        uses: crazy-max/ghaction-github-runtime@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build self-host images
+        uses: docker/bake-action@v7
+        with:
+          source: .
+          # Compose build contexts are relative to self-host/ and point
+          # outside it (../backend/...), which bake must be allowed to read.
+          workdir: self-host
+          allow: fs.read=..
+          files: |
+            compose.yml
+            compose.ci.yml
+          load: true
+
       - name: Replay and run dashboard specs
         working-directory: e2e-tests
+        env:
+          E2E_PREBUILT_IMAGES: "1"
         run: npm start -- --replay "$RUNNER_TEMP/recording"
 
       - name: Upload Playwright report

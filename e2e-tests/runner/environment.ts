@@ -56,9 +56,11 @@ export async function startStack(repoRoot: string): Promise<void> {
   await runOrThrow(
     repoRoot,
   )`docker compose -f ${compose} --profile migrate down --remove-orphans`;
+  // CI builds the images ahead with a layer cache (see e2e-replay.yml).
+  const build = process.env.E2E_PREBUILT_IMAGES ? "--no-build" : "--build";
   await runOrThrow(
     repoRoot,
-  )`docker compose -f ${compose} --profile migrate up -d --build --wait`;
+  )`docker compose -f ${compose} --profile migrate up -d ${build} --wait`;
   logger.ok(`self-host ready (${formatDuration(Date.now() - startedAt)})`);
 }
 
