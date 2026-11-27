@@ -146,9 +146,10 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           working-directory: e2e-tests
-          # One line: the action runs each script line in its own shell. The
-          # emulator is gone after this step, so save its logcat here.
-          script: npm start -- --record "$RUNNER_TEMP/recording" --android --seed-gallery; rc=$?; adb logcat -d > "$RUNNER_TEMP/logcat.txt" 2>&1; exit $rc
+          # One line: the action runs each script line in its own shell.
+          # Logcat streams to a file from the start, so a crash on first
+          # launch isn't lost from the emulator's small ring buffer.
+          script: (adb logcat -v threadtime > "$RUNNER_TEMP/logcat.txt" 2>&1 &); npm start -- --record "$RUNNER_TEMP/recording" --android --seed-gallery
 
       - name: Upload recording
         if: always()
@@ -251,7 +252,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           ASSET: ${{ needs.key.outputs.asset }}
         run: |
-          e2e-tests/merge-recordings.sh "$RUNNER_TEMP/recording" "$RUNNER_TEMP"/parts/*
+          e2e-tests/merge-recordings.sh "$RUNNER_TEMP/recording" "$RUNNER_TEMP/parts"
           tar -czf "$RUNNER_TEMP/$ASSET" -C "$RUNNER_TEMP/recording" .
           ls -lh "$RUNNER_TEMP/$ASSET"
           gh release view "$RELEASE_TAG" > /dev/null 2>&1 ||
@@ -272,15 +273,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7
 
-      - name: Free disk space
-        # The cold build of the self-host images needs more than the
-        # runner's default free space.
-        run: |
-          df -h /
-          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/share/swift
-          docker image prune -af > /dev/null
-          df -h /
-
       - name: Download this run's recording
         if: needs.key.outputs.record == 'true'
         uses: actions/download-artifact@v7
@@ -298,7 +290,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/recording"
           if [[ "$RECORDED" == "true" ]]; then
-            e2e-tests/merge-recordings.sh "$RUNNER_TEMP/recording" "$RUNNER_TEMP"/parts/*
+            e2e-tests/merge-recordings.sh "$RUNNER_TEMP/recording" "$RUNNER_TEMP/parts"
             exit 0
           fi
           if [[ "$FOUND" != "true" ]]; then
