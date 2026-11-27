@@ -1,6 +1,6 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync, rmSync, writeFileSync } from "node:fs";
-import { runOrThrow } from "./exec.ts";
+import { capture, runOrThrow } from "./exec.ts";
 import { log } from "./log.ts";
 import type { AppKeys } from "./setup-apps.ts";
 
@@ -46,7 +46,12 @@ export async function buildAndInstallAndroid(repoRoot: string): Promise<void> {
   await runOrThrow(frankDir, { label })`./gradlew :android:app:assembleRelease`;
   const apk = `${frankDir}/android/app/build/outputs/apk/release/app-release.apk`;
   logger.info(`installing Frankenstein Android via adb: ${apk}`);
-  await runOrThrow(repoRoot, { label })`adb install -r ${apk}`;
+  // Pin the device's own ABI. On x86_64 emulators with ARM translation,
+  // Android can otherwise install the arm64 libraries, and React Native then
+  // crashes at launch looking for its x86_64 ones.
+  const abi = await capture(repoRoot)`adb shell getprop ro.product.cpu.abi`;
+  if (!abi) throw new Error("could not read the device's ABI");
+  await runOrThrow(repoRoot, { label })`adb install -r --abi ${abi} ${apk}`;
 }
 
 // Forward device:localhost:<port> → host:localhost:<port> so the SDK and the
