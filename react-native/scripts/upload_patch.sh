@@ -290,60 +290,49 @@ esac
 
 echo ""
 
-# --- Extract upload URLs and mapping IDs ---
-# Response ordering is guaranteed to match submission order:
-# index 0 = bundle tgz, index 1 = map tgz.
+# --- Extract upload URLs and headers ---
+#
+# Each mapping in the response carries its upload URL and the headers the
+# storage backend expects. Headers are written one per line to a file that
+# curl reads with --header @file, so they are sent back unchanged.
 
 echo "Parsing presigned upload URLs..."
 
-BUNDLE_UPLOAD_URL=$(echo "$RESPONSE" | grep -o '"upload_url":"[^"]*"' | sed 's/"upload_url":"//;s/"$//;s/\\u0026/\&/g' | sed -n '1p' || true)
-MAP_UPLOAD_URL=$(echo "$RESPONSE"    | grep -o '"upload_url":"[^"]*"' | sed 's/"upload_url":"//;s/"$//;s/\\u0026/\&/g' | sed -n '2p' || true)
-
-# The mapping_id header key is prefixed with either x-amz-meta- (S3) or
-# x-goog-meta- (GCS) depending on the storage backend.
-BUNDLE_MAPPING_ID=$(echo "$RESPONSE" | grep -o '"[^"]*meta-mapping[_-]id":"[^"]*"' | sed 's/^"[^"]*":"//' | sed 's/"$//' | sed -n '1p' || true)
-MAP_MAPPING_ID=$(echo "$RESPONSE"    | grep -o '"[^"]*meta-mapping[_-]id":"[^"]*"' | sed 's/^"[^"]*":"//' | sed 's/"$//' | sed -n '2p' || true)
-
-if [ -z "$BUNDLE_UPLOAD_URL" ] || [ -z "$MAP_UPLOAD_URL" ]; then
-  echo "Error: Failed to extract upload URLs from server response."
+UPLOADS_FILE="$TEMP_DIR/uploads.tsv"
+if ! MEASURE_RESPONSE_PATH="$RESPONSE_FILE" MEASURE_TEMP_DIR="$TEMP_DIR" \
+  node > "$UPLOADS_FILE" << 'PARSE_RESPONSE'
+var fs = require('fs');
+var path = require('path');
+var dir = process.env.MEASURE_TEMP_DIR;
+var res = JSON.parse(fs.readFileSync(process.env.MEASURE_RESPONSE_PATH, 'utf8'));
+var mappings = res.mappings;
+if (!Array.isArray(mappings) || mappings.length === 0) {
+  throw new Error('response has no mappings');
+}
+mappings.forEach(function (m, i) {
+  if (!m || typeof m.filename !== 'string' || typeof m.upload_url !== 'string' || !m.filename || !m.upload_url) {
+    throw new Error('mapping ' + i + ' has no filename or upload_url');
+  }
+  var lines = Object.keys(m.headers || {}).map(function (k) {
+    return k + ': ' + m.headers[k];
+  });
+  var headersPath = path.join(dir, 'upload_' + i + '.headers');
+  fs.writeFileSync(headersPath, lines.join('\n') + (lines.length ? '\n' : ''));
+  process.stdout.write([m.filename, m.upload_url, headersPath].join('\t') + '\n');
+});
+PARSE_RESPONSE
+then
+  echo "Error: Failed to parse upload URLs from server response."
   echo "Response: $RESPONSE"
   exit 1
 fi
-
-if [ -z "$BUNDLE_MAPPING_ID" ] || [ -z "$MAP_MAPPING_ID" ]; then
-  echo "Error: Failed to extract mapping IDs from server response."
-  echo "Response: $RESPONSE"
-  exit 1
-fi
-
-# Detect storage provider from the presigned URL
-if echo "$BUNDLE_UPLOAD_URL" | grep -q "googleapis.com"; then
-  HEADER_PREFIX="x-goog-meta"
-  echo "Storage backend: GCS"
-else
-  HEADER_PREFIX="x-amz-meta"
-  echo "Storage backend: S3"
-fi
-
-# Header spelling follows the key the server returned (underscore or hyphen).
-if echo "$RESPONSE" | grep -q 'meta-mapping-id"'; then
-  MAPPING_ID_HEADER="mapping-id"
-  FILENAME_HEADER="original-file-name"
-else
-  MAPPING_ID_HEADER="mapping_id"
-  FILENAME_HEADER="original_file_name"
-fi
-
-echo "Bundle mapping_id: $BUNDLE_MAPPING_ID"
-echo "Map mapping_id:    $MAP_MAPPING_ID"
-echo ""
 
 # --- Upload files ---
 
 upload_file() {
   local FILE_PATH="$1"
   local UPLOAD_URL="$2"
-  local MAPPING_ID="$3"
+  local HEADERS_PATH="$3"
   local FILENAME="$4"
 
   local ATTEMPT
@@ -354,8 +343,7 @@ upload_file() {
     echo "  Attempt $ATTEMPT/$MAX_ATTEMPTS: Uploading $FILENAME..."
     FILE_STATUS=$(curl --silent --request PUT \
       --url "$UPLOAD_URL" \
-      --header "${HEADER_PREFIX}-${MAPPING_ID_HEADER}: $MAPPING_ID" \
-      --header "${HEADER_PREFIX}-${FILENAME_HEADER}: $FILENAME" \
+      --header "@$HEADERS_PATH" \
       --data-binary "@$FILE_PATH" \
       --write-out "%{http_code}" \
       --output "$RESPONSE_BODY_FILE")
@@ -382,18 +370,30 @@ upload_file() {
 echo "Uploading files..."
 
 FAILED=0
+BUNDLE_UPLOADED=0
+MAP_UPLOADED=0
 
-upload_file \
-  "$TEMP_DIR/$BUNDLE_TGZ_BASENAME" \
-  "$BUNDLE_UPLOAD_URL" \
-  "$BUNDLE_MAPPING_ID" \
-  "$BUNDLE_TGZ_BASENAME" || FAILED=1
+while IFS=$'\t' read -r FILENAME UPLOAD_URL HEADERS_PATH; do
+  case "$FILENAME" in
+    "$BUNDLE_TGZ_BASENAME") BUNDLE_UPLOADED=1 ;;
+    "$MAP_TGZ_BASENAME") MAP_UPLOADED=1 ;;
+    *)
+      echo "  [ERROR]: Server returned an upload URL for unknown file $FILENAME."
+      FAILED=1
+      continue
+      ;;
+  esac
+  upload_file "$TEMP_DIR/$FILENAME" "$UPLOAD_URL" "$HEADERS_PATH" "$FILENAME" || FAILED=1
+done < "$UPLOADS_FILE"
 
-upload_file \
-  "$TEMP_DIR/$MAP_TGZ_BASENAME" \
-  "$MAP_UPLOAD_URL" \
-  "$MAP_MAPPING_ID" \
-  "$MAP_TGZ_BASENAME" || FAILED=1
+if [ "$BUNDLE_UPLOADED" -eq 0 ]; then
+  echo "  [ERROR]: Server response has no upload URL for $BUNDLE_TGZ_BASENAME."
+  FAILED=1
+fi
+if [ "$MAP_UPLOADED" -eq 0 ]; then
+  echo "  [ERROR]: Server response has no upload URL for $MAP_TGZ_BASENAME."
+  FAILED=1
+fi
 
 echo ""
 if [ "$FAILED" -eq 0 ]; then
