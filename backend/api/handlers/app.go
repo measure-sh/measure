@@ -777,7 +777,6 @@ func (h Handlers) GetSession(c *gin.Context) {
 		event.TypeGestureClick,
 		event.TypeGestureLongClick,
 		event.TypeGestureScroll,
-		event.TypeString,
 		event.TypeLog,
 		event.TypeNetworkChange,
 		event.TypeColdLaunch,
@@ -843,13 +842,6 @@ func (h Handlers) GetSession(c *gin.Context) {
 		customs := timeline.ComputeCustom(customEvents)
 		threadedCustoms := timeline.GroupByThreads(customs)
 		threads.Organize(event.TypeCustom, threadedCustoms)
-	}
-
-	stringEvents := eventMap[event.TypeString]
-	if len(stringEvents) > 0 {
-		strings := timeline.ComputeLogString(stringEvents)
-		threadedStrings := timeline.GroupByThreads(strings)
-		threads.Organize(event.TypeString, threadedStrings)
 	}
 
 	logEvents := eventMap[event.TypeLog]

@@ -314,12 +314,10 @@ type EventRow struct {
 	// "foreground" or "background".
 	LifecycleAppType string
 
-	// CustomName is the name of a Type "custom" event, LogBody the text of a
-	// Type "log" event and LogString the text of a Type "string" event. Each
-	// is written only when set.
+	// CustomName is the name of a Type "custom" event and LogBody the text of
+	// a Type "log" event. Each is written only when set.
 	CustomName string
 	LogBody    string
-	LogString  string
 
 	HttpURL        string
 	HttpMethod     string
@@ -595,10 +593,6 @@ func eventRowColumns(teamID, appID string, row EventRow) ([]string, []string) {
 	if row.LogBody != "" {
 		cols = append(cols, "`log.body`")
 		vals = append(vals, quote(row.LogBody))
-	}
-	if row.LogString != "" {
-		cols = append(cols, "`string.string`")
-		vals = append(vals, quote(row.LogString))
 	}
 
 	if !row.InsertedAt.IsZero() {

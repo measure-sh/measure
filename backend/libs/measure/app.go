@@ -2943,8 +2943,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			`app_exit.trace`,
 			`app_exit.process_name`,
 			`app_exit.pid`,
-			`string.severity_text`,
-			`string.string`,
 			`lifecycle_activity.type`,
 			`lifecycle_activity.class_name`,
 			`lifecycle_activity.intent`,
@@ -3035,7 +3033,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 		var attachments string
 
 		var appExit event.AppExit
-		var logString event.LogString
 		var logData event.Log
 		var gestureLongClick event.GestureLongClick
 		var gestureClick event.GestureClick
@@ -3260,10 +3257,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 				&appExit.ProcessName,
 				&appExit.PID,
 
-				// log string
-				&logString.SeverityText,
-				&logString.String,
-
 				// lifecycle activity
 				&lifecycleActivity.Type,
 				&lifecycleActivity.ClassName,
@@ -3407,9 +3400,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			session.Events = append(session.Events, ev)
 		case event.TypeAppExit:
 			ev.AppExit = &appExit
-			session.Events = append(session.Events, ev)
-		case event.TypeString:
-			ev.LogString = &logString
 			session.Events = append(session.Events, ev)
 		case event.TypeLog:
 			ev.Log = &logData

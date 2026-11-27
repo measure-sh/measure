@@ -57,7 +57,6 @@ const eventPillTypes: Record<string, PillType> = {
   trim_memory: PillType.SessionEventTrimMemory,
   trace: PillType.SessionEventTrace,
   custom: PillType.SessionEventCustom,
-  string: PillType.SessionEventLog,
   log: PillType.SessionEventLog,
   profile: PillType.SessionEventProfile,
 };
@@ -86,7 +85,7 @@ export function pillTypeForEvent(
     }
     return PillType.SessionEventError;
   }
-  if (eventType === "log" || eventType === "string") {
+  if (eventType === "log") {
     return logPillTypes[logSeverity(eventDetails)] ?? PillType.SessionEventLog;
   }
   return eventPillTypes[eventType] ?? PillType.SessionEventDefault;
@@ -136,9 +135,6 @@ export function sessionEventTitle(
     return String(
       eventDetails?.description || eventDetails?.bug_report_id || "",
     );
-  }
-  if (eventType === "string") {
-    return String(eventDetails?.string ?? "");
   }
   if (eventType === "log") {
     return String(eventDetails?.body ?? "");

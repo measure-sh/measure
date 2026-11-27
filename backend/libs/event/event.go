@@ -29,7 +29,6 @@ const (
 	maxTypeChars                              = 32
 	maxAppExitReasonChars                     = 64
 	maxAppExitImportanceChars                 = 32
-	maxSeverityTextChars                      = 10
 	maxLogBodyChars                           = 1000
 	maxGestureLongClickTargetChars            = 128
 	maxGestureLongClickTargetIDChars          = 128
@@ -85,7 +84,6 @@ const TypeANR = "anr"
 const TypeAppHang = "app_hang"
 const TypeException = "exception"
 const TypeAppExit = "app_exit"
-const TypeString = "string"
 const TypeLog = "log"
 const TypeGestureLongClick = "gesture_long_click"
 const TypeGestureClick = "gesture_click"
@@ -176,7 +174,6 @@ var androidValidTypes = []string{
 	TypeNetworkChange, TypeHttp,
 	TypeMemoryUsage, TypeMemoryUsageAbs, TypeTrimMemory,
 	TypeCPUUsage, TypeScreenView,
-	TypeString,
 	TypeLog,
 	TypeCustom,
 	TypeBugReport,
@@ -197,7 +194,6 @@ var iOSValidTypes = []string{
 	TypeMemoryUsageAbs,
 	TypeCPUUsage,
 	TypeScreenView,
-	TypeString,
 	TypeLog,
 	TypeCustom,
 	TypeBugReport,
@@ -629,11 +625,6 @@ type AppExit struct {
 	PID         string `json:"pid"`
 }
 
-type LogString struct {
-	SeverityText string `json:"severity_text"`
-	String       string `json:"string" binding:"required"`
-}
-
 type Log struct {
 	SeverityText   string `json:"severity_text"`
 	SeverityNumber int32  `json:"severity_number"`
@@ -840,7 +831,6 @@ type EventField struct {
 	AppHang                 *AppHang                 `json:"app_hang,omitempty"`
 	Exception               *Exception               `json:"exception,omitempty"`
 	AppExit                 *AppExit                 `json:"app_exit,omitempty"`
-	LogString               *LogString               `json:"string,omitempty"`
 	Log                     *Log                     `json:"log,omitempty"`
 	GestureLongClick        *GestureLongClick        `json:"gesture_long_click,omitempty"`
 	GestureScroll           *GestureScroll           `json:"gesture_scroll,omitempty"`
@@ -1129,18 +1119,6 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		}
 		if len(e.AppExit.Importance) > maxAppExitImportanceChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `app_exit.importance`, maxAppExitImportanceChars)
-		}
-	}
-
-	if e.IsString() {
-		if e.LogString == nil {
-			return fmt.Errorf(`%q must not be null`, e.Type)
-		}
-		if len(e.LogString.String) < 1 {
-			return fmt.Errorf(`%q must not be empty`, `string`)
-		}
-		if len(e.LogString.SeverityText) > maxSeverityTextChars {
-			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `string.severity_text`, maxSeverityTextChars)
 		}
 	}
 
@@ -1567,12 +1545,6 @@ func (e EventField) IsAppHang() bool {
 // exit event.
 func (e EventField) IsAppExit() bool {
 	return e.Type == TypeAppExit
-}
-
-// IsString returns true for string
-// event.
-func (e EventField) IsString() bool {
-	return e.Type == TypeString
 }
 
 // IsLog returns true for log

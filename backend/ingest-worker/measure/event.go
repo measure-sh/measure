@@ -796,17 +796,6 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`app_exit.pid`, nil)
 		}
 
-		// string
-		if e.events[i].IsString() {
-			row.
-				Set(`string.severity_text`, e.events[i].LogString.SeverityText).
-				Set(`string.string`, e.events[i].LogString.String)
-		} else {
-			row.
-				Set(`string.severity_text`, nil).
-				Set(`string.string`, nil)
-		}
-
 		// log
 		if e.events[i].IsLog() {
 			row.

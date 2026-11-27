@@ -119,10 +119,7 @@ func sessionsColumnsWith(wrap func(aggregate, column string) string) *Columns {
 		}},
 		deviceTotalMemory.Name:  {kind: columnPredicates, predicates: devicememory.Predicates(wrap("max", "device_total_memory"))},
 		sessionCustomEvent.Name: {expr: uniqueArray("unique_custom_type_names"), kind: columnTextArray},
-		sessionLog.Name: {expr: arrayConcat(
-			uniqueArray("unique_logs"),
-			uniqueArray("unique_strings"),
-		), kind: columnTextArray},
+		sessionLog.Name:         {expr: uniqueArray("unique_logs"), kind: columnTextArray},
 		sessionErrorText.Name: {expr: arrayConcat(
 			flattenExceptionText(uniqueArray("unique_fatal_exceptions")),
 			flattenExceptionText(uniqueArray("unique_unhandled_exceptions")),
