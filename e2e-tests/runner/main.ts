@@ -552,7 +552,8 @@ async function record(
         }
       } finally {
         await recorder.stop();
-        await stopDevice(device);
+        // CI's emulator action shuts down the device it booted itself.
+        if (!process.env.E2E_KEEP_DEVICE) await stopDevice(device);
       }
       writeManifest(dir, manifest);
     }
@@ -604,7 +605,8 @@ async function replayPlatform(
   for (const spec of specs) {
     const label = `maestro: ${target.device}:${spec}`;
     if (!(spec in recorded)) {
-      failures.push(`${label} (not in recording)`);
+      // Left out on purpose when recording, e.g. a flow the device can't run.
+      log.scope(label).info("not in recording; skipping its web tests");
       continue;
     }
     if (!recorded[spec]) {

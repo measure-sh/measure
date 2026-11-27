@@ -94,6 +94,32 @@ then for each platform boots the device, builds and installs Frank, runs the
 suite, and stops that device, finally stopping the stack. `docker compose down`
 keeps the named volumes, so data is not lost between runs.
 
+## Record and replay (CI)
+
+A full run needs devices and rebuilds Frank, which is slow and costly on CI.
+CI instead records the SDK traffic of a full run once and replays it.
+
+```
+npm start -- --record <dir>     # devices, no stack: Frank talks to sessionator's recorder
+npm start -- --replay <dir>     # stack, no devices: ingest the recording, then Playwright
+```
+
+- A recording is valid for one recording key (`recording-key.sh`), a hash of
+  the SDKs, Frank, the Maestro flows and `recording/sdk-config.json`. It's
+  reused until one of those changes.
+- Replay moves every recorded timestamp so the latest lands at now, and
+  replays spec by spec so each Playwright spec sees the data a live run gives
+  it.
+- `recording/sdk-config.json` is what the recorder serves on `GET /config`. A
+  backend test (`backend/libs/sdkconfig`) fails when it drifts from the
+  defaults; regenerate it with `UPDATE_E2E_FIXTURE=1 go test ./...` there.
+- `.github/workflows/e2e-replay.yml` records on pushes to `main` when the key
+  has no recording, publishes it to the `e2e-recordings` release, and replays
+  on every run. Pull requests never record; with no recording for their key
+  they replay the newest one, with a warning.
+- The iOS recording skips `bug_report`: CI only has iOS 26 simulators, where
+  Maestro can't drive the photo picker (see the note above).
+
 ## Nightly
 
 `nightly/` runs this suite unattended on a Mac via `launchd`, resetting to

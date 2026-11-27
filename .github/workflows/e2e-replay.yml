@@ -1,30 +1,53 @@
 name: E2E replay
 
-# Replays a recorded e2e run into a fresh self-host stack and runs the
-# Playwright dashboard specs against it. No devices: the SDK traffic was
-# recorded once on a Mac (`npm start -- --record`) and is reused until
-# e2e-tests/recording-key.sh changes, i.e. until the SDK, Frank or the Maestro
-# flows change. See e2e-tests/README.md.
+# Checks the backend and dashboard against real SDK traffic without running
+# devices on every change.
+#
+# The SDK traffic of a full e2e run (Frank + Maestro) is recorded once per
+# recording key and kept as an asset on the e2e-recordings release. The key
+# hashes the SDKs, Frank and the Maestro flows (e2e-tests/recording-key.sh),
+# so a recording stays valid until one of those changes. Every run replays
+# the recording into a fresh self-host stack and runs the Playwright
+# dashboard specs.
+#
+# Recording only happens on pushes and manual runs. A pull request whose key
+# has no recording replays the newest one instead, which still covers the
+# backend and dashboard; the SDK change itself gets covered once it lands.
 
 on:
   workflow_dispatch:
   pull_request:
     paths:
       - .github/workflows/e2e-replay.yml
+      - .github/actions/e2e-record-setup/**
       - "backend/**"
       - "frontend/dashboard/**"
       - "self-host/**"
       - "e2e-tests/**"
-  # Runs on main write the image layer cache that PR runs read; a PR run's
-  # cache is only visible to that PR.
+      - "android/**"
+      - "ios/**"
+      - "flutter/**"
+      - "kmp/**"
+      - "react-native/**"
+      - "samples/frank/**"
   push:
-    branches: [main]
+    branches:
+      - main
+      # Temporary, to prove the workflow before it is on main.
+      - e2e-replay
     paths:
       - .github/workflows/e2e-replay.yml
+      - .github/actions/e2e-record-setup/**
       - "backend/**"
       - "frontend/dashboard/**"
       - "self-host/**"
       - "e2e-tests/**"
+      - "android/**"
+      - "ios/**"
+      - "flutter/**"
+      - "kmp/**"
+      - "react-native/**"
+      - "samples/frank/**"
 
 permissions:
   contents: read
@@ -35,37 +58,240 @@ concurrency:
 
 env:
   RELEASE_TAG: e2e-recordings
+  JAVA_VERSION: "21"
+  FLUTTER_VERSION: "3.44.7"
+  YARN_VERSION: "3.6.1"
+  MAESTRO_VERSION: "2.6.1"
 
 jobs:
-  replay:
-    name: Replay e2e recording
+  key:
+    name: Find recording
     runs-on: ubuntu-latest
-    timeout-minutes: 40
+    timeout-minutes: 5
+    outputs:
+      key: ${{ steps.key.outputs.key }}
+      asset: ${{ steps.key.outputs.asset }}
+      found: ${{ steps.find.outputs.found }}
+      record: ${{ steps.find.outputs.record }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
 
       - name: Compute recording key
         id: key
-        run: echo "key=$(e2e-tests/recording-key.sh)" >> "$GITHUB_OUTPUT"
+        run: |
+          key=$(e2e-tests/recording-key.sh)
+          echo "key=$key" >> "$GITHUB_OUTPUT"
+          echo "asset=e2e-recording-$key.tar.gz" >> "$GITHUB_OUTPUT"
 
-      - name: Download recording
+      - name: Look for a recording
+        id: find
         env:
           GH_TOKEN: ${{ github.token }}
-          KEY: ${{ steps.key.outputs.key }}
+          ASSET: ${{ steps.key.outputs.asset }}
+          EVENT: ${{ github.event_name }}
         run: |
-          asset="e2e-recording-$KEY.tar.gz"
-          if ! gh release download "$RELEASE_TAG" -p "$asset" -D "$RUNNER_TEMP"; then
-            # The SDK, Frank or the flows changed. The newest recording still
-            # checks backend and dashboard; only the SDK change goes unchecked.
-            asset=$(gh release view "$RELEASE_TAG" --json assets \
-              -q '.assets | sort_by(.createdAt) | last | .name')
-            echo "::warning::No recording for key $KEY; replaying $asset. Record with e2e-tests/upload-recording.sh to cover the SDK change."
-            gh release download "$RELEASE_TAG" -p "$asset" -D "$RUNNER_TEMP"
+          assets=$(gh release view "$RELEASE_TAG" --json assets -q '.assets[].name' 2>/dev/null || true)
+          found=false
+          record=false
+          if grep -qx "$ASSET" <<<"$assets"; then
+            found=true
+          elif [[ "$EVENT" != "pull_request" ]]; then
+            record=true
+          fi
+          echo "found=$found" >> "$GITHUB_OUTPUT"
+          echo "record=$record" >> "$GITHUB_OUTPUT"
+          echo "asset=$ASSET found=$found record=$record"
+
+  record-android:
+    name: Record Android
+    needs: key
+    if: needs.key.outputs.record == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          # Frank's versionCode is the commit count.
+          fetch-depth: 0
+
+      - uses: ./.github/actions/e2e-record-setup
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          yarn-version: ${{ env.YARN_VERSION }}
+          maestro-version: ${{ env.MAESTRO_VERSION }}
+
+      - name: Install Android CMake
+        run: |
+          sdkmanager="$(find "$ANDROID_HOME/cmdline-tools" -name sdkmanager | head -n1)"
+          yes | "$sdkmanager" --licenses > /dev/null 2>&1 || true
+          "$sdkmanager" "cmake;3.22.1"
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Record on an emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        env:
+          E2E_KEEP_DEVICE: "1"
+        with:
+          api-level: 35
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          working-directory: e2e-tests
+          # One line: the action runs each script line in its own shell.
+          script: npm start -- --record "$RUNNER_TEMP/recording" --android --seed-gallery
+
+      - name: Upload recording
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: recording-android
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: ignore
+          retention-days: 7
+
+  record-ios:
+    name: Record iOS
+    needs: key
+    if: needs.key.outputs.record == 'true'
+    runs-on: macos-26
+    timeout-minutes: 120
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          submodules: recursive
+
+      - name: Switch to Xcode 26.4
+        run: sudo xcode-select -switch /Applications/Xcode_26.4.app
+
+      - uses: ./.github/actions/e2e-record-setup
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          flutter-version: ${{ env.FLUTTER_VERSION }}
+          yarn-version: ${{ env.YARN_VERSION }}
+          maestro-version: ${{ env.MAESTRO_VERSION }}
+
+      - name: Pick a simulator
+        run: |
+          udid=$(xcrun simctl list devices available -j |
+            jq -r '[.devices | to_entries[] | select(.key | contains("iOS")) | .value[] | select(.name | startswith("iPhone"))] | last | .udid')
+          test -n "$udid" && test "$udid" != null
+          echo "IOS_SIMULATOR=$udid" >> "$GITHUB_ENV"
+
+      - name: Record on a simulator
+        working-directory: e2e-tests
+        # Only iOS 26 simulators are available here, and Maestro can't drive
+        # the out-of-process photo picker that bug_report needs on iOS 26.
+        run: |
+          specs=$(npm start --silent -- --specs | grep -vx bug_report)
+          echo "recording: $specs"
+          # shellcheck disable=SC2086 # one argument per spec
+          npm start -- --record "$RUNNER_TEMP/recording" --ios --seed-gallery $specs
+
+      - name: Upload recording
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: recording-ios
+          path: ${{ runner.temp }}/recording
+          if-no-files-found: ignore
+          retention-days: 7
+
+  publish:
+    name: Publish recording
+    needs: [key, record-android, record-ios]
+    if: needs.record-android.result == 'success' && needs.record-ios.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Download recordings
+        uses: actions/download-artifact@v7
+        with:
+          pattern: recording-*
+          path: ${{ runner.temp }}/parts
+
+      - name: Merge and publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ASSET: ${{ needs.key.outputs.asset }}
+        run: |
+          e2e-tests/merge-recordings.sh "$RUNNER_TEMP/recording" "$RUNNER_TEMP"/parts/*
+          tar -czf "$RUNNER_TEMP/$ASSET" -C "$RUNNER_TEMP/recording" .
+          ls -lh "$RUNNER_TEMP/$ASSET"
+          gh release view "$RELEASE_TAG" > /dev/null 2>&1 ||
+            gh release create "$RELEASE_TAG" --prerelease --title "E2E recordings" \
+              --notes "SDK traffic recorded by .github/workflows/e2e-replay.yml, one asset per recording key." \
+              --target "$GITHUB_SHA"
+          gh release upload "$RELEASE_TAG" "$RUNNER_TEMP/$ASSET" --clobber
+
+  replay:
+    name: Replay and check dashboard
+    needs: [key, record-android, record-ios, publish]
+    # Runs after recording when there was one to do, even if a recording job
+    # failed, so a partial recording still gets checked.
+    if: always() && needs.key.result == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Free disk space
+        # The cold build of the self-host images needs more than the
+        # runner's default free space.
+        run: |
+          df -h /
+          sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /usr/share/swift
+          docker image prune -af > /dev/null
+          df -h /
+
+      - name: Download this run's recording
+        if: needs.key.outputs.record == 'true'
+        uses: actions/download-artifact@v7
+        with:
+          pattern: recording-*
+          path: ${{ runner.temp }}/parts
+
+      - name: Assemble recording
+        env:
+          GH_TOKEN: ${{ github.token }}
+          FOUND: ${{ needs.key.outputs.found }}
+          RECORDED: ${{ needs.key.outputs.record }}
+          ASSET: ${{ needs.key.outputs.asset }}
+          KEY: ${{ needs.key.outputs.key }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/recording"
+          if [[ "$RECORDED" == "true" ]]; then
+            e2e-tests/merge-recordings.sh "$RUNNER_TEMP/recording" "$RUNNER_TEMP"/parts/*
+            exit 0
+          fi
+          if [[ "$FOUND" != "true" ]]; then
+            ASSET=$(gh release view "$RELEASE_TAG" --json assets \
+              -q '.assets | sort_by(.createdAt) | last | .name' 2>/dev/null || true)
+            if [[ -z "$ASSET" ]]; then
+              echo "::error::No e2e recording published yet. Run this workflow on main to record one."
+              exit 1
+            fi
+            echo "::warning::No recording for key $KEY yet; replaying $ASSET. The SDK change gets covered once it lands on main."
             echo "E2E_ALLOW_STALE_RECORDING=1" >> "$GITHUB_ENV"
           fi
-          mkdir -p "$RUNNER_TEMP/recording"
-          tar -xzf "$RUNNER_TEMP/$asset" -C "$RUNNER_TEMP/recording"
+          gh release download "$RELEASE_TAG" -p "$ASSET" -D "$RUNNER_TEMP"
+          tar -xzf "$RUNNER_TEMP/$ASSET" -C "$RUNNER_TEMP/recording"
 
       - name: Set up Go
         uses: actions/setup-go@v7
@@ -88,8 +314,8 @@ jobs:
 
       - name: Write self-host config
         working-directory: self-host
-        # The dev wizard only prompts for OAuth secrets, which e2e doesn't use, and
-        # loops on empty answers, so give it placeholders.
+        # The dev wizard only prompts for OAuth secrets, which e2e doesn't
+        # use, and loops on empty answers, so give it placeholders.
         run: printf 'unused\nunused\nunused\n' | ./config.sh development --wizard
 
       - name: Expose GitHub runtime for the layer cache
@@ -99,17 +325,13 @@ jobs:
         uses: docker/setup-buildx-action@v4
 
       - name: Build self-host images
-        uses: docker/bake-action@v7
-        with:
-          source: .
-          # Compose build contexts are relative to self-host/ and point
-          # outside it (../backend/...), which bake must be allowed to read.
-          workdir: self-host
-          allow: fs.read=..
-          files: |
-            compose.yml
-            compose.ci.yml
-          load: true
+        working-directory: self-host
+        # Compose build contexts are relative to self-host/ and point outside
+        # it (../backend/...), which bake must be allowed to read.
+        run: docker buildx bake --allow=fs.read=.. -f compose.yml -f compose.ci.yml --load
+
+      - name: Disk after image build
+        run: df -h /
 
       - name: Replay and run dashboard specs
         working-directory: e2e-tests

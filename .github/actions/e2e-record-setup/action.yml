@@ -1,0 +1,77 @@
+name: E2E record setup
+description: >
+  Toolchains for building Frank and recording the e2e flows, shared by the
+  Android and iOS record jobs. Mirrors the setup in frank.yml.
+
+inputs:
+  java-version:
+    required: true
+  flutter-version:
+    required: true
+  yarn-version:
+    required: true
+  maestro-version:
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-java@v6
+      with:
+        java-version: ${{ inputs.java-version }}
+        distribution: temurin
+
+    - name: Cache Gradle dependencies
+      uses: actions/cache@v6
+      with:
+        path: |
+          ~/.gradle/caches/modules-2
+          ~/.gradle/caches/jars-*
+          ~/.gradle/wrapper
+        key: gradle-e2e-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', '**/libs.versions.toml') }}
+        restore-keys: gradle-e2e-${{ runner.os }}-
+
+    - uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2
+      with:
+        channel: stable
+        flutter-version: ${{ inputs.flutter-version }}
+        cache: true
+
+    - uses: actions/setup-node@v7
+      with:
+        node-version: 24
+
+    - name: Set up Yarn
+      shell: bash
+      run: |
+        corepack enable
+        corepack prepare yarn@${{ inputs.yarn-version }} --activate
+
+    - name: Install React Native dependencies
+      shell: bash
+      working-directory: samples/frank/react_native
+      run: yarn install
+
+    - name: Generate Flutter module files
+      shell: bash
+      working-directory: samples/frank/flutter
+      run: flutter pub get
+
+    - uses: actions/setup-go@v7
+      with:
+        go-version-file: self-host/sessionator/go.mod
+        cache-dependency-path: self-host/sessionator/go.sum
+
+    - name: Install e2e runner dependencies
+      shell: bash
+      working-directory: e2e-tests
+      run: npm ci --legacy-peer-deps
+
+    - name: Install Maestro
+      shell: bash
+      env:
+        MAESTRO_VERSION: ${{ inputs.maestro-version }}
+      run: |
+        curl -fsSL "https://get.maestro.mobile.dev" | bash
+        echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+        "$HOME/.maestro/bin/maestro" --version
