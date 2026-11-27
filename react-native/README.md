@@ -61,11 +61,11 @@ The plugin automatically:
 - Injects API credentials
 - Initializes the SDK in `AppDelegate` (iOS) and `MainApplication` (Android)
 - Adds `MeasureOkHttpApplicationInterceptor` for automatic HTTP tracking on Android
-- Sets up a build phase to upload symbol files after each iOS Release build
+- Sets up a build phase to upload symbol files after each iOS build
 
 #### Plugin options
 
-Besides the API keys and URLs, the plugin takes these options for the native SDK config:
+Besides the API keys and URLs, the plugin takes these options:
 
 | Option | Type | Default | Platforms | Description |
 | --- | --- | --- | --- | --- |
@@ -77,6 +77,7 @@ Besides the API keys and URLs, the plugin takes these options for the native SDK
 | `enableDiagnosticModeGesture` | `boolean` | `false` | iOS | Export SDK logs with a two-finger double-tap share sheet. Requires `enableDiagnosticMode`. |
 | `enableCppThrowSiteCapture` | `boolean` | `false` | iOS | Show where C++ exceptions are thrown in crash reports. See [C++ exceptions](https://measure.sh/docs/error-monitoring#c-exceptions). |
 | `trackActivityIntentData` | `boolean` | `false` | Android | Capture the intent data used to launch an Activity. |
+| `uploadSymbolsForVariants` | `string[]` | Every build | iOS, Android | Upload symbol files (dSYMs, ProGuard mappings and JS sourcemaps) only for these builds, e.g. `["release"]`. Names are matched ignoring case against the iOS build configuration and the Android variant name. |
 
 Run `npx expo prebuild` again after changing an option.
 

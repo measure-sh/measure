@@ -56,7 +56,7 @@ For Expo projects, add the Measure config plugin to `app.json` (or `app.config.j
 }
 ```
 
-The plugin also takes these options for the native SDK config:
+The plugin also takes these options:
 
 | Option | Type | Default | Platforms | Description |
 | --- | --- | --- | --- | --- |
@@ -68,6 +68,7 @@ The plugin also takes these options for the native SDK config:
 | `enableDiagnosticModeGesture` | `boolean` | `false` | iOS | Export SDK logs with a two-finger double-tap share sheet. Requires `enableDiagnosticMode`. |
 | `enableCppThrowSiteCapture` | `boolean` | `false` | iOS | Show where C++ exceptions are thrown in crash reports. See [C++ exceptions](/docs/error-monitoring#c-exceptions). |
 | `trackActivityIntentData` | `boolean` | `false` | Android | Capture the intent data used to launch an Activity. |
+| `uploadSymbolsForVariants` | `string[]` | Every build | iOS, Android | Upload symbol files (dSYMs, ProGuard mappings and JS sourcemaps) only for these builds, e.g. `["release"]`. Names are matched ignoring case against the iOS build configuration and the Android variant name. |
 
 Apply the changes:
 
