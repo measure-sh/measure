@@ -71,6 +71,7 @@ type Flags = {
   // Directory to record SDK traffic into, or to replay it from.
   record?: string;
   replay?: string;
+  captureSdkConfig: boolean;
 };
 
 type PlatformResult = { platform: Device; passed: boolean };
@@ -117,6 +118,10 @@ async function main() {
     await startStack(repoRoot);
     const targets = await createTargets(pool, repoRoot, flags);
     printDashboardHint(repoRoot, targets[0]);
+    if (flags.captureSdkConfig) {
+      await captureSdkConfig(repoRoot, targets[0]);
+      return;
+    }
 
     // Serial: the two Frank builds clash over the shared KMP build artifacts if
     // they run at once.
@@ -462,7 +467,24 @@ function parseArgs(args: string[], specs: string[]): Flags | null {
     specs: requested,
     record,
     replay,
+    captureSdkConfig: args.includes("--capture-sdk-config"),
   };
+}
+
+// Saves the SDK config a freshly created e2e app gets, for the recorder to
+// serve. Rerun when the config schema or the e2e app settings change.
+async function captureSdkConfig(
+  repoRoot: string,
+  target: TestTarget,
+): Promise<void> {
+  const res = await fetch(`${INGEST_ORIGIN}/config`, {
+    headers: { Authorization: `Bearer ${target.apiKey}` },
+  });
+  if (!res.ok) throw new Error(`GET /config: ${res.status}`);
+  const config = (await res.json()) as unknown;
+  const path = `${repoRoot}/e2e-tests/recording/sdk-config.json`;
+  writeFileSync(path, JSON.stringify(config, null, 2) + "\n");
+  log.ok(`wrote ${path}`);
 }
 
 function valueOf(args: string[], flag: string): string | undefined {
@@ -617,6 +639,7 @@ Flags:
   --seed-gallery   seed a gallery image (needed by bug_report)
   --record <dir>   record SDK traffic to <dir>; needs devices, no stack
   --replay <dir>   replay <dir> into a fresh stack; needs no devices
+  --capture-sdk-config  save a fresh app's SDK config for --record
   --notify         post a Slack summary at the end
   --show-browser   show the browser during dashboard steps
   --verbose, -v    stream subprocess output live
