@@ -187,6 +187,32 @@ func Scan(rootPath string, opts *ScanOpts) (apps *Apps, err error) {
 				app.Builds[code].MappingTypes = append(app.Builds[code].MappingTypes, symbol.TypeElfDebug.String())
 			}
 
+			// Native libraries' debug info is uploaded per ABI as
+			// <abi>/<lib>.so.gz, one level below the version code.
+			nativeLib, err := filepath.Match("*/*/*/*/*.so.gz", rel)
+			if err != nil {
+				return err
+			}
+			if nativeLib && parts[3] != "jsbundle" {
+				app := apps.Lookup(parts[0], parts[1])
+				info, err := d.Info()
+				if err != nil {
+					return err
+				}
+				if info.Size() < 1 {
+					return fmt.Errorf(`%q has empty native debug info file. check %q`, app.FullName(), rel)
+				}
+				nativeCode := parts[2]
+				if _, ok := app.Builds[nativeCode]; !ok {
+					app.Builds[nativeCode] = &Build{
+						VersionCode: nativeCode,
+					}
+				}
+
+				app.Builds[nativeCode].MappingFiles = append(app.Builds[nativeCode].MappingFiles, path)
+				app.Builds[nativeCode].MappingTypes = append(app.Builds[nativeCode].MappingTypes, symbol.TypeElfDebug.String())
+			}
+
 			// jsbundle mappings (.tgz) are nested under a jsbundle/ subdir
 			// so their type is recoverable structurally — the .tgz extension
 			// alone is ambiguous with dsym. code is two levels up here.

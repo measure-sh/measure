@@ -64,3 +64,32 @@ func TestScanOTADiscovery(t *testing.T) {
 		t.Errorf("expected 1 regular jsbundle mapping, got %d", len(build.MappingFiles))
 	}
 }
+
+// TestScanNativeDebugInfo checks that per-ABI native libraries, which the
+// Gradle plugin uploads as <abi>/<lib>.so.gz, are picked up as ELF debug info.
+func TestScanNativeDebugInfo(t *testing.T) {
+	root := t.TempDir()
+	for _, abi := range []string{"arm64-v8a", "x86_64"} {
+		p := filepath.Join(root, "foo-app", "1.2.3", "1000", abi, "libfoo.so.gz")
+		if err := os.MkdirAll(filepath.Dir(p), 0755); err != nil {
+			t.Fatal(err)
+		}
+		if err := os.WriteFile(p, []byte("x"), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	apps, err := Scan(root, &ScanOpts{})
+	if err != nil {
+		t.Fatalf("scan failed: %v", err)
+	}
+	build := apps.Lookup("foo-app", "1.2.3").Builds["1000"]
+	if build == nil || len(build.MappingFiles) != 2 {
+		t.Fatalf("expected 2 native mappings, got %+v", build)
+	}
+	for _, typ := range build.MappingTypes {
+		if typ != "elf_debug" {
+			t.Errorf("type = %q, want elf_debug", typ)
+		}
+	}
+}

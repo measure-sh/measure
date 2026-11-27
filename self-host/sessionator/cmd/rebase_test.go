@@ -63,3 +63,15 @@ func TestRebaseMovesLatestToNowAndKeepsGaps(t *testing.T) {
 		t.Errorf("want earliest batch first, got %v", files)
 	}
 }
+
+func TestMappingFilenameKeepsABI(t *testing.T) {
+	if got := mappingFilename("/r/app/1.0/7/arm64-v8a/libfoo.so.gz", "7", "elf_debug"); got != "arm64-v8a/libfoo.so.gz" {
+		t.Errorf("got %q", got)
+	}
+	if got := mappingFilename("/r/app/1.0/7/app.android-arm64.symbols", "7", "elf_debug"); got != "app.android-arm64.symbols" {
+		t.Errorf("got %q", got)
+	}
+	if got := mappingFilename("/r/app/1.0/7/mapping.txt", "7", "proguard"); got != "mapping.txt" {
+		t.Errorf("got %q", got)
+	}
+}

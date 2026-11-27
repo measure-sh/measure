@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"backend/ingest/measure"
+	"backend/libs/symbol"
 	"bytes"
 	"encoding/json"
 	"errors"
@@ -469,7 +470,7 @@ func UploadBuilds(url, apiKey string, app app.App) (status string, err error) {
 		mappingFilesMap := make(map[string]string)
 
 		for index, mappingType := range appbuild.MappingTypes {
-			filename := filepath.Base(appbuild.MappingFiles[index])
+			filename := mappingFilename(appbuild.MappingFiles[index], code, mappingType)
 			mappingFilesMap[filename] = appbuild.MappingFiles[index]
 
 			build.Mappings = append(build.Mappings, &measure.Mapping{
@@ -860,4 +861,16 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 		fmt.Printf("spans: %d\n", metrics.SpanCount)
 		fmt.Printf("ingest took: %v\n", metrics.ingestDuration)
 	},
+}
+
+// mappingFilename is the name a mapping was uploaded under. Native debug info
+// keeps its ABI dir (arm64-v8a/libfoo.so.gz): the same library ships once per
+// ABI, so the base name alone is ambiguous.
+func mappingFilename(path, versionCode, mappingType string) string {
+	base := filepath.Base(path)
+	dir := filepath.Base(filepath.Dir(path))
+	if mappingType == symbol.TypeElfDebug.String() && dir != versionCode {
+		return dir + "/" + base
+	}
+	return base
 }
