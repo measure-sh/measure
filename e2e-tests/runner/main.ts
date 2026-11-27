@@ -26,6 +26,19 @@ import {
   type WebResultsByDevice,
 } from "./playwright-result.ts";
 import {
+  buildDir,
+  buildSessionator,
+  ingestSpec,
+  readManifest,
+  Recorder,
+  RECORD_PORT,
+  recordingKey,
+  specDir,
+  waitForQuiet,
+  writeManifest,
+  type Manifest,
+} from "./recording.ts";
+import {
   createAppsViaDashboard,
   enableLogCollection,
   fetchAppIds,
@@ -45,6 +58,8 @@ const TOKEN_SECRETS = {
   refreshTokenSecret: SESSION_REFRESH_SECRET,
 };
 const DASHBOARD_URL = "http://localhost:3000";
+// Where Frank sends SDK traffic in a full run, so replay goes there too.
+const INGEST_ORIGIN = "http://localhost:8080";
 
 type Flags = {
   devices: Device[];
@@ -53,6 +68,9 @@ type Flags = {
   notify: boolean;
   listSpecs: boolean;
   specs: string[];
+  // Directory to record SDK traffic into, or to replay it from.
+  record?: string;
+  replay?: string;
 };
 
 type PlatformResult = { platform: Device; passed: boolean };
@@ -61,6 +79,7 @@ type TestTarget = {
   device: Device;
   teamId: string;
   appId: string;
+  apiKey: string;
   accessToken: string;
   refreshToken: string;
 };
@@ -76,6 +95,12 @@ async function main() {
 
   if (flags.listSpecs) {
     console.log(specs.join("\n"));
+    return;
+  }
+
+  const selected = flags.specs.length === 0 ? specs : flags.specs;
+  if (flags.record) {
+    await record(flags.record, selected, repoRoot, flags);
     return;
   }
 
@@ -95,14 +120,13 @@ async function main() {
 
     // Serial: the two Frank builds clash over the shared KMP build artifacts if
     // they run at once.
-    const selected = flags.specs.length === 0 ? specs : flags.specs;
+    const replay = flags.replay
+      ? await openReplay(flags.replay, repoRoot)
+      : null;
     for (const target of targets) {
-      const { passed, failures, web } = await runPlatform(
-        target,
-        selected,
-        repoRoot,
-        flags,
-      );
+      const { passed, failures, web } = replay
+        ? await replayPlatform(target, selected, repoRoot, flags, replay)
+        : await runPlatform(target, selected, repoRoot, flags);
       results.push({ platform: target.device, passed });
       allFailures.push(...failures);
       if (web) webResults[target.device] = web;
@@ -201,13 +225,14 @@ async function runPlatform(
 async function buildAndInstall(
   device: Device,
   repoRoot: string,
+  port = 8080,
 ): Promise<void> {
   const logger = log.scope(`build: ${device}`);
   const t = Date.now();
   if (device === "android") await buildAndInstallAndroid(repoRoot);
   else await buildAndInstallIOS(repoRoot);
   logger.ok(`Frank installed (${formatDuration(Date.now() - t)})`);
-  if (device === "android") await ensureAdbReverse(repoRoot);
+  if (device === "android") await ensureAdbReverse(repoRoot, port);
 }
 
 async function createTargets(
@@ -224,7 +249,7 @@ async function createTargets(
 
   const storageStatePath = writePlaywrightStorageState(repoRoot, account);
   const keys = await createApps(account.teamId, storageStatePath, flags);
-  await writeFrankSecrets(repoRoot, keys);
+  if (!flags.replay) await writeFrankSecrets(repoRoot, keys);
   const appIds = await fetchAppIds(pool, account.teamId, flags.devices);
   await enableLogCollection(pool, appIds);
 
@@ -232,6 +257,7 @@ async function createTargets(
     device,
     teamId: account.teamId,
     appId: appIds[device]!,
+    apiKey: keys[device]!,
     accessToken: account.accessToken,
     refreshToken: account.refreshToken,
   }));
@@ -287,9 +313,10 @@ async function createApps(
 async function writeFrankSecrets(
   repoRoot: string,
   keys: AppKeys,
+  ingestUrl?: string,
 ): Promise<void> {
   log.info("writing samples/frank/.env");
-  writeFrankEnv(repoRoot, keys);
+  writeFrankEnv(repoRoot, keys, ingestUrl);
   await runOrThrow(repoRoot)`samples/frank/setup-secrets.sh`;
 }
 
@@ -328,7 +355,7 @@ async function runMaestro(
   const t = Date.now();
   const ok = await run(repoRoot, {
     label,
-  })`maestro --platform=${device} test -e APP_ID=${FRANK_APP_ID[device]} ${flowPath}`;
+  })`maestro ${maestroDeviceArgs(device)} test -e APP_ID=${FRANK_APP_ID[device]} ${flowPath}`;
   const dur = formatDuration(Date.now() - t);
   if (ok) logger.ok(`flow completed (${dur})`);
   else {
@@ -408,7 +435,17 @@ function parseArgs(args: string[], specs: string[]): Flags | null {
   if (!onlyIos) devices.push("android");
   if (!onlyAndroid) devices.push("ios");
 
-  const requested = args.filter((a) => !a.startsWith("-"));
+  const record = valueOf(args, "--record");
+  const replay = valueOf(args, "--replay");
+  if (record && replay) {
+    throw new Error("--record and --replay are mutually exclusive");
+  }
+  const requested = args.filter(
+    (a, i) =>
+      !a.startsWith("-") &&
+      args[i - 1] !== "--record" &&
+      args[i - 1] !== "--replay",
+  );
   const unknown = requested.filter((s) => !specs.includes(s));
   if (unknown.length > 0) {
     throw new Error(
@@ -423,7 +460,151 @@ function parseArgs(args: string[], specs: string[]): Flags | null {
     notify: args.includes("--notify"),
     listSpecs: args.includes("--specs"),
     specs: requested,
+    record,
+    replay,
   };
+}
+
+function valueOf(args: string[], flag: string): string | undefined {
+  const i = args.indexOf(flag);
+  if (i === -1) return undefined;
+  const value = args[i + 1];
+  if (!value || value.startsWith("-")) {
+    throw new Error(`${flag} needs a directory`);
+  }
+  return resolve(value);
+}
+
+// Pins Maestro to ANDROID_SERIAL when set, so a run can share the host with
+// other emulators.
+function maestroDeviceArgs(device: Device): string[] {
+  const serial = process.env.ANDROID_SERIAL;
+  const args = [`--platform=${device}`];
+  if (device === "android" && serial) args.push(`--device=${serial}`);
+  return args;
+}
+
+// Records each spec's SDK traffic with no backend: Frank talks to
+// sessionator's recorder, which answers like the ingest API and writes every
+// request to disk. Replay later checks the dashboard against it.
+async function record(
+  dir: string,
+  specs: string[],
+  repoRoot: string,
+  flags: Flags,
+): Promise<void> {
+  const runStart = Date.now();
+  const manifest: Manifest = {
+    key: await recordingKey(repoRoot),
+    createdAt: new Date().toISOString(),
+    commit: await gitCommit(repoRoot),
+    specs: {},
+  };
+  const bin = await buildSessionator(repoRoot);
+  const recorder = new Recorder(
+    bin,
+    `${repoRoot}/e2e-tests/recording/sdk-config.json`,
+  );
+  // The recorder ignores the key; the SDK only needs one to start.
+  const keys: AppKeys = {};
+  for (const d of flags.devices) keys[d] = "msrsh_e2e_recording";
+  await writeFrankSecrets(repoRoot, keys, `http://localhost:${RECORD_PORT}`);
+
+  try {
+    for (const device of flags.devices) {
+      const results: Record<string, boolean> = {};
+      manifest.specs[device] = results;
+      await bootDevice(device, repoRoot);
+      try {
+        await recorder.start(buildDir(dir, device));
+        await buildAndInstall(device, repoRoot, RECORD_PORT);
+        if (flags.seedGallery) await seedGallery(device, repoRoot);
+        const target = { device } as TestTarget;
+        for (const spec of specs) {
+          const out = specDir(dir, device, spec);
+          await recorder.start(out);
+          results[spec] = await runMaestro(target, spec, repoRoot, []);
+          await waitForQuiet(out);
+        }
+      } finally {
+        await recorder.stop();
+        await stopDevice(device);
+      }
+      writeManifest(dir, manifest);
+    }
+  } finally {
+    await recorder.stop();
+  }
+  const failed = Object.entries(manifest.specs).flatMap(([d, r]) =>
+    Object.entries(r)
+      .filter(([, ok]) => !ok)
+      .map(([s]) => `${d}:${s}`),
+  );
+  log.ok(
+    `recorded ${dir} key=${manifest.key} in ${formatDuration(Date.now() - runStart)}`,
+  );
+  if (failed.length > 0) {
+    log.fail(`Maestro failed while recording: ${failed.join(", ")}`);
+    process.exit(1);
+  }
+}
+
+type Replay = { dir: string; manifest: Manifest; bin: string; work: string };
+
+async function openReplay(dir: string, repoRoot: string): Promise<Replay> {
+  const manifest = readManifest(dir);
+  const key = await recordingKey(repoRoot);
+  if (manifest.key !== key && !process.env.E2E_ALLOW_STALE_RECORDING) {
+    throw new Error(
+      `recording ${dir} is for key ${manifest.key}, this commit needs ${key}; ` +
+        "re-record with `npm start -- --record <dir>`",
+    );
+  }
+  const bin = await buildSessionator(repoRoot);
+  const work = `${tmpdir()}/measure-e2e-replay`;
+  return { dir, manifest, bin, work };
+}
+
+// Replays each spec's recording into the fresh app, then runs its Playwright
+// tests, mirroring runPlatform with ingest in place of the device.
+async function replayPlatform(
+  target: TestTarget,
+  specs: string[],
+  repoRoot: string,
+  flags: Flags,
+  replay: Replay,
+): Promise<{ passed: boolean; failures: string[]; web?: WebResult }> {
+  const failures: string[] = [];
+  let web: WebResult | undefined;
+  const recorded = replay.manifest.specs[target.device] ?? {};
+  for (const spec of specs) {
+    const label = `maestro: ${target.device}:${spec}`;
+    if (!(spec in recorded)) {
+      failures.push(`${label} (not in recording)`);
+      continue;
+    }
+    if (!recorded[spec]) {
+      log.scope(label).fail("flow failed while recording; skipping");
+      failures.push(label);
+      continue;
+    }
+    const t = Date.now();
+    await ingestSpec(
+      replay.bin,
+      replay.dir,
+      target.device,
+      spec,
+      target.apiKey,
+      INGEST_ORIGIN,
+      replay.work,
+    );
+    log
+      .scope(`replay: ${target.device}:${spec}`)
+      .ok(`ingested (${formatDuration(Date.now() - t)})`);
+    const result = await runPlaywright(target, spec, repoRoot, flags, failures);
+    if (result) web = addWebResult(web, result);
+  }
+  return { passed: failures.length === 0, failures, web };
 }
 
 function printHelp(): void {
@@ -434,6 +615,8 @@ Flags:
   --ios            run only the iOS pipeline
   --specs          list the specs
   --seed-gallery   seed a gallery image (needed by bug_report)
+  --record <dir>   record SDK traffic to <dir>; needs devices, no stack
+  --replay <dir>   replay <dir> into a fresh stack; needs no devices
   --notify         post a Slack summary at the end
   --show-browser   show the browser during dashboard steps
   --verbose, -v    stream subprocess output live

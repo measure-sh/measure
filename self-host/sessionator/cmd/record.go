@@ -94,9 +94,14 @@ var outputDir string
 // The port to run the server
 var port string
 
+// sdkConfigPath is a JSON file served on GET /config, standing in for the
+// app's SDK config so the SDK behaves as it would against a real backend.
+var sdkConfigPath string
+
 func init() {
 	recordCmd.Flags().StringVarP(&outputDir, "path", "p", "../session-data", "path to store event requests")
 	recordCmd.Flags().StringVarP(&port, "port", "P", "8085", "port to run the server")
+	recordCmd.Flags().StringVar(&sdkConfigPath, "sdk-config", "", "JSON file to serve on GET /config")
 	recordCmd.Flags().SortFlags = false
 }
 
@@ -113,6 +118,9 @@ Structue of "session-data" directory once written:` + "\n" + DirTree() + "\n" + 
 		r.PUT("/builds/ota", writeOTABuild)
 		r.PUT("/events", writeEvent)
 		r.PUT("/upload", writeUpload)
+		if sdkConfigPath != "" {
+			r.GET("/config", serveSdkConfig)
+		}
 
 		r.Run(":" + port)
 	},
@@ -871,4 +879,14 @@ func writeUpload(c *gin.Context) {
 	fmt.Printf("written %d bytes to %q\n", written, full)
 
 	c.Status(http.StatusOK)
+}
+
+// serveSdkConfig answers the SDK's config fetch with the --sdk-config file.
+func serveSdkConfig(c *gin.Context) {
+	data, err := os.ReadFile(sdkConfigPath)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to read sdk config"})
+		return
+	}
+	c.Data(http.StatusOK, "application/json", data)
 }

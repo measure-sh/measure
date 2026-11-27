@@ -5,19 +5,23 @@ import type { AppKeys } from "./setup-apps.ts";
 
 const INGEST_URL = "http://localhost:8080";
 
-export function writeFrankEnv(repoRoot: string, keys: AppKeys): void {
+export function writeFrankEnv(
+  repoRoot: string,
+  keys: AppKeys,
+  ingestUrl = INGEST_URL,
+): void {
   const lines: string[] = [];
   if (keys.android) {
     lines.push(`FRANK_MEASURE_ANDROID_API_KEY_DEBUG=${keys.android}`);
-    lines.push(`FRANK_MEASURE_ANDROID_API_URL_DEBUG=${INGEST_URL}`);
+    lines.push(`FRANK_MEASURE_ANDROID_API_URL_DEBUG=${ingestUrl}`);
     lines.push(`FRANK_MEASURE_ANDROID_API_KEY_RELEASE=${keys.android}`);
-    lines.push(`FRANK_MEASURE_ANDROID_API_URL_RELEASE=${INGEST_URL}`);
+    lines.push(`FRANK_MEASURE_ANDROID_API_URL_RELEASE=${ingestUrl}`);
   }
   if (keys.ios) {
     lines.push(`FRANK_MEASURE_IOS_API_KEY_DEBUG=${keys.ios}`);
-    lines.push(`FRANK_MEASURE_IOS_API_URL_DEBUG=${INGEST_URL}`);
+    lines.push(`FRANK_MEASURE_IOS_API_URL_DEBUG=${ingestUrl}`);
     lines.push(`FRANK_MEASURE_IOS_API_KEY_RELEASE=${keys.ios}`);
-    lines.push(`FRANK_MEASURE_IOS_API_URL_RELEASE=${INGEST_URL}`);
+    lines.push(`FRANK_MEASURE_IOS_API_URL_RELEASE=${ingestUrl}`);
   }
   writeFileSync(`${repoRoot}/samples/frank/.env`, lines.join("\n") + "\n");
 }
@@ -44,13 +48,17 @@ export async function buildAndInstallAndroid(repoRoot: string): Promise<void> {
   await runOrThrow(repoRoot, { label })`adb install -r ${apk}`;
 }
 
-// Forward device:localhost:8080 → host:localhost:8080 so the SDK and the Gradle
-// plugin share one ingest origin.
-export async function ensureAdbReverse(repoRoot: string): Promise<void> {
+// Forward device:localhost:<port> → host:localhost:<port> so the SDK and the
+// Gradle plugin share one ingest origin.
+export async function ensureAdbReverse(
+  repoRoot: string,
+  port = 8080,
+): Promise<void> {
   const label = "build: android";
   const logger = log.scope(label);
-  logger.info("forwarding ingest port 8080 to host via adb reverse");
-  await runOrThrow(repoRoot, { label })`adb reverse tcp:8080 tcp:8080`;
+  logger.info(`forwarding ingest port ${port} to host via adb reverse`);
+  const rule = `tcp:${port}`;
+  await runOrThrow(repoRoot, { label })`adb reverse ${rule} ${rule}`;
 }
 
 export async function buildAndInstallIOS(repoRoot: string): Promise<void> {

@@ -77,6 +77,13 @@ var skipApps []string
 // operations.
 var metrics Metrics
 
+// rebaseTime shifts recorded timestamps so the latest one lands at
+// ingestion time.
+var rebaseTime bool
+
+// rebaser does the shifting when rebaseTime is set; nil otherwise.
+var rebaser *timeRebaser
+
 func init() {
 	ingestCmd.
 		Flags().
@@ -117,6 +124,10 @@ func init() {
 	ingestCmd.
 		Flags().
 		StringSliceVar(&skipApps, "skip-apps", nil, "list of apps to skip ingestion.\nuse same app name from config.\nusage: --skip-apps=\"app-1,app-2\"")
+
+	ingestCmd.
+		Flags().
+		BoolVar(&rebaseTime, "rebase-time", false, "shift recorded timestamps so the latest lands at now, and send batches in recorded order")
 
 	ingestCmd.Flags().SortFlags = false
 }
@@ -565,6 +576,11 @@ func prepareEventsAndSpans(eventAndSpanFile string, virtualizer *virtualizer) (d
 					if err = virtualizer.Virtualize(&rawEvent); err != nil {
 						return data, eventCount, spanCount, fmt.Errorf("error virtualizing event: %v", err)
 					}
+					if rebaser != nil {
+						if err = rebaser.Event(&rawEvent); err != nil {
+							return data, eventCount, spanCount, fmt.Errorf("error rebasing event: %v", err)
+						}
+					}
 					rawEvents = append(rawEvents, rawEvent)
 					eventCount++
 				}
@@ -582,6 +598,11 @@ func prepareEventsAndSpans(eventAndSpanFile string, virtualizer *virtualizer) (d
 					var rawSpan json.RawMessage
 					if err = decoder.Decode(&rawSpan); err != nil {
 						return data, eventCount, spanCount, fmt.Errorf("error decoding span: %v", err)
+					}
+					if rebaser != nil {
+						if err = rebaser.Span(&rawSpan); err != nil {
+							return data, eventCount, spanCount, fmt.Errorf("error rebasing span: %v", err)
+						}
 					}
 					rawSpans = append(rawSpans, rawSpan)
 					spanCount++
@@ -808,6 +829,20 @@ Structure of "session-data" directory:` + "\n" + DirTree() + "\n" + ValidNote(),
 			if err := rmAll(ctx, configData); err != nil {
 				log.Fatal("failed to clean all old data: ", err)
 			}
+		}
+
+		if rebaseTime {
+			var files []string
+			for i := range apps.Items {
+				if err := sortByFirstTimestamp(apps.Items[i].EventAndSpanFiles); err != nil {
+					log.Fatal(err)
+				}
+				files = append(files, apps.Items[i].EventAndSpanFiles...)
+			}
+			if rebaser, err = newTimeRebaser(files, time.Now()); err != nil {
+				log.Fatal(err)
+			}
+			fmt.Printf("rebasing timestamps by %v\n\n", rebaser.offset)
 		}
 
 		if parallel {

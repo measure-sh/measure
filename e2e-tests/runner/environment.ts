@@ -147,7 +147,11 @@ async function stopAndroid(): Promise<void> {
   const result = await execa("adb", ["devices"], { reject: false });
   const emulators = deviceLines(result.stdout)
     .map((line) => line.split("\t")[0])
-    .filter((id) => id.startsWith("emulator-"));
+    .filter((id) => id.startsWith("emulator-"))
+    // Leave other emulators alone when the run is pinned to one.
+    .filter(
+      (id) => !process.env.ANDROID_SERIAL || id === process.env.ANDROID_SERIAL,
+    );
   for (const id of emulators) await quiet("adb", ["-s", id, "emu", "kill"]);
 }
 
