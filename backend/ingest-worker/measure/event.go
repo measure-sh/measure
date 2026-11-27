@@ -1167,19 +1167,6 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 
 		}
 
-		// navigation
-		if e.events[i].IsNavigation() {
-			row.
-				Set(`navigation.to`, e.events[i].Navigation.To).
-				Set(`navigation.from`, e.events[i].Navigation.From).
-				Set(`navigation.source`, e.events[i].Navigation.Source)
-		} else {
-			row.
-				Set(`navigation.to`, nil).
-				Set(`navigation.from`, nil).
-				Set(`navigation.source`, nil)
-		}
-
 		// screen view
 		if e.events[i].IsScreenView() {
 			row.

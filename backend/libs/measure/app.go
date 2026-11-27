@@ -2966,9 +2966,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			`memory_usage.native_free_heap`,
 			`memory_usage.interval`,
 			`trim_memory.level`,
-			`navigation.to`,
-			`navigation.from`,
-			`navigation.source`,
 			`profile.trigger`,
 			`profile.format`,
 		}...)
@@ -3054,7 +3051,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 		var memoryUsage event.MemoryUsage
 		var trimMemory event.TrimMemory
 		var cpuUsage event.CPUUsage
-		var navigation event.Navigation
 		var screenView event.ScreenView
 		var userDefAttr map[string][]any
 		var bugReport event.BugReport
@@ -3297,11 +3293,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 				// trim memory
 				&trimMemory.Level,
 
-				// navigation
-				&navigation.To,
-				&navigation.From,
-				&navigation.Source,
-
 				// profile
 				&profile.Trigger,
 				&profile.Format,
@@ -3482,9 +3473,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			session.Events = append(session.Events, ev)
 		case event.TypeCPUUsage:
 			ev.CPUUsage = &cpuUsage
-			session.Events = append(session.Events, ev)
-		case event.TypeNavigation:
-			ev.Navigation = &navigation
 			session.Events = append(session.Events, ev)
 		case event.TypeScreenView:
 			if err := unmarshalAttachments(attachments, &ev.Attachments); err != nil {

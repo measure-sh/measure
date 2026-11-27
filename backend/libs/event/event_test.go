@@ -1595,7 +1595,6 @@ func TestValidateNullPayload(t *testing.T) {
 		{osName: "android", evType: TypeLifecycleActivity},
 		{osName: "android", evType: TypeLifecycleFragment},
 		{osName: "android", evType: TypeTrimMemory},
-		{osName: "android", evType: TypeNavigation},
 		// ios only event types
 		{osName: "ios", evType: TypeAppHang},
 		{osName: "ios", evType: TypeLifecycleViewController},

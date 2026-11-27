@@ -16,12 +16,12 @@ import (
 )
 
 // seedNormalSession seeds a session with a session_start event plus a
-// navigation event, so it survives the "session_start-only" Having filter
+// screen view event, so it survives the "session_start-only" Having filter
 // on the sessions CTE.
 func seedNormalSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, userID string, ts time.Time) {
 	t.Helper()
 	seedSessionStartEvent(ctx, t, teamID, appID, sessionID, userID, ts)
-	seedNavigationEventInSession(ctx, t, teamID, appID, sessionID, "home", ts.Add(time.Second))
+	seedScreenViewInSession(ctx, t, teamID, appID, sessionID, "home", ts.Add(time.Second))
 }
 
 func newSessionsOverviewContext(callerID string, appID uuid.UUID, rawQuery string) (*gin.Context, *httptest.ResponseRecorder) {

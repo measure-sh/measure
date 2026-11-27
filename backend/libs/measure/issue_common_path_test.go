@@ -177,7 +177,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		th.SeedExceptionGroup(ctx, t, teamID.String(), appID.String(), fingerprint)
 
 		// Seed a session with multiple events (minEventsInSession=2):
-		// 1. A navigation event
+		// 1. A generic event
 		// 2. A crash event with matching fingerprint
 		// Both share the same session_id.
 		sessionID := uuid.New().String()
@@ -242,7 +242,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 
 		now := time.Now().UTC()
 
-		// Seed 2 sessions with identical navigation events (same type and
+		// Seed 2 sessions with identical generic events (same type and
 		// timestamp offset so they land at the same position_from_end), then crash.
 		for i := 0; i < 2; i++ {
 			sessionID := uuid.New().String()
@@ -289,8 +289,8 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 
 		sessionID := uuid.New().String()
 		now := time.Now().UTC()
-		// Navigation event to satisfy minEventsInSession=2
-		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "HomeScreen", now.Add(-2*time.Second))
+		// Screen view event to satisfy minEventsInSession=2
+		seedScreenViewInSession(ctx, t, teamID.String(), appID.String(), sessionID, "HomeScreen", now.Add(-2*time.Second))
 		// Legacy handled exception (explicit handled=true, no severity) with JSON data
 		excJSON := `[{"type":"NullPointerException","message":"null ref","frames":[]}]`
 		seedIssueEventWithDataInSession(ctx, t, teamID.String(), appID.String(), sessionID, "exception", fingerprint, true, excJSON, now)
@@ -331,7 +331,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 
 		sessionID := uuid.New().String()
 		now := time.Now().UTC()
-		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "HomeScreen", now.Add(-2*time.Second))
+		seedScreenViewInSession(ctx, t, teamID.String(), appID.String(), sessionID, "HomeScreen", now.Add(-2*time.Second))
 		// New-SDK shape: severity set, handled absent (defaults false). Without
 		// the severity fix this renders "Crash: " since handled=false.
 		excJSON := `[{"type":"NullPointerException","message":"null ref","frames":[]}]`
@@ -373,7 +373,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 
 		sessionID := uuid.New().String()
 		now := time.Now().UTC()
-		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "HomeScreen", now.Add(-2*time.Second))
+		seedScreenViewInSession(ctx, t, teamID.String(), appID.String(), sessionID, "HomeScreen", now.Add(-2*time.Second))
 		excJSON := `[{"type":"NullPointerException","message":"null ref","frames":[]}]`
 		seedIssueEventWithSeverityInSession(ctx, t, teamID.String(), appID.String(), sessionID, fingerprint, "unhandled", excJSON, now)
 
@@ -417,7 +417,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 
 		sessionID := uuid.New().String()
 		now := time.Now().UTC()
-		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "SettingsScreen", now.Add(-2*time.Second))
+		seedScreenViewInSession(ctx, t, teamID.String(), appID.String(), sessionID, "SettingsScreen", now.Add(-2*time.Second))
 		anrJSON := `[{"type":"ANR","message":"Input dispatching timed out","frames":[]}]`
 		seedIssueEventWithDataInSession(ctx, t, teamID.String(), appID.String(), sessionID, "anr", fingerprint, false, anrJSON, now)
 
@@ -457,7 +457,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 
 		sessionID := uuid.New().String()
 		now := time.Now().UTC()
-		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "SettingsScreen", now.Add(-2*time.Second))
+		seedScreenViewInSession(ctx, t, teamID.String(), appID.String(), sessionID, "SettingsScreen", now.Add(-2*time.Second))
 		dump, err := json.Marshal(artdump.Dump{Cause: artdump.CauseBlocked})
 		if err != nil {
 			t.Fatalf("marshal thread dump: %v", err)
@@ -511,7 +511,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 
 		sessionID := uuid.New().String()
 		now := time.Now().UTC()
-		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "LoginScreen", now.Add(-2*time.Second))
+		seedScreenViewInSession(ctx, t, teamID.String(), appID.String(), sessionID, "LoginScreen", now.Add(-2*time.Second))
 		// No exceptions JSON, SeedIssueEventInSession leaves it empty
 		seedIssueEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "exception", fingerprint, false, now)
 
@@ -555,7 +555,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 
 		sessionID := uuid.New().String()
 		now := time.Now().UTC()
-		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "ProfileScreen", now.Add(-2*time.Second))
+		seedScreenViewInSession(ctx, t, teamID.String(), appID.String(), sessionID, "ProfileScreen", now.Add(-2*time.Second))
 		seedIssueEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "anr", fingerprint, false, now)
 
 		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeANR, fingerprint)
@@ -598,7 +598,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		now := time.Now().UTC()
 		for _, state := range states {
 			sessionID := uuid.New().String()
-			seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "HomeScreen", now.Add(-2*time.Second))
+			seedScreenViewInSession(ctx, t, teamID.String(), appID.String(), sessionID, "HomeScreen", now.Add(-2*time.Second))
 			seedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
 				Type: "app_hang", SessionID: sessionID, Timestamp: now, Fingerprint: fingerprint,
 				AppHangState: state, AppHangDuration: 2500, ExceptionsJSON: exceptionsJSON,
@@ -631,7 +631,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		got := appHangPath(t, appHangJSON, event.AppHangStateKilled)
-		want := []string{"Navigated to screen: HomeScreen", "App hang (killed): ViewController.swift: blockMainThread()"}
+		want := []string{"Viewed screen: HomeScreen", "App hang (killed): ViewController.swift: blockMainThread()"}
 		if !slices.Equal(got, want) {
 			t.Errorf("steps = %q, want %q", got, want)
 		}
@@ -641,7 +641,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		got := appHangPath(t, appHangJSON, event.AppHangStateKilled, event.AppHangStateRecovered)
-		want := []string{"Navigated to screen: HomeScreen", "App hang: ViewController.swift: blockMainThread()"}
+		want := []string{"Viewed screen: HomeScreen", "App hang: ViewController.swift: blockMainThread()"}
 		if !slices.Equal(got, want) {
 			t.Errorf("steps = %q, want %q", got, want)
 		}
@@ -651,7 +651,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 	// Row scanning: default event type uses rawDescription
 	// ------------------------------------------------------------------
 
-	t.Run("navigation event uses rawDescription from ClickHouse multiIf", func(t *testing.T) {
+	t.Run("screen view event uses rawDescription from ClickHouse multiIf", func(t *testing.T) {
 		defer cleanupAll(ctx, t)
 
 		teamID := uuid.New()
@@ -661,7 +661,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 
 		sessionID := uuid.New().String()
 		now := time.Now().UTC()
-		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "CheckoutScreen", now.Add(-2*time.Second))
+		seedScreenViewInSession(ctx, t, teamID.String(), appID.String(), sessionID, "CheckoutScreen", now.Add(-2*time.Second))
 		seedIssueEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "exception", fingerprint, false, now)
 
 		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeCrash, fingerprint)
@@ -680,13 +680,13 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 
 		found := false
 		for _, s := range result.Steps {
-			if strings.Contains(s.Description, "Navigated to screen: CheckoutScreen") {
+			if strings.Contains(s.Description, "Viewed screen: CheckoutScreen") {
 				found = true
 				break
 			}
 		}
 		if !found {
-			t.Errorf("expected step containing 'Navigated to screen: CheckoutScreen', got steps: %+v", result.Steps)
+			t.Errorf("expected step containing 'Viewed screen: CheckoutScreen', got steps: %+v", result.Steps)
 		}
 	})
 
@@ -740,11 +740,11 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 		// 1 navigates to "RareScreen" before crash (25% confidence < 30%).
 		for i := 0; i < 3; i++ {
 			sessionID := uuid.New().String()
-			seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "CommonScreen", now.Add(-2*time.Second))
+			seedScreenViewInSession(ctx, t, teamID.String(), appID.String(), sessionID, "CommonScreen", now.Add(-2*time.Second))
 			seedIssueEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "exception", fingerprint, false, now)
 		}
 		rareSessionID := uuid.New().String()
-		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), rareSessionID, "RareScreen", now.Add(-2*time.Second))
+		seedScreenViewInSession(ctx, t, teamID.String(), appID.String(), rareSessionID, "RareScreen", now.Add(-2*time.Second))
 		seedIssueEventInSession(ctx, t, teamID.String(), appID.String(), rareSessionID, "exception", fingerprint, false, now)
 
 		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeCrash, fingerprint)
@@ -791,9 +791,9 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 
 		now := time.Now().UTC()
 		excJSON := `[{"type":"IllegalStateException","message":"bad state","frames":[]}]`
-		// Seed 1 session: navigation then crash with data
+		// Seed 1 session: screen view then crash with data
 		sessionID := uuid.New().String()
-		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "DetailScreen", now.Add(-2*time.Second))
+		seedScreenViewInSession(ctx, t, teamID.String(), appID.String(), sessionID, "DetailScreen", now.Add(-2*time.Second))
 		seedIssueEventWithDataInSession(ctx, t, teamID.String(), appID.String(), sessionID, "exception", fingerprint, false, excJSON, now)
 
 		data, err := GetIssueGroupCommonPath(ctx, deps.RchPool, false, teamID, appID, group.GroupTypeCrash, fingerprint)
@@ -826,20 +826,20 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 
 		// Check crash description includes exception data
 		foundCrash := false
-		foundNav := false
+		foundScreenView := false
 		for _, s := range result.Steps {
 			if strings.Contains(s.Description, "Crash: IllegalStateException - bad state") {
 				foundCrash = true
 			}
-			if strings.Contains(s.Description, "Navigated to screen: DetailScreen") {
-				foundNav = true
+			if strings.Contains(s.Description, "Viewed screen: DetailScreen") {
+				foundScreenView = true
 			}
 		}
 		if !foundCrash {
 			t.Errorf("expected step with 'Crash: IllegalStateException - bad state', got steps: %+v", result.Steps)
 		}
-		if !foundNav {
-			t.Errorf("expected step with 'Navigated to screen: DetailScreen', got steps: %+v", result.Steps)
+		if !foundScreenView {
+			t.Errorf("expected step with 'Viewed screen: DetailScreen', got steps: %+v", result.Steps)
 		}
 	})
 
@@ -870,7 +870,7 @@ func TestGetIssueGroupCommonPath(t *testing.T) {
 
 				sessionID := uuid.New().String()
 				now := time.Now().UTC()
-				seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID, "DetailScreen", now.Add(-2*time.Second))
+				seedScreenViewInSession(ctx, t, teamID.String(), appID.String(), sessionID, "DetailScreen", now.Add(-2*time.Second))
 				th.SeedEventRows(ctx, t, teamID.String(), appID.String(), 1, testinfra.EventRow{
 					Type:           "exception",
 					SessionID:      sessionID,

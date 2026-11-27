@@ -49,7 +49,6 @@ const eventPillTypes: Record<string, PillType> = {
   lifecycle_swift_ui: PillType.SessionEventLifecycleSwiftUI,
   lifecycle_app: PillType.SessionEventLifecycleApp,
   app_exit: PillType.SessionEventAppExit,
-  navigation: PillType.SessionEventNavigation,
   network_change: PillType.SessionEventNetworkChange,
   screen_view: PillType.SessionEventScreenView,
   cold_launch: PillType.SessionEventColdLaunch,
@@ -192,9 +191,6 @@ export function sessionEventTitle(
   }
   if (eventType === "app_exit") {
     return String(eventDetails?.reason ?? "");
-  }
-  if (eventType === "navigation") {
-    return String(eventDetails?.to ?? "");
   }
   if (eventType === "network_change") {
     const named = (type: unknown, generation: unknown) => {

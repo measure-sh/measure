@@ -132,7 +132,6 @@ describe("Pill", () => {
       [PillType.SessionEventLifecycleSwiftUI, "SwiftUI", /border-indigo-400/],
       [PillType.SessionEventLifecycleApp, "App", /border-indigo-400/],
       [PillType.SessionEventAppExit, "App Exit", /border-indigo-400/],
-      [PillType.SessionEventNavigation, "Navigation", /border-fuchsia-400/],
       [PillType.SessionEventScreenView, "Screen View", /border-fuchsia-400/],
       [PillType.SessionEventColdLaunch, "Cold Launch", /border-indigo-400/],
       [PillType.SessionEventWarmLaunch, "Warm Launch", /border-indigo-400/],

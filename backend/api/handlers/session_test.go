@@ -86,12 +86,12 @@ func TestGetSession(t *testing.T) {
 
 		sessionID := uuid.New()
 		start := time.Now().Add(-time.Minute)
-		// 2 navigation events & 1 exception event, all recognized by the
+		// 2 screen view events & 1 exception event, all recognized by the
 		// timeline type switch, spanning a 20s window.
 		exceptionsJSON := `[{"type":"java.lang.RuntimeException","message":"boom","frames":[{"line_num":42,"file_name":"Test.java","method_name":"testMethod"}]}]`
-		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID.String(), "home", start)
+		seedScreenViewInSession(ctx, t, teamID.String(), appID.String(), sessionID.String(), "home", start)
 		seedIssueEventWithDataInSession(ctx, t, teamID.String(), appID.String(), sessionID.String(), "exception", "", false, exceptionsJSON, start.Add(10*time.Second))
-		seedNavigationEventInSession(ctx, t, teamID.String(), appID.String(), sessionID.String(), "settings", start.Add(20*time.Second))
+		seedScreenViewInSession(ctx, t, teamID.String(), appID.String(), sessionID.String(), "settings", start.Add(20*time.Second))
 
 		c, w := newGetSessionContext(ownerID, appID, sessionID)
 		h.GetSession(c)

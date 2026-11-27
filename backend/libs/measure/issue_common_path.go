@@ -306,7 +306,6 @@ func GetIssueGroupCommonPath(ctx context.Context, rch driver.Conn, releaseMode b
                 e.type = 'gesture_click', concat('User tapped on ', coalesce(nullIf(e.gesture_click.target_id, ''), nullIf(e.gesture_click.target, ''), 'unknown view'), if((e.gesture_click.target_id != '') AND (e.gesture_click.target != ''), concat(' (', e.gesture_click.target, ')'), '')),
                 e.type = 'gesture_long_click', concat('User long-pressed on ', coalesce(nullIf(e.gesture_long_click.target_id, ''), nullIf(e.gesture_long_click.target, ''), 'unknown view'), if((e.gesture_long_click.target_id != '') AND (e.gesture_long_click.target != ''), concat(' (', e.gesture_long_click.target, ')'), '')),
                 e.type = 'gesture_scroll', concat('User scrolled in ', coalesce(nullIf(e.gesture_scroll.target_id, ''), nullIf(e.gesture_scroll.target, ''), 'unknown view'), if((e.gesture_scroll.target_id != '') AND (e.gesture_scroll.target != ''), concat(' (', e.gesture_scroll.target, ')'), '')),
-                e.type = 'navigation', concat('Navigated to screen: ', coalesce(e.navigation.to, 'unknown')),
                 e.type = 'screen_view', concat('Viewed screen: ', coalesce(e.screen_view.name, 'unknown')),
                 (e.type = 'lifecycle_activity') AND (e.lifecycle_activity.type = 'created'), concat('Activity created: ', coalesce(e.lifecycle_activity.class_name, 'unknown')),
                 (e.type = 'lifecycle_activity') AND (e.lifecycle_activity.type = 'resumed'), concat('Activity resumed: ', coalesce(e.lifecycle_activity.class_name, 'unknown')),

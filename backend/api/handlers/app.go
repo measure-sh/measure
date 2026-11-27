@@ -777,7 +777,6 @@ func (h Handlers) GetSession(c *gin.Context) {
 		event.TypeGestureClick,
 		event.TypeGestureLongClick,
 		event.TypeGestureScroll,
-		event.TypeNavigation,
 		event.TypeString,
 		event.TypeLog,
 		event.TypeNetworkChange,
@@ -823,13 +822,6 @@ func (h Handlers) GetSession(c *gin.Context) {
 		gestureScrolls := timeline.ComputeGestureScrolls(gestureScrollEvents)
 		threadedGestureScrolls := timeline.GroupByThreads(gestureScrolls)
 		threads.Organize(event.TypeGestureScroll, threadedGestureScrolls)
-	}
-
-	navEvents := eventMap[event.TypeNavigation]
-	if len(navEvents) > 0 {
-		navs := timeline.ComputeNavigation(navEvents)
-		threadedNavs := timeline.GroupByThreads(navs)
-		threads.Organize(event.TypeNavigation, threadedNavs)
 	}
 
 	screenViewEvents := eventMap[event.TypeScreenView]

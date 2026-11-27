@@ -273,10 +273,6 @@ func seedLifecycleSwiftUIInSession(ctx context.Context, t *testing.T, teamID, ap
 	th.SeedLifecycleSwiftUIInSession(ctx, t, teamID, appID, sessionID, swiftUIType, className, ts)
 }
 
-func seedNavigationEventInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, destination string, ts time.Time) {
-	th.SeedNavigationEventInSession(ctx, t, teamID, appID, sessionID, destination, ts)
-}
-
 func seedIssueEventWithSeverityInSession(
 	ctx context.Context,
 	t *testing.T,

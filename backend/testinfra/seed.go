@@ -1016,23 +1016,6 @@ func (h *TestHelper) SeedIssueEventWithFullAttributes(
 	})
 }
 
-// SeedNavigationEventInSession inserts a navigation event with a known
-// session_id and destination screen name.
-func (h *TestHelper) SeedNavigationEventInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, destination string, ts time.Time) {
-	t.Helper()
-	query := fmt.Sprintf(
-		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
-			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
-			"`attribute.app_unique_id`, `attribute.measure_sdk_version`, "+
-			"`navigation.to`) "+
-			`VALUES ('%s', 'navigation', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', '0.1', '%s')`,
-		uuid.New().String(), sessionID, appID, teamID,
-		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String(), destination)
-	if err := h.ChConn.Exec(ctx, query); err != nil {
-		t.Fatalf("seed navigation event: %v", err)
-	}
-}
-
 // SeedLifecycleActivityInSession inserts a lifecycle_activity event with a
 // known session_id, activity type & class name.
 func (h *TestHelper) SeedLifecycleActivityInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, activityType, className string, ts time.Time) {
