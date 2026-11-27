@@ -78,8 +78,9 @@ jobs:
 
       - name: Write self-host config
         working-directory: self-host
-        # The dev wizard only prompts for OAuth secrets, which e2e doesn't use.
-        run: printf '\n\n\n' | ./config.sh development --wizard
+        # The dev wizard only prompts for OAuth secrets, which e2e doesn't use, and
+        # loops on empty answers, so give it placeholders.
+        run: printf 'unused\nunused\nunused\n' | ./config.sh development --wizard
 
       - name: Replay and run dashboard specs
         working-directory: e2e-tests
