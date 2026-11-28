@@ -7,17 +7,6 @@ import (
 	"backend/libs/udattr"
 )
 
-// Navigation represents navigation events suitable
-// for session timeline.
-type Navigation struct {
-	EventType     string              `json:"event_type"`
-	UDAttribute   *udattr.UDAttribute `json:"user_defined_attribute"`
-	ThreadName    string              `json:"thread_name"`
-	UserTriggered bool                `json:"user_triggered"`
-	*event.Navigation
-	Timestamp time.Time `json:"timestamp"`
-}
-
 // ScreenView represents screen view events suitable
 // for session timeline.
 type ScreenView struct {
@@ -28,36 +17,6 @@ type ScreenView struct {
 	*event.ScreenView
 	Timestamp   time.Time          `json:"timestamp"`
 	Attachments []event.Attachment `json:"attachments"`
-}
-
-// GetThreadName provides the name of the thread
-// where navigation took place.
-func (n Navigation) GetThreadName() string {
-	return n.ThreadName
-}
-
-// GetTimestamp provides the timestamp of
-// the navigation event.
-func (n Navigation) GetTimestamp() time.Time {
-	return n.Timestamp
-}
-
-// ComputeNavigation computes navigation events
-// for session timeline.
-func ComputeNavigation(events []event.EventField) (result []ThreadGrouper) {
-	for _, event := range events {
-		navs := Navigation{
-			event.Type,
-			&event.UserDefinedAttribute,
-			event.Attribute.ThreadName,
-			event.UserTriggered,
-			event.Navigation,
-			event.Timestamp,
-		}
-		result = append(result, navs)
-	}
-
-	return
 }
 
 // ComputeScreemViews computes screen view events

@@ -159,7 +159,7 @@ paths:
                           `lifecycle_view_controller`, `lifecycle_swift_ui`,
                           `lifecycle_app`, `cold_launch`, `warm_launch`, `hot_launch`,
                           `cpu_usage`, `memory_usage`, `memory_usage_absolute`,
-                          `trim_memory`, `navigation`, `screen_view`,
+                          `trim_memory`, `screen_view`,
                           `custom`, `session_start`, `profile`.
                       session_id:
                         type: string
@@ -1514,33 +1514,6 @@ paths:
                             type: string
                             description: >
                               One of the constants from Android's ComponentCallbacks2.
-                      navigation:
-                        type: object
-                        description: >
-                          Use the `navigation` type for navigation events. This event
-                          is no longer tracked and will be removed in future versions.
-                          Android SDK removed support for this event from v0.9.0
-                          onwards.
-                        deprecated: true
-                        required:
-                          - to
-                        properties:
-                          source:
-                            type: string
-                            description: >
-                              Adds context on how the event was collected. Null if not
-                              set. Example: `androidx_navigation` if the event was
-                              collected from the `androidx.navigation` library.
-                          from:
-                            type: string
-                            description: >
-                              The source page or screen from where the navigation was
-                              triggered, if available, null otherwise.
-                          to:
-                            type: string
-                            description: >
-                              The destination page or screen where the navigation led
-                              to.
                       screen_view:
                         type: object
                         description: Use the `screen_view` type for screen view events.

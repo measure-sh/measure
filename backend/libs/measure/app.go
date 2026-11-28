@@ -2943,8 +2943,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			`app_exit.trace`,
 			`app_exit.process_name`,
 			`app_exit.pid`,
-			`string.severity_text`,
-			`string.string`,
 			`lifecycle_activity.type`,
 			`lifecycle_activity.class_name`,
 			`lifecycle_activity.intent`,
@@ -2966,9 +2964,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			`memory_usage.native_free_heap`,
 			`memory_usage.interval`,
 			`trim_memory.level`,
-			`navigation.to`,
-			`navigation.from`,
-			`navigation.source`,
 			`profile.trigger`,
 			`profile.format`,
 		}...)
@@ -3038,7 +3033,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 		var attachments string
 
 		var appExit event.AppExit
-		var logString event.LogString
 		var logData event.Log
 		var gestureLongClick event.GestureLongClick
 		var gestureClick event.GestureClick
@@ -3054,7 +3048,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 		var memoryUsage event.MemoryUsage
 		var trimMemory event.TrimMemory
 		var cpuUsage event.CPUUsage
-		var navigation event.Navigation
 		var screenView event.ScreenView
 		var userDefAttr map[string][]any
 		var bugReport event.BugReport
@@ -3264,10 +3257,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 				&appExit.ProcessName,
 				&appExit.PID,
 
-				// log string
-				&logString.SeverityText,
-				&logString.String,
-
 				// lifecycle activity
 				&lifecycleActivity.Type,
 				&lifecycleActivity.ClassName,
@@ -3296,11 +3285,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 
 				// trim memory
 				&trimMemory.Level,
-
-				// navigation
-				&navigation.To,
-				&navigation.From,
-				&navigation.Source,
 
 				// profile
 				&profile.Trigger,
@@ -3417,9 +3401,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 		case event.TypeAppExit:
 			ev.AppExit = &appExit
 			session.Events = append(session.Events, ev)
-		case event.TypeString:
-			ev.LogString = &logString
-			session.Events = append(session.Events, ev)
 		case event.TypeLog:
 			ev.Log = &logData
 			session.Events = append(session.Events, ev)
@@ -3482,9 +3463,6 @@ func (a *App) GetSessionEvents(ctx context.Context, rch driver.Conn, sessionId u
 			session.Events = append(session.Events, ev)
 		case event.TypeCPUUsage:
 			ev.CPUUsage = &cpuUsage
-			session.Events = append(session.Events, ev)
-		case event.TypeNavigation:
-			ev.Navigation = &navigation
 			session.Events = append(session.Events, ev)
 		case event.TypeScreenView:
 			if err := unmarshalAttachments(attachments, &ev.Attachments); err != nil {

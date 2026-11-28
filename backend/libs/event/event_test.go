@@ -1038,10 +1038,10 @@ func TestValidateAttachmentLimit(t *testing.T) {
 		return EventField{
 			ID:          uuid.New(),
 			AppID:       uuid.New(),
-			Type:        TypeString,
+			Type:        TypeLog,
 			Timestamp:   time.Now(),
 			Attribute:   Attribute{OSName: "android"},
-			LogString:   &LogString{String: "log line"},
+			Log:         &Log{Body: "log line", SeverityText: "info", SeverityNumber: 12},
 			Attachments: attachments,
 		}
 	}
@@ -1595,7 +1595,6 @@ func TestValidateNullPayload(t *testing.T) {
 		{osName: "android", evType: TypeLifecycleActivity},
 		{osName: "android", evType: TypeLifecycleFragment},
 		{osName: "android", evType: TypeTrimMemory},
-		{osName: "android", evType: TypeNavigation},
 		// ios only event types
 		{osName: "ios", evType: TypeAppHang},
 		{osName: "ios", evType: TypeLifecycleViewController},
@@ -1613,7 +1612,6 @@ func TestValidateNullPayload(t *testing.T) {
 		{osName: "ios", evType: TypeHttp},
 		{osName: "ios", evType: TypeCPUUsage},
 		{osName: "ios", evType: TypeScreenView},
-		{osName: "ios", evType: TypeString},
 		{osName: "ios", evType: TypeLog},
 		{osName: "ios", evType: TypeCustom},
 		{osName: "ios", evType: TypeBugReport},

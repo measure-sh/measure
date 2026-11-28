@@ -314,12 +314,10 @@ type EventRow struct {
 	// "foreground" or "background".
 	LifecycleAppType string
 
-	// CustomName is the name of a Type "custom" event, LogBody the text of a
-	// Type "log" event and LogString the text of a Type "string" event. Each
-	// is written only when set.
+	// CustomName is the name of a Type "custom" event and LogBody the text of
+	// a Type "log" event. Each is written only when set.
 	CustomName string
 	LogBody    string
-	LogString  string
 
 	HttpURL        string
 	HttpMethod     string
@@ -595,10 +593,6 @@ func eventRowColumns(teamID, appID string, row EventRow) ([]string, []string) {
 	if row.LogBody != "" {
 		cols = append(cols, "`log.body`")
 		vals = append(vals, quote(row.LogBody))
-	}
-	if row.LogString != "" {
-		cols = append(cols, "`string.string`")
-		vals = append(vals, quote(row.LogString))
 	}
 
 	if !row.InsertedAt.IsZero() {
@@ -1014,23 +1008,6 @@ func (h *TestHelper) SeedIssueEventWithFullAttributes(
 		DeviceManufacturer: "TestCo",
 		DeviceName:         "pixel",
 	})
-}
-
-// SeedNavigationEventInSession inserts a navigation event with a known
-// session_id and destination screen name.
-func (h *TestHelper) SeedNavigationEventInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, destination string, ts time.Time) {
-	t.Helper()
-	query := fmt.Sprintf(
-		`INSERT INTO measure.events (id, type, session_id, app_id, team_id, timestamp, user_triggered, `+
-			"`attribute.installation_id`, `attribute.app_version`, `attribute.app_build`, "+
-			"`attribute.app_unique_id`, `attribute.measure_sdk_version`, "+
-			"`navigation.to`) "+
-			`VALUES ('%s', 'navigation', '%s', '%s', '%s', '%s', false, '%s', 'v1', '1', 'com.test', '0.1', '%s')`,
-		uuid.New().String(), sessionID, appID, teamID,
-		ts.UTC().Format("2006-01-02 15:04:05"), uuid.New().String(), destination)
-	if err := h.ChConn.Exec(ctx, query); err != nil {
-		t.Fatalf("seed navigation event: %v", err)
-	}
 }
 
 // SeedLifecycleActivityInSession inserts a lifecycle_activity event with a

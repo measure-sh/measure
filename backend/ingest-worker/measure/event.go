@@ -796,17 +796,6 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`app_exit.pid`, nil)
 		}
 
-		// string
-		if e.events[i].IsString() {
-			row.
-				Set(`string.severity_text`, e.events[i].LogString.SeverityText).
-				Set(`string.string`, e.events[i].LogString.String)
-		} else {
-			row.
-				Set(`string.severity_text`, nil).
-				Set(`string.string`, nil)
-		}
-
 		// log
 		if e.events[i].IsLog() {
 			row.
@@ -1165,19 +1154,6 @@ func (e eventreq) ingestEvents(ctx context.Context) error {
 				Set(`cpu_usage.interval`, nil).
 				Set(`cpu_usage.percentage_usage`, nil)
 
-		}
-
-		// navigation
-		if e.events[i].IsNavigation() {
-			row.
-				Set(`navigation.to`, e.events[i].Navigation.To).
-				Set(`navigation.from`, e.events[i].Navigation.From).
-				Set(`navigation.source`, e.events[i].Navigation.Source)
-		} else {
-			row.
-				Set(`navigation.to`, nil).
-				Set(`navigation.from`, nil).
-				Set(`navigation.source`, nil)
 		}
 
 		// screen view

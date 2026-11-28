@@ -30,7 +30,6 @@ type sessionFixture struct {
 	background  uuid.UUID
 	custom      uuid.UUID
 	log         uuid.UUID
-	logString   uuid.UUID
 	activity    uuid.UUID
 	patched     uuid.UUID
 	patchID     uuid.UUID
@@ -403,7 +402,6 @@ func newSessionTextFixture(t *testing.T) (sessionFixture, time.Time) {
 		appID:      uuid.New(),
 		custom:     uuid.New(),
 		log:        uuid.New(),
-		logString:  uuid.New(),
 		screenView: uuid.New(),
 		activity:   uuid.New(),
 		fatal:      uuid.New(),
@@ -419,10 +417,6 @@ func newSessionTextFixture(t *testing.T) (sessionFixture, time.Time) {
 	th.SeedEventRows(ctx, t, f.teamID.String(), f.appID.String(), 1, testinfra.EventRow{
 		Type: "log", SessionID: f.log.String(),
 		LogBody: "payment gateway timed out", Timestamp: base.Add(time.Minute),
-	})
-	th.SeedEventRows(ctx, t, f.teamID.String(), f.appID.String(), 1, testinfra.EventRow{
-		Type: "string", SessionID: f.logString.String(),
-		LogString: "legacy log line", Timestamp: base.Add(2 * time.Minute),
 	})
 	th.SeedScreenViewInSession(ctx, t, f.teamID.String(), f.appID.String(), f.screenView.String(), "CheckoutScreen", base.Add(3*time.Minute))
 	th.SeedLifecycleActivityInSession(ctx, t, f.teamID.String(), f.appID.String(), f.activity.String(), "created", "com.app.HomeActivity", base.Add(4*time.Minute))
@@ -460,7 +454,6 @@ func TestGetSessionsWithTextFilter(t *testing.T) {
 		{"custom event by name", "session_custom_event", filter.OperatorIn, "checkout_completed", f.custom},
 		{"custom event by substring", "session_custom_event", filter.OperatorContains, "checkout", f.custom},
 		{"log body", "session_log", filter.OperatorContains, "gateway", f.log},
-		{"log string", "session_log", filter.OperatorContains, "legacy", f.logString},
 		{"exception type", "session_error_text", filter.OperatorContains, "NullPointer", f.fatal},
 		{"exception message", "session_error_text", filter.OperatorContains, "boom on checkout", f.fatal},
 		{"anr message", "session_error_text", filter.OperatorContains, "input dispatch", f.anr},

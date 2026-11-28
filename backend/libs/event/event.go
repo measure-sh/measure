@@ -29,7 +29,6 @@ const (
 	maxTypeChars                              = 32
 	maxAppExitReasonChars                     = 64
 	maxAppExitImportanceChars                 = 32
-	maxSeverityTextChars                      = 10
 	maxLogBodyChars                           = 1000
 	maxGestureLongClickTargetChars            = 128
 	maxGestureLongClickTargetIDChars          = 128
@@ -62,9 +61,6 @@ const (
 	maxHttpMethodChars                        = 16
 	maxHttpClientChars                        = 32
 	maxTrimMemoryLevelChars                   = 64
-	maxNavigationToChars                      = 128
-	maxNavigationFromChars                    = 128
-	maxNavigationSourceChars                  = 128
 	maxScreenViewNameChars                    = 1024
 	maxCustomNameChars                        = 64
 	maxBugReportDescChars                     = 4000
@@ -88,7 +84,6 @@ const TypeANR = "anr"
 const TypeAppHang = "app_hang"
 const TypeException = "exception"
 const TypeAppExit = "app_exit"
-const TypeString = "string"
 const TypeLog = "log"
 const TypeGestureLongClick = "gesture_long_click"
 const TypeGestureClick = "gesture_click"
@@ -107,7 +102,6 @@ const TypeMemoryUsage = "memory_usage"
 const TypeMemoryUsageAbs = "memory_usage_absolute"
 const TypeTrimMemory = "trim_memory"
 const TypeCPUUsage = "cpu_usage"
-const TypeNavigation = "navigation"
 const TypeScreenView = "screen_view"
 const TypeBugReport = "bug_report"
 const TypeSessionStart = "session_start"
@@ -179,8 +173,7 @@ var androidValidTypes = []string{
 	TypeColdLaunch, TypeWarmLaunch, TypeHotLaunch,
 	TypeNetworkChange, TypeHttp,
 	TypeMemoryUsage, TypeMemoryUsageAbs, TypeTrimMemory,
-	TypeCPUUsage, TypeNavigation, TypeScreenView,
-	TypeString,
+	TypeCPUUsage, TypeScreenView,
 	TypeLog,
 	TypeCustom,
 	TypeBugReport,
@@ -201,7 +194,6 @@ var iOSValidTypes = []string{
 	TypeMemoryUsageAbs,
 	TypeCPUUsage,
 	TypeScreenView,
-	TypeString,
 	TypeLog,
 	TypeCustom,
 	TypeBugReport,
@@ -633,11 +625,6 @@ type AppExit struct {
 	PID         string `json:"pid"`
 }
 
-type LogString struct {
-	SeverityText string `json:"severity_text"`
-	String       string `json:"string" binding:"required"`
-}
-
 type Log struct {
 	SeverityText   string `json:"severity_text"`
 	SeverityNumber int32  `json:"severity_number"`
@@ -805,12 +792,6 @@ type CPUUsage struct {
 	PercentageUsage float64 `json:"percentage_usage" binding:"required"`
 }
 
-type Navigation struct {
-	From   string `json:"from"`
-	To     string `json:"to" binding:"required"`
-	Source string `json:"source"`
-}
-
 type ScreenView struct {
 	Name string `json:"name" binding:"required"`
 }
@@ -850,7 +831,6 @@ type EventField struct {
 	AppHang                 *AppHang                 `json:"app_hang,omitempty"`
 	Exception               *Exception               `json:"exception,omitempty"`
 	AppExit                 *AppExit                 `json:"app_exit,omitempty"`
-	LogString               *LogString               `json:"string,omitempty"`
 	Log                     *Log                     `json:"log,omitempty"`
 	GestureLongClick        *GestureLongClick        `json:"gesture_long_click,omitempty"`
 	GestureScroll           *GestureScroll           `json:"gesture_scroll,omitempty"`
@@ -869,7 +849,6 @@ type EventField struct {
 	MemoryUsageAbs          *MemoryUsageAbs          `json:"memory_usage_absolute,omitempty"`
 	TrimMemory              *TrimMemory              `json:"trim_memory,omitempty"`
 	CPUUsage                *CPUUsage                `json:"cpu_usage,omitempty"`
-	Navigation              *Navigation              `json:"navigation,omitempty"`
 	ScreenView              *ScreenView              `json:"screen_view,omitempty"`
 	BugReport               *BugReport               `json:"bug_report,omitempty"`
 	Custom                  *Custom                  `json:"custom,omitempty"`
@@ -1140,18 +1119,6 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		}
 		if len(e.AppExit.Importance) > maxAppExitImportanceChars {
 			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `app_exit.importance`, maxAppExitImportanceChars)
-		}
-	}
-
-	if e.IsString() {
-		if e.LogString == nil {
-			return fmt.Errorf(`%q must not be null`, e.Type)
-		}
-		if len(e.LogString.String) < 1 {
-			return fmt.Errorf(`%q must not be empty`, `string`)
-		}
-		if len(e.LogString.SeverityText) > maxSeverityTextChars {
-			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `string.severity_text`, maxSeverityTextChars)
 		}
 	}
 
@@ -1477,21 +1444,6 @@ func (e *EventField) Validate(opts ...ingest.ValidationOptions) error {
 		}
 	}
 
-	if e.IsNavigation() {
-		if e.Navigation == nil {
-			return fmt.Errorf(`%q must not be null`, e.Type)
-		}
-		if len(e.Navigation.To) > maxNavigationToChars {
-			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `navigation.to`, maxNavigationToChars)
-		}
-		if len(e.Navigation.From) > maxNavigationFromChars {
-			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `navigation.from`, maxNavigationFromChars)
-		}
-		if len(e.Navigation.Source) > maxNavigationSourceChars {
-			return fmt.Errorf(`%q exceeds maximum allowed characters of (%d)`, `navigation.source`, maxNavigationSourceChars)
-		}
-	}
-
 	if e.IsScreenView() {
 		if e.ScreenView == nil {
 			return fmt.Errorf(`%q must not be null`, e.Type)
@@ -1593,12 +1545,6 @@ func (e EventField) IsAppHang() bool {
 // exit event.
 func (e EventField) IsAppExit() bool {
 	return e.Type == TypeAppExit
-}
-
-// IsString returns true for string
-// event.
-func (e EventField) IsString() bool {
-	return e.Type == TypeString
 }
 
 // IsLog returns true for log
@@ -1711,12 +1657,6 @@ func (e EventField) IsTrimMemory() bool {
 // event.
 func (e EventField) IsCPUUsage() bool {
 	return e.Type == TypeCPUUsage
-}
-
-// IsNavigation returns true for navigation
-// event.
-func (e EventField) IsNavigation() bool {
-	return e.Type == TypeNavigation
 }
 
 // IsScreenView returns true for screen

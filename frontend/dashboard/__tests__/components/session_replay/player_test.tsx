@@ -105,10 +105,11 @@ describe("session replay player", () => {
         threads: {
           main: [
             {
-              event_type: "string",
+              event_type: "log",
               thread_name: "main",
               severity_text: "debug",
-              string: "Rendered product grid",
+              severity_number: 8,
+              body: "Rendered product grid",
               timestamp: "2026-04-10T10:00:00Z",
             },
             {

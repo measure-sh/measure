@@ -223,8 +223,8 @@ func seedIssueEventWithDataInSession(
 	th.SeedIssueEventWithDataInSession(ctx, t, teamID, appID, sessionID, eventType, fingerprint, handled, exceptionsJSON, ts)
 }
 
-func seedNavigationEventInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, destination string, ts time.Time) {
-	th.SeedNavigationEventInSession(ctx, t, teamID, appID, sessionID, destination, ts)
+func seedScreenViewInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, screenName string, ts time.Time) {
+	th.SeedScreenViewInSession(ctx, t, teamID, appID, sessionID, screenName, ts)
 }
 
 func seedLifecycleActivityInSession(ctx context.Context, t *testing.T, teamID, appID, sessionID, activityType, className string, ts time.Time) {

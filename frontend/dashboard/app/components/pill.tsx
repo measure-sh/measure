@@ -48,7 +48,6 @@ export enum PillType {
   SessionEventLifecycleSwiftUI = "session_event_lifecycle_swift_ui",
   SessionEventLifecycleApp = "session_event_lifecycle_app",
   SessionEventAppExit = "session_event_app_exit",
-  SessionEventNavigation = "session_event_navigation",
   SessionEventNetworkChange = "session_event_network_change",
   SessionEventScreenView = "session_event_screen_view",
   SessionEventColdLaunch = "session_event_cold_launch",
@@ -232,10 +231,6 @@ const pillDefaults: Record<
   },
   [PillType.SessionEventLifecycleApp]: { label: "App", ...sessionIndigo },
   [PillType.SessionEventAppExit]: { label: "App Exit", ...sessionIndigo },
-  [PillType.SessionEventNavigation]: {
-    label: "Navigation",
-    ...sessionFuchsia,
-  },
   [PillType.SessionEventNetworkChange]: {
     label: "Network Change",
     ...sessionCyan,

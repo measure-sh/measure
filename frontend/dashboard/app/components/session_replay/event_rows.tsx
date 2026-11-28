@@ -49,7 +49,6 @@ const eventPillTypes: Record<string, PillType> = {
   lifecycle_swift_ui: PillType.SessionEventLifecycleSwiftUI,
   lifecycle_app: PillType.SessionEventLifecycleApp,
   app_exit: PillType.SessionEventAppExit,
-  navigation: PillType.SessionEventNavigation,
   network_change: PillType.SessionEventNetworkChange,
   screen_view: PillType.SessionEventScreenView,
   cold_launch: PillType.SessionEventColdLaunch,
@@ -58,7 +57,6 @@ const eventPillTypes: Record<string, PillType> = {
   trim_memory: PillType.SessionEventTrimMemory,
   trace: PillType.SessionEventTrace,
   custom: PillType.SessionEventCustom,
-  string: PillType.SessionEventLog,
   log: PillType.SessionEventLog,
   profile: PillType.SessionEventProfile,
 };
@@ -87,7 +85,7 @@ export function pillTypeForEvent(
     }
     return PillType.SessionEventError;
   }
-  if (eventType === "log" || eventType === "string") {
+  if (eventType === "log") {
     return logPillTypes[logSeverity(eventDetails)] ?? PillType.SessionEventLog;
   }
   return eventPillTypes[eventType] ?? PillType.SessionEventDefault;
@@ -137,9 +135,6 @@ export function sessionEventTitle(
     return String(
       eventDetails?.description || eventDetails?.bug_report_id || "",
     );
-  }
-  if (eventType === "string") {
-    return String(eventDetails?.string ?? "");
   }
   if (eventType === "log") {
     return String(eventDetails?.body ?? "");
@@ -192,9 +187,6 @@ export function sessionEventTitle(
   }
   if (eventType === "app_exit") {
     return String(eventDetails?.reason ?? "");
-  }
-  if (eventType === "navigation") {
-    return String(eventDetails?.to ?? "");
   }
   if (eventType === "network_change") {
     const named = (type: unknown, generation: unknown) => {

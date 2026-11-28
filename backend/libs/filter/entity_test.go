@@ -867,8 +867,8 @@ func TestSessionTextKeysReadTheSessionArrays(t *testing.T) {
 	}{
 		{"session_custom_event", OperatorIn, "hasAny(unique_custom_type_names, ?)"},
 		{"session_custom_event", OperatorContains, "arrayExists(value -> value ilike ?, unique_custom_type_names)"},
-		{"session_log", OperatorContains, "arrayExists(value -> value ilike ?, arrayConcat(unique_logs, unique_strings))"},
-		{"session_log", OperatorNotContains, "not arrayExists(value -> value ilike ?, arrayConcat(unique_logs, unique_strings))"},
+		{"session_log", OperatorContains, "arrayExists(value -> value ilike ?, unique_logs)"},
+		{"session_log", OperatorNotContains, "not arrayExists(value -> value ilike ?, unique_logs)"},
 		{"session_error_text", OperatorContains, "arrayExists(value -> value ilike ?, " + errorTextArrays + ")"},
 		{"session_error_text", OperatorEndsWith, "arrayExists(value -> value ilike ?, " + errorTextArrays + ")"},
 		{"session_screen", OperatorIn, "hasAny(" + screenArrays + ", ?)"},
@@ -947,7 +947,7 @@ func TestSessionsAggregatedKeyBindingsReadThePerSessionTotals(t *testing.T) {
 		{"user_id", OperatorIn, []string{"alice"}, "hasAny(groupUniqArrayArray(user_ids), ?)"},
 		{"patch_id", OperatorIsNotSet, nil, "max(patch_id) = ?"},
 		{"patch_version", OperatorIn, []string{"1.2.0-patch.3"}, "max(patch_version) in ?"},
-		{"session_log", OperatorContains, []string{"boom"}, "arrayExists(value -> value ilike ?, arrayConcat(groupUniqArrayArray(unique_logs), groupUniqArrayArray(unique_strings)))"},
+		{"session_log", OperatorContains, []string{"boom"}, "arrayExists(value -> value ilike ?, groupUniqArrayArray(unique_logs))"},
 		{"session_screen", OperatorIn, []string{"Checkout"}, "hasAny(" + screenArrays + ", ?)"},
 		{"session_error_text", OperatorContains, []string{"boom"}, "arrayExists(value -> value ilike ?, " + errorTextArrays + ")"},
 	}

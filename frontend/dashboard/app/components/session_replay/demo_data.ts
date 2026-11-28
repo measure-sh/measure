@@ -205,11 +205,12 @@ export const demoSession = {
           .toISO(),
       },
       {
-        event_type: "string",
+        event_type: "log",
         user_defined_attribute: null,
         thread_name: "main",
         severity_text: "debug",
-        string: "Rendered product grid (24 items)",
+        severity_number: 8,
+        body: "Rendered product grid (24 items)",
         timestamp: demoLastEventTime
           .minus({ minutes: 7.5 })
           .plus({ milliseconds: 960 })
@@ -327,11 +328,12 @@ export const demoSession = {
         ],
       },
       {
-        event_type: "string",
+        event_type: "log",
         user_defined_attribute: null,
         thread_name: "main",
         severity_text: "info",
-        string: "Added runner-sneakers to cart (qty 1)",
+        severity_number: 12,
+        body: "Added runner-sneakers to cart (qty 1)",
         timestamp: demoLastEventTime
           .minus({ minutes: 7.5 })
           .plus({ milliseconds: 3450 })
@@ -528,11 +530,12 @@ export const demoSession = {
         ],
       },
       {
-        event_type: "string",
+        event_type: "log",
         user_defined_attribute: null,
         thread_name: "main",
         severity_text: "warning",
-        string: "Payment validation failed: no payment method selected",
+        severity_number: 16,
+        body: "Payment validation failed: no payment method selected",
         timestamp: demoLastEventTime
           .minus({ minutes: 7.5 })
           .plus({ milliseconds: 9850 })
